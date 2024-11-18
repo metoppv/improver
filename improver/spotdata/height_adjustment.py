@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 
 """Applies height adjustment for height above ground level spot forecasts."""
@@ -36,7 +36,7 @@ class SpotHeightAdjustment(BasePlugin):
     or lowest threshold's probability from the original cube respectively for that spot.
     """
 
-    def __init__(self, neighbour_selection_method: str = "nearest",) -> None:
+    def __init__(self, neighbour_selection_method: str = "nearest") -> None:
         """
         Args:
             neighbour_selection_method:
@@ -93,7 +93,7 @@ class SpotHeightAdjustment(BasePlugin):
 
         broadcast_thresholds = np.broadcast_to(thresholds, (n_sites, n_thresholds))
         broadcast_vertical_displacement = np.transpose(
-            np.broadcast_to(vertical_displacement.data, (n_thresholds, n_sites),)
+            np.broadcast_to(vertical_displacement.data, (n_thresholds, n_sites))
         )
         desired_thresholds = broadcast_thresholds + broadcast_vertical_displacement.data
 
@@ -120,7 +120,7 @@ class SpotHeightAdjustment(BasePlugin):
         spot_cube.data = spot_data
         return spot_cube
 
-    def process(self, spot_cube: Cube, neighbour: Cube,) -> Cube:
+    def process(self, spot_cube: Cube, neighbour: Cube) -> Cube:
         """
         Adjusts spot forecast data to be relative to site height rather than
         grid square orography height.

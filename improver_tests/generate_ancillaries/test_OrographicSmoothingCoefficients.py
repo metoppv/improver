@@ -1,11 +1,12 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """
 Unit tests for the OrographicSmoothingCoefficients utility.
 
 """
+
 import numpy as np
 import pytest
 from iris.cube import Cube, CubeList
@@ -23,7 +24,7 @@ from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 def orography_fixture() -> Cube:
     """Orography cube with three gradients in each dimension."""
 
-    data = np.array([[0, 0, 0], [1, 3, 5], [2, 6, 10]], dtype=np.float32,)
+    data = np.array([[0, 0, 0], [1, 3, 5], [2, 6, 10]], dtype=np.float32)
     cube = set_up_variable_cube(
         data,
         name="surface_altitude",

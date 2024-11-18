@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Script to apply coefficients for Ensemble Model Output
 Statistics (EMOS), otherwise known as Non-homogeneous Gaussian
@@ -121,13 +121,9 @@ def process(
         ResamplePercentiles,
     )
 
-    (
-        forecast,
-        coefficients,
-        additional_predictors,
-        land_sea_mask,
-        prob_template,
-    ) = split_forecasts_and_coeffs(cubes, land_sea_mask_name)
+    (forecast, coefficients, additional_predictors, land_sea_mask, prob_template) = (
+        split_forecasts_and_coeffs(cubes, land_sea_mask_name)
+    )
 
     if validity_times is not None and not validity_time_check(forecast, validity_times):
         if percentiles:

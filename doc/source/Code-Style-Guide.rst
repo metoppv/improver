@@ -68,11 +68,56 @@ In general, follow the very sensible `Google style
 guide <https://google.github.io/styleguide/pyguide.html>`_.
 
 Code format should match that produced by the
-`black <https://github.com/psf/black>`_ code formatter - this is
-checked as part of the test suite on Github Actions. Codacy will give
-you a mark based around ``pylint`` (with some caveats). A pylint score
-of >8 is OK, >9 is good - skip pylint-misled errors for e.g. numpy
-(e.g. with ``pylint --extension-pkg-whitelist=numpy``).
+`ruff <https://docs.astral.sh/ruff/>`_ code formatter - this is
+checked as part of the pre-commit which is itself also executed on Github
+Actions.
+Codacy will give you a mark based around ``pylint`` (with some caveats).  A
+pylint score of >8 is OK, >9 is good - skip pylint-misled errors for e.g.
+numpy (e.g. with ``pylint --extension-pkg-whitelist=numpy``).
+
+Pre-commit Hook
+~~~~~~~~~~~~~~~
+A `pre-commit <https://pre-commit.com/>`_ hook can be added to facilitate the
+development of this code base.  Ensure that you have python available on the
+path, then install the pre-commit hook by running:
+
+::
+
+    pip install pre-commit
+
+From this you will want to install the pre-commit hook.  Do so from within your
+working copy:
+
+::
+
+    pre-commit install
+
+pre-commit checks will run against modified files when you commit from then on.
+
+These pre-commit hooks will also run as part of continuous integration to
+maintain standards in the project.
+Numerous code QOL checks are performed including checking for copyright headers,
+presence of python init files and ensuring that code passes rules set by both
+`ruff linter <https://docs.astral.sh/ruff/linter/>`_ (providing similar
+purpose to tools like isort, flake8, etc.) and
+`ruff formatter <https://docs.astral.sh/ruff/formatter/>`_ (providing similar
+purpose to black).
+
+You can run pre-commit manually without commiting:
+
+All files:
+
+::
+
+    pre-commit run --all-files
+
+Specific files:
+
+::
+
+    pre-commit run --files <some-file> <some-other-file>
+
+See `pre=commit official docs <https://pre-commit.com/>`_ for more information.
 
 Modular code
 ~~~~~~~~~~~~
@@ -738,7 +783,7 @@ The following licence information should be added to each new file:
 
 ::
 
-   # (C) Crown copyright, Met Office. All rights reserved.
+   # (C) Crown Copyright, Met Office. All rights reserved.
    #
    # This file is part of IMPROVER and is released under a BSD 3-Clause license.
    # See LICENSE in the root of the repository for full licensing details.

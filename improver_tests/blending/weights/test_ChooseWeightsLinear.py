@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the ChooseWeightsLinear plugin."""
 
@@ -213,12 +213,9 @@ class Test__get_interpolation_inputs_from_dict(IrisTest):
 
         plugin = ChooseWeightsLinear(self.weighting_coord_name, config_dict)
 
-        (
-            source_points,
-            target_points,
-            source_weights,
-            fill_value,
-        ) = plugin._get_interpolation_inputs_from_dict(self.cube)
+        (source_points, target_points, source_weights, fill_value) = (
+            plugin._get_interpolation_inputs_from_dict(self.cube)
+        )
 
         self.assertArrayAlmostEqual(source_points, self.expected_source_points)
         self.assertArrayAlmostEqual(target_points, self.expected_target_points)
@@ -240,12 +237,9 @@ class Test__get_interpolation_inputs_from_dict(IrisTest):
 
         plugin = ChooseWeightsLinear(self.weighting_coord_name, config_dict)
 
-        (
-            source_points,
-            target_points,
-            source_weights,
-            fill_value,
-        ) = plugin._get_interpolation_inputs_from_dict(self.cube)
+        (source_points, target_points, source_weights, fill_value) = (
+            plugin._get_interpolation_inputs_from_dict(self.cube)
+        )
 
         self.assertArrayAlmostEqual(source_points, self.expected_source_points)
         self.assertArrayAlmostEqual(target_points, self.expected_target_points)
@@ -393,7 +387,7 @@ def test_new_weights_with_dict_masked_input(single_thresh_input_cube, weights, p
     """Test a new weights cube is created as intended when we have a masked
     input gridded or spot forecast cube."""
     single_thresh_input_cube.data = np.ma.masked_array(
-        single_thresh_input_cube.data, np.ones(single_thresh_input_cube.data.shape),
+        single_thresh_input_cube.data, np.ones(single_thresh_input_cube.data.shape)
     )
     new_weights_cube = plugin._create_new_weights_cube(
         single_thresh_input_cube, weights
@@ -488,9 +482,7 @@ def multi_model_inputs(request, output_type):
         return no_threshold_cube, reference_cubelist
 
 
-@pytest.mark.parametrize(
-    "output_type", ["threshold", "single_threshold"],
-)
+@pytest.mark.parametrize("output_type", ["threshold", "single_threshold"])
 def test__slice_input_slices(plugin, multi_model_inputs):
     """Test function slices out extra dimensions to leave only the spatial
     dimensions. Tested using a cube with and without a threshold coordinate."""

@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Plugin to regrid with land-sea awareness"""
 
@@ -331,8 +331,9 @@ class AdjustLandSeaPoints(PostProcessingPlugin):
         # Check cube and output_land are on the same grid:
         if not spatial_coords_match([cube, output_land]):
             raise ValueError(
-                "X and Y coordinates do not match for cubes {}"
-                "and {}".format(repr(cube), repr(output_land))
+                "X and Y coordinates do not match for cubes {}" "and {}".format(
+                    repr(cube), repr(output_land)
+                )
             )
         self.output_land = output_land
 

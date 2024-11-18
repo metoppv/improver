@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """CLI to manipulate a reliability table cube."""
 
@@ -45,6 +45,6 @@ def process(
     from improver.calibration.reliability_calibration import ManipulateReliabilityTable
 
     plugin = ManipulateReliabilityTable(
-        minimum_forecast_count=minimum_forecast_count, point_by_point=point_by_point,
+        minimum_forecast_count=minimum_forecast_count, point_by_point=point_by_point
     )
     return plugin(reliability_table)

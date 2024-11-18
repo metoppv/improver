@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Module for calculating the probability of specific precipitation phases."""
 
@@ -168,7 +168,7 @@ class PrecipPhaseProbability(BasePlugin):
         self._extract_input_cubes(cubes)
 
         result_data = np.where(
-            self.comparator(self.altitudes, self.falling_level_cube.data), 1, 0,
+            self.comparator(self.altitudes, self.falling_level_cube.data), 1, 0
         ).astype(np.int8)
         mandatory_attributes = generate_mandatory_attributes([self.falling_level_cube])
 

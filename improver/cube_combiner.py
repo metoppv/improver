@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Module containing plugins for combining cubes"""
 
@@ -207,7 +207,7 @@ class CubeCombiner(BasePlugin):
 
     @staticmethod
     def _check_dimensions_match(
-        cube_list: Union[List[Cube], CubeList], comparators: List[Callable] = [eq],
+        cube_list: Union[List[Cube], CubeList], comparators: List[Callable] = [eq]
     ) -> None:
         """
         Check all coordinate dimensions on the input cubes match according to
@@ -408,7 +408,7 @@ class CubeCombiner(BasePlugin):
         )
 
     def process(
-        self, cube_list: Union[List[Cube], CubeList], new_diagnostic_name: str,
+        self, cube_list: Union[List[Cube], CubeList], new_diagnostic_name: str
     ) -> Cube:
         """
         Combine data and metadata from a list of input cubes into a single

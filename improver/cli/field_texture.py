@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Script to calculate whether or not the input field texture exceeds a given threshold."""
 
@@ -17,7 +17,6 @@ def process(
     diagnostic_threshold: float = 0.8125,
     model_id_attr: str = None,
 ):
-
     """Calculates field texture for a given neighbourhood radius.
 
        The field texture is an assessment of the transitions/edges within a

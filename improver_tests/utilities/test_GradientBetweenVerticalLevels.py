@@ -1,9 +1,8 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the GradientBetweenVerticalLevels plugin."""
-
 
 import iris
 import numpy as np
@@ -139,9 +138,7 @@ def test_height_and_no_orography(
     """Test an error is raised if a height coordinate is present but no orography cube
     is present."""
 
-    with pytest.raises(
-        ValueError, match="No orography cube provided",
-    ):
+    with pytest.raises(ValueError, match="No orography cube provided"):
         GradientBetweenVerticalLevels()(
             iris.cube.CubeList(
                 [
@@ -159,9 +156,7 @@ def test_pressure_coord_and_no_pressure_levels(
     """Test an error is raised if a pressure coordinate is present but no geopotential_height
     cube is present."""
 
-    with pytest.raises(
-        ValueError, match="No geopotential height",
-    ):
+    with pytest.raises(ValueError, match="No geopotential height"):
         GradientBetweenVerticalLevels()(
             iris.cube.CubeList(
                 [temperature_at_screen_level, temperature_at_850hPa, orography]

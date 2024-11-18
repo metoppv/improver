@@ -1,8 +1,9 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Tests for the CloudCondensationLevel plugin"""
+
 from typing import Tuple
 
 import numpy as np
@@ -28,7 +29,7 @@ def temperature_cube_fixture() -> Cube:
     """Set up a r, y, x cube of temperature data"""
     data = np.full((2, 2, 2), fill_value=300, dtype=np.float32)
     temperature_cube = set_up_variable_cube(
-        data, name="air_temperature", units="K", attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        data, name="air_temperature", units="K", attributes=LOCAL_MANDATORY_ATTRIBUTES
     )
     return temperature_cube
 

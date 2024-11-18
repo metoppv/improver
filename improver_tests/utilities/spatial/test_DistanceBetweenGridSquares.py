@@ -1,9 +1,10 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-""" Tests of DifferenceBetweenAdjacentGridSquares plugin, which encompasses all paths through
+"""Tests of DifferenceBetweenAdjacentGridSquares plugin, which encompasses all paths through
 LatLonCubeDistanceCalculator, ProjectionCubeDistanceCalculator and BaseDistanceCalculator."""
+
 from typing import Tuple
 
 import numpy as np
@@ -131,10 +132,9 @@ def test_latlon_cube(longitudes, is_circular):
     expected_x_distances = (
         np.diff(expected_longitudes) * ONE_DEGREE_DISTANCE_AT_TEST_LATITUDES
     )
-    (
-        calculated_x_distances_cube,
-        calculated_y_distances_cube,
-    ) = DistanceBetweenGridSquares()(input_cube)
+    (calculated_x_distances_cube, calculated_y_distances_cube) = (
+        DistanceBetweenGridSquares()(input_cube)
+    )
     for result, expected in zip(
         (calculated_x_distances_cube, calculated_y_distances_cube),
         (expected_x_distances, expected_y_distances),
@@ -153,10 +153,9 @@ def test_equalarea_cube():
 
     expected_x_distances = np.full(expected_x_distances_cube_shape, spacing)
     expected_y_distances = np.full((2, 3), spacing)
-    (
-        calculated_x_distances_cube,
-        calculated_y_distances_cube,
-    ) = DistanceBetweenGridSquares()(input_cube)
+    (calculated_x_distances_cube, calculated_y_distances_cube) = (
+        DistanceBetweenGridSquares()(input_cube)
+    )
     for result, expected in zip(
         (calculated_x_distances_cube, calculated_y_distances_cube),
         (expected_x_distances, expected_y_distances),
@@ -183,10 +182,9 @@ def test_equalarea_cube_nonstandard_units():
     input_cube = make_equalarea_test_cube((3, 3), grid_spacing=10, units="km")
     expected_x_distances = np.full((3, 2), 10)
     expected_y_distances = np.full((2, 3), 10)
-    (
-        calculated_x_distances_cube,
-        calculated_y_distances_cube,
-    ) = DistanceBetweenGridSquares()(input_cube)
+    (calculated_x_distances_cube, calculated_y_distances_cube) = (
+        DistanceBetweenGridSquares()(input_cube)
+    )
     for result, expected in zip(
         (calculated_x_distances_cube, calculated_y_distances_cube),
         (expected_x_distances, expected_y_distances),
@@ -206,10 +204,9 @@ def test_transverse_mercator_cube():
         ]
     )
     expected_y_distances = np.full((2, 2), TRANSVERSE_MERCATOR_GRID_SPACING)
-    (
-        calculated_x_distances_cube,
-        calculated_y_distances_cube,
-    ) = DistanceBetweenGridSquares()(input_cube)
+    (calculated_x_distances_cube, calculated_y_distances_cube) = (
+        DistanceBetweenGridSquares()(input_cube)
+    )
     for result, expected in zip(
         (calculated_x_distances_cube, calculated_y_distances_cube),
         (expected_x_distances, expected_y_distances),
@@ -236,10 +233,9 @@ def test_distance_cube_with_no_coordinate_system():
     )
     expected_x_distances = np.full((3, 2), 1000)
     expected_y_distances = np.full((2, 3), 1000)
-    (
-        calculated_x_distances_cube,
-        calculated_y_distances_cube,
-    ) = DistanceBetweenGridSquares()(input_cube)
+    (calculated_x_distances_cube, calculated_y_distances_cube) = (
+        DistanceBetweenGridSquares()(input_cube)
+    )
     for result, expected in zip(
         (calculated_x_distances_cube, calculated_y_distances_cube),
         (expected_x_distances, expected_y_distances),

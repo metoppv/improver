@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Tests for the lightning_from_cape_and_precip CLI"""
 
@@ -21,12 +21,7 @@ def test_basic(tmp_path, with_model_attr):
     cape_path = kgo_dir / "cape.nc"
     precipitation_path = kgo_dir / "precipitation_rate.nc"
     output_path = tmp_path / "output.nc"
-    args = [
-        cape_path,
-        precipitation_path,
-        "--output",
-        f"{output_path}",
-    ]
+    args = [cape_path, precipitation_path, "--output", f"{output_path}"]
     if with_model_attr:
         args.append("--model-id-attr=mosg__model_configuration")
         kgo_path = kgo_dir / "kgo_with_model_config.nc"

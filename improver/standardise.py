@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Plugin to standardise metadata"""
 
@@ -227,9 +227,7 @@ class StandardiseMetadata(BasePlugin):
         """
         if not cube.cell_methods:
             return
-        removable_cms = [
-            CellMethod(method="point", coords="time"),
-        ]
+        removable_cms = [CellMethod(method="point", coords="time")]
         updated_cms = []
         for cm in cube.cell_methods:
             if cm in removable_cms:

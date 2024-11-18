@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for SpotHeightAdjustment plugin"""
 
@@ -26,7 +26,7 @@ def prob_cube() -> Cube:
     longitude = np.linspace(-0.25, 0.5, 4)
     wmo_id = ["03854", "03962", "03142", "03331"]
     threshold_coord = DimCoord(
-        points=[50, 100, 1000], var_name="threshold", long_name=name, units="m",
+        points=[50, 100, 1000], var_name="threshold", long_name=name, units="m"
     )
 
     data = np.asarray([[0.1, 0, 0.2, 0.1], [0.7, 0, 0.3, 0.2], [1, 0.4, 0.4, 0.9]])

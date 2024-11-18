@@ -1,9 +1,8 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the nowcast.lightning.NowcastLightning plugin."""
-
 
 import unittest
 from datetime import datetime as dt
@@ -132,7 +131,6 @@ def set_up_lightning_test_cubes(
 
 
 class Test__init__(IrisTest):
-
     """Test the __init__ method accepts keyword arguments."""
 
     def test_with_radius(self):
@@ -145,7 +143,6 @@ class Test__init__(IrisTest):
 
 
 class Test__repr__(IrisTest):
-
     """Test the repr method."""
 
     def test_basic(self):
@@ -167,7 +164,6 @@ class Test__repr__(IrisTest):
 
 
 class Test__update_metadata(IrisTest):
-
     """Test the _update_metadata method."""
 
     def setUp(self):
@@ -230,7 +226,6 @@ class Test__update_metadata(IrisTest):
 
 
 class Test__modify_first_guess(IrisTest):
-
     """Test the _modify_first_guess method."""
 
     def setUp(self):
@@ -258,13 +253,9 @@ class Test__modify_first_guess(IrisTest):
             Has extra coordinate of length(3) "threshold" containing
             points [0.5, 1., 2.] kg m-2.
         """
-        (
-            self.cube,
-            self.fg_cube,
-            self.ltng_cube,
-            self.precip_cube,
-            self.vii_cube,
-        ) = set_up_lightning_test_cubes()
+        (self.cube, self.fg_cube, self.ltng_cube, self.precip_cube, self.vii_cube) = (
+            set_up_lightning_test_cubes()
+        )
         self.plugin = Plugin()
 
     def test_basic(self):
@@ -438,7 +429,6 @@ class Test__modify_first_guess(IrisTest):
 
 
 class Test_apply_precip(IrisTest):
-
     """Test the apply_precip method."""
 
     def setUp(self):
@@ -586,7 +576,6 @@ class Test_apply_precip(IrisTest):
 
 
 class Test_apply_ice(IrisTest):
-
     """Test the apply_ice method."""
 
     def setUp(self):
@@ -712,7 +701,6 @@ class Test_apply_ice(IrisTest):
 
 
 class Test_process(IrisTest):
-
     """Test the nowcast lightning plugin."""
 
     def setUp(self):
@@ -738,13 +726,9 @@ class Test_process(IrisTest):
             Has extra coordinate of length(3) "threshold" containing
             points [0.5, 1., 2.] kg m-2.
         """
-        (
-            _,
-            self.fg_cube,
-            self.ltng_cube,
-            self.precip_cube,
-            self.vii_cube,
-        ) = set_up_lightning_test_cubes(grid_points=16)
+        (_, self.fg_cube, self.ltng_cube, self.precip_cube, self.vii_cube) = (
+            set_up_lightning_test_cubes(grid_points=16)
+        )
         # reset some data and give precip cube a 4 hour forecast period
         self.precip_cube.data[0, ...] = 1.0
         self.precip_cube.coord("forecast_period").points = [4 * 3600.0]

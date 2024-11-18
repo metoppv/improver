@@ -1,9 +1,8 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the nbhood.NeighbourhoodProcessing plugin."""
-
 
 import unittest
 
@@ -17,7 +16,6 @@ from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
 
 
 class Test__init__(IrisTest):
-
     """Test the __init__ method of NeighbourhoodProcessing."""
 
     def test_neighbourhood_method_does_not_exist(self):
@@ -39,7 +37,6 @@ class Test__init__(IrisTest):
 
 
 class Test__calculate_neighbourhood(IrisTest):
-
     """Test the _calculate_neighbourhood method."""
 
     RADIUS = 2500
@@ -374,7 +371,6 @@ class Test__calculate_neighbourhood(IrisTest):
 
 
 class Test_process(IrisTest):
-
     """Test the process method."""
 
     def setUp(self):

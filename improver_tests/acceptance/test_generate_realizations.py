@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """
 Tests for the generate-realizations CLI
@@ -72,13 +72,7 @@ def test_skip_ecc_bounds_extreme_percentiles(tmp_path, bounds_option, kgo):
     kgo_path = kgo_dir / kgo
     percentiles_path = kgo_dir / "few_percentiles_wind_cube.nc"
     output_path = tmp_path / "output.nc"
-    args = [
-        "--realizations-count",
-        "5",
-        percentiles_path,
-        "--output",
-        output_path,
-    ]
+    args = ["--realizations-count", "5", percentiles_path, "--output", output_path]
     if bounds_option:
         args += [bounds_option]
     run_cli(args)

@@ -1,12 +1,13 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """
 This module defines all the utilities used by the "plugins"
 specific for ensemble calibration.
 
 """
+
 from typing import List, Set, Tuple, Union
 
 import iris
@@ -140,7 +141,7 @@ def check_predictor(predictor: str) -> str:
 
 
 def filter_non_matching_cubes(
-    historic_forecast: Cube, truth: Cube,
+    historic_forecast: Cube, truth: Cube
 ) -> Tuple[Cube, Cube]:
     """
     Provide filtering for the historic forecast and truth to make sure

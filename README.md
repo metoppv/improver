@@ -42,3 +42,10 @@ activate your new improver environment
 ```
 conda activate improver
 ```
+
+## Pre-commit Hook
+OPTIONAL: A pre-commit hook can be added to facilitate the development of this code base.
+Ensure that you have python available on the path, then install the pre-commit hook by running `pre-commit install` from within your working copy.
+pre-commit checks will run against modified files when you commit from then on.
+
+These pre-commit hooks will run as part of continuous integration to maintain code quality standards in the project.

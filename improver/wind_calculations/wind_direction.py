@@ -1,8 +1,9 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Module containing wind direction averaging plugins."""
+
 import iris
 import numpy as np
 from iris.coords import CellMethod
@@ -25,8 +26,8 @@ class WindDirection(PostProcessingPlugin):
     find a useful numerical average. ::
 
         z = a + bi
-        a = r*Cos(theta)
-        b = r*Sin(theta)
+        a = r * Cos(theta)
+        b = r * Sin(theta)
         r = radius
 
     The average of two complex numbers is NOT the ANGLE between two points

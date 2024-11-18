@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Simple bias correction plugins."""
 
@@ -395,7 +395,7 @@ class ApplyBiasCorrection(BasePlugin):
                 "Forecast period differ between forecast and bias datasets."
             )
 
-    def process(self, *cubes: Union[Cube, CubeList],) -> Cube:
+    def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
         """Split then apply bias correction using the specified bias values.
 
         Where the bias data is defined point-by-point, the bias-correction will also

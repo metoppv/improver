@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for enforce_consistency utilities."""
 
@@ -29,7 +29,7 @@ def get_percentiles(value, shape):
     bounding percentiles.
     """
     return np.broadcast_to(
-        np.expand_dims([value - 10, value, value + 10], axis=(1, 2),), shape,
+        np.expand_dims([value - 10, value, value + 10], axis=(1, 2)), shape
     )
 
 
@@ -39,7 +39,7 @@ def get_percentile_forecast(value, shape, name):
     """
     data = get_percentiles(value, shape)
     forecast_cube = set_up_percentile_cube(
-        data, percentiles=[10, 50, 90], name=name, units="m s-1",
+        data, percentiles=[10, 50, 90], name=name, units="m s-1"
     )
     return forecast_cube
 
@@ -322,7 +322,7 @@ def test_single_bound_exceptions(
     ),
 )
 def test_double_bounds_exceptions(
-    forecast_type, additive_amount, multiplicative_amount, comparison_operator, msg,
+    forecast_type, additive_amount, multiplicative_amount, comparison_operator, msg
 ):
     """
     Test that correct errors are raised when using two bounds.

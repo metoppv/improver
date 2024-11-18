@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """
 Compare netcdf files using python-netCDF4 library.
@@ -258,7 +258,7 @@ def compare_vars(
         actual_var = actual_ds.variables[var]
         desired_var = desired_ds.variables[var]
         compare_attributes(
-            var_path, actual_var, desired_var, ignored_attributes, reporter,
+            var_path, actual_var, desired_var, ignored_attributes, reporter
         )
         if var in coord_vars:
             compare_data(var_path, actual_var, desired_var, 0.0, 0.0, reporter)

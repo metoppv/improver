@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """
 Plugin to regrid using custom nearest and bilinear methods, both with
@@ -128,10 +128,9 @@ class RegridWithLandSeaMask(PostProcessingPlugin):
             )
 
         # group cube_out's grid points into outside or inside cube_in's domain
-        (
-            outside_input_domain_index,
-            inside_input_domain_index,
-        ) = group_target_points_with_source_domain(cube_in, out_latlons)
+        (outside_input_domain_index, inside_input_domain_index) = (
+            group_target_points_with_source_domain(cube_in, out_latlons)
+        )
 
         # exclude out-of-input-domain target point here
         if len(outside_input_domain_index) > 0:
@@ -197,7 +196,7 @@ class RegridWithLandSeaMask(PostProcessingPlugin):
             # These will be updated for mask/mismatched surface type further below
             index_range = np.arange(weights.shape[0])
             weights[index_range] = basic_weights(
-                index_range, indexes, out_latlons, in_latlons, lat_spacing, lon_spacing,
+                index_range, indexes, out_latlons, in_latlons, lat_spacing, lon_spacing
             )
 
             if WITH_MASK in self.regrid_mode:

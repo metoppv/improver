@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the functions from grid.py."""
 
@@ -109,7 +109,7 @@ def test_latlon_from_cube(request, fixture_name, expected):
 
 
 @pytest.mark.parametrize(
-    "fixture_name", ["latlon_single", "equal_single", "latlon_ens", "equal_ens"],
+    "fixture_name", ["latlon_single", "equal_single", "latlon_ens", "equal_ens"]
 )
 def test_flatten_spatial_dimensions(request, fixture_name):
     """Test the flatten_spatial_dimensions function"""

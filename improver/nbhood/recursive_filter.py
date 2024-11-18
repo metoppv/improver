@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Module to apply a recursive filter to neighbourhooded data."""
 
@@ -24,7 +24,11 @@ class RecursiveFilter(PostProcessingPlugin):
     Apply a recursive filter to the input cube.
     """
 
-    def __init__(self, iterations: Optional[int] = None, edge_width: int = 15,) -> None:
+    def __init__(
+        self,
+        iterations: Optional[int] = None,
+        edge_width: int = 15,
+    ) -> None:
         """
         Initialise the class.
 
@@ -225,7 +229,6 @@ class RecursiveFilter(PostProcessingPlugin):
         axes = ["x", "y"]
 
         for axis, smoothing_coefficient in zip(axes, smoothing_coefficients):
-
             # Check the smoothing coefficient cube name is as expected
             expected_name = self.smoothing_coefficient_name_format.format(axis)
             if smoothing_coefficient.name() != expected_name:
@@ -278,7 +281,10 @@ class RecursiveFilter(PostProcessingPlugin):
         """Pad smoothing coefficients"""
         pad_x, pad_y = [
             pad_cube_with_halo(
-                coeff, 2 * self.edge_width, 2 * self.edge_width, pad_method="symmetric",
+                coeff,
+                2 * self.edge_width,
+                2 * self.edge_width,
+                pad_method="symmetric",
             )
             for coeff in [coeff_x, coeff_y]
         ]
@@ -389,7 +395,9 @@ class RecursiveFilter(PostProcessingPlugin):
             if np.ma.is_masked(cslice.data):
                 mask_cube = cslice.copy(data=cslice.data.mask)
                 slice_coeffs_x, slice_coeffs_y = self._update_coefficients_from_mask(
-                    slice_coeffs_x, slice_coeffs_y, mask_cube,
+                    slice_coeffs_x,
+                    slice_coeffs_y,
+                    mask_cube,
                 )
 
             padded_coefficients_x, padded_coefficients_y = self._pad_coefficients(

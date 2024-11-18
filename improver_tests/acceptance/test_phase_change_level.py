@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """
 Tests for the phase-change-level CLI
@@ -27,11 +27,11 @@ run_cli = acc.run_cli(CLI)
 )
 def test_phase_change(tmp_path, phase_type, kgo_name, horiz_interp, model_id_attr):
     """Testing:
-        snow/sleet level
-        sleet/rain level
-        hail/rain level
-        sleet/rain level leaving below orography points unfilled.
-        Tests are for with and without the provision of the model_id_attr attribute.
+    snow/sleet level
+    sleet/rain level
+    hail/rain level
+    sleet/rain level leaving below orography points unfilled.
+    Tests are for with and without the provision of the model_id_attr attribute.
     """
     pytest.importorskip("stratify")
     test_dir = acc.kgo_root() / CLI
