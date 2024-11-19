@@ -96,7 +96,7 @@ jobs:
       run: echo "PYSHA=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
 
     - name: Cache pre-commit
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       id: pre-commit-cache
       with:
         path: ~/.cache/pre-commit
