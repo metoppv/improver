@@ -62,7 +62,7 @@ INTENSITY_CATEGORIES = {
     "snow": [27, 24],
     "thunder": [30, 29],
     "cloud": [7, 8],
-    "sun": [3, 1]
+    "sun": [3, 1],
 }
 
 

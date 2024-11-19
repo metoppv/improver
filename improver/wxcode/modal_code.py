@@ -739,7 +739,9 @@ class ModalFromGroupings(BaseModalCategory):
             )
             result.replace_coord(new_coord)
 
-    def _get_cloud_equivalents(self, cube: Cube, dry_indices: np.ndarray, time_axis) -> Cube:
+    def _get_cloud_equivalents(
+        self, cube: Cube, dry_indices: np.ndarray, time_axis
+    ) -> Cube:
         """
         Returns a cube with only dry codes in which all wet codes have
         been replaced by their nearest dry cloud equivalent. For example a
@@ -765,7 +767,6 @@ class ModalFromGroupings(BaseModalCategory):
         original[..., dry_indices] = dried[..., dry_indices]
 
         return cube
-
 
     def process(self, cubes: CubeList) -> Cube:
         """Calculate the modal categorical code by grouping weather codes.
