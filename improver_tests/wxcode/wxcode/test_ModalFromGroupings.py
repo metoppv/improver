@@ -61,6 +61,8 @@ INTENSITY_CATEGORIES = {
     "snow_shower": [26, 23],
     "snow": [27, 24],
     "thunder": [30, 29],
+    "cloud": [7, 8],
+    "sun": [3, 1]
 }
 
 
@@ -72,10 +74,6 @@ INTENSITY_CATEGORIES = {
 @pytest.mark.parametrize(
     "data, expected",
     (
-        # A dry dominated set of codes, but one wet code is transformed to its
-        # daytime cloud equivalent and considered in determining the dominant
-        # dry code, which as a result ends up as partly cloud (3).
-        ([1, 1, 1, 2, 2, 9], 3),
         # Sunny day (1), one rain code (15) that is in the minority, expect sun
         # code (1).
         ([1, 1, 1, 15], 1),
@@ -141,6 +139,17 @@ INTENSITY_CATEGORIES = {
         # should be selected i.e. a partly cloudy night code (2) becomes a partly
         # cloudy day code (3).
         ([0, 0, 0, 2, 2, 2, 7, 7], 3),
+        # A dry dominated set of codes, but one shower code is transformed to its
+        # daytime partly cloudy equivalent and considered in determining the dominant
+        # dry code, which as a result ends up as partly cloud (3).
+        ([1, 1, 1, 2, 2, 9], 3),
+        # Dry dominated, 3 sunshine codes, 1 overcast, and 2 light rain. The
+        # overcast cloud cover in the light rain codes is included in determining the
+        # dominant dry code, leading to an overcast symbol overall (8).
+        ([1, 1, 1, 8, 12, 12], 8),
+        # Dry dominated and after cloud equivalence (drizzle becomes overcast (8)).
+        # All codes are unique dry codes, so the most significant is selected (8).
+        ([1, 3, 4, 5, 7, 11], 8),
     ),
 )
 def test_expected_values(wxcode_series, expected):
@@ -160,13 +169,6 @@ def test_expected_values(wxcode_series, expected):
 @pytest.mark.parametrize(
     "data, wet_bias, expected, reverse_wet_values, reverse_wet_keys",
     (
-        # More dry than cloudy, and after cloud equivalence (drizzle becomes
-        # overcast (8)), all codes are unique dry codes, so the most significant
-        # is selected (8).
-        ([1, 3, 4, 5, 7, 11], 1, 8, False, False),
-        # More dry codes (6) than wet codes (4), but the cloud equivalent for the
-        # light rain is cloud (7) which makes this the dominant symbol.
-        ([1, 3, 4, 5, 7, 8, 12, 12, 12, 12], 1, 7, False, False),
         # A wet bias of 2 means that at least 1/(1+2) * 10 = 3.33 codes must be wet
         # in order to produce a wet code. As 4 codes are wet, a wet code is produced.
         ([1, 3, 4, 5, 7, 8, 10, 10, 10, 10], 2, 10, False, False),
@@ -212,6 +214,12 @@ def test_expected_values(wxcode_series, expected):
             False,
             False,
         ),
+        # Wet bias does not impact the contribution of wet code dry equivalents
+        # in determining the overall summary in dry dominated scenarios. Here the
+        # large wet bias does not lead to a partly cloudy summary code, once the
+        # shower code is dried it contributes only a single partly cloudy
+        # code which is insufficient to change the chosen cloudy (7) summary.
+        ([1, 3, 4, 7, 7, 9], 3, 7, False, False),
     ),
 )
 def test_expected_values_wet_bias(
@@ -321,6 +329,21 @@ def test_expected_values_day_weighting(
 @pytest.mark.parametrize(
     "data, ignore_intensity, expected, reverse_intensity_dict",
     (
+        # Dry dominated. Rain contributes overcast conditions. Cloud therefore
+        # becomes the dry code. The cloud group contains 2 overcast codes and
+        # 1 cloudy code, so overcast (8) is chosen.
+        ([1, 1, 1, 7, 12, 12], True, 8, False),
+        # Dry dominated. Showers contribute partly cloudy conditions meaning
+        # the sunny/partly cloudy group provides the summary code. Of this
+        # there are 2 sunny and 2 partly cloud codes, with the latter chosen (3)
+        # as more significant.
+        ([1, 1, 10, 14, 8, 8, 8], True, 3, False),
+        # Dry. Partly cloudy and sunny are grouped by the intensity
+        # categorisation allowing them to dominate over the overcast
+        # codes. A partly cloud code is returned.
+        # cloud cover in the light rain codes is included in determining the
+        # dominant dry code, leading to an overcast symbol overall (8).
+        ([1, 1, 1, 3, 3, 8, 8, 8, 8], True, 1, False),
         # All precipitation is frozen. Sleet shower is the modal code.
         ([23, 23, 23, 26, 17, 17, 17, 17], False, 17, False),
         # When snow shower codes are grouped, light snow shower is chosen as it
@@ -416,6 +439,28 @@ def test_expected_values_ignore_intensity(
             True,
             [26, 23],
         ),
+        # The day emphasis and dry equivalent codes for wet codes in that period
+        # conspire to give an overcast (8) code to summarise the day. We include
+        # emphasis of the dried codes as these still fall in the period that we
+        # want to emphasise.
+        ([1, 1, 12, 12, 8, 1, 1, 1], 1, 2, 2, 6, 8, True, 8),
+        # Day emphasis and drying (dry dominated) are such that we end up with
+        # 6, 6, 8, 8, 8, 8, 3, 3, 1, 1, 1, 5. The intensity consolidation
+        # groups the partly cloudy (3) and sunny (1) codes together making this
+        # the dominant group. Of this group sunny codes dominate and this becomes
+        # the summary code (1).
+        ([6, 6, 12, 12, 3, 1, 1, 5], 1, 2, 2, 6, 8, True, 1),
+        # As above but without the intensity consolidation. The sunny and partly
+        # sunny remain ungrouped allowing the dried rain, which has become
+        # overcast codes to dominate. We get an overcast (8) summary.
+        ([6, 6, 12, 12, 3, 1, 1, 5], 1, 2, 2, 6, 8, False, 8),
+        # Looking again at the same case but with both a wet bias and a day
+        # emphasis of 2 we now get a wet dominated day. The codes are
+        # 6, 6, 12, 12, 12, 12, 3, 3, 1, 1, 1, 5, but wet codes count twice
+        # in determining the dominant conditions. 8 wet vs 8 dry results in a wet
+        # summary code. Intensity consolidation amongst the dry codes is
+        # irrelevant as is the cloud equivalence.
+        ([6, 6, 12, 12, 3, 1, 1, 5], 2, 2, 2, 6, 8, True, 12),
     ),
 )
 def test_expected_values_interactions(
