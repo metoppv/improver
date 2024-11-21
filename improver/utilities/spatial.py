@@ -705,7 +705,7 @@ class GradientBetweenAdjacentGridSquares(PostProcessingPlugin):
         distances = DistanceBetweenGridSquares()(cube)
 
         for diff, distance, ax in zip(diffs, distances, axis):
-            distance.data=distance.data.astype(np.float32)
+            distance.data = distance.data.astype(np.float32)
             gradient = diff / distance
             grad_cube = self._create_output_cube(
                 gradient, "gradient_of_" + cube.name() + "_wrt_" + ax
