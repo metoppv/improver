@@ -58,7 +58,7 @@ IMPROVER does not currently include installation functionality (e.g. setup.py). 
 
 The list of dependencies can be found in the `environment_a.yml`_ file.
 
-.. _environment.yml: https://github.com/metoppv/improver/blob/master/envs/environment_a.yml
+.. _environment_a.yml: https://github.com/metoppv/improver/blob/master/envs/environment_a.yml
 
 Example use of a CLI
 ====================
