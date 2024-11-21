@@ -37,6 +37,8 @@ General comments
   line interfaces) have acceptance tests.
 * Use type annotations on function and method interfaces, except for
   CLIs.
+* Avoid adding functionality to CLIs beyond calling the relevant plugin,
+  all other functionality should be added to the plugin itself.
 
 Pull requests
 ~~~~~~~~~~~~~
@@ -387,7 +389,7 @@ Plugins (classes) should be an example of a non-trivial algorithm or set
 of algorithms for a particular purpose. They should be set up via the
 ``__init__`` method and then invoked on a particular iris Cube ``cube``
 using a ``process`` method - e.g. using ``process(cube)``. See
-e.g. `Threshold <https://github.com/metoppv/improver/blob/master/lib/improver/threshold.py>`_
+e.g. `Threshold <https://github.com/metoppv/improver/blob/master/improver/threshold.py>`_
 class. In some limited cases an iris ``CubeList`` may be preferable.
 Avoid writing code that can do both. Class names use
 `PascalCase <https://en.wikipedia.org/wiki/PascalCase>`_ whilst
@@ -564,7 +566,7 @@ Add a command line interface (improver/cli/<cli_name>.py) to invoke plugins
 that can be used as a standalone utility or executable within a suite context
 (e.g. wind downscaling, neighbourhood processing, spot data extraction).
 These CLIs are invoked using ``bin/improver <cli-name>`` (note that the
-CLI filename uses underscores, but the call to use the CLI uses hyphens)
+CLI filename uses underscores, but the call to use the CLI uses hyphens).
 
 IMPROVER CLIs should only have ``from improver import cli`` as the top
 level imports. Other imports are placed inside the function that uses
@@ -578,6 +580,10 @@ Each CLI should have a process function. This will require a
 to save a cube to disk, it will need the decorator ``@cli.with_output``,
 this will mean on the command line, the ``--output`` flag can be used to
 specify an output path.
+
+As mentioned above, it is important to ensure that no functionality
+other than calling the plugin exists within the CLI layer.
+Any checks on the data or input requirements should be done in the plugin itself.
 
 To load the cubes, each cube argument will need a type. For a basic cube
 this will be ``cube: cli.inputcube``. If there is a default argument to
@@ -810,5 +816,6 @@ New release steps:
    case just check it. The checksum of the compressed ``.tar.gz`` IMPROVER
    source code can be obtained via ``openssl sha256 <file name>``.
    Currently the people with write access to the improver-feedstock
-   repository are @benfitzpatrick, @PaulAbernethy, @tjtg and @lucyleeow.
+   repository are @benfitzpatrick, @PaulAbernethy, @tjtg, @cpelley and
+   @dementipl.
    You can ping one of these people to merge your pull request.
