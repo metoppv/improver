@@ -125,7 +125,6 @@ class CopyMetadata(BasePlugin):
         cube = cubes_proc.pop(0)
         template_cubes = cubes_proc
         new_attributes = self.find_common_attributes(template_cubes, self.attributes)
-        print(new_attributes)
         amend_attributes(cube, new_attributes)
         
         for coord in self.aux_coord:
