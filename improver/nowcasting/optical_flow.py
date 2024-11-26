@@ -25,6 +25,7 @@ from improver.nowcasting.pysteps_advection import PystepsExtrapolate
 from improver.nowcasting.utilities import ApplyOrographicEnhancement
 from improver.utilities.cube_checker import check_for_x_and_y_axes
 from improver.utilities.cube_manipulation import collapsed
+from improver.utilities.common_input_handle import as_cubelist
 from improver.utilities.spatial import (
     calculate_grid_spacing,
     check_if_grid_is_equal_area,
@@ -82,7 +83,7 @@ def generate_optical_flow_components(
 
 
 def generate_advection_velocities_from_winds(
-    cubes: CubeList, background_flow: CubeList, orographic_enhancement: Cube
+    radar_precip_1: Cube, radar_precip_2: Cube, background_flow: CubeList, orographic_enhancement: Cube
 ) -> CubeList:
     """Generate advection velocities as perturbations from a non-zero background
     flow
@@ -99,6 +100,9 @@ def generate_advection_velocities_from_winds(
     Returns:
         u- and v- advection velocities
     """
+    background_flow = background_flow.extract_cubes("grid_eastward_wind", "grid_northward_wind")
+
+    cubes = as_cubelist(radar_precip_1, radar_precip_2)
     cubes.sort(key=lambda x: x.coord("time").points[0])
 
     lead_time_seconds = (
