@@ -331,6 +331,8 @@ ae2f673bf29b926cac46c3a578a8e1842cce19881f8fe479cba3f51f0d474951  ./copy-attribu
 d3efbc6014743793fafed512a8017a7b75e4f0ffa7fd202cd4f1b4a1086b2583  ./create-grid-with-halo/basic/kgo.nc
 fee00437131d2367dc317e5b0fff44e65e03371b8f096bf1ac0d4cc7253693c9  ./create-grid-with-halo/basic/source_grid.nc
 bf7e42be7897606682c3ecdaeb27bf3d3b6ab13a9a88b46c88ae6e92801c6245  ./create-grid-with-halo/halo_size/kgo.nc
+55ba8a8ca8b5eee667d37fe8ec4a653caddea27f19ea290397428a487eb13ca0  ./cubelist-extract/input_cubelist.nc
+33c7e0cf46ac62ead74ffde502ee28076a59550474fb3872c3e22083c4bd3cc3  ./cubelist-extract/kgo.nc
 fe00aadb6854f44d765b40bb6608c23f4eb4f10193c96f43f207db0590739dab  ./enforce-consistent-forecasts/double_bound_percentile_kgo.nc
 51f9ff2c8e6cad54d04d6323c654ce25b812bea3ba6b0d85df21c19731c580fc  ./enforce-consistent-forecasts/percentile_forecast.nc
 e210bf956dd3574eda3a64fdc3371ab16f85048ca120a3823e90d751d2325c46  ./enforce-consistent-forecasts/percentile_reference.nc
