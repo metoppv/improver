@@ -15,7 +15,7 @@ class HaltExecution(Exception):
     pass
 
 
-@patch("improver.utilities.copy_attributes.as_cubelist")
+@patch("improver.utilities.copy_metadata.as_cubelist")
 def test_as_cubelist_called(mock_as_cubelist):
     mock_as_cubelist.side_effect = HaltExecution
     try:
@@ -105,7 +105,7 @@ def test_auxiliary_coord_modification(cubelist):
         cubes = [cube, cube]
 
     plugin = CopyMetadata(aux_coord=auxiliary_coord)
-    result = plugin.process(cubes, template_cube=template_cube)
+    result = plugin.process(cubes, template_cube)
     if cubelist:
         for res in result:
             assert res.coord("dummy_0 status_flag") == dummy_aux_coord_0_temp
