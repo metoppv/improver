@@ -55,7 +55,7 @@ jobs:
       env:
         CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
     - name: codecov upload
-      uses: codecov/codecov-action@v4
+      uses: codecov/codecov-action@v5
       if: matrix.env == 'environment_a'
   Safety-Bandit:
     runs-on: ubuntu-22.04

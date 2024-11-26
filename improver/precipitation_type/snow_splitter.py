@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Module to separate snow and rain contributions from a precipitation diagnostic"""
 
@@ -21,7 +21,7 @@ class SnowSplitter(BasePlugin):
     rate/accumulation. This is calculated using the probability of rain and snow
     at the surface to determine what fraction of the precipitation rate/accumulation
     is rain or snow.
-     """
+    """
 
     def __init__(self, output_is_rain: bool):
         """

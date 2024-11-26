@@ -1,12 +1,12 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 from unittest.mock import patch, sentinel
 
 import pytest
 from iris.coords import AuxCoord
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 
 from improver.utilities.copy_metadata import CopyMetadata
 
@@ -15,20 +15,18 @@ class HaltExecution(Exception):
     pass
 
 
-@patch("improver.utilities.copy_metadata.as_cube")
-@patch("improver.utilities.copy_metadata.as_cubelist")
-def test_as_cubelist_called(mock_as_cubelist, mock_as_cube):
-    print("hello")
-    mock_as_cubelist.return_value = sentinel.cubelist
-    mock_as_cube.side_effect = HaltExecution
+@patch("improver.utilities.copy_attributes.as_cubelist")
+def test_as_cubelist_called(mock_as_cubelist):
+    mock_as_cubelist.side_effect = HaltExecution
     try:
         CopyMetadata(["attribA", "attribB"])(
-            sentinel.cube0, sentinel.cube1, template_cube=sentinel.template_cube
+            sentinel.cube0, sentinel.cube1, sentinel.template_cube
         )
     except HaltExecution:
         pass
-    mock_as_cubelist.assert_called_once_with(sentinel.cube0, sentinel.cube1)
-    mock_as_cube.assert_called_once_with(sentinel.template_cube)
+    mock_as_cubelist.assert_called_once_with(
+        sentinel.cube0, sentinel.cube1, sentinel.template_cube
+    )
 
 
 def test_copy_attributes_multi_input():
@@ -50,8 +48,8 @@ def test_copy_attributes_multi_input():
     )
 
     plugin = CopyMetadata(attributes)
-    result = plugin.process(cube0, cube1, template_cube=template_cube)
-    assert type(result) is tuple
+    result = plugin.process(cube0, cube1, template_cube)
+    assert type(result) is CubeList
     for res in result:
         assert res.attributes["attribA"] == "tempA"
         assert res.attributes["attribB"] == "tempB"
@@ -73,7 +71,7 @@ def test_copy_attributes_single_input():
     )
 
     plugin = CopyMetadata(attributes)
-    result = plugin.process(cube0, template_cube=template_cube)
+    result = plugin.process(cube0, template_cube)
     assert type(result) is Cube
     assert result.attributes["attribA"] == "tempA"
     assert result.attributes["attribB"] == "tempB"

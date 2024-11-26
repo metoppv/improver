@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Fixtures for threshold tests"""
 
@@ -262,8 +262,5 @@ def landmask(mask: np.ndarray) -> Cube:
         A land mask cube.
     """
     return set_up_variable_cube(
-        mask.astype(np.int8),
-        name="land_binary_mask",
-        units=1,
-        spatial_grid="equalarea",
+        mask.astype(np.int8), name="land_binary_mask", units=1, spatial_grid="equalarea"
     )

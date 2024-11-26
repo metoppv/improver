@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the calculate_sleet_probability plugin."""
 
@@ -14,7 +14,7 @@ from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
 
 
 class Test_calculate_sleet_probability(IrisTest):
-    """ Tests the calculate sleet probability function."""
+    """Tests the calculate sleet probability function."""
 
     def setUp(self):
         """Create cubes to input into the function."""

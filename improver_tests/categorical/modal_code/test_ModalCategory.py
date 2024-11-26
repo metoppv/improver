@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for ModalCategory class."""
 
@@ -201,13 +201,9 @@ def test_metadata(wxcode_series):
     def as_utc_timestamp(time):
         return timegm(time.utctimetuple())
 
-    (
-        interval,
-        model_id_attr,
-        record_run_attr,
-        offset_reference_times,
-        wxcode_cubes,
-    ) = wxcode_series
+    (interval, model_id_attr, record_run_attr, offset_reference_times, wxcode_cubes) = (
+        wxcode_series
+    )
 
     kwargs = {}
     if model_id_attr:

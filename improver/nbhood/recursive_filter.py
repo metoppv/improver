@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Module to apply a recursive filter to neighbourhooded data."""
 
@@ -15,7 +15,6 @@ from improver import PostProcessingPlugin
 from improver.generate_ancillaries.generate_orographic_smoothing_coefficients import (
     OrographicSmoothingCoefficients,
 )
-from improver.metadata.constants.time_types import TIME_COORDS
 from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.pad_spatial import pad_cube_with_halo, remove_halo_from_cube
 
@@ -25,7 +24,11 @@ class RecursiveFilter(PostProcessingPlugin):
     Apply a recursive filter to the input cube.
     """
 
-    def __init__(self, iterations: Optional[int] = None, edge_width: int = 15) -> None:
+    def __init__(
+        self,
+        iterations: Optional[int] = None,
+        edge_width: int = 15,
+    ) -> None:
         """
         Initialise the class.
 
@@ -226,7 +229,6 @@ class RecursiveFilter(PostProcessingPlugin):
         axes = ["x", "y"]
 
         for axis, smoothing_coefficient in zip(axes, smoothing_coefficients):
-
             # Check the smoothing coefficient cube name is as expected
             expected_name = self.smoothing_coefficient_name_format.format(axis)
             if smoothing_coefficient.name() != expected_name:
@@ -279,7 +281,10 @@ class RecursiveFilter(PostProcessingPlugin):
         """Pad smoothing coefficients"""
         pad_x, pad_y = [
             pad_cube_with_halo(
-                coeff, 2 * self.edge_width, 2 * self.edge_width, pad_method="symmetric",
+                coeff,
+                2 * self.edge_width,
+                2 * self.edge_width,
+                pad_method="symmetric",
             )
             for coeff in [coeff_x, coeff_y]
         ]
@@ -306,7 +311,9 @@ class RecursiveFilter(PostProcessingPlugin):
         plugin.zero_masked(coeffs_x, coeffs_y, mask)
         return coeffs_x, coeffs_y
 
-    def process(self, cube: Cube, smoothing_coefficients: CubeList) -> Cube:
+    def process(
+        self, cube: Cube, smoothing_coefficients: CubeList, variable_mask: bool = False
+    ) -> Cube:
         """
         Set up the smoothing_coefficient parameters and run the recursive
         filter. Smoothing coefficients can be generated using
@@ -344,6 +351,11 @@ class RecursiveFilter(PostProcessingPlugin):
                 A cubelist containing two cubes of smoothing_coefficient values,
                 one corresponding to smoothing in the x-direction, and the other
                 to smoothing in the y-direction.
+            variable_mask
+                Determines whether each spatial slice of the input cube can have a
+                different mask. If False and cube is masked, a check will be made that
+                the same mask is present on each spatial slice. If True, each spatial
+                slice of cube may contain a different spatial mask.
 
         Returns:
             Cube containing the smoothed field after the recursive filter
@@ -351,38 +363,45 @@ class RecursiveFilter(PostProcessingPlugin):
 
         Raises:
             ValueError:
-                If the cube contains masked data from multiple cycles or times
+                If variable_mask is False and the masks on each spatial slice of cube
+                are not identical.
         """
         cube_format = next(cube.slices([cube.coord(axis="y"), cube.coord(axis="x")]))
         coeffs_x, coeffs_y = self._validate_coefficients(
             cube_format, smoothing_coefficients
         )
 
-        mask_cube = None
-        if np.ma.is_masked(cube.data):
-            # Assumes mask is the same for each x-y slice.  This may not be
-            # true if there are several time slices in the cube - so throw
-            # an error if this is so.
-            for coord in TIME_COORDS:
-                if cube.coords(coord) and len(cube.coord(coord).points) > 1:
+        if not variable_mask and np.ma.is_masked(cube.data):
+            # check that all spatial slices have identical masks
+            mask_cube = next(
+                cube.slices([cube.coord(axis="y"), cube.coord(axis="x")])
+            ).data.mask
+            for cslice in cube.slices([cube.coord(axis="y"), cube.coord(axis="x")]):
+                if not np.array_equal(cslice.data.mask, mask_cube):
                     raise ValueError(
-                        "Dealing with masks from multiple time points is unsupported"
+                        "Input cube contains spatial slices with different masks."
                     )
 
-            mask_cube = cube_format.copy(data=cube_format.data.mask)
-            coeffs_x, coeffs_y = self._update_coefficients_from_mask(
-                coeffs_x, coeffs_y, mask_cube,
+        recursed_cube = iris.cube.CubeList()
+        for cslice in cube.slices([cube.coord(axis="y"), cube.coord(axis="x")]):
+            padded_cube = pad_cube_with_halo(
+                cslice, 2 * self.edge_width, 2 * self.edge_width, pad_method="symmetric"
             )
 
-        padded_coefficients_x, padded_coefficients_y = self._pad_coefficients(
-            coeffs_x, coeffs_y
-        )
+            slice_coeffs_x = coeffs_x.copy()
+            slice_coeffs_y = coeffs_y.copy()
 
-        recursed_cube = iris.cube.CubeList()
-        for output in cube.slices([cube.coord(axis="y"), cube.coord(axis="x")]):
+            mask_cube = None
+            if np.ma.is_masked(cslice.data):
+                mask_cube = cslice.copy(data=cslice.data.mask)
+                slice_coeffs_x, slice_coeffs_y = self._update_coefficients_from_mask(
+                    slice_coeffs_x,
+                    slice_coeffs_y,
+                    mask_cube,
+                )
 
-            padded_cube = pad_cube_with_halo(
-                output, 2 * self.edge_width, 2 * self.edge_width, pad_method="symmetric"
+            padded_coefficients_x, padded_coefficients_y = self._pad_coefficients(
+                slice_coeffs_x, slice_coeffs_y
             )
 
             new_cube = self._run_recursion(

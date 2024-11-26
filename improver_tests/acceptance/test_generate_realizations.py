@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """
 Tests for the generate-realizations CLI
@@ -28,18 +28,27 @@ def test_percentiles(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-def test_percentiles_reordering(tmp_path):
+@pytest.mark.parametrize(
+    "tie_break, kgo",
+    (
+        ("random", "tie_break_with_random_kgo.nc"),
+        ("realization", "tie_break_with_realization_kgo.nc"),
+    ),
+)
+def test_percentiles_reordering(tmp_path, tie_break, kgo):
     """Test percentile to realization conversion with reordering"""
     kgo_dir = acc.kgo_root() / "generate-realizations/percentiles_reordering"
-    kgo_path = kgo_dir / "kgo.nc"
-    forecast_path = kgo_dir / "raw_forecast.nc"
-    percentiles_path = kgo_dir / "multiple_percentiles_wind_cube.nc"
+    kgo_path = kgo_dir / kgo
+    forecast_path = kgo_dir / "raw_precip_forecast.nc"
+    percentiles_path = kgo_dir / "multiple_percentiles_precip_cube.nc"
     output_path = tmp_path / "output.nc"
     args = [
         "--realizations-count",
         "12",
         "--random-seed",
         "0",
+        "--tie-break",
+        tie_break,
         percentiles_path,
         forecast_path,
         "--output",
@@ -63,13 +72,7 @@ def test_skip_ecc_bounds_extreme_percentiles(tmp_path, bounds_option, kgo):
     kgo_path = kgo_dir / kgo
     percentiles_path = kgo_dir / "few_percentiles_wind_cube.nc"
     output_path = tmp_path / "output.nc"
-    args = [
-        "--realizations-count",
-        "5",
-        percentiles_path,
-        "--output",
-        output_path,
-    ]
+    args = ["--realizations-count", "5", percentiles_path, "--output", output_path]
     if bounds_option:
         args += [bounds_option]
     run_cli(args)

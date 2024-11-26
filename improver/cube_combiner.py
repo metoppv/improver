@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Module containing plugins for combining cubes"""
 
@@ -23,6 +23,7 @@ from improver.utilities.cube_manipulation import (
     enforce_coordinate_ordering,
     expand_bounds,
     filter_realizations,
+    strip_var_names,
 )
 
 
@@ -206,11 +207,16 @@ class CubeCombiner(BasePlugin):
 
     @staticmethod
     def _check_dimensions_match(
-        cube_list: Union[List[Cube], CubeList], comparators: List[Callable] = [eq],
+        cube_list: Union[List[Cube], CubeList], comparators: List[Callable] = [eq]
     ) -> None:
         """
         Check all coordinate dimensions on the input cubes match according to
         the comparators specified.
+
+        The var_name attributes on input cubes and  coordinates are ignored during these
+        checks, except where the attribute is required to support probabilistic metadata.
+        This is to ensure consistency of behaviour with the MergeCubes plugin in
+        /utilities/cube_manipulation.py.
 
         Args:
             cube_list:
@@ -222,8 +228,10 @@ class CubeCombiner(BasePlugin):
         Raises:
             ValueError: If dimension coordinates do not match
         """
-        ref_coords = cube_list[0].coords(dim_coords=True)
-        for cube in cube_list[1:]:
+        test_cube_list = iris.cube.CubeList(cube_list.copy())
+        strip_var_names(test_cube_list)
+        ref_coords = test_cube_list[0].coords(dim_coords=True)
+        for cube in test_cube_list[1:]:
             coords = cube.coords(dim_coords=True)
             compare = [
                 np.any([comp(a, b) for comp in comparators])
@@ -400,7 +408,7 @@ class CubeCombiner(BasePlugin):
         )
 
     def process(
-        self, cube_list: Union[List[Cube], CubeList], new_diagnostic_name: str,
+        self, cube_list: Union[List[Cube], CubeList], new_diagnostic_name: str
     ) -> Cube:
         """
         Combine data and metadata from a list of input cubes into a single

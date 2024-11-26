@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for forecast time coordinate utilities"""
 
@@ -255,7 +255,6 @@ class Test_rebadge_forecasts_as_latest_cycle(IrisTest):
 
 
 class Test_unify_cycletime(IrisTest):
-
     """Test the unify_cycletime function."""
 
     def setUp(self):
@@ -350,12 +349,11 @@ class Test_unify_cycletime(IrisTest):
 
 
 class Test__find_latest_cycletime(IrisTest):
-
     """Test the _find_latest_cycletime function."""
 
     def setUp(self):
         """Set up a template cubes with scalar time, forecast_reference_time
-           and forecast_period coordinates"""
+        and forecast_period coordinates"""
         self.input_cube = set_up_variable_cube(
             np.full((7, 7), 273.15, dtype=np.float32),
             time=datetime(2015, 11, 23, 6),
@@ -385,7 +383,7 @@ class Test__find_latest_cycletime(IrisTest):
 
     def test_two_cubes_same_reference_time(self):
         """Test the a cycletime is still found when two cubes have the same
-           cycletime."""
+        cycletime."""
         input_cubelist = iris.cube.CubeList([self.input_cube, self.input_cube.copy()])
         cycletime = _find_latest_cycletime(input_cubelist)
         expected_datetime = datetime(2015, 11, 23, 3)

@@ -1,9 +1,8 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the threshold.LatitudeThreshold plugin."""
-
 
 import unittest
 
@@ -76,7 +75,6 @@ class Test__add_latitude_threshold_coord(IrisTest):
 
 
 class Test_process(IrisTest):
-
     """Test the thresholding plugin."""
 
     def setUp(self):

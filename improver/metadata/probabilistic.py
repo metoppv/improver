@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Utilities for interrogating IMPROVER probabilistic metadata"""
 
@@ -144,8 +144,9 @@ def find_threshold_coordinate(cube: Cube) -> Coord:
     """
     if not isinstance(cube, iris.cube.Cube):
         msg = (
-            "Expecting data to be an instance of "
-            "iris.cube.Cube but is {0}.".format(type(cube))
+            "Expecting data to be an instance of " "iris.cube.Cube but is {0}.".format(
+                type(cube)
+            )
         )
         raise TypeError(msg)
 
@@ -225,8 +226,9 @@ def find_percentile_coordinate(cube: Cube) -> Coord:
     """
     if not isinstance(cube, iris.cube.Cube):
         msg = (
-            "Expecting data to be an instance of "
-            "iris.cube.Cube but is {0}.".format(type(cube))
+            "Expecting data to be an instance of " "iris.cube.Cube but is {0}.".format(
+                type(cube)
+            )
         )
         raise TypeError(msg)
     standard_name = cube.name()

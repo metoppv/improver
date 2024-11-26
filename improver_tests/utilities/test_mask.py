@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """
 Unit tests for the function apply_mask.
@@ -59,7 +59,7 @@ def test_basic(wind_gust_cube, mask, switch_coord_order, invert_mask):
 
 
 def test_different_dimensions(wind_gust_cube, mask):
-    """ Test that the function will raise an error if the mask cube has different
+    """Test that the function will raise an error if the mask cube has different
     dimensions to other cube."""
     mask = mask[0]
     input_list = [wind_gust_cube, mask]

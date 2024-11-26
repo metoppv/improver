@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Tests for the convection-ratio CLI"""
 
@@ -12,10 +12,7 @@ pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
 CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
-ALL_PARAMS = [
-    "lwe_convective_precipitation_rate",
-    "lwe_stratiform_precipitation_rate",
-]
+ALL_PARAMS = ["lwe_convective_precipitation_rate", "lwe_stratiform_precipitation_rate"]
 
 
 def test_basic(tmp_path):

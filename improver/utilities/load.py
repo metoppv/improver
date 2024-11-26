@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Module for loading cubes."""
 
@@ -67,7 +67,6 @@ def load_cubelist(
     cubes = strip_var_names(cubes)
 
     for cube in cubes:
-
         # Remove metadata attributes pointing to legacy prefix cube
         cube.attributes.pop("bald__isPrefixedBy", None)
 

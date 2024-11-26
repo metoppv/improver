@@ -1,9 +1,8 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Module containing categorical decision tree implementation."""
-
 
 import copy
 import operator
@@ -197,7 +196,6 @@ class ApplyDecisionTree(BasePlugin):
                 for diagnostic, threshold, condition in zip(
                     diagnostics, thresholds, conditions
                 ):
-
                     # First we check the diagnostic name and units, performing
                     # a conversion is required and possible.
                     test_condition = iris.Constraint(name=diagnostic)
@@ -390,7 +388,6 @@ class ApplyDecisionTree(BasePlugin):
                 test_conditions["diagnostic_fields"], comparator, test_conditions[coord]
             )
         ):
-
             d_threshold = test_conditions.get("diagnostic_thresholds")
             d_threshold = d_threshold[index] if d_threshold else None
             loop += 1
@@ -464,11 +461,17 @@ class ApplyDecisionTree(BasePlugin):
         threshold_val = threshold.points.item()
         if abs(threshold_val) < self.float_abs_tolerance:
             cell_constraint = lambda cell: np.isclose(
-                cell.point, threshold_val, rtol=0, atol=self.float_abs_tolerance,
+                cell.point,
+                threshold_val,
+                rtol=0,
+                atol=self.float_abs_tolerance,
             )
         else:
             cell_constraint = lambda cell: np.isclose(
-                cell.point, threshold_val, rtol=self.float_tolerance, atol=0,
+                cell.point,
+                threshold_val,
+                rtol=self.float_tolerance,
+                atol=0,
             )
 
         kw_dict = {"{}".format(threshold_coord_name): cell_constraint}
@@ -492,7 +495,6 @@ class ApplyDecisionTree(BasePlugin):
                 is allowed.
         """
         for missing in optional_node_data_missing:
-
             # Get the name of the alternative node to bypass the missing one
             target = self.queries[missing]["if_diagnostic_missing"]
             alternative = self.queries[missing][target]
@@ -508,7 +510,10 @@ class ApplyDecisionTree(BasePlugin):
 
     @staticmethod
     def find_all_routes(
-        graph: Dict, start: str, end: int, route: Optional[List[str]] = None,
+        graph: Dict,
+        start: str,
+        end: int,
+        route: Optional[List[str]] = None,
     ) -> List[str]:
         """
         Function to trace all routes through the decision tree.
@@ -850,7 +855,11 @@ class ApplyDecisionTree(BasePlugin):
         # Loop over possible categories
 
         for category_code in defined_categories:
-            routes = self.find_all_routes(graph, self.start_node, category_code,)
+            routes = self.find_all_routes(
+                graph,
+                self.start_node,
+                category_code,
+            )
             # Loop over possible routes from root to leaf
             for route in routes:
                 conditions = []
@@ -860,7 +869,6 @@ class ApplyDecisionTree(BasePlugin):
                     next_node = route[i_node + 1]
 
                     if current.get("if_false") == next_node:
-
                         (
                             current["threshold_condition"],
                             current["condition_combination"],

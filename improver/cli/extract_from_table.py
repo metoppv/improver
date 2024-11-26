@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Script to extract values from a table."""
 
@@ -11,9 +11,9 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    *cubes: cli.inputcube, table: cli.inputjson, row_name: str, new_name: str = None,
+    *cubes: cli.inputcube, table: cli.inputjson, row_name: str, new_name: str = None
 ):
-    """ Extract values from a table based on the provided row and column cubes.
+    """Extract values from a table based on the provided row and column cubes.
 
     The data from the row cube is compared to the labels of the rows in the table of which
     the nearest lower label is selected. The same is done for the columns using the column cube.

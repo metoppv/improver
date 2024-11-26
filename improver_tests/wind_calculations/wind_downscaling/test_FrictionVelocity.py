@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for plugin wind_downscaling.FrictionVelocity"""
 
@@ -14,7 +14,6 @@ from improver.wind_calculations.wind_downscaling import FrictionVelocity
 
 
 class Test_process(IrisTest):
-
     """Test the creation of friction velocity 2D arrays. Note that in the
     future, use of the Real Missing Data Indicator (RMDI) constant is due to be
     deprecated in favour of np.nan"""
@@ -36,7 +35,7 @@ class Test_process(IrisTest):
         self.mask[1 : n_y - 1, 1 : n_x - 1] = True
 
     def test_returns_expected_values(self):
-        """Test that the function returns correct 2D array of floats. """
+        """Test that the function returns correct 2D array of floats."""
 
         # Equation is (K=0.4): ustar = K * (u_href / ln(h_ref / z_0))
         expected_out = np.array(
@@ -56,7 +55,7 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result, expected_out)
 
     def test_handles_nan_values(self):
-        """Test that the function accepts NaN values correctly. """
+        """Test that the function accepts NaN values correctly."""
 
         self.u_href[1, 1] = np.nan  # Adds NaN value
 
@@ -78,7 +77,7 @@ class Test_process(IrisTest):
 
     def test_handles_zero_values(self):
         """Function calculates log(href/z_0) - test that the function accepts
-           zero values in h_ref and z_0 and returns np.nan without crashing."""
+        zero values in h_ref and z_0 and returns np.nan without crashing."""
 
         h_ref_zeros = np.full_like(self.h_ref, 0)
         z_0_zeros = np.full_like(self.z_0, 0)
@@ -108,7 +107,7 @@ class Test_process(IrisTest):
 
     def test_output_is_float32(self):
         """Test that the plugin returns an array of float 32 type
-           even when the input arrays are double precision."""
+        even when the input arrays are double precision."""
 
         result = FrictionVelocity(
             self.u_href, self.h_ref, self.z_0, self.mask

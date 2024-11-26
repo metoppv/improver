@@ -1,8 +1,9 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Tests for the CloudTopTemperature plugin"""
+
 import copy
 from unittest.mock import patch, sentinel
 
@@ -23,9 +24,9 @@ LOCAL_MANDATORY_ATTRIBUTES = {
     "institution": "somewhere",
 }
 POST_PROCESSED_MANDATORY_ATTRIBUTES = copy.deepcopy(LOCAL_MANDATORY_ATTRIBUTES)
-POST_PROCESSED_MANDATORY_ATTRIBUTES[
-    "title"
-] = f"Post-Processed {POST_PROCESSED_MANDATORY_ATTRIBUTES['title']}"
+POST_PROCESSED_MANDATORY_ATTRIBUTES["title"] = (
+    f"Post-Processed {POST_PROCESSED_MANDATORY_ATTRIBUTES['title']}"
+)
 
 
 class HaltExecution(Exception):

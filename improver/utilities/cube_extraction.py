@@ -1,8 +1,8 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-""" Utilities to parse a list of constraints and extract matching subcube """
+"""Utilities to parse a list of constraints and extract matching subcube"""
 
 from ast import literal_eval
 from typing import Callable, Dict, List, Optional, Tuple, Union
@@ -351,9 +351,7 @@ class ExtractLevel(BasePlugin):
     Class for extracting a pressure or height surface from data-on-levels.
     """
 
-    def __init__(
-        self, positive_correlation: bool, value_of_level: float,
-    ):
+    def __init__(self, positive_correlation: bool, value_of_level: float):
         """Sets up Class
 
         Args:
@@ -403,7 +401,7 @@ class ExtractLevel(BasePlugin):
         Args:
             cube:
                 Cube of variable on levels (3D) (modified in-place).
-"""
+        """
         if np.isfinite(cube.data).all() and not np.ma.is_masked(cube.data):
             return
         data = np.ma.masked_invalid(cube.data)
@@ -413,7 +411,9 @@ class ExtractLevel(BasePlugin):
         # We don't really care so long as it is non-zero and has the same sign.
         increasing_order = np.all(np.diff(cube.coord(self.coordinate).points) > 0)
         sign = 1 if self.positive_correlation == increasing_order else -1
-        v_increment = sign * 10 ** (-cube.attributes.get("least_significant_digit", 2))
+        v_increment = sign * 10 ** (
+            -int(cube.attributes.get("least_significant_digit", 2))
+        )
         self._one_way_fill(
             data, coordinate_axis, coordinate_points, v_increment, reverse=True
         )
@@ -460,7 +460,7 @@ class ExtractLevel(BasePlugin):
             c_slice = [slice(None)] * data.ndim
             c_slice[coordinate_axis] = slice(c, c + 1)
             data[c_slice] = np.ma.where(
-                data.mask[c_slice], data[last_slice] + local_increment, data[c_slice],
+                data.mask[c_slice], data[last_slice] + local_increment, data[c_slice]
             )
             last_slice = c_slice
 

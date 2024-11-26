@@ -1,0 +1,121 @@
+#!/bin/bash
+
+copyright_header_pattern="\
+# \(C\) Crown Copyright, Met Office. All rights reserved\.\n\
+#\n\
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license\.\n\
+# See LICENSE in the root of the repository for full licensing details\.\
+"
+copyright_header=$(echo "$copyright_header_pattern" | sed 's/\\(/\(/g; s/\\)/\)/g; s/\\\././g')
+
+show_help() {
+    echo "info: Check the copyright header in the specified files."
+    echo "    If the non-empty file does not contain the copyright header, it "
+    echo "    will be added. If a file looks like it does contain a copyright "
+    echo "    header, it will verified that it matches exactly."
+    echo "    Hash bangs are preserved."
+    echo ''
+    echo "usage: $0 FILEPATH..."
+    echo ''
+    echo 'positional arguments:'
+    echo '  FILEPATH...    The file(s) to check'
+    echo ""
+    echo "options:"
+    echo "  -h|--help     Show this help message and exit."
+    echo "  -v|--verbose  Print verbose output."
+    echo "  -f|--fix      Fix files with missing copyright header by adding it."
+    echo ""
+}
+
+VERBOSE=false
+FIX=false
+ARGS=""
+DEBUG=false
+
+while :; do
+    case $1 in
+        --help|-h)
+            show_help
+            exit 0
+            ;;
+        --verbose|-v)
+            VERBOSE=true
+            ;;
+        --fix|-f)
+            FIX=true
+            ;;
+        -*)
+            echo "Unknown option: $1"
+            show_help
+            exit 1
+            ;;
+        *)
+            ARGS+="$1"$'\n'
+            ;;
+    esac
+    shift
+    [ -z "$1" ] && break  # Exit loop when there are no more arguments
+done
+
+
+contains_copyright() {
+    grep -qi '# .*copyright' $1
+}
+
+
+defines_hash_bang() {
+    grep -q '^#!' $1
+}
+
+
+correct_copyright() {
+    grep -zPq "$copyright_header_pattern" "$1"
+}
+
+
+# Function to delete temporary files
+cleanup() {
+    for filepath in "$@"; do
+        tmp_file="${filepath}.tmp"
+        if [ -f "$tmp_file" ]; then
+            [[ ${DEBUG} == true ]] && echo "problem occurred while adding Copyright header, deleting temporary file: $tmp_file" >&2
+            rm -f "$tmp_file" 2&> /dev/null
+        fi
+    done
+}
+
+# Trap the EXIT signal to call the cleanup function
+trap 'cleanup $ARGS' EXIT
+
+found_error=0
+for filepath in $ARGS; do
+    [[ ${VERBOSE} == true ]] && echo checking ${filepath}
+    if correct_copyright "${filepath}"; then
+        [[ ${VERBOSE} == true ]] && echo "File '${filepath}': Copyright verified"
+        continue
+    fi
+
+    if contains_copyright "${filepath}"; then
+        echo "Incorrect Copyright header in '${filepath}'" >&2
+        [[ ${VERBOSE} == true ]] && (diff <(echo -e $copyright_header) <(grep -i -A3 '# .*copyright' ${filepath}) >&2; echo >&2)
+        found_error=1
+    elif [ -s "${filepath}" ]; then  # skip empty files
+        echo "File '${filepath}' is missing a copyright header." >&2
+        if [[ ${FIX} == true ]]; then
+            echo "Adding missing Copyright to '${filepath}'"
+            tmp_file="${filepath}.tmp"
+            if defines_hash_bang "${filepath}"; then
+                head -n 1 ${filepath} > ${tmp_file}
+                echo -e ${copyright_header} >> ${tmp_file}
+                tail -n +2 ${filepath} >> ${tmp_file}
+            else
+                echo -e ${copyright_header} > ${tmp_file}
+                cat ${filepath} >> ${tmp_file}
+            fi
+            mv ${tmp_file} ${filepath}
+            found_error=1
+        fi
+    fi
+done
+
+exit ${found_error}

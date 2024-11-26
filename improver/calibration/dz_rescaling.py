@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Estimate and apply a rescaling of the input forecast based on the difference
 in altitude between the grid point and the site."""
@@ -23,7 +23,6 @@ from improver.spotdata.utilities import get_neighbour_finding_method_name
 
 
 class EstimateDzRescaling(PostProcessingPlugin):
-
     """Estimate a rescaling of the input forecasts based on the difference in
     altitude between the grid point and the site."""
 
@@ -143,7 +142,7 @@ class EstimateDzRescaling(PostProcessingPlugin):
         return np.clip(scaled_dz.data, scaled_dz_lower, scaled_dz_upper)
 
     def _compute_scaled_dz_cube(
-        self, forecast: Cube, dz: Cube, scale_factor: float,
+        self, forecast: Cube, dz: Cube, scale_factor: float
     ) -> Cube:
         """Compute the scaled difference in altitude and ensure that the output cube
         has the correct metadata.
@@ -289,7 +288,6 @@ class EstimateDzRescaling(PostProcessingPlugin):
 
 
 class ApplyDzRescaling(PostProcessingPlugin):
-
     """Apply rescaling of the forecast using the difference in altitude between the
     grid point and the site."""
 

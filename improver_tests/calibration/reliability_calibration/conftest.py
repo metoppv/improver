@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Fixtures for reliability calibration tests."""
 
@@ -96,7 +96,7 @@ def forecast_spot(forecast_grid):
     forecasts_spot_list = CubeList()
     for day in range(5, 7):
         time_coords = construct_scalar_time_coords(
-            datetime(2017, 11, day, 4, 0), None, datetime(2017, 11, day, 0, 0),
+            datetime(2017, 11, day, 4, 0), None, datetime(2017, 11, day, 0, 0)
         )
         time_coords = [t[0] for t in time_coords]
         forecasts_spot_list.append(
@@ -122,7 +122,7 @@ def truth_spot(truth_grid):
     truths_spot_list = CubeList()
     for day in range(5, 7):
         time_coords = construct_scalar_time_coords(
-            datetime(2017, 11, day, 4, 0), None, datetime(2017, 11, day, 4, 0),
+            datetime(2017, 11, day, 4, 0), None, datetime(2017, 11, day, 4, 0)
         )
         time_coords = [t[0] for t in time_coords]
         truths_spot_list.append(
@@ -369,7 +369,7 @@ RelTables = namedtuple("RelTables", ["table", "indices0", "indices1", "indices2"
 
 @pytest.fixture(params=["point_spot", "point_grid"])
 def create_rel_tables_point(
-    request, reliability_table_point_spot, reliability_table_point_grid,
+    request, reliability_table_point_spot, reliability_table_point_grid
 ):
     if request.param == "point_spot":
         return RelTables(

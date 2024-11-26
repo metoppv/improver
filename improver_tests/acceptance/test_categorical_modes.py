@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Tests for the categorical-modes CLI"""
 
@@ -60,11 +60,6 @@ def test_no_input(tmp_path):
     """Test an exceptions is raised by the CLI if no cubes are provided."""
     wxtree = acc.kgo_root() / "categorical-modes" / "wx_decision_tree.json"
     output_path = tmp_path / "output.nc"
-    args = [
-        "--decision-tree",
-        wxtree,
-        "--output",
-        output_path,
-    ]
+    args = ["--decision-tree", wxtree, "--output", output_path]
     with pytest.raises(RuntimeError, match="Not enough input arguments*"):
         run_cli(args)

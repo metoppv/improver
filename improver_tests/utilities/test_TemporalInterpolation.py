@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for temporal utilities."""
 
@@ -281,9 +281,11 @@ def test_construct_time_list(kwargs, exception):
     # times plus any others specified in the kwarg.
     try:
         target_times = times.copy()
-        target_times.append(kwargs["times"]) if kwargs[
-            "times"
-        ] is not None else target_times
+        (
+            target_times.append(kwargs["times"])
+            if kwargs["times"] is not None
+            else target_times
+        )
     except KeyError:
         pass
     else:
@@ -753,10 +755,10 @@ def test_add_bounds(input_times, expected_time_bounds, expected_fp_bounds):
             [2.5, 2.5],
         ),
         # Equal adjacent period maxes, shorter periods have the same max.
-        ({"interval_in_minutes": 180, "max": True}, [5, 5], [3, 6], [5, 5],),
+        ({"interval_in_minutes": 180, "max": True}, [5, 5], [3, 6], [5, 5]),
         # Equal adjacent period minimums, shorter periods have the same
         # min.
-        ({"interval_in_minutes": 180, "min": True}, [5, 5], [3, 6], [5, 5],),
+        ({"interval_in_minutes": 180, "min": True}, [5, 5], [3, 6], [5, 5]),
         # Trend of increasing accumulations with time, which is reflected
         # in the shorter periods generated.
         (
@@ -767,9 +769,9 @@ def test_add_bounds(input_times, expected_time_bounds, expected_fp_bounds):
         ),
         # Trend of increasing maxes with time, which is reflected in the
         # shorter periods generated.
-        ({"interval_in_minutes": 180, "max": True}, [3, 9], [3, 6], [6, 9],),
+        ({"interval_in_minutes": 180, "max": True}, [3, 9], [3, 6], [6, 9]),
         # Later input period minimum is 9, expect all new periods to be >= 9
-        ({"interval_in_minutes": 180, "min": True}, [3, 9], [3, 6], [9, 9],),
+        ({"interval_in_minutes": 180, "min": True}, [3, 9], [3, 6], [9, 9]),
         # Trend of increasing accumulations with time, which is reflected
         # in the shorter periods generated.
         (
@@ -780,10 +782,10 @@ def test_add_bounds(input_times, expected_time_bounds, expected_fp_bounds):
         ),
         # Trend of increasing maxes with time, which is reflected in the
         # shorter periods generated.
-        ({"interval_in_minutes": 120, "max": True}, [0, 9], [2, 4, 6], [3, 6, 9],),
+        ({"interval_in_minutes": 120, "max": True}, [0, 9], [2, 4, 6], [3, 6, 9]),
         # Trend of increasing maxes with time, which is reflected in the
         # shorter periods generated.
-        ({"interval_in_minutes": 120, "min": True}, [0, 9], [2, 4, 6], [9, 9, 9],),
+        ({"interval_in_minutes": 120, "min": True}, [0, 9], [2, 4, 6], [9, 9, 9]),
         # Later input period is 0, expect all new periods to be 0
         (
             {"interval_in_minutes": 120, "accumulation": True},
@@ -792,9 +794,9 @@ def test_add_bounds(input_times, expected_time_bounds, expected_fp_bounds):
             [0, 0, 0],
         ),
         # Later input period max is 0, expect all new periods to be 0
-        ({"interval_in_minutes": 120, "max": True}, [9, 0], [2, 4, 6], [0, 0, 0],),
+        ({"interval_in_minutes": 120, "max": True}, [9, 0], [2, 4, 6], [0, 0, 0]),
         # Later input period minimum is 0, expect all new periods to be >= 0
-        ({"interval_in_minutes": 120, "min": True}, [9, 0], [2, 4, 6], [6, 3, 0],),
+        ({"interval_in_minutes": 120, "min": True}, [9, 0], [2, 4, 6], [6, 3, 0]),
         # Equal adjacent accumulations, divided into unequal shorter periods.
         (
             {"times": [datetime.datetime(2017, 11, 1, 4)], "accumulation": True},
@@ -924,7 +926,7 @@ def test_process_return_input(kwargs):
         # 1 mm/hr and 2 mm/hr at the start and end of the period. This gives
         # a gradient of 1/6 mm/hr across the period which results in the
         # expected 3-hour accumulations returned across the period.
-        ({"interval_in_minutes": 180, "accumulation": True}, [3, 12], [3, 6], [5, 7],),
+        ({"interval_in_minutes": 180, "accumulation": True}, [3, 12], [3, 6], [5, 7]),
         # Unequal input periods and accumulations give effective rates of
         # 2 mm/hr and 1 mm/hr at the start and end of the period. This gives
         # a gradient of -1/6 mm/hr across the period which results in the
@@ -938,7 +940,7 @@ def test_process_return_input(kwargs):
         # Unequal input periods and accumulations give a consistent effective
         # rate of 1 mm/hr across the the period. This results in equal
         # accumulations across the two returned 3-hour periods.
-        ({"interval_in_minutes": 180, "accumulation": True}, [3, 6], [3, 6], [3, 3],),
+        ({"interval_in_minutes": 180, "accumulation": True}, [3, 6], [3, 6], [3, 3]),
         # Unequal input periods and accumulations give a consistent effective
         # rate of 1 mm/hr across the the period. The unequal output periods
         # split the total accumulation as expected.

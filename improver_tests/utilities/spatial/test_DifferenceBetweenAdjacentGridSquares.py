@@ -1,8 +1,8 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-""" Tests of DifferenceBetweenAdjacentGridSquares plugin."""
+"""Tests of DifferenceBetweenAdjacentGridSquares plugin."""
 
 import unittest
 
@@ -19,7 +19,6 @@ from improver.utilities.spatial import DifferenceBetweenAdjacentGridSquares
 
 
 class Test_create_difference_cube(IrisTest):
-
     """Test the create_difference_cube method."""
 
     def setUp(self):
@@ -27,7 +26,7 @@ class Test_create_difference_cube(IrisTest):
         data = np.array([[1, 2, 3], [2, 4, 6], [5, 10, 15]])
         self.diff_in_y_array = np.array([[1, 2, 3], [3, 6, 9]])
         self.cube = set_up_variable_cube(
-            data, name="wind_speed", units="m s-1", spatial_grid="equalarea",
+            data, name="wind_speed", units="m s-1", spatial_grid="equalarea"
         )
         self.plugin = DifferenceBetweenAdjacentGridSquares()
 
@@ -133,7 +132,7 @@ class Test_calculate_difference(IrisTest):
         """Set up cube."""
         data = np.array([[1, 2, 3, 4], [2, 4, 6, 8], [5, 10, 15, 20]])
         self.cube = set_up_variable_cube(
-            data, "equalarea", name="wind_speed", units="m s-1",
+            data, "equalarea", name="wind_speed", units="m s-1"
         )
         self.plugin = DifferenceBetweenAdjacentGridSquares()
 

@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the weights.ChooseDefaultWeightsLinear plugin."""
 
@@ -20,7 +20,6 @@ from improver.synthetic_data.set_up_test_cubes import (
 
 
 class Test__repr__(IrisTest):
-
     """Test the repr method."""
 
     def test_basic(self):
@@ -31,36 +30,36 @@ class Test__repr__(IrisTest):
 
 
 class Test_normalise_weights(IrisTest):
-    """Test the normalise_weights function. """
+    """Test the normalise_weights function."""
 
     def test_basic(self):
-        """Test that the function returns an array of weights. """
+        """Test that the function returns an array of weights."""
         weights_in = np.array([1.0, 2.0, 3.0])
         result = WeightsUtilities.normalise_weights(weights_in)
         self.assertIsInstance(result, np.ndarray)
 
     def test_array_sum_equals_one(self):
-        """Test that the resulting weights add up to one. """
+        """Test that the resulting weights add up to one."""
         weights_in = np.array([1.0, 2.0, 3.0])
         result = WeightsUtilities.normalise_weights(weights_in)
         self.assertAlmostEqual(result.sum(), 1.0)
 
     def test_fails_weight_less_than_zero(self):
-        """Test it fails if weight less than zero. """
+        """Test it fails if weight less than zero."""
         weights_in = np.array([-1.0, 0.1])
         msg = "Weights must be positive"
         with self.assertRaisesRegex(ValueError, msg):
             WeightsUtilities.normalise_weights(weights_in)
 
     def test_fails_sum_equals_zero(self):
-        """Test it fails if sum of input weights is zero. """
+        """Test it fails if sum of input weights is zero."""
         weights_in = np.array([0.0, 0.0, 0.0])
         msg = "Sum of weights must be > 0.0"
         with self.assertRaisesRegex(ValueError, msg):
             WeightsUtilities.normalise_weights(weights_in)
 
     def test_returns_correct_values(self):
-        """Test it returns the correct values. """
+        """Test it returns the correct values."""
         weights_in = np.array([6.0, 3.0, 1.0])
         result = WeightsUtilities.normalise_weights(weights_in)
         expected_result = np.array([0.6, 0.3, 0.1])
@@ -82,7 +81,7 @@ class Test_normalise_weights(IrisTest):
 
     def test_returns_correct_values_2darray_zero_weights(self):
         """Test normalizing along the columns of the array when there are
-           zeros in the input array."""
+        zeros in the input array."""
         weights_in = np.array([[6.0, 3.0, 0.0], [0.0, 1.0, 3.0]])
         result = WeightsUtilities.normalise_weights(weights_in, axis=0)
         expected_result = np.array([[1.0, 0.75, 0.0], [0.0, 0.25, 1.0]])
@@ -90,7 +89,7 @@ class Test_normalise_weights(IrisTest):
 
 
 class Test_build_weights_cube(IrisTest):
-    """Test the build_weights_cube function. """
+    """Test the build_weights_cube function."""
 
     def setUp(self):
         """Setup for testing cube creation."""

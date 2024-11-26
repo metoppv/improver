@@ -1,11 +1,12 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """
 Unit tests for the `ensemble_copula_coupling.RebadgeRealizationsAsPercentiles` class.
 
 """
+
 import numpy as np
 import pytest
 from iris.coords import DimCoord
@@ -23,8 +24,8 @@ from improver.synthetic_data.set_up_test_cubes import (
 from .ecc_test_data import ECC_TEMPERATURE_REALIZATIONS
 
 
-@pytest.mark.parametrize("scalar_realization", (True, False,))
-@pytest.mark.parametrize("optimal_crps_percentiles", (True, False,))
+@pytest.mark.parametrize("scalar_realization", (True, False))
+@pytest.mark.parametrize("optimal_crps_percentiles", (True, False))
 @pytest.mark.parametrize(
     "data", (ECC_TEMPERATURE_REALIZATIONS, ECC_TEMPERATURE_REALIZATIONS[::-1])
 )

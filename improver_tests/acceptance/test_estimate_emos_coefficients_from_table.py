@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """
 Tests for the estimate-emos-coefficients-from-table CLI
@@ -117,7 +117,7 @@ def test_basic(
 
 
 @pytest.mark.slow
-def test_invalid_truth_filter(tmp_path,):
+def test_invalid_truth_filter(tmp_path):
     """
     Test using an invalid diagnostic name to filter the truth table.
     """
@@ -150,7 +150,7 @@ def test_invalid_truth_filter(tmp_path,):
 
 
 @pytest.mark.slow
-def test_return_none(tmp_path,):
+def test_return_none(tmp_path):
     """
     Test that None is returned if a non-existent forecast period is requested.
     """
