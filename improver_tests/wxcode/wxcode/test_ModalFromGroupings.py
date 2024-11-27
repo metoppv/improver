@@ -63,6 +63,7 @@ INTENSITY_CATEGORIES = {
     "thunder": [30, 29],
     "cloud": [7, 8],
     "sun": [3, 1],
+    "vis": [5, 6],
 }
 
 
@@ -368,6 +369,10 @@ def test_expected_values_day_weighting(
             [1, 26],
             False,
         ),
+        # Demonstrate that the visibility category allows low vis to dominate.
+        ([5, 5, 6, 6, 1, 1, 1], True, 5, False),
+        # As above but reverset intensity order to yield fog instead of mist.
+        ([5, 5, 6, 6, 1, 1, 1], True, 6, True),
     ),
 )
 def test_expected_values_ignore_intensity(
