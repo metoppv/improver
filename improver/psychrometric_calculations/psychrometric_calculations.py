@@ -9,6 +9,7 @@ from typing import List, Tuple, Union
 
 import numpy as np
 from iris.cube import Cube, CubeList
+from iris.exceptions import ConstraintMismatchError
 from numpy import ndarray
 from scipy.optimize import newton
 
@@ -22,7 +23,10 @@ from improver.metadata.utilities import (
     generate_mandatory_attributes,
 )
 from improver.utilities.common_input_handle import as_cubelist
-from improver.utilities.cube_manipulation import sort_coord_in_cube
+from improver.utilities.cube_manipulation import (
+    enforce_coordinate_ordering,
+    sort_coord_in_cube,
+)
 from improver.utilities.interpolation import interpolate_missing_data
 from improver.utilities.mathematical_operations import fast_linear_fit
 from improver.utilities.spatial import OccurrenceWithinVicinity
@@ -315,22 +319,61 @@ class HumidityMixingRatio(BasePlugin):
         )
         return cube
 
+    def generate_pressure_cube(self) -> None:
+        """Generate a pressure cube from the pressure coordinate on the temperature cube"""
+        coord_list = [coord.name() for coord in self.temperature.coords()]
+        pressure_list = CubeList()
+        for temp_slice in self.temperature.slices_over("pressure"):
+            pressure_value = temp_slice.coord("pressure").points
+            temp_slice.data = np.broadcast_to(pressure_value, temp_slice.shape)
+            pressure_list.append(temp_slice)
+        self.pressure = pressure_list.merge_cube()
+        enforce_coordinate_ordering(self.pressure, coord_list)
+        self.pressure.rename("surface_air_pressure")
+        self.pressure.units = "Pa"
+
     def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
         """
-        Calculates the humidity mixing ratio from the inputs.
+        Calculates the humidity mixing ratio from the inputs. The inputs can be on height levels
+        or pressure levels, and the output will be on the same levels. If the input cubes are on
+        pressure levels then a pressure cube doesn't need to be provided and the pressure levels
+        will be inferred from the pressure coordinate on the temperature cube.
 
         Args:
             cubes:
-                Cubes of temperature (K), pressure (Pa) and relative humidity (1)
+                Cubes of temperature (K) and relative humidity (1). A cube of pressure (Pa) must also
+                br provided unless there is a pressure coordinate in the temperature and relative humidity cubes.
 
         Returns:
-            Cube of humidity mixing ratio
+            Cube of humidity mixing ratio on same levels as input cubes
 
         """
         cubes = as_cubelist(*cubes)
-        (self.temperature, self.pressure, self.rel_humidity) = cubes.extract_cubes(
-            ["air_temperature", "surface_air_pressure", "relative_humidity"]
+
+        (self.temperature, self.rel_humidity) = cubes.extract_cubes(
+            ["air_temperature", "relative_humidity"]
         )
+
+        try:
+            self.pressure = cubes.extract_cube("surface_air_pressure")
+        except ConstraintMismatchError:
+            # If no pressure cube is provided, check if pressure is a coordinate in the temperature and relative humidity cubes
+            temp_coord = [
+                True
+                for coord in self.temperature.coords()
+                if coord.name() == "pressure"
+            ]
+            rh_coord = [
+                True
+                for coord in self.rel_humidity.coords()
+                if coord.name() == "pressure"
+            ]
+            if any(temp_coord) and any(rh_coord):
+                self.generate_pressure_cube()
+            else:
+                raise ValueError(
+                    "No pressure cube called 'surface_air_pressure' found and no pressure coordinate found in temperature or relative humidity cubes"
+                )
 
         self.mandatory_attributes = generate_mandatory_attributes(
             [self.temperature, self.pressure, self.rel_humidity]
