@@ -739,7 +739,7 @@ class ModalFromGroupings(BaseModalCategory):
             )
             result.replace_coord(new_coord)
 
-    def _get_cloud_equivalents(
+    def _get_dry_equivalents(
         self, cube: Cube, dry_indices: np.ndarray, time_axis
     ) -> Cube:
         """
@@ -800,7 +800,7 @@ class ModalFromGroupings(BaseModalCategory):
 
             # For dry locations convert the wet codes to their equivalent dry
             # codes for use in determining the summary symbol.
-            cube = self._get_cloud_equivalents(cube, ~wet_indices, time_axis)
+            cube = self._get_dry_equivalents(cube, ~wet_indices, time_axis)
 
             original_cube = cube.copy()
             cube = self._consolidate_intensity_categories(cube)
