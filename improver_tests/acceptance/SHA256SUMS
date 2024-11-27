@@ -331,6 +331,8 @@ de45e4588c71d051e109441eea4b03bfee7a589782bda173bf768a3172a67b8a  ./copy-metadat
 d3efbc6014743793fafed512a8017a7b75e4f0ffa7fd202cd4f1b4a1086b2583  ./create-grid-with-halo/basic/kgo.nc
 fee00437131d2367dc317e5b0fff44e65e03371b8f096bf1ac0d4cc7253693c9  ./create-grid-with-halo/basic/source_grid.nc
 bf7e42be7897606682c3ecdaeb27bf3d3b6ab13a9a88b46c88ae6e92801c6245  ./create-grid-with-halo/halo_size/kgo.nc
+55ba8a8ca8b5eee667d37fe8ec4a653caddea27f19ea290397428a487eb13ca0  ./cubelist-extract/input_cubelist.nc
+33c7e0cf46ac62ead74ffde502ee28076a59550474fb3872c3e22083c4bd3cc3  ./cubelist-extract/kgo.nc
 fe00aadb6854f44d765b40bb6608c23f4eb4f10193c96f43f207db0590739dab  ./enforce-consistent-forecasts/double_bound_percentile_kgo.nc
 51f9ff2c8e6cad54d04d6323c654ce25b812bea3ba6b0d85df21c19731c580fc  ./enforce-consistent-forecasts/percentile_forecast.nc
 e210bf956dd3574eda3a64fdc3371ab16f85048ca120a3823e90d751d2325c46  ./enforce-consistent-forecasts/percentile_reference.nc
@@ -534,8 +536,8 @@ ba7a8a4dab8552656cfc38962d8cc6dce7e32d0965823c77008906d0c6afe7b5  ./generate-top
 06911b6df4f8195a9349ff12f352bd1a6251dfcdbcd9f573d652c242f4fed596  ./generate-topography-bands-weights/multi_realization/input_orog.nc
 0c52d393be6e53eaa8b9d88a38ceff5ca07772e3385f776ac85df971afaa532b  ./generate-topography-bands-weights/multi_realization/kgo.nc
 4fe3a154c46e079ab0f42c04db93c94a35b1b7e73a6b3a303f29b8a7167aaa5b  ./gradient-between-adjacent-grid-squares/input.nc
-9792de8e7df23e9272c0fe8fa647256e5871c4dc1daf78d0584d5750c868bd43  ./gradient-between-adjacent-grid-squares/with_regrid/kgo.nc
-1324ec666cd38b5ee9974396c556457a91c020a00d90c34eac1d842013f869d8  ./gradient-between-adjacent-grid-squares/without_regrid/kgo.nc
+8b0c59a4a367398fb0df7c3bb156adacd36f7316974d98553caee3d9d4d1d0cb  ./gradient-between-adjacent-grid-squares/with_regrid/kgo.nc
+4b69c62f7867dfc92b660cb902dc369361619b394e507c4648828d40f9c3eb12  ./gradient-between-adjacent-grid-squares/without_regrid/kgo.nc
 19e48705dd34036cf8e974dacdfeb510a55720f387daf64044d12b73d8d18ca7  ./gradient-between-vertical-levels/height_of_pressure_levels.nc
 fafd9c642ef7a63b1c453dae66cb55eab3d7816b02122d12da9320763d2d8db2  ./gradient-between-vertical-levels/kgo.nc
 a8eb2c78a65acb58d9535c3390fbf22249e98929002c21b5a4b5c534640d18e1  ./gradient-between-vertical-levels/orography.nc
