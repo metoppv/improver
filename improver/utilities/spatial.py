@@ -698,12 +698,17 @@ class GradientBetweenAdjacentGridSquares(PostProcessingPlugin):
             - Cube after the gradients have been calculated along the
               y-axis.
         """
+        axis = ["x", "y"]
         gradients = []
         diffs = DifferenceBetweenAdjacentGridSquares()(cube)
         distances = DistanceBetweenGridSquares()(cube)
-        for diff, distance in zip(diffs, distances):
+
+        for diff, distance, ax in zip(diffs, distances, axis):
+            distance.data = distance.data.astype(np.float32)
             gradient = diff / distance
-            grad_cube = self._create_output_cube(gradient, "gradient_of_" + cube.name())
+            grad_cube = self._create_output_cube(
+                gradient, "gradient_of_" + cube.name() + "_wrt_" + ax
+            )
             if self.regrid:
                 grad_cube = grad_cube.regrid(cube, iris.analysis.Linear())
             gradients.append(grad_cube)
