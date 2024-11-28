@@ -58,11 +58,7 @@ class CopyMetadata(BasePlugin):
             amend_attributes(cube, new_attributes)
             for coord in self.aux_coord:
                 # If coordinate is already present in the cube, remove it
-                try:
-                    cube.coord(coord)
-                except KeyError:
-                    pass
-                else:
+                if cube.coords(coord):
                     cube.remove_coord(coord)
                 cube.add_aux_coord(
                     template_cube.coord(coord),
