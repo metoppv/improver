@@ -371,7 +371,7 @@ def test_expected_values_day_weighting(
         ),
         # Demonstrate that the visibility category allows low vis to dominate.
         ([5, 5, 6, 6, 1, 1, 1], True, 5, False),
-        # As above but reverset intensity order to yield fog instead of mist.
+        # As above but reversed intensity order to yield fog instead of mist.
         ([5, 5, 6, 6, 1, 1, 1], True, 6, True),
     ),
 )
