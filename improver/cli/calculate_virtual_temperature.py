@@ -3,7 +3,7 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""CLI to calculate the virtual temperature from temperature and specific humidity."""
+"""CLI to calculate the virtual temperature from temperature and humidity mixing ratio."""
 
 from improver import cli
 
@@ -11,20 +11,20 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(*cubes: cli.inputcubelist):
-    """Calculate the virtual temperature from temperature and specific humidity.
+    """Calculate the virtual temperature from temperature and humidity mixing ratio.
 
     Args:
         cubes (iris.cube.CubeList or list of iris.cube.Cube):
             containing:
                 temperature (iris.cube.Cube):
-                    Cube of temperature on pressure levels
-                specific_humidity (iris.cube.Cube):
-                    Cube of specific humidity on pressure levels
+                    Cube of temperature.
+                humidity_mixing_ratio (iris.cube.Cube):
+                    Cube of humidity mixing ratio.
 
     Returns:
         iris.cube.Cube:
-            Cube of air_temperature.
+            Cube of virtual_temperature.
     """
     from improver.virtual_temperature import VirtualTemperature
 
-    return VirtualTemperature(*cubes)
+    return VirtualTemperature()(*cubes)

@@ -2,7 +2,7 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""Calculate the gradient between two vertical levels."""
+"""Calculate the virtual temperature from temperature and humidity mixing ratio."""
 
 from typing import Union
 
@@ -13,25 +13,28 @@ from improver.utilities.common_input_handle import as_cubelist
 
 
 class VirtualTemperature(BasePlugin):
-    """Calculates the virtual temperature from temperature and specific humidity."""
+    """Calculates the virtual temperature from temperature and ."""
 
     @staticmethod
-    def get_virtual_temperature(temperature: Cube, specific_humidity: Cube) -> Cube:
+    def get_virtual_temperature(temperature: Cube, humidity_mixing_ratio: Cube) -> Cube:
         """
-        Calculate the virtual temperature from temperature and specific humidity.
+        Calculate the virtual temperature from temperature and humidity mixing ratio.
 
         Args:
             temperature:
-                Cube of temperature
-            specific_humidity:
-                Cube of specific humidity
+                Cube of temperature.
+            humidity_mixing_ratio:
+                Cube of humidity mixing ratio.
 
         Returns:
-            Cube of virtual temperature
+            Cube of virtual_temperature.
         """
         # Calculate the virtual temperature
-        virtual_temperature = temperature * (1 + 0.61 * specific_humidity)
-        virtual_temperature.rename("air_temperature")
+        virtual_temperature = temperature * (1 + 0.61 * humidity_mixing_ratio)
+
+        # Update the cube metadata
+        virtual_temperature.rename("virtual_temperature")
+        virtual_temperature.attributes["units_metadata"] = "on-scale"
 
         return virtual_temperature
 
@@ -42,17 +45,21 @@ class VirtualTemperature(BasePlugin):
         Args:
             cubes:
                 air_temperature:
-                    Cube of temperature on pressure levels
-                specific_humidity:
-                    Cube of specific humidity on pressure levels.
+                    Cube of temperature.
+                humidity_mixing_ratio:
+                    Cube of humidity mixing ratios.
 
         Returns:
-            Cube of virtual temperature.
+            Cube of virtual_temperature.
         """
 
+        # Get the cubes into the correct format and extract the relevant cubes
         cubes = as_cubelist(*cubes)
-        temperature, specific_humidity = cubes.extract(
-            ["air_temperature", "specific_humidity"]
+        (self.temperature, self.humidity_mixing_ratio) = cubes.extract_cubes(
+            ["air_temperature", "humidity_mixing_ratio"]
         )
 
-        return self.get_virtual_temperature(temperature, specific_humidity)
+        # Calculate the virtual temperature
+        return self.get_virtual_temperature(
+            self.temperature, self.humidity_mixing_ratio
+        )
