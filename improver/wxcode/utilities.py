@@ -103,6 +103,31 @@ GROUPED_CODES = {
     "visibility": [5, 6],
 }
 
+DRY_EQUIVALENTS = {
+    9: 2,
+    10: 3,
+    11: 8,
+    12: 8,
+    13: 2,
+    14: 3,
+    15: 8,
+    16: 2,
+    17: 3,
+    18: 8,
+    19: 2,
+    20: 3,
+    21: 8,
+    22: 2,
+    23: 3,
+    24: 8,
+    25: 2,
+    26: 3,
+    27: 8,
+    28: 2,
+    29: 3,
+    30: 8,
+}
+
 
 def update_tree_thresholds(
     tree: Dict[str, Dict[str, Any]], target_period: Optional[int] = None
