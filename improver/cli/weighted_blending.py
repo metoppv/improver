@@ -135,10 +135,6 @@ def process(
         y0val=y0val,
         ynval=ynval,
         cval=cval,
-    )
-
-    return plugin(
-        cubes,
         cycletime=cycletime,
         model_id_attr=model_id_attr,
         record_run_attr=record_run_attr,
@@ -146,3 +142,5 @@ def process(
         fuzzy_length=fuzzy_length,
         attributes_dict=attributes_config,
     )
+
+    return plugin(cubes)

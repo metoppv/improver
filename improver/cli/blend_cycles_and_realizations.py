@@ -42,6 +42,5 @@ def process(
     for cube in cubes:
         cubelist.append(collapse_realizations(cube))
 
-    plugin = WeightAndBlend("forecast_reference_time", "linear", y0val=0.5, ynval=0.5,)
-    cube = plugin(cubelist, cycletime=cycletime,)
-    return cube
+    plugin = WeightAndBlend("forecast_reference_time", "linear", y0val=0.5, ynval=0.5, cycletime=cycletime)
+    return plugin(cubelist)

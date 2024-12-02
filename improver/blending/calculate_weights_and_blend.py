@@ -51,6 +51,12 @@ class WeightAndBlend(PostProcessingPlugin):
         ynval: Optional[float] = None,
         cval: Optional[float] = None,
         inverse_ordering: bool = False,
+        cycletime: Optional[str] = None,
+        model_id_attr: Optional[str] = None,
+        record_run_attr: Optional[str] = None,
+        spatial_weights: bool = False,
+        fuzzy_length: float = 20000,
+        attributes_dict: Optional[Dict[str, str]] = None,
     ) -> None:
         """
         Initialise central parameters
@@ -90,6 +96,38 @@ class WeightAndBlend(PostProcessingPlugin):
                 Option to invert weighting order for non-linear weights plugin
                 so that higher blend coordinate values get higher weights (eg
                 if cycle blending over forecast reference time).
+            cycletime:
+                The forecast reference time to be used after blending has been
+                applied, in the format YYYYMMDDTHHMMZ. If not provided, the
+                blended file takes the latest available forecast reference time
+                from the input datasets supplied.
+            model_id_attr:
+                The name of the dataset attribute to be used to identify the source
+                model when blending data from different models.
+            record_run_attr:
+                The name of the dataset attribute to be used to store model and
+                cycle sources in metadata, e.g. when blending data from different
+                models. Requires model_id_attr.
+            spatial_weights:
+                If True, this option will result in the generation of spatially
+                varying weights based on the masks of the data we are blending.
+                The one dimensional weights are first calculated using the chosen
+                weights calculation method, but the weights will then be adjusted
+                spatially based on where there is masked data in the data we are
+                blending. The spatial weights are calculated using the
+                SpatiallyVaryingWeightsFromMask plugin.
+            fuzzy_length:
+                When calculating spatially varying weights we can smooth the
+                weights so that areas close to areas that are masked have lower
+                weights than those further away. This fuzzy length controls the
+                scale over which the weights are smoothed. The fuzzy length is in
+                terms of m, the default is 20km. This distance is then converted
+                into a number of grid squares, which does not have to be an
+                integer. Assumes the grid spacing is the same in the x and y
+                directions and raises an error if this is not true. See
+                SpatiallyVaryingWeightsFromMask for more details.
+            attributes_dict:
+                Dictionary describing required changes to attributes after blending
         """
         self.blend_coord = blend_coord
         self.wts_calc_method = wts_calc_method
@@ -110,6 +148,30 @@ class WeightAndBlend(PostProcessingPlugin):
                     self.wts_calc_method
                 )
             )
+        
+        self._cycletime = cycletime
+        self._model_id_attr = model_id_attr
+        self._record_run_attr = record_run_attr
+        self._spatial_weights = spatial_weights
+        self._fuzzy_length = fuzzy_length
+        self._attributes_dict = attributes_dict
+
+        if record_run_attr is not None and model_id_attr is None:
+            raise ValueError(
+                "record_run_attr can only be used with model_id_attr, which "
+                "has not been provided."
+            )
+        
+        if (wts_calc_method == "linear") and cval:
+            raise RuntimeError("Method: linear does not accept arguments: cval")
+        if (wts_calc_method == "nonlinear") and any([y0val, ynval]):
+            raise RuntimeError("Method: non-linear does not accept arguments: y0val, ynval")
+        if (wts_calc_method == "dict") and wts_dict is None:
+            raise RuntimeError('Dictionary is required if wts_calc_method="dict"')
+        if "model" in blend_coord and model_id_attr is None:
+            raise RuntimeError("model_id_attr must be specified for model blending")
+        if record_run_attr is not None and model_id_attr is None:
+            raise RuntimeError("model_id_attr must be specified for blend model recording")
 
     def _calculate_blending_weights(self, cube: Cube) -> Cube:
         """
@@ -206,13 +268,7 @@ class WeightAndBlend(PostProcessingPlugin):
 
     def process(
         self,
-        cubelist: Union[List[Cube], CubeList],
-        cycletime: Optional[str] = None,
-        model_id_attr: Optional[str] = None,
-        record_run_attr: Optional[str] = None,
-        spatial_weights: bool = False,
-        fuzzy_length: float = 20000,
-        attributes_dict: Optional[Dict[str, str]] = None,
+        *cubes: Union[Cube, CubeList],
     ) -> Cube:
         """
         Merge a cubelist, calculate appropriate blend weights and compute the
@@ -220,40 +276,8 @@ class WeightAndBlend(PostProcessingPlugin):
         given by self.blend_coord.
 
         Args:
-            cubelist:
-                List of cubes to be merged and blended
-            cycletime:
-                The forecast reference time to be used after blending has been
-                applied, in the format YYYYMMDDTHHMMZ. If not provided, the
-                blended file takes the latest available forecast reference time
-                from the input datasets supplied.
-            model_id_attr:
-                The name of the dataset attribute to be used to identify the source
-                model when blending data from different models.
-            record_run_attr:
-                The name of the dataset attribute to be used to store model and
-                cycle sources in metadata, e.g. when blending data from different
-                models. Requires model_id_attr.
-            spatial_weights:
-                If True, this option will result in the generation of spatially
-                varying weights based on the masks of the data we are blending.
-                The one dimensional weights are first calculated using the chosen
-                weights calculation method, but the weights will then be adjusted
-                spatially based on where there is masked data in the data we are
-                blending. The spatial weights are calculated using the
-                SpatiallyVaryingWeightsFromMask plugin.
-            fuzzy_length:
-                When calculating spatially varying weights we can smooth the
-                weights so that areas close to areas that are masked have lower
-                weights than those further away. This fuzzy length controls the
-                scale over which the weights are smoothed. The fuzzy length is in
-                terms of m, the default is 20km. This distance is then converted
-                into a number of grid squares, which does not have to be an
-                integer. Assumes the grid spacing is the same in the x and y
-                directions and raises an error if this is not true. See
-                SpatiallyVaryingWeightsFromMask for more details.
-            attributes_dict:
-                Dictionary describing required changes to attributes after blending
+            *cubes:
+                One of more cubes to be merged and blended
 
         Returns:
             Cube of blended data.
@@ -266,11 +290,7 @@ class WeightAndBlend(PostProcessingPlugin):
             UserWarning: If blending masked data without spatial weights.
                          This has not been fully tested.
         """
-        if record_run_attr is not None and model_id_attr is None:
-            raise ValueError(
-                "record_run_attr can only be used with model_id_attr, which "
-                "has not been provided."
-            )
+        cubes = as_cubelist(cubes)
 
         # Prepare cubes for weighted blending, including creating custom metadata
         # for multi-model blending. The merged cube has a monotonically ascending
@@ -279,10 +299,10 @@ class WeightAndBlend(PostProcessingPlugin):
         merger = MergeCubesForWeightedBlending(
             self.blend_coord,
             weighting_coord=self.weighting_coord,
-            model_id_attr=model_id_attr,
-            record_run_attr=record_run_attr,
+            model_id_attr=self._model_id_attr,
+            record_run_attr=self._record_run_attr,
         )
-        cube = merger(cubelist, cycletime=cycletime)
+        cube = merger(cubes, cycletime=self._cycletime)
 
         if "model" in self.blend_coord:
             self.blend_coord = copy(MODEL_BLEND_COORD)
@@ -296,15 +316,15 @@ class WeightAndBlend(PostProcessingPlugin):
             weights = self._calculate_blending_weights(cube)
             cube, weights = self._remove_zero_weighted_slices(cube, weights)
 
-        if record_run_attr is not None and weights is not None:
+        if self._record_run_attr is not None and weights is not None:
             cube = update_record_run_weights(cube, weights, self.blend_coord)
 
         # Deal with case of only one input cube or non-zero-weighted slice
         if len(cube.coord(self.blend_coord).points) == 1:
             result = cube
         else:
-            if spatial_weights:
-                weights = self._update_spatial_weights(cube, weights, fuzzy_length)
+            if self._spatial_weights:
+                weights = self._update_spatial_weights(cube, weights, self._fuzzy_length)
             elif np.ma.is_masked(cube.data):
                 # Raise warning if blending masked arrays using non-spatial weights.
                 warnings.warn(
@@ -316,8 +336,8 @@ class WeightAndBlend(PostProcessingPlugin):
             BlendingPlugin = WeightedBlendAcrossWholeDimension(self.blend_coord)
             result = BlendingPlugin(cube, weights=weights)
 
-        if record_run_attr is not None:
-            record_run_coord_to_attr(result, cube, record_run_attr)
+        if self._record_run_attr is not None:
+            record_run_coord_to_attr(result, cube, self._record_run_attr)
 
         # Remove custom metadata and and update time-type coordinates.  Remove
         # non-time-type coordinate that were previously associated with the blend
@@ -327,9 +347,9 @@ class WeightAndBlend(PostProcessingPlugin):
             result,
             self.blend_coord,
             coords_to_remove=coords_to_remove,
-            cycletime=cycletime,
-            attributes_dict=attributes_dict,
-            model_id_attr=model_id_attr,
+            cycletime=self._cycletime,
+            attributes_dict=self._attributes_dict,
+            model_id_attr=self._model_id_attr,
         )
 
         return result
