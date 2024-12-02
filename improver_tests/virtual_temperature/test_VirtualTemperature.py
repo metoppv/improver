@@ -62,6 +62,7 @@ def virtual_temperature_cube_fixture() -> Cube:
 
 @patch("improver.virtual_temperature.as_cubelist")
 def test_as_cubelist_called(mock_as_cubelist):
+    """Test that the as_cubelist function is called with the input cubes"""
     mock_as_cubelist.side_effect = HaltExecution
     try:
         VirtualTemperature()(sentinel.cube1, sentinel.cube2)
@@ -73,6 +74,6 @@ def test_as_cubelist_called(mock_as_cubelist):
 def test_VirtualTemperature_get_virtual_temperature(
     temperature_cube, humidity_mixing_ratio_cube, virtual_temperature_cube
 ):
-    """Test the get_virtual_temperature method"""
+    """Test the get_virtual_temperature method produces a virtual temperature cube"""
     result = VirtualTemperature()(temperature_cube, humidity_mixing_ratio_cube)
     assert result == virtual_temperature_cube
