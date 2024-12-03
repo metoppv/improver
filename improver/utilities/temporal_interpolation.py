@@ -729,7 +729,7 @@ class DurationSubdivision:
                 The data will be reconstructed into non-overlapping periods.
                 The target_period must be a factor of the original period.
             fidelity:
-                The shortest increment into which the input periods are
+                The shortest increment in seconds into which the input periods are
                 divided and to which the night mask is applied. The
                 target periods are reconstructed from these shorter periods.
                 Shorter fidelity periods better capture where the day / night
@@ -743,6 +743,14 @@ class DurationSubdivision:
         Raises:
             ValurError: If day and night mask options are both set True.
         """
+        for item in [target_period, fidelity]:
+            if item <= 0:
+                raise ValueError(
+                    "Target period and fidelity must be a positive integer "
+                    "numbers of seconds. Currently set to "
+                    f"target_period: {target_period}, fidelity: {fidelity}"
+                )
+
         self.target_period = target_period
         self.fidelity = fidelity
         if night_mask and day_mask:
@@ -787,7 +795,7 @@ class DurationSubdivision:
         interval_data = cube.data / intervals
 
         daynightplugin = DayNightMask()
-        start_time, end_time = cube.coord("time").bounds.flatten()
+        start_time, _ = cube.coord("time").bounds.flatten()
 
         interpolated_cubes = iris.cube.CubeList()
 
@@ -802,7 +810,6 @@ class DurationSubdivision:
             interval_cube.coord("time").bounds = np.array(
                 [[interval_start, interval_end]], dtype=np.int64
             )
-
             daynight_mask = daynightplugin(interval_cube).data
             daynight_mask = np.broadcast_to(daynight_mask, interval_cube.shape)
 
@@ -839,7 +846,7 @@ class DurationSubdivision:
         try:
             factor = factor.filled(0)
         except AttributeError:
-            pass
+            factor[factor == np.inf] = 0
 
         return factor
 
@@ -889,15 +896,17 @@ class DurationSubdivision:
         if period / self.target_period % 1 != 0:
             raise ValueError(
                 "The target period must be a factor of the original period "
-                "of the input cube."
+                "of the input cube and the target period must >= the input "
+                "period. "
+                f"Input period: {period}, target period: {self.target_period}"
             )
 
         # Ensure that the cube is already self-consistent and does not include
         # any durations that exceed the period described. This is mostly to
         # handle grib packing errors for ECMWF data.
         cube.data = np.clip(cube.data, 0, period)
-        # If the input cube period matches or is less than the target period return it.
-        if period <= self.target_period:
+        # If the input cube period matches the target period return it.
+        if period == self.target_period:
             return cube
 
         fidelity_period_cube = self.allocate_data(cube, period)
