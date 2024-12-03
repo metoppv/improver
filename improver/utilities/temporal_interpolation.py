@@ -874,7 +874,9 @@ class DurationSubdivision:
             )
             components = fidelity_period_cube.extract(period_constraint)
             component_cube = components.collapsed("time", iris.analysis.SUM)
-            component_cube.coord("time").points = component_cube.coord("time").bounds[0][-1]
+            component_cube.coord("time").points = component_cube.coord("time").bounds[
+                0
+            ][-1]
             new_period_cubes.append(component_cube)
             start_time += interval
 

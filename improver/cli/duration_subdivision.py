@@ -73,6 +73,8 @@ def process(
     """
     from improver.utilities.temporal_interpolation import DurationSubdivision
 
-    plugin = DurationSubdivision(target_period, fidelity, night_mask=night_mask, day_mask=day_mask)
+    plugin = DurationSubdivision(
+        target_period, fidelity, night_mask=night_mask, day_mask=day_mask
+    )
     result = plugin.process(cube)
     return result
