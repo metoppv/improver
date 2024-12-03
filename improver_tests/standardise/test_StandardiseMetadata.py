@@ -292,6 +292,19 @@ class Test_process(IrisTest):
         self.assertArrayEqual(result.data, target.data)
         self.assertEqual(result.coords(), target.coords())
 
+    def test_long_name_removed(self):
+        cube = self.cube.copy()
+        cube.long_name = "kittens"
+        print('long_name before test:' + cube.long_name)
+        result = StandardiseMetadata()._remove_long_name_if_standard_name(cube)
+        assert result.long_name == None, "long_name attribute removed or never added"
+
+        print(result)
+        #assert result.long_name == None
+
+
+
+
 
 if __name__ == "__main__":
     unittest.main()
