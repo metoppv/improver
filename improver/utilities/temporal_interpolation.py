@@ -695,7 +695,7 @@ class DurationSubdivision:
     This is a very simple approach. In the case of sunshine duration
     the duration is divided up evenly across the short periods defined
     by the fidelity argument. These are then optionally masked to zero
-    the chosen periods (day or night). Values in the non-zeroed periods
+    for chosen periods (day or night). Values in the non-zeroed periods
     are then renormalised relative to the original period total, such
     that the total across the whole period ought to equal the original. This
     is not always possible as the night mask applied is simpler than e.g. the
