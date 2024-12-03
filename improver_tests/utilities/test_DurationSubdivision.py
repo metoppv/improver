@@ -71,10 +71,12 @@ def diagnostic_cube(
     Returns:
         A diagnostic cube for use in testing.
     """
-    npoints = data.shape[0]
+    npoints = data.shape[-1]
+    if npoints != data.shape[-2]:
+        raise ValueError("diagnostic_cube function assumes square grid.")
     domain_corner, grid_spacing = _grid_params(spatial_grid, npoints)
 
-    if realizations:
+    if realizations and data.ndim !=3:
         data = np.stack([data] * len(realizations))
 
     time_bounds = [time - timedelta(seconds=period), time]
@@ -154,10 +156,10 @@ def basic_cube(period: int):
 
 
 @pytest.fixture
-def data_cube(data: np.ndarray, time: dt, period: int):
+def data_cube(data: np.ndarray, time: dt, period: int, realizations: List[int]):
     """Define a cube with specific period, data, and validity time."""
 
-    return diagnostic_cube(data.astype(np.float32), time=time, period=period)
+    return diagnostic_cube(data.astype(np.float32), time=time, period=period, realizations=realizations)
 
 
 @pytest.fixture
@@ -248,7 +250,7 @@ def test_cube_period(basic_cube, period):
     assert result == period
 
 
-
+@pytest.mark.parametrize("realizations", [None, (1, 2)])
 @pytest.mark.parametrize(
     "kwargs,data,time,period",
     [
@@ -272,7 +274,7 @@ def test_cube_period(basic_cube, period):
         ),
     ],
 )
-def test_allocate_data(data_cube, kwargs, data, time, period):
+def test_allocate_data(data_cube, kwargs, data, time, period, realizations):
     """Test data is allocated to shorter fidelity periods correctly and that
     the metadata associated with these shorter periods is correct."""
 
@@ -280,27 +282,37 @@ def test_allocate_data(data_cube, kwargs, data, time, period):
     result = plugin.allocate_data(data_cube, period)
     time_dimension_length = period / kwargs["fidelity"]
 
-    # Check expected number of sub-divisions created.
-    assert result.shape[0] == time_dimension_length
-
-    # Check sub-divisions have the correct metadata.
-    assert result[-1].coord("time").cell(0).point == time
-    bounds, = np.unique(np.diff(result.coord("time").bounds, axis=1))
-    assert bounds == kwargs["fidelity"]
-
-    collapsed_result = np.around(result.collapsed("time", iris.analysis.SUM).data, decimals=6)
-    if not any([kwargs[key] for key in kwargs.keys() if "mask" in key]):
-        # Check that summing over the time dimension returns the original data
-        # if we've applied no masking.
-        np.testing.assert_array_equal(collapsed_result, data)
-        # Without masking we can test that all the shorter durations are the
-        # expected fraction of the total.
-        for cslice in result.slices_over("time"):
-            np.testing.assert_array_almost_equal(cslice.data, data / time_dimension_length)
+    # If realizations is not None, look at each realization in turn.
+    if realizations is not None:
+        rslices = result.slices_over("realization")
     else:
-        # If we've applied masking the reaccumulated data must be less than
-        # or equal to the original data.
-        assert (collapsed_result <= data).all()
+        rslices = [result]
+
+    for rslice in rslices:
+
+        # Check expected number of sub-divisions created.
+        assert rslice.shape[0] == time_dimension_length
+
+        # Check sub-divisions have the correct metadata.
+        for i, cslice in enumerate(rslice.slices_over("time")):
+            expected_time = time - timedelta(seconds=((time_dimension_length - i - 1) * kwargs["fidelity"]))
+            assert cslice.coord("time").cell(0).point == expected_time
+            bounds, = np.unique(np.diff(cslice.coord("time").bounds, axis=1))
+            assert bounds == kwargs["fidelity"]
+
+        collapsed_rslice = np.around(rslice.collapsed("time", iris.analysis.SUM).data, decimals=6)
+        if not any([kwargs[key] for key in kwargs.keys() if "mask" in key]):
+            # Check that summing over the time dimension returns the original data
+            # if we've applied no masking.
+            np.testing.assert_array_equal(collapsed_rslice, data)
+            # Without masking we can test that all the shorter durations are the
+            # expected fraction of the total.
+            for cslice in rslice.slices_over("time"):
+                np.testing.assert_array_almost_equal(cslice.data, data / time_dimension_length)
+        else:
+            # If we've applied masking the reaccumulated data must be less than
+            # or equal to the original data.
+            assert (collapsed_rslice <= data).all()
 
 
 @pytest.mark.parametrize(
@@ -374,6 +386,8 @@ def test_construct_target_periods(kwargs, data, input_period, expected):
     plugin = DurationSubdivision(**kwargs)
     input_cube = fidelity_cube(data, input_period, kwargs["fidelity"])
     result = plugin.construct_target_periods(input_cube)
+    time_dimension_length = input_period / kwargs["target_period"]
+    time = dt(2024, 6, 15, 21)
 
     # Check a single cube is returned
     assert isinstance(result, Cube)
@@ -382,14 +396,21 @@ def test_construct_target_periods(kwargs, data, input_period, expected):
     bounds, = np.unique(np.diff(result.coord("time").bounds, axis=1))
     assert bounds == kwargs["target_period"]
 
+    # Check time coordinates are correct
+    for i, cslice in enumerate(result.slices_over("time")):
+        expected_time = time - timedelta(seconds=((time_dimension_length - i - 1) * kwargs["target_period"]))
+        assert cslice.coord("time").cell(0).point == expected_time
+        bounds, = np.unique(np.diff(cslice.coord("time").bounds, axis=1))
+        assert bounds == kwargs["target_period"]
+        assert cslice.coord("time").bounds[0][-1] == cslice.coord("time").points[0]
+
     # Check subdivided data is as expected. Also checks that shape is as
     # expected.
     np.testing.assert_array_almost_equal(result.data, expected)
 
 
-
 @pytest.mark.parametrize(
-    "kwargs,data,time,period,expected,exception",
+    "kwargs,data,time,period,expected,realizations,exception",
     [
         (
             {"target_period": 1100, "fidelity": 550, "night_mask": False, "day_mask": False},
@@ -397,6 +418,7 @@ def test_construct_target_periods(kwargs, data, input_period, expected):
             dt(2024, 6, 15, 12),  # Validity time
             10800,  # Input period
             None,  # Expected data in the output cube (not used here).
+            None,  # List of realization numbers if any
             "The target period must be a factor of the original period",  # Expected exception
         ),  # Raise a ValueError as the target period is not a factor of the input period.
         (
@@ -405,6 +427,7 @@ def test_construct_target_periods(kwargs, data, input_period, expected):
             dt(2024, 6, 15, 12),  # Validity time
             3600,  # Input period
             None,  # Expected data in the output cube (not used here).
+            None,  # List of realization numbers if any
             ("The target period must be a factor of the original period "
              "of the input cube and the target period must >= the input "
              "period. Input period: 3600, target period: 7200"),  # Expected exception
@@ -415,6 +438,7 @@ def test_construct_target_periods(kwargs, data, input_period, expected):
             dt(2024, 6, 15, 12),  # Validity time
             3600,  # Input period
             None,  # Expected data in the output cube (not used here).
+            None,  # List of realization numbers if any
             None,  # Expected exception
         ),  # Return the input cube completely unchanged as the target period matches the input period.
         (
@@ -423,6 +447,7 @@ def test_construct_target_periods(kwargs, data, input_period, expected):
             dt(2024, 6, 15, 21),  # Validity time
             7200,  # Input period
             np.full((2, 3, 3), 3600),  # Expected data in the output cube.
+            None,  # List of realization numbers if any
             None,  # Expected exception
         ),  # Demonstate clipping of input data as input data exceeds the period.
         (
@@ -432,13 +457,14 @@ def test_construct_target_periods(kwargs, data, input_period, expected):
             7200,  # Input period
             np.array(
                 [[
-                    [3600., 1800.,    0.],
-                    [3600., 3600., 3600.],
-                    [3600., 3600., 3600.]],
-                   [[3600.,    0.,    0.],
-                    [3600., 3600.,    0.],
-                    [3600., 3600., 3600.]
+                    [3600, 1800,    0],
+                    [3600, 3600, 3600],
+                    [3600, 3600, 3600]],
+                   [[3600,    0,    0],
+                    [3600, 3600,    0],
+                    [3600, 3600, 3600]
                 ]], dtype=np.float32),  # Expected data in the output cube.
+            None,  # List of realization numbers if any
             None,  # Expected exception
         ),  # Night masking applies time dependent masking, meaning we get different data
             # in each of the returned periods. The total in any period does not exceed the
@@ -451,13 +477,14 @@ def test_construct_target_periods(kwargs, data, input_period, expected):
             7200,  # Input period
             np.array(
                 [[
-                    [   0., 1800., 3600.],
-                    [   0.,    0.,    0.],
-                    [   0.,    0.,    0.]],
-                   [[0., 3600., 3600.],
-                    [   0.,    0., 3600.],
-                    [   0.,    0.,    0.]
+                    [   0, 1800, 3600],
+                    [   0,    0,    0],
+                    [   0,    0,    0]],
+                   [[0, 3600, 3600],
+                    [   0,    0, 3600],
+                    [   0,    0,    0]
                 ]], dtype=np.float32),  # Expected data in the output cube.
+            None,  # List of realization numbers if any
             None,  # Expected exception
         ),  # Day masking applies time dependent masking. This is the inverse of the test
             # above, and we get a suitably inverted result.
@@ -468,23 +495,79 @@ def test_construct_target_periods(kwargs, data, input_period, expected):
             7200,  # Input period
             np.array(
                 [[
-                    [3600., 1440.,    0.],
-                    [3600., 3600., 3240.],
-                    [3600., 3600., 3600.]],
-                   [[2880.,    0.,    0.],
-                    [3600., 3600.,    0.],
-                    [3600., 3600., 3600.]
+                    [3600, 1440,    0],
+                    [3600, 3600, 3240],
+                    [3600, 3600, 3600]],
+                   [[2880,    0,    0],
+                    [3600, 3600,    0],
+                    [3600, 3600, 3600]
                 ]], dtype=np.float32),  # Expected data in the output cube.
+            None,  # List of realization numbers if any
             None,  # Expected exception
         ),  # Repeat the night masking test above but with higher fidelity, meaning that
             # the subdivided data is split into shorter periods and the night mask
             # applied more accurately. As a result we get fractions returned which are
             # multiples of this fidelity period.
+        (
+            {"target_period": 3600, "fidelity": 1800, "night_mask": True, "day_mask": False},
+            np.array(
+                [
+                    [
+                        [7200, 7200, 7200],
+                        [7200, 7200, 7200],
+                        [7200, 7200, 7200],
+                    ],
+                    [
+                        [3600, 3600, 3600],
+                        [3600, 3600, 3600],
+                        [3600, 3600, 3600],
+                    ],
+                ],
+            dtype=np.float32),  # Data in the input cube.
+            dt(2024, 6, 15, 21),  # Validity time
+            7200,  # Input period
+            np.array(
+                [
+                    [
+                        [
+                            [3600, 1800,    0],
+                            [3600, 3600, 3600],
+                            [3600, 3600, 3600]
+                        ],
+                        [
+                            [1800., 1800.,    0.],
+                            [1800., 1800., 3600.],
+                            [1800., 1800., 1800.]
+                        ]
+
+                    ],
+                    [
+                        [
+                            [3600,    0,    0],
+                            [3600, 3600,    0],
+                            [3600, 3600, 3600]
+                        ],
+                       [
+                            [1800.,    0.,    0.],
+                            [1800., 1800.,    0.],
+                            [1800., 1800., 1800.]
+                        ]
+                    ]
+                ], dtype=np.float32),  # Expected data in the output cube.
+            [1, 2],  # List of realization numbers if any
+            None,  # Expected exception
+        ),  # Repeat the night masking test above but with two realizations
+            # to demonstrate this is handled sensibly when these contain
+            # different data. We recover the same solution for the first
+            # realization that we got in the first night mask test; note it
+            # is split in the expected data as the order is time, realization.
+            # The second realization gives a different result, though the same
+            # points have been modified by the application of the mask.
     ],
 )
-def test_process(kwargs, data_cube, period, expected, exception):
+def test_process(kwargs, data_cube, period, expected, exception, realizations):
     """Test the process method returns the expected data or raises the
-    expected exceptions."""
+    expected exceptions. Includes an example for multi-realization data."""
 
     plugin = DurationSubdivision(**kwargs)
     if exception is not None:
