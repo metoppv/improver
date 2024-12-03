@@ -246,7 +246,7 @@ class StandardiseMetadata(BasePlugin):
             cube.long_name = None
 
             print(cube)
-            return(cube)
+            return cube
 
     def process(self, cube: Cube) -> Cube:
         """
@@ -286,6 +286,5 @@ class StandardiseMetadata(BasePlugin):
         # this must be done after unit conversion as if the input is an integer
         # field, unit conversion outputs the new data as float64
         self._standardise_dtypes_and_units(cube)
-
 
         return cube
