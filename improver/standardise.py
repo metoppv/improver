@@ -245,9 +245,6 @@ class StandardiseMetadata(BasePlugin):
         if cube.standard_name and cube.long_name:
             cube.long_name = None
 
-            print(cube)
-            return cube
-
     def process(self, cube: Cube) -> Cube:
         """
         Perform compulsory and user-configurable metadata adjustments.  The

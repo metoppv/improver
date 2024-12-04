@@ -78,6 +78,7 @@ below:
  - Mark Worsfold (Met Office, UK)
  - Bruce Wright (Met Office, UK)
  - Ying Zhao (Bureau of Meteorology, Australia)
+ - Phoebe Lambert (Met Office, UK)
 <!-- end-shortlog -->
  - Martina Friedrich (Met Office, UK, pre-GitHub)
 
