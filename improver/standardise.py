@@ -285,4 +285,3 @@ class StandardiseMetadata(BasePlugin):
         self._standardise_dtypes_and_units(cube)
 
         return cube
-
