@@ -296,7 +296,9 @@ class Test_process(IrisTest):
         cube = self.cube.copy()
         cube.long_name = "kittens"
         result = StandardiseMetadata().process(cube)
-        assert result.long_name is None, "long_name attribute removed or never added"
+        assert (
+            result.long_name is None
+        ), "long_name removal expected, but long_name is not None"
 
 
 if __name__ == "__main__":
