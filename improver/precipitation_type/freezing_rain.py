@@ -227,6 +227,13 @@ class FreezingRain(PostProcessingPlugin):
         )
         freezing_rain_cube.coord(var_name="threshold").rename(threshold_name)
         freezing_rain_cube.coord(threshold_name).var_name = "threshold"
+
+        # Adds a cell method only if the time coordinate has bounds, to avoid
+        # application to a cube of instantaneous data.
+        if freezing_rain_cube.coord("time").has_bounds():
+            cell_method = iris.coords.CellMethod("sum", coords="time")
+            freezing_rain_cube.add_cell_method(cell_method)
+        
         return freezing_rain_cube
 
     def _calculate_freezing_rain_probability(
