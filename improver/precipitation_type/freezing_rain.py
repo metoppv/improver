@@ -233,7 +233,7 @@ class FreezingRain(PostProcessingPlugin):
         if freezing_rain_cube.coord("time").has_bounds():
             cell_method = iris.coords.CellMethod("sum", coords="time")
             freezing_rain_cube.add_cell_method(cell_method)
-        
+
         return freezing_rain_cube
 
     def _calculate_freezing_rain_probability(
