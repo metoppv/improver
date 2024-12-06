@@ -342,7 +342,7 @@ class HumidityMixingRatio(BasePlugin):
         Args:
             cubes:
                 Cubes of temperature (K) and relative humidity (1). A cube of pressure (Pa) must also
-                br provided unless there is a pressure coordinate in the temperature and relative humidity cubes.
+                be provided unless there is a pressure coordinate in the temperature and relative humidity cubes.
 
         Returns:
             Cube of humidity mixing ratio on same levels as input cubes
@@ -358,17 +358,13 @@ class HumidityMixingRatio(BasePlugin):
             self.pressure = cubes.extract_cube("surface_air_pressure")
         except ConstraintMismatchError:
             # If no pressure cube is provided, check if pressure is a coordinate in the temperature and relative humidity cubes
-            temp_coord = [
-                True
-                for coord in self.temperature.coords()
-                if coord.name() == "pressure"
-            ]
-            rh_coord = [
-                True
-                for coord in self.rel_humidity.coords()
-                if coord.name() == "pressure"
-            ]
-            if any(temp_coord) and any(rh_coord):
+            temp_coord_flag = any(
+                coord.name() == "pressure" for coord in self.temperature.coords()
+            )
+            rh_coord_flag = any(
+                coord.name() == "pressure" for coord in self.rel_humidity.coords()
+            )
+            if temp_coord_flag & rh_coord_flag:
                 self.generate_pressure_cube()
             else:
                 raise ValueError(
