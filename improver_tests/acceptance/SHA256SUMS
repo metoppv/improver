@@ -325,9 +325,9 @@ fbc14286b4ce41e2e60df0870ae4911c1b00a38ec96912f43c6187fcaf7d02f6  ./construct-re
 9795b9758a88e2c4d4171c8b08304f7f0711e03acda66a7394333f8b919ccf50  ./convection-ratio/basic/kgo.nc
 74f850942572aa99de807396d48bd80dd96088c638a9d5fa379b95f7c5ad8614  ./convection-ratio/basic/lwe_convective_precipitation_rate.nc
 b946c7687cb9ed02a12a934429a31306004ad45214cf4b451468b077018c0911  ./convection-ratio/basic/lwe_stratiform_precipitation_rate.nc
-0f196f264fa1102089623eb5b1e683c9d1595b2331ed4bcac42eab2654d7f830  ./copy-attributes/input.nc
-ae2f673bf29b926cac46c3a578a8e1842cce19881f8fe479cba3f51f0d474951  ./copy-attributes/kgo.nc
-1c126e24fcda3ac584b4712b5938d90abf8bf369315f7ef5c87f47a13613845d  ./copy-attributes/stage_input.nc
+de45e4588c71d051e109441eea4b03bfee7a589782bda173bf768a3172a67b8a  ./copy-metadata/input.nc
+7b68d39d2998b91b6efeb9aabdc78fe5ccb47cca4b1d42bbfaf8a23116012c77  ./copy-metadata/kgo.nc
+7e61ed49bdd6a3ded97c4fa755598ee14027db95b5cabc2ae05a3be8303be842  ./copy-metadata/stage_input.nc
 d3efbc6014743793fafed512a8017a7b75e4f0ffa7fd202cd4f1b4a1086b2583  ./create-grid-with-halo/basic/kgo.nc
 fee00437131d2367dc317e5b0fff44e65e03371b8f096bf1ac0d4cc7253693c9  ./create-grid-with-halo/basic/source_grid.nc
 bf7e42be7897606682c3ecdaeb27bf3d3b6ab13a9a88b46c88ae6e92801c6245  ./create-grid-with-halo/halo_size/kgo.nc

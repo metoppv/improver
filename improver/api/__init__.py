@@ -41,7 +41,7 @@ PROCESSING_MODULES = {
     "ContinuousRankedProbabilityScoreMinimisers": "improver.calibration.ensemble_calibration",
     "ConvectionRatioFromComponents": "improver.precipitation_type.convection",
     "ConvertProbabilitiesToPercentiles": "improver.ensemble_copula_coupling.ensemble_copula_coupling",
-    "CopyAttributes": "improver.utilities.copy_attributes",
+    "CopyMetadata": "improver.utilities.copy_metadata",
     "CorrectLandSeaMask": "improver.generate_ancillaries.generate_ancillary",
     "CreateExtrapolationForecast": "improver.nowcasting.forecasting",
     "CubeCombiner": "improver.cube_combiner",
