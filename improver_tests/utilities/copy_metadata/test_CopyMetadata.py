@@ -82,7 +82,13 @@ def test_copy_attributes_single_input():
 
 @pytest.mark.parametrize("cubelist", [True, False])
 def test_auxiliary_coord_modification(cubelist):
-    """test adding and altering auxiliary coordinates"""
+    """Test adding and altering auxiliary coordinates. We test copying the
+    auxilary coordinate 'dummy_0 status_flag' and 'dummy_1 status_flag'.
+    'dummy_0 status_flag' is present in the input cube(s) and template cube
+    so the aux coordinate on the input cube(s) is replaced. Whereas 'dummy_1
+    status_flag' is only present in the template cube so a new aux coord is
+    added to the input cube(s).
+    """
     data = [[0, 1], [0, 1]]
 
     auxiliary_coord = ["dummy_0 status_flag", "dummy_1 status_flag"]
