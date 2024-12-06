@@ -136,6 +136,69 @@ def test_basic(
     assert np.isclose(result.data, expected, atol=1e-7).all()
 
 
+def test_height_levels():
+    """Check that the plugin works with height level data"""
+    temperature = set_up_variable_cube(
+        np.full((1, 2, 2, 2), fill_value=293, dtype=np.float32),
+        name="air_temperature",
+        units="K",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        height_levels=[100, 400],
+    )
+    pressure_cube = set_up_variable_cube(
+        np.full((1, 2, 2, 2), fill_value=100000, dtype=np.float32),
+        name="surface_air_pressure",
+        units="Pa",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        height_levels=[100, 400],
+    )
+    rel_humidity = set_up_variable_cube(
+        np.full((1, 2, 2, 2), fill_value=1.0, dtype=np.float32),
+        name="relative_humidity",
+        units="1",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        height_levels=[100, 400],
+    )
+    result = HumidityMixingRatio()([temperature, pressure_cube, rel_humidity])
+    metadata_ok(result, temperature)
+    assert np.isclose(result.data, 1.459832e-2, atol=1e-7).all()
+
+
+def test_pressure_levels():
+    """Check that the plugin works with pressure level data when pressure cube is not provided"""
+    temperature = set_up_variable_cube(
+        np.full((1, 2, 2, 2), fill_value=293, dtype=np.float32),
+        name="air_temperature",
+        units="K",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        height_levels=[95000, 100000],
+        pressure=True,
+    )
+    rel_humidity = set_up_variable_cube(
+        np.full((1, 2, 2, 2), fill_value=1.0, dtype=np.float32),
+        name="relative_humidity",
+        units="1",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        height_levels=[95000, 100000],
+        pressure=True,
+    )
+    result = HumidityMixingRatio()([temperature, rel_humidity])
+    metadata_ok(result, temperature)
+    assert np.isclose(result.data[:, 0], 1.537017e-2, atol=1e-7).all()
+    assert np.isclose(result.data[:, 1], 1.459832e-2, atol=1e-7).all()
+
+
+def test_error_raised_no_pressure_coordinate_or_pressure_cube(
+    temperature, rel_humidity
+):
+    """Check that the plugin raises an error if there is no pressure coordinate and no pressure cube"""
+    with pytest.raises(
+        ValueError,
+        match="No pressure cube called 'surface_air_pressure' found and no pressure coordinate",
+    ):
+        HumidityMixingRatio()([temperature, rel_humidity])
+
+
 @pytest.mark.parametrize("model_id_attr", ("mosg__model_configuration", None))
 def test_model_id_attr(temperature, pressure, rel_humidity, model_id_attr):
     """Check that tests pass if model_id_attr is set on inputs and is applied or not"""
