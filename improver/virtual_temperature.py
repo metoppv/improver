@@ -13,7 +13,7 @@ from improver.utilities.common_input_handle import as_cubelist
 
 
 class VirtualTemperature(BasePlugin):
-    """Calculates the virtual temperature from temperature and ."""
+    """Plugin class to handle virtual temperature calculations."""
 
     @staticmethod
     def get_virtual_temperature(temperature: Cube, humidity_mixing_ratio: Cube) -> Cube:
