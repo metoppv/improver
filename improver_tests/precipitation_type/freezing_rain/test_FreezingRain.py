@@ -63,10 +63,14 @@ def test_expected_result(input_cubes, expected_probabilities, expected_attribute
             assert result.name() == PROB_NAME.format(ACCUM_NAME)
             assert result.coord(var_name="threshold").name() == ACCUM_NAME
             assert result.coord(var_name="threshold").units == "mm"
+            assert result.cell_methods[0].method == "sum"
+            assert "time" in result.cell_methods[0].coord_names
         else:
             assert result.name() == PROB_NAME.format(RATE_NAME)
             assert result.coord(var_name="threshold").name() == RATE_NAME
             assert result.coord(var_name="threshold").units == "mm hr-1"
+            assert len(result.cell_methods) == 0
+            print(result.cell_methods)
 
 
 @pytest.mark.parametrize("period", ["instantaneous"])
