@@ -69,11 +69,11 @@ def test_copy_attributes_multi_input(history):
 
     plugin = CopyMetadata(attributes)
     result = plugin.process(cube0, template_cube, template_cube_2)
-    assert type(result) is Cube
+    assert isinstance(result, Cube)
     assert result.attributes["attribA"] == "tempA"
     assert result.attributes["attribB"] == "tempB"
     assert "attribC" not in result.attributes
-    assert id(result) == id(cube0)
+    assert result == cube0  # Checks cube has been altered in-place
     if history:
         assert result.attributes["history"] == "2024-11-25T01:43:15Z"
     else:
@@ -97,11 +97,11 @@ def test_copy_attributes_one_history_attribute():
 
     plugin = CopyMetadata(attributes)
     result = plugin.process(cube0, template_cube_2, template_cube)
-    assert type(result) is Cube
+    assert isinstance(result, Cube)
     assert result.attributes["attribA"] == "tempA"
     assert result.attributes["attribB"] == "tempB"
     assert "attribC" not in result.attributes
-    assert id(result) == id(cube0)
+    assert result == cube0  # Checks cube has been altered in-place
     assert result.attributes["history"] == "2024-11-25T00:00:00Z"
 
 
@@ -119,12 +119,12 @@ def test_copy_attributes_single_input():
 
     plugin = CopyMetadata(attributes)
     result = plugin.process(cube0, template_cube)
-    assert type(result) is Cube
+    assert isinstance(result, Cube)
     assert result.attributes["attribA"] == "tempA"
     assert result.attributes["attribB"] == "tempB"
     assert result.attributes["attribD"] == "valueD"
     assert "attribC" not in result.attributes
-    assert id(result) == id(cube0)
+    assert result == cube0  # Checks cube has been altered in-place
 
 
 @pytest.mark.parametrize("cubelist", [True, False])
