@@ -11,7 +11,7 @@ import pytest
 from iris.cube import Cube
 
 from improver.virtual_temperature import VirtualTemperature
-from improver_tests.utilities.copy_attributes.test_CopyAttributes import HaltExecution
+from improver_tests.utilities.copy_metadata.test_CopyMetadata import HaltExecution
 
 
 @pytest.fixture(name="temperature_cube")
