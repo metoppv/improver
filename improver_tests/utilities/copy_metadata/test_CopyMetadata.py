@@ -6,7 +6,7 @@ from unittest.mock import patch, sentinel
 
 import pytest
 from iris.coords import AuxCoord
-from iris.cube import Cube, CubeList
+from iris.cube import Cube
 
 from improver.utilities.copy_metadata import CopyMetadata
 
@@ -68,7 +68,7 @@ def test_copy_attributes_multi_input(history):
         attributes.append("history")
 
     plugin = CopyMetadata(attributes)
-    result = plugin.process(cube0, template_cube_2, template_cube)
+    result = plugin.process(cube0, template_cube, template_cube_2)
     assert type(result) is Cube
     assert result.attributes["attribA"] == "tempA"
     assert result.attributes["attribB"] == "tempB"
@@ -148,18 +148,18 @@ def test_auxiliary_coord_modification(cubelist):
 
     cube = Cube(data, aux_coords_and_dims=[(dummy_aux_coord_0, 0)])
     # Create the cube with the auxiliary coordinates
-    template_cube = Cube(
+    template_cubes = Cube(
         data,
         aux_coords_and_dims=[(dummy_aux_coord_0_temp, 0), (dummy_aux_coord_1_temp, 0)],
     )
 
     if cubelist:
-        template_cubes = [template_cube, template_cube]
-
+        template_cubes = [template_cubes, template_cubes]
     plugin = CopyMetadata(aux_coord=auxiliary_coord)
     result = plugin.process(cube, template_cubes)
     assert result.coord("dummy_0 status_flag") == dummy_aux_coord_0_temp
     assert result.coord("dummy_1 status_flag") == dummy_aux_coord_1_temp
+
 
 def test_copy_attributes_multi_input_mismatching_attributes():
     """Test that an error is raised if the template cubes have mismatching attribute values."""
