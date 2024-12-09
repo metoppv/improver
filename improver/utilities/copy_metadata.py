@@ -126,9 +126,8 @@ class CopyMetadata(BasePlugin):
         template_cubes = cubes_proc
         new_attributes = self.find_common_attributes(template_cubes, self.attributes)
         amend_attributes(cube, new_attributes)
-        
-        for coord in self.aux_coord:
 
+        for coord in self.aux_coord:
             # If coordinate is already present in the cube, remove it
             if cube.coords(coord):
                 cube.remove_coord(coord)
