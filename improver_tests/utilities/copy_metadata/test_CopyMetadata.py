@@ -4,20 +4,22 @@
 # See LICENSE in the root of the repository for full licensing details.
 from unittest.mock import patch, sentinel
 
+import pytest
+from iris.coords import AuxCoord
 from iris.cube import Cube, CubeList
 
-from improver.utilities.copy_attributes import CopyAttributes
+from improver.utilities.copy_metadata import CopyMetadata
 
 
 class HaltExecution(Exception):
     pass
 
 
-@patch("improver.utilities.copy_attributes.as_cubelist")
+@patch("improver.utilities.copy_metadata.as_cubelist")
 def test_as_cubelist_called(mock_as_cubelist):
     mock_as_cubelist.side_effect = HaltExecution
     try:
-        CopyAttributes(["attribA", "attribB"])(
+        CopyMetadata(["attribA", "attribB"])(
             sentinel.cube0, sentinel.cube1, sentinel.template_cube
         )
     except HaltExecution:
@@ -45,7 +47,7 @@ def test_copy_attributes_multi_input():
         [0], attributes={"attribA": "tempA", "attribB": "tempB", "attribC": "tempC"}
     )
 
-    plugin = CopyAttributes(attributes)
+    plugin = CopyMetadata(attributes)
     result = plugin.process(cube0, cube1, template_cube)
     assert type(result) is CubeList
     for res in result:
@@ -68,7 +70,7 @@ def test_copy_attributes_single_input():
         [0], attributes={"attribA": "tempA", "attribB": "tempB", "attribC": "tempC"}
     )
 
-    plugin = CopyAttributes(attributes)
+    plugin = CopyMetadata(attributes)
     result = plugin.process(cube0, template_cube)
     assert type(result) is Cube
     assert result.attributes["attribA"] == "tempA"
@@ -76,3 +78,44 @@ def test_copy_attributes_single_input():
     assert result.attributes["attribD"] == "valueD"
     assert "attribC" not in result.attributes
     assert id(result) == id(cube0)
+
+
+@pytest.mark.parametrize("cubelist", [True, False])
+def test_auxiliary_coord_modification(cubelist):
+    """Test adding and altering auxiliary coordinates. We test copying the
+    auxilary coordinate 'dummy_0 status_flag' and 'dummy_1 status_flag'.
+    'dummy_0 status_flag' is present in the input cube(s) and template cube
+    so the aux coordinate on the input cube(s) is replaced. Whereas 'dummy_1
+    status_flag' is only present in the template cube so a new aux coord is
+    added to the input cube(s).
+    """
+    data = [[0, 1], [0, 1]]
+
+    auxiliary_coord = ["dummy_0 status_flag", "dummy_1 status_flag"]
+
+    # Create auxiliary coordinates with matching dimensions
+    dummy_aux_coord_0 = AuxCoord([0, 0], long_name="dummy_0 status_flag")
+    dummy_aux_coord_0_temp = AuxCoord([1, 1], long_name="dummy_0 status_flag")
+
+    dummy_aux_coord_1_temp = AuxCoord([1, 1], long_name="dummy_1 status_flag")
+
+    cube = Cube(data, aux_coords_and_dims=[(dummy_aux_coord_0, 0)])
+    # Create the cube with the auxiliary coordinates
+    template_cube = Cube(
+        data,
+        aux_coords_and_dims=[(dummy_aux_coord_0_temp, 0), (dummy_aux_coord_1_temp, 0)],
+    )
+
+    cubes = cube
+    if cubelist:
+        cubes = [cube, cube]
+
+    plugin = CopyMetadata(aux_coord=auxiliary_coord)
+    result = plugin.process(cubes, template_cube)
+    if cubelist:
+        for res in result:
+            assert res.coord("dummy_0 status_flag") == dummy_aux_coord_0_temp
+            assert res.coord("dummy_1 status_flag") == dummy_aux_coord_1_temp
+    else:
+        assert result.coord("dummy_0 status_flag") == dummy_aux_coord_0_temp
+        assert result.coord("dummy_1 status_flag") == dummy_aux_coord_1_temp
