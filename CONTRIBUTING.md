@@ -75,6 +75,7 @@ below:
  - Marcus Spelman (Met Office, UK)
  - Belinda Trotta (Bureau of Meteorology, Australia)
  - Tomasz Trzeciak (Met Office, UK)
+ - Max White (Met Office, UK)
  - Mark Worsfold (Met Office, UK)
  - Bruce Wright (Met Office, UK)
  - Ying Zhao (Bureau of Meteorology, Australia)
