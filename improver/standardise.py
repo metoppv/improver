@@ -236,6 +236,15 @@ class StandardiseMetadata(BasePlugin):
 
         cube.cell_methods = updated_cms
 
+    @staticmethod
+    def _remove_long_name_if_standard_name(cube: Cube) -> None:
+        """
+        Remove the long_name attribute from cubes if the cube also has a standard_name defined
+        """
+
+        if cube.standard_name and cube.long_name:
+            cube.long_name = None
+
     def process(self, cube: Cube) -> Cube:
         """
         Perform compulsory and user-configurable metadata adjustments.  The
@@ -269,6 +278,7 @@ class StandardiseMetadata(BasePlugin):
         if self._attributes_dict:
             amend_attributes(cube, self._attributes_dict)
         self._discard_redundant_cell_methods(cube)
+        self._remove_long_name_if_standard_name(cube)
 
         # this must be done after unit conversion as if the input is an integer
         # field, unit conversion outputs the new data as float64
