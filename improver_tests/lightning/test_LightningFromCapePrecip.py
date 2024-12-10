@@ -10,6 +10,7 @@ from unittest.mock import patch, sentinel
 import numpy as np
 import pytest
 from iris.cube import Cube, CubeList
+from iris.coords import CellMethod
 
 from improver.lightning import LightningFromCapePrecip
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
@@ -111,6 +112,9 @@ def expected_cube_fixture() -> Cube:
         dtype=np.int32,
     )
 
+    cell_method = CellMethod("Sum", coords="time", comments="of number_of_lightning_flashes_per_unit_area")
+    cube.add_cell_method(cell_method)
+    
     return cube
 
 
