@@ -24,7 +24,7 @@ REQUIRED_KEY_WORDS = [
 ]
 
 LEAF_REQUIRED_KEY_WORDS = ["leaf"]
-LEAF_OPTIONAL_KEY_WORDS = ["if_night", "is_unreachable", "group"]
+LEAF_OPTIONAL_KEY_WORDS = ["if_night", "is_unreachable", "group", "dry_equivalent"]
 
 OPTIONAL_KEY_WORDS = [
     "if_masked",
