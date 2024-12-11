@@ -36,6 +36,9 @@ INTENSITY_CATEGORIES = {
     "snow_shower": [26, 23],
     "snow": [27, 24],
     "thunder": [30, 29],
+    "cloud": [7, 8],
+    "sun": [3, 1],
+    "vis": [5, 6],
 }
 
 
@@ -71,9 +74,10 @@ INTENSITY_CATEGORIES = {
         # significant dry code is selected (8).
         ([5, 5, 5, 5, 6, 6, 6, 6, 8, 8, 8, 8, 7, 7, 7, 7], 8),
         # An extreme edge case in which all the codes across time for a site
-        # are different. More dry symbols are present, so the most
-        # significant dry code is selected (8).
-        ([1, 3, 4, 5, 7, 8, 10, 17, 20, 23], 8),
+        # are different. More dry symbols are present, so we get a dry code.
+        # The wet symbols are translated to their cloud equivalents, all
+        # partly cloud in this case, so this symbol ends up dominating (3).
+        ([1, 3, 4, 5, 7, 8, 10, 17, 20, 23], 3),
         # Equal numbers of dry and wet symbols leads to a wet symbol being chosen.
         # Code 23 and 17 are both frozen precipitation, so are grouped together,
         # and the most significant of these is chosen based on the order of the codes
@@ -91,9 +95,10 @@ INTENSITY_CATEGORIES = {
         # More dry codes than wet codes. Most common code (2, partly cloudy night)
         # should be converted to a day symbol.
         ([2, 2, 2, 0, 0, 2, 10, 10, 11, 12, 13], 3),
-        # More dry codes than wet codes. Most common code (0, clear night)
+        # More dry codes than wet codes. Wet code cloud equivalents are partly
+        # cloudy, so that comes to dominate in its day form (3).
         # should be converted to a day symbol.
-        ([0, 0, 0, 2, 2, 0, 10, 10, 11, 12, 13], 1),
+        ([0, 0, 0, 2, 2, 0, 10, 10, 11, 12, 13], 3),
         # Two locations with different modal dry codes.
         ([[3, 3, 3, 4, 5, 5], [3, 3, 4, 4, 4, 5]], [3, 4]),
         # Four locations with different modal dry codes.
@@ -110,6 +115,17 @@ INTENSITY_CATEGORIES = {
         # should be selected i.e. a partly cloudy night code (2) becomes a partly
         # cloudy day code (3).
         ([0, 0, 0, 2, 2, 2, 7, 7], 3),
+        # A dry dominated set of codes, but one shower code is transformed to its
+        # daytime partly cloudy equivalent and considered in determining the dominant
+        # dry code, which as a result ends up as partly cloud (3).
+        ([1, 1, 1, 2, 2, 9], 3),
+        # Dry dominated, 3 sunshine codes, 1 overcast, and 2 light rain. The
+        # overcast cloud cover in the light rain codes is included in determining the
+        # dominant dry code, leading to an overcast symbol overall (8).
+        ([1, 1, 1, 8, 12, 12], 8),
+        # Dry dominated and after cloud equivalence (drizzle becomes overcast (8)).
+        # All codes are unique dry codes, so the most significant is selected (8).
+        ([1, 3, 4, 5, 7, 11], 8),
     ),
 )
 def test_expected_values(wxcode_series, expected):
@@ -131,21 +147,25 @@ def test_expected_values(wxcode_series, expected):
 @pytest.mark.parametrize(
     "data, wet_bias, expected, reverse_wet_values, reverse_wet_keys",
     (
-        # More dry codes (6) than wet codes (4), the most significant dry symbol
-        # is selected.
-        ([1, 3, 4, 5, 7, 8, 10, 10, 10, 10], 1, 8, False, False),
         # A wet bias of 2 means that at least 1/(1+2) * 10 = 3.33 codes must be wet
         # in order to produce a wet code. As 4 codes are wet, a wet code is produced.
         ([1, 3, 4, 5, 7, 8, 10, 10, 10, 10], 2, 10, False, False),
         # More dry codes (7) than wet codes (3),the most significant dry symbol
-        # is selected.
-        ([1, 3, 4, 5, 7, 8, 8, 10, 10, 10], 1, 8, False, False),
+        # is selected after cloud equivalence, which become partly cloudy (3).
+        ([1, 3, 4, 5, 7, 8, 8, 10, 10, 10], 1, 3, False, False),
         # A wet bias of 2 means that at least 1/(1+2) * 10 = 3.33 codes must be wet
         # in order to produce a wet code. As 3 codes are wet, a dry code is produced.
-        ([1, 3, 4, 5, 7, 8, 8, 10, 10, 10], 2, 8, False, False),
+        ([1, 3, 4, 5, 7, 8, 8, 10, 10, 10], 2, 3, False, False),
         # A wet bias of 3 means that at least 1/(1+3) * 10 = 2.5 codes must be wet
         # in order to produce a wet code. As 3 codes are wet, a wet code is produced.
         ([1, 3, 4, 5, 7, 8, 8, 10, 10, 10], 3, 10, False, False),
+        # A wet bias of 2 should have no impact on the chosen dry code if one is
+        # chosen. In this case cloudy conditions dominate the dry codes, and the
+        # cloud equivalents to the showers are partly cloudy. If the wet bias were
+        # multiplying up the wet code cloud equivalents we would expect (3) to
+        # be the resulting dry symbol (5x3), but instead we end up tied 3x3 and 3x7,
+        # so the more significant (7) code results. This is what we want.
+        ([7, 7, 7, 1, 3, 10, 10], 2, 7, False, False),
         # A wet bias of 2 means that at least 1/(1+2) * 10 = 3.33 codes must be wet
         # in order to produce a wet code. A tie between the wet codes with the
         # highest index selected.
@@ -172,6 +192,12 @@ def test_expected_values(wxcode_series, expected):
             False,
             False,
         ),
+        # Wet bias does not impact the contribution of wet code dry equivalents
+        # in determining the overall summary in dry dominated scenarios. Here the
+        # large wet bias does not lead to a partly cloudy summary code, once the
+        # shower code is dried it contributes only a single partly cloudy
+        # code which is insufficient to change the chosen cloudy (7) summary.
+        ([1, 3, 4, 7, 7, 9], 3, 7, False, False),
     ),
 )
 def test_expected_values_wet_bias(
@@ -211,6 +237,12 @@ def test_expected_values_wet_bias(
         # For a day length of 9 and a day weighting of 2, the number of clear day codes
         # doubles with one more shower symbol giving 6 dry codes, and 5 wet codes.
         ([10, 10, 10, 10, 1, 1, 1, 1, 1], 1, 2, 3, 5, 9, 1),
+        # Dry with one wet symbol changed to a cloud equivalent (3). This falls in the
+        # day weighting period, meaning we end up with 5x1 and 5x3, such that the more
+        # significant weather code (3) will be chosen. This demonstrates that the day
+        # weighting multiplication of the wet codes does impact the chosen dry code
+        # when these codes fall in the period of enhanced day weighting.
+        ([1, 1, 1, 10, 8, 1, 3, 3, 3], 1, 2, 3, 5, 9, 3),
         # Selecting a different period results in 6 dry codes and 6 wet codes,
         # so the resulting code is wet.
         ([10, 10, 10, 10, 10, 1, 1, 1, 1], 1, 2, 4, 7, 9, 10),
@@ -279,6 +311,21 @@ def test_expected_values_day_weighting(
 @pytest.mark.parametrize(
     "data, ignore_intensity, expected, reverse_intensity_dict",
     (
+        # Dry dominated. Rain contributes overcast conditions. Cloud therefore
+        # becomes the dry code. The cloud group contains 2 overcast codes and
+        # 1 cloudy code, so overcast (8) is chosen.
+        ([1, 1, 1, 7, 12, 12], True, 8, False),
+        # Dry dominated. Showers contribute partly cloudy conditions meaning
+        # the sunny/partly cloudy group provides the summary code. Of this
+        # there are 2 sunny and 2 partly cloud codes, with the latter chosen (3)
+        # as more significant.
+        ([1, 1, 10, 14, 8, 8, 8], True, 3, False),
+        # Dry. Partly cloudy and sunny are grouped by the intensity
+        # categorisation allowing them to dominate over the overcast
+        # codes. A partly cloud code is returned.
+        # cloud cover in the light rain codes is included in determining the
+        # dominant dry code, leading to an overcast symbol overall (8).
+        ([1, 1, 1, 3, 3, 8, 8, 8, 8], True, 1, False),
         # All precipitation is frozen. Sleet shower is the modal code.
         ([23, 23, 23, 26, 17, 17, 17, 17], False, 17, False),
         # When snow shower codes are grouped, light snow shower is chosen as it
@@ -303,6 +350,10 @@ def test_expected_values_day_weighting(
             [1, 26],
             False,
         ),
+        # Demonstrate that the visibility category allows low vis to dominate.
+        ([5, 5, 6, 6, 1, 1, 1], True, 5, False),
+        # As above but reversed intensity order to yield fog instead of mist.
+        ([5, 5, 6, 6, 1, 1, 1], True, 6, True),
     ),
 )
 def test_expected_values_ignore_intensity(
@@ -377,6 +428,28 @@ def test_expected_values_ignore_intensity(
             True,
             [26, 23],
         ),
+        # The day emphasis and dry equivalent codes for wet codes in that period
+        # conspire to give an overcast (8) code to summarise the day. We include
+        # emphasis of the dried codes as these still fall in the period that we
+        # want to emphasise.
+        ([1, 1, 12, 12, 8, 1, 1, 1], 1, 2, 2, 6, 8, True, 8),
+        # Day emphasis and drying (dry dominated) are such that we end up with
+        # 6, 6, 8, 8, 8, 8, 3, 3, 1, 1, 1, 5. The intensity consolidation
+        # groups the partly cloudy (3) and sunny (1) codes together making this
+        # the dominant group. Of this group sunny codes dominate and this becomes
+        # the summary code (1).
+        ([6, 6, 12, 12, 3, 1, 1, 5], 1, 2, 2, 6, 8, True, 1),
+        # As above but without the intensity consolidation. The sunny and partly
+        # sunny remain ungrouped allowing the dried rain, which has become
+        # overcast codes to dominate. We get an overcast (8) summary.
+        ([6, 6, 12, 12, 3, 1, 1, 5], 1, 2, 2, 6, 8, False, 8),
+        # Looking again at the same case but with both a wet bias and a day
+        # emphasis of 2 we now get a wet dominated day. The codes are
+        # 6, 6, 12, 12, 12, 12, 3, 3, 1, 1, 1, 5, but wet codes count twice
+        # in determining the dominant conditions. 8 wet vs 8 dry results in a wet
+        # summary code. Intensity consolidation amongst the dry codes is
+        # irrelevant as is the cloud equivalence.
+        ([6, 6, 12, 12, 3, 1, 1, 5], 2, 2, 2, 6, 8, True, 12),
     ),
 )
 def test_expected_values_interactions(
