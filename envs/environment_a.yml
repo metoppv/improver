@@ -38,3 +38,7 @@ dependencies:
   - sphinx-autodoc-typehints
   - sphinx_rtd_theme
   - threadpoolctl
+# pinned dependencies of dependencies
+  - hdf5=1.10.2
+  - opencv=3.4.2
+  - libzlib=1.2.13
