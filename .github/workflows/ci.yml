@@ -14,56 +14,43 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - uses: actions/cache@v4
-      id: cache
+
+    - uses: mamba-org/setup-micromamba@v2
       with:
-        path: /usr/share/miniconda/envs/im${{ matrix.env }}
-        key: ${{ format('{0}-conda-improver-{1}-{2}', runner.os, matrix.env, hashFiles(format('envs/{0}.yml', matrix.env))) }}
+        environment-file: envs/${{ matrix.env }}.yml
+        init-shell: bash
+        cache-environment: true
 
-    - name: conda env update
-      if: steps.cache.outputs.cache-hit != 'true'
+    - name: Environment info
       run: |
-        source '/usr/share/miniconda/etc/profile.d/conda.sh'
-        conda update -q -n base -c defaults conda
-        conda install -q -n base -c conda-forge -c nodefaults mamba
-        rm -f /usr/share/miniconda/pkgs/cache/*.json # workaround for mamba-org/mamba#488
-        mamba env create -q --file envs/${{ matrix.env }}.yml --name im${{ matrix.env }}
-
-    - name: conda info
-      run: |
-        source '/usr/share/miniconda/etc/profile.d/conda.sh'
-        conda activate im${{ matrix.env }}
-        conda info
-        conda list
+        micromamba info
+        micromamba list
+      shell: bash -el {0}
 
     - name: sphinx documentation
       run: |
-        source '/usr/share/miniconda/etc/profile.d/conda.sh'
-        conda activate im${{ matrix.env }}
         make -C doc html SPHINXOPTS="-W --keep-going"
+      shell: micromamba-shell {0}
 
     - name: pytest without coverage
       if: matrix.env == 'conda-forge'
       run: |
-        source '/usr/share/miniconda/etc/profile.d/conda.sh'
-        conda activate im${{ matrix.env }}
         pytest
+      shell: micromamba-shell {0}
 
     - name: pytest with coverage
       if: matrix.env != 'conda-forge'
       run: |
-        source '/usr/share/miniconda/etc/profile.d/conda.sh'
-        conda activate im${{ matrix.env }}
         pytest --cov=improver --cov-report xml:coverage.xml
+      shell: micromamba-shell {0}
 
     - name: codacy upload
       if: env.CODACY_PROJECT_TOKEN && matrix.env == 'environment_a'
       run: |
-        source '/usr/share/miniconda/etc/profile.d/conda.sh'
-        conda activate im${{ matrix.env }}
         python-codacy-coverage -v -r coverage.xml
       env:
         CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
+      shell: micromamba-shell {0}
 
     - name: codecov upload
       uses: codecov/codecov-action@v5
@@ -133,36 +120,24 @@ jobs:
 
     - uses: actions/checkout@v4
 
-    - uses: actions/cache@v4
-      id: cache
+    - uses: mamba-org/setup-micromamba@v2
       with:
-        path: /usr/share/miniconda/envs/im${{ matrix.env }}
-        key: ${{ format('{0}-conda-improver-{1}-{2}', runner.os, matrix.env, hashFiles(format('envs/{0}.yml', matrix.env))) }}
+        environment-file: envs/${{ matrix.env }}.yml
+        init-shell: bash
+        cache-environment: true
 
-    - name: conda env update
-      if: steps.cache.outputs.cache-hit != 'true'
+    - name: Environment info
       run: |
-        source '/usr/share/miniconda/etc/profile.d/conda.sh'
-        conda update -q -n base -c defaults conda
-        conda install -q -n base -c conda-forge mamba
-        rm -f /usr/share/miniconda/pkgs/cache/*.json # workaround for mamba-org/mamba#488
-        mamba env create -q --file envs/${{ matrix.env }}.yml --name im${{ matrix.env }}
-
-    - name: conda info
-      run: |
-        source '/usr/share/miniconda/etc/profile.d/conda.sh'
-        conda activate im${{ matrix.env }}
-        conda info
-        conda list
+        micromamba info
+        micromamba list
+      shell: bash -el {0}
 
     - name: safety
       run: |
-        source '/usr/share/miniconda/etc/profile.d/conda.sh'
-        conda activate im${{ matrix.env }}
         safety check || true
+      shell: micromamba-shell {0}
 
     - name: bandit
       run: |
-        source '/usr/share/miniconda/etc/profile.d/conda.sh'
-        conda activate im${{ matrix.env }}
         bandit -r improver
+      shell: micromamba-shell {0}
