@@ -67,6 +67,7 @@ below:
  - Benjamin Owen (Bureau of Meteorology, Australia)
  - Carwyn Pelley (Met Office, UK)
  - Tim Pillinger (Met Office, UK)
+ - Phil Relton (Met Office, UK)
  - Fiona Rust (Met Office, UK)
  - Chris Sampson (Met Office, UK)
  - Caroline Sandford (Met Office, UK)
