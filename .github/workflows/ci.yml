@@ -15,7 +15,8 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - uses: mamba-org/setup-micromamba@v2
+    - name: Environment creation
+      uses: mamba-org/setup-micromamba@v2
       with:
         environment-file: envs/${{ matrix.env }}.yml
         init-shell: bash
@@ -120,7 +121,8 @@ jobs:
 
     - uses: actions/checkout@v4
 
-    - uses: mamba-org/setup-micromamba@v2
+    - name: Environment creation
+      uses: mamba-org/setup-micromamba@v2
       with:
         environment-file: envs/${{ matrix.env }}.yml
         init-shell: bash
