@@ -58,7 +58,7 @@ def process(
             divided and to which the night mask is applied. The
             target periods are reconstructed from these shorter periods.
             Shorter fidelity periods better capture where the day / night
-            dicriminator falls.
+            discriminator falls.
         night_mask (bool):
             If true, points that fall at night are zeroed and duration
             reallocated to day time periods as much as possible.

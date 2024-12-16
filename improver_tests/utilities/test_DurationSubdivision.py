@@ -138,7 +138,7 @@ def multi_time_cube(
     return cubes.merge_cube()
 
 
-def fidelity_cube(data: np.ndarray, period: int, fidelity_period: int):
+def fidelity_cube(data: np.ndarray, period: int, fidelity_period: int) -> Cube:
     """Define a cube with an equally spaced leading time coordinate that
     splits the period defined into shorter periods equal in length to the
     fidelity period. Divide the data amongst these equally."""
@@ -155,7 +155,7 @@ def fidelity_cube(data: np.ndarray, period: int, fidelity_period: int):
 
 
 @pytest.fixture
-def basic_cube(period: int):
+def basic_cube(period: int) -> Cube:
     """Define a cube with default values except for the period."""
 
     data = np.ones((5, 5), dtype=np.float32)
@@ -163,7 +163,7 @@ def basic_cube(period: int):
 
 
 @pytest.fixture
-def data_cube(data: np.ndarray, time: dt, period: int, realizations: List[int]):
+def data_cube(data: np.ndarray, time: dt, period: int, realizations: List[int]) -> Cube:
     """Define a cube with specific period, data, and validity time."""
 
     return diagnostic_cube(
@@ -172,7 +172,7 @@ def data_cube(data: np.ndarray, time: dt, period: int, realizations: List[int]):
 
 
 @pytest.fixture
-def renormalisation_cubes(times: List[dt], data: np.ndarray):
+def renormalisation_cubes(times: List[dt], data: np.ndarray) -> Tuple[Cube, Cube]:
     """Define a cube with an equally spaced leading time coordinate and
     specific data, which is a equal subdivision of the input data which
     is also returned in a single period cube."""
@@ -385,6 +385,9 @@ def test_allocate_data(data_cube, kwargs, data, time, period, realizations):
 
 
 @pytest.mark.parametrize(
+    "masked", [False, True]
+)  # Make the input cube data into a masked numpy array if True.
+@pytest.mark.parametrize(
     "times,data,masking,expected_factors",
     [
         (
@@ -431,14 +434,23 @@ def test_allocate_data(data_cube, kwargs, data, time, period, realizations):
                 0,
                 0,
             ],  # Expected factors at points that are zeroed, 1 everywhere else by construction.
-        ),  # All fidelity periods are zeroed, so the factor returned is forced to zero.
+        ),  # All fidelity periods are zeroed, so the factor returned is forced to zero. When
+        # masked=True this is via the .filled method, and when masked=False the
+        # except statement it used.
     ],
 )
-def test_renormalisation_factor(renormalisation_cubes, masking, expected_factors):
+def test_renormalisation_factor(
+    renormalisation_cubes, masking, expected_factors, masked
+):
     """Test the renormalisation_factor method returns the array of renormalisation
     factors."""
     plugin = DurationSubdivision(target_period=10, fidelity=1)  # Settings irrelevant
     cube, fidelity_period_cube = renormalisation_cubes
+
+    # Make cube data type into masked array to check the function works using the
+    # .filled method.
+    if masked:
+        cube.data = np.ma.masked_array(cube.data)
 
     # Zero some data points in the fidelity cubes to simulate masking impact.
     # And construct expected factors array.
@@ -538,7 +550,7 @@ def test_construct_target_periods(kwargs, data, input_period, expected):
             None,  # List of realization numbers if any
             (
                 "The target period must be a factor of the original period "
-                "of the input cube and the target period must >= the input "
+                "of the input cube and the target period must <= the input "
                 "period. Input period: 3600, target period: 7200"
             ),  # Expected exception
         ),  # Raise a ValueError as the target period is longer than the input period.
@@ -570,6 +582,38 @@ def test_construct_target_periods(kwargs, data, input_period, expected):
             None,  # List of realization numbers if any
             None,  # Expected exception
         ),  # Demonstate clipping of input data as input data exceeds the period.
+        (
+            {
+                "target_period": 3600,
+                "fidelity": 900,
+                "night_mask": True,
+                "day_mask": False,
+            },
+            np.full((2, 2), 1800),  # Data in the input cube.
+            dt(2024, 6, 15, 21),  # Validity time
+            7200,  # Input period
+            np.array(
+                [
+                    [[1028.5715, 0], [900, 900]],
+                    [[771.42865, 0], [900, 900]],
+                ],
+                dtype=np.float32,
+            ),  # Expected data in the output cube.
+            None,  # List of realization numbers if any
+            None,  # Expected exception
+        ),  # A 2-hour period containing just 30 minutes of sunshine duration.
+        # The night mask is applied, which affects the the northern most latitudes.
+        # The north-east most cell (top-right) is entirely zeroed in both target
+        # times, meaning all of the sunshine duration is lost. The north-west most
+        # cell (top-left) is masked in a single of the 900 second fidelity periods
+        # that is generated. This results in the original 1800 seconds of sunshine
+        # duration being renormalised in the day light period fidelity periods
+        # for this cell. Instead of 225 seconds (1800 / 8) each fidelity period
+        # contains (1800 / 7) seconds of sunshine duration. This is within the 900
+        # seconds possible, so no clipping is applied. The total across the two
+        # final 1-hour periods generated for this north-west cell is still 1800
+        # seconds of sunshine duration, but it is split unevenly to reflect that the
+        # later period is partially a night time period.
         (
             {
                 "target_period": 3600,

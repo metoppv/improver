@@ -716,7 +716,13 @@ class DurationSubdivision:
     when thick cloud might occur.
     """
 
-    def __init__(self, target_period, fidelity, night_mask=True, day_mask=False):
+    def __init__(
+        self,
+        target_period: int,
+        fidelity: int,
+        night_mask: bool = True,
+        day_mask: bool = False,
+    ):
         """Define the length of the target periods to be constructed and the
         intermediate fidelity. This fidelity is the length of the shorter
         periods into which the data is split and from which the target periods
@@ -733,7 +739,7 @@ class DurationSubdivision:
                 divided and to which the night mask is applied. The
                 target periods are reconstructed from these shorter periods.
                 Shorter fidelity periods better capture where the day / night
-                dicriminator falls.
+                discriminator falls.
             night_mask:
                 If true, points that fall at night are zeroed and duration
                 reallocated to day time periods as much as possible.
@@ -741,7 +747,8 @@ class DurationSubdivision:
                 If true, points that fall in the day time are zeroed and
                 duration reallocated to night time periods as much as possible.
         Raises:
-            ValurError: If day and night mask options are both set True.
+            ValueError: If target_period and / or fidelity are not positive integers.
+            ValueError: If day and night mask options are both set True.
         """
         for item in [target_period, fidelity]:
             if item <= 0:
@@ -763,7 +770,7 @@ class DurationSubdivision:
             self.mask_value = 0 if night_mask else 1
 
     @staticmethod
-    def cube_period(cube):
+    def cube_period(cube: Cube) -> int:
         """Return the time period of the cube in seconds.
 
         Args:
@@ -776,7 +783,7 @@ class DurationSubdivision:
         (period,) = np.diff(cube.coord("time").bounds[0])
         return period
 
-    def allocate_data(self, cube, period):
+    def allocate_data(self, cube: Cube, period: int) -> Cube:
         """Allocate fractions of the total duration to the shorter periods
         and modify the metadata of the shorter period cubes appropriately.
 
@@ -785,7 +792,7 @@ class DurationSubdivision:
                 The original period cube from which duration data will be
                 taken and divided up.
             period:
-                The target shorter period
+                The target shorter period in seconds.
         Returns:
             A cube, with a time dimension, that contains the subdivided data.
         """
@@ -810,17 +817,17 @@ class DurationSubdivision:
             interval_cube.coord("time").bounds = np.array(
                 [[interval_start, interval_end]], dtype=np.int64
             )
-            daynight_mask = daynightplugin(interval_cube).data
-            daynight_mask = np.broadcast_to(daynight_mask, interval_cube.shape)
 
             if self.mask_value is not None:
+                daynight_mask = daynightplugin(interval_cube).data
+                daynight_mask = np.broadcast_to(daynight_mask, interval_cube.shape)
                 interval_cube.data[daynight_mask == self.mask_value] = 0.0
             interpolated_cubes.append(interval_cube)
 
         return interpolated_cubes.merge_cube()
 
     @staticmethod
-    def renormalisation_factor(cube, fidelity_period_cube):
+    def renormalisation_factor(cube: Cube, fidelity_period_cube: Cube) -> np.ndarray:
         """Sum up the total of the durations distributed amongst the fidelity
         period cubes following the application of any masking. These are
         then used with the durations in the unsubdivided original data to
@@ -835,9 +842,9 @@ class DurationSubdivision:
                 divided up into shorter fidelity periods).
         Returns:
             factor:
-                A factor that can be used to multiply up the fidelity period
-                durations such that when the are summed up they are equal
-                to the original durations.
+                An array of factors that can be used to multiply up the
+                fidelity period durations such that when the are summed up
+                they are equal to the original durations.
         """
         retotal = fidelity_period_cube.collapsed("time", iris.analysis.SUM)
         factor = cube.data / retotal.data
@@ -850,7 +857,7 @@ class DurationSubdivision:
 
         return factor
 
-    def construct_target_periods(self, fidelity_period_cube):
+    def construct_target_periods(self, fidelity_period_cube: Cube) -> Cube:
         """Combine the short fidelity period cubes into cubes that describe
         the target period.
 
@@ -882,7 +889,7 @@ class DurationSubdivision:
 
         return new_period_cubes.merge_cube()
 
-    def process(self, cube):
+    def process(self, cube: Cube) -> Cube:
         """Create target period duration diagnostics from the original duration
         diagnostic data.
 
@@ -900,7 +907,7 @@ class DurationSubdivision:
         if period / self.target_period % 1 != 0:
             raise ValueError(
                 "The target period must be a factor of the original period "
-                "of the input cube and the target period must >= the input "
+                "of the input cube and the target period must <= the input "
                 "period. "
                 f"Input period: {period}, target period: {self.target_period}"
             )
