@@ -70,7 +70,6 @@ def test_expected_result(input_cubes, expected_probabilities, expected_attribute
             assert result.coord(var_name="threshold").name() == RATE_NAME
             assert result.coord(var_name="threshold").units == "mm hr-1"
             assert len(result.cell_methods) == 0
-            print(result.cell_methods)
 
 
 @pytest.mark.parametrize("period", ["instantaneous"])
