@@ -25,6 +25,7 @@ dependencies:
   - bandit
   - filelock
   - pytest
+  - setuptools
   - sphinx-autodoc-typehints
   - sphinx_rtd_theme
   - threadpoolctl

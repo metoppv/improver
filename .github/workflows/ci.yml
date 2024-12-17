@@ -3,6 +3,8 @@ name: CI Tests
 on:
   pull_request:
   push:
+    branches:
+      - master  # Run tests only when changes are pushed to 'default'
   workflow_dispatch:
 jobs:
   Sphinx-Pytest-Coverage:
