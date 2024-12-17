@@ -24,6 +24,7 @@ jobs:
 
     - name: Environment info
       run: |
+        micromamba install setuptools
         micromamba info
         micromamba list
       shell: bash -el {0}
