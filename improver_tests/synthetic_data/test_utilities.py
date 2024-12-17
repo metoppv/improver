@@ -46,16 +46,16 @@ def test_get_leading_dimension(coord_data, expected_cube_type):
         ({"pressures": [10, 20, 30]}, True),
     ],
 )
-def test_get_height_levels(coord_data, expected_pressure):
-    """Tests height level data extracted successfully and pressure flag set correctly"""
+def test_get_vertical_levels(coord_data, expected_pressure):
+    """Tests vertical level data extracted successfully and pressure flag set correctly"""
     dimension_key = list(coord_data)[0]
 
     if dimension_key == "realizations":
-        expected_height_levels = None
+        expected_vertical_levels = None
     else:
-        expected_height_levels = coord_data[dimension_key]
+        expected_vertical_levels = coord_data[dimension_key]
 
-    height_levels, pressure = utilities.get_height_levels(coord_data=coord_data)
+    vertical_levels, pressure = utilities.get_vertical_levels(coord_data=coord_data)
 
-    np.testing.assert_array_equal(expected_height_levels, height_levels)
+    np.testing.assert_array_equal(expected_vertical_levels, vertical_levels)
     assert expected_pressure == pressure

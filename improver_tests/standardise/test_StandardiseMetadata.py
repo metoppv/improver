@@ -225,7 +225,7 @@ class Test_process(IrisTest):
             spatial_grid="latlon",
             standard_grid_metadata="gl_det",
             pressure=True,
-            height_levels=[100000.0, 97500.0, 95000.0],
+            vertical_levels=[100000.0, 97500.0, 95000.0],
             realizations=[0, 18, 19],
         )
         # The target cube has 'NaN' values in its data to denote points below
@@ -266,7 +266,7 @@ class Test_process(IrisTest):
             spatial_grid="latlon",
             standard_grid_metadata="gl_det",
             pressure=True,
-            height_levels=[100000.0, 97500.0, 95000.0],
+            vertical_levels=[100000.0, 97500.0, 95000.0],
         )
         # The target cube has 'NaN' values in its data to denote points below
         # surface altitude.

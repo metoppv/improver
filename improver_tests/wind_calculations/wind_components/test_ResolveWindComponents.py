@@ -218,8 +218,8 @@ class Test_process(IrisTest):
         with self.assertRaisesRegex(ValueError, msg):
             _, _ = self.plugin.process(self.wind_speed_cube, self.wind_direction_cube)
 
-    def test_height_levels(self):
-        """Test a cube on more than one height level is correctly processed"""
+    def test_vertical_levels(self):
+        """Test a cube on more than one vertical level is correctly processed"""
         wind_speed_3d = add_new_dimension(self.wind_speed_cube, 3, "height", "km")
         wind_direction_3d = add_new_dimension(
             self.wind_direction_cube, 3, "height", "km"

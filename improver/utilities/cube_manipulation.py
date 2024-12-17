@@ -718,7 +718,7 @@ def maximum_in_height(
 
     If either the upper or lower bound is None then no bound is applied. For example if no
     lower bound is provided but an upper bound of 300m is provided then the maximum is
-    calculated for all height levels less than 300m.
+    calculated for all vertical levels less than 300m.
 
     Args:
         cube:
@@ -741,17 +741,17 @@ def maximum_in_height(
 
     Raises:
         ValueError:
-            If the cube has no height levels between the lower_height_bound and upper_height_bound
+            If the cube has no vertical levels between the lower_height_bound and upper_height_bound
     """
     cube = as_cube(cube)
-    height_levels = cube.coord("height").points
+    vertical_levels = cube.coord("height").points
 
     # replace None in bounds with a numerical value either below or above the range of height
     # levels in the cube so it can be used as a constraint.
     if lower_height_bound is None:
-        lower_height_bound = min(height_levels)
+        lower_height_bound = min(vertical_levels)
     if upper_height_bound is None:
-        upper_height_bound = max(height_levels)
+        upper_height_bound = max(vertical_levels)
 
     height_constraint = iris.Constraint(
         height=lambda height: lower_height_bound <= height <= upper_height_bound
@@ -760,7 +760,7 @@ def maximum_in_height(
 
     if cube_subsetted is None:
         raise ValueError(
-            f"""The provided cube doesn't have any height levels between the provided bounds.
+            f"""The provided cube doesn't have any vertical levels between the provided bounds.
                          The provided bounds were {lower_height_bound},{upper_height_bound}."""
         )
 
@@ -778,10 +778,10 @@ def maximum_in_height(
 def height_of_maximum(
     cube: Cube, max_cube: Cube, find_lowest: bool = True, new_name: str = None
 ) -> Cube:
-    """Calculates the height level at which the maximum value has been calculated. This
+    """Calculates the vertical level at which the maximum value has been calculated. This
     takes in a cube with values at different heights, and also a cube with the maximum
     of these heights. It compares these (default is to start at the lowest height and
-    work down through the height levels), and then outputs the height it reaches the
+    work down through the vertical levels), and then outputs the height it reaches the
     maximum value.
 
     Args:
@@ -801,13 +801,13 @@ def height_of_maximum(
 
     Raises:
         ValueError:
-            If the cube has only 1 height level or if an input other than high or low is
+            If the cube has only 1 vertical level or if an input other than high or low is
             tried for the high_or_low value.
     """
     height_of_max = max_cube.copy()
     height_range = range(len(cube.coord("height").points))
     if len(cube.coord("height").points) == 1:
-        raise ValueError("More than 1 height level is required.")
+        raise ValueError("More than 1 vertical level is required.")
     if find_lowest:
         height_points = height_range
     else:

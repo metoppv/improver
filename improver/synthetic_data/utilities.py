@@ -53,8 +53,8 @@ def get_leading_dimension(coord_data: Dict[str, Any]) -> Tuple[List[float], str]
     return leading_dimension, cube_type
 
 
-def get_height_levels(coord_data: Dict[str, Any]) -> Tuple[List[float], bool]:
-    """Gets height level values from coords nested dictionary and sets pressure
+def get_vertical_levels(coord_data: Dict[str, Any]) -> Tuple[List[float], bool]:
+    """Gets vertical level values from coords nested dictionary and sets pressure
     value based on whether heights or pressures key is used.
 
     Args:
@@ -66,13 +66,13 @@ def get_height_levels(coord_data: Dict[str, Any]) -> Tuple[List[float], bool]:
         and a bool specifying whether the coordinate should be created as height
         levels or pressure levels.
     """
-    height_levels = None
+    vertical_levels = None
     pressure = False
 
     if "heights" in coord_data:
-        height_levels = coord_data["heights"]
+        vertical_levels = coord_data["heights"]
     elif "pressures" in coord_data:
-        height_levels = coord_data["pressures"]
+        vertical_levels = coord_data["pressures"]
         pressure = True
 
-    return height_levels, pressure
+    return vertical_levels, pressure

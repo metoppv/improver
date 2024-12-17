@@ -97,7 +97,7 @@ def temperature_on_pressure_levels() -> Cube:
     t_cube = set_up_variable_cube(
         data,
         pressure=True,
-        height_levels=np.arange(100000, 29999, -10000),
+        vertical_levels=np.arange(100000, 29999, -10000),
         name="air_temperature",
         units="K",
         attributes=LOCAL_MANDATORY_ATTRIBUTES,
