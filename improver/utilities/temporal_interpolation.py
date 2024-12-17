@@ -907,7 +907,7 @@ class DurationSubdivision:
         if period / self.target_period % 1 != 0:
             raise ValueError(
                 "The target period must be a factor of the original period "
-                "of the input cube and the target period must <= the input "
+                "of the input cube and the target period must be <= the input "
                 "period. "
                 f"Input period: {period}, target period: {self.target_period}"
             )
