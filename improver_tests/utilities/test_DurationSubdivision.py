@@ -550,7 +550,7 @@ def test_construct_target_periods(kwargs, data, input_period, expected):
             None,  # List of realization numbers if any
             (
                 "The target period must be a factor of the original period "
-                "of the input cube and the target period must <= the input "
+                "of the input cube and the target period must be <= the input "
                 "period. Input period: 3600, target period: 7200"
             ),  # Expected exception
         ),  # Raise a ValueError as the target period is longer than the input period.
