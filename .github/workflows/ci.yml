@@ -4,7 +4,7 @@ on:
   pull_request:
   push:
     branches:
-      - default  # Run tests only when changes are pushed to 'default'
+      - master  # Run tests only when changes are pushed to 'default'
   workflow_dispatch:
 jobs:
   Sphinx-Pytest-Coverage:
@@ -26,7 +26,6 @@ jobs:
 
     - name: Environment info
       run: |
-        micromamba install setuptools
         micromamba info
         micromamba list
       shell: bash -el {0}
