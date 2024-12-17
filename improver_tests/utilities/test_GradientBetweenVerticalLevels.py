@@ -46,7 +46,7 @@ def height_of_pressure_levels():
     data = np.array([np.full((2, 2), 10), np.full((2, 2), 110)])
     cube = set_up_variable_cube(
         data,
-        height_levels=[100000, 85000],
+        vertical_levels=[100000, 85000],
         pressure=True,
         name="geopotential_height",
         units="m",

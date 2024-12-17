@@ -49,7 +49,7 @@ def _create_data_array(
     ensemble_members: int,
     leading_dimension: Optional[List[float]],
     npoints: int,
-    height_levels: Optional[List[float]],
+    vertical_levels: Optional[List[float]],
 ) -> ndarray:
     """Create data array of specified shape filled with zeros"""
     if leading_dimension is not None:
@@ -57,17 +57,17 @@ def _create_data_array(
     else:
         nleading_dimension = ensemble_members
 
-    if height_levels is not None:
-        nheight_levels = len(height_levels)
+    if vertical_levels is not None:
+        nvertical_levels = len(vertical_levels)
     else:
-        nheight_levels = None
+        nvertical_levels = None
 
     data_shape = []
 
     if nleading_dimension > 1:
         data_shape.append(nleading_dimension)
-    if nheight_levels is not None:
-        data_shape.append(nheight_levels)
+    if nvertical_levels is not None:
+        data_shape.append(nvertical_levels)
 
     data_shape.append(npoints)
     data_shape.append(npoints)
@@ -174,11 +174,11 @@ def generate_metadata(
             kwargs[spacing_axis] = DEFAULT_GRID_SPACING[kwargs["spatial_grid"]]
 
     # Create ndimensional array of zeros
-    if "height_levels" not in kwargs:
-        kwargs["height_levels"] = None
+    if "vertical_levels" not in kwargs:
+        kwargs["vertical_levels"] = None
 
     data = _create_data_array(
-        ensemble_members, leading_dimension, npoints, kwargs["height_levels"]
+        ensemble_members, leading_dimension, npoints, kwargs["vertical_levels"]
     )
     missing_mandatory_attributes = MANDATORY_ATTRIBUTES - mandatory_attributes.keys()
     if missing_mandatory_attributes:
