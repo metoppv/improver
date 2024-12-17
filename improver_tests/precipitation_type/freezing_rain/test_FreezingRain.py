@@ -63,6 +63,7 @@ def test_expected_result(input_cubes, expected_probabilities, expected_attribute
             assert result.name() == PROB_NAME.format(ACCUM_NAME)
             assert result.coord(var_name="threshold").name() == ACCUM_NAME
             assert result.coord(var_name="threshold").units == "mm"
+            assert len(result.cell_methods) == 1
             assert result.cell_methods[0].method == "sum"
             assert "time" in result.cell_methods[0].coord_names
         else:
