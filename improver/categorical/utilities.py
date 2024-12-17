@@ -24,7 +24,7 @@ REQUIRED_KEY_WORDS = [
 ]
 
 LEAF_REQUIRED_KEY_WORDS = ["leaf"]
-LEAF_OPTIONAL_KEY_WORDS = ["if_night", "is_unreachable", "group"]
+LEAF_OPTIONAL_KEY_WORDS = ["if_night", "is_unreachable", "group", "dry_equivalent"]
 
 OPTIONAL_KEY_WORDS = [
     "if_masked",
@@ -575,4 +575,23 @@ def day_night_map(decision_tree: Dict[str, Dict[str, Union[str, List]]]) -> Dict
         v["leaf"]: decision_tree[v["if_night"]]["leaf"]
         for k, v in decision_tree.items()
         if "if_night" in v.keys()
+    }
+
+
+def dry_map(decision_tree: Dict[str, Dict[str, Union[str, List]]]) -> Dict:
+    """Returns a dict showing which dry values are linked to which wet values.
+    This is used to produce cloud contributions from wet codes when determining
+    a dry summary symbol.
+
+    Args:
+        decision_tree:
+            Decision tree definition, provided as a dictionary.
+
+    Returns:
+        dict showing which dry categories (values) are linked to which wet categories (keys)
+    """
+    return {
+        v["leaf"]: v["dry_equivalent"]
+        for v in decision_tree.values()
+        if "dry_equivalent" in v.keys()
     }
