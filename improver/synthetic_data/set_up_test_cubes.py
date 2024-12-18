@@ -340,7 +340,7 @@ def _construct_dimension_coords(
 
     if vertical_levels is None and ndims > n_spatial_dims + 1:
         raise ValueError(
-            "vertical levels must be provided if data has > "
+            "Vertical levels must be provided if data has > "
             f"{n_spatial_dims + 1} dimensions."
         )
 
