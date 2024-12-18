@@ -434,7 +434,7 @@ class Test_set_up_variable_cube(IrisTest):
             )
 
     def test_error_unmatched_vertical_levels(self):
-        """Test error is raised if the heights provided does not match the
+        """Test error is raised if the heights provided do not match the
         data dimensions"""
         vertical_levels_len = 4
         data_len = self.data_3d.shape[0]
@@ -480,7 +480,7 @@ class Test_set_up_variable_cube(IrisTest):
     def test_error_no_vertical_levels_4d_data(self):
         """Tests error is raised if 4d data provided but not vertical_levels"""
         data_4d = np.array([self.data_3d, self.data_3d])
-        msg = "vertical levels must be provided if data has > 3 dimensions."
+        msg = "Vertical levels must be provided if data has > 3 dimensions."
         with self.assertRaisesRegex(ValueError, msg):
             _ = set_up_variable_cube(data_4d)
 
@@ -835,7 +835,7 @@ class Test_set_up_spot_variable_cube(IrisTest):
     def test_error_no_vertical_levels_3d_data(self):
         """Tests error is raised if 3d data provided but not vertical_levels"""
         data_3d = np.array([self.data_2d, self.data_2d])
-        msg = "vertical levels must be provided if data has > 2 dimensions."
+        msg = "Vertical levels must be provided if data has > 2 dimensions."
         with self.assertRaisesRegex(ValueError, msg):
             _ = set_up_spot_variable_cube(data_3d)
 
