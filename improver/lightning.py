@@ -9,7 +9,7 @@ from typing import Tuple, Union
 
 import iris
 import numpy as np
-from iris.coords import DimCoord
+from iris.coords import CellMethod, DimCoord
 from iris.cube import Cube, CubeList
 
 from improver import PostProcessingPlugin
@@ -160,6 +160,13 @@ class LightningFromCapePrecip(PostProcessingPlugin):
             attributes={"spp__relative_to_threshold": "greater_than"},
         )
         cube.add_aux_coord(coord)
+
+        cell_method = CellMethod(
+            "Sum",
+            coords="time",
+            comments="of number_of_lightning_flashes_per_unit_area",
+        )
+        cube.add_cell_method(cell_method)
 
         return cube
 
