@@ -406,6 +406,11 @@ class Threshold(PostProcessingPlugin):
                     clip=True,
                 ),
             )
+            # Numpy where ignores masking, so reapply the masking to the truth
+            # array.
+            if np.ma.is_masked(cube.data):
+                truth_value = np.ma.masked_array(truth_value, mask=cube.data.mask)
+
             # if requirement is for probabilities less_than or
             # less_than_or_equal_to the threshold (rather than
             # greater_than or greater_than_or_equal_to), invert

@@ -209,3 +209,28 @@ def test_vicinity_masked(tmp_path):
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
+
+
+def test_nowcast_specific(tmp_path):
+    """Test thresholding nowcast data using multiple vicinities and masked
+    precipitation"""
+    kgo_dir = acc.kgo_root() / "threshold/nowcast"
+    kgo_path = kgo_dir / "kgo_masked.nc"
+    input_path = kgo_dir / "masked_precip.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        "--output",
+        output_path,
+        "--threshold-config",
+        acc.kgo_root()
+        / "threshold"
+        / "nowcast"
+        / "precip_accumulation_thresholds.json",
+        "--threshold-units",
+        "mm",
+        "--vicinity",
+        "25000,50000",
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
