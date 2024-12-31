@@ -595,22 +595,18 @@ class Test_CalculateClimateAnomalies(IrisTest):
     def setUp(self):
         """Set up the cubes"""
         self.diagnostic_cube, self.mean_cube, self.variance_cube = _set_up_test_cubes()
-        (
-            self.faulty_diagnostic_cube,
-            self.faulty_mean_cube,
-            self.faulty_variance_cube,
-        ) = _set_up_faulty_test_cubes()
         self.plugin_mean_only = CalculateClimateAnomalies(
             self.diagnostic_cube, self.mean_cube
         )
         self.plugin_with_variance = CalculateClimateAnomalies(
             self.diagnostic_cube, self.mean_cube, self.variance_cube
         )
-        self.plugin_faulty = CalculateClimateAnomalies(
+        self.faulty_diagnostic_cube, self.faulty_mean_cube, self.faulty_variance_cube = _set_up_faulty_test_cubes()
+        self.plugin_faulty_with_variance = CalculateClimateAnomalies(
             self.faulty_diagnostic_cube,
             self.faulty_mean_cube,
             self.faulty_variance_cube,
-        )
+        ) 
 
     def test_initialization(self):
         plugin = self.plugin_with_variance
@@ -621,10 +617,6 @@ class Test_CalculateClimateAnomalies(IrisTest):
     def test_verify_inputs(self):
         plugin = self.plugin_with_variance
         plugin.verify_inputs()
-
-    def test_verify_inputs_faulty(self):
-        with self.assertRaises(ValueError):
-            self.plugin_faulty.verify_inputs()
 
     def test_calculate_anomalies_with_variance(self):
         plugin = self.plugin_with_variance
@@ -676,6 +668,22 @@ class Test_CalculateClimateAnomalies(IrisTest):
         self.assertEqual(result.units, "K")
         self.assertDictEqual(result.attributes, expected_attributes)
 
+    # Tests to cover ValueError exceptions using mismatching cubes
+    def test_verify_standard_names_mismatch(self):
+        with self.assertRaises(ValueError):
+            self.plugin_faulty_with_variance.verify_inputs()
 
-if __name__ == "__main__":
-    unittest.main()
+    def test_verify_units_mismatch(self):
+        self.faulty_mean_cube.units = 'kg m-2'
+        with self.assertRaises(ValueError):
+            self.plugin_faulty_with_variance.verify_inputs()
+
+    def test_verify_grids_mismatch(self):
+        self.faulty_mean_cube.coord('latitude').points = self.faulty_mean_cube.coord('latitude').points + 1
+        with self.assertRaises(ValueError):
+            self.plugin_faulty_with_variance.verify_inputs()
+
+    def test_verify_time_coords_mismatch(self):
+        self.faulty_mean_cube.coord('time').points = self.faulty_mean_cube.coord('time').points + 1
+        with self.assertRaises(ValueError):
+            self.plugin_faulty_with_variance.verify_inputs()
