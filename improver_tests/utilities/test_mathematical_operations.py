@@ -17,8 +17,7 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_variable_cube,
 )
 from improver.utilities.cube_manipulation import sort_coord_in_cube
-from improver.utilities.mathematical_operations import Integration, fast_linear_fit
-
+from improver.utilities.mathematical_operations import Integration, fast_linear_fit, CalculateClimateAnomalies
 
 def _set_up_height_cube(height_points, ascending=True):
     """Create cube of temperatures decreasing with height"""
@@ -517,6 +516,85 @@ class Test_fast_linear_fit(IrisTest):
         self.x_data[12] = self.y_data[12] = np.nan
         self.linear_fit(with_nan=True)
 
+def _set_up_test_cubes():
+    """Create cubes of temperature data for testing."""
+    # diagnostic cube
+    diagnostic_data = np.ones((3, 3, 3), dtype=np.float32)
+
+    # Set the values for each time step
+    diagnostic_data[0, :, :] = 300 # Time step 1
+    diagnostic_data[1, :, :] = 298 # Time step 2
+    diagnostic_data[2, :, :] = 296 # Time step 3
+
+    diagnostic_cube = set_up_variable_cube(diagnostic_data.astype(np.float32))
+    diagnostic_cube.data = diagnostic_data.astype(np.float32)
+
+    # mean cube
+    mean_data = np.mean([300, 298, 296]) * np.ones((3, 3), dtype=np.float32)
+    mean_cube = set_up_variable_cube(mean_data.astype(np.float32))
+    mean_cube.data = mean_data.astype(np.float32)
+
+    # std cube
+    variance_data = np.var([300, 298, 296]) * np.ones((3, 3), dtype=np.float32)
+    variance_cube = set_up_variable_cube(variance_data.astype(np.float32))
+    variance_cube.data = variance_cube.data.astype(np.float32)
+
+    return diagnostic_cube, mean_cube, variance_cube
+
+class Test_CalculateClimateAnomalies(IrisTest):
+
+    def setUp(self):
+        """Set up the cubes"""
+        self.diagnostic_cube, self.mean_cube, self.variance_cube = _set_up_test_cubes()
+        self.plugin_mean_only = CalculateClimateAnomalies(self.diagnostic_cube, self.mean_cube)
+        self.plugin_with_variance = CalculateClimateAnomalies(self.diagnostic_cube, self.mean_cube, self.variance_cube)
+
+    def test_initialization(self):
+        plugin = self.plugin_with_variance
+        self.assertEqual(plugin.diagnostic_cube, self.diagnostic_cube)
+        self.assertEqual(plugin.mean_cube, self.mean_cube)
+        self.assertEqual(plugin.variance_cube, self.variance_cube)
+
+    def test_verify_inputs(self):
+        plugin = self.plugin_with_variance
+        plugin.verify_inputs()
+    
+    def test_calculate_anomalies_with_variance(self):
+        plugin = self.plugin_with_variance
+        anomalies = plugin.calculate_anomalies()
+        expected_anomalies = np.array([[[1.224745, 1.224745, 1.224745], 
+                                        [1.224745, 1.224745, 1.224745],
+                                        [1.224745, 1.224745, 1.224745]],
+                                       [[0., 0., 0.], [0., 0., 0.], [0., 0., 0.]],
+                                       [[-1.224745, -1.224745, -1.224745], 
+                                        [-1.224745, -1.224745, -1.224745], 
+                                        [-1.224745, -1.224745, -1.224745]]], 
+                                       dtype=np.float32)
+        # TODO: Fix this
+        self.assertArrayAlmostEqual(anomalies, expected_anomalies, 5)
+
+    def test_calculate_anomalies_without_variance(self):
+        plugin = self.plugin_mean_only
+        anomalies = plugin.calculate_anomalies()
+        expected_anomalies = np.array([[[2, 2, 2], [2, 2, 2], [2, 2, 2]],
+                                       [[0, 0, 0], [0, 0, 0], [0, 0, 0]],
+                                       [[-2, -2, -2], [-2, -2, -2], [-2, -2, -2]]],
+                                       dtype=np.float32)
+        self.assertArrayEqual(anomalies, expected_anomalies)
+
+    def test_metadata_with_variance(self):
+        expected_attributes = generate_mandatory_attributes([self.diagnostic_cube])
+        result = self.plugin_with_variance.process()
+        self.assertEqual(result.name(), self.diagnostic_cube.name() + "_standardised_anomalies")
+        self.assertEqual(result.units, None)
+        self.assertDictEqual(result.attributes, expected_attributes)
+
+    def test_metadata_without_variance(self):
+        expected_attributes = generate_mandatory_attributes([self.diagnostic_cube])
+        result = self.plugin_mean_only.process()
+        self.assertEqual(result.name(), self.diagnostic_cube.name() + "_anomalies")
+        self.assertEqual(result.units, "K")
+        self.assertDictEqual(result.attributes, expected_attributes)
 
 if __name__ == "__main__":
     unittest.main()
