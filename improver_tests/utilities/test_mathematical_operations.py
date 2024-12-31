@@ -4,8 +4,6 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the plugins and functions within mathematical_operations.py"""
 
-import unittest
-
 import iris
 import numpy as np
 import numpy.ma as ma
@@ -601,12 +599,16 @@ class Test_CalculateClimateAnomalies(IrisTest):
         self.plugin_with_variance = CalculateClimateAnomalies(
             self.diagnostic_cube, self.mean_cube, self.variance_cube
         )
-        self.faulty_diagnostic_cube, self.faulty_mean_cube, self.faulty_variance_cube = _set_up_faulty_test_cubes()
+        (
+            self.faulty_diagnostic_cube,
+            self.faulty_mean_cube,
+            self.faulty_variance_cube,
+        ) = _set_up_faulty_test_cubes()
         self.plugin_faulty_with_variance = CalculateClimateAnomalies(
             self.faulty_diagnostic_cube,
             self.faulty_mean_cube,
             self.faulty_variance_cube,
-        ) 
+        )
 
     def test_initialization(self):
         plugin = self.plugin_with_variance
@@ -674,16 +676,20 @@ class Test_CalculateClimateAnomalies(IrisTest):
             self.plugin_faulty_with_variance.verify_inputs()
 
     def test_verify_units_mismatch(self):
-        self.faulty_mean_cube.units = 'kg m-2'
+        self.faulty_mean_cube.units = "kg m-2"
         with self.assertRaises(ValueError):
             self.plugin_faulty_with_variance.verify_inputs()
 
     def test_verify_grids_mismatch(self):
-        self.faulty_mean_cube.coord('latitude').points = self.faulty_mean_cube.coord('latitude').points + 1
+        self.faulty_mean_cube.coord("latitude").points = (
+            self.faulty_mean_cube.coord("latitude").points + 1
+        )
         with self.assertRaises(ValueError):
             self.plugin_faulty_with_variance.verify_inputs()
 
     def test_verify_time_coords_mismatch(self):
-        self.faulty_mean_cube.coord('time').points = self.faulty_mean_cube.coord('time').points + 1
+        self.faulty_mean_cube.coord("time").points = (
+            self.faulty_mean_cube.coord("time").points + 1
+        )
         with self.assertRaises(ValueError):
             self.plugin_faulty_with_variance.verify_inputs()
