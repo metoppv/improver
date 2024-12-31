@@ -548,15 +548,68 @@ def _set_up_test_cubes():
     return diagnostic_cube, mean_cube, variance_cube
 
 
+def _set_up_faulty_test_cubes():
+    """Create mismatching cubes for testing"""
+    # diagnostic cube
+    diagnostic_data = np.ones((3, 3, 3), dtype=np.float32)
+
+    # Set the values for each time step
+    diagnostic_data[0, :, :] = 300  # Time step 1
+    diagnostic_data[1, :, :] = 298  # Time step 2
+    diagnostic_data[2, :, :] = 296  # Time step 3
+
+    diagnostic_cube = set_up_variable_cube(diagnostic_data.astype(np.float32))
+    diagnostic_cube.data = diagnostic_data.astype(np.float32)
+
+    # mean cube
+    mean_data = np.mean([20, 30, 50]) * np.ones((3, 3), dtype=np.float32)
+    mean_cube = set_up_variable_cube(mean_data.astype(np.float32))
+    mean_cube.data = mean_data.astype(np.float32)
+    mean_cube.standard_name = (
+        "precipitation_amount"  # Mismatching standard name to diagnostic cube
+    )
+    mean_cube.units = "F"  # Mismatching units to diagnostic cube
+
+    spatial_coordinates = (
+        mean_cube.coord("latitude").points,
+        mean_cube.coord("longitude").points,
+    )
+    new_spatial_coordinates = (spatial_coordinates[1] + 20, spatial_coordinates[0] + 20)
+    mean_cube.coord("latitude").points = new_spatial_coordinates[0]
+    mean_cube.coord("longitude").points = new_spatial_coordinates[1]
+
+    # Mismatching time coordinate to diagnostic cube
+    time_coord = mean_cube.coord("time")
+    new_points = time_coord.points + 259200  # 3 days in secondsE
+    time_coord.points = new_points
+
+    # std cube
+    variance_data = np.var([300, 298, 296]) * np.ones((3, 3), dtype=np.float32)
+    variance_cube = set_up_variable_cube(variance_data.astype(np.float32))
+    variance_cube.data = variance_cube.data.astype(np.float32)
+
+    return diagnostic_cube, mean_cube, variance_cube
+
+
 class Test_CalculateClimateAnomalies(IrisTest):
     def setUp(self):
         """Set up the cubes"""
         self.diagnostic_cube, self.mean_cube, self.variance_cube = _set_up_test_cubes()
+        (
+            self.faulty_diagnostic_cube,
+            self.faulty_mean_cube,
+            self.faulty_variance_cube,
+        ) = _set_up_faulty_test_cubes()
         self.plugin_mean_only = CalculateClimateAnomalies(
             self.diagnostic_cube, self.mean_cube
         )
         self.plugin_with_variance = CalculateClimateAnomalies(
             self.diagnostic_cube, self.mean_cube, self.variance_cube
+        )
+        self.plugin_faulty = CalculateClimateAnomalies(
+            self.faulty_diagnostic_cube,
+            self.faulty_mean_cube,
+            self.faulty_variance_cube,
         )
 
     def test_initialization(self):
@@ -568,6 +621,10 @@ class Test_CalculateClimateAnomalies(IrisTest):
     def test_verify_inputs(self):
         plugin = self.plugin_with_variance
         plugin.verify_inputs()
+
+    def test_verify_inputs_faulty(self):
+        with self.assertRaises(ValueError):
+            self.plugin_faulty.verify_inputs()
 
     def test_calculate_anomalies_with_variance(self):
         plugin = self.plugin_with_variance
