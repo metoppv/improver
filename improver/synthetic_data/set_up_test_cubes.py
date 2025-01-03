@@ -306,7 +306,7 @@ def _construct_dimension_coords(
     realizations: Optional[Union[List[float], ndarray]] = None,
     vertical_levels: Optional[Union[List[float], ndarray]] = None,
     pressure: bool = False,
-    height: bool = True,
+    height: bool= True,
 ) -> DimCoord:
     """Create array of all dimension coordinates. The expected dimension order
     for gridded cubes is realization, height/pressure, y, x or realization,
@@ -463,7 +463,7 @@ def set_up_spot_variable_cube(
         vertical_levels:
             List of vertical levels in metres or pressure levels in Pa.
         pressure:
-            Flag to indicate whether the vertical levels are specified as pressure, in Pa.
+            Flag to indicate whether the vertical levels are specified as pressure, in Pa or height, in metres.
             If False, use height in metres.
 
     Returns:
@@ -574,7 +574,7 @@ def set_up_variable_cube(
         vertical_levels:
             List of vertical levels in metres or pressure levels in Pa.
         pressure:
-            Flag to indicate whether the vertical levels are specified as pressure, in Pa.
+            Flag to indicate whether the vertical levels are specified as pressure, in Pa or height, in metres.
             If False, use height in metres.
 
     Returns:
