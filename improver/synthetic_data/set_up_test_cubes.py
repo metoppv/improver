@@ -306,7 +306,7 @@ def _construct_dimension_coords(
     realizations: Optional[Union[List[float], ndarray]] = None,
     vertical_levels: Optional[Union[List[float], ndarray]] = None,
     pressure: bool = False,
-    height: bool= True,
+    height: bool = True,
 ) -> DimCoord:
     """Create array of all dimension coordinates. The expected dimension order
     for gridded cubes is realization, height/pressure, y, x or realization,

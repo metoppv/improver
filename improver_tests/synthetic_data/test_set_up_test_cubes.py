@@ -372,12 +372,12 @@ class Test_set_up_variable_cube(IrisTest):
 
     def test_height_levels(self):
         """Test height coordinate is added"""
-        height_levels = [1.5, 3.0, 4.5]
+        vertical_levels = [1.5, 3.0, 4.5]
         expected_units = "m"
+        height = True
         expected_attributes = {"positive": "up"}
         result = set_up_variable_cube(
-            self.data_3d,
-            vertical_levels=vertical_levels, height=height
+            self.data_3d, vertical_levels=vertical_levels, height=height
         )
         self.assertArrayAlmostEqual(result.data, self.data_3d)
         self.assertEqual(result.coord_dims("height"), (0,))
@@ -722,11 +722,11 @@ class Test_set_up_spot_variable_cube(IrisTest):
         """Test height coordinate is added"""
         vertical_levels = [1.5, 3.0, 4.5]
         expected_units = "m"
+        height = True
         expected_attributes = {"positive": "up"}
         expected_site_dim = 1
         result = set_up_spot_variable_cube(
-            self.data_2d,
-            vertical_levels=vertical_levels,
+            self.data_2d, vertical_levels=vertical_levels, height=height
         )
         self.assertArrayAlmostEqual(result.data, self.data_2d)
         self.assertEqual(result.coord_dims("height"), (0,))
