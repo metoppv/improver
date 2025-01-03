@@ -306,6 +306,7 @@ def _construct_dimension_coords(
     realizations: Optional[Union[List[float], ndarray]] = None,
     vertical_levels: Optional[Union[List[float], ndarray]] = None,
     pressure: bool = False,
+    height: bool = True,
 ) -> DimCoord:
     """Create array of all dimension coordinates. The expected dimension order
     for gridded cubes is realization, height/pressure, y, x or realization,
@@ -420,6 +421,7 @@ def set_up_spot_variable_cube(
     realizations: Optional[Union[List[float], ndarray]] = None,
     vertical_levels: Optional[Union[List[float], ndarray]] = None,
     pressure: bool = False,
+    height: bool = True,
     *args,
     **kwargs,
 ):
@@ -513,6 +515,7 @@ def set_up_spot_variable_cube(
         realizations=realizations,
         vertical_levels=vertical_levels,
         pressure=pressure,
+        height=height,
     )
 
     cube = _variable_cube(data, dim_coords, *args, **kwargs)
@@ -539,6 +542,7 @@ def set_up_variable_cube(
     realizations: Optional[Union[List[float], ndarray]] = None,
     vertical_levels: Optional[Union[List[float], ndarray]] = None,
     pressure: bool = False,
+    height: bool = True,
     *args,
     **kwargs,
 ):
@@ -588,6 +592,7 @@ def set_up_variable_cube(
         realizations=realizations,
         vertical_levels=vertical_levels,
         pressure=pressure,
+        height=height,
     )
 
     cube = _variable_cube(data, dim_coords, *args, **kwargs)
