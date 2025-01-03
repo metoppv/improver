@@ -131,7 +131,6 @@ def test_basic(
     temperature.data = np.full_like(temperature.data, temperature_value)
     pressure.data = np.full_like(pressure.data, pressure_value)
     rel_humidity.data = np.full_like(rel_humidity.data, rel_humidity_value)
-    rel_humidity.data = np.full_like(rel_humidity.data, rel_humidity_value)
     result = HumidityMixingRatio()([temperature, pressure, rel_humidity])
     metadata_ok(result, temperature)
     assert np.isclose(result.data, expected, atol=1e-7).all()
