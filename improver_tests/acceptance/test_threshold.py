@@ -217,16 +217,14 @@ def test_nowcast_specific(tmp_path):
     kgo_dir = acc.kgo_root() / "threshold/nowcast"
     kgo_path = kgo_dir / "kgo_masked.nc"
     input_path = kgo_dir / "masked_precip.nc"
+    threshold_config = kgo_dir / "precip_accumulation_thresholds.json"
     output_path = tmp_path / "output.nc"
     args = [
         input_path,
         "--output",
         output_path,
         "--threshold-config",
-        acc.kgo_root()
-        / "threshold"
-        / "nowcast"
-        / "precip_accumulation_thresholds.json",
+        threshold_config,
         "--threshold-units",
         "mm",
         "--vicinity",
