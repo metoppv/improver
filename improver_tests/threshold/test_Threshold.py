@@ -412,7 +412,7 @@ def test_expected_values(default_cube, kwargs, collapse, comparator, expected_re
         (
             {"threshold_values": [0.5, 1.5], "vicinity": [3000, 5000]},
             1,
-            np.r_[[1], [0] * 24].reshape((5, 5)),
+            np.r_[[1], [0] * 24].reshape((5, 5)).astype(np.float32),
             np.stack(
                 [
                     np.stack(
@@ -488,6 +488,8 @@ def test_bespoke_expected_values(custom_cube, kwargs, expected_result):
     assert np.allclose(result.data, expected_result)
     assert type(result.data) == type(expected_result)
     assert result.data.dtype == expected_result.dtype
+    if np.ma.is_masked(result.data):
+        assert (result.data.mask == expected_result.mask).all()
 
 
 @pytest.mark.parametrize(
