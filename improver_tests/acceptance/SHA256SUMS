@@ -994,7 +994,6 @@ ea67ae7a7f5363ae3692b29c93fb9989449d96e49dc613a1297d98ddb12c578a  ./weather-symb
 51f636314a6d1fa894ab98cf750493503b191a779c67d6a15081aab2a3612a31  ./weather-symbol-modes/spot_ties/20201209T1700Z-weather_symbols-PT01H.nc
 134fb1750cf47e868ee67801b1ea5b1f17120e6f58a787a69e54638d7d88ff82  ./weather-symbol-modes/spot_ties/20201209T1800Z-weather_symbols-PT01H.nc
 391a9bd50824318fb8f147db3b14bcd56f5b0f0e0d5479b3579e08d70ef6ba77  ./weather-symbol-modes/spot_ties/kgo.nc
-391a9bd50824318fb8f147db3b14bcd56f5b0f0e0d5479b3579e08d70ef6ba77  ./weather-symbol-modes/spot_ties/new_kgo.nc
 2d66678569a1af9b3357cd1c9d6b75dfedd912a99c3ed77135b2a2169b12687e  ./weather-symbol-modes/wet_categories.json
 6a362aa64925b9674c2806a9cafafb3d4b2d36bf8afc2f775c9b0615721e8183  ./weather-symbol-modes/wx_decision_tree.json
 bd51a8596838e355c78509b8b3b1215a3f1e3b798d5b300d4aff8032a26507b7  ./weighted_blending/accum_cycle_blend/kgo.nc
