@@ -44,7 +44,7 @@ def test_expected(tmp_path, test_path):
     intensity_categories = (
         acc.kgo_root() / "weather-symbol-modes" / "intensity_categories.json"
     )
-    wxtree = acc.kgo_root() / "categorical-modes" / "wx_decision_tree.json"
+    wxtree = acc.kgo_root() / "weather-symbol-modes" / "wx_decision_tree.json"
     output_path = tmp_path / "output.nc"
     args = [
         *input_paths,
@@ -74,7 +74,7 @@ def test_no_input(tmp_path):
     intensity_categories = (
         acc.kgo_root() / "weather-symbol-modes" / "intensity_categories.json"
     )
-    wxtree = acc.kgo_root() / "categorical-modes" / "wx_decision_tree.json"
+    wxtree = acc.kgo_root() / "weather-symbol-modes" / "wx_decision_tree.json"
     output_path = tmp_path / "output.nc"
     args = [
         "--decision-tree",

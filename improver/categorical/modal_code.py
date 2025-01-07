@@ -23,7 +23,7 @@ from improver.constants import HOURS_IN_DAY
 from improver.utilities.cube_manipulation import MergeCubes
 
 from ..metadata.forecast_times import forecast_period_coord
-from .utilities import day_night_map
+from .utilities import day_night_map, dry_map
 
 
 class BaseModalCategory(BasePlugin):
@@ -358,6 +358,12 @@ class ModalFromGroupings(BaseModalCategory):
     Where there are different categories available for night and day, the
     modal code returned is always a day code, regardless of the times
     covered by the input files.
+
+    If a location is to return a dry code after consideration of the various
+    weightings, the wet codes for that location are converted into the best
+    matching dry cloud code and these are included in determining the resulting
+    dry code. The wet bias has no impact on the weight of these converted wet
+    codes, but the day weighting still applies.
     """
 
     # Day length set to aid testing.
@@ -420,6 +426,8 @@ class ModalFromGroupings(BaseModalCategory):
                 constructing the categories.
         """
         super().__init__(decision_tree)
+        self.dry_map = dry_map(self.decision_tree)
+
         self.broad_categories = broad_categories
         self.wet_categories = wet_categories
         self.intensity_categories = intensity_categories
@@ -744,6 +752,35 @@ class ModalFromGroupings(BaseModalCategory):
             )
             result.replace_coord(new_coord)
 
+    def _get_dry_equivalents(
+        self, cube: Cube, dry_indices: np.ndarray, time_axis
+    ) -> Cube:
+        """
+        Returns a cube with only dry codes in which all wet codes have
+        been replaced by their nearest dry cloud equivalent. For example a
+        shower code is replaced with a partly cloudy code, a light rain code
+        is replaced with a cloud code, and a heavy rain code is replaced with
+        an overcast cloud code.
+
+        Args:
+            cube: Weather code cube.
+            dry_indices: An array of bools which are true for locations where
+                         the summary weather code will be dry.
+
+        Returns:
+            cube: Wet codes converted to their dry equivalent for those points
+                  that will receive a dry summary weather code.
+        """
+        dry_cube = cube.copy()
+        for value, target in self.dry_map.items():
+            dry_cube.data = np.where(cube.data == value, target, dry_cube.data)
+
+        original = np.rollaxis(cube.data, time_axis)
+        dried = np.rollaxis(dry_cube.data, time_axis)
+        original[..., dry_indices] = dried[..., dry_indices]
+
+        return cube
+
     def process(self, cubes: CubeList) -> Cube:
         """Calculate the modal categorical code by grouping weather codes.
 
@@ -767,14 +804,19 @@ class ModalFromGroupings(BaseModalCategory):
         if len(cube.coord("time").points) == 1:
             result = cube
         else:
-            original_cube = self._emphasise_day_period(cube.copy())
-            cube = self._consolidate_intensity_categories(cube)
             cube = self._emphasise_day_period(cube)
 
             result = cube[0].copy()
             (time_axis,) = cube.coord_dims("time")
 
             wet_indices = self._find_wet_indices(cube, time_axis)
+
+            # For dry locations convert the wet codes to their equivalent dry
+            # codes for use in determining the summary symbol.
+            cube = self._get_dry_equivalents(cube, ~wet_indices, time_axis)
+
+            original_cube = cube.copy()
+            cube = self._consolidate_intensity_categories(cube)
             result = self._find_most_significant_dry_code(cube, result, ~wet_indices)
 
             result = self._get_most_likely_following_grouping(
