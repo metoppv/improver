@@ -43,5 +43,4 @@ def process(cube: cli.inputcube, vicinity: cli.comma_separated_list = None):
     """
     from improver.utilities.spatial import OccurrenceWithinVicinity
 
-    vicinity = [float(x) for x in vicinity]
     return OccurrenceWithinVicinity(radii=vicinity).process(cube)
