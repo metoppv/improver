@@ -28,18 +28,6 @@ def process(*cubes: cli.inputcube):
     Raises:
         ValueError: If ensembles have mismatched validity times
     """
-    import warnings
-
     from improver.utilities.time_lagging import GenerateTimeLaggedEnsemble
-
-    if len(cubes) == 1:
-        warnings.warn("Only a single cube input, so time lagging will have no effect.")
-        return cubes[0]
-
-    # raise error if validity times are not all equal
-    time_coords = [cube.coord("time") for cube in cubes]
-    time_coords_match = [coord == time_coords[0] for coord in time_coords]
-    if not all(time_coords_match):
-        raise ValueError("Cubes with mismatched validity times are not compatible.")
 
     return GenerateTimeLaggedEnsemble()(cubes)

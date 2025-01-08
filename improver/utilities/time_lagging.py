@@ -4,6 +4,7 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Provide support utilities for time lagging ensembles"""
 
+import warnings
 from typing import List, Union
 
 import numpy as np
@@ -36,6 +37,16 @@ class GenerateTimeLaggedEnsemble(BasePlugin):
         Returns:
             Concatenated forecasts
         """
+        if len(cubelist) == 1:
+            warnings.warn("Only a single cube input, so time lagging will have no effect.")
+            return cubelist[0]
+
+        # raise error if validity times are not all equal
+        time_coords = [cube.coord("time") for cube in cubelist]
+        time_coords_match = [coord == time_coords[0] for coord in time_coords]
+        if not all(time_coords_match):
+            raise ValueError("Cubes with mismatched validity times are not compatible.")
+
         cubelist = rebadge_forecasts_as_latest_cycle(cubelist)
 
         # Take all the realizations from all the input cube and
