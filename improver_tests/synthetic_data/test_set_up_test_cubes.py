@@ -787,7 +787,7 @@ class Test_set_up_spot_variable_cube(IrisTest):
             )
 
     def test_error_unmatched_vertical_levels(self):
-        """Test error is raised if the heights provided do not match the
+        """Test error is raised if the vertical levels provided do not match the
         data dimensions"""
         vertical_levels_len = 4
         data_len = self.data_2d.shape[0]

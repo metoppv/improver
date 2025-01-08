@@ -306,7 +306,7 @@ def _construct_dimension_coords(
     realizations: Optional[Union[List[float], ndarray]] = None,
     vertical_levels: Optional[Union[List[float], ndarray]] = None,
     pressure: bool = False,
-    height: bool = True,
+    height: bool = False,
 ) -> DimCoord:
     """Create array of all dimension coordinates. The expected dimension order
     for gridded cubes is realization, height/pressure, y, x or realization,
@@ -421,7 +421,7 @@ def set_up_spot_variable_cube(
     realizations: Optional[Union[List[float], ndarray]] = None,
     vertical_levels: Optional[Union[List[float], ndarray]] = None,
     pressure: bool = False,
-    height: bool = True,
+    height: bool = False,
     *args,
     **kwargs,
 ):
@@ -461,10 +461,12 @@ def set_up_spot_variable_cube(
             List of forecast realizations.  If not present, taken from the
             leading dimension of the input data array (if 2D).
         vertical_levels:
-            List of vertical levels in metres or pressure levels in Pa.
+            List of vertical levels in height (metres) or pressure levels (Pa).
         pressure:
-            Flag to indicate whether the vertical levels are specified as pressure, in Pa or height, in metres.
+            Flag to indicate whether the vertical levels are specified as pressure, in Pa.
             If False, use height in metres.
+        height:
+            Flag to indicate whether the vertical levels are specified as height, in metres.
 
     Returns:
         Cube containing a single spot variable field
@@ -542,7 +544,7 @@ def set_up_variable_cube(
     realizations: Optional[Union[List[float], ndarray]] = None,
     vertical_levels: Optional[Union[List[float], ndarray]] = None,
     pressure: bool = False,
-    height: bool = True,
+    height: bool = False,
     *args,
     **kwargs,
 ):
@@ -572,10 +574,12 @@ def set_up_variable_cube(
             List of forecast realizations.  If not present, taken from the
             leading dimension of the input data array (if 3D).
         vertical_levels:
-            List of vertical levels in metres or pressure levels in Pa.
+            List of vertical levels in height (metres) or pressure levels (Pa).
         pressure:
-            Flag to indicate whether the vertical levels are specified as pressure, in Pa or height, in metres.
+            Flag to indicate whether the vertical levels are specified as pressure, in Pa.
             If False, use height in metres.
+        height:
+            Flag to indicate whether the vertical levels are specified as height, in metres.
 
     Returns:
         Cube containing a single gridded variable field
