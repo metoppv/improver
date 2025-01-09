@@ -38,7 +38,9 @@ class GenerateTimeLaggedEnsemble(BasePlugin):
             Concatenated forecasts
         """
         if len(cubelist) == 1:
-            warnings.warn("Only a single cube input, so time lagging will have no effect.")
+            warnings.warn(
+                "Only a single cube input, so time lagging will have no effect."
+            )
             return cubelist[0]
 
         # raise error if validity times are not all equal
