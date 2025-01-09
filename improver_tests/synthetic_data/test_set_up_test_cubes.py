@@ -497,7 +497,7 @@ class Test_set_up_variable_cube(IrisTest):
         vertical_levels = [1.5, 3.0, 4.5]
         msg = (
             "Input data must have 4 dimensions to add both realization "
-            "and height coordinates: got 3"
+            "and diagnostic coordinates: got 3"
         )
         with self.assertRaisesRegex(ValueError, msg):
             _ = set_up_variable_cube(
@@ -852,7 +852,7 @@ class Test_set_up_spot_variable_cube(IrisTest):
         vertical_levels = [1.5, 3.0, 4.5]
         msg = (
             "Input data must have 3 dimensions to add both realization "
-            "and height coordinates: got 2"
+            "and diagnostic coordinates: got 2"
         )
         with self.assertRaisesRegex(ValueError, msg):
             _ = set_up_spot_variable_cube(
