@@ -753,7 +753,7 @@ class ModalFromGroupings(BaseModalCategory):
             result.replace_coord(new_coord)
 
     def _get_dry_equivalents(
-        self, cube: Cube, dry_indices: np.ndarray, time_axis
+        self, cube: Cube, dry_indices: np.ndarray, time_axis: int
     ) -> Cube:
         """
         Returns a cube with only dry codes in which all wet codes have
@@ -766,6 +766,7 @@ class ModalFromGroupings(BaseModalCategory):
             cube: Weather code cube.
             dry_indices: An array of bools which are true for locations where
                          the summary weather code will be dry.
+            time_axis: The time coordinate dimension.
 
         Returns:
             cube: Wet codes converted to their dry equivalent for those points
@@ -775,6 +776,8 @@ class ModalFromGroupings(BaseModalCategory):
         for value, target in self.dry_map.items():
             dry_cube.data = np.where(cube.data == value, target, dry_cube.data)
 
+        # Note that np.rollaxis returns a new view of the input data. As such
+        # changes to `original` here are also changes to cube.data.
         original = np.rollaxis(cube.data, time_axis)
         dried = np.rollaxis(dry_cube.data, time_axis)
         original[..., dry_indices] = dried[..., dry_indices]

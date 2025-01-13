@@ -320,11 +320,9 @@ def test_expected_values_day_weighting(
         # there are 2 sunny and 2 partly cloud codes, with the latter chosen (3)
         # as more significant.
         ([1, 1, 10, 14, 8, 8, 8], True, 3, False),
-        # Dry. Partly cloudy and sunny are grouped by the intensity
-        # categorisation allowing them to dominate over the overcast
-        # codes. A partly cloud code is returned.
-        # cloud cover in the light rain codes is included in determining the
-        # dominant dry code, leading to an overcast symbol overall (8).
+        # Dry. The overcast cloud code (8) is the single dominant code. However,
+        # partly cloudy and sunny are more dominant when grouped. Of these 5
+        # codes sunny (1) is dominant and is therefore returned.
         ([1, 1, 1, 3, 3, 8, 8, 8, 8], True, 1, False),
         # All precipitation is frozen. Sleet shower is the modal code.
         ([23, 23, 23, 26, 17, 17, 17, 17], False, 17, False),
