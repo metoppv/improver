@@ -347,3 +347,12 @@ def integrate_time(cube: Cube, new_name: str = None) -> Cube:
     integrated_cube.cell_methods = new_cell_methods
 
     return integrated_cube
+
+
+def get_period(cube):
+    """Return the length of a cube period in seconds. If the input cube has
+    no time bounds, None is returned."""
+
+    if cube.coord("time").cell(0).bound is not None:
+        return np.diff(cube.coord("time").cell(0).bound).seconds
+    return None
