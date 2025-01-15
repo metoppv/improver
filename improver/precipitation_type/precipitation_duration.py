@@ -47,7 +47,7 @@ class PrecipitationDuration(PostProcessingPlugin):
         Args:
             min_accumulation_per_hour:
                 The minimum accumulation per hour in the period, or a list
-                thereof, used to classify the period. The accumulation is
+                of several, used to classify the period. The accumulation is
                 used in conjuction wuth the critical rate.
                 Units of mm.
             critical_rate:
@@ -63,10 +63,10 @@ class PrecipitationDuration(PostProcessingPlugin):
                 lead to a suddenly different overall period.
             rate_diagnostic:
                 The expected diagnostic name for the maximum rate in period
-                diagnostic.
+                diagnostic. Used to extract the cubes from the inputs.
             accumulation_diagnostic:
                 The expected diagnostic name for the accumulation in period
-                diagnostic.
+                diagnostic. Used to extract the cubes from the inputs.
         """
         if isinstance(min_accumulation_per_hour, Number):
             min_accumulation_per_hour = [min_accumulation_per_hour]
