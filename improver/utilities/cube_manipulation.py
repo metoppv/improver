@@ -56,6 +56,40 @@ def collapsed(cube: Cube, *args: Any, **kwargs: Any) -> Cube:
     return new_cube
 
 
+def collapse_time(cube, *args: Any) -> Cube:
+    """Collapses a time / forecast period coord of a cube and modifies the
+    time coordinates to place the point at the end of the bound range.
+
+    Args:
+        cube:
+            A Cube to be collapsed.
+        args:
+            Takes the arguments that are provided to the iris.Cube.collapsed
+            method. These include the coordinate name and the collapse
+            method, e.g. iris.analysis.SUM.
+    Returns:
+        Cube with the specified coordinated collapsed and the points of
+        the coordinate itself and related time coordinates modified to
+        reflect the end of the bound range in line with IMPROVER's metadata
+        standards.
+    """
+    if "time" not in args and "forecast_period" not in args:
+        raise ValueError(
+            "The collapse_time wrapper should only be used for collapsing "
+            "the time or forecast_period coordinates."
+        )
+
+    collapsed_cube = collapsed(cube, *args)
+
+    for crd in ["forecast_period", "time"]:
+        try:
+            collapsed_cube.coord(crd).points = collapsed_cube.coord(crd).bounds[0][-1]
+        except CoordinateNotFoundError:
+            pass
+
+    return collapsed_cube
+
+
 def collapse_realizations(cube: Cube, method="mean") -> Cube:
     """Collapses the realization coord of a cube and strips the coord from the cube.
 
