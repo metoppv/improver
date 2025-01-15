@@ -20,24 +20,30 @@ from improver.utilities.cube_manipulation import collapse_time
 
 @pytest.fixture
 def data_times():
+    """Define the times for the input cubes. These are also used to test
+    the collapsed cube times against."""
     frt = datetime(2025, 1, 15, 3, 0)
     times = []
+    bounds = []
     for hour in range(3, 9 + 1, 3):
         time = frt + timedelta(hours=hour)
-        time_bounds = [time - timedelta(hours=3), time]
-        times.append((frt, time, time_bounds))
-    return times
+        times.append(time)
+        bounds.append([time - timedelta(hours=3), time])
+    return frt, times, bounds
 
 
 @pytest.fixture
 def multi_time_cube(data_times):
+    """Create a cube that has a leadtime time coordinate with an entry for
+    each validity time passed in. This coordinate will be collapsed to test
+    the function."""
+    frt, times, bounds = data_times
     data = 281 * np.ones((3, 3)).astype(np.float32)
     cubes = CubeList()
-    for frt, time, time_bounds in data_times:
+    for time, time_bounds in zip(times, bounds):
         cubes.append(
             set_up_variable_cube(data, time=time, time_bounds=time_bounds, frt=frt)
         )
-
     return cubes.merge_cube()
 
 
@@ -47,13 +53,12 @@ def test_basic(multi_time_cube, data_times, collapse_crd):
     time coordiantes. The point should be at the end of the bounds
     and the bounds should span the original bounds."""
 
-    expected_time = data_times[-1][1]
-    expected_time_bounds = (data_times[0][-1][0], data_times[-1][-1][-1])
-    expected_fp = (data_times[-1][-1][-1] - data_times[0][2][0]).total_seconds()
-    expected_fp_bounds = [
-        (data_times[0][2][0] - data_times[0][0]).total_seconds(),
-        expected_fp,
-    ]
+    frt, times, bounds = data_times
+
+    expected_time = times[-1]
+    expected_time_bounds = (bounds[0][0], bounds[-1][-1])
+    expected_fp = (times[-1] - frt).total_seconds()
+    expected_fp_bounds = ((bounds[0][0] - frt).total_seconds(), expected_fp)
 
     result = collapse_time(multi_time_cube, collapse_crd, iris.analysis.SUM)
 
@@ -68,7 +73,7 @@ def test_basic(multi_time_cube, data_times, collapse_crd):
 )
 def test_exception(multi_time_cube, data_times, collapse_crd):
     """Test that an exception is raised when attempting to collapse a
-    coordinate that is not time or forecast_period.."""
+    coordinate that is not time or forecast_period."""
 
     msg = (
         "The collapse_time wrapper should only be used for collapsing "
