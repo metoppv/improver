@@ -138,7 +138,7 @@ def create_cube_with_thresholds(
         cube = template_cube.copy()
         cube.add_aux_coord(
             iris.coords.AuxCoord(
-                np.float32(point), long_name="threshold", units=unit.Unit("1")
+                np.float32(point)
             )
         )
         cubes.append(cube)
@@ -154,9 +154,6 @@ def create_cube_with_thresholds(
 
 def Threshold_interpolation(
         forecast_at_thresholds: Cube,
-        no_of_thresholds: Optional[int] = None,
-        sampling: Optional[str] = "quantile",
-#        thresholds: Optional[List] = None,
         thresholds: Optional[Union[float, List[float]]] = None,
 ) -> Cube:
     """
@@ -167,11 +164,6 @@ def Threshold_interpolation(
     Args:
         forecast_at_thresholds:
             Cube expected to contain a threshold coordinate.
-        no_of_thresholds:
-            Number of thresholds
-            If None, the number of thresholds within the input
-            forecast_at_thresholds cube is used as the
-            number of thresholds.
         thresholds:
             List of the desired output thresholds.
 
@@ -181,11 +173,6 @@ def Threshold_interpolation(
     """
 
     threshold_coord = find_threshold_coordinate(forecast_at_thresholds)
-
-    if no_of_thresholds is None:
-        no_of_thresholds = len(
-            forecast_at_thresholds.coord(threshold_coord).points
-        )
 
     if thresholds is None:
         thresholds = forecast_at_thresholds.coord(threshold_coord).points
