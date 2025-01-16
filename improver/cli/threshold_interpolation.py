@@ -13,8 +13,6 @@ from improver import cli
 def process(
     forecast_at_thresholds: cli.inputcube,
     *,
-    no_of_thresholds: int = None,
-    sampling: str = "quantile",
     thresholds: cli.comma_separated_list = None,
 ):
     """
@@ -25,11 +23,6 @@ def process(
     Args:
         forecast_at_thresholds:
             Cube expected to contain a threshold coordinate.
-        no_of_thresholds:
-            Number of thresholds
-            If None, the number of thresholds within the input
-            forecast_at_thresholds cube is used as the
-            number of thresholds.
         thresholds:
             List of the desired output thresholds.
 
@@ -39,7 +32,6 @@ def process(
     """
     from improver.utilities.threshold_interpolation import Threshold_interpolation
 
-    result = Threshold_interpolation(forecast_at_thresholds, no_of_thresholds=no_of_thresholds,
-                                     sampling=sampling, thresholds=thresholds,
+    result = Threshold_interpolation(forecast_at_thresholds, thresholds=thresholds,
                                      )
     return result
