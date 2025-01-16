@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 #
 # IMPROVER documentation build configuration file, created by
@@ -286,7 +286,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, "Improver.tex", "IMPROVER Documentation", "Met Office", "manual"),
+    (master_doc, "Improver.tex", "IMPROVER Documentation", "Met Office", "manual")
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -347,7 +347,7 @@ texinfo_documents = [
         "IMPROVER",
         "One line description of project.",
         "Miscellaneous",
-    ),
+    )
 ]
 
 # Documents to append as an appendix to all manuals.

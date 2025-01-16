@@ -1,13 +1,15 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Test methods in lightning.LightningFromCapePrecip"""
+
 from datetime import datetime
 from unittest.mock import patch, sentinel
 
 import numpy as np
 import pytest
+from iris.coords import CellMethod
 from iris.cube import Cube, CubeList
 
 from improver.lightning import LightningFromCapePrecip
@@ -109,6 +111,11 @@ def expected_cube_fixture() -> Cube:
         coord_units="1",
         dtype=np.int32,
     )
+
+    cell_method = CellMethod(
+        "Sum", coords="time", comments="of number_of_lightning_flashes_per_unit_area"
+    )
+    cube.add_cell_method(cell_method)
 
     return cube
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Script to standardise a NetCDF file by updating metadata and demoting
 float64 data to float32"""
@@ -57,11 +57,10 @@ def process(
     """
     from improver.standardise import StandardiseMetadata
 
-    return StandardiseMetadata()(
-        cube,
+    return StandardiseMetadata(
         new_name=new_name,
         new_units=new_units,
         coords_to_remove=coords_to_remove,
         coord_modification=coord_modification,
         attributes_dict=attributes_config,
-    )
+    )(cube)

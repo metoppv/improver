@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Set up fixtures for metadata interpreter tests"""
 
@@ -165,7 +165,7 @@ def probability_over_time_in_vicinity_above_fixture():
     )
     cube.add_cell_method(
         iris.coords.CellMethod(
-            method="sum", coords="time", comments=(f"of {diagnostic_name}",),
+            method="sum", coords="time", comments=(f"of {diagnostic_name}",)
         )
     )
     for coord in ["time", "forecast_period"]:

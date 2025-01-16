@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Module containing thresholding classes."""
 
@@ -34,7 +34,6 @@ from improver.utilities.spatial import (
 
 
 class Threshold(PostProcessingPlugin):
-
     """Apply a threshold truth criterion to a cube.
 
     Calculate the threshold truth values based on a linear membership function
@@ -289,8 +288,9 @@ class Threshold(PostProcessingPlugin):
                 )
             if bounds[0] > thr or bounds[1] < thr:
                 bounds_msg = (
-                    "Threshold must be within bounds: "
-                    "!( {} <= {} <= {} )".format(bounds[0], thr, bounds[1])
+                    "Threshold must be within bounds: " "!( {} <= {} <= {} )".format(
+                        bounds[0], thr, bounds[1]
+                    )
                 )
                 raise ValueError(bounds_msg)
 
@@ -406,6 +406,13 @@ class Threshold(PostProcessingPlugin):
                     clip=True,
                 ),
             )
+            # Rescaling exposes masked points so use the rescaled data only in
+            # the unmasked locations, set masked locations to 0 and reapply
+            # masking.
+            if np.ma.is_masked(cube.data):
+                truth_value = np.where(cube.data.mask, 0, truth_value)
+                truth_value = np.ma.masked_array(truth_value, mask=cube.data.mask)
+
             # if requirement is for probabilities less_than or
             # less_than_or_equal_to the threshold (rather than
             # greater_than or greater_than_or_equal_to), invert
@@ -678,7 +685,6 @@ class Threshold(PostProcessingPlugin):
 
 
 class LatitudeDependentThreshold(Threshold):
-
     """Apply a latitude-dependent threshold truth criterion to a cube.
 
     Calculates the threshold truth values based on the threshold function provided.
@@ -782,7 +788,7 @@ class LatitudeDependentThreshold(Threshold):
         # Add a scalar axis for the longitude axis so that numpy's array-
         # broadcasting knows what we want to do
         truth_value = self.comparison_operator.function(
-            cube.data, np.expand_dims(threshold_over_latitude, 1),
+            cube.data, np.expand_dims(threshold_over_latitude, 1)
         )
 
         truth_value = truth_value.astype(FLOAT_DTYPE)

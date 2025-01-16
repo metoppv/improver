@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Class for Temporal Interpolation calculations."""
 
@@ -25,7 +25,6 @@ from improver.utilities.temporal import iris_time_to_datetime
 
 
 class TemporalInterpolation(BasePlugin):
-
     """
     Interpolate data to intermediate times between the validity times of two
     cubes. This can be used to fill in missing data (e.g. for radar fields) or
@@ -151,8 +150,9 @@ class TemporalInterpolation(BasePlugin):
         known_interpolation_methods = ["linear", "solar", "daynight"]
         if interpolation_method not in known_interpolation_methods:
             raise ValueError(
-                "TemporalInterpolation: Unknown interpolation "
-                "method {}. ".format(interpolation_method)
+                "TemporalInterpolation: Unknown interpolation " "method {}. ".format(
+                    interpolation_method
+                )
             )
         self.interpolation_method = interpolation_method
         self.period_inputs = False

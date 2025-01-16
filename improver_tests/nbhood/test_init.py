@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for nbhood.__init__"""
 
@@ -10,7 +10,6 @@ from improver.nbhood import radius_by_lead_time
 
 
 class Test_radius_by_lead_time(unittest.TestCase):
-
     """Test the radius_by_lead_time method."""
 
     def test_single_radius(self):

@@ -3,24 +3,30 @@ What is IMPROVER?
 
 IMPROVER: Integrated Model post-PROcessing and VERification
 
-The `Met Office`_ in the UK is leading a project to create a probabilistic post-processing system for use with ensemble weather prediction models. The system is designed to extract the wealth of information provided by ensemble forecasts and present it in a format that is suitable for the production of automated weather forecasts, and for use by forecasters and the public.
+The IMPROVER repository provides a toolbox for post-processing ensemble weather forecasts. An example application of these tools is the combination of forecasts from different weather models into a blended forecast with improved forecast skill compared to any of the inputs. Additional techniques, such as spatial and temporal neighbourhooding, are available within the IMPROVER repository to further increase the spread of forecasts, capturing a greater range of possible future weather states. Functionality also exists to include older forecasts in the final blend, weighting them appropriately to capture the reduction in forecast skill at longer lead times. The end result is the consolidation of tens or hundreds of representations of a weather situation into an interrogable probabilistic output.
+
+The IMPROVER repository also includes tools to improve the statistical properties of the forecast. For example, Ensemble Model Output Statistics and Reliability Calibration can be applied independently, or within a sequence of steps to improve forecast skill. Other tools are available to generate new diagnostics, such as the creation of a feels like temperature diagnostic, as well as understanding forecast characteristics by diagnosing whether the precipitation is showery or dynamic based upon the cloud "texture".
+
+
+What is the IMPROVER strategy?
+------------------------------
+
+The `Met Office`_ in the UK is leading a project to create a probabilistic post-processing system for use with ensemble weather prediction models. The system is designed to extract the wealth of information provided by ensemble forecasts and present it in a format that is suitable for the production of automated weather forecasts, and for use by forecasters and the public. This project consists of a post-processing strategy, described in `Roberts et al., 2023`, and an open-source repository, which provides a toolbox of utilities for ensemble post-processing.
 
 .. _Met Office: http://www.metoffice.gov.uk/
 
-Using IMPROVER with weather forecasts from a range of forecasting centres, it is possible to generate a consolidated blend of information that better captures the range of potential weather outcomes. Additional techniques, such as spatial and temporal neighbourhooding, are available within IMPROVER to further increase the spread of forecasts, capturing more of this range. Functionality also exists to include older forecasts into the final blend, weighting them appropriately to capture the fall off in forecast skill at longer lead times. The end result is the consolidation of tens or hundreds of representations of a weather situation into an interrogable probabilistic output.
-
-Within the Met Office, IMPROVER is being used to provide a new probabilistic approach to post-processing forecasts. Gridded forecasts taken from multiple configurations of the Met Office's `Unified Model (UM)`_ first undergo physical corrections if necessary, before being converted into probabilities. The resulting probabilistic forecasts from each UM configuration are then blended to create seamless probabilistic outputs. These gridded probabilities aim to deliver both improved forecast information at each grid square and at geographical (“spot”) locations.
+Within the Met Office, a new system built upon functionality in the IMPROVER repository is being used to provide a new probabilistic approach to post-processing forecasts. Gridded forecasts taken from multiple configurations of the Met Office's `Unified Model (UM)`_ first undergo physical corrections if necessary, before being converted into probabilities. The resulting probabilistic forecasts from each UM configuration are then blended to create seamless probabilistic outputs. These gridded probabilities aim to deliver both improved forecast information at each grid square and at geographical (“spot”) locations.
 
 .. _Unified Model (UM): https://www.metoffice.gov.uk/research/approach/modelling-systems/unified-model/index
 
-Key principles of the Met Office's post processing strategy that are being built into IMPROVER are:
+Key principles of the IMPROVER strategy are:
 
   1. A separate processing chain for each variable (e.g. temperature, rain rate) which operates on a  grid with location-specific information extracted at the end.
   2. A fully probabilistic system that allows for time-lagging and blending between models/ensembles and provides seamless probabilistic forecasts that exploits the benefits of each of the models used.
   3. The ability to provide outputs to enable automated forecasts of “ordinary” weather for any required location as well as more granular information about the possibility of high-impact weather for constructing warnings and risk estimation.
   4. A modular software framework following modern professional software development practices.
 
-An example IMPROVER forecast product is shown below, here for wind speed. Four fields are plotted at different wind speed thresholds that may be of interest to the user, each field shows the probability of exceeding the relevant threshold.
+An example wind speed forecast produced using tools in the open-source repository is shown below. Four fields are plotted at different wind speed thresholds that may be of interest to the user, each field shows the probability of exceeding the relevant threshold.
 
 
 .. figure:: ../files/wind_probabilities.jpg
@@ -32,9 +38,9 @@ An example IMPROVER forecast product is shown below, here for wind speed. Four f
 Structure of IMPROVER
 ---------------------
 
-IMPROVER is designed as a modular post-processing system. The final product is created through the application of a sequence of processing steps, where the sequence can be readily modified to achieve different outcomes. The output of each step in the chain can be written out, allowing for verification against observations at each stage (using a suitable verification package, which is not part of IMPROVER). This enables the user to determine whether a given step in the chain is improving or harming the forecast quality.
+The IMPROVER repository is designed as a modular post-processing toolbox. Using the strategy outlined in `Roberts et al., 2023`, a final product can be created through the application of a sequence of processing steps, where the sequence can be readily modified to achieve different outcomes. The output of each step in the chain can be written out, allowing for verification against observations at each stage (using a suitable verification package, which is not part of IMPROVER). This enables the user to determine whether a given step in the chain is improving or harming the forecast quality.
 
-Any given step in the processing can be applied using the included :ref:`command line interfaces (CLIs)<using ref>`. A complex system is built by calling the CLIs in sequence. The simple schematic below gives an example processing chain.
+Any given step in the processing can be applied using the included :ref:`command line interfaces (CLIs)<using ref>`. A complex system can be built by calling the CLIs in sequence. The simple schematic below gives an example processing chain.
 
 .. _command line interfaces (CLIs): :ref:`using_improver`
 
@@ -45,20 +51,21 @@ Any given step in the processing can be applied using the included :ref:`command
 
 .. _using ref:
 
-Using IMPROVER
---------------
+Using the IMPROVER repository
+-----------------------------
 
-IMPROVER does not currently include installation functionality (e.g. setup.py). The code can be used by cloning the `GitHub repository`_ and calling the command line interfaces (CLIs) from a linux/unix terminal or by importing the modules directly into Python.
+IMPROVER can be installed using pip or conda with installation instructions available in the `README`. Additionally, the code can be used by cloning the `GitHub repository`_ and calling the command line interfaces (CLIs) from a linux/unix terminal or by importing the modules directly into Python.
 
 .. _GitHub repository: https://github.com/metoppv/improver
+.. _README: https://github.com/metoppv/improver/blob/master/README.md
 
 .. code:: console
 
     git clone https://github.com/metoppv/improver.git <local directory>
 
-The list of dependencies can be found in the `environment.yml`_ file.
+The list of dependencies can be found in the `environment_a.yml`_ file.
 
-.. _environment.yml: https://github.com/metoppv/improver/blob/master/environment.yml
+.. _environment_a.yml: https://github.com/metoppv/improver/blob/master/envs/environment_a.yml
 
 Example use of a CLI
 ====================
@@ -87,9 +94,8 @@ The current list of CLIs can be `found here`_.
 
 Sample data for testing CLIs
 ============================
-We use standardised Met Office data for IMPROVER, which is available for all our main models with a delay on Amazon web services (https://registry.opendata.aws/uk-met-office/). There are some examples on how to use the data here: https://github.com/MetOffice/aws-earth-examples. The example notebook also gives you a good idea of what our standard model data looks like: https://github.com/MetOffice/aws-earth-examples/blob/master/examples/1.%20Getting%20Started.ipynb.
-
-This standard data should work with the IMPROVER CLIs and is a good place to start if you want to test a CLI on some compatible data.
+The test data used for the acceptance tests within IMPROVER is available in an open-source repository on GitHub: https://github.com/metoppv/improver_test_data.
+Using this test data, along with the acceptance tests within the improver repository, provides a good start for exploring the functionality available.
 
 Publications & Presentations
 ----------------------------
@@ -118,8 +124,9 @@ When citing IMPROVER, we recommend using the sources in the first two rows of th
 |`Improving the blend of multiple weather forecast sources by Reliability Calibration`_       | Fiona Rust et al.                 |
 +---------------------------------------------------------------------------------------------+-----------------------------------+
 
+.. _Roberts et al., 2023: https://doi.org/10.1175/BAMS-D-21-0273.1
 .. _IMPROVER - The New Probabilistic Postprocessing System at the Met Office (BAMS 2023): https://doi.org/10.1175/BAMS-D-21-0273.1
-.. _Archive of latest released version of IMPROVER (Zenodo): https://doi.org/10.5281/zenodo.8410114
+.. _Archive of latest released version of IMPROVER (Zenodo): https://zenodo.org/records/13354071
 .. _A post-processing and verification strategy for the future (MOSAC 2015): https://github.com/metoppv/improver/tree/master/doc/files/MOSAC_2015_20.19_Post-processing-verification.pdf
 .. _IMPROVER - the new post processing and verification system (MOSAC 2019): https://github.com/metoppv/improver/tree/master/doc/files/MOSAC_23.9_Roberts_Paper_171218.pdf
 .. _Generating probabilistic forecasts from convection permitting ensembles: https://presentations.copernicus.org/EMS2017-277_presentation.pdf

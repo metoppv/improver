@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the ConstructReliabilityCalibrationTables plugin."""
 
@@ -152,7 +152,7 @@ def test_cpb_coordinate_no_single_value_bins():
     type with no single value lower and upper bins."""
     expected_bounds = np.array([[0, 0.5], [0.5, 1]])
     expected_points = np.mean(expected_bounds, axis=1)
-    plugin = Plugin(n_probability_bins=2,)
+    plugin = Plugin(n_probability_bins=2)
     result = plugin._create_probability_bins_coord()
 
     assert isinstance(result, iris.coords.DimCoord)

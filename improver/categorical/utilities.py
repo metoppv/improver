@@ -1,8 +1,8 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""This module defines the utilities required for decision tree plugin """
+"""This module defines the utilities required for decision tree plugin"""
 
 from collections import OrderedDict
 from typing import Any, Dict, List, Optional, Union
@@ -24,9 +24,10 @@ REQUIRED_KEY_WORDS = [
 ]
 
 LEAF_REQUIRED_KEY_WORDS = ["leaf"]
-LEAF_OPTIONAL_KEY_WORDS = ["if_night", "is_unreachable", "group"]
+LEAF_OPTIONAL_KEY_WORDS = ["if_night", "is_unreachable", "group", "dry_equivalent"]
 
 OPTIONAL_KEY_WORDS = [
+    "if_masked",
     "if_diagnostic_missing",
     "deterministic",
     "diagnostic_thresholds",
@@ -143,7 +144,7 @@ def expand_nested_lists(query: Dict[str, Any], key: str) -> List[Any]:
 
 
 def update_daynight(cube: Cube, day_night: Dict) -> Cube:
-    """ Update category depending on whether it is day or night
+    """Update category depending on whether it is day or night
 
     Args:
         cube:
@@ -231,7 +232,7 @@ def interrogate_decision_tree(decision_tree: Dict[str, Dict[str, Any]]) -> str:
         )
         if query.get("deterministic", False):
             for diagnostic in diagnostics:
-                output.append(f"\u26C5 {diagnostic} (deterministic)")
+                output.append(f"\u26c5 {diagnostic} (deterministic)")
                 output.sort()
         else:
             thresholds = expand_nested_lists(query, "diagnostic_thresholds")
@@ -241,7 +242,7 @@ def interrogate_decision_tree(decision_tree: Dict[str, Dict[str, Any]]) -> str:
     for requirement, uniq_thresh in sorted(requirements.items()):
         (units,) = {u.units for u in uniq_thresh}  # enforces same units
         thresh_str = ", ".join(map(str, sorted({v.points[0] for v in uniq_thresh})))
-        output.append("\u26C5 {} ({}): {}".format(requirement, units, thresh_str))
+        output.append("\u26c5 {} ({}): {}".format(requirement, units, thresh_str))
 
     n_files = len(output)
     formatted_string = "{}\n" * n_files
@@ -493,9 +494,13 @@ def check_tree(
                     f"Node {node} uses invalid threshold condition {threshold}"
                 )
 
-            # Check the succeed and fail destinations are valid; that is a valid
+            # Check the succeed fail and masked destinations are valid; that is a valid
             # category for leaf nodes, and other tree nodes otherwise
-            for result in "if_true", "if_false":
+            if items.get("if_masked"):
+                nodes = ["if_true", "if_false", "if_masked"]
+            else:
+                nodes = ["if_true", "if_false"]
+            for result in nodes:
                 value = items[result]
                 if isinstance(value, str):
                     if value not in decision_tree.keys():
@@ -570,4 +575,23 @@ def day_night_map(decision_tree: Dict[str, Dict[str, Union[str, List]]]) -> Dict
         v["leaf"]: decision_tree[v["if_night"]]["leaf"]
         for k, v in decision_tree.items()
         if "if_night" in v.keys()
+    }
+
+
+def dry_map(decision_tree: Dict[str, Dict[str, Union[str, List]]]) -> Dict:
+    """Returns a dict showing which dry values are linked to which wet values.
+    This is used to produce cloud contributions from wet codes when determining
+    a dry summary symbol.
+
+    Args:
+        decision_tree:
+            Decision tree definition, provided as a dictionary.
+
+    Returns:
+        dict showing which dry categories (values) are linked to which wet categories (keys)
+    """
+    return {
+        v["leaf"]: v["dry_equivalent"]
+        for v in decision_tree.values()
+        if "dry_equivalent" in v.keys()
     }

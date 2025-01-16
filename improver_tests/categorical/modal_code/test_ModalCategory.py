@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for ModalCategory class."""
 
@@ -40,6 +40,12 @@ def wxcode_series_fixture(
 
     time = TARGET_TIME
 
+    data = np.array(data)
+    if len(data.shape) > 1:
+        data = data.T
+
+    data = np.flip(data, axis=0)
+
     ntimes = len(data)
     wxcubes = CubeList()
 
@@ -51,7 +57,15 @@ def wxcode_series_fixture(
         else:
             wxfrt = time - timedelta(hours=42)
         wxdata = np.ones((2, 2), dtype=np.int8)
-        wxdata[0, 0] = data[i]
+
+        if len(data[i].shape) > 0 and np.product(wxdata.shape) == data[i].shape[0]:
+            wxdata = np.reshape(data[i], wxdata.shape)
+        else:
+            if len(data[i].shape) == 0:
+                index = 0
+            else:
+                index = slice(None, len(data[i]))
+            wxdata[0, index] = data[i]
 
         if cube_type == "gridded":
             wxcubes.append(
@@ -187,13 +201,9 @@ def test_metadata(wxcode_series):
     def as_utc_timestamp(time):
         return timegm(time.utctimetuple())
 
-    (
-        interval,
-        model_id_attr,
-        record_run_attr,
-        offset_reference_times,
-        wxcode_cubes,
-    ) = wxcode_series
+    (interval, model_id_attr, record_run_attr, offset_reference_times, wxcode_cubes) = (
+        wxcode_series
+    )
 
     kwargs = {}
     if model_id_attr:

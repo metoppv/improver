@@ -1,8 +1,9 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Tests for the HumidityMixingRatio plugin"""
+
 from unittest.mock import patch, sentinel
 
 import numpy as np
@@ -49,7 +50,7 @@ def temperature_cube_fixture() -> Cube:
     """Set up a r, y, x cube of temperature data"""
     data = np.full((2, 2, 2), fill_value=300, dtype=np.float32)
     temperature_cube = set_up_variable_cube(
-        data, name="air_temperature", units="K", attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        data, name="air_temperature", units="K", attributes=LOCAL_MANDATORY_ATTRIBUTES
     )
     return temperature_cube
 
@@ -72,10 +73,7 @@ def humidity_cube_fixture() -> Cube:
     """Set up a r, y, x cube of relative humidity data"""
     data = np.full((2, 2, 2), fill_value=1e-1, dtype=np.float32)
     humidity_cube = set_up_variable_cube(
-        data,
-        name="relative_humidity",
-        units="1",
-        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        data, name="relative_humidity", units="1", attributes=LOCAL_MANDATORY_ATTRIBUTES
     )
     return humidity_cube
 
@@ -136,6 +134,69 @@ def test_basic(
     result = HumidityMixingRatio()([temperature, pressure, rel_humidity])
     metadata_ok(result, temperature)
     assert np.isclose(result.data, expected, atol=1e-7).all()
+
+
+def test_height_levels():
+    """Check that the plugin works with height level data"""
+    temperature = set_up_variable_cube(
+        np.full((1, 2, 2, 2), fill_value=293, dtype=np.float32),
+        name="air_temperature",
+        units="K",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        height_levels=[100, 400],
+    )
+    pressure_cube = set_up_variable_cube(
+        np.full((1, 2, 2, 2), fill_value=100000, dtype=np.float32),
+        name="surface_air_pressure",
+        units="Pa",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        height_levels=[100, 400],
+    )
+    rel_humidity = set_up_variable_cube(
+        np.full((1, 2, 2, 2), fill_value=1.0, dtype=np.float32),
+        name="relative_humidity",
+        units="1",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        height_levels=[100, 400],
+    )
+    result = HumidityMixingRatio()([temperature, pressure_cube, rel_humidity])
+    metadata_ok(result, temperature)
+    assert np.isclose(result.data, 1.459832e-2, atol=1e-7).all()
+
+
+def test_pressure_levels():
+    """Check that the plugin works with pressure level data when pressure cube is not provided"""
+    temperature = set_up_variable_cube(
+        np.full((1, 2, 2, 2), fill_value=293, dtype=np.float32),
+        name="air_temperature",
+        units="K",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        height_levels=[95000, 100000],
+        pressure=True,
+    )
+    rel_humidity = set_up_variable_cube(
+        np.full((1, 2, 2, 2), fill_value=1.0, dtype=np.float32),
+        name="relative_humidity",
+        units="1",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        height_levels=[95000, 100000],
+        pressure=True,
+    )
+    result = HumidityMixingRatio()([temperature, rel_humidity])
+    metadata_ok(result, temperature)
+    assert np.isclose(result.data[:, 0], 1.537017e-2, atol=1e-7).all()
+    assert np.isclose(result.data[:, 1], 1.459832e-2, atol=1e-7).all()
+
+
+def test_error_raised_no_pressure_coordinate_or_pressure_cube(
+    temperature, rel_humidity
+):
+    """Check that the plugin raises an error if there is no pressure coordinate and no pressure cube"""
+    with pytest.raises(
+        ValueError,
+        match="No pressure cube called 'surface_air_pressure' found and no pressure coordinate",
+    ):
+        HumidityMixingRatio()([temperature, rel_humidity])
 
 
 @pytest.mark.parametrize("model_id_attr", ("mosg__model_configuration", None))

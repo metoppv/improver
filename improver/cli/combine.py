@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Script to combine netcdf data."""
 
@@ -32,7 +32,7 @@ def process(
             An iris CubeList to be combined.
         operation (str):
             An operation to use in combining input cubes. One of:
-            +, -, \*, add, subtract, multiply, min, max, mean
+            +, -, \*, add, subtract, multiply, min, max, mean, masked_add
         new_name (str):
             New name for the resulting dataset.
         broadcast (str):

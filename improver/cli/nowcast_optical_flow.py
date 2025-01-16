@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Script to calculate optical flow advection velocities with option to
 extrapolate."""
@@ -11,9 +11,7 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(
-    orographic_enhancement: cli.inputcube, *cubes: cli.inputcube,
-):
+def process(orographic_enhancement: cli.inputcube, *cubes: cli.inputcube):
     """Calculate optical flow components from input fields.
 
     Args:

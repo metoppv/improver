@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 
 """Spot data extraction from diagnostic fields using neighbour cubes."""
@@ -113,7 +113,7 @@ class SpotExtraction(BasePlugin):
             return (unique_id_coord.points, unique_id_coord.name())
 
     def get_aux_coords(
-        self, diagnostic_cube: Cube, x_indices: ndarray, y_indices: ndarray,
+        self, diagnostic_cube: Cube, x_indices: ndarray, y_indices: ndarray
     ) -> Tuple[List[AuxCoord], List[AuxCoord]]:
         """
         Extract scalar and non-scalar auxiliary coordinates from the diagnostic

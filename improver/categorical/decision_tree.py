@@ -1,9 +1,8 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Module containing categorical decision tree implementation."""
-
 
 import copy
 import operator
@@ -197,7 +196,6 @@ class ApplyDecisionTree(BasePlugin):
                 for diagnostic, threshold, condition in zip(
                     diagnostics, thresholds, conditions
                 ):
-
                     # First we check the diagnostic name and units, performing
                     # a conversion is required and possible.
                     test_condition = iris.Constraint(name=diagnostic)
@@ -378,11 +376,18 @@ class ApplyDecisionTree(BasePlugin):
             coord = "thresholds"
         else:
             coord = "probability_thresholds"
+        if isinstance(test_conditions["threshold_condition"], str):
+            comparator = [test_conditions["threshold_condition"]] * len(
+                test_conditions[coord]
+            )
+        else:
+            comparator = test_conditions["threshold_condition"]
 
-        for index, (diagnostic, p_threshold) in enumerate(
-            zip(test_conditions["diagnostic_fields"], test_conditions[coord])
+        for index, (diagnostic, comp, p_threshold) in enumerate(
+            zip(
+                test_conditions["diagnostic_fields"], comparator, test_conditions[coord]
+            )
         ):
-
             d_threshold = test_conditions.get("diagnostic_thresholds")
             d_threshold = d_threshold[index] if d_threshold else None
             loop += 1
@@ -390,21 +395,25 @@ class ApplyDecisionTree(BasePlugin):
                 # We have a list which could contain variable names, operators and
                 # numbers. The variable names need converting into Iris Constraint
                 # syntax while operators and numbers remain unchanged.
-                # We expect an entry in p_threshold for each variable name, so
-                # d_threshold_index is used to track these.
+                # We expect an entry in p_threshold for each condition in diagnostic
+                # fields. d_threshold_index is used for probabilistic trees to track
+                # the diagnostic threshold to extract for each variable in each condition.
                 d_threshold_index = -1
                 extract_constraint = []
                 for item in diagnostic:
                     if is_variable(item):
                         # Add a constraint from the variable name and threshold value
                         d_threshold_index += 1
-                        extract_constraint.append(
-                            self.construct_extract_constraint(
-                                item,
-                                d_threshold[d_threshold_index],
-                                self.coord_named_threshold,
+                        if test_conditions.get("deterministic"):
+                            extract_constraint.append(iris.Constraint(item))
+                        else:
+                            extract_constraint.append(
+                                self.construct_extract_constraint(
+                                    item,
+                                    d_threshold[d_threshold_index],
+                                    self.coord_named_threshold,
+                                )
                             )
-                        )
                     else:
                         # Add this operator or variable as-is
                         extract_constraint.append(item)
@@ -416,13 +425,7 @@ class ApplyDecisionTree(BasePlugin):
                     )
                 else:
                     extract_constraint = iris.Constraint(diagnostic)
-            conditions.append(
-                [
-                    extract_constraint,
-                    test_conditions["threshold_condition"],
-                    p_threshold,
-                ]
-            )
+            conditions.append([extract_constraint, comp, p_threshold])
         condition_chain = [conditions, test_conditions["condition_combination"]]
         return condition_chain
 
@@ -458,11 +461,17 @@ class ApplyDecisionTree(BasePlugin):
         threshold_val = threshold.points.item()
         if abs(threshold_val) < self.float_abs_tolerance:
             cell_constraint = lambda cell: np.isclose(
-                cell.point, threshold_val, rtol=0, atol=self.float_abs_tolerance,
+                cell.point,
+                threshold_val,
+                rtol=0,
+                atol=self.float_abs_tolerance,
             )
         else:
             cell_constraint = lambda cell: np.isclose(
-                cell.point, threshold_val, rtol=self.float_tolerance, atol=0,
+                cell.point,
+                threshold_val,
+                rtol=self.float_tolerance,
+                atol=0,
             )
 
         kw_dict = {"{}".format(threshold_coord_name): cell_constraint}
@@ -486,7 +495,6 @@ class ApplyDecisionTree(BasePlugin):
                 is allowed.
         """
         for missing in optional_node_data_missing:
-
             # Get the name of the alternative node to bypass the missing one
             target = self.queries[missing]["if_diagnostic_missing"]
             alternative = self.queries[missing][target]
@@ -502,7 +510,10 @@ class ApplyDecisionTree(BasePlugin):
 
     @staticmethod
     def find_all_routes(
-        graph: Dict, start: str, end: int, route: Optional[List[str]] = None,
+        graph: Dict,
+        start: str,
+        end: int,
+        route: Optional[List[str]] = None,
     ) -> List[str]:
         """
         Function to trace all routes through the decision tree.
@@ -639,28 +650,36 @@ class ApplyDecisionTree(BasePlugin):
         Args:
             arr
             comparator:
-                One of  '<', '>', '<=', '>='.
+                One of '<', '>', '<=', '>=', 'is_masked'.
             threshold
 
         Returns:
             Array of booleans.
 
         Raises:
-            ValueError: If comparator is not one of '<', '>', '<=', '>='.
+            ValueError: If comparator is not one of '<', '>', '<=', '>=', 'is_masked'.
         """
         if comparator == "<":
-            return arr < threshold
+            result = arr < threshold
         elif comparator == ">":
-            return arr > threshold
+            result = arr > threshold
         elif comparator == "<=":
-            return arr <= threshold
+            result = arr <= threshold
         elif comparator == ">=":
-            return arr >= threshold
+            result = arr >= threshold
+        elif comparator == "is_masked":
+            if np.ma.is_masked(arr):
+                result = arr.mask
+            else:
+                result = arr != arr
         else:
             raise ValueError(
                 f"Invalid comparator: {comparator}. "
-                "Comparator must be one of '<', '>', '<=', '>='."
+                "Comparator must be one of '<', '>', '<=', '>=', 'is_masked'."
             )
+        if np.ma.is_masked(result):
+            result[result.mask] = False
+        return result
 
     def evaluate_extract_expression(
         self, cubes: CubeList, expression: Union[Constraint, List]
@@ -701,10 +720,10 @@ class ApplyDecisionTree(BasePlugin):
                         + curr_expression[idx + 1 :]
                     )
             # evaluate operators in order of precedence
-            for op_str in ["/", "*", "+", "-"]:
+            for op_str in [["/", "*"], ["+", "-"]]:
                 while len(curr_expression) > 1:
                     for idx, item in enumerate(curr_expression):
-                        if isinstance(item, str) and (item == op_str):
+                        if isinstance(item, str) and (item in op_str):
                             left_arg = curr_expression[idx - 1]
                             right_arg = curr_expression[idx + 1]
                             if isinstance(left_arg, iris.Constraint):
@@ -715,7 +734,7 @@ class ApplyDecisionTree(BasePlugin):
                                 right_eval = cubes.extract(right_arg)[0].data
                             else:
                                 right_eval = right_arg
-                            op = operator_map[op_str]
+                            op = operator_map[item]
                             res = op(left_eval, right_eval)
                             curr_expression = (
                                 curr_expression[: idx - 1]
@@ -818,7 +837,11 @@ class ApplyDecisionTree(BasePlugin):
         graph = {
             key: [self.queries[key]["leaf"]]
             if "leaf" in self.queries[key].keys()
-            else [self.queries[key]["if_true"], self.queries[key]["if_false"]]
+            else [
+                self.queries[key]["if_true"],
+                self.queries[key]["if_false"],
+                self.queries[key].get("if_masked"),
+            ]
             for key in self.queries
         }
         # Search through tree for all leaves (category end points)
@@ -832,7 +855,11 @@ class ApplyDecisionTree(BasePlugin):
         # Loop over possible categories
 
         for category_code in defined_categories:
-            routes = self.find_all_routes(graph, self.start_node, category_code,)
+            routes = self.find_all_routes(
+                graph,
+                self.start_node,
+                category_code,
+            )
             # Loop over possible routes from root to leaf
             for route in routes:
                 conditions = []
@@ -842,11 +869,29 @@ class ApplyDecisionTree(BasePlugin):
                     next_node = route[i_node + 1]
 
                     if current.get("if_false") == next_node:
-
                         (
                             current["threshold_condition"],
                             current["condition_combination"],
                         ) = self.invert_condition(current)
+                    if current.get("if_masked") == next_node and current.get(
+                        "if_masked"
+                    ) not in [current.get("if_false"), current.get("if_true")]:
+                        # if if_masked is not the same as if_false or if_true, then
+                        # it is a separate branch of the tree and we need to replace
+                        # the condition.
+                        current["diagnostic_fields"] = current["diagnostic_fields"]
+                        current["threshold_condition"] = "is_masked"
+                        current["condition_combination"] = ""
+                    elif current.get("if_masked") == next_node:
+                        # if masked is the same as if_false or if_true, then we need
+                        # to add the masked condition to the existing condition.
+                        current["diagnostic_fields"] = current["diagnostic_fields"] * 2
+                        current["threshold_condition"] = [
+                            current["threshold_condition"],
+                            "is_masked",
+                        ]
+                        current["condition_combination"] = "OR"
+                        current["thresholds"] = current["thresholds"] * 2
                     if "leaf" not in current.keys():
                         conditions.append(self.create_condition_chain(current))
                 test_chain = [conditions, "AND"]

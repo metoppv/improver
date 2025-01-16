@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Module to contain mathematical operations."""
 
@@ -263,7 +263,7 @@ class Integration(BasePlugin):
             lower_bounds_cube.slices_over(self.coord_name_to_integrate),
         )
 
-        for (upper_bounds_slice, lower_bounds_slice) in levels_tuple:
+        for upper_bounds_slice, lower_bounds_slice in levels_tuple:
             (upper_bound,) = upper_bounds_slice.coord(
                 self.coord_name_to_integrate
             ).points

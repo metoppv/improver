@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the AdjustLandSeaPoints class"""
 
@@ -89,10 +89,7 @@ class Test_correct_where_input_true(IrisTest):
         data = np.ones((3, 3), dtype=np.float32)
         data[1, 1] = 0.0
         cube = set_up_variable_cube(
-            data,
-            name="precipitation_amount",
-            units="kg m^-2",
-            spatial_grid="equalarea",
+            data, name="precipitation_amount", units="kg m^-2", spatial_grid="equalarea"
         )
         self.plugin.input_land = cube.copy()
         self.plugin.output_land = cube.copy()
@@ -168,10 +165,7 @@ class Test_correct_where_input_true(IrisTest):
         data = np.ones((5, 5), dtype=np.float32)
         data[1, 1] = 0.0
         cube = set_up_variable_cube(
-            data,
-            name="precipitation_amount",
-            units="kg m^-2",
-            spatial_grid="equalarea",
+            data, name="precipitation_amount", units="kg m^-2", spatial_grid="equalarea"
         )
         self.plugin.output_land = cube.copy()
         self.plugin.nearest_cube = cube.copy()

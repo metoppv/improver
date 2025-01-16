@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """
 Tests for the threshold CLI
@@ -206,6 +206,29 @@ def test_vicinity_masked(tmp_path):
         "mm hr-1",
         "--vicinity",
         "10000",
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_nowcast_specific(tmp_path):
+    """Test thresholding nowcast data using multiple vicinities and masked
+    precipitation"""
+    kgo_dir = acc.kgo_root() / "threshold/nowcast"
+    kgo_path = kgo_dir / "kgo_masked.nc"
+    input_path = kgo_dir / "masked_precip.nc"
+    threshold_config = kgo_dir / "precip_accumulation_thresholds.json"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        "--output",
+        output_path,
+        "--threshold-config",
+        threshold_config,
+        "--threshold-units",
+        "mm",
+        "--vicinity",
+        "25000,50000",
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)

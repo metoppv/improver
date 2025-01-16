@@ -1,10 +1,11 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Simple bias correction plugins."""
 
-from typing import Dict, Optional
+import warnings
+from typing import Dict, Optional, Union
 
 import iris
 import numpy.ma as ma
@@ -12,6 +13,7 @@ from iris.cube import Cube, CubeList
 from numpy import ndarray
 
 from improver import BasePlugin
+from improver.calibration import add_warning_comment, split_forecasts_and_bias_files
 from improver.calibration.utilities import (
     check_forecast_consistency,
     create_unified_frt_coord,
@@ -23,6 +25,7 @@ from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
+from improver.utilities.common_input_handle import as_cubelist
 from improver.utilities.cube_manipulation import (
     clip_cube_data,
     collapsed,
@@ -248,11 +251,59 @@ class ApplyBiasCorrection(BasePlugin):
     the specified bias values.
     """
 
-    def __init__(self):
+    def __init__(
+        self,
+        lower_bound: Optional[float] = None,
+        upper_bound: Optional[float] = None,
+        fill_masked_bias_values: bool = False,
+    ):
         """
         Initialise class for applying simple bias correction.
+
+        Args:
+            lower_bound:
+                A lower bound below which all values will be remapped to
+                after the bias correction step.
+            upper_bound:
+                An upper bound above which all values will be remapped to
+                after the bias correction step.
+            fill_masked_bias_values:
+                Flag to specify whether masked areas in the bias data
+                should be filled to an appropriate fill value.
         """
-        self.correction_method = apply_additive_correction
+        self._correction_method = apply_additive_correction
+        self._lower_bound = lower_bound
+        self._upper_bound = upper_bound
+        self._fill_masked_bias_values = fill_masked_bias_values
+
+    def _split_forecasts_and_bias(self, cubes: CubeList):
+        """
+        Wrapper for the split_forecasts_and_bias_files function.
+
+        Args:
+            cubes:
+                Cubelist containing the input forecast and bias cubes.
+
+        Return:
+            - Cube containing the forecast data to be bias-corrected.
+            - Cubelist containing the bias data to use in bias-correction.
+              Or None if no bias data is provided.
+        """
+        forecast_cube, bias_cubes = split_forecasts_and_bias_files(cubes)
+
+        # Check whether bias data supplied, if not then return unadjusted input cube.
+        # This behaviour is to allow spin-up of the bias-correction terms.
+        if not bias_cubes:
+            msg = (
+                "There are no forecast_error (bias) cubes provided for calibration. "
+                "The uncalibrated forecast will be returned."
+            )
+            warnings.warn(msg)
+            forecast_cube = add_warning_comment(forecast_cube)
+            return forecast_cube, None
+        else:
+            bias_cubes = as_cubelist(bias_cubes)
+            return forecast_cube, bias_cubes
 
     def _get_mean_bias(self, bias_values: CubeList) -> Cube:
         """
@@ -302,6 +353,11 @@ class ApplyBiasCorrection(BasePlugin):
         """Check that forecast and bias values are defined over the same
         valid-hour and forecast-period.
 
+        Checks that between the bias_data Cubes there is a common hour value for the
+        forecast_reference_time and single coordinate value for forecast_period. Then check
+        forecast Cube contains the same hour value for the forecast_reference_time and the
+        same forecast_period coordinate value.
+
         Args:
             forecast:
                 Cube containing forecast data to be bias-corrected.
@@ -339,16 +395,8 @@ class ApplyBiasCorrection(BasePlugin):
                 "Forecast period differ between forecast and bias datasets."
             )
 
-    def process(
-        self,
-        forecast: Cube,
-        bias: CubeList,
-        lower_bound: Optional[float] = None,
-        upper_bound: Optional[float] = None,
-        fill_masked_bias_values: Optional[bool] = False,
-    ) -> Cube:
-        """
-        Apply bias correction using the specified bias values.
+    def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
+        """Split then apply bias correction using the specified bias values.
 
         Where the bias data is defined point-by-point, the bias-correction will also
         be applied in this way enabling a form of statistical downscaling where coherent
@@ -362,36 +410,37 @@ class ApplyBiasCorrection(BasePlugin):
         filled using an appropriate fill value to leave the forecast data unchanged
         in the masked areas.
 
+        If no bias correction is provided, then the forecast is returned, unaltered.
+
         Args:
-            forecast:
-                The cube to which bias correction is to be applied.
-            bias:
-                The cubelist containing the bias values for which to use in
-                the bias correction.
-            lower_bound:
-                A lower bound below which all values will be remapped to
-                after the bias correction step.
-            upper_bound:
-                An upper bound above which all values will be remapped to
-                after the bias correction step.
-            fill_masked_bias_values:
-                Flag to specify whether masked areas in the bias data
-                should be filled to an appropriate fill value.
+            cubes:
+                A list of cubes containing:
+                - A Cube containing the forecast to be calibrated. The input format is expected
+                to be realizations.
+                - A cube or cubelist containing forecast bias data over a specified
+                set of forecast reference times. If a list of cubes is passed in, each cube
+                should represent the forecast error for a single forecast reference time; the
+                mean value will then be evaluated over the forecast_reference_time coordinate.
 
         Returns:
             Bias corrected forecast cube.
         """
-        self._check_forecast_bias_consistent(forecast, bias)
-        bias = self._get_mean_bias(bias)
+        cubes = as_cubelist(*cubes)
+        forecast, bias_cubes = self._split_forecasts_and_bias(cubes)
+        if bias_cubes is None:
+            return forecast
+
+        self._check_forecast_bias_consistent(forecast, bias_cubes)
+        bias = self._get_mean_bias(bias_cubes)
 
         corrected_forecast = forecast.copy()
-        corrected_forecast.data = self.correction_method(
-            forecast, bias, fill_masked_bias_values
+        corrected_forecast.data = self._correction_method(
+            forecast, bias, self._fill_masked_bias_values
         )
 
-        if (lower_bound is not None) or (upper_bound is not None):
+        if (self._lower_bound is not None) or (self._upper_bound is not None):
             corrected_forecast = clip_cube_data(
-                corrected_forecast, lower_bound, upper_bound
+                corrected_forecast, self._lower_bound, self._upper_bound
             )
 
         return corrected_forecast

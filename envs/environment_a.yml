@@ -2,6 +2,7 @@
 name: improver_a
 channels:
   - conda-forge
+  - main
 dependencies:
   - python=3.7
   # Required
@@ -27,12 +28,8 @@ dependencies:
   # Development
   - astroid
   - bandit
-  - black=19.10b0
-  - click=8.0.2
   - codacy-coverage
   - filelock
-  - flake8
-  - isort=5.7.0
   - mock
   - mypy
   - pytest

@@ -1,13 +1,14 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-""" Tests of DifferenceBetweenAdjacentGridSquares plugin."""
+"""Tests of DifferenceBetweenAdjacentGridSquares plugin."""
 
 import unittest
 
 import iris
 import numpy as np
+import pytest
 from iris.coords import CellMethod
 from iris.cube import Cube
 from iris.tests import IrisTest
@@ -18,7 +19,6 @@ from improver.utilities.spatial import DifferenceBetweenAdjacentGridSquares
 
 
 class Test_create_difference_cube(IrisTest):
-
     """Test the create_difference_cube method."""
 
     def setUp(self):
@@ -26,12 +26,12 @@ class Test_create_difference_cube(IrisTest):
         data = np.array([[1, 2, 3], [2, 4, 6], [5, 10, 15]])
         self.diff_in_y_array = np.array([[1, 2, 3], [3, 6, 9]])
         self.cube = set_up_variable_cube(
-            data, name="wind_speed", units="m s-1", spatial_grid="equalarea",
+            data, name="wind_speed", units="m s-1", spatial_grid="equalarea"
         )
         self.plugin = DifferenceBetweenAdjacentGridSquares()
 
-    def test_y_dimension(self):
-        """Test differences calculated along the y dimension."""
+    def test_y_dimension_equalarea(self):
+        """Test differences calculated along the y dimension, equalarea grid."""
         points = self.cube.coord(axis="y").points
         expected_y_coords = (points[1:] + points[:-1]) / 2
         result = self.plugin.create_difference_cube(
@@ -41,8 +41,8 @@ class Test_create_difference_cube(IrisTest):
         self.assertArrayAlmostEqual(result.coord(axis="y").points, expected_y_coords)
         self.assertArrayEqual(result.data, self.diff_in_y_array)
 
-    def test_x_dimension(self):
-        """Test differences calculated along the x dimension."""
+    def test_x_dimension_equalarea(self):
+        """Test differences calculated along the x dimension, equalarea grid."""
         diff_array = np.array([[1, 1], [2, 2], [5, 5]])
         points = self.cube.coord(axis="x").points
         expected_x_coords = (points[1:] + points[:-1]) / 2
@@ -52,6 +52,19 @@ class Test_create_difference_cube(IrisTest):
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.coord(axis="x").points, expected_x_coords)
         self.assertArrayEqual(result.data, diff_array)
+
+    def test_x_dimension_equalarea_circular(self):
+        """Test differences calculated along the x dimension when x is circular, equalarea grid."""
+        diff_array = np.array([[1, 1], [2, 2], [5, 5]])
+        self.cube.coord(axis="x").circular = True
+        with pytest.raises(
+            NotImplementedError,
+            match="DifferenceBetweenAdjacentGridSquares does not support cubes with circular "
+            "x-axis that do not use a geographic",
+        ):
+            self.plugin.create_difference_cube(
+                self.cube, "projection_x_coordinate", diff_array
+            )
 
     def test_x_dimension_for_circular_latlon_cube(self):
         """Test differences calculated along the x dimension for a cube which is circular in x."""
@@ -119,7 +132,7 @@ class Test_calculate_difference(IrisTest):
         """Set up cube."""
         data = np.array([[1, 2, 3, 4], [2, 4, 6, 8], [5, 10, 15, 20]])
         self.cube = set_up_variable_cube(
-            data, "equalarea", name="wind_speed", units="m s-1",
+            data, "equalarea", name="wind_speed", units="m s-1"
         )
         self.plugin = DifferenceBetweenAdjacentGridSquares()
 
@@ -258,8 +271,13 @@ class Test_process(IrisTest):
         self.assertArrayEqual(result[1].data, expected_y)
 
     def test_circular_non_geographic_cube_raises_approprate_exception(self):
+        """Check for error and message with projection coord and circular x axis"""
         self.cube.coord(axis="x").circular = True
-        with self.assertRaises(ValueError):
+        with self.assertRaisesRegex(
+            NotImplementedError,
+            "DifferenceBetweenAdjacentGridSquares does not support cubes with "
+            r"circular x-axis that do not use a geographic \(i.e. latlon\) coordinate system.",
+        ):
             self.plugin.process(self.cube)
 
 

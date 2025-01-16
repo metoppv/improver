@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Semi-Lagrangian backward advection plugin using pysteps"""
 
@@ -124,9 +124,9 @@ class PystepsExtrapolate(BasePlugin):
             [self.analysis_cube]
         )
         self.analysis_cube.attributes["source"] = "MONOW"
-        self.analysis_cube.attributes[
-            "title"
-        ] = "MONOW Extrapolation Nowcast on UK 2 km Standard Grid"
+        self.analysis_cube.attributes["title"] = (
+            "MONOW Extrapolation Nowcast on UK 2 km Standard Grid"
+        )
         set_history_attribute(self.analysis_cube, "Nowcast")
         if attribute_changes is not None:
             amend_attributes(self.analysis_cube, attribute_changes)

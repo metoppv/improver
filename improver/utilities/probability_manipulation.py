@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Module for utilities that manipulate probabilities."""
 
@@ -36,21 +36,21 @@ def comparison_operator_dict() -> Dict[str, namedtuple]:
     comparison_operator_dict.update(
         dict.fromkeys(
             ["gt", "GT", ">"],
-            inequality(function=operator.gt, spp_string="greater_than", inverse="le",),
+            inequality(function=operator.gt, spp_string="greater_than", inverse="le"),
         )
     )
     comparison_operator_dict.update(
         dict.fromkeys(
             ["le", "LE", "<="],
             inequality(
-                function=operator.le, spp_string="less_than_or_equal_to", inverse="gt",
+                function=operator.le, spp_string="less_than_or_equal_to", inverse="gt"
             ),
         )
     )
     comparison_operator_dict.update(
         dict.fromkeys(
             ["lt", "LT", "<"],
-            inequality(function=operator.lt, spp_string="less_than", inverse="ge",),
+            inequality(function=operator.lt, spp_string="less_than", inverse="ge"),
         )
     )
     return comparison_operator_dict
@@ -135,9 +135,9 @@ def invert_probabilities(cube: Cube) -> Cube:
     )
     new_inequality = comparison_operator_lookup[inverse].spp_string
     inverted_probabilities = cube.copy(data=(1.0 - cube.data))
-    inverted_probabilities.coord(threshold).attributes[
-        "spp__relative_to_threshold"
-    ] = new_inequality
+    inverted_probabilities.coord(threshold).attributes["spp__relative_to_threshold"] = (
+        new_inequality
+    )
 
     new_name = (
         cube.name().replace("above", "below")

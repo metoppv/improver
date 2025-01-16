@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for ApplyDecisionTree class."""
 
@@ -81,20 +81,105 @@ def hail_cube() -> Cube:
     return cube
 
 
+@pytest.fixture()
+def cloud_top_temp() -> Cube:
+    """
+    Set up a cloud top temperature, deterministic cube.
+    """
+    data = np.full((7, 3), dtype=np.float32, fill_value=250)
+    cube = set_up_variable_cube(
+        data,
+        name="cloud_top_temperature",
+        units="K",
+        time=dt(2017, 10, 10, 12, 0),
+        frt=dt(2017, 10, 10, 11, 0),
+    )
+    return cube
+
+
+@pytest.fixture()
+def cloud_base_temp() -> Cube:
+    """
+    Set up a cloud base temperature, deterministic cube.
+    """
+    data = np.full((7, 3), dtype=np.float32, fill_value=270)
+    cube = set_up_variable_cube(
+        data,
+        name="cloud_base_temperature",
+        units="K",
+        time=dt(2017, 10, 10, 12, 0),
+        frt=dt(2017, 10, 10, 11, 0),
+    )
+    return cube
+
+
 @pytest.mark.parametrize(
     "precip_fill,hail_fill,expected", ((1, 1, 2), (1, 0, 1), (0, 0, 0), (0, 1, 0))
 )
 def test_non_probablistic_tree(
-    precip_cube, hail_cube, precip_fill, hail_fill, expected
+    precip_cube,
+    hail_cube,
+    cloud_base_temp,
+    cloud_top_temp,
+    precip_fill,
+    hail_fill,
+    expected,
 ):
     """Test that ApplyDecisionTree correctly manages a decision tree with deterministic
     inputs"""
     precip_cube.data.fill(precip_fill)
     hail_cube.data.fill(hail_fill)
     result = ApplyDecisionTree(decision_tree=deterministic_diagnostic_tree())(
-        iris.cube.CubeList([precip_cube, hail_cube])
+        iris.cube.CubeList([precip_cube, hail_cube, cloud_base_temp, cloud_top_temp])
     )
     assert np.all(result.data == expected)
+
+
+@pytest.mark.parametrize(
+    "masked_data", ("mask_precip", "mask_cloud_top", "mask_cloud_base")
+)
+def test_non_probabilitic_tree_masked_data(
+    precip_cube, hail_cube, cloud_top_temp, cloud_base_temp, masked_data
+):
+    """Test that ApplyDecisionTree correctly manages a decision tree with deterministic
+    that are masked inputs"""
+    precip_cube.data.fill(1)
+    hail_cube.data.fill(1)
+    expected_array = np.full_like(precip_cube.data, 2)
+    expected_mask = np.full_like(precip_cube.data, False)
+    if masked_data == "mask_precip":
+        # Test that if there is no if_masked setting in the decision tree, the output
+        # will be masked
+        precip_mask = np.full_like(precip_cube.data, False)
+        precip_mask[0, 0] = True
+        precip_cube.data = np.ma.masked_array(precip_cube.data, mask=precip_mask)
+
+        expected_mask = precip_cube.data.mask
+        expected_array = np.ma.masked_array(expected_array, mask=expected_mask)
+
+    elif masked_data == "mask_cloud_top":
+        # Testing if there is an if_masked setting in the decision tree going to a
+        # different node than if_true or if_false
+        cloud_mask = np.full_like(cloud_top_temp.data, False)
+        cloud_mask[0, 0] = True
+        cloud_top_temp.data = np.ma.masked_array(cloud_top_temp.data, mask=cloud_mask)
+        expected_array[0, 0] = 0
+    elif masked_data == "mask_cloud_base":
+        # Testing if there is an if_masked setting in the decision tree going to
+        # the same node as if_false
+        cloud_mask = np.full_like(cloud_base_temp.data, False)
+        cloud_mask[0, 0] = True
+        cloud_base_temp.data = np.ma.masked_array(cloud_base_temp.data, mask=cloud_mask)
+        expected_array[0, 0] = 3
+
+    result = ApplyDecisionTree(decision_tree=deterministic_diagnostic_tree())(
+        iris.cube.CubeList([precip_cube, hail_cube, cloud_top_temp, cloud_base_temp])
+    )
+
+    result_mask = np.ma.getmaskarray(result.data)
+
+    assert np.all(result_mask == expected_mask)
+    assert np.all(result.data == expected_array)
 
 
 def test_non_probablistic_tree_missing_data(hail_cube):
@@ -107,8 +192,62 @@ def test_non_probablistic_tree_missing_data(hail_cube):
         )
 
 
-class Test_WXCode(IrisTest):
+def test_deterministic_complex_diagnostic_fields(precip_cube, hail_cube):
+    """Test that ApplyDecisionTree correctly manages a decision node with complex
+    diagnostic fields containing floats and all valid operators"""
+    precip_cube.data.fill(2)
+    hail_cube.data.fill(1)
+    cubes = iris.cube.CubeList([precip_cube, hail_cube])
 
+    example_node = deterministic_diagnostic_tree()["precip_rate"]
+    example_node["diagnostic_fields"] = [
+        ["precipitation_rate", "-", 2.0, "*", "hail_rate", "+", 630, "/", 2]
+    ]
+
+    condition_chain = ApplyDecisionTree(
+        deterministic_diagnostic_tree()
+    ).create_condition_chain(example_node)
+    expected_condition_chain = [
+        [
+            [
+                [
+                    iris.Constraint(name="precipitation_rate"),
+                    "-",
+                    2.0,
+                    "*",
+                    iris.Constraint(name="hail_rate"),
+                    "+",
+                    630,
+                    "/",
+                    2,
+                ],
+                ">",
+                0,
+            ]
+        ],
+        "",
+    ]
+
+    for i in range(9):
+        if i in [0, 4]:
+            assert np.all(
+                cubes.extract(condition_chain[0][0][0][i])[0].data
+                == cubes.extract(expected_condition_chain[0][0][0][i])[0].data
+            )
+        else:
+            assert condition_chain[0][0][0][i] == expected_condition_chain[0][0][0][i]
+    assert condition_chain[0][0][1] == expected_condition_chain[0][0][1]
+    assert condition_chain[0][0][2] == expected_condition_chain[0][0][2]
+
+    expression_result = ApplyDecisionTree(
+        deterministic_diagnostic_tree()
+    ).evaluate_extract_expression(
+        iris.cube.CubeList([precip_cube, hail_cube]), condition_chain[0][0][0]
+    )
+    assert np.all(expression_result == 315)
+
+
+class Test_WXCode(IrisTest):
     """Test class for the WX code tests, setting up inputs."""
 
     def setUp(self):
@@ -281,7 +420,7 @@ class Test_WXCode(IrisTest):
 
         thresholds = np.array([1.0], dtype=np.float32)
         data_shower_condition = np.array(
-            [[[0.0, 1.0, 0.0], [0.0, 1.0, 1.0], [1.0, 0.0, 0.0]]], dtype=np.float32,
+            [[[0.0, 1.0, 0.0], [0.0, 1.0, 1.0], [1.0, 0.0, 0.0]]], dtype=np.float32
         )
         blend_time = next(blend_times)
         shower_condition = set_up_probability_cube(
@@ -351,7 +490,6 @@ class Test_WXCode(IrisTest):
 
 
 class Test__repr__(IrisTest):
-
     """Test the repr method."""
 
     def test_basic(self):
@@ -362,7 +500,6 @@ class Test__repr__(IrisTest):
 
 
 class Test_prepare_input_cubes(Test_WXCode):
-
     """Test the prepare_input_cubes method."""
 
     def test_basic(self):
@@ -440,7 +577,6 @@ class Test_prepare_input_cubes(Test_WXCode):
 
 
 class Test_invert_condition(IrisTest):
-
     """Test the invert condition method."""
 
     def test_basic(self):
@@ -491,7 +627,7 @@ class Test_create_condition_chain(Test_WXCode):
     """Test the create_condition_chain method."""
 
     def setUp(self):
-        """ Set up queries for testing"""
+        """Set up queries for testing"""
         super().setUp()
         self.dummy_queries = {
             "significant_precipitation": {
@@ -554,6 +690,7 @@ class Test_create_condition_chain(Test_WXCode):
         self.assertIsInstance(result, list)
         self.assertEqual(len(result), 2)
         self.assertIsInstance(result[0], list)
+
         for i in range(2):
             constraint_exp = expected[0][i][0]
             constraint_res = result[0][i][0]
@@ -615,9 +752,7 @@ class Test_create_condition_chain(Test_WXCode):
 
     def test_complex_condition(self):
         """Test with a condition that uses an operator"""
-        query = {
-            "rain_or_snow": self.dummy_queries["significant_precipitation"],
-        }
+        query = {"rain_or_snow": self.dummy_queries["significant_precipitation"]}
         query["rain_or_snow"]["diagnostic_fields"] = [
             [
                 "probability_of_lwe_sleetfall_rate_above_threshold",
@@ -720,7 +855,6 @@ class Test_create_condition_chain(Test_WXCode):
 
 
 class Test_construct_extract_constraint(Test_WXCode):
-
     """Test the construct_extract_constraint method ."""
 
     def test_basic(self):
@@ -787,7 +921,7 @@ class Test_evaluate_extract_expression(Test_WXCode):
             iris.Constraint(
                 name="probability_of_lwe_sleetfall_rate_above_threshold",
                 lwe_sleetfall_rate=lambda cell: np.isclose(
-                    cell.point, t.points[0], rtol=self.plugin.float_tolerance, atol=0,
+                    cell.point, t.points[0], rtol=self.plugin.float_tolerance, atol=0
                 ),
             ),
             "-",
@@ -796,7 +930,7 @@ class Test_evaluate_extract_expression(Test_WXCode):
             iris.Constraint(
                 name="probability_of_rainfall_rate_above_threshold",
                 rainfall_rate=lambda cell: np.isclose(
-                    cell.point, t.points[0], rtol=self.plugin.float_tolerance, atol=0,
+                    cell.point, t.points[0], rtol=self.plugin.float_tolerance, atol=0
                 ),
             ),
         ]
@@ -817,7 +951,7 @@ class Test_evaluate_extract_expression(Test_WXCode):
             iris.Constraint(
                 name="probability_of_lwe_sleetfall_rate_above_threshold",
                 lwe_sleetfall_rate=lambda cell: np.isclose(
-                    cell.point, t.points[0], rtol=self.plugin.float_tolerance, atol=0,
+                    cell.point, t.points[0], rtol=self.plugin.float_tolerance, atol=0
                 ),
             ),
             "+",
@@ -1105,7 +1239,6 @@ class Test_evaluate_condition_chain(Test_WXCode):
 
 
 class Test_remove_optional_missing(IrisTest):
-
     """Test the rewriting of the decision tree on-the-fly to take into account
     allowed missing diagnostics."""
 
@@ -1196,11 +1329,10 @@ class Test_remove_optional_missing(IrisTest):
 
 
 class Test_find_all_routes(IrisTest):
-
     """Test the find_all_routes method ."""
 
     def setUp(self):
-        """ Setup testing graph """
+        """Setup testing graph"""
         self.test_graph = {
             "start_node": ["success_1", "fail_0"],
             "success_1": ["success_1_1", "fail_1_0"],
@@ -1343,7 +1475,6 @@ class Test_check_coincidence(Test_WXCode):
 
 
 class Test_create_categorical_cube(IrisTest):
-
     """Test the create_categorical_cube method ."""
 
     def setUp(self):
@@ -1363,9 +1494,9 @@ class Test_create_categorical_cube(IrisTest):
             blend_time=dt(2017, 11, 9, 1, 0),
         )
         cube.attributes["mosg__model_configuration"] = "uk_det uk_ens"
-        cube.attributes[
-            "mosg__model_run"
-        ] = "uk_det:20171109T2300Z:0.500\nuk_ens:20171109T2100Z:0.500"
+        cube.attributes["mosg__model_run"] = (
+            "uk_det:20171109T2300Z:0.500\nuk_ens:20171109T2100Z:0.500"
+        )
         self.cube = cube
         self.plugin = ApplyDecisionTree(decision_tree=wxcode_decision_tree())
 
@@ -1447,9 +1578,9 @@ class Test_create_categorical_cube(IrisTest):
             self.cube.coord("forecast_period").points[0],
         ]
 
-        self.cube.coord("time").bounds = np.array(expected_time, dtype=np.int64,)
+        self.cube.coord("time").bounds = np.array(expected_time, dtype=np.int64)
         self.cube.coord("forecast_period").bounds = np.array(
-            expected_fp, dtype=np.int32,
+            expected_fp, dtype=np.int32
         )
         self.plugin.template_cube = self.cube
         result = self.plugin.create_categorical_cube([self.cube])
@@ -1492,12 +1623,10 @@ class Test_create_categorical_cube(IrisTest):
 
         for coord_name in ["blend_time", "forecast_reference_time"]:
             self.assertEqual(
-                result.coord(coord_name).cell(0).point, dt(2017, 11, 9, 2, 0),
+                result.coord(coord_name).cell(0).point, dt(2017, 11, 9, 2, 0)
             )
             self.assertEqual(len(result.coord(coord_name).points), 1)
-        self.assertEqual(
-            result.coord("forecast_period").points[0], 26 * 3600,
-        )
+        self.assertEqual(result.coord("forecast_period").points[0], 26 * 3600)
         self.assertEqual(len(result.coord("forecast_period").points), 1)
 
     def test_error_blend_and_frt_inputs(self):
@@ -1543,11 +1672,10 @@ class Test_compare_to_threshold(IrisTest):
 
 
 class Test_process(Test_WXCode):
-
     """Test the find_all_routes method ."""
 
     def setUp(self):
-        """ Set up wxcubes for testing. """
+        """Set up wxcubes for testing."""
         super().setUp()
         self.expected_wxcode = np.array([[1, 29, 5], [6, 7, 8], [10, 11, 12]])
         self.expected_wxcode_night = np.array([[0, 28, 5], [6, 7, 8], [9, 11, 12]])
@@ -1559,8 +1687,7 @@ class Test_process(Test_WXCode):
         )
 
     def test_basic(self):
-        """Test process returns a weather code cube with right values and type.
-        """
+        """Test process returns a weather code cube with right values and type."""
         result = self.plugin.process(self.cubes)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAndMaskEqual(result.data, self.expected_wxcode)
@@ -1591,7 +1718,7 @@ class Test_process(Test_WXCode):
         self.assertArrayAndMaskEqual(result.data, self.expected_wxcode_no_lightning)
 
     def test_lightning(self):
-        """Test process returns right values if all lightning. """
+        """Test process returns right values if all lightning."""
         data_lightning = np.ones((3, 3))
         cubes = self.cubes
         cubes[9].data = data_lightning
@@ -1669,7 +1796,7 @@ class Test_process(Test_WXCode):
             dtype=np.float32,
         )
         data_shower_condition = np.array(
-            [[1.0, 0.0, 1.0], [0.0, 1.0, 0.0], [1.0, 0.0, 0.0]], dtype=np.float32,
+            [[1.0, 0.0, 1.0], [0.0, 1.0, 0.0], [1.0, 0.0, 0.0]], dtype=np.float32
         )
 
         data_cld_low = np.zeros((3, 3))

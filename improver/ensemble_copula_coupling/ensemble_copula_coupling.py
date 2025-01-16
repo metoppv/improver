@@ -1,11 +1,12 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """
 This module defines the plugins required for Ensemble Copula Coupling.
 
 """
+
 import warnings
 from typing import List, Optional, Tuple
 
@@ -42,9 +43,9 @@ from improver.utilities.cube_checker import (
     check_for_x_and_y_axes,
 )
 from improver.utilities.cube_manipulation import (
-    MergeCubes,
     enforce_coordinate_ordering,
     get_dim_coord_names,
+    manipulate_n_realizations,
 )
 from improver.utilities.indexing_operations import choose
 
@@ -352,11 +353,12 @@ class ResamplePercentiles(BasePlugin):
             bounds_pairing = get_bounds_of_distribution(
                 forecast_at_percentiles.name(), cube_units
             )
-            (
-                original_percentiles,
-                forecast_at_reshaped_percentiles,
-            ) = self._add_bounds_to_percentiles_and_forecast_at_percentiles(
-                original_percentiles, forecast_at_reshaped_percentiles, bounds_pairing
+            (original_percentiles, forecast_at_reshaped_percentiles) = (
+                self._add_bounds_to_percentiles_and_forecast_at_percentiles(
+                    original_percentiles,
+                    forecast_at_reshaped_percentiles,
+                    bounds_pairing,
+                )
             )
 
         forecast_at_interpolated_percentiles = interpolate_multiple_rows_same_x(
@@ -379,7 +381,7 @@ class ResamplePercentiles(BasePlugin):
         template_cube = next(forecast_at_percentiles.slices_over(percentile_coord_name))
         template_cube.remove_coord(percentile_coord_name)
         percentile_cube = create_cube_with_percentiles(
-            desired_percentiles, template_cube, forecast_at_percentiles_data,
+            desired_percentiles, template_cube, forecast_at_percentiles_data
         )
         if original_mask is not None:
             original_mask = np.broadcast_to(original_mask, percentile_cube.shape)
@@ -449,7 +451,7 @@ class ResamplePercentiles(BasePlugin):
             )
 
         forecast_at_percentiles = self._interpolate_percentiles(
-            forecast_at_percentiles, percentiles, percentile_coord.name(),
+            forecast_at_percentiles, percentiles, percentile_coord.name()
         )
         return forecast_at_percentiles
 
@@ -577,15 +579,17 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
                     upper_bound = max(threshold_points_with_endpoints)
                 if lower_bound > min(threshold_points_with_endpoints):
                     lower_bound = min(threshold_points_with_endpoints)
-                threshold_points_with_endpoints = insert_lower_and_upper_endpoint_to_1d_array(
-                    threshold_points, lower_bound, upper_bound
+                threshold_points_with_endpoints = (
+                    insert_lower_and_upper_endpoint_to_1d_array(
+                        threshold_points, lower_bound, upper_bound
+                    )
                 )
             else:
                 raise ValueError(msg)
         return threshold_points_with_endpoints, probabilities_for_cdf
 
     def _probabilities_to_percentiles(
-        self, forecast_probabilities: Cube, percentiles: ndarray,
+        self, forecast_probabilities: Cube, percentiles: ndarray
     ) -> Cube:
         """
         Conversion of probabilities to percentiles through the construction
@@ -654,11 +658,10 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
             )
             cube_units = forecast_probabilities.coord(threshold_coord.name()).units
             bounds_pairing = get_bounds_of_distribution(phenom_name, cube_units)
-            (
-                threshold_points,
-                probabilities_for_cdf,
-            ) = self._add_bounds_to_thresholds_and_probabilities(
-                threshold_points, probabilities_for_cdf, bounds_pairing
+            (threshold_points, probabilities_for_cdf) = (
+                self._add_bounds_to_thresholds_and_probabilities(
+                    threshold_points, probabilities_for_cdf, bounds_pairing
+                )
             )
 
         if np.any(np.diff(probabilities_for_cdf) < 0):
@@ -773,8 +776,9 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
         """
         if no_of_percentiles is not None and percentiles is not None:
             raise ValueError(
-                "Cannot specify both no_of_percentiles and percentiles to "
-                "{}".format(self.__class__.__name__)
+                "Cannot specify both no_of_percentiles and percentiles to " "{}".format(
+                    self.__class__.__name__
+                )
             )
 
         threshold_coord = find_threshold_coordinate(forecast_probabilities)
@@ -820,7 +824,7 @@ class ConvertLocationAndScaleParameters:
     """
 
     def __init__(
-        self, distribution: str = "norm", shape_parameters: Optional[ndarray] = None,
+        self, distribution: str = "norm", shape_parameters: Optional[ndarray] = None
     ) -> None:
         """
         Initialise the class.
@@ -1087,8 +1091,10 @@ class ConvertLocationAndScaleParametersToPercentiles(
 
         if no_of_percentiles:
             percentiles = choose_set_of_percentiles(no_of_percentiles)
-        calibrated_forecast_percentiles = self._location_and_scale_parameters_to_percentiles(
-            location_parameter, scale_parameter, template_cube, percentiles
+        calibrated_forecast_percentiles = (
+            self._location_and_scale_parameters_to_percentiles(
+                location_parameter, scale_parameter, template_cube, percentiles
+            )
         )
 
         return calibrated_forecast_percentiles
@@ -1338,29 +1344,8 @@ class EnsembleReordering(BasePlugin):
         if plen == mlen:
             pass
         else:
-            raw_forecast_realizations_extended = iris.cube.CubeList()
-            realization_list = []
-            mpoints = raw_forecast_realizations.coord("realization").points
-            # Loop over the number of percentiles and finding the
-            # corresponding ensemble realization number. The ensemble
-            # realization numbers are recycled e.g. 1, 2, 3, 1, 2, 3, etc.
-            for index in range(plen):
-                realization_list.append(mpoints[index % len(mpoints)])
-
-            # Assume that the ensemble realizations are ascending linearly.
-            new_realization_numbers = realization_list[0] + list(range(plen))
-
-            # Extract the realizations required in the realization_list from
-            # the raw_forecast_realizations. Edit the realization number as
-            # appropriate and append to a cubelist containing rebadged
-            # raw ensemble realizations.
-            for realization, index in zip(realization_list, new_realization_numbers):
-                constr = iris.Constraint(realization=realization)
-                raw_forecast_realization = raw_forecast_realizations.extract(constr)
-                raw_forecast_realization.coord("realization").points = index
-                raw_forecast_realizations_extended.append(raw_forecast_realization)
-            raw_forecast_realizations = MergeCubes()(
-                raw_forecast_realizations_extended, slice_over_realization=True
+            raw_forecast_realizations = manipulate_n_realizations(
+                raw_forecast_realizations, plen
             )
         return raw_forecast_realizations
 
@@ -1370,6 +1355,7 @@ class EnsembleReordering(BasePlugin):
         raw_forecast_realizations: Cube,
         random_ordering: bool = False,
         random_seed: Optional[int] = None,
+        tie_break: Optional[str] = "random",
     ) -> Cube:
         """
         Function to apply Ensemble Copula Coupling. This ranks the
@@ -1393,11 +1379,19 @@ class EnsembleReordering(BasePlugin):
                 the random seed.
                 If random_seed is None, no random seed is set, so the random
                 values generated are not reproducible.
+            tie_break:
+                The method of tie breaking to use when the first ordering method
+                contains ties. The available methods are "random", to tie-break
+                randomly, and "realization", to tie-break by assigning values to the
+                highest numbered realizations first.
 
         Returns:
             Cube for post-processed realizations where at a particular grid
             point, the ranking of the values within the ensemble matches
             the ranking from the raw ensemble.
+
+        Raises:
+            ValueError: tie_break is not either 'random' or 'realization'
         """
         results = iris.cube.CubeList([])
         for rawfc, calfc in zip(
@@ -1407,18 +1401,33 @@ class EnsembleReordering(BasePlugin):
             if random_seed is not None:
                 random_seed = int(random_seed)
             random_seed = np.random.RandomState(random_seed)
-            random_data = random_seed.rand(*rawfc.data.shape)
             if random_ordering:
+                random_data = random_seed.rand(*rawfc.data.shape)
                 # Returns the indices that would sort the array.
                 # As these indices are from a random dataset, only an argsort
                 # is used.
                 ranking = np.argsort(random_data, axis=0)
             else:
+                if tie_break == "random":
+                    tie_break_data = random_seed.rand(*rawfc.data.shape)
+                elif tie_break == "realization":
+                    realizations = raw_forecast_realizations.coord("realization").points
+                    target_shape = rawfc.data.shape
+                    realizations = np.expand_dims(
+                        realizations, axis=list(range(1, len(target_shape[1:]) + 1))
+                    )
+                    tie_break_data = np.broadcast_to(realizations, target_shape)
+                else:
+                    msg = (
+                        'Input tie_break must be either "random", or "realization",'
+                        f' not "{tie_break}".'
+                    )
+                    raise ValueError(msg)
                 # Lexsort returns the indices sorted firstly by the
                 # primary key, the raw forecast data (unless random_ordering
-                # is enabled), and secondly by the secondary key, an array of
-                # random data, in order to split tied values randomly.
-                sorting_index = np.lexsort((random_data, rawfc.data), axis=0)
+                # is enabled), and secondly by the secondary key, the contents of which
+                # is determined by the tie_break input, in order to split tied values.
+                sorting_index = np.lexsort((tie_break_data, rawfc.data), axis=0)
                 # Returns the indices that would sort the array.
                 ranking = np.argsort(sorting_index, axis=0)
             # Index the post-processed forecast data using the ranking array.
@@ -1472,7 +1481,6 @@ class EnsembleReordering(BasePlugin):
         ):
             for aslice in post_processed_forecast.data.mask[1:, ...]:
                 if np.any(aslice != post_processed_forecast.data.mask[0]):
-
                     message = (
                         "The post_processed_forecast does not have same"
                         " mask on all x-y slices"
@@ -1502,6 +1510,7 @@ class EnsembleReordering(BasePlugin):
         raw_forecast: Cube,
         random_ordering: bool = False,
         random_seed: Optional[int] = None,
+        tie_break: Optional[str] = "random",
     ) -> Cube:
         """
         Reorder post-processed forecast using the ordering of the
@@ -1523,6 +1532,11 @@ class EnsembleReordering(BasePlugin):
                 the random seed.
                 If random_seed is None, no random seed is set, so the random
                 values generated are not reproducible.
+            tie_break:
+                The method of tie breaking to use when the first ordering method
+                contains ties. The available methods are "random", to tie-break
+                randomly, and "realization", to tie-break by assigning values to the
+                highest numbered realizations first.
 
         Returns:
             Cube containing the new ensemble realizations where all points
@@ -1547,6 +1561,7 @@ class EnsembleReordering(BasePlugin):
             raw_forecast,
             random_ordering=random_ordering,
             random_seed=random_seed,
+            tie_break=tie_break,
         )
         plugin = RebadgePercentilesAsRealizations()
         post_processed_forecast_realizations = plugin(

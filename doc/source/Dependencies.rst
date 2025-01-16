@@ -24,7 +24,7 @@ cartopy
 ~~~~~~~~~~~~~~~~~
 Cartopy is used for grid projections and coordinate transformations.
 
-https://scitools.org.uk/cartopy/docs/stable/
+https://scitools.org.uk/cartopy/docs/latest/
 
 
 cftime

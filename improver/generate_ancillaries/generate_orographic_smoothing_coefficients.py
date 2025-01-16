@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """A module for creating orographic smoothing coefficients"""
 
@@ -20,7 +20,6 @@ from improver.utilities.spatial import GradientBetweenAdjacentGridSquares
 
 
 class OrographicSmoothingCoefficients(BasePlugin):
-
     """
     Class to generate smoothing coefficients for recursive filtering based on
     orography gradients.
@@ -253,7 +252,7 @@ class OrographicSmoothingCoefficients(BasePlugin):
         """
         This creates the smoothing_coefficient cubes. It returns one for the x
         direction and one for the y direction. It uses the
-        DifferenceBetweenAdjacentGridSquares plugin to calculate an average
+        GradientBetweenAdjacentGridSquares plugin to calculate an average
         gradient across each grid square. These gradients are then used to
         calculate "smoothing_coefficient" arrays that are normalised between a
         user-specified max and min.

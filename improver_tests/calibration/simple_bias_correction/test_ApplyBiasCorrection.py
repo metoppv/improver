@@ -1,9 +1,10 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 
 from datetime import datetime, timedelta
+from unittest.mock import patch, sentinel
 
 import iris
 import numpy as np
@@ -155,7 +156,7 @@ def test_apply_additive_correction(
 def test__init__():
     """Test that the class functions are set to the expected values."""
     plugin = ApplyBiasCorrection()
-    assert plugin.correction_method == apply_additive_correction
+    assert plugin._correction_method == apply_additive_correction
 
 
 @pytest.mark.parametrize("single_input_frt", (False, True))
@@ -207,9 +208,7 @@ def test_inconsistent_bias_forecast_inputs(forecast_cube, num_bias_inputs):
         single_frt_with_bounds=True,
     )
     with pytest.raises(ValueError, match="valid-hour differ"):
-        ApplyBiasCorrection()._check_forecast_bias_consistent(
-            forecast_cube, bias_cubes,
-        )
+        ApplyBiasCorrection()._check_forecast_bias_consistent(forecast_cube, bias_cubes)
     # Case 2: The bias data defined with a mix of forecast_reference_time valid-hours
     bias_cubes = generate_bias_cubelist(
         num_bias_inputs, last_valid_time=VALID_TIME, single_frt_with_bounds=False
@@ -222,9 +221,7 @@ def test_inconsistent_bias_forecast_inputs(forecast_cube, num_bias_inputs):
         )
     )
     with pytest.raises(ValueError, match="Multiple forecast_reference_time valid-hour"):
-        ApplyBiasCorrection()._check_forecast_bias_consistent(
-            forecast_cube, bias_cubes,
-        )
+        ApplyBiasCorrection()._check_forecast_bias_consistent(forecast_cube, bias_cubes)
     # Case 3: The bias data defined for different forecast_period relative to forecast
     bias_cubes = generate_bias_cubelist(
         num_bias_inputs, last_valid_time=VALID_TIME, single_frt_with_bounds=True
@@ -234,9 +231,7 @@ def test_inconsistent_bias_forecast_inputs(forecast_cube, num_bias_inputs):
             "forecast_period"
         ).points + (3 * 3600)
     with pytest.raises(ValueError, match="Forecast period differ"):
-        ApplyBiasCorrection()._check_forecast_bias_consistent(
-            forecast_cube, bias_cubes,
-        )
+        ApplyBiasCorrection()._check_forecast_bias_consistent(forecast_cube, bias_cubes)
     # Case 4: The bias data defined with a mix of forecast-period values
     bias_cubes = generate_bias_cubelist(
         num_bias_inputs, last_valid_time=VALID_TIME, single_frt_with_bounds=False
@@ -244,20 +239,18 @@ def test_inconsistent_bias_forecast_inputs(forecast_cube, num_bias_inputs):
     bias_cube_w_different_fp = generate_bias_cubelist(
         1, last_valid_time=VALID_TIME - timedelta(days=6), single_frt_with_bounds=False
     )[0]
-    bias_cube_w_different_fp.coord(
-        "forecast_period"
-    ).points = bias_cube_w_different_fp.coord("forecast_period").points + (3 * 3600)
+    bias_cube_w_different_fp.coord("forecast_period").points = (
+        bias_cube_w_different_fp.coord("forecast_period").points + (3 * 3600)
+    )
     bias_cubes.append(bias_cube_w_different_fp)
     with pytest.raises(ValueError, match="Multiple forecast period"):
-        ApplyBiasCorrection()._check_forecast_bias_consistent(
-            forecast_cube, bias_cubes,
-        )
+        ApplyBiasCorrection()._check_forecast_bias_consistent(forecast_cube, bias_cubes)
 
 
 @pytest.mark.parametrize("num_bias_inputs", (1, 30))
 @pytest.mark.parametrize("single_input_frt", (False, True))
 @pytest.mark.parametrize("lower_bound", (None, 1))
-@pytest.mark.parametrize("upper_bound", (None, 5))
+@pytest.mark.parametrize("upper_bound", (None, 4))
 @pytest.mark.parametrize("masked_input_data", (True, False))
 @pytest.mark.parametrize("masked_bias_data", (True, False))
 @pytest.mark.parametrize("fill_masked_bias_data", (True, False))
@@ -282,12 +275,12 @@ def test_process(
             forecast_cube.data, dtype=forecast_cube.data.dtype
         )
         forecast_cube.data.mask = MASK
-    result = ApplyBiasCorrection().process(
-        forecast_cube,
-        input_bias_cubelist,
+    result = ApplyBiasCorrection(
         lower_bound=lower_bound,
+        upper_bound=upper_bound,
         fill_masked_bias_values=fill_masked_bias_data,
-    )
+    ).process(forecast_cube, input_bias_cubelist)
+
     expected = TEST_FCST_DATA - MEAN_BIAS_DATA
     if fill_masked_bias_data and masked_bias_data:
         expected = np.where(MASK, TEST_FCST_DATA, expected)
@@ -314,3 +307,58 @@ def test_process(
     # Check coords and attributes are consistent
     assert result.coords() == forecast_cube.coords()
     assert result.attributes == forecast_cube.attributes
+
+
+class HaltExecution(Exception):
+    pass
+
+
+@patch("improver.calibration.simple_bias_correction.as_cubelist")
+def test_as_cubelist_called(mock_as_cubelist):
+    mock_as_cubelist.side_effect = HaltExecution
+    try:
+        ApplyBiasCorrection()(sentinel.cube1, sentinel.cube2, sentinel.cube3)
+    except HaltExecution:
+        pass
+    mock_as_cubelist.assert_called_once_with(
+        sentinel.cube1, sentinel.cube2, sentinel.cube3
+    )
+
+
+def test_no_bias_file(forecast_cube):
+    """
+    Test case where no bias values are passed in. Expected behaviour is to
+    return the forecast value.
+    """
+    with pytest.warns(UserWarning, match=".*no forecast_error.*"):
+        result = ApplyBiasCorrection()(forecast_cube)
+    assert (
+        "Warning: Calibration of this forecast has been attempted"
+        in result.attributes["comment"]
+    )
+
+
+def test_missing_fcst_file():
+    """
+    Test case where no forecast value has been passed in. This should raise
+    a ValueError.
+    """
+    bias_cubes = generate_bias_cubelist(
+        3, last_valid_time=VALID_TIME + timedelta(hours=3), single_frt_with_bounds=False
+    )
+
+    with pytest.raises(ValueError, match="No forecast"):
+        ApplyBiasCorrection()(bias_cubes)
+
+
+def test_multiple_fcst_files(forecast_cube):
+    """
+    Test case where multiple forecast values are passed in. This should raise a
+    ValueError.
+    """
+    bias_cubes = generate_bias_cubelist(
+        3, last_valid_time=VALID_TIME + timedelta(hours=3), single_frt_with_bounds=False
+    )
+
+    with pytest.raises(ValueError, match="Multiple forecast"):
+        ApplyBiasCorrection()(forecast_cube, forecast_cube, bias_cubes)

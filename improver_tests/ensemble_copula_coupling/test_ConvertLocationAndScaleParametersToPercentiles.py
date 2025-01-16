@@ -1,11 +1,12 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """
 Unit tests for the
 `ensemble_copula_coupling.ConvertLocationAndScaleParametersToPercentiles`
 """
+
 import unittest
 
 import iris
@@ -22,7 +23,6 @@ from .ecc_test_data import ECC_TEMPERATURE_REALIZATIONS, set_up_spot_test_cube
 
 
 class Test__repr__(IrisTest):
-
     """Test string representation of plugin."""
 
     def test_basic(self):
@@ -36,7 +36,6 @@ class Test__repr__(IrisTest):
 
 
 class Test__location_and_scale_parameters_to_percentiles(IrisTest):
-
     """Test the _location_and_scale_parameters_to_percentiles plugin."""
 
     def setUp(self):
@@ -69,7 +68,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
             "realization", iris.analysis.MEAN
         )
         self.scale_parameter = self.temperature_cube.collapsed(
-            "realization", iris.analysis.STD_DEV,
+            "realization", iris.analysis.STD_DEV
         )
         self.percentiles = [10, 50, 90]
 
@@ -198,7 +197,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         # Use an adjusted version of the ensemble standard deviation as a proxy for the
         # scale parameter for the truncated normal distribution.
         current_forecast_stddev = self.temperature_cube.collapsed(
-            "realization", iris.analysis.STD_DEV,
+            "realization", iris.analysis.STD_DEV
         )
         current_forecast_stddev.data = current_forecast_stddev.data + 1
         plugin = Plugin(
@@ -376,7 +375,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         current_forecast_predictor = cube.collapsed("realization", iris.analysis.MEAN)
         current_forecast_stddev = cube.collapsed("realization", iris.analysis.STD_DEV)
         result = Plugin()._location_and_scale_parameters_to_percentiles(
-            current_forecast_predictor, current_forecast_stddev, cube, self.percentiles,
+            current_forecast_predictor, current_forecast_stddev, cube, self.percentiles
         )
         self.assertIsInstance(result, Cube)
         np.testing.assert_allclose(result.data, data, rtol=1.0e-4)
@@ -397,7 +396,6 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
 
 
 class Test_process(IrisTest):
-
     """Test the process plugin."""
 
     def setUp(self):

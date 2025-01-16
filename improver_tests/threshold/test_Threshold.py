@@ -1,9 +1,8 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the threshold.Threshold plugin."""
-
 
 import numpy as np
 import pytest
@@ -82,7 +81,7 @@ from improver.threshold import Threshold
             "threshold_config and threshold_values are mutually exclusive arguments",
         ),
         # at least one set means of defining the thresholds must be used.
-        ({}, "One of threshold_config or threshold_values must be provided.",),
+        ({}, "One of threshold_config or threshold_values must be provided."),
     ],
 )
 def test_init(kwargs, exception):
@@ -175,7 +174,7 @@ def test_threshold_metadata(
     threshold_values,
     threshold_units,
 ):
-    """"Test that the metadata relating to the thresholding options, on both
+    """ "Test that the metadata relating to the thresholding options, on both
     the cube and threshold coordinate is as expected. Many combinations of
     options are tested, including:
 
@@ -413,7 +412,7 @@ def test_expected_values(default_cube, kwargs, collapse, comparator, expected_re
         (
             {"threshold_values": [0.5, 1.5], "vicinity": [3000, 5000]},
             1,
-            np.r_[[1], [0] * 24].reshape((5, 5)),
+            np.r_[[1], [0] * 24].reshape((5, 5)).astype(np.float32),
             np.stack(
                 [
                     np.stack(
@@ -489,6 +488,8 @@ def test_bespoke_expected_values(custom_cube, kwargs, expected_result):
     assert np.allclose(result.data, expected_result)
     assert type(result.data) == type(expected_result)
     assert result.data.dtype == expected_result.dtype
+    if np.ma.is_masked(result.data):
+        assert (result.data.mask == expected_result.mask).all()
 
 
 @pytest.mark.parametrize(

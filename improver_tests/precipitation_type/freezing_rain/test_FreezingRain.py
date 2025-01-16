@@ -1,8 +1,8 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-""" Tests of FreezingRain plugin"""
+"""Tests of FreezingRain plugin"""
 
 import itertools
 from unittest.mock import patch, sentinel
@@ -63,10 +63,14 @@ def test_expected_result(input_cubes, expected_probabilities, expected_attribute
             assert result.name() == PROB_NAME.format(ACCUM_NAME)
             assert result.coord(var_name="threshold").name() == ACCUM_NAME
             assert result.coord(var_name="threshold").units == "mm"
+            assert len(result.cell_methods) == 1
+            assert result.cell_methods[0].method == "sum"
+            assert "time" in result.cell_methods[0].coord_names
         else:
             assert result.name() == PROB_NAME.format(RATE_NAME)
             assert result.coord(var_name="threshold").name() == RATE_NAME
             assert result.coord(var_name="threshold").units == "mm hr-1"
+            assert len(result.cell_methods) == 0
 
 
 @pytest.mark.parametrize("period", ["instantaneous"])
@@ -232,7 +236,7 @@ def test_realization_matching(
 
 @pytest.mark.parametrize("period", TIME_WINDOW_TYPE)
 def test_no_realization_matching(
-    precipitation_multi_realization, temperature_multi_realization,
+    precipitation_multi_realization, temperature_multi_realization
 ):
     """Test that an error is raised if the inputs have no common realizations."""
     cubes = iris.cube.CubeList(

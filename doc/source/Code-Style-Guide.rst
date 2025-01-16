@@ -37,6 +37,8 @@ General comments
   line interfaces) have acceptance tests.
 * Use type annotations on function and method interfaces, except for
   CLIs.
+* Avoid adding functionality to CLIs beyond calling the relevant plugin,
+  all other functionality should be added to the plugin itself.
 
 Pull requests
 ~~~~~~~~~~~~~
@@ -68,11 +70,56 @@ In general, follow the very sensible `Google style
 guide <https://google.github.io/styleguide/pyguide.html>`_.
 
 Code format should match that produced by the
-`black <https://github.com/psf/black>`_ code formatter - this is
-checked as part of the test suite on Github Actions. Codacy will give
-you a mark based around ``pylint`` (with some caveats). A pylint score
-of >8 is OK, >9 is good - skip pylint-misled errors for e.g. numpy
-(e.g. with ``pylint --extension-pkg-whitelist=numpy``).
+`ruff <https://docs.astral.sh/ruff/>`_ code formatter - this is
+checked as part of the pre-commit which is itself also executed on Github
+Actions.
+Codacy will give you a mark based around ``pylint`` (with some caveats).  A
+pylint score of >8 is OK, >9 is good - skip pylint-misled errors for e.g.
+numpy (e.g. with ``pylint --extension-pkg-whitelist=numpy``).
+
+Pre-commit Hook
+~~~~~~~~~~~~~~~
+A `pre-commit <https://pre-commit.com/>`_ hook can be added to facilitate the
+development of this code base.  Ensure that you have python available on the
+path, then install the pre-commit hook by running:
+
+::
+
+    pip install pre-commit
+
+From this you will want to install the pre-commit hook.  Do so from within your
+working copy:
+
+::
+
+    pre-commit install
+
+pre-commit checks will run against modified files when you commit from then on.
+
+These pre-commit hooks will also run as part of continuous integration to
+maintain standards in the project.
+Numerous code QOL checks are performed including checking for copyright headers,
+presence of python init files and ensuring that code passes rules set by both
+`ruff linter <https://docs.astral.sh/ruff/linter/>`_ (providing similar
+purpose to tools like isort, flake8, etc.) and
+`ruff formatter <https://docs.astral.sh/ruff/formatter/>`_ (providing similar
+purpose to black).
+
+You can run pre-commit manually without commiting:
+
+All files:
+
+::
+
+    pre-commit run --all-files
+
+Specific files:
+
+::
+
+    pre-commit run --files <some-file> <some-other-file>
+
+See `pre=commit official docs <https://pre-commit.com/>`_ for more information.
 
 Modular code
 ~~~~~~~~~~~~
@@ -342,7 +389,7 @@ Plugins (classes) should be an example of a non-trivial algorithm or set
 of algorithms for a particular purpose. They should be set up via the
 ``__init__`` method and then invoked on a particular iris Cube ``cube``
 using a ``process`` method - e.g. using ``process(cube)``. See
-e.g. `Threshold <https://github.com/metoppv/improver/blob/master/lib/improver/threshold.py>`_
+e.g. `Threshold <https://github.com/metoppv/improver/blob/master/improver/threshold.py>`_
 class. In some limited cases an iris ``CubeList`` may be preferable.
 Avoid writing code that can do both. Class names use
 `PascalCase <https://en.wikipedia.org/wiki/PascalCase>`_ whilst
@@ -519,7 +566,7 @@ Add a command line interface (improver/cli/<cli_name>.py) to invoke plugins
 that can be used as a standalone utility or executable within a suite context
 (e.g. wind downscaling, neighbourhood processing, spot data extraction).
 These CLIs are invoked using ``bin/improver <cli-name>`` (note that the
-CLI filename uses underscores, but the call to use the CLI uses hyphens)
+CLI filename uses underscores, but the call to use the CLI uses hyphens).
 
 IMPROVER CLIs should only have ``from improver import cli`` as the top
 level imports. Other imports are placed inside the function that uses
@@ -533,6 +580,10 @@ Each CLI should have a process function. This will require a
 to save a cube to disk, it will need the decorator ``@cli.with_output``,
 this will mean on the command line, the ``--output`` flag can be used to
 specify an output path.
+
+As mentioned above, it is important to ensure that no functionality
+other than calling the plugin exists within the CLI layer.
+Any checks on the data or input requirements should be done in the plugin itself.
 
 To load the cubes, each cube argument will need a type. For a basic cube
 this will be ``cube: cli.inputcube``. If there is a default argument to
@@ -738,7 +789,7 @@ The following licence information should be added to each new file:
 
 ::
 
-   # (C) Crown copyright, Met Office. All rights reserved.
+   # (C) Crown Copyright, Met Office. All rights reserved.
    #
    # This file is part of IMPROVER and is released under a BSD 3-Clause license.
    # See LICENSE in the root of the repository for full licensing details.
@@ -765,5 +816,6 @@ New release steps:
    case just check it. The checksum of the compressed ``.tar.gz`` IMPROVER
    source code can be obtained via ``openssl sha256 <file name>``.
    Currently the people with write access to the improver-feedstock
-   repository are @benfitzpatrick, @PaulAbernethy, @tjtg and @lucyleeow.
+   repository are @benfitzpatrick, @PaulAbernethy, @tjtg, @cpelley and
+   @dementipl.
    You can ping one of these people to merge your pull request.

@@ -30,11 +30,7 @@ dependencies:
   # Development
   - astroid
   - bandit
-  - black=19.10b0
-  - click=8.0.2
   - filelock
-  - flake8
-  - isort=5
   - mock
   - mypy
   - pytest
@@ -44,3 +40,5 @@ dependencies:
   - sphinx-autodoc-typehints
   - sphinx_rtd_theme
   - threadpoolctl
+  # pinned dependencies of dependencies
+  - pyparsing=3.1.2

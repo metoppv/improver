@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Utilities for Unit tests for ApplyDecisionTree"""
 
@@ -488,56 +488,63 @@ def wxcode_decision_tree(accumulation: bool = False) -> Dict[str, Dict[str, Any]
         "Fog": {"leaf": 6, "group": "visibility"},
         "Cloudy": {"leaf": 7},
         "Overcast": {"leaf": 8},
-        "Light_Shower_Night": {"leaf": 9},
+        "Light_Shower_Night": {"leaf": 9, "dry_equivalent": 2},
         "Light_Shower_Day": {
             "leaf": 10,
             "if_night": "Light_Shower_Night",
             "group": "rain",
+            "dry_equivalent": 3,
         },
-        "Drizzle": {"leaf": 11, "group": "rain"},
-        "Light_Rain": {"leaf": 12, "group": "rain"},
-        "Heavy_Shower_Night": {"leaf": 13},
+        "Drizzle": {"leaf": 11, "group": "rain", "dry_equivalent": 8},
+        "Light_Rain": {"leaf": 12, "group": "rain", "dry_equivalent": 8},
+        "Heavy_Shower_Night": {"leaf": 13, "dry_equivalent": 2},
         "Heavy_Shower_Day": {
             "leaf": 14,
             "if_night": "Heavy_Shower_Night",
             "group": "rain",
+            "dry_equivalent": 3,
         },
-        "Heavy_Rain": {"leaf": 15, "group": "rain"},
-        "Sleet_Shower_Night": {"leaf": 16},
+        "Heavy_Rain": {"leaf": 15, "group": "rain", "dry_equivalent": 8},
+        "Sleet_Shower_Night": {"leaf": 16, "dry_equivalent": 2},
         "Sleet_Shower_Day": {
             "leaf": 17,
             "if_night": "Sleet_Shower_Night",
             "group": "sleet",
+            "dry_equivalent": 3,
         },
-        "Sleet": {"leaf": 18, "group": "sleet"},
-        "Hail_Shower_Night": {"leaf": 19},
+        "Sleet": {"leaf": 18, "group": "sleet", "dry_equivalent": 8},
+        "Hail_Shower_Night": {"leaf": 19, "dry_equivalent": 2},
         "Hail_Shower_Day": {
             "leaf": 20,
             "if_night": "Hail_Shower_Night",
             "group": "convection",
+            "dry_equivalent": 3,
         },
-        "Hail": {"leaf": 21, "group": "convection"},
-        "Light_Snow_Shower_Night": {"leaf": 22},
+        "Hail": {"leaf": 21, "group": "convection", "dry_equivalent": 8},
+        "Light_Snow_Shower_Night": {"leaf": 22, "dry_equivalent": 2},
         "Light_Snow_Shower_Day": {
             "leaf": 23,
             "if_night": "Light_Snow_Shower_Night",
             "group": "snow",
+            "dry_equivalent": 3,
         },
-        "Light_Snow": {"leaf": 24, "group": "snow"},
-        "Heavy_Snow_Shower_Night": {"leaf": 25},
+        "Light_Snow": {"leaf": 24, "group": "snow", "dry_equivalent": 8},
+        "Heavy_Snow_Shower_Night": {"leaf": 25, "dry_equivalent": 2},
         "Heavy_Snow_Shower_Day": {
             "leaf": 26,
             "if_night": "Heavy_Snow_Shower_Night",
             "group": "snow",
+            "dry_equivalent": 3,
         },
-        "Heavy_Snow": {"leaf": 27, "group": "snow"},
-        "Thunder_Shower_Night": {"leaf": 28},
+        "Heavy_Snow": {"leaf": 27, "group": "snow", "dry_equivalent": 8},
+        "Thunder_Shower_Night": {"leaf": 28, "dry_equivalent": 2},
         "Thunder_Shower_Day": {
             "leaf": 29,
             "if_night": "Thunder_Shower_Night",
             "group": "convection",
+            "dry_equivalent": 3,
         },
-        "Thunder": {"leaf": 30, "group": "convection"},
+        "Thunder": {"leaf": 30, "group": "convection", "dry_equivalent": 8},
     }
 
     if accumulation:
@@ -569,12 +576,32 @@ def deterministic_diagnostic_tree() -> Dict[str, Dict[str, Any]]:
     queries = {
         "meta": {"name": "precipitation_type"},
         "precip_rate": {
-            "if_true": "hail_rate",
+            "if_true": "cloud_top_temp",
             "if_false": "dry",
             "thresholds": [0],
             "threshold_condition": ">",
             "condition_combination": "",
             "diagnostic_fields": ["precipitation_rate"],
+            "deterministic": True,
+        },
+        "cloud_top_temp": {
+            "if_true": "cloud_base_temp",
+            "if_false": "snow",
+            "if_masked": "dry",
+            "thresholds": [258.15],
+            "threshold_condition": "<=",
+            "condition_combination": "",
+            "diagnostic_fields": ["cloud_top_temperature"],
+            "deterministic": True,
+        },
+        "cloud_base_temp": {
+            "if_true": "hail_rate",
+            "if_false": "snow",
+            "if_masked": "snow",
+            "thresholds": [268.15],
+            "threshold_condition": ">=",
+            "condition_combination": "",
+            "diagnostic_fields": ["cloud_base_temperature"],
             "deterministic": True,
         },
         "hail_rate": {
@@ -589,6 +616,7 @@ def deterministic_diagnostic_tree() -> Dict[str, Dict[str, Any]]:
         "dry": {"leaf": 0},
         "rain": {"leaf": 1},
         "hail": {"leaf": 2},
+        "snow": {"leaf": 3},
     }
 
     return queries

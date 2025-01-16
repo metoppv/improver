@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Module containing plugins for combining cubes"""
 
@@ -23,6 +23,7 @@ from improver.utilities.cube_manipulation import (
     enforce_coordinate_ordering,
     expand_bounds,
     filter_realizations,
+    strip_var_names,
 )
 
 
@@ -128,6 +129,32 @@ class Combine(BasePlugin):
         return self.plugin(CubeList(filtered_cubes), self.new_name)
 
 
+def masked_add(
+    masked_array: np.ma.MaskedArray, masked_array_2: np.ma.MaskedArray
+) -> np.ma.MaskedArray:
+    """
+    Operation to add two masked arrays treating masked points as 0.
+
+    Args:
+        masked_array (numpy.ma.MaskedArray):
+            An array that may be masked.
+        masked_array_2 (numpy.ma.MaskedArray):
+            An array that may be masked.
+
+    Returns:
+        numpy.ma.MaskedArray:
+            The sum of the two masked arrays with masked points treated as 0.
+    """
+    new_array_1 = np.ma.filled(masked_array, 0)
+    new_array_2 = np.ma.filled(masked_array_2, 0)
+
+    new_mask = np.ma.getmask(masked_array) * np.ma.getmask(masked_array_2)
+
+    summed_cube = np.ma.MaskedArray(np.add(new_array_1, new_array_2), mask=new_mask)
+
+    return summed_cube
+
+
 class CubeCombiner(BasePlugin):
     """Plugin for combining cubes using linear operators"""
 
@@ -140,8 +167,9 @@ class CubeCombiner(BasePlugin):
         "multiply": np.multiply,
         "max": np.maximum,
         "min": np.minimum,
-        "mean": np.add,
-    }  # mean is calculated in two steps: sum and normalise
+        "mean": np.add,  # mean is calculated in two steps: sum and normalise
+        "masked_add": masked_add,  # masked_add sums arrays but treats masked points as 0
+    }
 
     def __init__(
         self,
@@ -179,11 +207,16 @@ class CubeCombiner(BasePlugin):
 
     @staticmethod
     def _check_dimensions_match(
-        cube_list: Union[List[Cube], CubeList], comparators: List[Callable] = [eq],
+        cube_list: Union[List[Cube], CubeList], comparators: List[Callable] = [eq]
     ) -> None:
         """
         Check all coordinate dimensions on the input cubes match according to
         the comparators specified.
+
+        The var_name attributes on input cubes and  coordinates are ignored during these
+        checks, except where the attribute is required to support probabilistic metadata.
+        This is to ensure consistency of behaviour with the MergeCubes plugin in
+        /utilities/cube_manipulation.py.
 
         Args:
             cube_list:
@@ -195,8 +228,10 @@ class CubeCombiner(BasePlugin):
         Raises:
             ValueError: If dimension coordinates do not match
         """
-        ref_coords = cube_list[0].coords(dim_coords=True)
-        for cube in cube_list[1:]:
+        test_cube_list = iris.cube.CubeList(cube_list.copy())
+        strip_var_names(test_cube_list)
+        ref_coords = test_cube_list[0].coords(dim_coords=True)
+        for cube in test_cube_list[1:]:
             coords = cube.coords(dim_coords=True)
             compare = [
                 np.any([comp(a, b) for comp in comparators])
@@ -373,7 +408,7 @@ class CubeCombiner(BasePlugin):
         )
 
     def process(
-        self, cube_list: Union[List[Cube], CubeList], new_diagnostic_name: str,
+        self, cube_list: Union[List[Cube], CubeList], new_diagnostic_name: str
     ) -> Cube:
         """
         Combine data and metadata from a list of input cubes into a single

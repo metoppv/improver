@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Setup and checking of known good output for CLI tests"""
 
@@ -169,7 +169,7 @@ def calculate_checksum(path):
     with open(path, mode="rb") as kgo_file:
         while True:
             # read 1 megabyte binary chunks from file and feed them to hasher
-            kgo_chunk = kgo_file.read(2 ** 20)
+            kgo_chunk = kgo_file.read(2**20)
             if not kgo_chunk:
                 break
             hasher.update(kgo_chunk)

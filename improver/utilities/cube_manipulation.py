@@ -1,8 +1,8 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-""" Provides support utilities for cube manipulation."""
+"""Provides support utilities for cube manipulation."""
 
 import warnings
 from typing import Any, Dict, List, Optional, Union
@@ -563,7 +563,7 @@ def clip_cube_data(cube: Cube, minimum_value: float, maximum_value: float) -> Cu
 
 
 def expand_bounds(
-    result_cube: Cube, cubelist: Union[List[Cube], CubeList], coord_names: List[str],
+    result_cube: Cube, cubelist: Union[List[Cube], CubeList], coord_names: List[str]
 ) -> Cube:
     """Alter a coordinate on result_cube such that bounds are expanded to cover
     the entire range of the input cubes (cubelist).  The input result_cube is
@@ -586,7 +586,6 @@ def expand_bounds(
         Cube with coords expanded.
     """
     for coord in coord_names:
-
         if len(result_cube.coord(coord).points) != 1:
             emsg = (
                 "the expand bounds function should only be used on a"
@@ -774,3 +773,109 @@ def maximum_in_height(
         max_cube.rename(new_name)
 
     return max_cube
+
+
+def height_of_maximum(
+    cube: Cube, max_cube: Cube, find_lowest: bool = True, new_name: str = None
+) -> Cube:
+    """Calculates the height level at which the maximum value has been calculated. This
+    takes in a cube with values at different heights, and also a cube with the maximum
+    of these heights. It compares these (default is to start at the lowest height and
+    work down through the height levels), and then outputs the height it reaches the
+    maximum value.
+
+    Args:
+        cube:
+            A cube with a height coordinate.
+        max_cube:
+            A cube of the maximum value over the height coordinate.
+        find_lowest:
+            If true then the lowest maximum height will be found (for cases where
+            there are two heights with the maximum vertical velocity.) Otherwise the highest
+            height will be found.
+        new_name:
+            The new name to be assigned to the output cube. If unspecified the name of the
+            original cube is used.
+    Returns:
+        A cube of heights at which the maximum values occur.
+
+    Raises:
+        ValueError:
+            If the cube has only 1 height level or if an input other than high or low is
+            tried for the high_or_low value.
+    """
+    height_of_max = max_cube.copy()
+    height_range = range(len(cube.coord("height").points))
+    if len(cube.coord("height").points) == 1:
+        raise ValueError("More than 1 height level is required.")
+    if find_lowest:
+        height_points = height_range
+    else:
+        height_points = reversed(height_range)
+
+    for height in height_points:
+        height_of_max.data = np.where(
+            cube[height].data == max_cube.data,
+            cube[height].coord("height").points[0],
+            height_of_max.data,
+        )
+    if new_name:
+        height_of_max.rename(new_name)
+    height_of_max.units = cube.coord("height").units
+    return height_of_max
+
+
+def manipulate_n_realizations(cube: Cube, n_realizations: int) -> Cube:
+    """Extend or reduce the number of realizations in a cube.
+
+    If more realizations are requested than are in the input cube, then the ensemble
+    realizations are recycled. If fewer realizations are requested than are in the input
+    cube, then only the first n ensemble realizations are used.
+
+    Args:
+        cube: a cube with a realization dimension
+        n_realizations: the number of realizations in the output cube
+
+    Returns:
+        A cube containing a number of realizations equal to n_realizations.
+
+    Raises:
+        ValueError: input cube does not contain realizations
+    """
+    if not cube.coords("realization", dim_coords=True):
+        input_coords = [c.name() for c in cube.coords(dim_coords=True)]
+        msg = (
+            "Input cube does not contain realizations. The following dimension "
+            f"coordinates were found: {input_coords}"
+        )
+        raise ValueError(msg)
+    elif len(cube.coord("realization").points) == n_realizations:
+        output = cube.copy()
+    else:
+        raw_forecast_realizations_extended = iris.cube.CubeList()
+        realization_list = []
+        mpoints = cube.coord("realization").points
+        # Loop over the number of output realizations and find the
+        # corresponding ensemble realization number. The ensemble
+        # realization numbers are recycled e.g. 1, 2, 3, 1, 2, 3, etc.
+        for index in range(n_realizations):
+            realization_list.append(mpoints[index % len(mpoints)])
+
+        # Assume that the ensemble realizations are ascending linearly from a given
+        # value.
+        new_realization_numbers = realization_list[0] + list(range(n_realizations))
+
+        # Extract the realizations required in the realization_list from
+        # the input cube. Edit the realization number as appropriate and
+        # append to a cubelist containing rebadged raw ensemble realizations.
+        for realization, index in zip(realization_list, new_realization_numbers):
+            constr = iris.Constraint(realization=realization)
+            raw_forecast_realization = cube.extract(constr)
+            raw_forecast_realization.coord("realization").points = index
+            raw_forecast_realizations_extended.append(raw_forecast_realization)
+
+        output = MergeCubes()(
+            raw_forecast_realizations_extended, slice_over_realization=True
+        )
+
+    return output

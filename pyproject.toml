@@ -1,9 +1,10 @@
-[tool.black]
-target-version = ['py36']
+[tool.ruff]
+target-version = "py37"
 
-[tool.isort]
-multi_line_output = 3
-include_trailing_comma = true
-force_grid_wrap = 0
-use_parentheses = true
-line_length = 88
+[tool.ruff.lint]
+extend-select = ["E", "F", "W", "I"]  # add C90 later
+ignore = ["E203", "E731", "E501", "E741"]  # remove "E501", "E741" later
+
+[tool.ruff.format]
+# Enable reformatting of code snippets in docstrings.
+docstring-code-format = true

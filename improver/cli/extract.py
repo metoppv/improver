@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Script to extract a subset of input file data, given constraints."""
 
@@ -18,7 +18,7 @@ def process(
     units: cli.comma_separated_list = None,
     ignore_failure=False,
 ):
-    """ Extract a subset of a single cube.
+    """Extract a subset of a single cube.
 
     Extracts subset of data from a single cube, subject to equality-based
     constraints.

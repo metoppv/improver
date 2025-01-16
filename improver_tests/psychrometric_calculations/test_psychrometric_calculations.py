@@ -1,8 +1,9 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Tests for the dry_adiabatic_temperature and dry_adiabatic_pressure methods."""
+
 import numpy as np
 import pytest
 
@@ -42,7 +43,8 @@ p_4 = 30000.0
 def test_dry_adiabatic_methods(shape, method, t1, p1, n2, expected):
     """Test that we can move between pairs of points in both directions with both methods.
     Point pairs are t_1,p_1 and t_2,p_2. t1,p1 is the starting point for a test and
-    n2 is the target point, either temperature or pressure depending on the method being tested."""
+    n2 is the target point, either temperature or pressure depending on the method being tested.
+    """
     result = method(
         np.full(shape, t1, dtype=np.float32),
         np.full(shape, p1, dtype=np.float32),
