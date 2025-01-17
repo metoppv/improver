@@ -5,20 +5,21 @@
 """Provide support utilities for time lagging ensembles"""
 
 import warnings
-from typing import List, Union
+from typing import Union
 
 import numpy as np
 from iris.cube import Cube, CubeList
 
 from improver import BasePlugin
 from improver.metadata.forecast_times import rebadge_forecasts_as_latest_cycle
+from improver.utilities.common_input_handle import as_cubelist
 from improver.utilities.cube_manipulation import MergeCubes
 
 
 class GenerateTimeLaggedEnsemble(BasePlugin):
     """Combine realizations from different forecast cycles into one cube"""
 
-    def process(self, cubelist: Union[List[Cube], CubeList]) -> Cube:
+    def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
         """
         Take an input cubelist containing forecasts from different cycles and
         merges them into a single cube.
@@ -37,6 +38,7 @@ class GenerateTimeLaggedEnsemble(BasePlugin):
         Returns:
             Concatenated forecasts
         """
+        cubelist = as_cubelist(cubes)
         if len(cubelist) == 1:
             warnings.warn(
                 "Only a single cube input, so time lagging will have no effect."
