@@ -406,6 +406,13 @@ class Threshold(PostProcessingPlugin):
                     clip=True,
                 ),
             )
+            # Rescaling exposes masked points so use the rescaled data only in
+            # the unmasked locations, set masked locations to 0 and reapply
+            # masking.
+            if np.ma.is_masked(cube.data):
+                truth_value = np.where(cube.data.mask, 0, truth_value)
+                truth_value = np.ma.masked_array(truth_value, mask=cube.data.mask)
+
             # if requirement is for probabilities less_than or
             # less_than_or_equal_to the threshold (rather than
             # greater_than or greater_than_or_equal_to), invert
