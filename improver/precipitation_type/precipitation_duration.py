@@ -38,8 +38,8 @@ class PrecipitationDuration(PostProcessingPlugin):
         min_accumulation_per_hour: float,
         critical_rate: float,
         target_period: float,
-        rate_diagnostic: str = "probability_of_lwe_precipitation_rate_above_threshold",
         accumulation_diagnostic: str = "probability_of_lwe_thickness_of_precipitation_amount_above_threshold",
+        rate_diagnostic: str = "probability_of_lwe_precipitation_rate_above_threshold",
     ) -> None:
         """
         Initialise the class.
@@ -61,11 +61,11 @@ class PrecipitationDuration(PostProcessingPlugin):
                 checking that the returned diagnostic represents the period
                 that is expected. Without this a missing input file could
                 lead to a suddenly different overall period.
-            rate_diagnostic:
-                The expected diagnostic name for the maximum rate in period
-                diagnostic. Used to extract the cubes from the inputs.
             accumulation_diagnostic:
                 The expected diagnostic name for the accumulation in period
+                diagnostic. Used to extract the cubes from the inputs.
+            rate_diagnostic:
+                The expected diagnostic name for the maximum rate in period
                 diagnostic. Used to extract the cubes from the inputs.
         """
         if isinstance(min_accumulation_per_hour, Number):
@@ -103,8 +103,8 @@ class PrecipitationDuration(PostProcessingPlugin):
             (period,) = set(periods)
         except ValueError as err:
             raise ValueError(
-                "Cube with multiple times with inconsistent periods. Cannot "
-                f"return a single time period. Periods are: {period}."
+                "Cubes with inconsistent periods. Cannot return a single "
+                f"time period. Periods are: {periods}."
             ) from err
 
         self.period = period / 3600
@@ -218,8 +218,14 @@ class PrecipitationDuration(PostProcessingPlugin):
             accumulation_threshold, rate_threshold
         )
 
-        precip_accumulation = MergeCubes()(cubes.extract(accumulation_constraint))
-        max_precip_rate = MergeCubes()(cubes.extract(rate_constraint))
+        try:
+            precip_accumulation = MergeCubes()(cubes.extract(accumulation_constraint))
+            max_precip_rate = MergeCubes()(cubes.extract(rate_constraint))
+        except IndexError:
+            raise ValueError(
+                "Input cubes do not contain the expected diagnostics or "
+                "thresholds."
+            )
 
         if not max_precip_rate.coord("time") == precip_accumulation.coord("time"):
             raise ValueError(
@@ -244,13 +250,16 @@ class PrecipitationDuration(PostProcessingPlugin):
         # combinations.
         for acc_slice in precip_accumulation.slices_over(self.acc_threshold):
             for rate_slice in max_precip_rate.slices_over(self.rate_threshold):
-                # Use the accumulation slice as a template and add the rate
-                # threshold coordinate so that a rate threshold coordinate can
-                # be reconstructed on merging the cube list. The cube will end
-                # up with two threshold coordinates.
-                rate_coord = rate_slice.coord(self.rate_threshold)
-                classified = acc_slice.copy(data=rate_slice.data * acc_slice.data)
-                classified.add_aux_coord(rate_coord)
+                # Use the rate slice as a template and add the accumulation
+                # threshold coordinate so that an accumulation threshold
+                # coordinate can be reconstructed on merging the cube list.
+                # The cube will end up with two threshold coordinates.
+                acc_coord = acc_slice.coord(self.acc_threshold)
+                # All thresholds on the final output are given relative to a
+                # 1-hour period.
+                acc_coord.points = np.around(acc_coord.points / self.period, decimals=6)
+                classified = rate_slice.copy(data=rate_slice.data * acc_slice.data)
+                classified.add_aux_coord(acc_coord)
                 classifications.append(classified)
 
         classifications = classifications.merge_cube()
