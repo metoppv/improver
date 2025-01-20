@@ -13,6 +13,7 @@ import iris
 import numpy as np
 import pytest
 from iris.cube import CubeList
+from iris.coords import AuxCoord
 from numpy import ndarray
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
@@ -291,7 +292,7 @@ def test__construct_constraints(
     assert acc_name in accumulation_constraint._coord_values.keys()
     assert rate_name in rate_constraint._coord_values.keys()
 
-
+@pytest.mark.parametrize("realizations", [False, True])
 @pytest.mark.parametrize(
     "start_time,end_time,period,acc_data,rate_data,acc_thresh,rate_thresh,expected",
     [
@@ -402,27 +403,51 @@ def test_process(
     rate_thresh: List[float],
     expected: ndarray,
     precip_cubes_custom: CubeList,
+    realizations,
 ):
     """Test the plugin produces the expected output. The creation of the
-    output cube is also tested here."""
+    output cube is also tested here. If realization is True the input
+    cubes are each duplicated with a realization coordinate added, and
+    merged to create a multi-realization cube. This is then run through the
+    plugin to demonstrate the handling of multi-realization data which will
+    be the norm."""
 
     total_period = (end_time - start_time).total_seconds()
     period_hours = period.total_seconds() / 3600
 
+    if realizations:
+        realization_cubes = []
+        for cube in precip_cubes_custom:
+            realization_cube = CubeList()
+            for i in range(2):
+                realization_coord = AuxCoord([i], standard_name="realization")
+                rcube = cube.copy()
+                rcube.add_aux_coord(realization_coord)
+                realization_cube.append(rcube)
+            realization_cubes.append(realization_cube.merge_cube())
+        precip_cubes_custom = realization_cubes
+
     plugin = PrecipitationDuration(acc_thresh, rate_thresh, total_period / 3600)
     result = plugin.process(precip_cubes_custom)
 
-    assert_array_equal(result.data, expected)
-    assert_array_almost_equal(
-        result.coord("lwe_thickness_of_precipitation_amount").points,
-        np.array(acc_thresh) / 1000,
-    )
-    assert_array_almost_equal(
-        result.coord("lwe_precipitation_rate").points,
-        np.array(rate_thresh) / (3600 * 1000),
-    )
-    assert result.attributes["input_period_in_hours"] == period_hours
-    assert np.diff(result.coord("time").bounds) == total_period
+    if realizations:
+        assert result.coord("realization").shape[0] == 2
+        result = result.slices_over("realization")
+    else:
+        result = [result]
+
+    for cube in result:
+        assert_array_equal(cube.data, expected)
+        assert_array_almost_equal(
+            cube.coord("lwe_thickness_of_precipitation_amount").points,
+            np.array(acc_thresh) / 1000,
+        )
+        assert_array_almost_equal(
+            cube.coord("lwe_precipitation_rate").points,
+            np.array(rate_thresh) / (3600 * 1000),
+        )
+        assert cube.attributes["input_period_in_hours"] == period_hours
+        assert np.diff(cube.coord("time").bounds) == total_period
 
 
 def test_process_exception_thresholds():
