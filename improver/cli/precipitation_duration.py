@@ -12,12 +12,12 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    *cubes: cli.inputcube,
+    *cubes: cli.inputcubelist,
     min_accumulation_per_hour: float,
     critical_rate: float,
     target_period: float,
-    rate_diagnostic: str = "probability_of_lwe_precipitation_rate_above_threshold",
     accumulation_diagnostic: str = "probability_of_lwe_thickness_of_precipitation_amount_above_threshold",
+    rate_diagnostic: str = "probability_of_lwe_precipitation_rate_above_threshold",
 ):
     r"""Classifies periods of precipitation intensity using a mix of the maximum
     precipitation rate in the period and the accumulation in the period. These
@@ -44,13 +44,13 @@ def process(
             checking that the returned diagnostic represents the period
             that is expected. Without this a missing input file could
             lead to a suddenly different overall period.
-        rate_diagnostic:
-            The expected diagnostic name for the maximum rate in period
-            diagnostic. Used to extract the cubes from the inputs.
         accumulation_diagnostic:
             The expected diagnostic name for the accumulation in period
             diagnostic. Used to extract the cubes from the inputs.
-    Returns:
+        rate_diagnostic:
+            The expected diagnostic name for the maximum rate in period
+            diagnostic. Used to extract the cubes from the inputs.
+        Returns:
         result (iris.cube.Cube):
             Returns a cube with the combined data.
     """
@@ -60,6 +60,6 @@ def process(
         min_accumulation_per_hour,
         critical_rate,
         target_period,
-        rate_diagnostic=rate_diagnostic,
         accumulation_diagnostic=accumulation_diagnostic,
+        rate_diagnostic=rate_diagnostic,
     )(*cubes)
