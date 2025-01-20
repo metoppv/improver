@@ -12,8 +12,8 @@ from typing import List, Tuple
 import iris
 import numpy as np
 import pytest
-from iris.cube import CubeList
 from iris.coords import AuxCoord
+from iris.cube import CubeList
 from numpy import ndarray
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
@@ -291,6 +291,7 @@ def test__construct_constraints(
     assert rate_constraint._name == rate_thresh_name
     assert acc_name in accumulation_constraint._coord_values.keys()
     assert rate_name in rate_constraint._coord_values.keys()
+
 
 @pytest.mark.parametrize("realizations", [False, True])
 @pytest.mark.parametrize(
