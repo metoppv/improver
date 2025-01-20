@@ -74,6 +74,6 @@ class Recalibrate(PostProcessingPlugin):
 
         cubelist = iris.cube.CubeList([])
         for i, slice in enumerate(cube.slices_over("forecast_period")):
-            slice.data = beta(a[i], b[i]).cdf(slice.data)
+            slice.data = beta(a[i], b[i]).cdf(slice.data).astype(np.float32)
             cubelist.append(slice)
         return cubelist.merge_cube()
