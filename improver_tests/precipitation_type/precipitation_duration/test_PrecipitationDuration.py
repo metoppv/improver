@@ -7,25 +7,27 @@ Unit tests for the PrecipitationDuration plugin.
 """
 
 from datetime import datetime, timedelta
+from typing import List, Tuple
 
 import iris
 import numpy as np
+from numpy import ndarray
 import pytest
 from iris.cube import CubeList
-from numpy.testing import assert_array_equal, assert_array_almost_equal
+from numpy.testing import assert_array_almost_equal, assert_array_equal
 
-from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
 from improver.precipitation_type.precipitation_duration import PrecipitationDuration
-from improver.metadata.probabilistic import get_threshold_coord_name_from_probability_name
-from improver.utilities.cube_manipulation import collapse_time
+from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
 
-DEFAULT_ACC_NAME = "probability_of_lwe_thickness_of_precipitation_amount_above_threshold"
+DEFAULT_ACC_NAME = (
+    "probability_of_lwe_thickness_of_precipitation_amount_above_threshold"
+)
 DEFAULT_ACC_THRESH_NAME = "lwe_thickness_of_precipitation_amount"
 DEFAULT_RATE_NAME = "probability_of_lwe_precipitation_rate_above_threshold"
 DEFAULT_RATE_THRESH_NAME = "lwe_precipitation_rate"
 
 
-def data_times(start_time, end_time, period):
+def data_times(start_time: datetime, end_time: datetime, period: timedelta) -> Tuple[datetime, List[datetime], List[List[datetime]]]:
     """Define the times for the input cubes."""
     frt = start_time - 2 * period
     times = []
@@ -38,7 +40,7 @@ def data_times(start_time, end_time, period):
     return frt, times, bounds
 
 
-def multi_time_cube(frt, times, bounds, data, thresh, diagnostic_name, units):
+def multi_time_cube(frt: datetime, times: Tuple[List[datetime]], bounds: Tuple[List[List[datetime]]], data: ndarray, thresh: List[float], diagnostic_name: str, units: str):
     """Create diagnostic cubes describing period data for each input time."""
     cubes = CubeList()
     for time, time_bounds, diagnostic_data in zip(times, bounds, data):
@@ -63,30 +65,53 @@ def precip_cubes(start_time, end_time, period):
     where setting these is of no interest."""
 
     frt, times, bounds = data_times(start_time, end_time, period)
-    acc_thresh=[0.1 / 1000.]
-    rate_thresh=[4.0 / (3600. * 1000.)]
+    period_hours = period.total_seconds() / 3600
+    acc_thresh = [period_hours * 0.1 / 1000.0]
+    rate_thresh = [4.0 / (3600.0 * 1000.0)]
     acc_data = np.ones((len(times), 1, 3, 4))
     rate_data = np.ones((len(times), 1, 3, 4))
 
     cubes = CubeList()
-    cubes.extend(multi_time_cube(frt, times, bounds, acc_data, acc_thresh, DEFAULT_ACC_THRESH_NAME, "m"))
-    cubes.extend(multi_time_cube(frt, times, bounds, rate_data, rate_thresh, DEFAULT_RATE_THRESH_NAME, "m/s"))
+    cubes.extend(
+        multi_time_cube(
+            frt, times, bounds, acc_data, acc_thresh, DEFAULT_ACC_THRESH_NAME, "m"
+        )
+    )
+    cubes.extend(
+        multi_time_cube(
+            frt, times, bounds, rate_data, rate_thresh, DEFAULT_RATE_THRESH_NAME, "m/s"
+        )
+    )
     return cubes
 
 
 @pytest.fixture
-def precip_cubes_custom(start_time, end_time, period, acc_data, rate_data, acc_thresh, rate_thresh):
+def precip_cubes_custom(
+    start_time, end_time, period, acc_data, rate_data, acc_thresh, rate_thresh
+):
     """Create precipitation rate and accumulation cubes valid at a range of
     times. The thresholds and data must be provided. Thresholds are expected
     in units of mm for accumulations and mm/hr for rates; these are converted
-    to SI units when creating the cubes."""
+    to SI units when creating the cubes. The accumulation threshold is
+    mulitplied up by the period. This means the accumulation threshold
+    argument represents the accumulation per hour, which is what the user will
+    specify when using the plugin."""
 
     frt, times, bounds = data_times(start_time, end_time, period)
-    acc_thresh = [item / 1000. for item in acc_thresh]
-    rate_thresh = [item / (3600. * 1000.) for item in rate_thresh]
+    period_hours = period.total_seconds() / 3600
+    acc_thresh = [period_hours * item / 1000.0 for item in acc_thresh]
+    rate_thresh = [item / (3600.0 * 1000.0) for item in rate_thresh]
     cubes = CubeList()
-    cubes.extend(multi_time_cube(frt, times, bounds, acc_data, acc_thresh, DEFAULT_ACC_THRESH_NAME, "m"))
-    cubes.extend(multi_time_cube(frt, times, bounds, rate_data, rate_thresh, DEFAULT_RATE_THRESH_NAME, "m/s"))
+    cubes.extend(
+        multi_time_cube(
+            frt, times, bounds, acc_data, acc_thresh, DEFAULT_ACC_THRESH_NAME, "m"
+        )
+    )
+    cubes.extend(
+        multi_time_cube(
+            frt, times, bounds, rate_data, rate_thresh, DEFAULT_RATE_THRESH_NAME, "m/s"
+        )
+    )
     return cubes
 
 
@@ -107,7 +132,7 @@ def precip_cubes_custom(start_time, end_time, period, acc_data, rate_data, acc_t
         ),
     ],
 )
-def test__period_in_hours(start_time, end_time, period, precip_cubes):
+def test__period_in_hours(start_time: datetime, end_time: datetime, period: timedelta, precip_cubes):
     """Test that the period is calculated correctly from the input cubes."""
 
     plugin = PrecipitationDuration(0, 0, 0)
@@ -122,10 +147,15 @@ def test__period_in_hours_exception():
 
     frt = datetime(2025, 1, 15, 0)
     times = [frt + timedelta(hours=3), frt + timedelta(hours=7)]
-    bounds = [[frt, frt + timedelta(hours=3)], [frt + timedelta(hours=3), frt + timedelta(hours=7)]]
+    bounds = [
+        [frt, frt + timedelta(hours=3)],
+        [frt + timedelta(hours=3), frt + timedelta(hours=7)],
+    ]
     data = np.ones((2, 1, 3, 4))
 
-    precip_cubes = multi_time_cube(frt, times, bounds, data, [4.0], DEFAULT_RATE_NAME, "m/s")
+    precip_cubes = multi_time_cube(
+        frt, times, bounds, data, [4.0], DEFAULT_RATE_NAME, "m/s"
+    )
 
     with pytest.raises(ValueError, match="Cubes with inconsistent periods"):
         plugin = PrecipitationDuration(0, 0, 0)
@@ -135,12 +165,32 @@ def test__period_in_hours_exception():
 @pytest.mark.parametrize(
     "acc_thresh,rate_thresh,period,expected_acc,expected_rate",
     [
-        (0.1, 0.2, timedelta(hours=1), [0.0001], [5.56E-8]),  # 1-hour period so acc thresh is just converted to SI
-        (0.1, 0.2, timedelta(hours=3), [0.0003], [5.56E-8]),  # 3-hour period so acc thresh is multiplied by 3 and converted to SI
-        (1, 1, timedelta(hours=6), [0.006], [2.778E-7]),  # 6-hour period so acc thresh is multiplied by 6 and converted to SI
+        (
+            0.1,
+            0.2,
+            timedelta(hours=1),
+            [0.0001],
+            [5.56e-8],
+        ),  # 1-hour period so acc thresh is just converted to SI
+        (
+            0.1,
+            0.2,
+            timedelta(hours=3),
+            [0.0003],
+            [5.56e-8],
+        ),  # 3-hour period so acc thresh is multiplied by 3 and converted to SI
+        (
+            1,
+            1,
+            timedelta(hours=6),
+            [0.006],
+            [2.778e-7],
+        ),  # 6-hour period so acc thresh is multiplied by 6 and converted to SI
     ],
 )
-def test__construct_thresholds(acc_thresh, rate_thresh, period, expected_acc, expected_rate):
+def test__construct_thresholds(
+    acc_thresh: float, rate_thresh:float, period: timedelta, expected_acc: List[float], expected_rate: List[float]
+):
     """Test that the thresholds are constructed correctly. Inputs are in units
     involving mm, but all outputs are in SI units. Accumulation thresholds,
     which are provided as the accumulation per hour, are multiplied up by the
@@ -149,7 +199,10 @@ def test__construct_thresholds(acc_thresh, rate_thresh, period, expected_acc, ex
     plugin = PrecipitationDuration(acc_thresh, rate_thresh, 24)
     plugin.period = period.total_seconds() / 3600
 
-    acc_thresh, rate_thresh, = plugin._construct_thresholds()
+    (
+        acc_thresh,
+        rate_thresh,
+    ) = plugin._construct_thresholds()
 
     assert_array_almost_equal(acc_thresh, expected_acc)
     assert_array_almost_equal(rate_thresh, expected_rate)
@@ -162,7 +215,7 @@ def test__construct_thresholds(acc_thresh, rate_thresh, period, expected_acc, ex
         (0.1, 0.1, "kittens", "puppies"),
     ],
 )
-def test__construct_constraints(acc_thresh, rate_thresh, acc_name, rate_name):
+def test__construct_constraints(acc_thresh: float, rate_thresh: float, acc_name: str, rate_name: str):
     """Test that iris constraints for the given thresholds are constructed and
     returned correctly."""
 
@@ -176,7 +229,9 @@ def test__construct_constraints(acc_thresh, rate_thresh, acc_name, rate_name):
         accumulation_diagnostic=acc_thresh_name,
         rate_diagnostic=rate_thresh_name,
     )
-    accumulation_constraint, rate_constraint = plugin._construct_constraints(acc_thresh, rate_thresh)
+    accumulation_constraint, rate_constraint = plugin._construct_constraints(
+        acc_thresh, rate_thresh
+    )
 
     assert isinstance(accumulation_constraint, iris.Constraint)
     assert isinstance(rate_constraint, iris.Constraint)
@@ -197,8 +252,10 @@ def test__construct_constraints(acc_thresh, rate_thresh, acc_name, rate_name):
             np.ones((2, 1, 3, 4)),
             [0.1],
             [4],
-            np.ones((3, 4))
-        ),
+            np.ones((3, 4)),
+        ),  # Accumulation and rate probabilities are 1 for both input hours.
+            # The resulting total period fraction is 1 for the combined period
+            # at all points.
         (
             datetime(2025, 1, 15, 0),
             datetime(2025, 1, 15, 9),
@@ -207,20 +264,93 @@ def test__construct_constraints(acc_thresh, rate_thresh, acc_name, rate_name):
             np.ones((3, 1, 3, 4)),
             [0.1],
             [4],
-            np.ones((3, 4))
-        ),
-    ]
+            np.ones((3, 4)),
+        ),  # As above but for 3 hour input periods, with 3 of them comprising
+            # the total period.
+        (
+            datetime(2025, 1, 15, 0),
+            datetime(2025, 1, 15, 9),
+            timedelta(hours=3),
+            np.ones((3, 2, 3, 4)),
+            np.ones((3, 2, 3, 4)),
+            [0.1, 1.0],
+            [4, 8],
+            np.ones((2, 2, 3, 4)),
+        ),  # Multiple thresholds for both the accumulation and maximum rate.
+            # Again the total period fractions are 1 in this case as all input
+            # probabilities are 1.
+        (
+            datetime(2025, 1, 15, 0),
+            datetime(2025, 1, 15, 6),
+            timedelta(hours=3),
+            np.ones((2, 1, 3, 4)),
+            np.stack([np.ones((1, 3, 4)), np.zeros((1, 3, 4))]),
+            [0.1],
+            [4],
+            np.full((3, 4), 0.5)
+        ),  # Maximum rate in period probabilities of 1 for half of the time
+            # and 0 for half of the time, resulting in total period fractions
+            # of 0.5.
+        (
+            datetime(2025, 1, 15, 0),
+            datetime(2025, 1, 15, 6),
+            timedelta(hours=3),
+            np.ones((2, 2, 3, 4)),
+            np.stack([np.stack([np.ones((3, 4)), np.zeros((3, 4))]), np.stack([np.ones((3, 4)), np.zeros((3, 4))])]),
+            [0.1, 1.0],
+            [2, 4],
+            np.stack([np.ones((2, 3, 4)), np.zeros((2, 3, 4))]),
+        ),  # Maximum rate in period probabilities are 1 for the lower
+            # threshold and 0 for the higher threshold. The result is a total
+            # period fraction of 1.0 relative to the lower rate threshold and
+            # 0 relative to the higher rate threshold.
+        (
+            datetime(2025, 1, 15, 0),
+            datetime(2025, 1, 15, 3),
+            timedelta(hours=3),
+            np.ones((1, 1, 3, 4)),
+            np.ones((1, 1, 3, 4)),
+            [0.1],
+            [4],
+            np.ones((3, 4)),
+        ),  # A single time input, resulting in an output describing the same
+            # period. Total period fractions are 1 at all points.
+        (
+            datetime(2025, 1, 15, 0),
+            datetime(2025, 1, 15, 5),
+            timedelta(hours=1),
+            np.ones((5, 1, 5, 5)),
+            np.stack([np.r_[[1] * a, [0] * b].reshape((1, 5, 5)) for a,b in zip(range(25, 0, -5), range(0, 25, 5))]).astype(np.float32),
+            [0.1],
+            [4],
+            np.stack([np.r_[np.full((5), a)] for a in np.arange(1, 0, -0.2)]).astype(np.float32)
+        ),  # Accumulation probabilities vary by row with time such that the
+            # total period fraction for the top row is 1, the second row is
+            # 0.8, etc. down to 0.2 for the bottom row.
+    ],
 )
-def test_process(start_time, end_time, period, acc_data, rate_data, acc_thresh, rate_thresh, expected, precip_cubes_custom):
+def test_process(
+    start_time,
+    end_time,
+    period,
+    acc_data,
+    rate_data,
+    acc_thresh,
+    rate_thresh,
+    expected,
+    precip_cubes_custom,
+):
     """Test the plugin produces the expected output. The creation of the
     output cube is also tested here."""
 
-    total_period = (end_time - start_time).total_seconds() / 3600
+    total_period = (end_time - start_time).total_seconds()
     period_hours = period.total_seconds() / 3600
-    acc_thresh = [item/period_hours for item in acc_thresh]
 
-    plugin = PrecipitationDuration(acc_thresh, rate_thresh, total_period)
-
+    plugin = PrecipitationDuration(acc_thresh, rate_thresh, total_period / 3600)
     result = plugin.process(precip_cubes_custom)
+
     assert_array_equal(result.data, expected)
-    print(result)
+    assert_array_almost_equal(result.coord("lwe_thickness_of_precipitation_amount").points, np.array(acc_thresh) / 1000)
+    assert_array_almost_equal(result.coord("lwe_precipitation_rate").points, np.array(rate_thresh) / (3600 * 1000))
+    assert result.attributes["input_period_in_hours"] == period_hours
+    assert np.diff(result.coord("time").bounds) == total_period

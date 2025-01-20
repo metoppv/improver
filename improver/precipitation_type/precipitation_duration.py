@@ -182,7 +182,7 @@ class PrecipitationDuration(PostProcessingPlugin):
             stored within it.
         """
         classified_precip_cube = create_new_diagnostic_cube(
-            "fraction_of_periods_classified_as_wet",
+            "fraction_of_period_classified_as_wet",
             "1",
             template_cube=cubes[0],
             mandatory_attributes=generate_mandatory_attributes(cubes),
@@ -223,8 +223,7 @@ class PrecipitationDuration(PostProcessingPlugin):
             max_precip_rate = MergeCubes()(cubes.extract(rate_constraint))
         except IndexError:
             raise ValueError(
-                "Input cubes do not contain the expected diagnostics or "
-                "thresholds."
+                "Input cubes do not contain the expected diagnostics or " "thresholds."
             )
 
         if not max_precip_rate.coord("time") == precip_accumulation.coord("time"):
@@ -254,7 +253,7 @@ class PrecipitationDuration(PostProcessingPlugin):
                 # threshold coordinate so that an accumulation threshold
                 # coordinate can be reconstructed on merging the cube list.
                 # The cube will end up with two threshold coordinates.
-                acc_coord = acc_slice.coord(self.acc_threshold)
+                acc_coord = acc_slice.coord(self.acc_threshold).copy()
                 # All thresholds on the final output are given relative to a
                 # 1-hour period.
                 acc_coord.points = np.around(acc_coord.points / self.period, decimals=6)

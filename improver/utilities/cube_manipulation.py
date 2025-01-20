@@ -78,6 +78,8 @@ def collapse_time(cube, *args: Any) -> Cube:
             "The collapse_time wrapper should only be used for collapsing "
             "the time or forecast_period coordinates."
         )
+    if cube.coord("time").shape[0] == 1:
+        return cube
 
     collapsed_cube = collapsed(cube, *args)
 
