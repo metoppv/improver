@@ -9,6 +9,7 @@ import iris
 import numpy as np
 from scipy.stats import beta
 from improver import PostProcessingPlugin
+from improver.metadata.probabilistic import find_threshold_coordinate
 
 from typing import Optional, Dict, Any
 
@@ -24,8 +25,7 @@ class Recalibrate(PostProcessingPlugin):
                 recalibrating blended output using the beta distribution. Dictionary
                 format is as specified below. Weights will be interpolated over the 
                 forecast period from the values specified in the dictionary.
-        
-        
+                 
         Recalibration dictionary format::
             {   "forecast_period": [7, 12],
                 "alpha": [1, 1.5],
@@ -38,7 +38,7 @@ class Recalibrate(PostProcessingPlugin):
 
     def process(self, cube):
         """Recalibrate cube using the beta distribution with the alpha
-        and beta parameters specified in recalibration_dict.
+        and beta parameters specified in self.recalibration_dict.
         
         Args:
             cube:
@@ -51,19 +51,26 @@ class Recalibrate(PostProcessingPlugin):
         Returns:
             A cube having the same dimensions as the input, with data
             transformed by the beta distribution cdf.    
+        
+        Raises:
+            RuntimeError: if any interpolated values of alpha or beta are <= 0
         """
 
-        if len(cube.coords("threshold")) == 0:
-            raise ValueError("Recalibration input must contain threshold coordinate.")
+        # check that cube is a probability forecast
+        _ = find_threshold_coordinate(cube)
         if len(cube.coords("forecast_period")) == 0:
             raise ValueError("Recalibration input must contain forecast_period coordinate.")
-        x = self.recalibration_dict["forecast_period"].values
-        xp = cube.coord("forecast_period").points
+        xp = self.recalibration_dict["forecast_period"]
+        x = cube.coord("forecast_period").points
         if "units" in self.recalibration_dict.keys():
             units = cf_units.Unit(self.recalibration_dict["units"])
-            x = units.convert(x, cube.coord("forecast_period").units)
-        a = np.interp(x, xp, self.recalibration_dict["alpha"].values)
-        b = np.interp(x, xp, self.recalibration_dict["beta"].values)
+            xp = [units.convert(a, cube.coord("forecast_period").units) for a in xp]
+        a = np.interp(x, xp, self.recalibration_dict["alpha"])
+        b = np.interp(x, xp, self.recalibration_dict["beta"])
+        # check alpha, beta parameters are valid
+        if np.any(a <= 0) or np.any(b <= 0):
+            raise RuntimeError("interpolated alpha and beta parameters must be > 0")
+        
         cubelist = iris.cube.CubeList([])
         for i, slice in enumerate(cube.slices_over("forecast_period")):
             slice.data = beta(a[i], b[i]).cdf(slice.data)
