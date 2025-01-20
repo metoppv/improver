@@ -25,4 +25,3 @@ def test_calibration(tmp_path):
     args = [forecast_path, config_path, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
-

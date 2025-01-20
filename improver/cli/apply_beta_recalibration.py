@@ -12,8 +12,7 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    cube: cli.inputcube,
-    recalibration_config: cli.inputjson,
+    cube: cli.inputcube, recalibration_config: cli.inputjson,
 ):
     """Runs probability recalibration.
 
@@ -21,15 +20,15 @@ def process(
 
     Args:
         cube (iris.cube.Cube):
-            Probability cube to be recalibrated. 
+            Probability cube to be recalibrated.
         weighting_config (dict):
-            Dictionary from which to interpolate parameters of 
+            Dictionary from which to interpolate parameters of
             beta distribution. Dictionary format is as specified in
             improver.blending.recalibrate.Recalibrate
         
     Returns:
         iris.cube.Cube:
-            Recalibrated cube 
+            Recalibrated cube
 
     Raises:
         CoordinateNotFoundError:
