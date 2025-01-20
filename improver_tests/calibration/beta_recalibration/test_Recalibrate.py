@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 from scipy.stats import beta
 
-from improver.blending.recalibrate import Recalibrate
+from improver.calibration.beta_recalibration import Recalibrate
 from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
 from improver.utilities.cube_manipulation import MergeCubes
 
