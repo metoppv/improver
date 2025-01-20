@@ -29,12 +29,6 @@ def process(
     Returns:
         iris.cube.Cube:
             Recalibrated cube
-
-    Raises:
-        CoordinateNotFoundError:
-            If cube does not contain threshold dimension.
-        RuntimeError:
-            If interpolated beta distribution parameters are not > 0.
     """
     from improver.calibration.beta_recalibration import Recalibrate
 
