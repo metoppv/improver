@@ -68,6 +68,17 @@ def test_basic(multi_time_cube, data_times, collapse_crd):
     assert_array_equal(result.coord("forecast_period").bounds[0], expected_fp_bounds)
 
 
+@pytest.mark.parametrize("collapse_crd", ["time", "forecast_period"])
+def test_single_valued(multi_time_cube, data_times, collapse_crd):
+    """Test that a cube with a single valued time coordinate is returned
+    unchanged."""
+
+    cube = multi_time_cube[0]
+    result = collapse_time(cube, collapse_crd, iris.analysis.SUM)
+
+    assert result is cube
+
+
 @pytest.mark.parametrize(
     "collapse_crd", ["times_tables", "forecast_periodicity", "kittens"]
 )
