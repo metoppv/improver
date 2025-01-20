@@ -1,13 +1,13 @@
-import iris
-import pytest
-from improver.synthetic_data.set_up_test_cubes import (
-    set_up_probability_cube,
-)
 from datetime import datetime
+
+import iris
 import numpy as np
-from improver.utilities.cube_manipulation import MergeCubes
-from improver.blending.recalibrate import Recalibrate
+import pytest
 from scipy.stats import beta
+
+from improver.blending.recalibrate import Recalibrate
+from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
+from improver.utilities.cube_manipulation import MergeCubes
 
 
 @pytest.fixture
@@ -38,10 +38,11 @@ def test_invalid_params(forecast_grid):
         "forecast_period": [0, 1],
         "alpha": [2, 0],
         "beta": [2, 1],
-        "units": "hours"}
+        "units": "hours",
+    }
     plugin = Recalibrate(recalibration_dict)
     with pytest.raises(RuntimeError, match=msg):
-        plugin.process(forecast_grid)   
+        plugin.process(forecast_grid)
 
 
 def test_recalibrate(forecast_grid):
@@ -50,7 +51,8 @@ def test_recalibrate(forecast_grid):
         "forecast_period": [0, 1],
         "alpha": [0, 1],
         "beta": [0, 2],
-        "units": "hours"}
+        "units": "hours",
+    }
     plugin = Recalibrate(recalibration_dict)
     result = plugin.process(forecast_grid)
     f1 = forecast_grid.extract(iris.Constraint(time=lambda cell: cell.point.hour == 4))
@@ -69,7 +71,8 @@ def test_params_equal_1(forecast_grid):
         "forecast_period": [0, 1],
         "alpha": [1, 1],
         "beta": [1, 1],
-        "units": "hours"}
+        "units": "hours",
+    }
     plugin = Recalibrate(recalibration_dict)
     result = plugin.process(forecast_grid)
 
