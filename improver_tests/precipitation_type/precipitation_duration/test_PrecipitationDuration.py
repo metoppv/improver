@@ -11,9 +11,9 @@ from typing import List, Tuple
 
 import iris
 import numpy as np
-from numpy import ndarray
 import pytest
 from iris.cube import CubeList
+from numpy import ndarray
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 from improver.precipitation_type.precipitation_duration import PrecipitationDuration
@@ -27,7 +27,9 @@ DEFAULT_RATE_NAME = "probability_of_lwe_precipitation_rate_above_threshold"
 DEFAULT_RATE_THRESH_NAME = "lwe_precipitation_rate"
 
 
-def data_times(start_time: datetime, end_time: datetime, period: timedelta) -> Tuple[datetime, List[datetime], List[List[datetime]]]:
+def data_times(
+    start_time: datetime, end_time: datetime, period: timedelta
+) -> Tuple[datetime, List[datetime], List[List[datetime]]]:
     """Define the times for the input cubes."""
     frt = start_time - 2 * period
     times = []
@@ -40,7 +42,15 @@ def data_times(start_time: datetime, end_time: datetime, period: timedelta) -> T
     return frt, times, bounds
 
 
-def multi_time_cube(frt: datetime, times: Tuple[List[datetime]], bounds: Tuple[List[List[datetime]]], data: ndarray, thresh: List[float], diagnostic_name: str, units: str):
+def multi_time_cube(
+    frt: datetime,
+    times: Tuple[List[datetime]],
+    bounds: Tuple[List[List[datetime]]],
+    data: ndarray,
+    thresh: List[float],
+    diagnostic_name: str,
+    units: str,
+) -> CubeList:
     """Create diagnostic cubes describing period data for each input time."""
     cubes = CubeList()
     for time, time_bounds, diagnostic_data in zip(times, bounds, data):
@@ -59,10 +69,23 @@ def multi_time_cube(frt: datetime, times: Tuple[List[datetime]], bounds: Tuple[L
 
 
 @pytest.fixture
-def precip_cubes(start_time, end_time, period):
+def precip_cubes(
+    start_time: datetime, end_time: datetime, period: timedelta
+) -> CubeList:
     """Create precipitation rate and accumulation cubes valid at a range of
     times. These cubes have default threshold and data values for tests
-    where setting these is of no interest."""
+    where setting these is of no interest.
+
+    Args:
+        start_time: The start time of the input cubes (the lower bound of the
+                    first time coordinate).
+        end_time: The end time of the input cubes (the upper bound of the last
+                  time coordinate).
+        period: The period of the input cubes.
+    Returns:
+        CubeList: A list of cubes representing the input data with bespoke
+                  periods and times, but using default thresholds and data.
+    """
 
     frt, times, bounds = data_times(start_time, end_time, period)
     period_hours = period.total_seconds() / 3600
@@ -87,16 +110,36 @@ def precip_cubes(start_time, end_time, period):
 
 @pytest.fixture
 def precip_cubes_custom(
-    start_time, end_time, period, acc_data, rate_data, acc_thresh, rate_thresh
-):
+    start_time: datetime,
+    end_time: datetime,
+    period: timedelta,
+    acc_data: ndarray,
+    rate_data: ndarray,
+    acc_thresh: List[float],
+    rate_thresh: List[float],
+) -> CubeList:
     """Create precipitation rate and accumulation cubes valid at a range of
     times. The thresholds and data must be provided. Thresholds are expected
     in units of mm for accumulations and mm/hr for rates; these are converted
     to SI units when creating the cubes. The accumulation threshold is
     mulitplied up by the period. This means the accumulation threshold
     argument represents the accumulation per hour, which is what the user will
-    specify when using the plugin."""
+    specify when using the plugin.
 
+    Args:
+        start_time: The start time of the input cubes (the lower bound of the
+                    first time coordinate).
+        end_time: The end time of the input cubes (the upper bound of the last
+                  time coordinate).
+        period: The period of the input cubes.
+        acc_data: The accumulation probabilities for the input cubes.
+        rate_data: The rate probabilities for the input cubes.
+        acc_thresh: The accumulation threshold for the input cubes.
+        rate_thresh: The rate threshold for the input cubes.
+    Returns:
+        CubeList: A list of cubes representing the input data with bespoke
+                  periods, times, thresholds, and data.
+    """
     frt, times, bounds = data_times(start_time, end_time, period)
     period_hours = period.total_seconds() / 3600
     acc_thresh = [period_hours * item / 1000.0 for item in acc_thresh]
@@ -132,7 +175,9 @@ def precip_cubes_custom(
         ),
     ],
 )
-def test__period_in_hours(start_time: datetime, end_time: datetime, period: timedelta, precip_cubes):
+def test__period_in_hours(
+    start_time: datetime, end_time: datetime, period: timedelta, precip_cubes: CubeList
+):
     """Test that the period is calculated correctly from the input cubes."""
 
     plugin = PrecipitationDuration(0, 0, 0)
@@ -189,7 +234,11 @@ def test__period_in_hours_exception():
     ],
 )
 def test__construct_thresholds(
-    acc_thresh: float, rate_thresh:float, period: timedelta, expected_acc: List[float], expected_rate: List[float]
+    acc_thresh: float,
+    rate_thresh: float,
+    period: timedelta,
+    expected_acc: List[float],
+    expected_rate: List[float],
 ):
     """Test that the thresholds are constructed correctly. Inputs are in units
     involving mm, but all outputs are in SI units. Accumulation thresholds,
@@ -215,7 +264,9 @@ def test__construct_thresholds(
         (0.1, 0.1, "kittens", "puppies"),
     ],
 )
-def test__construct_constraints(acc_thresh: float, rate_thresh: float, acc_name: str, rate_name: str):
+def test__construct_constraints(
+    acc_thresh: float, rate_thresh: float, acc_name: str, rate_name: str
+):
     """Test that iris constraints for the given thresholds are constructed and
     returned correctly."""
 
@@ -254,8 +305,8 @@ def test__construct_constraints(acc_thresh: float, rate_thresh: float, acc_name:
             [4],
             np.ones((3, 4)),
         ),  # Accumulation and rate probabilities are 1 for both input hours.
-            # The resulting total period fraction is 1 for the combined period
-            # at all points.
+        # The resulting total period fraction is 1 for the combined period
+        # at all points.
         (
             datetime(2025, 1, 15, 0),
             datetime(2025, 1, 15, 9),
@@ -266,7 +317,7 @@ def test__construct_constraints(acc_thresh: float, rate_thresh: float, acc_name:
             [4],
             np.ones((3, 4)),
         ),  # As above but for 3 hour input periods, with 3 of them comprising
-            # the total period.
+        # the total period.
         (
             datetime(2025, 1, 15, 0),
             datetime(2025, 1, 15, 9),
@@ -277,8 +328,8 @@ def test__construct_constraints(acc_thresh: float, rate_thresh: float, acc_name:
             [4, 8],
             np.ones((2, 2, 3, 4)),
         ),  # Multiple thresholds for both the accumulation and maximum rate.
-            # Again the total period fractions are 1 in this case as all input
-            # probabilities are 1.
+        # Again the total period fractions are 1 in this case as all input
+        # probabilities are 1.
         (
             datetime(2025, 1, 15, 0),
             datetime(2025, 1, 15, 6),
@@ -287,23 +338,28 @@ def test__construct_constraints(acc_thresh: float, rate_thresh: float, acc_name:
             np.stack([np.ones((1, 3, 4)), np.zeros((1, 3, 4))]),
             [0.1],
             [4],
-            np.full((3, 4), 0.5)
+            np.full((3, 4), 0.5),
         ),  # Maximum rate in period probabilities of 1 for half of the time
-            # and 0 for half of the time, resulting in total period fractions
-            # of 0.5.
+        # and 0 for half of the time, resulting in total period fractions
+        # of 0.5.
         (
             datetime(2025, 1, 15, 0),
             datetime(2025, 1, 15, 6),
             timedelta(hours=3),
             np.ones((2, 2, 3, 4)),
-            np.stack([np.stack([np.ones((3, 4)), np.zeros((3, 4))]), np.stack([np.ones((3, 4)), np.zeros((3, 4))])]),
+            np.stack(
+                [
+                    np.stack([np.ones((3, 4)), np.zeros((3, 4))]),
+                    np.stack([np.ones((3, 4)), np.zeros((3, 4))]),
+                ]
+            ),
             [0.1, 1.0],
             [2, 4],
             np.stack([np.ones((2, 3, 4)), np.zeros((2, 3, 4))]),
         ),  # Maximum rate in period probabilities are 1 for the lower
-            # threshold and 0 for the higher threshold. The result is a total
-            # period fraction of 1.0 relative to the lower rate threshold and
-            # 0 relative to the higher rate threshold.
+        # threshold and 0 for the higher threshold. The result is a total
+        # period fraction of 1.0 relative to the lower rate threshold and
+        # 0 relative to the higher rate threshold.
         (
             datetime(2025, 1, 15, 0),
             datetime(2025, 1, 15, 3),
@@ -314,31 +370,38 @@ def test__construct_constraints(acc_thresh: float, rate_thresh: float, acc_name:
             [4],
             np.ones((3, 4)),
         ),  # A single time input, resulting in an output describing the same
-            # period. Total period fractions are 1 at all points.
+        # period. Total period fractions are 1 at all points.
         (
             datetime(2025, 1, 15, 0),
             datetime(2025, 1, 15, 5),
             timedelta(hours=1),
             np.ones((5, 1, 5, 5)),
-            np.stack([np.r_[[1] * a, [0] * b].reshape((1, 5, 5)) for a,b in zip(range(25, 0, -5), range(0, 25, 5))]).astype(np.float32),
+            np.stack(
+                [
+                    np.r_[[1] * a, [0] * b].reshape((1, 5, 5))
+                    for a, b in zip(range(25, 0, -5), range(0, 25, 5))
+                ]
+            ).astype(np.float32),
             [0.1],
             [4],
-            np.stack([np.r_[np.full((5), a)] for a in np.arange(1, 0, -0.2)]).astype(np.float32)
+            np.stack([np.r_[np.full((5), a)] for a in np.arange(1, 0, -0.2)]).astype(
+                np.float32
+            ),
         ),  # Accumulation probabilities vary by row with time such that the
-            # total period fraction for the top row is 1, the second row is
-            # 0.8, etc. down to 0.2 for the bottom row.
+        # total period fraction for the top row is 1, the second row is
+        # 0.8, etc. down to 0.2 for the bottom row.
     ],
 )
 def test_process(
-    start_time,
-    end_time,
-    period,
-    acc_data,
-    rate_data,
-    acc_thresh,
-    rate_thresh,
-    expected,
-    precip_cubes_custom,
+    start_time: datetime,
+    end_time: datetime,
+    period: timedelta,
+    acc_data: ndarray,
+    rate_data: ndarray,
+    acc_thresh: List[float],
+    rate_thresh: List[float],
+    expected: ndarray,
+    precip_cubes_custom: CubeList,
 ):
     """Test the plugin produces the expected output. The creation of the
     output cube is also tested here."""
@@ -350,7 +413,117 @@ def test_process(
     result = plugin.process(precip_cubes_custom)
 
     assert_array_equal(result.data, expected)
-    assert_array_almost_equal(result.coord("lwe_thickness_of_precipitation_amount").points, np.array(acc_thresh) / 1000)
-    assert_array_almost_equal(result.coord("lwe_precipitation_rate").points, np.array(rate_thresh) / (3600 * 1000))
+    assert_array_almost_equal(
+        result.coord("lwe_thickness_of_precipitation_amount").points,
+        np.array(acc_thresh) / 1000,
+    )
+    assert_array_almost_equal(
+        result.coord("lwe_precipitation_rate").points,
+        np.array(rate_thresh) / (3600 * 1000),
+    )
     assert result.attributes["input_period_in_hours"] == period_hours
     assert np.diff(result.coord("time").bounds) == total_period
+
+
+def test_process_exception_thresholds():
+    """Test an exception is raised if the input cubes do not contain the
+    required thresholds."""
+
+    time_args = data_times(
+        datetime(2025, 1, 15, 0), datetime(2025, 1, 15, 2), timedelta(hours=1)
+    )
+    data = np.ones((2, 1, 3, 4))
+
+    cubes = CubeList()
+    cubes.extend(multi_time_cube(*time_args, data, [2.0], DEFAULT_ACC_THRESH_NAME, "m"))
+    cubes.extend(
+        multi_time_cube(*time_args, data, [8.0], DEFAULT_RATE_THRESH_NAME, "m/s")
+    )
+
+    plugin = PrecipitationDuration(1.0, 7.0, 2)
+    msg = "Input cubes do not contain the expected diagnostics or thresholds."
+    with pytest.raises(ValueError, match=msg):
+        plugin.process(cubes)
+
+
+def test_process_exception_names():
+    """Test an exception is raised if the input cubes do not have the
+    expected diagnostic names."""
+
+    time_args = data_times(
+        datetime(2025, 1, 15, 0), datetime(2025, 1, 15, 2), timedelta(hours=1)
+    )
+    data = np.ones((2, 1, 3, 4))
+
+    cubes = CubeList()
+    cubes.extend(multi_time_cube(*time_args, data, [1.0 / 1000], "kittens", "m"))
+    cubes.extend(
+        multi_time_cube(*time_args, data, [7.0 / (3600 * 1000)], "puppies", "m/s")
+    )
+
+    plugin = PrecipitationDuration(1.0, 7.0, 2)
+    msg = "Input cubes do not contain the expected diagnostics or thresholds."
+    with pytest.raises(ValueError, match=msg):
+        plugin.process(cubes)
+
+
+def test_process_exception_differing_time():
+    """Test an exception is raised if the input cubes have differing time
+    dimensions, meaning they cannot be used together."""
+
+    cubes = CubeList()
+    time_args = data_times(
+        datetime(2025, 1, 15, 0), datetime(2025, 1, 15, 2), timedelta(hours=1)
+    )
+    data = np.ones((2, 1, 3, 4))
+    cubes.extend(
+        multi_time_cube(*time_args, data, [1.0 / 1000], DEFAULT_ACC_THRESH_NAME, "m")
+    )
+
+    time_args = data_times(
+        datetime(2025, 1, 15, 0), datetime(2025, 1, 15, 3), timedelta(hours=1)
+    )
+    data = np.ones((3, 1, 3, 4))
+    cubes.extend(
+        multi_time_cube(
+            *time_args, data, [7.0 / (3600 * 1000)], DEFAULT_RATE_THRESH_NAME, "m/s"
+        )
+    )
+
+    plugin = PrecipitationDuration(1.0, 7.0, 2)
+    msg = (
+        "Precipitation accumulation and maximum rate in period cubes "
+        "have differing time coordinates and cannot be used together."
+    )
+    with pytest.raises(ValueError, match=msg):
+        plugin.process(cubes)
+
+
+def test_process_exception_total_period():
+    """Test an exception is raised if the input cubes do not combine to cover
+    the specified target total period."""
+
+    time_args = data_times(
+        datetime(2025, 1, 15, 0), datetime(2025, 1, 15, 2), timedelta(hours=1)
+    )
+    data = np.ones((2, 1, 3, 4))
+
+    cubes = CubeList()
+    cubes.extend(
+        multi_time_cube(*time_args, data, [1.0 / 1000], DEFAULT_ACC_THRESH_NAME, "m")
+    )
+    cubes.extend(
+        multi_time_cube(
+            *time_args, data, [7.0 / (3600 * 1000)], DEFAULT_RATE_THRESH_NAME, "m/s"
+        )
+    )
+
+    target_period = 24
+    plugin = PrecipitationDuration(1.0, 7.0, target_period)
+    msg = (
+        "Input cubes do not combine to create the expected target "
+        "period. The period covered by the cubes passed in is: "
+        f"2.0 hours. Target is {target_period} hours."
+    )
+    with pytest.raises(ValueError, match=msg):
+        plugin.process(cubes)

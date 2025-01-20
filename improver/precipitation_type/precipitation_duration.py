@@ -210,6 +210,13 @@ class PrecipitationDuration(PostProcessingPlugin):
             are compared against these thresholds to be classified before
             determining how many such periods (what fraction) of the target
             period has been so classified.
+
+        Raises:
+            ValueError: If input cubes do not contain the expected diagnostics
+                        or diagnostic thresholds.
+            ValueError: If the input cubes have differing time coordinates.
+            ValueError: If the input cubes do not combine to create the expected
+                        target period.
         """
         cubes = as_cubelist(*cubes)
         self._period_in_hours(cubes)
@@ -223,7 +230,7 @@ class PrecipitationDuration(PostProcessingPlugin):
             max_precip_rate = MergeCubes()(cubes.extract(rate_constraint))
         except IndexError:
             raise ValueError(
-                "Input cubes do not contain the expected diagnostics or " "thresholds."
+                "Input cubes do not contain the expected diagnostics or thresholds."
             )
 
         if not max_precip_rate.coord("time") == precip_accumulation.coord("time"):
@@ -240,7 +247,7 @@ class PrecipitationDuration(PostProcessingPlugin):
             raise ValueError(
                 "Input cubes do not combine to create the expected target "
                 "period. The period covered by the cubes passed in is: "
-                f"{total_period} hours."
+                f"{total_period} hours. Target is {self.target_period} hours."
             )
 
         (n_periods,) = max_precip_rate.coord("time").shape
