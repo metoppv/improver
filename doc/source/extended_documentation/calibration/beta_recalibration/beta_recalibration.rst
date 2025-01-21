@@ -8,7 +8,8 @@ calibrated (for example, by reliability calibration or by the Rainforests calibr
 that, when blending probabilistic forecasts, even if each input is perfectly calibrated, the output is in general not perfectly calibrated. 
 The authors also show that applying a recalibration to the blended output improves its reliabiilty, sharpness, and score on proper scoring metrics. 
 IMPROVER implements the recalibration method studied in the 
-article, namely a transformation given by the cumulative distribution function of the the beta distribution. The implementation here allows the `alpha` and `beta` parameters of the beta distribution to vary by forecast period.
+article, namely a transformation given by the cumulative distribution function of the the beta distribution. 
+The implementation here allows the `alpha` and `beta` parameters of the beta distribution to vary by forecast period.
 
 .. _Ranjan & Gneiting, 2008: https://stat.uw.edu/sites/default/files/files/reports/2008/tr543.pdf
 
