@@ -34,6 +34,27 @@ def test_precipitation_duration_basic(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
+def test_shorter_period(tmp_path):
+    """Test basic precipitation duration calculation works for a
+    shorter period than a full day."""
+    kgo_dir = acc.kgo_root() / "precipitation_duration/standard_names"
+    kgo_path = kgo_dir / "kgo_short_period.nc"
+    input_cubes = kgo_dir.glob("20250119T0*.nc")
+    output_path = tmp_path / "output.nc"
+    args = [
+        *input_cubes,
+        "--min-accumulation-per-hour",
+        "0.1",
+        "--critical-rate",
+        "4.0",
+        "--target-period",
+        "9",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
 @pytest.mark.parametrize("min_accumulation, critical_rate", [(0.1 / 3, 2.0), (0.1, 4.0)])
 def test_different_threshold_parameters(tmp_path, min_accumulation, critical_rate):
     """Test precipitation duration with different parameters"""
