@@ -6,7 +6,7 @@
 
 
 from typing import List, Optional, Union
-
+import warnings
 import numpy as np
 import iris
 from iris.cube import Cube
@@ -58,9 +58,14 @@ def _interpolate_thresholds(
 
     original_mask = None
     if np.ma.is_masked(forecast_at_thresholds.data):
-        original_mask = forecast_at_thresholds.data.mask[0]
+        for threshold_slice in forecast_at_thresholds[1:].slices_over(threshold_coord_name):
+            if threshold_slice.data.mask.any() != forecast_at_thresholds[0].data.mask.any():
+                msg = f"The mask is expected to be constant across different slices of the {threshold_coord_name} dimension, however, in the dataset provided, the mask varies across the {threshold_coord_name} dimension. This is not currently supported."
+                raise ValueError(msg)
+            else:
+                original_mask = forecast_at_thresholds.data.mask[0]
 
-    # Ensure that the percentile dimension is first, so that the
+    # Ensure that the threshold dimension is first, so that the
     # conversion to a 2d array produces data in the desired order.
     enforce_coordinate_ordering(forecast_at_thresholds, threshold_coord_name)
     forecast_at_reshaped_thresholds = convert_cube_data_to_2d(
@@ -88,7 +93,8 @@ def _interpolate_thresholds(
     template_cube = next(forecast_at_thresholds.slices_over(threshold_coord_name))
     template_cube.remove_coord(threshold_coord_name)
     threshold_cube = create_cube_with_thresholds(
-        desired_thresholds, template_cube, forecast_at_thresholds_data
+        desired_thresholds, template_cube, forecast_at_thresholds_data,
+        threshold_coord_name,
     )
 
     if original_mask is not None:
@@ -103,7 +109,8 @@ def create_cube_with_thresholds(
     thresholds: Union[List[float], ndarray],
     template_cube: Cube,
     cube_data: ndarray,
-    cube_unit: Optional[Union[Unit, str]] = None,
+    threshold_coord_name: str,
+#    cube_unit: Optional[Union[Unit, str]] = None,
 ) -> Cube:
     """
     Create a cube with a threshold coordinate based on a template cube.
@@ -136,25 +143,26 @@ def create_cube_with_thresholds(
     cubes = iris.cube.CubeList([])
     for point in thresholds:
         cube = template_cube.copy()
-        cube.add_aux_coord(
-            iris.coords.AuxCoord(
-                np.float32(point)
-            )
+        coord = iris.coords.DimCoord(
+            np.array([point], dtype="float64"), units=cube.units
         )
+        coord.rename(threshold_coord_name)
+        coord.var_name = "threshold"
+        cube.add_aux_coord(coord)
         cubes.append(cube)
     result = cubes.merge_cube()
 
     # replace data and units
-    result.data = cube_data
-    if cube_unit is not None:
-        result.units = cube_unit
+#    result.data = cube_data
+#    if cube_unit is not None:
+#        result.units = cube_unit
 
     return result
 
 
 def Threshold_interpolation(
         forecast_at_thresholds: Cube,
-        thresholds: Optional[Union[float, List[float]]] = None,
+        thresholds: Optional[List] = None,
 ) -> Cube:
     """
     1. Creates a list of thresholds, if not provided.
@@ -176,22 +184,20 @@ def Threshold_interpolation(
 
     if thresholds is None:
         thresholds = forecast_at_thresholds.coord(threshold_coord).points
-
-        print(thresholds)
+        warnings.warn(f"No thresholds provided, using existing thresholds. Thresholds being used are: {list(thresholds)}")
 
     forecast_at_thresholds = _interpolate_thresholds(
         forecast_at_thresholds, thresholds, threshold_coord.name()
     )
 
-    collapsed_forecast_at_thresholds = weighted_blending(
-        forecast_at_thresholds,
-        coordinate='realization',
-        weighting_method='linear',
-        y0val=0.5, ynval=0.5,
-    )
+    if forecast_at_thresholds.coords('realization'):
+        collapsed_forecast_at_thresholds = weighted_blending(
+            extra_thresholds_vera_cube,
+            coordinate='realization',
+            weighting_method='linear',
+            y0val=0.5, ynval=0.5,
+        )
+        forecast_at_thresholds = collapsed_forecast_at_thresholds
 
-    return (collapsed_forecast_at_thresholds)
-
-
-
+    return (forecast_at_thresholds)
 
