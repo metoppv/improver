@@ -17,7 +17,7 @@ def test_calibration(tmp_path):
     """
     Test recalibration of a forecast using beta distribution.
     """
-    kgo_dir = acc.kgo_root() / "apply-beta-calibration"
+    kgo_dir = acc.kgo_root() / "apply-beta-recalibration"
     kgo_path = kgo_dir / "kgo.nc"
     forecast_path = kgo_dir / "forecast.nc"
     config_path = kgo_dir / "config.json"
