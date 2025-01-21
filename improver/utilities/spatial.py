@@ -551,7 +551,7 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
         points = axis.points
         if self._axis_wraps_around_meridian(axis, cube):
             points = np.hstack((points, 360 + points[0]))
-            if type(axis.coord_system) != GeogCS:
+            if type(axis.coord_system) is not GeogCS:
                 raise NotImplementedError(
                     "DifferenceBetweenAdjacentGridSquares does not support cubes with "
                     "circular x-axis that do not use a geographic (i.e. latlon) coordinate system."
@@ -871,6 +871,9 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
             ValueError: If a provided vicinity radius is negative.
             ValueError: Land mask not named land_binary_mask.
         """
+        if radii:
+            radii = [float(x) for x in radii]
+
         if radii and grid_point_radii:
             raise ValueError(
                 "Vicinity processing requires that only one of radii or "
