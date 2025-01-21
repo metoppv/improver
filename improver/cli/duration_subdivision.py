@@ -41,8 +41,8 @@ def process(
     accuracy to allow the subdivision to occur. This is the cost of this
     method.
 
-    Note that this method cannot account for any e.g. cloud that is
-    affecting the sunshine duration in a period. If a 6-hour period is
+    Note that this method cannot account for any weather impacts, e.g. cloud
+    that is affecting the sunshine duration in a period. If a 6-hour period is
     split into three 2-hour periods the split will be even regardless of
     when thick cloud might occur.
 

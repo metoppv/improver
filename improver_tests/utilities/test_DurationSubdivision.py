@@ -538,6 +538,20 @@ def test_construct_target_periods(kwargs, data, input_period, expected):
         ),  # Raise a ValueError as the target period is not a factor of the input period.
         (
             {
+                "target_period": 3600,
+                "fidelity": 7200,
+                "night_mask": False,
+                "day_mask": False,
+            },
+            np.full((3, 3), 10800),  # Data in the input cube.
+            dt(2024, 6, 15, 12),  # Validity time
+            10800,  # Input period
+            None,  # Expected data in the output cube (not used here).
+            None,  # List of realization numbers if any
+            "The fidelity period must be less than or equal to the target period.",  # Expected exception
+        ),  # Raise a ValueError as the fidelity period is longer than the target period.
+        (
+            {
                 "target_period": 7200,
                 "fidelity": 1800,
                 "night_mask": False,

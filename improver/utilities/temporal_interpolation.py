@@ -710,8 +710,8 @@ class DurationSubdivision:
     accuracy to allow the subdivision to occur. This is the cost of this
     method.
 
-    Note that this method cannot account for any e.g. cloud that is
-    affecting the sunshine duration in a period. If a 6-hour period is
+    Note that this method cannot account for any weather impacts e.g. cloud
+    that is affecting the sunshine duration in a period. If a 6-hour period is
     split into three 2-hour periods the split will be even regardless of
     when thick cloud might occur.
     """
@@ -784,15 +784,18 @@ class DurationSubdivision:
         return period
 
     def allocate_data(self, cube: Cube, period: int) -> Cube:
-        """Allocate fractions of the total duration to the shorter periods
-        and modify the metadata of the shorter period cubes appropriately.
+        """Allocate fractions of the original cube duration diagnostic to
+        shorter fidelity periods with metadata that describes these shorter
+        periods appropriately. The fidelity period cubes will be merged to
+        form a cube with a longer time dimension. This cube will be returned
+        and used elsewhere to construct the target period cubes.
 
         Args:
             cube:
                 The original period cube from which duration data will be
                 taken and divided up.
             period:
-                The target shorter period in seconds.
+                The period of the input cube in seconds.
         Returns:
             A cube, with a time dimension, that contains the subdivided data.
         """
@@ -904,6 +907,7 @@ class DurationSubdivision:
             ValueError: The target period is not a factor of the input period.
         """
         period = self.cube_period(cube)
+
         if period / self.target_period % 1 != 0:
             raise ValueError(
                 "The target period must be a factor of the original period "
@@ -911,7 +915,11 @@ class DurationSubdivision:
                 "period. "
                 f"Input period: {period}, target period: {self.target_period}"
             )
-
+        if self.fidelity > self.target_period:
+            raise ValueError(
+                "The fidelity period must be less than or equal to the "
+                "target period."
+            )
         # Ensure that the cube is already self-consistent and does not include
         # any durations that exceed the period described. This is mostly to
         # handle grib packing errors for ECMWF data.
