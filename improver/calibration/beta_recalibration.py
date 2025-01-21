@@ -25,7 +25,7 @@ class Recalibrate(PostProcessingPlugin):
                 recalibrating blended output using the beta distribution. Dictionary
                 format is as specified below. Weights will be interpolated over the
                 forecast period from the values specified in the dictionary.
- 
+
         Recalibration dictionary format::
             {   "forecast_period": [7, 12],
                 "alpha": [1, 1.5],
