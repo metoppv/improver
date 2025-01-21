@@ -25,7 +25,7 @@ def process(
             Dictionary from which to interpolate parameters of
             beta distribution. Dictionary format is as specified in
             improver.blending.recalibrate.Recalibrate
-        
+ 
     Returns:
         iris.cube.Cube:
             Recalibrated cube
