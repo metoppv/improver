@@ -27,6 +27,7 @@ class Recalibrate(PostProcessingPlugin):
                 forecast period from the values specified in the dictionary.
 
         Recalibration dictionary format::
+
             {
                 "forecast_period": [7, 12],
                 "alpha": [1, 1.5],
