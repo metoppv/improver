@@ -13,18 +13,21 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
-def test_precipitation_duration_basic(tmp_path):
-    """Test basic precipitation duration calculation"""
+@pytest.mark.parametrize(
+    "min_accumulation, critical_rate", [(0.1 / 3, 2.0), (0.1, 2.0)]
+)
+def test_different_threshold_parameters(tmp_path, min_accumulation, critical_rate):
+    """Test precipitation duration with different parameters"""
     kgo_dir = acc.kgo_root() / "precipitation_duration/standard_names"
-    kgo_path = kgo_dir / "kgo_basic.nc"
+    kgo_path = kgo_dir / f"kgo_acc_{min_accumulation:.2f}_rate_{critical_rate:.1f}.nc"
     input_cubes = kgo_dir.glob("2025*.nc")
     output_path = tmp_path / "output.nc"
     args = [
         *input_cubes,
         "--min-accumulation-per-hour",
-        "0.1",
+        f"{min_accumulation}",
         "--critical-rate",
-        "4.0",
+        f"{critical_rate}",
         "--target-period",
         "24",
         "--output",
@@ -49,30 +52,6 @@ def test_shorter_period(tmp_path):
         "4.0",
         "--target-period",
         "9",
-        "--output",
-        output_path,
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-@pytest.mark.parametrize(
-    "min_accumulation, critical_rate", [(0.1 / 3, 2.0), (0.1, 4.0)]
-)
-def test_different_threshold_parameters(tmp_path, min_accumulation, critical_rate):
-    """Test precipitation duration with different parameters"""
-    kgo_dir = acc.kgo_root() / "precipitation_duration/standard_names"
-    kgo_path = kgo_dir / f"kgo_acc_{min_accumulation:.2f}_rate_{critical_rate:.1f}.nc"
-    input_cubes = kgo_dir.glob("2025*.nc")
-    output_path = tmp_path / "output.nc"
-    args = [
-        *input_cubes,
-        "--min-accumulation-per-hour",
-        f"{min_accumulation}",
-        "--critical-rate",
-        f"{critical_rate}",
-        "--target-period",
-        "24",
         "--output",
         output_path,
     ]
