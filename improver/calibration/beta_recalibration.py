@@ -33,7 +33,7 @@ class Recalibrate(PostProcessingPlugin):
                 "beta": [1.3, 2],
                 "units": "hours",
             }
-        
+ 
         """
         self.recalibration_dict = recalibration_dict
 
