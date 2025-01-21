@@ -57,13 +57,15 @@ def _interpolate_thresholds(
     ).points
 
     original_mask = None
-    if np.ma.is_masked(forecast_at_thresholds.data):
-        for threshold_slice in forecast_at_thresholds[1:].slices_over(threshold_coord_name):
-            if threshold_slice.data.mask.any() != forecast_at_thresholds[0].data.mask.any():
-                msg = f"The mask is expected to be constant across different slices of the {threshold_coord_name} dimension, however, in the dataset provided, the mask varies across the {threshold_coord_name} dimension. This is not currently supported."
-                raise ValueError(msg)
-            else:
-                original_mask = forecast_at_thresholds.data.mask[0]
+    crd_dim, = forecast_at_thresholds.coord_dims(threshold_coord_name)
+    if np.diff(forecast_at_thresholds.data.mask, axis=crd_dim).any():
+        raise ValueError(
+                        f"The mask is expected to be constant across different slices of the {threshold_coord_name}"
+                        f" dimension, however, in the dataset provided, the mask varies across the {threshold_coord_name}"
+                        f" dimension. This is not currently supported."
+                    )
+    else:
+        original_mask = next(forecast_at_thresholds.slices_over(threshold_coord_name)).data.mask
 
     # Ensure that the threshold dimension is first, so that the
     # conversion to a 2d array produces data in the desired order.
@@ -110,7 +112,7 @@ def create_cube_with_thresholds(
     template_cube: Cube,
     cube_data: ndarray,
     threshold_coord_name: str,
-#    cube_unit: Optional[Union[Unit, str]] = None,
+
 ) -> Cube:
     """
     Create a cube with a threshold coordinate based on a template cube.
@@ -152,13 +154,9 @@ def create_cube_with_thresholds(
         cubes.append(cube)
     result = cubes.merge_cube()
 
-    # replace data and units
-#    result.data = cube_data
-#    if cube_unit is not None:
-#        result.units = cube_unit
-
+    # replace data
+    result.data = cube_data
     return result
-
 
 def Threshold_interpolation(
         forecast_at_thresholds: Cube,
@@ -192,7 +190,7 @@ def Threshold_interpolation(
 
     if forecast_at_thresholds.coords('realization'):
         collapsed_forecast_at_thresholds = weighted_blending(
-            extra_thresholds_vera_cube,
+            forecast_at_thresholds,
             coordinate='realization',
             weighting_method='linear',
             y0val=0.5, ynval=0.5,
