@@ -27,10 +27,11 @@ class Recalibrate(PostProcessingPlugin):
                 forecast period from the values specified in the dictionary.
 
         Recalibration dictionary format::
-            {   "forecast_period": [7, 12],
+            {
+                "forecast_period": [7, 12],
                 "alpha": [1, 1.5],
                 "beta": [1.3, 2],
-                "units": "hours"
+                "units": "hours",
             }
         """
         self.recalibration_dict = recalibration_dict
