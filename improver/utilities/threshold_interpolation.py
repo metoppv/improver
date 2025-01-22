@@ -23,7 +23,7 @@ from improver.metadata.probabilistic import (
     find_threshold_coordinate,
 )
 
-from improver.cli.weighted_blending import process as weighted_blending
+from improver.utilities.cube_manipulation import collapse_realizations
 
 from improver.utilities.cube_manipulation import (
     enforce_coordinate_ordering,
@@ -57,15 +57,16 @@ def _interpolate_thresholds(
     ).points
 
     original_mask = None
-    crd_dim, = forecast_at_thresholds.coord_dims(threshold_coord_name)
-    if np.diff(forecast_at_thresholds.data.mask, axis=crd_dim).any():
-        raise ValueError(
-                        f"The mask is expected to be constant across different slices of the {threshold_coord_name}"
-                        f" dimension, however, in the dataset provided, the mask varies across the {threshold_coord_name}"
-                        f" dimension. This is not currently supported."
-                    )
-    else:
-        original_mask = next(forecast_at_thresholds.slices_over(threshold_coord_name)).data.mask
+    if np.ma.is_masked(forecast_at_thresholds.data):
+        crd_dim, = forecast_at_thresholds.coord_dims(threshold_coord_name)
+        if np.diff(forecast_at_thresholds.data.mask, axis=crd_dim).any():
+            raise ValueError(
+                            f"The mask is expected to be constant across different slices of the {threshold_coord_name}"
+                            f" dimension, however, in the dataset provided, the mask varies across the {threshold_coord_name}"
+                            f" dimension. This is not currently supported."
+                        )
+        else:
+            original_mask = next(forecast_at_thresholds.slices_over(threshold_coord_name)).data.mask
 
     # Ensure that the threshold dimension is first, so that the
     # conversion to a 2d array produces data in the desired order.
@@ -189,11 +190,9 @@ def Threshold_interpolation(
     )
 
     if forecast_at_thresholds.coords('realization'):
-        collapsed_forecast_at_thresholds = weighted_blending(
+        collapsed_forecast_at_thresholds = collapse_realizations(
             forecast_at_thresholds,
-            coordinate='realization',
-            weighting_method='linear',
-            y0val=0.5, ynval=0.5,
+            method='mean',
         )
         forecast_at_thresholds = collapsed_forecast_at_thresholds
 
