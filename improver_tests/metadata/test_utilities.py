@@ -5,24 +5,24 @@
 """Tests for the improver.metadata.utilities module"""
 
 import unittest
+from datetime import datetime, timedelta
 from typing import Callable, List
 
 import iris
 import numpy as np
-from numpy.testing import assert_array_equal
 import pytest
 from iris.cube import Cube, CubeList
-from datetime import datetime, timedelta
+from numpy.testing import assert_array_equal
 
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.metadata.utilities import (
     check_grid_match,
     create_coordinate_hash,
     create_new_diagnostic_cube,
+    enforce_time_point_standard,
     generate_hash,
     generate_mandatory_attributes,
     get_model_id_attr,
-    enforce_time_point_standard,
 )
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
@@ -483,7 +483,7 @@ def data_times():
     times = []
     for hour in range(3, 9 + 1, 3):
         time = frt + timedelta(hours=hour)
-        bounds = ([time, time + timedelta(hours=3)])
+        bounds = [time, time + timedelta(hours=3)]
         times.append((frt, time, bounds))
     return times
 
