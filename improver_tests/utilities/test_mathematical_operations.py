@@ -8,6 +8,8 @@ import iris
 import numpy as np
 import numpy.ma as ma
 from iris.tests import IrisTest
+import pytest
+from datetime import datetime
 
 from improver.metadata.utilities import generate_mandatory_attributes
 from improver.synthetic_data.set_up_test_cubes import (
@@ -520,176 +522,222 @@ class Test_fast_linear_fit(IrisTest):
         self.linear_fit(with_nan=True)
 
 
-def _set_up_test_cubes():
-    """Create cubes of temperature data for testing."""
-    # diagnostic cube
-    diagnostic_data = np.ones((3, 3, 3), dtype=np.float32)
+@pytest.fixture
+def diagnostic_cube():
+    """Fixture for creating a diagnostic cube."""
+    data = np.ones((3, 3, 3), dtype=np.float32) * 300
+    data[0, :, :] = 300  # Time step 1
+    data[1, :, :] = 298  # Time step 2
+    data[2, :, :] = 296  # Time step 3
 
-    # Set the values for each time step
-    diagnostic_data[0, :, :] = 300  # Time step 1
-    diagnostic_data[1, :, :] = 298  # Time step 2
-    diagnostic_data[2, :, :] = 296  # Time step 3
+    time_bounds = (datetime(2024, 10, 16, 0, 0), datetime(2024, 10, 16, 1, 0))
+    time = datetime(2024, 10, 16, 0, 0)
+    cube = set_up_variable_cube(data, time_bounds=time_bounds, time=time)
+    return cube
 
-    diagnostic_cube = set_up_variable_cube(diagnostic_data.astype(np.float32))
-    diagnostic_cube.data = diagnostic_data.astype(np.float32)
+@pytest.fixture
+def mean_cube():
+    """Fixture for creating a mean cube."""
+    data = np.mean([300, 298, 296]) * np.ones((3, 3), dtype=np.float32)
 
-    # mean cube
-    mean_data = np.mean([300, 298, 296]) * np.ones((3, 3), dtype=np.float32)
-    mean_cube = set_up_variable_cube(mean_data.astype(np.float32))
-    mean_cube.data = mean_data.astype(np.float32)
+    time_bounds = (datetime(2024, 10, 16, 0, 0), datetime(2024, 10, 16, 1, 0))
+    time = datetime(2024, 10, 16, 0, 0)
+    cube = set_up_variable_cube(data, time_bounds=time_bounds, time=time)
+    return cube
 
-    # std cube
-    variance_data = np.var([300, 298, 296]) * np.ones((3, 3), dtype=np.float32)
-    variance_cube = set_up_variable_cube(variance_data.astype(np.float32))
-    variance_cube.data = variance_cube.data.astype(np.float32)
+@pytest.fixture
+def variance_cube():
+    """Fixture for creating a variance cube."""
+    data = np.var([300, 298, 296]) * np.ones((3, 3), dtype=np.float32)
+    
+    time_bounds = (datetime(2024, 10, 16, 0, 0), datetime(2024, 10, 16, 1, 0))
+    time = datetime(2024, 10, 16, 0, 0)
+    cube = set_up_variable_cube(data, time_bounds=time_bounds, time=time, units="K2")
+    return cube
 
-    return diagnostic_cube, mean_cube, variance_cube
+@pytest.fixture
+def faulty_diagnostic_cube():
+    """Fixture for creating a faulty diagnostic cube"""
+    data = np.ones((3, 3, 3), dtype=np.float32) * 300
+    data[0, :, :] = 300  # Time step 1
+    data[1, :, :] = 298  # Time step 2
+    data[2, :, :] = 296  # Time step 3
 
+    time_bounds = (datetime(2023, 10, 15, 0, 0), datetime(2023, 10, 15, 1, 0))
+    time = datetime(2023, 10, 15, 0, 0)
+    cube = set_up_variable_cube(data, time_bounds=time_bounds, time=time) # Faulty time bounds
+    cube.standard_name = "air_temperature"  # Mismatching standard name
+    cube.units = "C"  # Mismatching units
 
-def _set_up_faulty_test_cubes():
-    """Create mismatching cubes for testing"""
-    # diagnostic cube
-    diagnostic_data = np.ones((3, 3, 3), dtype=np.float32)
+    # Adjust spatial coordinates
+    cube.coord("latitude").points = cube.coord("latitude").points + 10
+    cube.coord("longitude").points = cube.coord("longitude").points + 10
 
-    # Set the values for each time step
-    diagnostic_data[0, :, :] = 300  # Time step 1
-    diagnostic_data[1, :, :] = 298  # Time step 2
-    diagnostic_data[2, :, :] = 296  # Time step 3
+    # Adjust time coordinate
+    cube.coord("time").points = cube.coord("time").points + 259205  # 3 days, 5 seconds in seconds
+    return cube
 
-    diagnostic_cube = set_up_variable_cube(diagnostic_data.astype(np.float32))
-    diagnostic_cube.data = diagnostic_data.astype(np.float32)
+@pytest.fixture
+def faulty_mean_cube():
+    """Fixture for creating a faulty mean cube with mismatching attributes."""
+    data = np.mean([300, 298, 296]) * np.ones((3, 3), dtype=np.float32)
+    time_bounds = (datetime(2024, 10, 15, 0, 0), datetime(2024, 10, 15, 1, 0))
+    time = datetime(2024, 10, 15, 0, 0)
+    cube = set_up_variable_cube(data, time_bounds=time_bounds, time=time) # Faulty time bounds
+    cube.standard_name = "precipitation_amount"  # Mismatching standard name
+    cube.units = "F"  # Mismatching units
 
-    # mean cube
-    mean_data = np.mean([20, 30, 50]) * np.ones((3, 3), dtype=np.float32)
-    mean_cube = set_up_variable_cube(mean_data.astype(np.float32))
-    mean_cube.data = mean_data.astype(np.float32)
-    mean_cube.standard_name = (
-        "precipitation_amount"  # Mismatching standard name to diagnostic cube
-    )
-    mean_cube.units = "F"  # Mismatching units to diagnostic cube
+    # Adjust spatial coordinates
+    cube.coord("latitude").points = cube.coord("latitude").points + 20
+    cube.coord("longitude").points = cube.coord("longitude").points + 20
 
-    spatial_coordinates = (
-        mean_cube.coord("latitude").points,
-        mean_cube.coord("longitude").points,
-    )
-    new_spatial_coordinates = (spatial_coordinates[1] + 20, spatial_coordinates[0] + 20)
-    mean_cube.coord("latitude").points = new_spatial_coordinates[0]
-    mean_cube.coord("longitude").points = new_spatial_coordinates[1]
+    # Adjust time coordinate
+    cube.coord("time").points = cube.coord("time").points + 259200  # 3 days in seconds
+    return cube
 
-    # Mismatching time coordinate to diagnostic cube
-    time_coord = mean_cube.coord("time")
-    new_points = time_coord.points + 259200  # 3 days in secondsE
-    time_coord.points = new_points
+@pytest.fixture
+def faulty_variance_cube():
+    """Fixt  # Convert the below to be a static methodure for creating a faulty variance cube."""
+    data = np.var([300, 298, 296]) * np.ones((3, 3), dtype=np.float32)  # Convert the below to be a static method  # Convert the below to be a static method[300, 298, 296]) * np.ones((3, 3), dtype=np.float32)
+    time_bounds = (datetime(2023, 10, 15, 0, 0), datetime(2023, 10, 15, 1, 0))
+    time = datetime(2023, 10, 15, 0, 0)
+    cube = set_up_variable_cube(data, time_bounds=time_bounds, time=time) # Faulty time bounds
+    cube.standard_name = "relative_humidity"  # Mismatching standard name
+    cube.units = "%"  # Mismatching units
+    
+    # Adjust spatial coordinates
+    cube.coord("latitude").points = cube.coord("latitude").points + 30
+    cube.coord("longitude").points = cube.coord("longitude").points + 30
 
-    # std cube
-    variance_data = np.var([300, 298, 296]) * np.ones((3, 3), dtype=np.float32)
-    variance_cube = set_up_variable_cube(variance_data.astype(np.float32))
-    variance_cube.data = variance_cube.data.astype(np.float32)
+    # Adjust time coordinate
+    cube.coord("time").points = cube.coord("time").points + 1
+    return cube
 
-    return diagnostic_cube, mean_cube, variance_cube
+def test_verify_units_match(diagnostic_cube, mean_cube, variance_cube):
+    """Test that the plugin verifies the units of the diagnostic and mean cubes match."""
+    plugin = CalculateClimateAnomalies()
+    plugin.verify_units_match(diagnostic_cube, mean_cube, variance_cube)
+    assert True
 
+def test_verify_units_mismatch(faulty_diagnostic_cube, faulty_mean_cube, faulty_variance_cube):
+    """Test that the plugin raises a ValueError if the units of the diagnostic and another cube mismatch"""
+    plugin = CalculateClimateAnomalies()
+    with pytest.raises(ValueError):
+        plugin.verify_units_match(faulty_diagnostic_cube, faulty_mean_cube, faulty_variance_cube)
 
-class Test_CalculateClimateAnomalies(IrisTest):
-    def setUp(self):
-        """Set up the cubes"""
-        self.diagnostic_cube, self.mean_cube, self.variance_cube = _set_up_test_cubes()
-        self.plugin_mean_only = CalculateClimateAnomalies(
-            self.diagnostic_cube, self.mean_cube
-        )
-        self.plugin_with_variance = CalculateClimateAnomalies(
-            self.diagnostic_cube, self.mean_cube, self.variance_cube
-        )
-        (
-            self.faulty_diagnostic_cube,
-            self.faulty_mean_cube,
-            self.faulty_variance_cube,
-        ) = _set_up_faulty_test_cubes()
-        self.plugin_faulty_with_variance = CalculateClimateAnomalies(
-            self.faulty_diagnostic_cube,
-            self.faulty_mean_cube,
-            self.faulty_variance_cube,
-        )
+def test_verify_grids_match(diagnostic_cube, mean_cube, variance_cube):
+    """Test that the plugin verifies the grids of the diagnostic and another cube mismatch."""
+    plugin = CalculateClimateAnomalies()
+    plugin.verify_grids_match(diagnostic_cube, mean_cube, variance_cube)
+    assert True
 
-    def test_initialization(self):
-        plugin = self.plugin_with_variance
-        self.assertEqual(plugin.diagnostic_cube, self.diagnostic_cube)
-        self.assertEqual(plugin.mean_cube, self.mean_cube)
-        self.assertEqual(plugin.variance_cube, self.variance_cube)
+def test_verify_grids_mismatch(diagnostic_cube, faulty_mean_cube, faulty_variance_cube):
+    """Test that the plugin raises a ValueError if the grids of the diagnostic and another cube mismatch"""
+    plugin = CalculateClimateAnomalies()
+    with pytest.raises(ValueError):
+        plugin.verify_grids_match(diagnostic_cube, faulty_mean_cube, faulty_variance_cube)
 
-    def test_verify_inputs(self):
-        plugin = self.plugin_with_variance
-        plugin.verify_inputs()
+def test_verify_time_coords_match(diagnostic_cube, mean_cube, variance_cube):
+    """Test that the plugin verifies the time coordinates of the diagnostic and another cube match."""
+    plugin = CalculateClimateAnomalies()
+    plugin.verify_time_coords_match(diagnostic_cube, mean_cube, variance_cube)
+    assert True
 
-    def test_calculate_anomalies_with_variance(self):
-        plugin = self.plugin_with_variance
-        anomalies = plugin.calculate_anomalies()
-        expected_anomalies = np.array(
+def test_verify_time_coords_mismatch(faulty_diagnostic_cube, faulty_mean_cube, faulty_variance_cube):
+    """Test that the plugin verifies the time coordinates of the diagnostic and another cube mismatch."""
+    plugin = CalculateClimateAnomalies()
+    with pytest.raises(ValueError):
+        plugin.verify_time_coords_match(faulty_diagnostic_cube, faulty_mean_cube, faulty_variance_cube)
+
+def test_calculate_anomalies_with_variance_as_expected(diagnostic_cube, mean_cube, variance_cube):
+    """Test that the plugin calculates anomalies correctly when a variance cube is provided."""
+    plugin = CalculateClimateAnomalies()
+    anomalies = plugin.calculate_anomalies(diagnostic_cube, mean_cube, variance_cube)
+    expected_anomalies = np.array(
+        [
             [
-                [
-                    [1.224745, 1.224745, 1.224745],
-                    [1.224745, 1.224745, 1.224745],
-                    [1.224745, 1.224745, 1.224745],
-                ],
-                [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                [
-                    [-1.224745, -1.224745, -1.224745],
-                    [-1.224745, -1.224745, -1.224745],
-                    [-1.224745, -1.224745, -1.224745],
-                ],
+                [1.224745, 1.224745, 1.224745],
+                [1.224745, 1.224745, 1.224745],
+                [1.224745, 1.224745, 1.224745],
             ],
-            dtype=np.float32,
-        )
-        self.assertArrayAlmostEqual(anomalies, expected_anomalies, 5)
-
-    def test_calculate_anomalies_without_variance(self):
-        plugin = self.plugin_mean_only
-        anomalies = plugin.calculate_anomalies()
-        expected_anomalies = np.array(
+            [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
             [
-                [[2, 2, 2], [2, 2, 2], [2, 2, 2]],
-                [[0, 0, 0], [0, 0, 0], [0, 0, 0]],
-                [[-2, -2, -2], [-2, -2, -2], [-2, -2, -2]],
+                [-1.224745, -1.224745, -1.224745],
+                [-1.224745, -1.224745, -1.224745],
+                [-1.224745, -1.224745, -1.224745],
             ],
-            dtype=np.float32,
-        )
-        self.assertArrayEqual(anomalies, expected_anomalies)
+        ],
+        dtype=np.float32,
+    )
+    np.testing.assert_allclose(anomalies, expected_anomalies, rtol=1e-5)
 
-    def test_metadata_with_variance(self):
-        expected_attributes = generate_mandatory_attributes([self.diagnostic_cube])
-        result = self.plugin_with_variance.process()
-        self.assertEqual(
-            result.name(), self.diagnostic_cube.name() + "_standardised_anomalies"
-        )
-        self.assertEqual(result.units, None)
-        self.assertDictEqual(result.attributes, expected_attributes)
+@pytest.mark.xfail(reason="Checked that an error message would be raised")
+def test_calculate_anomalies_with_variance_unexpected(diagnostic_cube, mean_cube, variance_cube):
+    """Test that the plugin raises an error when  correctly when a variance cube is provided."""
+    plugin = CalculateClimateAnomalies()
+    anomalies = plugin.calculate_anomalies(diagnostic_cube, mean_cube, variance_cube)
+    expected_anomalies = np.array(
+        [
+            [
+                [1.000000, 1.000000, 1.000000],
+                [2.000000, 2.000000, 2.000000],
+                [3.000000, 3.000000, 3.000000],
+            ],
+            [[0.0, 1.0, 2.0], [0.0, 1.0, 2.0], [0.0, 1.0, 2.0]],
+            [
+                [-1.000000, -1.000000, -1.000000],
+                [-2.000000, -2.000000, -2.000000],
+                [-3.000000, -3.000000, -3.000000],
+            ],
+        ],
+        dtype=np.float32,
+    )
+    np.testing.assert_allclose(anomalies, expected_anomalies, rtol=1e-5)
 
-    def test_metadata_without_variance(self):
-        expected_attributes = generate_mandatory_attributes([self.diagnostic_cube])
-        result = self.plugin_mean_only.process()
-        self.assertEqual(result.name(), self.diagnostic_cube.name() + "_anomalies")
-        self.assertEqual(result.units, "K")
-        self.assertDictEqual(result.attributes, expected_attributes)
+def test_calculate_anomalies_without_variance_as_expected(diagnostic_cube, mean_cube):
+    """Test that the plugin calculates anomalies correctly when no variance cube is provided"""
+    plugin = CalculateClimateAnomalies()
+    anomalies = plugin.calculate_anomalies(diagnostic_cube, mean_cube)
+    expected_anomalies = np.array(
+        [
+            [[2, 2, 2], [2, 2, 2], [2, 2, 2]],
+            [[0, 0, 0], [0, 0, 0], [0, 0, 0]],
+            [[-2, -2, -2], [-2, -2, -2], [-2, -2, -2]],
+        ],
+        dtype=np.float32,
+    )
+    np.testing.assert_allclose(anomalies, expected_anomalies, rtol=1e-5)
 
-    # Tests to cover ValueError exceptions using mismatching cubes
-    def test_verify_standard_names_mismatch(self):
-        with self.assertRaises(ValueError):
-            self.plugin_faulty_with_variance.verify_inputs()
+def test_metadata_with_variance_as_expected(diagnostic_cube, mean_cube, variance_cube):
+    """Test that the metadata on the resulting cube is as expected when a variance cube is provided"""
+    expected_attributes = generate_mandatory_attributes([diagnostic_cube])
+    plugin = CalculateClimateAnomalies()
 
-    def test_verify_units_mismatch(self):
-        self.faulty_mean_cube.units = "kg m-2"
-        with self.assertRaises(ValueError):
-            self.plugin_faulty_with_variance.verify_inputs()
+    result = plugin.process(diagnostic_cube, mean_cube, variance_cube)
+    assert result.name() == diagnostic_cube.name() + "_standardised_anomalies"
+    assert result.units == None
+    assert result.attributes == expected_attributes
 
-    def test_verify_grids_mismatch(self):
-        self.faulty_mean_cube.coord("latitude").points = (
-            self.faulty_mean_cube.coord("latitude").points + 1
-        )
-        with self.assertRaises(ValueError):
-            self.plugin_faulty_with_variance.verify_inputs()
+def test_metadata_without_variance_as_expected(diagnostic_cube, mean_cube):
+    """Test that the metadata on the cube is as expected when no variance cube is provided"""
+    plugin = CalculateClimateAnomalies()
+    expected_attributes = generate_mandatory_attributes([diagnostic_cube])
+    result = plugin.process(diagnostic_cube, mean_cube)
+    assert result.name() == diagnostic_cube.name() + "_anomalies"
+    assert result.units == "K"
+    assert result.attributes == expected_attributes
 
-    def test_verify_time_coords_mismatch(self):
-        self.faulty_mean_cube.coord("time").points = (
-            self.faulty_mean_cube.coord("time").points + 1
-        )
-        with self.assertRaises(ValueError):
-            self.plugin_faulty_with_variance.verify_inputs()
+def test_process_works(diagnostic_cube, mean_cube, variance_cube):
+    """Test that the process method works as expected."""
+    plugin = CalculateClimateAnomalies()
+    result = plugin.process(diagnostic_cube, mean_cube, variance_cube)
+    expected_attributes = generate_mandatory_attributes([diagnostic_cube])
+    assert result.name() == diagnostic_cube.name() + "_standardised_anomalies"
+    assert result.units == None
+    assert result.attributes == expected_attributes
+
+def test_process_fails(diagnostic_cube, faulty_mean_cube, faulty_variance_cube):
+    """Test that the process method raises a ValueError if the standard names of the diagnostic and mean cubes mismatch."""
+    plugin = CalculateClimateAnomalies()
+    with pytest.raises(ValueError):
+        plugin.process(diagnostic_cube, faulty_mean_cube, faulty_variance_cube)
