@@ -130,7 +130,9 @@ class Test_process(IrisTest):
         for crd in ["time", "forecast_reference_time"]:
             self.assertEqual(result.coord(crd).points[0], cube.coord(crd).points[-1])
             self.assertEqual(result.coord(crd).bounds[0][0], cube.coord(crd).points[0])
-            self.assertEqual(result.coord(crd).bounds[0][-1], cube.coord(crd).points[-1])
+            self.assertEqual(
+                result.coord(crd).bounds[0][-1], cube.coord(crd).points[-1]
+            )
 
     def test_retain_time_coordinate_bounds(self):
         """Test that the plugin handles time being the collapse_coord and that
@@ -160,12 +162,25 @@ class Test_process(IrisTest):
         self.assertTrue("time" in [crd.name() for crd in result.coords()])
         # Check time scalar coordinate
         self.assertEqual(result.coord("time").points[0], cube.coord("time").points[-1])
-        self.assertEqual(result.coord("time").bounds[0][0], cube.coord("time").bounds[0][0])
-        self.assertEqual(result.coord("time").bounds[0][-1], cube.coord("time").bounds[-1][-1])
+        self.assertEqual(
+            result.coord("time").bounds[0][0], cube.coord("time").bounds[0][0]
+        )
+        self.assertEqual(
+            result.coord("time").bounds[0][-1], cube.coord("time").bounds[-1][-1]
+        )
         # Check forecast_reference_time scalar coordinate
-        self.assertEqual(result.coord("forecast_reference_time").points[0], cube.coord("forecast_reference_time").points[-1])
-        self.assertEqual(result.coord("forecast_reference_time").bounds[0][0], cube.coord("forecast_reference_time").points[0])
-        self.assertEqual(result.coord("forecast_reference_time").bounds[0][-1], cube.coord("forecast_reference_time").points[-1])
+        self.assertEqual(
+            result.coord("forecast_reference_time").points[0],
+            cube.coord("forecast_reference_time").points[-1],
+        )
+        self.assertEqual(
+            result.coord("forecast_reference_time").bounds[0][0],
+            cube.coord("forecast_reference_time").points[0],
+        )
+        self.assertEqual(
+            result.coord("forecast_reference_time").bounds[0][-1],
+            cube.coord("forecast_reference_time").points[-1],
+        )
 
     def test_valid_multi_coord_string_list(self):
         """Test that the plugin handles a valid list of collapse_coords passed
@@ -218,12 +233,13 @@ class Test_process(IrisTest):
 
         collapse_coord = ["longitude", "latitude"]
 
-        plugin = PercentileConverter(collapse_coord, retained_coordinates=collapse_coord)
+        plugin = PercentileConverter(
+            collapse_coord, retained_coordinates=collapse_coord
+        )
         result = plugin.process(self.cube)
 
         for coord in collapse_coord:
             self.assertTrue(coord in [crd.name() for crd in result.coords()])
-
 
     def test_single_percentile(self):
         """Test dimensions of output at median only"""

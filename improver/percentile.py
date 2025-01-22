@@ -13,9 +13,9 @@ from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin
 from improver.constants import DEFAULT_PERCENTILES
+from improver.metadata.constants.time_types import TIME_COORDS
 from improver.metadata.probabilistic import find_percentile_coordinate
 from improver.metadata.utilities import enforce_time_point_standard
-from improver.metadata.constants.time_types import TIME_COORDS
 from improver.utilities.cube_manipulation import collapsed
 
 
