@@ -52,6 +52,8 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(
             result.data[:, 0, 0], self.default_percentiles * 0.1
         )
+        # Check collapsed coordinate removed
+        self.assertNotIn(collapse_coord, [crd.name() for crd in result.coords()])
         # Check coordinate name.
         self.assertEqual(result.coords()[0].name(), "percentile")
         # Check coordinate units.
@@ -87,6 +89,8 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(
             result.data[:, 0, 0, 0], self.default_percentiles * 0.01
         )
+        # Check collapsed coordinate removed
+        self.assertNotIn(collapse_coord, [crd.name() for crd in result.coords()])
         # Check coordinate name.
         self.assertEqual(result.coords()[0].name(), "percentile")
         # Check coordinate units.
@@ -98,6 +102,70 @@ class Test_process(IrisTest):
         )
         # Check resulting data shape.
         self.assertEqual(result.data.shape, (15, 3, 11, 11))
+
+    def test_retain_time_coordinate(self):
+        """Test that the plugin handles time being the collapse_coord and that
+        coordinate being retained as a scalar coordinate on the resulting
+        cube. In this case the input cubes have no bounds, meaning the
+        constructed scalar time coordinate simply spans the input time
+        points."""
+        data = [[list(range(1, 12, 1))] * 11] * 3
+        data = np.array(data).astype(np.float32)
+        data.resize((3, 11, 11))
+        new_cube = set_up_variable_cube(
+            data,
+            time=datetime(2017, 11, 11, 4, 0),
+            frt=datetime(2017, 11, 11, 0, 0),
+            realizations=[0, 1, 2],
+        )
+        cube = iris.cube.CubeList([self.cube, new_cube]).merge_cube()
+        collapse_coord = "time"
+
+        plugin = PercentileConverter(collapse_coord, retained_coordinates="time")
+        result = plugin.process(cube)
+
+        # Check time coordinate has been retained.
+        self.assertTrue("time" in [crd.name() for crd in result.coords()])
+        # Check time and associated forecast_reference_time scalar coordinates
+        for crd in ["time", "forecast_reference_time"]:
+            self.assertEqual(result.coord(crd).points[0], cube.coord(crd).points[-1])
+            self.assertEqual(result.coord(crd).bounds[0][0], cube.coord(crd).points[0])
+            self.assertEqual(result.coord(crd).bounds[0][-1], cube.coord(crd).points[-1])
+
+    def test_retain_time_coordinate_bounds(self):
+        """Test that the plugin handles time being the collapse_coord and that
+        coordinate being retained as a scalar coordinate on the resulting
+        cube. In this case the input cubes have bounds, meaning the
+        constructed scalar time coordinate should span the input time
+        bounds."""
+        data = [[list(range(1, 12, 1))] * 11] * 3
+        data = np.array(data).astype(np.float32)
+        data.resize((3, 11, 11))
+        new_cube = set_up_variable_cube(
+            data,
+            time=datetime(2017, 11, 11, 4, 0),
+            frt=datetime(2017, 11, 11, 0, 0),
+            time_bounds=[datetime(2017, 11, 11, 3, 0), datetime(2017, 11, 11, 4, 0)],
+            realizations=[0, 1, 2],
+        )
+        self.cube.coord("time").bounds = [1510282800, 1510286400]
+
+        cube = iris.cube.CubeList([self.cube, new_cube]).merge_cube()
+        collapse_coord = "time"
+
+        plugin = PercentileConverter(collapse_coord, retained_coordinates="time")
+        result = plugin.process(cube)
+
+        # Check time coordinate has been retained.
+        self.assertTrue("time" in [crd.name() for crd in result.coords()])
+        # Check time scalar coordinate
+        self.assertEqual(result.coord("time").points[0], cube.coord("time").points[-1])
+        self.assertEqual(result.coord("time").bounds[0][0], cube.coord("time").bounds[0][0])
+        self.assertEqual(result.coord("time").bounds[0][-1], cube.coord("time").bounds[-1][-1])
+        # Check forecast_reference_time scalar coordinate
+        self.assertEqual(result.coord("forecast_reference_time").points[0], cube.coord("forecast_reference_time").points[-1])
+        self.assertEqual(result.coord("forecast_reference_time").bounds[0][0], cube.coord("forecast_reference_time").points[0])
+        self.assertEqual(result.coord("forecast_reference_time").bounds[0][-1], cube.coord("forecast_reference_time").points[-1])
 
     def test_valid_multi_coord_string_list(self):
         """Test that the plugin handles a valid list of collapse_coords passed
@@ -129,6 +197,9 @@ class Test_process(IrisTest):
                 10.0,
             ],
         )
+        # Check collapsed coordinate removed
+        for coord in collapse_coord:
+            self.assertNotIn(coord, [crd.name() for crd in result.coords()])
         # Check coordinate name.
         self.assertEqual(result.coords()[0].name(), "percentile")
         # Check coordinate units.
@@ -140,6 +211,19 @@ class Test_process(IrisTest):
         )
         # Check resulting data shape.
         self.assertEqual(result.data.shape, (15, 3))
+
+    def test_retention_of_multiple_coords(self):
+        """Test that multiple coordinates that have been collapsed can be
+        retained as scalars using the retained_coordinates option."""
+
+        collapse_coord = ["longitude", "latitude"]
+
+        plugin = PercentileConverter(collapse_coord, retained_coordinates=collapse_coord)
+        result = plugin.process(self.cube)
+
+        for coord in collapse_coord:
+            self.assertTrue(coord in [crd.name() for crd in result.coords()])
+
 
     def test_single_percentile(self):
         """Test dimensions of output at median only"""
