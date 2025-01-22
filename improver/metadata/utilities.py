@@ -247,3 +247,22 @@ def get_model_id_attr(cubes: List[Cube], model_id_attr: str) -> str:
         )
     (model_id_value,) = model_id_value
     return model_id_value
+
+
+def enforce_time_point_standard(cube: Cube):
+    """
+    Enforce the IMPROVER standard of a coordinate point that aligns with the
+    upper bound of the period for time, forecast_period, and forecast
+    reference time coordinates.
+
+    The cube is modified in place.
+
+    Args:
+        cube:
+            Cube to enforce the IMPROVER standard on.
+    """
+    for crd in ["forecast_period", "forecast_reference_time", "time"]:
+        try:
+            cube.coord(crd).points = [bound[-1] for bound in cube.coord(crd).bounds]
+        except (iris.exceptions.CoordinateNotFoundError, TypeError):
+            pass
