@@ -11,7 +11,6 @@ For a cube containing diagnostic values::
           altitude                        x
           latitude                        x
           longitude                       x
-          utc_offset                      x
           wmo_site                        x
      Scalar coordinates:
           forecast_reference_time: 2018-07-13 09:00:00

@@ -23,5 +23,4 @@ TIME_COORDS = {
     "forecast_reference_time": _TIME_REFERENCE_SPEC,
     "blend_time": _TIME_REFERENCE_SPEC,
     "forecast_period": _TIME_INTERVAL_SPEC,
-    "UTC_offset": _TIME_INTERVAL_SPEC,
 }
