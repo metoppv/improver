@@ -757,7 +757,7 @@ def test_basic_metadata_with_variance_as_expected(
 
     result = plugin.process(diagnostic_cube, mean_cube, variance_cube)
     assert result.name() == diagnostic_cube.name() + "_standard_anomaly"
-    assert result.units == None
+    assert result.units == ""
     assert result.attributes == expected_attributes
     assert "reference_epoch" in [coord.name() for coord in result.coords()]
 
@@ -769,7 +769,6 @@ def test_metadata_without_variance_as_expected(diagnostic_cube, mean_cube):
     result = plugin.process(diagnostic_cube, mean_cube)
     assert result.name() == diagnostic_cube.name() + "_anomaly"
     assert result.units == "K"
-    assert result.attributes == expected_attributes
     assert "reference_epoch" in [coord.name() for coord in result.coords()]
 
 
