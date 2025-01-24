@@ -261,6 +261,18 @@ class Test__ensure_monotonicity_across_thresholds(Test_ReliabilityCalibrate):
         with self.assertRaisesRegex(ValueError, msg):
             self.plugin._ensure_monotonicity_across_thresholds(self.forecast)
 
+    def test_single_threshold(self):
+        """Test on a probability cube with only a single threshold.
+        The data should be unchanged as it is already monotonic.
+        Additionally no warnings or exceptions should be raised."""
+
+        expected = self.forecast[0].copy()
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            self.plugin._ensure_monotonicity_across_thresholds(self.forecast[0])
+
+        assert_array_equal(self.forecast[0].data, expected.data)
+
 
 class Test__calculate_reliability_probabilities(Test_ReliabilityCalibrate):
     """Test the _calculate_reliability_probabilities method."""
@@ -578,6 +590,25 @@ class Test_process(Test_ReliabilityCalibrate):
         coords_table = [c.name() for c in self.forecast_spot_cube.coords()]
         coords_result = [c.name() for c in result.coords()]
         assert coords_table == coords_result
+
+    def test_calibrating_forecast_single_threshold(self):
+        """Test application of reliability tables on a probability cube 
+        that only contains a single threshold."""
+
+        expected_0 = np.array(
+            [[0.25, 0.3125, 0.375], [0.4375, 0.5, 0.5625], [0.625, 0.6875, 0.75]]
+        )
+        expected_1 = np.array(
+            [[0.25, 0.3, 0.35], [0.4, 0.45, 0.5], [0.55, 0.6, 0.65]]
+        )
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            result_0 = self.plugin.process(self.forecast[0], self.reliability_cube)
+            result_1 = self.plugin.process(self.forecast[1], self.reliability_cube)
+
+        assert_allclose(result_0.data, expected_0)
+        assert_allclose(result_1.data, expected_1)
 
 
 if __name__ == "__main__":
