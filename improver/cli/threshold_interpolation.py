@@ -32,6 +32,8 @@ def process(
     """
     from improver.utilities.threshold_interpolation import Threshold_interpolation
 
-    result = Threshold_interpolation(forecast_at_thresholds, thresholds=thresholds,
-                                     )
+    result = Threshold_interpolation(
+        forecast_at_thresholds,
+        thresholds=thresholds,
+    )
     return result
