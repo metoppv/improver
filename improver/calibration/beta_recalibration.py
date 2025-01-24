@@ -75,8 +75,8 @@ class BetaRecalibrate(PostProcessingPlugin):
             # convert interpolation points to cube units
             units = cf_units.Unit(self.recalibration_dict["units"])
             forecast_period = [
-                units.convert(forecast_period, cube.coord("forecast_period").units)
-                for a in forecast_period
+                units.convert(x, cube.coord("forecast_period").units)
+                for x in forecast_period
             ]
         a = np.interp(
             cube_forecast_period, forecast_period, self.recalibration_dict["alpha"]
