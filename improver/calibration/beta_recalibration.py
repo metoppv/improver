@@ -8,8 +8,8 @@ from typing import Any, Dict, Optional
 
 import cf_units
 import iris
-from iris.exceptions import CoordinateNotFoundError
 import numpy as np
+from iris.exceptions import CoordinateNotFoundError
 from scipy.stats import beta
 
 from improver import PostProcessingPlugin

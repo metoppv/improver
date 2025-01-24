@@ -12,7 +12,8 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    cube: cli.inputcube, recalibration_config: cli.inputjson,
+    cube: cli.inputcube,
+    recalibration_config: cli.inputjson,
 ):
     """Runs probability recalibration.
 
