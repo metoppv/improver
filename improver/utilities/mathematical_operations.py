@@ -524,19 +524,10 @@ class CalculateClimateAnomalies(BasePlugin):
         """Get suitable output name and units from input cube metadata"""
         anomaly_cube = diagnostic_cube.copy()
         new_name = None
-        new_units = None
-        if variance_cube is None:
-            new_units = anomaly_cube.units
-            try:
-                anomaly_cube.standard_name = anomaly_cube.standard_name + "_anomaly"
-                new_name = anomaly_cube.standard_name
-            except ValueError:
-                anomaly_cube.long_name = anomaly_cube.standard_name + "_anomaly"
-                new_name = anomaly_cube.long_name
-        elif (
-            variance_cube != None
-        ):  # If a variance cube is provided, the output is a standard anomaly and units are removed
-            new_units = None
+        new_units = "None"
+        # If a variance cube is provided, the output is a standard anomaly and units are removed
+        if variance_cube: 
+            new_units = ""
             try:
                 anomaly_cube.standard_name = (
                     anomaly_cube.standard_name + "_standard_anomaly"
@@ -547,6 +538,16 @@ class CalculateClimateAnomalies(BasePlugin):
                     anomaly_cube.standard_name + "_standard_anomaly"
                 )
                 new_name = anomaly_cube.long_name
+        else:
+            new_units = anomaly_cube.units
+            try:
+                anomaly_cube.standard_name = anomaly_cube.standard_name + "_anomaly"
+                new_name = anomaly_cube.standard_name
+            except ValueError:
+                anomaly_cube.long_name = anomaly_cube.standard_name + "_anomaly"
+                new_name = anomaly_cube.long_name 
+            variance_cube is not None
+            
         return new_name, new_units
 
     @staticmethod
