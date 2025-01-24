@@ -67,6 +67,7 @@ PROCESSING_MODULES = {
     "GradientBetweenAdjacentGridSquares": "improver.utilities.spatial",
     "HailFraction": "improver.precipitation_type.hail_fraction",
     "HailSize": "improver.psychrometric_calculations.hail_size",
+    "height_of_maximum": "improver.utilities.cube_manipulation",
     "HumidityMixingRatio": "improver.psychrometric_calculations.psychrometric_calculations",
     "Integration": "improver.utilities.mathematical_operations",
     "InterpolateUsingDifference": "improver.utilities.interpolation",
