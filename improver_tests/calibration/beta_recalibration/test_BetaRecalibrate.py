@@ -9,7 +9,7 @@ import numpy as np
 import pytest
 from scipy.stats import beta
 
-from improver.calibration.beta_recalibration import Recalibrate
+from improver.calibration.beta_recalibration import BetaRecalibrate
 from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
 from improver.utilities.cube_manipulation import MergeCubes
 
@@ -44,7 +44,7 @@ def test_invalid_params(forecast_grid):
         "beta": [2, 1],
         "units": "hours",
     }
-    plugin = Recalibrate(recalibration_dict)
+    plugin = BetaRecalibrate(recalibration_dict)
     with pytest.raises(RuntimeError, match=msg):
         plugin.process(forecast_grid)
 
@@ -57,7 +57,7 @@ def test_recalibrate(forecast_grid):
         "beta": [0, 2],
         "units": "hours",
     }
-    plugin = Recalibrate(recalibration_dict)
+    plugin = BetaRecalibrate(recalibration_dict)
     result = plugin.process(forecast_grid)
     f1 = forecast_grid.extract(iris.Constraint(time=lambda cell: cell.point.hour == 4))
     f2 = forecast_grid.extract(iris.Constraint(time=lambda cell: cell.point.hour == 8))
@@ -77,7 +77,7 @@ def test_params_equal_1(forecast_grid):
         "beta": [1, 1],
         "units": "hours",
     }
-    plugin = Recalibrate(recalibration_dict)
+    plugin = BetaRecalibrate(recalibration_dict)
     result = plugin.process(forecast_grid)
 
     assert result.coords() == forecast_grid.coords()

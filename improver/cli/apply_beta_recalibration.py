@@ -31,8 +31,8 @@ def process(
         iris.cube.Cube:
             Recalibrated cube
     """
-    from improver.calibration.beta_recalibration import Recalibrate
+    from improver.calibration.beta_recalibration import BetaRecalibrate
 
-    plugin = Recalibrate(recalibration_config)
+    plugin = BetaRecalibrate(recalibration_config)
 
     return plugin(cube)

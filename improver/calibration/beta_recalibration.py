@@ -8,18 +8,22 @@ from typing import Any, Dict, Optional
 
 import cf_units
 import iris
+from iris.exceptions import CoordinateNotFoundError
 import numpy as np
 from scipy.stats import beta
 
 from improver import PostProcessingPlugin
-from improver.metadata.probabilistic import find_threshold_coordinate
+from improver.metadata.probabilistic import is_probability
 
 
-class Recalibrate(PostProcessingPlugin):
+class BetaRecalibrate(PostProcessingPlugin):
+    """Recalibrate probabilities using the cumulative distribution function
+    of the beta distribution.
+    """
+
     def __init__(self, recalibration_dict: Optional[Dict[str, Any]] = None):
         """
         Args:
-
             recalibration_dict:
                 Dictionary from which to calculate alpha and beta parameters for
                 recalibrating blended output using the beta distribution. Dictionary
@@ -45,33 +49,41 @@ class Recalibrate(PostProcessingPlugin):
         Args:
             cube:
                 A cube containing a forecast_period coordinate.
-            recalibration_dict:
-                A dictionary giving the weights at some subset of
-                forecast_period values. Weights at other values are
-                linearly interpolated.
 
         Returns:
             A cube having the same dimensions as the input, with data
             transformed by the beta distribution cdf.
 
         Raises:
+            CoordinateNotFoundError: if cube does not contain probability data
+            CoordinateNotFoundError: if cube does not contain forecast_period coordinate
             RuntimeError: if any interpolated values of alpha or beta are <= 0
         """
 
-        # check that cube is a probability forecast
-        _ = find_threshold_coordinate(cube)
+        if not (is_probability(cube)):
+            raise CoordinateNotFoundError(
+                "Input cube must be a probability forecast "
+                "and contain a threshold coordinate."
+            )
         if len(cube.coords("forecast_period")) == 0:
-            raise ValueError(
+            raise CoordinateNotFoundError(
                 "Recalibration input must contain forecast_period coordinate."
             )
-        xp = self.recalibration_dict["forecast_period"]
-        x = cube.coord("forecast_period").points
+        forecast_period = self.recalibration_dict["forecast_period"]
+        cube_forecast_period = cube.coord("forecast_period").points
         if "units" in self.recalibration_dict.keys():
+            # convert interpolation points to cube units
             units = cf_units.Unit(self.recalibration_dict["units"])
-            xp = [units.convert(a, cube.coord("forecast_period").units) for a in xp]
-        a = np.interp(x, xp, self.recalibration_dict["alpha"])
-        b = np.interp(x, xp, self.recalibration_dict["beta"])
-        # check alpha, beta parameters are valid
+            forecast_period = [
+                units.convert(forecast_period, cube.coord("forecast_period").units)
+                for a in forecast_period
+            ]
+        a = np.interp(
+            cube_forecast_period, forecast_period, self.recalibration_dict["alpha"]
+        )
+        b = np.interp(
+            cube_forecast_period, forecast_period, self.recalibration_dict["beta"]
+        )
         if np.any(a <= 0) or np.any(b <= 0):
             raise RuntimeError("interpolated alpha and beta parameters must be > 0")
 
