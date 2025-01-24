@@ -7,18 +7,17 @@ Unit tests for the
 `ensemble_copula_coupling.EnsembleCopulaCouplingUtilities` class.
 """
 
-import unittest
-import pytest
 import numpy as np
-from cf_units import Unit
-from iris.coords import DimCoord
+import pytest
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
-from improver.utilities.threshold_interpolation import create_cube_with_thresholds, Threshold_interpolation
+
 from improver.synthetic_data.set_up_test_cubes import (
-    set_up_probability_cube,
     add_coordinate,
+    set_up_probability_cube,
 )
+from improver.utilities.threshold_interpolation import Threshold_interpolation
+
 
 @pytest.fixture(name="input_cube")
 def basic_input_cube() -> Cube:
@@ -39,8 +38,9 @@ def basic_input_cube() -> Cube:
         threshold_units="m",
         spp__relative_to_threshold="less_than",
     )
-    cube_data = data
+
     return input_cube
+
 
 @pytest.fixture(name="masked_cube_same")
 def masked_cube_same() -> Cube:
@@ -105,13 +105,14 @@ def masked_cube_diff() -> Cube:
     )
     return masked_cube_diff
 
+
 def test_basic(input_cube):
     """Test that the plugin returns an Iris.cube.Cube with suitable units."""
     thresholds = [100, 150, 200, 250, 300]
-    coord_name = "visibility_in_air"
     result = Threshold_interpolation(input_cube, thresholds)
-    assert (result, Cube)
-    assert (result.units, input_cube.units)
+    assert result, Cube
+    assert result.units, input_cube.units
+
 
 def test_incompatible_thresholds(input_cube):
     """
@@ -119,16 +120,10 @@ def test_incompatible_thresholds(input_cube):
     are not numbers.
     """
     thresholds = ["cat", "dog", "elephant"]
-    cube_data = np.zeros(
-        [
-            len(thresholds),
-            len(input_cube.coord("latitude").points),
-            len(input_cube.coord("longitude").points),
-        ]
-    )
     error_msg = "could not convert string to float"
     with pytest.raises(ValueError, match=error_msg):
         Threshold_interpolation(input_cube, thresholds)
+
 
 def test_metadata_copy(input_cube):
     """
@@ -138,7 +133,8 @@ def test_metadata_copy(input_cube):
     input_cube.attributes = {"source": "ukv"}
     thresholds = [100, 150, 200, 250, 300]
     result = Threshold_interpolation(input_cube, thresholds)
-    assert (input_cube.metadata._asdict(), result.metadata._asdict())
+    assert input_cube.metadata._asdict(), result.metadata._asdict()
+
 
 def test_realization_coord_removed(input_cube):
     """
@@ -154,7 +150,8 @@ def test_realization_coord_removed(input_cube):
         coord.name() for coord in realization_cube.coords(dim_coords=True)
     ]
     expected_dim_coords.remove("realization")
-    assert (dim_coords, expected_dim_coords)
+    assert dim_coords, expected_dim_coords
+
 
 def test_cube_no_threshold_coord(input_cube):
     """
@@ -169,6 +166,7 @@ def test_cube_no_threshold_coord(input_cube):
     with pytest.raises(CoordinateNotFoundError, match=error_msg):
         Threshold_interpolation(realization_cube, thresholds)
 
+
 def test_no_thresholds_provided(input_cube):
     """
     Testing that a warning message is raised if no thresholds are provided.
@@ -176,7 +174,8 @@ def test_no_thresholds_provided(input_cube):
     warning_msg = "No thresholds provided, using existing thresholds."
 
     with pytest.warns(UserWarning, match=warning_msg):
-        result = Threshold_interpolation(input_cube)
+        Threshold_interpolation(input_cube)
+
 
 def test_thresholds_different_mask(masked_cube_diff):
     """
@@ -188,11 +187,11 @@ def test_thresholds_different_mask(masked_cube_diff):
     with pytest.raises(ValueError, match=error_msg):
         Threshold_interpolation(masked_cube_diff, thresholds)
 
+
 def test_masked_cube(masked_cube_same):
     """
     Testing that a Cube is returned when inputting a masked cube.
     """
     thresholds = [100, 150, 200, 250, 300]
     result = Threshold_interpolation(masked_cube_same, thresholds)
-    assert (result, Cube)
-
+    assert result, Cube

@@ -4,15 +4,13 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Script to linearly interpolate thresholds"""
 
-
-from typing import List, Optional, Union
 import warnings
-import numpy as np
+from typing import List, Optional, Union
+
 import iris
+import numpy as np
 from iris.cube import Cube
 from numpy import ndarray
-import cf_units as unit
-from cf_units import Unit
 
 from improver.calibration.utilities import convert_cube_data_to_2d
 from improver.ensemble_copula_coupling.utilities import (
@@ -22,17 +20,16 @@ from improver.ensemble_copula_coupling.utilities import (
 from improver.metadata.probabilistic import (
     find_threshold_coordinate,
 )
-
-from improver.utilities.cube_manipulation import collapse_realizations
-
 from improver.utilities.cube_manipulation import (
+    collapse_realizations,
     enforce_coordinate_ordering,
 )
 
+
 def _interpolate_thresholds(
-        forecast_at_thresholds: Cube,
-        desired_thresholds: ndarray,
-        threshold_coord_name: str,
+    forecast_at_thresholds: Cube,
+    desired_thresholds: ndarray,
+    threshold_coord_name: str,
 ) -> Cube:
     """
     Interpolation of forecast for a set of thresholds from an initial
@@ -52,21 +49,21 @@ def _interpolate_thresholds(
         Cube containing values for the required diagnostic e.g.
         air_temperature at the required thresholds.
     """
-    original_thresholds = forecast_at_thresholds.coord(
-        threshold_coord_name
-    ).points
+    original_thresholds = forecast_at_thresholds.coord(threshold_coord_name).points
 
     original_mask = None
     if np.ma.is_masked(forecast_at_thresholds.data):
-        crd_dim, = forecast_at_thresholds.coord_dims(threshold_coord_name)
+        (crd_dim,) = forecast_at_thresholds.coord_dims(threshold_coord_name)
         if np.diff(forecast_at_thresholds.data.mask, axis=crd_dim).any():
             raise ValueError(
-                            f"The mask is expected to be constant across different slices of the {threshold_coord_name}"
-                            f" dimension, however, in the dataset provided, the mask varies across the {threshold_coord_name}"
-                            f" dimension. This is not currently supported."
-                        )
+                f"The mask is expected to be constant across different slices of the {threshold_coord_name}"
+                f" dimension, however, in the dataset provided, the mask varies across the {threshold_coord_name}"
+                f" dimension. This is not currently supported."
+            )
         else:
-            original_mask = next(forecast_at_thresholds.slices_over(threshold_coord_name)).data.mask
+            original_mask = next(
+                forecast_at_thresholds.slices_over(threshold_coord_name)
+            ).data.mask
 
     # Ensure that the threshold dimension is first, so that the
     # conversion to a 2d array produces data in the desired order.
@@ -96,24 +93,24 @@ def _interpolate_thresholds(
     template_cube = next(forecast_at_thresholds.slices_over(threshold_coord_name))
     template_cube.remove_coord(threshold_coord_name)
     threshold_cube = create_cube_with_thresholds(
-        desired_thresholds, template_cube, forecast_at_thresholds_data,
+        desired_thresholds,
+        template_cube,
+        forecast_at_thresholds_data,
         threshold_coord_name,
     )
 
     if original_mask is not None:
         original_mask = np.broadcast_to(original_mask, threshold_cube.shape)
-        threshold_cube.data = np.ma.MaskedArray(
-            threshold_cube.data, mask=original_mask
-        )
+        threshold_cube.data = np.ma.MaskedArray(threshold_cube.data, mask=original_mask)
 
     return threshold_cube
+
 
 def create_cube_with_thresholds(
     thresholds: Union[List[float], ndarray],
     template_cube: Cube,
     cube_data: ndarray,
     threshold_coord_name: str,
-
 ) -> Cube:
     """
     Create a cube with a threshold coordinate based on a template cube.
@@ -147,7 +144,7 @@ def create_cube_with_thresholds(
     for point in thresholds:
         cube = template_cube.copy()
         coord = iris.coords.DimCoord(
-            np.array([point], dtype="float64"), units=cube.units
+            np.array([point], dtype="float32"), units=cube.units
         )
         coord.rename(threshold_coord_name)
         coord.var_name = "threshold"
@@ -159,9 +156,10 @@ def create_cube_with_thresholds(
     result.data = cube_data
     return result
 
+
 def Threshold_interpolation(
-        forecast_at_thresholds: Cube,
-        thresholds: Optional[List] = None,
+    forecast_at_thresholds: Cube,
+    thresholds: Optional[List] = None,
 ) -> Cube:
     """
     1. Creates a list of thresholds, if not provided.
@@ -183,18 +181,19 @@ def Threshold_interpolation(
 
     if thresholds is None:
         thresholds = forecast_at_thresholds.coord(threshold_coord).points
-        warnings.warn(f"No thresholds provided, using existing thresholds. Thresholds being used are: {list(thresholds)}")
+        warnings.warn(
+            f"No thresholds provided, using existing thresholds. Thresholds being used are: {list(thresholds)}"
+        )
 
     forecast_at_thresholds = _interpolate_thresholds(
         forecast_at_thresholds, thresholds, threshold_coord.name()
     )
 
-    if forecast_at_thresholds.coords('realization'):
+    if forecast_at_thresholds.coords("realization"):
         collapsed_forecast_at_thresholds = collapse_realizations(
             forecast_at_thresholds,
-            method='mean',
+            method="mean",
         )
         forecast_at_thresholds = collapsed_forecast_at_thresholds
 
-    return (forecast_at_thresholds)
-
+    return forecast_at_thresholds
