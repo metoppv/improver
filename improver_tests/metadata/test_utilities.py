@@ -535,5 +535,25 @@ def test_enforce_time_point_standard_without_bounds(multi_time_cube, data_times)
         assert multi_time_cube.coord(crd) == reference.coord(crd)
 
 
+def test_enforce_time_point_standard_no_time_coords(multi_time_cube, data_times):
+    """Test that enforce_time_point_standard returns unmodified coordinates if
+    there are no time coordinates to modify."""
+
+    targets = ["kittens", "are", "cute"]
+    for crd, target in zip(
+        ["time", "forecast_period", "forecast_reference_time"], targets
+    ):
+        multi_time_cube.coord(crd).rename(target)
+
+    # Retain copy that has not been through enforcement step.
+    reference = multi_time_cube.copy()
+
+    enforce_time_point_standard(multi_time_cube)
+
+    # Demonstrate that coordinates are unchanged by the enforcement step.
+    for crd in targets:
+        assert multi_time_cube.coord(crd) == reference.coord(crd)
+
+
 if __name__ == "__main__":
     unittest.main()

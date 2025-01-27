@@ -256,6 +256,10 @@ def enforce_time_point_standard(cube: Cube):
     upper bound of the period for time, forecast_period, and forecast
     reference time coordinates.
 
+    Two exceptions are captured. A CoordinateNotFoundError allows all the time
+    coordinates to be modified if they exist and ignored if they don't. The
+    TypeError allows bounds that are set to None to be ignored.
+
     The cube is modified in place.
 
     Args:
