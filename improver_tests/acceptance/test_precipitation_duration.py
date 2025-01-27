@@ -82,3 +82,24 @@ def test_renamed_diagnostics(tmp_path):
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
+
+
+def test_multiple_thresholds(tmp_path):
+    """Test precipitation duration with multiple threshold pairings."""
+    kgo_dir = acc.kgo_root() / "precipitation_duration/standard_names"
+    kgo_path = kgo_dir / "kgo_multi_threshold.nc"
+    input_cubes = kgo_dir.glob("2025*.nc")
+    output_path = tmp_path / "output.nc"
+    args = [
+        *input_cubes,
+        "--min-accumulation-per-hour",
+        "0.033333,0.1",
+        "--critical-rate",
+        "2,4",
+        "--target-period",
+        "24",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)

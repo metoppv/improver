@@ -7,7 +7,7 @@ Unit tests for the PrecipitationDuration plugin.
 """
 
 from datetime import datetime, timedelta
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 import iris
 import numpy as np
@@ -232,11 +232,25 @@ def test__period_in_hours_exception():
             [0.006],
             [2.778e-7],
         ),  # 6-hour period so acc thresh is multiplied by 6 and converted to SI
+        (
+            [0.1, 1],
+            [0.2, 0.4],
+            timedelta(hours=1),
+            [0.0001, 0.001],
+            [5.56e-8, 1.112e-7],
+        ),  # Check mulitple thresholds can be accepted and converted.
+        (
+            ["0.1", "1"],
+            ["0.2", "0.4"],
+            timedelta(hours=1),
+            [0.0001, 0.001],
+            [5.56e-8, 1.112e-7],
+        ),  # Check thresholds given as strings.
     ],
 )
 def test__construct_thresholds(
-    acc_thresh: float,
-    rate_thresh: float,
+    acc_thresh: Union[float, str, List],
+    rate_thresh: Union[float, str, List],
     period: timedelta,
     expected_acc: List[float],
     expected_rate: List[float],
