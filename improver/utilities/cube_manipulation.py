@@ -16,6 +16,7 @@ from iris.exceptions import CoordinateNotFoundError
 from improver import BasePlugin
 from improver.metadata.constants import FLOAT_DTYPE, FLOAT_TYPES
 from improver.metadata.probabilistic import find_threshold_coordinate
+from improver.metadata.utilities import enforce_time_point_standard
 from improver.utilities.common_input_handle import as_cube
 from improver.utilities.cube_checker import check_cube_coordinates
 
@@ -82,12 +83,7 @@ def collapse_time(cube, *args: Any) -> Cube:
         return cube
 
     collapsed_cube = collapsed(cube, *args)
-
-    for crd in ["forecast_period", "time"]:
-        try:
-            collapsed_cube.coord(crd).points = collapsed_cube.coord(crd).bounds[0][-1]
-        except CoordinateNotFoundError:
-            pass
+    enforce_time_point_standard(collapsed_cube)
 
     return collapsed_cube
 
