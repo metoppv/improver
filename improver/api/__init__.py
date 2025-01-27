@@ -65,6 +65,7 @@ PROCESSING_MODULES = {
     "GenerateTimeLaggedEnsemble": "improver.utilities.time_lagging",
     "GenerateTopographicZoneWeights": "improver.generate_ancillaries.generate_topographic_zone_weights",
     "GradientBetweenAdjacentGridSquares": "improver.utilities.spatial",
+    "GradientBetweenVerticalLevels": "improver.utilities.gradient_between_vertical_levels",
     "HailFraction": "improver.precipitation_type.hail_fraction",
     "HailSize": "improver.psychrometric_calculations.hail_size",
     "height_of_maximum": "improver.utilities.cube_manipulation",
