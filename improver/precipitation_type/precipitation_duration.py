@@ -70,8 +70,11 @@ class PrecipitationDuration(PostProcessingPlugin):
         """
         if isinstance(min_accumulation_per_hour, Number):
             min_accumulation_per_hour = [min_accumulation_per_hour]
+        min_accumulation_per_hour = [float(x) for x in min_accumulation_per_hour]
+
         if isinstance(critical_rate, Number):
             critical_rate = [critical_rate]
+        critical_rate = [float(x) for x in critical_rate]
 
         self.min_accumulation_per_hour = min_accumulation_per_hour
         self.critical_rate = critical_rate

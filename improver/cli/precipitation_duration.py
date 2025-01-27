@@ -13,8 +13,8 @@ from improver import cli
 @cli.with_output
 def process(
     *cubes: cli.inputcubelist,
-    min_accumulation_per_hour: float,
-    critical_rate: float,
+    min_accumulation_per_hour: cli.comma_separated_list,
+    critical_rate: cli.comma_separated_list,
     target_period: float,
     accumulation_diagnostic: str = "probability_of_lwe_thickness_of_precipitation_amount_above_threshold",
     rate_diagnostic: str = "probability_of_lwe_precipitation_rate_above_threshold",
