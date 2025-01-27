@@ -194,6 +194,14 @@ class PrecipitationDuration(PostProcessingPlugin):
             },
             data=data,
         )
+        # Remove any coordinate var names that identify a coordinate as a
+        # threshold. We want to generate percentiles by collapsing the
+        # realization coordinate, not attempting to use ECC for a probability
+        # diagnostic.
+        for crd in classified_precip_cube.coords():
+            if crd.var_name == "threshold":
+                crd.var_name = None
+
         return classified_precip_cube
 
     def process(self, *cubes: Union[Cube, CubeList]) -> Cube:

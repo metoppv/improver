@@ -464,6 +464,9 @@ def test_process(
         assert cube.attributes["input_period_in_hours"] == period_hours
         assert np.diff(cube.coord("time").bounds) == total_period
 
+        var_names = [crd.var_name for crd in cube.coords()]
+        assert "threshold" not in var_names
+
 
 def test_process_exception_thresholds():
     """Test an exception is raised if the input cubes do not contain the
