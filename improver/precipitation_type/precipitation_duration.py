@@ -275,13 +275,16 @@ class PrecipitationDuration(PostProcessingPlugin):
                 # All thresholds on the final output are given relative to a
                 # 1-hour period.
                 acc_coord.points = np.around(acc_coord.points / self.period, decimals=6)
-                classified = rate_slice.copy(data=rate_slice.data * acc_slice.data)
+
+                # We are working with binary probabilities, so make these bool
+                # type to reduce memory usage.
+                classified = rate_slice.copy(data=rate_slice.data.astype(bool) * acc_slice.data.astype(bool))
                 classified.add_aux_coord(acc_coord)
                 classifications.append(classified)
 
         classifications = classifications.merge_cube()
         total_period = collapse_time(classifications, "time", analysis.SUM)
-        total_period_data = total_period.data / n_periods
+        total_period_data = total_period.data.astype(np.float32) / n_periods
 
         classification_fractions = self._create_output_cube(
             total_period_data, (total_period, precip_accumulation)
