@@ -6,6 +6,8 @@
 
 from typing import List, Optional, Tuple, Union
 
+from improver.utilities.common_input_handle import as_iterable
+
 
 def radius_by_lead_time(
     radii: List[str], lead_times: Optional[List[str]] = None
@@ -31,6 +33,11 @@ def radius_by_lead_time(
         ValueError: If multiple radii are provided without any lead times.
         ValueError: If radii and lead_times lists are on unequal lengths.
     """
+    if lead_times is not None:
+        lead_times = as_iterable(lead_times)
+    if radii is not None:
+        radii = as_iterable(radii)
+
     if lead_times is None:
         if not len(radii) == 1:
             raise ValueError(
