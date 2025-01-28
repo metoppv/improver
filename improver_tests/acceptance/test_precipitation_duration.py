@@ -30,6 +30,8 @@ def test_different_threshold_parameters(tmp_path, min_accumulation, critical_rat
         f"{critical_rate}",
         "--target-period",
         "24",
+        "--model-id-attr",
+        "mosg__model_configuration",
         "--output",
         output_path,
     ]

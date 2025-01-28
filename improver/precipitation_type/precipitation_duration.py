@@ -5,7 +5,7 @@
 """Module containing the PrecipitationDuration class."""
 
 from numbers import Number
-from typing import Tuple, Union
+from typing import Optional, Tuple, Union
 
 import numpy as np
 from iris import Constraint, analysis
@@ -40,6 +40,7 @@ class PrecipitationDuration(PostProcessingPlugin):
         target_period: float,
         accumulation_diagnostic: str = "probability_of_lwe_thickness_of_precipitation_amount_above_threshold",
         rate_diagnostic: str = "probability_of_lwe_precipitation_rate_above_threshold",
+        model_id_attr: Optional[str] = None,
     ) -> None:
         """
         Initialise the class.
@@ -81,6 +82,7 @@ class PrecipitationDuration(PostProcessingPlugin):
         self.target_period = target_period
         self.rate_diagnostic = rate_diagnostic
         self.accumulation_diagnostic = accumulation_diagnostic
+        self.model_id_attr = model_id_attr
         self.period = None
         self.acc_threshold = None
         self.rate_threshold = None
@@ -188,7 +190,10 @@ class PrecipitationDuration(PostProcessingPlugin):
             "fraction_of_period_classified_as_wet",
             "1",
             template_cube=cubes[0],
-            mandatory_attributes=generate_mandatory_attributes(cubes),
+            mandatory_attributes=generate_mandatory_attributes(
+                cubes,
+                model_id_attr=self.model_id_attr,
+            ),
             optional_attributes={
                 "input_period_in_hours": self.period,
             },
@@ -278,7 +283,9 @@ class PrecipitationDuration(PostProcessingPlugin):
 
                 # We are working with binary probabilities, so make these bool
                 # type to reduce memory usage.
-                classified = rate_slice.copy(data=rate_slice.data.astype(bool) * acc_slice.data.astype(bool))
+                classified = rate_slice.copy(
+                    data=rate_slice.data.astype(bool) * acc_slice.data.astype(bool)
+                )
                 classified.add_aux_coord(acc_coord)
                 classifications.append(classified)
 
