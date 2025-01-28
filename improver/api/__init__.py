@@ -53,6 +53,7 @@ PROCESSING_MODULES = {
     "EstimateDzRescaling": "improver.calibration.dz_rescaling",
     "ExpectedValue": "improver.expected_value",
     "ExtendRadarMask": "improver.nowcasting.utilities",
+    "ExtractFromTable": "improver.utilities.extract_from_table",
     "ExtractLevel": "improver.utilities.cube_extraction",
     "ExtractSubCube": "improver.utilities.cube_extraction",
     "FieldTexture": "improver.utilities.textural",
