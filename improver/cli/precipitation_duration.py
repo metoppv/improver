@@ -18,6 +18,7 @@ def process(
     target_period: float,
     accumulation_diagnostic: str = "probability_of_lwe_thickness_of_precipitation_amount_above_threshold",
     rate_diagnostic: str = "probability_of_lwe_precipitation_rate_above_threshold",
+    model_id_attr: str = None,
 ):
     r"""Classifies periods of precipitation intensity using a mix of the maximum
     precipitation rate in the period and the accumulation in the period. These
@@ -50,7 +51,11 @@ def process(
         rate_diagnostic:
             The expected diagnostic name for the maximum rate in period
             diagnostic. Used to extract the cubes from the inputs.
-        Returns:
+        model_id_attr:
+            Name of the attribute used to identify the source model for
+            blending.
+
+    Returns:
         result (iris.cube.Cube):
             Returns a cube with the combined data.
     """
@@ -62,4 +67,5 @@ def process(
         target_period,
         accumulation_diagnostic=accumulation_diagnostic,
         rate_diagnostic=rate_diagnostic,
+        model_id_attr=model_id_attr,
     )(*cubes)
