@@ -103,9 +103,9 @@ def test_read_table(
 
     wind_gust_900m.data.fill(wind_gust_value)
     lapse_class.data.fill(lapse_class_value)
-    result = ExtractValueFromTable(row_name="lapse_class", new_name=new_name)(
-        wind_gust_900m, lapse_class, table=table
-    )
+    result = ExtractValueFromTable(
+        row_name="lapse_class", new_name=new_name, table=table
+    )(wind_gust_900m, lapse_class)
     expected_data = np.full_like(
         lapse_class.data, fill_value=expected, dtype=np.float32
     )
@@ -127,8 +127,8 @@ def test_read_table_1D(
     """Test plugin to extract values from table"""
     lapse_rate.data.fill(lapse_rate_value)
 
-    result = ExtractValueFromTable(row_name="lapse_rate")(
-        lapse_rate, wind_gust_900m, table=table_1D
+    result = ExtractValueFromTable(row_name="lapse_rate", table=table_1D)(
+        lapse_rate, wind_gust_900m
     )
 
     expected_data = np.full_like(lapse_rate.data, fill_value=expected, dtype=np.float32)
@@ -143,8 +143,8 @@ def test_read_table_1D(
 def test_too_many_cubes(table_2D, lapse_class, wind_gust_900m):
     """Test that an error is raised if the number of cubes is not equal to 2"""
     with pytest.raises(ValueError, match="Exactly 2 cubes should be provided"):
-        ExtractValueFromTable(row_name="lapse_class")(
-            wind_gust_900m, lapse_class, lapse_class, table=table_2D
+        ExtractValueFromTable(row_name="lapse_class", table=table_2D)(
+            wind_gust_900m, lapse_class, lapse_class
         )
 
 
@@ -152,6 +152,6 @@ def test_cubes_different_shapes(table_2D, lapse_class, wind_gust_900m):
     """Test that an error is raised if the cubes do not have the same shape"""
     lapse_class = lapse_class[0]
     with pytest.raises(ValueError, match="Shapes of cubes do not match"):
-        ExtractValueFromTable(row_name="lapse_class")(
-            wind_gust_900m, lapse_class, table=table_2D
+        ExtractValueFromTable(row_name="lapse_class", table=table_2D)(
+            wind_gust_900m, lapse_class
         )
