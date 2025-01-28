@@ -592,7 +592,7 @@ class Test_process(Test_ReliabilityCalibrate):
         assert coords_table == coords_result
 
     def test_calibrating_forecast_single_threshold(self):
-        """Test application of reliability tables on a probability cube 
+        """Test application of reliability tables on a probability cube
         that only contains a single threshold."""
 
         expected_0 = np.array(
