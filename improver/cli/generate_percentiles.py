@@ -15,6 +15,7 @@ def process(
     *,
     coordinates: cli.comma_separated_list = None,
     percentiles: cli.comma_separated_list = None,
+    retained_coordinates: cli.comma_separated_list = None,
     ignore_ecc_bounds_exceedance: bool = False,
     skip_ecc_bounds: bool = False,
     mask_percentiles: bool = False,
@@ -48,6 +49,10 @@ def process(
             coordinate.
         percentiles (list):
             Optional definition of percentiles at which to calculate data.
+        retained_coordinates (list):
+            Optional list of collapsed coordinates that should be retained in
+            their new scalar form. The default behaviour is to remove the
+            scalar coordinates that result from coordinate collapse.
         ignore_ecc_bounds_exceedance (bool):
             If True, where calculated percentiles are outside the ECC bounds
             range, raises a warning rather than an exception.
@@ -145,6 +150,7 @@ def process(
         result = PercentileConverter(
             coordinates,
             percentiles=percentiles,
+            retained_coordinates=retained_coordinates,
             fast_percentile_method=fast_percentile_method,
         )(cube)
     else:
