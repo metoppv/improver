@@ -13,7 +13,9 @@ from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin
 from improver.constants import DEFAULT_PERCENTILES
+from improver.metadata.constants.time_types import TIME_COORDS
 from improver.metadata.probabilistic import find_percentile_coordinate
+from improver.metadata.utilities import enforce_time_point_standard
 from improver.utilities.cube_manipulation import collapsed
 
 
@@ -28,6 +30,7 @@ class PercentileConverter(BasePlugin):
         self,
         collapse_coord: Union[str, List[str]],
         percentiles: Optional[List[float]] = None,
+        retained_coordinates: Optional[Union[str, List[str]]] = None,
         fast_percentile_method: bool = True,
     ) -> None:
         """
@@ -41,6 +44,13 @@ class PercentileConverter(BasePlugin):
             percentiles:
                 Percentile values at which to calculate; if not provided uses
                 DEFAULT_PERCENTILES. (optional)
+            retained_coordinates:
+                Optional list of collapsed coordinates that should be retained
+                in their new scalar form. The default behaviour is to remove
+                the scalar coordinates that result from coordinate collapse.
+            fast_percentile_method:
+                If True use the numpy percentile method within Iris, which is
+                much faster than scipy, but cannot handle masked data.
 
         Raises:
             TypeError: If collapse_coord is not a string.
@@ -65,6 +75,7 @@ class PercentileConverter(BasePlugin):
         # percentile coordinate has a consistent name regardless of the order
         # in which the user provides the original coordinate names.
         self.collapse_coord = sorted(collapse_coord)
+        self.retained_coordinates = retained_coordinates
         self.fast_percentile_method = fast_percentile_method
 
     def __repr__(self) -> str:
@@ -114,8 +125,23 @@ class PercentileConverter(BasePlugin):
             )
 
             result.data = result.data.astype(data_type)
-            for coord in self.collapse_coord:
+
+            remove_crds = self.collapse_coord
+            if self.retained_coordinates is not None:
+                remove_crds = [
+                    crd
+                    for crd in self.collapse_coord
+                    if crd not in self.retained_coordinates
+                ]
+            for coord in remove_crds:
                 result.remove_coord(coord)
+
+            # If a time related coordinate has been collapsed we need to
+            # enforce the IMPROVER standard of a coordinate point that aligns
+            # with the upper bound of the period.
+            if any([crd in TIME_COORDS for crd in self.collapse_coord]):
+                enforce_time_point_standard(result)
+
             percentile_coord = find_percentile_coordinate(result)
             result.coord(percentile_coord).rename("percentile")
             result.coord(percentile_coord).units = "%"
