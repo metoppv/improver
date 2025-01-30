@@ -598,9 +598,7 @@ class Test_process(Test_ReliabilityCalibrate):
         expected_0 = np.array(
             [[0.25, 0.3125, 0.375], [0.4375, 0.5, 0.5625], [0.625, 0.6875, 0.75]]
         )
-        expected_1 = np.array(
-            [[0.25, 0.3, 0.35], [0.4, 0.45, 0.5], [0.55, 0.6, 0.65]]
-        )
+        expected_1 = np.array([[0.25, 0.3, 0.35], [0.4, 0.45, 0.5], [0.55, 0.6, 0.65]])
 
         with warnings.catch_warnings():
             warnings.simplefilter("error")
