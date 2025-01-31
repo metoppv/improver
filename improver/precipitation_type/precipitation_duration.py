@@ -305,7 +305,7 @@ class PrecipitationDuration(PostProcessingPlugin):
         generated_percentiles = np.empty((len(self.percentiles), acc_len, rate_len, *max_precip_rate.shape[-2:]))
 
         for acc_index, rate_index in combinations:
-            hit_count = np.zeros((len(possible_values), *max_precip_rate.shape[-2:]))
+            hit_count = np.zeros((len(possible_values), *max_precip_rate.shape[-2:]), dtype=np.int8)
             for realization in realizations:
                 result = precip_accumulation[realization, acc_index].data.astype(bool) * max_precip_rate[realization, rate_index].data.astype(bool)
                 result = np.sum(result, axis=0)
