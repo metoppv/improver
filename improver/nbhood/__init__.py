@@ -10,10 +10,10 @@ from improver.utilities.common_input_handle import as_iterable
 
 
 def radius_by_lead_time(
-    radii: Union[str, List[str]], lead_times: Optional[List[str]] = None
+    radii: Union[str, List[str]], lead_times: Optional[Union[str, List[str]]] = None
 ) -> Tuple[Union[float, List[float], Optional[List[int]]]]:
     """
-    Parse radii and lead_times provided to CLIs that use neighbourhooding.
+    Parse radii and lead_times provided that use neighbourhooding.
     If no lead times are provided, return the first radius for use at all
     lead times. If lead times are provided, ensure there are sufficient
     radii to assign one to each lead time. If so return two lists, else raise
@@ -21,9 +21,9 @@ def radius_by_lead_time(
 
     Args:
         radii:
-            Radii as a list provided by clize.
+            One or more radii.
         lead_times:
-            Lead times as a list provided by clize, or None if not set.
+            One or more lead time, or None if not set.
 
     Returns:
         - Radii as a float or list of floats.
