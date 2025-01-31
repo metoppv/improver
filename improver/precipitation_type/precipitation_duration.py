@@ -11,7 +11,7 @@ import numpy as np
 from iris import Constraint, analysis
 from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube, CubeList
-from iris.util import squeeze
+from iris.util import new_axis, squeeze
 from numpy import ndarray
 import itertools
 
@@ -289,6 +289,12 @@ class PrecipitationDuration(PostProcessingPlugin):
         # combinations.
         acc_thresh = precip_accumulation.coord(var_name="threshold")
         rate_thresh = max_precip_rate.coord(var_name="threshold")
+
+        if acc_thresh not in precip_accumulation.coords(dim_coords=True):
+            precip_accumulation = new_axis(precip_accumulation, acc_thresh)
+
+        if rate_thresh not in max_precip_rate.coords(dim_coords=True):
+            max_precip_rate = new_axis(max_precip_rate, rate_thresh)
 
         enforce_coordinate_ordering(precip_accumulation, ["realization", acc_thresh.name(), "time"])
         enforce_coordinate_ordering(max_precip_rate, ["realization", rate_thresh.name(), "time"])
