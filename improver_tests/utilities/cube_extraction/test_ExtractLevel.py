@@ -40,8 +40,8 @@ def temperature_on_pressure_levels() -> Cube:
 
 
 @pytest.fixture
-def temperature_on_vertical_levels() -> Cube:
-    """Set up a r, h, y, x cube of temperature of atmosphere on vertical levels"""
+def temperature_on_height_levels() -> Cube:
+    """Set up a r, h, y, x cube of temperature of atmosphere on height levels"""
     temperatures = np.array([300, 286, 280, 274, 267, 262, 257, 245], dtype=np.float32)
     data = np.broadcast_to(
         temperatures.reshape((1, len(temperatures), 1, 1)), (2, len(temperatures), 3, 2)
@@ -49,7 +49,8 @@ def temperature_on_vertical_levels() -> Cube:
     t_cube = set_up_variable_cube(
         data,
         vertical_levels=np.arange(0, 8000, 1000),
-        name="temperature_on_vertical_levels",
+        height=True,
+        name="temperature_on_height_levels",
         units="K",
         attributes=LOCAL_MANDATORY_ATTRIBUTES,
     )
@@ -135,7 +136,7 @@ def test_basic(
     Also checks the metadata of the output cube"""
     if coordinate == "height":
         temperature_on_levels = request.getfixturevalue(
-            "temperature_on_vertical_levels"
+            "temperature_on_height_levels"
         )
     else:
         temperature_on_levels = request.getfixturevalue(
@@ -206,12 +207,12 @@ def test_basic(
 
 @pytest.mark.parametrize("least_significant_digit", (None, 2, np.int32(2)))
 def test_fill_invalid_supported_lsd_types(
-    temperature_on_vertical_levels, least_significant_digit
+    temperature_on_height_levels, least_significant_digit
 ):
     """
     Ensure performing power of negative python int/numpy int least_significant_digit supported.
     """
-    cube = temperature_on_vertical_levels
+    cube = temperature_on_height_levels
     cube.data = np.ma.MaskedArray(cube.data, mask=False)
     cube.data.mask[0, 0, 0, 0] = True
     if least_significant_digit is not None:
@@ -261,14 +262,14 @@ def test_only_one_point(temperature_on_pressure_levels, index, expected, special
     np.testing.assert_array_almost_equal(result.data, expected_data)
 
 
-def test_both_pressure_and_height_error(temperature_on_vertical_levels):
+def test_both_pressure_and_height_error(temperature_on_height_levels):
     """Tests an error is raised if both pressure and height coordinates are present
     on the input cube"""
-    temperature_on_vertical_levels.coord("realization").rename("pressure")
+    temperature_on_height_levels.coord("realization").rename("pressure")
     with pytest.raises(
         NotImplementedError,
         match="Input Cube has both a pressure and height coordinate.",
     ):
         ExtractLevel(value_of_level=277, positive_correlation=True)(
-            temperature_on_vertical_levels
+            temperature_on_height_levels
         )

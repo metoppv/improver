@@ -122,7 +122,7 @@ class Test_common_functions(IrisTest):
         )
 
         # Western half of grid at altitude 0, eastern half at 10.
-        # Note that the pressure_on_vertical_levels data is left unchanged,
+        # Note that the pressure_on_height_levels data is left unchanged,
         # so it is as if there is a sharp front running up the grid with
         # differing pressures on either side at equivalent heights above
         # the surface (e.g. east 1000hPa at 0m AMSL, west 1000hPa at 10m AMSL).

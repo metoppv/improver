@@ -47,7 +47,7 @@ def test_get_leading_dimension(coord_data, expected_cube_type):
     ],
 )
 def test_get_vertical_levels(coord_data, expected_pressure):
-    """Tests vertical level data extracted successfully and pressure flag set correctly"""
+    """Tests vertical level data extracted successfully and pressure and height flags set correctly"""
     dimension_key = list(coord_data)[0]
 
     if dimension_key == "realizations":

@@ -88,7 +88,7 @@ def process(
             (json_input["leading_dimension"], json_input["cube_type"]) = (
                 get_leading_dimension(coord_data)
             )
-            json_input["vertical_levels"], json_input["pressure"] = get_vertical_levels(
+            json_input["vertical_levels"], json_input["pressure"], json_input["height"] = get_vertical_levels(
                 coord_data
             )
 

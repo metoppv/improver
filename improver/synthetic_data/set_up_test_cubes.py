@@ -285,7 +285,7 @@ def _create_dimension_coord(
 
         if issubclass(coord_array.dtype.type, float):
             # option needed for realizations percentile & probability cube setup
-            # and diagnostic coordinate
+            # and vertical coordinate
             coord_array = coord_array.astype(np.float32)
     else:
         coord_array = np.arange(data_length).astype(np.int32)
@@ -315,7 +315,7 @@ def _construct_dimension_coords(
 
     A realization coordinate will be created if the cube is
     (n_spatial_dims + 1) or (n_spatial_dims + 2), even if no values for the
-    realizations argument are provided. To create a diagnostic coordinate, the
+    realizations argument are provided. To create a vertical coordinate, the
     vertical_levels must be provided.
     """
 
@@ -336,7 +336,7 @@ def _construct_dimension_coords(
     ):
         raise ValueError(
             f"Input data must have {n_spatial_dims + 2} dimensions to add both realization "
-            f"and diagnostic coordinates: got {ndims}"
+            f"and vertical coordinates: got {ndims}"
         )
 
     if vertical_levels is None and ndims > n_spatial_dims + 1:
@@ -363,26 +363,31 @@ def _construct_dimension_coords(
         vertical_levels is not None
         and n_spatial_dims + 1 <= ndims <= n_spatial_dims + 2
     ):
-        # Determine the index of the diagnostic coord based on if a realization coord has been created
+        # Determine the index of vertical coord based on if a realization coord has been created
         i = len(dim_coords)
         coord_length = data_shape[i]
 
+        if pressure and height:
+            raise ValueError("Both pressure and height cannot be set to True")
+
         if pressure:
             coord_name = "pressure"
-        else:
+        elif height:
             coord_name = "height"
+        else:
+            raise ValueError("Either pressure or height must be set to True")
 
         coord_units = DIM_COORD_ATTRIBUTES[coord_name]["units"]
         coord_attributes = DIM_COORD_ATTRIBUTES[coord_name]["attributes"]
 
-        diagnostic_coord = _create_dimension_coord(
+        vertical_coord = _create_dimension_coord(
             vertical_levels,
             coord_length,
             coord_name,
             units=coord_units,
             attributes=coord_attributes,
         )
-        dim_coords.append((diagnostic_coord, i))
+        dim_coords.append((vertical_coord, i))
 
     if spot_index is not None:
         dim_coords.append((spot_index, len(dim_coords)))

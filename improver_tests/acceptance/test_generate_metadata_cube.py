@@ -122,15 +122,15 @@ def test_probability_cube(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-def test_vertical_levels(tmp_path):
-    """Test metadata cube generated with vertical levels from json"""
-    kgo_path = kgo_dir / "kgo_vertical_levels.nc"
-    vertical_levels_path = kgo_dir / "vertical_levels.json"
+def test_height_levels(tmp_path):
+    """Test metadata cube generated with height levels from json"""
+    kgo_path = kgo_dir / "kgo_height_levels.nc"
+    height_levels_path = kgo_dir / "height_levels.json"
     output_path = tmp_path / "output.nc"
     args = [
         mandatory_attributes_json,
         "--json-input",
-        vertical_levels_path,
+        height_levels_path,
         "--output",
         output_path,
     ]
@@ -138,16 +138,16 @@ def test_vertical_levels(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-def test_single_vertical_level(tmp_path):
+def test_single_height_level(tmp_path):
     """Test metadata cube generation giving single value (rather than comma separated
     list) for vertical levels option demotes height to scalar coordinate"""
-    kgo_path = kgo_dir / "kgo_single_vertical_level.nc"
-    vertical_level_path = kgo_dir / "single_vertical_level.json"
+    kgo_path = kgo_dir / "kgo_single_height_level.nc"
+    height_level_path = kgo_dir / "single_height_level.json"
     output_path = tmp_path / "output.nc"
     args = [
         mandatory_attributes_json,
         "--json-input",
-        vertical_level_path,
+        height_level_path,
         "--output",
         output_path,
     ]

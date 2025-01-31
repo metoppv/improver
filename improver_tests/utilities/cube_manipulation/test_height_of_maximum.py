@@ -17,22 +17,22 @@ from improver.utilities.cube_manipulation import height_of_maximum
 
 @pytest.fixture(name="input_cube")
 def input_cube() -> Cube:
-    """Test cube of vertical velocity  on vertical levels"""
+    """Test cube of vertical velocity on height levels"""
     data = np.array(
         [[[2, 4, 9], [3, 4, 8]], [[5, 3, 3], [4, 2, 7]], [[9, 5, 1], [2, 5, 8]]]
     )
     cube = set_up_variable_cube(
-        data=data, name="vertical_velocity", vertical_levels=[5, 75, 300]
+        data=data, name="vertical_velocity", vertical_levels=[5, 75, 300], height=True
     )
     return cube
 
 
 @pytest.fixture(name="max_cube")
 def max_cube() -> Cube:
-    """Test cube of maximum vertical velocities over the vertical levels"""
+    """Test cube of maximum vertical velocities over the height levels"""
     data = np.array([[9, 5, 9], [4, 5, 8]])
     cube = set_up_variable_cube(
-        data=data, name="vertical_velocity", vertical_levels=[1]
+        data=data, name="vertical_velocity", vertical_levels=[1], height=True
     )
     return cube
 
@@ -42,7 +42,7 @@ def high_cube() -> Cube:
     """Test cube when we want the highest maximum"""
     data_high = np.array([[300, 300, 5], [75, 300, 300]])
     cube = set_up_variable_cube(
-        data=data_high, name="vertical_velocity", vertical_levels=[1]
+        data=data_high, name="vertical_velocity", vertical_levels=[1], height=True
     )
     return cube
 
@@ -52,7 +52,7 @@ def low_cube() -> Cube:
     """Test cube when we want the lowest maximum"""
     data_low = np.array([[300, 300, 5], [75, 300, 5]])
     cube = set_up_variable_cube(
-        data=data_low, name="vertical_velocity", vertical_levels=[1]
+        data=data_low, name="vertical_velocity", vertical_levels=[1], height=True
     )
     return cube
 
@@ -77,6 +77,6 @@ def test_basic(input_cube, max_cube, new_name, find_lowest, high_cube, low_cube)
 
 def test_one_height(input_cube):
     one_height = input_cube[0]
-    msg = "More than 1 vertical level is required."
+    msg = "More than 1 height level is required."
     with pytest.raises(ValueError, match=msg):
         height_of_maximum(one_height, one_height)

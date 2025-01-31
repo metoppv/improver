@@ -807,7 +807,7 @@ def height_of_maximum(
     height_of_max = max_cube.copy()
     height_range = range(len(cube.coord("height").points))
     if len(cube.coord("height").points) == 1:
-        raise ValueError("More than 1 vertical level is required.")
+        raise ValueError("More than 1 height level is required.")
     if find_lowest:
         height_points = height_range
     else:
