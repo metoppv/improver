@@ -491,7 +491,7 @@ class GeneratePercentilesFromANeighbourhood(BaseNeighbourhoodProcessing):
                 within 'radii' are defined. The lead times are expected
                 in hours.
             percentiles:
-                Percentile values at which to calculate; if not provided uses
+                Percentile value(s) at which to calculate; if not provided uses
                 DEFAULT_PERCENTILES.
         """
         super().__init__(radii, lead_times=lead_times)
@@ -783,7 +783,7 @@ class MetaNeighbourhood(BasePlugin):
                 The form of the results generated using neighbourhood processing.
                 If "probabilities" is selected, the mean probability with a
                 neighbourhood is calculated. If "percentiles" is selected, then
-                the percentiles are calculated with a neighbourhood. Calculating
+                the percentile(s) is/are calculated with a neighbourhood. Calculating
                 percentiles from a neighbourhood is only supported for a circular
                 neighbourhood, and the input cube should be ensemble realizations.
                 The calculation of percentiles from a neighbourhood is notably slower
@@ -816,7 +816,7 @@ class MetaNeighbourhood(BasePlugin):
             area_sum:
                 Return sum rather than fraction over the neighbourhood area.
             percentiles:
-                Calculates value at the specified percentiles from the
+                Calculates value at the specified percentile(s) from the
                 neighbourhood surrounding each grid point. This argument has no
                 effect if the output is probabilities.
             halo_radius:
