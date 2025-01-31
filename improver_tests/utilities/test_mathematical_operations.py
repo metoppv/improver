@@ -15,8 +15,8 @@ from iris.tests import IrisTest
 from improver.metadata.utilities import generate_mandatory_attributes
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
-    set_up_variable_cube,
     set_up_spot_variable_cube,
+    set_up_variable_cube,
 )
 from improver.utilities.cube_manipulation import sort_coord_in_cube
 from improver.utilities.mathematical_operations import (
@@ -622,38 +622,48 @@ def variance_cube(request):
     else:
         return create_test_cube(data, time_bounds, time, units="K2")
 
+
 @pytest.fixture
 def site_cube_one(request):
     """Fixture for creating a site cube."""
     faulty = request.param
-    multipliers = np.array([287.98, 287.98, 287.32, 288.17, 287.87, 289.25], dtype=np.float32)
+    multipliers = np.array(
+        [287.98, 287.98, 287.32, 288.17, 287.87, 289.25], dtype=np.float32
+    )
     data = np.ones((6), dtype=np.float32) * multipliers
     site_cube = set_up_spot_variable_cube(data)
     if faulty:
         site_cube.coord("spot_index").points = site_cube.coord("spot_index").points + 1
     return site_cube
 
+
 @pytest.fixture
 def site_cube_two(request):
     """Fixture for creating a second site cube with different data."""
     faulty = request.param
-    multipliers = np.array([287.98, 287.98, 287.32, 288.17, 287.87, 289.25], dtype=np.float32)
+    multipliers = np.array(
+        [287.98, 287.98, 287.32, 288.17, 287.87, 289.25], dtype=np.float32
+    )
     data = np.ones((6), dtype=np.float32) * multipliers
     site_cube = set_up_spot_variable_cube(data)
     if faulty:
         site_cube.coord("spot_index").points = site_cube.coord("spot_index").points + 2
     return site_cube
 
+
 @pytest.fixture
 def site_cube_three(request):
     """Fixture for creating a third site cube with different data."""
     faulty = request.param
-    multipliers = np.array([287.98, 287.98, 287.32, 288.17, 287.87, 289.25], dtype=np.float32)
+    multipliers = np.array(
+        [287.98, 287.98, 287.32, 288.17, 287.87, 289.25], dtype=np.float32
+    )
     data = np.ones((6), dtype=np.float32) * multipliers
     site_cube = set_up_spot_variable_cube(data)
     if faulty:
         site_cube.coord("spot_index").points = site_cube.coord("spot_index").points + 3
     return site_cube
+
 
 @pytest.mark.parametrize(
     "diagnostic_cube, mean_cube, variance_cube", [(False, False, False)], indirect=True
@@ -695,23 +705,46 @@ def test_verify_spatial_coords_mismatch(diagnostic_cube, mean_cube, variance_cub
     with pytest.raises(ValueError):
         plugin.verify_spatial_coords_match(diagnostic_cube, mean_cube, variance_cube)
 
+
 @pytest.mark.parametrize(
-    "site_cube_one, site_cube_two, site_cube_three", [(False, False, False)], indirect=True
+    "diagnostic_cube, mean_cube, variance_cube", [(True, True, False)], indirect=True
 )
-def test_verify_spatial_coords_match_for_site_data(site_cube_one, site_cube_two, site_cube_three):
+def test_verify_spatial_coords_mismatch(diagnostic_cube, mean_cube, variance_cube):
+    """Test that the plugin raises a ValueError if the grids of the diagnostic and another cube mismatch"""
+    plugin = CalculateClimateAnomalies()
+    with pytest.raises(ValueError):
+        plugin.verify_spatial_coords_match(diagnostic_cube, mean_cube, variance_cube)
+
+
+@pytest.mark.parametrize(
+    "site_cube_one, site_cube_two, site_cube_three",
+    [(False, False, False)],
+    indirect=True,
+)
+def test_verify_spatial_coords_match_for_site_data(
+    site_cube_one, site_cube_two, site_cube_three
+):
     """Test that the plugin verifies the grids of the diagnostic and another cube mismatch."""
     plugin = CalculateClimateAnomalies(standard_anomaly=True)
     plugin.verify_spatial_coords_match(site_cube_one, site_cube_two, site_cube_three)
     assert True
 
+
 @pytest.mark.parametrize(
-    "site_cube_one, site_cube_two, site_cube_three", [(False, False, True)], indirect=True
+    "site_cube_one, site_cube_two, site_cube_three",
+    [(False, False, True)],
+    indirect=True,
 )
-def test_verify_spatial_coords_mismatch_for_site_data(site_cube_one, site_cube_two, site_cube_three):
+def test_verify_spatial_coords_mismatch_for_site_data(
+    site_cube_one, site_cube_two, site_cube_three
+):
     """Test that the plugin raises a ValueError if the grids of the diagnostic and another cube mismatch"""
     plugin = CalculateClimateAnomalies(standard_anomaly=True)
     with pytest.raises(ValueError):
-        plugin.verify_spatial_coords_match(site_cube_one, site_cube_two, site_cube_three)
+        plugin.verify_spatial_coords_match(
+            site_cube_one, site_cube_two, site_cube_three
+        )
+
 
 ##TODO: Create a cube with more than one time point for testing
 @pytest.mark.parametrize(
@@ -771,7 +804,9 @@ def test_calculate_anomalies_with_variance_unexpected(
     """Test that the plugin raises an error when  correctly when a variance cube is provided."""
     plugin = CalculateClimateAnomalies()
     with pytest.raises(AssertionError):
-        anomalies = plugin.calculate_anomalies(diagnostic_cube, mean_cube, variance_cube)
+        anomalies = plugin.calculate_anomalies(
+            diagnostic_cube, mean_cube, variance_cube
+        )
         expected_anomalies = np.array(
             [
                 [
