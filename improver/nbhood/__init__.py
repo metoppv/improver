@@ -10,7 +10,7 @@ from improver.utilities.common_input_handle import as_iterable
 
 
 def radius_by_lead_time(
-    radii: List[str], lead_times: Optional[List[str]] = None
+    radii: Union[str, List[str]], lead_times: Optional[List[str]] = None
 ) -> Tuple[Union[float, List[float], Optional[List[int]]]]:
     """
     Parse radii and lead_times provided to CLIs that use neighbourhooding.
