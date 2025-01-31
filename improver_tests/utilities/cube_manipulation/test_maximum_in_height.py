@@ -25,7 +25,10 @@ def wet_bulb_temperature() -> Cube:
         ]
     )
     cube = set_up_variable_cube(
-        data=data, name="wet_bulb_temperature", vertical_levels=[100, 200, 300], height=True
+        data=data,
+        name="wet_bulb_temperature",
+        vertical_levels=[100, 200, 300],
+        height=True,
     )
     return cube
 

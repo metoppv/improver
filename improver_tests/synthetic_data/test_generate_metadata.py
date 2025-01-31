@@ -484,7 +484,9 @@ def test_set_height_levels():
     """Tests cube generated with specified height levels as an additional dimension"""
     vertical_levels = [1.5, 3.0, 4.5]
     cube = generate_metadata(
-        MANDATORY_ATTRIBUTE_DEFAULTS, vertical_levels=vertical_levels, height=True,
+        MANDATORY_ATTRIBUTE_DEFAULTS,
+        vertical_levels=vertical_levels,
+        height=True,
     )
 
     assert cube.ndim == 4
@@ -514,7 +516,9 @@ def test_set_height_levels_single_value():
     scalar coordinate"""
     vertical_levels = [1.5]
     cube = generate_metadata(
-        MANDATORY_ATTRIBUTE_DEFAULTS, vertical_levels=vertical_levels, height=True,
+        MANDATORY_ATTRIBUTE_DEFAULTS,
+        vertical_levels=vertical_levels,
+        height=True,
     )
 
     assert cube.ndim == 3

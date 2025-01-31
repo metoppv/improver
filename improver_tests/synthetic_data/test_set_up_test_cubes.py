@@ -376,8 +376,10 @@ class Test_set_up_variable_cube(IrisTest):
         expected_units = "m"
         expected_attributes = {"positive": "up"}
         result = set_up_variable_cube(
-            self.data_3d, vertical_levels=vertical_levels, height=True,
-            )
+            self.data_3d,
+            vertical_levels=vertical_levels,
+            height=True,
+        )
         self.assertArrayAlmostEqual(result.data, self.data_3d)
         self.assertEqual(result.coord_dims("height"), (0,))
         self.assertArrayEqual(result.coord("height").points, np.array(vertical_levels))
@@ -392,8 +394,10 @@ class Test_set_up_variable_cube(IrisTest):
         expected_units = "Pa"
         expected_attributes = {"positive": "down"}
         result = set_up_variable_cube(
-            self.data_3d, vertical_levels=vertical_levels, pressure=True,
-            )
+            self.data_3d,
+            vertical_levels=vertical_levels,
+            pressure=True,
+        )
         self.assertArrayAlmostEqual(result.data, self.data_3d)
         self.assertEqual(result.coord_dims("pressure"), (0,))
         self.assertArrayEqual(
@@ -441,7 +445,9 @@ class Test_set_up_variable_cube(IrisTest):
         )
         with self.assertRaisesRegex(ValueError, msg):
             _ = set_up_variable_cube(
-                self.data_3d, vertical_levels=np.arange(vertical_levels_len), height=True,
+                self.data_3d,
+                vertical_levels=np.arange(vertical_levels_len),
+                height=True,
             )
 
     def test_error_unmatched_pressure_levels(self):
@@ -454,7 +460,9 @@ class Test_set_up_variable_cube(IrisTest):
         )
         with self.assertRaisesRegex(ValueError, msg):
             _ = set_up_variable_cube(
-                self.data_3d, vertical_levels=np.arange(vertical_levels_len), pressure=True,
+                self.data_3d,
+                vertical_levels=np.arange(vertical_levels_len),
+                pressure=True,
             )
 
     def test_realizations_from_data_height_levels(self):
@@ -478,7 +486,10 @@ class Test_set_up_variable_cube(IrisTest):
         vertical_levels = [1.5, 3.0, 4.5]
         data_4d = np.array([self.data_3d, self.data_3d])
         result = set_up_variable_cube(
-            data_4d, realizations=realizations, vertical_levels=vertical_levels, height=True
+            data_4d,
+            realizations=realizations,
+            vertical_levels=vertical_levels,
+            height=True,
         )
         self.assertArrayAlmostEqual(result.data, data_4d)
         self.assertEqual(result.coord_dims("realization"), (0,))
@@ -514,7 +525,10 @@ class Test_set_up_variable_cube(IrisTest):
         )
         with self.assertRaisesRegex(ValueError, msg):
             _ = set_up_variable_cube(
-                self.data_3d, realizations=realizations, vertical_levels=vertical_levels, height=True
+                self.data_3d,
+                realizations=realizations,
+                vertical_levels=vertical_levels,
+                height=True,
             )
 
     def test_standard_grid_metadata_uk(self):
@@ -738,7 +752,9 @@ class Test_set_up_spot_variable_cube(IrisTest):
         expected_attributes = {"positive": "up"}
         expected_site_dim = 1
         result = set_up_spot_variable_cube(
-            self.data_2d, vertical_levels=vertical_levels, height=True,
+            self.data_2d,
+            vertical_levels=vertical_levels,
+            height=True,
         )
         self.assertArrayAlmostEqual(result.data, self.data_2d)
         self.assertEqual(result.coord_dims("height"), (0,))
@@ -755,7 +771,9 @@ class Test_set_up_spot_variable_cube(IrisTest):
         expected_attributes = {"positive": "down"}
         expected_site_dim = 1
         result = set_up_spot_variable_cube(
-            self.data_2d, vertical_levels=vertical_levels, pressure=True,
+            self.data_2d,
+            vertical_levels=vertical_levels,
+            pressure=True,
         )
         self.assertArrayAlmostEqual(result.data, self.data_2d)
         self.assertEqual(result.coord_dims("pressure"), (0,))
@@ -807,7 +825,9 @@ class Test_set_up_spot_variable_cube(IrisTest):
         )
         with self.assertRaisesRegex(ValueError, msg):
             _ = set_up_spot_variable_cube(
-                self.data_2d, vertical_levels=np.arange(vertical_levels_len), height=True,
+                self.data_2d,
+                vertical_levels=np.arange(vertical_levels_len),
+                height=True,
             )
 
     def test_error_unmatched_pressure_levels(self):
@@ -820,7 +840,9 @@ class Test_set_up_spot_variable_cube(IrisTest):
         )
         with self.assertRaisesRegex(ValueError, msg):
             _ = set_up_spot_variable_cube(
-                self.data_2d, vertical_levels=np.arange(vertical_levels_len), pressure=True,
+                self.data_2d,
+                vertical_levels=np.arange(vertical_levels_len),
+                pressure=True,
             )
 
     def test_realizations_from_data_height_levels(self):
@@ -830,7 +852,7 @@ class Test_set_up_spot_variable_cube(IrisTest):
         expected_site_dim = 2
         result = set_up_spot_variable_cube(
             data_3d, vertical_levels=vertical_levels, height=True
-            )
+        )
         self.assertArrayAlmostEqual(result.data, data_3d)
         self.assertEqual(result.coord_dims("realization"), (0,))
         self.assertArrayEqual(result.coord("realization").points, np.array([0, 1]))
@@ -846,8 +868,11 @@ class Test_set_up_spot_variable_cube(IrisTest):
         data_3d = np.array([self.data_2d, self.data_2d])
         expected_site_dim = 2
         result = set_up_spot_variable_cube(
-            data_3d, realizations=realizations, vertical_levels=vertical_levels, height=True
-            )
+            data_3d,
+            realizations=realizations,
+            vertical_levels=vertical_levels,
+            height=True,
+        )
         self.assertArrayAlmostEqual(result.data, data_3d)
         self.assertEqual(result.coord_dims("realization"), (0,))
         self.assertArrayEqual(
@@ -882,7 +907,10 @@ class Test_set_up_spot_variable_cube(IrisTest):
         )
         with self.assertRaisesRegex(ValueError, msg):
             _ = set_up_spot_variable_cube(
-                self.data_2d, realizations=realizations, vertical_levels=vertical_levels, height=True,
+                self.data_2d,
+                realizations=realizations,
+                vertical_levels=vertical_levels,
+                height=True,
             )
 
     def test_custom_coords(self):

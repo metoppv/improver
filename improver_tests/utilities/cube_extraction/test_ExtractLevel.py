@@ -135,9 +135,7 @@ def test_basic(
     Tests behaviour when extracting a pressure level or height level.
     Also checks the metadata of the output cube"""
     if coordinate == "height":
-        temperature_on_levels = request.getfixturevalue(
-            "temperature_on_height_levels"
-        )
+        temperature_on_levels = request.getfixturevalue("temperature_on_height_levels")
     else:
         temperature_on_levels = request.getfixturevalue(
             "temperature_on_pressure_levels"
