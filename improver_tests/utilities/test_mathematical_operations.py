@@ -709,7 +709,9 @@ def test_verify_spatial_coords_mismatch(diagnostic_cube, mean_cube, variance_cub
 @pytest.mark.parametrize(
     "diagnostic_cube, mean_cube, variance_cube", [(True, True, False)], indirect=True
 )
-def test_verify_spatial_coords_mismatch(diagnostic_cube, mean_cube, variance_cube):
+def test_verify_spatial_coords_mismatch_diff_mean_and_var_bounds(
+    diagnostic_cube, mean_cube, variance_cube
+):
     """Test that the plugin raises a ValueError if the grids of the diagnostic and another cube mismatch"""
     plugin = CalculateClimateAnomalies()
     with pytest.raises(ValueError):
