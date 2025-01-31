@@ -458,7 +458,10 @@ class CalculateClimateAnomalies(BasePlugin):
         cubes_to_check = [mean_cube, variance_cube] if variance_cube else [mean_cube]
         if any("spot_index" in get_dim_coord_names(cube) for cube in cubes_to_check):
             if any(
-                not np.array_equal(cube.coord("spot_index").points, diagnostic_cube.coord("spot_index").points)
+                not np.array_equal(
+                    cube.coord("spot_index").points,
+                    diagnostic_cube.coord("spot_index").points,
+                )
                 for cube in cubes_to_check
             ):
                 raise ValueError("The index coordinates must match.")
