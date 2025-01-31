@@ -55,7 +55,7 @@ def test_get_vertical_levels(coord_data, expected_pressure):
     else:
         expected_vertical_levels = coord_data[dimension_key]
 
-    vertical_levels, pressure = utilities.get_vertical_levels(coord_data=coord_data)
+    vertical_levels, pressure, height = utilities.get_vertical_levels(coord_data=coord_data)
 
     np.testing.assert_array_equal(expected_vertical_levels, vertical_levels)
     assert expected_pressure == pressure
