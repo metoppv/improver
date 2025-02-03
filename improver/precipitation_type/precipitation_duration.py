@@ -232,6 +232,14 @@ class PrecipitationDuration(PostProcessingPlugin):
         can be classified as exceeding the given thresholds. The fidelity of
         the returned product depends upon the period of the input cubes.
 
+        This plugin can process an awful lot of data, particularly if
+        dealing with a large ensemble. To reduce the memory used, given the
+        discrete nature of the period fractions produced, frequency bins are
+        used to directly produce percentiles. This means that not all of the
+        values need to be held in memory at once, instead we count instances
+        of each value and then calculate the percentiles from the counts.
+        Unfortunately this method is more convoluted.
+
         Args:
             cubes:
                 Cubes covering the expected period that include cubes of:
@@ -284,43 +292,67 @@ class PrecipitationDuration(PostProcessingPlugin):
                 f"{total_period} hours. Target is {self.target_period} hours."
             )
 
-        (n_periods,) = max_precip_rate.coord("time").shape
-        # Slice over all thresholds and combine to build all the classification
-        # combinations.
+        # Pick out the threshold coordinates in the inputs.
         acc_thresh = precip_accumulation.coord(var_name="threshold")
         rate_thresh = max_precip_rate.coord(var_name="threshold")
 
+        # Promote any scalar threshold coordinates to dimensions so that the
+        # array shapes are as expected.
         if acc_thresh not in precip_accumulation.coords(dim_coords=True):
             precip_accumulation = new_axis(precip_accumulation, acc_thresh)
 
         if rate_thresh not in max_precip_rate.coords(dim_coords=True):
             max_precip_rate = new_axis(max_precip_rate, rate_thresh)
 
+        # Enforce a coordinate order so we know which dimensions are which
+        # when indexing the data arrays.
         enforce_coordinate_ordering(precip_accumulation, ["realization", acc_thresh.name(), "time"])
         enforce_coordinate_ordering(max_precip_rate, ["realization", rate_thresh.name(), "time"])
-
+        # Get the lengths of the threshold arrays, after extraction, for use
+        # as looping counts and for creating a target array shape.
         acc_len = acc_thresh.shape[0]
         rate_len = rate_thresh.shape[0]
+        # Generate the combinations of the threshold values.
         combinations = list(itertools.product(list(range(acc_len)), list(range(rate_len))))
         realizations = list(range(max_precip_rate.coord("realization").shape[0]))
-
+        # Determine the possible counts that can be achieved which is simply
+        # the length of the input time coordinates.
+        (n_periods,) = max_precip_rate.coord("time").shape
         possible_values=list(range(0, n_periods + 1))
+        # We've ensured that the periods combine to give the target_period.
+        # The fractions of that total period that can be returned are
+        # therefore simply 0-1 in increments of 1/n_periods.
         fractions = np.arange(0, 1.0001, 1/n_periods)
-
+        # The lookup_percentiles are the target percentiles rescaled to match
+        # the number of realizations over which we are counting.
         lookup_percentiles = self.percentiles * (len(realizations) - 1) / 100
+        # We create an empty array into which to put our resulting percentiles.
+        # We can index this with the accumulation and rate threshold indices
+        # to ensure we record the data where we expect.
         generated_percentiles = np.empty((len(self.percentiles), acc_len, rate_len, *max_precip_rate.shape[-2:]))
 
         for acc_index, rate_index in combinations:
             hit_count = np.zeros((len(possible_values), *max_precip_rate.shape[-2:]), dtype=np.int8)
             for realization in realizations:
+                # Mulitply the binary probabilities and then sum over the
+                # leading time dimension to count how many of the times have
+                # precipitation classified as exceeding both thresholds.
                 result = precip_accumulation[realization, acc_index].data.astype(bool) * max_precip_rate[realization, rate_index].data.astype(bool)
                 result = np.sum(result, axis=0)
+                # Index here corresponds to the possible value, whilst the
+                # y,x positions records the counts of the value.
                 for index, value in enumerate(possible_values):
                     hit_count[index, result == value] += 1
 
+            # We accumulate the counts over the possible values. The resulting
+            # array contains monotonically increasing counts that we can use
+            # to determine where each target percentile falls in the possible
+            # values.
             cumulated = np.cumsum(hit_count, axis=0)
             resulting_percentiles = []
             for percentile in lookup_percentiles:
+                # Find the value below and above the target percentile and
+                # apply linear interpolation to determine the percentile value
                 percentile_indices_lower = (cumulated <= np.floor(percentile)).sum(axis=0)
                 percentile_indices_upper = (cumulated <= np.ceil(percentile)).sum(axis=0)
                 interp_fraction = percentile - np.floor(percentile)
@@ -332,9 +364,11 @@ class PrecipitationDuration(PostProcessingPlugin):
                 resulting_percentiles.append(percentile_values)
 
             resulting_percentiles = np.array(resulting_percentiles)
+            # Record the percentiles generated for this accumulation and rate
+            # threshold combination.
             generated_percentiles[:, acc_index, rate_index] = resulting_percentiles
 
-        # Need to make a cube of the right shape.
+        # Store the generated percentiles in a cube with suitable metadata.
         classification_percentiles = self._create_output_cube(
             generated_percentiles, (max_precip_rate, precip_accumulation), acc_thresh, rate_thresh
         )
