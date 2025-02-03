@@ -748,7 +748,6 @@ def test_verify_spatial_coords_mismatch_for_site_data(
         )
 
 
-##TODO: Create a cube with more than one time point for testing
 @pytest.mark.parametrize(
     "diagnostic_cube, mean_cube, variance_cube", [(False, False, False)], indirect=True
 )
@@ -760,10 +759,24 @@ def test_verify_time_coords_match(diagnostic_cube, mean_cube, variance_cube):
 
 
 @pytest.mark.parametrize(
-    "diagnostic_cube, mean_cube, variance_cube", [(True, True, True)], indirect=True
+    "diagnostic_cube, mean_cube, variance_cube", [(False, True, True)], indirect=True
 )
-def test_verify_time_coords_mismatch(diagnostic_cube, mean_cube, variance_cube):
+def test_verify_time_coords_mismatch_diagnostic(
+    diagnostic_cube, mean_cube, variance_cube
+):
     """Test that the plugin verifies the time coordinates of the diagnostic and another cube mismatch."""
+    plugin = CalculateClimateAnomalies()
+    with pytest.raises(ValueError):
+        plugin.verify_time_coords_match(diagnostic_cube, mean_cube, variance_cube)
+
+
+@pytest.mark.parametrize(
+    "diagnostic_cube, mean_cube, variance_cube", [(True, True, False)], indirect=True
+)
+def test_verify_time_coords_mismatch_mean_and_variance(
+    diagnostic_cube, mean_cube, variance_cube
+):
+    """Test that the plugin verifies the time coordinates of the mean and variance cube mismatch."""
     plugin = CalculateClimateAnomalies()
     with pytest.raises(ValueError):
         plugin.verify_time_coords_match(diagnostic_cube, mean_cube, variance_cube)
