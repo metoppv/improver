@@ -337,7 +337,7 @@ class PrecipitationDuration(PostProcessingPlugin):
                 # Mulitply the binary probabilities and then sum over the
                 # leading time dimension to count how many of the times have
                 # precipitation classified as exceeding both thresholds.
-                result = precip_accumulation[realization, acc_index].data.astype(bool) * max_precip_rate[realization, rate_index].data.astype(bool)
+                result = precip_accumulation[realization, acc_index].data * max_precip_rate[realization, rate_index].data
                 result = np.sum(result, axis=0)
                 # Index here corresponds to the possible value, whilst the
                 # y,x positions records the counts of the value.
