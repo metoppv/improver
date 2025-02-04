@@ -16,6 +16,7 @@ def process(
     min_accumulation_per_hour: cli.comma_separated_list,
     critical_rate: cli.comma_separated_list,
     target_period: float,
+    percentiles: cli.comma_separated_list,
     accumulation_diagnostic: str = "probability_of_lwe_thickness_of_precipitation_amount_above_threshold",
     rate_diagnostic: str = "probability_of_lwe_precipitation_rate_above_threshold",
     model_id_attr: str = None,
@@ -45,6 +46,8 @@ def process(
             checking that the returned diagnostic represents the period
             that is expected. Without this a missing input file could
             lead to a suddenly different overall period.
+        percentiles (list):
+            Definition of percentiles at which to calculate data.
         accumulation_diagnostic:
             The expected diagnostic name for the accumulation in period
             diagnostic. Used to extract the cubes from the inputs.
@@ -65,6 +68,7 @@ def process(
         min_accumulation_per_hour,
         critical_rate,
         target_period,
+        percentiles,
         accumulation_diagnostic=accumulation_diagnostic,
         rate_diagnostic=rate_diagnostic,
         model_id_attr=model_id_attr,
