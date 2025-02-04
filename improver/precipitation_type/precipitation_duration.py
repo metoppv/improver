@@ -331,30 +331,34 @@ class PrecipitationDuration(PostProcessingPlugin):
         # to ensure we record the data where we expect.
         generated_percentiles = np.empty((len(self.percentiles), acc_len, rate_len, *max_precip_rate.shape[-2:]))
 
-        for acc_index, rate_index in combinations:
-            hit_count = np.zeros((len(possible_values), *max_precip_rate.shape[-2:]), dtype=np.int8)
-            for realization in realizations:
+        hit_count = np.zeros((acc_len, rate_len, len(possible_values), *max_precip_rate.shape[-2:]), dtype=np.int8)
+        for realization in realizations:
+            acc_realized = precip_accumulation[realization].data
+            rate_realized = max_precip_rate[realization].data
+            for acc_index, rate_index in combinations:
                 # Mulitply the binary probabilities and then sum over the
                 # leading time dimension to count how many of the times have
                 # precipitation classified as exceeding both thresholds.
-                result = precip_accumulation[realization, acc_index].data * max_precip_rate[realization, rate_index].data
+                result = acc_realized[acc_index] * rate_realized[rate_index]
                 result = np.sum(result, axis=0)
                 # Index here corresponds to the possible value, whilst the
                 # y,x positions records the counts of the value.
                 for index, value in enumerate(possible_values):
-                    hit_count[index, result == value] += 1
+                    hit_count[acc_index, rate_index, index, result == value] += 1
 
+        for acc_index, rate_index in combinations:
             # We accumulate the counts over the possible values. The resulting
             # array contains monotonically increasing counts that we can use
             # to determine where each target percentile falls in the possible
             # values.
-            cumulated = np.cumsum(hit_count, axis=0)
+            cumulated = np.cumsum(hit_count[acc_index, rate_index], axis=0)
             resulting_percentiles = []
             for percentile in lookup_percentiles:
                 # Find the value below and above the target percentile and
                 # apply linear interpolation to determine the percentile value
                 percentile_indices_lower = (cumulated <= np.floor(percentile)).sum(axis=0)
                 percentile_indices_upper = (cumulated <= np.ceil(percentile)).sum(axis=0)
+
                 interp_fraction = percentile - np.floor(percentile)
 
                 percentile_values = (
