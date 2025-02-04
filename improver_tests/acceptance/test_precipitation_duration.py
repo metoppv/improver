@@ -12,9 +12,11 @@ pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
 CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
+PERCENTILES = "10,25,50,75,90"
+
 
 @pytest.mark.parametrize(
-    "min_accumulation, critical_rate", [(0.1 / 3, 2.0), (0.1, 2.0)]
+    "min_accumulation, critical_rate", [(0.1, 4.0), (1, 4.0)]
 )
 def test_different_threshold_parameters(tmp_path, min_accumulation, critical_rate):
     """Test precipitation duration with different parameters"""
@@ -30,6 +32,8 @@ def test_different_threshold_parameters(tmp_path, min_accumulation, critical_rat
         f"{critical_rate}",
         "--target-period",
         "24",
+        "--percentiles",
+        PERCENTILES,
         "--model-id-attr",
         "mosg__model_configuration",
         "--output",
@@ -44,7 +48,7 @@ def test_shorter_period(tmp_path):
     shorter period than a full day."""
     kgo_dir = acc.kgo_root() / "precipitation_duration/standard_names"
     kgo_path = kgo_dir / "kgo_short_period.nc"
-    input_cubes = kgo_dir.glob("20250119T0*.nc")
+    input_cubes = kgo_dir.glob("20250128T0*.nc")
     output_path = tmp_path / "output.nc"
     args = [
         *input_cubes,
@@ -53,7 +57,9 @@ def test_shorter_period(tmp_path):
         "--critical-rate",
         "4.0",
         "--target-period",
-        "9",
+        "12",
+        "--percentiles",
+        PERCENTILES,
         "--output",
         output_path,
     ]
@@ -75,8 +81,10 @@ def test_renamed_diagnostics(tmp_path):
         "4.0",
         "--target-period",
         "24",
+        "--percentiles",
+        PERCENTILES,
         "--rate-diagnostic",
-        "probability_of_lwe_kittens_above_threshold",
+        "probability_of_lwe_rate_of_kittens_above_threshold",
         "--accumulation-diagnostic",
         "probability_of_lwe_thickness_of_kittens_above_threshold",
         "--output",
@@ -95,11 +103,13 @@ def test_multiple_thresholds(tmp_path):
     args = [
         *input_cubes,
         "--min-accumulation-per-hour",
-        "0.033333,0.1",
+        "0.1,1.0",
         "--critical-rate",
-        "2,4",
+        "4",
         "--target-period",
         "24",
+        "--percentiles",
+        PERCENTILES,
         "--output",
         output_path,
     ]

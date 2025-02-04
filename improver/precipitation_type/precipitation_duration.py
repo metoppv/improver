@@ -5,10 +5,10 @@
 """Module containing the PrecipitationDuration class."""
 
 from numbers import Number
-from typing import Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
-from iris import Constraint, analysis
+from iris import Constraint
 from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube, CubeList
 from iris.util import new_axis, squeeze
@@ -32,7 +32,15 @@ class PrecipitationDuration(PostProcessingPlugin):
     Classifies periods of precipitation intensity using a mix of the maximum
     precipitation rate in the period and the accumulation in the period. These
     classified periods are then used to determine what fraction of a
-    constructed longer period would be classified as such.
+    constructed longer period would be classified as such. Percentiles are
+    produced directly from these fractions via a frequency table. This done
+    to reduce the memory requirements when potentially combining so much data.
+    The discrete nature of the fractions that are possible makes this binning
+    approach possible.
+
+    .. See the documentation for a more detailed discussion of this plugin.
+    .. include:: extended_documentation/precipitation_type/
+        precipitation_duration.rst
     """
 
     def __init__(
@@ -40,6 +48,7 @@ class PrecipitationDuration(PostProcessingPlugin):
         min_accumulation_per_hour: float,
         critical_rate: float,
         target_period: float,
+        percentiles: Union[List[float], ndarray],
         accumulation_diagnostic: str = "probability_of_lwe_thickness_of_precipitation_amount_above_threshold",
         rate_diagnostic: str = "probability_of_lwe_precipitation_rate_above_threshold",
         model_id_attr: Optional[str] = None,
@@ -64,12 +73,17 @@ class PrecipitationDuration(PostProcessingPlugin):
                 checking that the returned diagnostic represents the period
                 that is expected. Without this a missing input file could
                 lead to a suddenly different overall period.
+            percentiles:
+                A list of percentile values to be returned.
             accumulation_diagnostic:
                 The expected diagnostic name for the accumulation in period
                 diagnostic. Used to extract the cubes from the inputs.
             rate_diagnostic:
                 The expected diagnostic name for the maximum rate in period
                 diagnostic. Used to extract the cubes from the inputs.
+            model_id_attr:
+                The name of the dataset attribute to be used to identify the source
+                model when blending data from different models.
         """
         if isinstance(min_accumulation_per_hour, Number):
             min_accumulation_per_hour = [min_accumulation_per_hour]
@@ -88,7 +102,7 @@ class PrecipitationDuration(PostProcessingPlugin):
         self.period = None
         self.acc_threshold = None
         self.rate_threshold = None
-        self.percentiles = np.array([5, 10, 15, 20, 30, 40, 50, 60, 70, 80, 85, 90, 95])
+        self.percentiles = np.sort(np.array(percentiles, dtype=np.float32))
 
     def _period_in_hours(self, cubes: CubeList) -> None:
         """Get the periods of the input cubes, check they are equal and
@@ -314,6 +328,14 @@ class PrecipitationDuration(PostProcessingPlugin):
         rate_len = rate_thresh.shape[0]
         # Generate the combinations of the threshold values.
         combinations = list(itertools.product(list(range(acc_len)), list(range(rate_len))))
+
+        # Check realizations are the same as we intend to loop over a counting
+        # index and must ensure we are matching the same realizations together.
+        if not precip_accumulation.coord("realization") == max_precip_rate.coord("realization"):
+            raise ValueError(
+                "Mismatched realization coordinates between accumulation and "
+                "max rate inputs. These must be the same."
+            )
         realizations = list(range(max_precip_rate.coord("realization").shape[0]))
         # Determine the possible counts that can be achieved which is simply
         # the length of the input time coordinates.
@@ -331,10 +353,18 @@ class PrecipitationDuration(PostProcessingPlugin):
         # to ensure we record the data where we expect.
         generated_percentiles = np.empty((len(self.percentiles), acc_len, rate_len, *max_precip_rate.shape[-2:]))
 
-        hit_count = np.zeros((acc_len, rate_len, len(possible_values), *max_precip_rate.shape[-2:]), dtype=np.int8)
+        hit_count = np.zeros((acc_len, rate_len, n_periods + 1, *max_precip_rate.shape[-2:]), dtype=np.int8)
         for realization in realizations:
-            acc_realized = precip_accumulation[realization].data
-            rate_realized = max_precip_rate[realization].data
+            # Realize the data to reduce overhead of lazy loading smaller
+            # slices which comes to dominate the time with many small slices.
+            acc_realized = precip_accumulation[realization].data.astype(bool)
+            rate_realized = max_precip_rate[realization].data.astype(bool)
+            # Check for masked data and raise exception if present.
+            if np.ma.is_masked(acc_realized) or np.ma.is_masked(rate_realized):
+                raise TypeError(
+                    "Precipitation duration plugin cannot handle masked data."
+                )
+
             for acc_index, rate_index in combinations:
                 # Mulitply the binary probabilities and then sum over the
                 # leading time dimension to count how many of the times have
