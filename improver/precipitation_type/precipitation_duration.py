@@ -379,10 +379,9 @@ class PrecipitationDuration(PostProcessingPlugin):
                 # precipitation classified as exceeding both thresholds.
                 result = acc_realized[acc_index] * rate_realized[rate_index]
                 result = np.sum(result, axis=0)
-                # Index here corresponds to the possible value, whilst the
-                # y,x positions records the counts of the value.
-                for index, value in enumerate(possible_values):
-                    hit_count[acc_index, rate_index, index, result == value] += 1
+
+                for value in possible_values:
+                    hit_count[acc_index, rate_index, value, result == value] += 1
 
         for acc_index, rate_index in combinations:
             # We accumulate the counts over the possible values. The resulting
