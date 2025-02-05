@@ -235,6 +235,7 @@ class PrecipitationDuration(PostProcessingPlugin):
 
         classification_percentiles = Cube(
             data.astype(np.float32),
+            long_name="fraction_of_periods_classified_as_wet",
             dim_coords_and_dims=[
                 (percentile_coord, 0),
                 (acc_thresh.copy(), 1),
