@@ -10,7 +10,7 @@ Construction of the precipitation duration diagnostics involves a lot of input d
 
 means we are combining and collapsing two cubes of shape (50, 8, 3, 1000, 1000).
 
-We work around this using slicing, breaking the data up into smaller chunks that can be read into memory one at a time, their contribution assessed, and then the data freed. However, if we need to save out the result of this processing in its expanded form, or use it directly to generate percentiles, we still need to hold all of the resulting data in memory unless we implement some kind of piecemeal writing to disk. An alternative is to construct a frequency table that retains counts of where the data falls and generate our percentiles from this table. As we are calculating fractions of a day that are classified as wet with this plugin, we have a discrete set of potential fractions, which makes this frequency table approach possible.
+We work around this using slicing, breaking the data up into smaller chunks that can be read into memory one at a time, their contribution assessed, and then the data freed. However, if we need to save out the result of this processing in its expanded form, or use it directly to generate percentiles, we still need to hold all of the resulting data in memory unless we implement some kind of piecemeal writing to disk. An alternative is to construct a frequency table that retains counts of where the data falls and generate our percentiles from this table. As we are calculating fractions of a day that are classified as wet with this plugin, we have a discrete set of potential fractions, which makes this frequency table approach possible without any loss of precision.
 
 
 The method used in this plugin is as follows:
