@@ -15,9 +15,7 @@ run_cli = acc.run_cli(CLI)
 PERCENTILES = "10,25,50,75,90"
 
 
-@pytest.mark.parametrize(
-    "min_accumulation, critical_rate", [(0.1, 4.0), (1, 4.0)]
-)
+@pytest.mark.parametrize("min_accumulation, critical_rate", [(0.1, 4.0), (1, 4.0)])
 def test_different_threshold_parameters(tmp_path, min_accumulation, critical_rate):
     """Test precipitation duration with different parameters"""
     kgo_dir = acc.kgo_root() / "precipitation_duration/standard_names"
