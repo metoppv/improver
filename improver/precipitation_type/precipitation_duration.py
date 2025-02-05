@@ -34,10 +34,14 @@ class PrecipitationDuration(PostProcessingPlugin):
     precipitation rate in the period and the accumulation in the period. These
     classified periods are then used to determine what fraction of a
     constructed longer period would be classified as such. Percentiles are
-    produced directly from these fractions via a frequency table. This done
+    produced directly from these fractions via a frequency table. This is done
     to reduce the memory requirements when potentially combining so much data.
-    The discrete nature of the fractions that are possible makes this binning
+    The discrete nature of the fractions that are possible makes this table
     approach possible.
+
+    Note that we apply linear interpolation in the percentile generation,
+    meaning that fractions of the target period that are not multiples of the
+    input data period can be returned.
 
     .. See the documentation for a more detailed discussion of this plugin.
     .. include:: extended_documentation/precipitation_type/
@@ -188,18 +192,23 @@ class PrecipitationDuration(PostProcessingPlugin):
         )
         return accumulation_constraint, rate_constraint
 
-    def _create_output_cube(self, data: ndarray, cubes: Tuple[Cube, Cube], acc_thresh, rate_thresh) -> Cube:
+    def _create_output_cube(self, data: ndarray, cubes: Tuple[Cube, Cube], acc_thresh: DimCoord, rate_thresh: DimCoord) -> Cube:
         """Create an output cube for the final diagnostic, which is the
-        fraction of the constructed period that has been classified as wet
-        using the various accumulation and peak rate thresholds.
+        set of percentiles describing the fraction of the constructed
+        period that has been classified as wet using the various accumulation
+        and peak rate thresholds.
 
         Args:
             data:
-                The data to be stored in the cube.
+                The percentile data to be stored in the cube.
             cubes:
                 Cubes from which to generate attributes, and the first of
-                which is used as a template from which to take coordinates
-                etc.
+                which is used as a template from which to take time and
+                spatial coordinates.
+            acc_thresh:
+                The accumulation threshold to add to the cube.
+            rate_thresh:
+                The reate thresohld to add to the cube.
         Returns:
             A Cube with a suitable name and metadata for the diagnostic data
             stored within it.
@@ -226,16 +235,13 @@ class PrecipitationDuration(PostProcessingPlugin):
                 (cubes[0].coord(axis="y"), 3),
                 (cubes[0].coord(axis="x"), 4),
             ],
-            # aux_coords_and_dims=max_precip_rate.aux_coords,
             units="1",
             attributes=mandatory_attributes,
         )
         for crd in time_coords:
             classification_percentiles.add_aux_coord(crd)
         # Remove any coordinate var names that identify a coordinate as a
-        # threshold. We want to generate percentiles by collapsing the
-        # realization coordinate, not attempting to use ECC for a probability
-        # diagnostic.
+        # threshold as our output is not a probability cube.
         for crd in classification_percentiles.coords():
             if crd.var_name == "threshold":
                 crd.var_name = None
@@ -253,7 +259,6 @@ class PrecipitationDuration(PostProcessingPlugin):
         used to directly produce percentiles. This means that not all of the
         values need to be held in memory at once, instead we count instances
         of each value and then calculate the percentiles from the counts.
-        Unfortunately this method is more convoluted.
 
         Args:
             cubes:
@@ -262,11 +267,8 @@ class PrecipitationDuration(PostProcessingPlugin):
                     precip_accumulation: Precipitation accumulation in a period.
 
         Returns:
-            A cube of fraction of the target period that is classified as
-            exceeding the user specified thresholds. The short period inputs
-            are compared against these thresholds to be classified before
-            determining how many such periods (what fraction) of the target
-            period has been so classified.
+            A cube of percentiles of the fraction of the target period that is
+            classified as exceeding the user specified thresholds.
 
         Raises:
             ValueError: If input cubes do not contain the expected diagnostics
@@ -274,6 +276,9 @@ class PrecipitationDuration(PostProcessingPlugin):
             ValueError: If the input cubes have differing time coordinates.
             ValueError: If the input cubes do not combine to create the expected
                         target period.
+            ValueError: If the input cubes lack a realization coordinate.
+            ValueError: If the input cubes have differing realization coordinates.
+            ValueError: If the input data is masked.
         """
         cubes = as_cubelist(*cubes)
         self._period_in_hours(cubes)
@@ -282,6 +287,9 @@ class PrecipitationDuration(PostProcessingPlugin):
             accumulation_threshold, rate_threshold
         )
 
+        # Construct single cubes with a time dimension for each of the accumulation
+        # and rate diagnostics, where these cubes include only the user specified
+        # thresholds.
         try:
             precip_accumulation = MergeCubes()(cubes.extract(accumulation_constraint))
             max_precip_rate = MergeCubes()(cubes.extract(rate_constraint))
@@ -323,20 +331,16 @@ class PrecipitationDuration(PostProcessingPlugin):
         # when indexing the data arrays.
         enforce_coordinate_ordering(precip_accumulation, ["realization", acc_thresh.name(), "time"])
         enforce_coordinate_ordering(max_precip_rate, ["realization", rate_thresh.name(), "time"])
+
         # Get the lengths of the threshold arrays, after extraction, for use
         # as looping counts and for creating a target array shape.
         acc_len = acc_thresh.shape[0]
         rate_len = rate_thresh.shape[0]
+
         # Generate the combinations of the threshold values.
         combinations = list(itertools.product(list(range(acc_len)), list(range(rate_len))))
 
-        # Check realizations are the same as we intend to loop over a counting
-        # index and must ensure we are matching the same realizations together.
-        if not precip_accumulation.coord("realization") == max_precip_rate.coord("realization"):
-            raise ValueError(
-                "Mismatched realization coordinates between accumulation and "
-                "max rate inputs. These must be the same."
-            )
+        # Check that a realization coordinate is present on the inputs.
         try:
             realizations = list(range(max_precip_rate.coord("realization").shape[0]))
         except CoordinateNotFoundError as err:
@@ -345,17 +349,29 @@ class PrecipitationDuration(PostProcessingPlugin):
                 "on the input data. Percentiles are generated by collapsing "
                 "this coordinate. It cannot therefore be used with "
                 "deterministic data.") from err
+
+        # Check realizations are the same as we intend to loop over a counting
+        # index and must ensure we are matching the same realizations together.
+        if not precip_accumulation.coord("realization") == max_precip_rate.coord("realization"):
+            raise ValueError(
+                "Mismatched realization coordinates between accumulation and "
+                "max rate inputs. These must be the same."
+            )
+
         # Determine the possible counts that can be achieved which is simply
         # the length of the input time coordinates.
         (n_periods,) = max_precip_rate.coord("time").shape
         possible_values=list(range(0, n_periods + 1))
+
         # We've ensured that the periods combine to give the target_period.
         # The fractions of that total period that can be returned are
         # therefore simply 0-1 in increments of 1/n_periods.
         fractions = np.arange(0, 1.0001, 1/n_periods)
+
         # The lookup_percentiles are the target percentiles rescaled to match
         # the number of realizations over which we are counting.
         lookup_percentiles = self.percentiles * (len(realizations) - 1) / 100
+
         # We create an empty array into which to put our resulting percentiles.
         # We can index this with the accumulation and rate threshold indices
         # to ensure we record the data where we expect.
@@ -369,7 +385,7 @@ class PrecipitationDuration(PostProcessingPlugin):
             rate_realized = max_precip_rate[realization].data.astype(bool)
             # Check for masked data and raise exception if present.
             if np.ma.is_masked(acc_realized) or np.ma.is_masked(rate_realized):
-                raise TypeError(
+                raise ValueError(
                     "Precipitation duration plugin cannot handle masked data."
                 )
 
