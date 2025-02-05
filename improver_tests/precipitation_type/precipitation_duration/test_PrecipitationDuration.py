@@ -12,7 +12,7 @@ from typing import List, Tuple, Union
 import iris
 import numpy as np
 import pytest
-from iris.coords import AuxCoord, DimCoord
+from iris.coords import AuxCoord
 from iris.cube import CubeList
 from numpy import ndarray
 from numpy.testing import assert_array_almost_equal, assert_array_equal
@@ -325,8 +325,8 @@ def test__construct_constraints(
             datetime(2025, 1, 15, 0),
             datetime(2025, 1, 15, 2),
             timedelta(hours=1),
-            np.ones((2, 2, 1, 3, 4)), # 2 times, 2 realizations, 1 threshold, y, x
-            np.ones((2, 2, 1, 3, 4)), # 2 times, 2 realizations, 1 threshold, y, x
+            np.ones((2, 2, 1, 3, 4)),  # 2 times, 2 realizations, 1 threshold, y, x
+            np.ones((2, 2, 1, 3, 4)),  # 2 times, 2 realizations, 1 threshold, y, x
             [0.1],
             [4],
             np.ones((3, 3, 4)),  # 3 percentiles, y, x
@@ -337,8 +337,8 @@ def test__construct_constraints(
             datetime(2025, 1, 15, 0),
             datetime(2025, 1, 15, 9),
             timedelta(hours=3),
-            np.ones((3, 2, 1, 3, 4)), # 3 times, 2 realizations, 1 threshold, y, x
-            np.ones((3, 2, 1, 3, 4)), # 3 times, 2 realizations, 1 threshold, y, x
+            np.ones((3, 2, 1, 3, 4)),  # 3 times, 2 realizations, 1 threshold, y, x
+            np.ones((3, 2, 1, 3, 4)),  # 3 times, 2 realizations, 1 threshold, y, x
             [0.1],
             [4],
             np.ones((3, 3, 4)),  # 3 percentiles, y, x
@@ -353,8 +353,8 @@ def test__construct_constraints(
                     np.stack([[np.ones((3, 4))], [np.zeros((3, 4))]]),
                     np.stack([[np.ones((3, 4))], [np.zeros((3, 4))]]),
                 ]
-            ), # 2 times, 2 realizations, 1 threshold, y, x
-            np.ones((2, 2, 1, 3, 4)), # 2 times, 2 realizations, 1 threshold, y, x
+            ),  # 2 times, 2 realizations, 1 threshold, y, x
+            np.ones((2, 2, 1, 3, 4)),  # 2 times, 2 realizations, 1 threshold, y, x
             [0.1],
             [4],
             np.stack(
@@ -365,13 +365,13 @@ def test__construct_constraints(
                 ]
             ).astype(np.float32),  # 3 percentiles, y, x
         ),  # Accumulation probabilites are 1 in the first realization and 0
-            # in the second for both input hours. Half of the ensemble is
-            # classified as satisfying the rate and accumulation thresholds
-            # for both input periods. Realization 0 = 100% of total period
-            # classified as wet. Realization 1 = 0% of total period classified
-            # as wet. This results in the 50th percentile being a fraction of
-            # 0.5. Likewise the 10th and 90th percentiles are 0.1 and 0.9
-            # respectively.
+        # in the second for both input hours. Half of the ensemble is
+        # classified as satisfying the rate and accumulation thresholds
+        # for both input periods. Realization 0 = 100% of total period
+        # classified as wet. Realization 1 = 0% of total period classified
+        # as wet. This results in the 50th percentile being a fraction of
+        # 0.5. Likewise the 10th and 90th percentiles are 0.1 and 0.9
+        # respectively.
         (
             datetime(2025, 1, 15, 0),
             datetime(2025, 1, 15, 2),
@@ -381,38 +381,46 @@ def test__construct_constraints(
                     np.stack([[np.ones((3, 4))], [np.ones((3, 4))]]),
                     np.stack([[np.zeros((3, 4))], [np.zeros((3, 4))]]),
                 ]
-            ), # 2 times, 2 realizations, 1 threshold, y, x
-            np.ones((2, 2, 1, 3, 4)), # 2 times, 2 realizations, 1 threshold, y, x
+            ),  # 2 times, 2 realizations, 1 threshold, y, x
+            np.ones((2, 2, 1, 3, 4)),  # 2 times, 2 realizations, 1 threshold, y, x
             [0.1],
             [4],
             np.full((3, 3, 4), 0.5, dtype=np.float32),  # 3 percentiles, y, x
         ),  # Accumulation probabilites are 1 in both ensemble members for the
-            # first time and both 0 for the second time. This means that the
-            # fraction of the target period classified as wet by each ensemble
-            # member is 0.5. Given that percentiles are generated from the
-            # possible values within the ensemble the only value that can be
-            # returned for all the requested percentiles is 0.5.
+        # first time and both 0 for the second time. This means that the
+        # fraction of the target period classified as wet by each ensemble
+        # member is 0.5. Given that percentiles are generated from the
+        # possible values within the ensemble the only value that can be
+        # returned for all the requested percentiles is 0.5.
         (
             datetime(2025, 1, 15, 0),
             datetime(2025, 1, 15, 9),
             timedelta(hours=3),
-            np.ones((3, 2, 2, 3, 4)), # 3 times, 2 realizations, 2 thresholds, y, x
-            np.ones((3, 2, 2, 3, 4)), # 3 times, 2 realizations, 2 thresholds, y, x
+            np.ones((3, 2, 2, 3, 4)),  # 3 times, 2 realizations, 2 thresholds, y, x
+            np.ones((3, 2, 2, 3, 4)),  # 3 times, 2 realizations, 2 thresholds, y, x
             [0.1, 1.0],
             [4, 8],
-            np.ones((3, 2, 2, 3, 4)),  # 3 percentiles, 2 acc thresholds, 2 rate thresholds, y, x
+            np.ones(
+                (3, 2, 2, 3, 4)
+            ),  # 3 percentiles, 2 acc thresholds, 2 rate thresholds, y, x
         ),  # Multiple thresholds for both the accumulation and maximum rate.
-        # Again the total period fractions are 1 in this case as all input
-        # probabilities are 1.
+        # Again the total period fraction percentiles are 1 in this case as all
+        # input probabilities are 1 and all periods are classified as wet.
         (
             datetime(2025, 1, 15, 0),
             datetime(2025, 1, 15, 12),
             timedelta(hours=3),
             np.ones((4, 3, 2, 3, 4)),  # 4 times, 3 realizations, 2 thresholds, y, x
-            np.r_[[[1] * 12, [0] * 12] * 12].reshape(4, 3, 2, 3, 4).astype(np.float32),  # 4 times, 3 realizations, 2 thresholds, y, x
+            np.r_[[[1] * 12, [0] * 12] * 12]
+            .reshape(4, 3, 2, 3, 4)  # 4 times, 3 realizations, 2 thresholds, y, x
+            .astype(np.float32),  # 4 times, 3 realizations, 2 thresholds, y, x
             [0.1, 1.0],
             [2, 4],
-            np.r_[[[1] * 12, [0] * 12] * 6].reshape(3, 2, 2, 3, 4).astype(np.float32),  # 3 percentiles, 2 acc thresholds, 2 rate thresholds, y, x
+            np.r_[[[1] * 12, [0] * 12] * 6]
+            .reshape(3, 2, 2, 3, 4)
+            .astype(
+                np.float32
+            ),  # 3 percentiles, 2 acc thresholds, 2 rate thresholds, y, x
         ),  # Maximum rate in period probabilities are 1 for the lower
         # threshold and 0 for the higher threshold for every time and realization.
         # The resulting percentiles are all 0 or 1 as a fraction of the total
@@ -423,11 +431,15 @@ def test__construct_constraints(
             datetime(2025, 1, 15, 0),
             datetime(2025, 1, 15, 3),
             timedelta(hours=3),
-            np.r_[[1, 0] * 12].reshape(1, 2, 1, 3, 4).astype(np.float32),  # 1 time, 2 realizations, 1 threshold, y, x
-            np.ones((1, 2, 1, 3, 4)),
+            np.r_[[1, 0] * 12]
+            .reshape(1, 2, 1, 3, 4)
+            .astype(np.float32),  # 1 time, 2 realizations, 1 threshold, y, x
+            np.ones((1, 2, 1, 3, 4)),  # 1 time, 2 realizations, 1 threshold, y, x
             [0.1],
             [4],
-            np.r_[[1, 0] * 18].reshape(3, 3, 4).astype(np.float32),  # 3 percentiles, y, x
+            np.r_[[1, 0] * 18]
+            .reshape(3, 3, 4)
+            .astype(np.float32),  # 3 percentiles, y, x
         ),  # A single threshold, 2 realizations, and a single time input.
         # The accumulation input binary probabilities are set in stripes of
         # 1 and 0. This resulting percentiles are either 0 or 1; either
@@ -436,11 +448,26 @@ def test__construct_constraints(
             datetime(2025, 1, 15, 0),
             datetime(2025, 1, 15, 5),
             timedelta(hours=1),
-            np.ones((5, 2, 1, 5, 5)),
-            np.repeat([np.r_[[1] * 5 * j, [0] * 5 * (5-j)].reshape(5, 5) for j in range(5, 0, -1)], 2, axis=0).astype(np.float32).reshape(5, 2, 1, 5, 5),
+            np.ones((5, 2, 1, 5, 5)),  # 5 times, 2 realizations, 1 threshold, y, x
+            np.repeat(
+                [
+                    np.r_[[1] * 5 * j, [0] * 5 * (5 - j)].reshape(5, 5)
+                    for j in range(5, 0, -1)
+                ],
+                2,
+                axis=0,
+            )
+            .astype(np.float32)
+            .reshape(5, 2, 1, 5, 5),  # 5 times, 2 realizations, 1 threshold, y, x
             [0.1],
             [4],
-            np.repeat(np.stack([np.r_[np.full((5), i)] for i in np.arange(1, 0, -0.2)]).reshape(1, 5, 5), 3, axis=0).astype(np.float32),
+            np.repeat(
+                np.stack(
+                    [np.r_[np.full((5), i)] for i in np.arange(1, 0, -0.2)]
+                ).reshape(1, 5, 5),
+                3,
+                axis=0,
+            ).astype(np.float32),  # 3 percentiles, y, x
         ),  # Accumulation probabilities vary by row with time such that the
         # total period fraction for the top row is 1, the second row is
         # 0.8, etc. down to 0.2 for the bottom row. Duplicated across realizations
@@ -472,7 +499,9 @@ def test_process(
     total_period = (end_time - start_time).total_seconds()
     period_hours = period.total_seconds() / 3600
 
-    plugin = PrecipitationDuration(acc_thresh, rate_thresh, total_period / 3600, DEFAULT_PERCENTILES)
+    plugin = PrecipitationDuration(
+        acc_thresh, rate_thresh, total_period / 3600, DEFAULT_PERCENTILES
+    )
     result = plugin.process(precip_cubes_custom)
 
     assert_array_equal(result.data, expected)
@@ -615,11 +644,10 @@ def test_process_exception_no_realization():
     )
 
     plugin = PrecipitationDuration(1.0, 7.0, 2, DEFAULT_PERCENTILES)
-    msg = (
-        "This plugin requires input data from multiple realizations."
-    )
+    msg = "This plugin requires input data from multiple realizations."
     with pytest.raises(ValueError, match=msg):
         plugin.process(cubes)
+
 
 def test_process_exception_mismatched_realization():
     """Test an exception is raised if the input cubes do not have matching
@@ -650,6 +678,7 @@ def test_process_exception_mismatched_realization():
     with pytest.raises(ValueError, match=msg):
         plugin.process(cubes)
 
+
 def test_process_exception_masked_data():
     """Test an exception is raised if the input cubes contain masked data."""
 
@@ -671,8 +700,6 @@ def test_process_exception_masked_data():
     )
 
     plugin = PrecipitationDuration(1.0, 7.0, 2, DEFAULT_PERCENTILES)
-    msg = (
-        "Precipitation duration plugin cannot handle masked data."
-    )
+    msg = "Precipitation duration plugin cannot handle masked data."
     with pytest.raises(ValueError, match=msg):
         plugin.process(cubes)
