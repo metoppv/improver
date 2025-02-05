@@ -534,6 +534,9 @@ def create_test_cube(
     lon_offset=0,
     time_offset=0,
 ):
+    """Create a test cube with the given data and metadata.
+    Further enables the creation of 'faulty' equivalents of cubes that are also different to other faulty cubes.
+    """
     cube = set_up_variable_cube(data, time_bounds=time_bounds, time=time)
     cube.standard_name = standard_name
     cube.units = units
@@ -550,7 +553,7 @@ def create_test_cube(
 
 @pytest.fixture
 def diagnostic_cube(request):
-    """Fixture for creating a diagnostic cube."""
+    """Fixture for creating a diagnostic cube and a faulty equivalent."""
     faulty = request.param
     data = np.ones((3, 3, 3), dtype=np.float32) * 300
     data[0, :, :] = 300  # Time step 1
@@ -569,7 +572,7 @@ def diagnostic_cube(request):
             units="C",
             lat_offset=10,
             lon_offset=10,
-            time_offset=259205,
+            time_offset=259205,  # 72 hours and 5 seconds in seconds.
         )
     else:
         return create_test_cube(data, time_bounds, time)
@@ -577,7 +580,7 @@ def diagnostic_cube(request):
 
 @pytest.fixture
 def mean_cube(request):
-    """Fixture for creating a mean cube."""
+    """Fixture for creating a mean cube and a faulty equivalent."""
     faulty = request.param
     data = np.mean([300, 298, 296]) * np.ones((3, 3), dtype=np.float32)
     time_bounds = (datetime(2024, 10, 16, 0, 0), datetime(2024, 10, 16, 1, 0))
@@ -593,7 +596,7 @@ def mean_cube(request):
             units="F",
             lat_offset=20,
             lon_offset=20,
-            time_offset=259200,
+            time_offset=259200,  # 72 hours in seconds
         )
     else:
         return create_test_cube(data, time_bounds, time)
@@ -601,7 +604,7 @@ def mean_cube(request):
 
 @pytest.fixture
 def variance_cube(request):
-    """Fixture for creating a variance cube."""
+    """Fixture for creating a variance cube and a faulty equivalent."""
     faulty = request.param
     data = np.var([300, 298, 296]) * np.ones((3, 3), dtype=np.float32)
     time_bounds = (datetime(2024, 10, 16, 0, 0), datetime(2024, 10, 16, 1, 0))
@@ -614,10 +617,10 @@ def variance_cube(request):
             data,
             time_bounds,
             time,
-            units="K",
+            units="K",  # Faulty units as a variance cube should have squared units.
             lat_offset=30,
             lon_offset=30,
-            time_offset=172800,  # 2 days in seconds
+            time_offset=172800,  # 24 hours in seconds
         )
     else:
         return create_test_cube(data, time_bounds, time, units="K2")
@@ -670,7 +673,7 @@ def site_cube_three(request):
 )
 def test_verify_units_match(diagnostic_cube, mean_cube, variance_cube):
     """Test that the plugin verifies the units of the diagnostic and mean cubes match."""
-    plugin = CalculateClimateAnomalies()
+    plugin = CalculateClimateAnomalies(standard_anomaly=True)
     plugin.verify_units_match(diagnostic_cube, mean_cube, variance_cube)
     assert True
 
@@ -680,18 +683,17 @@ def test_verify_units_match(diagnostic_cube, mean_cube, variance_cube):
 )
 def test_verify_units_mismatch(diagnostic_cube, mean_cube, variance_cube):
     """Test that the plugin raises a ValueError if the units of the diagnostic and another cube mismatch"""
-    plugin = CalculateClimateAnomalies()
+    plugin = CalculateClimateAnomalies(standard_anomaly=True)
     with pytest.raises(ValueError):
         plugin.verify_units_match(diagnostic_cube, mean_cube, variance_cube)
 
 
-## TODO: Create spot test cubes for the below spatial_coords work
 @pytest.mark.parametrize(
     "diagnostic_cube, mean_cube, variance_cube", [(False, False, False)], indirect=True
 )
 def test_verify_spatial_coords_match(diagnostic_cube, mean_cube, variance_cube):
-    """Test that the plugin verifies the grids of the diagnostic and another cube mismatch."""
-    plugin = CalculateClimateAnomalies()
+    """Test that the plugin verifies the spatial coordinates of the diagnostic cube and another cube match."""
+    plugin = CalculateClimateAnomalies(standard_anomaly=True)
     plugin.verify_spatial_coords_match(diagnostic_cube, mean_cube, variance_cube)
     assert True
 
@@ -700,8 +702,8 @@ def test_verify_spatial_coords_match(diagnostic_cube, mean_cube, variance_cube):
     "diagnostic_cube, mean_cube, variance_cube", [(True, True, True)], indirect=True
 )
 def test_verify_spatial_coords_mismatch(diagnostic_cube, mean_cube, variance_cube):
-    """Test that the plugin raises a ValueError if the grids of the diagnostic and another cube mismatch"""
-    plugin = CalculateClimateAnomalies()
+    """Test that the plugin raises a ValueError if the spatial coordinates of the diagnostic cube and another cube mismatch"""
+    plugin = CalculateClimateAnomalies(standard_anomaly=True)
     with pytest.raises(ValueError):
         plugin.verify_spatial_coords_match(diagnostic_cube, mean_cube, variance_cube)
 
@@ -709,11 +711,11 @@ def test_verify_spatial_coords_mismatch(diagnostic_cube, mean_cube, variance_cub
 @pytest.mark.parametrize(
     "diagnostic_cube, mean_cube, variance_cube", [(True, True, False)], indirect=True
 )
-def test_verify_spatial_coords_mismatch_diff_mean_and_var_bounds(
+def test_verify_spatial_coords_mismatch_if_different_mean_and_var_bounds(
     diagnostic_cube, mean_cube, variance_cube
 ):
-    """Test that the plugin raises a ValueError if the grids of the diagnostic and another cube mismatch"""
-    plugin = CalculateClimateAnomalies()
+    """Test that the plugin raises a ValueError if the spatial coordinates of the mean and variance cubes have different bounds."""
+    plugin = CalculateClimateAnomalies(standard_anomaly=True)
     with pytest.raises(ValueError):
         plugin.verify_spatial_coords_match(diagnostic_cube, mean_cube, variance_cube)
 
@@ -726,8 +728,8 @@ def test_verify_spatial_coords_mismatch_diff_mean_and_var_bounds(
 def test_verify_spatial_coords_match_for_site_data(
     site_cube_one, site_cube_two, site_cube_three
 ):
-    """Test that the plugin verifies the grids of the diagnostic and another cube mismatch."""
-    plugin = CalculateClimateAnomalies(standard_anomaly=True)
+    """Test that the plugin verifies the spatial coordinates of the diagnostic and another cube match for site data."""
+    plugin = CalculateClimateAnomalies()
     plugin.verify_spatial_coords_match(site_cube_one, site_cube_two, site_cube_three)
     assert True
 
@@ -740,7 +742,7 @@ def test_verify_spatial_coords_match_for_site_data(
 def test_verify_spatial_coords_mismatch_for_site_data(
     site_cube_one, site_cube_two, site_cube_three
 ):
-    """Test that the plugin raises a ValueError if the grids of the diagnostic and another cube mismatch"""
+    """Test that the plugin raises a ValueError if the spatial coordinates of the diagnostic and another cube mismatch for site data"""
     plugin = CalculateClimateAnomalies(standard_anomaly=True)
     with pytest.raises(ValueError):
         plugin.verify_spatial_coords_match(
@@ -753,7 +755,7 @@ def test_verify_spatial_coords_mismatch_for_site_data(
 )
 def test_verify_time_coords_match(diagnostic_cube, mean_cube, variance_cube):
     """Test that the plugin verifies the time coordinates of the diagnostic and mean cubes match."""
-    plugin = CalculateClimateAnomalies()
+    plugin = CalculateClimateAnomalies(standard_anomaly=True)
     plugin.verify_time_coords_match(diagnostic_cube, mean_cube, variance_cube)
     assert True
 
@@ -764,8 +766,8 @@ def test_verify_time_coords_match(diagnostic_cube, mean_cube, variance_cube):
 def test_verify_time_coords_mismatch_diagnostic(
     diagnostic_cube, mean_cube, variance_cube
 ):
-    """Test that the plugin verifies the time coordinates of the diagnostic and another cube mismatch."""
-    plugin = CalculateClimateAnomalies()
+    """Test that the plugin raises a ValueError if the time coordinates of the diagnostic and another cube mismatch."""
+    plugin = CalculateClimateAnomalies(standard_anomaly=True)
     with pytest.raises(ValueError):
         plugin.verify_time_coords_match(diagnostic_cube, mean_cube, variance_cube)
 
@@ -777,7 +779,7 @@ def test_verify_time_coords_mismatch_mean_and_variance(
     diagnostic_cube, mean_cube, variance_cube
 ):
     """Test that the plugin verifies the time coordinates of the mean and variance cube mismatch."""
-    plugin = CalculateClimateAnomalies()
+    plugin = CalculateClimateAnomalies(standard_anomaly=True)
     with pytest.raises(ValueError):
         plugin.verify_time_coords_match(diagnostic_cube, mean_cube, variance_cube)
 
@@ -785,11 +787,11 @@ def test_verify_time_coords_mismatch_mean_and_variance(
 @pytest.mark.parametrize(
     "diagnostic_cube, mean_cube, variance_cube", [(False, False, False)], indirect=True
 )
-def test_calculate_anomalies_with_variance_as_expected(
+def test_calculate_standardised_anomalies_with_variance_as_expected(
     diagnostic_cube, mean_cube, variance_cube
 ):
-    """Test that the plugin calculates anomalies correctly when a variance cube is provided."""
-    plugin = CalculateClimateAnomalies()
+    """Test that the plugin calculates stanardised anomalies correctly."""
+    plugin = CalculateClimateAnomalies(standard_anomaly=True)
     anomalies = plugin.calculate_anomalies(diagnostic_cube, mean_cube, variance_cube)
     expected_anomalies = np.array(
         [
@@ -810,41 +812,10 @@ def test_calculate_anomalies_with_variance_as_expected(
     np.testing.assert_allclose(anomalies, expected_anomalies, rtol=1e-5)
 
 
-@pytest.mark.parametrize(
-    "diagnostic_cube, mean_cube, variance_cube", [(True, True, True)], indirect=True
-)
-def test_calculate_anomalies_with_variance_unexpected(
-    diagnostic_cube, mean_cube, variance_cube
-):
-    """Test that the plugin raises an error when  correctly when a variance cube is provided."""
-    plugin = CalculateClimateAnomalies()
-    with pytest.raises(AssertionError):
-        anomalies = plugin.calculate_anomalies(
-            diagnostic_cube, mean_cube, variance_cube
-        )
-        expected_anomalies = np.array(
-            [
-                [
-                    [1.000000, 1.000000, 1.000000],
-                    [2.000000, 2.000000, 2.000000],
-                    [3.000000, 3.000000, 3.000000],
-                ],
-                [[0.0, 1.0, 2.0], [0.0, 1.0, 2.0], [0.0, 1.0, 2.0]],
-                [
-                    [-1.000000, -1.000000, -1.000000],
-                    [-2.000000, -2.000000, -2.000000],
-                    [-3.000000, -3.000000, -3.000000],
-                ],
-            ],
-            dtype=np.float32,
-        )
-        np.testing.assert_allclose(anomalies, expected_anomalies, rtol=1e-5)
-
-
 @pytest.mark.parametrize("diagnostic_cube, mean_cube", [(False, False)], indirect=True)
-def test_calculate_anomalies_without_variance_as_expected(diagnostic_cube, mean_cube):
-    """Test that the plugin calculates anomalies correctly when no variance cube is provided"""
-    plugin = CalculateClimateAnomalies()
+def test_calculate_unstandardised_anomalies_as_expected(diagnostic_cube, mean_cube):
+    """Test that the plugin calculates unstandardised anomalies correctly."""
+    plugin = CalculateClimateAnomalies(standard_anomaly=False)
     anomalies = plugin.calculate_anomalies(diagnostic_cube, mean_cube)
     expected_anomalies = np.array(
         [
@@ -860,33 +831,35 @@ def test_calculate_anomalies_without_variance_as_expected(diagnostic_cube, mean_
 @pytest.mark.parametrize(
     "diagnostic_cube, mean_cube, variance_cube", [(False, False, False)], indirect=True
 )
-def test_basic_metadata_with_variance_as_expected(
+def test_process_raises_error_if_standard_anomaly_false_but_variance_cube_provided(
     diagnostic_cube, mean_cube, variance_cube
 ):
-    """Test that the metadata on the resulting cube is as expected when a variance cube is provided"""
+    """Test that the the process raises an error when a variance cube is provided and standard anomaly is set to False in instantiation"""
+    plugin = CalculateClimateAnomalies(standard_anomaly=False)
+    with pytest.raises(ValueError):
+        plugin.process(diagnostic_cube, mean_cube, variance_cube)
+
+
+@pytest.mark.parametrize(
+    "diagnostic_cube, mean_cube, variance_cube", [(False, False, False)], indirect=True
+)
+def test_metadata_of_standardised_cube_correct(
+    diagnostic_cube, mean_cube, variance_cube
+):
+    """Test that the metadata on the output standardised cube is as expected when a variance cube is provided and standard anomaly is set to True in instantiation"""
     plugin = CalculateClimateAnomalies(standard_anomaly=True)
 
-    result = plugin.process(diagnostic_cube, mean_cube)
+    result = plugin.process(diagnostic_cube, mean_cube, variance_cube)
     assert result.long_name == diagnostic_cube.name() + "_standard_anomaly"
     assert result.units == "1"
     assert "reference_epoch" in [coord.name() for coord in result.coords()]
 
 
 @pytest.mark.parametrize("diagnostic_cube, mean_cube", [(False, False)], indirect=True)
-def test_metadata_without_variance_as_expected(diagnostic_cube, mean_cube):
-    """Test that the metadata on the cube is as expected when no variance cube is provided"""
-    plugin = CalculateClimateAnomalies()
+def test_metadata_of_unstandardised_cube_correct(diagnostic_cube, mean_cube):
+    """Test that the metadata on the output cube is as expected when no variance cube is provided"""
+    plugin = CalculateClimateAnomalies(standard_anomaly=False)
     result = plugin.process(diagnostic_cube, mean_cube)
     assert result.name() == diagnostic_cube.name() + "_anomaly"
     assert result.units == "K"
     assert "reference_epoch" in [coord.name() for coord in result.coords()]
-
-
-@pytest.mark.parametrize(
-    "diagnostic_cube, mean_cube, variance_cube", [(True, True, True)], indirect=True
-)
-def test_process_fails(diagnostic_cube, mean_cube, variance_cube):
-    """Test that the process method raises a ValueError if the standard names of the diagnostic and mean cubes mismatch."""
-    plugin = CalculateClimateAnomalies()
-    with pytest.raises(ValueError):
-        plugin.process(diagnostic_cube, mean_cube, variance_cube)
