@@ -1149,6 +1149,8 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
             UserWarning: If the probabilities must be sorted to reinstate
                          expected monotonicity following calibration.
         """
+        if not cube.coord_dims(self.threshold_coord):
+            return
         (threshold_dim,) = cube.coord_dims(self.threshold_coord)
         thresholding = probability_is_above_or_below(cube)
         if thresholding is None:

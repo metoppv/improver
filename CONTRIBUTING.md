@@ -43,6 +43,7 @@ below:
  - Prajwal Borkar
  - James Canvin (Bureau of Meteorology, Australia)
  - Shubhendra Singh Chauhan (DeepSource, India)
+ - Andrew Creswick (Met Office, UK)
  - Neil Crosswaite (Met Office, UK)
  - Shafiat Dewan (Met Office, UK)
  - Gavin Evans (Met Office, UK)
