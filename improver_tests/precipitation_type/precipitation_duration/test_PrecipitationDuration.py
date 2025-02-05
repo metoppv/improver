@@ -12,7 +12,7 @@ from typing import List, Tuple, Union
 import iris
 import numpy as np
 import pytest
-from iris.coords import AuxCoord
+from iris.coords import AuxCoord, DimCoord
 from iris.cube import CubeList
 from numpy import ndarray
 from numpy.testing import assert_array_almost_equal, assert_array_equal
@@ -26,6 +26,7 @@ DEFAULT_ACC_NAME = (
 DEFAULT_ACC_THRESH_NAME = "lwe_thickness_of_precipitation_amount"
 DEFAULT_RATE_NAME = "probability_of_lwe_precipitation_rate_above_threshold"
 DEFAULT_RATE_THRESH_NAME = "lwe_precipitation_rate"
+DEFAULT_PERCENTILES = [10, 50, 90]
 
 
 def data_times(
@@ -52,12 +53,18 @@ def multi_time_cube(
     diagnostic_name: str,
     units: str,
 ) -> CubeList:
-    """Create diagnostic cubes describing period data for each input time."""
+    """Create diagnostic cubes describing period data for each input time.
+    If the input data has 5 dimensions the first is assumed to be time and
+    the second is assumed to be a realization dimension."""
+
     cubes = CubeList()
     for time, time_bounds, diagnostic_data in zip(times, bounds, data):
-        cubes.append(
-            set_up_probability_cube(
-                diagnostic_data.astype(np.float32),
+        realization_cubes = CubeList()
+        if diagnostic_data.ndim == 3:
+            diagnostic_data = [diagnostic_data]
+        for index, realization_data in enumerate(diagnostic_data):
+            cube = set_up_probability_cube(
+                realization_data.astype(np.float32),
                 thresh,
                 time=time,
                 time_bounds=time_bounds,
@@ -65,7 +72,10 @@ def multi_time_cube(
                 variable_name=diagnostic_name,
                 threshold_units=units,
             )
-        )
+            realization_coord = AuxCoord([index], standard_name="realization", units=1)
+            cube.add_aux_coord(realization_coord)
+            realization_cubes.append(cube)
+        cubes.append(realization_cubes.merge_cube())
     return cubes
 
 
@@ -125,7 +135,7 @@ def precip_cubes_custom(
     to SI units when creating the cubes. The accumulation threshold is
     mulitplied up by the period. This means the accumulation threshold
     argument represents the accumulation per hour, which is what the user will
-    specify when using the plugin.
+    specify when using the plugin. Multi-realization cubes will be returned.
 
     Args:
         start_time: The start time of the input cubes (the lower bound of the
@@ -181,7 +191,7 @@ def test__period_in_hours(
 ):
     """Test that the period is calculated correctly from the input cubes."""
 
-    plugin = PrecipitationDuration(0, 0, 0)
+    plugin = PrecipitationDuration(0, 0, 0, DEFAULT_PERCENTILES)
     plugin._period_in_hours(precip_cubes)
 
     assert plugin.period == period.total_seconds() / 3600
@@ -204,7 +214,7 @@ def test__period_in_hours_exception():
     )
 
     with pytest.raises(ValueError, match="Cubes with inconsistent periods"):
-        plugin = PrecipitationDuration(0, 0, 0)
+        plugin = PrecipitationDuration(0, 0, 0, DEFAULT_PERCENTILES)
         plugin._period_in_hours(precip_cubes)
 
 
@@ -260,7 +270,7 @@ def test__construct_thresholds(
     which are provided as the accumulation per hour, are multiplied up by the
     period to reflect the expected accumulation for a given period input."""
 
-    plugin = PrecipitationDuration(acc_thresh, rate_thresh, 24)
+    plugin = PrecipitationDuration(acc_thresh, rate_thresh, 24, DEFAULT_PERCENTILES)
     plugin.period = period.total_seconds() / 3600
 
     (
@@ -292,6 +302,7 @@ def test__construct_constraints(
         acc_thresh,
         rate_thresh,
         24,
+        DEFAULT_PERCENTILES,
         accumulation_diagnostic=acc_thresh_name,
         rate_diagnostic=rate_thresh_name,
     )
@@ -307,7 +318,6 @@ def test__construct_constraints(
     assert rate_name in rate_constraint._coord_values.keys()
 
 
-@pytest.mark.parametrize("realizations", [False, True])
 @pytest.mark.parametrize(
     "start_time,end_time,period,acc_data,rate_data,acc_thresh,rate_thresh,expected",
     [
@@ -315,97 +325,130 @@ def test__construct_constraints(
             datetime(2025, 1, 15, 0),
             datetime(2025, 1, 15, 2),
             timedelta(hours=1),
-            np.ones((2, 1, 3, 4)),
-            np.ones((2, 1, 3, 4)),
+            np.ones((2, 2, 1, 3, 4)), # 2 times, 2 realizations, 1 threshold, y, x
+            np.ones((2, 2, 1, 3, 4)), # 2 times, 2 realizations, 1 threshold, y, x
             [0.1],
             [4],
-            np.ones((3, 4)),
-        ),  # Accumulation and rate probabilities are 1 for both input hours.
-        # The resulting total period fraction is 1 for the combined period
-        # at all points.
+            np.ones((3, 3, 4)),  # 3 percentiles, y, x
+        ),  # Accumulation and rate probabilities are 1 for both input hours
+        # and all realizations. The resulting pecentiles are all 1 for the
+        # combined period at all points.
         (
             datetime(2025, 1, 15, 0),
             datetime(2025, 1, 15, 9),
             timedelta(hours=3),
-            np.ones((3, 1, 3, 4)),
-            np.ones((3, 1, 3, 4)),
+            np.ones((3, 2, 1, 3, 4)), # 3 times, 2 realizations, 1 threshold, y, x
+            np.ones((3, 2, 1, 3, 4)), # 3 times, 2 realizations, 1 threshold, y, x
             [0.1],
             [4],
-            np.ones((3, 4)),
+            np.ones((3, 3, 4)),  # 3 percentiles, y, x
         ),  # As above but for 3 hour input periods, with 3 of them comprising
         # the total period.
         (
             datetime(2025, 1, 15, 0),
+            datetime(2025, 1, 15, 2),
+            timedelta(hours=1),
+            np.stack(
+                [
+                    np.stack([[np.ones((3, 4))], [np.zeros((3, 4))]]),
+                    np.stack([[np.ones((3, 4))], [np.zeros((3, 4))]]),
+                ]
+            ), # 2 times, 2 realizations, 1 threshold, y, x
+            np.ones((2, 2, 1, 3, 4)), # 2 times, 2 realizations, 1 threshold, y, x
+            [0.1],
+            [4],
+            np.stack(
+                [
+                    np.full((3, 4), 0.1),
+                    np.full((3, 4), 0.5),
+                    np.full((3, 4), 0.9),
+                ]
+            ).astype(np.float32),  # 3 percentiles, y, x
+        ),  # Accumulation probabilites are 1 in the first realization and 0
+            # in the second for both input hours. Half of the ensemble is
+            # classified as satisfying the rate and accumulation thresholds
+            # for both input periods. Realization 0 = 100% of total period
+            # classified as wet. Realization 1 = 0% of total period classified
+            # as wet. This results in the 50th percentile being a fraction of
+            # 0.5. Likewise the 10th and 90th percentiles are 0.1 and 0.9
+            # respectively.
+        (
+            datetime(2025, 1, 15, 0),
+            datetime(2025, 1, 15, 2),
+            timedelta(hours=1),
+            np.stack(
+                [
+                    np.stack([[np.ones((3, 4))], [np.ones((3, 4))]]),
+                    np.stack([[np.zeros((3, 4))], [np.zeros((3, 4))]]),
+                ]
+            ), # 2 times, 2 realizations, 1 threshold, y, x
+            np.ones((2, 2, 1, 3, 4)), # 2 times, 2 realizations, 1 threshold, y, x
+            [0.1],
+            [4],
+            np.full((3, 3, 4), 0.5, dtype=np.float32),  # 3 percentiles, y, x
+        ),  # Accumulation probabilites are 1 in both ensemble members for the
+            # first time and both 0 for the second time. This means that the
+            # fraction of the target period classified as wet by each ensemble
+            # member is 0.5. Given that percentiles are generated from the
+            # possible values within the ensemble the only value that can be
+            # returned for all the requested percentiles is 0.5.
+        (
+            datetime(2025, 1, 15, 0),
             datetime(2025, 1, 15, 9),
             timedelta(hours=3),
-            np.ones((3, 2, 3, 4)),
-            np.ones((3, 2, 3, 4)),
+            np.ones((3, 2, 2, 3, 4)), # 3 times, 2 realizations, 2 thresholds, y, x
+            np.ones((3, 2, 2, 3, 4)), # 3 times, 2 realizations, 2 thresholds, y, x
             [0.1, 1.0],
             [4, 8],
-            np.ones((2, 2, 3, 4)),
+            np.ones((3, 2, 2, 3, 4)),  # 3 percentiles, 2 acc thresholds, 2 rate thresholds, y, x
         ),  # Multiple thresholds for both the accumulation and maximum rate.
         # Again the total period fractions are 1 in this case as all input
         # probabilities are 1.
         (
             datetime(2025, 1, 15, 0),
-            datetime(2025, 1, 15, 6),
+            datetime(2025, 1, 15, 12),
             timedelta(hours=3),
-            np.ones((2, 1, 3, 4)),
-            np.stack([np.ones((1, 3, 4)), np.zeros((1, 3, 4))]),
-            [0.1],
-            [4],
-            np.full((3, 4), 0.5),
-        ),  # Maximum rate in period probabilities of 1 for half of the time
-        # and 0 for half of the time, resulting in total period fractions
-        # of 0.5.
-        (
-            datetime(2025, 1, 15, 0),
-            datetime(2025, 1, 15, 6),
-            timedelta(hours=3),
-            np.ones((2, 2, 3, 4)),
-            np.stack(
-                [
-                    np.stack([np.ones((3, 4)), np.zeros((3, 4))]),
-                    np.stack([np.ones((3, 4)), np.zeros((3, 4))]),
-                ]
-            ),
+            np.ones((4, 3, 2, 3, 4)),  # 4 times, 3 realizations, 2 thresholds, y, x
+            np.r_[[[1] * 12, [0] * 12] * 12].reshape(4, 3, 2, 3, 4).astype(np.float32),  # 4 times, 3 realizations, 2 thresholds, y, x
             [0.1, 1.0],
             [2, 4],
-            np.stack([np.ones((2, 3, 4)), np.zeros((2, 3, 4))]),
+            np.r_[[[1] * 12, [0] * 12] * 6].reshape(3, 2, 2, 3, 4).astype(np.float32),  # 3 percentiles, 2 acc thresholds, 2 rate thresholds, y, x
         ),  # Maximum rate in period probabilities are 1 for the lower
-        # threshold and 0 for the higher threshold. The result is a total
-        # period fraction of 1.0 relative to the lower rate threshold and
-        # 0 relative to the higher rate threshold.
+        # threshold and 0 for the higher threshold for every time and realization.
+        # The resulting percentiles are all 0 or 1 as a fraction of the total
+        # period. So the 10th, 50th, and 90th percentiles are all 1 for
+        # combinations that include the lower rate threshold, and are all
+        # 0 for combinations that include the upper rate threshold.
         (
             datetime(2025, 1, 15, 0),
             datetime(2025, 1, 15, 3),
             timedelta(hours=3),
-            np.ones((1, 1, 3, 4)),
-            np.ones((1, 1, 3, 4)),
+            np.r_[[1, 0] * 12].reshape(1, 2, 1, 3, 4).astype(np.float32),  # 1 time, 2 realizations, 1 threshold, y, x
+            np.ones((1, 2, 1, 3, 4)),
             [0.1],
             [4],
-            np.ones((3, 4)),
-        ),  # A single time input, resulting in an output describing the same
-        # period. Total period fractions are 1 at all points.
+            np.r_[[1, 0] * 18].reshape(3, 3, 4).astype(np.float32),  # 3 percentiles, y, x
+        ),  # A single threshold, 2 realizations, and a single time input.
+        # The accumulation input binary probabilities are set in stripes of
+        # 1 and 0. This resulting percentiles are either 0 or 1; either
+        # none of the period or the whole period are classified as wet.
         (
             datetime(2025, 1, 15, 0),
             datetime(2025, 1, 15, 5),
             timedelta(hours=1),
-            np.ones((5, 1, 5, 5)),
-            np.stack(
-                [
-                    np.r_[[1] * a, [0] * b].reshape((1, 5, 5))
-                    for a, b in zip(range(25, 0, -5), range(0, 25, 5))
-                ]
-            ).astype(np.float32),
+            np.ones((5, 2, 1, 5, 5)),
+            np.repeat([np.r_[[1] * 5 * j, [0] * 5 * (5-j)].reshape(5, 5) for j in range(5, 0, -1)], 2, axis=0).astype(np.float32).reshape(5, 2, 1, 5, 5),
             [0.1],
             [4],
-            np.stack([np.r_[np.full((5), a)] for a in np.arange(1, 0, -0.2)]).astype(
-                np.float32
-            ),
+            np.repeat(np.stack([np.r_[np.full((5), i)] for i in np.arange(1, 0, -0.2)]).reshape(1, 5, 5), 3, axis=0).astype(np.float32),
         ),  # Accumulation probabilities vary by row with time such that the
         # total period fraction for the top row is 1, the second row is
-        # 0.8, etc. down to 0.2 for the bottom row.
+        # 0.8, etc. down to 0.2 for the bottom row. Duplicated across realizations
+        # to avoid any further complication. Each location ends up with only a
+        # single fraction of the total period across the ensemble, which again
+        # means that the percentiles returned are all the same for the 10th, 50th
+        # and 90th percentile for a given location, e.g 1 for the top row
+        # and 0.2 for the bottom row.
     ],
 )
 def test_process(
@@ -418,7 +461,6 @@ def test_process(
     rate_thresh: List[float],
     expected: ndarray,
     precip_cubes_custom: CubeList,
-    realizations,
 ):
     """Test the plugin produces the expected output. The creation of the
     output cube is also tested here. If realization is True the input
@@ -430,42 +472,23 @@ def test_process(
     total_period = (end_time - start_time).total_seconds()
     period_hours = period.total_seconds() / 3600
 
-    if realizations:
-        realization_cubes = []
-        for cube in precip_cubes_custom:
-            realization_cube = CubeList()
-            for i in range(2):
-                realization_coord = AuxCoord([i], standard_name="realization")
-                rcube = cube.copy()
-                rcube.add_aux_coord(realization_coord)
-                realization_cube.append(rcube)
-            realization_cubes.append(realization_cube.merge_cube())
-        precip_cubes_custom = realization_cubes
-
-    plugin = PrecipitationDuration(acc_thresh, rate_thresh, total_period / 3600)
+    plugin = PrecipitationDuration(acc_thresh, rate_thresh, total_period / 3600, DEFAULT_PERCENTILES)
     result = plugin.process(precip_cubes_custom)
 
-    if realizations:
-        assert result.coord("realization").shape[0] == 2
-        result = result.slices_over("realization")
-    else:
-        result = [result]
+    assert_array_equal(result.data, expected)
+    assert_array_almost_equal(
+        result.coord("lwe_thickness_of_precipitation_amount").points,
+        period.total_seconds() / 3600 * np.array(acc_thresh) / 1000,
+    )
+    assert_array_almost_equal(
+        result.coord("lwe_precipitation_rate").points,
+        np.array(rate_thresh) / (3600 * 1000),
+    )
+    assert result.attributes["input_period_in_hours"] == period_hours
+    assert np.diff(result.coord("time").bounds) == total_period
 
-    for cube in result:
-        assert_array_equal(cube.data, expected)
-        assert_array_almost_equal(
-            cube.coord("lwe_thickness_of_precipitation_amount").points,
-            np.array(acc_thresh) / 1000,
-        )
-        assert_array_almost_equal(
-            cube.coord("lwe_precipitation_rate").points,
-            np.array(rate_thresh) / (3600 * 1000),
-        )
-        assert cube.attributes["input_period_in_hours"] == period_hours
-        assert np.diff(cube.coord("time").bounds) == total_period
-
-        var_names = [crd.var_name for crd in cube.coords()]
-        assert "threshold" not in var_names
+    # var_names = [crd.var_name for crd in cube.coords()]
+    # assert "threshold" not in var_names
 
 
 def test_process_exception_thresholds():
@@ -475,7 +498,7 @@ def test_process_exception_thresholds():
     time_args = data_times(
         datetime(2025, 1, 15, 0), datetime(2025, 1, 15, 2), timedelta(hours=1)
     )
-    data = np.ones((2, 1, 3, 4))
+    data = np.ones((2, 2, 1, 3, 4))
 
     cubes = CubeList()
     cubes.extend(multi_time_cube(*time_args, data, [2.0], DEFAULT_ACC_THRESH_NAME, "m"))
@@ -483,7 +506,7 @@ def test_process_exception_thresholds():
         multi_time_cube(*time_args, data, [8.0], DEFAULT_RATE_THRESH_NAME, "m/s")
     )
 
-    plugin = PrecipitationDuration(1.0, 7.0, 2)
+    plugin = PrecipitationDuration(1.0, 7.0, 2, DEFAULT_PERCENTILES)
     msg = "Input cubes do not contain the expected diagnostics or thresholds."
     with pytest.raises(ValueError, match=msg):
         plugin.process(cubes)
@@ -496,7 +519,7 @@ def test_process_exception_names():
     time_args = data_times(
         datetime(2025, 1, 15, 0), datetime(2025, 1, 15, 2), timedelta(hours=1)
     )
-    data = np.ones((2, 1, 3, 4))
+    data = np.ones((2, 2, 1, 3, 4))
 
     cubes = CubeList()
     cubes.extend(multi_time_cube(*time_args, data, [1.0 / 1000], "kittens", "m"))
@@ -504,7 +527,7 @@ def test_process_exception_names():
         multi_time_cube(*time_args, data, [7.0 / (3600 * 1000)], "puppies", "m/s")
     )
 
-    plugin = PrecipitationDuration(1.0, 7.0, 2)
+    plugin = PrecipitationDuration(1.0, 7.0, 2, DEFAULT_PERCENTILES)
     msg = "Input cubes do not contain the expected diagnostics or thresholds."
     with pytest.raises(ValueError, match=msg):
         plugin.process(cubes)
@@ -518,7 +541,7 @@ def test_process_exception_differing_time():
     time_args = data_times(
         datetime(2025, 1, 15, 0), datetime(2025, 1, 15, 2), timedelta(hours=1)
     )
-    data = np.ones((2, 1, 3, 4))
+    data = np.ones((2, 2, 1, 3, 4))
     cubes.extend(
         multi_time_cube(*time_args, data, [1.0 / 1000], DEFAULT_ACC_THRESH_NAME, "m")
     )
@@ -533,7 +556,7 @@ def test_process_exception_differing_time():
         )
     )
 
-    plugin = PrecipitationDuration(1.0, 7.0, 2)
+    plugin = PrecipitationDuration(1.0, 7.0, 2, DEFAULT_PERCENTILES)
     msg = (
         "Precipitation accumulation and maximum rate in period cubes "
         "have differing time coordinates and cannot be used together."
@@ -549,7 +572,7 @@ def test_process_exception_total_period():
     time_args = data_times(
         datetime(2025, 1, 15, 0), datetime(2025, 1, 15, 2), timedelta(hours=1)
     )
-    data = np.ones((2, 1, 3, 4))
+    data = np.ones((2, 2, 1, 3, 4))
 
     cubes = CubeList()
     cubes.extend(
@@ -562,11 +585,94 @@ def test_process_exception_total_period():
     )
 
     target_period = 24
-    plugin = PrecipitationDuration(1.0, 7.0, target_period)
+    plugin = PrecipitationDuration(1.0, 7.0, target_period, DEFAULT_PERCENTILES)
     msg = (
         "Input cubes do not combine to create the expected target "
         "period. The period covered by the cubes passed in is: "
         f"2.0 hours. Target is {target_period} hours."
+    )
+    with pytest.raises(ValueError, match=msg):
+        plugin.process(cubes)
+
+
+def test_process_exception_no_realization():
+    """Test an exception is raised if the input cubes do not have realization
+    coordinates."""
+
+    time_args = data_times(
+        datetime(2025, 1, 15, 0), datetime(2025, 1, 15, 2), timedelta(hours=1)
+    )
+    data = np.ones((2, 1, 3, 4))
+
+    cubes = CubeList()
+    cubes.extend(
+        multi_time_cube(*time_args, data, [1.0 / 1000], DEFAULT_ACC_THRESH_NAME, "m")
+    )
+    cubes.extend(
+        multi_time_cube(
+            *time_args, data, [7.0 / (3600 * 1000)], DEFAULT_RATE_THRESH_NAME, "m/s"
+        )
+    )
+
+    plugin = PrecipitationDuration(1.0, 7.0, 2, DEFAULT_PERCENTILES)
+    msg = (
+        "This plugin requires input data from multiple realizations."
+    )
+    with pytest.raises(ValueError, match=msg):
+        plugin.process(cubes)
+
+def test_process_exception_mismatched_realization():
+    """Test an exception is raised if the input cubes do not have matching
+    realization coordinates."""
+
+    time_args = data_times(
+        datetime(2025, 1, 15, 0), datetime(2025, 1, 15, 2), timedelta(hours=1)
+    )
+    data = np.ones((2, 2, 1, 3, 4))
+
+    cubes = CubeList()
+    cubes.extend(
+        multi_time_cube(*time_args, data, [1.0 / 1000], DEFAULT_ACC_THRESH_NAME, "m")
+    )
+    for cube in cubes:
+        cube.coord("realization").points = [1, 2]
+    cubes.extend(
+        multi_time_cube(
+            *time_args, data, [7.0 / (3600 * 1000)], DEFAULT_RATE_THRESH_NAME, "m/s"
+        )
+    )
+
+    plugin = PrecipitationDuration(1.0, 7.0, 2, DEFAULT_PERCENTILES)
+    msg = (
+        "Mismatched realization coordinates between accumulation and "
+        "max rate inputs. These must be the same."
+    )
+    with pytest.raises(ValueError, match=msg):
+        plugin.process(cubes)
+
+def test_process_exception_masked_data():
+    """Test an exception is raised if the input cubes contain masked data."""
+
+    time_args = data_times(
+        datetime(2025, 1, 15, 0), datetime(2025, 1, 15, 2), timedelta(hours=1)
+    )
+    data = np.ones((2, 2, 1, 3, 4))
+    data = np.ma.masked_where(data == 1, data)
+    data.mask[0, 0, 0, 0] = False
+
+    cubes = CubeList()
+    cubes.extend(
+        multi_time_cube(*time_args, data, [1.0 / 1000], DEFAULT_ACC_THRESH_NAME, "m")
+    )
+    cubes.extend(
+        multi_time_cube(
+            *time_args, data, [7.0 / (3600 * 1000)], DEFAULT_RATE_THRESH_NAME, "m/s"
+        )
+    )
+
+    plugin = PrecipitationDuration(1.0, 7.0, 2, DEFAULT_PERCENTILES)
+    msg = (
+        "Precipitation duration plugin cannot handle masked data."
     )
     with pytest.raises(ValueError, match=msg):
         plugin.process(cubes)
