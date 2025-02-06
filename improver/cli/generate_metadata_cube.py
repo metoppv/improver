@@ -47,7 +47,7 @@ def process(
             Dictionary containing values for one or more of: "name", "units", "time",
             "time_bounds", "frt", "spp__relative_to_threshold", "attributes"
             (dictionary of additional metadata attributes) and "coords" (dictionary).
-            "coords" can contain "height_levels" (list of height/pressure level values),
+            "coords" can contain "vertical_levels" (list of height/pressure level values),
             and one of "realizations", "percentiles" or "thresholds" (list of dimension
             values).
         ensemble_members (Optional[int]):
@@ -75,8 +75,8 @@ def process(
 
     from improver.synthetic_data.generate_metadata import generate_metadata
     from improver.synthetic_data.utilities import (
-        get_height_levels,
         get_leading_dimension,
+        get_vertical_levels,
     )
     from improver.utilities.temporal import cycletime_to_datetime
 
@@ -88,9 +88,11 @@ def process(
             (json_input["leading_dimension"], json_input["cube_type"]) = (
                 get_leading_dimension(coord_data)
             )
-            json_input["height_levels"], json_input["pressure"] = get_height_levels(
-                coord_data
-            )
+            (
+                json_input["vertical_levels"],
+                json_input["pressure"],
+                json_input["height"],
+            ) = get_vertical_levels(coord_data)
 
             json_input.pop("coords", None)
 
