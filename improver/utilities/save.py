@@ -19,13 +19,15 @@ def _order_cell_methods(cube: Cube) -> None:
     """
     Sorts the cell methods on a cube such that if there are multiple methods
     they are always written in a consistent order in the output cube. The
-    input cube is modified.
+    input cube is modified. Ensure that if there are any identical dupliate
+    cell methods, only one of these is included in the outputs.
 
     Args:
         cube:
             The cube on which the cell methods are to be sorted.
     """
-    cell_methods = tuple(sorted(cube.cell_methods))
+    cell_methods = set(cube.cell_methods)
+    cell_methods = tuple(sorted(cell_methods))
     cube.cell_methods = cell_methods
 
 

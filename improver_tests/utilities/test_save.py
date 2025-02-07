@@ -294,6 +294,14 @@ class Test__order_cell_methods(IrisTest):
         # Test that they do match once sorting has occured.
         self.assertEqual(self.cube.cell_methods, self.cell_methods)
 
+    def test_duplicates_removed(self):
+        """Test that only one of any exact duplicate cell method is included
+        in the output."""
+        cell_methods = self.cell_methods + self.cell_methods
+        self.cube.cell_methods = cell_methods
+        _order_cell_methods(self.cube)
+        self.assertEqual(self.cube.cell_methods, self.cell_methods)
+
 
 if __name__ == "__main__":
     unittest.main()
