@@ -408,6 +408,30 @@ class Test_set_up_variable_cube(IrisTest):
         self.assertEqual(result.coord_dims("latitude"), (1,))
         self.assertEqual(result.coord_dims("longitude"), (2,))
 
+    def test_error_height_and_pressure_true(self):
+        """Test error is raised if both pressure and height are set to True"""
+        vertical_levels = [1.5, 3.0, 4.5]
+        msg = "Both pressure and height cannot be set to True"
+        with self.assertRaisesRegex(ValueError, msg):
+            _ = set_up_variable_cube(
+                self.data_3d,
+                vertical_levels=vertical_levels,
+                height=True,
+                pressure=True,
+            )
+
+    def test_error_height_and_pressure_false(self):
+        """Test error is raised if neither pressure and height are set to True"""
+        vertical_levels = [1.5, 3.0, 4.5]
+        msg = "Either pressure or height must be set to True"
+        with self.assertRaisesRegex(ValueError, msg):
+            _ = set_up_variable_cube(
+                self.data_3d,
+                vertical_levels=vertical_levels,
+                height=False,
+                pressure=False,
+            )
+
     def test_realizations_from_data(self):
         """Test realization coordinate is added for 3D data"""
         result = set_up_variable_cube(self.data_3d)

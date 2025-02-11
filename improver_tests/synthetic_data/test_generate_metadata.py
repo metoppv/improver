@@ -482,17 +482,17 @@ def test_set_npoints():
 
 def test_set_height_levels():
     """Tests cube generated with specified height levels as an additional dimension"""
-    vertical_levels = [1.5, 3.0, 4.5]
+    height_levels = [1.5, 3.0, 4.5]
     cube = generate_metadata(
         MANDATORY_ATTRIBUTE_DEFAULTS,
-        vertical_levels=vertical_levels,
+        vertical_levels=height_levels,
         height=True,
     )
 
     assert cube.ndim == 4
     assert cube.shape == (
         ENSEMBLE_MEMBERS_DEFAULT,
-        len(vertical_levels),
+        len(height_levels),
         NPOINTS_DEFAULT,
         NPOINTS_DEFAULT,
     )
@@ -505,7 +505,7 @@ def test_set_height_levels():
     assert cube.coords()[2].name() == expected_spatial_grid_attributes["y"]
     assert cube.coords()[3].name() == expected_spatial_grid_attributes["x"]
 
-    np.testing.assert_array_equal(cube.coord("height").points, vertical_levels)
+    np.testing.assert_array_equal(cube.coord("height").points, height_levels)
 
     # Assert that cube shape is different from default cube shape but metadata unchanged
     _check_cube_shape_different(cube)
@@ -514,10 +514,10 @@ def test_set_height_levels():
 def test_set_height_levels_single_value():
     """Tests cube generated with single height level is demoted from dimension to
     scalar coordinate"""
-    vertical_levels = [1.5]
+    height_levels = [1.5]
     cube = generate_metadata(
         MANDATORY_ATTRIBUTE_DEFAULTS,
-        vertical_levels=vertical_levels,
+        vertical_levels=height_levels,
         height=True,
     )
 
@@ -531,7 +531,7 @@ def test_set_height_levels_single_value():
     assert cube.coords()[1].name() == expected_spatial_grid_attributes["y"]
     assert cube.coords()[2].name() == expected_spatial_grid_attributes["x"]
 
-    np.testing.assert_array_equal(cube.coord("height").points, vertical_levels)
+    np.testing.assert_array_equal(cube.coord("height").points, height_levels)
 
     # Assert that no other values have unexpectedly changed by returning changed values
     # to defaults and comparing against default cube
@@ -543,16 +543,16 @@ def test_set_height_levels_single_value():
 def test_disable_ensemble_set_height_levels():
     """Tests cube generated without realizations dimension but with height dimension"""
     ensemble_members = 1
-    vertical_levels = [1.5, 3.0, 4.5]
+    height_levels = [1.5, 3.0, 4.5]
     cube = generate_metadata(
         MANDATORY_ATTRIBUTE_DEFAULTS,
         ensemble_members=ensemble_members,
-        vertical_levels=vertical_levels,
+        vertical_levels=height_levels,
         height=True,
     )
 
     assert cube.ndim == 3
-    assert cube.shape == (len(vertical_levels), NPOINTS_DEFAULT, NPOINTS_DEFAULT)
+    assert cube.shape == (len(height_levels), NPOINTS_DEFAULT, NPOINTS_DEFAULT)
 
     expected_spatial_grid_attributes = SPATIAL_GRID_ATTRIBUTE_DEFAULTS[
         SPATIAL_GRID_DEFAULT
@@ -561,7 +561,7 @@ def test_disable_ensemble_set_height_levels():
     assert cube.coords()[1].name() == expected_spatial_grid_attributes["y"]
     assert cube.coords()[2].name() == expected_spatial_grid_attributes["x"]
 
-    np.testing.assert_array_equal(cube.coord("height").points, vertical_levels)
+    np.testing.assert_array_equal(cube.coord("height").points, height_levels)
 
     # Assert that cube shape is different from default cube shape but metadata unchanged
     _check_cube_shape_different(cube)

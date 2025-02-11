@@ -16,7 +16,7 @@ from improver.utilities.cube_manipulation import maximum_in_height
 
 @pytest.fixture()
 def wet_bulb_temperature() -> Cube:
-    "Generate a cube of wet bulb temperature on vertical levels"
+    "Generate a cube of wet bulb temperature on height levels"
     data = np.array(
         [
             [[100, 200, 100], [100, 200, 100]],
@@ -61,11 +61,11 @@ def test_maximum_in_height(
 
 
 def test_height_bounds_error(wet_bulb_temperature):
-    """Test an error is raised if the input cube doesn't have any vertical levels
+    """Test an error is raised if the input cube doesn't have any height levels
     between the height bounds."""
 
     with pytest.raises(
-        ValueError, match="any vertical levels between the provided bounds"
+        ValueError, match="any height levels between the provided bounds"
     ):
         maximum_in_height(
             wet_bulb_temperature, lower_height_bound=50, upper_height_bound=75
