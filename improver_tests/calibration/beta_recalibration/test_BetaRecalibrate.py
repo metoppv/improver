@@ -7,10 +7,14 @@ from datetime import datetime
 import iris
 import numpy as np
 import pytest
+from iris.exceptions import CoordinateNotFoundError
 from scipy.stats import beta
 
 from improver.calibration.beta_recalibration import BetaRecalibrate
-from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
+from improver.synthetic_data.set_up_test_cubes import (
+    set_up_percentile_cube,
+    set_up_probability_cube,
+)
 from improver.utilities.cube_manipulation import MergeCubes
 
 
@@ -33,6 +37,53 @@ def forecast_grid():
     )
     forecasts_grid = MergeCubes()([forecast_1, forecast_2])
     return forecasts_grid
+
+
+@pytest.fixture
+def percentile_forecast_grid():
+    percentiles = [50, 90]
+    np.random.seed(0)
+    forecast_data = (
+        np.random.uniform(low=283, high=288, size=9).astype(np.float32).reshape(3, 3)
+    )
+    forecast_data_stack = np.stack([forecast_data, forecast_data + 5])
+    forecast = set_up_percentile_cube(
+        forecast_data_stack,
+        percentiles,
+        time=datetime(2017, 11, 11, 4, 0),
+        frt=datetime(2017, 11, 11, 0, 0),
+    )
+    return forecast
+
+
+def test_no_threshold_coord(percentile_forecast_grid):
+    # test that error is raised when the input is not a probability cube
+    msg = "must be a probability forecast"
+    recalibration_dict = {
+        "forecast_period": [0, 1],
+        "alpha": [2, 0],
+        "beta": [2, 1],
+        "units": "hours",
+    }
+    plugin = BetaRecalibrate(recalibration_dict)
+    with pytest.raises(CoordinateNotFoundError, match=msg):
+        plugin.process(percentile_forecast_grid)
+
+
+def test_no_forecast_period_coord(forecast_grid):
+    # test that error is raised when the input does not contain
+    # a forecast_period coordinate
+    forecast_grid.remove_coord("forecast_period")
+    msg = "must contain forecast_period coordinate"
+    recalibration_dict = {
+        "forecast_period": [0, 1],
+        "alpha": [2, 0],
+        "beta": [2, 1],
+        "units": "hours",
+    }
+    plugin = BetaRecalibrate(recalibration_dict)
+    with pytest.raises(CoordinateNotFoundError, match=msg):
+        plugin.process(forecast_grid)
 
 
 def test_invalid_params(forecast_grid):
