@@ -14,11 +14,13 @@ from scipy.stats import beta
 
 from improver import PostProcessingPlugin
 from improver.metadata.probabilistic import is_probability
+
 """
 .. See the documentation for a more detailed discussion of this plugin.
 .. include:: extended_documentation/calibration/beta_recalibration/
     beta_recalibration.rst
 """
+
 
 class BetaRecalibrate(PostProcessingPlugin):
     """Recalibrate probabilities using the cumulative distribution function
