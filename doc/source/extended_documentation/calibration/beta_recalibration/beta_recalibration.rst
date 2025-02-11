@@ -2,7 +2,6 @@
 Beta recalibration
 ##################################
 
-
 Beta recalibration is intended to be used for recalibrating the blended probabilistic output of several models, each of which has already been individually 
 calibrated (for example, by reliability calibration or by the Rainforests calibration method). It is shown in `Ranjan & Gneiting, 2008`_ 
 that, when blending probabilistic forecasts, even if each input is perfectly calibrated, the output is in general not perfectly calibrated. 
