@@ -43,6 +43,8 @@ class BetaRecalibrate(PostProcessingPlugin):
                 "units": "hours",
             }
 
+        The "units" key is optional. If it is omitted, it is assumed that the units
+        are the same as those used in forecast_period coordinate of the input cube.
         """
         self.recalibration_dict = recalibration_dict
 
