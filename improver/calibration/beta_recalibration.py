@@ -4,7 +4,7 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Module containing class for recalibrating blended probabilities."""
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 import cf_units
 import iris
@@ -19,7 +19,7 @@ from improver.metadata.probabilistic import is_probability
 class BetaRecalibrate(PostProcessingPlugin):
     """Recalibrate probabilities using the cumulative distribution function
     of the beta distribution.
-    
+
     .. See the documentation for a more detailed discussion of this plugin.
     .. include:: extended_documentation/calibration/beta_recalibration/
        beta_recalibration.rst
