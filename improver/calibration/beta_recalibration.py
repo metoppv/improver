@@ -25,7 +25,7 @@ class BetaRecalibrate(PostProcessingPlugin):
        beta_recalibration.rst
     """
 
-    def __init__(self, recalibration_dict: Optional[Dict[str, Any]] = None):
+    def __init__(self, recalibration_dict: Dict[str, Any]):
         """
         Args:
             recalibration_dict:
