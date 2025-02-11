@@ -129,7 +129,7 @@ def test_params_equal_1(forecast_grid):
         "units": "hours",
     }
     plugin = BetaRecalibrate(recalibration_dict)
-    result = plugin.process(forecast_grid)
+    result = plugin.process(forecast_grid.copy())
 
     assert result.coords() == forecast_grid.coords()
     assert result.attributes == forecast_grid.attributes
