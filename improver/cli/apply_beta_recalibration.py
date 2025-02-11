@@ -33,6 +33,4 @@ def process(
     """
     from improver.calibration.beta_recalibration import BetaRecalibrate
 
-    plugin = BetaRecalibrate(recalibration_config)
-
-    return plugin(cube)
+    return BetaRecalibrate(recalibration_config)(cube)
