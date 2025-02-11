@@ -67,7 +67,7 @@ def test_no_threshold_coord(percentile_forecast_grid):
     }
     plugin = BetaRecalibrate(recalibration_dict)
     with pytest.raises(CoordinateNotFoundError, match=msg):
-        plugin.process(percentile_forecast_grid)
+        plugin.process(percentile_forecast_grid.copy())
 
 
 def test_no_forecast_period_coord(forecast_grid):
@@ -83,7 +83,7 @@ def test_no_forecast_period_coord(forecast_grid):
     }
     plugin = BetaRecalibrate(recalibration_dict)
     with pytest.raises(CoordinateNotFoundError, match=msg):
-        plugin.process(forecast_grid)
+        plugin.process(forecast_grid.copy())
 
 
 def test_invalid_params(forecast_grid):
@@ -97,7 +97,7 @@ def test_invalid_params(forecast_grid):
     }
     plugin = BetaRecalibrate(recalibration_dict)
     with pytest.raises(RuntimeError, match=msg):
-        plugin.process(forecast_grid)
+        plugin.process(forecast_grid.copy())
 
 
 def test_recalibrate(forecast_grid):
@@ -109,7 +109,7 @@ def test_recalibrate(forecast_grid):
         "units": "hours",
     }
     plugin = BetaRecalibrate(recalibration_dict)
-    result = plugin.process(forecast_grid)
+    result = plugin.process(forecast_grid.copy())
     f1 = forecast_grid.extract(iris.Constraint(time=lambda cell: cell.point.hour == 4))
     f2 = forecast_grid.extract(iris.Constraint(time=lambda cell: cell.point.hour == 8))
     f1.data = beta.cdf(f1.data, 4, 8)
