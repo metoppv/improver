@@ -13,6 +13,7 @@ from iris.cube import Cube, CubeList
 
 from improver import PostProcessingPlugin
 from improver.metadata.probabilistic import is_probability
+from improver.metadata.forecast_times import rebadge_forecasts_as_latest_cycle
 
 
 class EnforceConsistentForecasts(PostProcessingPlugin):
@@ -30,6 +31,7 @@ class EnforceConsistentForecasts(PostProcessingPlugin):
         multiplicative_amount: Union[float, List[float]] = 1.0,
         comparison_operator: Union[str, List[str]] = ">=",
         diff_for_warning: Optional[float] = None,
+        use_latest_update_time: Optional[bool] = False,
     ) -> None:
         """
         Initialise class for enforcing a forecast to be either greater than or equal to,
@@ -55,12 +57,17 @@ class EnforceConsistentForecasts(PostProcessingPlugin):
                 a list then each of ">=" and "<=" must be in the list exactly once.
             diff_for_warning: If assigned, the plugin will raise a warning if any
                 absolute change in forecast value is greater than this value.
+            use_latest_update_time:
+                If True the returned cube that has been enforced will have a
+                forecast_reference_time and/or blend_time that is the latest of
+                the forecast and reference_forecast.
         """
 
         self.additive_amount = additive_amount
         self.multiplicative_amount = multiplicative_amount
         self.comparison_operator = comparison_operator
         self.diff_for_warning = diff_for_warning
+        self.use_latest_update_time = use_latest_update_time
 
     @staticmethod
     def calculate_bound(
@@ -206,6 +213,20 @@ class EnforceConsistentForecasts(PostProcessingPlugin):
 
         new_forecast = forecast.copy()
         new_forecast.data = np.clip(new_forecast.data, lower_bound, upper_bound)
+
+        if self.use_latest_update_time:
+            blend_coord = None
+            if new_forecast.coords("blend_time"):
+                blend_coord = new_forecast.coord("blend_time").copy()
+                new_forecast.remove_coord("blend_time")
+            if reference_forecast.coords("blend_time"):
+                reference_forecast.remove_coord("blend_time")
+
+            new_forecast, _ = rebadge_forecasts_as_latest_cycle([new_forecast, reference_forecast])
+
+            if blend_coord is not None:
+                new_forecast.add_aux_coord(blend_coord)
+                new_forecast.coord("blend_time").points = new_forecast.coord("forecast_reference_time").points
 
         diff = new_forecast.data - forecast.data
         max_abs_diff = np.max(np.abs(diff))

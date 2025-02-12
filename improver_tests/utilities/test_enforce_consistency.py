@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 from iris.cube import Cube
 
+from improver.metadata.forecast_times import _create_frt_type_coord
 from improver.synthetic_data.set_up_test_cubes import (
     set_up_percentile_cube,
     set_up_probability_cube,
@@ -351,3 +352,47 @@ def test_double_bounds_exceptions(
             multiplicative_amount=multiplicative_amount,
             comparison_operator=comparison_operator,
         )(forecast_cube, reference_cube)
+
+
+@pytest.mark.parametrize("blend_time", [False, True])
+@pytest.mark.parametrize(
+        "ref_shift,forecast_shift,expected_shift",
+        (
+            [3600, 0, 3600],
+            [-3600, 0, 0],
+        )
+)
+def test_updating_times(blend_time, ref_shift,forecast_shift,expected_shift):
+    """
+    Test that consistency between forecasts is enforced correctly for a variety of
+    percentile, probability, or realization forecasts when a single bound is provided.
+    """
+    shape = (3, 2, 2)
+    reference_cube = get_realization_forecast(275, shape, "air_temperature")
+    forecast_cube = get_realization_forecast(274, shape, "air_temperature")
+
+    expected_frt = forecast_cube.coord("forecast_reference_time").points[0] + expected_shift
+    reference_cube.coord("forecast_reference_time").points = [1510272000 + ref_shift]
+    forecast_cube.coord("forecast_reference_time").points = [1510272000 + forecast_shift]
+
+    if blend_time:
+        blend_coord = _create_frt_type_coord(
+            forecast_cube,
+            forecast_cube.coord("forecast_reference_time").cell(0).point,
+            name="blend_time",
+        )
+        forecast_cube.add_aux_coord(blend_coord, data_dims=None)
+
+    result = EnforceConsistentForecasts(
+        comparison_operator=">=",
+        use_latest_update_time=True
+    )(forecast_cube, reference_cube)
+
+    assert result.coord("forecast_reference_time").points[0] == expected_frt
+    if blend_time:
+        assert result.coord("blend_time").points[0] == expected_frt
+
+
+    # print(reference_cube)
+    # print(forecast_cube)
+    # print(result)
