@@ -39,23 +39,26 @@ def test_get_leading_dimension(coord_data, expected_cube_type):
 
 
 @pytest.mark.parametrize(
-    "coord_data,expected_pressure",
+    "coord_data,expected_pressure,expected_height",
     [
-        ({"realizations": [0]}, False),
-        ({"heights": [0, 1, 2]}, False),
-        ({"pressures": [10, 20, 30]}, True),
+        ({"realizations": [0]}, False, False),
+        ({"heights": [0, 1, 2]}, False, True),
+        ({"pressures": [10, 20, 30]}, True, False),
     ],
 )
-def test_get_height_levels(coord_data, expected_pressure):
-    """Tests height level data extracted successfully and pressure flag set correctly"""
+def test_get_vertical_levels(coord_data, expected_pressure, expected_height):
+    """Tests vertical level data extracted successfully and pressure and height flags set correctly"""
     dimension_key = list(coord_data)[0]
 
     if dimension_key == "realizations":
-        expected_height_levels = None
+        expected_vertical_levels = None
     else:
-        expected_height_levels = coord_data[dimension_key]
+        expected_vertical_levels = coord_data[dimension_key]
 
-    height_levels, pressure = utilities.get_height_levels(coord_data=coord_data)
+    vertical_levels, pressure, height = utilities.get_vertical_levels(
+        coord_data=coord_data
+    )
 
-    np.testing.assert_array_equal(expected_height_levels, height_levels)
+    np.testing.assert_array_equal(expected_vertical_levels, vertical_levels)
     assert expected_pressure == pressure
+    assert expected_height == height
