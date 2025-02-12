@@ -16,7 +16,7 @@ from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     set_up_probability_cube,
 )
-from improver.utilities.threshold_interpolation import Threshold_interpolation
+from improver.utilities.threshold_interpolation import ThresholdInterpolation
 
 
 @pytest.fixture(name="input_cube")
@@ -109,9 +109,9 @@ def masked_cube_diff() -> Cube:
 def test_basic(input_cube):
     """Test that the plugin returns an Iris.cube.Cube with suitable units."""
     thresholds = [100, 150, 200, 250, 300]
-    result = Threshold_interpolation(input_cube, thresholds)
+    result = ThresholdInterpolation(input_cube, thresholds)
     assert result, Cube
-    assert result.units, input_cube.units
+    assert result.units == input_cube.units
 
 
 def test_incompatible_thresholds(input_cube):
@@ -122,7 +122,7 @@ def test_incompatible_thresholds(input_cube):
     thresholds = ["cat", "dog", "elephant"]
     error_msg = "could not convert string to float"
     with pytest.raises(ValueError, match=error_msg):
-        Threshold_interpolation(input_cube, thresholds)
+        ThresholdInterpolation(input_cube, thresholds)
 
 
 def test_metadata_copy(input_cube):
@@ -132,8 +132,8 @@ def test_metadata_copy(input_cube):
     """
     input_cube.attributes = {"source": "ukv"}
     thresholds = [100, 150, 200, 250, 300]
-    result = Threshold_interpolation(input_cube, thresholds)
-    assert input_cube.metadata._asdict(), result.metadata._asdict()
+    result = ThresholdInterpolation(input_cube, thresholds)
+    assert input_cube.metadata._asdict() == result.metadata._asdict()
 
 
 def test_realization_coord_removed(input_cube):
@@ -144,13 +144,13 @@ def test_realization_coord_removed(input_cube):
     realization_cube = add_coordinate(
         input_cube, [0, 1, 2], "realization", coord_units=1, dtype=np.int32
     )
-    result = Threshold_interpolation(realization_cube, thresholds)
+    result = ThresholdInterpolation(realization_cube, thresholds)
     dim_coords = [coord.name() for coord in result.coords(dim_coords=True)]
     expected_dim_coords = [
         coord.name() for coord in realization_cube.coords(dim_coords=True)
     ]
     expected_dim_coords.remove("realization")
-    assert dim_coords, expected_dim_coords
+    assert dim_coords == expected_dim_coords
 
 
 def test_cube_no_threshold_coord(input_cube):
@@ -164,7 +164,7 @@ def test_cube_no_threshold_coord(input_cube):
     realization_cube.remove_coord("visibility_in_air")
     error_msg = "No threshold coord found"
     with pytest.raises(CoordinateNotFoundError, match=error_msg):
-        Threshold_interpolation(realization_cube, thresholds)
+        ThresholdInterpolation(thresholds)(realization_cube)
 
 
 def test_no_thresholds_provided(input_cube):
@@ -174,7 +174,7 @@ def test_no_thresholds_provided(input_cube):
     warning_msg = "No thresholds provided, using existing thresholds."
 
     with pytest.warns(UserWarning, match=warning_msg):
-        Threshold_interpolation(input_cube)
+        ThresholdInterpolation(input_cube)
 
 
 def test_thresholds_different_mask(masked_cube_diff):
@@ -185,7 +185,7 @@ def test_thresholds_different_mask(masked_cube_diff):
     error_msg = "The mask is expected to be constant across different slices of the"
 
     with pytest.raises(ValueError, match=error_msg):
-        Threshold_interpolation(masked_cube_diff, thresholds)
+        ThresholdInterpolation(masked_cube_diff, thresholds)
 
 
 def test_masked_cube(masked_cube_same):
@@ -193,5 +193,5 @@ def test_masked_cube(masked_cube_same):
     Testing that a Cube is returned when inputting a masked cube.
     """
     thresholds = [100, 150, 200, 250, 300]
-    result = Threshold_interpolation(masked_cube_same, thresholds)
+    result = ThresholdInterpolation(masked_cube_same, thresholds)
     assert result, Cube
