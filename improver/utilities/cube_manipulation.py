@@ -791,7 +791,7 @@ def height_of_maximum(
             A cube of the maximum value over the height coordinate.
         find_lowest:
             If true then the lowest maximum height will be found (for cases where
-            there are two heights with the maximum height velocity.) Otherwise the highest
+            there are two heights with the maximum vertical velocity.) Otherwise the highest
             height will be found.
         new_name:
             The new name to be assigned to the output cube. If unspecified the name of the
