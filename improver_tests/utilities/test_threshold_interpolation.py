@@ -109,7 +109,7 @@ def masked_cube_diff() -> Cube:
 def test_basic(input_cube):
     """Test that the plugin returns an Iris.cube.Cube with suitable units."""
     thresholds = [100, 150, 200, 250, 300]
-    result = ThresholdInterpolation(input_cube, thresholds)
+    result = ThresholdInterpolation(thresholds)(input_cube)
     assert result, Cube
     assert result.units == input_cube.units
 
@@ -122,7 +122,7 @@ def test_incompatible_thresholds(input_cube):
     thresholds = ["cat", "dog", "elephant"]
     error_msg = "could not convert string to float"
     with pytest.raises(ValueError, match=error_msg):
-        ThresholdInterpolation(input_cube, thresholds)
+        ThresholdInterpolation(thresholds)(input_cube)
 
 
 def test_metadata_copy(input_cube):
@@ -132,7 +132,7 @@ def test_metadata_copy(input_cube):
     """
     input_cube.attributes = {"source": "ukv"}
     thresholds = [100, 150, 200, 250, 300]
-    result = ThresholdInterpolation(input_cube, thresholds)
+    result = ThresholdInterpolation(thresholds)(input_cube)
     assert input_cube.metadata._asdict() == result.metadata._asdict()
 
 
@@ -144,7 +144,7 @@ def test_realization_coord_removed(input_cube):
     realization_cube = add_coordinate(
         input_cube, [0, 1, 2], "realization", coord_units=1, dtype=np.int32
     )
-    result = ThresholdInterpolation(realization_cube, thresholds)
+    result = ThresholdInterpolation(thresholds)(realization_cube)
     dim_coords = [coord.name() for coord in result.coords(dim_coords=True)]
     expected_dim_coords = [
         coord.name() for coord in realization_cube.coords(dim_coords=True)
@@ -166,17 +166,6 @@ def test_cube_no_threshold_coord(input_cube):
     with pytest.raises(CoordinateNotFoundError, match=error_msg):
         ThresholdInterpolation(thresholds)(realization_cube)
 
-
-def test_no_thresholds_provided(input_cube):
-    """
-    Testing that a warning message is raised if no thresholds are provided.
-    """
-    warning_msg = "No thresholds provided, using existing thresholds."
-
-    with pytest.warns(UserWarning, match=warning_msg):
-        ThresholdInterpolation(input_cube)
-
-
 def test_thresholds_different_mask(masked_cube_diff):
     """
     Testing that a value error message is raised if masks are different across thresholds.
@@ -185,7 +174,7 @@ def test_thresholds_different_mask(masked_cube_diff):
     error_msg = "The mask is expected to be constant across different slices of the"
 
     with pytest.raises(ValueError, match=error_msg):
-        ThresholdInterpolation(masked_cube_diff, thresholds)
+        ThresholdInterpolation(thresholds)(masked_cube_diff)
 
 
 def test_masked_cube(masked_cube_same):
@@ -193,5 +182,5 @@ def test_masked_cube(masked_cube_same):
     Testing that a Cube is returned when inputting a masked cube.
     """
     thresholds = [100, 150, 200, 250, 300]
-    result = ThresholdInterpolation(masked_cube_same, thresholds)
+    result = ThresholdInterpolation(thresholds)(masked_cube_same)
     assert result, Cube

@@ -26,7 +26,7 @@ from improver.utilities.cube_manipulation import (
 )
 class ThresholdInterpolation(PostProcessingPlugin):
 
-    def __init__(self, thresholds: Optional[List] = None):
+    def __init__(self, thresholds: List):
 
         """
         Linearly interpolate thresholds.
@@ -150,6 +150,7 @@ class ThresholdInterpolation(PostProcessingPlugin):
             )
             coord.rename(self.threshold_coord)
             coord.var_name = "threshold"
+            coord.attributes = {'spp__relative_to_threshold': 'less_than'}
             cube.add_aux_coord(coord)
             cubes.append(cube)
         result = cubes.merge_cube()
@@ -182,7 +183,7 @@ class ThresholdInterpolation(PostProcessingPlugin):
         original_mask = self.mask_checking(forecast_at_thresholds)
         
         forecast_at_thresholds_data = self._interpolate_thresholds(
-            forecast_at_thresholds, self.thresholds,
+            forecast_at_thresholds,
         )
         threshold_cube = self.create_cube_with_thresholds(
             forecast_at_thresholds,

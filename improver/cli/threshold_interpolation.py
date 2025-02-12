@@ -30,10 +30,8 @@ def process(
         Cube with forecast values at the desired set of thresholds.
         The threshold coordinate is always the zeroth dimension.
     """
-    from improver.utilities.threshold_interpolation import Threshold_interpolation
+    from improver.utilities.threshold_interpolation import ThresholdInterpolation
 
-    result = Threshold_interpolation(
-        forecast_at_thresholds,
-        thresholds=thresholds,
-    )
+    result = ThresholdInterpolation(thresholds)(forecast_at_thresholds)
+
     return result
