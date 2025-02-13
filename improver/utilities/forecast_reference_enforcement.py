@@ -12,8 +12,8 @@ import numpy as np
 from iris.cube import Cube, CubeList
 
 from improver import PostProcessingPlugin
+from improver.metadata.forecast_times import unify_cycletime
 from improver.metadata.probabilistic import is_probability
-from improver.metadata.forecast_times import rebadge_forecasts_as_latest_cycle
 
 
 class EnforceConsistentForecasts(PostProcessingPlugin):
@@ -215,18 +215,40 @@ class EnforceConsistentForecasts(PostProcessingPlugin):
         new_forecast.data = np.clip(new_forecast.data, lower_bound, upper_bound)
 
         if self.use_latest_update_time:
-            blend_coord = None
-            if new_forecast.coords("blend_time"):
-                blend_coord = new_forecast.coord("blend_time").copy()
-                new_forecast.remove_coord("blend_time")
-            if reference_forecast.coords("blend_time"):
-                reference_forecast.remove_coord("blend_time")
+            forecast_cycle_coords = [
+                crd
+                for crd in ["forecast_reference_time", "blend_time"]
+                if new_forecast.coords(crd)
+            ]
+            ref_cycle_coords = [
+                crd
+                for crd in ["forecast_reference_time", "blend_time"]
+                if reference_forecast.coords(crd)
+            ]
+            # If one cube has a blend_time and one does not the subsequent
+            # tooling will not succeed, so raise an exception here.
+            if set(forecast_cycle_coords) != set(ref_cycle_coords):
+                raise ValueError(
+                    "Cubes do not include the same set of cycle time coordinates "
+                    "and cannot be updated to match as part of cube enforcement."
+                )
+            latest_times = []
+            latest_times.extend(
+                [new_forecast.coord(crd).cell(0).point for crd in forecast_cycle_coords]
+            )
+            latest_times.extend(
+                [
+                    reference_forecast.coord(crd).cell(0).point
+                    for crd in ref_cycle_coords
+                ]
+            )
+            latest_time = max(latest_times)
 
-            new_forecast, _ = rebadge_forecasts_as_latest_cycle([new_forecast, reference_forecast])
-
-            if blend_coord is not None:
-                new_forecast.add_aux_coord(blend_coord)
-                new_forecast.coord("blend_time").points = new_forecast.coord("forecast_reference_time").points
+            new_forecast, _ = unify_cycletime(
+                [new_forecast, reference_forecast],
+                latest_time,
+                target_coords=forecast_cycle_coords,
+            )
 
         diff = new_forecast.data - forecast.data
         max_abs_diff = np.max(np.abs(diff))

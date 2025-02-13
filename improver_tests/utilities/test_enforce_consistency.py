@@ -356,36 +356,40 @@ def test_double_bounds_exceptions(
 
 @pytest.mark.parametrize("blend_time", [False, True])
 @pytest.mark.parametrize(
-        "ref_shift,forecast_shift,expected_shift",
-        (
-            [3600, 0, 3600],
-            [-3600, 0, 0],
-        )
+    "ref_shift,forecast_shift,expected_shift",
+    (
+        [3600, 0, 3600],
+        [-3600, 0, 0],
+    ),
 )
-def test_updating_times(blend_time, ref_shift,forecast_shift,expected_shift):
+def test_updating_times(blend_time, ref_shift, forecast_shift, expected_shift):
     """
-    Test that consistency between forecasts is enforced correctly for a variety of
-    percentile, probability, or realization forecasts when a single bound is provided.
+    Test that forecast_reference_time and / or blend_time are updated on
+    cubes to which consitency is being applied.
     """
     shape = (3, 2, 2)
     reference_cube = get_realization_forecast(275, shape, "air_temperature")
     forecast_cube = get_realization_forecast(274, shape, "air_temperature")
 
-    expected_frt = forecast_cube.coord("forecast_reference_time").points[0] + expected_shift
+    expected_frt = (
+        forecast_cube.coord("forecast_reference_time").points[0] + expected_shift
+    )
     reference_cube.coord("forecast_reference_time").points = [1510272000 + ref_shift]
-    forecast_cube.coord("forecast_reference_time").points = [1510272000 + forecast_shift]
+    forecast_cube.coord("forecast_reference_time").points = [
+        1510272000 + forecast_shift
+    ]
 
     if blend_time:
-        blend_coord = _create_frt_type_coord(
-            forecast_cube,
-            forecast_cube.coord("forecast_reference_time").cell(0).point,
-            name="blend_time",
-        )
-        forecast_cube.add_aux_coord(blend_coord, data_dims=None)
+        for cube in [reference_cube, forecast_cube]:
+            blend_coord = _create_frt_type_coord(
+                cube,
+                cube.coord("forecast_reference_time").cell(0).point,
+                name="blend_time",
+            )
+            cube.add_aux_coord(blend_coord, data_dims=None)
 
     result = EnforceConsistentForecasts(
-        comparison_operator=">=",
-        use_latest_update_time=True
+        comparison_operator=">=", use_latest_update_time=True
     )(forecast_cube, reference_cube)
 
     assert result.coord("forecast_reference_time").points[0] == expected_frt
@@ -393,6 +397,46 @@ def test_updating_times(blend_time, ref_shift,forecast_shift,expected_shift):
         assert result.coord("blend_time").points[0] == expected_frt
 
 
-    # print(reference_cube)
-    # print(forecast_cube)
-    # print(result)
+@pytest.mark.parametrize(
+    "ref_coords",
+    (
+        ["forecast_reference_time"],
+        ["blend_time"],
+        ["forecast_reference_time", "blend_time"],
+    ),
+)
+@pytest.mark.parametrize(
+    "forecast_coords",
+    (
+        ["forecast_reference_time"],
+        ["blend_time"],
+        ["forecast_reference_time", "blend_time"],
+    ),
+)
+def test_mismatched_coord_exception(ref_coords, forecast_coords):
+    """Test an exception is raised if the forecast and reference cubes
+    don't both have the same cycle related coordinates. This means that
+    one might have both a blend_time and forecast_reference_time, and one
+    might have only forecast_reference_time."""
+
+    if set(ref_coords) == set(forecast_coords):
+        pytest.skip()
+
+    shape = (3, 2, 2)
+    reference_cube = get_realization_forecast(275, shape, "air_temperature")
+    forecast_cube = get_realization_forecast(274, shape, "air_temperature")
+
+    for cube, crds in zip(
+        [reference_cube, forecast_cube], [ref_coords, forecast_coords]
+    ):
+        crd = cube.coord("forecast_reference_time").copy()
+        cube.remove_coord("forecast_reference_time")
+        for crd_name in crds:
+            new_crd = crd.copy()
+            new_crd.rename(crd_name)
+            cube.add_aux_coord(new_crd, data_dims=None)
+
+    with pytest.raises(ValueError, match="Cubes do not include "):
+        EnforceConsistentForecasts(
+            comparison_operator=">=", use_latest_update_time=True
+        )(forecast_cube, reference_cube)
