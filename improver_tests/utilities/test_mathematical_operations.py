@@ -4,8 +4,6 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the plugins and functions within mathematical_operations.py"""
 
-import unittest
-
 import iris
 import numpy as np
 import numpy.ma as ma
@@ -17,7 +15,10 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_variable_cube,
 )
 from improver.utilities.cube_manipulation import sort_coord_in_cube
-from improver.utilities.mathematical_operations import Integration, fast_linear_fit
+from improver.utilities.mathematical_operations import (
+    Integration,
+    fast_linear_fit,
+)
 
 
 def _set_up_height_cube(height_points, ascending=True):
@@ -516,7 +517,3 @@ class Test_fast_linear_fit(IrisTest):
         """Tests fast_linear_fit when with_nans is True and nans match in x and y data"""
         self.x_data[12] = self.y_data[12] = np.nan
         self.linear_fit(with_nan=True)
-
-
-if __name__ == "__main__":
-    unittest.main()
