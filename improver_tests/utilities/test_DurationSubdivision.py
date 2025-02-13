@@ -12,6 +12,7 @@ import iris
 import numpy as np
 import pytest
 from iris.cube import Cube, CubeList
+from numpy.testing import assert_array_equal
 
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.temporal_interpolation import DurationSubdivision
@@ -371,7 +372,7 @@ def test_allocate_data(data_cube, kwargs, data, time, period, realizations):
         if not any([kwargs[key] for key in kwargs.keys() if "mask" in key]):
             # Check that summing over the time dimension returns the original data
             # if we've applied no masking.
-            np.testing.assert_array_equal(collapsed_rslice, data)
+            assert_array_equal(collapsed_rslice, data)
             # Without masking we can test that all the shorter durations are the
             # expected fraction of the total.
             for cslice in rslice.slices_over("time"):
@@ -513,6 +514,22 @@ def test_construct_target_periods(kwargs, data, input_period, expected):
         (bounds,) = np.unique(np.diff(cslice.coord("time").bounds, axis=1))
         assert bounds == kwargs["target_period"]
         assert cslice.coord("time").bounds[0][-1] == cslice.coord("time").points[0]
+
+        # Check forecast periods have been recalculated relative to time
+        # coordinate as expected.
+        expected_fp_lower = (
+            cslice[0].coord("time").cell(0).bound[0]
+            - cslice[0].coord("forecast_reference_time").cell(0).point
+        ).total_seconds()
+        expected_fp_upper = (
+            cslice[0].coord("time").cell(0).bound[-1]
+            - cslice[0].coord("forecast_reference_time").cell(0).point
+        ).total_seconds()
+        assert cslice.coord("forecast_period").points[0] == expected_fp_upper
+        assert_array_equal(
+            cslice.coord("forecast_period").bounds,
+            [[expected_fp_lower, expected_fp_upper]],
+        )
 
     # Check subdivided data is as expected. Also checks that shape is as
     # expected.
