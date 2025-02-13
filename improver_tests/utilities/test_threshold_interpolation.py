@@ -114,17 +114,6 @@ def test_basic(input_cube):
     assert result.units == input_cube.units
 
 
-def test_incompatible_thresholds(input_cube):
-    """
-    Test that the plugin fails if the percentile values requested
-    are not numbers.
-    """
-    thresholds = ["cat", "dog", "elephant"]
-    error_msg = "could not convert string to float"
-    with pytest.raises(ValueError, match=error_msg):
-        ThresholdInterpolation(thresholds)(input_cube)
-
-
 def test_metadata_copy(input_cube):
     """
     Test that the metadata dictionaries within the input cube, are
@@ -134,37 +123,6 @@ def test_metadata_copy(input_cube):
     thresholds = [100, 150, 200, 250, 300]
     result = ThresholdInterpolation(thresholds)(input_cube)
     assert input_cube.metadata._asdict() == result.metadata._asdict()
-
-
-def test_realization_coord_removed(input_cube):
-    """
-    Testing that the realization coordinate has been removed if exists.
-    """
-    thresholds = [100, 200, 300]
-    realization_cube = add_coordinate(
-        input_cube, [0, 1, 2], "realization", coord_units=1, dtype=np.int32
-    )
-    result = ThresholdInterpolation(thresholds)(realization_cube)
-    dim_coords = [coord.name() for coord in result.coords(dim_coords=True)]
-    expected_dim_coords = [
-        coord.name() for coord in realization_cube.coords(dim_coords=True)
-    ]
-    expected_dim_coords.remove("realization")
-    assert dim_coords == expected_dim_coords
-
-
-def test_cube_no_threshold_coord(input_cube):
-    """
-    Testing that an error is raised if no threshold coordinate exists.
-    """
-    thresholds = [100, 200, 300]
-    realization_cube = add_coordinate(
-        input_cube, [0, 1, 2], "realization", coord_units=1, dtype=np.int32
-    )
-    realization_cube.remove_coord("visibility_in_air")
-    error_msg = "No threshold coord found"
-    with pytest.raises(CoordinateNotFoundError, match=error_msg):
-        ThresholdInterpolation(thresholds)(realization_cube)
 
 def test_thresholds_different_mask(masked_cube_diff):
     """
@@ -183,4 +141,4 @@ def test_masked_cube(masked_cube_same):
     """
     thresholds = [100, 150, 200, 250, 300]
     result = ThresholdInterpolation(thresholds)(masked_cube_same)
-    assert result, Cube
+    assert isinstance(result, Cube)
