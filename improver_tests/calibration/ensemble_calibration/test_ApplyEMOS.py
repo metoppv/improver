@@ -484,6 +484,26 @@ class Test_process(IrisTest):
         self.assertAlmostEqual(
             np.mean(result.data), self.null_percentiles_expected_mean
         )
+        self.assertEqual(len(result.cell_methods), 1)
+        self.assertEqual(result.cell_methods[0], cell_methods)
+
+    def test_period_probabilities(self):
+        """Test that the desired cell methods are present on the calibrated forecasts,
+        without duplication of the cell methods, if cell methods are present on the
+        input probability forecast."""
+        self.probabilities.coord("time").bounds = [
+            int(self.probabilities.coord("time").points - 3600),
+            int(self.probabilities.coord("time").points),
+        ]
+
+        cell_methods = CellMethod("maximum", coords="time")
+        self.probabilities.add_cell_method(cell_methods)
+
+        result = ApplyEMOS()(
+            self.probabilities, self.coefficients, realizations_count=3
+        )
+        self.assertIn("probability", result.name())
+        self.assertEqual(len(result.cell_methods), 1)
         self.assertEqual(result.cell_methods[0], cell_methods)
 
     def test_invalid_attribute(self):
