@@ -62,7 +62,7 @@ def process(
         result (iris.cube.Cube):
             Returns a cube with the combined data.
     """
-    from improver.precipitation_type.precipitation_duration import PrecipitationDuration
+    from improver.precipitation.precipitation_duration import PrecipitationDuration
 
     return PrecipitationDuration(
         min_accumulation_per_hour,

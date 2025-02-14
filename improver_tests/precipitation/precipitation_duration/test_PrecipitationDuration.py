@@ -17,7 +17,7 @@ from iris.cube import CubeList
 from numpy import ndarray
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
-from improver.precipitation_type.precipitation_duration import PrecipitationDuration
+from improver.precipitation.precipitation_duration import PrecipitationDuration
 from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
 
 DEFAULT_ACC_NAME = (
