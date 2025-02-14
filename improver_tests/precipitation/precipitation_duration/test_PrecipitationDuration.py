@@ -133,7 +133,7 @@ def precip_cubes_custom(
     times. The thresholds and data must be provided. Thresholds are expected
     in units of mm for accumulations and mm/hr for rates; these are converted
     to SI units when creating the cubes. The accumulation threshold is
-    mulitplied up by the period. This means the accumulation threshold
+    multiplied up by the period. This means the accumulation threshold
     argument represents the accumulation per hour, which is what the user will
     specify when using the plugin. Multi-realization cubes will be returned.
 
@@ -282,40 +282,35 @@ def test__construct_thresholds(
     assert_array_almost_equal(rate_thresh, expected_rate)
 
 
+DEFAULT_ACC_NAME, DEFAULT_ACC_THRESH_NAME, DEFAULT_RATE_NAME, DEFAULT_RATE_THRESH_NAME
 @pytest.mark.parametrize(
-    "acc_thresh,rate_thresh,acc_name,rate_name",
+    "diagnostic,threshold,threshold_name",
     [
-        (0.1, 0.1, DEFAULT_ACC_THRESH_NAME, DEFAULT_RATE_THRESH_NAME),
-        (0.1, 0.1, "kittens", "puppies"),
+        (DEFAULT_ACC_NAME, 0.1, DEFAULT_ACC_THRESH_NAME),
+        (DEFAULT_RATE_NAME, 4, DEFAULT_RATE_THRESH_NAME),
     ],
 )
-def test__construct_constraints(
-    acc_thresh: float, rate_thresh: float, acc_name: str, rate_name: str
+def test__construct_constraint(
+    diagnostic: str, threshold: float, threshold_name: str
 ):
     """Test that iris constraints for the given thresholds are constructed and
     returned correctly."""
 
-    acc_thresh_name = f"probability_of_{acc_name}_above_threshold"
-    rate_thresh_name = f"probability_of_{rate_name}_above_threshold"
-
     plugin = PrecipitationDuration(
-        acc_thresh,
-        rate_thresh,
+        threshold,
+        threshold,
         24,
         DEFAULT_PERCENTILES,
-        accumulation_diagnostic=acc_thresh_name,
-        rate_diagnostic=rate_thresh_name,
+        accumulation_diagnostic=diagnostic,
+        rate_diagnostic=diagnostic,
     )
-    accumulation_constraint, rate_constraint = plugin._construct_constraints(
-        acc_thresh, rate_thresh
+    constraint = plugin._construct_constraint(
+        diagnostic, threshold, threshold_name
     )
 
-    assert isinstance(accumulation_constraint, iris.Constraint)
-    assert isinstance(rate_constraint, iris.Constraint)
-    assert accumulation_constraint._name == acc_thresh_name
-    assert rate_constraint._name == rate_thresh_name
-    assert acc_name in accumulation_constraint._coord_values.keys()
-    assert rate_name in rate_constraint._coord_values.keys()
+    assert isinstance(constraint, iris.Constraint)
+    assert constraint._name == diagnostic
+    assert threshold in constraint._coord_values.keys()
 
 
 @pytest.mark.parametrize(
@@ -536,7 +531,7 @@ def test_process_exception_thresholds():
     )
 
     plugin = PrecipitationDuration(1.0, 7.0, 2, DEFAULT_PERCENTILES)
-    msg = "Input cubes do not contain the expected diagnostics or thresholds."
+    msg = "The requested diagnostic or threshold is not available"
     with pytest.raises(ValueError, match=msg):
         plugin.process(cubes)
 
@@ -557,7 +552,7 @@ def test_process_exception_names():
     )
 
     plugin = PrecipitationDuration(1.0, 7.0, 2, DEFAULT_PERCENTILES)
-    msg = "Input cubes do not contain the expected diagnostics or thresholds."
+    msg = "The requested diagnostic or threshold is not available"
     with pytest.raises(ValueError, match=msg):
         plugin.process(cubes)
 
