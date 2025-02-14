@@ -113,3 +113,26 @@ def test_multiple_thresholds(tmp_path):
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
+
+
+def test_spot_data(tmp_path):
+    """Test precipitation duration from spot data."""
+    kgo_dir = acc.kgo_root() / "precipitation_duration/spot_data"
+    kgo_path = kgo_dir / "kgo.nc"
+    input_cubes = kgo_dir.glob("2025*.nc")
+    output_path = tmp_path / "output.nc"
+    args = [
+        *input_cubes,
+        "--min-accumulation-per-hour",
+        "0.1,1.0",
+        "--critical-rate",
+        "4",
+        "--target-period",
+        "24",
+        "--percentiles",
+        PERCENTILES,
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)

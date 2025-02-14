@@ -21,7 +21,7 @@ def process(
     rate_diagnostic: str = "probability_of_lwe_precipitation_rate_above_threshold",
     model_id_attr: str = None,
 ):
-    r"""Classifies periods of precipitation intensity using a mix of the maximum
+    r"""Classifies periods of precipitation intensity using both the maximum
     precipitation rate in the period and the accumulation in the period. These
     classified periods are then used to determine what fraction of a
     constructed longer period would be classified as such.
@@ -29,12 +29,13 @@ def process(
     Args:
         cubes (iris.cube.CubeList):
             Cubes covering the expected period that include cubes of:
-                max_precip_rate: Maximum preciptation rate in a period.
+                max_precip_rate: Maximum precipitation rate in a period.
                 precip_accumulation: Precipitation accumulation in a period.
+                The periods of these two diagnostics must be the same.
         min_accumulation_per_hour:
             The minimum accumulation per hour in the period, or a list
             of several, used to classify the period. The accumulation is
-            used in conjuction wuth the critical rate. Units of mm.
+            used in conjuction with the critical rate. Units of mm.
         critical_rate:
             A rate threshold, or list of rate thresholds, which if the
             maximum rate in the period is in excess of contributes to
@@ -42,7 +43,7 @@ def process(
         target_period:
             The period in hours that the final diagnostic represents.
             This should be equivalent to the period covered by the inputs.
-            Specifying this explicitly here is entirely for purposes of
+            Specifying this explicitly here is entirely for the purpose of
             checking that the returned diagnostic represents the period
             that is expected. Without this a missing input file could
             lead to a suddenly different overall period.

@@ -67,7 +67,7 @@ class PrecipitationDuration(PostProcessingPlugin):
             min_accumulation_per_hour:
                 The minimum accumulation per hour in the period, or a list
                 of several, used to classify the period. The accumulation is
-                used in conjuction wuth the critical rate.
+                used in conjunction wuth the critical rate.
                 Units of mm.
             critical_rate:
                 A rate threshold, or list of rate thresholds, which if the
@@ -76,7 +76,7 @@ class PrecipitationDuration(PostProcessingPlugin):
             target_period:
                 The period in hours that the final diagnostic represents.
                 This should be equivalent to the period covered by the inputs.
-                Specifying this explicitly here is entirely for purposes of
+                Specifying this explicitly here is entirely for the purpose of
                 checking that the returned diagnostic represents the period
                 that is expected. Without this a missing input file could
                 lead to a suddenly different overall period.
@@ -107,8 +107,12 @@ class PrecipitationDuration(PostProcessingPlugin):
         self.accumulation_diagnostic = accumulation_diagnostic
         self.model_id_attr = model_id_attr
         self.period = None
-        self.acc_threshold = None
-        self.rate_threshold = None
+        self.acc_threshold = get_threshold_coord_name_from_probability_name(
+            self.accumulation_diagnostic
+        )
+        self.rate_threshold = get_threshold_coord_name_from_probability_name(
+            self.rate_diagnostic
+        )
         self.percentiles = np.sort(np.array(percentiles, dtype=np.float32))
 
     def _period_in_hours(self, cubes: CubeList) -> None:
@@ -138,9 +142,9 @@ class PrecipitationDuration(PostProcessingPlugin):
 
         self.period = period / 3600
 
-    def _construct_thresholds(self):
+    def _construct_thresholds(self) -> Tuple[ndarray, ndarray]:
         """Converts the input threshold units to SI units to match the data.
-        The accumulation threshold specified by the user is also mulitplied
+        The accumulation threshold specified by the user is also multiplied
         up by the input cube period. So a 0.1 mm accumulation threshold
         will become 0.3 mm for a 3-hour input cube, converted to metres.
 
@@ -156,43 +160,103 @@ class PrecipitationDuration(PostProcessingPlugin):
 
         return min_accumulation_per_hour.points * self.period, critical_rate.points
 
-    def _construct_constraints(
-        self, accumulation_threshold: float, rate_threshold: float
-    ) -> Tuple[Constraint, Constraint]:
+    @staticmethod
+    def _construct_constraint(
+        diagnostic: str, threshold_name: str, threshold_values: ndarray
+    ) -> Constraint:
         """Construct constraints to use in extracting the accumulation and
         rate data, at relevant thresholds, from the input cubes.
 
         Args:
-            accumulation_threshold:
-                The accumulation threshold to be extracted.
-            rate_threshold:
-                The rate threshold to be extracted.
+            diagnostic:
+                The name of the diagnostic to be extracted.
+            threshold_name:
+                The name of the threshold from which to extract data.
+            threshold_values:
+                The threshold values to extract.
         Returns:
-            Tuple containing an accumulation and rate constraint.
+            Iris constraint to extract the target diagnostic and threshold
+            values.
         """
-        self.acc_threshold = get_threshold_coord_name_from_probability_name(
-            self.accumulation_diagnostic
-        )
-        accumulation_constraint = Constraint(
-            self.accumulation_diagnostic,
+        diagnostic_constraint = Constraint(
+            diagnostic,
             coord_values={
-                self.acc_threshold: lambda cell: np.isclose(
-                    cell.point, accumulation_threshold
+                threshold_name: lambda cell: np.isclose(
+                    cell.point, threshold_values
                 ).any()
             },
         )
-        self.rate_threshold = get_threshold_coord_name_from_probability_name(
-            self.rate_diagnostic
+        return diagnostic_constraint
+
+    def _extract_cubes(
+        self,
+        cubes: CubeList,
+        diagnostic: str,
+        threshold_name: str,
+        threshold_values: ndarray,
+    ) -> Cube:
+        """Extract target diagnostics and thresholds from the input cube list.
+        Merge these cubes into a single cube with a multi-values time
+        dimension.
+
+        Args:
+            cubes:
+                The input cubes from which to extract targets.
+            diagnostic:
+                The diagnostic name.
+            threshold_name:
+                Name of the threshold coordinate from which to extract specific
+                values.
+            threshold_values:
+                The threshold values to extract.
+        Raises:
+            ValueError: If the target diagnostic or thresholds are not found.
+        Returns:
+            cube:
+                The merged cube containing the target thresholds.
+        """
+        diagnostic_constraint = self._construct_constraint(
+            diagnostic, threshold_name, threshold_values
         )
-        rate_constraint = Constraint(
-            self.rate_diagnostic,
-            coord_values={
-                self.rate_threshold: lambda cell: np.isclose(
-                    cell.point, rate_threshold
-                ).any()
-            },
-        )
-        return accumulation_constraint, rate_constraint
+
+        try:
+            cube = MergeCubes()(cubes.extract(diagnostic_constraint))
+        except IndexError:
+            msg = (
+                "The requested diagnostic or threshold is not available. "
+                f"Requested diagnostic: {diagnostic}, threshold: {threshold_values}"
+            )
+            raise ValueError(msg)
+        return cube
+
+    @staticmethod
+    def _structure_inputs(cube: Cube) -> Tuple[Cube, DimCoord]:
+        """Ensure threshold and time coordinates are promoted to be dimensions
+        of the cube. Ensure the cube is ordered with realization, threshold,
+        and time as the three leading dimensions.
+
+        Args:
+            cube:
+                The cube to be structured.
+        Returns:
+            Tuple containing:
+                The reordered cube and the threshold coordinate.
+        """
+        # Pick out the threshold coordinates in the inputs.
+        thresh = cube.coord(var_name="threshold")
+        # Promote any scalar threshold coordinates to dimensions so that the
+        # array shapes are as expected.
+        if thresh not in cube.coords(dim_coords=True):
+            cube = new_axis(cube, thresh)
+        # Likewise, ensure the time coordinate is a dimension coordinate in
+        # case a period equal to the target period is passed in.
+        time_crd = cube.coord("time")
+        if time_crd not in cube.coords(dim_coords=True):
+            cube = new_axis(cube, time_crd)
+        # Enforce a coordinate order so we know which dimensions are which
+        # when indexing the data arrays.
+        enforce_coordinate_ordering(cube, ["realization", thresh.name(), "time"])
+        return cube, thresh
 
     def _create_output_cube(
         self,
@@ -200,6 +264,7 @@ class PrecipitationDuration(PostProcessingPlugin):
         cubes: Tuple[Cube, Cube],
         acc_thresh: DimCoord,
         rate_thresh: DimCoord,
+        spatial_dim_indices,
     ) -> Cube:
         """Create an output cube for the final diagnostic, which is the
         set of percentiles describing the fraction of the constructed
@@ -216,7 +281,11 @@ class PrecipitationDuration(PostProcessingPlugin):
             acc_thresh:
                 The accumulation threshold to add to the cube.
             rate_thresh:
-                The reate thresohld to add to the cube.
+                The rate threshold to add to the cube.
+            spatial_dim_indices:
+                Indices of spatial coordinates on the the input cubes.
+                This allows us to select the correct dimensions when handling
+                either gridded or spot inputs.
         Returns:
             A Cube with a suitable name and metadata for the diagnostic data
             stored within it.
@@ -233,16 +302,28 @@ class PrecipitationDuration(PostProcessingPlugin):
             time_crd = cubes[0].coord(crd).copy()
             time_coords.append(time_crd.collapsed())
 
+        dim_coords = [
+            (percentile_coord, 0),
+            (acc_thresh.copy(), 1),
+            (rate_thresh.copy(), 2),
+        ]
+        for index in spatial_dim_indices:
+            dim_coords.append(
+                (cubes[0].coords(dim_coords=True)[index], len(dim_coords))
+            )
+        # Add any aux coords associated with dim coords.
+        aux_coords = [
+            (crd, index)
+            for index in spatial_dim_indices
+            for crd in cubes[0].aux_coords
+            if index in crd.cube_dims(cubes[0])
+        ]
+
         classification_percentiles = Cube(
             data.astype(np.float32),
             long_name="fraction_of_periods_classified_as_wet",
-            dim_coords_and_dims=[
-                (percentile_coord, 0),
-                (acc_thresh.copy(), 1),
-                (rate_thresh.copy(), 2),
-                (cubes[0].coord(axis="y"), 3),
-                (cubes[0].coord(axis="x"), 4),
-            ],
+            dim_coords_and_dims=dim_coords,
+            aux_coords_and_dims=aux_coords,
             units="1",
             attributes=mandatory_attributes,
         )
@@ -256,103 +337,41 @@ class PrecipitationDuration(PostProcessingPlugin):
 
         return squeeze(classification_percentiles)
 
-    def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
-        """Produce a diagnostic that provides the fraction of the day that
-        can be classified as exceeding the given thresholds. The fidelity of
-        the returned product depends upon the period of the input cubes.
-
-        This plugin can process an awful lot of data, particularly if
-        dealing with a large ensemble. To reduce the memory used, given the
-        discrete nature of the period fractions produced, frequency bins are
-        used to directly produce percentiles. This means that not all of the
-        values need to be held in memory at once, instead we count instances
-        of each value and then calculate the percentiles from the counts.
+    def _calculate_fractions(
+        self,
+        precip_accumulation,
+        max_precip_rate,
+        acc_thresh,
+        rate_thresh,
+        realizations,
+        spatial_dims,
+    ):
+        """Calculate the fractions of the target period that are classified as
+        wet using the given accumulation and peak rate thresholds. This is
+        done by counting the number of periods in which the thresholds are
+        exceeded out of the total number possible. Frequency tables are
+        constructed and from these percentiles are calculated.
 
         Args:
-            cubes:
-                Cubes covering the expected period that include cubes of:
-                    max_precip_rate: Maximum preciptation rate in a period.
-                    precip_accumulation: Precipitation accumulation in a period.
-
-        Returns:
-            A cube of percentiles of the fraction of the target period that is
-            classified as exceeding the user specified thresholds.
-
+            precip_accumulation:
+                Precipitation accumulation in a period.
+            max_precip_rate:
+                Maximum preciptation rate in a period.
+            acc_thresh:
+                Accumulation threshold coordinate.
+            rate_thresh:
+                Max rate threshold coordinate.
+            realizations:
+                A list of realization indices to loop over.
+            spatial_dims:
+                A list containing the indices of the spatialcoordinates on the
+                max_precip_rate cube, which are the same as for the
+                precip_accumulation cube.
         Raises:
-            ValueError: If input cubes do not contain the expected diagnostics
-                        or diagnostic thresholds.
-            ValueError: If the input cubes have differing time coordinates.
-            ValueError: If the input cubes do not combine to create the expected
-                        target period.
-            ValueError: If the input cubes lack a realization coordinate.
-            ValueError: If the input cubes have differing realization coordinates.
             ValueError: If the input data is masked.
+        Returns:
+            An array containing the generated percentiles.
         """
-        cubes = as_cubelist(*cubes)
-        self._period_in_hours(cubes)
-        accumulation_threshold, rate_threshold = self._construct_thresholds()
-        accumulation_constraint, rate_constraint = self._construct_constraints(
-            accumulation_threshold, rate_threshold
-        )
-
-        # Construct single cubes with a time dimension for each of the accumulation
-        # and rate diagnostics, where these cubes include only the user specified
-        # thresholds.
-        try:
-            precip_accumulation = MergeCubes()(cubes.extract(accumulation_constraint))
-            max_precip_rate = MergeCubes()(cubes.extract(rate_constraint))
-        except IndexError:
-            raise ValueError(
-                "Input cubes do not contain the expected diagnostics or thresholds."
-            )
-
-        if not max_precip_rate.coord("time") == precip_accumulation.coord("time"):
-            raise ValueError(
-                "Precipitation accumulation and maximum rate in period cubes "
-                "have differing time coordinates and cannot be used together."
-            )
-
-        total_period = (
-            max_precip_rate.coord("time").cell(-1).bound[-1]
-            - max_precip_rate.coord("time").cell(0).bound[0]
-        ).total_seconds() / 3600
-        if not total_period == self.target_period:
-            raise ValueError(
-                "Input cubes do not combine to create the expected target "
-                "period. The period covered by the cubes passed in is: "
-                f"{total_period} hours. Target is {self.target_period} hours."
-            )
-
-        # Pick out the threshold coordinates in the inputs.
-        acc_thresh = precip_accumulation.coord(var_name="threshold")
-        rate_thresh = max_precip_rate.coord(var_name="threshold")
-
-        # Promote any scalar threshold coordinates to dimensions so that the
-        # array shapes are as expected.
-        if acc_thresh not in precip_accumulation.coords(dim_coords=True):
-            precip_accumulation = new_axis(precip_accumulation, acc_thresh)
-
-        if rate_thresh not in max_precip_rate.coords(dim_coords=True):
-            max_precip_rate = new_axis(max_precip_rate, rate_thresh)
-
-        # Likewise, ensure the time coordinate is a dimension coordinate in
-        # case a period equal to the target period is passed in.
-        time_crd = precip_accumulation.coord("time")
-        if time_crd not in precip_accumulation.coords(dim_coords=True):
-            precip_accumulation = new_axis(precip_accumulation, time_crd)
-        time_crd = max_precip_rate.coord("time")
-        if time_crd not in max_precip_rate.coords(dim_coords=True):
-            max_precip_rate = new_axis(max_precip_rate, time_crd)
-
-        # Enforce a coordinate order so we know which dimensions are which
-        # when indexing the data arrays.
-        enforce_coordinate_ordering(
-            precip_accumulation, ["realization", acc_thresh.name(), "time"]
-        )
-        enforce_coordinate_ordering(
-            max_precip_rate, ["realization", rate_thresh.name(), "time"]
-        )
-
         # Get the lengths of the threshold arrays, after extraction, for use
         # as looping counts and for creating a target array shape.
         acc_len = acc_thresh.shape[0]
@@ -363,32 +382,10 @@ class PrecipitationDuration(PostProcessingPlugin):
             itertools.product(list(range(acc_len)), list(range(rate_len)))
         )
 
-        # Check that a multi-valued realization coordinate is present on the inputs.
-        try:
-            realizations = list(range(max_precip_rate.coord("realization").shape[0]))
-            if len(realizations) == 1:
-                raise CoordinateNotFoundError
-        except CoordinateNotFoundError as err:
-            raise ValueError(
-                "This plugin requires input data from multiple realizations."
-                "Percentiles are generated by collapsing this coordinate. It "
-                "cannot therefore be used with deterministic data."
-            ) from err
-
-        # Check realizations are the same as we intend to loop over a counting
-        # index and must ensure we are matching the same realizations together.
-        if not precip_accumulation.coord("realization") == max_precip_rate.coord(
-            "realization"
-        ):
-            raise ValueError(
-                "Mismatched realization coordinates between accumulation and "
-                "max rate inputs. These must be the same."
-            )
-
         # Determine the possible counts that can be achieved which is simply
         # the length of the input time coordinates.
         (n_periods,) = max_precip_rate.coord("time").shape
-        possible_values = list(range(0, n_periods + 1))
+        possible_period_counts = list(range(0, n_periods + 1))
 
         # We've ensured that the periods combine to give the target_period.
         # The fractions of that total period that can be returned are
@@ -403,11 +400,11 @@ class PrecipitationDuration(PostProcessingPlugin):
         # We can index this with the accumulation and rate threshold indices
         # to ensure we record the data where we expect.
         generated_percentiles = np.empty(
-            (len(self.percentiles), acc_len, rate_len, *max_precip_rate.shape[-2:])
+            (len(self.percentiles), acc_len, rate_len, *spatial_dims)
         )
 
         hit_count = np.zeros(
-            (acc_len, rate_len, n_periods + 1, *max_precip_rate.shape[-2:]),
+            (acc_len, rate_len, n_periods + 1, *spatial_dims),
             dtype=np.int8,
         )
         for realization in realizations:
@@ -422,13 +419,13 @@ class PrecipitationDuration(PostProcessingPlugin):
                 )
 
             for acc_index, rate_index in combinations:
-                # Mulitply the binary probabilities and then sum over the
-                # leading time dimension to count how many of the times have
-                # precipitation classified as exceeding both thresholds.
+                # Multiply the binary probabilities and then sum over the
+                # leading time dimension to count how many of the times
+                # precipitation is classified as exceeding both thresholds.
                 result = acc_realized[acc_index] * rate_realized[rate_index]
                 result = np.sum(result, axis=0)
 
-                for value in possible_values:
+                for value in possible_period_counts:
                     hit_count[acc_index, rate_index, value, result == value] += 1
 
         for acc_index, rate_index in combinations:
@@ -463,11 +460,123 @@ class PrecipitationDuration(PostProcessingPlugin):
             # threshold combination.
             generated_percentiles[:, acc_index, rate_index] = resulting_percentiles
 
+        return generated_percentiles
+
+    def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
+        """Produce a diagnostic that provides the fraction of the day that
+        can be classified as exceeding the given thresholds. The fidelity of
+        the returned product depends upon the period of the input cubes.
+
+        This plugin can process an awful lot of data, particularly if
+        dealing with a large ensemble. To reduce the memory used, given the
+        discrete nature of the period fractions produced, frequency bins are
+        used to directly produce percentiles. This means that not all of the
+        values need to be held in memory at once, instead we count instances
+        of each value and then calculate the percentiles from the counts.
+
+        Args:
+            cubes:
+                Cubes covering the expected period that include cubes of:
+                    precip_accumulation: Precipitation accumulation in a period.
+                    max_precip_rate: Maximum preciptation rate in a period.
+        Returns:
+            A cube of percentiles of the fraction of the target period that is
+            classified as exceeding the user specified thresholds.
+        Raises:
+            ValueError: If input cubes do not contain the expected diagnostics
+                        or diagnostic thresholds.
+            ValueError: If the input cubes have differing time coordinates.
+            ValueError: If the input cubes do not combine to create the expected
+                        target period.
+            ValueError: If the input cubes lack a realization coordinate.
+            ValueError: If the input cubes have differing realization coordinates.
+        """
+        cubes = as_cubelist(*cubes)
+        self._period_in_hours(cubes)
+        accumulation_threshold, rate_threshold = self._construct_thresholds()
+
+        precip_accumulation = self._extract_cubes(
+            cubes,
+            self.accumulation_diagnostic,
+            self.acc_threshold,
+            accumulation_threshold,
+        )
+        max_precip_rate = self._extract_cubes(
+            cubes, self.rate_diagnostic, self.rate_threshold, rate_threshold
+        )
+
+        if max_precip_rate.coord("time") != precip_accumulation.coord("time"):
+            raise ValueError(
+                "Precipitation accumulation and maximum rate in period cubes "
+                "have differing time coordinates and cannot be used together."
+            )
+
+        # Check input cubes combine to create the expected target period.
+        total_period = (
+            max_precip_rate.coord("time").cell(-1).bound[-1]
+            - max_precip_rate.coord("time").cell(0).bound[0]
+        ).total_seconds() / 3600
+        if total_period != self.target_period:
+            raise ValueError(
+                "Input cubes do not combine to create the expected target "
+                "period. The period covered by the cubes passed in is: "
+                f"{total_period} hours. Target is {self.target_period} hours."
+            )
+
+        # Ensure cubes have the expected dimensions and order.
+        precip_accumulation, acc_thresh = self._structure_inputs(precip_accumulation)
+        max_precip_rate, rate_thresh = self._structure_inputs(max_precip_rate)
+
+        # Determine size of spatial dimensions so we can work with gridded
+        # or spot files.
+        spatial_dim_indices = sorted(
+            set(
+                [
+                    max_precip_rate.coord_dims(max_precip_rate.coord(axis=axis))[0]
+                    for axis in "xy"
+                ]
+            )
+        )
+        spatial_dims = [max_precip_rate.shape[dim] for dim in spatial_dim_indices]
+
+        # Check that a multi-valued realization coordinate is present on the inputs.
+        try:
+            realizations = list(range(max_precip_rate.coord("realization").shape[0]))
+            if len(realizations) == 1:
+                raise CoordinateNotFoundError
+        except CoordinateNotFoundError as err:
+            raise ValueError(
+                "This plugin requires input data from multiple realizations."
+                "Percentiles are generated by collapsing this coordinate. It "
+                "cannot therefore be used with deterministic data or input "
+                "with a realization coordinate of length 1."
+            ) from err
+
+        # Check realizations are the same as we intend to loop over a counting
+        # index and must ensure we are matching the same realizations together.
+        if precip_accumulation.coord("realization") != max_precip_rate.coord(
+            "realization"
+        ):
+            raise ValueError(
+                "Mismatched realization coordinates between accumulation and "
+                "max rate inputs. These must be the same."
+            )
+
+        generated_percentiles = self._calculate_fractions(
+            precip_accumulation,
+            max_precip_rate,
+            acc_thresh,
+            rate_thresh,
+            realizations,
+            spatial_dims,
+        )
+
         # Store the generated percentiles in a cube with suitable metadata.
         classification_percentiles = self._create_output_cube(
             generated_percentiles,
             (max_precip_rate, precip_accumulation),
             acc_thresh,
             rate_thresh,
+            spatial_dim_indices,
         )
         return classification_percentiles

@@ -253,7 +253,7 @@ class NeighbourSelection(BasePlugin):
             A list of shape (n_sites, 2) that contains the x and y indices
             of the nearest grid points to the sites.
         """
-        nearest_indices = np.zeros((len(site_coords), 2)).astype(np.int)
+        nearest_indices = np.zeros((len(site_coords), 2)).astype(np.int64)
         for index, (x_point, y_point) in enumerate(site_coords):
             nearest_indices[index, 0] = cube.coord(axis="x").nearest_neighbour_index(
                 x_point

@@ -50,7 +50,7 @@ def multi_time_cube(data_times):
 @pytest.mark.parametrize("collapse_crd", ["time", "forecast_period"])
 def test_basic(multi_time_cube, data_times, collapse_crd):
     """Test that a collapsed cube is returned with the expected
-    time coordiantes. The point should be at the end of the bounds
+    time coordinates. The point should be at the end of the bounds
     and the bounds should span the original bounds."""
 
     frt, times, bounds = data_times
@@ -59,6 +59,7 @@ def test_basic(multi_time_cube, data_times, collapse_crd):
     expected_time_bounds = (bounds[0][0], bounds[-1][-1])
     expected_fp = (times[-1] - frt).total_seconds()
     expected_fp_bounds = ((bounds[0][0] - frt).total_seconds(), expected_fp)
+    expected_data = np.full((3, 3), 281 * 3)
 
     result = collapse_time(multi_time_cube, collapse_crd, iris.analysis.SUM)
 
@@ -66,6 +67,7 @@ def test_basic(multi_time_cube, data_times, collapse_crd):
     assert_array_equal(result.coord("time").cell(0).bound, expected_time_bounds)
     assert result.coord("forecast_period").points[0] == expected_fp
     assert_array_equal(result.coord("forecast_period").bounds[0], expected_fp_bounds)
+    assert_array_equal(result.data, expected_data)
 
 
 @pytest.mark.parametrize("collapse_crd", ["time", "forecast_period"])
