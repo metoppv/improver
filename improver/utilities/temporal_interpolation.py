@@ -16,6 +16,8 @@ from numpy import ndarray
 from improver import BasePlugin
 from improver.metadata.constants import FLOAT_DTYPE
 from improver.metadata.constants.time_types import TIME_COORDS
+from improver.metadata.forecast_times import unify_cycletime
+from improver.metadata.utilities import enforce_time_point_standard
 from improver.utilities.complex_conversion import complex_to_deg, deg_to_complex
 from improver.utilities.cube_manipulation import MergeCubes
 from improver.utilities.round import round_close
@@ -884,12 +886,15 @@ class DurationSubdivision:
             )
             components = fidelity_period_cube.extract(period_constraint)
             component_cube = components.collapsed("time", iris.analysis.SUM)
-            component_cube.coord("time").points = component_cube.coord("time").bounds[
-                0
-            ][-1]
+            enforce_time_point_standard(component_cube)
             new_period_cubes.append(component_cube)
             start_time += interval
+        # The cycle times are already the same. This code will recalculate
+        # the forecasts periods relative to the cycletime for each of our
+        # extracted shorter duration cubes.
+        cycle_time = fidelity_period_cube.coord("forecast_reference_time").cell(0).point
 
+        new_period_cubes = unify_cycletime(new_period_cubes, cycle_time)
         return new_period_cubes.merge_cube()
 
     def process(self, cube: Cube) -> Cube:
