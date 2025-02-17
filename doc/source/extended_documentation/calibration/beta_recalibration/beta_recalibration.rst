@@ -15,7 +15,7 @@ It is recommended that the `alpha` and `beta` parameters be chosen to optimise t
 probability score) over some training period. Specifically, this could be done as follows:
 
 1. Obtain blended forecast output, along with ground truth data from observations or analyses, for the training period.
-2. Implement the loss function. The loss function should have parameters `alpha` and `beta` and return the loss over the training period when the probabilistic forecast is transformed by the CDF of the beta distribution function. A suggested loss function is the CRPS calculated from the thresholded probability forecast.  In this case, the loss function should transform the input blended probabilities by the CDF of the beta distribution (which is available in `scipy.stats`), then calculate the CRPS of the transformed probability forecast against the ground truth.
+2. Implement the loss function. The loss function should have arguments `alpha` and `beta` and return the loss over the training period when the probabilistic forecast is transformed by the CDF of the beta distribution function. A suggested loss function is the CRPS calculated from the thresholded probability forecast.  In this case, the loss function should transform the input blended probabilities by the CDF of the beta distribution (which is available in `scipy.stats`), then calculate the CRPS of the transformed probability forecast against the ground truth.
 3. Use `scipy.optimize.minimize` to find the parameters `alpha` and `beta` that minimise the loss.
 
 Alternatively, one could jointly optimise the blending weights and the parameters of the beta calibration. This may yield better results, but 
