@@ -19,7 +19,10 @@ from numpy import ndarray
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 from improver.precipitation.precipitation_duration import PrecipitationDuration
-from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube, set_up_spot_probability_cube
+from improver.synthetic_data.set_up_test_cubes import (
+    set_up_probability_cube,
+    set_up_spot_probability_cube,
+)
 
 DEFAULT_ACC_NAME = (
     "probability_of_lwe_thickness_of_precipitation_amount_above_threshold"
@@ -128,12 +131,26 @@ def precip_cubes(
     cubes = CubeList()
     cubes.extend(
         multi_time_cube(
-            frt, times, bounds, acc_data, acc_thresh, DEFAULT_ACC_THRESH_NAME, "m", function=function
+            frt,
+            times,
+            bounds,
+            acc_data,
+            acc_thresh,
+            DEFAULT_ACC_THRESH_NAME,
+            "m",
+            function=function,
         )
     )
     cubes.extend(
         multi_time_cube(
-            frt, times, bounds, rate_data, rate_thresh, DEFAULT_RATE_THRESH_NAME, "m/s", function=function
+            frt,
+            times,
+            bounds,
+            rate_data,
+            rate_thresh,
+            DEFAULT_RATE_THRESH_NAME,
+            "m/s",
+            function=function,
         )
     )
     return cubes
@@ -170,7 +187,7 @@ def test__period_in_hours(
     rate_data: ndarray,
     acc_thresh: List[float],
     rate_thresh: List[float],
-    precip_cubes: CubeList
+    precip_cubes: CubeList,
 ):
     """Test that the period is calculated correctly from the input cubes."""
 
@@ -662,8 +679,12 @@ def test_process(
     )
     assert result.attributes["precipitation_sampling_period_in_hours"] == period_hours
     assert np.diff(result.coord("time").bounds) == total_period
-    assert result.coord(long_name="precipitation_accumulation_threshold_for_wet") is result.coord("lwe_thickness_of_precipitation_amount")
-    assert result.coord(long_name="precipitation_rate_threshold_for_wet") is result.coord("lwe_precipitation_rate")
+    assert result.coord(
+        long_name="precipitation_accumulation_threshold_for_wet"
+    ) is result.coord("lwe_thickness_of_precipitation_amount")
+    assert result.coord(
+        long_name="precipitation_rate_threshold_for_wet"
+    ) is result.coord("lwe_precipitation_rate")
 
 
 def test_process_exception_differing_time():
