@@ -5,18 +5,21 @@
 """Tests for the improver.metadata.utilities module"""
 
 import unittest
+from datetime import datetime, timedelta
 from typing import Callable, List
 
 import iris
 import numpy as np
 import pytest
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
+from numpy.testing import assert_array_equal
 
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.metadata.utilities import (
     check_grid_match,
     create_coordinate_hash,
     create_new_diagnostic_cube,
+    enforce_time_point_standard,
     generate_hash,
     generate_mandatory_attributes,
     get_model_id_attr,
@@ -469,6 +472,87 @@ def test_errors_get_model_id_attr(cubes: List[Cube], method: Callable, message):
     method(cubes)
     with pytest.raises(ValueError, match=message):
         get_model_id_attr(cubes, model_id_attr)
+
+
+@pytest.fixture
+def data_times():
+    """Define the times for the input cubes. The bounds are set to be
+    non-conformant with the IMPROVER standards, such that the point
+    is the start of the period rather than the end."""
+    frt = datetime(2025, 1, 15, 3, 0)
+    times = []
+    for hour in range(3, 9 + 1, 3):
+        time = frt + timedelta(hours=hour)
+        bounds = [time, time + timedelta(hours=3)]
+        times.append((frt, time, bounds))
+    return times
+
+
+@pytest.fixture
+def multi_time_cube(data_times):
+    """Create a cube that has a time coordinate with an entry for
+    each validity time passed in. Adds bounds to the
+    forecast_reference_time purely to demonstrate the functionality."""
+
+    data = 281 * np.ones((3, 3)).astype(np.float32)
+    cubes = CubeList()
+    for frt, time, time_bounds in data_times:
+        cubes.append(
+            set_up_variable_cube(data, time=time, time_bounds=time_bounds, frt=frt)
+        )
+    cube = cubes.merge_cube()
+    frt_crd = cube.coord("forecast_reference_time")
+    frt_crd.bounds = [[frt, frt + 3600] for frt in frt_crd.points]
+    return cube
+
+
+def test_enforce_time_point_standard(multi_time_cube, data_times):
+    """Test that enforce_time_point_standard correctly sets the time coordinate
+    points to the upper bound of the periods."""
+
+    enforce_time_point_standard(multi_time_cube)
+
+    for crd in ["time", "forecast_period", "forecast_reference_time"]:
+        coord = multi_time_cube.coord(crd)
+        assert_array_equal(coord.points, [bound[-1] for bound in coord.bounds])
+
+
+def test_enforce_time_point_standard_without_bounds(multi_time_cube, data_times):
+    """Test that enforce_time_point_standard returns unmodified coordinates if
+    there are no bounds on them."""
+
+    # Remove bounds.
+    for crd in ["time", "forecast_period", "forecast_reference_time"]:
+        multi_time_cube.coord(crd).bounds = None
+
+    # Retain copy that has not been through enforcement step.
+    reference = multi_time_cube.copy()
+
+    enforce_time_point_standard(multi_time_cube)
+
+    # Demonstrate that coordinates are unchanged by the enforcement step.
+    for crd in ["time", "forecast_period", "forecast_reference_time"]:
+        assert multi_time_cube.coord(crd) == reference.coord(crd)
+
+
+def test_enforce_time_point_standard_no_time_coords(multi_time_cube, data_times):
+    """Test that enforce_time_point_standard returns unmodified coordinates if
+    there are no time coordinates to modify."""
+
+    targets = ["kittens", "are", "cute"]
+    for crd, target in zip(
+        ["time", "forecast_period", "forecast_reference_time"], targets
+    ):
+        multi_time_cube.coord(crd).rename(target)
+
+    # Retain copy that has not been through enforcement step.
+    reference = multi_time_cube.copy()
+
+    enforce_time_point_standard(multi_time_cube)
+
+    # Demonstrate that coordinates are unchanged by the enforcement step.
+    for crd in targets:
+        assert multi_time_cube.coord(crd) == reference.coord(crd)
 
 
 if __name__ == "__main__":

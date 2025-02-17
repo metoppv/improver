@@ -140,7 +140,7 @@ def test_height_levels(tmp_path):
 
 def test_single_height_level(tmp_path):
     """Test metadata cube generation giving single value (rather than comma separated
-    list) for height levels option demotes height to scalar coordinate"""
+    list) for vertical levels option demotes height to scalar coordinate"""
     kgo_path = kgo_dir / "kgo_single_height_level.nc"
     height_level_path = kgo_dir / "single_height_level.json"
     output_path = tmp_path / "output.nc"

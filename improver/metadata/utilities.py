@@ -20,6 +20,7 @@ from improver.metadata.constants.attributes import (
     MANDATORY_ATTRIBUTE_DEFAULTS,
     MANDATORY_ATTRIBUTES,
 )
+from improver.metadata.constants.time_types import TIME_COORDS
 
 
 def create_new_diagnostic_cube(
@@ -247,3 +248,26 @@ def get_model_id_attr(cubes: List[Cube], model_id_attr: str) -> str:
         )
     (model_id_value,) = model_id_value
     return model_id_value
+
+
+def enforce_time_point_standard(cube: Cube):
+    """
+    Enforce the IMPROVER standard of a coordinate point that aligns with the
+    upper bound of the period for time, forecast_period, and forecast
+    reference time coordinates.
+
+    Two exceptions are captured. A CoordinateNotFoundError allows all the time
+    coordinates to be modified if they exist and ignored if they don't. The
+    TypeError allows bounds that are set to None to be ignored.
+
+    The cube is modified in place.
+
+    Args:
+        cube:
+            Cube to enforce the IMPROVER standard on.
+    """
+    for crd in TIME_COORDS:
+        try:
+            cube.coord(crd).points = [bound[-1] for bound in cube.coord(crd).bounds]
+        except (iris.exceptions.CoordinateNotFoundError, TypeError):
+            pass

@@ -483,7 +483,11 @@ def test_set_npoints():
 def test_set_height_levels():
     """Tests cube generated with specified height levels as an additional dimension"""
     height_levels = [1.5, 3.0, 4.5]
-    cube = generate_metadata(MANDATORY_ATTRIBUTE_DEFAULTS, height_levels=height_levels)
+    cube = generate_metadata(
+        MANDATORY_ATTRIBUTE_DEFAULTS,
+        vertical_levels=height_levels,
+        height=True,
+    )
 
     assert cube.ndim == 4
     assert cube.shape == (
@@ -511,7 +515,11 @@ def test_set_height_levels_single_value():
     """Tests cube generated with single height level is demoted from dimension to
     scalar coordinate"""
     height_levels = [1.5]
-    cube = generate_metadata(MANDATORY_ATTRIBUTE_DEFAULTS, height_levels=height_levels)
+    cube = generate_metadata(
+        MANDATORY_ATTRIBUTE_DEFAULTS,
+        vertical_levels=height_levels,
+        height=True,
+    )
 
     assert cube.ndim == 3
     assert cube.shape == (ENSEMBLE_MEMBERS_DEFAULT, NPOINTS_DEFAULT, NPOINTS_DEFAULT)
@@ -539,7 +547,8 @@ def test_disable_ensemble_set_height_levels():
     cube = generate_metadata(
         MANDATORY_ATTRIBUTE_DEFAULTS,
         ensemble_members=ensemble_members,
-        height_levels=height_levels,
+        vertical_levels=height_levels,
+        height=True,
     )
 
     assert cube.ndim == 3

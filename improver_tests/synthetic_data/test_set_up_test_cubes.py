@@ -372,13 +372,17 @@ class Test_set_up_variable_cube(IrisTest):
 
     def test_height_levels(self):
         """Test height coordinate is added"""
-        height_levels = [1.5, 3.0, 4.5]
+        vertical_levels = [1.5, 3.0, 4.5]
         expected_units = "m"
         expected_attributes = {"positive": "up"}
-        result = set_up_variable_cube(self.data_3d, height_levels=height_levels)
+        result = set_up_variable_cube(
+            self.data_3d,
+            vertical_levels=vertical_levels,
+            height=True,
+        )
         self.assertArrayAlmostEqual(result.data, self.data_3d)
         self.assertEqual(result.coord_dims("height"), (0,))
-        self.assertArrayEqual(result.coord("height").points, np.array(height_levels))
+        self.assertArrayEqual(result.coord("height").points, np.array(vertical_levels))
         self.assertEqual(result.coord("height").units, expected_units)
         self.assertEqual(result.coord("height").attributes, expected_attributes)
         self.assertEqual(result.coord_dims("latitude"), (1,))
@@ -386,20 +390,47 @@ class Test_set_up_variable_cube(IrisTest):
 
     def test_pressure_levels(self):
         """Test pressure coordinate is added"""
-        height_levels = [90000, 70000, 3000]
+        vertical_levels = [90000, 70000, 3000]
         expected_units = "Pa"
-        pressure = True
         expected_attributes = {"positive": "down"}
         result = set_up_variable_cube(
-            self.data_3d, height_levels=height_levels, pressure=pressure
+            self.data_3d,
+            vertical_levels=vertical_levels,
+            pressure=True,
         )
         self.assertArrayAlmostEqual(result.data, self.data_3d)
         self.assertEqual(result.coord_dims("pressure"), (0,))
-        self.assertArrayEqual(result.coord("pressure").points, np.array(height_levels))
+        self.assertArrayEqual(
+            result.coord("pressure").points, np.array(vertical_levels)
+        )
         self.assertEqual(result.coord("pressure").units, expected_units)
         self.assertEqual(result.coord("pressure").attributes, expected_attributes)
         self.assertEqual(result.coord_dims("latitude"), (1,))
         self.assertEqual(result.coord_dims("longitude"), (2,))
+
+    def test_error_height_and_pressure_true(self):
+        """Test error is raised if both pressure and height are set to True"""
+        vertical_levels = [1.5, 3.0, 4.5]
+        msg = "Both pressure and height cannot be set to True"
+        with self.assertRaisesRegex(ValueError, msg):
+            _ = set_up_variable_cube(
+                self.data_3d,
+                vertical_levels=vertical_levels,
+                height=True,
+                pressure=True,
+            )
+
+    def test_error_height_and_pressure_false(self):
+        """Test error is raised if neither pressure and height are set to True"""
+        vertical_levels = [1.5, 3.0, 4.5]
+        msg = "Either pressure or height must be set to True"
+        with self.assertRaisesRegex(ValueError, msg):
+            _ = set_up_variable_cube(
+                self.data_3d,
+                vertical_levels=vertical_levels,
+                height=False,
+                pressure=False,
+            )
 
     def test_realizations_from_data(self):
         """Test realization coordinate is added for 3D data"""
@@ -425,42 +456,64 @@ class Test_set_up_variable_cube(IrisTest):
         )
         with self.assertRaisesRegex(ValueError, msg):
             _ = set_up_variable_cube(
-                self.data_3d, realizations=np.arange(realizations_len)
+                self.data_3d, realizations=np.arange(realizations_len), height=True
             )
 
     def test_error_unmatched_height_levels(self):
         """Test error is raised if the heights provided do not match the
         data dimensions"""
-        height_levels_len = 4
+        vertical_levels_len = 4
         data_len = self.data_3d.shape[0]
         msg = "Cannot generate {} heights with data of length {}".format(
-            height_levels_len, data_len
+            vertical_levels_len, data_len
         )
         with self.assertRaisesRegex(ValueError, msg):
             _ = set_up_variable_cube(
-                self.data_3d, height_levels=np.arange(height_levels_len)
+                self.data_3d,
+                vertical_levels=np.arange(vertical_levels_len),
+                height=True,
+            )
+
+    def test_error_unmatched_pressure_levels(self):
+        """Test error is raised if the pressures provided do not match the
+        data dimensions"""
+        vertical_levels_len = 4
+        data_len = self.data_3d.shape[0]
+        msg = "Cannot generate {} pressures with data of length {}".format(
+            vertical_levels_len, data_len
+        )
+        with self.assertRaisesRegex(ValueError, msg):
+            _ = set_up_variable_cube(
+                self.data_3d,
+                vertical_levels=np.arange(vertical_levels_len),
+                pressure=True,
             )
 
     def test_realizations_from_data_height_levels(self):
         """Tests realizations from data and height coordinates added"""
-        height_levels = [1.5, 3.0, 4.5]
+        vertical_levels = [1.5, 3.0, 4.5]
         data_4d = np.array([self.data_3d, self.data_3d])
-        result = set_up_variable_cube(data_4d, height_levels=height_levels)
+        result = set_up_variable_cube(
+            data_4d, vertical_levels=vertical_levels, height=True
+        )
         self.assertArrayAlmostEqual(result.data, data_4d)
         self.assertEqual(result.coord_dims("realization"), (0,))
         self.assertArrayEqual(result.coord("realization").points, np.array([0, 1]))
         self.assertEqual(result.coord_dims("height"), (1,))
-        self.assertArrayEqual(result.coord("height").points, np.array(height_levels))
+        self.assertArrayEqual(result.coord("height").points, np.array(vertical_levels))
         self.assertEqual(result.coord_dims("latitude"), (2,))
         self.assertEqual(result.coord_dims("longitude"), (3,))
 
     def test_realizations_height_levels(self):
         """Tests realizations and height coordinates added"""
         realizations = [0, 3]
-        height_levels = [1.5, 3.0, 4.5]
+        vertical_levels = [1.5, 3.0, 4.5]
         data_4d = np.array([self.data_3d, self.data_3d])
         result = set_up_variable_cube(
-            data_4d, realizations=realizations, height_levels=height_levels
+            data_4d,
+            realizations=realizations,
+            vertical_levels=vertical_levels,
+            height=True,
         )
         self.assertArrayAlmostEqual(result.data, data_4d)
         self.assertEqual(result.coord_dims("realization"), (0,))
@@ -468,14 +521,14 @@ class Test_set_up_variable_cube(IrisTest):
             result.coord("realization").points, np.array(realizations)
         )
         self.assertEqual(result.coord_dims("height"), (1,))
-        self.assertArrayEqual(result.coord("height").points, np.array(height_levels))
+        self.assertArrayEqual(result.coord("height").points, np.array(vertical_levels))
         self.assertEqual(result.coord_dims("latitude"), (2,))
         self.assertEqual(result.coord_dims("longitude"), (3,))
 
-    def test_error_no_height_levels_4d_data(self):
-        """Tests error is raised if 4d data provided but not height_levels"""
+    def test_error_no_vertical_levels_4d_data(self):
+        """Tests error is raised if 4d data provided but not vertical_levels"""
         data_4d = np.array([self.data_3d, self.data_3d])
-        msg = "Height levels must be provided if data has > 3 dimensions."
+        msg = "Vertical levels must be provided if data has > 3 dimensions."
         with self.assertRaisesRegex(ValueError, msg):
             _ = set_up_variable_cube(data_4d)
 
@@ -487,16 +540,19 @@ class Test_set_up_variable_cube(IrisTest):
             _ = set_up_variable_cube(data_5d)
 
     def test_error_not_enough_dimensions(self):
-        """Test error is raised if 3D input cube and both realizations and heights provided"""
+        """Test error is raised if 3D input cube and both realizations and vertical level provided"""
         realizations = [0, 3, 4]
-        height_levels = [1.5, 3.0, 4.5]
+        vertical_levels = [1.5, 3.0, 4.5]
         msg = (
             "Input data must have 4 dimensions to add both realization "
-            "and height coordinates: got 3"
+            "and vertical coordinates: got 3"
         )
         with self.assertRaisesRegex(ValueError, msg):
             _ = set_up_variable_cube(
-                self.data_3d, realizations=realizations, height_levels=height_levels
+                self.data_3d,
+                realizations=realizations,
+                vertical_levels=vertical_levels,
+                height=True,
             )
 
     def test_standard_grid_metadata_uk(self):
@@ -715,14 +771,18 @@ class Test_set_up_spot_variable_cube(IrisTest):
 
     def test_height_levels(self):
         """Test height coordinate is added"""
-        height_levels = [1.5, 3.0, 4.5]
+        vertical_levels = [1.5, 3.0, 4.5]
         expected_units = "m"
         expected_attributes = {"positive": "up"}
         expected_site_dim = 1
-        result = set_up_spot_variable_cube(self.data_2d, height_levels=height_levels)
+        result = set_up_spot_variable_cube(
+            self.data_2d,
+            vertical_levels=vertical_levels,
+            height=True,
+        )
         self.assertArrayAlmostEqual(result.data, self.data_2d)
         self.assertEqual(result.coord_dims("height"), (0,))
-        self.assertArrayEqual(result.coord("height").points, np.array(height_levels))
+        self.assertArrayEqual(result.coord("height").points, np.array(vertical_levels))
         self.assertEqual(result.coord("height").units, expected_units)
         self.assertEqual(result.coord("height").attributes, expected_attributes)
         for crd in self.site_crds:
@@ -730,17 +790,20 @@ class Test_set_up_spot_variable_cube(IrisTest):
 
     def test_pressure_levels(self):
         """Test pressure coordinate is added"""
-        height_levels = [90000, 70000, 3000]
+        vertical_levels = [90000, 70000, 3000]
         expected_units = "Pa"
-        pressure = True
         expected_attributes = {"positive": "down"}
         expected_site_dim = 1
         result = set_up_spot_variable_cube(
-            self.data_2d, height_levels=height_levels, pressure=pressure
+            self.data_2d,
+            vertical_levels=vertical_levels,
+            pressure=True,
         )
         self.assertArrayAlmostEqual(result.data, self.data_2d)
         self.assertEqual(result.coord_dims("pressure"), (0,))
-        self.assertArrayEqual(result.coord("pressure").points, np.array(height_levels))
+        self.assertArrayEqual(
+            result.coord("pressure").points, np.array(vertical_levels)
+        )
         self.assertEqual(result.coord("pressure").units, expected_units)
         self.assertEqual(result.coord("pressure").attributes, expected_attributes)
         for crd in self.site_crds:
@@ -777,40 +840,62 @@ class Test_set_up_spot_variable_cube(IrisTest):
             )
 
     def test_error_unmatched_height_levels(self):
-        """Test error is raised if the heights provided do not match the
+        """Test error is raised if the height levels provided do not match the
         data dimensions"""
-        height_levels_len = 4
+        vertical_levels_len = 4
         data_len = self.data_2d.shape[0]
         msg = "Cannot generate {} heights with data of length {}".format(
-            height_levels_len, data_len
+            vertical_levels_len, data_len
         )
         with self.assertRaisesRegex(ValueError, msg):
             _ = set_up_spot_variable_cube(
-                self.data_2d, height_levels=np.arange(height_levels_len)
+                self.data_2d,
+                vertical_levels=np.arange(vertical_levels_len),
+                height=True,
+            )
+
+    def test_error_unmatched_pressure_levels(self):
+        """Test error is raised if the pressure levels provided do not match the
+        data dimensions"""
+        vertical_levels_len = 4
+        data_len = self.data_2d.shape[0]
+        msg = "Cannot generate {} pressures with data of length {}".format(
+            vertical_levels_len, data_len
+        )
+        with self.assertRaisesRegex(ValueError, msg):
+            _ = set_up_spot_variable_cube(
+                self.data_2d,
+                vertical_levels=np.arange(vertical_levels_len),
+                pressure=True,
             )
 
     def test_realizations_from_data_height_levels(self):
         """Tests realizations from data and height coordinates added"""
-        height_levels = [1.5, 3.0, 4.5]
+        vertical_levels = [1.5, 3.0, 4.5]
         data_3d = np.array([self.data_2d, self.data_2d])
         expected_site_dim = 2
-        result = set_up_spot_variable_cube(data_3d, height_levels=height_levels)
+        result = set_up_spot_variable_cube(
+            data_3d, vertical_levels=vertical_levels, height=True
+        )
         self.assertArrayAlmostEqual(result.data, data_3d)
         self.assertEqual(result.coord_dims("realization"), (0,))
         self.assertArrayEqual(result.coord("realization").points, np.array([0, 1]))
         self.assertEqual(result.coord_dims("height"), (1,))
-        self.assertArrayEqual(result.coord("height").points, np.array(height_levels))
+        self.assertArrayEqual(result.coord("height").points, np.array(vertical_levels))
         for crd in self.site_crds:
             self.assertEqual(result.coord_dims(crd)[0], expected_site_dim)
 
     def test_realizations_height_levels(self):
         """Tests realizations and height coordinates added"""
         realizations = [0, 3]
-        height_levels = [1.5, 3.0, 4.5]
+        vertical_levels = [1.5, 3.0, 4.5]
         data_3d = np.array([self.data_2d, self.data_2d])
         expected_site_dim = 2
         result = set_up_spot_variable_cube(
-            data_3d, realizations=realizations, height_levels=height_levels
+            data_3d,
+            realizations=realizations,
+            vertical_levels=vertical_levels,
+            height=True,
         )
         self.assertArrayAlmostEqual(result.data, data_3d)
         self.assertEqual(result.coord_dims("realization"), (0,))
@@ -818,14 +903,14 @@ class Test_set_up_spot_variable_cube(IrisTest):
             result.coord("realization").points, np.array(realizations)
         )
         self.assertEqual(result.coord_dims("height"), (1,))
-        self.assertArrayEqual(result.coord("height").points, np.array(height_levels))
+        self.assertArrayEqual(result.coord("height").points, np.array(vertical_levels))
         for crd in self.site_crds:
             self.assertEqual(result.coord_dims(crd)[0], expected_site_dim)
 
-    def test_error_no_height_levels_3d_data(self):
-        """Tests error is raised if 3d data provided but not height_levels"""
+    def test_error_no_vertical_levels_3d_data(self):
+        """Tests error is raised if 3d data provided but not vertical levels"""
         data_3d = np.array([self.data_2d, self.data_2d])
-        msg = "Height levels must be provided if data has > 2 dimensions."
+        msg = "Vertical levels must be provided if data has > 2 dimensions."
         with self.assertRaisesRegex(ValueError, msg):
             _ = set_up_spot_variable_cube(data_3d)
 
@@ -837,16 +922,19 @@ class Test_set_up_spot_variable_cube(IrisTest):
             _ = set_up_spot_variable_cube(data_4d)
 
     def test_error_not_enough_dimensions(self):
-        """Test error is raised if 3D input cube and both realizations and heights provided"""
+        """Test error is raised if 3D input cube and both realizations and vertical levels provided"""
         realizations = [0, 3, 4]
-        height_levels = [1.5, 3.0, 4.5]
+        vertical_levels = [1.5, 3.0, 4.5]
         msg = (
             "Input data must have 3 dimensions to add both realization "
-            "and height coordinates: got 2"
+            "and vertical coordinates: got 2"
         )
         with self.assertRaisesRegex(ValueError, msg):
             _ = set_up_spot_variable_cube(
-                self.data_2d, realizations=realizations, height_levels=height_levels
+                self.data_2d,
+                realizations=realizations,
+                vertical_levels=vertical_levels,
+                height=True,
             )
 
     def test_custom_coords(self):

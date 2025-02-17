@@ -150,7 +150,7 @@ class TemporalInterpolation(BasePlugin):
         known_interpolation_methods = ["linear", "solar", "daynight"]
         if interpolation_method not in known_interpolation_methods:
             raise ValueError(
-                "TemporalInterpolation: Unknown interpolation " "method {}. ".format(
+                "TemporalInterpolation: Unknown interpolation method {}. ".format(
                     interpolation_method
                 )
             )
@@ -684,3 +684,257 @@ class TemporalInterpolation(BasePlugin):
                 interpolated_cubes.append(single_time)
 
         return interpolated_cubes
+
+
+class DurationSubdivision:
+    """Subdivide a duration diagnostic, e.g. sunshine duration, into
+    shorter periods, optionally applying a night mask to ensure that
+    quantities defined only in the day or night are not spread into
+    night or day periods respectively.
+
+    This is a very simple approach. In the case of sunshine duration
+    the duration is divided up evenly across the short periods defined
+    by the fidelity argument. These are then optionally masked to zero
+    for chosen periods (day or night). Values in the non-zeroed periods
+    are then renormalised relative to the original period total, such
+    that the total across the whole period ought to equal the original. This
+    is not always possible as the night mask applied is simpler than e.g. the
+    radiation scheme impact on a 3D orography. As such the renormalisation
+    could yield durations longer than the fidelity period in each
+    non-zeroed period as it tries to allocate e.g. 5 hours of sunlight
+    across 4 non-zeroed hours. This is not physical, so the renormalisation
+    is partnered with a clip that limits the duration allocated to the
+    renormalised periods to not exceed their length. The result of this
+    is that the original sunshine durations cannot be recovered for points
+    that are affected. Instead the calculated night mask is limiting the
+    accuracy to allow the subdivision to occur. This is the cost of this
+    method.
+
+    Note that this method cannot account for any weather impacts e.g. cloud
+    that is affecting the sunshine duration in a period. If a 6-hour period is
+    split into three 2-hour periods the split will be even regardless of
+    when thick cloud might occur.
+    """
+
+    def __init__(
+        self,
+        target_period: int,
+        fidelity: int,
+        night_mask: bool = True,
+        day_mask: bool = False,
+    ):
+        """Define the length of the target periods to be constructed and the
+        intermediate fidelity. This fidelity is the length of the shorter
+        periods into which the data is split and from which the target periods
+        are constructed. A shorter fidelity period allows the time dependent
+        day or night masks to be applied more accurately.
+
+        Args:
+            target_period:
+                The time period described by the output cubes in seconds.
+                The data will be reconstructed into non-overlapping periods.
+                The target_period must be a factor of the original period.
+            fidelity:
+                The shortest increment in seconds into which the input periods are
+                divided and to which the night mask is applied. The
+                target periods are reconstructed from these shorter periods.
+                Shorter fidelity periods better capture where the day / night
+                discriminator falls.
+            night_mask:
+                If true, points that fall at night are zeroed and duration
+                reallocated to day time periods as much as possible.
+            day_mask:
+                If true, points that fall in the day time are zeroed and
+                duration reallocated to night time periods as much as possible.
+        Raises:
+            ValueError: If target_period and / or fidelity are not positive integers.
+            ValueError: If day and night mask options are both set True.
+        """
+        for item in [target_period, fidelity]:
+            if item <= 0:
+                raise ValueError(
+                    "Target period and fidelity must be a positive integer "
+                    "numbers of seconds. Currently set to "
+                    f"target_period: {target_period}, fidelity: {fidelity}"
+                )
+
+        self.target_period = target_period
+        self.fidelity = fidelity
+        if night_mask and day_mask:
+            raise ValueError(
+                "Only one or neither of night_mask and day_mask may be set to True"
+            )
+        elif not night_mask and not day_mask:
+            self.mask_value = None
+        else:
+            self.mask_value = 0 if night_mask else 1
+
+    @staticmethod
+    def cube_period(cube: Cube) -> int:
+        """Return the time period of the cube in seconds.
+
+        Args:
+            cube:
+                The cube for which the period is to be returned.
+        Return:
+            period:
+                Period of cube time coordinate in seconds.
+        """
+        (period,) = np.diff(cube.coord("time").bounds[0])
+        return period
+
+    def allocate_data(self, cube: Cube, period: int) -> Cube:
+        """Allocate fractions of the original cube duration diagnostic to
+        shorter fidelity periods with metadata that describes these shorter
+        periods appropriately. The fidelity period cubes will be merged to
+        form a cube with a longer time dimension. This cube will be returned
+        and used elsewhere to construct the target period cubes.
+
+        Args:
+            cube:
+                The original period cube from which duration data will be
+                taken and divided up.
+            period:
+                The period of the input cube in seconds.
+        Returns:
+            A cube, with a time dimension, that contains the subdivided data.
+        """
+        # Split the whole period duration into allocations for each fidelity
+        # period.
+        intervals = period // self.fidelity
+        interval_data = cube.data / intervals
+
+        daynightplugin = DayNightMask()
+        start_time, _ = cube.coord("time").bounds.flatten()
+
+        interpolated_cubes = iris.cube.CubeList()
+
+        for i in range(intervals):
+            interval_cube = cube.copy(data=interval_data.copy())
+            interval_start = start_time + i * self.fidelity
+            interval_end = start_time + (i + 1) * self.fidelity
+
+            interval_cube.coord("time").points = np.array(
+                [interval_end], dtype=np.int64
+            )
+            interval_cube.coord("time").bounds = np.array(
+                [[interval_start, interval_end]], dtype=np.int64
+            )
+
+            if self.mask_value is not None:
+                daynight_mask = daynightplugin(interval_cube).data
+                daynight_mask = np.broadcast_to(daynight_mask, interval_cube.shape)
+                interval_cube.data[daynight_mask == self.mask_value] = 0.0
+            interpolated_cubes.append(interval_cube)
+
+        return interpolated_cubes.merge_cube()
+
+    @staticmethod
+    def renormalisation_factor(cube: Cube, fidelity_period_cube: Cube) -> np.ndarray:
+        """Sum up the total of the durations distributed amongst the fidelity
+        period cubes following the application of any masking. These are
+        then used with the durations in the unsubdivided original data to
+        calculate a factor to restore the correct totals; note that where
+        clipping plays a role the original totals may not be restored.
+
+        Args:
+            cube:
+                The original period cube of duration data.
+            fidelity_period_cube:
+                The cube of fidelity period durations (the original durations
+                divided up into shorter fidelity periods).
+        Returns:
+            factor:
+                An array of factors that can be used to multiply up the
+                fidelity period durations such that when the are summed up
+                they are equal to the original durations.
+        """
+        retotal = fidelity_period_cube.collapsed("time", iris.analysis.SUM)
+        factor = cube.data / retotal.data
+        # Masked points indicate divide by 0, set these points to 0. Also handle
+        # a case in which there is no masking on the factor array.
+        try:
+            factor = factor.filled(0)
+        except AttributeError:
+            factor[factor == np.inf] = 0
+
+        return factor
+
+    def construct_target_periods(self, fidelity_period_cube: Cube) -> Cube:
+        """Combine the short fidelity period cubes into cubes that describe
+        the target period.
+
+        Args:
+            fidelity_period_cube:
+                The short fidelity period cubes from which the target periods
+                are constructed.
+        Returns:
+            A cube containing the target period data with a time dimension
+            with an entry for each target period. These periods combined span
+            the original cube's period.
+        """
+        new_period_cubes = iris.cube.CubeList()
+
+        interval = timedelta(seconds=self.target_period)
+        start_time = fidelity_period_cube.coord("time").cell(0).bound[0]
+        end_time = fidelity_period_cube.coord("time").cell(-1).bound[-1]
+        while start_time < end_time:
+            period_constraint = iris.Constraint(
+                time=lambda cell: start_time <= cell.bound[0] < start_time + interval
+            )
+            components = fidelity_period_cube.extract(period_constraint)
+            component_cube = components.collapsed("time", iris.analysis.SUM)
+            component_cube.coord("time").points = component_cube.coord("time").bounds[
+                0
+            ][-1]
+            new_period_cubes.append(component_cube)
+            start_time += interval
+
+        return new_period_cubes.merge_cube()
+
+    def process(self, cube: Cube) -> Cube:
+        """Create target period duration diagnostics from the original duration
+        diagnostic data.
+
+        Args:
+            cube:
+                The original duration diagnostic cube.
+        Returns:
+            A cube containing the target period data with a time dimension
+            with an entry for each period. These periods combined span the
+            original cube's period.
+        Raises:
+            ValueError: The target period is not a factor of the input period.
+        """
+        period = self.cube_period(cube)
+
+        if period / self.target_period % 1 != 0:
+            raise ValueError(
+                "The target period must be a factor of the original period "
+                "of the input cube and the target period must be <= the input "
+                "period. "
+                f"Input period: {period}, target period: {self.target_period}"
+            )
+        if self.fidelity > self.target_period:
+            raise ValueError(
+                "The fidelity period must be less than or equal to the "
+                "target period."
+            )
+        # Ensure that the cube is already self-consistent and does not include
+        # any durations that exceed the period described. This is mostly to
+        # handle grib packing errors for ECMWF data.
+        cube.data = np.clip(cube.data, 0, period)
+        # If the input cube period matches the target period return it.
+        if period == self.target_period:
+            return cube
+
+        fidelity_period_cube = self.allocate_data(cube, period)
+        factor = self.renormalisation_factor(cube, fidelity_period_cube)
+
+        # Apply clipping to limit these values to the maximum possible
+        # duration that can be contained within the period.
+        fidelity_period_cube = fidelity_period_cube.copy(
+            data=np.clip(fidelity_period_cube.data * factor, 0, self.fidelity)
+        )
+
+        return self.construct_target_periods(fidelity_period_cube)

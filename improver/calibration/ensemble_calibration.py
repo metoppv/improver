@@ -1912,9 +1912,9 @@ class ApplyEMOS(PostProcessingPlugin):
                     random_seed=random_seed,
                 )
 
-        # Preserve cell methods from template.
-        for cm in template.cell_methods:
-            result.add_cell_method(cm)
+            # Preserve cell methods from template.
+            for cm in template.cell_methods:
+                result.add_cell_method(cm)
 
         return result
 
