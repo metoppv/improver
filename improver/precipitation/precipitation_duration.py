@@ -392,9 +392,9 @@ class PrecipitationDuration(PostProcessingPlugin):
         # therefore simply 0-1 in increments of 1/n_periods.
         fractions = np.arange(0, 1.0001, 1 / n_periods)
 
-        # The lookup_percentiles are the target percentiles rescaled to match
+        # The percentile_rank_fractions are the target percentiles rescaled to match
         # the number of realizations over which we are counting.
-        lookup_percentiles = self.percentiles * (len(realizations) - 1) / 100
+        percentile_rank_fractions = self.percentiles * (len(realizations) - 1) / 100
 
         # We create an empty array into which to put our resulting percentiles.
         # We can index this with the accumulation and rate threshold indices
@@ -435,17 +435,17 @@ class PrecipitationDuration(PostProcessingPlugin):
             # values.
             cumulated = np.cumsum(hit_count[acc_index, rate_index], axis=0)
             resulting_percentiles = []
-            for percentile in lookup_percentiles:
+            for percentile_rank_fraction in percentile_rank_fractions:
                 # Find the value below and above the target percentile and
                 # apply linear interpolation to determine the percentile value
-                percentile_indices_lower = (cumulated <= np.floor(percentile)).sum(
+                percentile_indices_lower = (cumulated <= np.floor(percentile_rank_fraction)).sum(
                     axis=0
                 )
-                percentile_indices_upper = (cumulated <= np.ceil(percentile)).sum(
+                percentile_indices_upper = (cumulated <= np.ceil(percentile_rank_fraction)).sum(
                     axis=0
                 )
 
-                interp_fraction = percentile - np.floor(percentile)
+                interp_fraction = percentile_rank_fraction - np.floor(percentile_rank_fraction)
 
                 percentile_values = fractions[
                     percentile_indices_lower
@@ -483,8 +483,6 @@ class PrecipitationDuration(PostProcessingPlugin):
             A cube of percentiles of the fraction of the target period that is
             classified as exceeding the user specified thresholds.
         Raises:
-            ValueError: If input cubes do not contain the expected diagnostics
-                        or diagnostic thresholds.
             ValueError: If the input cubes have differing time coordinates.
             ValueError: If the input cubes do not combine to create the expected
                         target period.

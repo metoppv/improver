@@ -10,10 +10,11 @@ from datetime import datetime, timedelta
 from typing import List, Tuple, Union
 
 import iris
+import iris.util
 import numpy as np
 import pytest
 from iris.coords import AuxCoord
-from iris.cube import CubeList
+from iris.cube import CubeList, Cube
 from numpy import ndarray
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
@@ -314,6 +315,173 @@ def test__construct_constraint(
 
 
 @pytest.mark.parametrize(
+    "start_time,end_time,period,acc_data,rate_data,acc_thresh,rate_thresh,diagnostic,threshold_name,threshold_values",
+    [
+        (
+            datetime(2025, 1, 15, 0),
+            datetime(2025, 1, 15, 6),
+            timedelta(hours=3),
+            np.ones((2, 2, 2, 3, 3)),
+            np.ones((2, 1, 3, 3)),
+            [0.1, 0.2],
+            [4],
+            DEFAULT_RATE_NAME,
+            DEFAULT_RATE_THRESH_NAME,
+            np.array([4.0 / (3600.0 * 1000.0)], dtype=np.float32)
+        ),  # Rate cube extraction.
+        (
+            datetime(2025, 1, 15, 0),
+            datetime(2025, 1, 15, 2),
+            timedelta(hours=1),
+            np.ones((2, 2, 2, 3, 3)),
+            np.ones((2, 1, 3, 3)),
+            [0.1, 0.2],
+            [4],
+            DEFAULT_ACC_NAME,
+            DEFAULT_ACC_THRESH_NAME,
+            np.array([0.0001], dtype=np.float32),
+        ),  # 1-hour period accumulation extraction.
+        (
+            datetime(2025, 1, 15, 0),
+            datetime(2025, 1, 15, 6),
+            timedelta(hours=3),
+            np.ones((2, 2, 2, 3, 3)),
+            np.ones((2, 1, 3, 3)),
+            [0.1, 0.2],
+            [4],
+            DEFAULT_ACC_NAME,
+            DEFAULT_ACC_THRESH_NAME,
+            np.array([0.0003], dtype=np.float32),
+        ),  # 3-hour period accumulation extraction with a suitably scaled
+            # threshold value.
+        (
+            datetime(2025, 1, 15, 0),
+            datetime(2025, 1, 15, 2),
+            timedelta(hours=1),
+            np.ones((2, 2, 2, 3, 3)),
+            np.ones((2, 1, 3, 3)),
+            [0.1, 0.2],
+            [4],
+            DEFAULT_ACC_NAME,
+            DEFAULT_ACC_THRESH_NAME,
+            np.array([0.0001, 0.0002], dtype=np.float32),
+        ),  # 1-hour period accumulation extraction multiple thresholds.
+    ]
+)
+def test__extract_cubes(
+    start_time: datetime,
+    end_time: datetime,
+    period: timedelta,
+    diagnostic,
+    threshold_name,
+    threshold_values,
+    precip_cubes_custom: CubeList,
+):
+    """Test the extraction of target diagnostics and thresholds and the
+    merging of resulting outputs to form a single cube."""
+    plugin = PrecipitationDuration(1.0, 7.0, 2, DEFAULT_PERCENTILES)
+    result = plugin._extract_cubes(
+        precip_cubes_custom,
+        diagnostic,
+        threshold_name,
+        threshold_values,
+    )
+    assert isinstance(result, Cube)
+    assert result.name() == diagnostic
+    assert result.coord("time").shape[0] == ((end_time - start_time) / period)
+    assert result.coord(var_name="threshold").name() == threshold_name
+    assert_array_equal(result.coord(var_name="threshold").points, threshold_values)
+
+
+@pytest.mark.parametrize(
+    "diagnostic,threshold_name,threshold_values",
+    [
+        ("kittens", DEFAULT_ACC_THRESH_NAME, np.array([2], dtype=np.float32)),
+        (DEFAULT_ACC_NAME, "kittens", np.array([2], dtype=np.float32)),
+        (DEFAULT_ACC_NAME, DEFAULT_ACC_THRESH_NAME, np.array([4], dtype=np.float32)),
+    ]
+)
+def test__extract_cubes_exception_thresholds(diagnostic, threshold_name, threshold_values):
+    """Test an exception is raised if the input cubes do not contain the
+    required thresholds."""
+
+    time_args = data_times(
+        datetime(2025, 1, 15, 0), datetime(2025, 1, 15, 2), timedelta(hours=1)
+    )
+    data = np.ones((2, 2, 1, 3, 4))
+    cubes = multi_time_cube(*time_args, data, [2.0], DEFAULT_ACC_THRESH_NAME, "m")
+
+    plugin = PrecipitationDuration(1.0, 7.0, 2, DEFAULT_PERCENTILES)
+    msg = "The requested diagnostic or threshold is not available."
+
+    with pytest.raises(ValueError, match=msg):
+        plugin._extract_cubes(
+            cubes,
+            diagnostic,
+            threshold_name,
+            threshold_values,
+        )
+
+
+@pytest.mark.parametrize(
+    "start_time,end_time,period,acc_data,rate_data,acc_thresh,rate_thresh",
+    [
+        (
+            datetime(2025, 1, 15, 0),
+            datetime(2025, 1, 15, 3),
+            timedelta(hours=3),
+            np.ones((1, 2, 1, 3, 3)),  # 1 time, 2 realizations, 1 threshold, y, x.
+            np.ones((1, 2, 1, 3, 3)),  # Rate cube not used.
+            [0.1],  # 1 accumulation threshold.
+            [4],  # Rate cube not used.
+        ),  # Time and threshold scalars to be promoted
+        (
+            datetime(2025, 1, 15, 0),
+            datetime(2025, 1, 15, 6),
+            timedelta(hours=3),
+            np.ones((2, 2, 1, 3, 3)),  # 2 times, 2 realizations, 1 threshold, y, x.
+            np.ones((2, 2, 1, 3, 3)),  # Rate cube not used.
+            [0.1],  # 1 accumulation threshold.
+            [4],  # Rate cube not used.
+        ),  # Threshold scalar to be promoted
+        (
+            datetime(2025, 1, 15, 0),
+            datetime(2025, 1, 15, 6),
+            timedelta(hours=3),
+            np.ones((1, 2, 2, 3, 3)),  # 1 times, 2 realizations, 2 thresholds, y, x.
+            np.ones((1, 2, 1, 3, 3)),  # Rate cube not used.
+            [0.1, 0.2],  # 2 accumulation thresholds.
+            [4],  # Rate cube not used.
+        ),  # Time scalar to be promoted
+    ]
+)
+def test__structure_inputs(
+    start_time: datetime, end_time: datetime, period: timedelta, precip_cubes_custom: CubeList
+):
+    """Test that all expected dim coords are in place after this method has
+    been applied and ordered as expected. The threshold coordinate should also
+    be returned."""
+
+    # Squeeze length 1 dim coords to scalars so they can be restored.
+    cube = iris.util.squeeze(precip_cubes_custom[0])
+
+    expected_dimcrd_order = [
+        "realization",
+        "lwe_thickness_of_precipitation_amount",
+        "time",
+        "latitude",
+        "longitude",
+    ]
+
+    plugin = PrecipitationDuration(1.0, 7.0, 2, DEFAULT_PERCENTILES)
+    result_cube, result_thresh = plugin._structure_inputs(cube)
+
+    dimcrds = [crd.name() for crd in result_cube.coords(dim_coords=True)]
+    assert dimcrds == expected_dimcrd_order
+    assert result_thresh.name() == "lwe_thickness_of_precipitation_amount"
+
+
+@pytest.mark.parametrize(
     "start_time,end_time,period,acc_data,rate_data,acc_thresh,rate_thresh,expected",
     [
         (
@@ -326,7 +494,7 @@ def test__construct_constraint(
             [4],
             np.ones((3, 3, 4)),  # 3 percentiles, y, x
         ),  # Accumulation and rate probabilities are 1 for both input hours
-        # and all realizations. The resulting pecentiles are all 1 for the
+        # and all realizations. The resulting percentiles are all 1 for the
         # combined period at all points.
         (
             datetime(2025, 1, 15, 0),
@@ -359,7 +527,7 @@ def test__construct_constraint(
                     np.full((3, 4), 0.9),
                 ]
             ).astype(np.float32),  # 3 percentiles, y, x
-        ),  # Accumulation probabilites are 1 in the first realization and 0
+        ),  # Accumulation probabilities are 1 in the first realization and 0
         # in the second for both input hours. Half of the ensemble is
         # classified as satisfying the rate and accumulation thresholds
         # for both input periods. Realization 0 = 100% of total period
@@ -381,7 +549,7 @@ def test__construct_constraint(
             [0.1],
             [4],
             np.full((3, 3, 4), 0.5, dtype=np.float32),  # 3 percentiles, y, x
-        ),  # Accumulation probabilites are 1 in both ensemble members for the
+        ),  # Accumulation probabilities are 1 in both ensemble members for the
         # first time and both 0 for the second time. This means that the
         # fraction of the target period classified as wet by each ensemble
         # member is 0.5. Given that percentiles are generated from the
@@ -484,12 +652,9 @@ def test_process(
     expected: ndarray,
     precip_cubes_custom: CubeList,
 ):
-    """Test the plugin produces the expected output. The creation of the
-    output cube is also tested here. If realization is True the input
-    cubes are each duplicated with a realization coordinate added, and
-    merged to create a multi-realization cube. This is then run through the
-    plugin to demonstrate the handling of multi-realization data which will
-    be the norm."""
+    """Test the plugin produces the expected output. The calculation method
+    _calculate_fractions is tested here as is the creation of the
+    output cube."""
 
     total_period = (end_time - start_time).total_seconds()
     period_hours = period.total_seconds() / 3600
@@ -513,48 +678,6 @@ def test_process(
 
     # var_names = [crd.var_name for crd in cube.coords()]
     # assert "threshold" not in var_names
-
-
-def test_process_exception_thresholds():
-    """Test an exception is raised if the input cubes do not contain the
-    required thresholds."""
-
-    time_args = data_times(
-        datetime(2025, 1, 15, 0), datetime(2025, 1, 15, 2), timedelta(hours=1)
-    )
-    data = np.ones((2, 2, 1, 3, 4))
-
-    cubes = CubeList()
-    cubes.extend(multi_time_cube(*time_args, data, [2.0], DEFAULT_ACC_THRESH_NAME, "m"))
-    cubes.extend(
-        multi_time_cube(*time_args, data, [8.0], DEFAULT_RATE_THRESH_NAME, "m/s")
-    )
-
-    plugin = PrecipitationDuration(1.0, 7.0, 2, DEFAULT_PERCENTILES)
-    msg = "The requested diagnostic or threshold is not available"
-    with pytest.raises(ValueError, match=msg):
-        plugin.process(cubes)
-
-
-def test_process_exception_names():
-    """Test an exception is raised if the input cubes do not have the
-    expected diagnostic names."""
-
-    time_args = data_times(
-        datetime(2025, 1, 15, 0), datetime(2025, 1, 15, 2), timedelta(hours=1)
-    )
-    data = np.ones((2, 2, 1, 3, 4))
-
-    cubes = CubeList()
-    cubes.extend(multi_time_cube(*time_args, data, [1.0 / 1000], "kittens", "m"))
-    cubes.extend(
-        multi_time_cube(*time_args, data, [7.0 / (3600 * 1000)], "puppies", "m/s")
-    )
-
-    plugin = PrecipitationDuration(1.0, 7.0, 2, DEFAULT_PERCENTILES)
-    msg = "The requested diagnostic or threshold is not available"
-    with pytest.raises(ValueError, match=msg):
-        plugin.process(cubes)
 
 
 def test_process_exception_differing_time():
@@ -674,7 +797,7 @@ def test_process_exception_mismatched_realization():
         plugin.process(cubes)
 
 
-def test_process_exception_masked_data():
+def test__calculate_fractions_exception_masked_data():
     """Test an exception is raised if the input cubes contain masked data."""
 
     time_args = data_times(
