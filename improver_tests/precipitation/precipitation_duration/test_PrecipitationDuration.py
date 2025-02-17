@@ -14,7 +14,7 @@ import iris.util
 import numpy as np
 import pytest
 from iris.coords import AuxCoord
-from iris.cube import CubeList, Cube
+from iris.cube import Cube, CubeList
 from numpy import ndarray
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
@@ -284,6 +284,8 @@ def test__construct_thresholds(
 
 
 DEFAULT_ACC_NAME, DEFAULT_ACC_THRESH_NAME, DEFAULT_RATE_NAME, DEFAULT_RATE_THRESH_NAME
+
+
 @pytest.mark.parametrize(
     "diagnostic,threshold,threshold_name",
     [
@@ -291,9 +293,7 @@ DEFAULT_ACC_NAME, DEFAULT_ACC_THRESH_NAME, DEFAULT_RATE_NAME, DEFAULT_RATE_THRES
         (DEFAULT_RATE_NAME, 4, DEFAULT_RATE_THRESH_NAME),
     ],
 )
-def test__construct_constraint(
-    diagnostic: str, threshold: float, threshold_name: str
-):
+def test__construct_constraint(diagnostic: str, threshold: float, threshold_name: str):
     """Test that iris constraints for the given thresholds are constructed and
     returned correctly."""
 
@@ -305,9 +305,7 @@ def test__construct_constraint(
         accumulation_diagnostic=diagnostic,
         rate_diagnostic=diagnostic,
     )
-    constraint = plugin._construct_constraint(
-        diagnostic, threshold, threshold_name
-    )
+    constraint = plugin._construct_constraint(diagnostic, threshold, threshold_name)
 
     assert isinstance(constraint, iris.Constraint)
     assert constraint._name == diagnostic
@@ -327,7 +325,7 @@ def test__construct_constraint(
             [4],
             DEFAULT_RATE_NAME,
             DEFAULT_RATE_THRESH_NAME,
-            np.array([4.0 / (3600.0 * 1000.0)], dtype=np.float32)
+            np.array([4.0 / (3600.0 * 1000.0)], dtype=np.float32),
         ),  # Rate cube extraction.
         (
             datetime(2025, 1, 15, 0),
@@ -353,7 +351,7 @@ def test__construct_constraint(
             DEFAULT_ACC_THRESH_NAME,
             np.array([0.0003], dtype=np.float32),
         ),  # 3-hour period accumulation extraction with a suitably scaled
-            # threshold value.
+        # threshold value.
         (
             datetime(2025, 1, 15, 0),
             datetime(2025, 1, 15, 2),
@@ -366,7 +364,7 @@ def test__construct_constraint(
             DEFAULT_ACC_THRESH_NAME,
             np.array([0.0001, 0.0002], dtype=np.float32),
         ),  # 1-hour period accumulation extraction multiple thresholds.
-    ]
+    ],
 )
 def test__extract_cubes(
     start_time: datetime,
@@ -399,9 +397,11 @@ def test__extract_cubes(
         ("kittens", DEFAULT_ACC_THRESH_NAME, np.array([2], dtype=np.float32)),
         (DEFAULT_ACC_NAME, "kittens", np.array([2], dtype=np.float32)),
         (DEFAULT_ACC_NAME, DEFAULT_ACC_THRESH_NAME, np.array([4], dtype=np.float32)),
-    ]
+    ],
 )
-def test__extract_cubes_exception_thresholds(diagnostic, threshold_name, threshold_values):
+def test__extract_cubes_exception_thresholds(
+    diagnostic, threshold_name, threshold_values
+):
     """Test an exception is raised if the input cubes do not contain the
     required thresholds."""
 
@@ -453,10 +453,13 @@ def test__extract_cubes_exception_thresholds(diagnostic, threshold_name, thresho
             [0.1, 0.2],  # 2 accumulation thresholds.
             [4],  # Rate cube not used.
         ),  # Time scalar to be promoted
-    ]
+    ],
 )
 def test__structure_inputs(
-    start_time: datetime, end_time: datetime, period: timedelta, precip_cubes_custom: CubeList
+    start_time: datetime,
+    end_time: datetime,
+    period: timedelta,
+    precip_cubes_custom: CubeList,
 ):
     """Test that all expected dim coords are in place after this method has
     been applied and ordered as expected. The threshold coordinate should also

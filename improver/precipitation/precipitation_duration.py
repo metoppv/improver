@@ -438,14 +438,16 @@ class PrecipitationDuration(PostProcessingPlugin):
             for percentile_rank_fraction in percentile_rank_fractions:
                 # Find the value below and above the target percentile and
                 # apply linear interpolation to determine the percentile value
-                percentile_indices_lower = (cumulated <= np.floor(percentile_rank_fraction)).sum(
-                    axis=0
-                )
-                percentile_indices_upper = (cumulated <= np.ceil(percentile_rank_fraction)).sum(
-                    axis=0
-                )
+                percentile_indices_lower = (
+                    cumulated <= np.floor(percentile_rank_fraction)
+                ).sum(axis=0)
+                percentile_indices_upper = (
+                    cumulated <= np.ceil(percentile_rank_fraction)
+                ).sum(axis=0)
 
-                interp_fraction = percentile_rank_fraction - np.floor(percentile_rank_fraction)
+                interp_fraction = percentile_rank_fraction - np.floor(
+                    percentile_rank_fraction
+                )
 
                 percentile_values = fractions[
                     percentile_indices_lower
