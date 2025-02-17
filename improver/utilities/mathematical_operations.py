@@ -557,7 +557,7 @@ class CalculateClimateAnomalies(BasePlugin):
         reference_epoch = iris.coords.AuxCoord(
             points=mean_cube.coord("time").points,
             bounds=mean_cube.coord("time").bounds
-            if diagnostic_cube.coord("time").has_bounds()
+            if mean_cube.coord("time").has_bounds()
             else None,
             long_name="reference_epoch",
             units=mean_cube.coord("time").units,
@@ -566,7 +566,7 @@ class CalculateClimateAnomalies(BasePlugin):
         output_cube.add_aux_coord(reference_epoch)
 
         cell_method = CellMethod(
-            method="anomaly", coords="reference_epoch"
+            method="anomaly", coords=["reference_epoch"]
         )  # Create a cell method to describe the operation that was performed
         output_cube.add_cell_method(cell_method)
 
