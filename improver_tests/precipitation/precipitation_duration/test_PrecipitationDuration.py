@@ -686,6 +686,9 @@ def test_process(
         long_name="precipitation_rate_threshold_for_wet"
     ) is result.coord("lwe_precipitation_rate")
 
+    var_names = [crd.var_name for crd in result.coords()]
+    assert "threshold" not in var_names
+
 
 def test_process_exception_differing_time():
     """Test an exception is raised if the input cubes have differing time
