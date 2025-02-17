@@ -113,6 +113,12 @@ def test_basic(input_cube):
     assert result, Cube
     assert result.units == input_cube.units
 
+def test_empty_threshold_list():
+    """
+    Test that a ValueError is raised if the threshold list is empty.
+    """
+    with pytest.raises(ValueError, match="The thresholds list cannot be empty."):
+        ThresholdInterpolation([])
 
 def test_metadata_copy(input_cube):
     """
@@ -134,7 +140,6 @@ def test_thresholds_different_mask(masked_cube_diff):
     with pytest.raises(ValueError, match=error_msg):
         ThresholdInterpolation(thresholds)(masked_cube_diff)
 
-
 def test_masked_cube(masked_cube_same):
     """
     Testing that a Cube is returned when inputting a masked cube.
@@ -142,3 +147,14 @@ def test_masked_cube(masked_cube_same):
     thresholds = [100, 150, 200, 250, 300]
     result = ThresholdInterpolation(thresholds)(masked_cube_same)
     assert isinstance(result, Cube)
+
+def test_mask_consistency(masked_cube_same):
+    """
+    Test that the mask is the same before and after ThresholdInterpolation.
+    """
+    thresholds = [100, 150, 200, 250, 300]
+    original_mask = masked_cube_same.data.mask
+    print(original_mask)
+    result = ThresholdInterpolation(thresholds)(masked_cube_same).data.mask
+    print(result)
+    np.testing.assert_array_equal(original_mask[0], result[0])
