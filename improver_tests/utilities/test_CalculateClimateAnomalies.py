@@ -150,7 +150,7 @@ def test_calculate_unstandardised_anomalies_gridded_data(
     np.testing.assert_allclose(result.data, expected_anomalies, rtol=1e-5)
     assert result.name() == diagnostic_cube.name() + "_anomaly"
     assert result.units == "K"
-    assert result.coord("reference_epoch")
+    assert "reference_epoch" in [coord.name() for coord in result.coords()]
     assert result.coord("reference_epoch").points == mean_cube.coord("time").points
     assert np.array_equal(
         result.coord("reference_epoch").bounds, mean_cube.coord("time").bounds
