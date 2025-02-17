@@ -10,7 +10,7 @@ import pytest
 from iris.cube import CubeList
 from numpy.testing import assert_allclose, assert_equal, assert_raises_regex
 
-from improver.precipitation_type.convection import ConvectionRatioFromComponents
+from improver.precipitation.convection import ConvectionRatioFromComponents
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 GLOBAL_ATTRIBUTES = {

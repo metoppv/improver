@@ -27,6 +27,6 @@ def process(*cubes: cli.inputcubelist, model_id_attr: str = None):
             A single cube containing the hail fraction.
 
     """
-    from improver.precipitation_type.hail_fraction import HailFraction
+    from improver.precipitation.hail_fraction import HailFraction
 
     return HailFraction(model_id_attr=model_id_attr)(*cubes)

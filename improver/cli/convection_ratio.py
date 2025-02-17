@@ -31,7 +31,7 @@ def process(*cubes: cli.inputcube, model_id_attr: str = None):
             A cube of convection_ratio of the same dimensions as the input cubes.
 
     """
-    from improver.precipitation_type.convection import ConvectionRatioFromComponents
+    from improver.precipitation.convection import ConvectionRatioFromComponents
 
     if len(cubes) != 2:
         raise IOError(f"Expected 2 input cubes, received {len(cubes)}")
