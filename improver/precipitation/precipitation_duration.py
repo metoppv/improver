@@ -295,12 +295,16 @@ class PrecipitationDuration(PostProcessingPlugin):
         mandatory_attributes = generate_mandatory_attributes(
             cubes, model_id_attr=self.model_id_attr
         )
-        mandatory_attributes["input_period_in_hours"] = self.period
+        mandatory_attributes["precipitation_sampling_period_in_hours"] = self.period
 
         time_coords = [cubes[0].coord("forecast_reference_time").copy()]
         for crd in ["time", "forecast_period"]:
             time_crd = cubes[0].coord(crd).copy()
             time_coords.append(time_crd.collapsed())
+
+        # Add more descriptive long names to accumulation and rate thresholds.
+        acc_thresh.long_name = "precipitation_accumulation_threshold_for_wet"
+        rate_thresh.long_name = "precipitation_rate_threshold_for_wet"
 
         dim_coords = [
             (percentile_coord, 0),
@@ -321,7 +325,7 @@ class PrecipitationDuration(PostProcessingPlugin):
 
         classification_percentiles = Cube(
             data.astype(np.float32),
-            long_name="fraction_of_periods_classified_as_wet",
+            long_name="fraction_of_time_classified_as_wet",
             dim_coords_and_dims=dim_coords,
             aux_coords_and_dims=aux_coords,
             units="1",
@@ -329,11 +333,6 @@ class PrecipitationDuration(PostProcessingPlugin):
         )
         for crd in time_coords:
             classification_percentiles.add_aux_coord(crd)
-        # Remove any coordinate var names that identify a coordinate as a
-        # threshold as our output is not a probability cube.
-        for crd in classification_percentiles.coords():
-            if crd.var_name == "threshold":
-                crd.var_name = None
 
         return squeeze(classification_percentiles)
 

@@ -676,11 +676,10 @@ def test_process(
         result.coord("lwe_precipitation_rate").points,
         np.array(rate_thresh) / (3600 * 1000),
     )
-    assert result.attributes["input_period_in_hours"] == period_hours
+    assert result.attributes["precipitation_sampling_period_in_hours"] == period_hours
     assert np.diff(result.coord("time").bounds) == total_period
-
-    # var_names = [crd.var_name for crd in cube.coords()]
-    # assert "threshold" not in var_names
+    assert result.coord(long_name="precipitation_accumulation_threshold_for_wet") is result.coord("lwe_thickness_of_precipitation_amount")
+    assert result.coord(long_name="precipitation_rate_threshold_for_wet") is result.coord("lwe_precipitation_rate")
 
 
 def test_process_exception_differing_time():
