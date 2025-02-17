@@ -35,10 +35,28 @@ class ThresholdInterpolation(PostProcessingPlugin):
             thresholds:
                 List of the desired output thresholds.
         """
+        if not thresholds:
+            raise ValueError("The thresholds list cannot be empty.")
         self.thresholds = thresholds
         self.threshold_coord = None
 
     def mask_checking(self, forecast_at_thresholds: Cube):
+        """
+        Check if the mask is consistent across different slices of the threshold coordinate.
+
+        Args:
+            forecast_at_thresholds (Cube):
+            The input cube containing forecast data with a threshold coordinate.
+
+        Returns:
+            original_mask (ndarray or None):
+            The original mask if the data is masked and the mask is consistent across
+            different slices of the threshold coordinate, otherwise None.
+
+        Raises:
+            ValueError:
+            If the mask varies across different slices of the threshold coordinate.
+        """
         original_mask = None
         if np.ma.is_masked(forecast_at_thresholds.data):
             (crd_dim,) = forecast_at_thresholds.coord_dims(self.threshold_coord)
@@ -60,22 +78,26 @@ class ThresholdInterpolation(PostProcessingPlugin):
         forecast_at_thresholds: Cube,
     ) -> Cube:
         """
-        Interpolation of forecast for a set of thresholds from an initial
-        set of thresholds to a new set of thresholds. This is constructed
-        by linearly interpolating between the original set of thresholds
-        to a new set of thresholds.
+        Interpolate forecast data to a new set of thresholds.
+
+        This method performs linear interpolation of forecast data from an initial
+        set of thresholds to a new set of thresholds. The interpolation is done
+        by converting the data to a 2D array, performing the interpolation, and
+        then restoring the original dimensions.
 
         Args:
-            forecast_at_thresholds:
-                Cube containing a threshold coordinate.
-            desired_thresholds:
-                Array of the desired thresholds.
+            forecast_at_thresholds (Cube):
+                Cube containing forecast data with a threshold coordinate.
             self.threshold_coord:
                 Name of required threshold coordinate.
 
         Returns:
-            Cube containing values for the required diagnostic e.g.
-            air_temperature at the required thresholds.
+            ndarray:
+                Interpolated forecast data with the new set of thresholds.
+
+        Raises:
+            ValueError:
+                If the threshold coordinate is not found in the input cube.
         """
         original_thresholds = forecast_at_thresholds.coord(self.threshold_coord).points
 
@@ -118,9 +140,8 @@ class ThresholdInterpolation(PostProcessingPlugin):
         desired output cube.
 
         Args:
-            thresholds:
-                Ensemble thresholds. There should be the same number of
-                thresholds as the first dimension of cube_data.
+            forecast_at_thresholds (Cube):
+                Cube containing forecast data with a threshold coordinate.
             template_cube:
                 Cube to copy metadata from.
             cube_data:
@@ -130,13 +151,9 @@ class ThresholdInterpolation(PostProcessingPlugin):
                 template_cube.
                 For example, template_cube shape is (3, 3, 3), whilst the cube_data
                 is (10, 3, 3, 3), where there are 10 thresholds.
-            cube_unit:
-                The units of the data within the cube, if different from those of
-                the template_cube.
 
         Returns:
-            Cube containing a percentile coordinate as the leading dimension (or
-            scalar percentile coordinate if single-valued)
+            Cube containing the new threshold coordinate and the interpolated data.
         """
         template_cube = next(forecast_at_thresholds.slices_over(self.threshold_coord))
         threshold_units = template_cube.coord(self.threshold_coord).units
@@ -165,19 +182,24 @@ class ThresholdInterpolation(PostProcessingPlugin):
         forecast_at_thresholds: Cube,
     ) -> Cube:
         """
-        1. Creates a list of thresholds, if not provided.
-        2. Interpolate the threshold coordinate into an alternative
-           set of thresholds using linear interpolation.
+        Process the input cube to interpolate forecast data to a new set of thresholds.
+
+        This method performs the following steps:
+        1. Identifies the threshold coordinate in the input cube.
+        2. Checks if the mask is consistent across different slices of the threshold coordinate.
+        3. Collapses the realizations if present.
+        4. Interpolates the forecast data to the new set of thresholds.
+        5. Creates a new cube with the interpolated threshold data.
+        6. Applies the original mask to the new cube if it exists.
 
         Args:
-            forecast_at_thresholds:
+            forecast_at_thresholds (Cube):
                 Cube expected to contain a threshold coordinate.
-            thresholds:
-                List of the desired output thresholds.
 
         Returns:
-            Cube with forecast values at the desired set of thresholds.
-            The threshold coordinate is always the zeroth dimension.
+            Cube:
+                Cube with forecast values at the desired set of thresholds.
+                The threshold coordinate is always the zeroth dimension.
         """
         self.threshold_coord = find_threshold_coordinate(forecast_at_thresholds).name()
 
@@ -196,8 +218,5 @@ class ThresholdInterpolation(PostProcessingPlugin):
         if original_mask is not None:
             original_mask = np.broadcast_to(original_mask, threshold_cube.shape)
             threshold_cube.data = np.ma.MaskedArray(threshold_cube.data, mask=original_mask)
-
-#        if threshold_cube.coords("realization"):
-#            threshold_cube = collapse_realizations(threshold_cube)
 
         return threshold_cube
