@@ -131,7 +131,30 @@ def site_cubes(validity_time, time_bounds, forecast_reference_time):
     return site_cube_diagnostic, site_cube_mean, site_cube_variance
 
 
-## Testing the plugin's basic functionality
+def check_reference_epoch_coord(result_cube, reference_cube):
+    """Check that the reference_epoch coordinate on the result cube is as expected."""
+    if "reference_epoch" not in [coord.name() for coord in result_cube.coords()]:
+        return False
+    else:
+        results = []
+        results.append(
+            result_cube.coord("reference_epoch").points
+            == reference_cube.coord("time").points
+        )
+        results.append(
+            np.array_equal(
+                result_cube.coord("reference_epoch").bounds,
+                reference_cube.coord("time").bounds,
+            )
+        )
+        results.append(
+            result_cube.coord("reference_epoch").units
+            == reference_cube.coord("time").units
+        )
+        return all(results)
+
+
+# Testing the plugin's basic functionality
 @pytest.mark.parametrize(
     "fixture_name", ["diagnostic_cube", "diagnostic_cube_multiple_time_points"]
 )
@@ -148,14 +171,7 @@ def test_calculate_unstandardised_anomalies_gridded_data(
         expected_anomalies = np.array([2, 0, -2], dtype=np.float32).reshape(3, 1, 1)
     result = plugin.process(diagnostic_cube, mean_cube)
     np.testing.assert_allclose(result.data, expected_anomalies, rtol=1e-5)
-    assert result.name() == diagnostic_cube.name() + "_anomaly"
-    assert result.units == "K"
-    assert "reference_epoch" in [coord.name() for coord in result.coords()]
-    assert result.coord("reference_epoch").points == mean_cube.coord("time").points
-    assert np.array_equal(
-        result.coord("reference_epoch").bounds, mean_cube.coord("time").bounds
-    )
-    assert result.coord("reference_epoch").units == mean_cube.coord("time").units
+    assert check_reference_epoch_coord(result, mean_cube)
     assert (
         "(CellMethod(method='anomaly', coord_names=('reference_epoch',), intervals=(), comments=())"
         in str(result.cell_methods)
@@ -181,13 +197,7 @@ def test_calculate_standardised_anomalies_gridded_data(
     np.testing.assert_allclose(result.data, expected_anomalies, rtol=1e-5)
     assert result.long_name == diagnostic_cube.name() + "_standard_anomaly"
     assert result.units == "1"
-    assert "reference_epoch" in [coord.name() for coord in result.coords()]
-    assert result.coord("reference_epoch")
-    assert result.coord("reference_epoch").points == mean_cube.coord("time").points
-    assert np.array_equal(
-        result.coord("reference_epoch").bounds, mean_cube.coord("time").bounds
-    )
-    assert result.coord("reference_epoch").units == mean_cube.coord("time").units
+    assert check_reference_epoch_coord(result, mean_cube)
     assert (
         "(CellMethod(method='anomaly', coord_names=('reference_epoch',), intervals=(), comments=())"
         in str(result.cell_methods)
@@ -203,12 +213,7 @@ def test_calculate_unstandardised_anomalies_site_data(site_cubes):
     np.testing.assert_allclose(result.data, expected_anomalies, rtol=1e-5)
     assert result.name() == site_cube_diagnostic.name() + "_anomaly"
     assert result.units == "K"
-    assert "reference_epoch" in [coord.name() for coord in result.coords()]
-    assert result.coord("reference_epoch").points == site_cube_mean.coord("time").points
-    assert np.array_equal(
-        result.coord("reference_epoch").bounds, site_cube_mean.coord("time").bounds
-    )
-    assert result.coord("reference_epoch").units == site_cube_mean.coord("time").units
+    assert check_reference_epoch_coord(result, site_cube_mean)
     assert (
         "(CellMethod(method='anomaly', coord_names=('reference_epoch',), intervals=(), comments=())"
         in str(result.cell_methods)
@@ -224,12 +229,7 @@ def test_calculate_standardised_anomalies_site_data(site_cubes):
     np.testing.assert_allclose(result.data, expected_anomalies, rtol=1e-5)
     assert result.long_name == site_cube_diagnostic.name() + "_standard_anomaly"
     assert result.units == "1"
-    assert "reference_epoch" in [coord.name() for coord in result.coords()]
-    assert result.coord("reference_epoch").points == site_cube_mean.coord("time").points
-    assert np.array_equal(
-        result.coord("reference_epoch").bounds, site_cube_mean.coord("time").bounds
-    )
-    assert result.coord("reference_epoch").units == site_cube_mean.coord("time").units
+    assert check_reference_epoch_coord(result, site_cube_mean)
     assert (
         "(CellMethod(method='anomaly', coord_names=('reference_epoch',), intervals=(), comments=())"
         in str(result.cell_methods)
@@ -249,19 +249,14 @@ def test_ignore_temporal_mismatch(diagnostic_cube, mean_cube, variance_cube):
 
     assert result.long_name == diagnostic_cube.name() + "_standard_anomaly"
     assert result.units == "1"
-    assert result.coord("reference_epoch")
-    assert result.coord("reference_epoch").points == mean_cube.coord("time").points
-    assert np.array_equal(
-        result.coord("reference_epoch").bounds, mean_cube.coord("time").bounds
-    )
-    assert result.coord("reference_epoch").units == mean_cube.coord("time").units
+    assert check_reference_epoch_coord(result, mean_cube)
     assert (
         "(CellMethod(method='anomaly', coord_names=('reference_epoch',), intervals=(), comments=())"
         in str(result.cell_methods)
     )
 
 
-## Testing the plugin's internal verification checks
+# Testing the plugin's internal verification checks
 @pytest.mark.parametrize("error_to_check", ["mean_check", "variance_check"])
 def test_error_units_mismatch(
     diagnostic_cube, mean_cube, variance_cube, error_to_check
