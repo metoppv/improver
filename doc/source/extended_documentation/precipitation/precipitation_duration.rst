@@ -22,7 +22,7 @@ The method used in this plugin is as follows:
 5. Generate a tuple of tuples that describe all the different combinations of rate and accumulation thresholds to be combined together to classify the precipitation.
 6. Scale the percentiles requested by the user to values in the range 0 to (realizations - 1). The table below shows an example, with 5 percentile values requested and these scaled to suitable lookup values for a 3-member ensemble (i.e. values of 0, 1 or 2).
 
-.. figure:: extended_documentation/precipitation_type/percentile_table.png
+.. figure:: extended_documentation/precipitation/percentile_table.png
     :align: center
     :alt: A table showing the target percentiles, their scaled values, and the integer floor and ceiling of these values.
 
@@ -35,7 +35,7 @@ The method used in this plugin is as follows:
 
 This table demonstrates how the hit count and cumulative table is formed for our example 3-member ensemble with data covering a 24-hour period in 3-hour chunks. The no of periods that can be classified as wet (8) determines the length of this array (shown here for a single grid cell). For each realization a value of 1 is added into the array at the index corresponding to the number of periods classified as wet. The hit count total is formed by summing across all realizations.
 
-.. figure:: extended_documentation/precipitation_type/example_table.png
+.. figure:: extended_documentation/precipitation/example_table.png
     :align: center
     :alt: An example of a hit count and cumulative table being formed.
 
@@ -45,13 +45,13 @@ This table demonstrates how the hit count and cumulative table is formed for our
 
 This figure demonstrates the use of the cumulative table to lookup the bounding period fractions for our target percentile.
 
-.. figure:: extended_documentation/precipitation_type/looking_up_indices.png
+.. figure:: extended_documentation/precipitation/looking_up_indices.png
     :align: center
     :alt: A diagram showing how the cumulative table is used to find the bounding period fractions for our target percentiles.
 
 15. We perform a linear interpolation between the values to obtain our target percentile value. The interpolation fraction is the difference between the lookup percentile and the floored version of the same.
 
-.. figure:: extended_documentation/precipitation_type/percentile_calculation.png
+.. figure:: extended_documentation/precipitation/percentile_calculation.png
     :align: center
     :alt: A table showing the calculation of the percentile values from the frequency table.
 
