@@ -21,6 +21,7 @@ from improver.metadata.probabilistic import (
     get_threshold_coord_name_from_probability_name,
 )
 from improver.metadata.utilities import (
+    enforce_time_point_standard,
     generate_mandatory_attributes,
 )
 from improver.utilities.common_input_handle import as_cubelist
@@ -46,7 +47,7 @@ class PrecipitationDuration(PostProcessingPlugin):
     input data period can be returned.
 
     .. See the documentation for a more detailed discussion of this plugin.
-    .. include:: extended_documentation/precipitation_type/
+    .. include:: extended_documentation/precipitation/
         precipitation_duration.rst
     """
 
@@ -164,7 +165,7 @@ class PrecipitationDuration(PostProcessingPlugin):
     def _construct_constraint(
         diagnostic: str, threshold_name: str, threshold_values: ndarray
     ) -> Constraint:
-        """Construct constraints to use in extracting the accumulation and
+        """Construct constraint to use in extracting the accumulation and
         rate data, at relevant thresholds, from the input cubes.
 
         Args:
@@ -196,7 +197,7 @@ class PrecipitationDuration(PostProcessingPlugin):
         threshold_values: ndarray,
     ) -> Cube:
         """Extract target diagnostics and thresholds from the input cube list.
-        Merge these cubes into a single cube with a multi-values time
+        Merge these cubes into a single cube with a multi-valued time
         dimension.
 
         Args:
@@ -297,15 +298,10 @@ class PrecipitationDuration(PostProcessingPlugin):
         )
         mandatory_attributes["precipitation_sampling_period_in_hours"] = self.period
 
-        time_coords = [cubes[0].coord("forecast_reference_time").copy()]
-        for crd in ["time", "forecast_period"]:
-            time_crd = cubes[0].coord(crd).copy()
-            time_coords.append(time_crd.collapsed())
-
         # Add more descriptive long names to accumulation and rate thresholds.
         acc_thresh.long_name = "precipitation_accumulation_threshold_for_wet"
         rate_thresh.long_name = "precipitation_rate_threshold_for_wet"
-        # Remove var_names as working with duel threshold coordinates.
+        # Remove var_names as working with dual threshold coordinates.
         # Iris will otherwise suffix these, e.g. threshold_0.
         acc_thresh.var_name = None
         rate_thresh.var_name = None
@@ -335,8 +331,17 @@ class PrecipitationDuration(PostProcessingPlugin):
             units="1",
             attributes=mandatory_attributes,
         )
+        # The time dimension has been collapsed within the calculation.
+        # Here we collapse the coordinate from one of the inputs to apply to
+        # the output to match the data manipulation.
+        time_coords = [cubes[0].coord("forecast_reference_time").copy()]
+        for crd in ["time", "forecast_period"]:
+            time_crd = cubes[0].coord(crd).copy()
+            time_coords.append(time_crd.collapsed())
+
         for crd in time_coords:
             classification_percentiles.add_aux_coord(crd)
+        enforce_time_point_standard(classification_percentiles)
 
         return squeeze(classification_percentiles)
 
@@ -367,7 +372,7 @@ class PrecipitationDuration(PostProcessingPlugin):
             realizations:
                 A list of realization indices to loop over.
             spatial_dims:
-                A list containing the indices of the spatialcoordinates on the
+                A list containing the indices of the spatial coordinates on the
                 max_precip_rate cube, which are the same as for the
                 precip_accumulation cube.
         Raises:

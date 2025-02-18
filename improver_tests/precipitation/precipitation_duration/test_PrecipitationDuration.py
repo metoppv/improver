@@ -293,7 +293,7 @@ DEFAULT_ACC_NAME, DEFAULT_ACC_THRESH_NAME, DEFAULT_RATE_NAME, DEFAULT_RATE_THRES
     ],
 )
 def test__construct_constraint(diagnostic: str, threshold: float, threshold_name: str):
-    """Test that iris constraints for the given thresholds are constructed and
+    """Test that the iris constraint for the given threshold is constructed and
     returned correctly."""
 
     plugin = PrecipitationDuration(
