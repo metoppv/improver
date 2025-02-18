@@ -545,11 +545,10 @@ class CalculateClimateAnomalies(BasePlugin):
         return diagnostic_cube
 
     @staticmethod
-    def _add_reference_epoch_metadata(output_cube, diagnostic_cube, mean_cube) -> Cube:
+    def _add_reference_epoch_metadata(output_cube, mean_cube) -> Cube:
         """Add epoch metadata to describe the creation of the anomaly.
         1. Add a scalar coordinate 'reference epoch' to describe the time period over which the climatology was calculated:
         - timebound inherited from mean cube,
-        - validity time from diagnostic cube.
         2. Add a cell method called 'anomaly' to describe the operation that was performed.
 
         The output_cube is modified in place.
@@ -589,9 +588,7 @@ class CalculateClimateAnomalies(BasePlugin):
         self._update_cube_name_and_units(output_cube, standard_anomaly)
 
         # Create the reference epoch coordinate and cell method
-        output_cube = self._add_reference_epoch_metadata(
-            output_cube, diagnostic_cube, mean_cube
-        )
+        output_cube = self._add_reference_epoch_metadata(output_cube, mean_cube)
 
         anomalies_data = self.calculate_anomalies(
             diagnostic_cube, mean_cube, variance_cube
