@@ -42,8 +42,8 @@ def basic_input_cube() -> Cube:
     return input_cube
 
 
-@pytest.fixture(name="masked_cube_same")
-def masked_cube_same() -> Cube:
+@pytest.fixture
+def masked_cube() -> Cube:
     """Set up a masked cube which is consistent for every threshold."""
     data = np.array(
         [
@@ -64,47 +64,14 @@ def masked_cube_same() -> Cube:
 
     masked_data = np.ma.masked_array(data, mask=mask)
 
-    masked_cube_same = set_up_probability_cube(
+    masked_cube = set_up_probability_cube(
         masked_data,
         thresholds=[100, 200, 300],
         variable_name="visibility_in_air",
         threshold_units="m",
         spp__relative_to_threshold="less_than",
     )
-    return masked_cube_same
-
-
-@pytest.fixture(name="masked_cube_diff")
-def masked_cube_diff() -> Cube:
-    """Set up a masked cube that has a different mask per threshold."""
-    data = np.array(
-        [
-            [[1.0, 0.9, 1.0], [0.8, 0.9, 0.5], [0.5, 0.2, 0.0]],
-            [[1.0, 0.5, 1.0], [0.5, 0.5, 0.3], [0.2, 0.0, 0.0]],
-            [[1.0, 0.2, 0.5], [0.2, 0.0, 0.1], [0.0, 0.0, 0.0]],
-        ],
-        dtype=np.float32,
-    )
-    mask = np.array(
-        [
-            [[0.0, 0.0, 1.0], [0.0, 1.0, 0.0], [1.0, 1.0, 1.0]],
-            [[0.0, 1.0, 1.0], [0.0, 1.0, 1.0], [0.0, 1.0, 0.0]],
-            [[1.0, 0.0, 0.0], [1.0, 0.0, 1.0], [0.0, 1.0, 0.0]],
-        ],
-        dtype=np.int8,
-    )
-
-    masked_data = np.ma.masked_array(data, mask=mask)
-
-    masked_cube_diff = set_up_probability_cube(
-        masked_data,
-        thresholds=[100, 200, 300],
-        variable_name="visibility_in_air",
-        threshold_units="m",
-        spp__relative_to_threshold="less_than",
-    )
-    return masked_cube_diff
-
+    return masked_cube
 
 def test_basic(input_cube):
     """Test that the plugin returns an Iris.cube.Cube with suitable units."""
@@ -113,12 +80,14 @@ def test_basic(input_cube):
     assert result, Cube
     assert result.units == input_cube.units
 
+
 def test_empty_threshold_list():
     """
     Test that a ValueError is raised if the threshold list is empty.
     """
     with pytest.raises(ValueError, match="The thresholds list cannot be empty."):
         ThresholdInterpolation([])
+
 
 def test_metadata_copy(input_cube):
     """
@@ -130,31 +99,52 @@ def test_metadata_copy(input_cube):
     result = ThresholdInterpolation(thresholds)(input_cube)
     assert input_cube.metadata._asdict() == result.metadata._asdict()
 
-def test_thresholds_different_mask(masked_cube_diff):
+
+def test_thresholds_different_mask(masked_cube):
     """
     Testing that a value error message is raised if masks are different across thresholds.
     """
+    masked_cube.data.mask[0, 0, 0] = True
     thresholds = [100, 150, 200, 250, 300]
     error_msg = "The mask is expected to be constant across different slices of the"
 
     with pytest.raises(ValueError, match=error_msg):
-        ThresholdInterpolation(thresholds)(masked_cube_diff)
+        ThresholdInterpolation(thresholds)(masked_cube)
 
-def test_masked_cube(masked_cube_same):
+
+def test_masked_cube(masked_cube):
     """
     Testing that a Cube is returned when inputting a masked cube.
     """
     thresholds = [100, 150, 200, 250, 300]
-    result = ThresholdInterpolation(thresholds)(masked_cube_same)
+    result = ThresholdInterpolation(thresholds)(masked_cube)
     assert isinstance(result, Cube)
 
-def test_mask_consistency(masked_cube_same):
+
+def test_mask_consistency(masked_cube):
     """
     Test that the mask is the same before and after ThresholdInterpolation.
     """
     thresholds = [100, 150, 200, 250, 300]
-    original_mask = masked_cube_same.data.mask
-    print(original_mask)
-    result = ThresholdInterpolation(thresholds)(masked_cube_same).data.mask
-    print(result)
+    original_mask = masked_cube.data.mask
+    result = ThresholdInterpolation(thresholds)(masked_cube).data.mask
     np.testing.assert_array_equal(original_mask[0], result[0])
+
+
+def test_interpolated_values(input_cube):
+    """
+    Test that the interpolated values are as expected.
+    """
+    thresholds = [100, 150, 200, 250, 300]
+    result = ThresholdInterpolation(thresholds)(input_cube)
+    expected_interpolated_values = np.array(
+        [
+            [[1.0, 0.9, 1.0], [0.8, 0.9, 0.5], [0.5, 0.2, 0.0]],
+            [[1.0, 0.7, 1.0], [0.65, 0.7, 0.4], [0.35, 0.1, 0.0]],
+            [[1.0, 0.5, 1.0], [0.5, 0.5, 0.3], [0.2, 0.0, 0.0]],
+            [[1.0, 0.35, 0.75], [0.35, 0.25, 0.2], [0.1, 0.0, 0.0]],
+            [[1.0, 0.2, 0.5], [0.2, 0.0, 0.1], [0.0, 0.0, 0.0]],
+        ],
+        dtype=np.float32,
+    )
+    np.testing.assert_array_equal(result.data, expected_interpolated_values)
