@@ -273,7 +273,7 @@ def unify_cycletime(
     """
     result_cubes = iris.cube.CubeList([])
 
-    if not set(target_coords) <= set(["forecast_reference_time", "blend_time"]):
+    if not set(target_coords).issubset(set(["forecast_reference_time", "blend_time"])):
         raise ValueError(
             f"Target_coords must be one or both of 'forecast_reference_time' or 'blend_time'. "
             f"Got {target_coords}"

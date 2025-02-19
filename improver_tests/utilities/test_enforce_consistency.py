@@ -365,7 +365,7 @@ def test_double_bounds_exceptions(
 def test_updating_times(blend_time, ref_shift, forecast_shift, expected_shift):
     """
     Test that forecast_reference_time and / or blend_time are updated on
-    cubes to which consitency is being applied.
+    cubes to which consistency is being applied.
     """
     shape = (3, 2, 2)
     reference_cube = get_realization_forecast(275, shape, "air_temperature")
