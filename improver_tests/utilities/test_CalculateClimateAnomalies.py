@@ -2,7 +2,8 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""Unit tests for the CalculateClimateAnomalies plugin within mathematical_operations.py"""
+"""Unit tests for the CalculateClimateAnomalies plugin within 
+mathematical_operations.py"""
 
 from datetime import datetime
 
@@ -171,9 +172,12 @@ def test_calculate_unstandardised_anomalies_gridded_data(
         expected_anomalies = np.array([2, 0, -2], dtype=np.float32).reshape(3, 1, 1)
     result = plugin.process(diagnostic_cube, mean_cube)
     np.testing.assert_allclose(result.data, expected_anomalies, rtol=1e-5)
+    assert result.long_name == diagnostic_cube.name() + "_anomaly"
+    assert result.units == "K"    
     assert check_reference_epoch_coord(result, mean_cube)
     assert (
-        "(CellMethod(method='anomaly', coord_names=('reference_epoch',), intervals=(), comments=())"
+        "(CellMethod(method='anomaly', coord_names=('reference_epoch',),"
+        "intervals=(), comments=())"
         in str(result.cell_methods)
     )
 
@@ -199,7 +203,8 @@ def test_calculate_standardised_anomalies_gridded_data(
     assert result.units == "1"
     assert check_reference_epoch_coord(result, mean_cube)
     assert (
-        "(CellMethod(method='anomaly', coord_names=('reference_epoch',), intervals=(), comments=())"
+        "(CellMethod(method='anomaly', coord_names=('reference_epoch',), "
+        "intervals=(), comments=())"
         in str(result.cell_methods)
     )
 
@@ -215,7 +220,8 @@ def test_calculate_unstandardised_anomalies_site_data(site_cubes):
     assert result.units == "K"
     assert check_reference_epoch_coord(result, site_cube_mean)
     assert (
-        "(CellMethod(method='anomaly', coord_names=('reference_epoch',), intervals=(), comments=())"
+        "(CellMethod(method='anomaly', coord_names=('reference_epoch',), "
+        "intervals=(), comments=())"
         in str(result.cell_methods)
     )
 
@@ -231,13 +237,14 @@ def test_calculate_standardised_anomalies_site_data(site_cubes):
     assert result.units == "1"
     assert check_reference_epoch_coord(result, site_cube_mean)
     assert (
-        "(CellMethod(method='anomaly', coord_names=('reference_epoch',), intervals=(), comments=())"
+        "(CellMethod(method='anomaly', coord_names=('reference_epoch',), "
+        "intervals=(), comments=())"
         in str(result.cell_methods)
     )
 
 
 def test_ignore_temporal_mismatch(diagnostic_cube, mean_cube, variance_cube):
-    """Test that the plugin handles requests to ignore temporal mismatch
+    """Test that the plugin handles requests to ignore temporal mismatch 
     between diagnostic cube and mean/variance cube.
     """
     diagnostic_cube.coord("time").points = (
@@ -251,7 +258,8 @@ def test_ignore_temporal_mismatch(diagnostic_cube, mean_cube, variance_cube):
     assert result.units == "1"
     assert check_reference_epoch_coord(result, mean_cube)
     assert (
-        "(CellMethod(method='anomaly', coord_names=('reference_epoch',), intervals=(), comments=())"
+        "(CellMethod(method='anomaly', coord_names=('reference_epoch',), "
+        "intervals=(), comments=())"
         in str(result.cell_methods)
     )
 
@@ -261,7 +269,8 @@ def test_ignore_temporal_mismatch(diagnostic_cube, mean_cube, variance_cube):
 def test_error_units_mismatch(
     diagnostic_cube, mean_cube, variance_cube, error_to_check
 ):
-    """Test that the plugin raises a ValueError if the units of the diagnostic and another cube mismatch"""
+    """Test that the plugin raises a ValueError if the units of the diagnostic and 
+    another cube mismatch"""
     plugin = CalculateClimateAnomalies()
     if error_to_check == "mean_check":
         mean_cube.units = "C"  # The units should be K ordinarily
@@ -281,7 +290,8 @@ def test_error_units_mismatch(
 def test_error_spatial_coords_mismatch_gridded_data(
     diagnostic_cube, mean_cube, variance_cube
 ):
-    """Test that the plugin raises a ValueError if the spatial coordinates of the diagnostic cube and another cube mismatch"""
+    """Test that the plugin raises a ValueError if the spatial coordinates of the
+    diagnostic cube and another cube mismatch"""
     mean_cube.coord("latitude").points = mean_cube.coord("latitude").points + 20
     mean_cube.coord("longitude").points = mean_cube.coord("longitude").points + 20
     plugin = CalculateClimateAnomalies()
@@ -294,13 +304,16 @@ def test_error_spatial_coords_mismatch_gridded_data(
 )
 def test_error_spatial_coords_mismatch_site_data(site_cubes, mean_cube, error_to_raise):
     site_cube_diagnostic, site_cube_mean, site_cube_variance = site_cubes
-    """Test that the plugin raises a ValueError if the spatial coordinates of the mean and variance cubes have different bounds."""
+    """Test that the plugin raises a ValueError if the spatial coordinates of the
+    mean and variance cubes have different bounds."""
     plugin = CalculateClimateAnomalies()
     if error_to_raise == "more_than_one_spot_index":
-        # Uses a cube without the spot_index coordinate (gridded mean_cube) to trigger the error
+        # Uses a cube without the spot_index coordinate (gridded mean_cube) 
+        # to trigger the error
         with pytest.raises(
             ValueError,
-            match="The cubes must all have the same spatial coordinates. Some cubes contain spot_index coordinates and some do not.",
+            match="The cubes must all have the same spatial coordinates. Some cubes"
+            "contain spot_index coordinates and some do not.",
         ):
             plugin.verify_spatial_coords_match(
                 site_cube_diagnostic, mean_cube, site_cube_variance
@@ -311,7 +324,7 @@ def test_error_spatial_coords_mismatch_site_data(site_cubes, mean_cube, error_to
         )
         with pytest.raises(
             ValueError,
-            match="Mismatching spot_index coordinates were found on the input cubes.",
+            match="Mismatching spot_index coordinates were found on the input cubes. ",
         ):
             plugin.verify_spatial_coords_match(
                 site_cube_diagnostic, site_cube_mean, site_cube_variance
@@ -330,7 +343,8 @@ def test_error_time_coords_mismatch(diagnostic_cube, mean_cube, variance_cube, c
         )  # Moves mean bounds outside variance bounds
         with pytest.raises(
             ValueError,
-            match="The mean and variance cubes must have compatible bounds. The following bounds were found: ",
+            match="The mean and variance cubes must have compatible bounds. "
+            "The following bounds were found: ",
         ):
             plugin.verify_time_coords_match(diagnostic_cube, mean_cube, variance_cube)
     else:
@@ -339,6 +353,7 @@ def test_error_time_coords_mismatch(diagnostic_cube, mean_cube, variance_cube, c
         )  # Moves diagnostic bounds outside mean bounds
         with pytest.raises(
             ValueError,
-            match="The diagnostic cube's time points must fall within the bounds of the mean cube. The following was found:",
+            match="The diagnostic cube's time points must fall within the bounds "
+            "of the mean cube. The following was found:",
         ):
             plugin.verify_time_coords_match(diagnostic_cube, mean_cube, variance_cube)
