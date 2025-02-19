@@ -409,10 +409,11 @@ def fast_linear_fit(
 
 
 class CalculateClimateAnomalies(BasePlugin):
-    """Utility functionality to convert an input cube of data to a cube containing 
-    anomaly data. If a forecast and a climatological mean are supplied, the anomaly 
-    calculated will be forecast - mean. If the climatological variance is also supplied, 
-    then a standardised anomaly is calculated as (forecast - mean) / standard_deviation"""
+    """Utility functionality to convert an input cube of data to a cube containing
+    anomaly data. If a forecast and a climatological mean are supplied, the anomaly
+    calculated will be forecast - mean. If the climatological standard deviation is
+    also supplied, then a standardised anomaly is calculated as
+    (forecast - mean) / standard deviation"""
 
     def __init__(
         self,
@@ -425,14 +426,15 @@ class CalculateClimateAnomalies(BasePlugin):
             ignore_temporal_mismatch:
                 If True, ignore mismatch in time coordinates between
                 the input cubes. Default is False. Set to True when interested
-                in the anomaly of a diagnostic cube relative to mean and variance
-                cubes of a different period.
+                in the anomaly of a diagnostic cube relative to mean and
+                standard deviation cubes of a different period.
         """
         self.ignore_temporal_mismatch = ignore_temporal_mismatch
 
     @staticmethod
-    def verify_units_match(diagnostic_cube: Cube, mean_cube: Cube, 
-                           variance_cube: Optional[Cube]=None) -> None:
+    def verify_units_match(
+        diagnostic_cube: Cube, mean_cube: Cube, std_cube: Optional[Cube] = None
+    ) -> None:
         """Check that all cubes have the same units. E.g. to prevent accidental
         use of cubes with rate data with cubes with accumulation data."""
         errors = []
@@ -442,10 +444,11 @@ class CalculateClimateAnomalies(BasePlugin):
                 f"The following units were found: {mean_cube.units},"
                 f"{diagnostic_cube.units}"
             )
-        if variance_cube and variance_cube.units != str(diagnostic_cube.units) + "2":
+        if std_cube and std_cube.units != str(diagnostic_cube.units):
             errors.append(
-                f"The variance cube must be the diagnostic cube squared."
-                f"The following units were found: {variance_cube.units},"
+                f"The standard deviation cube must have the same units "
+                "as the diagnostic cube."
+                f"The following units were found: {std_cube.units},"
                 f"{diagnostic_cube.units}"
             )
 
@@ -454,13 +457,13 @@ class CalculateClimateAnomalies(BasePlugin):
 
     @staticmethod
     def verify_spatial_coords_match(
-        self, diagnostic_cube: Cube, mean_cube: Cube, variance_cube: Optional[Cube]=None
+        diagnostic_cube: Cube, mean_cube: Cube, std_cube: Optional[Cube] = None
     ) -> None:
-        """Check that all cubes have the same spatial coordinates (i.e. the same grid 
+        """Check that all cubes have the same spatial coordinates (i.e. the same grid
         coordinates or spot index coordinates)."""
-        cubes_to_check = [diagnostic_cube, mean_cube]
-        if variance_cube:
-            cubes_to_check.append(variance_cube)
+        cubes_to_check = [
+            cube for cube in [diagnostic_cube, mean_cube, std_cube] if cube is not None
+        ]
         # Check if spot_index coordinate present for some but not all cubes
         spot_index_present = list(
             set(["spot_index" in get_dim_coord_names(cube) for cube in cubes_to_check])
@@ -468,7 +471,7 @@ class CalculateClimateAnomalies(BasePlugin):
         if len(spot_index_present) > 1:
             raise ValueError(
                 "The cubes must all have the same spatial coordinates. Some cubes"
-                f"contain spot_index coordinates and some do not."
+                "contain spot_index coordinates and some do not."
             )
         elif spot_index_present[0]:
             if any(
@@ -485,25 +488,25 @@ class CalculateClimateAnomalies(BasePlugin):
             raise ValueError("The spatial coordinates must match.")
 
     def verify_time_coords_match(
-        self, diagnostic_cube: Cube, mean_cube: Cube, variance_cube: Optional[Cube]=None
+        self, diagnostic_cube: Cube, mean_cube: Cube, std_cube: Optional[Cube] = None
     ) -> Cube:
         """Check that all cubes have compatible time coordinates."""
         errors = []
 
-        # Check if mean and variance cubes have the same bounds
-        if variance_cube and not np.array_equal(
-            mean_cube.coord("time").bounds, variance_cube.coord("time").bounds
+        # Check if mean and standard deviation cubes have the same bounds
+        if std_cube and not np.array_equal(
+            mean_cube.coord("time").bounds, std_cube.coord("time").bounds
         ):
             errors.append(
-                "The mean and variance cubes must have compatible bounds."
-                "The following bounds were found:"
+                "The mean and standard deviation cubes must have compatible bounds. "
+                "The following bounds were found: "
                 f"mean_cube bounds: {mean_cube.coord('time').bounds},"
-                f"variance_cube bounds: {variance_cube.coord('time').bounds}"
+                f"std_cube bounds: {std_cube.coord('time').bounds}"
             )
 
-        # Check if diagnostic cube's time point falls within the bounds of the 
+        # Check if diagnostic cube's time point falls within the bounds of the
         # mean cube.
-        # The verification of the variance cube's bounds suitably matching the 
+        # The verification of the standard deviation cube's bounds suitably matching the
         # diagnostic cube's is covered implicitly due to the above code chunk.
         if not self.ignore_temporal_mismatch:
             diagnostic_max = diagnostic_cube.coord("time").cell(-1).point
@@ -519,7 +522,7 @@ class CalculateClimateAnomalies(BasePlugin):
             ):
                 errors.append(
                     "The diagnostic cube's time points must fall within the bounds "
-                    "of the mean cube. The following was found:"
+                    "of the mean cube. The following was found: "
                     f"diagnostic cube maximum: {diagnostic_max},"
                     f"diagnostic cube minimum: {diagnostic_min},"
                     f"mean cube upper bound: {mean_time_bounds[1]},"
@@ -531,31 +534,29 @@ class CalculateClimateAnomalies(BasePlugin):
 
     @staticmethod
     def calculate_anomalies(
-        diagnostic_cube: Cube, mean_cube: Cube, variance_cube: Optional[Cube]=None
+        diagnostic_cube: Cube, mean_cube: Cube, std_cube: Optional[Cube] = None
     ) -> ndarray:
         """Calculate climate anomalies from the input cubes."""
         anomalies_data = diagnostic_cube.data - mean_cube.data
-        if variance_cube:
-            anomalies_data = anomalies_data / np.sqrt(variance_cube.data)
+        if std_cube:
+            anomalies_data = anomalies_data / std_cube.data
         return anomalies_data
 
     @staticmethod
     def _update_cube_name_and_units(
-        output_cube: Cube, standard_anomaly: bool=False
+        output_cube: Cube, standard_anomaly: bool = False
     ) -> None:
-        """This method updates the name and units of the given output cube based on 
+        """This method updates the name and units of the given output cube based on
         whether it represents a standard anomaly or not. The cube is modified in place.
 
         Args:
             output_cube:
                 The cube to be updated.
             standard_anomaly:
-                Flag indicating if the output is a standard anomaly. If True, the units 
-                are set to "1" and a "_standard_anomaly" suffix is added to the name. 
-                If False, the original units are retained and an "_anomaly" suffix 
-                is added to the name.
+                Flag indicating if the output is a standard anomaly. If True,
+                a "_standard_anomaly" suffix is added to the name.
+                If False, an "_anomaly" suffix is added to the name.
         """
-        output_cube.units = "1" if standard_anomaly else output_cube.units
 
         # If standard_anomaly is true, the output is a standard anomaly
         # and units are changed
@@ -571,10 +572,10 @@ class CalculateClimateAnomalies(BasePlugin):
     @staticmethod
     def _add_reference_epoch_metadata(output_cube: Cube, mean_cube: Cube) -> None:
         """Add epoch metadata to describe the creation of the anomaly.
-        1. Add a scalar coordinate 'reference epoch' to describe the time period over 
+        1. Add a scalar coordinate 'reference epoch' to describe the time period over
         which the climatology was calculated:
         - timebound inherited from mean cube,
-        2. Add a cell method called 'anomaly' to describe the operation 
+        2. Add a cell method called 'anomaly' to describe the operation
         that was performed.
 
         The output_cube is modified in place.
@@ -590,16 +591,14 @@ class CalculateClimateAnomalies(BasePlugin):
 
         output_cube.add_aux_coord(reference_epoch)
 
-        cell_method = CellMethod(
-            method="anomaly", coords=["reference_epoch"]
-        )  
+        cell_method = CellMethod(method="anomaly", coords=["reference_epoch"])
         output_cube.add_cell_method(cell_method)
 
     def _create_output_cube(
         self,
         diagnostic_cube: Cube,
         mean_cube: Cube,
-        variance_cube: Optional[Cube] = None,
+        std_cube: Optional[Cube] = None,
     ) -> Cube:
         """
         Create a final anomalies cube by copying the diagnostic cube, updating its data
@@ -609,15 +608,13 @@ class CalculateClimateAnomalies(BasePlugin):
         output_cube = diagnostic_cube.copy()
 
         # Update the cube name and units
-        standard_anomaly = True if variance_cube else False
+        standard_anomaly = True if std_cube else False
         self._update_cube_name_and_units(output_cube, standard_anomaly)
 
         # Create the reference epoch coordinate and cell method
-        output_cube = self._add_reference_epoch_metadata(output_cube, mean_cube)
+        self._add_reference_epoch_metadata(output_cube, mean_cube)
 
-        anomalies_data = self.calculate_anomalies(
-            diagnostic_cube, mean_cube, variance_cube
-        )
+        anomalies_data = self.calculate_anomalies(diagnostic_cube, mean_cube, std_cube)
 
         output_cube.data = anomalies_data
 
@@ -627,7 +624,7 @@ class CalculateClimateAnomalies(BasePlugin):
         self,
         diagnostic_cube: Cube,
         mean_cube: Cube,
-        variance_cube: Cube = None,
+        std_cube: Cube = None,
     ) -> Cube:
         """Calculate anomalies from the input cubes.
 
@@ -637,8 +634,8 @@ class CalculateClimateAnomalies(BasePlugin):
             mean_cube:
                 Cube containing the mean data to be used for the
                 calculation of anomalies.
-            variance_cube:
-                Cube containing the variance data to be used for the
+            std_cube:
+                Cube containing the standard deviation data to be used for the
                 calculation of standardised anomalies. If not provided,
                 only anomalies (not standardised anomalies) will be
                 calculated.
@@ -646,12 +643,10 @@ class CalculateClimateAnomalies(BasePlugin):
             Cube containing the result of the calculation with metadata reflecting
             the operation.
         """
-        self.verify_units_match(diagnostic_cube, mean_cube, variance_cube)
-        self.verify_spatial_coords_match(diagnostic_cube, mean_cube, variance_cube)
-        self.verify_time_coords_match(diagnostic_cube, mean_cube, variance_cube)
+        self.verify_units_match(diagnostic_cube, mean_cube, std_cube)
+        self.verify_spatial_coords_match(diagnostic_cube, mean_cube, std_cube)
+        self.verify_time_coords_match(diagnostic_cube, mean_cube, std_cube)
 
-        anomalies_cube = self._create_output_cube(
-            diagnostic_cube, mean_cube, variance_cube
-        )
+        anomalies_cube = self._create_output_cube(diagnostic_cube, mean_cube, std_cube)
 
         return anomalies_cube
