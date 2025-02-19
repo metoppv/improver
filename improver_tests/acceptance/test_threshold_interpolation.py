@@ -15,12 +15,7 @@ run_cli = acc.run_cli(CLI)
 
 def test_basic(tmp_path):
     """Test basic invocation with threshold argument"""
-    thresholds = (
-        "50.0,200.0,400.0,600.0,"
-        "1000.0,2000.0,"
-        "10000.0,25000.0,"
-        "40000.0"
-    )
+    thresholds = "50.0,200.0,400.0,600.0," "1000.0,2000.0," "10000.0,25000.0," "40000.0"
     kgo_dir = acc.kgo_root() / "threshold-interpolation"
     kgo_path = kgo_dir / "extra_thresholds_kgo.nc"
     input_path = kgo_dir / "input.nc"
@@ -33,12 +28,7 @@ def test_basic(tmp_path):
 
 def test_realization_collapse(tmp_path):
     """Test realization coordinate is collapsed"""
-    thresholds = (
-        "50.0,200.0,400.0,600.0,"
-        "1000.0,2000.0,"
-        "10000.0,25000.0,"
-        "40000.0"
-    )
+    thresholds = "50.0,200.0,400.0,600.0," "1000.0,2000.0," "10000.0,25000.0," "40000.0"
     kgo_dir = acc.kgo_root() / "threshold-interpolation"
     kgo_path = kgo_dir / "realization_collapse_kgo.nc"
     input_path = kgo_dir / "input_realization.nc"
@@ -51,12 +41,7 @@ def test_realization_collapse(tmp_path):
 
 def test_masked_cube(tmp_path):
     """Test masked cube"""
-    thresholds = (
-        "50.0,200.0,400.0,600.0,"
-        "1000.0,2000.0,"
-        "10000.0,25000.0,"
-        "40000.0"
-    )
+    thresholds = "50.0,200.0,400.0,600.0," "1000.0,2000.0," "10000.0,25000.0," "40000.0"
     kgo_dir = acc.kgo_root() / "threshold-interpolation"
     kgo_path = kgo_dir / "masked_cube_kgo.nc"
     input_path = kgo_dir / "masked_input.nc"
