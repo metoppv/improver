@@ -10,10 +10,8 @@ Unit tests for the
 import numpy as np
 import pytest
 from iris.cube import Cube
-from iris.exceptions import CoordinateNotFoundError
 
 from improver.synthetic_data.set_up_test_cubes import (
-    add_coordinate,
     set_up_probability_cube,
 )
 from improver.utilities.threshold_interpolation import ThresholdInterpolation
@@ -72,6 +70,7 @@ def masked_cube() -> Cube:
         spp__relative_to_threshold="less_than",
     )
     return masked_cube
+
 
 def test_basic(input_cube):
     """Test that the plugin returns an Iris.cube.Cube with suitable units."""

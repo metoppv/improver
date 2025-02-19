@@ -4,14 +4,14 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Script to linearly interpolate thresholds"""
 
-import warnings
-from typing import List, Optional, Union
-from improver import PostProcessingPlugin
+from typing import List
+
 import iris
 import numpy as np
 from iris.cube import Cube
 from numpy import ndarray
 
+from improver import PostProcessingPlugin
 from improver.calibration.utilities import convert_cube_data_to_2d
 from improver.ensemble_copula_coupling.utilities import (
     interpolate_multiple_rows_same_x,
@@ -24,10 +24,10 @@ from improver.utilities.cube_manipulation import (
     collapse_realizations,
     enforce_coordinate_ordering,
 )
+
+
 class ThresholdInterpolation(PostProcessingPlugin):
-
     def __init__(self, thresholds: List):
-
         """
         Linearly interpolate thresholds.
 
@@ -168,7 +168,7 @@ class ThresholdInterpolation(PostProcessingPlugin):
             )
             coord.rename(self.threshold_coord)
             coord.var_name = "threshold"
-            coord.attributes = {'spp__relative_to_threshold': 'less_than'}
+            coord.attributes = {"spp__relative_to_threshold": "less_than"}
             cube.add_aux_coord(coord)
             cubes.append(cube)
         result = cubes.merge_cube()
@@ -217,6 +217,8 @@ class ThresholdInterpolation(PostProcessingPlugin):
         )
         if original_mask is not None:
             original_mask = np.broadcast_to(original_mask, threshold_cube.shape)
-            threshold_cube.data = np.ma.MaskedArray(threshold_cube.data, mask=original_mask)
+            threshold_cube.data = np.ma.MaskedArray(
+                threshold_cube.data, mask=original_mask
+            )
 
         return threshold_cube
