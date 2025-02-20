@@ -4,7 +4,7 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Script to linearly interpolate thresholds"""
 
-from typing import List
+from typing import List, Optional
 
 import iris
 import numpy as np
@@ -27,35 +27,36 @@ from improver.utilities.cube_manipulation import (
 
 
 class ThresholdInterpolation(PostProcessingPlugin):
-    def __init__(self, thresholds: List):
+    def __init__(self, thresholds: List[float]):
         """
-        Linearly interpolate thresholds.
-
         Args:
             thresholds:
                 List of the desired output thresholds.
+
+        Raises:
+            ValueError:
+                If the thresholds list is empty.
         """
         if not thresholds:
             raise ValueError("The thresholds list cannot be empty.")
         self.thresholds = thresholds
         self.threshold_coord = None
 
-    def mask_checking(self, forecast_at_thresholds: Cube):
+    def mask_checking(self, forecast_at_thresholds: Cube) -> Optional[np.ndarray]:
         """
         Check if the mask is consistent across different slices of the threshold coordinate.
 
         Args:
-            forecast_at_thresholds (Cube):
-            The input cube containing forecast data with a threshold coordinate.
+            forecast_at_thresholds:
+                The input cube containing forecast data with a threshold coordinate.
 
         Returns:
-            original_mask (ndarray or None):
-            The original mask if the data is masked and the mask is consistent across
-            different slices of the threshold coordinate, otherwise None.
+            original_mask:
+                The original mask if the data is masked and the mask is consistent across
+                different slices of the threshold coordinate, otherwise None.
 
         Raises:
-            ValueError:
-            If the mask varies across different slices of the threshold coordinate.
+            ValueError: If the mask varies across different slices of the threshold coordinate.
         """
         original_mask = None
         if np.ma.is_masked(forecast_at_thresholds.data):
@@ -76,7 +77,7 @@ class ThresholdInterpolation(PostProcessingPlugin):
     def _interpolate_thresholds(
         self,
         forecast_at_thresholds: Cube,
-    ) -> Cube:
+    ) -> np.ndarray:
         """
         Interpolate forecast data to a new set of thresholds.
 
@@ -86,18 +87,12 @@ class ThresholdInterpolation(PostProcessingPlugin):
         then restoring the original dimensions.
 
         Args:
-            forecast_at_thresholds (Cube):
+            forecast_at_thresholds:
                 Cube containing forecast data with a threshold coordinate.
-            self.threshold_coord:
-                Name of required threshold coordinate.
 
         Returns:
             ndarray:
                 Interpolated forecast data with the new set of thresholds.
-
-        Raises:
-            ValueError:
-                If the threshold coordinate is not found in the input cube.
         """
         original_thresholds = forecast_at_thresholds.coord(self.threshold_coord).points
 
@@ -118,8 +113,6 @@ class ThresholdInterpolation(PostProcessingPlugin):
             forecast_at_interpolated_thresholds
         )
 
-        # Reshape forecast_at_percentiles, so the percentiles dimension is
-        # first, and any other dimension coordinates follow.
         forecast_at_thresholds_data = restore_non_percentile_dimensions(
             forecast_at_interpolated_thresholds,
             next(forecast_at_thresholds.slices_over(self.threshold_coord)),
@@ -134,23 +127,18 @@ class ThresholdInterpolation(PostProcessingPlugin):
         cube_data: ndarray,
     ) -> Cube:
         """
-        Create a cube with a threshold coordinate based on a template cube.
+        Create a cube with a threshold coordinate based on a template cube extracted
+        by slicing over the threshold coordinate.
+
         The resulting cube will have an extra threshold coordinate compared with
         the template cube. The shape of the cube_data should be the shape of the
         desired output cube.
 
         Args:
-            forecast_at_thresholds (Cube):
+            forecast_at_thresholds:
                 Cube containing forecast data with a threshold coordinate.
-            template_cube:
-                Cube to copy metadata from.
             cube_data:
-                Data to insert into the template cube.
-                The shape of the cube_data, excluding the dimension associated with
-                the threshold coordinate, should be the same as the shape of
-                template_cube.
-                For example, template_cube shape is (3, 3, 3), whilst the cube_data
-                is (10, 3, 3, 3), where there are 10 thresholds.
+                Array containing the interpolated forecast data with the new thresholds.
 
         Returns:
             Cube containing the new threshold coordinate and the interpolated data.
@@ -193,7 +181,7 @@ class ThresholdInterpolation(PostProcessingPlugin):
         6. Applies the original mask to the new cube if it exists.
 
         Args:
-            forecast_at_thresholds (Cube):
+            forecast_at_thresholds:
                 Cube expected to contain a threshold coordinate.
 
         Returns:
