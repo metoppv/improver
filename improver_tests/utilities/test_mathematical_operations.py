@@ -17,10 +17,7 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_variable_cube,
 )
 from improver.utilities.cube_manipulation import sort_coord_in_cube
-from improver.utilities.mathematical_operations import (
-    Integration,
-    fast_linear_fit,
-)
+from improver.utilities.mathematical_operations import Integration, fast_linear_fit
 
 
 def _set_up_height_cube(height_points, ascending=True):
