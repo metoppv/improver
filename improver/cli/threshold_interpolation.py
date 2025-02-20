@@ -19,10 +19,6 @@ def process(
     Use this CLI to modify the probability thresholds in an existing probability
     forecast cube by linearly interpolating between the existing thresholds.
 
-    1. Creates a list of thresholds, if not provided.
-    2. Interpolate the threshold coordinate into an alternative
-       set of thresholds using linear interpolation.
-
     Args:
         forecast_at_thresholds:
             Cube expected to contain a threshold coordinate.
