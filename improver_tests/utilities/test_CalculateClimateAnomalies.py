@@ -94,7 +94,7 @@ def std_cube(validity_time, time_bounds):
         time_bounds=time_bounds["mean_and_std"],
         units="K",
     )
-    cell_method = iris.coords.CellMethod(method="std", coords="time")
+    cell_method = iris.coords.CellMethod(method="standard_deviation", coords="time")
     cube.add_cell_method(cell_method)
     return cube
 
@@ -157,10 +157,10 @@ def check_reference_epoch_coord(result_cube, reference_cube):
 @pytest.mark.parametrize(
     "fixture_name", ["diagnostic_cube", "diagnostic_cube_multiple_time_points"]
 )
-def test_calculate_unstandardised_anomalies_gridded_data(
+def test_calculate_unstandardized_anomalies_gridded_data(
     request, fixture_name, mean_cube
 ):
-    """Test that the plugin calculates unstandardised anomalies correctly."""
+    """Test that the plugin calculates unstandardized anomalies correctly."""
 
     diagnostic_cube = request.getfixturevalue(fixture_name)
     plugin = CalculateClimateAnomalies()
@@ -182,7 +182,7 @@ def test_calculate_unstandardised_anomalies_gridded_data(
 @pytest.mark.parametrize(
     "fixture_name", ["diagnostic_cube", "diagnostic_cube_multiple_time_points"]
 )
-def test_calculate_standardised_anomalies_gridded_data(
+def test_calculate_standardized_anomalies_gridded_data(
     request, fixture_name, mean_cube, std_cube
 ):
     """Test that the plugin returns a cube with expected data."""
@@ -196,7 +196,7 @@ def test_calculate_standardised_anomalies_gridded_data(
         )
     result = plugin.process(diagnostic_cube, mean_cube, std_cube)
     np.testing.assert_allclose(result.data, expected_anomalies, rtol=1e-5)
-    assert result.long_name == diagnostic_cube.name() + "_standard_anomaly"
+    assert result.long_name == diagnostic_cube.name() + "_standardized_anomaly"
     assert result.units == "K"
     assert check_reference_epoch_coord(result, mean_cube)
     assert (
@@ -205,8 +205,8 @@ def test_calculate_standardised_anomalies_gridded_data(
     )
 
 
-def test_calculate_unstandardised_anomalies_site_data(site_cubes):
-    """Test that the plugin calculates unstandardised anomalies correctly
+def test_calculate_unstandardized_anomalies_site_data(site_cubes):
+    """Test that the plugin calculates unstandardized anomalies correctly
     for site data."""
     plugin = CalculateClimateAnomalies()
     site_cube_diagnostic, site_cube_mean, _ = site_cubes
@@ -222,15 +222,15 @@ def test_calculate_unstandardised_anomalies_site_data(site_cubes):
     )
 
 
-def test_calculate_standardised_anomalies_site_data(site_cubes):
-    """Test that the plugin calculates standardised anomalies correctly
+def test_calculate_standardized_anomalies_site_data(site_cubes):
+    """Test that the plugin calculates standardized anomalies correctly
     for site data."""
     plugin = CalculateClimateAnomalies()
     site_cube_diagnostic, site_cube_mean, site_cube_std = site_cubes
     result = plugin.process(site_cube_diagnostic, site_cube_mean, site_cube_std)
     expected_anomalies = np.array([1.75], dtype=np.float32)
     np.testing.assert_allclose(result.data, expected_anomalies, rtol=1e-5)
-    assert result.long_name == site_cube_diagnostic.name() + "_standard_anomaly"
+    assert result.long_name == site_cube_diagnostic.name() + "_standardized_anomaly"
     assert result.units == "K"
     assert check_reference_epoch_coord(result, site_cube_mean)
     assert (
@@ -250,7 +250,7 @@ def test_ignore_temporal_mismatch(diagnostic_cube, mean_cube, std_cube):
     plugin = CalculateClimateAnomalies(ignore_temporal_mismatch=True)
     result = plugin.process(diagnostic_cube, mean_cube, std_cube)
 
-    assert result.long_name == diagnostic_cube.name() + "_standard_anomaly"
+    assert result.long_name == diagnostic_cube.name() + "_standardized_anomaly"
     assert result.units == "K"
     assert check_reference_epoch_coord(result, mean_cube)
     assert (

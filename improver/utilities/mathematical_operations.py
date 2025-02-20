@@ -412,7 +412,7 @@ class CalculateClimateAnomalies(BasePlugin):
     """Utility functionality to convert an input cube of data to a cube containing
     anomaly data. If a forecast and a climatological mean are supplied, the anomaly
     calculated will be forecast - mean. If the climatological standard deviation is
-    also supplied, then a standardised anomaly is calculated as
+    also supplied, then a standardized anomaly is calculated as
     (forecast - mean) / standard deviation"""
 
     def __init__(
@@ -489,7 +489,7 @@ class CalculateClimateAnomalies(BasePlugin):
 
     def verify_time_coords_match(
         self, diagnostic_cube: Cube, mean_cube: Cube, std_cube: Optional[Cube] = None
-    ) -> Cube:
+    ) -> None:
         """Check that all cubes have compatible time coordinates."""
         errors = []
 
@@ -544,30 +544,29 @@ class CalculateClimateAnomalies(BasePlugin):
 
     @staticmethod
     def _update_cube_name_and_units(
-        output_cube: Cube, standard_anomaly: bool = False
+        output_cube: Cube, standardized_anomaly: bool = False
     ) -> None:
         """This method updates the name and units of the given output cube based on
-        whether it represents a standard anomaly or not. The cube is modified in place.
+        whether it represents a standardized anomaly or not. The cube is modified 
+        in place.
 
         Args:
             output_cube:
                 The cube to be updated.
-            standard_anomaly:
-                Flag indicating if the output is a standard anomaly. If True,
-                a "_standard_anomaly" suffix is added to the name.
+            standardized_anomaly:
+                Flag indicating if the output is a standardized anomaly. If True,
+                a "_standardized_anomaly" suffix is added to the name.
                 If False, an "_anomaly" suffix is added to the name.
         """
 
-        # If standard_anomaly is true, the output is a standard anomaly
+        # If standardized_anomaly is true, the output is a standardized anomaly
         # and units are changed
-        suffix = "_standard_anomaly" if standard_anomaly else "_anomaly"
+        suffix = "_standardized_anomaly" if standardized_anomaly else "_anomaly"
 
         try:
             output_cube.standard_name = output_cube.standard_name + suffix
         except ValueError:
             output_cube.long_name = output_cube.standard_name + suffix
-
-        return output_cube
 
     @staticmethod
     def _add_reference_epoch_metadata(output_cube: Cube, mean_cube: Cube) -> None:
@@ -608,8 +607,8 @@ class CalculateClimateAnomalies(BasePlugin):
         output_cube = diagnostic_cube.copy()
 
         # Update the cube name and units
-        standard_anomaly = True if std_cube else False
-        self._update_cube_name_and_units(output_cube, standard_anomaly)
+        standardized_anomaly = True if std_cube else False
+        self._update_cube_name_and_units(output_cube, standardized_anomaly)
 
         # Create the reference epoch coordinate and cell method
         self._add_reference_epoch_metadata(output_cube, mean_cube)
@@ -636,8 +635,8 @@ class CalculateClimateAnomalies(BasePlugin):
                 calculation of anomalies.
             std_cube:
                 Cube containing the standard deviation data to be used for the
-                calculation of standardised anomalies. If not provided,
-                only anomalies (not standardised anomalies) will be
+                calculation of standardized anomalies. If not provided,
+                only anomalies (not standardized anomalies) will be
                 calculated.
         Returns:
             Cube containing the result of the calculation with metadata reflecting
