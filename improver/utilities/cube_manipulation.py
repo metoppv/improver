@@ -11,6 +11,7 @@ import iris
 import numpy as np
 from iris.coords import DimCoord
 from iris.cube import Cube, CubeList
+from datetime import timedelta
 from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin
@@ -426,6 +427,63 @@ def compare_coords(
                     )
 
     return unmatching_coords
+
+
+def create_period_cubes(
+    cube,
+    period,
+    coords=["time", "realization"],
+    method=iris.analysis.PERCENTILE,
+    method_kwargs={
+        "percent": [5, 10, 15, 20, 30, 40, 50, 60, 70, 80, 85, 90, 95],
+        "fast_percentile_method": True,
+    },
+    start_hour=0,
+):
+    """
+    Combine shorter period cubes into longer periods using a chosen method
+    for collapsing the time coordinate. This also alters the metadata to be
+    correct e.g. percentile rather than percentile_over_time.
+
+    Args:
+        cube: A cube with a time coordinate.
+        period: The target longer period in hours.
+        coords: The coordinates to collapse - this can be just time or time and realization
+        method: How to collapse the chunks of time coordinate that give
+                the target period to create a single value to represent
+                the period.
+        method_kwargs: A dictionary containing kwargs required by the chosen method.
+        start_hour: When constructing longer periods, only create those starting at this hour of the day.
+    Returns:
+        A cube with a new shorter time coordinate that describes the new
+        periods that have been created. The periods are overlapping.
+    """
+    input_times = cube.coord("time").cells()
+    last_time = cube.coord("time").cell(-1).point
+    lower_bound = next(input_times).point
+    upper_bound = lower_bound + timedelta(hours=period)
+    period_cubes = iris.cube.CubeList()
+    if lower_bound.hour == start_hour:
+        while upper_bound <= last_time:
+            con = iris.Constraint(time=lambda cell: lower_bound <= cell <= upper_bound)
+            extracted_cubes = cube.extract(con)
+            new_period = extracted_cubes.collapsed(coords, method, **method_kwargs)
+            new_time = new_period.coord("time").copy(
+                points=new_period.coord("time").bounds[0][-1],
+                bounds=new_period.coord("time").bounds,
+            )
+            new_period.replace_coord(new_time)
+            period_cubes.append(new_period)
+            lower_bound = next(input_times).point
+            upper_bound = lower_bound + timedelta(hours=period)
+    period = period_cubes.merge_cube()
+    if coords == ['time', 'realization']:
+        period.coord("percentile_over_time_realization").rename("percentile")
+    elif coords == ['time']:
+        period.coord("percentile_over_time").rename("percentile")
+    else:
+        raise ValueError("Time or time&realization need to be chosen as coords.")
+    return period
 
 
 def sort_coord_in_cube(cube: Cube, coord: str, descending: bool = False) -> Cube:
