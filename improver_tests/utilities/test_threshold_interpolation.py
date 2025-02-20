@@ -17,7 +17,6 @@ from improver.synthetic_data.set_up_test_cubes import (
 from improver.utilities.threshold_interpolation import ThresholdInterpolation
 
 
-@pytest.fixture(name="input_cube")
 def basic_input_cube() -> Cube:
     """Set up input cube with sparse thresholds."""
     data = np.array(
@@ -36,21 +35,20 @@ def basic_input_cube() -> Cube:
         threshold_units="m",
         spp__relative_to_threshold="less_than",
     )
-
     return input_cube
+
+
+@pytest.fixture
+def input_cube() -> Cube:
+    """Return an input cube with sparse thresholds."""
+    return basic_input_cube()
 
 
 @pytest.fixture
 def masked_cube() -> Cube:
     """Set up a masked cube which is consistent for every threshold."""
-    data = np.array(
-        [
-            [[1.0, 0.9, 1.0], [0.8, 0.9, 0.5], [0.5, 0.2, 0.0]],
-            [[1.0, 0.5, 1.0], [0.5, 0.5, 0.3], [0.2, 0.0, 0.0]],
-            [[1.0, 0.2, 0.5], [0.2, 0.0, 0.1], [0.0, 0.0, 0.0]],
-        ],
-        dtype=np.float32,
-    )
+    masked_cube = basic_input_cube()
+
     mask = np.array(
         [
             [[0.0, 0.0, 1.0], [0.0, 1.0, 0.0], [1.0, 0.0, 0.0]],
@@ -59,16 +57,7 @@ def masked_cube() -> Cube:
         ],
         dtype=np.int8,
     )
-
-    masked_data = np.ma.masked_array(data, mask=mask)
-
-    masked_cube = set_up_probability_cube(
-        masked_data,
-        thresholds=[100, 200, 300],
-        variable_name="visibility_in_air",
-        threshold_units="m",
-        spp__relative_to_threshold="less_than",
-    )
+    masked_cube.data = np.ma.masked_array(masked_cube.data, mask=mask)
     return masked_cube
 
 
