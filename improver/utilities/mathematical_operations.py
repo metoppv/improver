@@ -547,7 +547,7 @@ class CalculateClimateAnomalies(BasePlugin):
         output_cube: Cube, standardized_anomaly: bool = False
     ) -> None:
         """This method updates the name and units of the given output cube based on
-        whether it represents a standardized anomaly or not. The cube is modified 
+        whether it represents a standardized anomaly or not. The cube is modified
         in place.
 
         Args:
