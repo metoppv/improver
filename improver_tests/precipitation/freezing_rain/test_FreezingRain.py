@@ -12,7 +12,7 @@ import pytest
 from iris.cube import Cube
 from numpy.testing import assert_almost_equal
 
-from improver.precipitation_type.freezing_rain import FreezingRain
+from improver.precipitation.freezing_rain import FreezingRain
 
 RATE_NAME = "lwe_freezing_rainrate"
 ACCUM_NAME = "thickness_of_lwe_freezing_rainfall_amount"
@@ -24,7 +24,7 @@ class HaltExecution(Exception):
     pass
 
 
-@patch("improver.precipitation_type.freezing_rain.as_cubelist")
+@patch("improver.precipitation.freezing_rain.as_cubelist")
 def test_as_cubelist_called(mock_as_cubelist):
     mock_as_cubelist.side_effect = HaltExecution
     try:

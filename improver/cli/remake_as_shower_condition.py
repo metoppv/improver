@@ -31,6 +31,6 @@ def process(cube: cli.inputcube):
             Probability of any precipitation, if present, being classified as
             showery.
     """
-    from improver.precipitation_type.utilities import make_shower_condition_cube
+    from improver.precipitation.utilities import make_shower_condition_cube
 
     return make_shower_condition_cube(cube)

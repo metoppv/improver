@@ -27,7 +27,7 @@ def process(snow: cli.inputcube, rain: cli.inputcube):
             Returns a cube with the probability of sleet.
     """
 
-    from improver.precipitation_type.calculate_sleet_prob import (
+    from improver.precipitation.calculate_sleet_prob import (
         calculate_sleet_probability,
     )
 
