@@ -60,16 +60,16 @@ class ThresholdInterpolation(PostProcessingPlugin):
         """
         original_mask = None
         if np.ma.is_masked(forecast_at_thresholds.data):
-            (crd_dim,) = forecast_at_thresholds.coord_dims(self.threshold_coord)
+            (crd_dim,) = forecast_at_thresholds.coord_dims(self.threshold_coord.name())
             if np.diff(forecast_at_thresholds.data.mask, axis=crd_dim).any():
                 raise ValueError(
-                    f"The mask is expected to be constant across different slices of the {self.threshold_coord}"
-                    f" dimension, however, in the dataset provided, the mask varies across the {self.threshold_coord}"
+                    f"The mask is expected to be constant across different slices of the {self.threshold_coord.name()}"
+                    f" dimension, however, in the dataset provided, the mask varies across the {self.threshold_coord.name()}"
                     f" dimension. This is not currently supported."
                 )
             else:
                 original_mask = next(
-                    forecast_at_thresholds.slices_over(self.threshold_coord)
+                    forecast_at_thresholds.slices_over(self.threshold_coord.name())
                 ).data.mask
 
         return original_mask
@@ -94,13 +94,13 @@ class ThresholdInterpolation(PostProcessingPlugin):
             ndarray:
                 Interpolated forecast data with the new set of thresholds.
         """
-        original_thresholds = forecast_at_thresholds.coord(self.threshold_coord).points
+        original_thresholds = self.threshold_coord.points
 
         # Ensure that the threshold dimension is first, so that the
         # conversion to a 2d array produces data in the desired order.
-        enforce_coordinate_ordering(forecast_at_thresholds, self.threshold_coord)
+        enforce_coordinate_ordering(forecast_at_thresholds, self.threshold_coord.name())
         forecast_at_reshaped_thresholds = convert_cube_data_to_2d(
-            forecast_at_thresholds, coord=self.threshold_coord
+            forecast_at_thresholds, coord=self.threshold_coord.name()
         )
 
         forecast_at_interpolated_thresholds = interpolate_multiple_rows_same_x(
@@ -115,7 +115,7 @@ class ThresholdInterpolation(PostProcessingPlugin):
 
         forecast_at_thresholds_data = restore_non_percentile_dimensions(
             forecast_at_interpolated_thresholds,
-            next(forecast_at_thresholds.slices_over(self.threshold_coord)),
+            next(forecast_at_thresholds.slices_over(self.threshold_coord.name())),
             len(self.thresholds),
         )
 
@@ -143,8 +143,7 @@ class ThresholdInterpolation(PostProcessingPlugin):
         Returns:
             Cube containing the new threshold coordinate and the interpolated data.
         """
-        template_cube = next(forecast_at_thresholds.slices_over(self.threshold_coord))
-        threshold_units = template_cube.coord(self.threshold_coord).units
+        template_cube = next(forecast_at_thresholds.slices_over(self.threshold_coord.name()))
         template_cube.remove_coord(self.threshold_coord)
 
         # create cube with new threshold dimension
@@ -152,15 +151,14 @@ class ThresholdInterpolation(PostProcessingPlugin):
         for point in self.thresholds:
             cube = template_cube.copy()
             coord = iris.coords.DimCoord(
-                np.array([point], dtype="float32"), units=threshold_units
+                np.array([point], dtype="float32"), units=self.threshold_coord.units
             )
-            coord.rename(self.threshold_coord)
+            coord.rename(self.threshold_coord.name())
             coord.var_name = "threshold"
-            coord.attributes = {"spp__relative_to_threshold": "less_than"}
+            coord.attributes = self.threshold_coord.attributes
             cube.add_aux_coord(coord)
             cubes.append(cube)
         result = cubes.merge_cube()
-
         # replace data
         result.data = cube_data
         return result
@@ -189,7 +187,7 @@ class ThresholdInterpolation(PostProcessingPlugin):
                 Cube with forecast values at the desired set of thresholds.
                 The threshold coordinate is always the zeroth dimension.
         """
-        self.threshold_coord = find_threshold_coordinate(forecast_at_thresholds).name()
+        self.threshold_coord = find_threshold_coordinate(forecast_at_thresholds)
 
         original_mask = self.mask_checking(forecast_at_thresholds)
 

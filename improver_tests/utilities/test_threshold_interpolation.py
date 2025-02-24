@@ -61,12 +61,37 @@ def masked_cube() -> Cube:
     return masked_cube
 
 
-def test_basic(input_cube):
-    """Test that the plugin returns an Iris.cube.Cube with suitable units."""
+@pytest.mark.parametrize("input", ["input_cube", "masked_cube"])
+def test_cube_returned(request, input):
+    """
+    Test that the plugin returns an Iris.cube.Cube with suitable units.
+    """
+    cube = request.getfixturevalue(input)
     thresholds = [100, 150, 200, 250, 300]
-    result = ThresholdInterpolation(thresholds)(input_cube)
+    result = ThresholdInterpolation(thresholds)(cube)
     assert result, Cube
-    assert result.units == input_cube.units
+    assert result.units == cube.units
+
+
+@pytest.mark.parametrize("input", ["input_cube", "masked_cube"])
+def test_interpolated_values(request, input):
+    """
+    Test that the interpolated values are as expected.
+    """
+    cube = request.getfixturevalue(input)
+    thresholds = [100, 150, 200, 250, 300]
+    result = ThresholdInterpolation(thresholds)(cube)
+    expected_interpolated_values = np.array(
+        [
+            [[1.0, 0.9, 1.0], [0.8, 0.9, 0.5], [0.5, 0.2, 0.0]],
+            [[1.0, 0.7, 1.0], [0.65, 0.7, 0.4], [0.35, 0.1, 0.0]],
+            [[1.0, 0.5, 1.0], [0.5, 0.5, 0.3], [0.2, 0.0, 0.0]],
+            [[1.0, 0.35, 0.75], [0.35, 0.25, 0.2], [0.1, 0.0, 0.0]],
+            [[1.0, 0.2, 0.5], [0.2, 0.0, 0.1], [0.0, 0.0, 0.0]],
+        ],
+        dtype=np.float32,
+    )
+    np.testing.assert_array_equal(result.data, expected_interpolated_values)
 
 
 def test_empty_threshold_list():
@@ -79,7 +104,7 @@ def test_empty_threshold_list():
 
 def test_metadata_copy(input_cube):
     """
-    Test that the metadata dictionaries within the input cube, are
+    Test that the metadata dictionaries within the input cube are
     also present on the output cube.
     """
     input_cube.attributes = {"source": "ukv"}
@@ -100,39 +125,11 @@ def test_thresholds_different_mask(masked_cube):
         ThresholdInterpolation(thresholds)(masked_cube)
 
 
-def test_masked_cube(masked_cube):
-    """
-    Testing that a Cube is returned when inputting a masked cube.
-    """
-    thresholds = [100, 150, 200, 250, 300]
-    result = ThresholdInterpolation(thresholds)(masked_cube)
-    assert isinstance(result, Cube)
-
-
 def test_mask_consistency(masked_cube):
     """
     Test that the mask is the same before and after ThresholdInterpolation.
     """
     thresholds = [100, 150, 200, 250, 300]
-    original_mask = masked_cube.data.mask
+    original_mask = masked_cube.data.mask.copy()
     result = ThresholdInterpolation(thresholds)(masked_cube).data.mask
     np.testing.assert_array_equal(original_mask[0], result[0])
-
-
-def test_interpolated_values(input_cube):
-    """
-    Test that the interpolated values are as expected.
-    """
-    thresholds = [100, 150, 200, 250, 300]
-    result = ThresholdInterpolation(thresholds)(input_cube)
-    expected_interpolated_values = np.array(
-        [
-            [[1.0, 0.9, 1.0], [0.8, 0.9, 0.5], [0.5, 0.2, 0.0]],
-            [[1.0, 0.7, 1.0], [0.65, 0.7, 0.4], [0.35, 0.1, 0.0]],
-            [[1.0, 0.5, 1.0], [0.5, 0.5, 0.3], [0.2, 0.0, 0.0]],
-            [[1.0, 0.35, 0.75], [0.35, 0.25, 0.2], [0.1, 0.0, 0.0]],
-            [[1.0, 0.2, 0.5], [0.2, 0.0, 0.1], [0.0, 0.0, 0.0]],
-        ],
-        dtype=np.float32,
-    )
-    np.testing.assert_array_equal(result.data, expected_interpolated_values)
