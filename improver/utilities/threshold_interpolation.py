@@ -143,7 +143,9 @@ class ThresholdInterpolation(PostProcessingPlugin):
         Returns:
             Cube containing the new threshold coordinate and the interpolated data.
         """
-        template_cube = next(forecast_at_thresholds.slices_over(self.threshold_coord.name()))
+        template_cube = next(
+            forecast_at_thresholds.slices_over(self.threshold_coord.name())
+        )
         template_cube.remove_coord(self.threshold_coord)
 
         # create cube with new threshold dimension
