@@ -75,6 +75,16 @@ from improver.threshold import Threshold
             {"threshold_values": 0.6, "collapse_coord": "kittens"},
             "Can only collapse over one or a combination of realization",
         ),
+        # collapse coordinate is a list with invalid options
+        (
+            {"threshold_values": 0.6, "collapse_coord": ["kittens", "puppies"]},
+            "Can only collapse over one or a combination of realization",
+        ),
+        # collapse coordinate is a list containing both percentile and realization
+        (
+            {"threshold_values": 0.6, "collapse_coord": ["percentile", "realization"]},
+            "Cannot collapse over both percentile and realization coordinates.",
+        ),
         # threshold values provided as argument and via config
         (
             {"threshold_values": 0.6, "threshold_config": {"0.6"}},
@@ -131,17 +141,31 @@ def test__add_threshold_coord(default_cube, diagnostic, units):
 
 
 @pytest.mark.parametrize(
-    "n_realizations,n_times,data",
+    "kwargs,n_realizations,n_times,data",
     [
         # A typical case with float inputs
-        (1, 1, np.zeros(25, dtype=np.float32).reshape(5, 5)),
+        ({}, 1, 1, np.zeros(25, dtype=np.float32).reshape(5, 5)),
         # A case with integer inputs, where the data is converted to
         # float32 type, allowing for non-integer thresholded values,
         # i.e. due to the application of fuzzy thresholds.
-        (1, 1, np.zeros(25, dtype=np.int8).reshape(5, 5)),
+        ({}, 1, 1, np.zeros(25, dtype=np.int8).reshape(5, 5)),
+        # Test removal of realization coordinate if it is collapsed
+        (
+            {"collapse_coord": "realization"},
+            2,
+            1,
+            np.zeros(18, dtype=np.int8).reshape(2, 3, 3),
+        ),
+        # Test time coordinate remains even if it is collapsed
+        (
+            {"collapse_coord": ["realization", "time"]},
+            2,
+            2,
+            np.zeros(36, dtype=np.int8).reshape(2, 2, 3, 3),
+        ),
     ],
 )
-def test_attributes_and_types(custom_cube):
+def test_attributes_and_types(kwargs, custom_cube):
     """Test that the returned cube has the expected type and attributes."""
 
     expected_attributes = {
@@ -149,11 +173,15 @@ def test_attributes_and_types(custom_cube):
         "institution": "Met Office",
         "title": "Post-Processed IMPROVER unit test",
     }
-    plugin = Threshold(threshold_values=12, fuzzy_factor=(5 / 6))
+    default_kwargs = {"threshold_values": 12, "fuzzy_factor": (5 / 6)}
+    default_kwargs.update(kwargs)
+    plugin = Threshold(**default_kwargs)
     result = plugin(custom_cube)
 
     assert isinstance(result, Cube)
     assert result.dtype == np.float32
+    assert not result.coords("realization")
+    assert result.coords("time")
     for key, attribute in expected_attributes.items():
         assert result.attributes[key] == attribute
 
@@ -276,12 +304,20 @@ def test_expected_values(default_cube, kwargs, collapse, comparator, expected_re
         # dimension coordinates of the input cube.
         pytest.skip()
 
+    # Check the time coordinate returned is as expected even if the time
+    # coordinate is being collapsed.
+    expected_time_coord = default_cube.coord("time")
+    if collapse and "time" in collapse:
+        expected_time_coord = expected_time_coord.collapsed()
+        expected_time_coord.points = expected_time_coord.bounds[0][-1]
+
     local_kwargs.update({"comparison_operator": comparator})
     plugin = Threshold(**local_kwargs)
     result = plugin(default_cube)
 
     assert result.data.shape == expected_result.shape
     np.testing.assert_array_almost_equal(result.data, expected_result)
+    assert result.coord("time") == expected_time_coord
 
 
 @pytest.mark.parametrize(

@@ -23,6 +23,7 @@ from improver.metadata.probabilistic import (
     format_cell_methods_for_probability,
     probability_is_above_or_below,
 )
+from improver.metadata.utilities import enforce_time_point_standard
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.probability_manipulation import comparison_operator_dict
 from improver.utilities.rescale import rescale
@@ -121,9 +122,10 @@ class Threshold(PostProcessingPlugin):
             collapse_coord:
                 A coordinate or list of coordinates over which an average is
                 calculated by collapsing these coordinates. The only supported
-                options are combinations of "realization", "percentile", or
-                "time". If "percentile" is included the percentile coordinate
-                will be rebadged as a realization coordinate prior to collapse.
+                options are combinations of "realization" and "percentile" with
+                "time"; realization and percentile cannot both be collapsed.
+                If "percentile" is included the percentile coordinate will be
+                rebadged as a realization coordinate prior to collapse.
                 The percentile coordinate needs to be evenly spaced around the
                 50th percentile to allow successful conversion from percentiles
                 to realizations and subsequent collapsing over the realization
@@ -142,8 +144,9 @@ class Threshold(PostProcessingPlugin):
             ValueError: If both fuzzy_factor and bounds within the threshold_config are set.
             ValueError: If the fuzzy_factor is not strictly between 0 and 1.
             ValueError: If using a fuzzy factor with a threshold of 0.0.
-            ValueError: Can only collapse over a combination of realization, percentile
-                        and time coordinates.
+            ValueError: Can only collapse over one or a combination of realization
+                        and percentile coordinates with the time coordinate.
+            ValueError: If collapse_coord contains both percentile and realization.
         """
         if threshold_config and threshold_values:
             raise ValueError(
@@ -206,6 +209,14 @@ class Threshold(PostProcessingPlugin):
             raise ValueError(
                 "Can only collapse over one or a combination of realization, "
                 "percentile, and time coordinates."
+            )
+        if (
+            collapse_coord
+            and "percentile" in collapse_coord
+            and "realization" in collapse_coord
+        ):
+            raise ValueError(
+                "Cannot collapse over both percentile and realization coordinates."
             )
         self.collapse_coord = collapse_coord
 
@@ -590,7 +601,10 @@ class Threshold(PostProcessingPlugin):
 
         # Slice over collapse coords if required and create an empty threshold
         # cube to store the resulting thresholded data.
+        time_crd = None
         if self.collapse_coord is not None:
+            if "time" in self.collapse_coord:
+                time_crd = input_cube.coord("time").collapsed()
             input_slices = input_cube.slices_over(self.collapse_coord)
             thresholded_cube = self._create_threshold_cube(
                 next(input_cube.slices_over(self.collapse_coord))
@@ -619,10 +633,11 @@ class Threshold(PostProcessingPlugin):
                 unmasked = np.ones(cube.shape, dtype=bool)
 
             # All unmasked points contribute 1 to the numerator for calculating
-            # a realization collapsed truth value. Note that if input_slices
-            # above includes the realization coordinate (i.e. we are not collapsing
-            # that coordinate) then contribution_total will include this extra
-            # dimension and our denominator will be 1 at all unmasked points.
+            # a coordinate collapsed truth value. Note that if input_slices
+            # above includes the realization/time coordinate (i.e. we are not
+            # collapsing that coordinate) then contribution_total will include
+            # this extra dimension and our denominator will be 1 at all unmasked
+            # points.
             contribution_total += unmasked
 
             for index, (threshold, bounds) in enumerate(
@@ -663,6 +678,14 @@ class Threshold(PostProcessingPlugin):
         thresholded_cube.coord(self.threshold_coord_name).convert_units(
             self.original_units
         )
+
+        # If we've collapsed a time coordinate we need to add back a suitable
+        # time coordinate that captures the range of the times collapsed.
+        if time_crd is not None:
+            thresholded_cube.remove_coord("time")
+            thresholded_cube.add_aux_coord(time_crd)
+            enforce_time_point_standard(thresholded_cube)
+
         # Squeeze any single value dimension coordinates to make them scalar.
         thresholded_cube = iris.util.squeeze(thresholded_cube)
 
