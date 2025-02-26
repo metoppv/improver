@@ -50,10 +50,6 @@ def diagnostic_cube(
         data[..., 2, 2] = 0.5
         data = np.squeeze(data)
 
-    # print("n_times", n_times)
-    # print("dims", (3 + (n_realizations > 1)))
-    # print("data dims", data.ndim)
-
     if n_times > 1 and data.ndim != (3 + (n_realizations > 1)):
         data = np.ma.stack([data] * n_times)
     elif n_times == 1:
