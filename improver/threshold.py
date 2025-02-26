@@ -12,6 +12,7 @@ import iris
 import numpy as np
 from cf_units import Unit
 from iris.cube import Cube
+from iris.exceptions import CoordinateNotFoundError
 
 from improver import PostProcessingPlugin
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
@@ -50,7 +51,7 @@ class Threshold(PostProcessingPlugin):
         fuzzy_factor: Optional[float] = None,
         threshold_units: Optional[str] = None,
         comparison_operator: str = ">",
-        collapse_coord: str = None,
+        collapse_coord: Optional[Union[str, List[str]]] = None,
         vicinity: Optional[Union[float, List[float]]] = None,
         fill_masked: Optional[float] = None,
     ) -> None:
@@ -118,14 +119,15 @@ class Threshold(PostProcessingPlugin):
                 is no difference between < and <= or > and >=.
                 Valid choices: > >= < <= gt ge lt le.
             collapse_coord:
-                A coordinate over which an average is calculated, collapsing
-                this coordinate. The only supported options are "realization" or
-                "percentile". If "percentile" is requested, the percentile
-                coordinate will be rebadged as a realization coordinate prior to
-                collapse. The percentile coordinate needs to be evenly spaced
-                around the 50th percentile to allow successful conversion from
-                percentiles to realizations and subsequent collapsing over the
-                realization coordinate.
+                A coordinate or list of coordinates over which an average is
+                calculated by collapsing these coordinates. The only supported
+                options are combinations of "realization", "percentile", or
+                "time". If "percentile" is included the percentile coordinate
+                will be rebadged as a realization coordinate prior to collapse.
+                The percentile coordinate needs to be evenly spaced around the
+                50th percentile to allow successful conversion from percentiles
+                to realizations and subsequent collapsing over the realization
+                coordinate.
             fill_masked:
                 If provided all masked points in cube will be replaced with the
                 provided value.
@@ -140,8 +142,8 @@ class Threshold(PostProcessingPlugin):
             ValueError: If both fuzzy_factor and bounds within the threshold_config are set.
             ValueError: If the fuzzy_factor is not strictly between 0 and 1.
             ValueError: If using a fuzzy factor with a threshold of 0.0.
-            ValueError: Can only collapse over a realization coordinate or a percentile
-                        coordinate that has been rebadged as a realization coordinate.
+            ValueError: Can only collapse over a combination of realization, percentile
+                        and time coordinates.
         """
         if threshold_config and threshold_values:
             raise ValueError(
@@ -195,10 +197,15 @@ class Threshold(PostProcessingPlugin):
         self.comparison_operator_string = comparison_operator
         self._decode_comparison_operator_string()
 
-        if collapse_coord and collapse_coord not in ["percentile", "realization"]:
+        if collapse_coord and not isinstance(collapse_coord, list):
+            collapse_coord = [collapse_coord]
+
+        if collapse_coord and not set(collapse_coord).issubset(
+            ["percentile", "realization", "time"]
+        ):
             raise ValueError(
-                "Can only collapse over a realization coordinate or a percentile "
-                "coordinate that has been rebadged as a realization coordinate."
+                "Can only collapse over one or a combination of realization, "
+                "percentile, and time coordinates."
             )
         self.collapse_coord = collapse_coord
 
@@ -565,9 +572,10 @@ class Threshold(PostProcessingPlugin):
         if self.fill_masked is not None:
             input_cube.data = np.ma.filled(input_cube.data, self.fill_masked)
 
-        if self.collapse_coord == "percentile":
+        if self.collapse_coord and "percentile" in self.collapse_coord:
             input_cube = RebadgePercentilesAsRealizations()(input_cube)
-            self.collapse_coord = "realization"
+            self.collapse_coord.remove("percentile")
+            self.collapse_coord.append("realization")
 
         self.original_units = input_cube.units
         self.threshold_coord_name = input_cube.name()
@@ -580,7 +588,7 @@ class Threshold(PostProcessingPlugin):
                 for radius in self.vicinity
             ]
 
-        # Slice over realizations if required and create an empty threshold
+        # Slice over collapse coords if required and create an empty threshold
         # cube to store the resulting thresholded data.
         if self.collapse_coord is not None:
             input_slices = input_cube.slices_over(self.collapse_coord)
@@ -658,10 +666,11 @@ class Threshold(PostProcessingPlugin):
         # Squeeze any single value dimension coordinates to make them scalar.
         thresholded_cube = iris.util.squeeze(thresholded_cube)
 
-        if self.collapse_coord is not None and thresholded_cube.coords(
-            self.collapse_coord
-        ):
-            thresholded_cube.remove_coord(self.collapse_coord)
+        if self.collapse_coord is not None and "realization" in self.collapse_coord:
+            try:
+                thresholded_cube.remove_coord("realization")
+            except CoordinateNotFoundError:
+                pass
 
         # Re-cast to 32bit now that any unit conversion has already taken place.
         thresholded_cube.coord(var_name="threshold").points = thresholded_cube.coord(
@@ -674,6 +683,7 @@ class Threshold(PostProcessingPlugin):
         enforce_coordinate_ordering(
             thresholded_cube,
             [
+                "time",
                 "realization",
                 "percentile",
                 self.threshold_coord_name,
@@ -803,6 +813,6 @@ class LatitudeDependentThreshold(Threshold):
         cube.coord(var_name="threshold").convert_units(input_cube.units)
 
         self._update_metadata(cube)
-        enforce_coordinate_ordering(cube, ["realization", "percentile"])
+        enforce_coordinate_ordering(cube, ["time", "realization", "percentile"])
 
         return cube

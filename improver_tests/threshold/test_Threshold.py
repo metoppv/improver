@@ -73,7 +73,7 @@ from improver.threshold import Threshold
         # collapse coordinate is not percentile or realization
         (
             {"threshold_values": 0.6, "collapse_coord": "kittens"},
-            "Can only collapse over a realization coordinate or a percentile",
+            "Can only collapse over one or a combination of realization",
         ),
         # threshold values provided as argument and via config
         (
@@ -131,14 +131,14 @@ def test__add_threshold_coord(default_cube, diagnostic, units):
 
 
 @pytest.mark.parametrize(
-    "n_realizations,data",
+    "n_realizations,n_times,data",
     [
         # A typical case with float inputs
-        (1, np.zeros(25, dtype=np.float32).reshape(5, 5)),
+        (1, 1, np.zeros(25, dtype=np.float32).reshape(5, 5)),
         # A case with integer inputs, where the data is converted to
         # float32 type, allowing for non-integer thresholded values,
         # i.e. due to the application of fuzzy thresholds.
-        (1, np.zeros(25, dtype=np.int8).reshape(5, 5)),
+        (1, 1, np.zeros(25, dtype=np.int8).reshape(5, 5)),
     ],
 )
 def test_attributes_and_types(custom_cube):
@@ -216,7 +216,7 @@ def test_vicinity_as_empty_list(default_cube):
     assert result.name() == expected_cube_name
 
 
-@pytest.mark.parametrize("collapse", (False, True))
+@pytest.mark.parametrize("collapse", (None, ["realization"], ["realization", "time"]))
 @pytest.mark.parametrize("comparator", ("gt", "lt", "le", "ge"))
 @pytest.mark.parametrize(
     "kwargs,expected_single_value,expected_multi_value",
@@ -255,7 +255,8 @@ def test_expected_values(default_cube, kwargs, collapse, comparator, expected_re
 
       - Different threshold values relative to the diagnostic value(s)
       - Use of fuzzy thresholds, specified in different ways.
-      - Deterministic, single realization, and multi-realization inputs
+      - Deterministic, single realization, multi-realization, and multi-
+        realization/multi-time inputs
       - Different threshold comparators. Note that the tests have been
         engineered such that there are no cases where the difference
         between "ge" and "gt", or "le" and "lt" are signficant, these
@@ -266,10 +267,13 @@ def test_expected_values(default_cube, kwargs, collapse, comparator, expected_re
 
     local_kwargs = kwargs.copy()
 
-    if collapse and default_cube.coords("realization", dim_coords=True):
-        local_kwargs.update({"collapse_coord": "realization"})
+    if collapse and set(collapse).issubset(
+        [crd.name() for crd in default_cube.coords(dim_coords=True)]
+    ):
+        local_kwargs.update({"collapse_coord": collapse})
     elif collapse:
-        # No need to repeat tests in which collapse_coord is not used.
+        # Skip tests in which the coordinates to be collapsed are not
+        # dimension coordinates of the input cube.
         pytest.skip()
 
     local_kwargs.update({"comparison_operator": comparator})
@@ -277,15 +281,16 @@ def test_expected_values(default_cube, kwargs, collapse, comparator, expected_re
     result = plugin(default_cube)
 
     assert result.data.shape == expected_result.shape
-    assert np.allclose(result.data, expected_result)
+    np.testing.assert_array_almost_equal(result.data, expected_result)
 
 
 @pytest.mark.parametrize(
-    "kwargs,n_realizations,data,expected_result",
+    "kwargs,n_realizations,n_times,data,expected_result",
     [
         # diagnostic value at threshold value, no fuzziness, various comparators
         (
             {"threshold_values": 0.0, "comparison_operator": "gt"},
+            1,
             1,
             np.zeros((3, 3)),
             np.zeros((3, 3), dtype=np.float32),
@@ -293,17 +298,20 @@ def test_expected_values(default_cube, kwargs, collapse, comparator, expected_re
         (
             {"threshold_values": 0.0, "comparison_operator": "lt"},
             1,
+            1,
             np.zeros((3, 3)),
             np.zeros((3, 3), dtype=np.float32),
         ),
         (
             {"threshold_values": 0.0, "comparison_operator": "ge"},
             1,
+            1,
             np.zeros((3, 3)),
             np.ones((3, 3), dtype=np.float32),
         ),
         (
             {"threshold_values": 0.0, "comparison_operator": "le"},
+            1,
             1,
             np.zeros((3, 3)),
             np.ones((3, 3), dtype=np.float32),
@@ -313,12 +321,14 @@ def test_expected_values(default_cube, kwargs, collapse, comparator, expected_re
         (
             {"threshold_config": {"0.": [-1, 1]}, "comparison_operator": "gt"},
             1,
+            1,
             np.zeros((3, 3)),
             np.full((3, 3), 0.5, dtype=np.float32),
         ),
         # negative diagnostic value above negative threshold with fuzziness.
         (
             {"threshold_config": {"-1.": [-2, 0]}, "comparison_operator": "gt"},
+            1,
             1,
             np.ones((3, 3)) * -0.5,
             np.ones((3, 3), dtype=np.float32) * 0.75,
@@ -327,12 +337,14 @@ def test_expected_values(default_cube, kwargs, collapse, comparator, expected_re
         (
             {"threshold_values": -1.0},
             1,
+            1,
             np.zeros((3, 3)),
             np.ones((3, 3), dtype=np.float32),
         ),
         # masked inputs, with outputs retaining masking
         (
             {"threshold_values": 1.0},
+            1,
             1,
             np.ma.masked_array([[2.0, 0], [3.0, 3.0]], mask=[[0, 0], [1, 1]]),
             np.ma.masked_array(
@@ -343,12 +355,14 @@ def test_expected_values(default_cube, kwargs, collapse, comparator, expected_re
         (
             {"threshold_values": 1.0, "fill_masked": np.inf},
             1,
+            1,
             np.ma.masked_array([[2.0, 0], [3, 3]], mask=[[0, 0], [1, 1]]),
             np.array([[1.0, 0], [1.0, 1.0]], dtype=np.float32),
         ),
         # masked inputs with fuzzy bounds
         (
             {"threshold_values": 0.5, "fuzzy_factor": 0.5},
+            1,
             1,
             np.ma.masked_array([[0.5, 0], [3.0, 3.0]], mask=[[0, 0], [1, 1]]),
             np.ma.masked_array(
@@ -360,6 +374,24 @@ def test_expected_values(default_cube, kwargs, collapse, comparator, expected_re
         # realization is excluded from the averaging due to masking.
         (
             {"threshold_values": 0.5, "collapse_coord": "realization"},
+            2,
+            1,
+            np.ma.masked_array(
+                [
+                    [[1.0, 0], [0, 0]],  # 2x2 realization 0
+                    [[0, 0], [0, 0]],
+                ],  # 2x2 realization 1
+                mask=[[[0, 0], [0, 0]], [[1, 0], [0, 0]]],  # 2x2 realization 0
+            ),  # 2x2 realization 1
+            np.array([[1.0, 0], [0, 0]], dtype=np.float32),
+        ),
+        # multi-realization, multi-time, masked in one realization, returns
+        # expected value when the realization and time coordinates are
+        # collapsed. This value is 1 as the second realization is excluded
+        # from the averaging due to masking.
+        (
+            {"threshold_values": 0.5, "collapse_coord": ["realization", "time"]},
+            2,
             2,
             np.ma.masked_array(
                 [
@@ -375,6 +407,7 @@ def test_expected_values(default_cube, kwargs, collapse, comparator, expected_re
         (
             {"threshold_values": 0.5, "vicinity": 3000},
             1,
+            1,
             np.array([[0, 0, 0], [0, 1.0, 0.0], [0, 0, 0]]),
             np.ones((3, 3), dtype=np.float32),
         ),
@@ -383,6 +416,7 @@ def test_expected_values(default_cube, kwargs, collapse, comparator, expected_re
         # of the defined vicinity radius (2x2km grid cells)
         (
             {"threshold_values": 0.5, "vicinity": 3000},
+            1,
             1,
             np.array([[1.0, 0, 0], [0, 0, 0.0], [0, 0, 0]]),
             np.array([[1.0, 1.0, 0], [1.0, 1.0, 0.0], [0, 0, 0]], dtype=np.float32),
@@ -393,6 +427,7 @@ def test_expected_values(default_cube, kwargs, collapse, comparator, expected_re
         # preserved in the resulting thresholded data.
         (
             {"threshold_values": 0.5, "vicinity": 3000},
+            1,
             1,
             np.ma.masked_array(
                 [[0, 2.0, 0], [0, 0, 0.0], [0, 0, 0]],
@@ -411,6 +446,7 @@ def test_expected_values(default_cube, kwargs, collapse, comparator, expected_re
         # second vicinity. The second threshold returns only 0 probabilities.
         (
             {"threshold_values": [0.5, 1.5], "vicinity": [3000, 5000]},
+            1,
             1,
             np.r_[[1], [0] * 24].reshape((5, 5)).astype(np.float32),
             np.stack(
@@ -431,6 +467,7 @@ def test_expected_values(default_cube, kwargs, collapse, comparator, expected_re
         (
             {"threshold_values": [0.5, 1.5]},
             1,
+            1,
             np.ones((3, 3)),
             np.stack(
                 [np.ones((3, 3), dtype=np.float32), np.zeros((3, 3), dtype=np.float32)]
@@ -442,6 +479,7 @@ def test_expected_values(default_cube, kwargs, collapse, comparator, expected_re
         (
             {"threshold_values": 0.5, "threshold_units": "m/s"},
             1,
+            1,
             np.ones((3, 3)),
             np.zeros((3, 3), dtype=np.float32),
         ),
@@ -450,11 +488,13 @@ def test_expected_values(default_cube, kwargs, collapse, comparator, expected_re
         (
             {"threshold_values": 1.0e6, "comparison_operator": "gt"},
             1,
+            1,
             np.array([[np.inf, 0], [0, 0]]),
             np.array([[1.0, 0], [0, 0]], dtype=np.float32),
         ),
         (
             {"threshold_values": 1.0e6, "comparison_operator": "lt"},
+            1,
             1,
             np.array([[np.inf, 0], [0, 0]]),
             np.array([[0, 1.0], [1.0, 1.0]], dtype=np.float32),
@@ -462,8 +502,40 @@ def test_expected_values(default_cube, kwargs, collapse, comparator, expected_re
         (
             {"threshold_values": np.inf, "comparison_operator": "ge"},
             1,
+            1,
             np.array([[np.inf, 0], [0, 0]]),
             np.array([[1.0, 0], [0, 0]], dtype=np.float32),
+        ),
+        # Data varying across time and realization dimensions. For the first
+        # time, realization 0 (R0) contains all 2s, R1 contains all 1s. For the
+        # second time R0 contains all 4s, R1 contains all 5s. The three tests
+        # below demonstrate that result varies depending upon the dimension
+        # that is collapsed. Collapsing both leads to a 3x3 array of 0.5.
+        # Collapsing just the realizations leads to a 2x3x3 array with values
+        # 0 for the first time, 1 for the second. Collapsing just the time
+        # dimension leads to a 2x3x3 array with values 0.5 for both realizations.
+        (
+            {"threshold_values": [3], "collapse_coord": ["realization", "time"]},
+            2,
+            2,
+            np.r_[[2] * 9, [1] * 9, [4] * 9, [5] * 9].reshape((2, 2, 3, 3)),
+            np.full((3, 3), 0.5).astype(np.float32),
+        ),
+        # As above but only collapsing realizations
+        (
+            {"threshold_values": [3], "collapse_coord": ["realization"]},
+            2,
+            2,
+            np.r_[[2] * 9, [1] * 9, [4] * 9, [5] * 9].reshape((2, 2, 3, 3)),
+            np.stack([np.full((3, 3), 0), np.full((3, 3), 1)]).astype(np.float32),
+        ),
+        # As above but only collapsing time
+        (
+            {"threshold_values": [3], "collapse_coord": ["time"]},
+            2,
+            2,
+            np.r_[[2] * 9, [1] * 9, [4] * 9, [5] * 9].reshape((2, 2, 3, 3)),
+            np.full((2, 3, 3), 0.5).astype(np.float32),
         ),
     ],
 )
@@ -493,12 +565,13 @@ def test_bespoke_expected_values(custom_cube, kwargs, expected_result):
 
 
 @pytest.mark.parametrize(
-    "kwargs,n_realizations,data,mask,expected_result",
+    "kwargs,n_realizations,n_times,data,mask,expected_result",
     [
         # the land corner has a value of 1, this is not spread across the
         # other points within the vicinity as these are sea points.
         (
             {"threshold_values": 0.5, "vicinity": 3000},
+            1,
             1,
             np.array([[0, 0, 1.0], [0, 0, 0], [0, 0, 0]]),
             np.array([[0, 0, 1], [0, 0, 0], [0, 0, 0]]),
@@ -510,6 +583,7 @@ def test_bespoke_expected_values(custom_cube, kwargs, expected_result):
         (
             {"threshold_values": 0.5, "vicinity": 3000},
             1,
+            1,
             np.array([[0, 0, 0], [0, 0, 0], [1.0, 0, 0]]),
             np.array([[0, 0, 0], [0, 1, 0], [0, 0, 0]]),
             np.array([[0, 0, 0], [1.0, 0, 0], [1.0, 1.0, 0]], dtype=np.float32),
@@ -519,6 +593,7 @@ def test_bespoke_expected_values(custom_cube, kwargs, expected_result):
         # spread of values from a sea point.
         (
             {"threshold_values": 0.5, "vicinity": 5000},
+            1,
             1,
             np.array([[0, 0, 0], [0, 0, 0], [1.0, 0, 0]]),
             np.array([[1, 0, 1], [0, 1, 0], [0, 1, 0]]),
@@ -541,7 +616,9 @@ def test_vicinity_with_landmask(custom_cube, landmask, kwargs, expected_result):
     assert result.data.dtype == expected_result.dtype
 
 
-@pytest.mark.parametrize("n_realizations,data", [(1, np.array([[0, np.nan], [1, 1]]))])
+@pytest.mark.parametrize(
+    "n_realizations,n_times,data", [(1, 1, np.array([[0, np.nan], [1, 1]]))]
+)
 def test_nan_handling(custom_cube):
     """Test that an exception is raised if the input data contains an
     unmasked NaN."""
@@ -552,7 +629,7 @@ def test_nan_handling(custom_cube):
 
 
 @pytest.mark.parametrize(
-    "n_realizations,data,mask", [(1, np.zeros((2, 2)), np.zeros((2, 2)))]
+    "n_realizations,n_times,data,mask", [(1, 1, np.zeros((2, 2)), np.zeros((2, 2)))]
 )
 def test_landmask_no_vicinity(custom_cube, landmask):
     """Test that an exception is raised if a landmask is provided but
@@ -564,7 +641,7 @@ def test_landmask_no_vicinity(custom_cube, landmask):
         plugin(custom_cube, landmask)
 
 
-@pytest.mark.parametrize("n_realizations,data", [(1, np.zeros((2, 2)))])
+@pytest.mark.parametrize("n_realizations,n_times,data", [(1, 1, np.zeros((2, 2)))])
 def test_cell_methods(custom_cube):
     """Test that cell methods are modified as expected when present
     on the input cube."""
@@ -579,7 +656,7 @@ def test_cell_methods(custom_cube):
     assert cell_method.comments[0] == "of precipitation_rate"
 
 
-@pytest.mark.parametrize("n_realizations,data", [(4, np.zeros((4, 2, 2)))])
+@pytest.mark.parametrize("n_realizations,n_times,data", [(4, 1, np.zeros((4, 2, 2)))])
 def test_percentile_collapse(custom_cube):
     """Test that a percentile coordinate can be collapsed to calculate
     an average. These percentiles must be equally spaced and centred on

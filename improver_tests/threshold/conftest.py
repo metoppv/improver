@@ -9,7 +9,7 @@ from typing import List, Optional, Union
 import numpy as np
 import pytest
 from iris.coords import DimCoord
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.synthetic_data.set_up_test_cubes import (
@@ -25,34 +25,55 @@ COMMON_ATTRS = {
 }
 
 
-def diagnostic_cube(n_realizations: int = 1, data: Optional[np.ndarray] = None) -> Cube:
+def diagnostic_cube(
+    n_realizations: int = 1,
+    n_times: Optional[int] = 1,
+    data: Optional[np.ndarray] = None,
+) -> Cube:
     """Return a cube of precipitation rate in mm/hr with n_realizations
     containing the data provided by the data argument.
 
     Args:
         n_realizations:
             The number of realizations to be present in the returned cube.
+        n_times:
+            Number of times in the time coordinate. If equal to 1 the
+            returned cube contains only a scalar time coordinate.
         data:
             The data to be contained in the cube. If specified this must
             contain a leading dimension of length n_realizations.
     Returns:
         A diagnostic cube for use in testing.
     """
-
     if data is None:
         data = np.zeros((n_realizations, 5, 5), dtype=np.float32)
         data[..., 2, 2] = 0.5
         data = np.squeeze(data)
 
-    return set_up_variable_cube(
-        data,
-        name="precipitation_rate",
-        units="mm/hr",
-        spatial_grid="equalarea",
-        realizations=range(n_realizations),
-        attributes=COMMON_ATTRS,
-        standard_grid_metadata="uk_ens",
-    )
+    # print("n_times", n_times)
+    # print("dims", (3 + (n_realizations > 1)))
+    # print("data dims", data.ndim)
+
+    if n_times > 1 and data.ndim != (3 + (n_realizations > 1)):
+        data = np.ma.stack([data] * n_times)
+    elif n_times == 1:
+        data = [data]
+
+    cubes = CubeList()
+    for index, dslice in enumerate(data):
+        cube = set_up_variable_cube(
+            dslice,
+            name="precipitation_rate",
+            units="mm/hr",
+            spatial_grid="equalarea",
+            realizations=range(n_realizations),
+            attributes=COMMON_ATTRS,
+            standard_grid_metadata="uk_ens",
+        )
+        cube.coord("time").points = cube.coord("time").points + ((index - 1) * 3600)
+        cubes.append(cube)
+
+    return cubes.merge_cube()
 
 
 def deterministic_cube() -> Cube:
@@ -74,6 +95,16 @@ def multi_realization_cube() -> Cube:
     return diagnostic_cube(n_realizations=2, data=data)
 
 
+def multi_realization_multi_time_cube() -> Cube:
+    """Return the diagnostic cube with multi-valued realization and time
+    coordinates. The data is duplicated for each time, meaning tests for
+    expected values should return the same data as the standard multi-
+    realization tests."""
+    data = np.zeros((2, 5, 5), dtype=np.float32)
+    data[..., 2, 2] = [0.45, 0.55]
+    return diagnostic_cube(n_realizations=2, n_times=2, data=data)
+
+
 def expected_name_func(comparison_operator: str) -> str:
     """Return the text description of the comparison operator
     for incorporation in the cube name or coordinate attributes.
@@ -88,13 +119,15 @@ def expected_name_func(comparison_operator: str) -> str:
 
 
 @pytest.fixture
-def custom_cube(n_realizations: int, data: np.ndarray) -> Cube:
+def custom_cube(n_realizations: int, n_times: int, data: np.ndarray) -> Cube:
     """Provide a diagnostic cube with a configurable number of realizations
     and custom data.
 
     Args:
         n_realizations:
             The number of realizations to be present in the returned cube.
+        n_times:
+            The length of the time dimension.
         data:
             The data to be contained in the cube. If specified this must
             contain a leading dimension of length n_realizations.
@@ -104,7 +137,7 @@ def custom_cube(n_realizations: int, data: np.ndarray) -> Cube:
 
     if data.dtype == np.float64:
         data = data.astype(np.float32)
-    return diagnostic_cube(n_realizations, data)
+    return diagnostic_cube(n_realizations=n_realizations, n_times=n_times, data=data)
 
 
 @pytest.fixture
@@ -168,8 +201,7 @@ def expected_result(
             input cube is being tested. If the collapse argument is true the
             expected result is the mean of these values.
         collapse:
-            Whether the test includes the collapsing of the realization
-            coordinate to calculate the final result.
+            A list of coordinate being collapsed, or None if not collapsing.
         comparator:
             The comparator being applied in the thresholding, either "gt",
             "ge", "lt", or "le".
@@ -183,6 +215,8 @@ def expected_result(
         n_realizations = default_cube.coord("realization").shape[0]
     except CoordinateNotFoundError:
         n_realizations = 1
+
+    n_times = default_cube.coord("time").shape[0]
 
     if "l" in comparator:
         expected_single_value = 1.0 - expected_single_value
@@ -198,14 +232,22 @@ def expected_result(
     else:
         expected_result_array[..., 2, 2] = expected_multi_value
 
-    if collapse and n_realizations > 1:
+    if collapse and "time" in collapse and n_times > 1:
+        expected_result_array = expected_result_array[0]
+
+    if collapse and "realization" in collapse and n_realizations > 1:
         expected_result_array = expected_result_array[0]
 
     return expected_result_array
 
 
 @pytest.fixture(
-    params=[deterministic_cube, single_realization_cube, multi_realization_cube]
+    params=[
+        deterministic_cube,
+        single_realization_cube,
+        multi_realization_cube,
+        multi_realization_multi_time_cube,
+    ]
 )
 def default_cube(request) -> Cube:
     """Parameterised to provide a deterministic cube, scalar realization cube,
