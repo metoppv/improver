@@ -7,6 +7,7 @@ Unit tests for the
 `ensemble_copula_coupling.EnsembleCopulaCouplingUtilities` class.
 """
 
+import iris
 import numpy as np
 import pytest
 from iris.cube import Cube
@@ -69,7 +70,6 @@ def test_cube_returned(request, input):
     cube = request.getfixturevalue(input)
     thresholds = [100, 150, 200, 250, 300]
     result = ThresholdInterpolation(thresholds)(cube)
-    assert result, Cube
     assert result.units == cube.units
 
 
@@ -133,3 +133,26 @@ def test_mask_consistency(masked_cube):
     original_mask = masked_cube.data.mask.copy()
     result = ThresholdInterpolation(thresholds)(masked_cube).data.mask
     np.testing.assert_array_equal(original_mask[0], result[0])
+
+
+def test_collapse_realizations(input_cube):
+    """
+    Test that the realizations are collapsed if present in the input cube.
+    """
+    cubes = iris.cube.CubeList([])
+    for realization in range(2):
+        cube = input_cube.copy(data=input_cube.data / (realization + 1))
+        cube.add_aux_coord(
+            iris.coords.AuxCoord(
+                realization,
+                long_name="realization",
+                units="1",
+            )
+        )
+        cubes.append(cube)
+
+    cube = cubes.merge_cube()
+
+    thresholds = [100, 150, 200, 250, 300]
+    result = ThresholdInterpolation(thresholds)(cube.copy())[0::2]
+    np.testing.assert_array_equal(result.data, 0.5 * (cube[0].data + cube[1].data))

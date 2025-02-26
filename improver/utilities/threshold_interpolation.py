@@ -113,6 +113,7 @@ class ThresholdInterpolation(PostProcessingPlugin):
             forecast_at_interpolated_thresholds
         )
 
+        # Restore the original dimensions of the interpolated forecast data.
         forecast_at_thresholds_data = restore_non_percentile_dimensions(
             forecast_at_interpolated_thresholds,
             next(forecast_at_thresholds.slices_over(self.threshold_coord.name())),
