@@ -19,7 +19,7 @@ def process(
     threshold_units: str = None,
     comparison_operator=">",
     fuzzy_factor: float = None,
-    collapse_coord: str = None,
+    collapse_coord: cli.comma_separated_list = None,
     vicinity: cli.comma_separated_list = None,
     fill_masked: float = None,
 ):
