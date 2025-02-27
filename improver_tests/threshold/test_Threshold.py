@@ -642,7 +642,11 @@ def test_bespoke_expected_values(custom_cube, kwargs, expected_result):
         # as above but data duplicated along realization and time coordinates
         # which are then collapsed.
         (
-            {"threshold_values": 0.5, "vicinity": 5000, "collapse_coord": ["realization", "time"]},
+            {
+                "threshold_values": 0.5,
+                "vicinity": 5000,
+                "collapse_coord": ["realization", "time"],
+            },
             2,
             2,
             np.r_[[0] * 4, [1] * 2, [0] * 12].reshape((2, 3, 3), order="F"),
