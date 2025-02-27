@@ -306,10 +306,13 @@ def test_expected_values(default_cube, kwargs, collapse, comparator, expected_re
 
     # Check the time coordinate returned is as expected even if the time
     # coordinate is being collapsed.
-    expected_time_coord = default_cube.coord("time")
+    expected_time_coord = default_cube.coord("time").copy()
+    expected_fp_coord = default_cube.coord("forecast_period").copy()
     if collapse and "time" in collapse:
         expected_time_coord = expected_time_coord.collapsed()
         expected_time_coord.points = expected_time_coord.bounds[0][-1]
+        expected_fp_coord = expected_fp_coord.collapsed()
+        expected_fp_coord.points = expected_fp_coord.bounds[0][-1]
 
     local_kwargs.update({"comparison_operator": comparator})
     plugin = Threshold(**local_kwargs)
@@ -318,6 +321,7 @@ def test_expected_values(default_cube, kwargs, collapse, comparator, expected_re
     assert result.data.shape == expected_result.shape
     np.testing.assert_array_almost_equal(result.data, expected_result)
     assert result.coord("time") == expected_time_coord
+    assert result.coord("forecast_period") == expected_fp_coord
 
 
 @pytest.mark.parametrize(
@@ -632,6 +636,16 @@ def test_bespoke_expected_values(custom_cube, kwargs, expected_result):
             1,
             1,
             np.array([[0, 0, 0], [0, 0, 0], [1.0, 0, 0]]),
+            np.array([[1, 0, 1], [0, 1, 0], [0, 1, 0]]),
+            np.array([[0, 1.0, 0], [1.0, 0, 1.0], [1.0, 0, 1.0]], dtype=np.float32),
+        ),
+        # as above but data duplicated along realization and time coordinates
+        # which are then collapsed.
+        (
+            {"threshold_values": 0.5, "vicinity": 5000, "collapse_coord": ["realization", "time"]},
+            2,
+            2,
+            np.r_[[0] * 4, [1] * 2, [0] * 12].reshape((2, 3, 3), order="F"),
             np.array([[1, 0, 1], [0, 1, 0], [0, 1, 0]]),
             np.array([[0, 1.0, 0], [1.0, 0, 1.0], [1.0, 0, 1.0]], dtype=np.float32),
         ),

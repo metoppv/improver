@@ -601,10 +601,7 @@ class Threshold(PostProcessingPlugin):
 
         # Slice over collapse coords if required and create an empty threshold
         # cube to store the resulting thresholded data.
-        time_crd = None
         if self.collapse_coord is not None:
-            if "time" in self.collapse_coord:
-                time_crd = input_cube.coord("time").collapsed()
             input_slices = input_cube.slices_over(self.collapse_coord)
             thresholded_cube = self._create_threshold_cube(
                 next(input_cube.slices_over(self.collapse_coord))
@@ -679,11 +676,14 @@ class Threshold(PostProcessingPlugin):
             self.original_units
         )
 
-        # If we've collapsed a time coordinate we need to add back a suitable
-        # time coordinate that captures the range of the times collapsed.
-        if time_crd is not None:
-            thresholded_cube.remove_coord("time")
-            thresholded_cube.add_aux_coord(time_crd)
+        # If we've collapsed a time coordinate we need to add back suitable
+        # time coordinates that capture the range of the times collapsed.
+        if self.collapse_coord and "time" in self.collapse_coord:
+            for crd in ["time", "forecast_period"]:
+                time_crd = input_cube.coord(crd).copy().collapsed()
+                thresholded_cube.remove_coord(crd)
+                thresholded_cube.add_aux_coord(time_crd)
+
             enforce_time_point_standard(thresholded_cube)
 
         # Squeeze any single value dimension coordinates to make them scalar.
