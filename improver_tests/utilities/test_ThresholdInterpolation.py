@@ -70,6 +70,7 @@ def test_cube_returned(request, input):
     cube = request.getfixturevalue(input)
     thresholds = [100, 150, 200, 250, 300]
     result = ThresholdInterpolation(thresholds)(cube)
+    assert isinstance(result, Cube)
     assert result.units == cube.units
 
 
