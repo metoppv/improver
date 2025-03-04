@@ -58,9 +58,9 @@ def process(
         diff_for_warning (float): If assigned, the plugin will raise a warning if any
             absolute change in forecast value is greater than this value.
         use_latest_update_time:
-            If True the returned cube that has been enforced will have a
-            forecast_reference_time and/or blend_time that is the latest of
-            the forecast_cube and ref_forecast.
+            If True the returned cube will have a forecast_reference_time
+            and/or blend_time that is the latest of these coordinate values
+            on the forecast_cube and ref_forecast cubes.
 
     Returns:
         iris.cube.Cube:

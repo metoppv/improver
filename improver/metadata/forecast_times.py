@@ -240,14 +240,14 @@ def rebadge_forecasts_as_latest_cycle(
 def unify_cycletime(
     cubes: Union[CubeList, List[Cube]],
     cycletime: datetime,
-    target_coords=["forecast_reference_time"],
+    target_coords: List[str] = ["forecast_reference_time"],
 ) -> CubeList:
     """
-    Function to unify the target_coord and update forecast_period. The
-    target_coord should be one of "forecast_reference_time" or "blend_time".
-    The cycletime specified is used as the new value for the target_coord, and
-    the forecast_period is recalculated using the time coordinate and updated
-    target_coord.
+    Function to unify the target_coords times and update forecast_period. The
+    target_coords variable should be a list containing one or both of
+    "forecast_reference_time" and "blend_time". The cycletime specified is
+    used as the new value for the target_coord, and the forecast_period is
+    recalculated using the time coordinate and updated target_coord.
 
     Args:
         cubes:
@@ -266,8 +266,8 @@ def unify_cycletime(
         Updated cubes
 
     Raises:
-        ValueError: if target_coord is not one of "forecast_reference_time"
-                    or blend_time.
+        ValueError: if the target_coords list contains anything other than
+                    "forecast_reference_time" or "blend_time".
         ValueError: if forecast_reference_time or blend_time is a dimension
                     coordinate.
     """

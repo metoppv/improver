@@ -58,9 +58,9 @@ class EnforceConsistentForecasts(PostProcessingPlugin):
             diff_for_warning: If assigned, the plugin will raise a warning if any
                 absolute change in forecast value is greater than this value.
             use_latest_update_time:
-                If True the returned cube that has been enforced will have a
-                forecast_reference_time and/or blend_time that is the latest of
-                the forecast and reference_forecast.
+                If True the returned cube will have a forecast_reference_time
+                and/or blend_time that is the latest of these coordinate values
+                on the input forecast and reference_forecast cubes.
         """
 
         self.additive_amount = additive_amount
