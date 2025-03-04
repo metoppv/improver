@@ -12,6 +12,7 @@ import numpy as np
 from iris.cube import Cube, CubeList
 
 from improver import PostProcessingPlugin
+from improver.metadata.forecast_times import unify_cycletime
 from improver.metadata.probabilistic import is_probability
 
 
@@ -30,6 +31,7 @@ class EnforceConsistentForecasts(PostProcessingPlugin):
         multiplicative_amount: Union[float, List[float]] = 1.0,
         comparison_operator: Union[str, List[str]] = ">=",
         diff_for_warning: Optional[float] = None,
+        use_latest_update_time: Optional[bool] = False,
     ) -> None:
         """
         Initialise class for enforcing a forecast to be either greater than or equal to,
@@ -55,12 +57,17 @@ class EnforceConsistentForecasts(PostProcessingPlugin):
                 a list then each of ">=" and "<=" must be in the list exactly once.
             diff_for_warning: If assigned, the plugin will raise a warning if any
                 absolute change in forecast value is greater than this value.
+            use_latest_update_time:
+                If True the returned cube will have a forecast_reference_time
+                and/or blend_time that is the latest of these coordinate values
+                on the input forecast and reference_forecast cubes.
         """
 
         self.additive_amount = additive_amount
         self.multiplicative_amount = multiplicative_amount
         self.comparison_operator = comparison_operator
         self.diff_for_warning = diff_for_warning
+        self.use_latest_update_time = use_latest_update_time
 
     @staticmethod
     def calculate_bound(
@@ -206,6 +213,42 @@ class EnforceConsistentForecasts(PostProcessingPlugin):
 
         new_forecast = forecast.copy()
         new_forecast.data = np.clip(new_forecast.data, lower_bound, upper_bound)
+
+        if self.use_latest_update_time:
+            forecast_cycle_coords = [
+                crd
+                for crd in ["forecast_reference_time", "blend_time"]
+                if new_forecast.coords(crd)
+            ]
+            ref_cycle_coords = [
+                crd
+                for crd in ["forecast_reference_time", "blend_time"]
+                if reference_forecast.coords(crd)
+            ]
+            # If one cube has a blend_time and one does not the subsequent
+            # tooling will not succeed, so raise an exception here.
+            if set(forecast_cycle_coords) != set(ref_cycle_coords):
+                raise ValueError(
+                    "Cubes do not include the same set of cycle time coordinates "
+                    "and cannot be updated to match as part of cube enforcement."
+                )
+            latest_times = []
+            latest_times.extend(
+                [new_forecast.coord(crd).cell(0).point for crd in forecast_cycle_coords]
+            )
+            latest_times.extend(
+                [
+                    reference_forecast.coord(crd).cell(0).point
+                    for crd in ref_cycle_coords
+                ]
+            )
+            latest_time = max(latest_times)
+
+            new_forecast, _ = unify_cycletime(
+                [new_forecast, reference_forecast],
+                latest_time,
+                target_coords=forecast_cycle_coords,
+            )
 
         diff = new_forecast.data - forecast.data
         max_abs_diff = np.max(np.abs(diff))

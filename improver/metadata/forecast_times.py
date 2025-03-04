@@ -238,37 +238,55 @@ def rebadge_forecasts_as_latest_cycle(
 
 
 def unify_cycletime(
-    cubes: Union[CubeList, List[Cube]], cycletime: datetime
+    cubes: Union[CubeList, List[Cube]],
+    cycletime: datetime,
+    target_coords: List[str] = ["forecast_reference_time"],
 ) -> CubeList:
     """
-    Function to unify the forecast_reference_time and update forecast_period.
-    The cycletime specified is used as the forecast_reference_time, and the
-    forecast_period is recalculated using the time coordinate and updated
-    forecast_reference_time.
+    Function to unify the target_coords times and update forecast_period. The
+    target_coords variable should be a list containing one or both of
+    "forecast_reference_time" and "blend_time". The cycletime specified is
+    used as the new value for the target_coord, and the forecast_period is
+    recalculated using the time coordinate and updated target_coord.
 
     Args:
         cubes:
-            Cubes that will have their forecast_reference_time and
-            forecast_period updated. Any bounds on the forecast_reference_time
-            coordinate will be discarded.
+            Cubes that will have their forecast_reference_time / blend_time and
+            forecast_period updated. Any bounds on the forecast_reference_time /
+            blend_time coordinate will be discarded.
         cycletime:
             Datetime for the cycletime that will be used to replace the
-            forecast_reference_time on the individual cubes.
+            forecast_reference_time / blend_time on the individual cubes.
+        target_coords:
+            A list of coordinates that relate to cycletime that should be updated.
+            This list can only contain one or both of forecast_reference_time or
+            blend_time. The default is ["forecast_reference_time"].
 
     Returns:
         Updated cubes
 
     Raises:
-        ValueError: if forecast_reference_time is a dimension coordinate
+        ValueError: if the target_coords list contains anything other than
+                    "forecast_reference_time" or "blend_time".
+        ValueError: if forecast_reference_time or blend_time is a dimension
+                    coordinate.
     """
     result_cubes = iris.cube.CubeList([])
+
+    if not set(target_coords).issubset(set(["forecast_reference_time", "blend_time"])):
+        raise ValueError(
+            f"Target_coords must be one or both of 'forecast_reference_time' or 'blend_time'. "
+            f"Got {target_coords}"
+        )
+
     for cube in cubes:
         cube = cube.copy()
-        new_frt_coord = _create_frt_type_coord(cube, cycletime)
-        cube.remove_coord(new_frt_coord.name())
-        cube.add_aux_coord(new_frt_coord, data_dims=None)
+        for target_coord in target_coords:
+            new_frt_coord = _create_frt_type_coord(cube, cycletime, name=target_coord)
+            cube.remove_coord(new_frt_coord.name())
+            cube.add_aux_coord(new_frt_coord, data_dims=None)
 
-        # Update the forecast period for consistency within each cube
+        # Update the target_coords for consistency within each cube
         if cube.coords("forecast_period"):
             cube.remove_coord("forecast_period")
         fp_coord = forecast_period_coord(cube, force_lead_time_calculation=True)
