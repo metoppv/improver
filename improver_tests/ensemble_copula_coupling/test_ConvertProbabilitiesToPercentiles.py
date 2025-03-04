@@ -485,6 +485,25 @@ class Test__probabilities_to_percentiles(IrisTest):
 
         self.assertArrayEqual(result.data.mask, expected_mask)
 
+    def test__assess_if_ecc_bounds_needed(self):
+        """Test that if there is a non-zero probability of values exceeding the greatest
+        threshold, ECC bounds are searched for; otherwise ECC bounds are not searched
+        for."""
+        threshold_coord = find_threshold_coordinate(self.cube)
+        dimension_name = threshold_coord.name()
+        threshold_points = threshold_coord.points
+
+        result_true = Plugin()._assess_if_ecc_bounds_needed(
+            self.cube, threshold_points, dimension_name
+        )
+        self.assertTrue(result_true)
+
+        threshold_points_all_zero = np.full_like(threshold_points, 0)
+        result_false = Plugin()._assess_if_ecc_bounds_needed(
+            self.cube, threshold_points_all_zero, dimension_name
+        )
+        self.assertFalse(result_false)
+
 
 class Test_process(IrisTest):
     """

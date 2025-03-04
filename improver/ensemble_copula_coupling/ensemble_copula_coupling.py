@@ -231,6 +231,33 @@ class ResamplePercentiles(BasePlugin):
         self.ecc_bounds_warning = ecc_bounds_warning
         self.skip_ecc_bounds = skip_ecc_bounds
 
+    @staticmethod
+    def _assess_if_ecc_bounds_needed(
+        original_percentiles: ndarray,
+        desired_percentiles: ndarray,
+    ) -> bool:
+        """
+        Function that checks if ECC bounds should be found for the percentile generation
+        process. ECC bounds are necessary if the largest or smallest desired
+        percentiles are not within the range of the standard forecast probabilities.
+
+        Args:
+            original_percentiles:
+                Array of the original percentiles.
+            desired_percentiles:
+                Array of the desired percentiles.
+
+        Returns:
+            Boolean indicating whether ECC bounds are needed (True if needed, False if
+            not).
+        """
+        if np.min(desired_percentiles) < np.min(original_percentiles) or np.max(
+            desired_percentiles
+        ) > np.max(original_percentiles):
+            return True
+        else:
+            return False
+
     def _add_bounds_to_percentiles_and_forecast_at_percentiles(
         self,
         percentiles: ndarray,
@@ -349,17 +376,20 @@ class ResamplePercentiles(BasePlugin):
         )
 
         if not self.skip_ecc_bounds:
-            cube_units = forecast_at_percentiles.units
-            bounds_pairing = get_bounds_of_distribution(
-                forecast_at_percentiles.name(), cube_units
-            )
-            (original_percentiles, forecast_at_reshaped_percentiles) = (
-                self._add_bounds_to_percentiles_and_forecast_at_percentiles(
-                    original_percentiles,
-                    forecast_at_reshaped_percentiles,
-                    bounds_pairing,
+            if self._assess_if_ecc_bounds_needed(
+                original_percentiles, desired_percentiles
+            ):
+                cube_units = forecast_at_percentiles.units
+                bounds_pairing = get_bounds_of_distribution(
+                    forecast_at_percentiles.name(), cube_units
                 )
-            )
+                (original_percentiles, forecast_at_reshaped_percentiles) = (
+                    self._add_bounds_to_percentiles_and_forecast_at_percentiles(
+                        original_percentiles,
+                        forecast_at_reshaped_percentiles,
+                        bounds_pairing,
+                    )
+                )
 
         forecast_at_interpolated_percentiles = interpolate_multiple_rows_same_x(
             np.array(desired_percentiles, dtype=np.float64),
@@ -510,6 +540,37 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
         self.mask_percentiles = mask_percentiles
         self.skip_ecc_bounds = skip_ecc_bounds
 
+    @staticmethod
+    def _assess_if_ecc_bounds_needed(
+        forecast_probabilities: Cube, threshold_points: ndarray, threshold_name: str
+    ) -> bool:
+        """
+        Function that checks if ECC bounds are required for the percentile generation
+        process. ECC bounds are necessary if the largest thresholds defined on a cube
+        have non-zero probability of being exceeded. This check thus circumnavigates
+        the unnecessary searching for ECC bounds that wouldn't be used in the percentile
+        generation process anyway, and prevents known errors that could arise.
+
+        Args:
+            forecast_probabilities:
+                Cube with a threshold coordinate.
+            threshold_points:
+                Array of threshold values used to calculate the probabilities.
+            threshold_name:
+                Name of the threshold coordinate.
+
+        Returns:
+            Boolean indicating whether ECC bounds are needed (True if needed, False if
+            not).
+        """
+        values_above_threshold = forecast_probabilities.extract(
+            iris.Constraint(**{threshold_name: threshold_points[-1]})
+        )
+        if values_above_threshold is None:
+            return False
+        if np.any(values_above_threshold.data != 0):
+            return True
+
     def _add_bounds_to_thresholds_and_probabilities(
         self,
         threshold_points: ndarray,
@@ -653,26 +714,29 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
             raise NotImplementedError(msg)
 
         if not self.skip_ecc_bounds:
-            phenom_name = get_threshold_coord_name_from_probability_name(
-                forecast_probabilities.name()
-            )
-            cube_units = forecast_probabilities.coord(threshold_coord.name()).units
-            bounds_pairing = get_bounds_of_distribution(phenom_name, cube_units)
-            (threshold_points, probabilities_for_cdf) = (
-                self._add_bounds_to_thresholds_and_probabilities(
-                    threshold_points, probabilities_for_cdf, bounds_pairing
+            if self._assess_if_ecc_bounds_needed(
+                forecast_probabilities, threshold_points, threshold_name
+            ):
+                phenom_name = get_threshold_coord_name_from_probability_name(
+                    forecast_probabilities.name()
                 )
-            )
+                cube_units = forecast_probabilities.coord(threshold_coord.name()).units
+                bounds_pairing = get_bounds_of_distribution(phenom_name, cube_units)
+                (threshold_points, probabilities_for_cdf) = (
+                    self._add_bounds_to_thresholds_and_probabilities(
+                        threshold_points, probabilities_for_cdf, bounds_pairing
+                    )
+                )
 
-        if np.any(np.diff(probabilities_for_cdf) < 0):
-            msg = (
-                "The probability values used to construct the "
-                "Cumulative Distribution Function (CDF) "
-                "must be ascending i.e. in order to yield "
-                "a monotonically increasing CDF."
-                "The probabilities are {}".format(probabilities_for_cdf)
-            )
-            warnings.warn(msg)
+            if np.any(np.diff(probabilities_for_cdf) < 0):
+                msg = (
+                    "The probability values used to construct the "
+                    "Cumulative Distribution Function (CDF) "
+                    "must be ascending i.e. in order to yield "
+                    "a monotonically increasing CDF."
+                    "The probabilities are {}".format(probabilities_for_cdf)
+                )
+                warnings.warn(msg)
 
         # Convert percentiles into fractions.
         percentiles_as_fractions = np.array(
