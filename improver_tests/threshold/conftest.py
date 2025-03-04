@@ -27,7 +27,7 @@ COMMON_ATTRS = {
 
 def diagnostic_cube(
     n_realizations: int = 1,
-    n_times: Optional[int] = 1,
+    n_times: int = 1,
     data: Optional[np.ndarray] = None,
 ) -> Cube:
     """Return a cube of precipitation rate in mm/hr with n_realizations
@@ -166,7 +166,7 @@ def expected_cube_name(
 def expected_result(
     expected_single_value: float,
     expected_multi_value: List[float],
-    collapse: bool,
+    collapse: Optional[List[str]],
     comparator: str,
     default_cube: Cube,
 ) -> np.ndarray:
@@ -197,7 +197,7 @@ def expected_result(
             input cube is being tested. If the collapse argument is true the
             expected result is the mean of these values.
         collapse:
-            A list of coordinate being collapsed, or None if not collapsing.
+            A list of coordinates being collapsed, or None if not collapsing.
         comparator:
             The comparator being applied in the thresholding, either "gt",
             "ge", "lt", or "le".
