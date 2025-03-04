@@ -402,7 +402,9 @@ def test__extract_cubes_exception_thresholds(
     diagnostic: str, threshold_name: str, threshold_values: ndarray
 ):
     """Test an exception is raised if the input cubes do not contain the
-    required thresholds."""
+    required diagnostic, threshold name, or threshold value. Three tests are
+    run to check these conditions individually by setting the target values
+    to those we know are not present in the cubes."""
 
     time_args = data_times(
         datetime(2025, 1, 15, 0), datetime(2025, 1, 15, 2), timedelta(hours=1)

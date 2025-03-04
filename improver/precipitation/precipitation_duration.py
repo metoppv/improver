@@ -68,7 +68,7 @@ class PrecipitationDuration(PostProcessingPlugin):
             min_accumulation_per_hour:
                 The minimum accumulation per hour in the period, or a list
                 of several, used to classify the period. The accumulation is
-                used in conjunction wuth the critical rate.
+                used in conjunction with the critical rate.
                 Units of mm.
             critical_rate:
                 A rate threshold, or list of rate thresholds, which if the
