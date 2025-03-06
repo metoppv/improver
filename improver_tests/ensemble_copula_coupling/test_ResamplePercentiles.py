@@ -421,24 +421,31 @@ class Test__interpolate_percentiles(IrisTest):
         )
         self.assertArrayAlmostEqual(result.data, data, decimal=5)
 
-    def test__assess_if_ecc_bounds_needed(self):
-        """Test that ECC bounds are only search for in the percentile generation process
-        if the desired percentiles are outside the bounds of the original percentiles.
+    def test__assess_if_ecc_bounds_needed_true(self):
+        """Test that if the requested percentiles are outside the bounds of the input percentiles the method
+        returns True.
         """
         original_percentiles = self.percentiles  # [10, 50, 90]
         desired_percentiles = [8, 48, 92]
 
-        result_true = Plugin()._assess_if_ecc_bounds_needed(
+        result = Plugin()._assess_if_ecc_bounds_needed(
             original_percentiles, desired_percentiles
         )
 
-        self.assertTrue(result_true)
+        self.assertTrue(result)
 
+    def test__assess_if_ecc_bounds_needed_false(self):
+        """Test that if the requested percentiles are inside the bounds of the input percentiles the method
+        returns False.
+        """
+        original_percentiles = self.percentiles  # [10, 50, 90]
         desired_percentiles = [11, 50, 90]
-        result_false = Plugin()._assess_if_ecc_bounds_needed(
+
+        result = Plugin()._assess_if_ecc_bounds_needed(
             original_percentiles, desired_percentiles
         )
-        self.assertFalse(result_false)
+
+        self.assertFalse(result)
 
 
 class Test_process(IrisTest):

@@ -485,24 +485,33 @@ class Test__probabilities_to_percentiles(IrisTest):
 
         self.assertArrayEqual(result.data.mask, expected_mask)
 
-    def test__assess_if_ecc_bounds_needed(self):
+    def test__assess_if_ecc_bounds_needed_true(self):
         """Test that if there is a non-zero probability of values exceeding the greatest
-        threshold, ECC bounds are searched for; otherwise ECC bounds are not searched
-        for."""
+        threshold, the method returns true."""
         threshold_coord = find_threshold_coordinate(self.cube)
         dimension_name = threshold_coord.name()
         threshold_points = threshold_coord.points
 
-        result_true = Plugin()._assess_if_ecc_bounds_needed(
+        result = Plugin()._assess_if_ecc_bounds_needed(
             self.cube, threshold_points, dimension_name
         )
-        self.assertTrue(result_true)
+        self.assertTrue(result)
 
-        threshold_points_all_zero = np.full_like(threshold_points, 0)
-        result_false = Plugin()._assess_if_ecc_bounds_needed(
-            self.cube, threshold_points_all_zero, dimension_name
+    def test__assess_if_ecc_bounds_needed_false(self):
+        """Test that if there is not a non-zero probability of values exceeding the greatest
+        threshold, the method returns false."""
+        threshold_coord = find_threshold_coordinate(self.cube)
+        dimension_name = threshold_coord.name()
+        threshold_points = threshold_coord.points
+
+        # create a modified cube where the probability of exceeding the largest threshold is always zero
+        modified_cube = self.cube.copy()
+        modified_cube.data[-1, :, :] = np.zeros([3, 3])
+
+        result = Plugin()._assess_if_ecc_bounds_needed(
+            modified_cube, threshold_points, dimension_name
         )
-        self.assertFalse(result_false)
+        self.assertFalse(result)
 
 
 class Test_process(IrisTest):

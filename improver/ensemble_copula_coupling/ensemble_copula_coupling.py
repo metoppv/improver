@@ -237,9 +237,9 @@ class ResamplePercentiles(BasePlugin):
         desired_percentiles: ndarray,
     ) -> bool:
         """
-        Function that checks if ECC bounds should be found for the percentile generation
-        process. ECC bounds are necessary if the largest or smallest desired
-        percentiles are not within the range of the standard forecast probabilities.
+        Function to check whether ECC bounds are required for the percentile generation
+	    process. ECC bounds are only necessary if any of the desired percentiles are 
+        greater than/less than the largest/smallest of the original percentiles.
 
         Args:
             original_percentiles:
@@ -251,9 +251,8 @@ class ResamplePercentiles(BasePlugin):
             Boolean indicating whether ECC bounds are needed (True if needed, False if
             not).
         """
-        if np.min(desired_percentiles) < np.min(original_percentiles) or np.max(
-            desired_percentiles
-        ) > np.max(original_percentiles):
+        if (desired_percentiles[0] < original_percentiles[0] or
+            desired_percentiles[-1] > original_percentiles[-1]):
             return True
         else:
             return False
@@ -545,11 +544,9 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
         forecast_probabilities: Cube, threshold_points: ndarray, threshold_name: str
     ) -> bool:
         """
-        Function that checks if ECC bounds are required for the percentile generation
-        process. ECC bounds are necessary if the largest thresholds defined on a cube
-        have non-zero probability of being exceeded. This check thus circumnavigates
-        the unnecessary searching for ECC bounds that wouldn't be used in the percentile
-        generation process anyway, and prevents known errors that could arise.
+        Function to check whether ECC bounds are required for the percentile generation
+	    process. ECC bounds are only necessary if the largest threshold defined on a 
+        cube has non-zero probability of being exceeded.
 
         Args:
             forecast_probabilities:
@@ -563,13 +560,16 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
             Boolean indicating whether ECC bounds are needed (True if needed, False if
             not).
         """
-        values_above_threshold = forecast_probabilities.extract(
+        largest_threshold_slice = forecast_probabilities.extract(
             iris.Constraint(**{threshold_name: threshold_points[-1]})
         )
-        if values_above_threshold is None:
-            return False
-        if np.any(values_above_threshold.data != 0):
+        # if largest_threshold_slice is None:
+        #     return False
+        if np.any(largest_threshold_slice.data != 0):
             return True
+        else:
+            return False
+        
 
     def _add_bounds_to_thresholds_and_probabilities(
         self,
@@ -728,15 +728,15 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
                     )
                 )
 
-            if np.any(np.diff(probabilities_for_cdf) < 0):
-                msg = (
-                    "The probability values used to construct the "
-                    "Cumulative Distribution Function (CDF) "
-                    "must be ascending i.e. in order to yield "
-                    "a monotonically increasing CDF."
-                    "The probabilities are {}".format(probabilities_for_cdf)
-                )
-                warnings.warn(msg)
+        if np.any(np.diff(probabilities_for_cdf) < 0):
+            msg = (
+                "The probability values used to construct the "
+                "Cumulative Distribution Function (CDF) "
+                "must be ascending i.e. in order to yield "
+                "a monotonically increasing CDF."
+                "The probabilities are {}".format(probabilities_for_cdf)
+            )
+            warnings.warn(msg)
 
         # Convert percentiles into fractions.
         percentiles_as_fractions = np.array(
