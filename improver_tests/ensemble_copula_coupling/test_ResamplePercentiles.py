@@ -435,7 +435,7 @@ class Test__interpolate_percentiles(IrisTest):
         self.assertTrue(result)
 
     def test__assess_if_ecc_bounds_needed_false(self):
-        """Test that if the requested percentiles are inside the bounds of the input 
+        """Test that if the requested percentiles are inside the bounds of the input
         percentiles the method returns False.
         """
         original_percentiles = self.percentiles  # [10, 50, 90]
