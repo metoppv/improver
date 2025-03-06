@@ -92,6 +92,20 @@ from improver.threshold import Threshold
         ),
         # at least one set means of defining the thresholds must be used.
         ({}, "One of threshold_config or threshold_values must be provided."),
+        # collapse_cell_method provided by no collapse_coords.
+        (
+            {"threshold_values": 0.6, "collapse_cell_methods": {"realization": "mean"}},
+            "Cannot apply cell methods without collapsing a coordinate.",
+        ),
+        # collapse_cell_method provided by does not correspond to collapse_coords.
+        (
+            {
+                "threshold_values": 0.6,
+                "collapse_coord": ["realization"],
+                "collapse_cell_methods": {"kitten": "mean"},
+            },
+            "Cell methods can only be defined for coordinates that are being collapsed.",
+        ),
     ],
 )
 def test_init(kwargs, exception):
@@ -555,7 +569,23 @@ def test_expected_values(default_cube, kwargs, collapse, comparator, expected_re
         # 0 for the first time, 1 for the second. Collapsing just the time
         # dimension leads to a 2x3x3 array with values 0.5 for both realizations.
         (
-            {"threshold_values": [3], "collapse_coord": ["realization", "time"]},
+            {
+                "threshold_values": [3],
+                "collapse_coord": ["realization", "time"],
+                "collapse_cell_methods": {"realization": "mean", "time": "mean"},
+            },
+            2,
+            2,
+            np.r_[[2] * 9, [1] * 9, [4] * 9, [5] * 9].reshape((2, 2, 3, 3)),
+            np.full((3, 3), 0.5).astype(np.float32),
+        ),
+        # As above but only adding a cell method for one of the collapse coordinates
+        (
+            {
+                "threshold_values": [3],
+                "collapse_coord": ["realization", "time"],
+                "collapse_cell_methods": {"time": "mean"},
+            },
             2,
             2,
             np.r_[[2] * 9, [1] * 9, [4] * 9, [5] * 9].reshape((2, 2, 3, 3)),
@@ -563,7 +593,11 @@ def test_expected_values(default_cube, kwargs, collapse, comparator, expected_re
         ),
         # As above but only collapsing realizations
         (
-            {"threshold_values": [3], "collapse_coord": ["realization"]},
+            {
+                "threshold_values": [3],
+                "collapse_coord": ["realization"],
+                "collapse_cell_methods": {"realization": "mean"},
+            },
             2,
             2,
             np.r_[[2] * 9, [1] * 9, [4] * 9, [5] * 9].reshape((2, 2, 3, 3)),
@@ -571,7 +605,11 @@ def test_expected_values(default_cube, kwargs, collapse, comparator, expected_re
         ),
         # As above but only collapsing time
         (
-            {"threshold_values": [3], "collapse_coord": ["time"]},
+            {
+                "threshold_values": [3],
+                "collapse_coord": ["time"],
+                "collapse_cell_methods": {"time": "mean"},
+            },
             2,
             2,
             np.r_[[2] * 9, [1] * 9, [4] * 9, [5] * 9].reshape((2, 2, 3, 3)),
@@ -592,6 +630,9 @@ def test_bespoke_expected_values(custom_cube, kwargs, expected_result):
         are tested elsewhere.
       - Collapsing and not collapsing the realization coordinate when
         present.
+      - Adding cell methods associated with the coordinates being collapsed.
+      - Adding cell methods associated with one of the coordinates being
+        collapsed.
     """
     plugin = Threshold(**kwargs)
     result = plugin(custom_cube)
@@ -602,6 +643,15 @@ def test_bespoke_expected_values(custom_cube, kwargs, expected_result):
     assert result.data.dtype == expected_result.dtype
     if np.ma.is_masked(result.data):
         assert (result.data.mask == expected_result.mask).all()
+    if "collapse_cell_methods" in kwargs:
+        for ii, cell_method in enumerate(result.cell_methods):
+            assert (
+                cell_method.method == list(kwargs["collapse_cell_methods"].values())[ii]
+            )
+            assert (
+                cell_method.coord_names[0]
+                == list(kwargs["collapse_cell_methods"].keys())[ii]
+            )
 
 
 @pytest.mark.parametrize(

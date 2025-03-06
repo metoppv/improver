@@ -53,6 +53,7 @@ class Threshold(PostProcessingPlugin):
         threshold_units: Optional[str] = None,
         comparison_operator: str = ">",
         collapse_coord: Optional[Union[str, List[str]]] = None,
+        collapse_cell_methods: Optional[dict] = None,
         vicinity: Optional[Union[float, List[float]]] = None,
         fill_masked: Optional[float] = None,
     ) -> None:
@@ -130,6 +131,13 @@ class Threshold(PostProcessingPlugin):
                 50th percentile to allow successful conversion from percentiles
                 to realizations and subsequent collapsing over the realization
                 coordinate.
+            collapse_cell_methods:
+                An optional dictionary that describes cell methods to apply in
+                relation to the collapsed coordinates. By default the threshold
+                method does not return a cell method for collapsed coordinates.
+                The dictionary should take the form: {"coord_name": "method"}
+                with an entry for every coordinate for which a method is
+                desired.
             fill_masked:
                 If provided all masked points in cube will be replaced with the
                 provided value.
@@ -219,6 +227,19 @@ class Threshold(PostProcessingPlugin):
                 "Cannot collapse over both percentile and realization coordinates."
             )
         self.collapse_coord = collapse_coord
+
+        if collapse_cell_methods:
+            if not self.collapse_coord:
+                raise ValueError(
+                    "Cannot apply cell methods without collapsing a coordinate."
+                )
+            if not set(collapse_cell_methods.keys()).issubset(self.collapse_coord):
+                raise ValueError(
+                    "Cell methods can only be defined for coordinates that "
+                    "are being collapsed."
+                )
+
+        self.collapse_cell_methods = collapse_cell_methods
 
         self.vicinity = None
         if vicinity:
@@ -366,6 +387,13 @@ class Threshold(PostProcessingPlugin):
         threshold_coord.attributes.update(
             {"spp__relative_to_threshold": self.comparison_operator.spp_string}
         )
+
+        # Add any user defined cell_methods.
+        if self.collapse_cell_methods:
+            for coord, method in self.collapse_cell_methods.items():
+                cell_method = iris.coords.CellMethod(method, coord)
+                cube.add_cell_method(cell_method)
+
         if cube.cell_methods:
             format_cell_methods_for_probability(cube, self.threshold_coord_name)
 
