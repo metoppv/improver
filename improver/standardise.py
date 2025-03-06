@@ -7,7 +7,7 @@
 from typing import Any, Dict, List, Optional
 
 import numpy as np
-from iris.coords import CellMethod
+from iris.coords import CellMethod, AuxCoord
 from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
 from numpy import dtype, ndarray
@@ -177,6 +177,9 @@ class StandardiseMetadata(BasePlugin):
                 if _is_time_coord(cube.coord(coord)):
                     raise ValueError("Modifying time coordinates is not allowed.")
                 cube.coord(coord).points = np.array([value])
+
+            else:
+                cube.add_aux_coord(AuxCoord(value, long_name=coord))
 
     @staticmethod
     def _standardise_dtypes_and_units(cube: Cube) -> None:
