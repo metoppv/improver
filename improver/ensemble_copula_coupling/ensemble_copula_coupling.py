@@ -238,7 +238,7 @@ class ResamplePercentiles(BasePlugin):
     ) -> bool:
         """
         Function to check whether ECC bounds are required for the percentile generation
-	    process. ECC bounds are only necessary if any of the desired percentiles are 
+            process. ECC bounds are only necessary if any of the desired percentiles are
         greater than/less than the largest/smallest of the original percentiles.
 
         Args:
@@ -251,8 +251,10 @@ class ResamplePercentiles(BasePlugin):
             Boolean indicating whether ECC bounds are needed (True if needed, False if
             not).
         """
-        if (desired_percentiles[0] < original_percentiles[0] or
-            desired_percentiles[-1] > original_percentiles[-1]):
+        if (
+            desired_percentiles[0] < original_percentiles[0]
+            or desired_percentiles[-1] > original_percentiles[-1]
+        ):
             return True
         else:
             return False
@@ -545,7 +547,7 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
     ) -> bool:
         """
         Function to check whether ECC bounds are required for the percentile generation
-	    process. ECC bounds are only necessary if the largest threshold defined on a 
+            process. ECC bounds are only necessary if the largest threshold defined on a
         cube has non-zero probability of being exceeded.
 
         Args:
@@ -569,7 +571,6 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
             return True
         else:
             return False
-        
 
     def _add_bounds_to_thresholds_and_probabilities(
         self,

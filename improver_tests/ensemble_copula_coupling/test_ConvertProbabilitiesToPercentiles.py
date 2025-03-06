@@ -498,13 +498,14 @@ class Test__probabilities_to_percentiles(IrisTest):
         self.assertTrue(result)
 
     def test__assess_if_ecc_bounds_needed_false(self):
-        """Test that if there is not a non-zero probability of values exceeding the greatest
-        threshold, the method returns false."""
+        """Test that if there is not a non-zero probability of values exceeding the 
+        greatest threshold, the method returns false."""
         threshold_coord = find_threshold_coordinate(self.cube)
         dimension_name = threshold_coord.name()
         threshold_points = threshold_coord.points
 
-        # create a modified cube where the probability of exceeding the largest threshold is always zero
+        # create a modified cube where the probability of exceeding the largest 
+        # threshold is always zero
         modified_cube = self.cube.copy()
         modified_cube.data[-1, :, :] = np.zeros([3, 3])
 
