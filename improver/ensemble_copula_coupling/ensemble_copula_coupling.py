@@ -565,8 +565,6 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
         largest_threshold_slice = forecast_probabilities.extract(
             iris.Constraint(**{threshold_name: threshold_points[-1]})
         )
-        # if largest_threshold_slice is None:
-        #     return False
         if np.any(largest_threshold_slice.data != 0):
             return True
         else:
