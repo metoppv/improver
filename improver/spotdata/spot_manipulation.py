@@ -236,7 +236,7 @@ class SpotManipulation(BasePlugin):
                     ]
                     result = extract_subcube(result, constraint)
                 else:
-                    result = ResamplePercentiles()(
+                    result = ResamplePercentiles(skip_ecc_bounds=self.skip_ecc_bounds)(
                         result, percentiles=extract_percentiles
                     )
 
