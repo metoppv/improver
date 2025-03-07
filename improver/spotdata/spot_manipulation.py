@@ -100,12 +100,13 @@ class SpotManipulation(BasePlugin):
                 Demotes exceptions where calculated percentiles are outside the ECC
                 bounds range to warnings.
             skip_ecc_bounds (bool):
-                If True, ECC bounds are not included when probabilities
-                are converted to percentiles. This has the effect that percentiles
-                outside of the range given by the input percentiles will be computed
-                by nearest neighbour interpolation from the nearest available percentile,
-                rather than using linear interpolation between the nearest available
-                percentile and the ECC bound.
+                If True, ECC bounds are not included when converting probabilities to
+                percentiles or from one set of percentiles to another. This has the
+                effect that percentiles outside of the range given by the input
+                percentiles will be computed by nearest neighbour interpolation from
+                the nearest available percentile, rather than using linear
+                interpolation between the nearest available percentile and the ECC
+                bound.
             new_title (str):
                 New title for the spot-extracted data.  If None, this attribute is
                 removed from the output cube since it has no prescribed standard
@@ -236,7 +237,7 @@ class SpotManipulation(BasePlugin):
                     ]
                     result = extract_subcube(result, constraint)
                 else:
-                    result = ResamplePercentiles()(
+                    result = ResamplePercentiles(skip_ecc_bounds=self.skip_ecc_bounds)(
                         result, percentiles=extract_percentiles
                     )
 
