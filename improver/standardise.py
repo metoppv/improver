@@ -165,20 +165,7 @@ class StandardiseMetadata(BasePlugin):
             import iris
 
             if cube.long_name == "probability_of_visibility_in_air_below_threshold":
-                #            if cube.coords(coord):
-                #                if cube.coords(coord, dim_coords=True):
-                #                    raise ValueError(
-                #                        "Modifying dimension coordinate values is not allowed "
-                #                        "due to the risk of introducing errors."
-                #                    )
-                #                if hasattr(value, "__len__") and len(value) > 1:
-                #                    raise ValueError(
-                #                        "Modifying multi-valued coordinates is not allowed. "
-                #                        "This functionality should be used only for very "
-                #                        "modest changes to scalar coordinates."
-                #                    )
-                #                if _is_time_coord(cube.coord(coord)):
-                #                    raise ValueError("Modifying time coordinates is not allowed.")
+
                 cube.add_aux_coord(
                     iris.coords.AuxCoord(
                         value,
