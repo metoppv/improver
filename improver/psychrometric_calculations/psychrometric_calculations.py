@@ -355,6 +355,7 @@ class HumidityMixingRatio(BasePlugin):
         )
 
         try:
+            # check if there is a pressure cube by examining the cube names
             self.pressure = cubes.extract_cube(check_for_pressure_cube(cubes))
         except ConstraintMismatchError:
             # If no pressure cube is provided, check if pressure is a coordinate in the temperature and relative humidity cubes
@@ -382,7 +383,7 @@ class HumidityMixingRatio(BasePlugin):
 
 
 def check_for_pressure_cube(cubes) -> str:
-    """Checks a list of cubes to see if any has the pressure in the name"""
+    """Checks a list of cubes to see if any has the pressure in the name and returns the name as a string"""
     for cube in cubes:
         cubename = cube.name()
         if "pressure" in cubename:
