@@ -30,11 +30,20 @@ class VirtualTemperature(BasePlugin):
             Cube of virtual_temperature.
         """
         # Calculate the virtual temperature
+        print(temperature)
+        print(temperature.units)
+        print(humidity_mixing_ratio)
+        print(humidity_mixing_ratio.units)
         virtual_temperature = temperature * (1 + 0.61 * humidity_mixing_ratio)
+        print(virtual_temperature)
 
         # Update the cube metadata
         virtual_temperature.rename("virtual_temperature")
+        print(virtual_temperature)
+        print(virtual_temperature.units)
         virtual_temperature.attributes["units_metadata"] = "on-scale"
+        print(virtual_temperature)
+        print(virtual_temperature.units)
 
         return virtual_temperature
 
