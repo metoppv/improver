@@ -29,6 +29,8 @@ class VirtualTemperature(BasePlugin):
         Returns:
             Cube of virtual_temperature.
         """
+        # enforce units of humidity_mixing_ratio to 1 to ensure units are maintained in result
+        humidity_mixing_ratio.units = 1
         # Calculate the virtual temperature
         virtual_temperature = temperature * (1 + 0.61 * humidity_mixing_ratio)
 
