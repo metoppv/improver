@@ -13,6 +13,7 @@ from iris.cube import Cube
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTES
 from improver.psychrometric_calculations.psychrometric_calculations import (
     HumidityMixingRatio,
+    check_for_pressure_cube,
 )
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
@@ -245,3 +246,55 @@ def test_model_id_attr(temperature, pressure, rel_humidity, model_id_attr):
         [temperature, pressure, rel_humidity]
     )
     metadata_ok(result, temperature, model_id_attr=model_id_attr)
+
+
+def test_check_for_pressure_cube():
+    temperature = set_up_variable_cube(
+        np.full((1, 2, 2, 2), fill_value=293, dtype=np.float32),
+        name="air_temperature",
+        units="K",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        vertical_levels=[100, 400],
+        height=True,
+    )
+    pressure_cube = set_up_variable_cube(
+        np.full((1, 2, 2, 2), fill_value=100000, dtype=np.float32),
+        name="some_random_pressure",
+        units="Pa",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        vertical_levels=[100, 400],
+        height=True,
+    )
+    rel_humidity = set_up_variable_cube(
+        np.full((1, 2, 2, 2), fill_value=1.0, dtype=np.float32),
+        name="relative_humidity",
+        units="1",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        vertical_levels=[100, 400],
+        height=True,
+    )
+    cubelist = [temperature, pressure_cube, rel_humidity]
+    result = check_for_pressure_cube(cubelist)
+    assert result == "some_random_pressure"
+
+
+def test_check_nothing_returned_when_no_pressure_cube():
+    temperature = set_up_variable_cube(
+        np.full((1, 2, 2, 2), fill_value=293, dtype=np.float32),
+        name="air_temperature",
+        units="K",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        vertical_levels=[95000, 100000],
+        pressure=True,
+    )
+    rel_humidity = set_up_variable_cube(
+        np.full((1, 2, 2, 2), fill_value=1.0, dtype=np.float32),
+        name="relative_humidity",
+        units="1",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        vertical_levels=[95000, 100000],
+        pressure=True,
+    )
+    cubelist = [temperature, rel_humidity]
+    result = check_for_pressure_cube(cubelist)
+    assert result is None
