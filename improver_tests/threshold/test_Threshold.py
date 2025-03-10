@@ -92,12 +92,12 @@ from improver.threshold import Threshold
         ),
         # at least one set means of defining the thresholds must be used.
         ({}, "One of threshold_config or threshold_values must be provided."),
-        # collapse_cell_method provided by no collapse_coords.
+        # collapse_cell_method provided but no collapse_coords.
         (
             {"threshold_values": 0.6, "collapse_cell_methods": {"realization": "mean"}},
             "Cannot apply cell methods without collapsing a coordinate.",
         ),
-        # collapse_cell_method provided by does not correspond to collapse_coords.
+        # collapse_cell_method provided but does not correspond to collapse_coords.
         (
             {
                 "threshold_values": 0.6,
@@ -198,6 +198,29 @@ def test_attributes_and_types(kwargs, custom_cube):
     assert result.coords("time")
     for key, attribute in expected_attributes.items():
         assert result.attributes[key] == attribute
+
+
+@pytest.mark.parametrize(
+    "kwargs,n_realizations,n_times,data",
+    [
+        # No realization coordinate but attempting to collapse it
+        (
+            {"collapse_coord": ["realization", "time"]},
+            1,
+            2,
+            np.zeros(18, dtype=np.int8).reshape(2, 3, 3),
+        ),
+    ],
+)
+def test_exception_for_missing_collapse_coordinates(kwargs, custom_cube):
+    """Test that an exception is raised if the collapse_coordinates defined by
+    the user are not present on the input_cube."""
+
+    default_kwargs = {"threshold_values": 1}
+    default_kwargs.update(kwargs)
+    plugin = Threshold(**default_kwargs)
+    with pytest.raises(ValueError, match="Cannot collapse over"):
+        plugin(custom_cube)
 
 
 @pytest.mark.parametrize(
@@ -428,6 +451,22 @@ def test_expected_values(default_cube, kwargs, collapse, comparator, expected_re
         # realization is excluded from the averaging due to masking.
         (
             {"threshold_values": 0.5, "collapse_coord": "realization"},
+            2,
+            1,
+            np.ma.masked_array(
+                [
+                    [[1.0, 0], [0, 0]],  # 2x2 realization 0
+                    [[0, 0], [0, 0]],
+                ],  # 2x2 realization 1
+                mask=[[[0, 0], [0, 0]], [[1, 0], [0, 0]]],  # 2x2 realization 0
+            ),  # 2x2 realization 1
+            np.array([[1.0, 0], [0, 0]], dtype=np.float32),
+        ),
+        # as above but collapsing the scalar time coordinate as well. This
+        # has no impact but demonstrates that the scalar coordinate is handled
+        # succesfully.
+        (
+            {"threshold_values": 0.5, "collapse_coord": ["realization", "time"]},
             2,
             1,
             np.ma.masked_array(

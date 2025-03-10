@@ -12,7 +12,6 @@ import iris
 import numpy as np
 from cf_units import Unit
 from iris.cube import Cube
-from iris.exceptions import CoordinateNotFoundError
 
 from improver import PostProcessingPlugin
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
@@ -600,9 +599,20 @@ class Threshold(PostProcessingPlugin):
                 * Cube units set to (1).
 
         Raises:
+            ValueError: if collapse coordinates are not found in input_cube.
             ValueError: Cannot apply land-mask cube without in-vicinity processing.
             ValueError: if a np.nan value is detected within the input cube.
         """
+        input_cube_crds = [crd.name() for crd in input_cube.coords()]
+        if self.collapse_coord and not set(self.collapse_coord).issubset(
+            input_cube_crds
+        ):
+            raise ValueError(
+                "Cannot collapse over coordinates not present in the input_cube."
+                f"collapse_coords: {self.collapse_coord}\n"
+                f"input_cube_coords: {input_cube_crds}"
+            )
+
         if self.vicinity is None and landmask is not None:
             raise ValueError(
                 "Cannot apply land-mask cube without in-vicinity processing"
@@ -718,10 +728,7 @@ class Threshold(PostProcessingPlugin):
         thresholded_cube = iris.util.squeeze(thresholded_cube)
 
         if self.collapse_coord is not None and "realization" in self.collapse_coord:
-            try:
-                thresholded_cube.remove_coord("realization")
-            except CoordinateNotFoundError:
-                pass
+            thresholded_cube.remove_coord("realization")
 
         # Re-cast to 32bit now that any unit conversion has already taken place.
         thresholded_cube.coord(var_name="threshold").points = thresholded_cube.coord(
