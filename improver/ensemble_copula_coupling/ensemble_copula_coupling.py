@@ -231,6 +231,34 @@ class ResamplePercentiles(BasePlugin):
         self.ecc_bounds_warning = ecc_bounds_warning
         self.skip_ecc_bounds = skip_ecc_bounds
 
+    @staticmethod
+    def _assess_if_ecc_bounds_needed(
+        original_percentiles: ndarray,
+        desired_percentiles: ndarray,
+    ) -> bool:
+        """
+        Function to check whether ECC bounds are required for the percentile generation
+        process. ECC bounds are only necessary if any of the desired percentiles are
+        greater than/less than the largest/smallest of the original percentiles.
+
+        Args:
+            original_percentiles:
+                Array of the original percentiles.
+            desired_percentiles:
+                Array of the desired percentiles.
+
+        Returns:
+            Boolean indicating whether ECC bounds are needed (True if needed, False if
+            not).
+        """
+        if (
+            desired_percentiles[0] < original_percentiles[0]
+            or desired_percentiles[-1] > original_percentiles[-1]
+        ):
+            return True
+        else:
+            return False
+
     def _add_bounds_to_percentiles_and_forecast_at_percentiles(
         self,
         percentiles: ndarray,
@@ -349,17 +377,20 @@ class ResamplePercentiles(BasePlugin):
         )
 
         if not self.skip_ecc_bounds:
-            cube_units = forecast_at_percentiles.units
-            bounds_pairing = get_bounds_of_distribution(
-                forecast_at_percentiles.name(), cube_units
-            )
-            (original_percentiles, forecast_at_reshaped_percentiles) = (
-                self._add_bounds_to_percentiles_and_forecast_at_percentiles(
-                    original_percentiles,
-                    forecast_at_reshaped_percentiles,
-                    bounds_pairing,
+            if self._assess_if_ecc_bounds_needed(
+                original_percentiles, desired_percentiles
+            ):
+                cube_units = forecast_at_percentiles.units
+                bounds_pairing = get_bounds_of_distribution(
+                    forecast_at_percentiles.name(), cube_units
                 )
-            )
+                (original_percentiles, forecast_at_reshaped_percentiles) = (
+                    self._add_bounds_to_percentiles_and_forecast_at_percentiles(
+                        original_percentiles,
+                        forecast_at_reshaped_percentiles,
+                        bounds_pairing,
+                    )
+                )
 
         forecast_at_interpolated_percentiles = interpolate_multiple_rows_same_x(
             np.array(desired_percentiles, dtype=np.float64),
@@ -510,6 +541,35 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
         self.mask_percentiles = mask_percentiles
         self.skip_ecc_bounds = skip_ecc_bounds
 
+    @staticmethod
+    def _assess_if_ecc_bounds_needed(
+        forecast_probabilities: Cube, threshold_points: ndarray, threshold_name: str
+    ) -> bool:
+        """
+        Function to check whether ECC bounds are required for the percentile generation
+        process. ECC bounds are only necessary if the largest threshold defined on a
+        cube has non-zero probability of being exceeded.
+
+        Args:
+            forecast_probabilities:
+                Cube with a threshold coordinate.
+            threshold_points:
+                Array of threshold values used to calculate the probabilities.
+            threshold_name:
+                Name of the threshold coordinate.
+
+        Returns:
+            Boolean indicating whether ECC bounds are needed (True if needed, False if
+            not).
+        """
+        largest_threshold_slice = forecast_probabilities.extract(
+            iris.Constraint(**{threshold_name: threshold_points[-1]})
+        )
+        if np.any(largest_threshold_slice.data != 0):
+            return True
+        else:
+            return False
+
     def _add_bounds_to_thresholds_and_probabilities(
         self,
         threshold_points: ndarray,
@@ -653,16 +713,19 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
             raise NotImplementedError(msg)
 
         if not self.skip_ecc_bounds:
-            phenom_name = get_threshold_coord_name_from_probability_name(
-                forecast_probabilities.name()
-            )
-            cube_units = forecast_probabilities.coord(threshold_coord.name()).units
-            bounds_pairing = get_bounds_of_distribution(phenom_name, cube_units)
-            (threshold_points, probabilities_for_cdf) = (
-                self._add_bounds_to_thresholds_and_probabilities(
-                    threshold_points, probabilities_for_cdf, bounds_pairing
+            if self._assess_if_ecc_bounds_needed(
+                forecast_probabilities, threshold_points, threshold_name
+            ):
+                threshold_name = get_threshold_coord_name_from_probability_name(
+                    forecast_probabilities.name()
                 )
-            )
+                cube_units = forecast_probabilities.coord(threshold_coord.name()).units
+                bounds_pairing = get_bounds_of_distribution(threshold_name, cube_units)
+                (threshold_points, probabilities_for_cdf) = (
+                    self._add_bounds_to_thresholds_and_probabilities(
+                        threshold_points, probabilities_for_cdf, bounds_pairing
+                    )
+                )
 
         if np.any(np.diff(probabilities_for_cdf) < 0):
             msg = (
