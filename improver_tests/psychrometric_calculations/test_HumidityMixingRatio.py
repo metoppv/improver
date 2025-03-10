@@ -168,6 +168,38 @@ def test_height_levels():
     assert np.isclose(result.data, 1.459832e-2, atol=1e-7).all()
 
 
+def test_height_levels_above_surface():
+    """Check that the plugin works with height level data"""
+
+    temperature = set_up_variable_cube(
+        np.full((1, 2, 2, 2), fill_value=293, dtype=np.float32),
+        name="air_temperature",
+        units="K",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        vertical_levels=[100, 400],
+        height=True,
+    )
+    pressure_cube = set_up_variable_cube(
+        np.full((1, 2, 2, 2), fill_value=100000, dtype=np.float32),
+        name="some_random_air_pressure",
+        units="Pa",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        vertical_levels=[100, 400],
+        height=True,
+    )
+    rel_humidity = set_up_variable_cube(
+        np.full((1, 2, 2, 2), fill_value=1.0, dtype=np.float32),
+        name="relative_humidity",
+        units="1",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        vertical_levels=[100, 400],
+        height=True,
+    )
+    result = HumidityMixingRatio()([temperature, pressure_cube, rel_humidity])
+    metadata_ok(result, temperature)
+    assert np.isclose(result.data, 1.459832e-2, atol=1e-7).all()
+
+
 def test_pressure_levels():
     """Check that the plugin works with pressure level data when pressure cube is not provided"""
     temperature = set_up_variable_cube(
