@@ -382,7 +382,7 @@ class HumidityMixingRatio(BasePlugin):
 
 
 def check_for_pressure_cube(cubes) -> str:
-    """Checks a list of cubes to see if one has the pressure in the name"""
+    """Checks a list of cubes to see if any has the pressure in the name"""
     for cube in cubes:
         cubename = cube.name()
         if "pressure" in cubename:
