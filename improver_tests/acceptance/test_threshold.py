@@ -54,6 +54,17 @@ run_cli = acc.run_cli(CLI)
             ],
             "basic",
         ),
+        (
+            [
+                "--threshold-values",
+                "280",
+                "--collapse-coord",
+                "realization",
+                "--collapse-cell-methods",
+                acc.kgo_root() / "threshold" / "cell_method" / "cell_method.json",
+            ],
+            "cell_method",
+        ),
     ),
 )
 def test_args(tmp_path, extra_args, kgo_subdir):
