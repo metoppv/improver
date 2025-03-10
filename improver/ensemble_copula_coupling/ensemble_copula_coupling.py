@@ -716,11 +716,11 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
             if self._assess_if_ecc_bounds_needed(
                 forecast_probabilities, threshold_points, threshold_name
             ):
-                phenom_name = get_threshold_coord_name_from_probability_name(
+                threshold_name = get_threshold_coord_name_from_probability_name(
                     forecast_probabilities.name()
                 )
                 cube_units = forecast_probabilities.coord(threshold_coord.name()).units
-                bounds_pairing = get_bounds_of_distribution(phenom_name, cube_units)
+                bounds_pairing = get_bounds_of_distribution(threshold_name, cube_units)
                 (threshold_points, probabilities_for_cdf) = (
                     self._add_bounds_to_thresholds_and_probabilities(
                         threshold_points, probabilities_for_cdf, bounds_pairing
