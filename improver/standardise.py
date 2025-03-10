@@ -164,7 +164,7 @@ class StandardiseMetadata(BasePlugin):
         for coord, value in coord_modification.items():
             # for the purpose of adding a height coord to the vera cube for testing.
             import iris
-            if cube.long_name == "probability_of_visibility_in_air_above_threshold":
+            if cube.long_name == "probability_of_visibility_in_air_below_threshold":
 #            if cube.coords(coord):
 #                if cube.coords(coord, dim_coords=True):
 #                    raise ValueError(
