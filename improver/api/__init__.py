@@ -120,6 +120,7 @@ PROCESSING_MODULES = {
     "Threshold": "improver.threshold",
     "TriangularWeightedBlendAcrossAdjacentPoints": "improver.blending.blend_across_adjacent_points",
     "VerticalUpdraught": "improver.wind_calculations.vertical_updraught",
+    "VirtualTemperature": "improver.virtual_temperature",
     "VisibilityCombineCloudBase": "improver.visibility.visibility_combine_cloud_base",
     "WeightAndBlend": "improver.blending.calculate_weights_and_blend",
     "WeightedBlendAcrossWholeDimension": "improver.blending.weighted_blend",
