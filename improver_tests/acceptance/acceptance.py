@@ -367,3 +367,75 @@ def compare(
 
 # Pytest decorator to skip tests if KGO is not available for use
 skip_if_kgo_missing = pytest.mark.skipif(not kgo_exists(), reason="KGO files required")
+
+
+# Default perceptual hash size.
+_HASH_SIZE = 16
+# Default maximum perceptual hash hamming distance.
+_HAMMING_DISTANCE = 2
+
+
+import imagehash
+import tempfile
+import inspect
+
+
+def check_graphic():
+    """
+    Compare current matplotlib.pyplot figure to a reference image.
+    Checks the hamming distance between the current computed
+    matplotlib.pyplot figure hash, and that computed from a reference
+    image, then closes the figure.
+    By default, if the reference image does not exist, the test will raise
+    the typical exception associated with a missing file.
+    If the environment variable ANTS_TEST_CREATE_MISSING is non-empty, the
+    reference file is created if it doesn't exist.
+    See Also
+    --------
+    http://www.hackerfactor.com/blog/index.php?/archives/529-Kind-of-Like-That.html
+    """
+    # Inspired by:
+    # - Filename handling from https://github.com/SciTools/iris/blob/\
+    # 576952d883f0118722e5334a410a176dd8072aef/lib/iris/tests/__init__.py\
+    # #L626
+    # - imagehash usage https://github.com/SciTools/iris/pull/2206
+    def unique_id():
+        caller_frame = inspect.stack()[1]
+        func_name = caller_frame.function
+        module = inspect.getmodule(caller_frame.frame)
+        module_name = module.__name__ if module else "<unknown>"
+
+    def compare_images(figure, expected_filename):
+        # Use imagehash to compare images fast and reliably.
+        img_buffer = io.BytesIO()
+        figure.savefig(img_buffer, format="png")
+        img_buffer.seek(0)
+        gen_phash = imagehash.phash(Image.open(img_buffer), hash_size=_HASH_SIZE)
+        exp_phash = imagehash.phash(
+            Image.open(expected_fname), hash_size=_HASH_SIZE
+        )
+        distance = abs(gen_phash - exp_phash)
+        problem = distance > _HAMMING_DISTANCE
+        msg = None
+        if problem:
+            fh = tempfile.NamedTemporaryFile(suffix=".png")
+            fh.close()
+            figure.savefig(fh.name, format="png")
+            msg = "Bad phash {} with hamming distance {} for {} ({})"
+            msg = msg.format(gen_phash, distance, expected_filename, fh.name)
+        assert distance <= _HAMMING_DISTANCE, msg
+    try:
+        unique_id = unique_id()
+        expected_fname = self.get_result_path(
+            os.path.join("visual_tests", unique_id + ".png")
+        )
+        figure = plt.gcf()
+        if not self._check_reference_file(expected_fname):
+            if not os.path.isdir(os.path.dirname(expected_fname)):
+                os.makedirs(os.path.dirname(expected_fname))
+            warnings.warn("Created image for test %s" % unique_id)
+            figure.savefig(expected_fname, format="png")
+        else:
+            compare_images(figure, expected_fname)
+    finally:
+        plt.close()
