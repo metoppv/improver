@@ -29,14 +29,14 @@ class VirtualTemperature(BasePlugin):
         Returns:
             Cube of virtual_temperature.
         """
-        # enforce units of humidity_mixing_ratio to 1 to ensure units are maintained in result
-        humidity_mixing_ratio.units = 1
         # Calculate the virtual temperature
+        # temperature.units = "K"
+        humidity_mixing_ratio.units = "1"
         virtual_temperature = temperature * (1 + 0.61 * humidity_mixing_ratio)
 
-        # Update the cube metadata
+        # Update the cube metadata including adding the required units (Kelvin)
         virtual_temperature.rename("virtual_temperature")
-        virtual_temperature.units = "K"
+        # virtual_temperature.units = "K"
         virtual_temperature.attributes["units_metadata"] = "on-scale"
 
         return virtual_temperature
