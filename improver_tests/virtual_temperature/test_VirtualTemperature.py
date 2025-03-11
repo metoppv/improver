@@ -9,6 +9,7 @@ from unittest.mock import patch, sentinel
 import numpy as np
 import pytest
 from iris.cube import Cube
+from iris.exceptions import UnitConversionError
 
 from improver.virtual_temperature import VirtualTemperature
 from improver_tests.utilities.copy_metadata.test_CopyMetadata import HaltExecution
@@ -71,9 +72,26 @@ def test_as_cubelist_called(mock_as_cubelist):
     mock_as_cubelist.assert_called_once_with(sentinel.cube1, sentinel.cube2)
 
 
+@pytest.mark.parametrize("temperature_units", ("Kelvin", "Fahrenheit"))
+@pytest.mark.parametrize("mixing_ratio_units", ("1", "g/g"))
 def test_VirtualTemperature_get_virtual_temperature(
-    temperature_cube, humidity_mixing_ratio_cube, virtual_temperature_cube
+    temperature_cube, humidity_mixing_ratio_cube, virtual_temperature_cube, temperature_units, mixing_ratio_units
 ):
-    """Test the get_virtual_temperature method produces a virtual temperature cube"""
+    """Test the get_virtual_temperature method produces a virtual temperature cube for a variety of valid source units
+    """
+    temperature_cube.convert_units(temperature_units)
+    humidity_mixing_ratio_cube.convert_units(mixing_ratio_units)
     result = VirtualTemperature()(temperature_cube, humidity_mixing_ratio_cube)
     assert result == virtual_temperature_cube
+
+
+@pytest.mark.parametrize("temperature_units", ("metres", "unknown"))
+@pytest.mark.parametrize("mixing_ratio_units", ("unknown", "Pa"))
+def test_VirtualTemperature_bad_units(
+    temperature_cube, humidity_mixing_ratio_cube, virtual_temperature_cube, temperature_units, mixing_ratio_units
+):
+    """Test the get_virtual_temperature method produces an Exception when inputs have incompatible units"""
+    temperature_cube.units = temperature_units
+    humidity_mixing_ratio_cube.units = mixing_ratio_units
+    with pytest.raises((ValueError, UnitConversionError)):
+        VirtualTemperature()(temperature_cube, humidity_mixing_ratio_cube)

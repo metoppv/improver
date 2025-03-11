@@ -58,6 +58,8 @@ class VirtualTemperature(BasePlugin):
         (self.temperature, self.humidity_mixing_ratio) = cubes.extract_cubes(
             ["air_temperature", "humidity_mixing_ratio"]
         )
+        self.temperature.convert_units("K")
+        self.humidity_mixing_ratio.convert_units("1")
 
         # Calculate the virtual temperature
         return self.get_virtual_temperature(
