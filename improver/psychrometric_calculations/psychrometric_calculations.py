@@ -369,7 +369,7 @@ class HumidityMixingRatio(BasePlugin):
                 self.generate_pressure_cube()
             else:
                 raise ValueError(
-                    "No pressure cube called 'surface_air_pressure' found and no pressure coordinate found in temperature or relative humidity cubes"
+                    "No pressure cube with name 'pressure' found and no pressure coordinate found in temperature or relative humidity cubes"
                 )
 
         self.mandatory_attributes = generate_mandatory_attributes(

@@ -231,7 +231,8 @@ def test_error_raised_no_pressure_coordinate_or_pressure_cube(
     """Check that the plugin raises an error if there is no pressure coordinate and no pressure cube"""
     with pytest.raises(
         ValueError,
-        match="No pressure cube called 'surface_air_pressure' found and no pressure coordinate",
+        match="No pressure cube with name 'pressure' found and no pressure coordinate "
+        "found in temperature or relative humidity cubes",
     ):
         HumidityMixingRatio()([temperature, rel_humidity])
 
