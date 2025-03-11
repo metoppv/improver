@@ -19,7 +19,8 @@ def process(
     threshold_units: str = None,
     comparison_operator=">",
     fuzzy_factor: float = None,
-    collapse_coord: str = None,
+    collapse_coord: cli.comma_separated_list = None,
+    collapse_cell_methods: cli.inputjson = None,
     vicinity: cli.comma_separated_list = None,
     fill_masked: float = None,
 ):
@@ -77,14 +78,24 @@ def process(
             indicating a narrower fuzzy factor region / sharper threshold.
             A fuzzy factor cannot be used with a zero threshold or a
             threshold_config file.
-        collapse_coord (str):
-            An optional ability to set which coordinate we want to collapse
-            over. The only supported options are "realization" or "percentile".
-            If "percentile" is requested, the percentile coordinate will be
-            rebadged as a realization coordinate prior to collapse. The percentile
-            coordinate needs to be evenly spaced around the 50th percentile
-            to allow successful conversion from percentiles to realizations and
-            subsequent collapsing over the realization coordinate.
+        collapse_coord (list of str):
+            A coordinate or list of coordinates over which an average is
+            calculated by collapsing these coordinates. The only supported
+            options are combinations of "realization" and "percentile" with
+            "time"; realization and percentile cannot both be collapsed.
+            If "percentile" is included the percentile coordinate will be
+            rebadged as a realization coordinate prior to collapse.
+            The percentile coordinate needs to be evenly spaced around the
+            50th percentile to allow successful conversion from percentiles
+            to realizations and subsequent collapsing over the realization
+            coordinate.
+        collapse_cell_methods (dict):
+            An optional dictionary that describes cell methods to apply in
+            relation to the collapsed coordinates. By default the threshold
+            method does not return a cell method for collapsed coordinates.
+            The dictionary should take the form: {"coord_name": "method"}
+            with an entry for every coordinate for which a method is
+            desired.
         vicinity (list of float / int):
             List of distances in metres used to define the vicinities within
             which to search for an occurrence. Each vicinity provided will
@@ -106,6 +117,7 @@ def process(
         threshold_units=threshold_units,
         comparison_operator=comparison_operator,
         collapse_coord=collapse_coord,
+        collapse_cell_methods=collapse_cell_methods,
         vicinity=vicinity,
         fill_masked=fill_masked,
     )(cube, land_sea_mask)
