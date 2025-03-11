@@ -299,3 +299,28 @@ def test_check_nothing_returned_when_no_pressure_cube():
     cubelist = [temperature, rel_humidity]
     result = check_for_pressure_cube(cubelist)
     assert result is None
+
+
+def test_error_returned_when_more_than_one_named_pressure_cube():
+    temperature = set_up_variable_cube(
+        np.full((1, 2, 2, 2), fill_value=293, dtype=np.float32),
+        name="some_random_pressure",
+        units="K",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        vertical_levels=[95000, 100000],
+        pressure=True,
+    )
+    rel_humidity = set_up_variable_cube(
+        np.full((1, 2, 2, 2), fill_value=1.0, dtype=np.float32),
+        name="another_random_pressure",
+        units="1",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        vertical_levels=[95000, 100000],
+        pressure=True,
+    )
+    cubelist = [temperature, rel_humidity]
+    with pytest.raises(
+        ValueError,
+        match="More than one cube with 'pressure' in name found.",
+    ):
+        check_for_pressure_cube(cubelist)

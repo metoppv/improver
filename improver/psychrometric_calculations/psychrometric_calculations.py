@@ -384,10 +384,17 @@ class HumidityMixingRatio(BasePlugin):
 
 def check_for_pressure_cube(cubes) -> str:
     """Checks a list of cubes to see if any has the pressure in the name and returns the name as a string"""
+    pressure_names = []
     for cube in cubes:
         cubename = cube.name()
         if "pressure" in cubename:
-            return cubename
+            pressure_names.append(cubename)
+    if len(pressure_names) > 1:
+        raise ValueError("More than one cube with 'pressure' in name found.")
+    if pressure_names:
+        return pressure_names[0]
+    else:
+        return None
 
 
 class PhaseChangeLevel(BasePlugin):
