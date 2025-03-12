@@ -59,7 +59,7 @@ class VirtualTemperature(BasePlugin):
             ["air_temperature", "humidity_mixing_ratio"]
         )
         self.temperature.convert_units("K")
-        self.humidity_mixing_ratio.convert_units("1")
+        self.humidity_mixing_ratio.convert_units("kg kg-1")
 
         # Calculate the virtual temperature
         return self.get_virtual_temperature(
