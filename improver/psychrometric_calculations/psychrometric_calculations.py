@@ -355,7 +355,7 @@ class HumidityMixingRatio(BasePlugin):
         )
 
         try:
-            self.pressure = cubes.extract_cube("surface_air_pressure")
+            self.pressure = cubes.extract_cube("air_pressure")
         except ConstraintMismatchError:
             # If no pressure cube is provided, check if pressure is a coordinate in the temperature and relative humidity cubes
             temp_coord_flag = any(
