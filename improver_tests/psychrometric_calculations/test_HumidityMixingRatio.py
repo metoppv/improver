@@ -15,6 +15,7 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
     HumidityMixingRatio,
 )
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
+from improver_tests import ImproverTest
 
 LOCAL_MANDATORY_ATTRIBUTES = {
     "title": "unit test data",
@@ -134,6 +135,21 @@ def test_basic(
     result = HumidityMixingRatio()([temperature, pressure, rel_humidity])
     metadata_ok(result, temperature)
     assert np.isclose(result.data, expected, atol=1e-7).all()
+
+
+def test_inputs_unchanged(
+    temperature,
+    pressure,
+    rel_humidity
+):
+    """Check that each input is not changed by this method."""
+    temperature_expected = temperature.copy()
+    pressure_expected = pressure.copy()
+    rel_humidity_expected = rel_humidity.copy()
+    HumidityMixingRatio()([temperature, pressure, rel_humidity])
+    ImproverTest().assertCubeEqual(temperature, temperature_expected)
+    ImproverTest().assertCubeEqual(pressure, pressure_expected)
+    ImproverTest().assertCubeEqual(rel_humidity, rel_humidity_expected)
 
 
 def test_height_levels():
