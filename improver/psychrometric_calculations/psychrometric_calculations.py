@@ -355,7 +355,8 @@ class HumidityMixingRatio(BasePlugin):
         )
 
         try:
-            self.pressure = cubes.extract_cube("air_pressure")
+            # check if there is a pressure cube by examining the cube names
+            self.pressure = cubes.extract_cube(check_for_pressure_cube(cubes))
         except ConstraintMismatchError:
             # If no pressure cube is provided, check if pressure is a coordinate in the temperature and relative humidity cubes
             temp_coord_flag = any(
@@ -368,7 +369,7 @@ class HumidityMixingRatio(BasePlugin):
                 self.generate_pressure_cube()
             else:
                 raise ValueError(
-                    "No pressure cube called 'surface_air_pressure' found and no pressure coordinate found in temperature or relative humidity cubes"
+                    "No pressure cube with name 'pressure' found and no pressure coordinate found in temperature or relative humidity cubes"
                 )
 
         self.mandatory_attributes = generate_mandatory_attributes(
@@ -379,6 +380,21 @@ class HumidityMixingRatio(BasePlugin):
             * self.rel_humidity.data
         )
         return self._make_humidity_cube(humidity)
+
+
+def check_for_pressure_cube(cubes) -> str:
+    """Checks a list of cubes to see if any has the pressure in the name and returns the name as a string"""
+    pressure_names = []
+    for cube in cubes:
+        cubename = cube.name()
+        if "pressure" in cubename:
+            pressure_names.append(cubename)
+    if len(pressure_names) > 1:
+        raise ValueError("More than one cube with 'pressure' in name found.")
+    if pressure_names:
+        return pressure_names[0]
+    else:
+        return None
 
 
 class PhaseChangeLevel(BasePlugin):
