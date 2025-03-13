@@ -264,6 +264,8 @@ class StandardiseMetadata(BasePlugin):
             The processed cube
         """
         cube = as_cube(cube)
+        if self._coords_to_remove:
+            self._remove_scalar_coords(cube, self._coords_to_remove)
         cube = self._rm_air_temperature_status_flag(cube)
         cube = self._collapse_scalar_dimensions(cube)
 
@@ -271,8 +273,7 @@ class StandardiseMetadata(BasePlugin):
             cube.rename(self._new_name)
         if self._new_units:
             cube.convert_units(self._new_units)
-        if self._coords_to_remove:
-            self._remove_scalar_coords(cube, self._coords_to_remove)
+
         if self._coord_modification:
             self._modify_scalar_coord_value(cube, self._coord_modification)
         if self._attributes_dict:
