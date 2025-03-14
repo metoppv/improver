@@ -26,9 +26,11 @@ def _order_cell_methods(cube: Cube) -> None:
         cube:
             The cube on which the cell methods are to be sorted.
     """
+    print("before sort cube is: ", cube)
     cell_methods = set(cube.cell_methods)
     cell_methods = tuple(sorted(cell_methods))
     cube.cell_methods = cell_methods
+    print("after sort cube is: ", cube)
 
 
 def _check_metadata(cube: Cube) -> None:
