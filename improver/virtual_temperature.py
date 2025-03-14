@@ -34,9 +34,7 @@ class VirtualTemperature(BasePlugin):
 
         # Update the cube metadata
         virtual_temperature.rename("virtual_temperature")
-        # virtual_temperature.attributes["units_metadata"] = "on-scale"
-        print(virtual_temperature.units)
-        print(virtual_temperature)
+        virtual_temperature.attributes["units_metadata"] = "on-scale"
 
         return virtual_temperature
 
