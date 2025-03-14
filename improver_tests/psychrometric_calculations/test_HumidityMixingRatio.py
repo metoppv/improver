@@ -13,6 +13,7 @@ from iris.cube import Cube
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTES
 from improver.psychrometric_calculations.psychrometric_calculations import (
     HumidityMixingRatio,
+    check_for_pressure_cube,
 )
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
@@ -168,6 +169,38 @@ def test_height_levels():
     assert np.isclose(result.data, 1.459832e-2, atol=1e-7).all()
 
 
+def test_height_levels_above_surface():
+    """Check that the plugin works with height level data"""
+
+    temperature = set_up_variable_cube(
+        np.full((1, 2, 2, 2), fill_value=293, dtype=np.float32),
+        name="air_temperature",
+        units="K",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        vertical_levels=[100, 400],
+        height=True,
+    )
+    pressure_cube = set_up_variable_cube(
+        np.full((1, 2, 2, 2), fill_value=100000, dtype=np.float32),
+        name="some_random_air_pressure",
+        units="Pa",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        vertical_levels=[100, 400],
+        height=True,
+    )
+    rel_humidity = set_up_variable_cube(
+        np.full((1, 2, 2, 2), fill_value=1.0, dtype=np.float32),
+        name="relative_humidity",
+        units="1",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        vertical_levels=[100, 400],
+        height=True,
+    )
+    result = HumidityMixingRatio()([temperature, pressure_cube, rel_humidity])
+    metadata_ok(result, temperature)
+    assert np.isclose(result.data, 1.459832e-2, atol=1e-7).all()
+
+
 def test_pressure_levels():
     """Check that the plugin works with pressure level data when pressure cube is not provided"""
     temperature = set_up_variable_cube(
@@ -198,7 +231,8 @@ def test_error_raised_no_pressure_coordinate_or_pressure_cube(
     """Check that the plugin raises an error if there is no pressure coordinate and no pressure cube"""
     with pytest.raises(
         ValueError,
-        match="No pressure cube called 'surface_air_pressure' found and no pressure coordinate",
+        match="No pressure cube with name 'pressure' found and no pressure coordinate "
+        "found in temperature or relative humidity cubes",
     ):
         HumidityMixingRatio()([temperature, rel_humidity])
 
@@ -213,3 +247,80 @@ def test_model_id_attr(temperature, pressure, rel_humidity, model_id_attr):
         [temperature, pressure, rel_humidity]
     )
     metadata_ok(result, temperature, model_id_attr=model_id_attr)
+
+
+def test_check_for_pressure_cube():
+    temperature = set_up_variable_cube(
+        np.full((1, 2, 2, 2), fill_value=293, dtype=np.float32),
+        name="air_temperature",
+        units="K",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        vertical_levels=[100, 400],
+        height=True,
+    )
+    pressure_cube = set_up_variable_cube(
+        np.full((1, 2, 2, 2), fill_value=100000, dtype=np.float32),
+        name="some_random_pressure",
+        units="Pa",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        vertical_levels=[100, 400],
+        height=True,
+    )
+    rel_humidity = set_up_variable_cube(
+        np.full((1, 2, 2, 2), fill_value=1.0, dtype=np.float32),
+        name="relative_humidity",
+        units="1",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        vertical_levels=[100, 400],
+        height=True,
+    )
+    cubelist = [temperature, pressure_cube, rel_humidity]
+    result = check_for_pressure_cube(cubelist)
+    assert result == "some_random_pressure"
+
+
+def test_check_nothing_returned_when_no_pressure_cube():
+    temperature = set_up_variable_cube(
+        np.full((1, 2, 2, 2), fill_value=293, dtype=np.float32),
+        name="air_temperature",
+        units="K",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        vertical_levels=[95000, 100000],
+        pressure=True,
+    )
+    rel_humidity = set_up_variable_cube(
+        np.full((1, 2, 2, 2), fill_value=1.0, dtype=np.float32),
+        name="relative_humidity",
+        units="1",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        vertical_levels=[95000, 100000],
+        pressure=True,
+    )
+    cubelist = [temperature, rel_humidity]
+    result = check_for_pressure_cube(cubelist)
+    assert result is None
+
+
+def test_error_returned_when_more_than_one_named_pressure_cube():
+    temperature = set_up_variable_cube(
+        np.full((1, 2, 2, 2), fill_value=293, dtype=np.float32),
+        name="some_random_pressure",
+        units="K",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        vertical_levels=[95000, 100000],
+        pressure=True,
+    )
+    rel_humidity = set_up_variable_cube(
+        np.full((1, 2, 2, 2), fill_value=1.0, dtype=np.float32),
+        name="another_random_pressure",
+        units="1",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        vertical_levels=[95000, 100000],
+        pressure=True,
+    )
+    cubelist = [temperature, rel_humidity]
+    with pytest.raises(
+        ValueError,
+        match="More than one cube with 'pressure' in name found.",
+    ):
+        check_for_pressure_cube(cubelist)
