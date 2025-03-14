@@ -60,8 +60,6 @@ class VirtualTemperature(BasePlugin):
         )
 
         # Calculate the virtual temperature
-        virtual_temp = self.get_virtual_temperature(
+        return self.get_virtual_temperature(
             self.temperature, self.humidity_mixing_ratio
         )
-        print("what is being returned? ", virtual_temp)
-        return virtual_temp
