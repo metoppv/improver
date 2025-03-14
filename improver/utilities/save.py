@@ -26,11 +26,9 @@ def _order_cell_methods(cube: Cube) -> None:
         cube:
             The cube on which the cell methods are to be sorted.
     """
-    print("before sort cube is: ", cube)
     cell_methods = set(cube.cell_methods)
     cell_methods = tuple(sorted(cell_methods))
     cube.cell_methods = cell_methods
-    print("after sort cube is: ", cube)
 
 
 def _check_metadata(cube: Cube) -> None:
@@ -86,12 +84,14 @@ def save_netcdf(
     Raises:
         warning if cubelist contains cubes of varying dimensions.
     """
+    print("save_netCDF input: ", cubelist)
     if isinstance(cubelist, iris.cube.Cube):
         cubelist = iris.cube.CubeList([cubelist])
     elif not isinstance(cubelist, iris.cube.CubeList):
         cubelist = iris.cube.CubeList(cubelist)
 
     for cube in cubelist:
+        print("after listing: ", cube)
         _order_cell_methods(cube)
         _check_metadata(cube)
         # iris.fileformats.netcdf.save will add a new "least_significant_digit"
