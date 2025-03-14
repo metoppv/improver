@@ -48,6 +48,7 @@ def _check_metadata(cube: Cube) -> None:
             misinterpretation on "load"
     """
     check_mandatory_standards(cube)
+    print("is cube lazy? ", cube.has_lazy_data())
     if cf_units.Unit(cube.units).is_unknown():
         raise ValueError("{} has unknown units".format(cube.name()))
 
