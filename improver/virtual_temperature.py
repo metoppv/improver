@@ -30,7 +30,10 @@ class VirtualTemperature(BasePlugin):
             Cube of virtual_temperature.
         """
         # Calculate the virtual temperature
-        virtual_temperature = temperature * (1 + 0.61 * humidity_mixing_ratio)
+        #
+        virtual_temperature = temperature.copy(
+            temperature.data * (1 + 0.61 * humidity_mixing_ratio.data)
+        )
 
         # Update the cube metadata
         virtual_temperature.rename("virtual_temperature")
