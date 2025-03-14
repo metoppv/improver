@@ -32,9 +32,7 @@ class VirtualTemperature(BasePlugin):
         # Calculate the virtual temperature
         temperature.convert_units("K")
         humidity_mixing_ratio.convert_units("kg kg-1")
-        temperature.data
-        humidity_mixing_ratio.data
-        virtual_temperature = temperature * (1 + 0.61 * humidity_mixing_ratio)
+        virtual_temperature = temperature.copy(temperature.data * (1 + 0.61 * humidity_mixing_ratio.data))
 
         # Update the cube metadata
         virtual_temperature.rename("virtual_temperature")
