@@ -35,7 +35,6 @@ class VirtualTemperature(BasePlugin):
         # Update the cube metadata
         virtual_temperature.rename("virtual_temperature")
         virtual_temperature.attributes["units_metadata"] = "on-scale"
-        print("virtual_temperature cube: ", virtual_temperature)
 
         return virtual_temperature
 
@@ -61,6 +60,8 @@ class VirtualTemperature(BasePlugin):
         )
 
         # Calculate the virtual temperature
-        return self.get_virtual_temperature(
+        virtual_temp = self.get_virtual_temperature(
             self.temperature, self.humidity_mixing_ratio
         )
+        print("what is being returned? ", virtual_temp)
+        return virtual_temp
