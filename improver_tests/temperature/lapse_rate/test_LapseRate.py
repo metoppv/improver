@@ -177,7 +177,7 @@ class Test_process(unittest.TestCase):
         """Test code raises a Type Error if input temperature cube is
         not a cube."""
         incorrect_input = 50.0
-        msg = "Temperature input is not a cube, but {0}".format(type(incorrect_input))
+        msg = "Diagnostic input is not a cube, but {0}".format(type(incorrect_input))
         with self.assertRaisesRegex(TypeError, msg):
             LapseRate(nbhood_radius=1).process(
                 incorrect_input, self.orography, self.land_sea_mask
@@ -201,16 +201,6 @@ class Test_process(unittest.TestCase):
         with self.assertRaisesRegex(TypeError, msg):
             LapseRate(nbhood_radius=1).process(
                 self.temperature, self.orography, incorrect_input
-            )
-
-    def test_fails_if_temperature_wrong_units(self):
-        """Test code raises a Value Error if the temperature cube is the
-        wrong unit."""
-        #  Swap cubes around so have wrong units.
-        msg = r"Unable to convert from 'Unit\('m'\)' to 'Unit\('K'\)'."
-        with self.assertRaisesRegex(ValueError, msg):
-            LapseRate(nbhood_radius=1).process(
-                self.orography, self.orography, self.land_sea_mask
             )
 
     def test_fails_if_orography_wrong_units(self):

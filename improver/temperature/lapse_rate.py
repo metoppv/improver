@@ -66,7 +66,7 @@ def compute_lapse_rate_adjustment(
 
     Returns:
         The vertical lapse rate adjustment to be applied to correct a
-        temperature forecast in units of K.
+        diagnostic forecast in SI units.
     """
     orog_diff = np.broadcast_to(orog_diff, lapse_rate.shape).copy()
     orig_orog_diff = orog_diff.copy()
@@ -97,23 +97,23 @@ def compute_lapse_rate_adjustment(
 
 
 class ApplyGriddedLapseRate(PostProcessingPlugin):
-    """Class to apply a lapse rate adjustment to a temperature data forecast"""
+    """Class to apply a lapse rate adjustment to a forecast diagnostic"""
 
     @staticmethod
-    def _check_dim_coords(temperature: Cube, lapse_rate: Cube) -> None:
+    def _check_dim_coords(diagnostic: Cube, lapse_rate: Cube) -> None:
         """Throw an error if the dimension coordinates are not the same for
-        temperature and lapse rate cubes
+        diagnostic and lapse rate cubes
 
         Args:
-            temperature
+            diagnostic
             lapse_rate
         """
-        for crd in temperature.coords(dim_coords=True):
+        for crd in diagnostic.coords(dim_coords=True):
             try:
                 if crd != lapse_rate.coord(crd.name()):
                     raise ValueError(
                         'Lapse rate cube coordinate "{}" does not match '
-                        "temperature cube coordinate".format(crd.name())
+                        "diagnostic cube coordinate".format(crd.name())
                     )
             except CoordinateNotFoundError:
                 raise ValueError(
@@ -141,14 +141,14 @@ class ApplyGriddedLapseRate(PostProcessingPlugin):
         return orog_diff
 
     def process(
-        self, temperature: Cube, lapse_rate: Cube, source_orog: Cube, dest_orog: Cube
+        self, diagnostic: Cube, lapse_rate: Cube, source_orog: Cube, dest_orog: Cube
     ) -> Cube:
-        """Applies lapse rate correction to temperature forecast.  All cubes'
+        """Applies lapse rate correction to diagnostic forecast.  All cubes'
         units are modified in place.
 
         Args:
-            temperature:
-                Input temperature field to be adjusted
+            diagnostic:
+                Input diagnostic field to be adjusted
             lapse_rate:
                 Cube of pre-calculated lapse rates
             source_orog:
@@ -157,41 +157,40 @@ class ApplyGriddedLapseRate(PostProcessingPlugin):
                 2D cube of destination orography heights
 
         Returns:
-            Lapse-rate adjusted temperature field, in Kelvin
+            Lapse-rate adjusted diagnostic field
         """
-        lapse_rate.convert_units("K m-1")
+        lapse_rate.convert_units(f"{diagnostic.units} m-1")
         self.xy_coords = [lapse_rate.coord(axis="y"), lapse_rate.coord(axis="x")]
 
-        self._check_dim_coords(temperature, lapse_rate)
+        self._check_dim_coords(diagnostic, lapse_rate)
 
-        if not spatial_coords_match([temperature, source_orog]):
+        if not spatial_coords_match([diagnostic, source_orog]):
             raise ValueError(
-                "Source orography spatial coordinates do not match temperature grid"
+                "Source orography spatial coordinates do not match diagnostic grid"
             )
 
-        if not spatial_coords_match([temperature, dest_orog]):
+        if not spatial_coords_match([diagnostic, dest_orog]):
             raise ValueError(
                 "Destination orography spatial coordinates do not match "
-                "temperature grid"
+                "diagnostic grid"
             )
 
         orog_diff = self._calc_orog_diff(source_orog, dest_orog)
 
-        adjusted_temperature = []
-        for lr_slice, t_slice in zip(
-            lapse_rate.slices(self.xy_coords), temperature.slices(self.xy_coords)
+        adjusted_diagnostic = []
+        for lr_slice, diagnostic_slice in zip(
+            lapse_rate.slices(self.xy_coords), diagnostic.slices(self.xy_coords)
         ):
-            newcube = t_slice.copy()
-            newcube.convert_units("K")
+            newcube = diagnostic_slice.copy()
             newcube.data += compute_lapse_rate_adjustment(lr_slice.data, orog_diff.data)
-            adjusted_temperature.append(newcube)
+            adjusted_diagnostic.append(newcube)
 
-        return iris.cube.CubeList(adjusted_temperature).merge_cube()
+        return iris.cube.CubeList(adjusted_diagnostic).merge_cube()
 
 
 class LapseRate(BasePlugin):
     """
-    Plugin to calculate the lapse rate from orography and temperature
+    Plugin to calculate the lapse rate from orography and diagnostic
     cubes.
 
     References:
@@ -200,7 +199,7 @@ class LapseRate(BasePlugin):
 
     Code methodology:
 
-    1) Apply land/sea mask to temperature and orography datasets. Mask sea
+    1) Apply land/sea mask to diagnostic and orography datasets. Mask sea
        points as NaN since image processing module does not recognise Numpy
        masks.
     2) Creates "views" of both datasets, where each view represents a
@@ -209,12 +208,12 @@ class LapseRate(BasePlugin):
     3) For all the stored orography neighbourhoods - take the neighbours around
        the central point and create a mask where the height difference from
        the central point is greater than 35m.
-    4) Loop through array of neighbourhoods and take the height and temperature
+    4) Loop through array of neighbourhoods and take the height and diagnostic
        of all grid points and calculate the
-       temperature/height gradient = lapse rate
+       diagnostic/height gradient = lapse rate
     5) Constrain the returned lapse rates between min_lapse_rate and
-       max_lapse_rate. These default to > DALR and < -3.0*DALR but are user
-       configurable
+       max_lapse_rate. These default to > DALR and < -3.0*DALR, suitable for air_temperature
+       but are user configurable
     """
 
     def __init__(
@@ -282,32 +281,32 @@ class LapseRate(BasePlugin):
         )
         return desc
 
-    def _create_windows(self, temp: ndarray, orog: ndarray) -> Tuple[ndarray, ndarray]:
+    def _create_windows(self, diagnostic: ndarray, orog: ndarray) -> Tuple[ndarray, ndarray]:
         """Uses neighbourhood tools to pad and generate rolling windows
-        of the temp and orog datasets.
+        of the diagnostic and orog datasets.
 
         Args:
-            temp:
-                2D array (single realization) of temperature data, in Kelvin
+            diagnostic:
+                2D array (single realization) of any diagnostic data, in SI units.
             orog:
                 2D array of orographies, in metres
 
         Returns:
-            - Rolling windows of the padded temperature dataset.
+            - Rolling windows of the padded diagnostic dataset.
             - Rolling windows of the padded orography dataset.
         """
         window_shape = (self.nbhood_size, self.nbhood_size)
         orog_windows = neighbourhood_tools.pad_and_roll(
             orog, window_shape, mode="constant", constant_values=np.nan
         )
-        temp_windows = neighbourhood_tools.pad_and_roll(
-            temp, window_shape, mode="constant", constant_values=np.nan
+        diagnostic_windows = neighbourhood_tools.pad_and_roll(
+            diagnostic, window_shape, mode="constant", constant_values=np.nan
         )
-        return temp_windows, orog_windows
+        return diagnostic_windows, orog_windows
 
     def _generate_lapse_rate_array(
         self,
-        temperature_data: ndarray,
+        diagnostic_data: ndarray,
         orography_data: ndarray,
         land_sea_mask_data: ndarray,
     ) -> ndarray:
@@ -315,8 +314,8 @@ class LapseRate(BasePlugin):
         Calculate lapse rates and apply filters
 
         Args:
-            temperature_data:
-                2D array (single realization) of temperature data, in Kelvin
+            diagnostic_data:
+                2D array (single realization) of a diagnostic data, in SI units
             orography_data:
                 2D array of orographies, in metres
             land_sea_mask_data:
@@ -326,24 +325,24 @@ class LapseRate(BasePlugin):
             Lapse rate values
         """
         # Fill sea points with NaN values.
-        temperature_data = np.where(land_sea_mask_data, temperature_data, np.nan)
+        diagnostic_data = np.where(land_sea_mask_data, diagnostic_data, np.nan)
 
         # Preallocate output array
-        lapse_rate_array = np.empty_like(temperature_data, dtype=np.float32)
+        lapse_rate_array = np.empty_like(diagnostic_data, dtype=np.float32)
 
         # Pads the data with nans and generates masked windows representing
         # a neighbourhood for each point.
-        temp_nbhood_window, orog_nbhood_window = self._create_windows(
-            temperature_data, orography_data
+        diagnostic_nbhood_window, orog_nbhood_window = self._create_windows(
+            diagnostic_data, orography_data
         )
 
-        # Zips together the windows for temperature and orography
-        # then finds the gradient of the surface temperature with
+        # Zips together the windows for diagnostic and orography
+        # then finds the gradient of the surface diagnostic with
         # orography height - i.e. lapse rate.
         cnpt = self.ind_central_point
         axis = (-2, -1)
-        for lapse, temp, orog in zip(
-            lapse_rate_array, temp_nbhood_window, orog_nbhood_window
+        for lapse, diag, orog in zip(
+            lapse_rate_array, diagnostic_nbhood_window, orog_nbhood_window
         ):
             # height_diff_mask is True for points where the height
             # difference between the central points and its
@@ -351,24 +350,24 @@ class LapseRate(BasePlugin):
             orog_centre = orog[..., cnpt : cnpt + 1, cnpt : cnpt + 1]
             height_diff_mask = np.abs(orog - orog_centre) > self.max_height_diff
 
-            temp = np.where(height_diff_mask, np.nan, temp)
+            diag = np.where(height_diff_mask, np.nan, diag)
 
-            # Places NaNs in orog to match temp
-            orog = np.where(np.isnan(temp), np.nan, orog)
+            # Places NaNs in orog to match diag
+            orog = np.where(np.isnan(diag), np.nan, orog)
 
             grad = mathematical_operations.fast_linear_fit(
-                orog, temp, axis=axis, gradient_only=True, with_nan=True
+                orog, diag, axis=axis, gradient_only=True, with_nan=True
             )
 
             # Checks that the standard deviations are not 0
             # i.e. there is some variance to fit a gradient to.
-            tempcheck = np.isclose(np.nanstd(temp, axis=axis), 0)
+            diagcheck = np.isclose(np.nanstd(diag, axis=axis), 0)
             orogcheck = np.isclose(np.nanstd(orog, axis=axis), 0)
             # checks that our central point in the neighbourhood
             # is not nan
-            temp_nan_check = np.isnan(temp[..., cnpt, cnpt])
+            diag_nan_check = np.isnan(diag[..., cnpt, cnpt])
 
-            dalr_mask = tempcheck | orogcheck | temp_nan_check | np.isnan(grad)
+            dalr_mask = diagcheck | orogcheck | diag_nan_check | np.isnan(grad)
             grad[dalr_mask] = DALR
 
             lapse[...] = grad
@@ -381,16 +380,17 @@ class LapseRate(BasePlugin):
 
     def process(
         self,
-        temperature: Cube,
+        diagnostic: Cube,
         orography: Cube,
         land_sea_mask: Cube,
         model_id_attr: Optional[str] = None,
     ) -> Cube:
-        """Calculates the lapse rate from the temperature and orography cubes.
+        """Calculates the lapse rate from any diagnostic and an orography cube.
 
         Args:
-            temperature:
-                Cube of air temperatures (K).
+            diagnostic:
+                Cube of data from which a lapse rate will be calculated. The units of the diagnostic
+                should be SI units.
             orography:
                 Cube containing orography data (metres)
             land_sea_mask:
@@ -398,7 +398,7 @@ class LapseRate(BasePlugin):
                 and False for Sea.
             model_id_attr:
                 Name of the attribute used to identify the source model for
-                blending. This is inherited from the input temperature cube.
+                blending. This is inherited from the input diagnostic cube.
 
         Returns:
             Cube containing lapse rate (K m-1)
@@ -409,9 +409,9 @@ class LapseRate(BasePlugin):
         ValueError: If input cubes are the wrong units.
 
         """
-        if not isinstance(temperature, iris.cube.Cube):
-            msg = "Temperature input is not a cube, but {}"
-            raise TypeError(msg.format(type(temperature)))
+        if not isinstance(diagnostic, iris.cube.Cube):
+            msg = "Diagnostic input is not a cube, but {}"
+            raise TypeError(msg.format(type(diagnostic)))
 
         if not isinstance(orography, iris.cube.Cube):
             msg = "Orography input is not a cube, but {}"
@@ -422,13 +422,12 @@ class LapseRate(BasePlugin):
             raise TypeError(msg.format(type(land_sea_mask)))
 
         # Converts cube units.
-        temperature_cube = temperature.copy()
-        temperature_cube.convert_units("K")
+        diagnostic_cube = diagnostic.copy()
         orography.convert_units("metres")
 
         # Extract x/y co-ordinates.
-        x_coord = temperature_cube.coord(axis="x").name()
-        y_coord = temperature_cube.coord(axis="y").name()
+        x_coord = diagnostic_cube.coord(axis="x").name()
+        y_coord = diagnostic_cube.coord(axis="y").name()
 
         # Extract orography and land/sea mask data.
         orography_data = next(orography.slices([y_coord, x_coord])).data
@@ -439,19 +438,19 @@ class LapseRate(BasePlugin):
         # Create list of arrays over "realization" coordinate
         has_realization_dimension = False
         original_dimension_order = None
-        if temperature_cube.coords("realization", dim_coords=True):
-            original_dimension_order = get_dim_coord_names(temperature_cube)
-            enforce_coordinate_ordering(temperature_cube, "realization")
-            temp_data_slices = temperature_cube.data
+        if diagnostic_cube.coords("realization", dim_coords=True):
+            original_dimension_order = get_dim_coord_names(diagnostic_cube)
+            enforce_coordinate_ordering(diagnostic_cube, "realization")
+            data_slices = diagnostic_cube.data
             has_realization_dimension = True
         else:
-            temp_data_slices = [temperature_cube.data]
+            data_slices = [diagnostic_cube.data]
 
         # Calculate lapse rate for each realization
         lapse_rate_data = []
-        for temperature_data in temp_data_slices:
+        for data_slice in data_slices:
             lapse_rate_array = self._generate_lapse_rate_array(
-                temperature_data, orography_data, land_sea_mask_data
+                data_slice, orography_data, land_sea_mask_data
             )
             lapse_rate_data.append(lapse_rate_array)
         lapse_rate_data = np.array(lapse_rate_data)
@@ -459,12 +458,12 @@ class LapseRate(BasePlugin):
             lapse_rate_data = np.squeeze(lapse_rate_data)
 
         attributes = generate_mandatory_attributes(
-            [temperature], model_id_attr=model_id_attr
+            [diagnostic], model_id_attr=model_id_attr
         )
         lapse_rate_cube = create_new_diagnostic_cube(
-            "air_temperature_lapse_rate",
-            "K m-1",
-            temperature_cube,
+            f"{diagnostic.name()}_lapse_rate",
+            f"{diagnostic.units} m-1",
+            diagnostic_cube,
             attributes,
             data=lapse_rate_data,
         )

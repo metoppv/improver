@@ -126,12 +126,12 @@ class Test_process(unittest.TestCase):
     def test_unit_adjustment(self):
         """Test correct values are retrieved if input cubes have incorrect
         units"""
-        self.temperature.convert_units("degC")
+        self.temperature.units = "degC"
         self.source_orog.convert_units("km")
         result = self.plugin(
             self.temperature, self.lapse_rate, self.source_orog, self.dest_orog
         )
-        self.assertEqual(result.units, "K")
+        self.assertEqual(result.units, "degC")
         np.testing.assert_array_almost_equal(result.data, self.expected_data)
 
     def test_realizations(self):
