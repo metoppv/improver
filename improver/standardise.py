@@ -69,7 +69,7 @@ class StandardiseMetadata(BasePlugin):
         self._attributes_dict = attributes_dict
 
     @staticmethod
-    def _rm_air_temperature_status_flag(cube: Cube) -> Cube:
+    def _remove_air_temperature_status_flag(cube: Cube) -> Cube:
         """
         Remove air_temperature status_flag coord by applying as NaN to cube data.
 
@@ -265,14 +265,14 @@ class StandardiseMetadata(BasePlugin):
         """
         cube = as_cube(cube)
         # It is necessary to have the `_coords_to_remove step` before the
-        # `_remove_air_temperature_status_flag`` step so that the air temperature
+        # `_remove_air_temperature_status_flag` step so that the air temperature
         # flag can be removed if we want to keep the air temperature data for
         # a future calculation and not have it masked by NaNs.
         # See https://github.com/metoppv/improver/pull/1839 for why
-        # _rm_air_temperature_status_flag was introduced.
+        # _remove_air_temperature_status_flag was introduced.
         if self._coords_to_remove:
             self._remove_scalar_coords(cube, self._coords_to_remove)
-        cube = self._rm_air_temperature_status_flag(cube)
+        cube = self._remove_air_temperature_status_flag(cube)
         cube = self._collapse_scalar_dimensions(cube)
 
         if self._new_name:
