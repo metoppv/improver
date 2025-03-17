@@ -264,7 +264,7 @@ class StandardiseMetadata(BasePlugin):
             The processed cube
         """
         cube = as_cube(cube)
-        # it is necessary to have the `_coords_to_remove step` before the
+        # It is necessary to have the `_coords_to_remove step` before the
         # `_remove_air_temperature_status_flag`` step so that the air temperature
         # flag can be removed if we want to keep the air temperature data for
         # a future calculation and not have it masked by NaNs.
