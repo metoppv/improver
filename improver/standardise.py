@@ -264,6 +264,12 @@ class StandardiseMetadata(BasePlugin):
             The processed cube
         """
         cube = as_cube(cube)
+        # it is necessary to have the `_coords_to_remove step` before the
+        # `_remove_air_temperature_status_flag`` step so that the air temperature
+        # flag can be removed if we want to keep the air temperature data for
+        # a future calculation and not have it masked by NaNs.
+        # See https://github.com/metoppv/improver/pull/1839 for why
+        # _rm_air_temperature_status_flag was introduced.
         if self._coords_to_remove:
             self._remove_scalar_coords(cube, self._coords_to_remove)
         cube = self._rm_air_temperature_status_flag(cube)
