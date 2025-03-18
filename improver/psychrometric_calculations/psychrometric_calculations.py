@@ -7,6 +7,7 @@
 import functools
 from typing import List, Tuple, Union
 
+import iris._constraints
 import numpy as np
 from iris.cube import Cube, CubeList
 from iris.exceptions import ConstraintMismatchError
@@ -355,9 +356,15 @@ class HumidityMixingRatio(BasePlugin):
         )
 
         try:
-            # check if there is a pressure cube by examining the cube names
-            self.pressure = cubes.extract_cube(check_for_pressure_cube(cubes))
-        except ConstraintMismatchError:
+            # Test if there is one, and only one, cube with pressure in the name
+            def test_pressure(cube):
+                return True if "pressure" in cube.name() else False
+
+            self.pressure = cubes.extract_cube(iris.Constraint(cube_func=test_pressure))
+        except ConstraintMismatchError as err:
+            # If more than one pressure cube is provided, raise an error explaining this.
+            if "Got 2 cubes for constraint" in str(err):
+                raise ValueError("More than one cube with 'pressure' in name found.")
             # If no pressure cube is provided, check if pressure is a coordinate in the temperature and relative humidity cubes
             temp_coord_flag = any(
                 coord.name() == "pressure" for coord in self.temperature.coords()
@@ -380,21 +387,6 @@ class HumidityMixingRatio(BasePlugin):
             * self.rel_humidity.data
         )
         return self._make_humidity_cube(humidity)
-
-
-def check_for_pressure_cube(cubes) -> str:
-    """Checks a list of cubes to see if any has the pressure in the name and returns the name as a string"""
-    pressure_names = []
-    for cube in cubes:
-        cubename = cube.name()
-        if "pressure" in cubename:
-            pressure_names.append(cubename)
-    if len(pressure_names) > 1:
-        raise ValueError("More than one cube with 'pressure' in name found.")
-    if pressure_names:
-        return pressure_names[0]
-    else:
-        return None
 
 
 class PhaseChangeLevel(BasePlugin):

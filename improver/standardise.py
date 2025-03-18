@@ -247,14 +247,19 @@ class StandardiseMetadata(BasePlugin):
 
     def process(self, cube: Cube) -> Cube:
         """
-        Perform compulsory and user-configurable metadata adjustments.  The
-        compulsory adjustments are:
+        Perform compulsory and user-configurable metadata adjustments.
+        The compulsory adjustments are:
 
         - to collapse any scalar dimensions apart from realization (which is expected
           always to be a dimension);
         - to cast the cube data and coordinates into suitable datatypes;
         - to convert time-related metadata into the required units
         - to remove cell method ("point": "time").
+
+        If the air_temperature data is required, this can be retained by
+        removing the `air_temperature status_flag` as part of the standardise step
+        so that the process of masking this data with NaNs is bypassed.
+        See https://github.com/metoppv/improver/pull/1839 for further information.
 
         Args:
             cube:
@@ -264,31 +269,27 @@ class StandardiseMetadata(BasePlugin):
             The processed cube
         """
         cube = as_cube(cube)
-        # It is necessary to have the `_coords_to_remove step` before the
-        # `_remove_air_temperature_status_flag` step so that the air temperature
-        # flag can be removed if we want to keep the air temperature data for
-        # a future calculation and not have it masked by NaNs.
-        # See https://github.com/metoppv/improver/pull/1839 for why
-        # _remove_air_temperature_status_flag was introduced.
+        # It is necessary to have the `_coords_to_remove step` first
+        # so that it allows keeping the air temperature data for
+        # a future calculation. Removing the `air_temperature status_flag`
+        # means the air temperature data will then not be masked by NaNs,
+        # as happens in the `_remove_air_temperature_status_flag` step if
+        # the flag is not removed.
         if self._coords_to_remove:
             self._remove_scalar_coords(cube, self._coords_to_remove)
         cube = self._remove_air_temperature_status_flag(cube)
         cube = self._collapse_scalar_dimensions(cube)
-
         if self._new_name:
             cube.rename(self._new_name)
         if self._new_units:
             cube.convert_units(self._new_units)
-
         if self._coord_modification:
             self._modify_scalar_coord_value(cube, self._coord_modification)
         if self._attributes_dict:
             amend_attributes(cube, self._attributes_dict)
         self._discard_redundant_cell_methods(cube)
         self._remove_long_name_if_standard_name(cube)
-
         # this must be done after unit conversion as if the input is an integer
         # field, unit conversion outputs the new data as float64
         self._standardise_dtypes_and_units(cube)
-
         return cube
