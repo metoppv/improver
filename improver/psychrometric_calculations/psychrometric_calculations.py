@@ -361,10 +361,12 @@ class HumidityMixingRatio(BasePlugin):
                 return True if "pressure" in cube.name() else False
 
             self.pressure = cubes.extract_cube(iris.Constraint(cube_func=test_pressure))
+
         except ConstraintMismatchError as err:
-            # If more than one pressure cube is provided, raise an error explaining this.
+            # If more than one pressure cube is provided, raise an error explaining this
             if "Got 2 cubes for constraint" in str(err):
                 raise ValueError("More than one cube with 'pressure' in name found.")
+
             # If no pressure cube is provided, check if pressure is a coordinate in the temperature and relative humidity cubes
             temp_coord_flag = any(
                 coord.name() == "pressure" for coord in self.temperature.coords()
