@@ -285,7 +285,7 @@ def test_correct_value_error_returned_when_more_than_one_named_pressure():
     )
     with pytest.raises(
         ValueError,
-        match="More than one cube with 'pressure' in name found.",
+        match="Got 2 cubes with 'pressure' in name.",
     ):
         HumidityMixingRatio()(
             [temperature, rel_humidity, some_pressure, some_more_pressure]

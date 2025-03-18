@@ -364,8 +364,11 @@ class HumidityMixingRatio(BasePlugin):
 
         except ConstraintMismatchError as err:
             # If more than one pressure cube is provided, raise an error explaining this
-            if "Got 2 cubes for constraint" in str(err):
-                raise ValueError("More than one cube with 'pressure' in name found.")
+            import re
+
+            more_than_one = re.search(r"Got\s([2-9]|\d\d\d*)\scubes", str(err))
+            if more_than_one:
+                raise ValueError(f"{more_than_one.group()} with 'pressure' in name.")
 
             # If no pressure cube is provided, check if pressure is a coordinate in the temperature and relative humidity cubes
             temp_coord_flag = any(
