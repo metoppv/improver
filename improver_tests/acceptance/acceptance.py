@@ -23,6 +23,7 @@ IGNORE_CHECKSUMS = "IMPROVER_IGNORE_CHECKSUMS"
 ACC_TEST_DIR_MISSING = pathlib.Path("/dev/null")
 DEFAULT_CHECKSUM_FILE = pathlib.Path(__file__).parent / "SHA256SUMS"
 IGNORED_ATTRIBUTES = ["history", "Conventions"]
+RESULT_PATH = pathlib.Path(__file__).parent / "results"
 
 
 def run_cli(cli_name, verbose=True):
@@ -378,6 +379,19 @@ _HAMMING_DISTANCE = 2
 import imagehash
 import tempfile
 import inspect
+from PIL import Image
+import io
+import warnings
+
+
+def get_result_path(relative_path):
+    """
+    Returns the absolute path to a result file when given the relative path
+    as a string, or sequence of strings.
+    """
+    if not isinstance(relative_path, str):
+        relative_path = os.path.join(*relative_path)
+    return os.path.abspath(os.path.join(RESULT_PATH, relative_path))
 
 
 def check_graphic():
@@ -399,12 +413,6 @@ def check_graphic():
     # 576952d883f0118722e5334a410a176dd8072aef/lib/iris/tests/__init__.py\
     # #L626
     # - imagehash usage https://github.com/SciTools/iris/pull/2206
-    def unique_id():
-        caller_frame = inspect.stack()[1]
-        func_name = caller_frame.function
-        module = inspect.getmodule(caller_frame.frame)
-        module_name = module.__name__ if module else "<unknown>"
-
     def compare_images(figure, expected_filename):
         # Use imagehash to compare images fast and reliably.
         img_buffer = io.BytesIO()
@@ -424,17 +432,25 @@ def check_graphic():
             msg = "Bad phash {} with hamming distance {} for {} ({})"
             msg = msg.format(gen_phash, distance, expected_filename, fh.name)
         assert distance <= _HAMMING_DISTANCE, msg
+
+    # get the test id that calls this function
+    unique_id = os.environ.get('PYTEST_CURRENT_TEST', '').split(' ')[0].replace('/', '.').replace('::', '.')
+    assert "improver_tests" in unique_id, "This function is intended for improver tests"
+    unique_id = unique_id.split("acceptance.")[-1]  # trim away the improver_tests.acceptance prefix
+
     try:
-        unique_id = unique_id()
-        expected_fname = self.get_result_path(
-            os.path.join("visual_tests", unique_id + ".png")
-        )
+        expected_fname = get_result_path(unique_id + ".png")
+        import matplotlib.pyplot as plt
         figure = plt.gcf()
-        if not self._check_reference_file(expected_fname):
+        if not os.path.exists(expected_fname):
             if not os.path.isdir(os.path.dirname(expected_fname)):
                 os.makedirs(os.path.dirname(expected_fname))
-            warnings.warn("Created image for test %s" % unique_id)
+            msg = (
+                f"Reference image '{expected_fname}' did not exist.  Reference file "
+                "generated.  Commit this new file to include it."
+            )
             figure.savefig(expected_fname, format="png")
+            raise RuntimeError(msg)
         else:
             compare_images(figure, expected_fname)
     finally:

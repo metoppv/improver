@@ -30,5 +30,4 @@ def process(*cubes: cli.inputcube, mask_name: str, invert_mask: bool = "False"):
         A cube with the mask applied to the data. The metadata will exactly match the input cube.
     """
     from improver.utilities.mask import apply_mask
-
     return apply_mask(*cubes, mask_name=mask_name, invert_mask=invert_mask)
