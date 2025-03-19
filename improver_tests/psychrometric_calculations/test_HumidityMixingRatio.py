@@ -14,8 +14,6 @@ from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTES
 from improver.psychrometric_calculations.psychrometric_calculations import (
     HumidityMixingRatio,
 )
-
-# check_for_pressure_cube,
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 LOCAL_MANDATORY_ATTRIBUTES = {
