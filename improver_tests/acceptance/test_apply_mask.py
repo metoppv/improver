@@ -9,7 +9,7 @@ import unittest.mock as mock
 from improver.utilities.load import load_cube
 from improver.api import apply_mask
 from . import acceptance as acc
-from improver_tests import assertGraphic
+from improver_tests import assertGraphic, assertCML
 
 
 @pytest.fixture(scope="session")
@@ -34,6 +34,8 @@ def cubes(load_cubes):
 def test_all(cubes, invert, request):
     _, cubes = cubes
     res_cube = apply_mask(*cubes, mask_name="land_binary_mask", invert_mask=invert)
+
+    #assertCML(res_cube)
 
     qplt.pcolormesh(res_cube)
     qplt.plt.gca().coastlines()

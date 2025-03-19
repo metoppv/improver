@@ -14,6 +14,7 @@ import io
 import os
 import warnings
 import pathlib
+import difflib
 
 # Default perceptual hash size.
 _HASH_SIZE = 16
@@ -98,13 +99,59 @@ def assertGraphic():
         plt.close()
 
 
-# def assertCML(cubes, reference_filename=None, checksum=True):
-#     """Test that the CML for the given cubes matches the contents of
-#     the reference file."""
-#     if isinstance(cubes, iris.cube.Cube):
-#         cubes = [cubes]
-#     if reference_filename is None:
-#         reference_filename = self.result_path(None, "cml")
+def assertString(string, ref_text_file, ignore_patterns=None):
+    """
+    Compare text files.
+
+    Where a reference file doesn't exist, it will be created and an exception
+    will be raised, telling the user that they must commit this file.
+    Running the test again will cause the test to succeed.
+    """
+
+    def filter_patterns(cont):
+        if not ignore_patterns:
+            return cont
+        for pattern in ignore_patterns:
+            cont = filter(lambda line: pattern not in line, cont)
+        return list(cont)
+
+    if not os.path.exists(ref_text_file):
+        with open(ref_text_file, "w") as ref_fh:
+            ref_fh.writelines(string)
+        msg = (
+            f"Reference '{ref_text_file}' did not exist.  Reference file "
+            "generated.  Commit this new file to include it."
+        )
+        raise RuntimeError(msg)
+    else:
+        with open(ref_text_file, "r") as ref_fh:
+            ref_cont = ref_fh.readlines()
+            ref_cont = filter_patterns(ref_cont)
+            string = filter_patterns(string)
+            diff = list(difflib.context_diff(string, ref_cont))
+
+        if diff:
+            diff = "".join(diff)
+            msg = "string differs with and {} differ:\n\n"
+            raise RuntimeError(msg.format(ref_text_file, diff))
+
+
+def assertCML(cubes, checksum=False):
+    """Test that the CML for the given cubes matches the contents of
+    the reference file."""
+    if isinstance(cubes, iris.cube.Cube):
+        cubes = [cubes]
+
+    unique_id = get_test_id()
+    expected_fname = get_result_path(unique_id + ".cml")
+
+    if isinstance(cubes, (list, tuple)):
+        xml = iris.cube.CubeList(cubes).xml(
+            checksum=checksum, order=False, byteorder=False
+        )
+    else:
+        xml = cubes.xml(checksum=checksum, order=False, byteorder=False)
+    assertString(xml, expected_fname)
 
 
 class ImproverTest(IrisTest):
