@@ -7,6 +7,7 @@
 import functools
 from typing import List, Tuple, Union
 
+import iris._constraints
 import numpy as np
 from iris.cube import Cube, CubeList
 from iris.exceptions import ConstraintMismatchError
@@ -355,8 +356,20 @@ class HumidityMixingRatio(BasePlugin):
         )
 
         try:
-            self.pressure = cubes.extract_cube("surface_air_pressure")
-        except ConstraintMismatchError:
+            # Test if there is one, and only one, cube with pressure in the name
+            def test_pressure(cube):
+                return True if "pressure" in cube.name() else False
+
+            self.pressure = cubes.extract_cube(iris.Constraint(cube_func=test_pressure))
+
+        except ConstraintMismatchError as err:
+            # If more than one pressure cube is provided, raise an error explaining this
+            import re
+
+            more_than_one = re.search(r"Got\s([2-9]|\d\d\d*)\scubes", str(err))
+            if more_than_one:
+                raise ValueError(f"{more_than_one.group()} with 'pressure' in name.")
+
             # If no pressure cube is provided, check if pressure is a coordinate in the temperature and relative humidity cubes
             temp_coord_flag = any(
                 coord.name() == "pressure" for coord in self.temperature.coords()
@@ -368,7 +381,7 @@ class HumidityMixingRatio(BasePlugin):
                 self.generate_pressure_cube()
             else:
                 raise ValueError(
-                    "No pressure cube called 'surface_air_pressure' found and no pressure coordinate found in temperature or relative humidity cubes"
+                    "No pressure cube with name 'pressure' found and no pressure coordinate found in temperature or relative humidity cubes"
                 )
 
         self.mandatory_attributes = generate_mandatory_attributes(
