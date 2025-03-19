@@ -433,10 +433,10 @@ def check_graphic():
             msg = msg.format(gen_phash, distance, expected_filename, fh.name)
         assert distance <= _HAMMING_DISTANCE, msg
 
-    # get the test id that calls this function
+    # get the pytest test id inc. py. mod. path.
     unique_id = os.environ.get('PYTEST_CURRENT_TEST', '').split(' ')[0].replace('/', '.').replace('::', '.')
     assert "improver_tests" in unique_id, "This function is intended for improver tests"
-    unique_id = unique_id.split("acceptance.")[-1]  # trim away the improver_tests.acceptance prefix
+    unique_id = unique_id.split('.'.join(__name__.split('.')[:-1]))[-1][1:] # trim away package path improver_tests.acceptance
 
     try:
         expected_fname = get_result_path(unique_id + ".png")
