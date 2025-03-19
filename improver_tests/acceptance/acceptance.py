@@ -23,7 +23,6 @@ IGNORE_CHECKSUMS = "IMPROVER_IGNORE_CHECKSUMS"
 ACC_TEST_DIR_MISSING = pathlib.Path("/dev/null")
 DEFAULT_CHECKSUM_FILE = pathlib.Path(__file__).parent / "SHA256SUMS"
 IGNORED_ATTRIBUTES = ["history", "Conventions"]
-RESULT_PATH = pathlib.Path(__file__).parent / "results"
 
 
 def run_cli(cli_name, verbose=True):
@@ -368,90 +367,3 @@ def compare(
 
 # Pytest decorator to skip tests if KGO is not available for use
 skip_if_kgo_missing = pytest.mark.skipif(not kgo_exists(), reason="KGO files required")
-
-
-# Default perceptual hash size.
-_HASH_SIZE = 16
-# Default maximum perceptual hash hamming distance.
-_HAMMING_DISTANCE = 2
-
-
-import imagehash
-import tempfile
-import inspect
-from PIL import Image
-import io
-import warnings
-
-
-def get_result_path(relative_path):
-    """
-    Returns the absolute path to a result file when given the relative path
-    as a string, or sequence of strings.
-    """
-    if not isinstance(relative_path, str):
-        relative_path = os.path.join(*relative_path)
-    return os.path.abspath(os.path.join(RESULT_PATH, relative_path))
-
-
-def check_graphic():
-    """
-    Compare current matplotlib.pyplot figure to a reference image.
-    Checks the hamming distance between the current computed
-    matplotlib.pyplot figure hash, and that computed from a reference
-    image, then closes the figure.
-    By default, if the reference image does not exist, the test will raise
-    the typical exception associated with a missing file.
-    If the environment variable ANTS_TEST_CREATE_MISSING is non-empty, the
-    reference file is created if it doesn't exist.
-    See Also
-    --------
-    http://www.hackerfactor.com/blog/index.php?/archives/529-Kind-of-Like-That.html
-    """
-    # Inspired by:
-    # - Filename handling from https://github.com/SciTools/iris/blob/\
-    # 576952d883f0118722e5334a410a176dd8072aef/lib/iris/tests/__init__.py\
-    # #L626
-    # - imagehash usage https://github.com/SciTools/iris/pull/2206
-    def compare_images(figure, expected_filename):
-        # Use imagehash to compare images fast and reliably.
-        img_buffer = io.BytesIO()
-        figure.savefig(img_buffer, format="png")
-        img_buffer.seek(0)
-        gen_phash = imagehash.phash(Image.open(img_buffer), hash_size=_HASH_SIZE)
-        exp_phash = imagehash.phash(
-            Image.open(expected_fname), hash_size=_HASH_SIZE
-        )
-        distance = abs(gen_phash - exp_phash)
-        problem = distance > _HAMMING_DISTANCE
-        msg = None
-        if problem:
-            fh = tempfile.NamedTemporaryFile(suffix=".png")
-            fh.close()
-            figure.savefig(fh.name, format="png")
-            msg = "Bad phash {} with hamming distance {} for {} ({})"
-            msg = msg.format(gen_phash, distance, expected_filename, fh.name)
-        assert distance <= _HAMMING_DISTANCE, msg
-
-    # get the pytest test id inc. py. mod. path.
-    unique_id = os.environ.get('PYTEST_CURRENT_TEST', '').split(' ')[0].replace('/', '.').replace('::', '.')
-    assert "improver_tests" in unique_id, "This function is intended for improver tests"
-    unique_id = unique_id.split('.'.join(__name__.split('.')[:-1]))[-1][1:] # trim away package path improver_tests.acceptance
-
-    try:
-        expected_fname = get_result_path(unique_id + ".png")
-        import matplotlib.pyplot as plt
-        figure = plt.gcf()
-        if not os.path.exists(expected_fname):
-            if not os.path.isdir(os.path.dirname(expected_fname)):
-                os.makedirs(os.path.dirname(expected_fname))
-            msg = (
-                f"Reference image '{expected_fname}' did not exist.  Reference file "
-                "generated.  Commit this new file to include it."
-            )
-            figure.savefig(expected_fname, format="png")
-            raise RuntimeError(msg)
-        else:
-            compare_images(figure, expected_fname)
-    finally:
-        plt.close()

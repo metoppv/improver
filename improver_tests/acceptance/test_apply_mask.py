@@ -9,6 +9,7 @@ import unittest.mock as mock
 from improver.utilities.load import load_cube
 from improver.api import apply_mask
 from . import acceptance as acc
+from improver_tests import assertGraphic
 
 
 @pytest.fixture(scope="session")
@@ -36,7 +37,7 @@ def test_all(cubes, invert, request):
 
     qplt.pcolormesh(res_cube)
     qplt.plt.gca().coastlines()
-    acc.check_graphic()
+    assertGraphic()
 
 
 @pytest.mark.parametrize("invert", [True, False])
