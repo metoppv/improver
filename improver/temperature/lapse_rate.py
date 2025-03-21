@@ -222,6 +222,8 @@ class LapseRate(BasePlugin):
         nbhood_radius: int = 7,
         max_lapse_rate: float = -3 * DALR,
         min_lapse_rate: float = DALR,
+        min_data_value: float = None,
+        default: float = DALR,
     ) -> None:
         """
         The class is called with the default constraints for the processing
@@ -241,12 +243,21 @@ class LapseRate(BasePlugin):
                 Maximum lapse rate allowed.
             min_lapse_rate:
                 Minimum lapse rate allowed.
+            min_data_value:
+                Data values at or below this value are not included when calculating the lapse rate.
+                Useful for truncated data distributions such as snow depth.
+            default:
+                Lapse rate to use where no lapse rate can be calculated
+                (e.g. over the sea)
         """
 
         self.max_height_diff = max_height_diff
         self.nbhood_radius = nbhood_radius
         self.max_lapse_rate = max_lapse_rate
         self.min_lapse_rate = min_lapse_rate
+        self.min_data_value = min_data_value
+        self.default = default
+        self.intercept = None
 
         if self.max_lapse_rate < self.min_lapse_rate:
             msg = "Maximum lapse rate is less than minimum lapse rate"
@@ -329,6 +340,7 @@ class LapseRate(BasePlugin):
 
         # Preallocate output array
         lapse_rate_array = np.empty_like(diagnostic_data, dtype=np.float32)
+        self.intercept = np.empty_like(diagnostic_data, dtype=np.float32)
 
         # Pads the data with nans and generates masked windows representing
         # a neighbourhood for each point.
@@ -341,8 +353,8 @@ class LapseRate(BasePlugin):
         # orography height - i.e. lapse rate.
         cnpt = self.ind_central_point
         axis = (-2, -1)
-        for lapse, diag, orog in zip(
-            lapse_rate_array, diagnostic_nbhood_window, orog_nbhood_window
+        for lapse, intercept, diag, orog in zip(
+            lapse_rate_array, self.intercept, diagnostic_nbhood_window, orog_nbhood_window
         ):
             # height_diff_mask is True for points where the height
             # difference between the central points and its
@@ -351,12 +363,14 @@ class LapseRate(BasePlugin):
             height_diff_mask = np.abs(orog - orog_centre) > self.max_height_diff
 
             diag = np.where(height_diff_mask, np.nan, diag)
+            if self.min_data_value:
+                diag = np.where(diag <= self.min_data_value, np.nan, diag)
 
             # Places NaNs in orog to match diag
             orog = np.where(np.isnan(diag), np.nan, orog)
 
-            grad = mathematical_operations.fast_linear_fit(
-                orog, diag, axis=axis, gradient_only=True, with_nan=True
+            grad, zero_point = mathematical_operations.fast_linear_fit(
+                orog, diag, axis=axis, with_nan=True
             )
 
             # Checks that the standard deviations are not 0
@@ -368,9 +382,11 @@ class LapseRate(BasePlugin):
             diag_nan_check = np.isnan(diag[..., cnpt, cnpt])
 
             dalr_mask = diagcheck | orogcheck | diag_nan_check | np.isnan(grad)
-            grad[dalr_mask] = DALR
+            grad[dalr_mask] = self.default
+            zero_point[dalr_mask] = np.nan
 
             lapse[...] = grad
+            intercept[...] = zero_point
 
         # Enforce upper and lower limits on lapse rate values.
         lapse_rate_array = lapse_rate_array.clip(
