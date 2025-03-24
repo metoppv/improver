@@ -16,7 +16,7 @@ from improver import BasePlugin, PostProcessingPlugin
 from improver.constants import DEFAULT_PERCENTILES
 from improver.metadata.forecast_times import forecast_period_coord
 from improver.nbhood import radius_by_lead_time
-from improver.utilities.common_input_handle import as_cube
+from improver.utilities.common_input_handle import as_cube, as_iterable
 from improver.utilities.complex_conversion import complex_to_deg, deg_to_complex
 from improver.utilities.cube_checker import (
     check_cube_coordinates,
@@ -472,7 +472,7 @@ class GeneratePercentilesFromANeighbourhood(BaseNeighbourhoodProcessing):
         self,
         radii: Union[float, List[float]],
         lead_times: Optional[List] = None,
-        percentiles: List = DEFAULT_PERCENTILES,
+        percentiles: Union[float, List[float]] = DEFAULT_PERCENTILES,
     ) -> None:
         """
         Create a neighbourhood processing subclass that generates percentiles
@@ -491,11 +491,11 @@ class GeneratePercentilesFromANeighbourhood(BaseNeighbourhoodProcessing):
                 within 'radii' are defined. The lead times are expected
                 in hours.
             percentiles:
-                Percentile values at which to calculate; if not provided uses
+                Percentile value(s) at which to calculate; if not provided uses
                 DEFAULT_PERCENTILES.
         """
         super().__init__(radii, lead_times=lead_times)
-        self.percentiles = tuple(percentiles)
+        self.percentiles = tuple(as_iterable(percentiles))
 
     def pad_and_unpad_cube(self, slice_2d: Cube, kernel: ndarray) -> Cube:
         """
@@ -766,13 +766,13 @@ class MetaNeighbourhood(BasePlugin):
     def __init__(
         self,
         neighbourhood_output: str,
-        radii: List[float],
+        radii: Union[float, List[float]],
         lead_times: Optional[List[int]] = None,
         neighbourhood_shape: str = "square",
         degrees_as_complex: bool = False,
         weighted_mode: bool = False,
         area_sum: bool = False,
-        percentiles: List[float] = DEFAULT_PERCENTILES,
+        percentiles: Union[float, List[float]] = DEFAULT_PERCENTILES,
         halo_radius: Optional[float] = None,
     ) -> None:
         """
@@ -783,7 +783,7 @@ class MetaNeighbourhood(BasePlugin):
                 The form of the results generated using neighbourhood processing.
                 If "probabilities" is selected, the mean probability with a
                 neighbourhood is calculated. If "percentiles" is selected, then
-                the percentiles are calculated with a neighbourhood. Calculating
+                the percentile(s) is/are calculated with a neighbourhood. Calculating
                 percentiles from a neighbourhood is only supported for a circular
                 neighbourhood, and the input cube should be ensemble realizations.
                 The calculation of percentiles from a neighbourhood is notably slower
@@ -816,7 +816,7 @@ class MetaNeighbourhood(BasePlugin):
             area_sum:
                 Return sum rather than fraction over the neighbourhood area.
             percentiles:
-                Calculates value at the specified percentiles from the
+                Calculates value at the specified percentile(s) from the
                 neighbourhood surrounding each grid point. This argument has no
                 effect if the output is probabilities.
             halo_radius:

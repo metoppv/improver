@@ -10,7 +10,7 @@ import iris
 import numpy as np
 import pytest
 
-from improver.precipitation_type.hail_fraction import HailFraction
+from improver.precipitation.hail_fraction import HailFraction
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 COMMON_ATTRS = {
@@ -24,7 +24,7 @@ class HaltExecution(Exception):
     pass
 
 
-@patch("improver.precipitation_type.hail_fraction.as_cubelist")
+@patch("improver.precipitation.hail_fraction.as_cubelist")
 def test_as_cubelist_called(mock_as_cubelist):
     mock_as_cubelist.side_effect = HaltExecution
     try:

@@ -36,5 +36,4 @@ def process(wind_direction: cli.inputcube, *, backup_method="neighbourhood"):
     """
     from improver.wind_calculations.wind_direction import WindDirection
 
-    result = WindDirection(backup_method=backup_method)(wind_direction)
-    return result
+    return WindDirection(backup_method=backup_method)(wind_direction)

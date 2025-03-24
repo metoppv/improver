@@ -31,6 +31,6 @@ def process(*cubes: cli.inputcube, model_id_attr: str = None):
     """
     from iris.cube import CubeList
 
-    from improver.precipitation_type.snow_fraction import SnowFraction
+    from improver.precipitation.snow_fraction import SnowFraction
 
     return SnowFraction(model_id_attr=model_id_attr)(CubeList(cubes))

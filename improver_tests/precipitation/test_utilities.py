@@ -9,7 +9,7 @@ import pytest
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.metadata.constants import FLOAT_DTYPE
-from improver.precipitation_type.utilities import make_shower_condition_cube
+from improver.precipitation.utilities import make_shower_condition_cube
 from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
 
 

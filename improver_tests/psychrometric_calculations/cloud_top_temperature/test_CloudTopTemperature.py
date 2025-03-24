@@ -83,7 +83,7 @@ def t_cube_fixture(profile_shift) -> Cube:
     t_cube = set_up_variable_cube(
         data + profile_shift,
         pressure=True,
-        height_levels=np.arange(100000, 29999, -10000),
+        vertical_levels=np.arange(100000, 29999, -10000),
         name="air_temperature",
         units="K",
         attributes=LOCAL_MANDATORY_ATTRIBUTES,

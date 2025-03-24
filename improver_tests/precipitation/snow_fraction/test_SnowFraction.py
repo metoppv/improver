@@ -11,7 +11,7 @@ import numpy as np
 import pytest
 from cf_units import Unit
 
-from improver.precipitation_type.snow_fraction import SnowFraction
+from improver.precipitation.snow_fraction import SnowFraction
 from improver.synthetic_data.set_up_test_cubes import (
     construct_scalar_time_coords,
     set_up_variable_cube,

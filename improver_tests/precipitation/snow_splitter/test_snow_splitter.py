@@ -11,7 +11,7 @@ import numpy as np
 import pytest
 from iris.cube import Cube, CubeList
 
-from improver.precipitation_type.snow_splitter import SnowSplitter
+from improver.precipitation.snow_splitter import SnowSplitter
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 LOCAL_MANDATORY_ATTRIBUTES = {
@@ -25,7 +25,7 @@ class HaltExecution(Exception):
     pass
 
 
-@patch("improver.precipitation_type.snow_splitter.as_cubelist")
+@patch("improver.precipitation.snow_splitter.as_cubelist")
 def test_as_cubelist_called(mock_as_cubelist):
     mock_as_cubelist.side_effect = HaltExecution
     try:

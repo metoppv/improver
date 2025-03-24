@@ -4,6 +4,7 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for saving functionality."""
 
+import copy
 import os
 import unittest
 from tempfile import mkdtemp
@@ -293,6 +294,34 @@ class Test__order_cell_methods(IrisTest):
         _order_cell_methods(self.cube)
         # Test that they do match once sorting has occured.
         self.assertEqual(self.cube.cell_methods, self.cell_methods)
+
+    def test_duplicates_removed(self):
+        """Test that only one of any exact duplicate cell method is included
+        in the output."""
+        cell_methods = self.cell_methods + self.cell_methods
+        self.cube.cell_methods = cell_methods
+        _order_cell_methods(self.cube)
+        self.assertEqual(self.cube.cell_methods, self.cell_methods)
+
+    def test_inexact_duplicates_retained(self):
+        """Test that if cell_methods are almost duplicated, but one has an
+        additional property, e.g comment, both are retained. This test is
+        overkill as we are effectively testing the ability of the set command
+        to differentiate the cell methods, but it is included for
+        completeness."""
+
+        extra = (
+            CellMethod(
+                method="maximum",
+                coords="time",
+                intervals="1 hour",
+                comments="I am unique and special",
+            ),
+        )
+        cell_methods = tuple(sorted(self.cell_methods + (extra)))
+        self.cube.cell_methods = copy.copy(cell_methods)
+        _order_cell_methods(self.cube)
+        self.assertEqual(self.cube.cell_methods, cell_methods)
 
 
 if __name__ == "__main__":

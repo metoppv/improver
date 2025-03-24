@@ -20,6 +20,7 @@ from improver.categorical.utilities import (
     categorical_attributes,
     check_tree,
     day_night_map,
+    dry_map,
     expand_nested_lists,
     get_parameter_names,
     interrogate_decision_tree,
@@ -764,6 +765,23 @@ def test_day_night_map():
 def test_is_decision_node(name, node, expected):
     """Tests that we can correctly distinguish between decision nodes and other nodes"""
     assert is_decision_node(name, node) == expected
+
+
+def test_dry_map():
+    """
+    Check that the dry_equivalent codes are returned as expected.
+    """
+    tree = {
+        "Light_Shower_Night": {"leaf": 9, "dry_equivalent": 2},
+        "Light_Shower_Day": {"leaf": 10, "dry_equivalent": 3},
+        "Drizzle": {"leaf": 11, "dry_equivalent": 8},
+        "Light_Rain": {"leaf": 12, "dry_equivalent": 8},
+        "Light_Snow_Shower_Night": {"leaf": 22, "dry_equivalent": 2},
+    }
+
+    result = dry_map(tree)
+    expected = {9: 2, 10: 3, 11: 8, 12: 8, 22: 2}
+    assert expected == result
 
 
 if __name__ == "__main__":

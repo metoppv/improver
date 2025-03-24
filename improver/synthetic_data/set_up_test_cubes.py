@@ -285,7 +285,7 @@ def _create_dimension_coord(
 
         if issubclass(coord_array.dtype.type, float):
             # option needed for realizations percentile & probability cube setup
-            # and heights coordinate
+            # and vertical coordinate
             coord_array = coord_array.astype(np.float32)
     else:
         coord_array = np.arange(data_length).astype(np.int32)
@@ -304,8 +304,9 @@ def _construct_dimension_coords(
     x_coord: Optional[DimCoord] = None,
     spot_index: Optional[DimCoord] = None,
     realizations: Optional[Union[List[float], ndarray]] = None,
-    height_levels: Optional[Union[List[float], ndarray]] = None,
+    vertical_levels: Optional[Union[List[float], ndarray]] = None,
     pressure: bool = False,
+    height: bool = False,
 ) -> DimCoord:
     """Create array of all dimension coordinates. The expected dimension order
     for gridded cubes is realization, height/pressure, y, x or realization,
@@ -314,8 +315,8 @@ def _construct_dimension_coords(
 
     A realization coordinate will be created if the cube is
     (n_spatial_dims + 1) or (n_spatial_dims + 2), even if no values for the
-    realizations argument are provided. To create a height coordinate, the
-    height_levels must be provided.
+    realizations argument are provided. To create a vertical coordinate, the
+    vertical_levels must be provided.
     """
 
     data_shape = data.shape
@@ -330,24 +331,24 @@ def _construct_dimension_coords(
 
     if (
         realizations is not None
-        and height_levels is not None
+        and vertical_levels is not None
         and ndims != n_spatial_dims + 2
     ):
         raise ValueError(
             f"Input data must have {n_spatial_dims + 2} dimensions to add both realization "
-            f"and height coordinates: got {ndims}"
+            f"and vertical coordinates: got {ndims}"
         )
 
-    if height_levels is None and ndims > n_spatial_dims + 1:
+    if vertical_levels is None and ndims > n_spatial_dims + 1:
         raise ValueError(
-            "Height levels must be provided if data has > "
+            "Vertical levels must be provided if data has > "
             f"{n_spatial_dims + 1} dimensions."
         )
 
     dim_coords = []
 
     if ndims == n_spatial_dims + 2 or (
-        height_levels is None and ndims == n_spatial_dims + 1
+        vertical_levels is None and ndims == n_spatial_dims + 1
     ):
         coord_name = "realization"
         coord_units = DIM_COORD_ATTRIBUTES[coord_name]["units"]
@@ -358,27 +359,35 @@ def _construct_dimension_coords(
         )
         dim_coords.append((realization_coord, 0))
 
-    if height_levels is not None and n_spatial_dims + 1 <= ndims <= n_spatial_dims + 2:
-        # Determine the index of the height coord based on if a realization coord has been created
+    if (
+        vertical_levels is not None
+        and n_spatial_dims + 1 <= ndims <= n_spatial_dims + 2
+    ):
+        # Determine the index of vertical coord based on if a realization coord has been created
         i = len(dim_coords)
         coord_length = data_shape[i]
 
+        if pressure and height:
+            raise ValueError("Both pressure and height cannot be set to True")
+
         if pressure:
             coord_name = "pressure"
-        else:
+        elif height:
             coord_name = "height"
+        else:
+            raise ValueError("Either pressure or height must be set to True")
 
         coord_units = DIM_COORD_ATTRIBUTES[coord_name]["units"]
         coord_attributes = DIM_COORD_ATTRIBUTES[coord_name]["attributes"]
 
-        height_coord = _create_dimension_coord(
-            height_levels,
+        vertical_coord = _create_dimension_coord(
+            vertical_levels,
             coord_length,
             coord_name,
             units=coord_units,
             attributes=coord_attributes,
         )
-        dim_coords.append((height_coord, i))
+        dim_coords.append((vertical_coord, i))
 
     if spot_index is not None:
         dim_coords.append((spot_index, len(dim_coords)))
@@ -415,8 +424,9 @@ def set_up_spot_variable_cube(
     unique_site_id: Optional[Union[List[str], ndarray]] = None,
     unique_site_id_key: Optional[str] = None,
     realizations: Optional[Union[List[float], ndarray]] = None,
-    height_levels: Optional[Union[List[float], ndarray]] = None,
+    vertical_levels: Optional[Union[List[float], ndarray]] = None,
     pressure: bool = False,
+    height: bool = False,
     *args,
     **kwargs,
 ):
@@ -455,11 +465,13 @@ def set_up_spot_variable_cube(
         realizations:
             List of forecast realizations.  If not present, taken from the
             leading dimension of the input data array (if 2D).
-        height_levels:
-            List of height levels in metres or pressure levels in Pa.
+        vertical_levels:
+            List of vertical levels in height (metres) or pressure levels (Pa).
         pressure:
-            Flag to indicate whether the height levels are specified as pressure, in Pa.
+            Flag to indicate whether the vertical levels are specified as pressure, in Pa.
             If False, use height in metres.
+        height:
+            Flag to indicate whether the vertical levels are specified as height, in metres.
 
     Returns:
         Cube containing a single spot variable field
@@ -508,8 +520,9 @@ def set_up_spot_variable_cube(
         data,
         spot_index=spot_index,
         realizations=realizations,
-        height_levels=height_levels,
+        vertical_levels=vertical_levels,
         pressure=pressure,
+        height=height,
     )
 
     cube = _variable_cube(data, dim_coords, *args, **kwargs)
@@ -534,8 +547,9 @@ def set_up_variable_cube(
     y_grid_spacing: Optional[float] = None,
     domain_corner: Optional[Tuple[float, float]] = None,
     realizations: Optional[Union[List[float], ndarray]] = None,
-    height_levels: Optional[Union[List[float], ndarray]] = None,
+    vertical_levels: Optional[Union[List[float], ndarray]] = None,
     pressure: bool = False,
+    height: bool = False,
     *args,
     **kwargs,
 ):
@@ -564,11 +578,13 @@ def set_up_variable_cube(
         realizations:
             List of forecast realizations.  If not present, taken from the
             leading dimension of the input data array (if 3D).
-        height_levels:
-            List of height levels in metres or pressure levels in Pa.
+        vertical_levels:
+            List of vertical levels in height (metres) or pressure levels (Pa).
         pressure:
-            Flag to indicate whether the height levels are specified as pressure, in Pa.
+            Flag to indicate whether the vertical levels are specified as pressure, in Pa.
             If False, use height in metres.
+        height:
+            Flag to indicate whether the vertical levels are specified as height, in metres.
 
     Returns:
         Cube containing a single gridded variable field
@@ -583,8 +599,9 @@ def set_up_variable_cube(
         y_coord=y_coord,
         x_coord=x_coord,
         realizations=realizations,
-        height_levels=height_levels,
+        vertical_levels=vertical_levels,
         pressure=pressure,
+        height=height,
     )
 
     cube = _variable_cube(data, dim_coords, *args, **kwargs)

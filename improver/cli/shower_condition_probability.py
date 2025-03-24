@@ -46,7 +46,7 @@ def process(
     """
     from iris.cube import CubeList
 
-    from improver.precipitation_type.shower_condition_probability import (
+    from improver.precipitation.shower_condition_probability import (
         ShowerConditionProbability,
     )
 

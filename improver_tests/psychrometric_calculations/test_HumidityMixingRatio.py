@@ -138,26 +138,62 @@ def test_basic(
 
 def test_height_levels():
     """Check that the plugin works with height level data"""
+
     temperature = set_up_variable_cube(
         np.full((1, 2, 2, 2), fill_value=293, dtype=np.float32),
         name="air_temperature",
         units="K",
         attributes=LOCAL_MANDATORY_ATTRIBUTES,
-        height_levels=[100, 400],
+        vertical_levels=[100, 400],
+        height=True,
     )
     pressure_cube = set_up_variable_cube(
         np.full((1, 2, 2, 2), fill_value=100000, dtype=np.float32),
         name="surface_air_pressure",
         units="Pa",
         attributes=LOCAL_MANDATORY_ATTRIBUTES,
-        height_levels=[100, 400],
+        vertical_levels=[100, 400],
+        height=True,
     )
     rel_humidity = set_up_variable_cube(
         np.full((1, 2, 2, 2), fill_value=1.0, dtype=np.float32),
         name="relative_humidity",
         units="1",
         attributes=LOCAL_MANDATORY_ATTRIBUTES,
-        height_levels=[100, 400],
+        vertical_levels=[100, 400],
+        height=True,
+    )
+    result = HumidityMixingRatio()([temperature, pressure_cube, rel_humidity])
+    metadata_ok(result, temperature)
+    assert np.isclose(result.data, 1.459832e-2, atol=1e-7).all()
+
+
+def test_height_levels_above_surface():
+    """Check that the plugin works with height level data"""
+
+    temperature = set_up_variable_cube(
+        np.full((1, 2, 2, 2), fill_value=293, dtype=np.float32),
+        name="air_temperature",
+        units="K",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        vertical_levels=[100, 400],
+        height=True,
+    )
+    pressure_cube = set_up_variable_cube(
+        np.full((1, 2, 2, 2), fill_value=100000, dtype=np.float32),
+        name="some_random_pressure",
+        units="Pa",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        vertical_levels=[100, 400],
+        height=True,
+    )
+    rel_humidity = set_up_variable_cube(
+        np.full((1, 2, 2, 2), fill_value=1.0, dtype=np.float32),
+        name="relative_humidity",
+        units="1",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        vertical_levels=[100, 400],
+        height=True,
     )
     result = HumidityMixingRatio()([temperature, pressure_cube, rel_humidity])
     metadata_ok(result, temperature)
@@ -171,7 +207,7 @@ def test_pressure_levels():
         name="air_temperature",
         units="K",
         attributes=LOCAL_MANDATORY_ATTRIBUTES,
-        height_levels=[95000, 100000],
+        vertical_levels=[95000, 100000],
         pressure=True,
     )
     rel_humidity = set_up_variable_cube(
@@ -179,7 +215,7 @@ def test_pressure_levels():
         name="relative_humidity",
         units="1",
         attributes=LOCAL_MANDATORY_ATTRIBUTES,
-        height_levels=[95000, 100000],
+        vertical_levels=[95000, 100000],
         pressure=True,
     )
     result = HumidityMixingRatio()([temperature, rel_humidity])
@@ -194,7 +230,8 @@ def test_error_raised_no_pressure_coordinate_or_pressure_cube(
     """Check that the plugin raises an error if there is no pressure coordinate and no pressure cube"""
     with pytest.raises(
         ValueError,
-        match="No pressure cube called 'surface_air_pressure' found and no pressure coordinate",
+        match="No pressure cube with name 'pressure' found and no pressure coordinate "
+        "found in temperature or relative humidity cubes",
     ):
         HumidityMixingRatio()([temperature, rel_humidity])
 
@@ -209,3 +246,45 @@ def test_model_id_attr(temperature, pressure, rel_humidity, model_id_attr):
         [temperature, pressure, rel_humidity]
     )
     metadata_ok(result, temperature, model_id_attr=model_id_attr)
+
+
+def test_correct_value_error_returned_when_more_than_one_named_pressure():
+    temperature = set_up_variable_cube(
+        np.full((1, 2, 2, 2), fill_value=293, dtype=np.float32),
+        name="air_temperature",
+        units="K",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        vertical_levels=[95000, 100000],
+        pressure=True,
+    )
+    rel_humidity = set_up_variable_cube(
+        np.full((1, 2, 2, 2), fill_value=1.0, dtype=np.float32),
+        name="relative_humidity",
+        units="1",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        vertical_levels=[95000, 100000],
+        pressure=True,
+    )
+    some_pressure = set_up_variable_cube(
+        np.full((1, 2, 2, 2), fill_value=293, dtype=np.float32),
+        name="some_random_pressure",
+        units="K",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        vertical_levels=[95000, 100000],
+        pressure=True,
+    )
+    some_more_pressure = set_up_variable_cube(
+        np.full((1, 2, 2, 2), fill_value=1.0, dtype=np.float32),
+        name="another_random_pressure",
+        units="1",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        vertical_levels=[95000, 100000],
+        pressure=True,
+    )
+    with pytest.raises(
+        ValueError,
+        match="Got 2 cubes with 'pressure' in name.",
+    ):
+        HumidityMixingRatio()(
+            [temperature, rel_humidity, some_pressure, some_more_pressure]
+        )

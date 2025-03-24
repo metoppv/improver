@@ -40,7 +40,6 @@ def process(
     """
     from improver.wind_calculations.wind_gust_diagnostic import WindGustDiagnostic
 
-    result = WindGustDiagnostic(wind_gust_percentile, wind_speed_percentile)(
+    return WindGustDiagnostic(wind_gust_percentile, wind_speed_percentile)(
         wind_gust, wind_speed
     )
-    return result
