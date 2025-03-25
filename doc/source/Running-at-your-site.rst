@@ -99,7 +99,6 @@ At the Python interpreter prompt:
    print(output)
    iris.save(output, "output.nc")
 
-.. _Test suite:
 Test suite
 ----------
 

@@ -654,7 +654,7 @@ Actions are used to run a series of tests on each pull request to ensure
 that the pull request meets the expected standards. Tests can be run
 from the top-level directory using bin/improver-tests or using
 `pytest <https://docs.pytest.org/en/latest/>`_. Further instructions on 
-running these tests can be found in the :ref:`Test suite`.
+running these tests can be found in :doc:`Running-at-your-site`.
 
 Unit Testing
 ~~~~~~~~~~~~
