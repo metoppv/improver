@@ -43,10 +43,13 @@ class ThresholdInterpolation(PostProcessingPlugin):
                 Best used in combination with 'threshold_units'. It should contain 
                 a dictionary of strings that can be interpreted as floats with the 
                 structure: "THRESHOLD_VALUE": "None" (no fuzzy bounds).
-                Repeated thresholds with different bounds are ignored; only the
+                Repeated thresholds with different bounds are ignoreinput_cube.unitsd; only the
                 last duplicate will be used.
                 threshold_values and and threshold_config are mutually exclusive
                 arguments, defining both will lead to an exception.
+            threshold_units:
+                Units of the threshold values. If not provided the units are
+                assumed to be the same as those of the input cube.
 
         Raises:
             ValueError: If threshold_config and threshold_values are both set
@@ -69,40 +72,45 @@ class ThresholdInterpolation(PostProcessingPlugin):
             threshold_values, threshold_config
         )
         self.thresholds = [thresholds] if np.isscalar(thresholds) else thresholds
+        self.threshold_units = (
+            None if threshold_units is None else Unit(threshold_units)
+        )
 
-        @staticmethod
-        def _set_thresholds(
-            threshold_values: Optional[Union[float, List[float]]],
-            threshold_config: Optional[dict],
-        ) -> List[float]:
-            """
-            Interprets a threshold_config dictionary if provided, or ensures that
-            a list of thresholds has suitable precision.
+        self.original_units = None
 
-            Args:
-                threshold_values:
-                    A list of threshold values or a single threshold value.
-                threshold_config:
-                    A dictionary defining threshold values and optionally upper
-                    and lower bounds for those values to apply fuzzy thresholding.
+    @staticmethod
+    def _set_thresholds(
+        threshold_values: Optional[Union[float, List[float]]],
+        threshold_config: Optional[dict],
+    ) -> List[float]:
+        """
+        Interprets a threshold_config dictionary if provided, or ensures that
+        a list of thresholds has suitable precision.
 
-            Returns:
-                thresholds: 
-                    A list of threshold values as float64 type.
-            """
-            if threshold_config:
-                thresholds = []
-                for key in threshold_config.keys():
-                    # Ensure thresholds are float64 to avoid rounding errors during
-                    # possible unit conversion.
-                    thresholds.append(float(key))
-            else:
-                # Ensure thresholds are float64 to avoid rounding errors during possible
-                # unit conversion.
-                if isinstance(threshold_values, numbers.Number):
-                    threshold_values = [threshold_values]
-                thresholds = [float(x) for x in threshold_values]
-            return thresholds
+        Args:
+            threshold_values:
+                A list of threshold values or a single threshold value.
+            threshold_config:
+                A dictionary defining threshold values and optionally upper
+                and lower bounds for those values to apply fuzzy thresholding.
+
+        Returns:
+            thresholds: 
+                A list of threshold values as float64 type.
+        """
+        if threshold_config:
+            thresholds = []
+            for key in threshold_config.keys():
+                # Ensure thresholds are float64 to avoid rounding errors during
+                # possible unit conversion.
+                thresholds.append(float(key))
+        else:
+            # Ensure thresholds are float64 to avoid rounding errors during possible
+            # unit conversion.
+            if isinstance(threshold_values, numbers.Number):
+                threshold_values = [threshold_values]
+            thresholds = [float(x) for x in threshold_values]
+        return thresholds
      
     def mask_checking(self, forecast_at_thresholds: Cube) -> Optional[np.ndarray]:
         """
@@ -211,6 +219,9 @@ class ThresholdInterpolation(PostProcessingPlugin):
         )
         template_cube.remove_coord(self.threshold_coord)
 
+        if self.threshold_units is not None:
+            template_cube.units = self.threshold_units
+
         # create cube with new threshold dimension
         cubes = iris.cube.CubeList([])
         for point in self.thresholds:
@@ -255,7 +266,10 @@ class ThresholdInterpolation(PostProcessingPlugin):
         self.threshold_coord = find_threshold_coordinate(forecast_at_thresholds)
 
         original_mask = self.mask_checking(forecast_at_thresholds)
-
+        
+        if self.threshold_units is not None:
+            forecast_at_thresholds.coord(self.threshold_coord).convert_units(self.threshold_units)
+            
         if forecast_at_thresholds.coords("realization"):
             forecast_at_thresholds = collapse_realizations(forecast_at_thresholds)
 
