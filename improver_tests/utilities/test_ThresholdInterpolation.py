@@ -9,7 +9,6 @@ Unit tests for the
 
 import iris
 import numpy as np
-import array
 import pytest
 from iris.cube import Cube
 
@@ -74,16 +73,17 @@ def test_cube_returned(request, input):
     assert isinstance(result, Cube)
     assert result.units == cube.units
 
+
 def test_threshold_units(input_cube):
     """
     Test that the plugin can handle different threshold units.
     """
-    threshold_values = [.1, .15, .2, .25, .3]
-    original_thresholds = input_cube.coord("visibility_in_air").points
+    threshold_values = [0.1, 0.15, 0.2, 0.25, 0.3]
     original_units = input_cube.coord("visibility_in_air").units
     result = ThresholdInterpolation(threshold_values, threshold_units="km")(input_cube)
     # Check that units are converted back to the original input cube's units
     assert result.coord("visibility_in_air").units == original_units
+
 
 @pytest.mark.parametrize("input", ["input_cube", "masked_cube"])
 def test_interpolated_values(request, input):
@@ -105,6 +105,7 @@ def test_interpolated_values(request, input):
     )
     np.testing.assert_array_equal(result.data, expected_interpolated_values)
 
+
 @pytest.mark.parametrize("input", ["input_cube", "masked_cube"])
 def test_threshold_config_provided(request, input):
     """
@@ -116,7 +117,7 @@ def test_threshold_config_provided(request, input):
         "200.0": "None",
         "250.0": "None",
         "300.0": "None",
-        }
+    }
     cube = request.getfixturevalue(input)
     print(cube)
     result = ThresholdInterpolation(threshold_config=threshold_config)(cube)
@@ -132,18 +133,24 @@ def test_threshold_config_provided(request, input):
         dtype=np.float32,
     )
     np.testing.assert_array_equal(result.data, expected_interpolated_values)
-    assert result.coord("visibility_in_air").units == cube.coord("visibility_in_air").units
+    assert (
+        result.coord("visibility_in_air").units == cube.coord("visibility_in_air").units
+    )
     thresholds = [100, 150, 200, 250, 300]
     np.testing.assert_array_equal(result.coord("visibility_in_air").points, thresholds)
 
+
 def test_no_new_thresholds_provided():
     """
-    Test that a ValueError is raised if neither threshold_config or threshold_values 
+    Test that a ValueError is raised if neither threshold_config or threshold_values
     are set.
     """
-    with pytest.raises(ValueError, match="One of threshold_config or threshold_values"
-                       " must be provided."):
+    with pytest.raises(
+        ValueError,
+        match="One of threshold_config or threshold_values" " must be provided.",
+    ):
         ThresholdInterpolation()
+
 
 def test_metadata_copy(input_cube):
     """
@@ -199,4 +206,3 @@ def test_collapse_realizations(input_cube):
     thresholds = [100, 150, 200, 250, 300]
     result = ThresholdInterpolation(thresholds)(cube.copy())[0::2]
     np.testing.assert_array_equal(result.data, 0.5 * (cube[0].data + cube[1].data))
-

@@ -5,7 +5,7 @@
 """Script to linearly interpolate thresholds"""
 
 import numbers
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Union
 
 import iris
 import numpy as np
@@ -30,18 +30,19 @@ from improver.utilities.cube_manipulation import (
 
 class ThresholdInterpolation(PostProcessingPlugin):
     def __init__(
-            self,
-            threshold_values: Optional[List[float]] = None,
-            threshold_config: Optional[Dict[str, Union[List[float], str]]] = None,
-            threshold_units: Optional[str] = None,):
+        self,
+        threshold_values: Optional[List[float]] = None,
+        threshold_config: Optional[Dict[str, Union[List[float], str]]] = None,
+        threshold_units: Optional[str] = None,
+    ):
         """
         Args:
             threshold_values:
                 List of the desired output thresholds.
             threshold_config:
                 Threshold configuration containing threshold values.
-                Best used in combination with 'threshold_units'. It should contain 
-                a dictionary of strings that can be interpreted as floats with the 
+                Best used in combination with 'threshold_units'. It should contain
+                a dictionary of strings that can be interpreted as floats with the
                 structure: "THRESHOLD_VALUE": "None" (no fuzzy bounds).
                 Repeated thresholds with different bounds are ignored; only the
                 last duplicate will be used.
@@ -70,9 +71,7 @@ class ThresholdInterpolation(PostProcessingPlugin):
         self.threshold_config = threshold_config
         print(self.threshold_config)
 
-        thresholds = self._set_thresholds(
-            threshold_values, threshold_config
-        )
+        thresholds = self._set_thresholds(threshold_values, threshold_config)
         print(thresholds)
         self.thresholds = [thresholds] if np.isscalar(thresholds) else thresholds
         print(self.thresholds)
@@ -99,7 +98,7 @@ class ThresholdInterpolation(PostProcessingPlugin):
                 and lower bounds for those values to apply fuzzy thresholding.
 
         Returns:
-            thresholds: 
+            thresholds:
                 A list of input thresholds as float64 type.
         """
         if threshold_config:
@@ -115,7 +114,7 @@ class ThresholdInterpolation(PostProcessingPlugin):
                 threshold_values = [threshold_values]
             thresholds = [float(x) for x in threshold_values]
         return thresholds
-     
+
     def mask_checking(self, forecast_at_thresholds: Cube) -> Optional[np.ndarray]:
         """
         Check if the mask is consistent across different slices of the threshold coordinate.
@@ -274,8 +273,10 @@ class ThresholdInterpolation(PostProcessingPlugin):
         original_mask = self.mask_checking(forecast_at_thresholds)
         original_units = forecast_at_thresholds.coord(self.threshold_coord).units
         if self.threshold_units is not None:
-            forecast_at_thresholds.coord(self.threshold_coord.name()).convert_units(self.threshold_units)
-            
+            forecast_at_thresholds.coord(self.threshold_coord.name()).convert_units(
+                self.threshold_units
+            )
+
         if forecast_at_thresholds.coords("realization"):
             forecast_at_thresholds = collapse_realizations(forecast_at_thresholds)
 
@@ -288,9 +289,7 @@ class ThresholdInterpolation(PostProcessingPlugin):
         )
 
         # Revert threshold coordinate units to those of the input cube.
-        threshold_cube.coord(self.threshold_coord.name()).convert_units(
-            original_units
-        )
+        threshold_cube.coord(self.threshold_coord.name()).convert_units(original_units)
 
         if original_mask is not None:
             original_mask = np.broadcast_to(original_mask, threshold_cube.shape)
