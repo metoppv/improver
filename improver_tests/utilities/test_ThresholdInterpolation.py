@@ -119,9 +119,7 @@ def test_threshold_config_provided(request, input):
         "300.0": "None",
     }
     cube = request.getfixturevalue(input)
-    print(cube)
     result = ThresholdInterpolation(threshold_config=threshold_config)(cube)
-    print(result)
     expected_interpolated_values = np.array(
         [
             [[1.0, 0.9, 1.0], [0.8, 0.9, 0.5], [0.5, 0.2, 0.0]],

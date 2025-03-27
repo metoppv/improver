@@ -66,15 +66,11 @@ class ThresholdInterpolation(PostProcessingPlugin):
                 "One of threshold_config or threshold_values must be provided."
             )
         self.threshold_values = threshold_values
-        print(self.threshold_values)
         self.threshold_coord = None
         self.threshold_config = threshold_config
-        print(self.threshold_config)
 
         thresholds = self._set_thresholds(threshold_values, threshold_config)
-        print(thresholds)
         self.thresholds = [thresholds] if np.isscalar(thresholds) else thresholds
-        print(self.thresholds)
         self.threshold_units = (
             None if threshold_units is None else Unit(threshold_units)
         )
