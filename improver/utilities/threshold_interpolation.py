@@ -43,9 +43,9 @@ class ThresholdInterpolation(PostProcessingPlugin):
                 Best used in combination with 'threshold_units'. It should contain 
                 a dictionary of strings that can be interpreted as floats with the 
                 structure: "THRESHOLD_VALUE": "None" (no fuzzy bounds).
-                Repeated thresholds with different bounds are ignoreinput_cube.unitsd; only the
+                Repeated thresholds with different bounds are ignored; only the
                 last duplicate will be used.
-                threshold_values and and threshold_config are mutually exclusive
+                Threshold_values and and threshold_config are mutually exclusive
                 arguments, defining both will lead to an exception.
             threshold_units:
                 Units of the threshold values. If not provided the units are
@@ -65,13 +65,17 @@ class ThresholdInterpolation(PostProcessingPlugin):
                 "One of threshold_config or threshold_values must be provided."
             )
         self.threshold_values = threshold_values
+        print(self.threshold_values)
         self.threshold_coord = None
         self.threshold_config = threshold_config
+        print(self.threshold_config)
 
         thresholds = self._set_thresholds(
             threshold_values, threshold_config
         )
+        print(thresholds)
         self.thresholds = [thresholds] if np.isscalar(thresholds) else thresholds
+        print(self.thresholds)
         self.threshold_units = (
             None if threshold_units is None else Unit(threshold_units)
         )
@@ -96,7 +100,7 @@ class ThresholdInterpolation(PostProcessingPlugin):
 
         Returns:
             thresholds: 
-                A list of threshold values as float64 type.
+                A list of input thresholds as float64 type.
         """
         if threshold_config:
             thresholds = []
@@ -174,7 +178,7 @@ class ThresholdInterpolation(PostProcessingPlugin):
         )
 
         forecast_at_interpolated_thresholds = interpolate_multiple_rows_same_x(
-            np.array(self.threshold_values, dtype=np.float64),
+            np.array(self.thresholds, dtype=np.float64),
             original_thresholds.astype(np.float64),
             forecast_at_reshaped_thresholds.astype(np.float64),
         )
@@ -187,7 +191,7 @@ class ThresholdInterpolation(PostProcessingPlugin):
         forecast_at_thresholds_data = restore_non_percentile_dimensions(
             forecast_at_interpolated_thresholds,
             next(forecast_at_thresholds.slices_over(self.threshold_coord.name())),
-            len(self.threshold_values),
+            len(self.thresholds),
         )
 
         return forecast_at_thresholds_data
@@ -249,10 +253,12 @@ class ThresholdInterpolation(PostProcessingPlugin):
         This method performs the following steps:
         1. Identifies the threshold coordinate in the input cube.
         2. Checks if the mask is consistent across different slices of the threshold coordinate.
-        3. Collapses the realizations if present.
-        4. Interpolates the forself.thresholdecast data to the new set of thresholds.
-        5. Creates a new cube with the interpolated threshold data.
-        6. Applies the original mask to the new cube if it exists.
+        3. Convert the threshold coordinate to the specified units if provided.
+        4. Collapses the realizations if present.
+        5. Interpolates the forself.thresholdecast data to the new set of thresholds.
+        6. Creates a new cube with the interpolated threshold data.
+        7. Converts the original threshold coordinate units back to the original units.
+        8. Applies the original mask to the new cube if it exists.
 
         Args:
             forecast_at_thresholds:
@@ -266,9 +272,9 @@ class ThresholdInterpolation(PostProcessingPlugin):
         self.threshold_coord = find_threshold_coordinate(forecast_at_thresholds)
 
         original_mask = self.mask_checking(forecast_at_thresholds)
-        
+        original_units = forecast_at_thresholds.coord(self.threshold_coord).units
         if self.threshold_units is not None:
-            forecast_at_thresholds.coord(self.threshold_coord).convert_units(self.threshold_units)
+            forecast_at_thresholds.coord(self.threshold_coord.name()).convert_units(self.threshold_units)
             
         if forecast_at_thresholds.coords("realization"):
             forecast_at_thresholds = collapse_realizations(forecast_at_thresholds)
@@ -280,6 +286,12 @@ class ThresholdInterpolation(PostProcessingPlugin):
             forecast_at_thresholds,
             forecast_at_thresholds_data,
         )
+
+        # Revert threshold coordinate units to those of the input cube.
+        threshold_cube.coord(self.threshold_coord.name()).convert_units(
+            original_units
+        )
+
         if original_mask is not None:
             original_mask = np.broadcast_to(original_mask, threshold_cube.shape)
             threshold_cube.data = np.ma.MaskedArray(
