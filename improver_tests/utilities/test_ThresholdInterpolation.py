@@ -74,6 +74,17 @@ def test_cube_returned(request, input):
     assert result.units == cube.units
 
 
+def test_threshold_units(input_cube):
+    """
+    Test that the plugin can handle different threshold units.
+    """
+    threshold_values = [0.1, 0.15, 0.2, 0.25, 0.3]
+    original_units = input_cube.coord("visibility_in_air").units
+    result = ThresholdInterpolation(threshold_values, threshold_units="km")(input_cube)
+    # Check that units are converted back to the original input cube's units
+    assert result.coord("visibility_in_air").units == original_units
+
+
 @pytest.mark.parametrize("input", ["input_cube", "masked_cube"])
 def test_interpolated_values(request, input):
     """
@@ -95,12 +106,48 @@ def test_interpolated_values(request, input):
     np.testing.assert_array_equal(result.data, expected_interpolated_values)
 
 
-def test_empty_threshold_list():
+@pytest.mark.parametrize("input", ["input_cube", "masked_cube"])
+def test_threshold_config_provided(request, input):
     """
-    Test that a ValueError is raised if the threshold list is empty.
+    Test that the plugin can handle threshold_config (and so JSON files) being provided.
     """
-    with pytest.raises(ValueError, match="The thresholds list cannot be empty."):
-        ThresholdInterpolation([])
+    threshold_config = {
+        "100.0": "None",
+        "150.0": "None",
+        "200.0": "None",
+        "250.0": "None",
+        "300.0": "None",
+    }
+    cube = request.getfixturevalue(input)
+    result = ThresholdInterpolation(threshold_config=threshold_config)(cube)
+    expected_interpolated_values = np.array(
+        [
+            [[1.0, 0.9, 1.0], [0.8, 0.9, 0.5], [0.5, 0.2, 0.0]],
+            [[1.0, 0.7, 1.0], [0.65, 0.7, 0.4], [0.35, 0.1, 0.0]],
+            [[1.0, 0.5, 1.0], [0.5, 0.5, 0.3], [0.2, 0.0, 0.0]],
+            [[1.0, 0.35, 0.75], [0.35, 0.25, 0.2], [0.1, 0.0, 0.0]],
+            [[1.0, 0.2, 0.5], [0.2, 0.0, 0.1], [0.0, 0.0, 0.0]],
+        ],
+        dtype=np.float32,
+    )
+    np.testing.assert_array_equal(result.data, expected_interpolated_values)
+    assert (
+        result.coord("visibility_in_air").units == cube.coord("visibility_in_air").units
+    )
+    thresholds = [100, 150, 200, 250, 300]
+    np.testing.assert_array_equal(result.coord("visibility_in_air").points, thresholds)
+
+
+def test_no_new_thresholds_provided():
+    """
+    Test that a ValueError is raised if neither threshold_config or threshold_values
+    are set.
+    """
+    with pytest.raises(
+        ValueError,
+        match="One of threshold_config or threshold_values" " must be provided.",
+    ):
+        ThresholdInterpolation()
 
 
 def test_metadata_copy(input_cube):
