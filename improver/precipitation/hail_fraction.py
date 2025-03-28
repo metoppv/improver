@@ -64,7 +64,7 @@ class HailFraction(PostProcessingPlugin):
         References:
             Dennis, E.J., and M.R. Kumjian. 2017.
             “The Impact of Vertical Wind Shear on Hail Growth in Simulated Supercells.”
-            J. Atmos. Sci. 74 (3): 641-663. doi:https://doi.org/10.1175/JAS-D-16-0066.1.
+            J. Atmos. Sci. 74 (3): 641-663. https://doi.org/10.1175/JAS-D-16-0066.1.
 
         Returns:
             Hail fraction array.

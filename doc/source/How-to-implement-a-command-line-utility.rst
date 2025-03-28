@@ -76,9 +76,10 @@ checksums listed in
 <https://github.com/metoppv/improver/blob/master/improver_tests/acceptance/SHA256SUMS>`_.
 Changes to the checksum file in the code repository identify when
 changes are made to the code requiring corresponding changes to the data
-files. The acceptance test data files are maintained in a public repository:
-`https://github.com/metoppv/improver_test_data`, with the directory
-structure being based on the CLI plugin names.
+files. The acceptance test data files are maintained in the 
+`improver_test_data <https://github.com/metoppv/improver_test_data>`_ open 
+source repository on GitHub, with the directory structure being based on 
+the CLI plugin names.
 
 Use of checksums
 ~~~~~~~~~~~~~~~~

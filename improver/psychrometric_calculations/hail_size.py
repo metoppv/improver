@@ -69,10 +69,10 @@ class HailSize(BasePlugin):
     References
         - Hand, W., and G. Cappelluti. 2011. “A global hail climatology using the UK
           Met Office convection diagnosis procedure (CDP) and model analyses.”
-          Meteorological Applications 18: 446-458. doi:https://doi.org/10.1002/met.236
+          Meteorological Applications 18: 446-458. https://doi.org/10.1002/met.236
         - Fawbush, E.J., and R.C. Miller. 1953. “A method for forecasting hailstone size
           at the earth's surface.” Bulletin of the American Meteorological Society 34: 235-244.
-          doi: https://doi.org/10.1175/1520-0477-34.6.235
+          https://doi.org/10.1175/1520-0477-34.6.235
     """
 
     def __init__(self, model_id_attr: str = None):
