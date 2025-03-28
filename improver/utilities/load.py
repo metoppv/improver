@@ -3,7 +3,7 @@
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Module for loading cubes."""
-
+import pathlib
 from typing import List, Optional, Union
 
 import iris
@@ -51,11 +51,15 @@ def load_cubelist(
 
     # Load each file individually to avoid partial merging (not used
     # iris.load_raw() due to issues with time representation)
-    if isinstance(filepath, str):
+    if isinstance(filepath, pathlib.Path):
+        filepath = str(filepath)
+    if isinstance(filepath, str) or isinstance(filepath, pathlib.Path):
         cubes = iris.load(filepath, constraints=constraints)
     else:
         cubes = iris.cube.CubeList([])
         for item in filepath:
+            if isinstance(filepath, pathlib.Path):
+                filepath = str(filepath)
             cubes.extend(iris.load(item, constraints=constraints))
 
     if not cubes:

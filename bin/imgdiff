@@ -1,0 +1,51 @@
+#!/bin/sh
+# Function to diff an image using imagemagick, displaying the original images
+# and the diff.
+# Example usage:
+#    imgdiff <image1> <image2>
+# http://askubuntu.com/questions/209517/does-diff-exist-for-images
+output=''
+source=''
+target=''
+while :; do
+    case $1 in
+        -o|--output)
+            output=$2
+            shift
+            ;;
+        *)
+            [[ -z $1 ]] && break
+            source=$1
+            shift
+            target=$1
+            ;;
+    esac
+    shift
+done
+
+
+# Generate difference plot
+diff_tmp=$(mktemp --suffix=.png)
+overlap_diff_tmp=$(mktemp --suffix=.png)
+resized_target_tmp=$(mktemp --suffix=.png)
+if [[ -z $output ]]; then
+    output=$(mktemp --suffix=.png)
+fi
+
+printf 'src:%s; tar:%s\n' ${source} ${target}
+printf 'diff:%s; diff_overlay:%s; combined:%s\n' ${diff_tmp} ${overlap_diff_tmp} ${output}
+
+# Resize target image to be the same dimensions as the source image
+src_dim=$(convert ${source} -ping -format "%wx%h" info:)
+convert ${target} -resize ${src_dim}\! ${resized_target_tmp}
+
+# Create difference image of the source and target
+compare -compose src ${source} ${resized_target_tmp} ${diff_tmp}
+echo 'now here' ${resized_target_tmp}
+
+# Put the original image underneath the difference
+convert $source -alpha set -channel a -evaluate set 90% +channel ${diff_tmp} -background none -flatten ${overlap_diff_tmp}
+
+# Create panel comparing the plots
+convert +append $source $target ${overlap_diff_tmp} ${output}
+display ${output}
