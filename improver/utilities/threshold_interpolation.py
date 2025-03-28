@@ -247,13 +247,18 @@ class ThresholdInterpolation(PostProcessingPlugin):
 
         This method performs the following steps:
         1. Identifies the threshold coordinate in the input cube.
-        2. Checks if the mask is consistent across different slices of the threshold coordinate.
+        2. Checks if the mask is consistent across different slices of the threshold
+        coordinate.
         3. Convert the threshold coordinate to the specified units if provided.
         4. Collapses the realizations if present.
         5. Interpolates the forself.thresholdecast data to the new set of thresholds.
         6. Creates a new cube with the interpolated threshold data.
-        7. Converts the original threshold coordinate units back to the original units.
-        8. Applies the original mask to the new cube if it exists.
+        7. Applies the original mask to the new cube if it exists.
+        8. Converts the original threshold coordinate units back to the original units.
+        9. Restores the original cube units, to combat how iris can set the cube's units
+        to the modified dimension's units, when these units should be dimensionless
+        ('1').
+
 
         Args:
             forecast_at_thresholds:
@@ -265,11 +270,14 @@ class ThresholdInterpolation(PostProcessingPlugin):
                 The threshold coordinate is always the zeroth dimension.
         """
         self.threshold_coord = find_threshold_coordinate(forecast_at_thresholds)
+        self.threshold_coord_name = self.threshold_coord.name()
+        self.original_units = forecast_at_thresholds.units
+        self.original_threshold_units = self.threshold_coord.units
 
         original_mask = self.mask_checking(forecast_at_thresholds)
-        original_units = forecast_at_thresholds.coord(self.threshold_coord).units
+
         if self.threshold_units is not None:
-            forecast_at_thresholds.coord(self.threshold_coord.name()).convert_units(
+            forecast_at_thresholds.coord(self.threshold_coord_name).convert_units(
                 self.threshold_units
             )
 
@@ -284,13 +292,18 @@ class ThresholdInterpolation(PostProcessingPlugin):
             forecast_at_thresholds_data,
         )
 
-        # Revert threshold coordinate units to those of the input cube.
-        threshold_cube.coord(self.threshold_coord.name()).convert_units(original_units)
-
         if original_mask is not None:
             original_mask = np.broadcast_to(original_mask, threshold_cube.shape)
             threshold_cube.data = np.ma.MaskedArray(
                 threshold_cube.data, mask=original_mask
             )
+
+        # Revert the threshold coordinate's units
+        threshold_cube.coord(self.threshold_coord_name).convert_units(
+            self.original_threshold_units
+        )
+
+        # Ensure the cube's overall units are restored
+        threshold_cube.units = self.original_units
 
         return threshold_cube
