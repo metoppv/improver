@@ -300,7 +300,7 @@ class PrecipitationDuration(PostProcessingPlugin):
 
         # Add more descriptive long names to accumulation and rate thresholds.
         acc_thresh.long_name = "precipitation_accumulation_threshold_for_wet"
-        rate_thresh.long_name = "precipitation_rate_threshold_for_wet"
+        rate_thresh.long_name = "precipitation_max_rate_threshold_for_wet"
         # Remove var_names as working with dual threshold coordinates.
         # Iris will otherwise suffix these, e.g. threshold_0.
         acc_thresh.var_name = None
