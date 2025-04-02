@@ -639,7 +639,7 @@ class CalculateClimateAnomalies(BasePlugin):
         std_cube: Optional[Cube] = None,
     ) -> Cube:
         """Calculate anomalies from the input cubes and update metadata.
-        
+
         Args:
             diagnostic_cube:
                 Cube containing the data to be converted to anomalies.
@@ -651,7 +651,7 @@ class CalculateClimateAnomalies(BasePlugin):
                 calculation of standardized anomalies. If not provided,
                 only anomalies (not standardized anomalies) will be
                 calculated.
-                
+
         Returns:
             Cube containing the result of the calculation with updated metadata:
             - Name is updated to include "_anomaly" or "_standardized_anomaly" suffix.
