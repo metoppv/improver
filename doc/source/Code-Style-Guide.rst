@@ -679,7 +679,7 @@ Unit tests should:
    dimensions (consistent with what is enforced by the 'load' module).
 2. Use centralised test `cube set-up
    utilities <https://github.com/metoppv/improver/blob/master/improver/synthetic_data/set_up_test_cubes.py>`_
-   where possible to ensure input cubes conform to the IMPROVER metadata standard.
+   where possible to ensure input cubes conform to the `IMPROVER metadata standard <https://improver.readthedocs.io/en/latest/metadata/Introduction.html>`_.
 3. Consider the most likely uses of the plugin and ensure these are represented
    in the unit tests.
 4. Consider possible edge cases e.g. cubes with different input dimensions.

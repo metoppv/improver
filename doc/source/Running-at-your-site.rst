@@ -102,7 +102,9 @@ At the Python interpreter prompt:
 Test suite
 ----------
 
-Tests should be run before use to ensure expected functionality at your site.
+Please ensure IMPROVER provides the expected functionality at your site by running the 
+test suite described below. Any test failures would highlight a problem with the
+installation.
 
 Tests can be run from the top-level directory using bin/improver-tests
 or directly using `pytest <https://docs.pytest.org/en/latest/>`_.
@@ -156,20 +158,20 @@ To run all tests together at once, the following command can be input
 The tests available using the ``improver-tests`` interface are documented in the table 
 below.
 
-.. list-table:: Test Types
+.. list-table::
    :header-rows: 1
-
+   
    * - Test Type
      - Summary
    * - black
-     - Auto-formats code (by default, applies changes to files rather than check-only)
+     - Auto-formats code (by default, applies changes to files rather than check-only).
    * - isort
-     - Sorts imports (by default, applies changes to files rather than check-only)
+     - Sorts imports (by default, applies changes to files rather than check-only).
    * - pylintE
      - Check whether `pylint <https://www.pylint.org/>`_ reports any errors.
    * - pylint
-     - `Pylint <https://www.pylint.org/>`_ returns an assessment including a score for 
-       each file that it analyses.
+     - `Pylint <https://www.pylint.org/>`_ checks code quality and style, 
+       returning an assessment that includes a score for each file it analyses.
    * - doc
      - Build the documentation from the code docstrings using `Sphinx <https://www.sphinx-doc.org/en/master/>`_.
    * - unit

@@ -94,7 +94,7 @@ The current list of CLIs can be `found here`_.
 
 Sample data for testing CLIs
 ============================
-The test data used for the acceptance tests within IMPROVER is available in an open-source `repository <https://github.com/metoppv/improver_test_data>` on GitHub.
+The test data used for the acceptance tests within IMPROVER is available in an open-source `repository <https://github.com/metoppv/improver_test_data>`_ on GitHub.
 Using this test data, along with the acceptance tests within the improver repository, provides a good start for exploring the functionality available.
 
 Publications & Presentations
