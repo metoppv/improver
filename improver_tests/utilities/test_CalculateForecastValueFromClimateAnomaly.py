@@ -115,9 +115,7 @@ def unstandardized_anomaly_cube_multiple_time_points(
         data = np.full((1, 1), value, dtype=np.float32)
         cubes.append(
             set_up_variable_cube(
-                data=data, time=time, 
-                frt=forecast_reference_time, 
-                units="K"
+                data=data, time=time, frt=forecast_reference_time, units="K"
             )
         )
     cube = cubes.merge_cube()
@@ -154,10 +152,7 @@ def standardized_anomaly_cube_multiple_time_points(
         data = np.full((1, 1), value, dtype=np.float32)
         cubes.append(
             set_up_variable_cube(
-                data=data, 
-                time=time, 
-                frt=forecast_reference_time, 
-                units="1"
+                data=data, time=time, frt=forecast_reference_time, units="1"
             )
         )
     cube = cubes.merge_cube()
@@ -325,9 +320,7 @@ def test_ignore_temporal_mismatch(standardized_anomaly_cube, mean_cube, std_cube
     "error_to_check",
     ["standardized_anomaly_no_std_cube", "unstandardized_anomaly_and_std_cube"],
 )
-def test_error_inputs_mismatch(
-    std_cube, error_to_check
-):
+def test_error_inputs_mismatch(std_cube, error_to_check):
     """Test that the plugin raises a ValueError if the inputs are incorrect for the
     type of anomaly data (standardised or unstandardised) input"""
 
@@ -347,8 +340,7 @@ def test_error_inputs_mismatch(
             match="The standard deviation cube should not be provided to calculate "
             "the forecast value from an unstandardized anomaly.",
         ):
-            plugin.verify_inputs_for_forecast(standardized_anomaly,
-                                              std_cube)
+            plugin.verify_inputs_for_forecast(standardized_anomaly, std_cube)
 
 
 @pytest.mark.parametrize(
@@ -366,26 +358,25 @@ def test_error_units_mismatch(
     plugin = CalculateForecastValueFromClimateAnomaly()
     if error_to_check == "mean_and_anomaly_check":
         mean_cube.units = "C"  # The units should be K ordinarily
-        standardized_anomaly=False
+        standardized_anomaly = False
         with pytest.raises(
             ValueError,
-            match="The mean cube must have the same units as the anomaly cube."
+            match="The mean cube must have the same units as the anomaly cube.",
         ):
-            plugin.verify_units_match(unstandardized_anomaly_cube, 
-                                      mean_cube, 
-                                      standardized_anomaly)
+            plugin.verify_units_match(
+                unstandardized_anomaly_cube, mean_cube, standardized_anomaly
+            )
     else:
         std_cube.units = "C"  # The units should be K ordinarily
         standardized_anomaly = True
         with pytest.raises(
             ValueError,
             match="The standard deviation cube must have the same units as the "
-             "mean cube.",
+            "mean cube.",
         ):
-            plugin.verify_units_match(standardized_anomaly_cube, 
-                                      mean_cube, 
-                                      standardized_anomaly,
-                                      std_cube)
+            plugin.verify_units_match(
+                standardized_anomaly_cube, mean_cube, standardized_anomaly, std_cube
+            )
 
 
 def test_error_spatial_coords_mismatch_gridded_data(

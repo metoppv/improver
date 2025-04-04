@@ -720,8 +720,10 @@ class CalculateForecastValueFromClimateAnomaly(BasePlugin):
 
     @staticmethod
     def verify_units_match(
-        anomaly_cube: Cube, mean_cube: Cube, standardized_anomaly: bool, 
-        std_cube: Optional[Cube] = None
+        anomaly_cube: Cube,
+        mean_cube: Cube,
+        standardized_anomaly: bool,
+        std_cube: Optional[Cube] = None,
     ) -> None:
         """Check that all required inputs are provided and all cubes have the same
         units. E.g. to prevent accidental use of cubes with rate data with cubes with
@@ -838,7 +840,7 @@ class CalculateForecastValueFromClimateAnomaly(BasePlugin):
             forecast_value = (anomaly_cube.data * std_cube.data) + mean_cube.data
         else:
             forecast_value = anomaly_cube.data + mean_cube.data
-            
+
         return forecast_value
 
     @staticmethod
@@ -943,11 +945,12 @@ class CalculateForecastValueFromClimateAnomaly(BasePlugin):
             if name and "standardized" in name:
                 standardized_anomaly = True
                 break
-        
+
         self.verify_inputs_for_forecast(standardized_anomaly, std_cube)
         self.verify_units_match(anomaly_cube, mean_cube, standardized_anomaly, std_cube)
         self.verify_spatial_coords_match(anomaly_cube, mean_cube, std_cube)
         self.verify_time_coords_match(anomaly_cube, mean_cube, std_cube)
 
-        return self._create_output_cube(anomaly_cube, mean_cube, std_cube,
-                                        standardized_anomaly)
+        return self._create_output_cube(
+            anomaly_cube, mean_cube, std_cube, standardized_anomaly
+        )
