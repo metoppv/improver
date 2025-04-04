@@ -130,6 +130,8 @@ def setup_cubes():
         (75, 0.001, 263.15, 253.15, 20, 50, 0),
         # Convective cloud top temperature prevents hail
         (75, 0.001, 271.15, 263.15, 20, 50, 0),
+        # Convective cloud top temperature is missing and prevents hail
+        (75, 0.001, 271.15, np.nan, 20, 50, 0),
         # Hail melting level prevents hail
         (75, 0.001, 271.15, 253.15, 100, 50, 0),
         # Hail size causes non-zero hail fraction despite inhibitive cloud condensation
@@ -168,8 +170,10 @@ def test_basic(
     cloud_condensation_level.data = np.full_like(
         cloud_condensation_level.data, cloud_condensation_level_value
     )
-    convective_cloud_top.data = np.full_like(
-        convective_cloud_top.data, convective_cloud_top_value
+    convective_cloud_top.data = np.ma.masked_invalid(
+        np.full_like(
+            convective_cloud_top.data, convective_cloud_top_value
+        )
     )
     hail_melting_level.data = np.full_like(
         hail_melting_level.data, hail_melting_level_value
