@@ -448,9 +448,9 @@ class CalculateClimateAnomalies(BasePlugin):
                 f"The following units were found: {mean_cube.units},"
                 f"{diagnostic_cube.units}"
             )
-        if std_cube and std_cube.units != "1":
+        if std_cube and std_cube.units != str(diagnostic_cube.units):
             errors.append(
-                "The standard deviation cube must be dimensionless (units = '1'). "
+                "The standard deviation cube must have the same units. "
                 f"The following units were found: {std_cube.units},"
                 f"{diagnostic_cube.units}"
             )
@@ -638,7 +638,7 @@ class CalculateClimateAnomalies(BasePlugin):
         mean_cube: Cube,
         std_cube: Optional[Cube] = None,
     ) -> Cube:
-        """Calculate anomalies from the input cubes and update metadata.
+        """Calculate anomalies from the input cubes.
 
         Args:
             diagnostic_cube:
@@ -691,10 +691,10 @@ class CalculateForecastValueFromClimateAnomaly(BasePlugin):
 
     @staticmethod
     def verify_inputs_for_forecast(
-        anomaly_cube: Cube, std_cube: Optional[Cube] = None
+        standardized_anomaly: bool, std_cube: Optional[Cube] = None
     ) -> None:
         """Check that all required inputs are provided for the type of anomaly data
-        (standardised or unstandardised) used. If the anomaly cube is standardized,
+        (standardized or unstandardized) used. If the anomaly cube is standardized,
         the standard deviation cube must be provided. If the anomaly cube is not
         standardized, the standard deviation cube must not be provided. This is to
         prevent accidental use of standardized anomaly data when the standard
@@ -705,27 +705,23 @@ class CalculateForecastValueFromClimateAnomaly(BasePlugin):
             deviation cube is not provided, or if the anomaly cube is not
             standardized and the standard deviation cube is provided.
         """
-        errors = []
-        if (
-            anomaly_cube.long_name
-            and "standardized" in anomaly_cube.long_name
-            and std_cube is None
-        ):
+        if standardized_anomaly and not std_cube:
+            # require a standard deviation to convert a standardized anomaly
             raise ValueError(
                 "The standard deviation cube must be provided to calculate "
                 "the forecast value from a standardized anomaly."
             )
-        elif not anomaly_cube.long_name and std_cube is not None:
-            errors.append(
+        elif not standardized_anomaly and std_cube:
+            # should not have a standard deviation if converting an anomaly
+            raise ValueError(
                 "The standard deviation cube should not be provided to calculate "
                 "the forecast value from an unstandardized anomaly."
             )
-        if errors:
-            raise ValueError("\n".join(errors))
 
     @staticmethod
     def verify_units_match(
-        anomaly_cube: Cube, mean_cube: Cube, std_cube: Optional[Cube] = None
+        anomaly_cube: Cube, mean_cube: Cube, standardized_anomaly: bool, 
+        std_cube: Optional[Cube] = None
     ) -> None:
         """Check that all required inputs are provided and all cubes have the same
         units. E.g. to prevent accidental use of cubes with rate data with cubes with
@@ -735,29 +731,19 @@ class CalculateForecastValueFromClimateAnomaly(BasePlugin):
             ValueError: If the units of the cubes do not match or if the cubes are
             not compatible with the anomaly cube.
         """
-        errors = []
-        if not anomaly_cube.long_name and mean_cube.units != anomaly_cube.units:
-            errors.append(
-                "The mean cube must have the same units as the unstandardized "
-                "anomaly cube. "
+        if not standardized_anomaly and mean_cube.units != anomaly_cube.units:
+            raise ValueError(
+                "The mean cube must have the same units as the anomaly cube. "
                 f"The following units were found: {mean_cube.units},"
                 f"{anomaly_cube.units}"
             )
-        if (
-            anomaly_cube.long_name
-            and "standardized" in anomaly_cube.long_name
-            and std_cube
-            and std_cube.units != anomaly_cube.units
-        ):
-            errors.append(
-                "The standard deviation cube, if supplied, must have the same units "
-                "as the anomaly cube. "
+        elif standardized_anomaly and std_cube and mean_cube.units != std_cube.units:
+            raise ValueError(
+                "The standard deviation cube must have the same units as the "
+                "mean cube. "
                 f"The following units were found: {std_cube.units},"
-                f"{anomaly_cube.units}"
+                f"{mean_cube.units}"
             )
-
-        if errors:
-            raise ValueError("\n".join(errors))
 
     @staticmethod
     def verify_spatial_coords_match(
@@ -848,9 +834,11 @@ class CalculateForecastValueFromClimateAnomaly(BasePlugin):
         anomaly_cube: Cube, mean_cube: Cube, std_cube: Optional[Cube] = None
     ) -> ndarray:
         """Calculate forecast value(s) from the input cubes."""
-        forecast_value = anomaly_cube.data + mean_cube.data
         if std_cube:
             forecast_value = (anomaly_cube.data * std_cube.data) + mean_cube.data
+        else:
+            forecast_value = anomaly_cube.data + mean_cube.data
+            
         return forecast_value
 
     @staticmethod
@@ -901,6 +889,7 @@ class CalculateForecastValueFromClimateAnomaly(BasePlugin):
         anomaly_cube: Cube,
         mean_cube: Cube,
         std_cube: Optional[Cube] = None,
+        standardized_anomaly: bool = False,
     ) -> Cube:
         """
         Create a final forecast value cube by copying the anomaly cube, updating its
@@ -949,11 +938,16 @@ class CalculateForecastValueFromClimateAnomaly(BasePlugin):
             - Units are reverted to the original units of the anomaly cube.
             - The reference epoch coordinate and "anomaly" cell method are removed.
         """
-        self.verify_inputs_for_forecast(anomaly_cube, std_cube)
-        self.verify_units_match(anomaly_cube, mean_cube, std_cube)
+        standardized_anomaly = False
+        for name in [anomaly_cube.standard_name, anomaly_cube.long_name]:
+            if name and "standardized" in name:
+                standardized_anomaly = True
+                break
+        
+        self.verify_inputs_for_forecast(standardized_anomaly, std_cube)
+        self.verify_units_match(anomaly_cube, mean_cube, standardized_anomaly, std_cube)
         self.verify_spatial_coords_match(anomaly_cube, mean_cube, std_cube)
         self.verify_time_coords_match(anomaly_cube, mean_cube, std_cube)
 
-        anomalies_cube = self._create_output_cube(anomaly_cube, mean_cube, std_cube)
-
-        return anomalies_cube
+        return self._create_output_cube(anomaly_cube, mean_cube, std_cube,
+                                        standardized_anomaly)

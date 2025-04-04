@@ -79,7 +79,7 @@ def std_cube(validity_time, time_bounds):
         data=data,
         time=validity_time["mean_and_std"],
         time_bounds=time_bounds["mean_and_std"],
-        units="1",
+        units="K",
     )
     cell_method = iris.coords.CellMethod(method="standard_deviation", coords="time")
     cube.add_cell_method(cell_method)
@@ -115,7 +115,9 @@ def unstandardized_anomaly_cube_multiple_time_points(
         data = np.full((1, 1), value, dtype=np.float32)
         cubes.append(
             set_up_variable_cube(
-                data=data, time=time, frt=forecast_reference_time, units="K"
+                data=data, time=time, 
+                frt=forecast_reference_time, 
+                units="K"
             )
         )
     cube = cubes.merge_cube()
@@ -152,7 +154,10 @@ def standardized_anomaly_cube_multiple_time_points(
         data = np.full((1, 1), value, dtype=np.float32)
         cubes.append(
             set_up_variable_cube(
-                data=data, time=time, frt=forecast_reference_time, units="1"
+                data=data, 
+                time=time, 
+                frt=forecast_reference_time, 
+                units="1"
             )
         )
     cube = cubes.merge_cube()
@@ -162,11 +167,6 @@ def standardized_anomaly_cube_multiple_time_points(
 
 
 # Site cube fixtures
-# Site anomaly cubes with mutliple time points are not created for testing as the
-# plugin's functionality is not expected to change, and so is implicitly tested by the
-# gridded anomaly cubes with multiple time points.
-
-
 @pytest.fixture
 def site_cubes(validity_time, time_bounds, forecast_reference_time, mean_cube):
     """Fixture for creating site cubes."""
@@ -209,7 +209,7 @@ def site_cubes(validity_time, time_bounds, forecast_reference_time, mean_cube):
         data=data,
         time=validity_time["mean_and_std"],
         time_bounds=time_bounds["mean_and_std"],
-        units="1",
+        units="K",
     )
     cell_method = iris.coords.CellMethod(method="std", coords="time")
     std_site_cube.add_cell_method(cell_method)
@@ -326,26 +326,29 @@ def test_ignore_temporal_mismatch(standardized_anomaly_cube, mean_cube, std_cube
     ["standardized_anomaly_no_std_cube", "unstandardized_anomaly_and_std_cube"],
 )
 def test_error_inputs_mismatch(
-    unstandardized_anomaly_cube, standardized_anomaly_cube, std_cube, error_to_check
+    std_cube, error_to_check
 ):
     """Test that the plugin raises a ValueError if the inputs are incorrect for the
     type of anomaly data (standardised or unstandardised) input"""
 
     plugin = CalculateForecastValueFromClimateAnomaly()
     if error_to_check == "standardized_anomaly_no_std_cube":
+        standardized_anomaly = True
         with pytest.raises(
             ValueError,
             match="The standard deviation cube must be provided to calculate "
             "the forecast value from a standardized anomaly.",
         ):
-            plugin.verify_inputs_for_forecast(standardized_anomaly_cube)
+            plugin.verify_inputs_for_forecast(standardized_anomaly)
     else:
+        standardized_anomaly = False
         with pytest.raises(
             ValueError,
             match="The standard deviation cube should not be provided to calculate "
             "the forecast value from an unstandardized anomaly.",
         ):
-            plugin.verify_inputs_for_forecast(unstandardized_anomaly_cube, std_cube)
+            plugin.verify_inputs_for_forecast(standardized_anomaly,
+                                              std_cube)
 
 
 @pytest.mark.parametrize(
@@ -363,19 +366,26 @@ def test_error_units_mismatch(
     plugin = CalculateForecastValueFromClimateAnomaly()
     if error_to_check == "mean_and_anomaly_check":
         mean_cube.units = "C"  # The units should be K ordinarily
+        standardized_anomaly=False
         with pytest.raises(
             ValueError,
-            match="The mean cube must have the same units as the unstandardized "
-            "anomaly cube.",
+            match="The mean cube must have the same units as the anomaly cube."
         ):
-            plugin.verify_units_match(unstandardized_anomaly_cube, mean_cube)
+            plugin.verify_units_match(unstandardized_anomaly_cube, 
+                                      mean_cube, 
+                                      standardized_anomaly)
     else:
         std_cube.units = "C"  # The units should be K ordinarily
+        standardized_anomaly = True
         with pytest.raises(
             ValueError,
-            match="The standard deviation cube, if supplied, must have the same units ",
+            match="The standard deviation cube must have the same units as the "
+             "mean cube.",
         ):
-            plugin.verify_units_match(standardized_anomaly_cube, mean_cube, std_cube)
+            plugin.verify_units_match(standardized_anomaly_cube, 
+                                      mean_cube, 
+                                      standardized_anomaly,
+                                      std_cube)
 
 
 def test_error_spatial_coords_mismatch_gridded_data(

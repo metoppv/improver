@@ -92,16 +92,11 @@ def std_cube(validity_time, time_bounds):
         data=data,
         time=validity_time["mean_and_std"],
         time_bounds=time_bounds["mean_and_std"],
-        units="1",
+        units="K",
     )
     cell_method = iris.coords.CellMethod(method="standard_deviation", coords="time")
     cube.add_cell_method(cell_method)
     return cube
-
-
-# Site anomaly cubes with mutliple time points are not tested as the plugin's
-# functionality is not expected to change, and so is implicitly tested by the
-# gridded anomaly cubes with multiple time points
 
 
 @pytest.fixture
@@ -131,7 +126,7 @@ def site_cubes(validity_time, time_bounds, forecast_reference_time):
         site_cube_std_data,
         time=validity_time["mean_and_std"],
         time_bounds=time_bounds["mean_and_std"],
-        units="1",
+        units="K",
     )
     cell_method = iris.coords.CellMethod(method="std", coords="time")
     site_cube_std.add_cell_method(cell_method)
@@ -281,9 +276,9 @@ def test_error_units_mismatch(diagnostic_cube, mean_cube, std_cube, error_to_che
         ):
             plugin.verify_units_match(diagnostic_cube, mean_cube, std_cube=None)
     else:
-        std_cube.units = "C"  # The units should be 1 (dimensionless) ordinarily
+        std_cube.units = "C"  # The units should be K ordinarily
         with pytest.raises(
-            ValueError, match="The standard deviation cube must be dimensionless"
+            ValueError, match="The standard deviation cube must have the same units. "
         ):
             plugin.verify_units_match(diagnostic_cube, mean_cube, std_cube)
 
