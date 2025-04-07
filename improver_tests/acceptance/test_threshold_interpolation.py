@@ -70,10 +70,10 @@ def test_masked_cube(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-def test_json_input(tmp_path):
-    """Test JSON input"""
+def test_json_dict_input(tmp_path):
+    """Test JSON dictionary input"""
     kgo_dir = acc.kgo_root() / "threshold-interpolation"
-    threshold_config = kgo_dir / "threshold_config.json"
+    threshold_config = kgo_dir / "threshold_config_dict.json"
     kgo_path = kgo_dir / "realization_collapse_kgo.nc"
     input_path = kgo_dir / "input_realization.nc"
     output_path = tmp_path / "output.nc"
@@ -88,20 +88,17 @@ def test_json_input(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-def test_different_units(tmp_path):
-    """Test using different units"""
-    threshold_values = "0.05,0.2,0.4,0.6,1.0,2.0,10.0,25.0,40.0"
-    threshold_units = "km"
+def test_json_input(tmp_path):
+    """Test JSON list input"""
     kgo_dir = acc.kgo_root() / "threshold-interpolation"
+    threshold_config = kgo_dir / "threshold_config_list.json"
     kgo_path = kgo_dir / "realization_collapse_kgo.nc"
     input_path = kgo_dir / "input_realization.nc"
     output_path = tmp_path / "output.nc"
     args = [
         input_path,
-        "--threshold-values",
-        threshold_values,
-        "--threshold-units",
-        threshold_units,
+        "--threshold-config",
+        threshold_config,
         "--output",
         f"{output_path}",
     ]

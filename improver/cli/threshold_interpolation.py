@@ -27,13 +27,12 @@ def process(
         threshold_values:
             List of the desired output thresholds.
         threshold_config:
-            Threshold configuration containing threshold values.
-            Best used in combination with 'threshold_units'. It should contain
-            a dictionary of strings that can be interpreted as floats with the
-            structure: "THRESHOLD_VALUE": "None" (no fuzzy bounds).
+            Threshold configuration containing threshold values. It should contain
+            either a list of float values or a dictionary of strings that can be 
+            interpreted as floats with the structure: "THRESHOLD_VALUE": "None".
             Repeated thresholds with different bounds are ignored; only the
             last duplicate will be used.
-            Threshold_values and and threshold_config are mutually exclusive
+            Threshold_values and threshold_config are mutually exclusive
             arguments, defining both will lead to an exception.
         threshold_units:
             Units of the threshold values. If not provided the units are
