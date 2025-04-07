@@ -88,7 +88,7 @@ def test_json_dict_input(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-def test_json_input(tmp_path):
+def test_json_list_input(tmp_path):
     """Test JSON list input"""
     kgo_dir = acc.kgo_root() / "threshold-interpolation"
     threshold_config = kgo_dir / "threshold_config_list.json"
