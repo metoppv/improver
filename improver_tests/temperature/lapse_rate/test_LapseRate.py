@@ -13,8 +13,8 @@ from iris.cube import Cube
 from iris.tests import IrisTest
 
 from improver.constants import DALR
-from improver.lapse_rate import LapseRate
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
+from improver.temperature.lapse_rate import LapseRate
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 
