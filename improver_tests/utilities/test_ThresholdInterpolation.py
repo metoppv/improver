@@ -163,11 +163,12 @@ def test_metadata_copy(input_cube):
 
 def test_thresholds_different_mask(masked_cube):
     """
-    Testing that a value error message is raised if masks are different across thresholds.
+    Testing that a value error message is raised if masks are different across
+    thresholds.
     """
     masked_cube.data.mask[0, 0, 0] = True
     thresholds = [100, 150, 200, 250, 300]
-    error_msg = "The mask is expected to be constant across different slices of the"
+    error_msg = "The mask is expected to be constant across different slices of"
 
     with pytest.raises(ValueError, match=error_msg):
         ThresholdInterpolation(thresholds)(masked_cube)
@@ -204,3 +205,55 @@ def test_collapse_realizations(input_cube):
     thresholds = [100, 150, 200, 250, 300]
     result = ThresholdInterpolation(thresholds)(cube.copy())[0::2]
     np.testing.assert_array_equal(result.data, 0.5 * (cube[0].data + cube[1].data))
+
+
+def test_set_thresholds(input_cube):
+    """
+    Test that the thresholds are set correctly in the output cube when using
+    threshold_values.
+    """
+    thresholds = [100, 150, 200, 250, 300]
+    result = ThresholdInterpolation(thresholds)(input_cube)
+    np.testing.assert_array_equal(result.coord("visibility_in_air").points, thresholds)
+
+
+def test_set_thresholds_with_config(input_cube):
+    """
+    Test that the thresholds are set correctly in the output cube when using
+    threshold_config.
+    """
+    threshold_config = {
+        "100.0": "None",
+        "150.0": "None",
+        "200.0": "None",
+        "250.0": "None",
+        "300.0": "None",
+    }
+    result = ThresholdInterpolation(threshold_config=threshold_config)(input_cube)
+    np.testing.assert_array_equal(
+        result.coord("visibility_in_air").points, [100, 150, 200, 250, 300]
+    )
+
+
+def test_set_thresholds_with_config_and_values(input_cube):
+    """
+    Test that a ValueError is raised if both threshold_values and threshold_config
+    are provided.
+    """
+    thresholds = [100, 150, 200, 250, 300]
+    threshold_config = {
+        "100.0": "None",
+        "150.0": "None",
+        "200.0": "None",
+        "250.0": "None",
+        "300.0": "None",
+    }
+    with pytest.raises(
+        ValueError,
+        match="Threshold_config and threshold_values are mutually "
+        "exclusive arguments - please provide one or the other, "
+        "not both",
+    ):
+        ThresholdInterpolation(thresholds, threshold_config=threshold_config)(
+            input_cube
+        )

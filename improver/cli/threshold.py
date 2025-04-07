@@ -56,7 +56,7 @@ def process(
             or with structure "THRESHOLD_VALUE": "None" (no fuzzy bounds).
             Repeated thresholds with different bounds are ignored; only the
             last duplicate will be used.
-            threshold_values and and threshold_config are mutually exclusive
+            threshold_values and threshold_config are mutually exclusive
             arguments, defining both will lead to an exception.
         threshold_units (str):
             Units of the threshold values. If not provided the units are
