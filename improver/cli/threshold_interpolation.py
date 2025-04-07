@@ -28,7 +28,7 @@ def process(
             List of the desired output thresholds.
         threshold_config:
             Threshold configuration containing threshold values. It should contain
-            either a list of float values or a dictionary of strings that can be 
+            either a list of float values or a dictionary of strings that can be
             interpreted as floats with the structure: "THRESHOLD_VALUE": "None".
             Repeated thresholds with different bounds are ignored; only the
             last duplicate will be used.
