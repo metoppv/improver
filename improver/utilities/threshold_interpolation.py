@@ -255,7 +255,7 @@ class ThresholdInterpolation(PostProcessingPlugin):
         coordinate.
         3. Convert the threshold coordinate to the specified units if provided.
         4. Collapses the realizations if present.
-        5. Interpolates the forself data to the new set of thresholds.
+        5. Interpolates the data to the new set of thresholds.
         6. Creates a new cube with the interpolated threshold data.
         7. Applies the original mask to the new cube if it exists.
         8. Converts the threshold coordinate units back to the original units.

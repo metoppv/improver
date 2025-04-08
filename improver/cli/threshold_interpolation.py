@@ -30,6 +30,8 @@ def process(
             Threshold configuration containing threshold values. It should contain
             either a list of float values or a dictionary of strings that can be
             interpreted as floats with the structure: "THRESHOLD_VALUE": "None".
+            The latter follows the format expected in improver/cli/threshold.py,
+            however fuzzy bounds will be ignored here.
             Repeated thresholds with different bounds are ignored; only the
             last duplicate will be used.
             Threshold_values and threshold_config are mutually exclusive
