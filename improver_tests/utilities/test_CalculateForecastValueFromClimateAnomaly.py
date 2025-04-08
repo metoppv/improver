@@ -331,7 +331,7 @@ def test_error_inputs_mismatch(std_cube, error_to_check):
         with pytest.raises(
             ValueError,
             match="The standard deviation cube must be provided to calculate "
-            "the forecast value from a standardized anomaly.",
+            "the forecast values from a standardized anomaly.",
         ):
             plugin.verify_inputs_for_forecast(standardized_anomaly)
     else:
@@ -339,7 +339,7 @@ def test_error_inputs_mismatch(std_cube, error_to_check):
         with pytest.raises(
             ValueError,
             match="The standard deviation cube should not be provided to calculate "
-            "the forecast value from an unstandardized anomaly.",
+            "the forecast values from an unstandardized anomaly.",
         ):
             plugin.verify_inputs_for_forecast(standardized_anomaly, std_cube)
 
