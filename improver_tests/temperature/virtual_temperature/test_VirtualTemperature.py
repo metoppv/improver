@@ -10,7 +10,7 @@ import numpy as np
 import pytest
 from iris.cube import Cube
 
-from improver.virtual_temperature import VirtualTemperature
+from improver.temperature.virtual_temperature import VirtualTemperature
 from improver_tests.utilities.copy_metadata.test_CopyMetadata import HaltExecution
 
 
@@ -60,7 +60,7 @@ def virtual_temperature_cube_fixture() -> Cube:
     return cube
 
 
-@patch("improver.virtual_temperature.as_cubelist")
+@patch("improver.temperature.virtual_temperature.as_cubelist")
 def test_as_cubelist_called(mock_as_cubelist):
     """Test that the as_cubelist function is called with the input cubes"""
     mock_as_cubelist.side_effect = HaltExecution

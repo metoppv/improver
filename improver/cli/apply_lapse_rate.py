@@ -32,7 +32,7 @@ def process(
         iris.cube.Cube:
             Temperature cube after lapse rate adjustment has been applied.
     """
-    from improver.lapse_rate import ApplyGriddedLapseRate
+    from improver.temperature.lapse_rate import ApplyGriddedLapseRate
 
     # apply lapse rate to temperature data
     result = ApplyGriddedLapseRate()(

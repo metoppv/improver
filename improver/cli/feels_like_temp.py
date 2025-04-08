@@ -52,7 +52,9 @@ def process(
             will be the same as the units of temperature cube when it is input
             into the function.
     """
-    from improver.feels_like_temperature import calculate_feels_like_temperature
+    from improver.temperature.feels_like_temperature import (
+        calculate_feels_like_temperature,
+    )
 
     return calculate_feels_like_temperature(
         temperature,
