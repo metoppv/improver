@@ -278,7 +278,9 @@ def test_error_units_mismatch(diagnostic_cube, mean_cube, std_cube, error_to_che
     else:
         std_cube.units = "C"  # The units should be K ordinarily
         with pytest.raises(
-            ValueError, match="The standard deviation cube must have the same units. "
+            ValueError,
+            match="The standard deviation cube must have the same units "
+            "as the diagnostic cube. ",
         ):
             plugin.verify_units_match(diagnostic_cube, mean_cube, std_cube)
 
@@ -337,8 +339,8 @@ def test_error_time_coords_mismatch(diagnostic_cube, mean_cube, std_cube, check)
         )  # Moves mean bounds outside std bounds
         with pytest.raises(
             ValueError,
-            match="The mean and standard deviation cubes must have compatible bounds. "
-            "The following bounds were found: ",
+            match="The mean and standard deviation cubes must have compatible time "
+            "bounds. ",
         ):
             plugin.verify_time_coords_match(diagnostic_cube, mean_cube, std_cube)
     else:

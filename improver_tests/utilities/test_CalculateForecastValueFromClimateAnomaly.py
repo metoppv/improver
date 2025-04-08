@@ -67,6 +67,8 @@ def mean_cube(validity_time, time_bounds):
         units="K",
     )
     cell_method = iris.coords.CellMethod(method="mean", coords="time")
+    cube.standard_name = "air_temperature"
+    cube.long_name = None
     cube.add_cell_method(cell_method)
     return cube
 
@@ -89,7 +91,7 @@ def std_cube(validity_time, time_bounds):
 # Gridded cube fixtures
 @pytest.fixture
 def unstandardized_anomaly_cube(validity_time, forecast_reference_time, mean_cube):
-    """Fixture for creating an unstandarized gridded anomaly cube."""
+    """Fixture for creating an unstandardized gridded anomaly cube."""
     data = np.array([7], dtype=np.float32).reshape(1, 1, 1)
     cube = set_up_variable_cube(
         data=data,
@@ -107,7 +109,7 @@ def unstandardized_anomaly_cube_multiple_time_points(
     validity_time, forecast_reference_time, mean_cube
 ):
     """
-    Fixture for creating an unstandarized gridded anomaly cube with multiple
+    Fixture for creating an unstandardized gridded anomaly cube with multiple
     time points.add_reference_epoch_metadata
     """
     cubes = CubeList()
@@ -236,9 +238,9 @@ def test_calculate_unstandardized_forecasts_gridded_data(
         expected_values = np.array([300, 298, 296], dtype=np.float32).reshape(3, 1, 1)
     result = plugin.process(anomaly_cube, mean_cube)
     np.testing.assert_allclose(result.data, expected_values, rtol=1e-5)
-    assert result.name() == "air_temperature"
+    assert result.standard_name == "air_temperature" and result.long_name is None
     assert result.units == "K"
-    assert "reference_epoch" not in [coord.name() for coord in result.aux_coords]
+    assert result.coords("reference_epoch") == []
     assert "anomaly" not in tuple(cm for cm in result.cell_methods)
 
 
@@ -255,14 +257,14 @@ def test_calculate_standardized_forecasts_gridded_data(
     anomaly_cube = request.getfixturevalue(fixture_name)
     plugin = CalculateForecastValueFromClimateAnomaly()
     if fixture_name == "standardized_anomaly_cube":
-        expected_values = np.full((1, 1, 1), 305, dtype=np.float32)
+        expected_values = np.array([305], dtype=np.float32).reshape(1, 1, 1)
     elif fixture_name == "standardized_anomaly_cube_multiple_time_points":
         expected_values = np.array([300, 298, 296], dtype=np.float32).reshape(3, 1, 1)
     result = plugin.process(anomaly_cube, mean_cube, std_cube)
     np.testing.assert_allclose(result.data, expected_values, rtol=1e-5)
-    assert result.name() == "air_temperature"
+    assert result.standard_name == "air_temperature" and result.long_name is None
     assert result.units == "K"
-    assert "reference_epoch" not in [coord.name() for coord in result.aux_coords]
+    assert result.coords("reference_epoch") == []
     assert "anomaly" not in tuple(cm for cm in result.cell_methods)
 
 
@@ -274,9 +276,9 @@ def test_calculate_unstandardized_anomalies_site_data(site_cubes):
     result = plugin.process(unstandardized_anomaly_site_cube, mean_site_cube)
     expected_anomalies = np.array([305], dtype=np.float32)
     np.testing.assert_allclose(result.data, expected_anomalies, rtol=1e-5)
-    assert result.name() == "air_temperature"
+    assert result.standard_name == "air_temperature" and result.long_name is None
     assert result.units == "K"
-    assert "reference_epoch" not in [coord.name() for coord in result.aux_coords]
+    assert result.coords("reference_epoch") == []
     assert "anomaly" not in tuple(cm for cm in result.cell_methods)
 
 
@@ -290,9 +292,9 @@ def test_calculate_standardized_anomalies_site_data(site_cubes):
     )
     expected_anomalies = np.array([305.0], dtype=np.float32)
     np.testing.assert_allclose(result.data, expected_anomalies, rtol=1e-5)
-    assert result.name() == "air_temperature"
+    assert result.standard_name == "air_temperature" and result.long_name is None
     assert result.units == "K"
-    assert "reference_epoch" not in [coord.name() for coord in result.aux_coords]
+    assert result.coords("reference_epoch") == []
     assert "anomaly" not in tuple(cm for cm in result.cell_methods)
 
 
@@ -306,14 +308,13 @@ def test_ignore_temporal_mismatch(standardized_anomaly_cube, mean_cube, std_cube
 
     plugin = CalculateForecastValueFromClimateAnomaly(ignore_temporal_mismatch=True)
     result = plugin.process(standardized_anomaly_cube, mean_cube, std_cube)
-
-    assert result.name() == "air_temperature"
+    assert result.standard_name == "air_temperature" and result.long_name is None
     assert result.units == "K"
-    assert "reference_epoch" not in [coord.name() for coord in result.aux_coords]
+    assert result.coords("reference_epoch") == []
     assert "anomaly" not in tuple(cm for cm in result.cell_methods)
 
 
-# Testing the plugin's internal verification checks
+# Testing the plugin's internal validation checks
 
 
 @pytest.mark.parametrize(
@@ -322,7 +323,7 @@ def test_ignore_temporal_mismatch(standardized_anomaly_cube, mean_cube, std_cube
 )
 def test_error_inputs_mismatch(std_cube, error_to_check):
     """Test that the plugin raises a ValueError if the inputs are incorrect for the
-    type of anomaly data (standardised or unstandardised) input"""
+    type of anomaly data (standardized or unstandardized) input"""
 
     plugin = CalculateForecastValueFromClimateAnomaly()
     if error_to_check == "standardized_anomaly_no_std_cube":
@@ -398,8 +399,8 @@ def test_error_spatial_coords_mismatch_gridded_data(
 )
 def test_error_spatial_coords_mismatch_site_data(site_cubes, mean_cube, error_to_raise):
     _, standardized_anomaly_site_cube, mean_site_cube, std_site_cube = site_cubes
-    """Test that the plugin raises a ValueError if the spatial coordinates of the
-    mean and std cubes have different bounds."""
+    """Test that the plugin raises a ValueError if the spot_index of the
+    mean and std cubes aren't compatible."""
     plugin = CalculateForecastValueFromClimateAnomaly()
     if error_to_raise == "more_than_one_spot_index":
         # Uses a cube without the spot_index coordinate (gridded mean_cube)
@@ -442,7 +443,7 @@ def test_error_time_coords_mismatch(
         )  # Moves mean bounds outside std bounds
         with pytest.raises(
             ValueError,
-            match="The reference epoch coordinate of the anomaly cube must ",
+            match="The reference epoch coordinate of the anomaly cube must",
         ):
             plugin.verify_time_coords_match(
                 standardized_anomaly_cube, mean_cube, std_cube
@@ -452,8 +453,23 @@ def test_error_time_coords_mismatch(
             10 * SECONDS_IN_HOUR,
         )  # Moves mean bounds outside std bounds
         with pytest.raises(
-            ValueError, match="The reference epoch coordinate of the anomaly cube must "
+            ValueError, match="The reference epoch coordinate of the anomaly cube must"
         ):
             plugin.verify_time_coords_match(
                 standardized_anomaly_cube, mean_cube, std_cube
             )
+
+
+def test_processing_passes_with_no_reference_epoch(
+    standardized_anomaly_cube, mean_cube, std_cube
+):
+    """Test that the plugin processes correctly when no reference epoch is present."""
+    standardized_anomaly_cube.remove_coord("reference_epoch")
+    plugin = CalculateForecastValueFromClimateAnomaly()
+    result = plugin.process(standardized_anomaly_cube, mean_cube, std_cube)
+    expected_anomalies = np.array([305], dtype=np.float32).reshape(1, 1, 1)
+    np.testing.assert_allclose(result.data, expected_anomalies, rtol=1e-5)
+    assert result.standard_name == "air_temperature" and result.long_name is None
+    assert result.units == "K"
+    assert result.coords("reference_epoch") == []
+    assert "anomaly" not in tuple(cm for cm in result.cell_methods)

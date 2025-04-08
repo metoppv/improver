@@ -424,10 +424,10 @@ class CalculateClimateAnomalies(BasePlugin):
 
         Args:
             ignore_temporal_mismatch:
-                If True, ignore mismatch in time coordinates between
-                the input cubes. Default is False. Set to True when interested
-                in the anomaly of a diagnostic cube relative to mean and
-                standard deviation cubes of a different period.
+                If True, ignore mismatch in time coordinates between the input cubes.
+                Default is False. Set to True when converting the anomaly of a
+                diagnostic cube relative to mean and standard deviation cubes of a
+                different period.
         """
         self.ignore_temporal_mismatch = ignore_temporal_mismatch
 
@@ -450,8 +450,8 @@ class CalculateClimateAnomalies(BasePlugin):
             )
         if std_cube and std_cube.units != str(diagnostic_cube.units):
             errors.append(
-                "The standard deviation cube must have the same units. "
-                f"The following units were found: {std_cube.units},"
+                "The standard deviation cube must have the same units as the "
+                f"diagnostic cube. The following units were found: {std_cube.units},"
                 f"{diagnostic_cube.units}"
             )
 
@@ -509,8 +509,8 @@ class CalculateClimateAnomalies(BasePlugin):
             mean_cube.coord("time").bounds, std_cube.coord("time").bounds
         ):
             errors.append(
-                "The mean and standard deviation cubes must have compatible bounds. "
-                "The following bounds were found: "
+                "The mean and standard deviation cubes must have compatible time "
+                "bounds. The following bounds were found: "
                 f"mean_cube bounds: {mean_cube.coord('time').bounds},"
                 f"std_cube bounds: {std_cube.coord('time').bounds}"
             )
@@ -644,13 +644,12 @@ class CalculateClimateAnomalies(BasePlugin):
             diagnostic_cube:
                 Cube containing the data to be converted to anomalies.
             mean_cube:
-                Cube containing the mean data to be used for the
-                calculation of anomalies.
+                Cube containing the mean data to be used for the calculation of
+                anomalies.
             std_cube:
                 Cube containing the standard deviation data to be used for the
-                calculation of standardized anomalies. If not provided,
-                only anomalies (not standardized anomalies) will be
-                calculated.
+                calculation of standardized anomalies. If not provided, only
+                anomalies (not standardized anomalies) will be calculated.
 
         Returns:
             Cube containing the result of the calculation with updated metadata:
@@ -668,10 +667,10 @@ class CalculateClimateAnomalies(BasePlugin):
 
 class CalculateForecastValueFromClimateAnomaly(BasePlugin):
     """Utility functionality to convert an input cube containing anomaly data to a
-    forecast value cube. If a climatology anomaly and mean are supplied, the
+    forecast value cube. If a climatological anomaly and mean are supplied, the
     forecast value will be calculated by anomaly + mean. If the anomaly is
-    standardised and a standard deviation and mean are supplied, the forecast value
-    will be calculated by (standardised anomaly * standard deviation) + mean."""
+    standardized and a standard deviation and mean are supplied, the forecast value
+    will be calculated by (standardized anomaly * standard deviation) + mean."""
 
     def __init__(
         self,
@@ -682,10 +681,10 @@ class CalculateForecastValueFromClimateAnomaly(BasePlugin):
 
         Args:
             ignore_temporal_mismatch:
-                If True, ignore mismatch in time coordinates between
-                the input cubes. Default is False. Set to True when interested
-                in the anomaly of a diagnostic cube relative to mean and
-                standard deviation cubes of a different period.
+                If True, ignore mismatch in time coordinates between the input cubes.
+                Default is False. Set to True when converting the anomaly of a
+                diagnostic cube relative to mean and standard deviation cubes of a
+                different period.
         """
         self.ignore_temporal_mismatch = ignore_temporal_mismatch
 
@@ -798,10 +797,8 @@ class CalculateForecastValueFromClimateAnomaly(BasePlugin):
             mean_cube.coord("time").bounds, std_cube.coord("time").bounds
         ):
             errors.append(
-                "The mean and standard deviation cubes must have compatible bounds. "
-                "The following bounds were found: "
-                f"mean_cube bounds: {mean_cube.coord('time').bounds},"
-                f"std_cube bounds: {std_cube.coord('time').bounds}"
+                "The mean and standard deviation cubes must have compatible "
+                "time bounds."
             )
 
         # Check if anomaly cube's time points fall within the bounds of the
@@ -809,7 +806,7 @@ class CalculateForecastValueFromClimateAnomaly(BasePlugin):
         # The verification of the standard deviation cube's bounds suitably matching the
         # anomaly cube's is covered implicitly due to the above code chunk.
         if not self.ignore_temporal_mismatch:
-            if anomaly_cube.coord("reference_epoch") is not None:
+            if anomaly_cube.coords("reference_epoch"):
                 if np.any(
                     anomaly_cube.coord("reference_epoch").points
                     != mean_cube.coord("time").points
@@ -844,9 +841,7 @@ class CalculateForecastValueFromClimateAnomaly(BasePlugin):
         return forecast_value
 
     @staticmethod
-    def _update_cube_name_and_units(
-        output_cube: Cube, mean_cube: Cube, standardized_anomaly: bool = False
-    ) -> None:
+    def _update_cube_name_and_units(output_cube: Cube, mean_cube: Cube) -> None:
         """This method removes the portion of the name of the output cube
         cube that indicates that it is an anomaly and converts units to be dimensional
         (i.e. not '1') if a standardized anomaly is used. The cube is modified in place.
@@ -860,12 +855,8 @@ class CalculateForecastValueFromClimateAnomaly(BasePlugin):
                 removed from the name. If False, an "_anomaly" suffix is removed from
                 the name.
         """
-        suffix = "_standardized_anomaly" if standardized_anomaly else "_anomaly"
-
-        try:
-            output_cube.standard_name = output_cube.standard_name.replace(suffix, "")
-        except ValueError:
-            output_cube.long_name = output_cube.long_name.replace(suffix, "")
+        output_cube.standard_name = mean_cube.standard_name
+        output_cube.long_name = mean_cube.long_name
 
         output_cube.units = mean_cube.units
 
@@ -881,7 +872,9 @@ class CalculateForecastValueFromClimateAnomaly(BasePlugin):
             output_cube:
                 The cube from which to remove the reference epoch metadata.
         """
-        output_cube.remove_coord("reference_epoch")
+        if output_cube.coords("reference_epoch"):
+            output_cube.remove_coord("reference_epoch")
+
         output_cube.cell_methods = tuple(
             cm for cm in output_cube.cell_methods if cm.method != "anomaly"
         )
@@ -901,10 +894,9 @@ class CalculateForecastValueFromClimateAnomaly(BasePlugin):
         output_cube = anomaly_cube.copy()
 
         # Update the cube name and units
-        standardized_anomaly = True if std_cube else False
-        self._update_cube_name_and_units(output_cube, mean_cube, standardized_anomaly)
+        self._update_cube_name_and_units(output_cube, mean_cube)
 
-        # Create the reference epoch coordinate and cell method
+        # Remove the reference epoch coordinate and cell method
         self._remove_reference_epoch_metadata(output_cube)
 
         forecast_value_data = self.calculate_forecast_value(
@@ -925,19 +917,19 @@ class CalculateForecastValueFromClimateAnomaly(BasePlugin):
 
         Args:
             anomaly_cube:
-                Cube containing the data to be converted to forecast_values.
+                Cube containing the data to be converted to forecast values.
             mean_cube:
                 Cube containing the mean data to be used for the
-                calculation of forecast_values.
+                calculation of forecast values.
             std_cube:
                 Cube containing the standard deviation data to be used for the
-                calculation of forecast_values from standardized anomalies.
+                calculation of forecast values from standardized anomalies.
                 If not provided, only anomalies (not standardized anomalies) should be
                 provided to calculate the forecast value(s).
         Returns:
             Cube containing the result of the calculation with updated metadata:
             - Name is updated to remove "_anomaly" or "_standardized_anomaly" suffix.
-            - Units are reverted to the original units of the anomaly cube.
+            - Units are converted to the units of the mean cube, if required.
             - The reference epoch coordinate and "anomaly" cell method are removed.
         """
         standardized_anomaly = False
