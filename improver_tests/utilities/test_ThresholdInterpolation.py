@@ -62,23 +62,48 @@ def masked_cube() -> Cube:
     return masked_cube
 
 
+@pytest.fixture
+def threshold_values():
+    """Set up a list of threshold values."""
+    return [100, 150, 200, 250, 300]
+
+
+@pytest.fixture
+def threshold_config_dict():
+    """Set up a threshold_config dictionary."""
+    return {
+        "100.0": "None",
+        "150.0": "None",
+        "200.0": "None",
+        "250.0": "None",
+        "300.0": "None",
+    }
+
+
+@pytest.fixture
+def threshold_config_list():
+    """Set up a threshold_config dictionary."""
+    return [100, 150, 200, 250, 300]
+
+
 @pytest.mark.parametrize("input", ["input_cube", "masked_cube"])
-def test_cube_returned(request, input):
+def test_cube_returned(request, input, threshold_values):
     """
-    Test that the plugin returns an Iris.cube.Cube with suitable units.
+    Test that the plugin returns an Iris.cube.Cube with suitable units and thresholds.
     """
     cube = request.getfixturevalue(input)
-    thresholds = [100, 150, 200, 250, 300]
-    result = ThresholdInterpolation(thresholds)(cube)
+    result = ThresholdInterpolation(threshold_values)(cube)
     assert isinstance(result, Cube)
     assert result.units == cube.units
+    np.testing.assert_array_equal(
+        result.coord("visibility_in_air").points, threshold_values
+    )
 
 
-def test_threshold_units(input_cube):
+def test_nthreshold_units(input_cube, threshold_values):
     """
     Test that the plugin can handle different threshold units.
     """
-    threshold_values = [0.1, 0.15, 0.2, 0.25, 0.3]
     original_units = input_cube.coord("visibility_in_air").units
     result = ThresholdInterpolation(threshold_values, threshold_units="km")(input_cube)
     # Check that units are converted back to the original input cube's units
@@ -86,13 +111,12 @@ def test_threshold_units(input_cube):
 
 
 @pytest.mark.parametrize("input", ["input_cube", "masked_cube"])
-def test_interpolated_values(request, input):
+def test_interpolated_values(request, input, threshold_values):
     """
     Test that the interpolated values are as expected.
     """
     cube = request.getfixturevalue(input)
-    thresholds = [100, 150, 200, 250, 300]
-    result = ThresholdInterpolation(thresholds)(cube)
+    result = ThresholdInterpolation(threshold_values)(cube)
     expected_interpolated_values = np.array(
         [
             [[1.0, 0.9, 1.0], [0.8, 0.9, 0.5], [0.5, 0.2, 0.0]],
@@ -106,19 +130,18 @@ def test_interpolated_values(request, input):
     np.testing.assert_array_equal(result.data, expected_interpolated_values)
 
 
-@pytest.mark.parametrize("input", ["input_cube", "masked_cube"])
-def test_threshold_config_provided(request, input):
+@pytest.mark.parametrize(
+    "input, threshold_config",
+    [("input_cube", "threshold_config_dict"), ("masked_cube", "threshold_config_list")],
+)
+def test_threshold_config_provided(request, input, threshold_config, threshold_values):
     """
-    Test that the plugin can handle threshold_config (and so JSON files) being provided.
+    Test that the plugin can handle threshold_config (and so JSON files) being provided
+    as a list of float values or a dictionary of strings that can be interpreted as
+    floats with the structure: "THRESHOLD_VALUE": "None".
     """
-    threshold_config = {
-        "100.0": "None",
-        "150.0": "None",
-        "200.0": "None",
-        "250.0": "None",
-        "300.0": "None",
-    }
     cube = request.getfixturevalue(input)
+    threshold_config = request.getfixturevalue(threshold_config)
     result = ThresholdInterpolation(threshold_config=threshold_config)(cube)
     expected_interpolated_values = np.array(
         [
@@ -134,8 +157,9 @@ def test_threshold_config_provided(request, input):
     assert (
         result.coord("visibility_in_air").units == cube.coord("visibility_in_air").units
     )
-    thresholds = [100, 150, 200, 250, 300]
-    np.testing.assert_array_equal(result.coord("visibility_in_air").points, thresholds)
+    np.testing.assert_array_equal(
+        result.coord("visibility_in_air").points, threshold_values
+    )
 
 
 def test_no_new_thresholds_provided():
@@ -145,46 +169,43 @@ def test_no_new_thresholds_provided():
     """
     with pytest.raises(
         ValueError,
-        match="One of threshold_config or threshold_values" " must be provided.",
+        match="One of threshold_config or threshold_values must be provided.",
     ):
         ThresholdInterpolation()
 
 
-def test_metadata_copy(input_cube):
+def test_metadata_copy(input_cube, threshold_values):
     """
     Test that the metadata dictionaries within the input cube are
     also present on the output cube.
     """
     input_cube.attributes = {"source": "ukv"}
-    thresholds = [100, 150, 200, 250, 300]
-    result = ThresholdInterpolation(thresholds)(input_cube)
+    result = ThresholdInterpolation(threshold_values)(input_cube)
     assert input_cube.metadata._asdict() == result.metadata._asdict()
 
 
-def test_thresholds_different_mask(masked_cube):
+def test_thresholds_different_mask(masked_cube, threshold_values):
     """
     Testing that a value error message is raised if masks are different across
     thresholds.
     """
     masked_cube.data.mask[0, 0, 0] = True
-    thresholds = [100, 150, 200, 250, 300]
     error_msg = "The mask is expected to be constant across different slices of"
 
     with pytest.raises(ValueError, match=error_msg):
-        ThresholdInterpolation(thresholds)(masked_cube)
+        ThresholdInterpolation(threshold_values)(masked_cube)
 
 
-def test_mask_consistency(masked_cube):
+def test_mask_consistency(masked_cube, threshold_values):
     """
     Test that the mask is the same before and after ThresholdInterpolation.
     """
-    thresholds = [100, 150, 200, 250, 300]
     original_mask = masked_cube.data.mask.copy()
-    result = ThresholdInterpolation(thresholds)(masked_cube).data.mask
+    result = ThresholdInterpolation(threshold_values)(masked_cube).data.mask
     np.testing.assert_array_equal(original_mask[0], result[0])
 
 
-def test_collapse_realizations(input_cube):
+def test_collapse_realizations(input_cube, threshold_values):
     """
     Test that the realizations are collapsed if present in the input cube.
     """
@@ -202,58 +223,23 @@ def test_collapse_realizations(input_cube):
 
     cube = cubes.merge_cube()
 
-    thresholds = [100, 150, 200, 250, 300]
-    result = ThresholdInterpolation(thresholds)(cube.copy())[0::2]
+    result = ThresholdInterpolation(threshold_values)(cube.copy())[0::2]
     np.testing.assert_array_equal(result.data, 0.5 * (cube[0].data + cube[1].data))
 
 
-def test_set_thresholds(input_cube):
-    """
-    Test that the thresholds are set correctly in the output cube when using
-    threshold_values.
-    """
-    thresholds = [100, 150, 200, 250, 300]
-    result = ThresholdInterpolation(thresholds)(input_cube)
-    np.testing.assert_array_equal(result.coord("visibility_in_air").points, thresholds)
-
-
-def test_set_thresholds_with_config(input_cube):
-    """
-    Test that the thresholds are set correctly in the output cube when using
-    threshold_config.
-    """
-    threshold_config = {
-        "100.0": "None",
-        "150.0": "None",
-        "200.0": "None",
-        "250.0": "None",
-        "300.0": "None",
-    }
-    result = ThresholdInterpolation(threshold_config=threshold_config)(input_cube)
-    np.testing.assert_array_equal(
-        result.coord("visibility_in_air").points, [100, 150, 200, 250, 300]
-    )
-
-
-def test_set_thresholds_with_config_and_values(input_cube):
+def test_error_set_thresholds_with_config_and_values(
+    input_cube, threshold_config_dict, threshold_values
+):
     """
     Test that a ValueError is raised if both threshold_values and threshold_config
     are provided.
     """
-    thresholds = [100, 150, 200, 250, 300]
-    threshold_config = {
-        "100.0": "None",
-        "150.0": "None",
-        "200.0": "None",
-        "250.0": "None",
-        "300.0": "None",
-    }
     with pytest.raises(
         ValueError,
         match="Threshold_config and threshold_values are mutually "
         "exclusive arguments - please provide one or the other, "
         "not both",
     ):
-        ThresholdInterpolation(thresholds, threshold_config=threshold_config)(
-            input_cube
-        )
+        ThresholdInterpolation(
+            threshold_values, threshold_config=threshold_config_dict
+        )(input_cube)
