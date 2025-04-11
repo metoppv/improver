@@ -102,22 +102,25 @@ def std_cube(validity_time, time_bounds):
 @pytest.fixture
 def site_cubes(validity_time, time_bounds, forecast_reference_time):
     """Fixture for creating site cubes."""
+    # Diagnostic site cube
     site_cube_diagnostic_data = np.array([305], dtype=np.float32)
     site_cube_diagnostic = set_up_spot_variable_cube(
         site_cube_diagnostic_data,
         time=validity_time["diagnostic_basic"],
         frt=forecast_reference_time,
     )
-
+    # Mean site cube
     site_cube_mean_data = np.array([298], dtype=np.float32)
     site_cube_mean = set_up_spot_variable_cube(
         site_cube_mean_data,
         time=validity_time["mean_and_std"],
         time_bounds=time_bounds["mean_and_std"],
+        units="K",
     )
     cell_method = iris.coords.CellMethod(method="mean", coords="time")
     site_cube_mean.add_cell_method(cell_method)
 
+    # Standard deviation site cube
     site_cube_std_data = np.array([4], dtype=np.float32)
     site_cube_std = set_up_spot_variable_cube(
         site_cube_std_data,
@@ -197,7 +200,7 @@ def test_calculate_standardized_anomalies_gridded_data(
     result = plugin.process(diagnostic_cube, mean_cube, std_cube)
     np.testing.assert_allclose(result.data, expected_anomalies, rtol=1e-5)
     assert result.long_name == diagnostic_cube.name() + "_standardized_anomaly"
-    assert result.units == "K"
+    assert result.units == "1"
     assert check_reference_epoch_coord(result, mean_cube)
     assert (
         "(CellMethod(method='anomaly', coord_names=('reference_epoch',), "
@@ -231,7 +234,7 @@ def test_calculate_standardized_anomalies_site_data(site_cubes):
     expected_anomalies = np.array([1.75], dtype=np.float32)
     np.testing.assert_allclose(result.data, expected_anomalies, rtol=1e-5)
     assert result.long_name == site_cube_diagnostic.name() + "_standardized_anomaly"
-    assert result.units == "K"
+    assert result.units == "1"
     assert check_reference_epoch_coord(result, site_cube_mean)
     assert (
         "(CellMethod(method='anomaly', coord_names=('reference_epoch',), "
@@ -251,7 +254,7 @@ def test_ignore_temporal_mismatch(diagnostic_cube, mean_cube, std_cube):
     result = plugin.process(diagnostic_cube, mean_cube, std_cube)
 
     assert result.long_name == diagnostic_cube.name() + "_standardized_anomaly"
-    assert result.units == "K"
+    assert result.units == "1"
     assert check_reference_epoch_coord(result, mean_cube)
     assert (
         "(CellMethod(method='anomaly', coord_names=('reference_epoch',), "
@@ -275,7 +278,9 @@ def test_error_units_mismatch(diagnostic_cube, mean_cube, std_cube, error_to_che
     else:
         std_cube.units = "C"  # The units should be K ordinarily
         with pytest.raises(
-            ValueError, match="The standard deviation cube must have the same units "
+            ValueError,
+            match="The standard deviation cube must have the same units "
+            "as the diagnostic cube. ",
         ):
             plugin.verify_units_match(diagnostic_cube, mean_cube, std_cube)
 
@@ -305,7 +310,7 @@ def test_error_spatial_coords_mismatch_site_data(site_cubes, mean_cube, error_to
         # to trigger the error
         with pytest.raises(
             ValueError,
-            match="The cubes must all have the same spatial coordinates. Some cubes"
+            match="The cubes must all have the same spatial coordinates. Some cubes "
             "contain spot_index coordinates and some do not.",
         ):
             plugin.verify_spatial_coords_match(
@@ -334,8 +339,8 @@ def test_error_time_coords_mismatch(diagnostic_cube, mean_cube, std_cube, check)
         )  # Moves mean bounds outside std bounds
         with pytest.raises(
             ValueError,
-            match="The mean and standard deviation cubes must have compatible bounds. "
-            "The following bounds were found: ",
+            match="The mean and standard deviation cubes must have compatible time "
+            "bounds. ",
         ):
             plugin.verify_time_coords_match(diagnostic_cube, mean_cube, std_cube)
     else:
