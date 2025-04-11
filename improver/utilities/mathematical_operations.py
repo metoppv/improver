@@ -18,7 +18,9 @@ from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
-from improver.utilities.cube_checker import spatial_coords_match
+from improver.utilities.cube_checker import (
+    assert_spatial_and_spot_coords_match,
+)
 from improver.utilities.cube_manipulation import (
     enforce_coordinate_ordering,
     get_dim_coord_names,
@@ -439,7 +441,9 @@ class CalculateClimateAnomalies(BasePlugin):
         cubes with rate data with cubes with accumulation data.
 
         Raises:
-            ValueError: If the units of the cubes do not match.
+            ValueError: If the mean and diagnostic cubes have different units.
+            ValueError: If the standard deviation (if supplied) and diagnostic cubes
+            have different units.
         """
         errors = []
         if mean_cube.units != diagnostic_cube.units:
@@ -466,33 +470,16 @@ class CalculateClimateAnomalies(BasePlugin):
         coordinates or spot index coordinates).
 
         Raises:
-            ValueError: If the spatial coordinates of the cubes do not match.
+            ValueError: If the cubes are a mixture of gridded and site cubes.
+            ValueError: If the cubes are site forecasts and the number of sites must be
+            equal.
+            ValueError: If the cubes are gridded forecasts, the spatial coordinates must
+            match.
         """
         cubes_to_check = [
             cube for cube in [diagnostic_cube, mean_cube, std_cube] if cube is not None
         ]
-        # Check if spot_index coordinate present for some but not all cubes
-        spot_index_present = list(
-            set(["spot_index" in get_dim_coord_names(cube) for cube in cubes_to_check])
-        )
-        if len(spot_index_present) > 1:
-            raise ValueError(
-                "The cubes must all have the same spatial coordinates. Some cubes "
-                "contain spot_index coordinates and some do not."
-            )
-        elif spot_index_present[0]:
-            if any(
-                not np.array_equal(
-                    cube.coord("spot_index").points,
-                    diagnostic_cube.coord("spot_index").points,
-                )
-                for cube in cubes_to_check
-            ):
-                raise ValueError(
-                    "Mismatching spot_index coordinates were found on the input cubes."
-                )
-        elif not spatial_coords_match(cubes_to_check):
-            raise ValueError("The spatial coordinates must match.")
+        assert_spatial_and_spot_coords_match(cubes_to_check)
 
     def verify_time_coords_match(
         self, diagnostic_cube: Cube, mean_cube: Cube, std_cube: Optional[Cube] = None
@@ -502,46 +489,9 @@ class CalculateClimateAnomalies(BasePlugin):
         Raises:
             ValueError: If the time coordinates of the cubes are incompatible.
         """
-        errors = []
-
-        # Check if mean and standard deviation cubes have the same bounds
-        if std_cube and not np.array_equal(
-            mean_cube.coord("time").bounds, std_cube.coord("time").bounds
-        ):
-            errors.append(
-                "The mean and standard deviation cubes must have compatible time "
-                "bounds. The following bounds were found: "
-                f"mean_cube bounds: {mean_cube.coord('time').bounds},"
-                f"std_cube bounds: {std_cube.coord('time').bounds}"
-            )
-
-        # Check if diagnostic cube's time point falls within the bounds of the
-        # mean cube.
-        # The verification of the standard deviation cube's bounds suitably matching the
-        # diagnostic cube's is covered implicitly due to the above code chunk.
-        if not self.ignore_temporal_mismatch:
-            diagnostic_max = diagnostic_cube.coord("time").cell(-1).point
-            diagnostic_min = diagnostic_cube.coord("time").cell(0).point
-            mean_time_bounds = mean_cube.coord("time").bounds[0]
-            mean_time_bounds = [
-                mean_cube.coord("time").units.num2date(bound)
-                for bound in mean_time_bounds
-            ]
-            if not (
-                diagnostic_max <= mean_time_bounds[1]
-                and diagnostic_min >= mean_time_bounds[0]
-            ):
-                errors.append(
-                    "The diagnostic cube's time points must fall within the bounds "
-                    "of the mean cube. The following was found: "
-                    f"diagnostic cube maximum: {diagnostic_max},"
-                    f"diagnostic cube minimum: {diagnostic_min},"
-                    f"mean cube upper bound: {mean_time_bounds[1]},"
-                    f"mean cube lower bound:{mean_time_bounds[0]}"
-                )
-
-        if errors:
-            raise ValueError("\n".join(errors))
+        verify_time_coords_match(
+            diagnostic_cube, mean_cube, std_cube, self.ignore_temporal_mismatch
+        )
 
     @staticmethod
     def calculate_anomalies(
@@ -701,7 +651,8 @@ class CalculateForecastValueFromClimateAnomaly(BasePlugin):
 
         Raises:
             ValueError: If the anomaly cube is standardized and the standard deviation
-            cube is not provided, or if the anomaly cube is not standardized and the
+            cube is not provided.
+            ValueError: If the anomaly cube is not standardized and the
             standard deviation cube is provided.
         """
         if standardized_anomaly and not std_cube:
@@ -729,8 +680,8 @@ class CalculateForecastValueFromClimateAnomaly(BasePlugin):
         accumulation data.
 
         Raises:
-            ValueError: If the units of the cubes do not match or if the cubes are
-            not compatible with the anomaly cube.
+            ValueError: If the units of the cubes do not match.
+            ValueError: If the cubes are not compatible with the anomaly cube.
         """
         if not standardized_anomaly and mean_cube.units != anomaly_cube.units:
             raise ValueError(
@@ -758,28 +709,7 @@ class CalculateForecastValueFromClimateAnomaly(BasePlugin):
         cubes_to_check = [
             cube for cube in [anomaly_cube, mean_cube, std_cube] if cube is not None
         ]
-        # Check if spot_index coordinate present for some but not all cubes
-        spot_index_present = list(
-            set(["spot_index" in get_dim_coord_names(cube) for cube in cubes_to_check])
-        )
-        if len(spot_index_present) > 1:
-            raise ValueError(
-                "The cubes must all have the same spatial coordinates. Some cubes "
-                "contain spot_index coordinates and some do not."
-            )
-        elif spot_index_present[0]:
-            if any(
-                not np.array_equal(
-                    cube.coord("spot_index").points,
-                    anomaly_cube.coord("spot_index").points,
-                )
-                for cube in cubes_to_check
-            ):
-                raise ValueError(
-                    "Mismatching spot_index coordinates were found on the input cubes."
-                )
-        elif not spatial_coords_match(cubes_to_check):
-            raise ValueError("The spatial coordinates must match.")
+        assert_spatial_and_spot_coords_match(cubes_to_check, anomaly_cube)
 
     def verify_time_coords_match(
         self, anomaly_cube: Cube, mean_cube: Cube, std_cube: Optional[Cube] = None
@@ -789,43 +719,9 @@ class CalculateForecastValueFromClimateAnomaly(BasePlugin):
         Raises:
             ValueError: If the time coordinates of the cubes are incompatible.
         """
-        errors = []
-
-        # Check if mean and standard deviation cubes have the same bounds
-        if std_cube and not np.array_equal(
-            mean_cube.coord("time").bounds, std_cube.coord("time").bounds
-        ):
-            errors.append(
-                "The mean and standard deviation cubes must have compatible "
-                "time bounds."
-            )
-
-        # Check if anomaly cube's time points fall within the bounds of the
-        # mean cube.
-        # The verification of the standard deviation cube's bounds suitably matching the
-        # anomaly cube's is covered implicitly due to the above code chunk.
-        if not self.ignore_temporal_mismatch:
-            if anomaly_cube.coords("reference_epoch"):
-                if np.any(
-                    anomaly_cube.coord("reference_epoch").points
-                    != mean_cube.coord("time").points
-                ) or not np.all(
-                    anomaly_cube.coord("reference_epoch").bounds
-                    == mean_cube.coord("time").bounds
-                ):
-                    errors.append(
-                        "The reference epoch coordinate of the anomaly cube must "
-                        "match the time coordinate of the mean cube. I.e. The same mean"
-                        "cube that was used to calculate the anomaly."
-                        "The following values were found: "
-                        f"anomaly cube reference epoch: {anomaly_cube.coord('reference_epoch').points},"
-                        f"mean cube time: {mean_cube.coord('time').points},"
-                        f"anomaly cube reference epoch bounds: {anomaly_cube.coord('reference_epoch').bounds},"
-                        f"mean cube time bounds: {mean_cube.coord('time').bounds}."
-                    )
-
-        if errors:
-            raise ValueError("\n".join(errors))
+        verify_time_coords_match(
+            anomaly_cube, mean_cube, std_cube, self.ignore_temporal_mismatch
+        )
 
     @staticmethod
     def calculate_forecast_value(
@@ -841,9 +737,8 @@ class CalculateForecastValueFromClimateAnomaly(BasePlugin):
 
     @staticmethod
     def _update_cube_name_and_units(output_cube: Cube, mean_cube: Cube) -> None:
-        """Remove the portions of the output cube's name that indicate an anomaly and
-        convert units to be dimensional (i.e. not '1') if a standardized anomaly is
-        used. The cube is modified in place.
+        """Set standard_name, long_name, and units on the output_cube using the
+        mean_cube.
 
         Args:
             output_cube:
@@ -931,9 +826,72 @@ class CalculateForecastValueFromClimateAnomaly(BasePlugin):
                 standardized_anomaly = True
                 break
 
+        cubes_to_check = [
+            cube for cube in [anomaly_cube, mean_cube, std_cube] if cube is not None
+        ]
+
         self.verify_inputs_for_forecast(standardized_anomaly, std_cube)
         self.verify_units_match(anomaly_cube, mean_cube, standardized_anomaly, std_cube)
-        self.verify_spatial_coords_match(anomaly_cube, mean_cube, std_cube)
+        assert_spatial_and_spot_coords_match(cubes_to_check)
         self.verify_time_coords_match(anomaly_cube, mean_cube, std_cube)
 
         return self._create_output_cube(anomaly_cube, mean_cube, std_cube)
+
+
+def verify_time_coords_match(
+    diagnostic_cube: Cube,
+    mean_cube: Cube,
+    std_cube: Optional[Cube] = None,
+    ignore_temporal_mismatch: bool = False,
+) -> None:
+    """Check that all cubes have compatible time coordinates.
+
+    Args:
+        diagnostic_cube:
+            Cube containing the diagnostic or anomaly data.
+        mean_cube:
+            Cube containing the mean data.
+        std_cube:
+            Cube containing the standard deviation data (optional).
+        ignore_temporal_mismatch:
+            If True, ignore mismatch in time coordinates between the input cubes.
+
+    Raises:
+        ValueError: If the time coordinates of the cubes are incompatible.
+    """
+    errors = []
+
+    # Check if mean and standard deviation cubes have the same bounds
+    if std_cube and not np.array_equal(
+        mean_cube.coord("time").bounds, std_cube.coord("time").bounds
+    ):
+        errors.append(
+            "The mean and standard deviation cubes must have compatible "
+            "time bounds. The following bounds were found: "
+            f"mean_cube bounds: {mean_cube.coord('time').bounds}, "
+            f"std_cube bounds: {std_cube.coord('time').bounds}."
+        )
+
+    # Check if diagnostic cube's time points fall within the bounds of the mean cube
+    if not ignore_temporal_mismatch:
+        diagnostic_max = diagnostic_cube.coord("time").cell(-1).point
+        diagnostic_min = diagnostic_cube.coord("time").cell(0).point
+        mean_time_bounds = mean_cube.coord("time").bounds[0]
+        mean_time_bounds = [
+            mean_cube.coord("time").units.num2date(bound) for bound in mean_time_bounds
+        ]
+        if not (
+            diagnostic_max <= mean_time_bounds[1]
+            and diagnostic_min >= mean_time_bounds[0]
+        ):
+            errors.append(
+                "The diagnostic cube's time points must fall within the bounds "
+                "of the mean cube. The following was found: "
+                f"diagnostic cube maximum: {diagnostic_max}, "
+                f"diagnostic cube minimum: {diagnostic_min}, "
+                f"mean cube upper bound: {mean_time_bounds[1]}, "
+                f"mean cube lower bound: {mean_time_bounds[0]}."
+            )
+
+    if errors:
+        raise ValueError("\n".join(errors))

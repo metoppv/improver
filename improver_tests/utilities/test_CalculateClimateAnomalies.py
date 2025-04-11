@@ -86,7 +86,7 @@ def mean_cube(validity_time, time_bounds):
 
 @pytest.fixture
 def std_cube(validity_time, time_bounds):
-    """Fixture for creating a std cube"""
+    """Fixture for creating a std cube."""
     data = np.array([4], dtype=np.float32).reshape(1, 1, 1)
     cube = set_up_variable_cube(
         data=data,
@@ -283,73 +283,3 @@ def test_error_units_mismatch(diagnostic_cube, mean_cube, std_cube, error_to_che
             "as the diagnostic cube. ",
         ):
             plugin.verify_units_match(diagnostic_cube, mean_cube, std_cube)
-
-
-def test_error_spatial_coords_mismatch_gridded_data(
-    diagnostic_cube, mean_cube, std_cube
-):
-    """Test that the plugin raises a ValueError if the spatial coordinates of the
-    diagnostic cube and another cube mismatch"""
-    mean_cube.coord("latitude").points = mean_cube.coord("latitude").points + 20
-    mean_cube.coord("longitude").points = mean_cube.coord("longitude").points + 20
-    plugin = CalculateClimateAnomalies()
-    with pytest.raises(ValueError, match="The spatial coordinates must match."):
-        plugin.verify_spatial_coords_match(diagnostic_cube, mean_cube, std_cube)
-
-
-@pytest.mark.parametrize(
-    "error_to_raise", ["more_than_one_spot_index", "mismatching_spot_index_points"]
-)
-def test_error_spatial_coords_mismatch_site_data(site_cubes, mean_cube, error_to_raise):
-    site_cube_diagnostic, site_cube_mean, site_cube_std = site_cubes
-    """Test that the plugin raises a ValueError if the spatial coordinates of the
-    mean and std cubes have different bounds."""
-    plugin = CalculateClimateAnomalies()
-    if error_to_raise == "more_than_one_spot_index":
-        # Uses a cube without the spot_index coordinate (gridded mean_cube)
-        # to trigger the error
-        with pytest.raises(
-            ValueError,
-            match="The cubes must all have the same spatial coordinates. Some cubes "
-            "contain spot_index coordinates and some do not.",
-        ):
-            plugin.verify_spatial_coords_match(
-                site_cube_diagnostic, mean_cube, site_cube_std
-            )
-    else:
-        site_cube_diagnostic.coord("spot_index").points = (
-            site_cube_diagnostic.coord("spot_index").points + 1
-        )
-        with pytest.raises(
-            ValueError,
-            match="Mismatching spot_index coordinates were found on the input cubes.",
-        ):
-            plugin.verify_spatial_coords_match(
-                site_cube_diagnostic, site_cube_mean, site_cube_std
-            )
-
-
-@pytest.mark.parametrize("check", ["mean_to_std_check", "diagnostic_to_others_check"])
-def test_error_time_coords_mismatch(diagnostic_cube, mean_cube, std_cube, check):
-    plugin = CalculateClimateAnomalies(ignore_temporal_mismatch=False)
-    if check == "mean_to_std_check":
-        mean_cube.coord("time").bounds = mean_cube.coord("time").bounds + (
-            1 * SECONDS_IN_HOUR,
-            1 * SECONDS_IN_HOUR,
-        )  # Moves mean bounds outside std bounds
-        with pytest.raises(
-            ValueError,
-            match="The mean and standard deviation cubes must have compatible time "
-            "bounds. ",
-        ):
-            plugin.verify_time_coords_match(diagnostic_cube, mean_cube, std_cube)
-    else:
-        diagnostic_cube.coord("time").points = (
-            diagnostic_cube.coord("time").points + 10 * SECONDS_IN_HOUR
-        )  # Moves diagnostic bounds outside mean bounds
-        with pytest.raises(
-            ValueError,
-            match="The diagnostic cube's time points must fall within the bounds "
-            "of the mean cube. The following was found:",
-        ):
-            plugin.verify_time_coords_match(diagnostic_cube, mean_cube, std_cube)
