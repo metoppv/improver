@@ -5,19 +5,26 @@
 """Unit tests for the plugins and functions within mathematical_operations.py"""
 
 import unittest
+from datetime import datetime
 
 import iris
 import numpy as np
 import numpy.ma as ma
+import pytest
 from iris.tests import IrisTest
 
+from improver.constants import SECONDS_IN_HOUR
 from improver.metadata.utilities import generate_mandatory_attributes
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     set_up_variable_cube,
 )
 from improver.utilities.cube_manipulation import sort_coord_in_cube
-from improver.utilities.mathematical_operations import Integration, fast_linear_fit
+from improver.utilities.mathematical_operations import (
+    Integration,
+    fast_linear_fit,
+    verify_time_coords_match,
+)
 
 
 def _set_up_height_cube(height_points, ascending=True):
@@ -516,6 +523,70 @@ class Test_fast_linear_fit(IrisTest):
         """Tests fast_linear_fit when with_nans is True and nans match in x and y data"""
         self.x_data[12] = self.y_data[12] = np.nan
         self.linear_fit(with_nan=True)
+
+
+@pytest.fixture
+def diagnostic_cube():
+    """Fixture for creating a diagnostic cube"""
+    data = np.full((1, 1, 1), 305, dtype=np.float32)
+    return set_up_variable_cube(
+        data=data, time=datetime(2024, 10, 16, 0, 0), frt=datetime(2024, 10, 15, 18, 0)
+    )
+
+
+@pytest.fixture
+def mean_cube():
+    """Fixture for creating a mean cube."""
+    data = np.array([298], dtype=np.float32).reshape(1, 1, 1)
+    cube = set_up_variable_cube(
+        data=data,
+        time=datetime(2024, 10, 16, 0, 0),
+        time_bounds=(datetime(2024, 9, 16, 0, 0), datetime(2024, 10, 16, 1, 0)),
+    )
+    cell_method = iris.coords.CellMethod(method="mean", coords="time")
+    cube.add_cell_method(cell_method)
+    return cube
+
+
+@pytest.fixture
+def std_cube():
+    """Fixture for creating a std cube"""
+    data = np.array([4], dtype=np.float32).reshape(1, 1, 1)
+    cube = set_up_variable_cube(
+        data=data,
+        time=datetime(2024, 10, 16, 0, 0),
+        time_bounds=(datetime(2024, 9, 16, 0, 0), datetime(2024, 10, 16, 1, 0)),
+        units="K",
+    )
+    cell_method = iris.coords.CellMethod(method="standard_deviation", coords="time")
+    cube.add_cell_method(cell_method)
+    return cube
+
+
+@pytest.mark.parametrize("check", ["mean_to_std_check", "diagnostic_to_others_check"])
+def test_verify_time_coords_match(diagnostic_cube, mean_cube, std_cube, check):
+    """Test the verify_time_coords_match function."""
+    if check == "mean_to_std_check":
+        mean_cube.coord("time").bounds = mean_cube.coord("time").bounds + (
+            1 * SECONDS_IN_HOUR,
+            1 * SECONDS_IN_HOUR,
+        )  # Moves mean bounds outside std bounds
+        with pytest.raises(
+            ValueError,
+            match="The mean and standard deviation cubes must have compatible time "
+            "bounds. ",
+        ):
+            verify_time_coords_match(diagnostic_cube, mean_cube, std_cube)
+    else:
+        diagnostic_cube.coord("time").points = (
+            diagnostic_cube.coord("time").points + 10 * SECONDS_IN_HOUR
+        )  # Moves diagnostic bounds outside mean bounds
+        with pytest.raises(
+            ValueError,
+            match="The diagnostic cube's time points must fall within the bounds "
+            "of the mean cube. The following was found:",
+        ):
+            verify_time_coords_match(diagnostic_cube, mean_cube, std_cube)
 
 
 if __name__ == "__main__":

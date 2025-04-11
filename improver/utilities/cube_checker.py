@@ -154,7 +154,7 @@ def find_dimension_coordinate_mismatch(
     return mismatch
 
 
-def spatial_coords_match(cubes: Union[List, CubeList]) -> bool:
+def spatial_coords_match(cubes: Union[List[Cube], CubeList]) -> bool:
     """
     Determine if the x and y coords of all the input cubes are the same.
 
@@ -163,7 +163,7 @@ def spatial_coords_match(cubes: Union[List, CubeList]) -> bool:
             A list of cubes to compare.
 
     Returns:
-        True if the x and y coords are the exactly the same to the
+        True if the x and y coords are exactly the same to the
         precision of the floating-point values (this should be true for
         any cubes derived using cube.regrid()), otherwise False.
     """
@@ -175,6 +175,28 @@ def spatial_coords_match(cubes: Union[List, CubeList]) -> bool:
             and cube.coord(axis="y") == ref.coord(axis="y")
             and match
         )
+    return match
+
+
+def spot_index_coords_match(cubes: Union[List, CubeList]) -> bool:
+    """
+    Determine if the spot index coord of all the input cubes is the same.
+
+    Args:
+        cubes:
+            A list of cubes to compare.
+
+    Returns:
+        True if the spot index coords are exactly the same, otherwise False.
+    """
+    match = True
+    spot_index_values = [cube.coord("spot_index").points for cube in cubes]
+    for cube in cubes[1:]:
+        match = (
+            np.array_equal(cube.coord("spot_index").points, spot_index_values[0])
+            and match
+        )
+
     return match
 
 
@@ -225,6 +247,7 @@ def assert_time_coords_valid(inputs: List[Cube], time_bounds: bool):
 def assert_spatial_coords_match(cubes: Union[List, CubeList]):
     """
     Raises an Exception if `spatial_coords_match` returns False.
+    Only useable on cubes that are all gridded.
 
     Args:
         cubes:
@@ -238,3 +261,64 @@ def assert_spatial_coords_match(cubes: Union[List, CubeList]):
         raise ValueError(
             f"Mismatched spatial coords for {', '.join([c.name() for c in cubes])}"
         )
+
+
+def assert_spot_index_coords_match(cubes: Union[List, CubeList]):
+    """
+    Raises an Exception if `spot_index_coords_match` returns False.
+    Only useable on cubes that are all spot data.
+
+    Args:
+        cubes:
+            A list of cubes to compare.
+
+    Raises:
+        ValueError if spot_index coords do not match.
+
+    """
+    if not spot_index_coords_match(cubes):
+        raise ValueError(
+            "Mismatching spot_index coordinates were found on the input cubes."
+        )
+
+
+def assert_no_mixed_cube_types(cubes: Union[List, CubeList]) -> None:
+    """
+    Check if the cubes are a mixture of gridded and site cubes.
+
+    Args:
+        cubes:
+            A list of cubes to compare.
+
+    Raises:
+        ValueError: If the cubes are a mixture of gridded and site cubes.
+    """
+    spot_index_presence = [
+        "spot_index" in [coord.name() for coord in cube.coords(dim_coords=True)]
+        for cube in cubes
+    ]
+    if any(spot_index_presence) and not all(spot_index_presence):
+        raise ValueError(
+            "The cubes must all have the same spatial coordinates. Some cubes "
+            "contain spot_index coordinates and some do not."
+        )
+
+
+def assert_spatial_and_spot_coords_match(cubes: Union[List, CubeList]) -> None:
+    """
+    Check if the cubes are a mixture of gridded and site cubes.
+
+    Args:
+        cubes:
+            A list of cubes to compare.
+
+    Raises:
+        ValueError: If the cubes are a mixture of gridded and site cubes.
+        ValueError: If the spatial coordinates do not match.
+        ValueError: If the spot_index coordinates do not match.
+    """
+    assert_no_mixed_cube_types(cubes)
+    if cubes[0].coords("spot_index"):
+        assert_spot_index_coords_match(cubes)
+    else:
+        assert_spatial_coords_match(cubes)
