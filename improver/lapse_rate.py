@@ -4,7 +4,7 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Module containing lapse rate calculation plugins."""
 
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Iterable
 
 import iris
 import numpy as np
@@ -96,8 +96,34 @@ def compute_lapse_rate_adjustment(
     return vertical_adjustment
 
 
+def compute_from_slope_and_intercept(position: np.ndarray, slope: np.ndarray, intercept: np.ndarray) -> np.ndarray:
+    """
+    Solves y for a linear equation y = mx + c
+
+    Args:
+        position:
+            Array of values corresponding to x in the linear equation
+        slope:
+            Array of values corresponding to m in the linear equation
+        intercept:
+            Array of values corresponding to c in the linear equation
+    """
+    return position * slope + intercept
+
+
 class ApplyGriddedLapseRate(PostProcessingPlugin):
     """Class to apply a lapse rate adjustment to a forecast diagnostic"""
+
+    def __init__(self, data_limits: Iterable[float] = (None, None)):
+        """
+        Initialise the class
+
+        Args:
+            data_limits:
+                (Minimum value, Maximum value). If one or both are not None, these values are used to truncate
+                the data after all calculations are complete.
+        """
+        self.data_limits = data_limits
 
     @staticmethod
     def _check_dim_coords(diagnostic: Cube, lapse_rate: Cube) -> None:
@@ -140,8 +166,17 @@ class ApplyGriddedLapseRate(PostProcessingPlugin):
         )
         return orog_diff
 
+    def _apply_limits(self, cube: Cube):
+        """Apply defined limits to the data in the cube"""
+        cube.data = np.clip(cube.data, *self.data_limits)
+
     def process(
-        self, diagnostic: Cube, lapse_rate: Cube, source_orog: Cube, dest_orog: Cube
+        self,
+        diagnostic: Cube,
+        lapse_rate: Cube,
+        source_orog: Cube,
+        dest_orog: Cube,
+        intercept: Cube = None,
     ) -> Cube:
         """Applies lapse rate correction to diagnostic forecast.  All cubes'
         units are modified in place.
@@ -155,6 +190,9 @@ class ApplyGriddedLapseRate(PostProcessingPlugin):
                 2D cube of source orography heights
             dest_orog:
                 2D cube of destination orography heights
+            intercept:
+                Cube of pre-calculated zero-intercept.
+                If provided, the data in diagnostic are ignored.
 
         Returns:
             Lapse-rate adjusted diagnostic field
@@ -178,14 +216,24 @@ class ApplyGriddedLapseRate(PostProcessingPlugin):
         orog_diff = self._calc_orog_diff(source_orog, dest_orog)
 
         adjusted_diagnostic = []
-        for lr_slice, diagnostic_slice in zip(
-            lapse_rate.slices(self.xy_coords), diagnostic.slices(self.xy_coords)
-        ):
-            newcube = diagnostic_slice.copy()
-            newcube.data += compute_lapse_rate_adjustment(lr_slice.data, orog_diff.data)
-            adjusted_diagnostic.append(newcube)
+        if intercept:
+            for lr_slice, diagnostic_slice, intercept_slice in zip(
+                lapse_rate.slices(self.xy_coords), diagnostic.slices(self.xy_coords), intercept
+            ):
+                newcube = diagnostic_slice.copy()
+                newcube.data += compute_from_slope_and_intercept(dest_orog.data, lr_slice.data, intercept_slice.data)
+                adjusted_diagnostic.append(newcube)
+        else:
+            for lr_slice, diagnostic_slice in zip(
+                lapse_rate.slices(self.xy_coords), diagnostic.slices(self.xy_coords)
+            ):
+                newcube = diagnostic_slice.copy()
+                newcube.data += compute_lapse_rate_adjustment(lr_slice.data, orog_diff.data)
+                adjusted_diagnostic.append(newcube)
 
-        return iris.cube.CubeList(adjusted_diagnostic).merge_cube()
+        merged_cube = iris.cube.CubeList(adjusted_diagnostic).merge_cube()
+        self._apply_limits(merged_cube)
+        return merged_cube
 
 
 class LapseRate(BasePlugin):
@@ -320,7 +368,7 @@ class LapseRate(BasePlugin):
         diagnostic_data: ndarray,
         orography_data: ndarray,
         land_sea_mask_data: ndarray,
-    ) -> ndarray:
+    ) -> Tuple[ndarray, ndarray]:
         """
         Calculate lapse rates and apply filters
 
@@ -333,14 +381,14 @@ class LapseRate(BasePlugin):
                 2D land-sea mask
 
         Returns:
-            Lapse rate values
+            Lapse rate values and zero-intercept values
         """
         # Fill sea points with NaN values.
         diagnostic_data = np.where(land_sea_mask_data, diagnostic_data, np.nan)
 
         # Preallocate output array
         lapse_rate_array = np.empty_like(diagnostic_data, dtype=np.float32)
-        self.intercept = np.empty_like(diagnostic_data, dtype=np.float32)
+        intercept_array = np.empty_like(diagnostic_data, dtype=np.float32)
 
         # Pads the data with nans and generates masked windows representing
         # a neighbourhood for each point.
@@ -354,7 +402,7 @@ class LapseRate(BasePlugin):
         cnpt = self.ind_central_point
         axis = (-2, -1)
         for lapse, intercept, diag, orog in zip(
-            lapse_rate_array, self.intercept, diagnostic_nbhood_window, orog_nbhood_window
+            lapse_rate_array, intercept_array, diagnostic_nbhood_window, orog_nbhood_window
         ):
             # height_diff_mask is True for points where the height
             # difference between the central points and its
@@ -392,7 +440,7 @@ class LapseRate(BasePlugin):
         lapse_rate_array = lapse_rate_array.clip(
             self.min_lapse_rate, self.max_lapse_rate
         )
-        return lapse_rate_array
+        return lapse_rate_array, intercept_array
 
     def process(
         self,
@@ -465,7 +513,7 @@ class LapseRate(BasePlugin):
         # Calculate lapse rate for each realization
         lapse_rate_data = []
         for data_slice in data_slices:
-            lapse_rate_array = self._generate_lapse_rate_array(
+            lapse_rate_array, intercept_array = self._generate_lapse_rate_array(
                 data_slice, orography_data, land_sea_mask_data
             )
             lapse_rate_data.append(lapse_rate_array)
@@ -482,6 +530,13 @@ class LapseRate(BasePlugin):
             diagnostic_cube,
             attributes,
             data=lapse_rate_data,
+        )
+        self.intercept = create_new_diagnostic_cube(
+            f"{diagnostic.name()}_zero_intercept",
+            diagnostics.units,
+            diagnostic_cube,
+            attributes,
+            data=intercept_array,
         )
 
         if original_dimension_order:
