@@ -56,7 +56,7 @@ class Test__calc_lapse_rate(unittest.TestCase):
         """Test that the function returns expected lapse rate."""
 
         expected_out = -0.00765005774676
-        result = LapseRate(nbhood_radius=1)._generate_lapse_rate_array(
+        result, _ = LapseRate(nbhood_radius=1)._generate_lapse_rate_array(
             self.temperature, self.orography, self.land_sea_mask
         )[1, 1]
         np.testing.assert_array_almost_equal(result, expected_out)
@@ -67,7 +67,7 @@ class Test__calc_lapse_rate(unittest.TestCase):
 
         self.temperature[..., 1, 1] = np.nan
         expected_out = DALR
-        result = LapseRate(nbhood_radius=1)._generate_lapse_rate_array(
+        result, _ = LapseRate(nbhood_radius=1)._generate_lapse_rate_array(
             self.temperature, self.orography, self.land_sea_mask
         )[1, 1]
         np.testing.assert_array_almost_equal(result, expected_out)
@@ -85,7 +85,7 @@ class Test__calc_lapse_rate(unittest.TestCase):
             ]
         )
 
-        result = LapseRate(nbhood_radius=1)._generate_lapse_rate_array(
+        result, _ = LapseRate(nbhood_radius=1)._generate_lapse_rate_array(
             self.temperature, self.orography, self.land_sea_mask
         )
         np.testing.assert_array_almost_equal(result, expected_out)
