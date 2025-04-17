@@ -28,10 +28,9 @@ def wet_bulb_temperature_integral():
     wet_bulb_temp_at_surf = set_up_variable_cube(
         data,
         name="wet_bulb_temperature_integral",
-        units=1,
+        units="K m",
         attributes=ATTRIBUTES,
     )
-
     return wet_bulb_temp_at_surf
 
 
@@ -45,6 +44,20 @@ def test_scenarios(wet_bulb_temperature_integral, wb_temp_data, expected_probabi
 
     result = SnowProbabilityAtSurface()(wet_bulb_temperature_integral)
     assert np.all(result.data == expected_probability)
+    assert result.name() == "probability_of_snow_at_surface"
+    assert result.units == "1"
+    assert result.attributes == ATTRIBUTES
+
+
+def test_masked_data(wet_bulb_temperature_integral):
+    """Test the snow probability at surface plugin for masked data"""
+
+    wet_bulb_temperature_integral.data = np.ma.masked_all_like(
+        wet_bulb_temperature_integral.data
+    )
+    result = SnowProbabilityAtSurface()(wet_bulb_temperature_integral)
+
+    assert result.data.mask.all()
     assert result.name() == "probability_of_snow_at_surface"
     assert result.units == "1"
     assert result.attributes == ATTRIBUTES

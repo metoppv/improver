@@ -20,7 +20,8 @@ class SnowProbabilityAtSurface(BasePlugin):
     The probability is calculated by looking at the wet bulb temperature integral at the surface. If the
     wet bulb temperature is 0 Kelvin metres then the probability of snow is set to 1. If it is
     greater than 225 Kelvin metres then the probability is set to zero. For values in between
-    0 and 225, the probability varies linearly.
+    0 and 225, the probability varies linearly. Where the wet bulb temperature data is masked the output
+    will be masked.
     """
 
     def __init__(self) -> None:
@@ -39,12 +40,13 @@ class SnowProbabilityAtSurface(BasePlugin):
             Probability of snow occuring at surface.
         """
 
-        input_shape = wet_bulb_temp_int_at_surf.shape
-        data = wet_bulb_temp_int_at_surf.data.flatten()
+        prob_snow = np.interp(wet_bulb_temp_int_at_surf.data, self.xp, self.yp)
 
-        prob_snow = np.interp(data, self.xp, self.yp)
+        if np.ma.is_masked(wet_bulb_temp_int_at_surf.data):
+            prob_snow = np.ma.masked_where(
+                wet_bulb_temp_int_at_surf.data.mask, prob_snow
+            )
 
-        prob_snow_reshaped = np.reshape(prob_snow, input_shape)
         snow_probability_cube = create_new_diagnostic_cube(
             "probability_of_snow_at_surface",
             "1",
@@ -52,7 +54,7 @@ class SnowProbabilityAtSurface(BasePlugin):
             mandatory_attributes=generate_mandatory_attributes(
                 [wet_bulb_temp_int_at_surf]
             ),
-            data=prob_snow_reshaped,
+            data=prob_snow,
         )
 
         return snow_probability_cube
