@@ -109,6 +109,7 @@ PROCESSING_MODULES = {
     "ShowerConditionProbability": "improver.precipitation.shower_condition_probability",
     "SignificantPhaseMask": "improver.psychrometric_calculations.significant_phase_mask",
     "SnowFraction": "improver.precipitation.snow_fraction",
+    "SnowProbabilityAtSurface": "improver.precipitation.snow_probability_at_surface",
     "SnowSplitter": "improver.precipitation.snow_splitter",
     "SpatiallyVaryingWeightsFromMask": "improver.blending.spatial_weights",
     "SpotExtraction": "improver.spotdata.spot_extraction",
