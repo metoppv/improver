@@ -910,8 +910,14 @@ class DurationSubdivision:
             original cube's period.
         Raises:
             ValueError: The target period is not a factor of the input period.
+            ValueError: The fidelity period is not less than or equal to the
+                        target period.
         """
         period = self.cube_period(cube)
+
+        # If the input cube period matches the target period return it.
+        if period == self.target_period:
+            return cube
 
         if period / self.target_period % 1 != 0:
             raise ValueError(
@@ -929,9 +935,6 @@ class DurationSubdivision:
         # any durations that exceed the period described. This is mostly to
         # handle grib packing errors for ECMWF data.
         cube.data = np.clip(cube.data, 0, period)
-        # If the input cube period matches the target period return it.
-        if period == self.target_period:
-            return cube
 
         fidelity_period_cube = self.allocate_data(cube, period)
         factor = self.renormalisation_factor(cube, fidelity_period_cube)
