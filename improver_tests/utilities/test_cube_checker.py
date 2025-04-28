@@ -314,42 +314,6 @@ class Test_spatial_coords_match(IrisTest):
         self.assertFalse(result)
 
 
-@pytest.fixture
-def basic_gridded_cubes():
-    """Fixture for creating basic cubes"""
-    gridded_cube_one_data = np.full((1, 1, 1), 305, dtype=np.float32)
-    gridded_cube_two_data = np.full((1, 1, 1), 310, dtype=np.float32)
-
-    gridded_cube_one = set_up_variable_cube(
-        gridded_cube_one_data, name="air_temperature", units="K"
-    )
-
-    gridded_cube_two = set_up_variable_cube(
-        gridded_cube_two_data, name="air_temperature", units="K"
-    )
-
-    return gridded_cube_one, gridded_cube_two
-
-
-@pytest.fixture
-def basic_spot_cubes():
-    """Fixture for creating basic cubes"""
-    spot_cube_one_data = np.full((1, 1), 305, dtype=np.float32)
-    spot_cube_two_data = np.full((1, 1), 310, dtype=np.float32)
-
-    spot_cube_one = set_up_spot_variable_cube(
-        spot_cube_one_data,
-        name="air_temperature",
-        units="K",
-    )
-
-    spot_cube_two = set_up_spot_variable_cube(
-        spot_cube_two_data, name="air_temperature", units="K"
-    )
-
-    return spot_cube_one, spot_cube_two
-
-
 @pytest.fixture(name="cubes")
 def cubes_fixture(time_bounds) -> List[Cube]:
     """Set up matching r, y, x cubes matching Plugin requirements, with or without time

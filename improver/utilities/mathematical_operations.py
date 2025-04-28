@@ -575,8 +575,12 @@ class CalculateClimateAnomalies(BasePlugin):
             - Name is updated to include "_anomaly" or "_standardized_anomaly" suffix.
             - Units are updated to "1" for standardized anomalies.
             - A reference epoch coordinate and an "anomaly" cell method are added."""
+        
+        cubes_to_check = [
+            cube for cube in [diagnostic_cube, mean_cube, std_cube] if cube is not None
+        ]
         self.verify_units_match(diagnostic_cube, mean_cube, std_cube)
-        assert_spatial_coords_match
+        assert_spatial_coords_match(cubes_to_check)
         verify_time_coords_match(
             diagnostic_cube,
             mean_cube,
