@@ -21,15 +21,12 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_variable_cube,
 )
 from improver.utilities.cube_checker import (
-    assert_no_mixed_cube_types,
     assert_spatial_coords_match,
-    assert_spot_index_coords_match,
     assert_time_coords_valid,
     check_cube_coordinates,
     check_for_x_and_y_axes,
     find_dimension_coordinate_mismatch,
     spatial_coords_match,
-    spot_index_coords_match,
 )
 
 
@@ -335,92 +332,28 @@ def basic_gridded_cubes():
 
 
 @pytest.fixture
-def basic_site_cubes():
+def basic_spot_cubes():
     """Fixture for creating basic cubes"""
-    site_cube_one_data = np.full((1, 1), 305, dtype=np.float32)
-    site_cube_two_data = np.full((1, 1), 310, dtype=np.float32)
+    spot_cube_one_data = np.full((1, 1), 305, dtype=np.float32)
+    spot_cube_two_data = np.full((1, 1), 310, dtype=np.float32)
 
-    site_cube_one = set_up_spot_variable_cube(
-        site_cube_one_data,
+    spot_cube_one = set_up_spot_variable_cube(
+        spot_cube_one_data,
         name="air_temperature",
         units="K",
     )
 
-    site_cube_one.coord("spot_index").points = [1]
-
-    site_cube_two = set_up_spot_variable_cube(
-        site_cube_two_data, name="air_temperature", units="K"
+    spot_cube_two = set_up_spot_variable_cube(
+        spot_cube_two_data, name="air_temperature", units="K"
     )
 
-    site_cube_two.coord("spot_index").points = [1]
-
-    return site_cube_one, site_cube_two
-
-
-def test_spot_index_coords_match(basic_site_cubes):
-    """Test that the coordinates of two cubes match when they are both
-    spot cubes."""
-    cube_one, cube_two = basic_site_cubes
-    result = spot_index_coords_match([cube_one, cube_two])
-    assert result is True
-
-
-def test_spot_index_coords_match_fail(basic_site_cubes):
-    """Test that the coordinates of two cubes do not match when one is a
-    spot cube and the other is a gridded cube."""
-    cube_one, cube_two = basic_site_cubes
-    cube_two.coord("spot_index").points = [3]
-    result = spot_index_coords_match([cube_one, cube_two])
-    assert result is False
-
-
-@pytest.mark.parametrize("expect_to_pass", ("yes", "no"))
-def test_assert_spot_coords_match(basic_site_cubes, expect_to_pass):
-    """Test that the coordinates of two cubes match when they are both
-    spot cubes."""
-    cube_one, cube_two = basic_site_cubes
-    if expect_to_pass == "yes":
-        pass
-    else:
-        cube_two.coord("spot_index").points = [3]
-        with pytest.raises(ValueError, match="Mismatching spot_index coordinates"):
-            assert_spot_index_coords_match([cube_one, cube_two])
-
-
-@pytest.mark.parametrize("check", ("both_site", "both_grid", "mixed"))
-def test_assert_no_mixed_cube_types(basic_site_cubes, basic_gridded_cubes, check):
-    """Test that the coordinates of two cubes do not match when one is a
-    spot cube and the other is a gridded cube."""
-    site_cube_one, site_cube_two = basic_site_cubes
-    gridded_cube_one, gridded_cube_two = basic_gridded_cubes
-    if check == "both_site":
-        result = spatial_coords_match([site_cube_one, site_cube_two])
-        assert result is True
-    elif check == "both_grid":
-        result = spatial_coords_match([gridded_cube_one, gridded_cube_two])
-        assert result is True
-    else:
-        with pytest.raises(ValueError, match="The cubes must all have the same"):
-            assert_no_mixed_cube_types([site_cube_one, gridded_cube_one])
-
-
-@pytest.mark.parametrize("check", ("both_site", "both_grid"))
-def test_assert_spatial_and_spot_coords_match(
-    basic_site_cubes, basic_gridded_cubes, check
-):
-    """Test that the coordinates of two cubes match when they are both
-    spot cubes."""
-    if check == "both_site":
-        cube_one, cube_two = basic_site_cubes
-    else:
-        cube_one, cube_two = basic_gridded_cubes
-    result = spatial_coords_match([cube_one, cube_two])
-    assert result is True
+    return spot_cube_one, spot_cube_two
 
 
 @pytest.fixture(name="cubes")
 def cubes_fixture(time_bounds) -> List[Cube]:
-    """Set up matching r, y, x cubes matching Plugin requirements, with or without time bounds"""
+    """Set up matching r, y, x cubes matching Plugin requirements, with or without time
+    bounds"""
     cubes = []
     data = np.ones((2, 3, 4), dtype=np.float32)
     kwargs = {}

@@ -19,7 +19,7 @@ from improver.metadata.utilities import (
     generate_mandatory_attributes,
 )
 from improver.utilities.cube_checker import (
-    assert_spatial_and_spot_coords_match,
+    assert_spatial_coords_match,
 )
 from improver.utilities.cube_manipulation import (
     enforce_coordinate_ordering,
@@ -463,37 +463,6 @@ class CalculateClimateAnomalies(BasePlugin):
             raise ValueError("\n".join(errors))
 
     @staticmethod
-    def verify_spatial_coords_match(
-        diagnostic_cube: Cube, mean_cube: Cube, std_cube: Optional[Cube] = None
-    ) -> None:
-        """Check that all cubes have the same spatial coordinates (i.e. the same grid
-        coordinates or spot index coordinates).
-
-        Raises:
-            ValueError: If the cubes are a mixture of gridded and site cubes.
-            ValueError: If the cubes are site forecasts and the number of sites must be
-            equal.
-            ValueError: If the cubes are gridded forecasts, the spatial coordinates must
-            match.
-        """
-        cubes_to_check = [
-            cube for cube in [diagnostic_cube, mean_cube, std_cube] if cube is not None
-        ]
-        assert_spatial_and_spot_coords_match(cubes_to_check)
-
-    def verify_time_coords_match(
-        self, diagnostic_cube: Cube, mean_cube: Cube, std_cube: Optional[Cube] = None
-    ) -> None:
-        """Check that all cubes have compatible time coordinates.
-
-        Raises:
-            ValueError: If the time coordinates of the cubes are incompatible.
-        """
-        verify_time_coords_match(
-            diagnostic_cube, mean_cube, std_cube, self.ignore_temporal_mismatch
-        )
-
-    @staticmethod
     def calculate_anomalies(
         diagnostic_cube: Cube, mean_cube: Cube, std_cube: Optional[Cube] = None
     ) -> ndarray:
@@ -607,8 +576,13 @@ class CalculateClimateAnomalies(BasePlugin):
             - Units are updated to "1" for standardized anomalies.
             - A reference epoch coordinate and an "anomaly" cell method are added."""
         self.verify_units_match(diagnostic_cube, mean_cube, std_cube)
-        self.verify_spatial_coords_match(diagnostic_cube, mean_cube, std_cube)
-        self.verify_time_coords_match(diagnostic_cube, mean_cube, std_cube)
+        assert_spatial_coords_match
+        verify_time_coords_match(
+            diagnostic_cube,
+            mean_cube,
+            std_cube=std_cube,
+            ignore_temporal_mismatch=self.ignore_temporal_mismatch,
+        )
 
         anomalies_cube = self._create_output_cube(diagnostic_cube, mean_cube, std_cube)
 
@@ -695,33 +669,6 @@ class CalculateForecastValueFromClimateAnomaly(BasePlugin):
                 f"The following units were found: {std_cube.units},"
                 f"{mean_cube.units}."
             )
-
-    @staticmethod
-    def verify_spatial_coords_match(
-        anomaly_cube: Cube, mean_cube: Cube, std_cube: Optional[Cube] = None
-    ) -> None:
-        """Check that all cubes have the same spatial coordinates (i.e. the same grid
-        coordinates or spot index coordinates).
-
-        Raises:
-            ValueError: If the spatial coordinates of the cubes do not match.
-        """
-        cubes_to_check = [
-            cube for cube in [anomaly_cube, mean_cube, std_cube] if cube is not None
-        ]
-        assert_spatial_and_spot_coords_match(cubes_to_check, anomaly_cube)
-
-    def verify_time_coords_match(
-        self, anomaly_cube: Cube, mean_cube: Cube, std_cube: Optional[Cube] = None
-    ) -> None:
-        """Check that all cubes have compatible time coordinates.
-
-        Raises:
-            ValueError: If the time coordinates of the cubes are incompatible.
-        """
-        verify_time_coords_match(
-            anomaly_cube, mean_cube, std_cube, self.ignore_temporal_mismatch
-        )
 
     @staticmethod
     def calculate_forecast_value(
@@ -832,8 +779,13 @@ class CalculateForecastValueFromClimateAnomaly(BasePlugin):
 
         self.verify_inputs_for_forecast(standardized_anomaly, std_cube)
         self.verify_units_match(anomaly_cube, mean_cube, standardized_anomaly, std_cube)
-        assert_spatial_and_spot_coords_match(cubes_to_check)
-        self.verify_time_coords_match(anomaly_cube, mean_cube, std_cube)
+        assert_spatial_coords_match(cubes_to_check)
+        verify_time_coords_match(
+            anomaly_cube,
+            mean_cube,
+            std_cube=std_cube,
+            ignore_temporal_mismatch=self.ignore_temporal_mismatch,
+        )
 
         return self._create_output_cube(anomaly_cube, mean_cube, std_cube)
 
