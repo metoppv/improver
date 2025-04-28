@@ -312,7 +312,8 @@ class RecursiveFilter(PostProcessingPlugin):
         return coeffs_x, coeffs_y
 
     def process(
-        self, cube: Cube, smoothing_coefficients: CubeList, variable_mask: bool = False
+        self, cube: Cube, smoothing_coefficients: CubeList, variable_mask: bool = False,
+            mask_zeros: bool = False
     ) -> Cube:
         """
         Set up the smoothing_coefficient parameters and run the recursive
@@ -356,6 +357,12 @@ class RecursiveFilter(PostProcessingPlugin):
                 different mask. If False and cube is masked, a check will be made that
                 the same mask is present on each spatial slice. If True, each spatial
                 slice of cube may contain a different spatial mask.
+            mask_zeros
+                If set true all of the values of 0 in the cube will be masked,
+                stopping the recursive filter from spreading values into these areas.
+                They will then be unmasked later on. It will also check the cube
+                to see if it already masked, if so it will make sure the original mask
+                is reapplied at the end.
 
         Returns:
             Cube containing the smoothed field after the recursive filter
@@ -365,7 +372,19 @@ class RecursiveFilter(PostProcessingPlugin):
             ValueError:
                 If variable_mask is False and the masks on each spatial slice of cube
                 are not identical.
-        """
+        """       
+        if np.ma.isMaskedArray(cube.data):
+            cube_mask = np.ma.getmaskarray(cube.data)
+            # If the array is masked this gets the mask so it can be used and
+            # reapplied later on.
+        else:
+            cube_mask = None
+
+        if mask_zeros:
+            data_mask = np.ma.masked_where(cube.data==0.0, cube.data)
+            cube.data = data_mask
+            # This masks any array element that is zero
+
         cube_format = next(cube.slices([cube.coord(axis="y"), cube.coord(axis="x")]))
         coeffs_x, coeffs_y = self._validate_coefficients(
             cube_format, smoothing_coefficients
@@ -419,7 +438,17 @@ class RecursiveFilter(PostProcessingPlugin):
 
             recursed_cube.append(new_cube)
 
+            if mask_cube is not None:
+                new_cube.data = np.ma.MaskedArray(new_cube.data, mask=mask_cube.data)
+
         new_cube = recursed_cube.merge_cube()
+        if mask_zeros:
+            new_cube.data = np.ma.getdata(new_cube.data)
+            # This unmasks all the data on the cube
+            if cube_mask is not None:
+                # Reapplying the original mask so the data doesn't change.
+                new_cube.data = np.ma.array(new_cube.data, mask=cube_mask)
+
         new_cube = check_cube_coordinates(cube, new_cube)
 
         return new_cube
