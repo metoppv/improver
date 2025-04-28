@@ -57,6 +57,8 @@ BOUNDS_FOR_ECDF = {
     "lwe_snowfall_rate_in_vicinity": Bounds((0, 400.0), "mm h-1"),
     "rainfall_rate": Bounds((0, 400.0), "mm h-1"),
     "rainfall_rate_in_vicinity": Bounds((0, 400.0), "mm h-1"),
+    # Precipitation time fraction
+    "fraction_of_time_classified_as_wet": Bounds((0, 1.0), "1"),
     # Temperature
     "air_temperature": (Bounds((-100 - ABSOLUTE_ZERO, 60 - ABSOLUTE_ZERO), "Kelvin")),
     "feels_like_temperature": (

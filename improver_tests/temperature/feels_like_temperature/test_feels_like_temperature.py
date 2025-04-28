@@ -9,12 +9,12 @@ import unittest
 import numpy as np
 from iris.tests import IrisTest
 
-from improver.feels_like_temperature import (
+from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
+from improver.temperature.feels_like_temperature import (
     _calculate_apparent_temperature,
     _calculate_wind_chill,
     calculate_feels_like_temperature,
 )
-from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 
 class Test__calculate_apparent_temperature(IrisTest):

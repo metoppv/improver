@@ -67,11 +67,11 @@ def process(
     """
     import numpy as np
 
-    from improver.lapse_rate import LapseRate
     from improver.metadata.utilities import (
         create_new_diagnostic_cube,
         generate_mandatory_attributes,
     )
+    from improver.temperature.lapse_rate import LapseRate
 
     if dry_adiabatic:
         attributes = generate_mandatory_attributes(

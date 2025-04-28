@@ -685,7 +685,7 @@ def test_process(
         long_name="precipitation_accumulation_threshold_for_wet"
     ) is result.coord("lwe_thickness_of_precipitation_amount")
     assert result.coord(
-        long_name="precipitation_rate_threshold_for_wet"
+        long_name="precipitation_max_rate_threshold_for_wet"
     ) is result.coord("lwe_precipitation_rate")
 
     var_names = [crd.var_name for crd in result.coords()]

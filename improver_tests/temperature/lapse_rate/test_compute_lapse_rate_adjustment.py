@@ -10,8 +10,8 @@ import numpy as np
 import pytest
 
 from improver.constants import ELR
-from improver.lapse_rate import compute_lapse_rate_adjustment
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
+from improver.temperature.lapse_rate import compute_lapse_rate_adjustment
 
 
 def set_up_cubes(lapse_rate):

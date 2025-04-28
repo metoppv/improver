@@ -135,3 +135,30 @@ def test_bad_inputs(
     ]
     with pytest.raises(ValueError, match="Each of additive_amount"):
         run_cli(args)
+
+
+def test_enforce_time_update(tmp_path):
+    """
+    Test that the latest of the forecast_reference_times on the
+    forecast or reference cubes is applied to the enforced cube when
+    the use-latest-update-time option is employed.
+    """
+    kgo_dir = acc.kgo_root() / "enforce-consistent-forecasts"
+    kgo_path = kgo_dir / "single_bound_probability_time_enforce_kgo.nc"
+    forecast = kgo_dir / "probability_forecast.nc"
+    reference = kgo_dir / "probability_reference.nc"
+    output_path = tmp_path / "output.nc"
+
+    args = [
+        forecast,
+        reference,
+        "--ref-name",
+        "probability_of_cloud_area_fraction_above_threshold",
+        "--comparison-operator",
+        "<=",
+        "--use-latest-update-time",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)

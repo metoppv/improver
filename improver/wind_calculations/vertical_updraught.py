@@ -25,9 +25,9 @@ class VerticalUpdraught(BasePlugin):
     the UKPP CDP code.
 
     Hand, W. 2002. "The Met Office Convection Diagnosis Scheme." Meteorological Applications
-        9(1): 69-83. doi:10.1017/S1350482702001081.
+        9(1): 69-83. https://doi.org/10.1017/S1350482702001081.
     Golding, B.W. 1998. "Nimrod: A system for generating automated very short range forecasts."
-        Meteorol. Appl. 5: 1-16. doi:https://doi.org/10.1017/S1350482798000577.
+        Meteorol. Appl. 5: 1-16. https://doi.org/10.1017/S1350482798000577.
     """
 
     def __init__(self, model_id_attr: str = None):
