@@ -154,7 +154,7 @@ def find_dimension_coordinate_mismatch(
     return mismatch
 
 
-def spatial_coords_match(cubes: Union[List, CubeList]) -> bool:
+def spatial_coords_match(cubes: Union[List[Cube], CubeList]) -> bool:
     """
     Determine if the x and y coords of all the input cubes are the same.
 
@@ -163,7 +163,7 @@ def spatial_coords_match(cubes: Union[List, CubeList]) -> bool:
             A list of cubes to compare.
 
     Returns:
-        True if the x and y coords are the exactly the same to the
+        True if the x and y coords are exactly the same to the
         precision of the floating-point values (this should be true for
         any cubes derived using cube.regrid()), otherwise False.
     """
