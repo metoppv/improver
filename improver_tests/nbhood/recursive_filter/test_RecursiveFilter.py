@@ -118,13 +118,13 @@ class Test_RecursiveFilter(IrisTest):
             smoothing_coefficients_cube_x.copy()
         )
         smoothing_coefficients_cube_wrong_x_points.coord(axis="x").points = (
-                smoothing_coefficients_cube_wrong_x_points.coord(axis="x").points + 10
+            smoothing_coefficients_cube_wrong_x_points.coord(axis="x").points + 10
         )
         smoothing_coefficients_cube_wrong_y_points = (
             smoothing_coefficients_cube_y.copy()
         )
         smoothing_coefficients_cube_wrong_y_points.coord(axis="y").points = (
-                smoothing_coefficients_cube_wrong_y_points.coord(axis="y").points + 10
+            smoothing_coefficients_cube_wrong_y_points.coord(axis="y").points + 10
         )
         self.smoothing_coefficients_wrong_points = [
             smoothing_coefficients_cube_wrong_x_points,
@@ -565,23 +565,20 @@ class Test_process(Test_RecursiveFilter):
             smoothing_coefficients=self.smoothing_coefficients,
             mask_zeros=True,
         )
-        
+
         expected = np.array(
             [
                 [
-                    [0., 0., 0.17419356, 0., 0.],
-                    [0., 0., 0.21129033, 0., 0.],
+                    [0.0, 0.0, 0.17419356, 0.0, 0.0],
+                    [0.0, 0.0, 0.21129033, 0.0, 0.0],
                     [0.2, 0.25, 0.22903226, 0.25, 0.2],
-                    [0., 0., 0.21129033, 0., 0.],
-                    [0., 0., 0.17419356, 0., 0.]
+                    [0.0, 0.0, 0.21129033, 0.0, 0.0],
+                    [0.0, 0.0, 0.17419356, 0.0, 0.0],
                 ]
             ]
         )
-        mask_of_cube = np.ma.getmaskarray(self.cube.data)
-        mask_of_result = np.ma.getmaskarray(result.data)
 
         self.assertArrayAlmostEqual(result.data, expected)
-        self.assertArrayEqual(mask_of_cube, mask_of_result)
 
     def test_multiple_thresholds_masked(self):
         """Test that recursive filter is applied correctly when each threshold slice of

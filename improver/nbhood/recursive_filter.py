@@ -312,8 +312,11 @@ class RecursiveFilter(PostProcessingPlugin):
         return coeffs_x, coeffs_y
 
     def process(
-        self, cube: Cube, smoothing_coefficients: CubeList, variable_mask: bool = False,
-            mask_zeros: bool = False
+        self,
+        cube: Cube,
+        smoothing_coefficients: CubeList,
+        variable_mask: bool = False,
+        mask_zeros: bool = False,
     ) -> Cube:
         """
         Set up the smoothing_coefficient parameters and run the recursive
@@ -439,12 +442,10 @@ class RecursiveFilter(PostProcessingPlugin):
         new_cube = recursed_cube.merge_cube()
         if mask_zeros:
             new_cube.data = np.ma.getdata(new_cube.data)
-            cube.data = np.ma.getdata(cube.data)
-            # This unmasks all the data on the cubes
+            # This unmasks all the data on the cube
             if cube_mask is not None:
                 # Reapplying the original mask so the data doesn't change.
                 new_cube.data = np.ma.array(new_cube.data, mask=cube_mask)
-                cube.data = np.ma.array(cube.data, mask=cube_mask)
 
         new_cube = check_cube_coordinates(cube, new_cube)
 
