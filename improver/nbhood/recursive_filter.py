@@ -360,9 +360,8 @@ class RecursiveFilter(PostProcessingPlugin):
             mask_zeros
                 If set true all of the values of 0 in the cube will be masked,
                 stopping the recursive filter from spreading values into these areas.
-                They will then be unmasked later on. It will also check the cube
-                to see if it already masked, if so it will make sure the original mask
-                is reapplied at the end.
+                They will then be unmasked later on. If the input cube was masked
+                this mask will be reapplied to the output at the end.
 
         Returns:
             Cube containing the smoothed field after the recursive filter
@@ -372,7 +371,7 @@ class RecursiveFilter(PostProcessingPlugin):
             ValueError:
                 If variable_mask is False and the masks on each spatial slice of cube
                 are not identical.
-        """       
+        """
         if np.ma.isMaskedArray(cube.data):
             cube_mask = np.ma.getmaskarray(cube.data)
             # If the array is masked this gets the mask so it can be used and
@@ -381,8 +380,7 @@ class RecursiveFilter(PostProcessingPlugin):
             cube_mask = None
 
         if mask_zeros:
-            data_mask = np.ma.masked_where(cube.data==0.0, cube.data)
-            cube.data = data_mask
+            cube.data = np.ma.masked_where(cube.data == 0.0, cube.data, copy=False)
             # This masks any array element that is zero
 
         cube_format = next(cube.slices([cube.coord(axis="y"), cube.coord(axis="x")]))
@@ -438,16 +436,15 @@ class RecursiveFilter(PostProcessingPlugin):
 
             recursed_cube.append(new_cube)
 
-            if mask_cube is not None:
-                new_cube.data = np.ma.MaskedArray(new_cube.data, mask=mask_cube.data)
-
         new_cube = recursed_cube.merge_cube()
         if mask_zeros:
             new_cube.data = np.ma.getdata(new_cube.data)
-            # This unmasks all the data on the cube
+            cube.data = np.ma.getdata(cube.data)
+            # This unmasks all the data on the cubes
             if cube_mask is not None:
                 # Reapplying the original mask so the data doesn't change.
                 new_cube.data = np.ma.array(new_cube.data, mask=cube_mask)
+                cube.data = np.ma.array(cube.data, mask=cube_mask)
 
         new_cube = check_cube_coordinates(cube, new_cube)
 
