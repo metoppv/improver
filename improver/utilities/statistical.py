@@ -3,21 +3,22 @@
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Module to contain statistical methods."""
+
+from copy import deepcopy
+from typing import Dict
+
 import numpy as np
+from pygam import GAM, f, l, s, te
 
 from improver import BasePlugin
-from copy import deepcopy
-from pygam import GAM, l, s, te, f
-from typing import Dict
 
 
 class GAMFit(BasePlugin):
     """
-    Class for fitting Generalized Additive Models (GAMs) which predict the mean and standard deviation of input
+    Class for fitting Generalized Additive Models (GAMs) which predict the mean or standard deviation of input
     forecasts or observations.
 
-    This class uses functionality from pyGAM (https://pygam.readthedocs.io/en/latest/index.html), which is used for
-    fitting the model.
+    This class uses functionality from pyGAM (https://pygam.readthedocs.io/en/latest/index.html) to fit the model.
     """
 
     def __init__(
@@ -25,8 +26,8 @@ class GAMFit(BasePlugin):
         model_specification: Dict,
         max_iter: int = 100,
         tol: float = 0.0001,
-        distribution: str = 'normal',
-        link: str = 'identity',
+        distribution: str = "normal",
+        link: str = "identity",
         fit_intercept: bool = True,
     ):
         """
@@ -79,14 +80,15 @@ class GAMFit(BasePlugin):
             else:
                 msg = (
                     f"An unrecognised term has been included in the GAM model specification. The term was {values[0]},"
-                    f" the accepted terms are l, s, te, f.")
+                    f" the accepted terms are l, s, te, f."
+                )
                 raise ValueError(msg)
 
             if index == 0:
-                # initialise the equation variable
+                # Initialize the equation variable
                 eqn = deepcopy(new_term)
             else:
-                # add new term to the existing equation
+                # Add new term to the existing equation
                 eqn += new_term
 
         return eqn
@@ -109,7 +111,7 @@ class GAMFit(BasePlugin):
             tol=self.tol,
             distribution=self.distribution,
             link=self.link,
-            fit_intercept=self.fit_intercept
+            fit_intercept=self.fit_intercept,
         ).fit(X, y)
 
         return gam
@@ -117,8 +119,10 @@ class GAMFit(BasePlugin):
 
 class GAMPredict(BasePlugin):
     """Class for predicting new outputs from a fitted GAM given new input variables."""
+
     def __init__(self):
         """Initialize class"""
+
     def process(self, gam, X: np.ndarray) -> np.ndarray:
         """
         Use pyGAM functionality to predict values from a fitted GAM.
