@@ -26,6 +26,7 @@ dependencies:
   - pygam=0.8.0
   - pysteps=1.4.1
   - python-stratify=0.1.1
+  - python_utils=3.5.2
   # Development
   - astroid
   - bandit

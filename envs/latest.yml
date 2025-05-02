@@ -28,6 +28,7 @@ dependencies:
   - numba
   - pygam=0.8.0
   - pysteps
+  - python_utils=3.5.2
   - treelite=2.3.0
   # Development
   - astroid
