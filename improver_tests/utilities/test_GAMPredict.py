@@ -6,8 +6,6 @@
 
 import numpy as np
 import pytest
-from pygam import GAM, f, s
-from pygam.datasets import wage
 
 from improver.utilities.statistical import GAMPredict
 
@@ -39,6 +37,11 @@ from improver.utilities.statistical import GAMPredict
 def test_process(X_new, expected):
     """Test that the process method returns the expected results. Uses an example of a fitted model from pyGAM quick
     start documentation: https://pygam.readthedocs.io/en/latest/notebooks/quick_start.html#Fit-a-Model."""
+    # Skip test if pyGAM not available.
+    pytest.importorskip("pygam")
+    from pygam import GAM, f, s
+    from pygam.datasets import wage
+
     X, y = wage()
 
     gam = GAM(s(0) + s(1) + f(2)).fit(X, y)

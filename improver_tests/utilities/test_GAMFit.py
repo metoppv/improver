@@ -6,8 +6,6 @@
 
 import numpy as np
 import pytest
-from pygam import GAM, f, l, s, te
-from pygam.datasets import wage
 
 from improver.utilities.statistical import GAMFit
 
@@ -33,6 +31,9 @@ from improver.utilities.statistical import GAMFit
 )
 def test__init__(kwargs):
     """Test that the class initializes variables correctly."""
+    # Skip test if pyGAM not available.
+    pytest.importorskip("pygam")
+
     # Define the default, then update with any differently specified inputs
     expected = {
         "model_specification": None,
@@ -80,6 +81,10 @@ def test__init__(kwargs):
 def test_create_pygam_model(test, model_specification):
     """Test that this method correctly creates a pyGAM equation and raises an exception when
     provided with a bad input."""
+    # Skip test if pyGAM not available.
+    pytest.importorskip("pygam")
+    from pygam import f, l, s, te
+
     if test in ["basic", "with_kwargs"]:
         if test == "basic":
             expected = l(0) + s(1) + te(2, 3) + f(4)
@@ -98,6 +103,11 @@ def test_create_pygam_model(test, model_specification):
 def test_process():
     """Test that the process method returns the expected results. Uses an example from the pyGAM quick start
     documentation: https://pygam.readthedocs.io/en/latest/notebooks/quick_start.html#Fit-a-Model."""
+    # Skip test if pyGAM not available.
+    pytest.importorskip("pygam")
+    from pygam import GAM, f, s
+    from pygam.datasets import wage
+
     X, y = wage()
     model_specification = {
         "term_1": ["s", [0], {}],
