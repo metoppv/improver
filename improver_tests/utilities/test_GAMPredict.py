@@ -27,13 +27,13 @@ from improver.utilities.statistical import GAMPredict
             [[2010, 90, 4], [2050, 160, 2]],
             [160.20340934, 284.10127629],
         ),  # Test prediction of new values where the continuous inputs are greater than those used in training to
-            # demonstrate that we can extrapolate beyond the bounds of the training dataset.
+        # demonstrate that we can extrapolate beyond the bounds of the training dataset.
         (
             [[2002, 15, 0], [1950, 1, 2]],
             [43.40042416, -161.03952442],
         ),  # Test prediction of new values where the continuous inputs are less than those used in training to
-            # demonstrate that we can extrapolate beyond the bounds of the training dataset. This test also demonstrates
-            # that extrapolation can lead to nonsensical results, such as a negative wage.
+        # demonstrate that we can extrapolate beyond the bounds of the training dataset. This test also demonstrates
+        # that extrapolation can lead to nonsensical results, such as a negative wage.
     ],
 )
 def test_process(X_new, expected):
