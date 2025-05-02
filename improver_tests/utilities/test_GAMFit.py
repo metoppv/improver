@@ -2,12 +2,13 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""Unit tests for the plugins and functions within statistical.py"""
+"""Unit tests for the GAMFit class within statistical.py"""
 import numpy as np
 import pytest
 
-from improver.utilities.statistical import FitGAM
+from improver.utilities.statistical import GAMFit
 from pygam import GAM, l, s, te, f
+from pygam.datasets import wage
 
 
 @pytest.mark.parametrize(
@@ -31,6 +32,8 @@ from pygam import GAM, l, s, te, f
     ]
 )
 def test__init__(kwargs):
+    """Test that the class initialises variables correctly."""
+    # Define the default, then update with any differently specified inputs
     expected = {
         "model_specification": None,
         "max_iter": 100,
@@ -40,7 +43,7 @@ def test__init__(kwargs):
         "fit_intercept": True
     }
     expected.update(kwargs)
-    result = FitGAM(**kwargs)
+    result = GAMFit(**kwargs)
 
     for key in [key for key in kwargs.keys()]:
         assert getattr(result, key) == kwargs[key]
@@ -82,24 +85,22 @@ def test_create_pygam_model(test, model_specification):
             expected = l(0) + s(1) + te(2, 3) + f(4)
         elif test is "with_kwargs":
             expected = l(0, lam=0.8) + s(1, n_splines=10, basis="cp")
-        result = FitGAM(model_specification).create_pygam_model()
+        result = GAMFit(model_specification).create_pygam_model()
         assert result == expected
     elif test is "exception":
         expected_msg = "An unrecognised term has been included in the GAM model specification."
         with pytest.raises(ValueError, match=expected_msg):
-            FitGAM(model_specification).create_pygam_model()
+            GAMFit(model_specification).create_pygam_model()
 
 
 def test_process():
     """Test that the process method returns the expected results. Uses an example from the pyGAM quick start
     documentation: https://pygam.readthedocs.io/en/latest/notebooks/quick_start.html#Fit-a-Model."""
-    from pygam.datasets import wage
-
     X, y = wage()
     model_specification = {"term_1": ["s", [0], {}], "term_2": ["s", [1], {}], "term_3": ["f", [2], {}]}
 
     expected = GAM(s(0) + s(1) + f(2)).fit(X, y)
-    result = FitGAM(model_specification).process(X, y)
+    result = GAMFit(model_specification).process(X, y)
 
     for i, term in enumerate(result.terms):
         # for each non-intercept term in each fitted GAM, compare their partial dependence values and confidence
