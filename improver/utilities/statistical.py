@@ -8,7 +8,6 @@ from copy import deepcopy
 from typing import Dict
 
 import numpy as np
-from pygam import GAM, f, l, s, te
 
 from improver import BasePlugin
 
@@ -65,6 +64,9 @@ class GAMFit(BasePlugin):
         Returns:
             GAM model equation constructed using pyGAM model terms.
         """
+        # Import from pygam here to minimize dependencies
+        from pygam import f, l, s, te
+
         for index, (key, values) in enumerate(self.model_specification.items()):
             # For each key in the dictionary, parse the value to create a pyGAM term from that value.
             # The first term in the dictionary value defines the type of term, the second defines which variables are
@@ -104,6 +106,9 @@ class GAMFit(BasePlugin):
         Returns:
             A fitted pyGAM GAM model.
         """
+        # Import from pygam here to minimize dependencies
+        from pygam import GAM
+
         eqn = self.create_pygam_model()
         gam = GAM(
             eqn,
@@ -135,4 +140,6 @@ class GAMPredict(BasePlugin):
         Returns:
             A 1-D array of values predicted by the GAM.
         """
+        # Import from pygam here to minimize dependencies
+
         return gam.predict(X)
