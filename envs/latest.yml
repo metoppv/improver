@@ -26,6 +26,7 @@ dependencies:
   - statsmodels
   - lightgbm
   - numba
+  - pygam=0.8.0
   - pysteps
   - treelite=2.3.0
   # Development
