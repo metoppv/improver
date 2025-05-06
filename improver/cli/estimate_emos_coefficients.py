@@ -89,7 +89,7 @@ def process(
     """
 
     from improver.calibration import split_forecasts_and_truth
-    from improver.calibration.ensemble_calibration import (
+    from improver.calibration.emos_calibration import (
         EstimateCoefficientsForEnsembleCalibration,
     )
 
