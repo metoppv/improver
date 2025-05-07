@@ -5,7 +5,7 @@
 """Module to contain statistical methods."""
 
 from copy import deepcopy
-from typing import Dict
+from typing import Any, List
 
 import numpy as np
 
@@ -22,7 +22,7 @@ class GAMFit(BasePlugin):
 
     def __init__(
         self,
-        model_specification: Dict,
+        model_specification: List[List[Any]],
         max_iter: int = 100,
         tol: float = 0.0001,
         distribution: str = "normal",
@@ -34,7 +34,7 @@ class GAMFit(BasePlugin):
 
         Args:
             model_specification:
-                a dictionary with arbitrary keys and values a list of three items (in order):
+                a list containing lists of three items (in order):
                     1. a string containing a single pyGAM term; one of 'l' (linear), 's' (spline), 'te' (tensor), or
                     'f' (factor)
                     2. a list of integers which correspond to the features to be included in that term
@@ -67,21 +67,22 @@ class GAMFit(BasePlugin):
         # Import from pygam here to minimize dependencies
         from pygam import f, l, s, te
 
-        for index, (key, values) in enumerate(self.model_specification.items()):
+        term = {
+            "f": f,
+            "l": l,
+            "s": s,
+            "te": te,
+        }  # create dictionary of permissible pyGAM model terms
+
+        for index, config in enumerate(self.model_specification):
             # For each key in the dictionary, parse the value to create a pyGAM term from that value.
             # The first term in the dictionary value defines the type of term, the second defines which variables are
             # included in that term, and the third contains a dictionary of kwargs.
-            if values[0] == "l":  # linear term
-                new_term = l(*values[1], **values[2])
-            elif values[0] == "s":  # spline term
-                new_term = s(*values[1], **values[2])
-            elif values[0] == "te":  # tensor term
-                new_term = te(*values[1], **values[2])
-            elif values[0] == "f":  # factor term
-                new_term = f(*values[1], **values[2])
+            if config[0] in term.keys():
+                new_term = term[config[0]](*config[1], **config[2])
             else:
                 msg = (
-                    f"An unrecognised term has been included in the GAM model specification. The term was {values[0]},"
+                    f"An unrecognised term has been included in the GAM model specification. The term was {config[0]},"
                     f" the accepted terms are l, s, te, f."
                 )
                 raise ValueError(msg)
@@ -140,6 +141,5 @@ class GAMPredict(BasePlugin):
         Returns:
             A 1-D array of values predicted by the GAM.
         """
-        # Import from pygam here to minimize dependencies
 
         return gam.predict(X)

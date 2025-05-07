@@ -14,15 +14,15 @@ from improver.utilities.statistical import GAMFit
     "kwargs",
     [
         {
-            "model_specification": {"term": ["l", [0], {}]}
+            "model_specification": [["l", [0], {}]]
         },  # define a model specification but leave all other inputs as default
         {
-            "model_specification": {"term": ["l", [0], {}]},
+            "model_specification": [["l", [0], {}]],
             "max_iter": 200,
             "tol": 0.1,
         },  # check that inputs related to model fitting are initialised correctly
         {
-            "model_specification": {"term": ["l", [0], {}]},
+            "model_specification": [["l", [0], {}]],
             "distribution": "gamma",
             "link": "inverse",
             "fit_intercept": False,
@@ -55,26 +55,26 @@ def test__init__(kwargs):
     [
         (
             "basic",
-            {
-                "term_1": ["l", [0], {}],
-                "term_2": ["s", [1], {}],
-                "term_3": ["te", [2, 3], {}],
-                "term_4": ["f", [4], {}],
-            },
+            [
+                ["l", [0], {}],
+                ["s", [1], {}],
+                ["te", [2, 3], {}],
+                ["f", [4], {}],
+            ],
         ),  # Test that each type of GAM term can be created correctly
         (
             "with_kwargs",
-            {
-                "term_1": ["l", [0], {"lam": 0.8}],
-                "term_2": ["s", [1], {"n_splines": 10, "basis": "cp"}],
-            },
+            [
+                ["l", [0], {"lam": 0.8}],
+                ["s", [1], {"n_splines": 10, "basis": "cp"}],
+            ],
         ),  # Test that kwargs are passed to the pyGAM terms correctly
         (
             "exception",
-            {
-                "term_1": ["l", [0], {}],
-                "term_2": ["kittens", [1], {}],
-            },
+            [
+                ["l", [0], {}],
+                ["kittens", [1], {}],
+            ],
         ),  # Test that an exception is raised when an unknown term is provided
     ],
 )
@@ -102,18 +102,22 @@ def test_create_pygam_model(test, model_specification):
 
 def test_process():
     """Test that the process method returns the expected results. Uses an example from the pyGAM quick start
-    documentation: https://pygam.readthedocs.io/en/latest/notebooks/quick_start.html#Fit-a-Model."""
+    documentation: https://pygam.readthedocs.io/en/latest/notebooks/quick_start.html#Fit-a-Model.
+
+    The "wage" dataset used in this test consists of the features: Year, Age, Education (as a category) with the target
+    being a value for the expected wage.
+    """
     # Skip test if pyGAM not available.
     pytest.importorskip("pygam")
     from pygam import GAM, f, s
     from pygam.datasets import wage
 
     X, y = wage()
-    model_specification = {
-        "term_1": ["s", [0], {}],
-        "term_2": ["s", [1], {}],
-        "term_3": ["f", [2], {}],
-    }
+    model_specification = [
+        ["s", [0], {}],
+        ["s", [1], {}],
+        ["f", [2], {}],
+    ]
 
     expected = GAM(s(0) + s(1) + f(2)).fit(X, y)
     result = GAMFit(model_specification).process(X, y)
