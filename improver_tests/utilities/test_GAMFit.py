@@ -26,7 +26,7 @@ from improver.utilities.statistical import GAMFit
             "distribution": "gamma",
             "link": "inverse",
             "fit_intercept": False,
-        },  # check that inputs related to the GAM model design are initialised correctly
+        },  # check that inputs related to the model design are initialised correctly
     ],
 )
 def test__init__(kwargs):
@@ -79,8 +79,8 @@ def test__init__(kwargs):
     ],
 )
 def test_create_pygam_model(test, model_specification):
-    """Test that this method correctly creates a pyGAM equation and raises an exception when
-    provided with a bad input."""
+    """Test that this method correctly creates a pyGAM equation and raises an exception
+    when provided with a bad input."""
     # Skip test if pyGAM not available.
     pytest.importorskip("pygam")
     from pygam import f, l, s, te
@@ -101,11 +101,12 @@ def test_create_pygam_model(test, model_specification):
 
 
 def test_process():
-    """Test that the process method returns the expected results. Uses an example from the pyGAM quick start
-    documentation: https://pygam.readthedocs.io/en/latest/notebooks/quick_start.html#Fit-a-Model.
+    """Test that the process method returns the expected results. Uses an example from
+    the pyGAM quick start documentation:
+    https://pygam.readthedocs.io/en/latest/notebooks/quick_start.html#Fit-a-Model.
 
-    The "wage" dataset used in this test consists of the features: Year, Age, Education (as a category) with the target
-    being a value for the expected wage.
+    The "wage" dataset used in this test consists of the features: Year, Age, Education
+    (as a category) with the target being a value for the expected wage.
     """
     # Skip test if pyGAM not available.
     pytest.importorskip("pygam")
@@ -123,8 +124,9 @@ def test_process():
     result = GAMFit(model_specification).process(X, y)
 
     for i, term in enumerate(result.terms):
-        # for each non-intercept term in each fitted GAM, compare their partial dependence values and confidence
-        # intervals, which should be equal if the fitted models are the same.
+        # for each non-intercept term in each fitted GAM, compare their partial
+        # dependence values and confidence intervals, which should be equal if the
+        # fitted models are the same.
         if term.isintercept:
             continue
 

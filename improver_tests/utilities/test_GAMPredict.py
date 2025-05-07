@@ -26,22 +26,25 @@ from improver.utilities.statistical import GAMPredict
         (
             [[2010, 90, 4], [2050, 160, 2]],
             [160.20340934, 284.10127629],
-        ),  # Test prediction of new values where the continuous inputs are greater than those used in training to
-        # demonstrate that we can extrapolate beyond the bounds of the training dataset.
+        ),  # Test prediction of new values where the continuous inputs are greater
+        # than those used in training to demonstrate that we can extrapolate beyond the
+        # bounds of the training dataset.
         (
             [[2002, 15, 0], [1950, 1, 2]],
             [43.40042416, -161.03952442],
-        ),  # Test prediction of new values where the continuous inputs are less than those used in training to
-        # demonstrate that we can extrapolate beyond the bounds of the training dataset. This test also demonstrates
-        # that extrapolation can lead to nonsensical results, such as a negative wage.
+        ),  # Test prediction of new values where the continuous inputs are less than
+        # those used in training to demonstrate that we can extrapolate beyond the
+        # bounds of the training dataset. This test also demonstrates that
+        # extrapolation can lead to nonsensical results, such as a negative wage.
     ],
 )
 def test_process(X_new, expected):
-    """Test that the process method returns the expected results. Uses an example of a fitted model from pyGAM quick
-    start documentation: https://pygam.readthedocs.io/en/latest/notebooks/quick_start.html#Fit-a-Model.
+    """Test that the process method returns the expected results. Uses an example of a
+    fitted model from pyGAM quick start documentation:
+    https://pygam.readthedocs.io/en/latest/notebooks/quick_start.html#Fit-a-Model.
 
-    The "wage" dataset used in this test consists of the features: Year, Age, Education (as a category) with the target
-    being a value for the expected wage.
+    The "wage" dataset used in this test consists of the features: Year, Age, Education
+    (as a category) with the target being a value for the expected wage.
     """
     # Skip test if pyGAM not available.
     pytest.importorskip("pygam")

@@ -14,10 +14,11 @@ from improver import BasePlugin
 
 class GAMFit(BasePlugin):
     """
-    Class for fitting Generalized Additive Models (GAMs) which predict the mean or standard deviation of input
-    forecasts or observations.
+    Class for fitting Generalized Additive Models (GAMs) which predict the mean or
+    standard deviation of input forecasts or observations.
 
-    This class uses functionality from pyGAM (https://pygam.readthedocs.io/en/latest/index.html) to fit the model.
+    This class uses functionality from pyGAM
+    (https://pygam.readthedocs.io/en/latest/index.html) to fit the model.
     """
 
     def __init__(
@@ -35,20 +36,24 @@ class GAMFit(BasePlugin):
         Args:
             model_specification:
                 a list containing lists of three items (in order):
-                    1. a string containing a single pyGAM term; one of 'l' (linear), 's' (spline), 'te' (tensor), or
-                    'f' (factor)
-                    2. a list of integers which correspond to the features to be included in that term
+                    1. a string containing a single pyGAM term; one of 'l' (linear),
+                    's' (spline), 'te' (tensor), or 'f' (factor)
+                    2. a list of integers which correspond to the features to be
+                    included in that term
                     3. a dictionary of kwargs to be included when defining the term
             max_iter:
-                a pyGAM argument which determines the maximum iterations allowed when fitting the GAM
+                a pyGAM argument which determines the maximum iterations allowed when
+                fitting the GAM
             tol:
-                a pyGAM argument determining the tolerance used to define the stopping criteria
+                a pyGAM argument determining the tolerance used to define the stopping
+                criteria
             distribution:
                 a pyGAM argument determining the distribution to be used in the model
             link:
                 a pyGAM argument determining the link function to be used in the model
             fit_intercept:
-                a pyGAM argument determining whether to include an intercept term in the model
+                a pyGAM argument determining whether to include an intercept term in
+                the model
         """
         self.model_specification = model_specification
         self.max_iter = max_iter
@@ -75,15 +80,17 @@ class GAMFit(BasePlugin):
         }  # create dictionary of permissible pyGAM model terms
 
         for index, config in enumerate(self.model_specification):
-            # For each key in the dictionary, parse the value to create a pyGAM term from that value.
-            # The first term in the dictionary value defines the type of term, the second defines which variables are
-            # included in that term, and the third contains a dictionary of kwargs.
+            # For each key in the dictionary, parse the value to create a pyGAM term
+            # from that value. The first term in the dictionary value defines the type
+            # of term, the second defines which variables are included in that term,
+            # and the third contains a dictionary of kwargs.
             if config[0] in term.keys():
                 new_term = term[config[0]](*config[1], **config[2])
             else:
                 msg = (
-                    f"An unrecognised term has been included in the GAM model specification. The term was {config[0]},"
-                    f" the accepted terms are l, s, te, f."
+                    f"An unrecognised term has been included in the GAM model "
+                    f"specification. The term was {config[0]}, the accepted terms are "
+                    f"l, s, te, f."
                 )
                 raise ValueError(msg)
 
@@ -135,8 +142,8 @@ class GAMPredict(BasePlugin):
 
         Args:
             gam: Fitted pyGAM GAM model
-            X: An array of inputs to use to predict new values. Must have the same number of columns as used for
-            training.
+            X: An array of inputs to use to predict new values. Must have the same
+            number of columns as used for training.
 
         Returns:
             A 1-D array of values predicted by the GAM.
