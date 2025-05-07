@@ -13,7 +13,7 @@ from improver.utilities.statistical import GAMPredict
 @pytest.mark.parametrize(
     "X_new,expected",
     # X_new contains sets of 3 predictors: Year, Age, Education (as a category)
-    # expected contains a list of Wage (in arbitrary units) predictions
+    # expected contains a list of Wage predictions (in arbitrary units)
     [
         (
             [[2006, 32, 1]],
@@ -43,8 +43,8 @@ def test_process(X_new, expected):
     fitted model from pyGAM quick start documentation:
     https://pygam.readthedocs.io/en/latest/notebooks/quick_start.html#Fit-a-Model.
 
-    The "wage" dataset used in this test consists of the features: Year, Age, Education
-    (as a category) with the target being a value for the expected wage.
+    The "wage" dataset used in this test consists of the features Year, Age, and
+    Education (as a category) with the target being a value for the expected wage.
     """
     # Skip test if pyGAM not available.
     pytest.importorskip("pygam")

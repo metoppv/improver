@@ -80,10 +80,10 @@ class GAMFit(BasePlugin):
         }  # create dictionary of permissible pyGAM model terms
 
         for index, config in enumerate(self.model_specification):
-            # For each key in the dictionary, parse the value to create a pyGAM term
-            # from that value. The first term in the dictionary value defines the type
-            # of term, the second defines which variables are included in that term,
-            # and the third contains a dictionary of kwargs.
+            # For each config in the list, parse the config to create a pyGAM term
+            # from that config. The first term in the config defines the type of term,
+            # the second defines which variables are included in that term, and the
+            # third contains a dictionary of kwargs.
             if config[0] in term.keys():
                 new_term = term[config[0]](*config[1], **config[2])
             else:

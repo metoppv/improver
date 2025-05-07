@@ -105,8 +105,8 @@ def test_process():
     the pyGAM quick start documentation:
     https://pygam.readthedocs.io/en/latest/notebooks/quick_start.html#Fit-a-Model.
 
-    The "wage" dataset used in this test consists of the features: Year, Age, Education
-    (as a category) with the target being a value for the expected wage.
+    The "wage" dataset used in this test consists of the features Year, Age, and
+    Education (as a category) with the target being a value for the expected wage.
     """
     # Skip test if pyGAM not available.
     pytest.importorskip("pygam")
