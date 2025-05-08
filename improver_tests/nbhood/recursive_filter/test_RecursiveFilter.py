@@ -555,8 +555,8 @@ class Test_process(Test_RecursiveFilter):
         self.assertArrayEqual(mask_of_cube, mask_of_result)
 
     def test_mask_zeros_result(self):
-        """Test that if the mask_zeros option is on with masked data it
-        returns the correct result."""
+        """Test that if mask_zeros is applied to a cube that contains zeros,
+        the resulting data is correct."""
         plugin = RecursiveFilter(
             iterations=self.iterations,
         )
