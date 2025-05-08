@@ -6,7 +6,6 @@
 This module defines all the "plugins" specific to Standardised Anomaly Model Output
 Statistics (SAMOS).
 """
-
 from typing import Dict, List, Optional, Tuple
 
 import iris
