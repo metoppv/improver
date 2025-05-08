@@ -521,6 +521,65 @@ class Test_process(Test_RecursiveFilter):
         )
         self.assertArrayAlmostEqual(result.data[0], expected_result)
 
+    def test_mask_zeros(self):
+        """Test that any zeros in the data are the same at the beginning and
+        end of the recursive filtering with the mask_zeros option."""
+        zeros = self.cube.data == 0.0
+        plugin = RecursiveFilter(
+            iterations=self.iterations,
+        )
+        result = plugin(
+            self.cube,
+            smoothing_coefficients=self.smoothing_coefficients,
+            mask_zeros=True,
+        )
+        result_zeros = result.data == 0.0
+        self.assertArrayEqual(zeros, result_zeros)
+
+    def test_mask_zeros_same_mask(self):
+        """Test that if mask_zeros is applied to a cube that already
+        has a mask, the end result has the same mask."""
+        mask = np.zeros(self.cube.data.shape)
+        mask[0, 3, :] = 1
+        self.cube.data = np.ma.MaskedArray(self.cube.data, mask=mask)
+        mask_of_cube = np.ma.getmaskarray(self.cube.data)
+        plugin = RecursiveFilter(
+            iterations=self.iterations,
+        )
+        result = plugin(
+            self.cube,
+            smoothing_coefficients=self.smoothing_coefficients,
+            mask_zeros=True,
+        )
+        mask_of_result = np.ma.getmaskarray(result.data)
+        self.assertArrayEqual(mask_of_cube, mask_of_result)
+
+    def test_mask_zeros_result(self):
+        """Test that if mask_zeros is applied to a cube that contains zeros,
+        the resulting data is correct."""
+        plugin = RecursiveFilter(
+            iterations=self.iterations,
+        )
+        result = plugin(
+            self.cube,
+            smoothing_coefficients=self.smoothing_coefficients,
+            mask_zeros=True,
+        )
+
+        expected = np.array(
+            [
+                [
+                    [0.0, 0.0, 0.17419356, 0.0, 0.0],
+                    [0.0, 0.0, 0.21129033, 0.0, 0.0],
+                    [0.2, 0.25, 0.22903226, 0.25, 0.2],
+                    [0.0, 0.0, 0.21129033, 0.0, 0.0],
+                    [0.0, 0.0, 0.17419356, 0.0, 0.0],
+                ]
+            ]
+        )
+
+        self.assertArrayAlmostEqual(result.data, expected)
+
     def test_multiple_thresholds_masked(self):
         """Test that recursive filter is applied correctly when each threshold slice of
         a cube has a different mask and variable_mask is True."""
