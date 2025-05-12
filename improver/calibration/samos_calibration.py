@@ -448,7 +448,6 @@ class TrainGAMsForSAMOS(BasePlugin):
 
         for stat_cube in stat_cubes:
             df = prepare_data_for_gam(stat_cube, additional_fields)
-
             feature_values = df[features].values
             targets = df[input_cube.name()].values
 

@@ -3,7 +3,6 @@
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the TrainGAMsForSAMOS class within samos_calibration.py"""
-
 from copy import deepcopy
 
 import numpy as np
