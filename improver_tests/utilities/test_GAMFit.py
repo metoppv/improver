@@ -51,7 +51,6 @@ def test__init__(kwargs):
     result = GAMFit(**kwargs)
 
     for key in kwargs.keys():
-    #for key in [key for key in kwargs.keys()]:
         assert getattr(result, key) == kwargs[key]
 
 
