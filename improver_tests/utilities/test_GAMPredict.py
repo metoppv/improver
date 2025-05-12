@@ -7,7 +7,7 @@
 import numpy as np
 import pytest
 
-from improver.utilities.statistical import GAMPredict
+from improver.utilities.generalized_additive_models import GAMPredict
 
 
 @pytest.mark.parametrize(

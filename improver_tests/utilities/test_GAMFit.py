@@ -7,22 +7,26 @@
 import numpy as np
 import pytest
 
-from improver.utilities.statistical import GAMFit
+from improver.utilities.generalized_additive_models import GAMFit
 
 
 @pytest.mark.parametrize(
     "kwargs",
     [
         {
-            "model_specification": [["l", [0], {}]]
+            "model_specification": [["linear", [0], {}]]
         },  # define a model specification but leave all other inputs as default
         {
-            "model_specification": [["l", [0], {}]],
+            "model_specification": [["linear", [0], {}], ["tensor", [1, 2], {}]]
+        },  # define a model specification with more than one term but leave all other
+        # inputs as default
+        {
+            "model_specification": [["linear", [0], {}]],
             "max_iter": 200,
             "tol": 0.1,
         },  # check that inputs related to model fitting are initialised correctly
         {
-            "model_specification": [["l", [0], {}]],
+            "model_specification": [["linear", [0], {}]],
             "distribution": "gamma",
             "link": "inverse",
             "fit_intercept": False,
@@ -46,7 +50,8 @@ def test__init__(kwargs):
     expected.update(kwargs)
     result = GAMFit(**kwargs)
 
-    for key in [key for key in kwargs.keys()]:
+    for key in kwargs.keys():
+    #for key in [key for key in kwargs.keys()]:
         assert getattr(result, key) == kwargs[key]
 
 
@@ -56,23 +61,23 @@ def test__init__(kwargs):
         (
             "basic",
             [
-                ["l", [0], {}],
-                ["s", [1], {}],
-                ["te", [2, 3], {}],
-                ["f", [4], {}],
+                ["linear", [0], {}],
+                ["spline", [1], {}],
+                ["tensor", [2, 3], {}],
+                ["factor", [4], {}],
             ],
         ),  # Test that each type of GAM term can be created correctly
         (
             "with_kwargs",
             [
-                ["l", [0], {"lam": 0.8}],
-                ["s", [1], {"n_splines": 10, "basis": "cp"}],
+                ["linear", [0], {"lam": 0.8}],
+                ["spline", [1], {"n_splines": 10, "basis": "cp"}],
             ],
         ),  # Test that kwargs are passed to the pyGAM terms correctly
         (
             "exception",
             [
-                ["l", [0], {}],
+                ["linear", [0], {}],
                 ["kittens", [1], {}],
             ],
         ),  # Test that an exception is raised when an unknown term is provided
@@ -115,9 +120,9 @@ def test_process():
 
     X, y = wage()
     model_specification = [
-        ["s", [0], {}],
-        ["s", [1], {}],
-        ["f", [2], {}],
+        ["spline", [0], {}],
+        ["spline", [1], {}],
+        ["factor", [2], {}],
     ]
 
     expected = GAM(s(0) + s(1) + f(2)).fit(X, y)

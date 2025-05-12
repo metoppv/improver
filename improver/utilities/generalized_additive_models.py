@@ -2,7 +2,8 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""Module to contain statistical methods."""
+"""Module to contain methods for fitting and predicting using generalized additive
+models."""
 
 from copy import deepcopy
 from typing import Any, List
@@ -35,25 +36,28 @@ class GAMFit(BasePlugin):
 
         Args:
             model_specification:
-                a list containing lists of three items (in order):
-                    1. a string containing a single pyGAM term; one of 'l' (linear),
-                    's' (spline), 'te' (tensor), or 'f' (factor)
-                    2. a list of integers which correspond to the features to be
-                    included in that term
+                A list containing lists of three items (in order):
+                    1. a string containing a single pyGAM term; one of 'linear',
+                    'spline', 'tensor', or 'factor'
+                    2. a list of indices of the features to be included in that term,
+                    corresponding to the index of those features in the predictor array
                     3. a dictionary of kwargs to be included when defining the term
             max_iter:
-                a pyGAM argument which determines the maximum iterations allowed when
-                fitting the GAM
+                A pyGAM argument which determines the maximum iterations allowed when
+                fitting the GAM. Defaults to 100.
             tol:
-                a pyGAM argument determining the tolerance used to define the stopping
-                criteria
+                A pyGAM argument determining the tolerance used to define the stopping
+                criteria. Defaults to 0.0001.
             distribution:
-                a pyGAM argument determining the distribution to be used in the model
+                A pyGAM argument determining the distribution to be used in the model.
+                The default is a normal distribution.
             link:
-                a pyGAM argument determining the link function to be used in the model
+                A pyGAM argument determining the link function to be used in the model.
+                Defaults to the identity link function, which implies a direct
+                relationship between predictors and target.
             fit_intercept:
-                a pyGAM argument determining whether to include an intercept term in
-                the model
+                A pyGAM argument determining whether to include an intercept term in
+                the model. Default is True.
         """
         self.model_specification = model_specification
         self.max_iter = max_iter
@@ -73,10 +77,10 @@ class GAMFit(BasePlugin):
         from pygam import f, l, s, te
 
         term = {
-            "f": f,
-            "l": l,
-            "s": s,
-            "te": te,
+            "factor": f,
+            "linear": l,
+            "spline": s,
+            "tensor": te,
         }  # create dictionary of permissible pyGAM model terms
 
         for index, config in enumerate(self.model_specification):
@@ -90,7 +94,7 @@ class GAMFit(BasePlugin):
                 msg = (
                     f"An unrecognised term has been included in the GAM model "
                     f"specification. The term was {config[0]}, the accepted terms are "
-                    f"l, s, te, f."
+                    f"linear, spline, tensor, factor."
                 )
                 raise ValueError(msg)
 
@@ -103,13 +107,15 @@ class GAMFit(BasePlugin):
 
         return eqn
 
-    def process(self, X: np.ndarray, y: np.ndarray):
+    def process(self, predictors: np.ndarray, targets: np.ndarray):
         """
         Fit a GAM model using pyGAM.
 
         Args:
-            X: An array of predictors
-            y: An array of target values associated with the predictors in X
+            predictors: A 2-D array of predictors. The index of each column (feature) is
+             used in model_specification to determine which feature is included in each
+             model term.
+            targets: A 1-D array of target values associated with the predictors.
 
         Returns:
             A fitted pyGAM GAM model.
@@ -125,28 +131,29 @@ class GAMFit(BasePlugin):
             distribution=self.distribution,
             link=self.link,
             fit_intercept=self.fit_intercept,
-        ).fit(X, y)
+        ).fit(predictors, targets)
 
         return gam
 
 
 class GAMPredict(BasePlugin):
-    """Class for predicting new outputs from a fitted GAM given new input variables."""
+    """Class for predicting new outputs from a fitted GAM given new input predictors."""
 
     def __init__(self):
         """Initialize class"""
 
-    def process(self, gam, X: np.ndarray) -> np.ndarray:
+    def process(self, gam, predictors: np.ndarray) -> np.ndarray:
         """
         Use pyGAM functionality to predict values from a fitted GAM.
 
         Args:
-            gam: Fitted pyGAM GAM model
-            X: An array of inputs to use to predict new values. Must have the same
-            number of columns as used for training.
+            gam: A fitted pyGAM GAM model.
+            predictors: A 2-D array of inputs to use to predict new values. Each
+                feature (column) should have the same index as in the training dataset.
 
         Returns:
-            A 1-D array of values predicted by the GAM.
+            A 1-D array of values predicted by the GAM with each value in the array
+            corresponding to one row in the input predictors.
         """
 
-        return gam.predict(X)
+        return gam.predict(predictors)
