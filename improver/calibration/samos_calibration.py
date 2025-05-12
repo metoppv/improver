@@ -67,71 +67,91 @@ class TrainGAMsForSAMOS(BasePlugin):
         self.fit_intercept = fit_intercept
 
     @staticmethod
+    def calculate_cube_statistics(input_cube: Cube) -> CubeList:
+        """Function to calculate mean and standard deviation of the input cube. If the
+        cube has a realization dimension then statistics will be calculated by
+        collapsing over this dimension. Otherwise, a rolling window calculation over
+        the time dimension will be used.
+
+        Returns:
+            CubeList containing a mean cube and standard deviation cube.
+
+        Raises:
+            ValueError if input_cube does not contain a realization or time dimension.
+        """
+
+    @staticmethod
     def prepare_data_for_gam(
-        forecasts: Cube,
+        input_cube: Cube,
         additional_fields: Optional[CubeList] = None,
     ):
         """
         Convert input cubes in to a single, combined dataframe.
         """
-        df = DataArray().from_iris(forecasts).to_dataframe()
+        # Convert to Pandas dataframe via Xarray as version of Iris does not handle
+        # converting cubes with more than 2 dimensions.
+        df = DataArray().from_iris(input_cube).to_dataframe()
+        df.reset_index(inplace=True)
         if additional_fields:
             for cube in additional_fields:
                 new_df = DataArray().from_iris(cube).to_dataframe()
-                df = merge(left=df, right=new_df, how='left')
-        df.drop_duplicates(
-            subset=['latitude', 'longitude', 'altitude'], keep='first', inplace=True
-        )
+                new_df.reset_index(inplace=True)
+                df = merge(
+                    left=df,
+                    right=new_df[["latitude", "longitude", cube.name()]],
+                    how='left'
+                )
 
         return df
 
     def process(
         self,
-        forecasts: Cube,
+        input_cube: Cube,
         features: List,
         additional_fields: Optional[CubeList] = None,
     ):
         """
         Args:
-            forecasts:
-                Historic forecasts from the training dataset. This cube should contain
+            input_cube:
+                Historic forecasts from the training dataset. This cube must contain
                 a 'realization' dimension.
             features:
                 The list of features. These must be either coordinates on the forecasts
                 cube or share a name with a cube in additional_predictors. The index of
-                each feature should match the indices use in model_specification.
+                each feature should match the indices used in model_specification.
             additional_fields:
                 Additional fields to use as supplementary predictors.
         Returns:
             Fitted GAM models for the forecast mean and standard deviation.
         """
-        if forecasts.coords('realization') is None:
+        if input_cube.coords('realization') is None:
             msg = ("The input forecast cube must contain a realization coordinate in "
                    "order to allow the calculation of means and standard deviations. "
-                   f"The following coordinates were found: {forecasts.coords()}")
+                   f"The following coordinates were found: {input_cube.coords()}")
             raise ValueError(msg)
 
-        # calculate forecast mean and standard deviation over the realization coordinate
-        forecast_mean = collapsed(forecasts, "realization", iris.analysis.MEAN)
-        forecast_sd = collapsed(forecasts, "realization", iris.analysis.STD_DEV)
+        # Calculate forecast mean and standard deviation over the realization coordinate
+        input_mean = collapsed(input_cube, "realization", iris.analysis.MEAN)
+        input_sd = collapsed(input_cube, "realization", iris.analysis.STD_DEV)
 
-        # create list to put fitted GAM models in
+        # Create list to put fitted GAM models in
         output = []
 
-        for forecast_stat in [forecast_mean, forecast_sd]:
-            df = self.prepare_data_for_gam(forecast_stat, additional_fields)
+        # Initialize plugin used to fit GAMs
+        plugin = GAMFit(
+            model_specification=self.model_specification,
+            max_iter=self.max_iter,
+            tol=self.tol,
+            distribution=self.distribution,
+            link=self.link,
+            fit_intercept=self.fit_intercept,
+        )
+
+        for stat_cube in [input_mean, input_sd]:
+            df = self.prepare_data_for_gam(stat_cube, additional_fields)
 
             X_input = df[features].values
             y_input = df[forecasts.name()].values
-
-            plugin = GAMFit(
-                model_specification=self.model_specification,
-                max_iter=self.max_iter,
-                tol=self.tol,
-                distribution=self.distribution,
-                link=self.link,
-                fit_intercept=self.fit_intercept,
-            )
 
             output.append(plugin.process(X_input, y_input))
 
