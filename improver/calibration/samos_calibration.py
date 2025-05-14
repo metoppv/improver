@@ -6,15 +6,18 @@
 This module defines all the "plugins" specific to Standardised Anomaly Model Output
 Statistics (SAMOS).
 """
+import iris
+
 from improver import BasePlugin, PostProcessingPlugin
 from improver.utilities.statistical import GAMFit, GAMPredict
 from improver.utilities.mathematical_operations import (
     CalculateClimateAnomalies,
     CalculateForecastValueFromClimateAnomaly
 )
-from improver.utilities.cube_manipulation import collapsed
-import iris
+from iris.analysis import MEAN, STD_DEV
 from iris.cube import Cube, CubeList
+from iris.util import new_axis
+from numpy.ma import masked_all_like
 from typing import Dict, List, Optional
 from xarray import DataArray
 from pandas import merge
@@ -75,10 +78,83 @@ class TrainGAMsForSAMOS(BasePlugin):
 
         Returns:
             CubeList containing a mean cube and standard deviation cube.
-
-        Raises:
-            ValueError if input_cube does not contain a realization or time dimension.
         """
+        removed_coords = []
+        if input_cube.coords("realization"):
+            # Calculate forecast mean and standard deviation over the realization
+            # coordinate.
+            input_mean = input_cube.collapsed("realization", MEAN)
+            input_mean.remove_coord("realization")
+            input_sd = input_cube.collapsed("realization", STD_DEV)
+            input_sd.remove_coord("realization")
+        else:
+            # Pad the time coordinate of the input cube, then calculate the mean and
+            # standard deviation using a rolling window over the time coordinate.
+            time_coord = input_cube.coord("time")
+            increments = time_coord.points[1:] - time_coord.points[:-1]
+            if len(set(increments)) > 1:
+                msg = "AAAAHHHH"
+                raise ValueError(msg)
+            else:
+                # Remove forecast reference time and forecast period coordinates if they
+                # exist on the input cube in order to allow extension of the time
+                # coordinate. These coords are saved and added back to the output cubes.
+                for coord in ["forecast_reference_time", "forecast_period"]:
+                    if input_cube.coords(coord):
+                        removed_coords.append(input_cube.coord(coord).copy())
+                        input_cube.remove_coord(coord)
+
+                increment = increments[0]
+                pad_width = 2  # No. of points to add to each end of time coordinate
+
+                # Get first and last time slices in the input cube, to be used to create
+                # cube slices which are before/after the first/last slice.
+                first_slice = input_cube.extract(
+                    iris.Constraint(time=time_coord.cell(0))
+                )
+                last_slice = input_cube.extract(
+                    iris.Constraint(time=time_coord.cell(-1))
+                )
+
+                padded_cube = iris.cube.CubeList([input_cube])
+                for i in range(pad_width):
+                    # Create cubes with an earlier/later time to use to pad the input.
+                    # All data in these cubes is masked to prevent them contributing to
+                    # later calculations.
+                    early_cube = first_slice.copy()
+                    early_cube.coord("time").points = (early_cube.coord("time").points
+                                                       - (i + 1) * increment)
+                    early_cube = new_axis(early_cube, "time")
+                    early_cube.data = masked_all_like(early_cube.data)
+
+                    late_cube = last_slice.copy()
+                    late_cube.coord("time").points = (late_cube.coord("time").points
+                                                      + (i + 1) * increment)
+                    late_cube = new_axis(late_cube, "time")
+                    late_cube.data = masked_all_like(late_cube.data)
+
+                    padded_cube.extend([early_cube, late_cube])
+
+                padded_cube = padded_cube.concatenate_cube()
+
+                # Calculate mean and standard deviation using rolling window over padded
+                # time coordinate. Remove bounds from this coordinate in resulting cubes
+                # as they aren't needed for later calculations.
+                input_mean = padded_cube.rolling_window(
+                    coord="time", aggregator=MEAN, window=(2 * pad_width) + 1
+                )
+                input_mean.coord("time").bounds = None
+                input_sd = padded_cube.rolling_window(
+                    coord="time", aggregator=STD_DEV, window=(2 * pad_width) + 1
+                )
+                input_sd.coord("time").bounds = None
+                if removed_coords:
+                    for coord in removed_coords:
+                        kwargs = {"data_dims": 0} if len(coord.points) > 1 else {}
+                        input_mean.add_aux_coord(coord, **kwargs)
+                        input_sd.add_aux_coord(coord, **kwargs)
+
+        return CubeList([input_mean, input_sd])
 
     @staticmethod
     def prepare_data_for_gam(
@@ -88,8 +164,8 @@ class TrainGAMsForSAMOS(BasePlugin):
         """
         Convert input cubes in to a single, combined dataframe.
         """
-        # Convert to Pandas dataframe via Xarray as version of Iris does not handle
-        # converting cubes with more than 2 dimensions.
+        # Convert to Pandas dataframe via Xarray as version 3.0.3 of Iris does not
+        # handle converting cubes with more than 2 dimensions to dataframes.
         df = DataArray().from_iris(input_cube).to_dataframe()
         df.reset_index(inplace=True)
         if additional_fields:
@@ -113,31 +189,42 @@ class TrainGAMsForSAMOS(BasePlugin):
         """
         Args:
             input_cube:
-                Historic forecasts from the training dataset. This cube must contain
-                a 'realization' dimension.
+                Historic forecasts or observations from the training dataset. Must
+                contain at least one of:
+                - a realization coordinate
+                - a time coordinate with more than one point and equally spaced points
             features:
-                The list of features. These must be either coordinates on the forecasts
-                cube or share a name with a cube in additional_predictors. The index of
-                each feature should match the indices used in model_specification.
+                The list of features. These must be either coordinates on input_cube or
+                share a name with a cube in additional_predictors. The index of each
+                feature should match the indices used in model_specification.
             additional_fields:
                 Additional fields to use as supplementary predictors.
         Returns:
-            Fitted GAM models for the forecast mean and standard deviation.
+            Fitted GAM models for the input_cube mean and standard deviation.
         """
-        if input_cube.coords('realization') is None:
-            msg = ("The input forecast cube must contain a realization coordinate in "
-                   "order to allow the calculation of means and standard deviations. "
-                   f"The following coordinates were found: {input_cube.coords()}")
-            raise ValueError(msg)
+        if not input_cube.coords('realization'):
+            if not input_cube.coords('time'):
+                msg = (
+                    "The input cube must contain at least one of a realization or time "
+                    "coordinate in order to allow the calculation of means and "
+                    "standard deviations. The following coordinates were found: "
+                    f"{input_cube.coords()}.")
+                raise ValueError(msg)
+            elif len(input_cube.coord('time').points) == 1:
+                msg = (
+                    "The input cube does not contain a realization coordinate. In "
+                    "order to calculate means and standard deviations the time "
+                    "coordinate must contain more than one point. The following time "
+                    f"coordinate was found: {input_cube.coord('time')}.")
+                raise ValueError(msg)
 
-        # Calculate forecast mean and standard deviation over the realization coordinate
-        input_mean = collapsed(input_cube, "realization", iris.analysis.MEAN)
-        input_sd = collapsed(input_cube, "realization", iris.analysis.STD_DEV)
+        # Calculate mean and standard deviation from input cube.
+        stat_cubes = self.calculate_cube_statistics(input_cube)
 
-        # Create list to put fitted GAM models in
+        # Create list to put fitted GAM models in.
         output = []
 
-        # Initialize plugin used to fit GAMs
+        # Initialize plugin used to fit GAMs.
         plugin = GAMFit(
             model_specification=self.model_specification,
             max_iter=self.max_iter,
@@ -147,11 +234,11 @@ class TrainGAMsForSAMOS(BasePlugin):
             fit_intercept=self.fit_intercept,
         )
 
-        for stat_cube in [input_mean, input_sd]:
+        for stat_cube in stat_cubes:
             df = self.prepare_data_for_gam(stat_cube, additional_fields)
 
             X_input = df[features].values
-            y_input = df[forecasts.name()].values
+            y_input = df[input_cube.name()].values
 
             output.append(plugin.process(X_input, y_input))
 

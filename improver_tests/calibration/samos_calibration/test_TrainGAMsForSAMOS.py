@@ -5,10 +5,13 @@
 """Unit tests for the TrainGAMsForSAMOS class within samos_calibration.py"""
 
 from datetime import datetime, timedelta
+
+import iris.cube
 import numpy as np
 import pandas as pd
 import pytest
-
+from iris.cube import CubeList
+from iris.coords import CellMethod
 from improver.calibration.samos_calibration import TrainGAMsForSAMOS
 from improver.synthetic_data.set_up_test_cubes import (
     set_up_spot_variable_cube,
@@ -17,17 +20,70 @@ from improver.synthetic_data.set_up_test_cubes import (
 
 
 @pytest.fixture
-def gridded_cube():
-    """Fixture for creating a cube of gridded data."""
-    data = np.full((2, 2, 2), 305, dtype=np.float32)
-    return set_up_variable_cube(data=data)
+def gridded_dataframe():
+    """Fixture for creating the expected dataframe of gridded data"""
+    data = {
+        "realization": [0, 0, 0, 0, 1, 1, 1, 1],
+        "latitude": [-5.0, -5.0, 5.0, 5.0, -5.0, -5.0, 5.0, 5.0],
+        "longitude": [-5.0, 5.0, -5.0, 5.0, -5.0, 5.0, -5.0, 5.0],
+        "forecast_period": [timedelta(hours=4)] * 8,
+        "forecast_reference_time": [datetime(
+            2017, 11, 10, 0, 0)
+        ] * 8,
+        "time": [datetime(2017, 11, 10, 4, 0)] * 8,
+        "air_temperature": [305.0] * 8,
+    }
+    return pd.DataFrame(data=data)
 
 
 @pytest.fixture
-def spot_cube():
-    """Fixture for creating a cube of spot data."""
-    data = np.full((2, 2), 305, dtype=np.float32)
-    return set_up_spot_variable_cube(data=data)
+def spot_dataframe():
+    """Fixture for creating the expected dataframe of spot data"""
+    data = {
+        "realization": [0, 0, 1, 1],
+        "spot_index": [0, 1, 0, 1],
+        "forecast_period": [timedelta(hours=4)] * 4,
+        "forecast_reference_time": [datetime(
+            2017, 11, 10, 0, 0
+        )] * 4,
+        "time": [datetime(2017, 11, 10, 4, 0)] * 4,
+        "altitude": [1.0, 1.0, 1.0, 1.0],
+        "latitude": [50.0, 60.0, 50.0, 60.0],
+        "longitude": [-5.0, 5.0, -5.0, 5.0],
+        "wmo_id": ["00000", "00001", "00000", "00001"],
+        "air_temperature": [305.0] * 4,
+    }
+    return pd.DataFrame(data=data)
+
+
+@pytest.fixture
+def model_specification():
+    """Fixture for creating a model specification as used in SAMOS plugins."""
+    return [["l", [0], {}], ["s", [1], {}]]
+
+
+def create_cube(forecast_type, realizations, times, fill_value=305):
+    """Fixture for creating a cube of gridded data."""
+    initial_dt = datetime(2017, 11, 10, 4, 0)
+    result = iris.cube.CubeList()
+
+    if forecast_type == "gridded":
+        data_shape = [2, 2]  # lat, lon
+        plugin = set_up_variable_cube
+    elif forecast_type == "spot":
+        data_shape = [2]  # no of sites
+        plugin = set_up_spot_variable_cube
+
+    if realizations > 1:
+        data_shape.insert(0, realizations)
+
+    for i in range(times):
+        dt = initial_dt + timedelta(days=i)
+        data = np.full(data_shape, fill_value, dtype=np.float32)
+        new_cube = plugin(data=data, time=dt)
+        result.append(new_cube.copy())
+
+    return result.merge_cube()
 
 
 def altitude_cube(forecast_type):
@@ -45,46 +101,15 @@ def altitude_cube(forecast_type):
 def land_fraction_cube(forecast_type):
     """Fixture for creating a land fraction cube ancillary."""
     if forecast_type is "gridded":
-        data = np.array([[0.0, 0.1, 0.2, 0.3], [0.3, 0.2, 0.1, 0.0]], dtype=np.float32)
+        data = np.array(
+            [[0.0, 0.1, 0.2, 0.3], [0.3, 0.2, 0.1, 0.0]], dtype=np.float32
+        )
         output = set_up_variable_cube(data=data, name="land_fraction")
     if forecast_type is "spot":
         data = np.array([0.0, 0.1, 0.2, 0.3], dtype=np.float32)
         output = set_up_spot_variable_cube(data=data, name="land_fraction")
 
     return output
-
-
-@pytest.fixture
-def gridded_dataframe():
-    """Fixture for creating the expected dataframe of gridded data"""
-    data = {
-        "realization": [0, 0, 0, 0, 1, 1, 1, 1],
-        "latitude": [-5.0, -5.0, 5.0, 5.0, -5.0, -5.0, 5.0, 5.0],
-        "longitude": [-5.0, 5.0, -5.0, 5.0, -5.0, 5.0, -5.0, 5.0],
-        "forecast_period": [timedelta(hours=4)] * 8,
-        "forecast_reference_time": [datetime(2017, 11, 10, 0, 0)] * 8,
-        "time": [datetime(2017, 11, 10, 4, 0)] * 8,
-        "air_temperature": [305.0] * 8,
-    }
-    return pd.DataFrame(data=data)
-
-
-@pytest.fixture
-def spot_dataframe():
-    """Fixture for creating the expected dataframe of spot data"""
-    data = {
-        "realization": [0, 0, 1, 1],
-        "spot_index": [0, 1, 0, 1],
-        "forecast_period": [timedelta(hours=4)] * 4,
-        "forecast_reference_time": [datetime(2017, 11, 10, 0, 0)] * 4,
-        "time": [datetime(2017, 11, 10, 4, 0)] * 4,
-        "altitude": [1.0, 1.0, 1.0, 1.0],
-        "latitude": [50.0, 60.0, 50.0, 60.0],
-        "longitude": [-5.0, 5.0, -5.0, 5.0],
-        "wmo_id": ["00000", "00001", "00000", "00001"],
-        "air_temperature": [305.0] * 4,
-    }
-    return pd.DataFrame(data=data)
 
 
 @pytest.mark.parametrize(
@@ -127,15 +152,53 @@ def test__init__(kwargs):
         assert getattr(result, key) == kwargs[key]
 
 
+@pytest.mark.parametrize("forecast_type", ["gridded", "spot"])
+@pytest.mark.parametrize("realizations,times", [[2, 1], [2, 2], [1, 2]])
+def test_calculate_cube_statistics(forecast_type, realizations, times):
+    """Test that this method correctly calculates the mean and standard deviation of
+    the input cube."""
+    create_cube_kwargs = {
+        "forecast_type": forecast_type, "realizations": realizations, "times": times
+    }
+    expected_cube_kwargs = {
+        "forecast_type": forecast_type, "realizations": 1, "times": times
+    }
+
+    input_cube = create_cube(**create_cube_kwargs)
+
+    # create cubelist containing expected mean and standard deviations cubes
+    expected_mean = create_cube(fill_value=305, **expected_cube_kwargs)
+    expected_sd = create_cube(fill_value=0, **expected_cube_kwargs)
+    if realizations > 1:
+        # Expect statistics to be calculated over the realization dimension.
+        expected_mean.add_cell_method(CellMethod("mean", coords="realization"))
+        expected_sd.add_cell_method(
+            CellMethod("standard_deviation", coords="realization")
+        )
+    else:
+        # Expect statistics to be calculated over the time dimension.
+        expected_mean.add_cell_method(CellMethod("mean", coords="time"))
+        expected_sd.add_cell_method(
+            CellMethod("standard_deviation", coords="time")
+        )
+    expected = CubeList([expected_mean, expected_sd])
+
+    result = TrainGAMsForSAMOS.calculate_cube_statistics(input_cube)
+
+    assert expected == result
+
+
 @pytest.mark.parametrize("include_altitude", [False, True])
 @pytest.mark.parametrize("include_land_fraction", [False, True])
 def test_prepare_data_for_gam_gridded(
-        include_altitude,
-        include_land_fraction,
-        gridded_cube,
-        gridded_dataframe
+    include_altitude,
+    include_land_fraction,
+    gridded_dataframe
 ):
-    """Test that this method correctly creates a dataframe from the input cubes."""
+    """Test that this method correctly creates a dataframe from the input gridded data
+    cubes."""
+    input_cube = create_cube(forecast_type="gridded", realizations=2, times=1)
+
     additional_cubes = []
     if include_altitude:
         additional_cubes.append(altitude_cube("gridded"))
@@ -146,7 +209,7 @@ def test_prepare_data_for_gam_gridded(
         land_fraction = [0.1, 0.2, 0.2, 0.1, 0.1, 0.2, 0.2, 0.1]
         gridded_dataframe['land_fraction'] = land_fraction
 
-    result = TrainGAMsForSAMOS.prepare_data_for_gam(gridded_cube, additional_cubes)
+    result = TrainGAMsForSAMOS.prepare_data_for_gam(input_cube, additional_cubes)
 
     # Split columns containing floats from those that don't when checking results
     result_columns = set(result.columns)
@@ -168,12 +231,14 @@ def test_prepare_data_for_gam_gridded(
 @pytest.mark.parametrize("include_altitude", [False, True])
 @pytest.mark.parametrize("include_land_fraction", [False, True])
 def test_prepare_data_for_gam_spot(
-        include_altitude,
-        include_land_fraction,
-        spot_cube,
-        spot_dataframe
+    include_altitude,
+    include_land_fraction,
+    spot_dataframe
 ):
-    """Test that this method correctly creates a dataframe from the input cubes."""
+    """Test that this method correctly creates a dataframe from the input spot data
+    cubes."""
+    input_cube = create_cube(forecast_type="spot", realizations=2, times=1)
+
     additional_cubes = []
     if include_altitude:
         additional_cubes.append(altitude_cube("spot"))
@@ -184,7 +249,7 @@ def test_prepare_data_for_gam_spot(
         land_fraction = [0.0, 0.3, 0.0, 0.3]
         spot_dataframe['land_fraction'] = land_fraction
 
-    result = TrainGAMsForSAMOS.prepare_data_for_gam(spot_cube, additional_cubes)
+    result = TrainGAMsForSAMOS.prepare_data_for_gam(input_cube, additional_cubes)
 
     # Split columns containing floats from those that don't when checking results
     result_columns = set(result.columns)
@@ -203,8 +268,26 @@ def test_prepare_data_for_gam_spot(
     )
 
 
-def test_no_realization_dimension_exception():
-    """Test that the correct exception is raised when the input cube does not contain a
-    realization dimension."""
+@pytest.mark.parametrize("exception", ["no_time_coord", "single_point_time_coord"])
+def test_missing_required_coordinates_exception(
+    exception,
+    model_specification
+):
+    """Test that the correct exceptions are raised when the input cube does not contain
+    suitable realization or time coordinates."""
+    # create a cube with no realization coordinate and a single point time coordinate
+    input_cube = create_cube(forecast_type="gridded", realizations=1, times=1)
+    features = ["latitude", "longitude"]
 
-    assert True
+    if exception is "no_time_coord":
+        input_cube.remove_coord("time")
+        msg = ("The input cube must contain at least one of a realization or time "
+               "coordinate in order to allow the calculation of means and standard "
+               "deviations.")
+    elif exception is "single_point_time_coord":
+        msg = ("The input cube does not contain a realization coordinate. In order to "
+               "calculate means and standard deviations the time coordinate must "
+               "contain more than one point.")
+
+    with pytest.raises(ValueError, match=msg):
+        TrainGAMsForSAMOS(model_specification).process(input_cube, features)
