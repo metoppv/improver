@@ -4,7 +4,6 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the TrainGAMsForSAMOS class within samos_calibration.py"""
 from copy import deepcopy
-
 import numpy as np
 import pytest
 from iris.cube import CubeList
