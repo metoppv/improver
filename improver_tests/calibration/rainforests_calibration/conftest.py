@@ -42,7 +42,7 @@ def thresholds():
 
 @pytest.fixture
 def lead_times():
-    return np.array([24, 48], dtype=np.int)
+    return np.array([24, 48], dtype=np.int32)
 
 
 @pytest.fixture
