@@ -58,7 +58,7 @@ def wxcode_series_fixture(
             wxfrt = time - timedelta(hours=42)
         wxdata = np.ones((2, 2), dtype=np.int8)
 
-        if len(data[i].shape) > 0 and np.product(wxdata.shape) == data[i].shape[0]:
+        if len(data[i].shape) > 0 and np.prod(wxdata.shape) == data[i].shape[0]:
             wxdata = np.reshape(data[i], wxdata.shape)
         else:
             if len(data[i].shape) == 0:
