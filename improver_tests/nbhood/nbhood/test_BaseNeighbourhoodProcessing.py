@@ -66,7 +66,7 @@ class Test_process(IrisTest):
 
     def test_single_point_nan(self):
         """Test behaviour for a single NaN grid cell."""
-        self.cube.data[6][7] = np.NAN
+        self.cube.data[6][7] = np.nan
         msg = "NaN detected in input cube data"
         with self.assertRaisesRegex(ValueError, msg):
             NBHood(self.RADIUS)(self.cube)
