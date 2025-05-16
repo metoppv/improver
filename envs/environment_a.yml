@@ -23,10 +23,9 @@ dependencies:
   - fastparquet
   - statsmodels
   - numba
-  - pygam=0.8.0
+  - pygam
   - pysteps
   - python-stratify
-  - python-utils=3.5.2
   # Development
   - astroid
   - bandit
