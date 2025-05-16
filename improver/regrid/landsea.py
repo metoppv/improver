@@ -35,6 +35,7 @@ class RegridLandSea(PostProcessingPlugin):
     REGRID_REQUIRES_LANDMASK = {
         "bilinear": False,
         "nearest": False,
+        "area-weighted": False,
         "nearest-with-mask": True,
         "nearest-2": False,
         "bilinear-2": False,
@@ -125,11 +126,16 @@ class RegridLandSea(PostProcessingPlugin):
                 warnings.warn(msg)
 
         # basic categories (1) Iris-based (2) new nearest based  (3) new bilinear-based
-        if regrid_mode in ("bilinear", "nearest", "nearest-with-mask"):
+        if regrid_mode in ("bilinear", "nearest", "nearest-with-mask", "area-weighted"):
             if "nearest" in regrid_mode:
                 regridder = Nearest(extrapolation_mode=self.extrapolation_mode)
-            else:
+            elif "linear" in regrid_mode:
                 regridder = Linear(extrapolation_mode=self.extrapolation_mode)
+            else:
+                from esmf_regrid.schemes import ESMFAreaWeighted
+
+                regridder = ESMFAreaWeighted(extrapolation_mode=self.extrapolation_mode)
+
             cube = cube.regrid(target_grid, regridder)
 
             # Iris regridding is used, and then adjust if land_sea mask is considered
