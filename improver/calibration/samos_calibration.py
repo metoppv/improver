@@ -7,20 +7,104 @@ This module defines all the "plugins" specific to Standardised Anomaly Model Out
 Statistics (SAMOS).
 """
 import iris
+import iris.pandas
+from cf_units import Unit
+
+from improver.calibration.utilities import check_predictor
+
+iris.FUTURE.pandas_ndim = True
+import pandas as pd
 
 from improver import BasePlugin, PostProcessingPlugin
-from improver.utilities.statistical import GAMFit, GAMPredict
+from improver.utilities.generalized_additive_models import GAMFit, GAMPredict
 from improver.utilities.mathematical_operations import (
     CalculateClimateAnomalies,
     CalculateForecastValueFromClimateAnomaly
+)
+from improver.calibration.emos_calibration import (
+    EstimateCoefficientsForEnsembleCalibration,
 )
 from iris.analysis import MEAN, STD_DEV
 from iris.cube import Cube, CubeList
 from iris.util import new_axis
 from numpy.ma import masked_all_like
-from typing import Dict, List, Optional
-from xarray import DataArray
+from typing import Dict, List, Optional, Union
 from pandas import merge
+import datetime
+
+
+def prepare_data_for_gam(
+    input_cube: Cube,
+    additional_fields: Optional[CubeList] = None,
+) -> pd.DataFrame:
+    """
+    Convert input cubes in to a single, combined dataframe.
+
+    Args:
+        input_cube: A cube of forecast or observation data.
+        additional_fields: Additional cubes with points which can be matched with points
+        in input_cube by matching spatial coordinates values.
+
+    Returns:
+        A pandas dataframe containing the following columns:
+        1. A column with the same name as input_cube containing the original cube data
+        2. A series of columns derived from the input_cube dimension coordinates
+        3. A series of columns associated with any auxiliary coordinates (scalar or
+        otherwise) of input_cube
+        4. One column associated with each of the cubes in additional cubes, with column
+        names matching the associated cube
+    """
+    # Convert to Pandas dataframe via Xarray as version 3.0.3 of Iris does not
+    # handle converting cubes with more than 2 dimensions to dataframes.
+    spatial_coords = [
+        input_cube.coord(axis="x").name(),
+        input_cube.coord(axis="y").name()
+    ]
+    df = iris.pandas.as_data_frame(
+        input_cube,
+        add_aux_coords=True,
+        add_cell_measures =True,
+        add_ancillary_variables=True
+    )
+    df.reset_index(inplace=True)
+    if additional_fields:
+        for cube in additional_fields:
+            new_df = iris.pandas.as_data_frame(
+                cube,
+                add_aux_coords=True,
+                add_cell_measures =True,
+                add_ancillary_variables=True
+            )
+            new_df.reset_index(inplace=True)
+            match_coords = spatial_coords.copy()
+            match_coords.append(cube.name())
+            df = merge(
+                left=df,
+                right=new_df[match_coords],
+                how='left'
+            )
+
+    return df
+
+
+def convert_dataframe_to_cube(
+    df: pd.DataFrame,
+    template_cube: Cube,
+):
+    """Function to convert a Pandas dataframe to Iris cube format. The result is a copy
+    of template_cube with data from df. The diagnostic name and all of the dimension
+    coordinates on template_cube must be columns of df.
+    """
+    dim_coords = [c.name() for c in template_cube.coords(dim_coords=True)]
+    diagnostic = template_cube.name()
+
+    df.set_index(dim_coords, inplace=True)
+    df.sort_index(inplace=True)
+
+    converted_cube = iris.pandas.as_cubes(df[[diagnostic]])[0]  # as_cubes() returns a cubelist
+    result = template_cube.copy(data=converted_cube.data)
+
+    return result
 
 
 class TrainGAMsForSAMOS(BasePlugin):
@@ -38,7 +122,9 @@ class TrainGAMsForSAMOS(BasePlugin):
         a Standardised Anomaly Model Output Statistics (SAMOS) calibration scheme.
 
         Two GAMs are trained: one modelling the mean of the training data and one
-        modelling the standard deviation.
+        modelling the standard deviation. These can then be used to convert forecasts or
+        observations to climatological anomalies. This plugin should be run separately
+        for forecast and observation data.
 
         Args:
             model_specification:
@@ -99,13 +185,15 @@ class TrainGAMsForSAMOS(BasePlugin):
                 # Remove forecast reference time and forecast period coordinates if they
                 # exist on the input cube in order to allow extension of the time
                 # coordinate. These coords are saved and added back to the output cubes.
-                for coord in ["forecast_reference_time", "forecast_period"]:
+                for coord in [
+                    "forecast_reference_time", "forecast_period", "blend_time"
+                ]:
                     if input_cube.coords(coord):
                         removed_coords.append(input_cube.coord(coord).copy())
                         input_cube.remove_coord(coord)
 
                 increment = increments[0]
-                pad_width = 2  # No. of points to add to each end of time coordinate
+                pad_width = 2  # No. of points to add to each end of time coordinate.
 
                 # Get first and last time slices in the input cube, to be used to create
                 # cube slices which are before/after the first/last slice.
@@ -156,34 +244,10 @@ class TrainGAMsForSAMOS(BasePlugin):
 
         return CubeList([input_mean, input_sd])
 
-    @staticmethod
-    def prepare_data_for_gam(
-        input_cube: Cube,
-        additional_fields: Optional[CubeList] = None,
-    ):
-        """
-        Convert input cubes in to a single, combined dataframe.
-        """
-        # Convert to Pandas dataframe via Xarray as version 3.0.3 of Iris does not
-        # handle converting cubes with more than 2 dimensions to dataframes.
-        df = DataArray().from_iris(input_cube).to_dataframe()
-        df.reset_index(inplace=True)
-        if additional_fields:
-            for cube in additional_fields:
-                new_df = DataArray().from_iris(cube).to_dataframe()
-                new_df.reset_index(inplace=True)
-                df = merge(
-                    left=df,
-                    right=new_df[["latitude", "longitude", cube.name()]],
-                    how='left'
-                )
-
-        return df
-
     def process(
         self,
         input_cube: Cube,
-        features: List,
+        features: List[str],
         additional_fields: Optional[CubeList] = None,
     ):
         """
@@ -235,7 +299,7 @@ class TrainGAMsForSAMOS(BasePlugin):
         )
 
         for stat_cube in stat_cubes:
-            df = self.prepare_data_for_gam(stat_cube, additional_fields)
+            df = prepare_data_for_gam(stat_cube, additional_fields)
 
             X_input = df[features].values
             y_input = df[input_cube.name()].values
@@ -243,3 +307,88 @@ class TrainGAMsForSAMOS(BasePlugin):
             output.append(plugin.process(X_input, y_input))
 
         return output
+
+
+class TrainEMOSForSAMOS(BasePlugin):
+    """Class to calculate Ensemble Model Output Statistics (EMOS) coefficients to
+    calibrate climate anomaly forecasts given training data including forecasts and
+    verifying observations and four Generalized Additive Models (GAMs) which model:
+    - forecast mean,
+    - forecast standard deviation,
+    - observation mean,
+    - observation standard deviation.
+
+    This class first calculates climatological means and standard deviations by
+    predicting them from the input GAMs. Following this, the input forecasts and
+    observations are converted to climatological anomalies using the predicted means
+    and standard deviations. Finally, EMOS coefficients are calculated from the
+    climatological anomaly training data.
+    """
+    def __init__(
+        self,
+        distribution: str,
+        emos_kwargs: Optional[Dict] = None,
+    ) -> None:
+        """Information.
+
+        Args:
+            distribution:
+                Name of distribution. Assume that a calibrated version of the
+                climate anomaly forecast could be represented using this distribution.
+            emos_kwargs: Keyword arguments accepted by the
+                EstimateCoefficientsForEnsembleCalibration plugin. Should not contain
+                a distribution argument.
+        """
+        self.distribution = distribution
+        self.emos_kwargs = emos_kwargs if emos_kwargs else {}
+
+    def process(
+        self,
+        historic_forecasts: Cube,
+        truths: Cube,
+        forecast_gams: List,
+        truth_gams: List,
+        gam_features: List[str],
+        gam_additional_fields: Optional[CubeList] = None,
+        emos_additional_fields: Optional[CubeList] = None,
+        land_sea_mask: Optional[Cube] = None,
+    ):
+        diagnostic = historic_forecasts.name()
+
+        forecast_df = prepare_data_for_gam(historic_forecasts, gam_additional_fields)
+        truth_df = prepare_data_for_gam(truths, gam_additional_fields)
+
+        # Calculate climatological means and standard deviations of forecasts and
+        # observations using previously fitted GAMs.
+        forecast_mean_pred = GAMPredict().process(
+            forecast_gams[0], forecast_df[gam_features]
+        )
+        forecast_sd_pred = GAMPredict().process(
+            forecast_gams[1], forecast_df[gam_features]
+        )
+        truth_mean_pred = GAMPredict().process(truth_gams[0], truth_df[gam_features])
+        truth_sd_pred = GAMPredict().process(truth_gams[1], truth_df[gam_features])
+
+        # Convert forecast and truth means and standard deviations into cubes
+        forecast_df[diagnostic] = forecast_mean_pred
+        forecast_mean = convert_dataframe_to_cube(forecast_df, historic_forecasts)
+
+        forecast_df[diagnostic] = forecast_sd_pred
+        forecast_sd = convert_dataframe_to_cube(forecast_df, historic_forecasts)
+
+        truth_df[diagnostic] = truth_mean_pred
+        truth_mean = convert_dataframe_to_cube(truth_df, truths)
+
+        truth_df[diagnostic] = truth_sd_pred
+        truth_sd = convert_dataframe_to_cube(truth_df, truths)
+
+        # Convert forecasts and truths to climatological anomalies.
+        forecast_ca = CalculateClimateAnomalies().process(
+            historic_forecasts, forecast_mean, forecast_sd
+        )
+        truth_ca = CalculateClimateAnomalies().process(truths, truth_mean, truth_sd)
+
+        plugin = EstimateCoefficientsForEnsembleCalibration(
+            distribution=self.distribution, **self.emos_kwargs,
+        )
+        return plugin(forecast_ca, truth_ca, landsea_mask=land_sea_mask)
