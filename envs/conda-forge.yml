@@ -8,18 +8,13 @@ name: improver_conda_forge
 channels:
   - conda-forge
 dependencies:
-  - python=3
+  - python=3.12
   # Included in improver-feedstock requirements
   - cartopy
-  - cftime
-  - cf-units
   - clize
-  - dask
-  - iris
-  - netCDF4
-  - numpy
-  - scipy
-  - sigtools
+  - iris=3.12
+  - numpy=2.2
+  - scipy=1.15
   - sphinx
   # Additional libraries to run tests, not included in improver-feedstock
   - bandit

@@ -3,20 +3,15 @@ name: improver_a
 channels:
   - conda-forge
 dependencies:
-  - python=3
+  - python=3.12
   # Required
   - cartopy
-  - cftime
-  - cf-units
   - clize
-  - dask
-  - iris
-  - netCDF4
-  - numpy
+  - iris=3.12
+  - numpy=2.2
   - pandas
   - pytz
-  - scipy
-  - sigtools
+  - scipy=1.15
   - sphinx
   # Optional
   - fastparquet

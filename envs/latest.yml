@@ -7,19 +7,14 @@ name: improver_latest
 channels:
   - conda-forge
 dependencies:
-  - python=3
+  - python
   # Required
   - cartopy
-  - cftime
-  - cf-units
   - clize
-  - dask
   - iris
-  - netCDF4
   - numpy
   - pytz
   - scipy
-  - sigtools
   - sphinx
   # Optional
   - python-stratify
