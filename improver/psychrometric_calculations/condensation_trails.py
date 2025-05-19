@@ -82,8 +82,10 @@ class CondensationTrailFormation(BasePlugin):
         engine_mixing_ratios = self.calculate_engine_mixing_ratios()
 
         # Placeholder return to silence my type checker
-        return self.temperature(
-            data=engine_mixing_ratios,
-            name="engine_mixing_ratios",
-            units="K-1",
+        return_cube = Cube(
+            engine_mixing_ratios,
+            long_name="engine_mixing_ratios",
+            units="Pa/K",
         )
+
+        return return_cube
