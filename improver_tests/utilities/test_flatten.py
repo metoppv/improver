@@ -23,8 +23,8 @@ def get_cube(name) -> Cube:
         ([1, [2, [3, 4], 5], [6, [7, 8]], 9], [1, 2, 3, 4, 5, 6, 7, 8, 9]),
         # Cubes and CubeLists
         (
-            CubeList([get_cube("0"), get_cube("1"), get_cube("2"), get_cube("3")]),
-            CubeList([get_cube("0"), get_cube("1"), get_cube("2"), get_cube("3")]),
+            [get_cube("0"), get_cube("1"), CubeList([get_cube("2")]), get_cube("3")],
+            [get_cube("0"), get_cube("1"), get_cube("2"), get_cube("3")],
         ),
         # Numpy arrays
         (

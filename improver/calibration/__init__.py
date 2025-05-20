@@ -7,7 +7,7 @@ and coefficient inputs.
 """
 
 from collections import OrderedDict
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 from iris.cube import Cube, CubeList
 
@@ -94,7 +94,10 @@ def split_forecasts_and_truth(
     return forecast, truth, land_sea_mask
 
 
-def split_forecasts_and_coeffs(cubes: List, land_sea_mask_name: Optional[str] = None):
+def split_forecasts_and_coeffs(
+    cubes: Union[List[CubeList[Cube]], List[List[Cube]]],
+    land_sea_mask_name: Optional[str] = None,
+):
     """Split the input forecast, coefficients, static additional predictors,
     land sea-mask and probability template, if provided. The coefficients
     cubes and land-sea mask are identified based on their name. The
