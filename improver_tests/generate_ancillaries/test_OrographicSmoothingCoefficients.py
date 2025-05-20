@@ -71,7 +71,7 @@ def smoothing_coefficients_fixture() -> CubeList:
 def mask_fixture() -> Cube:
     """Returns an example mask."""
 
-    data = np.zeros((6, 6), dtype=np.int)
+    data = np.zeros((6, 6), dtype=np.int32)
     data[2:-2, 2:-2] = 1
     mask = set_up_variable_cube(
         data,

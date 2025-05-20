@@ -179,7 +179,7 @@ class Test_process(IrisTest):
         not a cube."""
         incorrect_input = 50.0
         msg = "Temperature input is not a cube, but {0}".format(type(incorrect_input))
-        with self.assertRaisesRegexp(TypeError, msg):
+        with self.assertRaisesRegex(TypeError, msg):
             LapseRate(nbhood_radius=1).process(
                 incorrect_input, self.orography, self.land_sea_mask
             )
@@ -189,7 +189,7 @@ class Test_process(IrisTest):
         not a cube."""
         incorrect_input = 50.0
         msg = "Orography input is not a cube, but {0}".format(type(incorrect_input))
-        with self.assertRaisesRegexp(TypeError, msg):
+        with self.assertRaisesRegex(TypeError, msg):
             LapseRate(nbhood_radius=1).process(
                 self.temperature, incorrect_input, self.land_sea_mask
             )
@@ -199,7 +199,7 @@ class Test_process(IrisTest):
         not a cube."""
         incorrect_input = 50.0
         msg = "Land/Sea mask input is not a cube, but {0}".format(type(incorrect_input))
-        with self.assertRaisesRegexp(TypeError, msg):
+        with self.assertRaisesRegex(TypeError, msg):
             LapseRate(nbhood_radius=1).process(
                 self.temperature, self.orography, incorrect_input
             )
@@ -209,7 +209,7 @@ class Test_process(IrisTest):
         wrong unit."""
         #  Swap cubes around so have wrong units.
         msg = r"Unable to convert from 'Unit\('m'\)' to 'Unit\('K'\)'."
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             LapseRate(nbhood_radius=1).process(
                 self.orography, self.orography, self.land_sea_mask
             )
@@ -218,7 +218,7 @@ class Test_process(IrisTest):
         """Test code raises a Value Error if the orography cube is the
         wrong unit."""
         msg = r"Unable to convert from 'Unit\('K'\)' to 'Unit\('metres'\)'."
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             LapseRate(nbhood_radius=1).process(
                 self.temperature, self.temperature, self.land_sea_mask
             )
@@ -268,7 +268,7 @@ class Test_process(IrisTest):
         less than input minimum lapse rate"""
         msg = "Maximum lapse rate is less than minimum lapse rate"
 
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             LapseRate(max_lapse_rate=-1, min_lapse_rate=1).process(
                 self.temperature, self.orography, self.land_sea_mask
             )
@@ -278,7 +278,7 @@ class Test_process(IrisTest):
         is less than zero"""
         msg = "Neighbourhood radius is less than zero"
 
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             LapseRate(nbhood_radius=-1).process(
                 self.temperature, self.orography, self.land_sea_mask
             )
@@ -288,7 +288,7 @@ class Test_process(IrisTest):
         is less than zero"""
         msg = "Maximum height difference is less than zero"
 
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             LapseRate(max_height_diff=-1).process(
                 self.temperature, self.orography, self.land_sea_mask
             )

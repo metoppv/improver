@@ -39,8 +39,8 @@ class VerticalUpdraught(BasePlugin):
                 Name of model ID attribute to be copied from source cubes to output cube
         """
         self.model_id_attr = model_id_attr
-        self.cape = Cube(None)
-        self.precip = Cube(None)
+        self.cape = Cube(shape=(0,))
+        self.precip = Cube(shape=(0,))
         self.cube_names = [
             "atmosphere_convective_available_potential_energy",
             "lwe_precipitation_rate_max",
