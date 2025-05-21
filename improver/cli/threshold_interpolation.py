@@ -13,7 +13,9 @@ from improver import cli
 def process(
     forecast_at_thresholds: cli.inputcube,
     *,
-    thresholds: cli.comma_separated_list,
+    threshold_values: cli.comma_separated_list = None,
+    threshold_config: cli.inputjson = None,
+    threshold_units: str = None,
 ):
     """
     Use this CLI to modify the probability thresholds in an existing probability
@@ -22,8 +24,21 @@ def process(
     Args:
         forecast_at_thresholds:
             Cube expected to contain a threshold coordinate.
-        thresholds:
+        threshold_values:
             List of the desired output thresholds.
+        threshold_config:
+            Threshold configuration containing threshold values. It should contain
+            either a list of float values or a dictionary of strings that can be
+            interpreted as floats with the structure: "THRESHOLD_VALUE": "None".
+            The latter follows the format expected in improver/cli/threshold.py,
+            however fuzzy bounds will be ignored here.
+            Repeated thresholds with different bounds are ignored; only the
+            last duplicate will be used.
+            Threshold_values and threshold_config are mutually exclusive
+            arguments, defining both will lead to an exception.
+        threshold_units:
+            Units of the threshold values. If not provided the units are
+            assumed to be the same as those of the input cube.
 
     Returns:
         Cube with forecast values at the desired set of thresholds.
@@ -31,6 +46,8 @@ def process(
     """
     from improver.utilities.threshold_interpolation import ThresholdInterpolation
 
-    result = ThresholdInterpolation(thresholds)(forecast_at_thresholds)
+    result = ThresholdInterpolation(
+        threshold_values, threshold_config, threshold_units
+    )(forecast_at_thresholds)
 
     return result
