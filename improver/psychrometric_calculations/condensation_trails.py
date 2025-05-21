@@ -36,8 +36,8 @@ class CondensationTrailFormation(BasePlugin):
         """Initialsies the Class"""
 
         self._engine_contrail_factors: np.ndarray = np.array(
-            [1, 2, 3], dtype=np.float32
-        )  #! Placeholder values until the actual values are defined
+            [3e-5, 3.4e-5, 3.9e-5], dtype=np.float32
+        )
 
     def calculate_engine_mixing_ratios(self) -> np.ndarray:
         """

@@ -45,9 +45,9 @@ def test_CondensationTrailFormation_initialisation():
     """Check that the plugin is initialised correctly."""
     plugin = CondensationTrailFormation()
     assert isinstance(plugin._engine_contrail_factors, np.ndarray)
-    #! The values here are placeholders and should be replaced with the actual expected values
     np.testing.assert_array_equal(
-        plugin._engine_contrail_factors, np.array([1, 2, 3], dtype=np.float32)
+        plugin._engine_contrail_factors,
+        np.array([3e-5, 3.4e-5, 3.9e-5], dtype=np.float32),
     )
 
 
@@ -84,17 +84,14 @@ def test_pressure_levels(cube_with_pressure_factory, pressure_levels):
         (
             np.array([100000], dtype=np.float32),
             (3, 1),
-            np.array([[160776.87385446], [321553.74770893], [482330.62156339]]),
+            np.array([[4.823306], [5.466414], [6.2702975]], dtype=np.float32),
         ),
         (
             np.array([100000, 90000], dtype=np.float32),
             (3, 2),
             np.array(
-                [
-                    [160776.87385446, 144699.18646902],
-                    [321553.74770893, 289398.37293804],
-                    [482330.62156339, 434097.55940705],
-                ]
+                [[4.823306, 4.3409758], [5.466414, 4.919772], [6.2702975, 5.643268]],
+                dtype=np.float32,
             ),
         ),
         (
@@ -102,10 +99,11 @@ def test_pressure_levels(cube_with_pressure_factory, pressure_levels):
             (3, 3),
             np.array(
                 [
-                    [160776.87385446, 144699.18646902, 128621.49908357],
-                    [321553.74770893, 289398.37293804, 257242.99816714],
-                    [482330.62156339, 434097.55940705, 385864.49725072],
-                ]
+                    [4.823306, 4.3409758, 3.8586447],
+                    [5.466414, 4.919772, 4.373131],
+                    [6.2702975, 5.643268, 5.016238],
+                ],
+                dtype=np.float32,
             ),
         ),
     ],
@@ -129,4 +127,6 @@ def test_engine_mixing_ratio(
 
     # Check that calculate_engine_mixing_ratios works after process
     mixing_ratios = plugin.calculate_engine_mixing_ratios()
+    print(repr(mixing_ratios))
     assert mixing_ratios.shape == expected_shape
+    np.testing.assert_array_equal(mixing_ratios, expected_mixing_ratios)
