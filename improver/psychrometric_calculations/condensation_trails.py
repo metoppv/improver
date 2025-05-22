@@ -32,18 +32,19 @@ class CondensationTrailFormation(BasePlugin):
           Meteorology, 36(12), pp.1725-1729.
     """
 
-    def __init__(self):
+    def __init__(self, engine_contrail_factors: list = [3e-5, 3.4e-5, 3.9e-5]):
         """Initialsies the Class"""
 
         self._engine_contrail_factors: np.ndarray = np.array(
-            [3e-5, 3.4e-5, 3.9e-5], dtype=np.float32
+            engine_contrail_factors, dtype=np.float32
         )
 
     def calculate_engine_mixing_ratios(self) -> np.ndarray:
         """
         Calculate the mixing ratio of the atmosphere and aircraft
-        exhaust. This calculation uses EARTH_REPSILON, which is the
-        ratio of the molecular weights of water and air on Earth.
+        exhaust (Schrader, 1997). This calculation uses
+        EARTH_REPSILON, which is the ratio of the molecular
+        weights of water and air on Earth.
 
         Returns:
             float: The mixing ratio of the atmosphere and aircraft
