@@ -16,20 +16,22 @@ from improver.utilities.common_input_handle import as_cubelist
 
 class CondensationTrailFormation(BasePlugin):
     """Plugin to calculate whether a condensation trail (contrail) will
-    form based on a given set of atmospheric conditions. The
-    calculations require cubes of the following data:
-        - Temperature
-        - Pressure
-        - Relative Humidity
+    form based on a given set of atmospheric conditions.
+
+    The calculations require cubes of the following data:
+
+    - Temperature
+    - Pressure
+    - Relative Humidity
 
     Alongside constants including the ratio of the molecular masses of
     water and air (EARTH_REPSILON), and defined values for the engine
     contrail factor.
 
     References:
-        - Schrader, M.L., 1997. Calculations of aircraft contrail
-          formation critical temperatures. Journal of Applied
-          Meteorology, 36(12), pp.1725-1729.
+        Schrader, M.L., 1997. Calculations of aircraft contrail
+        formation critical temperatures. Journal of Applied
+        Meteorology, 36(12), pp.1725-1729.
     """
 
     def __init__(self, engine_contrail_factors: list = [3e-5, 3.4e-5, 3.9e-5]):
