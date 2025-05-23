@@ -9,7 +9,10 @@ import pytest
 from iris.cube import CubeList
 from iris.coords import CellMethod
 from improver.calibration.samos_calibration import TrainGAMsForSAMOS
-from improver_tests.calibration.samos_calibration.helper_functions import create_cube
+from improver_tests.calibration.samos_calibration.helper_functions import (
+    create_simple_cube,
+    create_cubes_for_gam_fitting
+)
 
 
 @pytest.fixture
@@ -83,11 +86,11 @@ def test_calculate_cube_statistics(
         "times": times,
     }
 
-    input_cube = create_cube(**create_cube_kwargs)
+    input_cube = create_simple_cube(**create_cube_kwargs)
 
     # Create cubelist containing expected mean and standard deviations cubes.
-    expected_mean = create_cube(fill_value=305, **expected_cube_kwargs)
-    expected_sd = create_cube(fill_value=0, **expected_cube_kwargs)
+    expected_mean = create_simple_cube(fill_value=305, **expected_cube_kwargs)
+    expected_sd = create_simple_cube(fill_value=0, **expected_cube_kwargs)
     if realizations > 1:
         # Expect statistics to be calculated over the realization dimension.
         expected_mean.add_cell_method(CellMethod("mean", coords="realization"))
@@ -116,6 +119,34 @@ def test_calculate_cube_statistics(
     assert expected == result
 
 
+def test_calculate_cube_statistics_exception():
+    """Test that this method raises the correct exception when a rolling window
+    calculation over the time coordinate is required to calculate the cube statistics,
+    but the time coordindate as unevenly spaced points.
+    """
+    create_cube_kwargs = {
+        "forecast_type": "spot",
+        "n_spatial_points": 2,
+        "realizations": 1,
+        "times": 3,
+        "fill_value": 305.0
+    }
+
+    # Returns cube with 3 time points at one day intervals.
+    test_cube = create_simple_cube(**create_cube_kwargs)
+    print(test_cube.coord("time").points)
+    # Modify the time points so that they are not equally spaced
+    test_cube.coord("time").points = test_cube.coord("time").points + np.array([0, 0, 1])
+    print(test_cube.coord("time").points)
+
+    msg = ("In order to extend the time coordinate to permit calculation of means and "
+           "standard deviations, the existing points on the time coordinate must be "
+           "evenly spaced.")
+
+    with pytest.raises(ValueError, match=msg):
+        TrainGAMsForSAMOS.calculate_cube_statistics(test_cube)
+
+
 @pytest.mark.parametrize("include_altitude", [False, True])
 @pytest.mark.parametrize("include_land_fraction", [False, True])
 @pytest.mark.parametrize(
@@ -133,7 +164,12 @@ def test_process(
     n_realizations,
 ):
     """Test that this method takes an input cube, a list of features, and possibly
-    additional predictor cubes and correctly returns a fitted GAM.
+    additional predictor cubes and correctly returns a fitted GAM. The fitted terms in
+    the model are not interrogated in this test, as this testing is done in
+    improver_tests/utilities/test_GAMFit.py. Instead, only aspects such as the
+    configuration for fitting the GAM, the model equation, the number of features and
+    number of samples are assessed, as each of these things is set in the calling
+    function.
     """
     full_model_specification = deepcopy(spatial_model_specification)
     features = ["latitude", "longitude"]
@@ -146,101 +182,25 @@ def test_process(
     }
     n_spatial_points = 5
     n_times = 20
-    input_cube = create_cube(
-        forecast_type="gridded",
-        n_spatial_points=n_spatial_points,
-        realizations=n_realizations,
-        times=n_times,
-        fill_value=273.15
-    )
-    # Create array of data to add to cube which increases with lat and lon, so that
-    # these features are useful in the GAMs.
-    lat_addition = np.linspace(
-        start=0, stop=15, num=n_spatial_points
-    ).reshape([n_spatial_points, 1])
-    lon_addition = np.linspace(
-        start=0, stop=15, num=n_spatial_points
-    ).reshape([1, n_spatial_points])
-    addition = lat_addition + lon_addition  # 10x10 array
-    addition = np.broadcast_to(
-        addition,
-        shape=input_cube.data.shape
-    )
-    # Create array of random noise which increases with lat and lon, so that there is
-    # some variance in the data to model in the standard deviation GAM.
-    noise = np.random.normal(loc=0.0, scale=addition/30)
-    input_cube.data = input_cube.data + addition + noise
 
-    additional_cubes = []
     if include_altitude:
-        # Create an altitude cube with small values in the centre of the domain and
-        # large values around the outside of the domain, with a smooth gradient in
-        # between.
-        altitude_cube = create_cube(
-            forecast_type="gridded",
-            n_spatial_points=n_spatial_points,
-            realizations=1,
-            times=1,
-            fill_value=1000.0
-        )
-        altitude_cube.rename("surface_altitude")
-
-        lat_multiplier = np.abs(np.linspace(
-            start=-1, stop=1, num=n_spatial_points
-        ).reshape([n_spatial_points, 1]))  # 1 at ends, close to 0 in the middle.
-        lon_multiplier = np.abs(np.linspace(
-            start=-1, stop=1, num=n_spatial_points
-        ).reshape([1, n_spatial_points]) - 1)  # 1 at ends, close to 0 in the middle.
-        altitude_multiplier = lat_multiplier * lon_multiplier
-
-        altitude_cube.data = altitude_cube.data * altitude_multiplier
-        additional_cubes.append(altitude_cube)
         features.append("surface_altitude")
         full_model_specification.append(
             ["spline", [features.index("surface_altitude")], {}]
         )
-
-        # Subtract values from input_cube data which increase with altitude.
-        altitude_multiplier = np.broadcast_to(
-            altitude_multiplier,
-            shape=input_cube.data.shape
-        )
-        input_cube.data = input_cube.data - (5.0 * altitude_multiplier)
-
     if include_land_fraction:
-        # Create a land fraction cube with full land in the top left corner of the
-        # domain, full sea in the bottom right, and a smooth gradient of fractions in
-        # between.
-        lf_cube = create_cube(
-            forecast_type="gridded",
-            n_spatial_points=n_spatial_points,
-            realizations=1,
-            times=1,
-            fill_value=1
-        )
-        lf_cube.rename("land_fraction")
-
-        lat_multiplier = np.linspace(
-            start=1.0, stop=0.0, num=n_spatial_points
-        ).reshape([n_spatial_points, 1])
-        lon_multiplier = np.linspace(
-            start=1.0, stop=0.0, num=n_spatial_points
-        ).reshape([1, n_spatial_points])
-        lf_multiplier = lat_multiplier * lon_multiplier
-
-        lf_cube.data = lf_cube.data * lf_multiplier
-        additional_cubes.append(lf_cube)
         features.append("land_fraction")
         full_model_specification.append(
             ["spline", [features.index("land_fraction")], {}]
         )
 
-        # Add values to input_cube data which increase with land fraction.
-        lf_multiplier = np.broadcast_to(
-            lf_multiplier,
-            shape=input_cube.data.shape
-        )
-        input_cube.data = input_cube.data + (2.0 * lf_multiplier)
+    input_cube, additional_cubes = create_cubes_for_gam_fitting(
+        n_spatial_points,
+        n_realizations,
+        n_times,
+        include_altitude,
+        include_land_fraction
+    )
 
     result_gams = TrainGAMsForSAMOS(full_model_specification, **gam_kwargs).process(
         input_cube, features, additional_cubes
@@ -268,7 +228,7 @@ def test_missing_required_coordinates_exception(
     """Test that the correct exceptions are raised when the input cube does not contain
     suitable realization or time coordinates."""
     # Create a cube with no realization coordinate and a single point time coordinate.
-    input_cube = create_cube(
+    input_cube = create_simple_cube(
         forecast_type="gridded",
         n_spatial_points=2,
         realizations=1,
