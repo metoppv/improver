@@ -14,6 +14,8 @@ from improver_tests.calibration.samos_calibration.helper_functions import (
     create_simple_cube,
 )
 
+np.random.seed(1)
+
 
 @pytest.fixture
 def model_specification():
@@ -348,12 +350,7 @@ def test_process(
     include_altitude, spatial_model_specification, n_realizations, expected
 ):
     """Test that this method takes an input cube, a list of features, and possibly
-    additional predictor cubes and correctly returns a fitted GAM. The fitted terms in
-    the model are not interrogated in this test, as this testing is done in
-    improver_tests/utilities/test_GAMFit.py. Instead, only aspects such as the
-    configuration for fitting the GAM, the model equation, the number of features and
-    number of samples are assessed, as each of these things is set in the calling
-    function.
+    additional predictor cubes and correctly returns a fitted GAM.
     """
     # Skip test if pyGAM not available.
     pytest.importorskip("pygam")
