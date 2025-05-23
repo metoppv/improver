@@ -139,20 +139,37 @@ def check_reference_epoch_coord(result_cube, reference_cube):
         return False
     else:
         results = []
+        # Check that reference_epoch coordinate has a single time point which is the
+        # final time point on reference_cube.
         results.append(
             result_cube.coord("reference_epoch").points
-            == reference_cube.coord("time").points
+            == reference_cube.coord("time").points[-1]
         )
+
+        # Check that the reference_epoch coordinate has bounds which represent the whole
+        # time range of reference_cube.
+        if reference_cube.coord("time").has_bounds():
+            expected_bounds = [[
+                reference_cube.coord("time").bounds[0][0],  # Earliest bound on cube.
+                reference_cube.coord("time").bounds[-1][-1]  # Latest bound on cube.
+            ]]
+        else:
+            expected_bounds = [[
+                reference_cube.coord("time").points[0],
+                reference_cube.coord("time").points[-1]
+            ]]
         results.append(
             np.array_equal(
                 result_cube.coord("reference_epoch").bounds,
-                reference_cube.coord("time").bounds,
+                expected_bounds,
             )
         )
+
         results.append(
             result_cube.coord("reference_epoch").units
             == reference_cube.coord("time").units
         )
+
         return all(results)
 
 
@@ -240,6 +257,53 @@ def test_calculate_standardized_anomalies_site_data(site_cubes):
         "(CellMethod(method='anomaly', coord_names=('reference_epoch',), "
         "intervals=(), comments=())" in str(result.cell_methods)
     )
+
+
+def test_non_collapsed_stats_cube(forecast_reference_time, validity_time):
+    """Test the the plugin calculates standardized anomalies correctly when the mean and
+    standard deviation cubes haven't been calculated by collapsing over coordinates and
+    hence have multiple realization and time points.
+    """
+    time_bounds = [
+        [datetime(2024, 9, 15, 22, 0), datetime(2024, 10, 15, 23, 0)],
+        [datetime(2024, 9, 15, 23, 0), datetime(2024, 10, 16, 0, 0)],
+        [datetime(2024, 9, 16, 0, 0), datetime(2024, 10, 16, 1, 0)],
+    ]
+
+    # Create cubes with four dimensions: time, realization, latitude, longitude.
+    diagnostic_cube = iris.cube.CubeList([])
+    mean_cube = iris.cube.CubeList([])
+    std_cube = iris.cube.CubeList([])
+    for vt, tb in zip(validity_time["diagnostic_multiple"], time_bounds):
+        set_up_cube_kwargs = {
+            "time": vt,
+            "frt": forecast_reference_time,
+            "time_bounds": tb
+        }
+
+        data = np.full((2, 2, 2), 302.0, dtype=np.float32)
+        diagnostic_cube.append(set_up_variable_cube(data=data, **set_up_cube_kwargs))
+
+        data = np.full((2, 2, 2), 300.0, dtype=np.float32)
+        mean_cube.append(set_up_variable_cube(data=data, **set_up_cube_kwargs))
+
+        data = np.full((2, 2, 2), 1.0, dtype=np.float32)
+        std_cube.append(set_up_variable_cube(data=data, **set_up_cube_kwargs))
+
+    diagnostic_cube = diagnostic_cube.merge_cube()
+    mean_cube = mean_cube.merge_cube()
+    std_cube = std_cube.merge_cube()
+
+    result = CalculateClimateAnomalies().process(diagnostic_cube, mean_cube, std_cube)
+
+    assert result.long_name == diagnostic_cube.name() + "_standardized_anomaly"
+    assert result.units == "1"
+    assert check_reference_epoch_coord(result, mean_cube)
+    assert (
+        "(CellMethod(method='anomaly', coord_names=('reference_epoch',), "
+        "intervals=(), comments=())" in str(result.cell_methods)
+    )
+    np.testing.assert_allclose(result.data, np.full((3, 2, 2, 2), 2.0, dtype=np.float32))
 
 
 def test_ignore_temporal_mismatch(diagnostic_cube, mean_cube, std_cube):
