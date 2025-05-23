@@ -116,7 +116,7 @@ def process(
         split_forecasts_and_coeffs,
         validity_time_check,
     )
-    from improver.calibration.ensemble_calibration import ApplyEMOS
+    from improver.calibration.emos_calibration import ApplyEMOS
     from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
         ResamplePercentiles,
     )

@@ -14,7 +14,7 @@ from iris.coords import CellMethod
 from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
 
-from improver.calibration.ensemble_calibration import ApplyEMOS
+from improver.calibration.emos_calibration import ApplyEMOS
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.synthetic_data.set_up_test_cubes import (
