@@ -164,13 +164,11 @@ def create_cubes_for_gam_fitting(
         n_realizations,
         n_times,
         include_altitude,
-        include_land_fraction,
         fixed_forecast_period=False,
 ):
     """Function to create a temperature cube with data which varies spatially.
-    Optionally, may also produce altitude and/or land fraction cubes whilst
-    simultaneously modifying the temperature cube so that these are useful predictors
-    of the temperature.
+    Optionally, may also produce analtitude cube whilst simultaneously modifying the
+    temperature cube so that this is a useful predictor of the temperature.
     """
     input_cube = create_simple_cube(
         forecast_type="gridded",
@@ -229,36 +227,5 @@ def create_cubes_for_gam_fitting(
             shape=input_cube.data.shape
         )
         input_cube.data = input_cube.data - (5.0 * altitude_multiplier)
-
-    if include_land_fraction:
-        # Create a land fraction cube with full land in the top left corner of the
-        # domain, full sea in the bottom right, and a smooth gradient of fractions in
-        # between.
-        lf_cube = create_simple_cube(
-            forecast_type="gridded",
-            n_spatial_points=n_spatial_points,
-            realizations=1,
-            times=1,
-            fill_value=1
-        )
-        lf_cube.rename("land_fraction")
-
-        lat_multiplier = np.linspace(
-            start=1.0, stop=0.0, num=n_spatial_points
-        ).reshape([n_spatial_points, 1])
-        lon_multiplier = np.linspace(
-            start=1.0, stop=0.0, num=n_spatial_points
-        ).reshape([1, n_spatial_points])
-        lf_multiplier = lat_multiplier * lon_multiplier
-
-        lf_cube.data = lf_cube.data * lf_multiplier
-        additional_cubes.append(lf_cube)
-
-        # Add values to input_cube data which increase with land fraction.
-        lf_multiplier = np.broadcast_to(
-            lf_multiplier,
-            shape=input_cube.data.shape
-        )
-        input_cube.data = input_cube.data + (2.0 * lf_multiplier)
 
     return input_cube, additional_cubes

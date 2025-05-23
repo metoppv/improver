@@ -14,6 +14,8 @@ from improver_tests.calibration.samos_calibration.helper_functions import (
     create_cubes_for_gam_fitting
 )
 
+np.random.seed(1)
+
 
 @pytest.fixture
 def model_specification():
@@ -147,29 +149,27 @@ def test_calculate_cube_statistics_exception():
         TrainGAMsForSAMOS.calculate_cube_statistics(test_cube)
 
 
-@pytest.mark.parametrize("include_altitude", [False, True])
-@pytest.mark.parametrize("include_land_fraction", [False, True])
 @pytest.mark.parametrize(
-    "spatial_model_specification",  # Define the terms which lat and lon contribute to.
+    "include_altitude,spatial_model_specification,n_realizations,expected",
     [
-        [["linear", [0], {}], ["linear", [1], {}]],
-        [["tensor", [0, 1], {}]],
+        [False, [["linear", [0], {}], ["linear", [1], {}]], 11, [288.15298254, 0.48331375]],
+        [True, [["linear", [0], {}], ["linear", [1], {}]], 11, [288.15007863, 0.49052109]],
+        [False, [["tensor", [0, 1], {}]], 11, [288.22168378, 0.5010813]],
+        [True, [["tensor", [0, 1], {}]], 11, [288.1290978, 0.44678148]],
+        [False, [["linear", [0], {}], ["linear", [1], {}]], 1, [288.17666906, 0.48082173]],
+        [True, [["linear", [0], {}], ["linear", [1], {}]], 1, [288.14031069, 0.42215065]],
+        [False, [["tensor", [0, 1], {}]], 1, [288.14178362, 0.44964758]],
+        [True, [["tensor", [0, 1], {}]], 1, [288.14402253, 0.51517678]],
     ]
 )
-@pytest.mark.parametrize("n_realizations", [11, 1])
 def test_process(
     include_altitude,
-    include_land_fraction,
     spatial_model_specification,
     n_realizations,
+    expected
 ):
     """Test that this method takes an input cube, a list of features, and possibly
-    additional predictor cubes and correctly returns a fitted GAM. The fitted terms in
-    the model are not interrogated in this test, as this testing is done in
-    improver_tests/utilities/test_GAMFit.py. Instead, only aspects such as the
-    configuration for fitting the GAM, the model equation, the number of features and
-    number of samples are assessed, as each of these things is set in the calling
-    function.
+    additional predictor cubes and correctly returns a fitted GAM.
     """
     full_model_specification = deepcopy(spatial_model_specification)
     features = ["latitude", "longitude"]
@@ -186,12 +186,7 @@ def test_process(
     if include_altitude:
         features.append("surface_altitude")
         full_model_specification.append(
-            ["spline", [features.index("surface_altitude")], {}]
-        )
-    if include_land_fraction:
-        features.append("land_fraction")
-        full_model_specification.append(
-            ["spline", [features.index("land_fraction")], {}]
+            ["spline", [2], {}]
         )
 
     input_cube, additional_cubes = create_cubes_for_gam_fitting(
@@ -199,12 +194,16 @@ def test_process(
         n_realizations,
         n_times,
         include_altitude,
-        include_land_fraction
     )
 
     result_gams = TrainGAMsForSAMOS(full_model_specification, **gam_kwargs).process(
         input_cube, features, additional_cubes
     )
+
+    # Make predictions from the fitted GAMs to compare to expected results.
+    new_predictors = np.full([1, len(features)], 0.0)
+    mean_prediction = result_gams[0].predict(new_predictors)
+    sd_prediction = result_gams[1].predict(new_predictors)
 
     # Check that our arguments have been used correctly in the GAM models. Also check
     # that the GAMs were fitted using the correct data.
@@ -216,8 +215,8 @@ def test_process(
         assert gam.statistics_["n_samples"] == n_times * n_spatial_points ** 2
         assert gam.statistics_["m_features"] == len(features)
 
-    # Check that we've ended up with 2 different GAM models.
-    assert result_gams[0] != result_gams[1]
+    np.testing.assert_almost_equal(mean_prediction[0], expected[0])
+    np.testing.assert_almost_equal(sd_prediction[0], expected[1])
 
 
 @pytest.mark.parametrize("exception", ["no_time_coord", "single_point_time_coord"])
