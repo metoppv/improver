@@ -7,12 +7,10 @@ This module defines all the "plugins" specific to Standardised Anomaly Model Out
 Statistics (SAMOS).
 """
 
-import iris
-import iris.pandas
-
-iris.FUTURE.pandas_ndim = True
 from typing import Dict, List, Optional
 
+import iris
+import iris.pandas
 import pandas as pd
 from iris.analysis import MEAN, STD_DEV
 from iris.cube import Cube, CubeList
@@ -28,6 +26,8 @@ from improver.utilities.generalized_additive_models import GAMFit, GAMPredict
 from improver.utilities.mathematical_operations import (
     CalculateClimateAnomalies,
 )
+
+iris.FUTURE.pandas_ndim = True
 
 
 def prepare_data_for_gam(
