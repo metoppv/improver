@@ -13,7 +13,7 @@ from improver.calibration.samos_calibration import (
     convert_dataframe_to_cube
 )
 from improver_tests.calibration.samos_calibration.helper_functions import (
-    create_cube,
+    create_simple_cube,
     altitude_cube,
     land_fraction_cube,
     gridded_dataframe,
@@ -35,7 +35,7 @@ def test_prepare_data_for_gam_gridded(
     """Test that this method correctly creates a dataframe from the input gridded data
     cubes."""
     set_up_kwargs = {"spatial_grid": spatial_grid}
-    input_cube = create_cube(
+    input_cube = create_simple_cube(
         forecast_type="gridded",
         n_spatial_points=2,
         realizations=2,
@@ -69,7 +69,7 @@ def test_prepare_data_for_gam_spot(
 ):
     """Test that this method correctly creates a dataframe from the input spot data
     cubes."""
-    input_cube = create_cube(
+    input_cube = create_simple_cube(
         forecast_type="spot",
         n_spatial_points=2,
         realizations=2,
@@ -98,7 +98,7 @@ def test_convert_dataframe_to_cube_gridded(spatial_grid, gridded_dataframe):
     """Test that this method correctly creates a cube from the input dataframe of
     gridded data."""
     set_up_kwargs = {"spatial_grid": spatial_grid}
-    expected_cube = create_cube(
+    expected_cube = create_simple_cube(
         forecast_type="gridded",
         n_spatial_points=2,
         realizations=2,
@@ -134,10 +134,10 @@ def test_convert_dataframe_to_cube_gridded(spatial_grid, gridded_dataframe):
     assert result == expected_cube
 
 
-def test_convert_dataframe_to_cube(spot_dataframe):
+def test_convert_dataframe_to_cube_spot(spot_dataframe):
     """Test that this method correctly creates a cube from the input dataframe of
     spot data."""
-    expected_cube = create_cube(
+    expected_cube = create_simple_cube(
         forecast_type="spot",
         n_spatial_points=2,
         realizations=2,
@@ -149,10 +149,10 @@ def test_convert_dataframe_to_cube(spot_dataframe):
     # Change forecast data so that realization zero is equal to 305.0 across domain and
     # realization 1 is equal to 306.0 across domain.
     spot_dataframe["air_temperature"] = np.array(
-        [305.0] * 2 + [306.0] * 2, dtype=np.float32
+        [305.0, 305.0, 306.0, 306.0], dtype=np.float32
     )
     expected_cube.data = np.array(
-        [[305.0, 305.0],[306.0, 306.0]], dtype=np.float32
+        [[305.0, 305.0], [306.0, 306.0]], dtype=np.float32
     )
 
     result = convert_dataframe_to_cube(

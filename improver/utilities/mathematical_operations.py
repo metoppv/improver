@@ -511,11 +511,11 @@ class CalculateClimateAnomalies(BasePlugin):
 
         The output_cube is modified in place.
         """
+        end_time = mean_cube.coord("time").points[-1]
+        bounds = mean_cube.coord("time").bounds if mean_cube.coord("time").has_bounds() else [mean_cube.coord("time").points[0], mean_cube.coord("time").points[-1]]
         reference_epoch = iris.coords.AuxCoord(
-            points=mean_cube.coord("time").points,
-            bounds=mean_cube.coord("time").bounds
-            if mean_cube.coord("time").has_bounds()
-            else None,
+            points=end_time,
+            bounds=bounds,
             long_name="reference_epoch",
             units=mean_cube.coord("time").units,
         )
