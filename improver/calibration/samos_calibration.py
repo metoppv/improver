@@ -27,7 +27,6 @@ from iris.util import new_axis
 from numpy import array, int64, nan
 from numpy.ma import masked_all_like
 from pandas import merge
-import datetime
 
 
 def prepare_data_for_gam(
@@ -40,7 +39,7 @@ def prepare_data_for_gam(
     Args:
         input_cube: A cube of forecast or observation data.
         additional_fields: Additional cubes with points which can be matched with points
-        in input_cube by matching spatial coordinates values.
+        in input_cube by matching spatial coordinate values.
 
     Returns:
         A pandas dataframe containing the following columns:
@@ -51,8 +50,6 @@ def prepare_data_for_gam(
         4. One column associated with each of the cubes in additional cubes, with column
         names matching the associated cube
     """
-    # Convert to Pandas dataframe via Xarray as version 3.0.3 of Iris does not
-    # handle converting cubes with more than 2 dimensions to dataframes.
     spatial_coords = [
         input_cube.coord(axis="x").name(),
         input_cube.coord(axis="y").name(),
@@ -91,8 +88,8 @@ def convert_dataframe_to_cube(
     dim_coords = [c.name() for c in template_cube.coords(dim_coords=True)]
     diagnostic = template_cube.name()
 
-    df.set_index(dim_coords, inplace=True)
-    df.sort_index(inplace=True)
+    indexed_df = df.set_index(dim_coords, inplace=False)
+    indexed_df.sort_index(inplace=True)
 
     converted_cube = iris.pandas.as_cubes(df[[diagnostic]])[
         0
@@ -225,44 +222,33 @@ class TrainGAMsForSAMOS(BasePlugin):
         window_length: int = 11,
     ):
         """
-        <<<<<<< HEAD
-                Initialize the class.
-        =======
-                Class for fitting Generalised Additive Models (GAMs) to training data for use in
-                a Standardised Anomaly Model Output Statistics (SAMOS) calibration scheme.
-
-                Two GAMs are trained: one modelling the mean of the training data and one
-                modelling the standard deviation. These can then be used to convert forecasts or
-                observations to climatological anomalies. This plugin should be run separately
-                for forecast and observation data.
-        >>>>>>> 1c035526 (Create functions for converting between cube and dataframe representations for SAMOS. Move generic helper functions for SAMOS unit tests into their own file. Create TrainEMOSForSAMOS class. Create additional unit tests for TrainGAMsForSAMOS. Add scipy monkey patch to pygam imports to work around a known bug.)
-
-                Args:
-                    model_specification:
-                        A list of lists which each contain three items (in order):
-                            1. a string containing a single pyGAM term; one of 'linear',
-                            'spline', 'tensor', or 'factor'
-                            2. a list of integers which correspond to the features to be
-                            included in that term
-                            3. a dictionary of kwargs to be included when defining the term
-                    max_iter:
-                        A pyGAM argument which determines the maximum iterations allowed when
-                        fitting the GAM
-                    tol:
-                        A pyGAM argument determining the tolerance used to define the stopping
-                        criteria
-                    distribution:
-                        A pyGAM argument determining the distribution to be used in the model
-                    link:
-                        A pyGAM argument determining the link function to be used in the model
-                    fit_intercept:
-                        A pyGAM argument determining whether to include an intercept term in
-                        the model
-                    window_length:
-                        The length of the rolling window used to calculate the mean and standard
-                        deviation of the input cube when the input cube does not have a
-                        realization dimension coordinate. This must be an odd integer greater
-                        than 1.
+        Initialize the class.
+            Args:
+                model_specification:
+                    A list of lists which each contain three items (in order):
+                        1. a string containing a single pyGAM term; one of 'linear',
+                        'spline', 'tensor', or 'factor'
+                        2. a list of integers which correspond to the features to be
+                        included in that term
+                        3. a dictionary of kwargs to be included when defining the term
+                max_iter:
+                    A pyGAM argument which determines the maximum iterations allowed when
+                    fitting the GAM
+                tol:
+                    A pyGAM argument determining the tolerance used to define the stopping
+                    criteria
+                distribution:
+                    A pyGAM argument determining the distribution to be used in the model
+                link:
+                    A pyGAM argument determining the link function to be used in the model
+                fit_intercept:
+                    A pyGAM argument determining whether to include an intercept term in
+                    the model
+                window_length:
+                    The length of the rolling window used to calculate the mean and standard
+                    deviation of the input cube when the input cube does not have a
+                    realization dimension coordinate. This must be an odd integer greater
+                    than 1.
         """
         self.model_specification = model_specification
         self.max_iter = max_iter
