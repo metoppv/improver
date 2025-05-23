@@ -73,7 +73,6 @@ def test_get_climatological_stats(
         n_realizations=n_realizations,
         n_times=n_times,
         include_altitude=include_altitude,
-        include_land_fraction=False
     )
 
     gams = TrainGAMsForSAMOS(model_specification).process(
@@ -85,7 +84,6 @@ def test_get_climatological_stats(
         n_realizations=2,
         n_times=1,
         include_altitude=include_altitude,
-        include_land_fraction=False
     )
 
     result_mean, result_sd = TrainEMOSForSAMOS.get_climatological_stats(
@@ -222,7 +220,6 @@ def test_process(include_altitude):
         n_realizations=n_realizations,
         n_times=n_times,
         include_altitude=include_altitude,
-        include_land_fraction=False,
         fixed_forecast_period=True
     )
 
@@ -231,7 +228,6 @@ def test_process(include_altitude):
         n_realizations=1,
         n_times=n_times,
         include_altitude=include_altitude,
-        include_land_fraction=False,
         fixed_forecast_period=True
     )
     truth_cube.remove_coord("forecast_reference_time")
