@@ -33,8 +33,8 @@ def process(*cubes: cli.inputcube, model_id_attr: str = None):
     """
     from iris.cube import CubeList
 
-    from improver.turbulence import TurbulenceAbove1500m_USAF
+    from improver.turbulence import TurbulenceIndexAbove1500m_USAF
 
-    result = TurbulenceAbove1500m_USAF()(CubeList(cubes), model_id_attr=model_id_attr)
+    result = TurbulenceIndexAbove1500m_USAF()(CubeList(cubes), model_id_attr=model_id_attr)
 
     return result
