@@ -23,7 +23,7 @@ TurbulenceInputData = namedtuple('TurbulenceInputData',
                                   'v_wind_high_press', 'v_wind_low_press',
                                   'geopot_high_press', 'geopot_low_press'])
 
-class TurbulenceAbove1500m_USAF(PostProcessingPlugin):
+class TurbulenceIndexAbove1500m_USAF(PostProcessingPlugin):
     """
     From the supplied set of cubes at two, presumable adjacent, pressure levels, calculate the
     Turbulence Index based on Ellrod 1997. This class is intended for estimates above 1500 meter.
@@ -53,7 +53,7 @@ class TurbulenceAbove1500m_USAF(PostProcessingPlugin):
                               'time']
 
         for coord_name in min_coords_to_compare:
-            if cube1.coord(var_name=coord_name) != cube2.coord(var_name=coord_name):
+            if cube1.coord(coord_name) != cube2.coord(coord_name):
                 raise ValueError(f"Incompatible coordinates: {coord_name}")
 
         if ignore is None:
@@ -101,7 +101,7 @@ class TurbulenceAbove1500m_USAF(PostProcessingPlugin):
         # Coerce all pressures level references to the same units.
         # Set to mb as that is used in the product name produced.
         for c in cubes:
-            c.coord(var_name="pressure").convert_units('millibar')
+            c.coord("pressure").convert_units('millibar')
 
         # Grab data and specify consistent units for comparisons and later maths.
         # Grab U components
@@ -126,12 +126,12 @@ class TurbulenceAbove1500m_USAF(PostProcessingPlugin):
         if len(geopots) != 2:
             raise ValueError(f"Only two cubes of GeopotentialHeight should be passed, {len(geopots)} provided.")
 
-        p0_u_winds = u_winds[0].coord(var_name="pressure").cell(0).point
-        p1_u_winds = u_winds[1].coord(var_name="pressure").cell(0).point
-        p0_v_winds = v_winds[0].coord(var_name="pressure").cell(0).point
-        p1_v_winds = v_winds[1].coord(var_name="pressure").cell(0).point
-        p0_geopots = geopots[0].coord(var_name="pressure").cell(0).point
-        p1_geopots = geopots[1].coord(var_name="pressure").cell(0).point
+        p0_u_winds = u_winds[0].coord("pressure").cell(0).point
+        p1_u_winds = u_winds[1].coord("pressure").cell(0).point
+        p0_v_winds = v_winds[0].coord("pressure").cell(0).point
+        p1_v_winds = v_winds[1].coord("pressure").cell(0).point
+        p0_geopots = geopots[0].coord("pressure").cell(0).point
+        p1_geopots = geopots[1].coord("pressure").cell(0).point
 
         if p0_u_winds == p1_u_winds:
             raise ValueError("Passed UWindComponents should be at two different pressure levels.")
@@ -142,18 +142,20 @@ class TurbulenceAbove1500m_USAF(PostProcessingPlugin):
         if p0_geopots == p1_geopots:
             raise ValueError("Passed GeopotentialHeight should be at two different pressure levels.")
 
-        # test for two pressure levels and that each data type contains one at each pressure level
+        # Test for two pressure levels and that each data type contains one at each pressure level
         p_levels = [p0_u_winds, p1_u_winds]
 
-        if p0_v_winds not in p_levels or p1_geopots not in p_levels:
-            raise ValueError(f"Passed VWindComponents pressure levels {[p0_v_winds, p1_v_winds]} inconsitent "
-                             f"with UWindComponents pressure levels {p_levels}.")
+        if p0_v_winds not in p_levels or p1_v_winds not in p_levels:
+            raise ValueError(f"Passed VWindComponents pressure levels "
+                             f"{[float(p0_v_winds), float(p1_v_winds)]} inconsistent "
+                             f"with UWindComponents pressure levels {[float(p_levels[0]), float(p_levels[1])]}.")
 
-        if p0_geopots not in p_levels or p1_v_winds not in p_levels:
-            raise ValueError(f"Passed GeopotentialHeight pressure levels {[p0_geopots, p1_v_winds]} inconsitent "
-                             f"with UWindComponents pressure levels {p_levels}.")
+        if p0_geopots not in p_levels or p1_geopots not in p_levels:
+            raise ValueError(f"Passed GeopotentialHeight pressure levels "
+                             f"{[float(p0_geopots), float(p1_geopots)]} inconsistent "
+                             f"with UWindComponents pressure levels {[float(p_levels[0]), float(p_levels[1])]}.")
 
-        # Reverse list as necessary tomake sure the first assignemt is to the higher pressure variable
+        # Reverse list as necessary to make sure the first assignment is to the higher pressure variable
         if p0_u_winds < p1_u_winds:
             u_winds.reverse()
         u_wind_high_press = u_winds[0]
@@ -348,7 +350,7 @@ class TurbulenceAbove1500m_USAF(PostProcessingPlugin):
             plt.colorbar(p)
             # x = turbulence_index * 1e7 ;  plt.close(); p = plt.imshow(x, vmax=15); plt.colorbar(p)
 
-        pressure_as_mb = u_wind_high_press.coord(var_name="pressure").cell(0).point
+        pressure_as_mb = u_wind_high_press.coord("pressure").cell(0).point
         name_str = f"TurbulenceIndexAbove1500mAt{int(pressure_as_mb)}mb"
         cube = create_new_diagnostic_cube(
             name=name_str,
