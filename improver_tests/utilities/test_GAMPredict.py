@@ -49,6 +49,7 @@ def test_process(X_new, expected):
     # Monkey patch for pyGAM due to handling of sparse arrays in some versions of
     # scipy.
     import scipy.sparse
+
     def to_array(self):
         return self.toarray()
 

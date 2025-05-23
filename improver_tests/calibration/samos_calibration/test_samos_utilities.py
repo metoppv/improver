@@ -5,32 +5,27 @@
 """Unit tests for the various utility functions within samos_calibration.py. Also
 defines some broadly applicable utility functions for SAMOS unit tests.
 """
-import iris.pandas
+
 import numpy as np
 import pytest
+from pandas.testing import assert_frame_equal
+
 from improver.calibration.samos_calibration import (
+    convert_dataframe_to_cube,
     prepare_data_for_gam,
-    convert_dataframe_to_cube
 )
 from improver_tests.calibration.samos_calibration.helper_functions import (
-    create_simple_cube,
     altitude_cube,
+    create_simple_cube,
     land_fraction_cube,
-    gridded_dataframe,
-    spot_dataframe
 )
-from pandas.testing import assert_frame_equal
-from cftime import datetime
 
 
 @pytest.mark.parametrize("include_altitude", [False, True])
 @pytest.mark.parametrize("include_land_fraction", [False, True])
 @pytest.mark.parametrize("spatial_grid", ["latlon", "equalarea"])
 def test_prepare_data_for_gam_gridded(
-    include_altitude,
-    include_land_fraction,
-    spatial_grid,
-    gridded_dataframe
+    include_altitude, include_land_fraction, spatial_grid, gridded_dataframe
 ):
     """Test that this method correctly creates a dataframe from the input gridded data
     cubes."""
@@ -41,18 +36,18 @@ def test_prepare_data_for_gam_gridded(
         realizations=2,
         times=1,
         fill_value=305.0,
-        set_up_kwargs=set_up_kwargs
+        set_up_kwargs=set_up_kwargs,
     )
 
     additional_cubes = []
     if include_altitude:
         additional_cubes.append(altitude_cube("gridded", set_up_kwargs))
         surface_altitude = np.array([10.0, 20.0, 20.0, 10.0] * 2, dtype=np.float32)
-        gridded_dataframe['surface_altitude'] = surface_altitude
+        gridded_dataframe["surface_altitude"] = surface_altitude
     if include_land_fraction:
         additional_cubes.append(land_fraction_cube("gridded", set_up_kwargs))
         land_fraction = np.array([0.1, 0.2, 0.2, 0.1] * 2, dtype=np.float32)
-        gridded_dataframe['land_fraction'] = land_fraction
+        gridded_dataframe["land_fraction"] = land_fraction
 
     result = prepare_data_for_gam(input_cube, additional_cubes)
 
@@ -63,9 +58,7 @@ def test_prepare_data_for_gam_gridded(
 @pytest.mark.parametrize("include_altitude", [False, True])
 @pytest.mark.parametrize("include_land_fraction", [False, True])
 def test_prepare_data_for_gam_spot(
-        include_altitude,
-        include_land_fraction,
-        spot_dataframe
+    include_altitude, include_land_fraction, spot_dataframe
 ):
     """Test that this method correctly creates a dataframe from the input spot data
     cubes."""
@@ -74,18 +67,18 @@ def test_prepare_data_for_gam_spot(
         n_spatial_points=2,
         realizations=2,
         times=1,
-        fill_value=305.0
+        fill_value=305.0,
     )
 
     additional_cubes = []
     if include_altitude:
         additional_cubes.append(altitude_cube("spot"))
         surface_altitude = np.array([10.0, 20.0] * 2, dtype=np.float32)
-        spot_dataframe['surface_altitude'] = surface_altitude
+        spot_dataframe["surface_altitude"] = surface_altitude
     if include_land_fraction:
         additional_cubes.append(land_fraction_cube("spot"))
         land_fraction = np.array([0.0, 0.3] * 2, dtype=np.float32)
-        spot_dataframe['land_fraction'] = land_fraction
+        spot_dataframe["land_fraction"] = land_fraction
 
     result = prepare_data_for_gam(input_cube, additional_cubes)
 
@@ -104,7 +97,7 @@ def test_convert_dataframe_to_cube_gridded(spatial_grid, gridded_dataframe):
         realizations=2,
         times=1,
         fill_value=305.0,
-        set_up_kwargs=set_up_kwargs
+        set_up_kwargs=set_up_kwargs,
     )
     template_cube = expected_cube.copy(data=np.zeros_like(expected_cube.data))
 
@@ -119,17 +112,12 @@ def test_convert_dataframe_to_cube_gridded(spatial_grid, gridded_dataframe):
                 [305.0, 305.0],
                 [305.0, 305.0],
             ],
-            [
-                [306.0, 306.0],
-                [306.0, 306.0]
-            ]
+            [[306.0, 306.0], [306.0, 306.0]],
         ],
-        dtype=np.float32
+        dtype=np.float32,
     )
 
-    result = convert_dataframe_to_cube(
-        gridded_dataframe, template_cube
-    )
+    result = convert_dataframe_to_cube(gridded_dataframe, template_cube)
 
     assert result == expected_cube
 
@@ -151,12 +139,8 @@ def test_convert_dataframe_to_cube_spot(spot_dataframe):
     spot_dataframe["air_temperature"] = np.array(
         [305.0, 305.0, 306.0, 306.0], dtype=np.float32
     )
-    expected_cube.data = np.array(
-        [[305.0, 305.0], [306.0, 306.0]], dtype=np.float32
-    )
+    expected_cube.data = np.array([[305.0, 305.0], [306.0, 306.0]], dtype=np.float32)
 
-    result = convert_dataframe_to_cube(
-        spot_dataframe, template_cube
-    )
+    result = convert_dataframe_to_cube(spot_dataframe, template_cube)
 
     assert result == expected_cube

@@ -6,27 +6,28 @@
 This module defines all the "plugins" specific to Standardised Anomaly Model Output
 Statistics (SAMOS).
 """
+
 import iris
 import iris.pandas
 
 iris.FUTURE.pandas_ndim = True
-import pandas as pd
+from typing import Dict, List, Optional
 
-from improver import BasePlugin, PostProcessingPlugin
-from improver.utilities.generalized_additive_models import GAMFit, GAMPredict
-from improver.utilities.mathematical_operations import (
-    CalculateClimateAnomalies,
-    CalculateForecastValueFromClimateAnomaly
-)
-from improver.calibration.emos_calibration import (
-    EstimateCoefficientsForEnsembleCalibration,
-)
+import pandas as pd
 from iris.analysis import MEAN, STD_DEV
 from iris.cube import Cube, CubeList
 from iris.util import new_axis
 from numpy.ma import masked_all_like
-from typing import Dict, List, Optional
 from pandas import merge
+
+from improver import BasePlugin
+from improver.calibration.emos_calibration import (
+    EstimateCoefficientsForEnsembleCalibration,
+)
+from improver.utilities.generalized_additive_models import GAMFit, GAMPredict
+from improver.utilities.mathematical_operations import (
+    CalculateClimateAnomalies,
+)
 
 
 def prepare_data_for_gam(
@@ -52,13 +53,13 @@ def prepare_data_for_gam(
     """
     spatial_coords = [
         input_cube.coord(axis="x").name(),
-        input_cube.coord(axis="y").name()
+        input_cube.coord(axis="y").name(),
     ]
     df = iris.pandas.as_data_frame(
         input_cube,
         add_aux_coords=True,
-        add_cell_measures =True,
-        add_ancillary_variables=True
+        add_cell_measures=True,
+        add_ancillary_variables=True,
     )
     df.reset_index(inplace=True)
     if additional_fields:
@@ -66,17 +67,13 @@ def prepare_data_for_gam(
             new_df = iris.pandas.as_data_frame(
                 cube,
                 add_aux_coords=True,
-                add_cell_measures =True,
-                add_ancillary_variables=True
+                add_cell_measures=True,
+                add_ancillary_variables=True,
             )
             new_df.reset_index(inplace=True)
             match_coords = spatial_coords.copy()
             match_coords.append(cube.name())
-            df = merge(
-                left=df,
-                right=new_df[match_coords],
-                how='left'
-            )
+            df = merge(left=df, right=new_df[match_coords], how="left")
 
     return df
 
@@ -178,10 +175,12 @@ class TrainGAMsForSAMOS(BasePlugin):
             time_coord = input_cube.coord("time")
             increments = time_coord.points[1:] - time_coord.points[:-1]
             if len(set(increments)) > 1:
-                msg = ("In order to extend the time coordinate to permit calculation of "
-                       "means and standard deviations, the existing points on the time "
-                       "coordinate must be evenly spaced. The following points were "
-                       f"found on the time coordinate: {time_coord.points}.")
+                msg = (
+                    "In order to extend the time coordinate to permit calculation of "
+                    "means and standard deviations, the existing points on the time "
+                    "coordinate must be evenly spaced. The following points were "
+                    f"found on the time coordinate: {time_coord.points}."
+                )
                 raise ValueError(msg)
             else:
                 # Remove time related coordinates other than the coordinate called
@@ -189,7 +188,9 @@ class TrainGAMsForSAMOS(BasePlugin):
                 # coordinate. These coordinates are saved and added back to the output
                 # cubes.
                 for coord in [
-                    "forecast_reference_time", "forecast_period", "blend_time"
+                    "forecast_reference_time",
+                    "forecast_period",
+                    "blend_time",
                 ]:
                     if input_cube.coords(coord):
                         removed_coords.append(input_cube.coord(coord).copy())
@@ -213,14 +214,16 @@ class TrainGAMsForSAMOS(BasePlugin):
                     # All data in these cubes is masked to prevent them contributing to
                     # later calculations.
                     early_cube = first_slice.copy()
-                    early_cube.coord("time").points = (early_cube.coord("time").points
-                                                       - (i + 1) * increment)
+                    early_cube.coord("time").points = (
+                        early_cube.coord("time").points - (i + 1) * increment
+                    )
                     early_cube = new_axis(early_cube, "time")
                     early_cube.data = masked_all_like(early_cube.data)
 
                     late_cube = last_slice.copy()
-                    late_cube.coord("time").points = (late_cube.coord("time").points
-                                                      + (i + 1) * increment)
+                    late_cube.coord("time").points = (
+                        late_cube.coord("time").points + (i + 1) * increment
+                    )
                     late_cube = new_axis(late_cube, "time")
                     late_cube.data = masked_all_like(late_cube.data)
 
@@ -272,20 +275,22 @@ class TrainGAMsForSAMOS(BasePlugin):
         Returns:
             Fitted GAM models for the input_cube mean and standard deviation.
         """
-        if not input_cube.coords('realization'):
-            if not input_cube.coords('time'):
+        if not input_cube.coords("realization"):
+            if not input_cube.coords("time"):
                 msg = (
                     "The input cube must contain at least one of a realization or time "
                     "coordinate in order to allow the calculation of means and "
                     "standard deviations. The following coordinates were found: "
-                    f"{input_cube.coords()}.")
+                    f"{input_cube.coords()}."
+                )
                 raise ValueError(msg)
-            elif len(input_cube.coord('time').points) == 1:
+            elif len(input_cube.coord("time").points) == 1:
                 msg = (
                     "The input cube does not contain a realization coordinate. In "
                     "order to calculate means and standard deviations the time "
                     "coordinate must contain more than one point. The following time "
-                    f"coordinate was found: {input_cube.coord('time')}.")
+                    f"coordinate was found: {input_cube.coord('time')}."
+                )
                 raise ValueError(msg)
 
         # Calculate mean and standard deviation from input cube.
@@ -330,6 +335,7 @@ class TrainEMOSForSAMOS(BasePlugin):
     and standard deviations. Finally, EMOS coefficients are calculated from the
     climatological anomaly training data.
     """
+
     def __init__(
         self,
         distribution: str,
@@ -350,10 +356,7 @@ class TrainEMOSForSAMOS(BasePlugin):
 
     @staticmethod
     def get_climatological_stats(
-        input_cube: Cube,
-        gams,
-        gam_features,
-        additional_cubes
+        input_cube: Cube, gams, gam_features, additional_cubes
     ):
         """Function to predict climatological means and standard deviations given fitted
         GAMs for each statistic and cubes which can be used to construct a dataframe
@@ -365,12 +368,8 @@ class TrainEMOSForSAMOS(BasePlugin):
 
         # Calculate climatological means and standard deviations using previously
         # fitted GAMs.
-        mean_pred = GAMPredict().process(
-            gams[0], df[gam_features]
-        )
-        sd_pred = GAMPredict().process(
-            gams[1], df[gam_features]
-        )
+        mean_pred = GAMPredict().process(gams[0], df[gam_features])
+        sd_pred = GAMPredict().process(gams[1], df[gam_features])
 
         # Convert means and standard deviations into cubes
         df[diagnostic] = mean_pred
@@ -392,17 +391,22 @@ class TrainEMOSForSAMOS(BasePlugin):
         EMOS coefficients for the climate anomalies.
         """
         # Convert forecasts and truths to climatological anomalies.
-        forecast_ca = CalculateClimateAnomalies(ignore_temporal_mismatch=True).process(*forecast_cubes)
-        truth_ca = CalculateClimateAnomalies(ignore_temporal_mismatch=True).process(*truth_cubes)
+        forecast_ca = CalculateClimateAnomalies(ignore_temporal_mismatch=True).process(
+            *forecast_cubes
+        )
+        truth_ca = CalculateClimateAnomalies(ignore_temporal_mismatch=True).process(
+            *truth_cubes
+        )
 
         plugin = EstimateCoefficientsForEnsembleCalibration(
-            distribution=self.distribution, **self.emos_kwargs,
+            distribution=self.distribution,
+            **self.emos_kwargs,
         )
         return plugin.process(
             historic_forecasts=forecast_ca,
             truths=truth_ca,
             additional_fields=additional_fields,
-            landsea_mask=landsea_mask
+            landsea_mask=landsea_mask,
         )
 
     def process(
@@ -416,8 +420,7 @@ class TrainEMOSForSAMOS(BasePlugin):
         emos_additional_fields: Optional[CubeList] = None,
         landsea_mask: Optional[Cube] = None,
     ):
-        """Doc-string
-        """
+        """Doc-string"""
         forecast_mean, forecast_sd = self.get_climatological_stats(
             historic_forecasts, forecast_gams, gam_features, gam_additional_fields
         )
@@ -429,7 +432,7 @@ class TrainEMOSForSAMOS(BasePlugin):
             forecast_cubes=[historic_forecasts, forecast_mean, forecast_sd],
             truth_cubes=[truths, truth_mean, truth_sd],
             additional_fields=emos_additional_fields,
-            landsea_mask=landsea_mask
+            landsea_mask=landsea_mask,
         )
 
         return emos_coefficients

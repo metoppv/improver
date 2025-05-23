@@ -3,15 +3,18 @@
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the TrainGAMsForSAMOS class within samos_calibration.py"""
+
 from copy import deepcopy
+
 import numpy as np
 import pytest
-from iris.cube import CubeList
 from iris.coords import CellMethod
+from iris.cube import CubeList
+
 from improver.calibration.samos_calibration import TrainGAMsForSAMOS
 from improver_tests.calibration.samos_calibration.helper_functions import (
+    create_cubes_for_gam_fitting,
     create_simple_cube,
-    create_cubes_for_gam_fitting
 )
 
 np.random.seed(1)
@@ -79,7 +82,7 @@ def test_calculate_cube_statistics(
         "n_spatial_points": 2,
         "realizations": realizations,
         "times": times,
-        "fill_value": 305.0
+        "fill_value": 305.0,
     }
     expected_cube_kwargs = {
         "forecast_type": forecast_type,
@@ -102,9 +105,7 @@ def test_calculate_cube_statistics(
     else:
         # Expect statistics to be calculated over the time dimension.
         expected_mean.add_cell_method(CellMethod("mean", coords="time"))
-        expected_sd.add_cell_method(
-            CellMethod("standard_deviation", coords="time")
-        )
+        expected_sd.add_cell_method(CellMethod("standard_deviation", coords="time"))
     if include_blend_time:
         # Add a blend time coordinate to the input cubes and additional cubes which is a
         # renamed copy of the pre-existing forecast_reference_time coordinate.
@@ -131,19 +132,23 @@ def test_calculate_cube_statistics_exception():
         "n_spatial_points": 2,
         "realizations": 1,
         "times": 3,
-        "fill_value": 305.0
+        "fill_value": 305.0,
     }
 
     # Returns cube with 3 time points at one day intervals.
     test_cube = create_simple_cube(**create_cube_kwargs)
     print(test_cube.coord("time").points)
     # Modify the time points so that they are not equally spaced
-    test_cube.coord("time").points = test_cube.coord("time").points + np.array([0, 0, 1])
+    test_cube.coord("time").points = test_cube.coord("time").points + np.array(
+        [0, 0, 1]
+    )
     print(test_cube.coord("time").points)
 
-    msg = ("In order to extend the time coordinate to permit calculation of means and "
-           "standard deviations, the existing points on the time coordinate must be "
-           "evenly spaced.")
+    msg = (
+        "In order to extend the time coordinate to permit calculation of means and "
+        "standard deviations, the existing points on the time coordinate must be "
+        "evenly spaced."
+    )
 
     with pytest.raises(ValueError, match=msg):
         TrainGAMsForSAMOS.calculate_cube_statistics(test_cube)
@@ -152,21 +157,38 @@ def test_calculate_cube_statistics_exception():
 @pytest.mark.parametrize(
     "include_altitude,spatial_model_specification,n_realizations,expected",
     [
-        [False, [["linear", [0], {}], ["linear", [1], {}]], 11, [288.15298254, 0.48331375]],
-        [True, [["linear", [0], {}], ["linear", [1], {}]], 11, [288.15007863, 0.49052109]],
+        [
+            False,
+            [["linear", [0], {}], ["linear", [1], {}]],
+            11,
+            [288.15298254, 0.48331375],
+        ],
+        [
+            True,
+            [["linear", [0], {}], ["linear", [1], {}]],
+            11,
+            [288.15007863, 0.49052109],
+        ],
         [False, [["tensor", [0, 1], {}]], 11, [288.22168378, 0.5010813]],
         [True, [["tensor", [0, 1], {}]], 11, [288.1290978, 0.44678148]],
-        [False, [["linear", [0], {}], ["linear", [1], {}]], 1, [288.17666906, 0.48082173]],
-        [True, [["linear", [0], {}], ["linear", [1], {}]], 1, [288.14031069, 0.42215065]],
+        [
+            False,
+            [["linear", [0], {}], ["linear", [1], {}]],
+            1,
+            [288.17666906, 0.48082173],
+        ],
+        [
+            True,
+            [["linear", [0], {}], ["linear", [1], {}]],
+            1,
+            [288.14031069, 0.42215065],
+        ],
         [False, [["tensor", [0, 1], {}]], 1, [288.14178362, 0.44964758]],
         [True, [["tensor", [0, 1], {}]], 1, [288.14402253, 0.51517678]],
-    ]
+    ],
 )
 def test_process(
-    include_altitude,
-    spatial_model_specification,
-    n_realizations,
-    expected
+    include_altitude, spatial_model_specification, n_realizations, expected
 ):
     """Test that this method takes an input cube, a list of features, and possibly
     additional predictor cubes and correctly returns a fitted GAM.
@@ -178,16 +200,14 @@ def test_process(
         "tol": 0.01,
         "distribution": "normal",
         "link": "identity",
-        "fit_intercept": True
+        "fit_intercept": True,
     }
     n_spatial_points = 5
     n_times = 20
 
     if include_altitude:
         features.append("surface_altitude")
-        full_model_specification.append(
-            ["spline", [2], {}]
-        )
+        full_model_specification.append(["spline", [2], {}])
 
     input_cube, additional_cubes = create_cubes_for_gam_fitting(
         n_spatial_points,
@@ -212,7 +232,7 @@ def test_process(
             assert gam.get_params()[key] == gam_kwargs[key]
         assert f"{gam.distribution}" == gam_kwargs["distribution"]
         assert f"{gam.link}" == gam_kwargs["link"]
-        assert gam.statistics_["n_samples"] == n_times * n_spatial_points ** 2
+        assert gam.statistics_["n_samples"] == n_times * n_spatial_points**2
         assert gam.statistics_["m_features"] == len(features)
 
     np.testing.assert_almost_equal(mean_prediction[0], expected[0])
@@ -220,10 +240,7 @@ def test_process(
 
 
 @pytest.mark.parametrize("exception", ["no_time_coord", "single_point_time_coord"])
-def test_missing_required_coordinates_exception(
-    exception,
-    model_specification
-):
+def test_missing_required_coordinates_exception(exception, model_specification):
     """Test that the correct exceptions are raised when the input cube does not contain
     suitable realization or time coordinates."""
     # Create a cube with no realization coordinate and a single point time coordinate.
@@ -232,19 +249,23 @@ def test_missing_required_coordinates_exception(
         n_spatial_points=2,
         realizations=1,
         times=1,
-        fill_value=305.0
+        fill_value=305.0,
     )
     features = ["latitude", "longitude"]
 
-    if exception is "no_time_coord":
+    if exception == "no_time_coord":
         input_cube.remove_coord("time")
-        msg = ("The input cube must contain at least one of a realization or time "
-               "coordinate in order to allow the calculation of means and standard "
-               "deviations.")
-    elif exception is "single_point_time_coord":
-        msg = ("The input cube does not contain a realization coordinate. In order to "
-               "calculate means and standard deviations the time coordinate must "
-               "contain more than one point.")
+        msg = (
+            "The input cube must contain at least one of a realization or time "
+            "coordinate in order to allow the calculation of means and standard "
+            "deviations."
+        )
+    elif exception == "single_point_time_coord":
+        msg = (
+            "The input cube does not contain a realization coordinate. In order to "
+            "calculate means and standard deviations the time coordinate must "
+            "contain more than one point."
+        )
 
     with pytest.raises(ValueError, match=msg):
         TrainGAMsForSAMOS(model_specification).process(input_cube, features)

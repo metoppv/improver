@@ -2,35 +2,44 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""Helper functions for SAMOS unit tests.
-"""
+"""Helper functions for SAMOS unit tests."""
+
 from datetime import datetime, timedelta
+from typing import Dict, Optional
+
+import cf_units
 import iris.cube
 import numpy as np
 import pandas as pd
 import pytest
-from iris.cube import Cube, CubeList
-from iris.coords import CellMethod
+from iris.cube import Cube
+
 from improver.synthetic_data.set_up_test_cubes import (
     set_up_spot_variable_cube,
     set_up_variable_cube,
 )
-from typing import Optional, Dict
-import cf_units
 
 
 @pytest.fixture
 def gridded_dataframe(spatial_grid: str):
     """Fixture for creating the expected dataframe of gridded data"""
     time = datetime(2017, 11, 10, 4, 0, 0)
-    time = cf_units.date2num(time, 'seconds since 1970-01-01 00:00:00', cf_units.CALENDAR_STANDARD)
-    time = cf_units.num2date(time, 'seconds since 1970-01-01 00:00:00', cf_units.CALENDAR_STANDARD)
+    time = cf_units.date2num(
+        time, "seconds since 1970-01-01 00:00:00", cf_units.CALENDAR_STANDARD
+    )
+    time = cf_units.num2date(
+        time, "seconds since 1970-01-01 00:00:00", cf_units.CALENDAR_STANDARD
+    )
 
     frt = datetime(2017, 11, 10, 0, 0, 0)
-    frt = cf_units.date2num(frt, 'seconds since 1970-01-01 00:00:00', cf_units.CALENDAR_STANDARD)
-    frt = cf_units.num2date(frt, 'seconds since 1970-01-01 00:00:00', cf_units.CALENDAR_STANDARD)
+    frt = cf_units.date2num(
+        frt, "seconds since 1970-01-01 00:00:00", cf_units.CALENDAR_STANDARD
+    )
+    frt = cf_units.num2date(
+        frt, "seconds since 1970-01-01 00:00:00", cf_units.CALENDAR_STANDARD
+    )
 
-    if spatial_grid is "latlon":
+    if spatial_grid == "latlon":
         data = {
             "realization": np.array([0, 0, 0, 0, 1, 1, 1, 1], dtype=np.int32),
             "latitude": np.array([-5.0, -5.0, 5.0, 5.0] * 2, dtype=np.float32),
@@ -40,7 +49,7 @@ def gridded_dataframe(spatial_grid: str):
             "forecast_reference_time": np.array([frt] * 8),
             "time": np.array([time] * 8),
         }
-    elif spatial_grid is "equalarea":
+    elif spatial_grid == "equalarea":
         data = {
             "realization": np.array([0, 0, 0, 0, 1, 1, 1, 1], dtype=np.int32),
             "projection_y_coordinate": np.array(
@@ -62,12 +71,20 @@ def gridded_dataframe(spatial_grid: str):
 def spot_dataframe():
     """Fixture for creating the expected dataframe of spot data"""
     time = datetime(2017, 11, 10, 4, 0, 0)
-    time = cf_units.date2num(time, 'seconds since 1970-01-01 00:00:00', cf_units.CALENDAR_STANDARD)
-    time = cf_units.num2date(time, 'seconds since 1970-01-01 00:00:00', cf_units.CALENDAR_STANDARD)
+    time = cf_units.date2num(
+        time, "seconds since 1970-01-01 00:00:00", cf_units.CALENDAR_STANDARD
+    )
+    time = cf_units.num2date(
+        time, "seconds since 1970-01-01 00:00:00", cf_units.CALENDAR_STANDARD
+    )
 
     frt = datetime(2017, 11, 10, 0, 0, 0)
-    frt = cf_units.date2num(frt, 'seconds since 1970-01-01 00:00:00', cf_units.CALENDAR_STANDARD)
-    frt = cf_units.num2date(frt, 'seconds since 1970-01-01 00:00:00', cf_units.CALENDAR_STANDARD)
+    frt = cf_units.date2num(
+        frt, "seconds since 1970-01-01 00:00:00", cf_units.CALENDAR_STANDARD
+    )
+    frt = cf_units.num2date(
+        frt, "seconds since 1970-01-01 00:00:00", cf_units.CALENDAR_STANDARD
+    )
 
     data = {
         "realization": np.array([0, 0, 1, 1], dtype=np.int32),
@@ -89,12 +106,12 @@ def altitude_cube(forecast_type, set_up_kwargs: Optional[Dict] = None) -> Cube:
     """Function for creating an altitude cube ancillary."""
     if set_up_kwargs is None:
         set_up_kwargs = {}
-    if forecast_type is "gridded":
+    if forecast_type == "gridded":
         data = np.array([[10, 20], [20, 10]], dtype=np.float32)
         output = set_up_variable_cube(
             data=data, name="surface_altitude", **set_up_kwargs
         )
-    elif forecast_type is "spot":
+    elif forecast_type == "spot":
         data = np.array([10, 20], dtype=np.float32)
         output = set_up_spot_variable_cube(
             data=data, name="surface_altitude", **set_up_kwargs
@@ -107,12 +124,10 @@ def land_fraction_cube(forecast_type, set_up_kwargs: Optional[Dict] = None) -> C
     """Fixture for creating a land fraction cube ancillary."""
     if set_up_kwargs is None:
         set_up_kwargs = {}
-    if forecast_type is "gridded":
-        data = np.array(
-            [[0.0, 0.1, 0.2, 0.3], [0.3, 0.2, 0.1, 0.0]], dtype=np.float32
-        )
+    if forecast_type == "gridded":
+        data = np.array([[0.0, 0.1, 0.2, 0.3], [0.3, 0.2, 0.1, 0.0]], dtype=np.float32)
         output = set_up_variable_cube(data=data, name="land_fraction", **set_up_kwargs)
-    if forecast_type is "spot":
+    if forecast_type == "spot":
         data = np.array([0.0, 0.1, 0.2, 0.3], dtype=np.float32)
         output = set_up_spot_variable_cube(
             data=data, name="land_fraction", **set_up_kwargs
@@ -128,7 +143,7 @@ def create_simple_cube(
     times,
     fill_value,
     set_up_kwargs: Optional[Dict] = None,
-    fixed_forecast_period = False
+    fixed_forecast_period=False,
 ) -> Cube:
     """Function for creating a cube of temperature data."""
     if set_up_kwargs is None:
@@ -160,11 +175,11 @@ def create_simple_cube(
 
 
 def create_cubes_for_gam_fitting(
-        n_spatial_points,
-        n_realizations,
-        n_times,
-        include_altitude,
-        fixed_forecast_period=False,
+    n_spatial_points,
+    n_realizations,
+    n_times,
+    include_altitude,
+    fixed_forecast_period=False,
 ):
     """Function to create a temperature cube with data which varies spatially.
     Optionally, may also produce analtitude cube whilst simultaneously modifying the
@@ -176,24 +191,21 @@ def create_cubes_for_gam_fitting(
         realizations=n_realizations,
         times=n_times,
         fill_value=273.15,
-        fixed_forecast_period=fixed_forecast_period
+        fixed_forecast_period=fixed_forecast_period,
     )
     # Create array of data to add to cube which increases with x and y, so that
     # these features are useful in the GAMs.
-    lat_addition = np.linspace(
-        start=0, stop=15, num=n_spatial_points
-    ).reshape([n_spatial_points, 1])
-    lon_addition = np.linspace(
-        start=0, stop=15, num=n_spatial_points
-    ).reshape([1, n_spatial_points])
-    addition = lat_addition + lon_addition  # 10x10 array
-    addition = np.broadcast_to(
-        addition,
-        shape=input_cube.data.shape
+    lat_addition = np.linspace(start=0, stop=15, num=n_spatial_points).reshape(
+        [n_spatial_points, 1]
     )
+    lon_addition = np.linspace(start=0, stop=15, num=n_spatial_points).reshape(
+        [1, n_spatial_points]
+    )
+    addition = lat_addition + lon_addition  # 10x10 array
+    addition = np.broadcast_to(addition, shape=input_cube.data.shape)
     # Create array of random noise which increases with x and y, so that there is
     # some variance in the data to model in the standard deviation GAM.
-    noise = np.random.normal(loc=0.0, scale=addition/30)
+    noise = np.random.normal(loc=0.0, scale=addition / 30)
     input_cube.data = input_cube.data + addition + noise
 
     additional_cubes = []
@@ -206,16 +218,21 @@ def create_cubes_for_gam_fitting(
             n_spatial_points=n_spatial_points,
             realizations=1,
             times=1,
-            fill_value=1000.0
+            fill_value=1000.0,
         )
         altitude_cube.rename("surface_altitude")
 
-        lat_multiplier = np.abs(np.linspace(
-            start=-1, stop=1, num=n_spatial_points
-        ).reshape([n_spatial_points, 1]))  # 1 at ends, close to 0 in the middle.
-        lon_multiplier = np.abs(np.linspace(
-            start=-1, stop=1, num=n_spatial_points
-        ).reshape([1, n_spatial_points]) - 1)  # 1 at ends, close to 0 in the middle.
+        lat_multiplier = np.abs(
+            np.linspace(start=-1, stop=1, num=n_spatial_points).reshape(
+                [n_spatial_points, 1]
+            )
+        )  # 1 at ends, close to 0 in the middle.
+        lon_multiplier = np.abs(
+            np.linspace(start=-1, stop=1, num=n_spatial_points).reshape(
+                [1, n_spatial_points]
+            )
+            - 1
+        )  # 1 at ends, close to 0 in the middle.
         altitude_multiplier = lat_multiplier * lon_multiplier
 
         altitude_cube.data = altitude_cube.data * altitude_multiplier
@@ -223,8 +240,7 @@ def create_cubes_for_gam_fitting(
 
         # Subtract values from input_cube data which increase with altitude.
         altitude_multiplier = np.broadcast_to(
-            altitude_multiplier,
-            shape=input_cube.data.shape
+            altitude_multiplier, shape=input_cube.data.shape
         )
         input_cube.data = input_cube.data - (5.0 * altitude_multiplier)
 

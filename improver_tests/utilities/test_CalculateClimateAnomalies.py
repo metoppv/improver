@@ -149,15 +149,23 @@ def check_reference_epoch_coord(result_cube, reference_cube):
         # Check that the reference_epoch coordinate has bounds which represent the whole
         # time range of reference_cube.
         if reference_cube.coord("time").has_bounds():
-            expected_bounds = [[
-                reference_cube.coord("time").bounds[0][0],  # Earliest bound on cube.
-                reference_cube.coord("time").bounds[-1][-1]  # Latest bound on cube.
-            ]]
+            expected_bounds = [
+                [
+                    reference_cube.coord("time").bounds[0][
+                        0
+                    ],  # Earliest bound on cube.
+                    reference_cube.coord("time").bounds[-1][
+                        -1
+                    ],  # Latest bound on cube.
+                ]
+            ]
         else:
-            expected_bounds = [[
-                reference_cube.coord("time").points[0],
-                reference_cube.coord("time").points[-1]
-            ]]
+            expected_bounds = [
+                [
+                    reference_cube.coord("time").points[0],
+                    reference_cube.coord("time").points[-1],
+                ]
+            ]
         results.append(
             np.array_equal(
                 result_cube.coord("reference_epoch").bounds,
@@ -278,7 +286,7 @@ def test_non_collapsed_stats_cube(forecast_reference_time, validity_time):
         set_up_cube_kwargs = {
             "time": vt,
             "frt": forecast_reference_time,
-            "time_bounds": tb
+            "time_bounds": tb,
         }
 
         data = np.full((2, 2, 2), 302.0, dtype=np.float32)
@@ -303,7 +311,9 @@ def test_non_collapsed_stats_cube(forecast_reference_time, validity_time):
         "(CellMethod(method='anomaly', coord_names=('reference_epoch',), "
         "intervals=(), comments=())" in str(result.cell_methods)
     )
-    np.testing.assert_allclose(result.data, np.full((3, 2, 2, 2), 2.0, dtype=np.float32))
+    np.testing.assert_allclose(
+        result.data, np.full((3, 2, 2, 2), 2.0, dtype=np.float32)
+    )
 
 
 def test_ignore_temporal_mismatch(diagnostic_cube, mean_cube, std_cube):
