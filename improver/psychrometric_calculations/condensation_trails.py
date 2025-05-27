@@ -67,14 +67,13 @@ class CondensationTrailFormation(BasePlugin):
                     Cube of the temperature on pressure levels.
                 relative_humidity:
                     Cube of the relative humidity on pressure levels.
-                geopotential_height:
-                    Cube of the height above sea level on pressure levels.
+
         Returns:
             Cube of heights above sea level at which contrails will form.
         """
         cubes = as_cubelist(*cubes)
-        (self.temperature, self.humidity, self.height) = CubeList(cubes).extract(
-            ["air_temperature", "relative_humidity", "geopotential_height"]
+        (self.temperature, self.humidity) = CubeList(cubes).extract(
+            ["air_temperature", "relative_humidity"]
         )
 
         # Get the pressure levels from the first cube
