@@ -2,7 +2,7 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""Module to contain Condensation trail calculations."""
+"""Module to contain Condensation trail formation calculations."""
 
 from typing import Union
 
@@ -20,9 +20,8 @@ class CondensationTrailFormation(BasePlugin):
 
     The calculations require cubes of the following data:
 
-    - Temperature
-    - Pressure
-    - Relative Humidity
+    - Temperature on pressure levels.
+    - Relative Humidity on pressure levels.
 
     Alongside constants including the ratio of the molecular masses of
     water and air (EARTH_REPSILON), and defined values for the engine
