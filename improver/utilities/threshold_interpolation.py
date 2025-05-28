@@ -38,7 +38,7 @@ class ThresholdInterpolation(PostProcessingPlugin):
         """
         Args:
             threshold_values:
-                The desired output thresholds, either as a list of float values or a 
+                The desired output thresholds, either as a list of float values or a
                 single float value.
             threshold_config:
                 Threshold configuration containing threshold values. It should contain

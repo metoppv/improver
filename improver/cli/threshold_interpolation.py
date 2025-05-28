@@ -25,7 +25,7 @@ def process(
         forecast_at_thresholds:
             Cube expected to contain a threshold coordinate.
         threshold_values:
-            The desired output thresholds, either as a list of float values or a 
+            The desired output thresholds, either as a list of float values or a
             single float value.
         threshold_config:
             Threshold configuration containing threshold values. It should contain
