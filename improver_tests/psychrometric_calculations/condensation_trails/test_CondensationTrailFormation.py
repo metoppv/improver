@@ -183,6 +183,6 @@ def test_engine_mixing_ratio(
     plugin = CondensationTrailFormation()
     plugin.process(temperature_cube, humidity_cube)
 
-    # Check that calculate_engine_mixing_ratios works after process
-    mixing_ratios = plugin.calculate_engine_mixing_ratios()
+    # Check that _calculate_engine_mixing_ratios works after process
+    mixing_ratios = plugin._calculate_engine_mixing_ratios()
     np.testing.assert_array_equal(mixing_ratios, expected_mixing_ratios)

@@ -34,13 +34,22 @@ class CondensationTrailFormation(BasePlugin):
     """
 
     def __init__(self, engine_contrail_factors: list = [3e-5, 3.4e-5, 3.9e-5]):
-        """Initialsies the Class"""
+        """Initialises the Class
+
+        Args:
+            engine_contrail_factors (list, optional):
+                List of engine contrail factors to use in the
+                calculations. Defaults to [3e-5, 3.4e-5, 3.9e-5].
+                These values are for Non-, Low-, and High-Bypass
+                engines from Schrader (1997). The units are
+                kg/kg/K.
+        """
 
         self._engine_contrail_factors: np.ndarray = np.array(
             engine_contrail_factors, dtype=np.float32
         )
 
-    def calculate_engine_mixing_ratios(self) -> np.ndarray:
+    def _calculate_engine_mixing_ratios(self) -> np.ndarray:
         """
         Calculate the mixing ratio of the atmosphere and aircraft
         exhaust (Schrader, 1997). This calculation uses
@@ -80,7 +89,7 @@ class CondensationTrailFormation(BasePlugin):
         self.pressure_levels = self.temperature.coord("pressure").points
 
         # Calculate the mixing ratios
-        engine_mixing_ratios = self.calculate_engine_mixing_ratios()
+        engine_mixing_ratios = self._calculate_engine_mixing_ratios()
 
         # Placeholder return to silence my type checker
         return_cube = Cube(
