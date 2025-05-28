@@ -123,7 +123,7 @@ def process(
     from improver.calibration.dataframe_utilities import (
         forecast_and_truth_dataframes_to_cubes,
     )
-    from improver.calibration.ensemble_calibration import (
+    from improver.calibration.emos_calibration import (
         EstimateCoefficientsForEnsembleCalibration,
     )
 
