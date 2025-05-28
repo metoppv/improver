@@ -31,14 +31,15 @@ from improver.utilities.cube_manipulation import (
 class ThresholdInterpolation(PostProcessingPlugin):
     def __init__(
         self,
-        threshold_values: Optional[List[float]] = None,
+        threshold_values: Optional[Union[List[float], float]] = None,
         threshold_config: Optional[Union[List[float], Dict[str, str]]] = None,
         threshold_units: Optional[str] = None,
     ):
         """
         Args:
             threshold_values:
-                List of the desired output thresholds.
+                The desired output thresholds, either as a list of float values or a 
+                single float value.
             threshold_config:
                 Threshold configuration containing threshold values. It should contain
                 either a list of float values or a dictionary of strings that can be
@@ -78,7 +79,7 @@ class ThresholdInterpolation(PostProcessingPlugin):
 
     @staticmethod
     def _set_thresholds(
-        threshold_values: Optional[List[float]] = None,
+        threshold_values: Optional[Union[List[float], float]] = None,
         threshold_config: Optional[Union[List[float], Dict[str, str]]] = None,
     ) -> List[float]:
         """
@@ -105,8 +106,7 @@ class ThresholdInterpolation(PostProcessingPlugin):
         elif threshold_config and isinstance(threshold_config, list):
             thresholds = [float(x) for x in threshold_config]
         else:
-            # Ensure thresholds are float64 to avoid rounding errors during possible
-            # unit conversion.
+            # Convert threshold_values to a list if it is a single value.
             if isinstance(threshold_values, numbers.Number):
                 threshold_values = [threshold_values]
             thresholds = [float(x) for x in threshold_values]
@@ -253,7 +253,7 @@ class ThresholdInterpolation(PostProcessingPlugin):
         1. Identifies the threshold coordinate in the input cube.
         2. Checks if the mask is consistent across different slices of the threshold
         coordinate.
-        3. Convert the threshold coordinate to the specified units if provided.
+        3. Converts the threshold coordinate to the specified units if provided.
         4. Collapses the realizations if present.
         5. Interpolates the data to the new set of thresholds.
         6. Creates a new cube with the interpolated threshold data.

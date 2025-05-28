@@ -82,7 +82,7 @@ def threshold_config_dict():
 
 @pytest.fixture
 def threshold_config_list():
-    """Set up a threshold_config dictionary."""
+    """Set up a threshold_config list."""
     return [100, 150, 200, 250, 300]
 
 
@@ -162,7 +162,23 @@ def test_threshold_config_provided(request, input, threshold_config, threshold_v
     )
 
 
-def test_no_new_thresholds_provided():
+def test_single_threshold_value_provided(input_cube):
+    """
+    Test that the plugin can handle a single numeric input for threshold_values.
+    """
+    result = ThresholdInterpolation(threshold_values=250)(input_cube)
+    expected_interpolated_values = np.array(
+        [
+            [1.0, 0.35, 0.75],
+            [0.35, 0.25, 0.2],
+            [0.1, 0.0, 0.0],
+        ],
+        dtype=np.float32,
+    )
+    np.testing.assert_array_equal(result.data, expected_interpolated_values)
+
+
+def test_no_thresholds_provided():
     """
     Test that a ValueError is raised if neither threshold_config or threshold_values
     are set.
