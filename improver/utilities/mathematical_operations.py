@@ -515,12 +515,12 @@ class CalculateClimateAnomalies(BasePlugin):
         if mean_cube.coord("time").has_bounds():
             bounds = [
                 mean_cube.coord("time").bounds[0][0],  # Earliest bound on cube.
-                mean_cube.coord("time").bounds[-1][-1]  # Latest bound on cube.
+                mean_cube.coord("time").bounds[-1][-1],  # Latest bound on cube.
             ]
         else:
             bounds = [
                 mean_cube.coord("time").points[0],
-                mean_cube.coord("time").points[-1]
+                mean_cube.coord("time").points[-1],
             ]
 
         reference_epoch = iris.coords.AuxCoord(
@@ -842,7 +842,10 @@ def verify_time_coords_match(
     if not ignore_temporal_mismatch:
         diagnostic_max = diagnostic_cube.coord("time").cell(-1).point
         diagnostic_min = diagnostic_cube.coord("time").cell(0).point
-        mean_time_bounds = [mean_cube.coord("time").bounds[0][0], mean_cube.coord("time").bounds[-1][-1]]
+        mean_time_bounds = [
+            mean_cube.coord("time").bounds[0][0],
+            mean_cube.coord("time").bounds[-1][-1],
+        ]
         mean_time_bounds = [
             mean_cube.coord("time").units.num2date(bound) for bound in mean_time_bounds
         ]
