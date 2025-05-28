@@ -3,7 +3,9 @@
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the TrainGAMsForSAMOS class within samos_calibration.py"""
+
 from copy import deepcopy
+
 import numpy as np
 import pytest
 from iris.cube import CubeList
@@ -286,7 +288,6 @@ def test_calculate_cube_statistics_exception(model_specification):
         "coordinate. The increments between points in the time coordinate "
         "were: \\[86400 86401\\]. The smallest increment was: 86400."
     )
-
     with pytest.raises(ValueError, match=msg):
         TrainGAMsForSAMOS(
             model_specification=model_specification

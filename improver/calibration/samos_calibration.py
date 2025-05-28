@@ -28,6 +28,18 @@ from numpy import array, int64, nan
 from numpy.ma import masked_all_like
 from pandas import merge
 
+from improver import BasePlugin
+from improver.calibration.emos_calibration import (
+    EstimateCoefficientsForEnsembleCalibration,
+)
+from improver.utilities.generalized_additive_models import GAMFit, GAMPredict
+from improver.utilities.mathematical_operations import (
+    CalculateClimateAnomalies,
+)
+
+# Setting to allow cubes with more than 2 dimensions to be converted to/from dataframes.
+iris.FUTURE.pandas_ndim = True
+
 
 def prepare_data_for_gam(
     input_cube: Cube,
@@ -80,10 +92,19 @@ def prepare_data_for_gam(
 def convert_dataframe_to_cube(
     df: pd.DataFrame,
     template_cube: Cube,
-):
-    """Function to convert a Pandas dataframe to Iris cube format. The result is a copy
-    of template_cube with data from df. The diagnostic name and all of the dimension
-    coordinates on template_cube must be columns of df.
+) -> Cube:
+    """Function to convert a Pandas dataframe to Iris cube format by using a template
+    cube.
+
+    Args:
+        df: a Pandas dataframe which must contain at least the following columns:
+            1. a column matching the name of template_cube
+            2. a series of columns with names which match the dimension coordinates on
+            template_cube
+        template_cube: A cube which will provide the metadata for the output cube
+
+    Returns:
+        A copy of template_cube containing data from df.
     """
     dim_coords = [c.name() for c in template_cube.coords(dim_coords=True)]
     diagnostic = template_cube.name()
@@ -223,32 +244,32 @@ class TrainGAMsForSAMOS(BasePlugin):
     ):
         """
         Initialize the class.
-            Args:
-                model_specification:
-                    A list of lists which each contain three items (in order):
-                        1. a string containing a single pyGAM term; one of 'linear',
-                        'spline', 'tensor', or 'factor'
-                        2. a list of integers which correspond to the features to be
-                        included in that term
-                        3. a dictionary of kwargs to be included when defining the term
-                max_iter:
-                    A pyGAM argument which determines the maximum iterations allowed when
-                    fitting the GAM
-                tol:
-                    A pyGAM argument determining the tolerance used to define the stopping
-                    criteria
-                distribution:
-                    A pyGAM argument determining the distribution to be used in the model
-                link:
-                    A pyGAM argument determining the link function to be used in the model
-                fit_intercept:
-                    A pyGAM argument determining whether to include an intercept term in
-                    the model
-                window_length:
-                    The length of the rolling window used to calculate the mean and standard
-                    deviation of the input cube when the input cube does not have a
-                    realization dimension coordinate. This must be an odd integer greater
-                    than 1.
+        Args:
+            model_specification:
+                A list of lists which each contain three items (in order):
+                    1. a string containing a single pyGAM term; one of 'linear',
+                    'spline', 'tensor', or 'factor'
+                    2. a list of integers which correspond to the features to be
+                    included in that term
+                    3. a dictionary of kwargs to be included when defining the term
+            max_iter:
+                A pyGAM argument which determines the maximum iterations allowed when
+                fitting the GAM
+            tol:
+                A pyGAM argument determining the tolerance used to define the stopping
+                criteria
+            distribution:
+                A pyGAM argument determining the distribution to be used in the model
+            link:
+                A pyGAM argument determining the link function to be used in the model
+            fit_intercept:
+                A pyGAM argument determining whether to include an intercept term in
+                the model
+            window_length:
+                The length of the rolling window used to calculate the mean and standard
+                deviation of the input cube when the input cube does not have a
+                realization dimension coordinate. This must be an odd integer greater
+                than 1.
         """
         self.model_specification = model_specification
         self.max_iter = max_iter
