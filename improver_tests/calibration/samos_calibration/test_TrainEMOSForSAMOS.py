@@ -3,15 +3,14 @@
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the TrainEMOSForSAMOS class within samos_calibration.py"""
-from copy import deepcopy
+
 import numpy as np
 import pytest
-from iris.cube import CubeList
-from iris.coords import CellMethod
+
 from improver.calibration.samos_calibration import TrainEMOSForSAMOS, TrainGAMsForSAMOS
 from improver_tests.calibration.samos_calibration.helper_functions import (
+    create_cubes_for_gam_fitting,
     create_simple_cube,
-    create_cubes_for_gam_fitting
 )
 
 np.random.seed(1)
@@ -20,17 +19,12 @@ np.random.seed(1)
 @pytest.mark.parametrize(
     "kwargs",
     [
-        {
-            "distribution": "norm"
-        },
+        {"distribution": "norm"},
         {
             "distribution": "norm",
             "emos_kwargs": {"point_by_point": True, "use_default_initial_guess": True},
         },
-        {
-            "distribution": "truncnorm",
-            "emos_kwargs": {}
-        },
+        {"distribution": "truncnorm", "emos_kwargs": {}},
     ],
 )
 def test__init__(kwargs):
@@ -64,9 +58,7 @@ def test_get_climatological_stats(
 
     if include_altitude:
         features.append("surface_altitude")
-        model_specification.append(
-            ["spline", [features.index("surface_altitude")], {}]
-        )
+        model_specification.append(["spline", [features.index("surface_altitude")], {}])
 
     cube_for_gam, additional_cubes_for_gam = create_cubes_for_gam_fitting(
         n_spatial_points=n_spatial_points,
@@ -87,17 +79,14 @@ def test_get_climatological_stats(
     )
 
     result_mean, result_sd = TrainEMOSForSAMOS.get_climatological_stats(
-        cube_for_test,
-        gams,
-        features,
-        additional_cubes_for_test
+        cube_for_test, gams, features, additional_cubes_for_test
     )
 
     expected_mean = create_simple_cube(
         forecast_type="gridded",
         n_spatial_points=2,
-        realizations=2,
-        times=1,
+        n_realizations=2,
+        n_times=1,
         fill_value=0.0,
     )
     expected_sd = expected_mean.copy()
@@ -105,66 +94,46 @@ def test_get_climatological_stats(
     if not include_altitude:
         expected_mean.data = np.array(
             [
-                [
-                    [284.40612416, 288.15826842],
-                    [288.16342809, 291.91557236]
-                ],
-                [
-                    [284.40612416, 288.15826842],
-                    [288.16342809, 291.91557236]
-                ]
+                [[284.40612416, 288.15826842], [288.16342809, 291.91557236]],
+                [[284.40612416, 288.15826842], [288.16342809, 291.91557236]],
             ],
-            dtype=np.float32)
+            dtype=np.float32,
+        )
         expected_sd.data = np.array(
             [
-                [
-                    [0.35133422, 0.4753756],
-                    [0.47594341, 0.59998479]
-                ],
-                [
-                    [0.35133422, 0.4753756],
-                    [0.47594341, 0.59998479]
-                ]
+                [[0.35133422, 0.4753756], [0.47594341, 0.59998479]],
+                [[0.35133422, 0.4753756], [0.47594341, 0.59998479]],
             ],
-            dtype=np.float32)
+            dtype=np.float32,
+        )
     else:
         expected_mean.data = np.array(
             [
-                [
-                    [274.37687093, 288.16193833],
-                    [278.13439548, 291.91946287]
-                ],
-                [
-                    [274.37687093, 288.16193833],
-                    [278.13439548, 291.91946287]
-                ]
+                [[274.37687093, 288.16193833], [278.13439548, 291.91946287]],
+                [[274.37687093, 288.16193833], [278.13439548, 291.91946287]],
             ],
-            dtype=np.float32)
+            dtype=np.float32,
+        )
         expected_sd.data = np.array(
             [
-                [
-                    [0.37329375, 0.48791014],
-                    [0.49727166, 0.61188805]
-                ],
-                [
-                    [0.37329375, 0.48791014],
-                    [0.49727166, 0.61188805]
-                ]
+                [[0.37329375, 0.48791014], [0.49727166, 0.61188805]],
+                [[0.37329375, 0.48791014], [0.49727166, 0.61188805]],
             ],
-            dtype=np.float32)
+            dtype=np.float32,
+        )
 
     assert result_mean == expected_mean
     assert result_sd == expected_sd
 
 
 def test_climate_anomaly_emos():
-    """Test that the climate_anomaly_emos method returns the expected results. """
+    """Test that the climate_anomaly_emos method returns the expected results."""
     create_cube_kwargs = {
         "forecast_type": "gridded",
         "n_spatial_points": 2,
-        "realizations": 5,
-        "times": 10,
-        "fixed_forecast_period": True
+        "n_realizations": 5,
+        "n_times": 10,
+        "fixed_forecast_period": True,
     }
 
     forecast_raw = create_simple_cube(fill_value=300.0, **create_cube_kwargs)
@@ -172,7 +141,7 @@ def test_climate_anomaly_emos():
     forecast_sd = create_simple_cube(fill_value=1.0, **create_cube_kwargs)
     forecast_cubes = [forecast_raw, forecast_mean, forecast_sd]
 
-    create_cube_kwargs["realizations"] = 1
+    create_cube_kwargs["n_realizations"] = 1
     truth_raw = create_simple_cube(fill_value=300.0, **create_cube_kwargs)
     truth_mean = create_simple_cube(fill_value=300.0, **create_cube_kwargs)
     truth_sd = create_simple_cube(fill_value=1.0, **create_cube_kwargs)
@@ -182,15 +151,14 @@ def test_climate_anomaly_emos():
         cube.remove_coord("forecast_period")
 
     result = TrainEMOSForSAMOS(distribution="norm").climate_anomaly_emos(
-        forecast_cubes=forecast_cubes,
-        truth_cubes=truth_cubes
+        forecast_cubes=forecast_cubes, truth_cubes=truth_cubes
     )
 
     expected_names = [
         "emos_coefficient_alpha",
         "emos_coefficient_beta",
         "emos_coefficient_gamma",
-        "emos_coefficient_delta"
+        "emos_coefficient_delta",
     ]
     expected_data = [8.196854e-06, 9.267808e-05, -2.6859516e-05, 0.99098396]
 
@@ -211,16 +179,14 @@ def test_process(include_altitude):
 
     if include_altitude:
         features.append("surface_altitude")
-        model_specification.append(
-            ["spline", [features.index("surface_altitude")], {}]
-        )
+        model_specification.append(["spline", [features.index("surface_altitude")], {}])
 
     forecast_cube, additional_cubes = create_cubes_for_gam_fitting(
         n_spatial_points=n_spatial_points,
         n_realizations=n_realizations,
         n_times=n_times,
         include_altitude=include_altitude,
-        fixed_forecast_period=True
+        fixed_forecast_period=True,
     )
 
     truth_cube, _ = create_cubes_for_gam_fitting(
@@ -228,7 +194,7 @@ def test_process(include_altitude):
         n_realizations=1,
         n_times=n_times,
         include_altitude=include_altitude,
-        fixed_forecast_period=True
+        fixed_forecast_period=True,
     )
     truth_cube.remove_coord("forecast_reference_time")
     truth_cube.remove_coord("forecast_period")
@@ -246,14 +212,14 @@ def test_process(include_altitude):
         forecast_gams=forecast_gams,
         truth_gams=truth_gams,
         gam_features=features,
-        gam_additional_fields=additional_cubes
+        gam_additional_fields=additional_cubes,
     )
 
     expected_names = [
         "emos_coefficient_alpha",
         "emos_coefficient_beta",
         "emos_coefficient_gamma",
-        "emos_coefficient_delta"
+        "emos_coefficient_delta",
     ]
     if include_altitude:
         expected_data = [0.094867475, 0.13698582, 0.016275924, 1.0714376]

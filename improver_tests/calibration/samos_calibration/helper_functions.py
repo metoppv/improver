@@ -2,135 +2,59 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""Helper functions for SAMOS unit tests.
-"""
+"""Helper functions for SAMOS unit tests."""
+
 from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Tuple
+
 import iris.cube
 import numpy as np
-import pandas as pd
-import pytest
-from iris.cube import Cube, CubeList
-from iris.coords import CellMethod
+from iris.cube import Cube
+
 from improver.synthetic_data.set_up_test_cubes import (
     set_up_spot_variable_cube,
     set_up_variable_cube,
 )
-from typing import Optional, Dict
-import cf_units
-
-
-@pytest.fixture
-def gridded_dataframe(spatial_grid: str):
-    """Fixture for creating the expected dataframe of gridded data"""
-    time = datetime(2017, 11, 10, 4, 0, 0)
-    time = cf_units.date2num(time, 'seconds since 1970-01-01 00:00:00', cf_units.CALENDAR_STANDARD)
-    time = cf_units.num2date(time, 'seconds since 1970-01-01 00:00:00', cf_units.CALENDAR_STANDARD)
-
-    frt = datetime(2017, 11, 10, 0, 0, 0)
-    frt = cf_units.date2num(frt, 'seconds since 1970-01-01 00:00:00', cf_units.CALENDAR_STANDARD)
-    frt = cf_units.num2date(frt, 'seconds since 1970-01-01 00:00:00', cf_units.CALENDAR_STANDARD)
-
-    if spatial_grid is "latlon":
-        data = {
-            "realization": np.array([0, 0, 0, 0, 1, 1, 1, 1], dtype=np.int32),
-            "latitude": np.array([-5.0, -5.0, 5.0, 5.0] * 2, dtype=np.float32),
-            "longitude": np.array([-5.0, 5.0] * 4, dtype=np.float32),
-            "air_temperature": np.array([305.0] * 8, dtype=np.float32),
-            "forecast_period": np.array([14400] * 8, dtype=np.int32),
-            "forecast_reference_time": np.array([frt] * 8),
-            "time": np.array([time] * 8),
-        }
-    elif spatial_grid is "equalarea":
-        data = {
-            "realization": np.array([0, 0, 0, 0, 1, 1, 1, 1], dtype=np.int32),
-            "projection_y_coordinate": np.array(
-                [-1000.0, -1000.0, 1000.0, 1000.0] * 2, dtype=np.float32
-            ),
-            "projection_x_coordinate": np.array(
-                [-1000.0, 1000.0] * 4, dtype=np.float32
-            ),
-            "air_temperature": np.array([305.0] * 8, dtype=np.float32),
-            "forecast_period": np.array([14400] * 8, dtype=np.int32),
-            "forecast_reference_time": [frt] * 8,
-            "time": [time] * 8,
-        }
-
-    return pd.DataFrame(data=data)
-
-
-@pytest.fixture
-def spot_dataframe():
-    """Fixture for creating the expected dataframe of spot data"""
-    time = datetime(2017, 11, 10, 4, 0, 0)
-    time = cf_units.date2num(time, 'seconds since 1970-01-01 00:00:00', cf_units.CALENDAR_STANDARD)
-    time = cf_units.num2date(time, 'seconds since 1970-01-01 00:00:00', cf_units.CALENDAR_STANDARD)
-
-    frt = datetime(2017, 11, 10, 0, 0, 0)
-    frt = cf_units.date2num(frt, 'seconds since 1970-01-01 00:00:00', cf_units.CALENDAR_STANDARD)
-    frt = cf_units.num2date(frt, 'seconds since 1970-01-01 00:00:00', cf_units.CALENDAR_STANDARD)
-
-    data = {
-        "realization": np.array([0, 0, 1, 1], dtype=np.int32),
-        "spot_index": [0, 1] * 2,
-        "air_temperature": np.array([305.0] * 4, dtype=np.float32),
-        "forecast_period": np.array([14400] * 4, dtype=np.int32),
-        "forecast_reference_time": np.array([frt] * 4),
-        "time": np.array([time] * 4),
-        "altitude": np.array([1.0] * 4, dtype=np.float32),
-        "latitude": np.array([50.0, 60.0] * 2, dtype=np.float32),
-        "longitude": np.array([-5.0, 5.0] * 2, dtype=np.float32),
-        "wmo_id": ["00000", "00001"] * 2,
-    }
-
-    return pd.DataFrame(data=data)
-
-
-def altitude_cube(forecast_type, set_up_kwargs: Optional[Dict] = None) -> Cube:
-    """Function for creating an altitude cube ancillary."""
-    if set_up_kwargs is None:
-        set_up_kwargs = {}
-    if forecast_type is "gridded":
-        data = np.array([[10, 20], [20, 10]], dtype=np.float32)
-        output = set_up_variable_cube(
-            data=data, name="surface_altitude", **set_up_kwargs
-        )
-    elif forecast_type is "spot":
-        data = np.array([10, 20], dtype=np.float32)
-        output = set_up_spot_variable_cube(
-            data=data, name="surface_altitude", **set_up_kwargs
-        )
-
-    return output
-
-
-def land_fraction_cube(forecast_type, set_up_kwargs: Optional[Dict] = None) -> Cube:
-    """Fixture for creating a land fraction cube ancillary."""
-    if set_up_kwargs is None:
-        set_up_kwargs = {}
-    if forecast_type is "gridded":
-        data = np.array(
-            [[0.0, 0.1, 0.2, 0.3], [0.3, 0.2, 0.1, 0.0]], dtype=np.float32
-        )
-        output = set_up_variable_cube(data=data, name="land_fraction", **set_up_kwargs)
-    if forecast_type is "spot":
-        data = np.array([0.0, 0.1, 0.2, 0.3], dtype=np.float32)
-        output = set_up_spot_variable_cube(
-            data=data, name="land_fraction", **set_up_kwargs
-        )
-
-    return output
 
 
 def create_simple_cube(
-    forecast_type,
-    n_spatial_points,
-    realizations,
-    times,
-    fill_value,
+    forecast_type: str,
+    n_spatial_points: int,
+    n_realizations: int,
+    n_times: int,
+    fill_value: float,
     set_up_kwargs: Optional[Dict] = None,
-    fixed_forecast_period = False
+    fixed_forecast_period=False,
 ) -> Cube:
-    """Function for creating a cube of temperature data."""
+    """Function for creating a cube of temperature data.
+
+    Args:
+        forecast_type:
+            Either "gridded" or "spot".
+        n_spatial_points:
+            The desired number of spatial points. For a gridded cube, this is the number
+            of points in the x and y directions. For a spot cube, this is the number of
+            sites.
+        n_realizations:
+            The desired number of realizations.
+        n_times:
+            The desired number of times.
+        fill_value:
+            The single value to use for all the data.
+        set_up_kwargs:
+            A dictionary of keyword arguments accepted by set_up_variable_cube or
+            set_up_spot_variable_cube.
+        fixed_forecast_period:
+            If true, the returned cube will have a forecast_reference_time coordinate
+            of the same length as the time coordinate in order to allow the cube to
+            have a single forecast period. If false, the returned cube will have a
+            scalar forecast_reference_time coordinate and forecast_period coordinate
+            of the same length as the time coordinate.
+
+    Returns:
+        A cube with all data equal to fill_value and metadata according to the given
+        inputs.
+    """
     if set_up_kwargs is None:
         set_up_kwargs = {}
 
@@ -139,16 +63,16 @@ def create_simple_cube(
     result = iris.cube.CubeList()
 
     if forecast_type == "gridded":
-        data_shape = [n_spatial_points, n_spatial_points]  # lat, lon
+        data_shape = [n_spatial_points, n_spatial_points]  # Latitude, Longitude.
         plugin = set_up_variable_cube
     elif forecast_type == "spot":
-        data_shape = [n_spatial_points]  # no of sites
+        data_shape = [n_spatial_points]  # Number of sites.
         plugin = set_up_spot_variable_cube
 
-    if realizations > 1:
-        data_shape.insert(0, realizations)
+    if n_realizations > 1:
+        data_shape.insert(0, n_realizations)
 
-    for i in range(times):
+    for i in range(n_times):
         dt = initial_dt + timedelta(days=i)
         frt = initial_frt + timedelta(days=i) if fixed_forecast_period else initial_frt
 
@@ -160,40 +84,60 @@ def create_simple_cube(
 
 
 def create_cubes_for_gam_fitting(
-        n_spatial_points,
-        n_realizations,
-        n_times,
-        include_altitude,
-        fixed_forecast_period=False,
-):
+    n_spatial_points: int,
+    n_realizations: int,
+    n_times: int,
+    include_altitude: bool,
+    fixed_forecast_period=False,
+) -> Tuple[Cube, List[Cube]]:
     """Function to create a temperature cube with data which varies spatially.
-    Optionally, may also produce analtitude cube whilst simultaneously modifying the
+    Optionally, may also produce an altitude cube whilst simultaneously modifying the
     temperature cube so that this is a useful predictor of the temperature.
+
+    Args:
+        n_spatial_points:
+            The desired number of spatial points in the x and y directions.
+        n_realizations:
+            The desired number of realizations.
+        n_times:
+            The desired number of times.
+        include_altitude:
+            If True, the data in the returned cube is modified so that altitude is a
+            useful predictor of the temperature.
+        fixed_forecast_period:
+            If true, the returned cube will have a forecast_reference_time coordinate
+            of the same length as the time coordinate in order to allow the cube to
+            have a single forecast period. If false, the returned cube will have a
+            scalar forecast_reference_time coordinate and forecast_period coordinate
+            of the same length as the time coordinate.
+
+    Returns:
+        A tuple with first element a cube of temperature data with metadata determined
+        by the inputs and second element a list. The list will be empty if
+        include_altitude is False, otherwise the list will contain a surface_altitude
+        cube which is a useful predictor of data in the temperature cube.
     """
     input_cube = create_simple_cube(
         forecast_type="gridded",
         n_spatial_points=n_spatial_points,
-        realizations=n_realizations,
-        times=n_times,
+        n_realizations=n_realizations,
+        n_times=n_times,
         fill_value=273.15,
-        fixed_forecast_period=fixed_forecast_period
+        fixed_forecast_period=fixed_forecast_period,
     )
     # Create array of data to add to cube which increases with x and y, so that
     # these features are useful in the GAMs.
-    lat_addition = np.linspace(
-        start=0, stop=15, num=n_spatial_points
-    ).reshape([n_spatial_points, 1])
-    lon_addition = np.linspace(
-        start=0, stop=15, num=n_spatial_points
-    ).reshape([1, n_spatial_points])
-    addition = lat_addition + lon_addition  # 10x10 array
-    addition = np.broadcast_to(
-        addition,
-        shape=input_cube.data.shape
+    lat_addition = np.linspace(start=0, stop=15, num=n_spatial_points).reshape(
+        [n_spatial_points, 1]
     )
+    lon_addition = np.linspace(start=0, stop=15, num=n_spatial_points).reshape(
+        [1, n_spatial_points]
+    )
+    addition = lat_addition + lon_addition  # 10x10 array
+    addition = np.broadcast_to(addition, shape=input_cube.data.shape)
     # Create array of random noise which increases with x and y, so that there is
     # some variance in the data to model in the standard deviation GAM.
-    noise = np.random.normal(loc=0.0, scale=addition/30)
+    noise = np.random.normal(loc=0.0, scale=addition / 30)
     input_cube.data = input_cube.data + addition + noise
 
     additional_cubes = []
@@ -204,18 +148,23 @@ def create_cubes_for_gam_fitting(
         altitude_cube = create_simple_cube(
             forecast_type="gridded",
             n_spatial_points=n_spatial_points,
-            realizations=1,
-            times=1,
-            fill_value=1000.0
+            n_realizations=1,
+            n_times=1,
+            fill_value=1000.0,
         )
         altitude_cube.rename("surface_altitude")
 
-        lat_multiplier = np.abs(np.linspace(
-            start=-1, stop=1, num=n_spatial_points
-        ).reshape([n_spatial_points, 1]))  # 1 at ends, close to 0 in the middle.
-        lon_multiplier = np.abs(np.linspace(
-            start=-1, stop=1, num=n_spatial_points
-        ).reshape([1, n_spatial_points]) - 1)  # 1 at ends, close to 0 in the middle.
+        lat_multiplier = np.abs(
+            np.linspace(start=-1, stop=1, num=n_spatial_points).reshape(
+                [n_spatial_points, 1]
+            )
+        )  # 1 at ends, close to 0 in the middle.
+        lon_multiplier = np.abs(
+            np.linspace(start=-1, stop=1, num=n_spatial_points).reshape(
+                [1, n_spatial_points]
+            )
+            - 1
+        )  # 1 at ends, close to 0 in the middle.
         altitude_multiplier = lat_multiplier * lon_multiplier
 
         altitude_cube.data = altitude_cube.data * altitude_multiplier
@@ -223,8 +172,7 @@ def create_cubes_for_gam_fitting(
 
         # Subtract values from input_cube data which increase with altitude.
         altitude_multiplier = np.broadcast_to(
-            altitude_multiplier,
-            shape=input_cube.data.shape
+            altitude_multiplier, shape=input_cube.data.shape
         )
         input_cube.data = input_cube.data - (5.0 * altitude_multiplier)
 
