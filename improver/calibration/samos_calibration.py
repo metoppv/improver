@@ -33,9 +33,7 @@ from improver.calibration.emos_calibration import (
     EstimateCoefficientsForEnsembleCalibration,
 )
 from improver.utilities.generalized_additive_models import GAMFit, GAMPredict
-from improver.utilities.mathematical_operations import (
-    CalculateClimateAnomalies,
-)
+from improver.utilities.mathematical_operations import CalculateClimateAnomalies
 
 # Setting to allow cubes with more than 2 dimensions to be converted to/from dataframes.
 iris.FUTURE.pandas_ndim = True
@@ -57,10 +55,9 @@ def prepare_data_for_gam(
         A pandas dataframe containing the following columns:
         1. A column with the same name as input_cube containing the original cube data
         2. A series of columns derived from the input_cube dimension coordinates
-        3. A series of columns associated with any auxiliary coordinates (scalar or
-        otherwise) of input_cube
-        4. One column associated with each of the cubes in additional cubes, with column
-        names matching the associated cube
+        3. A series of columns associated with any auxiliary coordinates (scalar or otherwise) of input_cube
+        4. One column associated with each of the cubes in additional cubes, with column names matching the associated cube
+
     """
     spatial_coords = [
         input_cube.coord(axis="x").name(),
