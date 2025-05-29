@@ -313,6 +313,7 @@ def plugin_and_dummy_models(request):
         )
     elif request.param == "treelite":
         _ = pytest.importorskip("treelite")
+        _ = pytest.importorskip("treelite_runtime")
         return (
             ApplyRainForestsCalibrationTreelite,
             request.getfixturevalue("dummy_treelite_models"),
@@ -370,6 +371,7 @@ def plugin_and_dummy_models_deterministic(request):
         )
     elif request.param == "treelite":
         _ = pytest.importorskip("treelite")
+        _ = pytest.importorskip("treelite_runtime")
         return (
             ApplyRainForestsCalibrationTreelite,
             request.getfixturevalue("dummy_treelite_models_deterministic"),
