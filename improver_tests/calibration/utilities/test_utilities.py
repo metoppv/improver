@@ -9,6 +9,7 @@ module.
 """
 
 import datetime
+import re
 import unittest
 
 import iris
@@ -709,9 +710,8 @@ class Test_check_forecast_consistency(IrisTest):
         )
         forecasts = iris.cube.CubeList([self.forecast1, forecast2]).merge_cube()
 
-        msg = (
-            "Forecasts have been provided with differing hours for the "
-            "forecast reference time {1, 2}"
+        msg = re.escape(
+            "Forecasts have been provided with differing hours for the forecast reference time {np.int32(1), np.int32(2)}"
         )
 
         with self.assertRaisesRegex(ValueError, msg):
