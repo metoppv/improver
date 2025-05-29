@@ -76,10 +76,7 @@ def choose(index_array: ndarray, array_set: ndarray) -> ndarray:
         raise IndexError(msg)
 
     result = np.array(
-        [
-            array_set[index_array[i]][i[1:]]
-            for i in np.lib.index_tricks.ndindex(index_array.shape)
-        ]
+        [array_set[index_array[i]][i[1:]] for i in np.ndindex(index_array.shape)]
     ).reshape(index_array.shape)
 
     return result
