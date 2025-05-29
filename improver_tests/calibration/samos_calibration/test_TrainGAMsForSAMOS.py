@@ -321,6 +321,18 @@ def test_calculate_cube_statistics_exception(model_specification):
         ],
         [
             False,
+            [["tensor", [0, 1], {}]],
+            11,
+            np.array([288.1546888167082, 0.4711175956164907], dtype=np.float64),
+        ],
+        [
+            True,
+            [["tensor", [0, 1], {}]],
+            11,
+            np.array([288.15475955276924, 0.46407096457480634], dtype=np.float64),
+        ],
+        [
+            False,
             [["linear", [0], {}], ["linear", [1], {}]],
             1,
             np.array([288.16497963, 0.51062603], dtype=np.float64),
@@ -342,6 +354,18 @@ def test_calculate_cube_statistics_exception(model_specification):
             [["tensor", [0, 1], {}]],
             1,
             np.array([287.97881919, 0.44321410], dtype=np.float64),
+        ],
+        [
+            False,
+            [["tensor", [0, 1], {}]],
+            1,
+            np.array([288.2064499806197, 0.46706986218547547], dtype=np.float64),
+        ],
+        [
+            True,
+            [["tensor", [0, 1], {}]],
+            1,
+            np.array([288.223661419175, 0.45879271911759967], dtype=np.float64),
         ],
     ],
 )

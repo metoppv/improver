@@ -7,7 +7,6 @@ This module defines all the "plugins" specific to Standardised Anomaly Model Out
 Statistics (SAMOS).
 """
 from typing import Dict, List, Optional, Tuple
-
 import iris
 import iris.pandas
 import pandas as pd
@@ -24,17 +23,21 @@ except ModuleNotFoundError:
 from iris.analysis import MEAN, STD_DEV
 from iris.cube import Cube, CubeList
 from iris.util import new_axis
-from numpy import array, int64, nan
+from numpy import array, int64, nan, float32
 from numpy.ma import masked_all_like
 from pandas import merge
 
-from improver import BasePlugin
+from improver import BasePlugin, PostProcessingPlugin
 from improver.calibration.emos_calibration import (
+    ApplyEMOS,
     EstimateCoefficientsForEnsembleCalibration,
 )
 from improver.utilities.cube_manipulation import collapse_realizations
 from improver.utilities.generalized_additive_models import GAMFit, GAMPredict
-from improver.utilities.mathematical_operations import CalculateClimateAnomalies
+from improver.utilities.mathematical_operations import (
+    CalculateClimateAnomalies,
+    CalculateForecastValueFromClimateAnomaly,
+)
 
 # Setting to allow cubes with more than 2 dimensions to be converted to/from dataframes.
 iris.FUTURE.pandas_ndim = True
@@ -127,6 +130,51 @@ def convert_dataframe_to_cube(
     result = template_cube.copy(data=converted_cube.data)
 
     return result
+
+
+def get_climatological_stats(
+    input_cube: Cube,
+    gams: List,
+    gam_features: List[str],
+    additional_cubes: Optional[CubeList],
+) -> Tuple[Cube, Cube]:
+    """Function to predict climatological means and standard deviations given fitted
+    GAMs for each statistic and cubes which can be used to construct a dataframe
+    containing all required features for those GAMs.
+
+    Args:
+        input_cube
+        gams: A list containing two fitted GAMs, the first for predicting the
+            climatological mean of the locations in input_cube and the second
+            predicting the climatoloigcal standard deviation
+        gam_features:
+            The list of features. These must be either coordinates on input_cube or
+            share a name with a cube in additional_cubes. The index of each
+            feature should match the indices used in model_specification.
+        additional_cubes:
+            Additional fields to use as supplementary predictors.
+
+    Returns:
+        A pair of cubes containing climatological mean and climatological standard
+        deviation predictions respectively.
+    """
+    diagnostic = input_cube.name()
+
+    df = prepare_data_for_gam(input_cube, additional_cubes)
+
+    # Calculate climatological means and standard deviations using previously
+    # fitted GAMs.
+    mean_pred = GAMPredict().process(gams[0], df[gam_features])
+    sd_pred = GAMPredict().process(gams[1], df[gam_features])
+
+    # Convert means and standard deviations into cubes
+    df[diagnostic] = mean_pred
+    mean_cube = convert_dataframe_to_cube(df, input_cube)
+
+    df[diagnostic] = sd_pred
+    sd_cube = convert_dataframe_to_cube(df, input_cube)
+
+    return mean_cube, sd_cube
 
 
 class TrainGAMsForSAMOS(BasePlugin):
@@ -633,10 +681,10 @@ class TrainEMOSForSAMOS(BasePlugin):
             cubelist is for a separate EMOS coefficient e.g. alpha, beta,
             gamma, delta.
         """
-        forecast_mean, forecast_sd = self.get_climatological_stats(
+        forecast_mean, forecast_sd = get_climatological_stats(
             historic_forecasts, forecast_gams, gam_features, gam_additional_fields
         )
-        truth_mean, truth_sd = self.get_climatological_stats(
+        truth_mean, truth_sd = get_climatological_stats(
             truths, truth_gams, gam_features, gam_additional_fields
         )
 
@@ -648,3 +696,124 @@ class TrainEMOSForSAMOS(BasePlugin):
         )
 
         return emos_coefficients
+
+
+class ApplySAMOS(PostProcessingPlugin):
+    """
+    Class to calibrate an input forecast using SAMOS given the following inputs:
+    - Two GAMs, which model, respectively, the climatological mean and standard
+    deviation of the forecast. This allows the forecast to be converted to
+    climatological anomalies.
+    - A set of EMOS coefficients which can be applied to correct the climatological
+    anomalies.
+    """
+
+    def __init__(self, percentiles: Optional[Sequence] = None):
+        """Initialize class.
+
+        Args:
+            percentiles:
+                The set of percentiles used to create the calibrated forecast.
+        """
+        self.percentiles = [float32(p) for p in percentiles] if percentiles else None
+
+    def process(
+        self,
+        forecast: Cube,
+        forecast_gams: List,
+        gam_features: List[str],
+        emos_coefficients: CubeList,
+        gam_additional_fields: Optional[CubeList] = None,
+        emos_additional_fields: Optional[CubeList] = None,
+        landsea_mask: Optional[Cube] = None,
+        prob_template: Optional[Cube] = None,
+        realizations_count: Optional[int] = None,
+        ignore_ecc_bounds: bool = True,
+        tolerate_time_mismatch: bool = False,
+        predictor: str = "mean",
+        randomise: bool = False,
+        random_seed: Optional[int] = None,
+    ):
+        """Calibrate input forecast using GAMs to convert the forecast to climatological
+         anomalies and pre-calculated EMOS coefficients to apply to those anomalies.
+
+        Args:
+            forecast:
+                Uncalibrated forecast as probabilities, percentiles or
+                realizations.
+            forecast_gams:
+                A list containing two fitted GAMs, the first for predicting the
+                climatological mean of the locations in historic_forecasts and the
+                second predicting the climatological standard deviation.
+            gam_features:
+                The list of features. These must be either coordinates on input_cube or
+                share a name with a cube in additional_cubes. The index of each
+                feature should match the indices used in model_specification.
+            emos_coefficients:
+                EMOS coefficients.
+            gam_additional_fields:
+                Additional fields to use as supplementary predictors in the GAMs.
+            emos_additional_fields:
+                Additional fields to use as supplementary predictors in EMOS.
+            landsea_mask:
+                The optional cube containing a land-sea mask. If provided, only
+                land points are used to calculate the EMOS coefficients. Within the
+                land-sea mask cube land points should be specified as ones,
+                and sea points as zeros.
+            prob_template:
+                A cube containing a probability forecast that will be used as
+                a template when generating probability output when the input
+                format of the forecast cube is not probabilities i.e. realizations
+                or percentiles.
+            realizations_count:
+                Number of realizations to use when generating the intermediate
+                calibrated forecast from probability or percentile inputs
+            ignore_ecc_bounds:
+                If True, allow percentiles from probabilities to exceed the ECC
+                bounds range.  If input is not probabilities, this is ignored.
+            tolerate_time_mismatch:
+                If True, tolerate a mismatch in validity time and forecast
+                period for coefficients vs forecasts. Use with caution!
+            predictor:
+                Predictor to be used to calculate the location parameter of the
+                calibrated distribution.  Value is "mean" or "realizations".
+            randomise:
+                Used in generating calibrated realizations.  If input forecast
+                is probabilities or percentiles, this is ignored.
+            random_seed:
+                Used in generating calibrated realizations.  If input forecast
+                is probabilities or percentiles, this is ignored.
+
+        Returns:
+            Calibrated forecast in the form of the input forecast (ie probabilities
+            percentiles or realizations).
+        """
+        forecast_mean, forecast_sd = get_climatological_stats(
+            forecast, forecast_gams, gam_features, gam_additional_fields
+        )
+        forecast_ca = CalculateClimateAnomalies(ignore_temporal_mismatch=True).process(
+            diagnostic_cube=forecast, mean_cube=forecast_mean, std_cube=forecast_sd
+        )
+
+        # Returns a climate anomaly forecast.
+        calibrated_ca = ApplyEMOS(percentiles=self.percentiles).process(
+            forecast=forecast_ca,
+            coefficients=emos_coefficients,
+            additional_fields=emos_additional_fields,
+            land_sea_mask=landsea_mask,
+            prob_template=prob_template,
+            realizations_count=realizations_count,
+            ignore_ecc_bounds=ignore_ecc_bounds,
+            tolerate_time_mismatch=tolerate_time_mismatch,
+            predictor=predictor,
+            randomise=randomise,
+            random_seed=random_seed,
+        )
+
+        result = CalculateForecastValueFromClimateAnomaly(
+            ignore_temporal_mismatch=True
+        ).process(
+            anomaly_cube=calibrated_ca, mean_cube=forecast_mean, std_cube=forecast_sd
+        )
+
+        return result

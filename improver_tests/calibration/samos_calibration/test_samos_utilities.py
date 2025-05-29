@@ -15,7 +15,9 @@ from iris.cube import Cube
 from pandas.testing import assert_frame_equal
 
 from improver.calibration.samos_calibration import (
+    TrainGAMsForSAMOS,
     convert_dataframe_to_cube,
+    get_climatological_stats,
     prepare_data_for_gam,
 )
 from improver.synthetic_data.set_up_test_cubes import (
@@ -23,6 +25,7 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_variable_cube,
 )
 from improver_tests.calibration.samos_calibration.helper_functions import (
+    create_cubes_for_gam_fitting,
     create_simple_cube,
 )
 
@@ -268,3 +271,87 @@ def test_convert_dataframe_to_cube_spot(spot_dataframe):
     result = convert_dataframe_to_cube(spot_dataframe, template_cube)
 
     assert result == expected_cube
+
+
+@pytest.mark.parametrize("include_altitude", [False, True])
+def test_get_climatological_stats(
+    include_altitude,
+):
+    """Test that the get_climatological_stats method returns the expected results."""
+    np.random.seed(1)  # Set random seed to enable test to be reproducible.
+
+    # Set up model terms for spatial predictors.
+    model_specification = [["linear", [0], {}], ["linear", [1], {}]]
+    features = ["latitude", "longitude"]
+    n_spatial_points = 5
+    n_realizations = 5
+    n_times = 20
+
+    if include_altitude:
+        features.append("surface_altitude")
+        model_specification.append(["spline", [features.index("surface_altitude")], {}])
+
+    cube_for_gam, additional_cubes_for_gam = create_cubes_for_gam_fitting(
+        n_spatial_points=n_spatial_points,
+        n_realizations=n_realizations,
+        n_times=n_times,
+        include_altitude=include_altitude,
+    )
+
+    gams = TrainGAMsForSAMOS(model_specification).process(
+        cube_for_gam, features, additional_cubes_for_gam
+    )
+
+    cube_for_test, additional_cubes_for_test = create_cubes_for_gam_fitting(
+        n_spatial_points=2,
+        n_realizations=2,
+        n_times=1,
+        include_altitude=include_altitude,
+    )
+
+    result_mean, result_sd = get_climatological_stats(
+        cube_for_test, gams, features, additional_cubes_for_test
+    )
+
+    expected_mean = create_simple_cube(
+        forecast_type="gridded",
+        n_spatial_points=2,
+        n_realizations=2,
+        n_times=1,
+        fill_value=0.0,
+    )
+    expected_sd = expected_mean.copy()
+
+    if not include_altitude:
+        expected_mean.data = np.array(
+            [
+                [[284.40612416, 288.15826842], [288.16342809, 291.91557236]],
+                [[284.40612416, 288.15826842], [288.16342809, 291.91557236]],
+            ],
+            dtype=np.float32,
+        )
+        expected_sd.data = np.array(
+            [
+                [[0.35133422, 0.4753756], [0.47594341, 0.59998479]],
+                [[0.35133422, 0.4753756], [0.47594341, 0.59998479]],
+            ],
+            dtype=np.float32,
+        )
+    else:
+        expected_mean.data = np.array(
+            [
+                [[274.37179911, 288.13418784], [278.12910304, 291.89149177]],
+                [[274.37179911, 288.13418784], [278.12910304, 291.89149177]],
+            ],
+            dtype=np.float32,
+        )
+        expected_sd.data = np.array(
+            [
+                [[0.36610248, 0.46112538], [0.49071167, 0.58573457]],
+                [[0.36610248, 0.46112538], [0.49071167, 0.58573457]],
+            ],
+            dtype=np.float32,
+        )
+
+    assert result_mean == expected_mean
+    assert result_sd == expected_sd
