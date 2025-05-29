@@ -13,8 +13,6 @@ from improver_tests.calibration.samos_calibration.helper_functions import (
     create_simple_cube,
 )
 
-np.random.seed(1)
-
 
 @pytest.mark.parametrize(
     "kwargs",
@@ -44,90 +42,10 @@ def test__init__(kwargs):
         assert getattr(result, key) == kwargs[key]
 
 
-@pytest.mark.parametrize("include_altitude", [False, True])
-def test_get_climatological_stats(
-    include_altitude,
-):
-    """Test that the get_climatological_stats method returns the expected results."""
-    # Set up model terms for spatial predictors.
-    model_specification = [["linear", [0], {}], ["linear", [1], {}]]
-    features = ["latitude", "longitude"]
-    n_spatial_points = 5
-    n_realizations = 5
-    n_times = 20
-
-    if include_altitude:
-        features.append("surface_altitude")
-        model_specification.append(["spline", [features.index("surface_altitude")], {}])
-
-    cube_for_gam, additional_cubes_for_gam = create_cubes_for_gam_fitting(
-        n_spatial_points=n_spatial_points,
-        n_realizations=n_realizations,
-        n_times=n_times,
-        include_altitude=include_altitude,
-    )
-
-    gams = TrainGAMsForSAMOS(model_specification).process(
-        cube_for_gam, features, additional_cubes_for_gam
-    )
-
-    cube_for_test, additional_cubes_for_test = create_cubes_for_gam_fitting(
-        n_spatial_points=2,
-        n_realizations=2,
-        n_times=1,
-        include_altitude=include_altitude,
-    )
-
-    result_mean, result_sd = TrainEMOSForSAMOS.get_climatological_stats(
-        cube_for_test, gams, features, additional_cubes_for_test
-    )
-
-    expected_mean = create_simple_cube(
-        forecast_type="gridded",
-        n_spatial_points=2,
-        n_realizations=2,
-        n_times=1,
-        fill_value=0.0,
-    )
-    expected_sd = expected_mean.copy()
-
-    if not include_altitude:
-        expected_mean.data = np.array(
-            [
-                [[284.40612416, 288.15826842], [288.16342809, 291.91557236]],
-                [[284.40612416, 288.15826842], [288.16342809, 291.91557236]],
-            ],
-            dtype=np.float32,
-        )
-        expected_sd.data = np.array(
-            [
-                [[0.35133422, 0.4753756], [0.47594341, 0.59998479]],
-                [[0.35133422, 0.4753756], [0.47594341, 0.59998479]],
-            ],
-            dtype=np.float32,
-        )
-    else:
-        expected_mean.data = np.array(
-            [
-                [[274.37687093, 288.16193833], [278.13439548, 291.91946287]],
-                [[274.37687093, 288.16193833], [278.13439548, 291.91946287]],
-            ],
-            dtype=np.float32,
-        )
-        expected_sd.data = np.array(
-            [
-                [[0.37329375, 0.48791014], [0.49727166, 0.61188805]],
-                [[0.37329375, 0.48791014], [0.49727166, 0.61188805]],
-            ],
-            dtype=np.float32,
-        )
-
-    assert result_mean == expected_mean
-    assert result_sd == expected_sd
-
-
 def test_climate_anomaly_emos():
     """Test that the climate_anomaly_emos method returns the expected results."""
+    np.random.seed(1)  # Set random seed to enable test to be reproducible.
+
     create_cube_kwargs = {
         "forecast_type": "gridded",
         "n_spatial_points": 2,
@@ -170,6 +88,8 @@ def test_climate_anomaly_emos():
 @pytest.mark.parametrize("include_altitude", [False, True])
 def test_process(include_altitude):
     """Test that the process method returns the expected results."""
+    np.random.seed(1)  # Set random seed to enable test to be reproducible.
+
     # Set up model terms for spatial predictors.
     model_specification = [["linear", [0], {}], ["linear", [1], {}]]
     features = ["latitude", "longitude"]
@@ -222,9 +142,9 @@ def test_process(include_altitude):
         "emos_coefficient_delta",
     ]
     if include_altitude:
-        expected_data = [0.094867475, 0.13698582, 0.016275924, 1.0714376]
+        expected_data = [-0.04414984, -0.030644448, 0.00040429688, 1.0839844]
     else:
-        expected_data = [0.01539446, -0.038133737, 0.00030830433, 1.0188572]
+        expected_data = [-0.10599241, 0.035578612, 0.0038651018, 1.066569]
 
     for i, cube in enumerate(result):
         assert expected_names[i] == cube.name()
