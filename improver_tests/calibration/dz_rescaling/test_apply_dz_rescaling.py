@@ -4,6 +4,7 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the ApplyDzRescaling plugin."""
 
+import re
 from datetime import datetime as dt
 from typing import List
 
@@ -211,7 +212,10 @@ def test_mismatching_sites():
     forecast = _create_forecasts(forecast_reference_time, validity_time, [10, 20, 30])
     scaling_factor = _create_scaling_factor_cube(3, forecast_period, 1.0)
 
-    with pytest.raises(ValueError, match="The mismatched sites are: {'00002'}"):
+    with pytest.raises(
+        ValueError,
+        match=re.escape("The mismatched sites are: {np.str_('00002')}."),
+    ):
         ApplyDzRescaling()(forecast, scaling_factor[..., :1])
 
 
