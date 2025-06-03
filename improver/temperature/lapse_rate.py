@@ -533,7 +533,7 @@ class LapseRate(BasePlugin):
         )
         self.intercept = create_new_diagnostic_cube(
             f"{diagnostic.name()}_zero_intercept",
-            diagnostics.units,
+            diagnostic.units,
             diagnostic_cube,
             attributes,
             data=intercept_array,
