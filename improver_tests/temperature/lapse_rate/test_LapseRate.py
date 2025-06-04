@@ -5,6 +5,7 @@
 """Unit tests for the LapseRate plugin."""
 
 import unittest
+import pytest
 
 import cf_units
 import numpy as np
@@ -56,7 +57,7 @@ class Test__calc_lapse_rate(unittest.TestCase):
         """Test that the function returns expected lapse rate."""
 
         expected_out = -0.00765005774676
-        result, _ = LapseRate(nbhood_radius=1)._generate_lapse_rate_array(
+        result, _, _ = LapseRate(nbhood_radius=1)._generate_lapse_rate_array(
             self.temperature, self.orography, self.land_sea_mask
         )[1, 1]
         np.testing.assert_array_almost_equal(result, expected_out)
@@ -67,7 +68,7 @@ class Test__calc_lapse_rate(unittest.TestCase):
 
         self.temperature[..., 1, 1] = np.nan
         expected_out = DALR
-        result, _ = LapseRate(nbhood_radius=1)._generate_lapse_rate_array(
+        result, _, _ = LapseRate(nbhood_radius=1)._generate_lapse_rate_array(
             self.temperature, self.orography, self.land_sea_mask
         )[1, 1]
         np.testing.assert_array_almost_equal(result, expected_out)
@@ -85,10 +86,89 @@ class Test__calc_lapse_rate(unittest.TestCase):
             ]
         )
 
-        result, _ = LapseRate(nbhood_radius=1)._generate_lapse_rate_array(
+        result, _, _ = LapseRate(nbhood_radius=1)._generate_lapse_rate_array(
             self.temperature, self.orography, self.land_sea_mask
         )
         np.testing.assert_array_almost_equal(result, expected_out)
+
+
+@pytest.mark.parametrize(
+    "x_outlier, y_outlier, expected_error",
+    [
+        (0.1, 0.2, 0.0326),
+        (np.nan, 0.2, 0.0),
+        (0.1, np.nan, 0.0),
+        (0.0, 0.0, 0.0),
+        (-0.1, 0.1, 0.0614),
+        (0.1, -0.1, 0.0652),
+        (0.0, 1.0, 0.5**0.5 / (2*1.5**2 + 2*0.5**2) ** 0.5),
+    ]
+)
+def test_standard_error(x_outlier, y_outlier, expected_error):
+    data = np.arange(4)
+    x_array = data.reshape((1, 2, 2)).astype(np.float32)
+    y_array = data.reshape((1, 2, 2)).astype(np.float32)
+    x_array[0, 0, 0] = x_outlier
+    y_array[0, 0, 0] = y_outlier
+    slope_array = np.full((1, 1, 1), 1.0)
+    intercept_array = np.full_like(slope_array, 0.0)
+    valid_elements = np.full((1, 1, 1), 4, dtype=np.int32)
+    result = LapseRate._standard_error(x_array, y_array, slope_array, intercept_array, valid_elements, axis=(-2, -1))
+    assert np.allclose(result, expected_error, rtol=1e-3, equal_nan=True)
+
+
+def test_t_score_():
+    dof = np.array([10, 2, 5, 8, 10, 12, 15, 20, 25, 30])
+    t = LapseRate._t_score(dof, confidence_level=95.0)
+    expected_t_values = [2.228, 4.303, 2.571, 2.306, 2.228, 2.179, 2.131, 2.086, 2.060, 2.042]
+    assert np.allclose(t, expected_t_values, atol=1e-3)
+    assert t.shape == (10,)
+
+
+def test_margin_of_error():
+    """Test that the margin of error is calculated correctly."""
+    x = np.array([[[0.0, 1.0], [2.0, 3.0]]])
+    y = np.array([[[1.0, 1.0], [2.0, 3.0]]])
+    slope = np.array([[[1.0]]])
+    intercept = np.array([[[0.0]]])
+    # Manually compute expected margin of error
+    expected_margin_of_error = (0.5**0.5 / (2*1.5**2 + 2*0.5**2) ** 0.5) * 4.303
+    result = LapseRate()._margin_of_error(x, y, slope, intercept, axis=(-2, -1))
+    assert np.allclose(result, expected_margin_of_error, atol=1e-4)
+
+
+def test_margin_of_error_many_points():
+    """Test that the margin of error is calculated correctly."""
+    x = np.array([
+        [
+            [[1.0, 2.0], [3.0, 4.0]],
+            [[1.0, 2.0], [3.0, 4.0]],
+            [[1.0, 2.0], [3.0, 4.0]],
+        ],
+        [
+            [[1.0, 2.0], [3.0, 4.0]],
+            [[1.0, 2.0], [3.0, 4.0]],
+            [[1.0, 2.0], [3.0, 4.0]],
+        ],
+    ])
+    y = np.array([
+        [
+            [[2.0, 4.1], [6.1, 8.0]],
+            [[2.1, 4.1], [6.1, 8.0]],
+            [[2.0, 4.1], [6.1, 8.1]],
+        ],
+        [
+            [[2.0, 4.1], [6.1, 8.0]],
+            [[2.1, 4.1], [6.1, 8.0]],
+            [[2.0, 4.1], [6.1, 8.1]],
+        ],
+    ])
+    slope = np.array([[2.0, 2.0, 2.0], [2.0, 2.0, 2.0]])
+    intercept = np.array([[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]])
+
+    expected_margin_of_error = [[0.1924, 0.2357, 0.2357], [0.1924, 0.2357, 0.2357]]
+    result = LapseRate()._margin_of_error(x, y, slope, intercept, axis=(-2, -1))
+    assert np.allclose(result, expected_margin_of_error, atol=1e-4)
 
 
 class Test_process(unittest.TestCase):
