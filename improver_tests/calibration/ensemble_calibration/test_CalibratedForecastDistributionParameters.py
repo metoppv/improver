@@ -150,7 +150,7 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
             dtype=np.float32,
         )
         self.expected_loc_param_realizations_sites = np.array(
-            [277.7531, 277.4529, 277.553, 277.2528], dtype=np.float32
+            [277.7437, 277.4434, 277.5435, 277.2432], dtype=np.float32
         )
 
         self.expected_scale_param_realizations_sites = np.array(
@@ -159,18 +159,18 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
 
         self.expected_loc_param_mean_alt = np.array(
             [
-                [275.18134, 276.18134, 277.01465],
-                [278.58133, 279.44797, 280.2813],
-                [281.48132, 281.91464, 283.11465],
+                [275.1603, 276.1604, 276.9938],
+                [278.5606, 279.4273, 280.2607],
+                [281.4609, 281.8943, 283.0944],
             ],
             dtype=np.float32,
         )
 
         self.expected_scale_param_mean_alt = np.array(
             [
-                [0.6593, 0.663, 0.1756],
-                [0.2242, 0.2093, 0.1756],
-                [0.3441, 0.4645, 0.1452],
+                [1.0636, 1.0695, 0.2832],
+                [0.3617, 0.3376, 0.2832],
+                [0.5551, 0.7493, 0.2343],
             ],
             dtype=np.float32,
         )
@@ -371,10 +371,11 @@ class Test__create_output_cubes(SetupCoefficientsCubes, EnsembleCalibrationAsser
     def test_basic(self):
         """Test that the cubes created containing the location and scale
         parameter are formatted as expected."""
-        (location_parameter_cube, scale_parameter_cube) = (
-            self.plugin._create_output_cubes(
-                self.expected_loc_param_mean, self.expected_scale_param_mean
-            )
+        (
+            location_parameter_cube,
+            scale_parameter_cube,
+        ) = self.plugin._create_output_cubes(
+            self.expected_loc_param_mean, self.expected_scale_param_mean
         )
         self.assertEqual(location_parameter_cube, self.expected_loc_param_mean_cube)
         self.assertEqual(scale_parameter_cube, self.expected_scale_param_mean_cube)

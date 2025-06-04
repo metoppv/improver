@@ -5,6 +5,7 @@
 """Unit tests for the ApplyReliabilityCalibration plugin."""
 
 import datetime
+import re
 import unittest
 import warnings
 
@@ -474,10 +475,8 @@ class Test_process(Test_ReliabilityCalibrate):
         reliability_cubelist = iris.cube.CubeList(
             [reliability_cube_0, self.reliability_cubelist[1]]
         )
-        warning_msg = (
-            "The following thresholds were not calibrated due to "
-            "insufficient forecast counts in reliability table "
-            "bins: \\[275.0\\]"
+        warning_msg = re.escape(
+            "The following thresholds were not calibrated due to insufficient forecast counts in reliability table bins: [np.float32(275.0)]"
         )
         with pytest.warns(UserWarning, match=warning_msg):
             result = self.plugin.process(self.forecast, reliability_cubelist)
