@@ -11,6 +11,7 @@ import numpy as np
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 from numpy import ndarray
+import scipy.stats
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.constants import DALR, ELR
@@ -168,6 +169,9 @@ class ApplyGriddedLapseRate(PostProcessingPlugin):
 
     def _apply_limits(self, cube: Cube):
         """Apply defined limits to the data in the cube"""
+        # If there are no data limits, return
+        if not self.data_limits or (self.data_limits[0] is None and self.data_limits[1] is None):
+            return
         cube.data = np.clip(cube.data, *self.data_limits)
 
     def process(
@@ -306,6 +310,7 @@ class LapseRate(BasePlugin):
         self.min_data_value = min_data_value
         self.default = default
         self.intercept = None
+        self.error_margin = None
 
         if self.max_lapse_rate < self.min_lapse_rate:
             msg = "Maximum lapse rate is less than minimum lapse rate"
@@ -368,7 +373,7 @@ class LapseRate(BasePlugin):
         diagnostic_data: ndarray,
         orography_data: ndarray,
         land_sea_mask_data: ndarray,
-    ) -> Tuple[ndarray, ndarray]:
+    ) -> Tuple[ndarray, ndarray, ndarray]:
         """
         Calculate lapse rates and apply filters
 
@@ -381,7 +386,7 @@ class LapseRate(BasePlugin):
                 2D land-sea mask
 
         Returns:
-            Lapse rate values and zero-intercept values
+            Lapse rate values, zero-intercept values and error values
         """
         # Fill sea points with NaN values.
         diagnostic_data = np.where(land_sea_mask_data, diagnostic_data, np.nan)
@@ -389,6 +394,7 @@ class LapseRate(BasePlugin):
         # Preallocate output array
         lapse_rate_array = np.empty_like(diagnostic_data, dtype=np.float32)
         intercept_array = np.empty_like(diagnostic_data, dtype=np.float32)
+        error_array = np.empty_like(diagnostic_data, dtype=np.float32)
 
         # Pads the data with nans and generates masked windows representing
         # a neighbourhood for each point.
@@ -401,8 +407,8 @@ class LapseRate(BasePlugin):
         # orography height - i.e. lapse rate.
         cnpt = self.ind_central_point
         axis = (-2, -1)
-        for lapse, intercept, diag, orog in zip(
-            lapse_rate_array, intercept_array, diagnostic_nbhood_window, orog_nbhood_window
+        for lapse, intercept, error, diag, orog in zip(
+            lapse_rate_array, intercept_array, error_array, diagnostic_nbhood_window, orog_nbhood_window
         ):
             # height_diff_mask is True for points where the height
             # difference between the central points and its
@@ -421,6 +427,8 @@ class LapseRate(BasePlugin):
                 orog, diag, axis=axis, with_nan=True
             )
 
+            margin_of_error = self._margin_of_error(orog, diag, grad, zero_point, axis=axis)
+
             # Checks that the standard deviations are not 0
             # i.e. there is some variance to fit a gradient to.
             diagcheck = np.isclose(np.nanstd(diag, axis=axis), 0)
@@ -435,12 +443,64 @@ class LapseRate(BasePlugin):
 
             lapse[...] = grad
             intercept[...] = zero_point
+            error[...] = margin_of_error
 
         # Enforce upper and lower limits on lapse rate values.
         lapse_rate_array = lapse_rate_array.clip(
             self.min_lapse_rate, self.max_lapse_rate
         )
-        return lapse_rate_array, intercept_array
+        return lapse_rate_array, intercept_array, error_array
+
+    def _margin_of_error(self, x: np.ndarray, y: np.ndarray, slope: np.ndarray, intercept: np.ndarray, axis:tuple=None) -> np.ndarray:
+        """Calculate the margin of error for the regression line.
+        Args:
+            x:
+                The independent variable data (e.g. orography).
+            y:
+                The dependent variable data (e.g. diagnostic).
+            slope:
+                The slope of the regression line.
+            intercept:
+                The intercept of the regression line.
+            axis:
+                Axis or axes of x and y that relate to the neighbourhood used in the regression calculation.
+
+            Returns:
+                The margin of error for the regression line.
+        """
+        # slope and intercept require two extra trailing scalar dimensions for broadcasting to x and y
+        expanded_slope = np.expand_dims(slope, axis=axis)
+        expanded_intercept = np.expand_dims(intercept, axis=axis)
+        # find number of elements in x in the trailing two axes that are not NaN
+        valid_elements = np.count_nonzero(~np.isnan(x), axis=axis)
+        se = self._standard_error(x, y, expanded_slope, expanded_intercept, valid_elements, axis=axis)
+        t = self._t_score(valid_elements - 2)
+        margin = t * se
+        return margin
+
+    @staticmethod
+    def _standard_error(source_x: np.ndarray, source_y: np.ndarray, slope: np.ndarray, intercept: np.ndarray, valid_elements: np.ndarray, axis:tuple=None) -> np.ndarray:
+        """Calculate the standard error of the regression line."""
+        mean_x = np.expand_dims(np.nanmean(source_x, axis=axis), axis=axis)
+        predicted_y = source_x * slope + intercept
+        standard_error = ((np.nansum((source_y - predicted_y) ** 2, axis=axis) / (valid_elements - 2)) ** 0.5) / np.nansum(
+            (source_x - mean_x) ** 2, axis=axis) ** 0.5
+        return standard_error
+
+    @staticmethod
+    def _t_score(degrees_of_freedom: np.ndarray, confidence_level: float = 95.) -> np.ndarray:
+        """Calculate the t-score for a given confidence level and degrees of freedom.
+        Args:
+            degrees_of_freedom:
+                The degrees of freedom for the t-distribution. This should be the number of usable data points minus 2.
+            confidence_level:
+                The desired confidence level (default is 95%).
+        Returns:
+            The t-score corresponding to the specified confidence level and degrees of freedom.
+        """
+        alpha = 1 - confidence_level * 0.01
+        critical_probability = alpha / 2
+        return scipy.stats.t.isf(critical_probability, degrees_of_freedom)
 
     def process(
         self,
@@ -513,7 +573,7 @@ class LapseRate(BasePlugin):
         # Calculate lapse rate for each realization
         lapse_rate_data = []
         for data_slice in data_slices:
-            lapse_rate_array, intercept_array = self._generate_lapse_rate_array(
+            lapse_rate_array, intercept_array, error_array = self._generate_lapse_rate_array(
                 data_slice, orography_data, land_sea_mask_data
             )
             lapse_rate_data.append(lapse_rate_array)
@@ -537,6 +597,13 @@ class LapseRate(BasePlugin):
             diagnostic_cube,
             attributes,
             data=intercept_array,
+        )
+        self.error_margin = create_new_diagnostic_cube(
+            f"{diagnostic.name()}_margin_of_error",
+            diagnostic.units,
+            diagnostic_cube,
+            attributes,
+            data=error_array,
         )
 
         if original_dimension_order:
