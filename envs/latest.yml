@@ -24,7 +24,6 @@ dependencies:
   - pygam
   - pysteps
   - treelite
-  - treelite-runtime
   # Development
   - astroid
   - bandit
