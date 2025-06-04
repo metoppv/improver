@@ -22,6 +22,7 @@ dependencies:
   - numba
   - python-stratify
   - treelite
+  - treelite-runtime
   # Development
   - astroid
   - bandit
