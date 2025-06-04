@@ -106,9 +106,10 @@ def split_forecasts_and_coeffs(
 
     Args:
         cubes:
-            A list of input cubes which will be split into relevant groups.
-            This includes the forecast, coefficients, static additional
-            predictors, land-sea mask and probability template.
+            A list either containing a CubeList or containing a list of input cubes
+            which will be split into relevant groups. This includes the forecast,
+            coefficients, static additional predictors, land-sea mask and probability
+            template.
         land_sea_mask_name:
             Name of the land-sea mask cube to help identification.
 
