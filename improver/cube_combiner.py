@@ -338,7 +338,7 @@ class CubeCombiner(BasePlugin):
                 result.data = self.operator(result.data, cube.data)
 
         if self.normalise:
-            result.data = result.data / len(cube_list)
+            result.data = np.divide(result.data, len(cube_list))
 
         enforce_dtype(str(self.operator), cube_list, result)
 

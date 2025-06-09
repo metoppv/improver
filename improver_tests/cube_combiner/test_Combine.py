@@ -120,7 +120,7 @@ def test_cubes_different_size(realization_cubes, coordinate_name):
         (
             ValueError,
             TypeError,
-            r"int\(\) argument must be a string, a bytes-like object or a number, not 'type'",
+            r"int\(\) argument must be a string, a bytes-like object or a real number, not 'type'",
         ),
     ),
 )
