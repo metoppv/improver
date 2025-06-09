@@ -43,9 +43,9 @@ class CloudTopTemperature(PostProcessingPlugin):
                 Name of model ID attribute to be copied from source cubes to output cube
         """
         self.model_id_attr = model_id_attr
-        self.t_at_ccl = Cube(None)
-        self.p_at_ccl = Cube(None)
-        self.temperature = Cube(None)
+        self.t_at_ccl = Cube(shape=(0,))
+        self.p_at_ccl = Cube(shape=(0,))
+        self.temperature = Cube(shape=(0,))
         self.minimum_t_diff = 4
 
     def _calculate_cct(self) -> ndarray:

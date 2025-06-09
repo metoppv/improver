@@ -80,7 +80,7 @@ def deterministic_cube() -> Cube:
 def single_realization_cube() -> Cube:
     """Return the diagnostic cube with a scalar realization coordinate."""
     cube = diagnostic_cube()
-    cube = add_coordinate(cube, [0], "realization", dtype=np.int)
+    cube = add_coordinate(cube, [0], "realization", dtype=np.int32)
     return cube
 
 

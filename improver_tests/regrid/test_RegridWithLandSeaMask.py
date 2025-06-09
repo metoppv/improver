@@ -44,14 +44,14 @@ def define_source_target_grid_data():
     data = np.arange(20).reshape(4, 5).astype(np.float32)
 
     # input grid mask info
-    in_mask = np.empty((4, 5), dtype=np.int)
+    in_mask = np.empty((4, 5), dtype=np.int32)
     in_mask[:, :] = 1
     in_mask[0, 2] = 0
     in_mask[2, 2:4] = 0
     in_mask[3, 2:4] = 0
 
     # output grid mask info
-    out_mask = np.empty((8, 11), dtype=np.int)
+    out_mask = np.empty((8, 11), dtype=np.int32)
     out_mask[:, :] = 1
     out_mask[0, 4:7] = 0
     out_mask[1, 5] = 0
@@ -88,14 +88,14 @@ def define_source_target_grid_data_same_domain():
     data = np.arange(20).reshape(4, 5).astype(np.float32)
 
     # input grid mask info
-    in_mask = np.empty((4, 5), dtype=np.int)
+    in_mask = np.empty((4, 5), dtype=np.int32)
     in_mask[:, :] = 1
     in_mask[0, 2] = 0
     in_mask[2, 2:4] = 0
     in_mask[3, 2:4] = 0
 
     # output grid mask info
-    out_mask = np.empty((7, 9), dtype=np.int)
+    out_mask = np.empty((7, 9), dtype=np.int32)
     out_mask[:, :] = 1
     out_mask[0, 3:6] = 0
     out_mask[1, 4] = 0

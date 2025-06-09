@@ -119,9 +119,9 @@ def precip_cubes(
     function = request.param
 
     if function == set_up_spot_probability_cube:
-        acc_sites = np.product(acc_data.shape[-2:])
+        acc_sites = np.prod(acc_data.shape[-2:])
         acc_data = acc_data.reshape(acc_data.shape[:-2] + (acc_sites,))
-        rate_sites = np.product(rate_data.shape[-2:])
+        rate_sites = np.prod(rate_data.shape[-2:])
         rate_data = rate_data.reshape(rate_data.shape[:-2] + (rate_sites,))
 
     frt, times, bounds = data_times(start_time, end_time, period)
@@ -667,7 +667,7 @@ def test_process(
     result = plugin.process(precip_cubes)
 
     if result.coords("wmo_id"):
-        n_sites = np.product(acc_data.shape[-2:])
+        n_sites = np.prod(acc_data.shape[-2:])
         expected = expected.reshape(expected.shape[:-2] + (n_sites,))
 
     assert_array_equal(result.data, expected)

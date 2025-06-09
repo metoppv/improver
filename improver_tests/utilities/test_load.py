@@ -198,7 +198,7 @@ class Test_load_cube(IrisTest):
     def test_prefix_cube_removed(self):
         """Test metadata prefix cube is discarded during load"""
         msg = "No cubes found"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             load_cube(self.filepath, "prefixes")
 
     def test_no_lazy_load(self):
