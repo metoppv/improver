@@ -15,6 +15,7 @@ import pandas as pd
 from iris.analysis import MEAN, STD_DEV
 from iris.cube import Cube, CubeList
 from iris.util import new_axis
+from numpy import diff
 from numpy.ma import masked_all_like
 from pandas import merge
 
@@ -22,6 +23,7 @@ from improver import BasePlugin
 from improver.calibration.emos_calibration import (
     EstimateCoefficientsForEnsembleCalibration,
 )
+from improver.metadata.constants.time_types import TIME_COORDS
 from improver.utilities.generalized_additive_models import GAMFit, GAMPredict
 from improver.utilities.mathematical_operations import CalculateClimateAnomalies
 
@@ -36,17 +38,26 @@ def prepare_data_for_gam(
     """
     Convert input cubes in to a single, combined dataframe.
 
+    Each of the input cubes is converted to a pandas dataframe. The dataframe derived
+    from input_cube then forms the left in a series of left dataframe joins with those
+    derived from each cube in additional_fields. The x and y coordinates are used to
+    perform this join. This means that the resulting combined dataframe will contain all
+    of the sites/grid points in input_cube, but not any other sites/grid points in the
+    additional_fields cubes.
+
     Args:
         input_cube: A cube of forecast or observation data.
         additional_fields: Additional cubes with points which can be matched with points
         in input_cube by matching spatial coordinate values.
 
     Returns:
-        A pandas dataframe containing the following columns:
+        A pandas dataframe with rows equal to the number of sites/grid points in
+        input_cube and containing the following columns:
         1. A column with the same name as input_cube containing the original cube data
         2. A series of columns derived from the input_cube dimension coordinates
         3. A series of columns associated with any auxiliary coordinates (scalar or otherwise) of input_cube
         4. One column associated with each of the cubes in additional cubes, with column names matching the associated cube
+
 
     """
     spatial_coords = [
@@ -81,14 +92,15 @@ def convert_dataframe_to_cube(
     template_cube: Cube,
 ) -> Cube:
     """Function to convert a Pandas dataframe to Iris cube format by using a template
-    cube.
+    cube. The input template_cube provides all metadata for the output.
 
     Args:
-        df: a Pandas dataframe which must contain at least the following columns:
-            1. a column matching the name of template_cube
-            2. a series of columns with names which match the dimension coordinates on
-            template_cube
-        template_cube: A cube which will provide the metadata for the output cube
+        df: A Pandas dataframe which must contain at least the following columns:
+            1. A column matching the name of template_cube
+            2. A series of columns with names which match the dimension coordinates on
+            template_cube. The data in these columns should match the points on the
+            corresponding dimension of template_cube.
+        template_cube: A cube which will provide all metadata for the output cube
 
     Returns:
         A copy of template_cube containing data from df.
@@ -102,6 +114,7 @@ def convert_dataframe_to_cube(
     # The as_cubes() function returns a cubelist. In this case, the cubelist contains
     # only one element.
     converted_cube = iris.pandas.as_cubes(indexed_df[[diagnostic]])[0]
+
     result = template_cube.copy(data=converted_cube.data)
 
     return result
@@ -166,11 +179,31 @@ class TrainGAMsForSAMOS(BasePlugin):
         collapsing over this dimension. Otherwise, a rolling window calculation over
         the time dimension will be used.
 
+        The rolling window method calculates a statistic over data in a fixed time
+        window and assigns the value of the statistic to the central time in the window.
+        For example, for data points [0.0, 1.0, 2.0, 1.0, 0.0] each valid in
+        consecutive hours T+0, T+1, T+2, T+3, T+4, the mean calculated by a rolling
+        window of width 5 would be 0.8. This value would be associated with T+3 in the
+        resulting cube.
+
+        To enable this calculation to produce a cube of the same dimensions as
+        input_cube, the data in input_cube is first padded with additional data. A
+        rolling window of width 5 is used in this method, so 2 data slices are added to
+        the start and end of the input_cube time coordinate. The data in these slices
+        are masked so that they don't affect the calculated statistics.
+
         Args:
             input_cube:
+                A cube with at least one of the following coordinates:
+                1. A realization dimension coordinate
+                2. A time coordinate with more than one point and evenly spaced points.
 
         Returns:
             CubeList containing a mean cube and standard deviation cube.
+
+        Raises:
+            ValueError: If input_cube does not contain a realization coordinate and
+            does contain a time coordinate with unevenly spaced points.
         """
         removed_coords = []
         if input_cube.coords("realization"):
@@ -184,7 +217,7 @@ class TrainGAMsForSAMOS(BasePlugin):
             # Pad the time coordinate of the input cube, then calculate the mean and
             # standard deviation using a rolling window over the time coordinate.
             time_coord = input_cube.coord("time")
-            increments = time_coord.points[1:] - time_coord.points[:-1]
+            increments = diff(time_coord.points)
             if len(set(increments)) > 1:
                 msg = (
                     "In order to extend the time coordinate to permit calculation of "
@@ -198,17 +231,17 @@ class TrainGAMsForSAMOS(BasePlugin):
                 # "time" on the input cube in order to allow extension of the "time"
                 # coordinate. These coordinates are saved and added back to the output
                 # cubes.
-                for coord in [
-                    "forecast_reference_time",
-                    "forecast_period",
-                    "blend_time",
-                ]:
-                    if input_cube.coords(coord):
+                for coord in TIME_COORDS.keys():
+                    if input_cube.coords(coord) and coord != "time":
                         removed_coords.append(input_cube.coord(coord).copy())
                         input_cube.remove_coord(coord)
 
                 increment = increments[0]
-                pad_width = 2  # No. of points to add to each end of time coordinate.
+
+                # Number of indices to append to the start/end of the time coordinates,
+                # so that the total length of the time coordinates increases by double
+                # this.
+                pad_width = 2
 
                 # Get first and last time slices in the input cube, to be used to create
                 # cube slices which are before/after the first/last slice.
@@ -282,7 +315,7 @@ class TrainGAMsForSAMOS(BasePlugin):
                 - a time coordinate with more than one point and equally spaced points
             features:
                 The list of features. These must be either coordinates on input_cube or
-                share a name with a cube in additional_predictors. The index of each
+                share a name with a cube in additional_fields. The index of each
                 feature should match the indices used in model_specification.
             additional_fields:
                 Additional fields to use as supplementary predictors.
@@ -290,6 +323,12 @@ class TrainGAMsForSAMOS(BasePlugin):
         Returns:
             A list containing fitted GAMs which model the input_cube mean and
             standard deviation.
+
+        Raises:
+            ValueError: If input_cube does not contain at least one of a realization or
+            time coordinate.
+            ValueError: If the input cube does not have a realization coordinate and the
+            time coordinate that it does have contains only one point.
         """
         if not input_cube.coords("realization"):
             if not input_cube.coords("time"):
@@ -375,22 +414,24 @@ class TrainEMOSForSAMOS(BasePlugin):
         input_cube: Cube,
         gams: List,
         gam_features: List[str],
-        additional_cubes: Optional[CubeList],
+        additional_fields: Optional[CubeList],
     ) -> Tuple[Cube, Cube]:
         """Function to predict climatological means and standard deviations given fitted
         GAMs for each statistic and cubes which can be used to construct a dataframe
         containing all required features for those GAMs.
 
         Args:
-            input_cube
-            gams: A list containing two fitted GAMs, the first for predicting the
+            input_cube:
+                A cube of forecasts or observations from the training dataset.
+            gams:
+                A list containing two fitted GAMs, the first for predicting the
                 climatological mean of the locations in input_cube and the second
-                predicting the climatoloigcal standard deviation
+                predicting the climatological standard deviation.
             gam_features:
                 The list of features. These must be either coordinates on input_cube or
-                share a name with a cube in additional_cubes. The index of each
+                share a name with a cube in additional_fields. The index of each
                 feature should match the indices used in model_specification.
-            additional_cubes:
+            additional_fields:
                 Additional fields to use as supplementary predictors.
 
         Returns:
@@ -399,7 +440,7 @@ class TrainEMOSForSAMOS(BasePlugin):
         """
         diagnostic = input_cube.name()
 
-        df = prepare_data_for_gam(input_cube, additional_cubes)
+        df = prepare_data_for_gam(input_cube, additional_fields)
 
         # Calculate climatological means and standard deviations using previously
         # fitted GAMs.
@@ -429,11 +470,11 @@ class TrainEMOSForSAMOS(BasePlugin):
             forecast_cubes:
                 A list of three cubes: a cube containing historic forecasts, a cube
                 containing climatological mean predictions and a cube containing
-                climatoloigcal standard deviation predictions.
+                climatological standard deviation predictions.
             truth_cubes:
                 A list of three cubes: a cube containing historic truths, a cube
                 containing climatological mean predictions and a cube containing
-                climatoloigcal standard deviation predictions.
+                climatological standard deviation predictions.
             additional_fields:
                 Additional fields to use as supplementary predictors.
             landsea_mask:
@@ -478,8 +519,8 @@ class TrainEMOSForSAMOS(BasePlugin):
         emos_additional_fields: Optional[CubeList] = None,
         landsea_mask: Optional[Cube] = None,
     ) -> CubeList:
-        """Function to convert historic forecasts and truths to climatoligcal anomalies,
-        then fit EMOS coefficients to these anomalies.
+        """Function to convert historic forecasts and truths to climatological
+        anomalies, then fit EMOS coefficients to these anomalies.
 
         Args:
             historic_forecasts:
@@ -489,14 +530,16 @@ class TrainEMOSForSAMOS(BasePlugin):
             forecast_gams:
                 A list containing two fitted GAMs, the first for predicting the
                 climatological mean of the locations in historic_forecasts and the
-                second predicting the climatoloigcal standard deviation.
+                second predicting the climatological standard deviation. Appropriate
+                GAMs are produced by the TrainGAMsForSAMOS plugin.
             truth_gams:
                 A list containing two fitted GAMs, the first for predicting the
                 climatological mean of the locations in truths and the second
-                predicting the climatoloigcal standard deviation.
+                predicting the climatological standard deviation. Appropriate
+                GAMs are produced by the TrainGAMsForSAMOS plugin.
             gam_features:
                 The list of features. These must be either coordinates on input_cube or
-                share a name with a cube in additional_cubes. The index of each
+                share a name with a cube in gam_additional_fields. The index of each
                 feature should match the indices used in model_specification.
             gam_additional_fields:
                 Additional fields to use as supplementary predictors in the GAMs.
