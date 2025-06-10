@@ -67,7 +67,7 @@ def test__init__(kwargs):
 
 
 @pytest.mark.parametrize("forecast_type", ["gridded", "spot"])
-@pytest.mark.parametrize("n_realizations,n_times", [[2, 1], [2, 2], [1, 2]])
+@pytest.mark.parametrize("n_realizations,n_times", [[5, 1], [5, 5], [1, 5]])
 @pytest.mark.parametrize("include_blend_time", [False, True])
 def test_calculate_cube_statistics(
     forecast_type,
@@ -92,10 +92,38 @@ def test_calculate_cube_statistics(
     }
 
     input_cube = create_simple_cube(**create_cube_kwargs)
+    if forecast_type == "spot":
+        add_values = np.array([-1.0, 0.0, 0.0, 0.0, 1.0]).reshape([5, 1])
+    else:
+        shape = [5, 1, 1] if n_realizations != n_times else [1, 5, 1, 1]
+        add_values = np.array([-1.0, 0.0, 0.0, 0.0, 1.0]).reshape(shape)
+
+    input_cube.data = input_cube.data + np.broadcast_to(
+        add_values, input_cube.data.shape
+    )
 
     # Create cubelist containing expected mean and standard deviations cubes.
-    expected_mean = create_simple_cube(fill_value=305, **expected_cube_kwargs)
-    expected_sd = create_simple_cube(fill_value=0, **expected_cube_kwargs)
+    # If n_realizations is greater than 1 then the realization dimension gets collapsed
+    # so all points in the resulting mean and standard deviation cubes should be equal.
+    # Otherwise, the rolling window calculations over the time dimension results in
+    # means and standard deviations which vary.
+    if n_realizations == 5:
+        expected_mean = create_simple_cube(fill_value=305.0, **expected_cube_kwargs)
+        expected_sd = create_simple_cube(fill_value=0.707106, **expected_cube_kwargs)
+    else:
+        shape = [5, 1] if forecast_type == "spot" else [5, 1, 1]
+        expected_mean = create_simple_cube(fill_value=305.0, **expected_cube_kwargs)
+        add_values_mean = np.array([-0.333333, -0.25, 0.0, 0.25, 0.333333]).reshape(
+            shape
+        )
+        expected_mean.data = expected_mean.data + add_values_mean
+
+        expected_sd = create_simple_cube(fill_value=0.0, **expected_cube_kwargs)
+        add_values_sd = np.array([0.577350, 0.5, 0.707106, 0.5, 0.577350]).reshape(
+            shape
+        )
+        expected_sd.data = expected_sd.data + add_values_sd
+
     if n_realizations > 1:
         # Expect statistics to be calculated over the realization dimension.
         expected_mean.add_cell_method(CellMethod("mean", coords="realization"))
