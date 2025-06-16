@@ -57,6 +57,7 @@ def save_netcdf(
     filename: str,
     compression_level: int = 1,
     least_significant_digit: Optional[int] = None,
+    fill_value: Optional[float] = None,
 ) -> None:
     """Save the input Cube or CubeList as a NetCDF file and check metadata
     where required for integrity.
@@ -80,7 +81,10 @@ def save_netcdf(
             http://www.esrl.noaa.gov/psd/data/gridded/conventions/cdc_netcdf_standard.shtml
             for details. When used with `compression level`, this will result in lossy
             compression.
-
+        fill_value:
+            If specified, will set the fill value for missing data. If not specified,
+            the default fill value for the data type will be used. There must be masked
+            data in the cube for this to have an effect.
     Raises:
         warning if cubelist contains cubes of varying dimensions.
     """
@@ -144,5 +148,6 @@ def save_netcdf(
         zlib=compression_level > 0,
         chunksizes=chunksizes,
         least_significant_digit=least_significant_digit,
+        fill_value=fill_value,
     )
     os.rename(ftmp, filename)
