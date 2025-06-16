@@ -83,8 +83,9 @@ def save_netcdf(
             compression.
         fill_value:
             If specified, will set the fill value for missing data. If not specified,
-            the default fill value for the data type will be used. This will set
-            the _FillValue attribute in the NetCDF file.
+            the default fill value for the data type will be used. If the data is not masked then
+            the numpy array's fill value will retain the default value while the _FillValue attribute
+            in the NetCDF file will be updated.
     Raises:
         warning if cubelist contains cubes of varying dimensions.
     """
