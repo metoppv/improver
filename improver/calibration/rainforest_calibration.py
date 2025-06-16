@@ -13,8 +13,8 @@
 import os
 import warnings
 from collections import OrderedDict
+from enum import StrEnum
 from pathlib import Path
-from typing import Dict, List, Tuple
 
 import numpy as np
 from cf_units import Unit
@@ -36,6 +36,19 @@ from improver.metadata.utilities import (
 from improver.utilities.cube_manipulation import add_coordinate_to_cube, compare_coords
 
 
+class ModelFileNotFoundError(Exception):
+    """Used when the path to a treelite/lightgbm model object is invalid."""
+
+    pass
+
+
+class ModelKeyName(StrEnum):
+    """Possible values for model library to use in calibration."""
+
+    LIGHTGBM = "lightgbm_model"
+    TREELITE = "treelite_model"
+
+
 class ApplyRainForestsCalibration(PostProcessingPlugin):
     """Generic class to calibrate input forecast via RainForests.
 
@@ -46,7 +59,7 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
 
     def __new__(
         cls,
-        model_config_dict: Dict[str, Dict[str, Dict[str, str]]],
+        model_config_dict: dict[str, dict[str, dict[str, str]]],
         threads: int = 1,
         bin_data: bool = False,
     ):
@@ -90,22 +103,22 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
         Boosters are used as the default tree model type.
         """
         try:
-            # Use treelite class, unless subsequent conditions fail.
+            # Use treelite class if modules available and paths provided.
             cls = ApplyRainForestsCalibrationTreelite
-            # Try and initialise the treelite_runtime library to test if the package
-            # is available.
-            import treelite_runtime  # noqa: F401
+            # Check whether treelite packages are available.
+            import tl2cgen  # noqa: F401
+            import treelite  # noqa: F401
 
             # Check that all required files have been specified.
             ApplyRainForestsCalibration.check_filenames(
-                "treelite_model", model_config_dict
+                ModelKeyName.TREELITE, model_config_dict
             )
-        except (ModuleNotFoundError, ValueError):
+        except (ModuleNotFoundError, ModelFileNotFoundError):
             # Default to lightGBM.
             cls = ApplyRainForestsCalibrationLightGBM
             # Ensure all required files have been specified.
             ApplyRainForestsCalibration.check_filenames(
-                "lightgbm_model", model_config_dict
+                ModelKeyName.LIGHTGBM, model_config_dict
             )
         return super(ApplyRainForestsCalibration, cls).__new__(cls)
 
@@ -133,7 +146,7 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
                 "Number of expected features does not match number of feature cubes."
             )
 
-    def _get_feature_splits(self, model_config_dict) -> Dict[int, List[ndarray]]:
+    def _get_feature_splits(self, model_config_dict) -> dict[np.float32, list[ndarray]]:
         """Get the combined feature splits (over all thresholds) for each lead time.
 
         Args:
@@ -155,7 +168,7 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
                 lgb_model_filename = Path(
                     os.path.expandvars(
                         model_config_dict[lead_time][threshold_str].get(
-                            "lightgbm_model"
+                            ModelKeyName.LIGHTGBM
                         )
                     )
                 ).expanduser()
@@ -181,17 +194,26 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
 
     @staticmethod
     def check_filenames(
-        key_name: str, model_config_dict: Dict[str, Dict[str, Dict[str, str]]]
+        key_name: ModelKeyName, model_config_dict: dict[str, dict[str, dict[str, str]]]
     ):
         """Check whether files specified by model_config_dict exist,
         and raise an error if any are missing.
 
         Args:
-            key_name: 'treelite_model' or 'lightgbm_model' are the expected names.
+            key_name: One of "treelite_model" or "lightgbm_model".
             model_config_dict: Dictionary containing Rainforests model configuration variables.
+
+        Raises:
+            ValueError:
+                If an invalid value for key_name is used.
+            ModelFileNotFoundError:
+                If the path to the corresponding model is missing for one or
+                more model thresholds in model_config_dict.
         """
-        if key_name not in ["lightgbm_model", "treelite_model"]:
-            raise ValueError("key_name must be 'lightgbm_model' or 'treelite_model'")
+        if key_name not in ModelKeyName:
+            raise ValueError(
+                f"key_name must be one of the following: {[key.value for key in ModelKeyName]}"
+            )
         model_filenames = []
         for lead_time in model_config_dict.keys():
             for threshold in model_config_dict[lead_time].keys():
@@ -199,20 +221,20 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
                     model_config_dict[lead_time][threshold].get(key_name)
                 )
         if None in model_filenames:
-            if key_name == "lightgbm_model":
-                raise ValueError(
+            if key_name == ModelKeyName.LIGHTGBM:
+                raise ModelFileNotFoundError(
                     "Path to lightgbm model missing for one or more model thresholds "
                     "in model_config_dict."
                 )
-            elif key_name == "treelite_model":
-                raise ValueError(
+            elif key_name == ModelKeyName.TREELITE:
+                raise ModelFileNotFoundError(
                     "Path to treelite model missing for one or more model thresholds "
                     "in model_config_dict, defaulting to using lightGBM models."
                 )
 
     def _parse_model_config(
-        self, model_config_dict: Dict[str, Dict[str, Dict[str, str]]]
-    ) -> Dict[np.float32, Dict[np.float32, Dict[str, str]]]:
+        self, model_config_dict: dict[str, dict[str, dict[str, str]]]
+    ) -> OrderedDict[np.float32, OrderedDict[np.float32, dict[str, str]]]:
         """Parse the model config dictionary, set self.lead_times and self.model_thresholds,
         and return a sorted version of the config dictionary.
 
@@ -246,21 +268,23 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
 
 class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
     """Class to calibrate input forecast given via RainForests approach using light-GBM
-    tree models"""
+    tree models."""
 
     def __new__(
         cls,
-        model_config_dict: Dict[str, Dict[str, Dict[str, str]]],
+        model_config_dict: dict[str, dict[str, dict[str, str]]],
         threads: int = 1,
         bin_data: bool = False,
     ):
         """Check all model files are available before initialising."""
-        ApplyRainForestsCalibration.check_filenames("lightgbm_model", model_config_dict)
+        ApplyRainForestsCalibration.check_filenames(
+            ModelKeyName.LIGHTGBM, model_config_dict
+        )
         return super(ApplyRainForestsCalibration, cls).__new__(cls)
 
     def __init__(
         self,
-        model_config_dict: Dict[str, Dict[str, Dict[str, str]]],
+        model_config_dict: dict[str, dict[str, dict[str, str]]],
         threads: int = 1,
         bin_data: bool = False,
     ):
@@ -318,8 +342,10 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             for threshold in self.model_thresholds:
                 model_filename = Path(
                     os.path.expandvars(
-                        sorted_model_config_dict[lead_time][threshold].get(
-                            "lightgbm_model"
+                        str(
+                            sorted_model_config_dict[lead_time][threshold].get(
+                                ModelKeyName.LIGHTGBM
+                            )
                         )
                     )
                 ).expanduser()
@@ -336,7 +362,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
 
     def _align_feature_variables(
         self, feature_cubes: CubeList, forecast_cube: Cube
-    ) -> Tuple[CubeList, Cube]:
+    ) -> tuple[CubeList, Cube]:
         """Ensure that feature cubes have consistent dimension coordinates. If realization
         dimension present in any cube, all cubes lacking this dimension will have realization
         dimension added and broadcast along this new dimension.
@@ -562,6 +588,9 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                 model = self.tree_models[model_lead_time, threshold]
                 prediction = model.predict(dataset_for_prediction)
                 prediction = np.clip(prediction, 0, 1)
+                if type(self) is ApplyRainForestsCalibrationTreelite:
+                    # Workaround for issue with treelite 4.x.x where predictions have a 3D shape
+                    prediction = prediction.flatten()
                 full_prediction[predict_rows] = prediction
                 full_prediction = full_prediction[fill_inds]
                 # restore original order
@@ -575,6 +604,9 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                 model = self.tree_models[model_lead_time, threshold]
                 prediction = model.predict(dataset_for_prediction)
                 prediction = np.clip(prediction, 0, 1)
+                if type(self) is ApplyRainForestsCalibrationTreelite:
+                    # Workaround for issue with treelite 4.x.x where predictions have a 3D shape
+                    prediction = prediction.flatten()
                 output_data[threshold_index, :] = np.reshape(
                     prediction, output_data.shape[1:]
                 )
@@ -598,7 +630,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         Raises:
             ValueError:
                 If an unsupported model object is passed. Expects lightgbm Booster, or
-                treelite_runtime Predictor (if treelite dependency is available).
+                tl2cgen Predictor (if the latter's dependencies are available).
         """
 
         threshold_probability_cube = self._prepare_threshold_probability_cube(
@@ -691,8 +723,8 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         self,
         forecast_cube: Cube,
         feature_cubes: CubeList,
-        output_thresholds: List,
-        threshold_units: str = None,
+        output_thresholds: list,
+        threshold_units: str | None = None,
     ) -> Cube:
         """Apply rainforests calibration to forecast cube.
 
@@ -779,26 +811,29 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
 
 class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
     """Class to calibrate input forecast given via RainForests approach using treelite
-    compiled tree models"""
+    compiled tree models."""
 
     def __new__(
         cls,
-        model_config_dict: Dict[str, Dict[str, Dict[str, str]]],
+        model_config_dict: dict[str, dict[str, dict[str, str]]],
         threads: int = 1,
         bin_data: bool = False,
     ):
-        """Check required dependency and all model files are available before initialising."""
-        # Try and initialise the treelite_runtime library to test if the package
-        # is available.
-        import treelite_runtime  # noqa: F401
+        """Check required dependencies and all model files are available
+        before initialising."""
+        # Treelite packages must be available to initialise this class
+        import tl2cgen  # noqa: F401
+        import treelite  # noqa: F401
 
         # Check that all required files have been specified.
-        ApplyRainForestsCalibration.check_filenames("treelite_model", model_config_dict)
+        ApplyRainForestsCalibration.check_filenames(
+            ModelKeyName.TREELITE, model_config_dict
+        )
         return super(ApplyRainForestsCalibration, cls).__new__(cls)
 
     def __init__(
         self,
-        model_config_dict: Dict[str, Dict[str, Dict[str, str]]],
+        model_config_dict: dict[str, dict[str, dict[str, str]]],
         threads: int = 1,
         bin_data: bool = False,
     ):
@@ -838,7 +873,7 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
         The keys specify the model threshold value, while the associated values
         are the path to the corresponding tree-model objects for that threshold.
         """
-        from treelite_runtime import DMatrix, Predictor
+        from tl2cgen import DMatrix, Predictor
 
         sorted_model_config_dict = self._parse_model_config(model_config_dict)
         self.model_input_converter = DMatrix
@@ -851,8 +886,10 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
             for threshold in self.model_thresholds:
                 model_filename = Path(
                     os.path.expandvars(
-                        sorted_model_config_dict[lead_time][threshold].get(
-                            "treelite_model"
+                        str(
+                            sorted_model_config_dict[lead_time][threshold].get(
+                                ModelKeyName.TREELITE
+                            )
                         )
                     )
                 ).expanduser()

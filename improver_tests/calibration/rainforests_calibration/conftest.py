@@ -273,21 +273,22 @@ def dummy_lightgbm_models(ensemble_features, ensemble_forecast, thresholds, lead
 
 def compile_models(lightgbm_models, lead_times, thresholds, tmp_path):
     """Compile lightgbm models."""
+    import tl2cgen
     import treelite
-    import treelite_runtime
 
     tree_models = {}
     for lead_time in lead_times:
         for threshold in thresholds:
             model = lightgbm_models[lead_time, threshold]
             treelite_model = treelite.Model.from_lightgbm(model)
-            treelite_model.export_lib(
+            tl2cgen.export_lib(
+                treelite_model,
                 toolchain="gcc",
                 libpath=str(tmp_path / "model.so"),
                 verbose=False,
                 params={"parallel_comp": 8, "quantize": 1},
             )
-            predictor = treelite_runtime.Predictor(
+            predictor = tl2cgen.Predictor(
                 str(tmp_path / "model.so"), verbose=True, nthread=1
             )
             tree_models[lead_time, threshold] = predictor
@@ -313,6 +314,7 @@ def plugin_and_dummy_models(request):
         )
     elif request.param == "treelite":
         _ = pytest.importorskip("treelite")
+        _ = pytest.importorskip("tl2cgen")
         return (
             ApplyRainForestsCalibrationTreelite,
             request.getfixturevalue("dummy_treelite_models"),

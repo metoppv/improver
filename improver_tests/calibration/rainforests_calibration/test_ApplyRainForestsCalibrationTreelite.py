@@ -11,53 +11,67 @@ import pytest
 
 from improver.calibration.rainforest_calibration import (
     ApplyRainForestsCalibrationTreelite,
+    ModelFileNotFoundError,
 )
 
-treelite_runtime = pytest.importorskip("treelite_runtime")
+from .utils import MockPredictor
+
+tl2cgen = pytest.importorskip("tl2cgen")
 
 
-class MockPredictor:
-    def __init__(self, libpath, nthread, **kwargs):
-        self.model_class = "treelite-Predictor"
-        self.threads = nthread
-        self.model_file = libpath
+class TestNew:
+    """Tests for the __new__ method of ApplyRainForestsCalibrationTreelite."""
 
+    def test_new_with_tl2cgen_available(self, model_config, monkeypatch):
+        """Test that the __new__ method creates an object of the expected
+        subclass when tl2cgen is available."""
+        monkeypatch.setattr(tl2cgen, "Predictor", MockPredictor)
+        result = ApplyRainForestsCalibrationTreelite(model_config)
+        assert type(result).__name__ == "ApplyRainForestsCalibrationTreelite"
 
-def test__new__(model_config, monkeypatch):
-    monkeypatch.setattr(treelite_runtime, "Predictor", MockPredictor)
+    def test_new_with_file_path_missing(self, model_config, monkeypatch):
+        """Test that the __new__ method raises the correct exception type
+        when file path is missing in model config."""
+        monkeypatch.setattr(tl2cgen, "Predictor", MockPredictor)
+        model_config["24"]["0.0000"].pop("treelite_model", None)
+        with pytest.raises(ModelFileNotFoundError):
+            ApplyRainForestsCalibrationTreelite(model_config)
 
-    # Check that we get the expected subclass
-    result = ApplyRainForestsCalibrationTreelite(model_config)
-    assert type(result).__name__ == "ApplyRainForestsCalibrationTreelite"
-    # Test exception raised when file path is missing.
-    model_config["24"]["0.0000"].pop("treelite_model", None)
-    with pytest.raises(ValueError):
-        ApplyRainForestsCalibrationTreelite(model_config)
-
-    monkeypatch.setitem(sys.modules, "treelite_runtime", None)
-    with pytest.raises(ModuleNotFoundError):
-        ApplyRainForestsCalibrationTreelite(model_config)
+    def test_new_with_tl2cgen_unavailable(self, model_config, monkeypatch):
+        """Test that the __new__ method raises the correct error when
+        tl2cgen is unavailable."""
+        monkeypatch.setitem(sys.modules, "tl2cgen", None)
+        with pytest.raises(ModuleNotFoundError):
+            ApplyRainForestsCalibrationTreelite(model_config)
 
 
 @pytest.mark.parametrize("ordered_inputs", (True, False))
-@pytest.mark.parametrize("default_threads", (True, False))
-def test__init__(
-    model_config, ordered_inputs, default_threads, lead_times, thresholds, monkeypatch
+@pytest.mark.parametrize("expected_threads", (1, 8))
+def test_tree_models(
+    monkeypatch, model_config, ordered_inputs, expected_threads, lead_times, thresholds
 ):
-    monkeypatch.setattr(treelite_runtime, "Predictor", MockPredictor)
+    """Test for the correct values when using the
+    ApplyRainForestsCalibrationTreelite class.
 
+    Asserts that:
+    - Thresholds and model types match
+    - Thresholds and files match
+    """
+    # Setup
+    monkeypatch.setattr(tl2cgen, "Predictor", MockPredictor)
     if not ordered_inputs:
         tmp_value = model_config["24"].pop("0.0000", None)
         model_config["24"]["0.0000"] = tmp_value
 
-    if default_threads:
-        expected_threads = 1
+    # Act
+    if expected_threads == 1:
         result = ApplyRainForestsCalibrationTreelite(model_config)
     else:
-        expected_threads = 8
         result = ApplyRainForestsCalibrationTreelite(
             model_config, threads=expected_threads
         )
+
+    # Assert
     # Check thresholds and model types match
     assert np.all(result.lead_times == lead_times)
     assert np.all(result.model_thresholds == thresholds)
@@ -74,9 +88,13 @@ def test__init__(
             assert isinstance(model.model_file, str)
             assert f"{lead_time:03d}H" in str(model.model_file)
             assert f"{threshold:06.4f}" in str(model.model_file)
-    # Test error is raised if lead times have different thresholds
+
+
+@pytest.mark.parametrize("expected_threads", (1, 8))
+def test_correct_error_raised(monkeypatch, model_config, expected_threads):
+    """Test that an error is raised if lead times have different thresholds."""
+    monkeypatch.setattr(tl2cgen, "Predictor", MockPredictor)
     val = model_config["24"].pop("0.0000")
     model_config["24"]["1.0000"] = val
-    msg = "same thresholds must be used"
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(ValueError, match="same thresholds must be used"):
         ApplyRainForestsCalibrationTreelite(model_config, threads=expected_threads)

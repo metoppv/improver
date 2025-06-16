@@ -10,31 +10,22 @@ from iris import Constraint
 
 from improver.calibration.rainforest_calibration import (
     ApplyRainForestsCalibrationLightGBM,
+    ModelFileNotFoundError,
 )
 from improver.constants import SECONDS_IN_HOUR
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
+from .utils import MockBooster
+
 lightgbm = pytest.importorskip("lightgbm")
 
 
-class MockBooster:
-    def __init__(self, model_file, **kwargs):
-        self.model_class = "lightgbm-Booster"
-        self.model_file = model_file
-
-    def reset_parameter(self, params):
-        self.threads = params.get("num_threads")
-        return self
-
-
-def test__new__(model_config, monkeypatch):
+def test_file_path_missing(monkeypatch, model_config):
+    """Test that the correct exception type is raised when the
+    file path is missing."""
     monkeypatch.setattr(lightgbm, "Booster", MockBooster)
-    # Check that we get the expected subclass
-    result = ApplyRainForestsCalibrationLightGBM(model_config)
-    assert type(result).__name__ == "ApplyRainForestsCalibrationLightGBM"
-    # Test exception raised when file path is missing.
     model_config["24"]["0.0000"].pop("lightgbm_model", None)
-    with pytest.raises(ValueError):
+    with pytest.raises(ModelFileNotFoundError):
         ApplyRainForestsCalibrationLightGBM(model_config)
 
 
@@ -43,6 +34,9 @@ def test__new__(model_config, monkeypatch):
 def test__init__(
     model_config, ordered_inputs, default_threads, lead_times, thresholds, monkeypatch
 ):
+    """Test the __init__ method of the
+    ApplyRainForestsCalibrationLightGBM class.
+    """
     monkeypatch.setattr(lightgbm, "Booster", MockBooster)
 
     if not ordered_inputs:
@@ -405,7 +399,8 @@ def test_process_with_bin_data(
     lightgbm_model_files,
 ):
     """Test that bin_data option does not affect the results.
-    The lightgbm_model_files parameter is not used explicitly, but it is
+
+    Note: The lightgbm_model_files parameter is not used explicitly, but it is
     required in order to make the files available.
     """
     plugin_cls, dummy_models = plugin_and_dummy_models

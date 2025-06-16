@@ -4,15 +4,22 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the ApplyRainForestsCalibration class."""
 
+import re
 import sys
 
 import numpy as np
 import pytest
 
-from improver.calibration.rainforest_calibration import ApplyRainForestsCalibration
+from improver.calibration.rainforest_calibration import (
+    ApplyRainForestsCalibration,
+    ModelFileNotFoundError,
+)
+
+from .utils import MockBooster, MockPredictor
 
 try:
-    import treelite_runtime
+    import tl2cgen
+    import treelite  # noqa: F401
 except ModuleNotFoundError:
     TREELITE_ENABLED = False
 else:
@@ -24,56 +31,96 @@ treelite_available = pytest.mark.skipif(
 )
 
 
-class MockBooster:
-    def __init__(self, model_file, **kwargs):
-        self.model_class = "lightgbm-Booster"
-        self.model_file = model_file
+class TestConstructorCorrectClass:
+    """Test that the ApplyRainForestsCalibration constructor correctly
+    selects which class to use based on availability of modules.
+    """
 
-    def reset_parameter(self, params):
-        self.threads = params.get("num_threads")
-        return self
+    def test_correct_class_when_lightgbm_available(self, monkeypatch, model_config):
+        """Test that the ApplyRainForestsCalibration constructor creates an
+        object of the correct type when lightgbm is available."""
+        monkeypatch.setattr(lightgbm, "Booster", MockBooster)
+        monkeypatch.setitem(sys.modules, "tl2cgen", None)
+        result = ApplyRainForestsCalibration(model_config)
+        assert type(result).__name__ == "ApplyRainForestsCalibrationLightGBM"
+
+    def test_correct_class_when_treelite_available(self, monkeypatch, model_config):
+        """ "Test that the ApplyRainForestsCalibration constructor creates an
+        object of the correct type when tl2cgen is available."""
+        monkeypatch.setattr(tl2cgen, "Predictor", MockPredictor)
+        result = ApplyRainForestsCalibration(model_config)
+        assert type(result).__name__ == "ApplyRainForestsCalibrationTreelite"
 
 
-class MockPredictor:
-    def __init__(self, libpath, nthread, **kwargs):
-        self.model_class = "treelite-Predictor"
-        self.threads = nthread
-        self.model_file = libpath
+class TestLoadTreeliteModels:
+    """Test that treelite models are loaded correctly."""
 
+    def test_treelite_model_and_module_available(self, monkeypatch, model_config):
+        """Test when model config is loaded and tl2cgen module available.
 
-@pytest.mark.parametrize("lightgbm_keys", (True, False))
-@pytest.mark.parametrize("treelite_model", (TREELITE_ENABLED, False))
-@pytest.mark.parametrize("treelite_file", (True, False))
-def test__new__(
-    lightgbm_keys, treelite_model, treelite_file, monkeypatch, model_config
-):
-    """Test treelite models are loaded if model_config correctly defines them. If all thresholds
-    contain treelite model AND the treelite module is available, treelite Predictor is returned,
-    otherwise return lightgbm Boosters. Checks outputs are ordered when inputs can be unordered.
-    If neither treelite nor lightgbm configs are complete, a ValueError is expected."""
-    if treelite_model:
-        monkeypatch.setattr(treelite_runtime, "Predictor", MockPredictor)
-    else:
-        monkeypatch.setitem(sys.modules, "treelite_runtime", None)
-    monkeypatch.setattr(lightgbm, "Booster", MockBooster)
-    if not treelite_file:
-        # Model type should default to lightgbm if there are any treelite models
-        # missing across any thresholds
-        model_config["24"]["0.0000"].pop("treelite_model", None)
-    if not lightgbm_keys:
+        Tests that treelite models are loaded correctly when:
+
+        - all thresholds contain treelite model
+        - tl2cgen modules are available
+        - lightgbm module is available.
+        """
+        monkeypatch.setattr(tl2cgen, "Predictor", MockPredictor)
+        monkeypatch.setattr(lightgbm, "Booster", MockBooster)
         model_config["24"]["0.0000"].pop("lightgbm_model", None)
+        result = ApplyRainForestsCalibration(model_config)
+        assert type(result).__name__ == "ApplyRainForestsCalibrationTreelite"
 
-    if treelite_model and treelite_file:
-        expected_class = "ApplyRainForestsCalibrationTreelite"
-    elif lightgbm_keys:
-        expected_class = "ApplyRainForestsCalibrationLightGBM"
-    else:
-        with pytest.raises(ValueError, match="Path to lightgbm model missing"):
+    def test_treelite_model_unavailable_module_available(
+        self, monkeypatch, model_config
+    ):
+        """Test when model config is loaded and tl2cgen module unavailable.
+
+        Tests that treelite models are loaded correctly when:
+
+        - all thresholds contain treelite model
+        - tl2cgen modules is unavailable
+        - lightgbm module is available.
+        """
+        monkeypatch.setitem(sys.modules, "tl2cgen", None)
+        monkeypatch.setattr(lightgbm, "Booster", MockBooster)
+        model_config["24"]["0.0000"].pop("treelite_model", None)
+        result = ApplyRainForestsCalibration(model_config)
+        assert type(result).__name__ == "ApplyRainForestsCalibrationLightGBM"
+
+    def test_treelite_model_and_module_unavailable(self, monkeypatch, model_config):
+        """Test when model and tl2cgen module both unavailable.
+
+        Tests that treelite models are loaded correctly when:
+
+        - treelite module unavailable
+        - tl2cgen module unavailable
+        - lightgbm module available.
+        """
+        monkeypatch.setitem(sys.modules, "tl2cgen", None)
+        monkeypatch.setattr(lightgbm, "Booster", MockBooster)
+        model_config["24"]["0.0000"].pop("treelite_model", None)
+        result = ApplyRainForestsCalibration(model_config)
+        assert type(result).__name__ == "ApplyRainForestsCalibrationLightGBM"
+
+    def test_treelite_unavailable_lightgbm_keys_unavailable(
+        self, monkeypatch, model_config
+    ):
+        """Test when treelite model unavailable, tl2cgen unavailable, no lightgbm config.
+
+        Test that the correct exception is raised when:
+        - treelite model is unavailable
+        - tl2cgen module is unavailable
+        - there are no lightgbm configs
+        - lightgbm module is available.
+        """
+        monkeypatch.setitem(sys.modules, "tl2cgen", None)
+        monkeypatch.setattr(lightgbm, "Booster", MockBooster)
+        model_config["24"]["0.0000"].pop("treelite_model", None)
+        model_config["24"]["0.0000"].pop("lightgbm_model", None)
+        with pytest.raises(
+            ModelFileNotFoundError, match="Path to lightgbm model missing"
+        ):
             ApplyRainForestsCalibration(model_config)
-        return
-
-    result = ApplyRainForestsCalibration(model_config)
-    assert type(result).__name__ == expected_class
 
 
 @pytest.mark.parametrize("treelite_file", (True, False))
@@ -81,8 +128,10 @@ def test__get_feature_splits(
     treelite_file, model_config, plugin_and_dummy_models, lightgbm_model_files
 ):
     """Test that _get_feature_splits returns a dict in the expected format.
-    The lightgbm_model_files parameter is not used explicitly, but it is
-    required in order to make the files available."""
+
+    Note: The lightgbm_model_files parameter is not used explicitly, but it is
+    required in order to make the files available.
+    """
     if not treelite_file:
         # Model type should default to lightgbm if there are any treelite models
         # missing across any thresholds
@@ -103,12 +152,15 @@ def test__get_feature_splits(
     assert all([len(x) == num_features for x in splits.values()])
 
 
-def test_check_filenames(model_config):
-    """Test that check_filenames raises an error if an invalid
+@pytest.mark.parametrize(
+    "key_name", ("tensorflow_models", 123, -1, True, False, "treelite")
+)
+def test_check_filenames_with_invalid_key_name(model_config, key_name):
+    """Test that check_filenames() raises an error if an invalid
     key_name is specified."""
 
-    msg = "key_name must be 'lightgbm_model' or 'treelite_model'"
-    with pytest.raises(ValueError, match=msg):
+    msg = "key_name must be one of the following: ['lightgbm_model', 'treelite_model']"
+    with pytest.raises(ValueError, match=re.escape(msg)):
         ApplyRainForestsCalibration.check_filenames(
-            key_name="tensorflow_models", model_config_dict=model_config
+            key_name=key_name, model_config_dict=model_config
         )
