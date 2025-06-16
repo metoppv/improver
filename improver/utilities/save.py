@@ -83,8 +83,8 @@ def save_netcdf(
             compression.
         fill_value:
             If specified, will set the fill value for missing data. If not specified,
-            the default fill value for the data type will be used. There must be masked
-            data in the cube for this to have an effect.
+            the default fill value for the data type will be used. This will set
+            the _FillValue attribute in the NetCDF file.
     Raises:
         warning if cubelist contains cubes of varying dimensions.
     """
