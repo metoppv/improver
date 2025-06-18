@@ -32,6 +32,7 @@ class CondensationTrailFormation(BasePlugin):
         formation critical temperatures. Journal of Applied
         Meteorology, 36(12), pp.1725-1729.
     """
+
     temperature = None
     humidity = None
     pressure_levels = None
@@ -53,7 +54,9 @@ class CondensationTrailFormation(BasePlugin):
             engine_contrail_factors, dtype=np.float32
         )
 
-    def _calculate_engine_mixing_ratios(self, pressure_levels: np.ndarray) -> np.ndarray:
+    def _calculate_engine_mixing_ratios(
+        self, pressure_levels: np.ndarray
+    ) -> np.ndarray:
         """
         Calculate the mixing ratio of the atmosphere and aircraft
         exhaust (Schrader, 1997). This calculation uses
@@ -70,7 +73,9 @@ class CondensationTrailFormation(BasePlugin):
             / EARTH_REPSILON
         )
 
-    def process_data(self, temperature: np.ndarray, humidity: np.ndarray, pressure_levels: np.ndarray) -> np.ndarray:
+    def process_data(
+        self, temperature: np.ndarray, humidity: np.ndarray, pressure_levels: np.ndarray
+    ) -> np.ndarray:
         """
         Main entry point of this class for data as Numpy arrays
 
@@ -89,7 +94,9 @@ class CondensationTrailFormation(BasePlugin):
         self.temperature = temperature
         self.humidity = humidity
         self.pressure_levels = pressure_levels
-        self.engine_mixing_ratios = self._calculate_engine_mixing_ratios(self.pressure_levels)
+        self.engine_mixing_ratios = self._calculate_engine_mixing_ratios(
+            self.pressure_levels
+        )
         return self.engine_mixing_ratios
 
     def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
@@ -118,7 +125,9 @@ class CondensationTrailFormation(BasePlugin):
         pressure_coord.convert_units("Pa")
 
         # Calculate contrail formation using numpy arrays
-        _ = self.process_data(temperature_cube.data, humidity_cube.data, pressure_coord.points)
+        _ = self.process_data(
+            temperature_cube.data, humidity_cube.data, pressure_coord.points
+        )
 
         # Placeholder return to silence my type checker
         return_cube = Cube(

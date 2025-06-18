@@ -8,7 +8,6 @@ from typing import List, Optional, Tuple
 
 import numpy as np
 import pytest
-import mock
 
 from improver.psychrometric_calculations.condensation_trails import (
     CondensationTrailFormation,
