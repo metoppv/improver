@@ -100,31 +100,26 @@ class SaturatedVapourPressureTableDerivative(BasePlugin):
             msg = "Temperatures out of SVP table range: min {}, max {}"
             warnings.warn(msg.format(temperature.min(), temperature.max()))
 
-        print("in goff_gratch: temperature", temperature)
-        print("len(temperature)", len(temperature))
         svp_table_plugin = SaturatedVapourPressureTable()
         svp_original = svp_table_plugin.saturation_vapour_pressure_goff_gratch(temperature)
         svp_derivative = temperature.copy()
         ival = -1
         for cell in np.nditer(svp_derivative, op_flags=["readwrite"]):
             ival += 1
-            # Get value from non-derivative table
             svp_original_cell_val = svp_original[ival]
             if cell > triple_pt:
-                # Calculate derivative portion
-                n0 = constants[1] * (triple_pt / (cell ** 2))
-                n1 = -constants[2] * cell
-                n2 = -(np.log(10) * constants[3] * constants[4] / triple_pt) * np.power(10, (constants[4] * (cell / triple_pt - 1.0)))
-                n3 = (constants[5] * constants[6] * triple_pt * np.log(10) / (cell ** 2)) * np.power(10, (constants[6] * (1.0 - triple_pt / cell)))
-                cell[...] = np.log(10) * (n0 + n1 + n2 + n3) * svp_original_cell_val
+                n0 = (constants[1] * triple_pt) / (cell ** 2)
+                n1 = constants[2] / (cell * np.log(10))
+                n2 = np.log(10) * ((constants[3] * constants[4]) / triple_pt) * np.power(10, ((constants[4] * (cell / triple_pt)) - 1.0))
+                n3 = np.log(10) * ((constants[5] * constants[6] * triple_pt) / (cell ** 2)) * np.power(10, (constants[6] * (1.0 - (triple_pt / cell))))
+                cell[...] = np.log(10) * (n0 - n1 - n2 + n3) * svp_original_cell_val
             else:
-                n0 = -(constants[8] * triple_pt / (cell ** 2))
-                n1 = constants[9] / cell
-                n2 = -constants[10] / triple_pt
-                cell[...] = np.log(10) * (n0 + n1 + n2) * svp_original_cell_val
+                n0 = constants[8] * (triple_pt / (cell ** 2))
+                n1 = constants[9] / (cell * np.log(10))
+                n2 = constants[10] / triple_pt
+                cell[...] = np.log(10) * (-n0 + n1 - n2) * svp_original_cell_val
 
         return svp_derivative
-
 
     def process(self) -> Cube:
         """
@@ -138,10 +133,8 @@ class SaturatedVapourPressureTableDerivative(BasePlugin):
         temperatures = np.arange(
             self.t_min, self.t_max + 0.5 * self.t_increment, self.t_increment
         )
-        print("process: temperatures", temperatures)
-        print("process: calling goff_gratch")
+
         svp_data = self.derivative_saturation_vapour_pressure_goff_gratch(temperatures)
-        print("process: svp_data", svp_data)
 
         temperature_coord = iris.coords.DimCoord(
             temperatures, "air_temperature", units="K"
