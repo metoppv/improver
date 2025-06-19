@@ -90,9 +90,9 @@ class Test_cycletime_to_number(IrisTest):
     def test_basic(self):
         """Test that a number is returned of the expected value."""
         cycletime = "20171122T0000Z"
-        dt = 419808.0
+        dt = 419808
         result = cycletime_to_number(cycletime)
-        self.assertIsInstance(result, float)
+        self.assertIsInstance(result, np.int64)
         self.assertAlmostEqual(result, dt)
 
     def test_cycletime_format_defined(self):
@@ -138,7 +138,7 @@ class Test_iris_time_to_datetime(IrisTest):
         result = iris_time_to_datetime(self.cube.coord("time"))
         self.assertIsInstance(result, list)
         for item in result:
-            self.assertIsInstance(item, datetime)
+            self.assertIsInstance(item, cftime.DatetimeGregorian)
         self.assertEqual(result[0], datetime(2017, 2, 17, 6, 0))
 
     def test_bounds(self):
@@ -154,7 +154,7 @@ class Test_iris_time_to_datetime(IrisTest):
         self.assertEqual(len(result), 1)
         self.assertEqual(len(result[0]), 2)
         for item in result[0]:
-            self.assertIsInstance(item, datetime)
+            self.assertIsInstance(item, cftime.DatetimeGregorian)
         self.assertEqual(result[0][0], datetime(2017, 2, 17, 5, 0))
         self.assertEqual(result[0][1], datetime(2017, 2, 17, 6, 0))
 
