@@ -21,7 +21,7 @@ class SaturatedVapourPressureTableDerivative(BasePlugin):
     Plugin to create a first derivative saturated vapour pressure lookup table.
 
     .. Further information is available in:
-    .. include:: extended_documentation/utilities/generate_ancillary/
+    .. include:: extended_documentation/generate_ancillary/
        generate_svp_derivative_table.rst
     """
 
