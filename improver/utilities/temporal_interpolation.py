@@ -804,7 +804,7 @@ class DurationSubdivision:
         # Split the whole period duration into allocations for each fidelity
         # period.
         intervals = period // self.fidelity
-        interval_data = cube.data / intervals
+        interval_data = (cube.data / intervals).astype(cube.data.dtype)
 
         daynightplugin = DayNightMask()
         start_time, _ = cube.coord("time").bounds.flatten()
@@ -934,7 +934,7 @@ class DurationSubdivision:
         # Ensure that the cube is already self-consistent and does not include
         # any durations that exceed the period described. This is mostly to
         # handle grib packing errors for ECMWF data.
-        cube.data = np.clip(cube.data, 0, period)
+        cube.data = np.clip(cube.data, 0, period, dtype=cube.data.dtype)
 
         fidelity_period_cube = self.allocate_data(cube, period)
         factor = self.renormalisation_factor(cube, fidelity_period_cube)
