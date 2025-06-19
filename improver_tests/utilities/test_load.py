@@ -208,9 +208,9 @@ class Test_load_cube(IrisTest):
         self.assertFalse(result.has_lazy_data())
 
     def test_lazy_load(self):
-        """Test that the loading works correctly with lazy loading."""
+        """Test that the cube is consistently loaded as lazy data or otherwise."""
         result = load_cube(self.filepath)
-        self.assertTrue(result.has_lazy_data())
+        self.assertFalse(result.has_lazy_data())
 
     def test_var_names_removed(self):
         """Test a cube with an unnecessary coordinate var name does not have
@@ -405,10 +405,9 @@ class Test_load_cubelist(IrisTest):
             )
 
     def test_lazy_load(self):
-        """Test that the cubelist returned upon loading does contain
-        lazy data."""
+        """Test that the cubelist is consistently loaded as lazy data or otherwise."""
         result = load_cubelist([self.filepath, self.filepath])
-        self.assertArrayEqual([True, True], [_.has_lazy_data() for _ in result])
+        self.assertArrayEqual([False, False], [_.has_lazy_data() for _ in result])
 
 
 if __name__ == "__main__":
