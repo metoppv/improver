@@ -19,6 +19,10 @@ from improver.generate_ancillaries.generate_svp_table import SaturatedVapourPres
 class SaturatedVapourPressureTableDerivative(BasePlugin):
     """
     Plugin to create a first derivative saturated vapour pressure lookup table.
+
+    .. Further information is available in:
+    .. include:: extended_documentation/utilities/generate_ancillary/
+       generate_svp_derivative_table.rst
     """
 
     MAX_VALID_TEMPERATURE = 373.0
@@ -29,13 +33,13 @@ class SaturatedVapourPressureTableDerivative(BasePlugin):
     ) -> None:
         """
         Create a table of first derivative saturated vapour pressures that
-        can be interpolated through to obtain an SVP value for any temperature
-        within the range t_min --> (t_max - t_increment).
+        can be interpolated through to obtain a SVP derivative value for any
+        temperature within the range t_min --> (t_max - t_increment).
 
-        The default min/max values create a table that provides SVP values
-        covering the temperature range -90C to +65.1C. Note that the last
-        bin is not used, so the SVP value corresponding to +65C is the highest
-        that will be used.
+        The default min/max values create a table that provides SVP derivative
+        values covering the temperature range -90C to +65.1C. Note that the last
+        bin is not used, so the SVP derivative value corresponding to +65C is the
+        highest that will be used.
 
         Args:
             t_min:
