@@ -4,8 +4,11 @@
 # See LICENSE in the root of the repository for full licensing details.
 """A module for creating orographic smoothing coefficients"""
 
-from geopandas import GeoSeries, clip
-from numpy import array, min
+from typing import List, Tuple
+
+from geopandas import GeoDataFrame, GeoSeries, clip
+from iris.cube import Cube
+from numpy import array, min, round
 from shapely.geometry import Point
 
 from improver import BasePlugin
@@ -13,35 +16,44 @@ from improver import BasePlugin
 
 class DistanceTo(BasePlugin):
     """
-    Plugin to calculate the distance to the nearest feature in a shapefile from
-    a selection of sites.
+    Plugin to calculate the distance to the nearest feature in a geometry from
+    sites to the nearest metre.
 
-    If requested the shapefile will be clipped to the bounds of the site locations with a buffer
-    to improve performance. This is useful when the shapefile is large and it would be expensive to calculate
-    the distance to all features in the shapefile but information may be lost at the edges of the domain.
+    Given a cube containing site locations and a GeoDataFrame the distance to each site from
+    the neareast point of the geometry is caluculated by converting the geometry and site cube
+    to the Lambert azuthermal equal area projection and using the distance method from Shapeley
+    to find the distance from each site to every point in the geometry. The minimum of these
+    distances is returned as the distance to the nearest feature in the geometry and this is rounded
+    to the nearest metre.
+
+    If requested the provided geometry will be clipped to the bounds of the site locations with a buffer
+    to improve performance. This is useful when the geometry is large and it would be expensive to calculate
+    the distance to all features in the geometry but information may be lost at the edges of the domain.
     """
 
-    def __init__(self, new_name: str = None, buffer: float = 30000):
+    def __init__(self, new_name: str = None, buffer: float = 30000, clip: bool = False):
         """Initialise the DistanceTo plugin.
         Args:
             new_name:
                 The name of the output cube".
             buffer:
-                A buffer distance in m. If the shapefile is clipped this distance will be added onto
-                the outermost site locations to define the domain to clip the shapefile to.
+                A buffer distance in m. If the geometry is clipped this distance will be added onto
+                the outermost site locations to define the domain to clip the geometry to.
         """
         self.new_name = new_name
         self.buffer = buffer
+        self.clip = clip
 
-    def clip_coordinates(self, points: list):
-        """Get the maximum and minimum coordinate point from a list of points. Add/subtract a
-        buffer to the max/min to reduce the information lost outside the domain.
+    def clip_coordinates(self, points: List[float]) -> List[float]:
+        """Get the coordinates to use when clipping the geometry. This is determined by finding the
+        maximum and minimum coordinate points from a list. A buffer distance is then added/subtracted
+        to the max/min .
 
         Args:
             points:
                 A list of points to find the min and max from.
         Returns:
-            A list containing the minimum and maximum points with the buffer subtracted/added."""
+            A list containing the minimum and maximum points with the buffer subtracted or added respectively."""
 
         ordered_points = sorted(set(points))
 
@@ -50,34 +62,48 @@ class DistanceTo(BasePlugin):
 
         return [min_point, max_point]
 
-    def clip_shapefile(self, shapefile, bounds_x, bounds_y):
-        """Clip the shapefile to the provided bounds.
+    def clip_geometry(
+        self, geometry: GeoDataFrame, bounds_x: List[float], bounds_y: List[float]
+    ) -> GeoDataFrame:
+        """Clip the geometry to the provided bounds.
 
         Args:
-            shapefile:
-                The shapefile to clip.
+            geometry:
+                The geometry to clip.
             bounds_x:
                 A list containing the minimum and maximum x coordinates.
             bounds_y:
                 A list containing the minimum and maximum y coordinates.
         Returns:
-            The clipped shapefile."""
-        return clip(
-            shapefile, mask=[bounds_x[0], bounds_y[0], bounds_x[1], bounds_y[1]]
-        )
+            The clipped geometry.
 
-    def reproject_shapefile(self, shapefile, site_cube):
-        """Reproject the shapefile and site cube to Lambert azimuthal
+        Raises:
+            ValueError: If the clipped geometry is empty after clipping with the provided bounds."""
+
+        clipped_geometry = clip(
+            geometry, mask=[bounds_x[0], bounds_y[0], bounds_x[1], bounds_y[1]]
+        )
+        if clipped_geometry.empty:
+            raise ValueError(f"""Clipping the geometry with a buffer size of {self.buffer}m has produced an empty geometry. Either
+                             increase the buffer size or set clip to False to use the full geometry.""")
+
+        return clipped_geometry
+
+    def project_geometry(
+        self, geometry: GeoDataFrame, site_cube: Cube
+    ) -> Tuple[GeoSeries, GeoDataFrame]:
+        """Project the geometry and site cube to Lambert azimuthal
         equal-area projection (EPSG:3035).
 
         Args:
-            shapefile:
-                The shapefile to reproject.
+            geometry:
+                The geometry to reproject.
             site_cube:
                 The cube containing the site locations. It is assumed that the site
-                corrdinates are either Latitude/Longitude or Lambert azimuthal equal-area projection.
+                coordinates are defined as latitude and longitude.
         Returns:
-            A tuple containing the reprojected site points and shapefile."""
+            A tuple containing the projected site locations and geometry."""
+
         x_points = site_cube.coord(axis="x").points
         y_points = site_cube.coord(axis="y").points
 
@@ -88,43 +114,89 @@ class DistanceTo(BasePlugin):
         site_coord = site_cube.coord(axis="y").name()
 
         site_points = GeoSeries(points, crs=projection_dict[site_coord])
-        shapefile_reprojection = shapefile.to_crs(3035)
+        geometry_reprojection = geometry.to_crs(3035)
         site_points = site_points.to_crs(3035)
-        return site_points, shapefile_reprojection
+        return site_points, geometry_reprojection
 
-    def distance_to(self, site_points, shapefile):
+    def distance_to(self, site_points: GeoSeries, geometry: GeoDataFrame) -> List[int]:
+        """Calculate the distance from each site point to the nearest feature in the geometry.
+        Args:
+            site_points:
+                A GeoSeries containing the site points in a Lambert azimuthal equal-area projection.
+            geometry:
+                A GeoDataFrame containing the geometry geometry in a Lambert azimuthal equal-area projection.
+        Returns:
+            A list of distances from each site point to the nearest feature in the geometry rounded to the
+            nearest metre."""
         distance_results = []
         for point in site_points:
-            distance_results.append(min(point.distance(shapefile.geometry)))
+            distance_to_nearest = min(point.distance(geometry.geometry))
+            distance_results.append(round(distance_to_nearest))
 
         return distance_results
 
-    def create_output_cube(self, site_cube, data):
-        """Create an output cube with the distance data."""
+    def create_output_cube(self, site_cube: Cube, data: List[int]) -> Cube:
+        """Create an output cube that will have the same metatdata as the input site cube except the units
+        are changed to meters and, if requested, the name of the output cube will be changed
+        Args:
+           site_cube:
+               The input cube containing site locations.
+           data:
+               A list of distances from each site point to the nearest feature in the geometry.
+           Returns:
+               A new cube containing the distances with the same metadata as input site cube but with
+               updated units and name."""
+
         output_cube = site_cube.copy(data=array(data))
-        output_cube.rename(self.new_name)
+        if self.new_name:
+            output_cube.rename(self.new_name)
         output_cube.units = "m"
 
         return output_cube
 
-    def process(self, site_cube, shapefile, clip=False):
-        site_points, shapefile_reprojection = self.reproject_shapefile(
-            shapefile, site_cube
-        )
+    def process(self, site_cube: Cube, geometry: GeoDataFrame) -> Cube:
+        """Generate a cube of the distance from sites in site_cube to the nearest point in geometry.
 
-        if clip:
-            x_bounds = self.clip_coordinates(site_points.x)
-            y_bounds = self.clip_coordinates(site_points.y)
+        The latitude, longitude coordinates in the site_cube are extracted to define the location of the sites
+        and these are projected to the Lambert azimuthal equal-area projection. The geometry is also projected to the same
+        projection.
 
-            clipped_shapefile = self.clip_shapefile(
-                shapefile_reprojection, x_bounds, y_bounds
+        If requested the geometry will be clipped to smallest square possible such that all sites in site_cube are included. A buffer
+        distance is then added to each edge of the square which defines the size the geometry will be clipped to. This is useful when
+        the geometry size is large and it would be expensive to calculate the distance to all features in the geometryor where the domain
+        of the geometry is much larger than the site locations. Information may be lost at the edges of the domain if the feature is sparsely
+        located in the geometry.
+
+        The distance from each site to every point in the geometry is then calculated and the minimum of these
+        distances is returned. The distances are rounded to the nearest metre.
+
+        The output cube will have the same metadata as the input site_cube except the units will be changed to meters
+        and, if requested, the name of the output cube will be updated.
+
+        Args:
+            site_cube:
+                The input cube containing site locations. This cube must have x and y axis which contain
+                the site coordinates in latitude and longitude.
+            geometry:
+                The GeoDataFrame containing the geometry to calculate distances to.
+        Returns:
+            A new cube containing the distances from each site to the nearest feature in the geometry rounded to the nearest metre."""
+
+        # Project the geometry and site cube coordinates to Lambert azimuthal equal-area projection.
+        site_coords, geometry_projection = self.project_geometry(geometry, site_cube)
+
+        if self.clip:
+            # Clip the geometry to the bounds of the site coordinates with a buffer if requested
+            x_bounds = self.clip_coordinates(site_coords.x)
+            y_bounds = self.clip_coordinates(site_coords.y)
+
+            clipped_geometry = self.clip_geometry(
+                geometry_projection, x_bounds, y_bounds
             )
         else:
-            clipped_shapefile = shapefile_reprojection
+            clipped_geometry = geometry_projection
 
-        # Calculate the distance to the nearest feature in the shapefile
-        distance_to_results = self.distance_to(site_points, clipped_shapefile)
+        # Calculate the distance to the nearest feature in the geometry
+        distance_to_results = self.distance_to(site_coords, clipped_geometry)
 
-        # Create a new cube to hold the distance results
-        distance_to_cube = self.create_output_cube(site_cube, distance_to_results)
-        return distance_to_cube
+        return self.create_output_cube(site_cube, distance_to_results)
