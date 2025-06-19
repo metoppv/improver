@@ -2,7 +2,7 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""A module for creating orographic smoothing coefficients"""
+"""A module for generating a distance to feature ancillary cube."""
 
 from typing import List, Tuple
 
