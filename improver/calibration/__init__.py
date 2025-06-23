@@ -6,6 +6,7 @@
 and coefficient inputs.
 """
 
+import pyarrow as pa
 from collections import OrderedDict
 from typing import Dict, List, Optional, Tuple
 
@@ -16,6 +17,38 @@ from improver.metadata.probabilistic import (
 )
 from improver.utilities.cube_manipulation import MergeCubes
 
+FORECAST_SCHEMA = pa.schema(
+    [
+        ("percentile", pa.float64()),
+        ("forecast", pa.float32()),
+        ("altitude", pa.float32()),
+        ("blend_time", pa.timestamp("s", "utc")),
+        ("forecast_period", pa.int64()),
+        ("forecast_reference_time", pa.int64()),
+        ("latitude", pa.float32()),
+        ("longitude", pa.float32()),
+        ("time", pa.timestamp("s", "utc")),
+        ("wmo_id", pa.string()),
+        ("station_id", pa.string()),
+        ("cf_name", pa.string()),
+        ("units", pa.string()),
+        ("experiment", pa.string()),
+        ("period", pa.int64()),
+        ("height", pa.float32()),
+        ("diagnostic", pa.string()),
+    ]
+)
+TRUTH_SCHEMA = pa.schema(
+    [
+        ("diagnostic", pa.string()),
+        ("latitude", pa.float32()),
+        ("longitude", pa.float32()),
+        ("altitude", pa.float32()),
+        ("time", pa.int64()),
+        ("wmo_id", pa.string()),
+        ("ob_value", pa.float32()),
+    ]
+)
 
 def split_forecasts_and_truth(
     cubes: List[Cube], truth_attribute: str
