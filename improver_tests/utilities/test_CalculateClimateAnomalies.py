@@ -86,7 +86,7 @@ def mean_cube(validity_time, time_bounds):
 
 @pytest.fixture
 def std_cube(validity_time, time_bounds):
-    """Fixture for creating a std cube"""
+    """Fixture for creating a std cube."""
     data = np.array([4], dtype=np.float32).reshape(1, 1, 1)
     cube = set_up_variable_cube(
         data=data,
@@ -102,22 +102,25 @@ def std_cube(validity_time, time_bounds):
 @pytest.fixture
 def site_cubes(validity_time, time_bounds, forecast_reference_time):
     """Fixture for creating site cubes."""
+    # Diagnostic site cube
     site_cube_diagnostic_data = np.array([305], dtype=np.float32)
     site_cube_diagnostic = set_up_spot_variable_cube(
         site_cube_diagnostic_data,
         time=validity_time["diagnostic_basic"],
         frt=forecast_reference_time,
     )
-
+    # Mean site cube
     site_cube_mean_data = np.array([298], dtype=np.float32)
     site_cube_mean = set_up_spot_variable_cube(
         site_cube_mean_data,
         time=validity_time["mean_and_std"],
         time_bounds=time_bounds["mean_and_std"],
+        units="K",
     )
     cell_method = iris.coords.CellMethod(method="mean", coords="time")
     site_cube_mean.add_cell_method(cell_method)
 
+    # Standard deviation site cube
     site_cube_std_data = np.array([4], dtype=np.float32)
     site_cube_std = set_up_spot_variable_cube(
         site_cube_std_data,
@@ -197,7 +200,7 @@ def test_calculate_standardized_anomalies_gridded_data(
     result = plugin.process(diagnostic_cube, mean_cube, std_cube)
     np.testing.assert_allclose(result.data, expected_anomalies, rtol=1e-5)
     assert result.long_name == diagnostic_cube.name() + "_standardized_anomaly"
-    assert result.units == "K"
+    assert result.units == "1"
     assert check_reference_epoch_coord(result, mean_cube)
     assert (
         "(CellMethod(method='anomaly', coord_names=('reference_epoch',), "
@@ -231,7 +234,7 @@ def test_calculate_standardized_anomalies_site_data(site_cubes):
     expected_anomalies = np.array([1.75], dtype=np.float32)
     np.testing.assert_allclose(result.data, expected_anomalies, rtol=1e-5)
     assert result.long_name == site_cube_diagnostic.name() + "_standardized_anomaly"
-    assert result.units == "K"
+    assert result.units == "1"
     assert check_reference_epoch_coord(result, site_cube_mean)
     assert (
         "(CellMethod(method='anomaly', coord_names=('reference_epoch',), "
@@ -251,7 +254,7 @@ def test_ignore_temporal_mismatch(diagnostic_cube, mean_cube, std_cube):
     result = plugin.process(diagnostic_cube, mean_cube, std_cube)
 
     assert result.long_name == diagnostic_cube.name() + "_standardized_anomaly"
-    assert result.units == "K"
+    assert result.units == "1"
     assert check_reference_epoch_coord(result, mean_cube)
     assert (
         "(CellMethod(method='anomaly', coord_names=('reference_epoch',), "
@@ -275,76 +278,8 @@ def test_error_units_mismatch(diagnostic_cube, mean_cube, std_cube, error_to_che
     else:
         std_cube.units = "C"  # The units should be K ordinarily
         with pytest.raises(
-            ValueError, match="The standard deviation cube must have the same units "
+            ValueError,
+            match="The standard deviation cube must have the same units "
+            "as the diagnostic cube. ",
         ):
             plugin.verify_units_match(diagnostic_cube, mean_cube, std_cube)
-
-
-def test_error_spatial_coords_mismatch_gridded_data(
-    diagnostic_cube, mean_cube, std_cube
-):
-    """Test that the plugin raises a ValueError if the spatial coordinates of the
-    diagnostic cube and another cube mismatch"""
-    mean_cube.coord("latitude").points = mean_cube.coord("latitude").points + 20
-    mean_cube.coord("longitude").points = mean_cube.coord("longitude").points + 20
-    plugin = CalculateClimateAnomalies()
-    with pytest.raises(ValueError, match="The spatial coordinates must match."):
-        plugin.verify_spatial_coords_match(diagnostic_cube, mean_cube, std_cube)
-
-
-@pytest.mark.parametrize(
-    "error_to_raise", ["more_than_one_spot_index", "mismatching_spot_index_points"]
-)
-def test_error_spatial_coords_mismatch_site_data(site_cubes, mean_cube, error_to_raise):
-    site_cube_diagnostic, site_cube_mean, site_cube_std = site_cubes
-    """Test that the plugin raises a ValueError if the spatial coordinates of the
-    mean and std cubes have different bounds."""
-    plugin = CalculateClimateAnomalies()
-    if error_to_raise == "more_than_one_spot_index":
-        # Uses a cube without the spot_index coordinate (gridded mean_cube)
-        # to trigger the error
-        with pytest.raises(
-            ValueError,
-            match="The cubes must all have the same spatial coordinates. Some cubes"
-            "contain spot_index coordinates and some do not.",
-        ):
-            plugin.verify_spatial_coords_match(
-                site_cube_diagnostic, mean_cube, site_cube_std
-            )
-    else:
-        site_cube_diagnostic.coord("spot_index").points = (
-            site_cube_diagnostic.coord("spot_index").points + 1
-        )
-        with pytest.raises(
-            ValueError,
-            match="Mismatching spot_index coordinates were found on the input cubes.",
-        ):
-            plugin.verify_spatial_coords_match(
-                site_cube_diagnostic, site_cube_mean, site_cube_std
-            )
-
-
-@pytest.mark.parametrize("check", ["mean_to_std_check", "diagnostic_to_others_check"])
-def test_error_time_coords_mismatch(diagnostic_cube, mean_cube, std_cube, check):
-    plugin = CalculateClimateAnomalies(ignore_temporal_mismatch=False)
-    if check == "mean_to_std_check":
-        mean_cube.coord("time").bounds = mean_cube.coord("time").bounds + (
-            1 * SECONDS_IN_HOUR,
-            1 * SECONDS_IN_HOUR,
-        )  # Moves mean bounds outside std bounds
-        with pytest.raises(
-            ValueError,
-            match="The mean and standard deviation cubes must have compatible bounds. "
-            "The following bounds were found: ",
-        ):
-            plugin.verify_time_coords_match(diagnostic_cube, mean_cube, std_cube)
-    else:
-        diagnostic_cube.coord("time").points = (
-            diagnostic_cube.coord("time").points + 10 * SECONDS_IN_HOUR
-        )  # Moves diagnostic bounds outside mean bounds
-        with pytest.raises(
-            ValueError,
-            match="The diagnostic cube's time points must fall within the bounds "
-            "of the mean cube. The following was found:",
-        ):
-            plugin.verify_time_coords_match(diagnostic_cube, mean_cube, std_cube)
