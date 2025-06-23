@@ -18,7 +18,7 @@ class CondensationTrailFormation(BasePlugin):
     """Plugin to calculate whether a condensation trail (contrail) will
     form based on a given set of atmospheric conditions.
 
-    The calculations require cubes of the following data:
+    The calculations require the following data:
 
     - Temperature on pressure levels.
     - Relative Humidity on pressure levels.
