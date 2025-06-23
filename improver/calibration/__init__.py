@@ -6,10 +6,10 @@
 and coefficient inputs.
 """
 
-import pyarrow as pa
 from collections import OrderedDict
 from typing import Dict, List, Optional, Tuple
 
+import pyarrow as pa
 from iris.cube import Cube, CubeList
 
 from improver.metadata.probabilistic import (
@@ -49,6 +49,7 @@ TRUTH_SCHEMA = pa.schema(
         ("ob_value", pa.float32()),
     ]
 )
+
 
 def split_forecasts_and_truth(
     cubes: List[Cube], truth_attribute: str

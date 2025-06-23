@@ -6,29 +6,33 @@
 """Script to load and apply the trained Quantile Regression Random Forest (QRF) model."""
 
 import pathlib
+
 import iris
 import joblib
 import numpy as np
+
 from improver import PostProcessingPlugin
-from improver.calibration.quantile_regression_random_forest import ApplyQuantileRegressionRandomForests
-from improver.utilities.common_input_handle import as_cubelist
-from improver.utilities.cube_checker import assert_spatial_coords_match
-from improver.ensemble_copula_coupling.ensemble_copula_coupling import RebadgePercentilesAsRealizations
+from improver.calibration.quantile_regression_random_forest import (
+    ApplyQuantileRegressionRandomForests,
+)
+from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
+    RebadgePercentilesAsRealizations,
+)
 from improver.ensemble_copula_coupling.utilities import choose_set_of_percentiles
+from improver.utilities.cube_checker import assert_spatial_coords_match
+
 
 class LoadAndApplyQRF(PostProcessingPlugin):
-
     def process(
         self,
         file_paths: pathlib.Path,
         feature_config: dict,
         target_cube_name: str,
-        n_estimators: int=100,
-        transformation: str=None,
-        pre_transform_addition: float=0,
-        ):
-    
-        """ Loading and applying the trained model for Quantile Regression Random Forest.
+        n_estimators: int = 100,
+        transformation: str = None,
+        pre_transform_addition: float = 0,
+    ):
+        """Loading and applying the trained model for Quantile Regression Random Forest.
 
         Load in the previously trained model for Quantile Regression Random
         Forest (QRF). The model is applied to the forecast that is supplied,
@@ -39,7 +43,7 @@ class LoadAndApplyQRF(PostProcessingPlugin):
             file_paths (cli.inputpaths):
                 A list of input paths containing:
                 - The path to a QRF trained model in pickle file format to be used
-                for calibration. 
+                for calibration.
                 - The path to a NetCDF file containing the forecast to be calibrated.
                 - Optionally, paths to NetCDF files containing additional preictors.
             feature_config (dict):
@@ -50,9 +54,9 @@ class LoadAndApplyQRF(PostProcessingPlugin):
                 features, such as the altitude. The computed features will be computed using
                 the cube defined in the dictionary key. If the key is the feature itself e.g.
                 a distance to water cube, then the value should state "static". This will ensure
-                the cube's data is used as the feature.                
-                The config will have the structure: 
-                "DYNAMIC_VARIABLE_NAME": ["FEATURE1", "FEATURE2"] e.g: 
+                the cube's data is used as the feature.
+                The config will have the structure:
+                "DYNAMIC_VARIABLE_NAME": ["FEATURE1", "FEATURE2"] e.g:
                 {
                 "air_temperature": ["mean", "std", "altitude"],
                 "visibility_at_screen_level": ["mean", "std"]
@@ -82,18 +86,18 @@ class LoadAndApplyQRF(PostProcessingPlugin):
             except ValueError:
                 qrf_model = joblib.load(file_path)
 
-        # Extract all additional cubes which are associated with a feature in the 
+        # Extract all additional cubes which are associated with a feature in the
         # feature_config.
 
         forecast_constraint = iris.Constraint(name=target_cube_name)
         forecast_cube = cube_inputs.extract_cube(forecast_constraint)
-        
+
         # If target diagnostic not a feature in the training then remove.
-        if not target_cube_name in feature_config.keys():
+        if target_cube_name not in feature_config.keys():
             cube_inputs.remove(forecast_cube)
 
         # Calculate quantiles for the model fit
-        n_percentiles=19
+        n_percentiles = 19
         percentiles = (
             np.array(choose_set_of_percentiles(n_percentiles)) / 100
         ).tolist()
@@ -124,7 +128,9 @@ class LoadAndApplyQRF(PostProcessingPlugin):
         frt_dim_cube_inputs = iris.cube.CubeList([])
         for feature_cube in cube_inputs:
             try:
-                feature_cube = iris.util.new_axis(feature_cube, "forecast_reference_time")
+                feature_cube = iris.util.new_axis(
+                    feature_cube, "forecast_reference_time"
+                )
                 frt_dim_cube_inputs.append(feature_cube)
             except ValueError:
                 frt_dim_cube_inputs.append(feature_cube)
@@ -132,19 +138,21 @@ class LoadAndApplyQRF(PostProcessingPlugin):
 
         # Ensure the forecast cube has the same dimensions as the features
         template_forecast_cube = iris.util.new_axis(forecast_cube, "forecast_period")
-        template_forecast_cube = iris.util.new_axis(template_forecast_cube, "forecast_reference_time")
+        template_forecast_cube = iris.util.new_axis(
+            template_forecast_cube, "forecast_reference_time"
+        )
 
-        # Check that the grids are the same for all dynamic predictors and the forecast       
+        # Check that the grids are the same for all dynamic predictors and the forecast
         assert_spatial_coords_match(cube_inputs)
-        
+
         if len(cube_inputs) + 1 != len(file_paths):
             raise ValueError("Unable to identify the correct number of inputs")
 
         result = ApplyQuantileRegressionRandomForests(
-                feature_config=feature_config,
-                quantiles=percentiles,
-                n_estimators=n_estimators,
-                transformation=transformation,
-                pre_transform_addition=pre_transform_addition
-                )(forecast_cube, template_forecast_cube, qrf_model, cube_inputs)
+            feature_config=feature_config,
+            quantiles=percentiles,
+            n_estimators=n_estimators,
+            transformation=transformation,
+            pre_transform_addition=pre_transform_addition,
+        )(forecast_cube, template_forecast_cube, qrf_model, cube_inputs)
         return result

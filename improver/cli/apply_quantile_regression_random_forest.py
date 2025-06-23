@@ -7,19 +7,18 @@
 
 from improver import cli
 
+
 @cli.clizefy
 @cli.with_output
-
 def process(
     *file_paths: cli.inputpath,
     feature_config: cli.inputjson,
     target_cube_name: str,
-    n_estimators: int=100,
-    transformation: str=None,
-    pre_transform_addition: float=0,
+    n_estimators: int = 100,
+    transformation: str = None,
+    pre_transform_addition: float = 0,
 ):
-
-    """ Applying the Quantile Regression Random Forest model.
+    """Applying the Quantile Regression Random Forest model.
 
     Loads in arguments for applying a Quantile Regression Random Forest (QRF)
     model which has been previously trained.
@@ -30,7 +29,7 @@ def process(
         file_paths (cli.inputpaths):
             A list of input paths containing:
             - The path to a QRF trained model in pickle file format to be used
-            for calibration. 
+            for calibration.
             - The path to a NetCDF file containing the forecast to be calibrated.
             - Optionally, paths to NetCDF files containing additional preictors.
         feature_config (dict):
@@ -41,9 +40,9 @@ def process(
                 features, such as the altitude. The computed features will be computed using
                 the cube defined in the dictionary key. If the key is the feature itself e.g.
                 a distance to water cube, then the value should state "static". This will ensure
-                the cube's data is used as the feature.                
-                The config will have the structure: 
-                "DYNAMIC_VARIABLE_NAME": ["FEATURE1", "FEATURE2"] e.g: 
+                the cube's data is used as the feature.
+                The config will have the structure:
+                "DYNAMIC_VARIABLE_NAME": ["FEATURE1", "FEATURE2"] e.g:
                 {
                 "air_temperature": ["mean", "std", "altitude"],
                 "visibility_at_screen_level": ["mean", "std"]
@@ -64,15 +63,16 @@ def process(
             The calibrated forecast cube.
     """
 
-    from improver.calibration.load_and_apply_quantile_regression_random_forest import LoadAndApplyQRF
-
+    from improver.calibration.load_and_apply_quantile_regression_random_forest import (
+        LoadAndApplyQRF,
+    )
 
     result = LoadAndApplyQRF()(
-            file_paths,
-            feature_config=feature_config,
-            target_cube_name=target_cube_name,
-            n_estimators=n_estimators,
-            transformation=transformation,
-            pre_transform_addition=pre_transform_addition,
+        file_paths,
+        feature_config=feature_config,
+        target_cube_name=target_cube_name,
+        n_estimators=n_estimators,
+        transformation=transformation,
+        pre_transform_addition=pre_transform_addition,
     )
     return result

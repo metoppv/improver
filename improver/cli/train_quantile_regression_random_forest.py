@@ -7,25 +7,25 @@
 
 from improver import cli
 
+
 @cli.clizefy
 def process(
-        *file_paths: cli.inputpath,
-        feature_config: cli.inputjson,
-        target_diagnostic_name: str,
-        forecast_periods: str,
-        cycletime: str,
-        training_length: int,
-        experiment: str=None,
-        n_estimators: int=100,
-        max_depth: int=None,
-        random_state: int=None,
-        transformation: str=None,
-        pre_transform_addition: float=0,
-        compression: int=5,
-        model_output: str=None,
+    *file_paths: cli.inputpath,
+    feature_config: cli.inputjson,
+    target_diagnostic_name: str,
+    forecast_periods: str,
+    cycletime: str,
+    training_length: int,
+    experiment: str = None,
+    n_estimators: int = 100,
+    max_depth: int = None,
+    random_state: int = None,
+    transformation: str = None,
+    pre_transform_addition: float = 0,
+    compression: int = 5,
+    model_output: str = None,
 ):
-
-    """ Training a model using Quantile Regression Random Forest.
+    """Training a model using Quantile Regression Random Forest.
 
     Loads in arguments for training a Quantile Regression Random Forest (QRF)
     model which can later be applied to calibrate the forecast.
@@ -50,9 +50,9 @@ def process(
                 features, such as the altitude. The computed features will be computed using
                 the cube defined in the dictionary key. If the key is the feature itself e.g.
                 a distance to water cube, then the value should state "static". This will ensure
-                the cube's data is used as the feature.                
-                The config will have the structure: 
-                "DYNAMIC_VARIABLE_NAME": ["FEATURE1", "FEATURE2"] e.g: 
+                the cube's data is used as the feature.
+                The config will have the structure:
+                "DYNAMIC_VARIABLE_NAME": ["FEATURE1", "FEATURE2"] e.g:
                 {
                 "air_temperature": ["mean", "std", "altitude"],
                 "visibility_at_screen_level": ["mean", "std"]
@@ -91,22 +91,24 @@ def process(
             The function creates a pickle file.
     """
 
-    from improver.calibration.load_and_train_quantile_regression_random_forest import LoadAndTrainQRF
+    from improver.calibration.load_and_train_quantile_regression_random_forest import (
+        LoadAndTrainQRF,
+    )
 
     result = LoadAndTrainQRF()(
-            file_paths,
-            experiment=experiment,
-            feature_config=feature_config,
-            target_diagnostic_name=target_diagnostic_name,
-            forecast_periods=forecast_periods,
-            cycletime=cycletime,
-            training_length=training_length,
-            n_estimators=n_estimators,
-            max_depth=max_depth,
-            random_state=random_state,
-            transformation=transformation,
-            pre_transform_addition=pre_transform_addition,
-            compression=compression,
-            model_output=model_output,
+        file_paths,
+        experiment=experiment,
+        feature_config=feature_config,
+        target_diagnostic_name=target_diagnostic_name,
+        forecast_periods=forecast_periods,
+        cycletime=cycletime,
+        training_length=training_length,
+        n_estimators=n_estimators,
+        max_depth=max_depth,
+        random_state=random_state,
+        transformation=transformation,
+        pre_transform_addition=pre_transform_addition,
+        compression=compression,
+        model_output=model_output,
     )
     return result

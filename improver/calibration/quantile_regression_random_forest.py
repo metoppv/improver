@@ -5,17 +5,21 @@
 """Plugins to perform quantile regression using random forests."""
 
 from typing import Optional
+
 import iris
 import joblib
 import numpy as np
 from iris.cube import Cube, CubeList
 from quantile_forest import RandomForestQuantileRegressor
-from improver import BasePlugin, PostProcessingPlugin
 
+from improver import BasePlugin, PostProcessingPlugin
 from improver.constants import DAYS_IN_YEAR, HOURS_IN_DAY
 
+
 def prep_feature(
-    template_cube: Cube, feature_cube: Cube, feature: str,
+    template_cube: Cube,
+    feature_cube: Cube,
+    feature: str,
 ):
     """Prepare the feature values for the quantile regression random forest model.
     Args:
@@ -32,7 +36,7 @@ def prep_feature(
     """
 
     collapsed_cube = template_cube.collapsed(["realization"], iris.analysis.MEAN)
-  
+
     if "mean" == feature:
         feature_values = feature_cube.collapsed(
             ["realization"], iris.analysis.MEAN
@@ -57,7 +61,7 @@ def prep_feature(
         elif feature == "day_of_year_cos":
             feature_values = np.cos(2 * np.pi * feature_values / HOURS_IN_DAY)
     elif feature in ["hour_of_day", "hour_of_day_sin", "hour_of_day_cos"]:
-        hour_of_day = np.zeros(cube.coord("time").shape)
+        hour_of_day = np.zeros(feature_cube.coord("time").shape)
         for i in range(feature_cube.coord("time").shape[0]):
             for j in range(feature_cube.coord("time").shape[1]):
                 hour_of_day[i, j] = feature_cube.coord("time")[i][j].cell(0).point.hour
@@ -102,9 +106,9 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
                 features, such as the altitude. The computed features will be computed using
                 the cube defined in the dictionary key. If the key is the feature itself e.g.
                 a distance to water cube, then the value should state "static". This will ensure
-                the cube's data is used as the feature.                
-                The config will have the structure: 
-                "DYNAMIC_VARIABLE_NAME": ["FEATURE1", "FEATURE2"] e.g: 
+                the cube's data is used as the feature.
+                The config will have the structure:
+                "DYNAMIC_VARIABLE_NAME": ["FEATURE1", "FEATURE2"] e.g:
                 {
                 "air_temperature": ["mean", "std", "altitude"],
                 "visibility_at_screen_level": ["mean", "std"]
@@ -127,6 +131,7 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
             kwargs:
                 Additional keyword arguments for the quantile regression model.
         """
+
         self.feature_config = feature_config
         self.experiment = experiment
         self.n_estimators = n_estimators
@@ -157,6 +162,7 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
             qrf_model (RandomForestQuantileRegressor):
                 Fitted quantile regression model.
         """
+
         qrf_model = RandomForestQuantileRegressor(
             n_estimators=self.n_estimators,
             max_depth=self.max_depth,
@@ -181,7 +187,7 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
             feature_cubes:
                 List of additional feature cubes.
         """
-        
+
         if self.transformation:
             forecast_cube.data = getattr(np, self.transformation)(
                 forecast_cube.data + self.pre_transform_addition
@@ -195,7 +201,7 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
         for feature_name in self.feature_config.keys():
             feature_cube = feature_cubes.extract(iris.Constraint(feature_name))
             for feature in self.feature_config[feature_name]:
-                print(feature)  
+                print(feature)
                 feature_values.append(
                     prep_feature(forecast_cube, feature_cube[0], feature)
                 )
@@ -213,11 +219,11 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
     """Plugin to apply a trained model using quantile regression random forests."""
 
     def __init__(
-        self,  
+        self,
         feature_config,
         quantiles,
-        n_estimators, 
-        transformation, 
+        n_estimators,
+        transformation,
         pre_transform_addition=0,
     ):
         """Initialise the plugin.
@@ -230,9 +236,9 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
                 features, such as the altitude. The computed features will be computed using
                 the cube defined in the dictionary key. If the key is the feature itself e.g.
                 a distance to water cube, then the value should state "static". This will ensure
-                the cube's data is used as the feature.                
-                The config will have the structure: 
-                "DYNAMIC_VARIABLE_NAME": ["FEATURE1", "FEATURE2"] e.g: 
+                the cube's data is used as the feature.
+                The config will have the structure:
+                "DYNAMIC_VARIABLE_NAME": ["FEATURE1", "FEATURE2"] e.g:
                 {
                 "air_temperature": ["mean", "std", "altitude"],
                 "visibility_at_screen_level": ["mean", "std"]
@@ -247,6 +253,7 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
             pre_transform_addition (float):
                 Value to be added before transformation.
         """
+
         self.feature_config = feature_config
         self.quantiles = quantiles
         self.n_estimators = n_estimators
@@ -260,9 +267,12 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
         self.pre_transform_addition = pre_transform_addition
 
     def process(
-        self, forecast_cube: Cube, template_forecast_cube, qrf_model, feature_cubes: Optional[CubeList] = None,
+        self,
+        forecast_cube: Cube,
+        template_forecast_cube,
+        qrf_model,
+        feature_cubes: Optional[CubeList] = None,
     ):
-
         if self.transformation:
             if self.transformation == "log":
                 forecast_cube.data = (
@@ -278,17 +288,16 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
                 forecast_cube.data = forecast_cube.data**3 - self.pre_transform_addition
 
         feature_values = []
-        
+
         for feature_name in self.feature_config.keys():
             feature_cube = feature_cubes.extract(iris.Constraint(feature_name))
             for feature in self.feature_config[feature_name]:
                 feature_values.append(
                     prep_feature(template_forecast_cube, feature_cube[0], feature)
                 )
-        
+
         feature_values = np.array(feature_values).T
         calibrated_forecast = qrf_model.predict(feature_values, self.quantiles)
         calibrated_forecast = np.float32(calibrated_forecast)
         calibrated_forecast_cube = forecast_cube.copy(data=calibrated_forecast.T)
         return calibrated_forecast_cube
-
