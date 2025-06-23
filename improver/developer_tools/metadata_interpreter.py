@@ -7,9 +7,8 @@
 import re
 from typing import Callable, Dict, Iterable, List
 
-import iris.cube
 from iris.coords import CellMethod, Coord
-from iris.cube import Cube
+from iris.cube import Cube, CubeAttrsDict
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.metadata.check_datatypes import check_mandatory_standards
@@ -339,11 +338,11 @@ class MOMetadataInterpreter:
                 )
 
     @staticmethod
-    def _cubeattrsdict_as_dict(attrs: iris.cube.CubeAttrsDict) -> dict:
+    def _cubeattrsdict_as_dict(attrs: CubeAttrsDict) -> dict:
         """Returns a dict from a CubeAttrsDict, because it has preferable str() methods"""
         return {key: value for key, value in attrs.items()}
 
-    def check_attributes(self, cube_attrs: iris.cube.CubeAttrsDict) -> None:
+    def check_attributes(self, cube_attrs: CubeAttrsDict) -> None:
         """Checks for unexpected attributes, then interprets values for model
         information and checks for self-consistency"""
         attrs = self._cubeattrsdict_as_dict(cube_attrs)
