@@ -589,7 +589,8 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                 prediction = model.predict(dataset_for_prediction)
                 prediction = np.clip(prediction, 0, 1)
                 if type(self) is ApplyRainForestsCalibrationTreelite:
-                    # Workaround for issue with treelite 4.x.x where predictions have a 3D shape
+                    # treelite 4.x.x changed output dimensions, so must flatten here
+                    # See https://treelite.readthedocs.io/en/latest/treelite-gtil-api.html#treelite.gtil.predict
                     prediction = prediction.flatten()
                 full_prediction[predict_rows] = prediction
                 full_prediction = full_prediction[fill_inds]
@@ -605,7 +606,8 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                 prediction = model.predict(dataset_for_prediction)
                 prediction = np.clip(prediction, 0, 1)
                 if type(self) is ApplyRainForestsCalibrationTreelite:
-                    # Workaround for issue with treelite 4.x.x where predictions have a 3D shape
+                    # treelite 4.x.x changed output dimensions, so must flatten here
+                    # See https://treelite.readthedocs.io/en/latest/treelite-gtil-api.html#treelite.gtil.predict
                     prediction = prediction.flatten()
                 output_data[threshold_index, :] = np.reshape(
                     prediction, output_data.shape[1:]

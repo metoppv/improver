@@ -46,6 +46,7 @@ below:
  - Andrew Creswick (Met Office, UK)
  - Neil Crosswaite (Met Office, UK)
  - Shafiat Dewan (Met Office, UK)
+ - Rachael Esler (Bureau of Meteorology, Australia)
  - Gavin Evans (Met Office, UK)
  - Zhiliang Fan (Bureau of Meteorology, Australia)
  - Ben Fitzpatrick (Met Office, UK)
@@ -84,7 +85,6 @@ below:
  - Mark Worsfold (Met Office, UK)
  - Bruce Wright (Met Office, UK)
  - Ying Zhao (Bureau of Meteorology, Australia)
- - Rachael Esler (Bureau of Meteorology, Australia)
 <!-- end-shortlog -->
  - Martina Friedrich (Met Office, UK, pre-GitHub)
 
