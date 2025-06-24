@@ -11,6 +11,7 @@ from typing import Callable, List
 import iris
 import numpy as np
 import pytest
+from iris.coords import CellMethod
 from iris.cube import Cube, CubeList
 from numpy.testing import assert_array_equal
 
@@ -37,7 +38,9 @@ class Test_create_new_diagnostic_cube(unittest.TestCase):
         self.template_cube = set_up_variable_cube(
             280 * np.ones((3, 5, 5), dtype=np.float32), standard_grid_metadata="uk_det"
         )
-        self.template_cube.add_cell_method("time (max): 1 hour")
+        self.template_cube.add_cell_method(
+            CellMethod(method="max", coords="time", intervals="1 hour")
+        )
         self.name = "lwe_precipitation_rate"
         self.units = "mm h-1"
         self.mandatory_attributes = MANDATORY_ATTRIBUTE_DEFAULTS.copy()
@@ -57,7 +60,7 @@ class Test_create_new_diagnostic_cube(unittest.TestCase):
             result.coords(dim_coords=False), self.template_cube.coords(dim_coords=False)
         )
         self.assertFalse(np.allclose(result.data, self.template_cube.data))
-        self.assertDictEqual(result.attributes, self.mandatory_attributes)
+        self.assertDictEqual(dict(result.attributes), self.mandatory_attributes)
         self.assertFalse(result.cell_methods)
         self.assertEqual(result.data.dtype, np.float32)
 
@@ -74,7 +77,7 @@ class Test_create_new_diagnostic_cube(unittest.TestCase):
             self.mandatory_attributes,
             optional_attributes=attributes,
         )
-        self.assertDictEqual(result.attributes, expected_attributes)
+        self.assertDictEqual(dict(result.attributes), expected_attributes)
 
     def test_missing_mandatory_attribute(self):
         """Test error is raised if any mandatory attribute is missing"""
@@ -265,7 +268,7 @@ class Test_generate_hash(unittest.TestCase):
         cube = set_up_variable_cube(np.ones((3, 3)).astype(np.float32))
         hash_input = cube.coord("latitude")
         result = generate_hash(hash_input)
-        expected = "ee6a057f5eeef0e94a853cfa98f3c22b121dda31ada3378ce9466e48d06f9887"
+        expected = "8648557d66ca6ee8bf765d00e85dff1963c827af4140d47b6fe16be854b28796"
         self.assertIsInstance(result, str)
         self.assertEqual(result, expected)
 
@@ -299,7 +302,7 @@ class Test_create_coordinate_hash(unittest.TestCase):
 
         hash_input = set_up_variable_cube(np.zeros((3, 3)).astype(np.float32))
         result = create_coordinate_hash(hash_input)
-        expected = "54812a6fed0f92fe75d180d63a6bd6c916407ea1e7e5fd32a5f20f86ea997fac"
+        expected = "f167a9ea5d46e575a1b7918fb04f49697d07299c1b21010e40cd21ec351ab4c7"
         self.assertIsInstance(result, str)
         self.assertEqual(result, expected)
 
