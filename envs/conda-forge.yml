@@ -16,6 +16,7 @@ dependencies:
   - numpy=2.2
   - scipy=1.15
   - sphinx
+  - pandas
   # Additional libraries to run tests, not included in improver-feedstock
   - bandit
   - filelock
