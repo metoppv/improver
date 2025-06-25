@@ -18,7 +18,7 @@ class CondensationTrailFormation(BasePlugin):
     """Plugin to calculate whether a condensation trail (contrail) will
     form based on a given set of atmospheric conditions.
 
-    The calculations require cubes of the following data:
+    The calculations require the following data:
 
     - Temperature on pressure levels.
     - Relative Humidity on pressure levels.
@@ -32,6 +32,11 @@ class CondensationTrailFormation(BasePlugin):
         formation critical temperatures. Journal of Applied
         Meteorology, 36(12), pp.1725-1729.
     """
+
+    temperature = None
+    humidity = None
+    pressure_levels = None
+    engine_mixing_ratios = None
 
     def __init__(self, engine_contrail_factors: list = [3e-5, 3.4e-5, 3.9e-5]):
         """Initialises the Class
@@ -49,7 +54,9 @@ class CondensationTrailFormation(BasePlugin):
             engine_contrail_factors, dtype=np.float32
         )
 
-    def _calculate_engine_mixing_ratios(self) -> np.ndarray:
+    def _calculate_engine_mixing_ratios(
+        self, pressure_levels: np.ndarray
+    ) -> np.ndarray:
         """
         Calculate the mixing ratio of the atmosphere and aircraft
         exhaust (Schrader, 1997). This calculation uses
@@ -57,18 +64,44 @@ class CondensationTrailFormation(BasePlugin):
         weights of water and air on Earth.
 
         Returns:
-            float: The mixing ratio of the atmosphere and aircraft
-                exhaust, provided in units: P/K.
+            np.ndarray: The mixing ratio of the atmosphere and aircraft
+                exhaust, provided in units: Pa/K.
         """
         return (
-            self.pressure_levels[np.newaxis, :]
+            pressure_levels[np.newaxis, :]
             * self._engine_contrail_factors[:, np.newaxis]
             / EARTH_REPSILON
         )
 
+    def process_from_arrays(
+        self, temperature: np.ndarray, humidity: np.ndarray, pressure_levels: np.ndarray
+    ) -> np.ndarray:
+        """
+        Main entry point of this class for data as Numpy arrays
+
+        Process the temperature, humidity and pressure data to calculate the
+        contrails data.
+
+        Args:
+            temperature (np.ndarray): Temperature data on pressure levels where pressure is the leading axis (K).
+            humidity (np.ndarray): Relative humidity data on pressure levels where pressure is the leading axis (kg kg-1).
+            pressure_levels (np.ndarray): Pressure levels (Pa).
+
+        Returns:
+            np.ndarray: The calculated engine mixing ratios on pressure levels (Pa/K).
+            This is a placeholder until the full contrail formation logic is implemented.
+        """
+        self.temperature = temperature
+        self.humidity = humidity
+        self.pressure_levels = pressure_levels
+        self.engine_mixing_ratios = self._calculate_engine_mixing_ratios(
+            self.pressure_levels
+        )
+        return self.engine_mixing_ratios
+
     def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
         """
-        Main entry point of this class
+        Main entry point of this class for data as iris.Cubes
 
         Args:
             cubes
@@ -81,21 +114,26 @@ class CondensationTrailFormation(BasePlugin):
             Cube of heights above sea level at which contrails will form.
         """
         cubes = as_cubelist(*cubes)
-        (self.temperature, self.humidity) = CubeList(cubes).extract(
+        (temperature_cube, humidity_cube) = CubeList(cubes).extract(
             ["air_temperature", "relative_humidity"]
         )
+        temperature_cube.convert_units("K")
+        humidity_cube.convert_units("kg kg-1")
 
         # Get the pressure levels from the first cube
-        self.pressure_levels = self.temperature.coord("pressure").points
+        pressure_coord = temperature_cube.coord("pressure")
+        pressure_coord.convert_units("Pa")
 
-        # Calculate the mixing ratios
-        engine_mixing_ratios = self._calculate_engine_mixing_ratios()
+        # Calculate contrail formation using numpy arrays
+        _ = self.process_from_arrays(
+            temperature_cube.data, humidity_cube.data, pressure_coord.points
+        )
 
         # Placeholder return to silence my type checker
         return_cube = Cube(
-            engine_mixing_ratios,
+            self.engine_mixing_ratios,
             long_name="engine_mixing_ratios",
-            units="Pa/K",
+            units="Pa K-1",
         )
 
         return return_cube
