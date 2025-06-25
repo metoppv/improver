@@ -60,6 +60,7 @@ def test_initialisation_with_arguments_and_defaults(
     np.testing.assert_array_equal(plugin._engine_contrail_factors, expected_factors)
 
 
+@pytest.mark.parametrize("with_iris", [True, False])
 @pytest.mark.parametrize(
     "pressure_levels",
     [
@@ -68,43 +69,44 @@ def test_initialisation_with_arguments_and_defaults(
         (np.array([100000, 90000, 80000], dtype=np.float32)),
     ],
 )
-def test_pressure_levels(
+def test_pressure_levels_stored(
     pressure_levels: np.ndarray,
+    with_iris: bool,
 ) -> None:
     """
-    Test that the CondensationTrailFormation plugin correctly sets the
-    pressure_levels attribute after processing cubes with various
-    pressure level arrays.
-
-    This test creates temperature and humidity cube with the
-    given pressure levels, runs the CondensationTrailFormation plugin,
-    and checks that the plugin's pressure_levels attribute matches the
-    input pressure levels.
+    Test that the CondensationTrailFormation plugin stores the correct
+    pressure_levels to the relevant method during processing.
 
     Args:
         pressure_levels (np.ndarray): Array of pressure levels to use
             for the cubes.
+        with_iris (bool): Whether to use iris cubes or numpy arrays.
     """
     shape = (len(pressure_levels), 3, 2)
-    temperature_cube = set_up_variable_cube(
-        np.full(shape, 250, dtype=np.float32),
-        name="air_temperature",
-        units="K",
-        attributes=LOCAL_MANDATORY_ATTRIBUTES,
-        vertical_levels=pressure_levels,
-        pressure=True,
-    )
-    humidity_cube = set_up_variable_cube(
-        np.full(shape, 50, dtype=np.float32),
-        name="relative_humidity",
-        units="%",
-        attributes=LOCAL_MANDATORY_ATTRIBUTES,
-        vertical_levels=pressure_levels,
-        pressure=True,
-    )
+    temperature_data = np.full(shape, 250, dtype=np.float32)
+    humidity_data = np.full(shape, 50, dtype=np.float32)
 
     plugin = CondensationTrailFormation()
-    plugin.process(temperature_cube, humidity_cube)
+    if with_iris:
+        temperature_cube = set_up_variable_cube(
+            temperature_data,
+            name="air_temperature",
+            units="K",
+            attributes=LOCAL_MANDATORY_ATTRIBUTES,
+            vertical_levels=pressure_levels,
+            pressure=True,
+        )
+        humidity_cube = set_up_variable_cube(
+            humidity_data,
+            name="relative_humidity",
+            units="%",
+            attributes=LOCAL_MANDATORY_ATTRIBUTES,
+            vertical_levels=pressure_levels,
+            pressure=True,
+        )
+        plugin.process(temperature_cube, humidity_cube)
+    else:
+        plugin.process_from_arrays(temperature_data, humidity_data, pressure_levels)
 
     # Check that pressure_levels attribute is set correctly
     np.testing.assert_array_equal(plugin.pressure_levels, pressure_levels)
@@ -149,8 +151,7 @@ def test_engine_mixing_ratio(
     Test that the engine mixing ratios are calculated correctly for
     various pressure level arrays.
 
-    This test creates temperature and humidity cubes with the
-    given pressure levels, runs the CondensationTrailFormation plugin,
+    This test runs the CondensationTrailFormation._calculate_engine_mixing_ratios method
     and checks that the calculated engine mixing ratios match the
     expected values and shapes.
 
@@ -162,27 +163,8 @@ def test_engine_mixing_ratio(
         expected_mixing_ratios (np.ndarray): Expected mixing ratios for
             the given input.
     """
-    shape = (len(pressure_levels), 3, 2)
-    temperature_cube = set_up_variable_cube(
-        np.full(shape, 250, dtype=np.float32),
-        name="air_temperature",
-        units="K",
-        attributes=LOCAL_MANDATORY_ATTRIBUTES,
-        vertical_levels=pressure_levels,
-        pressure=True,
-    )
-    humidity_cube = set_up_variable_cube(
-        np.full(shape, 50, dtype=np.float32),
-        name="relative_humidity",
-        units="%",
-        attributes=LOCAL_MANDATORY_ATTRIBUTES,
-        vertical_levels=pressure_levels,
-        pressure=True,
-    )
-
     plugin = CondensationTrailFormation()
-    plugin.process(temperature_cube, humidity_cube)
 
     # Check that _calculate_engine_mixing_ratios works after process
-    mixing_ratios = plugin._calculate_engine_mixing_ratios()
+    mixing_ratios = plugin._calculate_engine_mixing_ratios(pressure_levels)
     np.testing.assert_array_equal(mixing_ratios, expected_mixing_ratios)
