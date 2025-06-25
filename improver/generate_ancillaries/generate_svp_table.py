@@ -20,8 +20,24 @@ class SaturatedVapourPressureTable(BasePlugin):
     Plugin to create a saturated vapour pressure lookup table.
     """
 
+    cube_name = "saturated_vapour_pressure"
+    svp_units = "hPa"
+    svp_si_units = "Pa"
     MAX_VALID_TEMPERATURE = 373.0
     MIN_VALID_TEMPERATURE = 173.0
+    constants = {
+        1: 10.79574,
+        2: 5.028,
+        3: 1.50475e-4,
+        4: -8.2969,
+        5: 0.42873e-3,
+        6: 4.76955,
+        7: 0.78614,
+        8: -9.09685,
+        9: 3.56654,
+        10: 0.87682,
+        11: 0.78614,
+    }
 
     def __init__(
         self, t_min: float = 183.15, t_max: float = 338.25, t_increment: float = 0.1
@@ -52,8 +68,8 @@ class SaturatedVapourPressureTable(BasePlugin):
     def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         result = (
-            "<SaturatedVapourPressureTable: t_min: {}; t_max: {}; "
-            "t_increment: {}>".format(self.t_min, self.t_max, self.t_increment)
+            f"<{self.__class__.__name__}: t_min: {self.t_min}; t_max: {self.t_max}; "
+            f"t_increment: {self.t_increment}>"
         )
         return result
 
@@ -75,23 +91,37 @@ class SaturatedVapourPressureTable(BasePlugin):
             technology. New series. Group V. Volume 4. Meteorology.
             Subvolume b. Physical and chemical properties of the air, P35.
         """
-        constants = {
-            1: 10.79574,
-            2: 5.028,
-            3: 1.50475e-4,
-            4: -8.2969,
-            5: 0.42873e-3,
-            6: 4.76955,
-            7: 0.78614,
-            8: -9.09685,
-            9: 3.56654,
-            10: 0.87682,
-            11: 0.78614,
-        }
         triple_pt = TRIPLE_PT_WATER
 
-        # Values for which method is considered valid (see reference).
-        # WetBulbTemperature.check_range(temperature.data, 173., 373.)
+        self._check_temperature_limits(temperature)
+
+        svp = temperature.copy()
+        for cell in np.nditer(svp, op_flags=["readwrite"]):
+            if cell > triple_pt:
+                n0 = self.constants[1] * (1.0 - triple_pt / cell)
+                n1 = self.constants[2] * np.log10(cell / triple_pt)
+                n2 = self.constants[3] * (
+                    1.0 - np.power(10.0, (self.constants[4] * (cell / triple_pt - 1.0)))
+                )
+                n3 = self.constants[5] * (
+                    np.power(10.0, (self.constants[6] * (1.0 - triple_pt / cell))) - 1.0
+                )
+                log_es = n0 - n1 + n2 + n3 + self.constants[7]
+                cell[...] = np.power(10.0, log_es)
+            else:
+                n0 = self.constants[8] * ((triple_pt / cell) - 1.0)
+                n1 = self.constants[9] * np.log10(triple_pt / cell)
+                n2 = self.constants[10] * (1.0 - (cell / triple_pt))
+                log_es = n0 - n1 + n2 + self.constants[11]
+                cell[...] = np.power(10.0, log_es)
+
+        return svp
+
+    def _check_temperature_limits(self, temperature: ndarray):
+        """
+        Raise exception if temperature values fall outside the range for which the
+        method is considered valid (see reference).
+        """
         if (
             temperature.max() > self.MAX_VALID_TEMPERATURE
             or temperature.min() < self.MIN_VALID_TEMPERATURE
@@ -99,26 +129,21 @@ class SaturatedVapourPressureTable(BasePlugin):
             msg = "Temperatures out of SVP table range: min {}, max {}"
             warnings.warn(msg.format(temperature.min(), temperature.max()))
 
-        svp = temperature.copy()
-        for cell in np.nditer(svp, op_flags=["readwrite"]):
-            if cell > triple_pt:
-                n0 = constants[1] * (1.0 - triple_pt / cell)
-                n1 = constants[2] * np.log10(cell / triple_pt)
-                n2 = constants[3] * (
-                    1.0 - np.power(10.0, (constants[4] * (cell / triple_pt - 1.0)))
-                )
-                n3 = constants[5] * (
-                    np.power(10.0, (constants[6] * (1.0 - triple_pt / cell))) - 1.0
-                )
-                log_es = n0 - n1 + n2 + n3 + constants[7]
-                cell[...] = np.power(10.0, log_es)
-            else:
-                n0 = constants[8] * ((triple_pt / cell) - 1.0)
-                n1 = constants[9] * np.log10(triple_pt / cell)
-                n2 = constants[10] * (1.0 - (cell / triple_pt))
-                log_es = n0 - n1 + n2 + constants[11]
-                cell[...] = np.power(10.0, log_es)
-
+    def _as_cube(self, svp_data: np.ndarray, temperatures: np.ndarray) -> Cube:
+        temperature_coord = iris.coords.DimCoord(
+            temperatures, "air_temperature", units="K"
+        )
+        # Output of the Goff-Gratch is in hPa, but we want to return in Pa.
+        svp = iris.cube.Cube(
+            svp_data,
+            long_name=self.cube_name,
+            units=self.svp_units,
+            dim_coords_and_dims=[(temperature_coord, 0)],
+        )
+        svp.convert_units(self.svp_si_units)
+        svp.attributes["minimum_temperature"] = self.t_min
+        svp.attributes["maximum_temperature"] = self.t_max
+        svp.attributes["temperature_increment"] = self.t_increment
         return svp
 
     def process(self) -> Cube:
@@ -135,20 +160,6 @@ class SaturatedVapourPressureTable(BasePlugin):
         )
         svp_data = self.saturation_vapour_pressure_goff_gratch(temperatures)
 
-        temperature_coord = iris.coords.DimCoord(
-            temperatures, "air_temperature", units="K"
-        )
-
-        # Output of the Goff-Gratch is in hPa, but we want to return in Pa.
-        svp = iris.cube.Cube(
-            svp_data,
-            long_name="saturated_vapour_pressure",
-            units="hPa",
-            dim_coords_and_dims=[(temperature_coord, 0)],
-        )
-        svp.convert_units("Pa")
-        svp.attributes["minimum_temperature"] = self.t_min
-        svp.attributes["maximum_temperature"] = self.t_max
-        svp.attributes["temperature_increment"] = self.t_increment
+        svp = self._as_cube(svp_data, temperatures)
 
         return svp
