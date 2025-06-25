@@ -337,15 +337,11 @@ class MOMetadataInterpreter:
                     f"expected substring {BLEND_TITLE_SUBSTR}."
                 )
 
-    @staticmethod
-    def _cubeattrsdict_as_dict(attrs: CubeAttrsDict) -> dict:
-        """Returns a dict from a CubeAttrsDict, because it has preferable str() methods"""
-        return {key: value for key, value in attrs.items()}
-
     def check_attributes(self, cube_attrs: CubeAttrsDict) -> None:
         """Checks for unexpected attributes, then interprets values for model
         information and checks for self-consistency"""
-        attrs = self._cubeattrsdict_as_dict(cube_attrs)
+        # Convert cube attributes to a dictionary for nicer formatted strings
+        attrs = dict(cube_attrs)
         if self.diagnostic in DIAG_ATTRS:
             permitted_attributes = COMPLIANT_ATTRS + DIAG_ATTRS[self.diagnostic]
         else:
