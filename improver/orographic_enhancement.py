@@ -402,7 +402,7 @@ class OrographicEnhancement(BasePlugin):
         # set standard deviation for Gaussian weighting function in grid
         # squares
         grid_spacing_m = 1000.0 * self.grid_spacing_km
-        stddev = wind_speed * self.cloud_lifetime_s / grid_spacing_m
+        stddev = (wind_speed * self.cloud_lifetime_s / grid_spacing_m).astype(np.float32)
         variance = np.square(stddev)
 
         # calculate weighted values at source points
