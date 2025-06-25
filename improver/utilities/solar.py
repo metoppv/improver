@@ -82,7 +82,7 @@ def calc_solar_declination(day_of_year: int) -> float:
         msg = "Day of the year must be between 0 and 365"
         raise ValueError(msg)
     solar_declination = -23.5 * np.cos(np.radians(0.9856 * day_of_year + 9.3))
-    return solar_declination
+    return np.float64(solar_declination)
 
 
 def calc_solar_time(
@@ -131,7 +131,11 @@ def calc_solar_time(
     # Longitudinal Correction from the Grenwich Meridian
     lon_correction = 24.0 * longitudes / 360.0
     # Solar time (hours):
-    solar_time = utc_hour + lon_correction + eqt * 12 / np.pi
+    solar_time = (
+        np.float64(utc_hour)
+        + np.float64(lon_correction)
+        + np.float64(eqt) * 12 / np.float64(np.pi)
+    )
     # Normalise the hours to the range 0-24
     if normalise:
         solar_time = solar_time % 24
