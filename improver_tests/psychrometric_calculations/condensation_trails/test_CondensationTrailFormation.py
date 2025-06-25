@@ -106,7 +106,7 @@ def test_pressure_levels_stored(
         )
         plugin.process(temperature_cube, humidity_cube)
     else:
-        plugin.process_data(temperature_data, humidity_data, pressure_levels)
+        plugin.process_from_arrays(temperature_data, humidity_data, pressure_levels)
 
     # Check that pressure_levels attribute is set correctly
     np.testing.assert_array_equal(plugin.pressure_levels, pressure_levels)

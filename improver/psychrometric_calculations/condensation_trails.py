@@ -73,7 +73,7 @@ class CondensationTrailFormation(BasePlugin):
             / EARTH_REPSILON
         )
 
-    def process_data(
+    def process_from_arrays(
         self, temperature: np.ndarray, humidity: np.ndarray, pressure_levels: np.ndarray
     ) -> np.ndarray:
         """
@@ -125,7 +125,7 @@ class CondensationTrailFormation(BasePlugin):
         pressure_coord.convert_units("Pa")
 
         # Calculate contrail formation using numpy arrays
-        _ = self.process_data(
+        _ = self.process_from_arrays(
             temperature_cube.data, humidity_cube.data, pressure_coord.points
         )
 
