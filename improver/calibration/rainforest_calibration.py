@@ -36,6 +36,25 @@ from improver.metadata.utilities import (
 from improver.utilities.cube_manipulation import add_coordinate_to_cube, compare_coords
 
 
+def treelite_packages_available():
+    """Return True if treelite packages are available, False otherwise."""
+    try:
+        import tl2cgen  # noqa: F401
+        import treelite  # noqa: F401
+    except ModuleNotFoundError:
+        return False
+    return True
+
+
+def lightgbm_package_available():
+    """Return True if lightgbm package is available, False otherwise."""
+    try:
+        import lightgbm  # noqa: F401
+    except ModuleNotFoundError:
+        return False
+    return True
+
+
 class ModelFileNotFoundError(Exception):
     """Used when the path to a treelite/lightgbm model object is invalid."""
 
@@ -102,25 +121,31 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
         and an associated path has been provided for all thresholds, otherwise lightgbm
         Boosters are used as the default tree model type.
         """
-        try:
-            # Use treelite class if modules available and paths provided.
-            cls = ApplyRainForestsCalibrationTreelite
-            # Check whether treelite packages are available.
-            import tl2cgen  # noqa: F401
-            import treelite  # noqa: F401
-
+        # Use treelite class by default.
+        treelite_available = treelite_packages_available()
+        lightgbm_available = lightgbm_package_available()
+        if not treelite_available and not lightgbm_available:
+            raise ModuleNotFoundError("Could not find treelite or lightgbm modules")
+        if treelite_available:
             # Check that all required files have been specified.
-            ApplyRainForestsCalibration.check_filenames(
-                ModelKeyName.TREELITE, model_config_dict
-            )
-        except (ModuleNotFoundError, ModelFileNotFoundError):
-            # Default to lightGBM.
+            try:
+                cls = ApplyRainForestsCalibrationTreelite
+                ApplyRainForestsCalibration.check_filenames(
+                    "treelite_model", model_config_dict
+                )
+                return super(ApplyRainForestsCalibration, cls).__new__(cls)
+            except ModelFileNotFoundError as e:
+                # Treelite files not specified
+                if not lightgbm_available:
+                    # Re-raise error if lightgbm unavailable
+                    raise (e)
+        if lightgbm_available:
             cls = ApplyRainForestsCalibrationLightGBM
             # Ensure all required files have been specified.
             ApplyRainForestsCalibration.check_filenames(
                 ModelKeyName.LIGHTGBM, model_config_dict
             )
-        return super(ApplyRainForestsCalibration, cls).__new__(cls)
+            return super(ApplyRainForestsCalibration, cls).__new__(cls)
 
     def process(self) -> None:
         """Subclasses should override this function."""
@@ -349,9 +374,10 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                         )
                     )
                 ).expanduser()
-                self.tree_models[lead_time, threshold] = Booster(
-                    model_file=str(model_filename)
-                ).reset_parameter({"num_threads": threads})
+                booster = Booster(model_file=str(model_filename))
+                self.tree_models[lead_time, threshold] = booster.reset_parameter(
+                    {"num_threads": threads}
+                )
 
         self.bin_data = bin_data
         if self.bin_data:
