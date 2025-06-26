@@ -105,8 +105,8 @@ class OrographicSmoothingCoefficients(BasePlugin):
                 )
                 raise ValueError(msg)
 
-        self.max_gradient_smoothing_coefficient = max_gradient_smoothing_coefficient
-        self.min_gradient_smoothing_coefficient = min_gradient_smoothing_coefficient
+        self.max_gradient_smoothing_coefficient = np.float32(max_gradient_smoothing_coefficient)
+        self.min_gradient_smoothing_coefficient = np.float32(min_gradient_smoothing_coefficient)
         self.power = power
         self.use_mask_boundary = use_mask_boundary
         self.mask_comparison = operator.ge
@@ -161,7 +161,7 @@ class OrographicSmoothingCoefficients(BasePlugin):
         Returns:
             An array containing the unscaled smoothing_coefficients.
         """
-        return np.abs(gradient_cube.data) ** self.power
+        return np.power(np.abs(gradient_cube.data), self.power)
 
     def create_coefficient_cube(
         self, data: ndarray, template: Cube, cube_name: str, attributes: Dict
@@ -296,10 +296,8 @@ class OrographicSmoothingCoefficients(BasePlugin):
         original_order = [crd.name() for crd in cube.coords(dim_coords=True)]
         target_order = [cube.coord(axis="y").name(), cube.coord(axis="x").name()]
         enforce_coordinate_ordering(cube, target_order)
-
         # Returns two cubes, ordered gradient in x and gradient in y.
         gradients = GradientBetweenAdjacentGridSquares()(cube)
-
         # Calculate unscaled smoothing coefficients.
         smoothing_coefficients = iris.cube.CubeList()
         iterator = zip(
@@ -317,7 +315,6 @@ class OrographicSmoothingCoefficients(BasePlugin):
         smoothing_coefficients = self.scale_smoothing_coefficients(
             smoothing_coefficients
         )
-
         # If a mask has been provided, zero coefficients where required.
         if mask is not None:
             enforce_coordinate_ordering(mask, target_order)
