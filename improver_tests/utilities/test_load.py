@@ -208,7 +208,8 @@ class Test_load_cube(IrisTest):
         self.assertFalse(result.has_lazy_data())
 
     def test_lazy_load(self):
-        """Test that the cube is consistently loaded as lazy data or otherwise."""
+        """Test that the loading works correctly with lazy loading."""
+        # Override default value within iris to ensure that the file is loaded lazily.
         from iris.fileformats.netcdf import loader
 
         loader._LAZYVAR_MIN_BYTES = 0
@@ -408,7 +409,8 @@ class Test_load_cubelist(IrisTest):
             )
 
     def test_lazy_load(self):
-        """Test that the cubelist is consistently loaded as lazy data or otherwise."""
+        """Test that the cubelist returned upon loading does contain lazy data."""
+        # Override default value within iris to ensure that the file is loaded lazily.
         from iris.fileformats.netcdf import loader
 
         loader._LAZYVAR_MIN_BYTES = 0
