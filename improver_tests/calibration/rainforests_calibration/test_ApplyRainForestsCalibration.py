@@ -19,18 +19,9 @@ from improver.calibration.rainforest_calibration import (
 
 from .utils import MockBooster, MockPredictor
 
-try:
-    import tl2cgen
-    import treelite  # noqa: F401
-except ModuleNotFoundError:
-    TREELITE_ENABLED = False
-else:
-    TREELITE_ENABLED = True
-
 lightgbm = pytest.importorskip("lightgbm")
-treelite_available = pytest.mark.skipif(
-    not TREELITE_ENABLED, reason="Required dependency missing."
-)
+tl2cgen = pytest.importorskip("tl2cgen")
+treelite = pytest.importorskip("treelite")
 
 
 class TestConstructorCorrectClass:
@@ -57,7 +48,7 @@ class TestConstructorCorrectClass:
 # Whether the treelite module is available
 @pytest.mark.parametrize(
     "treelite_module_available",
-    (TREELITE_ENABLED, False),
+    (True, False),
     ids=["treelite_enabled", "treelite_disabled"],
 )
 # Whether treelite keys are present in the model config
