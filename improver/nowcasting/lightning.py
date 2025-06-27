@@ -443,7 +443,7 @@ class NowcastLightning(PostProcessingPlugin):
                             data_range=(0.0, 1.0),
                             scale_range=ice_scaling,
                             clip=True,
-                        ),
+                        ).astype(np.float32),
                         cube_slice.data,
                     )
             new_cube_list.append(cube_slice)
