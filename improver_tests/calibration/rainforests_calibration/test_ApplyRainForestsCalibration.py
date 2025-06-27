@@ -159,7 +159,7 @@ def test_check_filenames_with_invalid_key_name(model_config, key_name):
     """Test that check_filenames() raises an error if an invalid
     key_name is specified."""
 
-    msg = "key_name must be one of the following: ['lightgbm_model', 'treelite_model']"
+    msg = "key_name must be one of the following: ('lightgbm_model', 'treelite_model')"
     with pytest.raises(ValueError, match=re.escape(msg)):
         ApplyRainForestsCalibration.check_filenames(
             key_name=key_name, model_config_dict=model_config

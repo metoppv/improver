@@ -11,10 +11,11 @@
 """
 
 import os
+import typing
 import warnings
 from collections import OrderedDict
-from enum import StrEnum
 from pathlib import Path
+from typing import Literal
 
 import numpy as np
 from cf_units import Unit
@@ -34,6 +35,8 @@ from improver.metadata.utilities import (
     generate_mandatory_attributes,
 )
 from improver.utilities.cube_manipulation import add_coordinate_to_cube, compare_coords
+
+Model = Literal["lightgbm_model", "treelite_model"]
 
 
 def treelite_packages_available():
@@ -59,13 +62,6 @@ class ModelFileNotFoundError(Exception):
     """Used when the path to a treelite/lightgbm model object is invalid."""
 
     pass
-
-
-class ModelKeyName(StrEnum):
-    """Possible values for model library to use in calibration."""
-
-    LIGHTGBM = "lightgbm_model"
-    TREELITE = "treelite_model"
 
 
 class ApplyRainForestsCalibration(PostProcessingPlugin):
@@ -143,7 +139,7 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
             cls = ApplyRainForestsCalibrationLightGBM
             # Ensure all required files have been specified.
             ApplyRainForestsCalibration.check_filenames(
-                ModelKeyName.LIGHTGBM, model_config_dict
+                "lightgbm_model", model_config_dict
             )
             return super(ApplyRainForestsCalibration, cls).__new__(cls)
 
@@ -193,7 +189,7 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
                 lgb_model_filename = Path(
                     os.path.expandvars(
                         model_config_dict[lead_time][threshold_str].get(
-                            ModelKeyName.LIGHTGBM
+                            "lightgbm_model"
                         )
                     )
                 ).expanduser()
@@ -219,7 +215,7 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
 
     @staticmethod
     def check_filenames(
-        key_name: ModelKeyName, model_config_dict: dict[str, dict[str, dict[str, str]]]
+        key_name: Model, model_config_dict: dict[str, dict[str, dict[str, str]]]
     ):
         """Check whether files specified by model_config_dict exist,
         and raise an error if any are missing.
@@ -235,9 +231,9 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
                 If the path to the corresponding model is missing for one or
                 more model thresholds in model_config_dict.
         """
-        if key_name not in ModelKeyName:
+        if key_name not in typing.get_args(Model):
             raise ValueError(
-                f"key_name must be one of the following: {[key.value for key in ModelKeyName]}"
+                f"key_name must be one of the following: {typing.get_args(Model)}"
             )
         model_filenames = []
         for lead_time in model_config_dict.keys():
@@ -246,15 +242,15 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
                     model_config_dict[lead_time][threshold].get(key_name)
                 )
         if None in model_filenames:
-            if key_name == ModelKeyName.LIGHTGBM:
+            if key_name == "lightgbm_model":
                 raise ModelFileNotFoundError(
                     "Path to lightgbm model missing for one or more model thresholds "
                     "in model_config_dict."
                 )
-            elif key_name == ModelKeyName.TREELITE:
+            elif key_name == "treelite_model":
                 raise ModelFileNotFoundError(
                     "Path to treelite model missing for one or more model thresholds "
-                    "in model_config_dict, defaulting to using lightGBM models."
+                    "in model_config_dict."
                 )
 
     def _parse_model_config(
@@ -302,9 +298,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         bin_data: bool = False,
     ):
         """Check all model files are available before initialising."""
-        ApplyRainForestsCalibration.check_filenames(
-            ModelKeyName.LIGHTGBM, model_config_dict
-        )
+        ApplyRainForestsCalibration.check_filenames("lightgbm_model", model_config_dict)
         return super(ApplyRainForestsCalibration, cls).__new__(cls)
 
     def __init__(
@@ -369,7 +363,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                     os.path.expandvars(
                         str(
                             sorted_model_config_dict[lead_time][threshold].get(
-                                ModelKeyName.LIGHTGBM
+                                "lightgbm_model"
                             )
                         )
                     )
@@ -853,9 +847,7 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
         import treelite  # noqa: F401
 
         # Check that all required files have been specified.
-        ApplyRainForestsCalibration.check_filenames(
-            ModelKeyName.TREELITE, model_config_dict
-        )
+        ApplyRainForestsCalibration.check_filenames("treelite_model", model_config_dict)
         return super(ApplyRainForestsCalibration, cls).__new__(cls)
 
     def __init__(
@@ -915,7 +907,7 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
                     os.path.expandvars(
                         str(
                             sorted_model_config_dict[lead_time][threshold].get(
-                                ModelKeyName.TREELITE
+                                "treelite_model"
                             )
                         )
                     )

@@ -27,7 +27,7 @@ class TestNew:
         subclass when tl2cgen is available."""
         monkeypatch.setattr(tl2cgen, "Predictor", MockPredictor)
         result = ApplyRainForestsCalibrationTreelite(model_config)
-        assert type(result).__name__ == "ApplyRainForestsCalibrationTreelite"
+        assert type(result) is ApplyRainForestsCalibrationTreelite
 
     def test_new_with_file_path_missing(self, model_config, monkeypatch):
         """Test that the __new__ method raises the correct exception type
