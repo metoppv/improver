@@ -374,10 +374,9 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                         )
                     )
                 ).expanduser()
-                booster = Booster(model_file=str(model_filename))
-                self.tree_models[lead_time, threshold] = booster.reset_parameter(
-                    {"num_threads": threads}
-                )
+                self.tree_models[lead_time, threshold] = Booster(
+                    model_file=str(model_filename)
+                ).reset_parameter({"num_threads": threads})
 
         self.bin_data = bin_data
         if self.bin_data:

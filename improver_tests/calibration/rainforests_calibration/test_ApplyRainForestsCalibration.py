@@ -12,6 +12,8 @@ import pytest
 
 from improver.calibration.rainforest_calibration import (
     ApplyRainForestsCalibration,
+    ApplyRainForestsCalibrationLightGBM,
+    ApplyRainForestsCalibrationTreelite,
     ModelFileNotFoundError,
 )
 
@@ -42,14 +44,14 @@ class TestConstructorCorrectClass:
         monkeypatch.setattr(lightgbm, "Booster", MockBooster)
         monkeypatch.setitem(sys.modules, "tl2cgen", None)
         result = ApplyRainForestsCalibration(model_config)
-        assert type(result).__name__ == "ApplyRainForestsCalibrationLightGBM"
+        assert type(result) is ApplyRainForestsCalibrationLightGBM
 
     def test_correct_class_when_treelite_available(self, monkeypatch, model_config):
-        """ "Test that the ApplyRainForestsCalibration constructor creates an
+        """Test that the ApplyRainForestsCalibration constructor creates an
         object of the correct type when tl2cgen is available."""
         monkeypatch.setattr(tl2cgen, "Predictor", MockPredictor)
         result = ApplyRainForestsCalibration(model_config)
-        assert type(result).__name__ == "ApplyRainForestsCalibrationTreelite"
+        assert type(result) is ApplyRainForestsCalibrationTreelite
 
 
 class TestLoadTreeliteModels:
@@ -66,9 +68,8 @@ class TestLoadTreeliteModels:
         """
         monkeypatch.setattr(tl2cgen, "Predictor", MockPredictor)
         monkeypatch.setattr(lightgbm, "Booster", MockBooster)
-        model_config["24"]["0.0000"].pop("lightgbm_model", None)
         result = ApplyRainForestsCalibration(model_config)
-        assert type(result).__name__ == "ApplyRainForestsCalibrationTreelite"
+        assert type(result) is ApplyRainForestsCalibrationTreelite
 
     def test_treelite_model_unavailable_module_available(
         self, monkeypatch, model_config
@@ -83,9 +84,8 @@ class TestLoadTreeliteModels:
         """
         monkeypatch.setitem(sys.modules, "tl2cgen", None)
         monkeypatch.setattr(lightgbm, "Booster", MockBooster)
-        model_config["24"]["0.0000"].pop("treelite_model", None)
         result = ApplyRainForestsCalibration(model_config)
-        assert type(result).__name__ == "ApplyRainForestsCalibrationLightGBM"
+        assert type(result) is ApplyRainForestsCalibrationLightGBM
 
     def test_treelite_model_and_module_unavailable(self, monkeypatch, model_config):
         """Test when model and tl2cgen module both unavailable.
@@ -100,7 +100,7 @@ class TestLoadTreeliteModels:
         monkeypatch.setattr(lightgbm, "Booster", MockBooster)
         model_config["24"]["0.0000"].pop("treelite_model", None)
         result = ApplyRainForestsCalibration(model_config)
-        assert type(result).__name__ == "ApplyRainForestsCalibrationLightGBM"
+        assert type(result) is ApplyRainForestsCalibrationLightGBM
 
     def test_treelite_unavailable_lightgbm_keys_unavailable(
         self, monkeypatch, model_config
