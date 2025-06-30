@@ -16,6 +16,12 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_variable_cube,
 )
 
+FORECAST_ATTRIBUTES = {
+    "title": "MOGREPS-UK Forecast",
+    "source": "Met Office Unified Model",
+    "institution": "Met Office",
+}
+
 
 def create_simple_cube(
     forecast_type: str,

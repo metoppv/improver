@@ -31,13 +31,15 @@ from improver import BasePlugin, PostProcessingPlugin
 from improver.calibration.emos_calibration import (
     ApplyEMOS,
     EstimateCoefficientsForEnsembleCalibration,
+    convert_to_realizations,
+    generate_forecast_from_distribution,
+    get_attribute_from_coefficients,
+    get_forecast_type,
 )
 from improver.utilities.cube_manipulation import collapse_realizations
+from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.utilities.generalized_additive_models import GAMFit, GAMPredict
-from improver.utilities.mathematical_operations import (
-    CalculateClimateAnomalies,
-    CalculateForecastValueFromClimateAnomaly,
-)
+from improver.utilities.mathematical_operations import CalculateClimateAnomalies
 
 # Setting to allow cubes with more than 2 dimensions to be converted to/from dataframes.
 iris.FUTURE.pandas_ndim = True
@@ -701,7 +703,7 @@ class TrainEMOSForSAMOS(BasePlugin):
 class ApplySAMOS(PostProcessingPlugin):
     """
     Class to calibrate an input forecast using SAMOS given the following inputs:
-    - Two GAMs, which model, respectively, the climatological mean and standard
+    - Two GAMs which model, respectively, the climatological mean and standard
     deviation of the forecast. This allows the forecast to be converted to
     climatological anomalies.
     - A set of EMOS coefficients which can be applied to correct the climatological
@@ -725,7 +727,6 @@ class ApplySAMOS(PostProcessingPlugin):
         emos_coefficients: CubeList,
         gam_additional_fields: Optional[CubeList] = None,
         emos_additional_fields: Optional[CubeList] = None,
-        landsea_mask: Optional[Cube] = None,
         prob_template: Optional[Cube] = None,
         realizations_count: Optional[int] = None,
         ignore_ecc_bounds: bool = True,
@@ -755,11 +756,6 @@ class ApplySAMOS(PostProcessingPlugin):
                 Additional fields to use as supplementary predictors in the GAMs.
             emos_additional_fields:
                 Additional fields to use as supplementary predictors in EMOS.
-            landsea_mask:
-                The optional cube containing a land-sea mask. If provided, only
-                land points are used to calculate the EMOS coefficients. Within the
-                land-sea mask cube land points should be specified as ones,
-                and sea points as zeros.
             prob_template:
                 A cube containing a probability forecast that will be used as
                 a template when generating probability output when the input
@@ -785,22 +781,33 @@ class ApplySAMOS(PostProcessingPlugin):
                 is probabilities or percentiles, this is ignored.
 
         Returns:
-            Calibrated forecast in the form of the input forecast (ie probabilities
+            Calibrated forecast in the form of the input (ie probabilities
             percentiles or realizations).
         """
+        input_forecast_type = get_forecast_type(forecast)
+
+        forecast_as_realizations = forecast.copy()
+        if input_forecast_type != "realizations":
+            forecast_as_realizations = convert_to_realizations(
+                forecast.copy(), realizations_count, ignore_ecc_bounds
+            )
+
         forecast_mean, forecast_sd = get_climatological_stats(
-            forecast, forecast_gams, gam_features, gam_additional_fields
+            forecast_as_realizations, forecast_gams, gam_features, gam_additional_fields
         )
         forecast_ca = CalculateClimateAnomalies(ignore_temporal_mismatch=True).process(
-            diagnostic_cube=forecast, mean_cube=forecast_mean, std_cube=forecast_sd
+            diagnostic_cube=forecast_as_realizations,
+            mean_cube=forecast_mean,
+            std_cube=forecast_sd,
         )
 
-        # Returns a climate anomaly forecast.
-        calibrated_ca = ApplyEMOS(percentiles=self.percentiles).process(
+        # Returns parameters which describe a climate anomaly distribution.
+        location_parameter, scale_parameter = ApplyEMOS(
+            percentiles=self.percentiles
+        ).process(
             forecast=forecast_ca,
             coefficients=emos_coefficients,
             additional_fields=emos_additional_fields,
-            land_sea_mask=landsea_mask,
             prob_template=prob_template,
             realizations_count=realizations_count,
             ignore_ecc_bounds=ignore_ecc_bounds,
@@ -808,12 +815,43 @@ class ApplySAMOS(PostProcessingPlugin):
             predictor=predictor,
             randomise=randomise,
             random_seed=random_seed,
+            return_parameters=True,
         )
 
-        result = CalculateForecastValueFromClimateAnomaly(
-            ignore_temporal_mismatch=True
-        ).process(
-            anomaly_cube=calibrated_ca, mean_cube=forecast_mean, std_cube=forecast_sd
+        # The data in these cubes are identical along the realization dimensions.
+        forecast_mean = next(forecast_mean.slices_over("realization"))
+        forecast_sd = next(forecast_sd.slices_over("realization"))
+
+        # Transform location and scale parameters so that they represent a distribution
+        # in the units of the original forecast, rather than climatological anomalies.
+        forecast_units = (
+            forecast.units
+            if input_forecast_type != "probabilities"
+            else find_threshold_coordinate(forecast).units
+        )
+        location_parameter.data = (
+            location_parameter.data * forecast_sd.data
+        ) + forecast_mean.data
+        location_parameter.units = forecast_units
+
+        scale_parameter.data = (
+            scale_parameter.data * forecast_sd.data * forecast_sd.data
+        )
+        scale_parameter.units = forecast_units
+
+        # Generate output in desired format from distribution.
+        self.distribution = {
+            "name": get_attribute_from_coefficients(emos_coefficients, "distribution"),
+            "location": location_parameter,
+            "scale": scale_parameter,
+            "shape": get_attribute_from_coefficients(
+                emos_coefficients, "shape_parameters", optional=True
+            ),
+        }
+
+        template = prob_template if prob_template else forecast
+        result = generate_forecast_from_distribution(
+            self.distribution, template, self.percentiles, randomise, random_seed
         )
 
         return result
