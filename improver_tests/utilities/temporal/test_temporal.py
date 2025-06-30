@@ -138,7 +138,7 @@ class Test_iris_time_to_datetime(IrisTest):
         result = iris_time_to_datetime(self.cube.coord("time"))
         self.assertIsInstance(result, list)
         for item in result:
-            self.assertIsInstance(item, cftime.DatetimeGregorian)
+            self.assertIsInstance(item, datetime)
         self.assertEqual(result[0], datetime(2017, 2, 17, 6, 0))
 
     def test_bounds(self):
@@ -154,7 +154,7 @@ class Test_iris_time_to_datetime(IrisTest):
         self.assertEqual(len(result), 1)
         self.assertEqual(len(result[0]), 2)
         for item in result[0]:
-            self.assertIsInstance(item, cftime.DatetimeGregorian)
+            self.assertIsInstance(item, datetime)
         self.assertEqual(result[0][0], datetime(2017, 2, 17, 5, 0))
         self.assertEqual(result[0][1], datetime(2017, 2, 17, 6, 0))
 

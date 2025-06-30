@@ -104,10 +104,20 @@ def iris_time_to_datetime(
     """
     coord = time_coord.copy()
     coord.convert_units("seconds since 1970-01-01 00:00:00")
+
+    def _cftime_to_datetime(dt_in):
+        return datetime(
+            dt_in.year, dt_in.month, dt_in.day, dt_in.hour, dt_in.minute, dt_in.second
+        )
+
     if point_or_bound == "point":
-        datetime_list = [value.point for value in coord.cells()]
+        datetime_list = [_cftime_to_datetime(value.point) for value in coord.cells()]
     elif point_or_bound == "bound":
-        datetime_list = [value.bound for value in coord.cells()]
+        datetime_list = [
+            [_cftime_to_datetime(c.bound[0]), _cftime_to_datetime(c.bound[1])]
+            for c in coord.cells()
+        ]
+
     return datetime_list
 
 
