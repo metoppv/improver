@@ -9,6 +9,7 @@ and coefficient inputs.
 from collections import OrderedDict
 from typing import Dict, List, Optional, Tuple
 
+import iris.cube
 from iris.cube import Cube, CubeList
 
 from improver.metadata.probabilistic import (
@@ -220,6 +221,93 @@ def split_forecasts_and_bias_files(cubes: CubeList) -> Tuple[Cube, Optional[Cube
     bias_cubes = bias_cubes if bias_cubes else None
 
     return forecast_cube, bias_cubes
+
+
+def split_cubes_for_samos(
+    cubes: CubeList,
+    gam_features: List[str],
+    truth_attribute: Optional[str] = None,
+    expect_emos_coeffs: bool = False,
+    expect_emos_fields: bool = False,
+):
+    """Function to split the forecast, truth, gam additional predictors and emos
+    additional predictor cubes."""
+    forecast = iris.cube.CubeList([])
+    truth = iris.cube.CubeList([])
+    gam_additional_fields = iris.cube.CubeList([])
+    emos_coefficients = iris.cube.CubeList([])
+    emos_additional_fields = iris.cube.CubeList([])
+    prob_template = None
+
+    # Prepare variables used to split forecast and truth.
+    truth_key, truth_value = None, None
+    if truth_attribute:
+        truth_key, truth_value = truth_attribute.split("=")
+
+    for cube in cubes:
+        if "time" in [c.name() for c in cube.coords()]:
+            if truth_key and cube.attributes.get(truth_key) == truth_value:
+                truth.append(cube)
+            else:
+                forecast.append(cube)
+        elif "emos_coefficient" in cube.name():
+            emos_coefficients.append(cube)
+        elif cube.name() in gam_features:
+            gam_additional_fields.append(cube)
+        else:
+            emos_additional_fields.append(cube)
+
+    # Check that all required inputs are present and no unexpected cubes have been
+    # found.
+    missing_inputs = []
+    if len(forecast) == 0:
+        missing_inputs.append("forecast")
+    if truth_key and len(truth) == 0:
+        missing_inputs.append("truth")
+    if missing_inputs:
+        raise IOError(f"Missing {' and '.join(missing_inputs)} input.")
+
+    if not expect_emos_coeffs and len(emos_coefficients) > 0:
+        msg = (
+            f"Found EMOS coefficients cubes when they were not expected. The following "
+            f"such cubes were found: {[c.name() for c in emos_coefficients]}."
+        )
+        raise IOError(msg)
+
+    if not expect_emos_fields and len(emos_additional_fields) > 0:
+        msg = (
+            f"Found additional fields cubes which do not match the features in "
+            f"gam_features. The following cubes were found: "
+            f"{[c.name() for c in emos_additional_fields]}."
+        )
+        raise IOError(msg)
+
+    # Split out prob_template cube if required.
+    forecast_names = [c.name() for c in forecast]
+    prob_forecast_names = [name for name in forecast_names if "probability" in name]
+    if len(set(prob_forecast_names)) != 1:
+        msg = (
+            "Providing multiple probability cubes is not supported. A probability cube "
+            "can either be provided as the forecast or the probability template, but "
+            f"not both. Cubes provided: {prob_forecast_names}."
+        )
+    else:
+        if len(set(forecast_names)) != 1:
+            prob_template = forecast.extract(prob_forecast_names[0])[0]
+            forecast.remove(prob_template)
+
+    forecast = MergeCubes()(forecast)
+    if truth_key:
+        truth = MergeCubes()(truth)
+
+    return (
+        forecast,
+        truth,
+        gam_additional_fields,
+        emos_coefficients,
+        emos_additional_fields,
+        prob_template,
+    )
 
 
 def validity_time_check(forecast: Cube, validity_times: List[str]) -> bool:

@@ -23,12 +23,14 @@ from improver import BasePlugin, PostProcessingPlugin
 from improver.calibration.emos_calibration import (
     ApplyEMOS,
     EstimateCoefficientsForEnsembleCalibration,
+    convert_to_realizations,
+    generate_forecast_from_distribution,
+    get_attribute_from_coefficients,
+    get_forecast_type,
 )
+from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.utilities.generalized_additive_models import GAMFit, GAMPredict
-from improver.utilities.mathematical_operations import (
-    CalculateClimateAnomalies,
-    CalculateForecastValueFromClimateAnomaly,
-)
+from improver.utilities.mathematical_operations import CalculateClimateAnomalies
 
 # Setting to allow cubes with more than 2 dimensions to be converted to/from dataframes.
 iris.FUTURE.pandas_ndim = True
@@ -210,7 +212,97 @@ class TrainGAMsForSAMOS(BasePlugin):
         self.fit_intercept = fit_intercept
 
     @staticmethod
-    def calculate_cube_statistics(input_cube: Cube) -> CubeList:
+    def calculate_statistic_by_rolling_window(input_cube: Cube, pad_width=2):
+        """Function to calculate mean and standard deviation of input_cube using a
+        rolling window calculation over the time coordinate.
+
+        The input_cube time coordinate is padded by the pad_width at the beginning and
+        end of the time coordinate, to ensure that the result of the rolling window
+        calculation has the same shape as input_cube. Additionally, any missing time
+        points in the input cube are filled with masked data, so that the rolling window
+        is always taken over a fixed length time period.
+
+        If there are any time periods for a given site where the rolling window would
+        contain one or zero valid data points, then that site is removed from the cube
+        prior to the calculation.
+        """
+        removed_coords = []
+        # Pad the time coordinate of the input cube, then calculate the mean and
+        # standard deviation using a rolling window over the time coordinate.
+        time_coord = input_cube.coord("time")
+        increments = time_coord.points[1:] - time_coord.points[:-1]
+        min_increment = increments.min()
+        if all(x % min_increment == 0 for x in increments):
+            # Remove time related coordinates other than the coordinate called
+            # "time" on the input cube in order to allow extension of the "time"
+            # coordinate. These coordinates are saved and added back to the output
+            # cubes.
+            for coord in [
+                "forecast_reference_time",
+                "forecast_period",
+                "blend_time",
+            ]:
+                if input_cube.coords(coord):
+                    removed_coords.append(input_cube.coord(coord).copy())
+                    input_cube.remove_coord(coord)
+
+            # Create slices of artificial cube data to pad the existing cube time
+            # coordinate and fill any gaps. This ensures that all of the time points
+            # are equally spaced and the padding ensures that the output of the
+            # rolling window calculation is the same shape as the input cube.
+            existing_points = time_coord.points
+            desired_points = [
+                x
+                for x in range(
+                    min(existing_points) - (min_increment * pad_width),
+                    max(existing_points) + (min_increment * pad_width),
+                    min_increment,
+                )
+            ]
+
+            # Slice input_cube over time dimension so that the artificial cubes can be
+            # concatenated correctly.
+            padded_cube = iris.cube.CubeList([])
+            for cslice in input_cube.slices_over("time"):
+                padded_cube.append(new_axis(cslice.copy(), "time"))
+
+            # For each desired point which doesn't already correspond to a time point
+            # on the cube, create a new cube slice with that time point with all data
+            # masked.
+            cslice = input_cube.extract(iris.Constraint(time=time_coord.cell(0)))
+            for point in desired_points:
+                if point not in existing_points:
+                    # Create a new cube slice with time point equal to point.
+                    new_slice = cslice.copy()
+                    new_slice.coord("time").points = point
+                    new_slice = new_axis(new_slice, "time")
+                    new_slice.data = masked_all_like(new_slice.data)
+                    padded_cube.append(new_slice)
+            padded_cube = padded_cube.concatenate_cube()
+
+            # Calculate mean and standard deviation using rolling window over padded
+            # time coordinate. Remove bounds from this coordinate in resulting cubes
+            # as they aren't needed for later calculations.
+            input_mean = padded_cube.rolling_window(
+                coord="time", aggregator=MEAN, window=(2 * pad_width) + 1
+            )
+            input_mean.coord("time").bounds = None
+            input_sd = padded_cube.rolling_window(
+                coord="time", aggregator=STD_DEV, window=(2 * pad_width) + 1
+            )
+            input_sd.coord("time").bounds = None
+
+            # Add any removed time coordinates back on to the mean and standard
+            # deviation cubes.
+            for coord in removed_coords:
+                time_dim = padded_cube.coord_dims("time")
+                kwargs = {"data_dims": time_dim} if len(coord.points) > 1 else {}
+                input_mean.add_aux_coord(coord, **kwargs)
+                input_sd.add_aux_coord(coord, **kwargs)
+
+            return input_mean, input_sd
+
+    def calculate_cube_statistics(self, input_cube: Cube) -> CubeList:
         """Function to calculate mean and standard deviation of the input cube. If the
         cube has a realization dimension then statistics will be calculated by
         collapsing over this dimension. Otherwise, a rolling window calculation over
@@ -222,7 +314,6 @@ class TrainGAMsForSAMOS(BasePlugin):
         Returns:
             CubeList containing a mean cube and standard deviation cube.
         """
-        removed_coords = []
         if input_cube.coords("realization"):
             # Calculate forecast mean and standard deviation over the realization
             # coordinate.
@@ -231,86 +322,9 @@ class TrainGAMsForSAMOS(BasePlugin):
             input_sd = input_cube.collapsed("realization", STD_DEV)
             input_sd.remove_coord("realization")
         else:
-            # Pad the time coordinate of the input cube, then calculate the mean and
-            # standard deviation using a rolling window over the time coordinate.
-            time_coord = input_cube.coord("time")
-            increments = time_coord.points[1:] - time_coord.points[:-1]
-            if len(set(increments)) > 1:
-                msg = (
-                    "In order to extend the time coordinate to permit calculation of "
-                    "means and standard deviations, the existing points on the time "
-                    "coordinate must be evenly spaced. The following points were "
-                    f"found on the time coordinate: {time_coord.points}."
-                )
-                raise ValueError(msg)
-            else:
-                # Remove time related coordinates other than the coordinate called
-                # "time" on the input cube in order to allow extension of the "time"
-                # coordinate. These coordinates are saved and added back to the output
-                # cubes.
-                for coord in [
-                    "forecast_reference_time",
-                    "forecast_period",
-                    "blend_time",
-                ]:
-                    if input_cube.coords(coord):
-                        removed_coords.append(input_cube.coord(coord).copy())
-                        input_cube.remove_coord(coord)
-
-                increment = increments[0]
-                pad_width = 2  # No. of points to add to each end of time coordinate.
-
-                # Get first and last time slices in the input cube, to be used to create
-                # cube slices which are before/after the first/last slice.
-                first_slice = input_cube.extract(
-                    iris.Constraint(time=time_coord.cell(0))
-                )
-                last_slice = input_cube.extract(
-                    iris.Constraint(time=time_coord.cell(-1))
-                )
-
-                padded_cube = iris.cube.CubeList([input_cube])
-                for i in range(pad_width):
-                    # Create cubes with an earlier/later time to use to pad the input.
-                    # All data in these cubes is masked to prevent them contributing to
-                    # later calculations.
-                    early_cube = first_slice.copy()
-                    early_cube.coord("time").points = (
-                        early_cube.coord("time").points - (i + 1) * increment
-                    )
-                    early_cube = new_axis(early_cube, "time")
-                    early_cube.data = masked_all_like(early_cube.data)
-
-                    late_cube = last_slice.copy()
-                    late_cube.coord("time").points = (
-                        late_cube.coord("time").points + (i + 1) * increment
-                    )
-                    late_cube = new_axis(late_cube, "time")
-                    late_cube.data = masked_all_like(late_cube.data)
-
-                    padded_cube.extend([early_cube, late_cube])
-
-                padded_cube = padded_cube.concatenate_cube()
-
-                # Calculate mean and standard deviation using rolling window over padded
-                # time coordinate. Remove bounds from this coordinate in resulting cubes
-                # as they aren't needed for later calculations.
-                input_mean = padded_cube.rolling_window(
-                    coord="time", aggregator=MEAN, window=(2 * pad_width) + 1
-                )
-                input_mean.coord("time").bounds = None
-                input_sd = padded_cube.rolling_window(
-                    coord="time", aggregator=STD_DEV, window=(2 * pad_width) + 1
-                )
-                input_sd.coord("time").bounds = None
-
-                # Add any removed time coordinates back on to the mean and standard
-                # deviation cubes.
-                for coord in removed_coords:
-                    time_dim = padded_cube.coord_dims("time")
-                    kwargs = {"data_dims": time_dim} if len(coord.points) > 1 else {}
-                    input_mean.add_aux_coord(coord, **kwargs)
-                    input_sd.add_aux_coord(coord, **kwargs)
+            input_mean, input_sd = self.calculate_statistic_by_rolling_window(
+                input_cube
+            )
 
         return CubeList([input_mean, input_sd])
 
@@ -539,7 +553,7 @@ class TrainEMOSForSAMOS(BasePlugin):
 class ApplySAMOS(PostProcessingPlugin):
     """
     Class to calibrate an input forecast using SAMOS given the following inputs:
-    - Two GAMs, which model, respectively, the climatological mean and standard
+    - Two GAMs which model, respectively, the climatological mean and standard
     deviation of the forecast. This allows the forecast to be converted to
     climatological anomalies.
     - A set of EMOS coefficients which can be applied to correct the climatological
@@ -563,7 +577,6 @@ class ApplySAMOS(PostProcessingPlugin):
         emos_coefficients: CubeList,
         gam_additional_fields: Optional[CubeList] = None,
         emos_additional_fields: Optional[CubeList] = None,
-        landsea_mask: Optional[Cube] = None,
         prob_template: Optional[Cube] = None,
         realizations_count: Optional[int] = None,
         ignore_ecc_bounds: bool = True,
@@ -593,11 +606,6 @@ class ApplySAMOS(PostProcessingPlugin):
                 Additional fields to use as supplementary predictors in the GAMs.
             emos_additional_fields:
                 Additional fields to use as supplementary predictors in EMOS.
-            landsea_mask:
-                The optional cube containing a land-sea mask. If provided, only
-                land points are used to calculate the EMOS coefficients. Within the
-                land-sea mask cube land points should be specified as ones,
-                and sea points as zeros.
             prob_template:
                 A cube containing a probability forecast that will be used as
                 a template when generating probability output when the input
@@ -623,22 +631,33 @@ class ApplySAMOS(PostProcessingPlugin):
                 is probabilities or percentiles, this is ignored.
 
         Returns:
-            Calibrated forecast in the form of the input forecast (ie probabilities
+            Calibrated forecast in the form of the input (ie probabilities
             percentiles or realizations).
         """
+        input_forecast_type = get_forecast_type(forecast)
+
+        forecast_as_realizations = forecast.copy()
+        if input_forecast_type != "realizations":
+            forecast_as_realizations = convert_to_realizations(
+                forecast.copy(), realizations_count, ignore_ecc_bounds
+            )
+
         forecast_mean, forecast_sd = get_climatological_stats(
-            forecast, forecast_gams, gam_features, gam_additional_fields
+            forecast_as_realizations, forecast_gams, gam_features, gam_additional_fields
         )
         forecast_ca = CalculateClimateAnomalies(ignore_temporal_mismatch=True).process(
-            diagnostic_cube=forecast, mean_cube=forecast_mean, std_cube=forecast_sd
+            diagnostic_cube=forecast_as_realizations,
+            mean_cube=forecast_mean,
+            std_cube=forecast_sd,
         )
 
-        # Returns a climate anomaly forecast.
-        calibrated_ca = ApplyEMOS(percentiles=self.percentiles).process(
+        # Returns parameters which describe a climate anomaly distribution.
+        location_parameter, scale_parameter = ApplyEMOS(
+            percentiles=self.percentiles
+        ).process(
             forecast=forecast_ca,
             coefficients=emos_coefficients,
             additional_fields=emos_additional_fields,
-            land_sea_mask=landsea_mask,
             prob_template=prob_template,
             realizations_count=realizations_count,
             ignore_ecc_bounds=ignore_ecc_bounds,
@@ -646,12 +665,43 @@ class ApplySAMOS(PostProcessingPlugin):
             predictor=predictor,
             randomise=randomise,
             random_seed=random_seed,
+            return_parameters=True,
         )
 
-        result = CalculateForecastValueFromClimateAnomaly(
-            ignore_temporal_mismatch=True
-        ).process(
-            anomaly_cube=calibrated_ca, mean_cube=forecast_mean, std_cube=forecast_sd
+        # The data in these cubes are identical along the realization dimensions.
+        forecast_mean = next(forecast_mean.slices_over("realization"))
+        forecast_sd = next(forecast_sd.slices_over("realization"))
+
+        # Transform location and scale parameters so that they represent a distribution
+        # in the units of the original forecast, rather than climatological anomalies.
+        forecast_units = (
+            forecast.units
+            if input_forecast_type != "probabilities"
+            else find_threshold_coordinate(forecast).units
+        )
+        location_parameter.data = (
+            location_parameter.data * forecast_sd.data
+        ) + forecast_mean.data
+        location_parameter.units = forecast_units
+
+        scale_parameter.data = (
+            scale_parameter.data * forecast_sd.data * forecast_sd.data
+        )
+        scale_parameter.units = forecast_units
+
+        # Generate output in desired format from distribution.
+        self.distribution = {
+            "name": get_attribute_from_coefficients(emos_coefficients, "distribution"),
+            "location": location_parameter,
+            "scale": scale_parameter,
+            "shape": get_attribute_from_coefficients(
+                emos_coefficients, "shape_parameters", optional=True
+            ),
+        }
+
+        template = prob_template if prob_template else forecast
+        result = generate_forecast_from_distribution(
+            self.distribution, template, self.percentiles, randomise, random_seed
         )
 
         return result
