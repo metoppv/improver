@@ -23,7 +23,7 @@ class SaturatedVapourPressureTableDerivative(SaturatedVapourPressureTable):
        generate_svp_derivative_table.rst
     """
 
-    cube_name = "saturated_vapour_pressure"
+    cube_name = "saturated_vapour_pressure_derivative"
     svp_units = "hPa/K"
     svp_si_units = "Pa/K"
 
