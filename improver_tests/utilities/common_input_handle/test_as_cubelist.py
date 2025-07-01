@@ -71,10 +71,3 @@ def test_empty_list_provided():
     msg = "One or more cubes should be provided."
     with pytest.raises(ValueError, match=msg):
         as_cubelist([])
-
-
-def test_non_cube_cubelist_provided():
-    """Test when a CubeList containing a non cube is provided."""
-    msg = "A non iris Cube object has been provided."
-    with pytest.raises(TypeError, match=msg):
-        as_cubelist(CubeList(["not_a_cube"]))

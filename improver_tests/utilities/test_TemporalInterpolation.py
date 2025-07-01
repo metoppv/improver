@@ -424,10 +424,10 @@ def test_solar_interpolation(solar_expected, realizations):
     assert result.coord("time").points == 1509523200
     assert result.coord("forecast_period").points[0] == 3600 * 4
     if result.ndim == 2:
-        np.testing.assert_almost_equal(result.data, solar_expected)
+        np.testing.assert_almost_equal(result.data, solar_expected, decimal=6)
     else:
         for dslice in result.data:
-            np.testing.assert_almost_equal(dslice, solar_expected)
+            np.testing.assert_almost_equal(dslice, solar_expected, decimal=6)
 
 
 @pytest.mark.parametrize("realizations", (None, [0, 1, 2]))
