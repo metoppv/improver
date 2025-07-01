@@ -30,6 +30,12 @@ jobs:
         micromamba list
       shell: bash -el {0}
 
+    - name: safety
+      run: |
+        micromamba install safety
+        safety check || true
+      shell: micromamba-shell {0}
+
     - name: sphinx documentation
       run: |
         make -C doc html SPHINXOPTS="-W --keep-going"
@@ -75,7 +81,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: 3.7
+        python-version: 3.9
         cache: 'pip'
 
     - name: pip install pre-commit
@@ -112,36 +118,3 @@ jobs:
 
       - name: Check CONTRIBUTING.md
         uses: cylc/release-actions/check-shortlog@v1
-
-  Safety-Bandit:
-    runs-on: ubuntu-22.04
-    strategy:
-      fail-fast: false
-      matrix:
-        env: [environment_a, environment_b, conda-forge]
-    steps:
-
-    - uses: actions/checkout@v4
-
-    - name: Environment creation
-      uses: mamba-org/setup-micromamba@v2
-      with:
-        environment-file: envs/${{ matrix.env }}.yml
-        init-shell: bash
-        cache-environment: true
-
-    - name: Environment info
-      run: |
-        micromamba info
-        micromamba list
-      shell: bash -el {0}
-
-    - name: safety
-      run: |
-        safety check || true
-      shell: micromamba-shell {0}
-
-    - name: bandit
-      run: |
-        bandit -r improver
-      shell: micromamba-shell {0}

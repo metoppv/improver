@@ -22,7 +22,6 @@ dependencies:
   - sigtools
   - sphinx=5.3.0
   # Additional libraries to run tests, not included in improver-feedstock
-  - bandit
   - filelock
   - pytest
   - setuptools

@@ -8,3 +8,6 @@ ignore = ["E203", "E731", "E501", "E741"]  # remove "E501", "E741" later
 [tool.ruff.format]
 # Enable reformatting of code snippets in docstrings.
 docstring-code-format = true
+
+[tool.bandit]
+exclude_dirs = ["improver_tests"]
