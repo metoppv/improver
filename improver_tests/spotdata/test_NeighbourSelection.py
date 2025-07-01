@@ -862,15 +862,16 @@ class Test_process(Test_NeighbourSelection):
         """Test which neighbour is returned in an artificial case in which two
         neighbouring grid points are identically close. Identical to the test
         above except for the land constraint is now applied, so the neigbour is
-        found using the KDTree. Using the KDTree the neighbour to the east is
-        returned everytime the test is run."""
+        found using the KDTree. Due to precision in the coordinate transform
+        the neighbour to the west is returned everytime."""
 
         self.global_sites[0]["longitude"] = -60.0
+
         plugin = NeighbourSelection(land_constraint=True, search_radius=1e8)
         result = plugin.process(
             self.global_sites, self.global_orography, self.global_land_mask
         )
-        expected = [[[4], [4], [2]]]
+        expected = [[[1], [4], [-3]]]
 
         self.assertArrayEqual(result.data, expected)
 
@@ -880,8 +881,8 @@ class Test_process(Test_NeighbourSelection):
         above except for now with both a land constraint and minimum dz
         constraint. The neighbouring islands have been set to have the
         same vertical displacement as each other from the spot site. The
-        neigbour is found using the KDTree.  Using the KDTree the neighbour to
-        the east is returned everytime the test is run."""
+        neigbour is found using the KDTree. Due to precision in the coordinate
+        transform the neighbour to the west is returned everytime."""
 
         self.global_sites[0]["longitude"] = -60.0
         self.global_sites[0]["altitude"] = 5.0
@@ -893,7 +894,7 @@ class Test_process(Test_NeighbourSelection):
         result = plugin.process(
             self.global_sites, self.global_orography, self.global_land_mask
         )
-        expected = [[[4], [4], [0]]]
+        expected = [[[1], [4], [0]]]
 
         self.assertArrayEqual(result.data, expected)
 
