@@ -105,8 +105,12 @@ class OrographicSmoothingCoefficients(BasePlugin):
                 )
                 raise ValueError(msg)
 
-        self.max_gradient_smoothing_coefficient = np.float32(max_gradient_smoothing_coefficient)
-        self.min_gradient_smoothing_coefficient = np.float32(min_gradient_smoothing_coefficient)
+        self.max_gradient_smoothing_coefficient = np.float32(
+            max_gradient_smoothing_coefficient
+        )
+        self.min_gradient_smoothing_coefficient = np.float32(
+            min_gradient_smoothing_coefficient
+        )
         self.power = power
         self.use_mask_boundary = use_mask_boundary
         self.mask_comparison = operator.ge
