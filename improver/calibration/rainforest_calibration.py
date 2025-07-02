@@ -75,7 +75,7 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
     def __new__(
         cls,
         model_config_dict: dict[str, dict[str, dict[str, str]]],
-        threads: int = 1,
+        threads: int | None = None,
         bin_data: bool = False,
     ):
         """Initialise class object based on package and model file availability.
@@ -85,11 +85,13 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
                 Dictionary containing Rainforests model configuration variables.
             threads:
                 Number of threads to use during prediction with tree-model objects.
+                If unset, use the default number of threads used by Treelite
+                or LightGBM, depending on which library is used.
             bin_data:
                 Bin data according to splits used in models. This speeds up prediction
                 if there are many data points which fall into the same bins for all threshold
                 models. Limits the calculation of common feature values by only calculating
-                them once.
+                them once. Defaults to False.
 
         Dictionary is of format::
 
@@ -136,6 +138,9 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
                     # Re-raise error if lightgbm unavailable
                     raise (e)
         if lightgbm_available:
+            if threads is not None:
+                # Workaround to address segfault issue in lightgbm
+                raise RuntimeError("Cannot specify number of threads used by LightGBM due to package limitations.")
             cls = ApplyRainForestsCalibrationLightGBM
             # Ensure all required files have been specified.
             ApplyRainForestsCalibration.check_filenames(
@@ -178,7 +183,7 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
             The outer list has length equal to the number of model features, and it contains
             the lists of feature splits for each feature. Each feature's list of splits is ordered.
         """
-        # These string patterns are defined by light-gbm and are used for finding the feature and
+        # These string patterns are defined by LightGBM and are used for finding the feature and
         # threshold information in the model .txt files.
         split_feature_string = "split_feature="
         feature_threshold_string = "threshold="
@@ -294,7 +299,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
     def __new__(
         cls,
         model_config_dict: dict[str, dict[str, dict[str, str]]],
-        threads: int = 1,
+        threads: int | None = None,
         bin_data: bool = False,
     ):
         """Check all model files are available before initialising."""
@@ -304,7 +309,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
     def __init__(
         self,
         model_config_dict: dict[str, dict[str, dict[str, str]]],
-        threads: int = 1,
+        threads: int | None = None,
         bin_data: bool = False,
     ):
         """Initialise the tree model variables used in the application of RainForests
@@ -315,6 +320,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                 Dictionary containing Rainforests model configuration variables.
             threads:
                 Number of threads to use during prediction with tree-model objects.
+                If unspecified, use the default value defined by LightGBM.
             bin_data:
                 Bin data according to splits used in models. This speeds up prediction
                 if there are many data points which fall into the same bins for all threshold
@@ -368,10 +374,10 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                         )
                     )
                 ).expanduser()
-                self.tree_models[lead_time, threshold] = Booster(
-                    model_file=str(model_filename)
-                ).reset_parameter({"num_threads": threads})
-
+                booster = Booster(model_file=str(model_filename))
+                if threads is not None:
+                    booster = booster.reset_parameter({"num_threads": threads})
+                self.tree_models[lead_time, threshold] = booster
         self.bin_data = bin_data
         if self.bin_data:
             self.combined_feature_splits = self._get_feature_splits(model_config_dict)
@@ -837,7 +843,7 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
     def __new__(
         cls,
         model_config_dict: dict[str, dict[str, dict[str, str]]],
-        threads: int = 1,
+        threads: int | None = None,
         bin_data: bool = False,
     ):
         """Check required dependencies and all model files are available
@@ -853,7 +859,7 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
     def __init__(
         self,
         model_config_dict: dict[str, dict[str, dict[str, str]]],
-        threads: int = 1,
+        threads: int | None = None,
         bin_data: bool = False,
     ):
         """Initialise the tree model variables used in the application of RainForests
@@ -864,6 +870,7 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
                 Dictionary containing Rainforests model configuration variables.
             threads:
                 Number of threads to use during prediction with tree-model objects.
+                If not specified, use the default value used in the TL2cgen library.
             bin_data:
                 Bin data according to splits used in models. This speeds up prediction
                 if there are many data points which fall into the same bins for all threshold
@@ -913,6 +920,7 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
                     )
                 ).expanduser()
                 self.tree_models[lead_time, threshold] = Predictor(
+                    # OK for Predictor nthreads to be None here
                     libpath=str(model_filename), verbose=False, nthread=threads
                 )
 

@@ -15,7 +15,7 @@ from improver.calibration.rainforest_calibration import (
 from improver.constants import SECONDS_IN_HOUR
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
-from .utils import MockBooster
+from .utils import MockBooster, DEFAULT_NUM_THREADS
 
 lightgbm = pytest.importorskip("lightgbm")
 
@@ -44,7 +44,7 @@ def test__init__(
         model_config["24"]["0.0000"] = tmp_value
 
     if default_threads:
-        expected_threads = 1
+        expected_threads = DEFAULT_NUM_THREADS
         result = ApplyRainForestsCalibrationLightGBM(model_config)
     else:
         expected_threads = 8

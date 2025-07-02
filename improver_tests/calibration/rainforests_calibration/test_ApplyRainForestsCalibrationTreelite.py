@@ -46,7 +46,7 @@ class TestNew:
 
 
 @pytest.mark.parametrize("ordered_inputs", (True, False))
-@pytest.mark.parametrize("expected_threads", (1, 8))
+@pytest.mark.parametrize("expected_threads", (None, 1, 3, 8))
 def test_tree_models(
     monkeypatch, model_config, ordered_inputs, expected_threads, lead_times, thresholds
 ):
@@ -64,7 +64,7 @@ def test_tree_models(
         model_config["24"]["0.0000"] = tmp_value
 
     # Act
-    if expected_threads == 1:
+    if expected_threads is None:
         result = ApplyRainForestsCalibrationTreelite(model_config)
     else:
         result = ApplyRainForestsCalibrationTreelite(

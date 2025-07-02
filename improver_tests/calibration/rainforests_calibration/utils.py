@@ -4,11 +4,16 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Utility classes used in unit tests for rainforests calibration."""
 
+# Default number of threads set by lightgbm
+# See https://lightgbm.readthedocs.io/en/stable/Parameters-Tuning.html#add-more-computational-resources
+DEFAULT_NUM_THREADS = 1
+
 
 class MockBooster:
     def __init__(self, model_file, **kwargs):
         self.model_class = "lightgbm-Booster"
         self.model_file = model_file
+        self.threads = DEFAULT_NUM_THREADS
 
     def reset_parameter(self, params):
         self.threads = params.get("num_threads")
