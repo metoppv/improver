@@ -50,7 +50,7 @@ def treelite_packages_available():
 
 
 def lightgbm_package_available():
-    """Return True if lightgbm package is available, False otherwise."""
+    """Return True if LightGBM package is available, False otherwise."""
     try:
         import lightgbm  # noqa: F401
     except ModuleNotFoundError:
@@ -59,7 +59,7 @@ def lightgbm_package_available():
 
 
 class ModelFileNotFoundError(Exception):
-    """Used when the path to a treelite/lightgbm model object is invalid."""
+    """Used when the path to a treelite/LightGBM model object is invalid."""
 
     pass
 
@@ -116,14 +116,14 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
         for that lead time and threshold.
 
         Treelite predictors are used if treelite_runtime is an installed dependency
-        and an associated path has been provided for all thresholds, otherwise lightgbm
+        and an associated path has been provided for all thresholds, otherwise LightGBM
         Boosters are used as the default tree model type.
         """
         # Use treelite class by default.
         treelite_available = treelite_packages_available()
         lightgbm_available = lightgbm_package_available()
         if not treelite_available and not lightgbm_available:
-            raise ModuleNotFoundError("Could not find treelite or lightgbm modules")
+            raise ModuleNotFoundError("Could not find treelite or LightGBM modules")
         if treelite_available:
             # Check that all required files have been specified.
             try:
@@ -135,12 +135,14 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
             except ModelFileNotFoundError as e:
                 # Treelite files not specified
                 if not lightgbm_available:
-                    # Re-raise error if lightgbm unavailable
+                    # Re-raise error if LightGBM unavailable
                     raise (e)
         if lightgbm_available:
             if threads is not None:
-                # Workaround to address segfault issue in lightgbm
-                raise RuntimeError("Cannot specify number of threads used by LightGBM due to package limitations.")
+                # Workaround to address segfault issue in LightGBM
+                raise RuntimeError(
+                    "Cannot specify number of threads used by LightGBM due to package limitations."
+                )
             cls = ApplyRainForestsCalibrationLightGBM
             # Ensure all required files have been specified.
             ApplyRainForestsCalibration.check_filenames(
@@ -249,7 +251,7 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
         if None in model_filenames:
             if key_name == "lightgbm_model":
                 raise ModelFileNotFoundError(
-                    "Path to lightgbm model missing for one or more model thresholds "
+                    "Path to LightGBM model missing for one or more model thresholds "
                     "in model_config_dict."
                 )
             elif key_name == "treelite_model":
@@ -320,7 +322,8 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                 Dictionary containing Rainforests model configuration variables.
             threads:
                 Number of threads to use during prediction with tree-model objects.
-                If unspecified, use the default value defined by LightGBM.
+                Values other than None will currently result in an error. If
+                unspecified, calibration will use the default value defined by LightGBM.
             bin_data:
                 Bin data according to splits used in models. This speeds up prediction
                 if there are many data points which fall into the same bins for all threshold
@@ -376,7 +379,10 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                 ).expanduser()
                 booster = Booster(model_file=str(model_filename))
                 if threads is not None:
-                    booster = booster.reset_parameter({"num_threads": threads})
+                    # Workaround to avoid segfault issue in LightGBM
+                    raise RuntimeError(
+                        "Cannot specify number of threads used by LightGBM due to package limitations."
+                    )
                 self.tree_models[lead_time, threshold] = booster
         self.bin_data = bin_data
         if self.bin_data:
@@ -656,7 +662,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
 
         Raises:
             ValueError:
-                If an unsupported model object is passed. Expects lightgbm Booster, or
+                If an unsupported model object is passed. Expects LightGBM Booster, or
                 tl2cgen Predictor (if the latter's dependencies are available).
         """
 
@@ -921,7 +927,9 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
                 ).expanduser()
                 self.tree_models[lead_time, threshold] = Predictor(
                     # OK for Predictor nthreads to be None here
-                    libpath=str(model_filename), verbose=False, nthread=threads
+                    libpath=str(model_filename),
+                    verbose=False,
+                    nthread=threads,
                 )
 
         self.bin_data = bin_data
