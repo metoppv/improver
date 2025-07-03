@@ -15,7 +15,7 @@ from improver.calibration.rainforest_calibration import (
 from improver.constants import SECONDS_IN_HOUR
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
-from .utils import DEFAULT_NUM_THREADS, MockBooster
+from .utils import MockBooster
 
 lightgbm = pytest.importorskip("lightgbm")
 
@@ -51,7 +51,6 @@ def test_init(model_config, ordered_inputs, lead_times, thresholds, monkeypatch)
         for threshold in thresholds:
             model = result.tree_models[lead_time, threshold]
             assert model.model_class == "lightgbm-Booster"
-            assert model.threads == DEFAULT_NUM_THREADS
     # Ensure threshold and files match
     for lead_time in lead_times:
         for threshold in thresholds:

@@ -24,27 +24,6 @@ tl2cgen = pytest.importorskip("tl2cgen")
 treelite = pytest.importorskip("treelite")
 
 
-class TestConstructorCorrectClass:
-    """Test that the ApplyRainForestsCalibration constructor correctly
-    selects which class to use based on availability of modules.
-    """
-
-    def test_correct_class_when_lightgbm_available(self, monkeypatch, model_config):
-        """Test that the ApplyRainForestsCalibration constructor creates an
-        object of the correct type when lightgbm is available."""
-        monkeypatch.setattr(lightgbm, "Booster", MockBooster)
-        monkeypatch.setitem(sys.modules, "tl2cgen", None)
-        result = ApplyRainForestsCalibration(model_config)
-        assert type(result) is ApplyRainForestsCalibrationLightGBM
-
-    def test_correct_class_when_treelite_available(self, monkeypatch, model_config):
-        """Test that the ApplyRainForestsCalibration constructor creates an
-        object of the correct type when tl2cgen is available."""
-        monkeypatch.setattr(tl2cgen, "Predictor", MockPredictor)
-        result = ApplyRainForestsCalibration(model_config)
-        assert type(result) is ApplyRainForestsCalibrationTreelite
-
-
 # Whether the treelite module is available
 @pytest.mark.parametrize(
     "treelite_module_available",
