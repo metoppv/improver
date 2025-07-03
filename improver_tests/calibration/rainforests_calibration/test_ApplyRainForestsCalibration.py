@@ -70,8 +70,7 @@ def test__new__(
 
     If all thresholds contain treelite model AND the treelite module is
     available, tl2cgen Predictor is returned, otherwise return lightgbm
-    Boosters. Checks outputs are ordered when inputs can be unordered.
-    If neither treelite nor lightgbm configs are complete, a
+    Boosters. If neither treelite nor lightgbm configs are complete, a
     ModelFileNotFoundError is expected.
 
     A summary of the expected results for each combination of input parameters
