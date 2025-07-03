@@ -71,7 +71,6 @@ def test_init_raises_error_when_leadtimes_have_different_thresholds(
     """Test that the __init__ method raises an error if lead times
     have different thresholds."""
     monkeypatch.setattr(lightgbm, "Booster", MockBooster)
-
     if not ordered_inputs:
         tmp_value = model_config["24"].pop("0.0000", None)
         model_config["24"]["0.0000"] = tmp_value
@@ -99,9 +98,7 @@ def test_init_raises_error_when_non_default_threads_used(
     if not ordered_inputs:
         tmp_value = model_config["24"].pop("0.0000", None)
         model_config["24"]["0.0000"] = tmp_value
-    msg = (
-        "Manual thread specification is unsupported due to compatibility issues with LightGBM."
-    )
+    msg = "Manual thread specification is unsupported due to compatibility issues with LightGBM."
     with pytest.raises(RuntimeError, match=msg):
         ApplyRainForestsCalibrationLightGBM(model_config, threads=num_threads)
 
