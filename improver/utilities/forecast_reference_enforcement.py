@@ -212,8 +212,10 @@ class EnforceConsistentForecasts(PostProcessingPlugin):
                 raise ValueError(msg)
 
         new_forecast = forecast.copy()
-        new_forecast.data = np.clip(new_forecast.data, lower_bound, upper_bound)
-
+        required_dtype = new_forecast.data.dtype
+        new_forecast.data = np.clip(
+            new_forecast.data, lower_bound, upper_bound, dtype=required_dtype
+        )
         if self.use_latest_update_time:
             forecast_cycle_coords = [
                 crd
