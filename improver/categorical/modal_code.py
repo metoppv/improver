@@ -320,6 +320,7 @@ class ModalCategory(BaseModalCategory):
             result = cube
         else:
             result = cube.collapsed("time", self.aggregator_instance)
+            result.data = result.data.astype(cube.data.dtype)
         self._set_blended_times(result)
 
         result = self._prepare_result_cube(
