@@ -15,7 +15,7 @@ from improver.calibration.rainforest_calibration import (
 from improver.constants import SECONDS_IN_HOUR
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
-from .utils import MockBooster, DEFAULT_NUM_THREADS
+from .utils import DEFAULT_NUM_THREADS, MockBooster
 
 lightgbm = pytest.importorskip("lightgbm")
 
@@ -29,11 +29,10 @@ def test_file_path_missing(monkeypatch, model_config):
         ApplyRainForestsCalibrationLightGBM(model_config)
 
 
-@pytest.mark.parametrize("ordered_inputs", (True, False))
-@pytest.mark.parametrize("default_threads", (True, False))
-def test__init__(
-    model_config, ordered_inputs, default_threads, lead_times, thresholds, monkeypatch
-):
+@pytest.mark.parametrize(
+    "ordered_inputs", (True, False), ids=["ordered_inputs", "unordered_inputs"]
+)
+def test_init(model_config, ordered_inputs, lead_times, thresholds, monkeypatch):
     """Test the __init__ method of the
     ApplyRainForestsCalibrationLightGBM class.
     """
@@ -43,14 +42,7 @@ def test__init__(
         tmp_value = model_config["24"].pop("0.0000", None)
         model_config["24"]["0.0000"] = tmp_value
 
-    if default_threads:
-        expected_threads = DEFAULT_NUM_THREADS
-        result = ApplyRainForestsCalibrationLightGBM(model_config)
-    else:
-        expected_threads = 8
-        result = ApplyRainForestsCalibrationLightGBM(
-            model_config, threads=expected_threads
-        )
+    result = ApplyRainForestsCalibrationLightGBM(model_config)
 
     # Check lead times, thresholds and model types match
     assert np.all(result.lead_times == lead_times)
@@ -59,7 +51,7 @@ def test__init__(
         for threshold in thresholds:
             model = result.tree_models[lead_time, threshold]
             assert model.model_class == "lightgbm-Booster"
-            assert model.threads == expected_threads
+            assert model.threads == DEFAULT_NUM_THREADS
     # Ensure threshold and files match
     for lead_time in lead_times:
         for threshold in thresholds:
@@ -68,12 +60,50 @@ def test__init__(
             assert isinstance(model.model_file, str)
             assert f"{lead_time:03d}H" in str(model.model_file)
             assert f"{threshold:06.4f}" in str(model.model_file)
-    # Test error is raised if lead times have different thresholds
+
+
+@pytest.mark.parametrize(
+    "ordered_inputs", (True, False), ids=["ordered_inputs", "unordered_inputs"]
+)
+def test_init_raises_error_when_leadtimes_have_different_thresholds(
+    model_config, ordered_inputs, lead_times, thresholds, monkeypatch
+):
+    """Test that the __init__ method raises an error if lead times
+    have different thresholds."""
+    monkeypatch.setattr(lightgbm, "Booster", MockBooster)
+
+    if not ordered_inputs:
+        tmp_value = model_config["24"].pop("0.0000", None)
+        model_config["24"]["0.0000"] = tmp_value
+
     val = model_config["24"].pop("0.0000")
     model_config["24"]["1.0000"] = val
     msg = "The same thresholds must be used for all lead times"
     with pytest.raises(ValueError, match=msg):
-        ApplyRainForestsCalibrationLightGBM(model_config, threads=expected_threads)
+        ApplyRainForestsCalibrationLightGBM(model_config)
+
+
+@pytest.mark.parametrize(
+    "ordered_inputs",
+    (True, False),
+    ids=["ordered_inputs", "unordered_inputs"],
+)
+@pytest.mark.parametrize("num_threads", (1, 5, 9, 16))
+def test_init_raises_error_when_non_default_threads_used(
+    model_config, ordered_inputs, num_threads, lead_times, thresholds, monkeypatch
+):
+    """Test that the __init__ method raises an error if the non-default
+    number of threads is used."""
+    monkeypatch.setattr(lightgbm, "Booster", MockBooster)
+
+    if not ordered_inputs:
+        tmp_value = model_config["24"].pop("0.0000", None)
+        model_config["24"]["0.0000"] = tmp_value
+    msg = (
+        "Manual thread specification is unsupported due to compatibility issues with LightGBM."
+    )
+    with pytest.raises(RuntimeError, match=msg):
+        ApplyRainForestsCalibrationLightGBM(model_config, threads=num_threads)
 
 
 def test__check_num_features(ensemble_features, plugin_and_dummy_models):

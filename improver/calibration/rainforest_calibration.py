@@ -119,15 +119,14 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
         and an associated path has been provided for all thresholds, otherwise LightGBM
         Boosters are used as the default tree model type.
         """
-        # Use treelite class by default.
         treelite_available = treelite_packages_available()
         lightgbm_available = lightgbm_package_available()
         if not treelite_available and not lightgbm_available:
             raise ModuleNotFoundError("Could not find treelite or LightGBM modules")
         if treelite_available:
-            # Check that all required files have been specified.
             try:
                 cls = ApplyRainForestsCalibrationTreelite
+                # Check that all required files have been specified.
                 ApplyRainForestsCalibration.check_filenames(
                     "treelite_model", model_config_dict
                 )
@@ -141,7 +140,7 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
             if threads is not None:
                 # Workaround to address segfault issue in LightGBM
                 raise RuntimeError(
-                    "Cannot specify number of threads used by LightGBM due to package limitations."
+                    "Manual thread specification is unsupported due to compatibility issues with LightGBM. Please remove the --threads argument, or install Treelite dependencies."
                 )
             cls = ApplyRainForestsCalibrationLightGBM
             # Ensure all required files have been specified.
@@ -381,7 +380,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                 if threads is not None:
                     # Workaround to avoid segfault issue in LightGBM
                     raise RuntimeError(
-                        "Cannot specify number of threads used by LightGBM due to package limitations."
+                        "Manual thread specification is unsupported due to compatibility issues with LightGBM."
                     )
                 self.tree_models[lead_time, threshold] = booster
         self.bin_data = bin_data
