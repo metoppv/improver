@@ -29,6 +29,7 @@ class Test__repr__(IrisTest):
         )
         self.assertEqual(result, msg)
 
+
 class Test_process(IrisTest):
     """Test that the plugin functions as expected."""
 
