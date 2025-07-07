@@ -186,7 +186,9 @@ def test_expected_values(wxcode_series, expected):
 @pytest.mark.parametrize("interval", [1, 3])
 @pytest.mark.parametrize("offset_reference_times", [False, True])
 @pytest.mark.parametrize("cube_type", ["gridded", "spot"])
-@pytest.mark.parametrize("data", [np.ones(12), np.ones(1)])
+@pytest.mark.parametrize(
+    "data", [np.ones(12, dtype=np.int8), np.ones(1, dtype=np.int8)]
+)
 def test_metadata(wxcode_series):
     """Check that the returned metadata is correct. In this case we expect a
     time coordinate with bounds that describe the full period over which the
@@ -234,6 +236,7 @@ def test_metadata(wxcode_series):
     else:
         expected_record_run_attr = expected_record_det + expected_record_ens.format(21)
 
+    assert np.issubdtype(result.data.dtype, np.int8)
     assert result.coord("time").points[0] == as_utc_timestamp(expected_time)
     assert result.coord("time").bounds[0][0] == as_utc_timestamp(expected_bounds[0])
     assert result.coord("time").bounds[0][1] == as_utc_timestamp(expected_bounds[1])

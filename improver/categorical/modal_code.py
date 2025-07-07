@@ -270,7 +270,7 @@ class ModalCategory(BaseModalCategory):
         mode_result[counts < minimum_significant_count] = (
             self.code_max - self.unset_code_indicator
         )
-        return self.code_max - np.squeeze(mode_result)
+        return (self.code_max - np.squeeze(mode_result)).astype(data.dtype)
 
     @staticmethod
     def _set_blended_times(cube: Cube) -> None:
