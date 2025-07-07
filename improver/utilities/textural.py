@@ -232,9 +232,9 @@ class FieldTexture(BasePlugin):
             ratios.append(self._calculate_ratio(cslice, cube_name, self.nbhood_radius))
 
         ratios = ratios.merge_cube()
-        thresholded = Threshold(
-            threshold_values=np.float64(self.textural_threshold).astype(ratios.dtype)
-        ).process(ratios)
+        thresholded = Threshold(threshold_values=self.textural_threshold).process(
+            ratios
+        )
 
         # Squeeze scalar threshold coordinate.
         try:

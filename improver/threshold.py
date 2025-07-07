@@ -429,6 +429,9 @@ class Threshold(PostProcessingPlugin):
         """
         if self.threshold_units is not None:
             cube.convert_units(self.threshold_units)
+        # Ensure that the threshold value is the same datatype as the cube data to
+        # avoid numerical precision affecting equality comparisons.
+        threshold = np.float64(threshold).astype(cube.dtype)
         # if upper and lower bounds are equal, set a deterministic 0/1
         # probability based on exceedance of the threshold
         if bounds[0] == bounds[1]:
