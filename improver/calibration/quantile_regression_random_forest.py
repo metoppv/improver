@@ -37,6 +37,9 @@ def prep_feature(
 
     collapsed_cube = template_cube.collapsed(["realization"], iris.analysis.MEAN)
 
+    # feature cube: train: "forecast_period", "forecast_reference_time", "realization", "spot_index"
+    # feature_cube: apply: "realization", "spot_index"
+    dims = list(range(len(collapsed_cube.shape)))
     if "mean" == feature:
         feature_values = feature_cube.collapsed(
             ["realization"], iris.analysis.MEAN
@@ -46,34 +49,92 @@ def prep_feature(
             ["realization"], iris.analysis.STD_DEV
         ).data.flatten()
     elif feature in ["latitude", "longitude", "altitude"]:
-        coord_multidim = feature_cube.coord(feature).points[np.newaxis, :]
+        dims.pop(collapsed_cube.coord_dims("spot_index")[0])
+        coord_multidim = np.expand_dims(feature_cube.coord(feature).points, dims)
         feature_values = np.broadcast_to(coord_multidim, collapsed_cube.shape).flatten()
     elif feature == "forecast_period":
-        coord_multidim = feature_cube.coord("forecast_period").points[:, np.newaxis]
+        if len(feature_cube.coord_dims("forecast_period")) == 1:
+            dims.pop(collapsed_cube.coord_dims("forecast_period")[0])
+            coord_multidim = np.expand_dims(
+                feature_cube.coord("forecast_period").points, dims
+            )
+        else:
+            coord_multidim = feature_cube.coord("forecast_period").points
+
         feature_values = np.broadcast_to(coord_multidim, collapsed_cube.shape).flatten()
     elif feature in ["day_of_year", "day_of_year_sin", "day_of_year_cos"]:
-        time_coord = feature_cube.coord("time").copy()
-        day_of_year = np.array([c.point.strftime("%j") for c in time_coord.cells()])
-        coord_multidim = day_of_year[:, np.newaxis]
+        if len(feature_cube.coord_dims("time")) > 1:
+            day_of_year = np.zeros(feature_cube.coord("time").shape)
+            for i in range(feature_cube.coord("time").shape[0]):
+                for j in range(feature_cube.coord("time").shape[1]):
+                    day_of_year[i, j] = np.int32(
+                        feature_cube.coord("time")[i][j].cell(0).point.strftime("%j")
+                    )
+
+            day_of_year = day_of_year.T
+            [dims.pop(dim) for dim in collapsed_cube.coord_dims("time")]
+            coord_multidim = np.expand_dims(day_of_year, dims)
+        else:
+            time_coord = feature_cube.coord("time").copy()
+            day_of_year = np.array(
+                [np.int32(c.point.strftime("%j")) for c in time_coord.cells()]
+            )
+            coord_multidim = day_of_year
+
         feature_values = np.broadcast_to(coord_multidim, collapsed_cube.shape).flatten()
-        if feature == "day_of_year_sin":
-            feature_values = np.sin(2 * np.pi * feature_values / HOURS_IN_DAY)
-        elif feature == "day_of_year_cos":
-            feature_values = np.cos(2 * np.pi * feature_values / HOURS_IN_DAY)
-    elif feature in ["hour_of_day", "hour_of_day_sin", "hour_of_day_cos"]:
-        hour_of_day = np.zeros(feature_cube.coord("time").shape)
-        for i in range(feature_cube.coord("time").shape[0]):
-            for j in range(feature_cube.coord("time").shape[1]):
-                hour_of_day[i, j] = feature_cube.coord("time")[i][j].cell(0).point.hour
-        hour_of_day = np.array(hour_of_day)[:, np.newaxis, :]
-        feature_values = np.broadcast_to(hour_of_day, collapsed_cube.shape).flatten()
         if feature == "day_of_year_sin":
             feature_values = np.sin(2 * np.pi * feature_values / (DAYS_IN_YEAR + 1))
         elif feature == "day_of_year_cos":
             feature_values = np.cos(2 * np.pi * feature_values / (DAYS_IN_YEAR + 1))
+    elif feature in ["hour_of_day", "hour_of_day_sin", "hour_of_day_cos"]:
+        if len(feature_cube.coord_dims("time")) > 1:
+            hour_of_day = np.zeros(feature_cube.coord("time").shape)
+            for i in range(feature_cube.coord("time").shape[0]):
+                for j in range(feature_cube.coord("time").shape[1]):
+                    hour_of_day[i, j] = (
+                        feature_cube.coord("time")[i][j].cell(0).point.hour
+                    )
+            hour_of_day = hour_of_day.T
+            [dims.pop(dim) for dim in collapsed_cube.coord_dims("time")]
+            hour_of_day = np.expand_dims(np.array(hour_of_day), dims)
+        else:
+            time_coord = feature_cube.coord("time").copy()
+            hour_of_day = np.array([np.int32(c.point.hour) for c in time_coord.cells()])
+            coord_multidim = hour_of_day
+
+        feature_values = np.broadcast_to(hour_of_day, collapsed_cube.shape).flatten()
+        if feature == "hour_of_day_sin":
+            feature_values = np.sin(2 * np.pi * feature_values / HOURS_IN_DAY)
+        elif feature == "hour_of_day_cos":
+            feature_values = np.cos(2 * np.pi * feature_values / HOURS_IN_DAY)
+    elif feature == "day_of_training_period":
+        if len(feature_cube.coord_dims("day_of_training_period")) == 1:
+            dims.pop(collapsed_cube.coord_dims("day_of_training_period")[0])
+            coord_multidim = np.expand_dims(
+                feature_cube.coord("day_of_training_period").points, dims
+            )
+        else:
+            coord_multidim = feature_cube.coord("day_of_training_period").points
+
+        feature_values = np.broadcast_to(coord_multidim, collapsed_cube.shape).flatten()
     elif feature == "static":
-        coord_multidim = feature_cube.data[np.newaxis, :, np.newaxis]
-        feature_values = np.broadcast_to(coord_multidim, collapsed_cube.shape)
+        dims.pop(collapsed_cube.coord_dims("spot_index")[0])
+        coord_multidim = np.expand_dims(feature_cube.data, dims)
+        feature_values = np.broadcast_to(coord_multidim, collapsed_cube.shape).flatten()
+
+    if feature in ["mean", "std", "static"]:
+        feature_values = feature_values.astype(feature_cube.dtype)
+    elif feature in [
+        "day_of_year",
+        "day_of_year_sin",
+        "day_of_year_cos",
+        "hour_of_day",
+        "hour_of_day_sin",
+        "hour_of_day_cos",
+    ]:
+        feature_values = feature_values.astype(np.float32)
+    else:
+        feature_values = feature_values.astype(feature_cube.coord(feature).dtype)
 
     return feature_values
 
