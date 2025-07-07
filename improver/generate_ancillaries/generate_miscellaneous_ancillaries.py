@@ -84,7 +84,9 @@ def generate_roughness_length_at_sites(
     roughness_length: Cube, neighbour_cube: Cube
 ) -> Cube:
     """Generate a roughness length ancillary cube at the site locations. This performs a
-    spot extraction of the roughness length data at the site locations.
+    spot extraction of the roughness length data at the site locations and removes time
+    related coordinates.
+
     Args:
         roughness_length:
             A cube containing the roughness length data.
@@ -94,9 +96,18 @@ def generate_roughness_length_at_sites(
     Returns:
         A cube containing the roughness length at the site locations.
     """
-    return SpotExtraction(neighbour_selection_method="nearest")(
+    roughness_length_spot = SpotExtraction(neighbour_selection_method="nearest")(
         neighbour_cube, roughness_length
     )
+
+    # Update metadata to remove and time coordinates
+    cube_coord = [coord.name() for coord in roughness_length_spot.coords()]
+
+    time_coordinates = ["time", "forecast_reference_time", "forecast_period"]
+    for coord in time_coordinates:
+        if coord in cube_coord:
+            roughness_length_spot.remove_coord(coord)
+    return roughness_length_spot
 
 
 def generate_land_area_fraction_at_sites(
