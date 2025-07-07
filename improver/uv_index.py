@@ -72,7 +72,7 @@ def calculate_uv_index(
         raise ValueError(msg)
 
     uv_downward.convert_units("W m-2")
-    uv_data = uv_downward.data * scale_factor
+    uv_data = (uv_downward.data * scale_factor).astype(np.float32)
     attributes = generate_mandatory_attributes(
         [uv_downward], model_id_attr=model_id_attr
     )
