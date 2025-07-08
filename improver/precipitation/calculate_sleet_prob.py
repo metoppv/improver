@@ -40,8 +40,10 @@ def calculate_sleet_probability(prob_of_snow: Cube, prob_of_rain: Cube) -> Cube:
             f"prob_of_snow: {prob_of_snow.dtype}, prob_of_rain: {prob_of_rain.dtype}"
         )
         raise ValueError(msg)
-    
-    sleet_prob = (1 - (prob_of_snow.data + prob_of_rain.data)).astype(prob_of_snow.dtype)
+
+    sleet_prob = (1 - (prob_of_snow.data + prob_of_rain.data)).astype(
+        prob_of_snow.dtype
+    )
     if np.any(sleet_prob < 0):
         msg = "Negative values of sleet probability have been calculated."
         raise ValueError(msg)
