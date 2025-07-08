@@ -20,7 +20,7 @@ def prep_feature(
     template_cube: Cube,
     feature_cube: Cube,
     feature: str,
-):
+) -> np.ndarray:
     """Prepare the feature values for the quantile regression random forest model.
     Args:
         template_cube (cube):
@@ -144,21 +144,18 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
 
     def __init__(
         self,
-        experiment,
-        feature_config,
-        n_estimators,
-        max_depth=None,
-        random_state=None,
-        transformation=None,
-        pre_transform_addition=0,
-        compression=5,
-        model_output=None,
+        feature_config: dict[str, list[str]],
+        n_estimators: int,
+        max_depth: int = None,
+        random_state: int = None,
+        transformation: str = None,
+        pre_transform_addition: np.float32 = 0,
+        compression: int = 5,
+        model_output: str = None,
         **kwargs,
-    ):
+    ) -> None:
         """Initialise the plugin.
         Args:
-            experiment (str):
-                The name of the experiment (step) that calibration is applied to.
             feature_config (dict):
                 Feature configuration defining the features to be used for quantile regression.
                 The configuration is a dictionary of strings, where the keys are the names of
@@ -194,7 +191,6 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
         """
 
         self.feature_config = feature_config
-        self.experiment = experiment
         self.n_estimators = n_estimators
         self.max_depth = max_depth
         self.random_state = random_state
@@ -233,20 +229,50 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
         qrf_model.fit(forecast_features, target)
         return qrf_model
 
+    @staticmethod
+    def _organise_truth_data(forecast_cube: Cube, truth_cube: Cube) -> list[np.ndarray]:
+        """Organise the truth data, so that the validity time matches the validity
+        time of the forecast. This might mean that the truth data is repeated, if, for
+        example, the forecast has multiple forecast reference times and multiple
+        forecast periods that have the same validity time."""
+        # If there is a multi-dimensional time coordinate, assume that forecast_period
+        # and forecast_reference_time are the associated dimension coordinates.
+        if len(forecast_cube.coord("time").shape) > 1:
+            time_cells = []
+            for fp_slice in forecast_cube.slices_over("forecast_period"):
+                for frt_slice in fp_slice.slices_over("forecast_reference_time"):
+                    time_cells.extend(list(frt_slice.coord("time").cells()))
+        else:
+            time_cells = list(forecast_cube.coord("time").cells())
+        truth_data_list = []
+        for time_cell in time_cells:
+            constr = iris.Constraint(time=time_cell)
+            truth_data_list.append(truth_cube.extract(constr).data)
+        return truth_data_list
+
     def process(
         self,
         forecast_cube: Cube,
         truth_cube: Cube,
         feature_cubes: Optional[CubeList] = None,
-    ):
+    ) -> None:
         """Train a quantile regression random forests model.
         Args:
             forecast_cube:
-                Cube containing the forecasts.
+                Cube containing the realization forecasts. If the cube provided
+                contains multiple forecast periods, then the cube is expected to have
+                forecast period, forecast reference time, realization
+                and spot_index as the dimensions.
             truth_cube:
-                Cube containing the truths.
+                Cube containing the truths. The truths should have the same validity
+                times as the forecast. If the same validity time occurs multiple times
+                within the forecast cube (i.e. due to e.g. a forecast reference time
+                of 20170102T0000Z and a lead time of T+36 having the same validity time
+                as a forecast reference time of 20170103T0000Z and a lead time of T+6),
+                then the truth data will be repeated.
             feature_cubes:
-                List of additional feature cubes.
+                List of additional feature cubes. The name of the cube should match a
+                key in the feature_config dictionary.
         """
 
         if self.transformation:
@@ -262,13 +288,14 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
         for feature_name in self.feature_config.keys():
             feature_cube = feature_cubes.extract(iris.Constraint(feature_name))
             for feature in self.feature_config[feature_name]:
-                print(feature)
+                print("feature = ", feature)
                 feature_values.append(
                     prep_feature(forecast_cube, feature_cube[0], feature)
                 )
-
         feature_values = np.array(feature_values).T
-        target_values = truth_cube.data.flatten()
+
+        truth_data_list = self._organise_truth_data(forecast_cube, truth_cube)
+        target_values = np.array(truth_data_list).flatten()
 
         # Fit the quantile regression model
         qrf_model = self.fit_qrf(feature_values, target_values)
@@ -281,12 +308,11 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
 
     def __init__(
         self,
-        feature_config,
-        quantiles,
-        n_estimators,
-        transformation,
-        pre_transform_addition=0,
-    ):
+        feature_config: dict[str, list[str]],
+        quantiles: list[np.float32],
+        transformation: str = None,
+        pre_transform_addition: np.float32 = 0,
+    ) -> None:
         """Initialise the plugin.
         Args:
             feature_config (dict):
@@ -307,8 +333,6 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
                 }
             quantiles (float):
                 Quantiles used for prediction (values ranging from 0 to 1)
-            n_estimators (int):
-                Number of trees in the forest.
             transformation (str):
                 Transformation to be applied to the data before fitting.
             pre_transform_addition (float):
@@ -317,7 +341,6 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
 
         self.feature_config = feature_config
         self.quantiles = quantiles
-        self.n_estimators = n_estimators
         self.transformation = transformation
         if self.transformation not in ["log", "log10", "sqrt", "cbrt", None]:
             msg = (
@@ -330,10 +353,22 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
     def process(
         self,
         forecast_cube: Cube,
-        template_forecast_cube,
-        qrf_model,
+        template_forecast_cube: Cube,
+        qrf_model: RandomForestQuantileRegressor,
         feature_cubes: Optional[CubeList] = None,
-    ):
+    ) -> Cube:
+        """Apply a quantile regression random forests model.
+
+        Args:
+            forecast_cube: Forecast to be calibrated.
+            template_forecast_cube: Template forecast cube that acts only as a template.
+                This is expected to have
+            qrf_model (RandomForestQuantileRegressor): _description_
+            feature_cubes (Optional[CubeList], optional): _description_. Defaults to None.
+
+        Returns:
+            Cube: _description_
+        """
         if self.transformation:
             if self.transformation == "log":
                 forecast_cube.data = (
@@ -360,5 +395,8 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
         feature_values = np.array(feature_values).T
         calibrated_forecast = qrf_model.predict(feature_values, self.quantiles)
         calibrated_forecast = np.float32(calibrated_forecast)
-        calibrated_forecast_cube = forecast_cube.copy(data=calibrated_forecast.T)
+
+        calibrated_forecast_cube = forecast_cube.copy(
+            data=np.broadcast_to(calibrated_forecast.T, forecast_cube.shape)
+        )
         return calibrated_forecast_cube
