@@ -170,6 +170,11 @@ def _run_train_qrf(
         ("longitude", np.array([0, 10], dtype=np.float32), np.float32),
         ("altitude", np.array([10, 20], dtype=np.float32), np.float32),
         (
+            "day_of_year",
+            np.array([1, 1], dtype=np.float32),
+            np.float32,
+        ),
+        (
             "day_of_year_sin",
             np.array([0.01716633, 0.01716633], dtype=np.float32),
             np.float32,
@@ -179,6 +184,7 @@ def _run_train_qrf(
             np.array([0.99985266, 0.99985266], dtype=np.float32),
             np.float32,
         ),
+        ("hour_of_day", np.array([12, 12], dtype=np.float32), np.float32),
         ("hour_of_day_sin", np.array([0, 0], dtype=np.float32), np.float32),
         ("hour_of_day_cos", np.array([-1, -1], dtype=np.float32), np.float32),
         ("forecast_period", np.array([43200, 43200], dtype=np.int32), np.int32),
@@ -216,6 +222,11 @@ def test_prep_feature_single_time(feature, expected, expected_dtype):
         ("longitude", np.tile([0, 10], 4).astype(np.float32), np.float32),
         ("altitude", np.tile([10, 20], 4).astype(np.float32), np.float32),
         (
+            "day_of_year",
+            np.tile([1, 2], 4).astype(np.float32),
+            np.float32,
+        ),
+        (
             "day_of_year_sin",
             np.tile([0.017166, 0.034328], 4).astype(np.float32),
             np.float32,
@@ -225,6 +236,7 @@ def test_prep_feature_single_time(feature, expected, expected_dtype):
             np.tile([0.999853, 0.999411], 4).astype(np.float32),
             np.float32,
         ),
+        ("hour_of_day", np.tile([12, 12], 4).astype(np.float32), np.float32),
         ("hour_of_day_sin", np.tile([0, 0], 4).astype(np.float32), np.float32),
         ("hour_of_day_cos", np.tile([-1, -1], 4).astype(np.float32), np.float32),
         ("forecast_period", np.repeat([21600, 43200], 4).astype(np.int32), np.int32),
