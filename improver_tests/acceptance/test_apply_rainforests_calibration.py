@@ -19,15 +19,6 @@ pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
 CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
-RAINFORESTS_DIR = acc.kgo_root() / "apply-rainforests-calibration"
-KGO_PATH = RAINFORESTS_DIR / "basic" / "kgo.nc"
-FORECAST_PATH = (
-    RAINFORESTS_DIR
-    / "features"
-    / "20200802T0000Z-PT0024H00M-precipitation_accumulation-PT24H.nc"
-)
-FEATURE_PATHS = (RAINFORESTS_DIR / "features").glob("20200802T0000Z-PT00*-PT24H.nc")
-
 
 # Run tests with treelite module and with lightgbm module
 @pytest.mark.parametrize(
@@ -37,8 +28,7 @@ FEATURE_PATHS = (RAINFORESTS_DIR / "features").glob("20200802T0000Z-PT00*-PT24H.
 )
 class TestApplyRainforestsCalibration:
     @pytest.fixture(autouse=True)
-    def run_before_tests(self, model_key, monkeypatch):
-        # Logic for acceptance test setup
+    def patch_available_packages(self, model_key, monkeypatch):
         match model_key:
             case "lightgbm_model":
                 monkeypatch.setitem(sys.modules, "tl2cgen", None)
@@ -48,7 +38,7 @@ class TestApplyRainforestsCalibration:
                 raise NotImplementedError("Unknown value for model_key")
         yield
 
-    @pytest.fixture(scope="class")
+    @pytest.fixture
     def create_model_config(self):
         """Load model-config json containing relative paths, and create a duplicate version
         of the associated dictionary with relative paths replaced with absolute paths."""
@@ -72,18 +62,33 @@ class TestApplyRainforestsCalibration:
                     absolute_path = relative_path_config[model_name].replace(
                         "./", str(acc.kgo_root()) + "/"
                     )
-                    absolute_path_model_config_dict[lead_time][threshold][model_name] = absolute_path
+                    absolute_path_model_config_dict[lead_time][threshold][
+                        model_name
+                    ] = absolute_path
         return absolute_path_model_config_dict
 
-    def test_basic(self, tmp_path, model_key, create_model_config):
-        """
-        Test calibration of a forecast using a rainforests approach.
-        """
+    @pytest.fixture
+    def test_data_paths(self):
+        rainforests_dir = acc.kgo_root() / "apply-rainforests-calibration"
+        kgo_path = rainforests_dir / "basic" / "kgo.nc"
+        forecast_path = (
+            rainforests_dir
+            / "features"
+            / "20200802T0000Z-PT0024H00M-precipitation_accumulation-PT24H.nc"
+        )
+        feature_paths = (rainforests_dir / "features").glob(
+            "20200802T0000Z-PT00*-PT24H.nc"
+        )
+        return rainforests_dir, kgo_path, forecast_path, feature_paths
+
+    def test_basic(self, tmp_path, model_key, create_model_config, test_data_paths):
+        """Test calibration of a forecast using a rainforests approach."""
+        _, kgo_path, forecast_path, feature_paths = test_data_paths
         model_config = create_model_config
         output_path = tmp_path / "output.nc"
         args = [
-            FORECAST_PATH,
-            *FEATURE_PATHS,
+            forecast_path,
+            *feature_paths,
             "--model-config",
             model_config,
             "--output-thresholds",
@@ -92,17 +97,16 @@ class TestApplyRainforestsCalibration:
             output_path,
         ]
         run_cli(args)
-        acc.compare(output_path, KGO_PATH)
+        acc.compare(output_path, kgo_path)
 
-    def test_bin_data(self, tmp_path, model_key, create_model_config):
-        """
-        Test that the bin_data option does not affect the output.
-        """
+    def test_bin_data(self, tmp_path, model_key, create_model_config, test_data_paths):
+        """Test that the bin_data option does not affect the output."""
+        _, kgo_path, forecast_path, feature_paths = test_data_paths
         model_config = create_model_config
         output_path = tmp_path / "output.nc"
         args = [
-            FORECAST_PATH,
-            *FEATURE_PATHS,
+            forecast_path,
+            *feature_paths,
             "--model-config",
             model_config,
             "--output-thresholds",
@@ -112,19 +116,21 @@ class TestApplyRainforestsCalibration:
             output_path,
         ]
         run_cli(args)
-        acc.compare(output_path, KGO_PATH)
+        acc.compare(output_path, kgo_path)
 
-    def test_json_threshold_config(self, tmp_path, model_key, create_model_config):
-        """
-        Test calibration of a forecast using a rainforests approach where
+    def test_json_threshold_config(
+        self, tmp_path, model_key, create_model_config, test_data_paths
+    ):
+        """Test calibration of a forecast using a rainforests approach where
         thresholds are specified with json file.
         """
+        rainforests_dir, kgo_path, forecast_path, feature_paths = test_data_paths
         model_config = create_model_config
         output_path = tmp_path / "output.nc"
-        json_path = RAINFORESTS_DIR / "threshold_config" / "thresholds.json"
+        json_path = rainforests_dir / "threshold_config" / "thresholds.json"
         args = [
-            FORECAST_PATH,
-            *FEATURE_PATHS,
+            forecast_path,
+            *feature_paths,
             "--model-config",
             model_config,
             "--output-threshold-config",
@@ -133,17 +139,20 @@ class TestApplyRainforestsCalibration:
             output_path,
         ]
         run_cli(args)
-        acc.compare(output_path, KGO_PATH)
+        acc.compare(output_path, kgo_path)
 
-    def test_no_threshold_config(self, tmp_path, model_key, create_model_config):
+    def test_no_threshold_config(
+        self, tmp_path, model_key, create_model_config, test_data_paths
+    ):
+        """Test that an error is raised when no threshold config
+        is specified.
         """
-        Test cli raises an error when no threshold config is specified.
-        """
+        _, _, forecast_path, feature_paths = test_data_paths
         model_config = create_model_config
         output_path = tmp_path / "output.nc"
         args = [
-            FORECAST_PATH,
-            *FEATURE_PATHS,
+            forecast_path,
+            *feature_paths,
             "--model-config",
             model_config,
             "--output",
