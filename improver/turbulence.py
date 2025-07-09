@@ -317,7 +317,9 @@ class TurbulenceIndexAbove1500m_USAF(PostProcessingPlugin):
         # DEF - "resultant deformation"
         # Calculate the resultant (vector RMS) deformation by combining DST and DSH (Saucier 1955).
         # Units will be (1/sec).
-        deformation = (dst ** 2 + dsh ** 2) ** 0.5
+        # Note: deformation = (dst ** 2 + dsh ** 2) ** 0.5 will produce an object with a data type of float64.
+        # To keep the passed data type (typically be float32) use Numpy functions for exponential operations.
+        deformation = np.sqrt(np.square(dst)  + np.square(dsh))
 
         # VWS - "vertical wind shear"
         # Vertical wind shear is the vector RMS difference in winds between two layers divided
@@ -325,7 +327,10 @@ class TurbulenceIndexAbove1500m_USAF(PostProcessingPlugin):
         # Units for the deltas will be (m/sec).
         delta_u_across_layers = (u_wind_low_press - u_wind_high_press).data
         delta_v_across_layers = (v_wind_low_press - v_wind_high_press).data
-        vRMS = (delta_u_across_layers**2 + delta_v_across_layers**2) ** 0.5
+        # Note: vRMS = (delta_u_across_layers**2 + delta_v_across_layers**2) ** 0.5 will produce an object with a
+        # data type of float64.
+        # To keep the passed data type (typically be float32) use Numpy functions for exponential operations.
+        vRMS = np.sqrt(np.square(delta_u_across_layers) + np.square(delta_v_across_layers))
 
         vws = vRMS / delta_z_m  # Units of vws will be (1/sec).
 
@@ -338,6 +343,8 @@ class TurbulenceIndexAbove1500m_USAF(PostProcessingPlugin):
         # depending on the numerical model used, can be expected.
         turbulence_index = vws * (deformation + convergence)
 
+        # Coerce to float32 which is the IMPROVER standard.
+        turbulence_index = turbulence_index.astype(np.float32)
 
         if False:
             # For debugging:
