@@ -126,6 +126,8 @@ class LoadAndTrainQRF(PostProcessingPlugin):
                         truth_table_path = file_path
                     if forecast_table_path and truth_table_path:
                         break
+                else:
+                    return
 
         forecast_periods = list(range(*map(int, forecast_periods.split(":"))))
         forecast_periods = [fp * 3600 for fp in forecast_periods]
