@@ -85,6 +85,8 @@ class LoadAndApplyQRF(PostProcessingPlugin):
                 cube_inputs.append(cube)
             except ValueError:
                 qrf_model = joblib.load(file_path)
+            else:
+                return
 
         # Extract all additional cubes which are associated with a feature in the
         # feature_config.
