@@ -6,12 +6,11 @@
 
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
-
-from pkg_resources import DistributionNotFound, get_distribution
+from importlib.metadata import PackageNotFoundError, version
 
 try:
-    __version__ = get_distribution("improver").version
-except DistributionNotFound:
+    __version__ = version("improver")
+except PackageNotFoundError:
     # package is not installed
     pass
 
