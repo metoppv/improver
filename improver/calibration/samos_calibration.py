@@ -82,10 +82,13 @@ def prepare_data_for_gam(
     )
     df.reset_index(inplace=True)
     if additional_fields:
-        spatial_coords = [
-            input_cube.coord(axis="X").name(),
-            input_cube.coord(axis="Y").name(),
-        ]
+        # Check if we are dealing with spot data.
+        wmo_id_present = "wmo_id" in [c.name() for c in input_cube.coords()]
+        if not wmo_id_present:
+            spatial_coords = [
+                input_cube.coord(axis="X").name(),
+                input_cube.coord(axis="Y").name(),
+            ]
         for cube in additional_fields:
             new_df = iris.pandas.as_data_frame(
                 cube,
@@ -94,7 +97,7 @@ def prepare_data_for_gam(
                 add_ancillary_variables=True,
             )
             new_df.reset_index(inplace=True)
-            match_coords = spatial_coords.copy()
+            match_coords = ["wmo_id"] if wmo_id_present else spatial_coords.copy()
             match_coords.append(cube.name())
             df = merge(left=df, right=new_df[match_coords], how="left")
 
@@ -834,9 +837,11 @@ class ApplySAMOS(PostProcessingPlugin):
         ) + forecast_mean.data
         location_parameter.units = forecast_units
 
-        scale_parameter.data = (
-            scale_parameter.data * forecast_sd.data * forecast_sd.data
-        )
+        # The scale parameter returned by ApplyEMOS is the standard deviation for a
+        # normal distribution. To get the desired standard deviation in
+        # realization/percentile space we must multiply by the estimated forecast
+        # standard deviation.
+        scale_parameter.data = scale_parameter.data * forecast_sd.data
         scale_parameter.units = forecast_units
 
         # Generate output in desired format from distribution.
