@@ -17,8 +17,6 @@ from improver_tests.calibration.samos_calibration.helper_functions import (
     create_simple_cube,
 )
 
-np.random.seed(1)
-
 
 @pytest.fixture
 def model_specification():
@@ -189,30 +187,30 @@ def test_calculate_cube_statistics_exception():
             False,
             [["linear", [0], {}], ["linear", [1], {}]],
             11,
-            [288.15298254, 0.48331375],
+            [288.1612641515684, 0.4939138749988702],
         ],
         [
             True,
             [["linear", [0], {}], ["linear", [1], {}]],
             11,
-            [288.15007863, 0.49052109],
+            [288.14057487324203, 0.4812626474244789],
         ],
-        [False, [["tensor", [0, 1], {}]], 11, [288.22168378, 0.5010813]],
-        [True, [["tensor", [0, 1], {}]], 11, [288.1290978, 0.44678148]],
+        [False, [["tensor", [0, 1], {}]], 11, [288.1546888167082, 0.4711175956164907]],
+        [True, [["tensor", [0, 1], {}]], 11, [288.15475955276924, 0.46407096457480634]],
         [
             False,
             [["linear", [0], {}], ["linear", [1], {}]],
             1,
-            [288.17666906, 0.48082173],
+            [288.2028612585008, 0.45400612742963414],
         ],
         [
             True,
             [["linear", [0], {}], ["linear", [1], {}]],
             1,
-            [288.14031069, 0.42215065],
+            [288.12753707850874, 0.4599071644155419],
         ],
-        [False, [["tensor", [0, 1], {}]], 1, [288.14178362, 0.44964758]],
-        [True, [["tensor", [0, 1], {}]], 1, [288.14402253, 0.51517678]],
+        [False, [["tensor", [0, 1], {}]], 1, [288.2064499806197, 0.46706986218547547]],
+        [True, [["tensor", [0, 1], {}]], 1, [288.223661419175, 0.45879271911759967]],
     ],
 )
 def test_process(
@@ -221,6 +219,8 @@ def test_process(
     """Test that this method takes an input cube, a list of features, and possibly
     additional predictor cubes and correctly returns a fitted GAM.
     """
+    np.random.seed(1)  # Set random seed to enable test to be reproducible.
+
     full_model_specification = deepcopy(spatial_model_specification)
     features = ["latitude", "longitude"]
     gam_kwargs = {
