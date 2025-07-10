@@ -40,7 +40,7 @@ from improver.synthetic_data.set_up_test_cubes import (
 )
 from improver.utilities.cube_manipulation import sort_coord_in_cube
 
-from ..ensemble_calibration.helper_functions import SetupCubes
+from ..emos_calibration.helper_functions import SetupCubes
 
 
 class Test_convert_cube_data_to_2d(IrisTest):

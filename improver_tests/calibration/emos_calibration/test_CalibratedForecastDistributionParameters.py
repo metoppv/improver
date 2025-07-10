@@ -16,10 +16,10 @@ from iris.cube import CubeList
 from iris.tests import IrisTest
 from numpy.testing import assert_array_almost_equal
 
-from improver.calibration.ensemble_calibration import (
+from improver.calibration.emos_calibration import (
     CalibratedForecastDistributionParameters as Plugin,
 )
-from improver.calibration.ensemble_calibration import (
+from improver.calibration.emos_calibration import (
     EstimateCoefficientsForEnsembleCalibration,
 )
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS

@@ -121,7 +121,7 @@ Required for CLIs: ``interpolate-using-difference``, ``phase-change-level``
 statsmodels
 ~~~~~~~~~~~~~~~~~~
 Estimation of statistical models, used for
-:doc:`EMOS <improver.calibration.ensemble_calibration>`.
+:doc:`EMOS <improver.calibration.emos_calibration>`.
 
 https://www.statsmodels.org/stable/
 
