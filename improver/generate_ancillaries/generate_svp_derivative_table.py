@@ -16,7 +16,8 @@ from improver.generate_ancillaries.generate_svp_table import (
 
 class SaturatedVapourPressureTableDerivative(SaturatedVapourPressureTable):
     """
-    Plugin to create a first derivative saturated vapour pressure lookup table.
+    Plugin to create a first derivative saturated vapour pressure lookup table,
+    which is only valid for temperatures between 173K and 373K.
 
     .. Further information is available in:
     .. include:: extended_documentation/generate_ancillaries/
@@ -47,34 +48,36 @@ class SaturatedVapourPressureTableDerivative(SaturatedVapourPressureTable):
             technology. New series. Group V. Volume 4. Meteorology.
             Subvolume b. Physical and chemical properties of the air, P35.
         """
-        triple_pt = TRIPLE_PT_WATER
-
         self._check_temperature_limits(temperature)
 
+        # Iterate over the temperature and original saturation vapour pressure
+        # arrays simultaneously, updating the temperature values with newly calculated
+        # first derivative saturation vapour pressure values.
         svp_original = self.saturation_vapour_pressure_goff_gratch(temperature)
         svp_derivative = temperature.copy()
-        for cell, svp_original_cell_val in np.nditer(
+        with np.nditer(
             [svp_derivative, svp_original], op_flags=["readwrite"]
-        ):
-            if cell > triple_pt:
-                n0 = (self.constants[1] * triple_pt) / (cell**2)
-                n1 = self.constants[2] / (cell * np.log(10))
-                n2 = (
-                    np.log(10)
-                    * ((self.constants[3] * self.constants[4]) / triple_pt)
-                    * np.power(10, ((self.constants[4] * (cell / triple_pt)) - 1.0))
-                )
-                n3 = (
-                    np.log(10)
-                    * ((self.constants[5] * self.constants[6] * triple_pt) / (cell**2))
-                    * np.power(10, (self.constants[6] * (1.0 - (triple_pt / cell))))
-                )
-                cell[...] = np.log(10) * (n0 - n1 - n2 + n3) * svp_original_cell_val
-            else:
-                n0 = self.constants[8] * (triple_pt / (cell**2))
-                n1 = self.constants[9] / (cell * np.log(10))
-                n2 = self.constants[10] / triple_pt
-                cell[...] = np.log(10) * (-n0 + n1 - n2) * svp_original_cell_val
+        ) as it:
+            for cell, svp_original_cell_val in it:
+                if cell > TRIPLE_PT_WATER:
+                    n0 = (self.constants[1] * TRIPLE_PT_WATER) / (cell**2)
+                    n1 = self.constants[2] / (cell * np.log(10))
+                    n2 = (
+                        np.log(10)
+                        * ((self.constants[3] * self.constants[4]) / TRIPLE_PT_WATER)
+                        * np.power(10, (self.constants[4] * ((cell / TRIPLE_PT_WATER) - 1.0)))
+                    )
+                    n3 = (
+                        np.log(10)
+                        * ((self.constants[5] * self.constants[6] * TRIPLE_PT_WATER) / (cell**2))
+                        * np.power(10, (self.constants[6] * (1.0 - (TRIPLE_PT_WATER / cell))))
+                    )
+                    cell[...] = np.log(10) * (n0 - n1 - n2 + n3) * svp_original_cell_val
+                else:
+                    n0 = self.constants[8] * (TRIPLE_PT_WATER / (cell**2))
+                    n1 = self.constants[9] / (cell * np.log(10))
+                    n2 = self.constants[10] / TRIPLE_PT_WATER
+                    cell[...] = np.log(10) * (-n0 + n1 - n2) * svp_original_cell_val
 
         return svp_derivative
 
@@ -83,9 +86,22 @@ class SaturatedVapourPressureTableDerivative(SaturatedVapourPressureTable):
         Create a lookup table of saturation vapour pressure first derivative
         in a pure water vapour system for the range of required temperatures.
 
+        Args:
+            self.t_min (float):
+                The minimum temperature (in Kelvin or Celsius, as appropriate) for the lookup table.
+            self.t_max (float):
+                The maximum temperature (in Kelvin or Celsius, as appropriate) for the lookup table.
+            self.t_increment (float):
+                The increment between temperature points in the lookup table.
+            self.derivative_saturation_vapour_pressure_goff_gratch (callable):
+                Method to calculate saturation vapour pressure first derivative for given temperatures.
+            self.as_cube (callable):
+                Method to convert data and temperatures into a Cube object.
+
         Returns:
-           A cube of saturated vapour pressure derivative values at temperature
-           points defined by t_min, t_max, and t_increment (defined above).
+           Cube:
+               A cube of saturated vapour pressure derivative values at temperature
+               points defined by t_min, t_max, and t_increment (defined above).
         """
         temperatures = np.arange(
             self.t_min, self.t_max + 0.5 * self.t_increment, self.t_increment
@@ -93,6 +109,6 @@ class SaturatedVapourPressureTableDerivative(SaturatedVapourPressureTable):
 
         svp_data = self.derivative_saturation_vapour_pressure_goff_gratch(temperatures)
 
-        svp = self._as_cube(svp_data, temperatures)
+        svp = self.as_cube(svp_data, temperatures)
 
         return svp
