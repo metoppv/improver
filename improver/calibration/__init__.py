@@ -247,15 +247,15 @@ def split_cubes_for_samos(
     for cube in cubes:
         if "time" in [c.name() for c in cube.coords()]:
             if truth_key and cube.attributes.get(truth_key) == truth_value:
-                truth.append(cube)
+                truth.append(cube.copy())
             else:
-                forecast.append(cube)
+                forecast.append(cube.copy())
         elif "emos_coefficient" in cube.name():
-            emos_coefficients.append(cube)
+            emos_coefficients.append(cube.copy())
         elif cube.name() in gam_features:
-            gam_additional_fields.append(cube)
+            gam_additional_fields.append(cube.copy())
         else:
-            emos_additional_fields.append(cube)
+            emos_additional_fields.append(cube.copy())
 
     # Check that all required inputs are present and no unexpected cubes have been
     # found.

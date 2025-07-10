@@ -56,10 +56,14 @@ def prepare_data_for_gam(
         4. One column associated with each of the cubes in additional cubes, with column names matching the associated cube
 
     """
-    spatial_coords = [
-        input_cube.coord(axis="x").name(),
-        input_cube.coord(axis="y").name(),
-    ]
+    # Check if we are dealing with spot data.
+    wmo_id_present = "wmo_id" in [c.name() for c in input_cube.coords()]
+    if not wmo_id_present:
+        spatial_coords = [
+            input_cube.coord(axis="x").name(),
+            input_cube.coord(axis="y").name(),
+        ]
+
     df = iris.pandas.as_data_frame(
         input_cube,
         add_aux_coords=True,
@@ -76,7 +80,7 @@ def prepare_data_for_gam(
                 add_ancillary_variables=True,
             )
             new_df.reset_index(inplace=True)
-            match_coords = spatial_coords.copy()
+            match_coords = ["wmo_id"] if wmo_id_present else spatial_coords.copy()
             match_coords.append(cube.name())
             df = merge(left=df, right=new_df[match_coords], how="left")
 
@@ -233,6 +237,7 @@ class TrainGAMsForSAMOS(BasePlugin):
         increments = time_coord.points[1:] - time_coord.points[:-1]
         min_increment = increments.min()
         if all(x % min_increment == 0 for x in increments):
+            padded_cube = input_cube.copy()
             # Remove time related coordinates other than the coordinate called
             # "time" on the input cube in order to allow extension of the "time"
             # coordinate. These coordinates are saved and added back to the output
@@ -242,9 +247,9 @@ class TrainGAMsForSAMOS(BasePlugin):
                 "forecast_period",
                 "blend_time",
             ]:
-                if input_cube.coords(coord):
-                    removed_coords.append(input_cube.coord(coord).copy())
-                    input_cube.remove_coord(coord)
+                if padded_cube.coords(coord):
+                    removed_coords.append(padded_cube.coord(coord).copy())
+                    padded_cube.remove_coord(coord)
 
             # Create slices of artificial cube data to pad the existing cube time
             # coordinate and fill any gaps. This ensures that all of the time points
@@ -262,14 +267,14 @@ class TrainGAMsForSAMOS(BasePlugin):
 
             # Slice input_cube over time dimension so that the artificial cubes can be
             # concatenated correctly.
-            padded_cube = iris.cube.CubeList([])
-            for cslice in input_cube.slices_over("time"):
-                padded_cube.append(new_axis(cslice.copy(), "time"))
+            padded_cubelist = iris.cube.CubeList([])
+            for cslice in padded_cube.slices_over("time"):
+                padded_cubelist.append(new_axis(cslice.copy(), "time"))
 
             # For each desired point which doesn't already correspond to a time point
             # on the cube, create a new cube slice with that time point with all data
             # masked.
-            cslice = input_cube.extract(iris.Constraint(time=time_coord.cell(0)))
+            cslice = padded_cube.extract(iris.Constraint(time=time_coord.cell(0)))
             for point in desired_points:
                 if point not in existing_points:
                     # Create a new cube slice with time point equal to point.
@@ -277,8 +282,8 @@ class TrainGAMsForSAMOS(BasePlugin):
                     new_slice.coord("time").points = point
                     new_slice = new_axis(new_slice, "time")
                     new_slice.data = masked_all_like(new_slice.data)
-                    padded_cube.append(new_slice)
-            padded_cube = padded_cube.concatenate_cube()
+                    padded_cubelist.append(new_slice)
+            padded_cube = padded_cubelist.concatenate_cube()
 
             # Calculate mean and standard deviation using rolling window over padded
             # time coordinate. Remove bounds from this coordinate in resulting cubes
@@ -287,6 +292,7 @@ class TrainGAMsForSAMOS(BasePlugin):
                 coord="time", aggregator=MEAN, window=(2 * pad_width) + 1
             )
             input_mean.coord("time").bounds = None
+
             input_sd = padded_cube.rolling_window(
                 coord="time", aggregator=STD_DEV, window=(2 * pad_width) + 1
             )
@@ -314,17 +320,30 @@ class TrainGAMsForSAMOS(BasePlugin):
         Returns:
             CubeList containing a mean cube and standard deviation cube.
         """
-        if input_cube.coords("realization"):
-            # Calculate forecast mean and standard deviation over the realization
-            # coordinate.
-            input_mean = input_cube.collapsed("realization", MEAN)
-            input_mean.remove_coord("realization")
-            input_sd = input_cube.collapsed("realization", STD_DEV)
-            input_sd.remove_coord("realization")
-        else:
-            input_mean, input_sd = self.calculate_statistic_by_rolling_window(
-                input_cube
-            )
+        # if input_cube.coords("realization"):
+        #     # Calculate forecast mean and standard deviation over the realization
+        #     # coordinate.
+        #     input_mean = input_cube.collapsed("realization", MEAN)
+        #     input_mean.remove_coord("realization")
+        #     input_sd = input_cube.collapsed("realization", STD_DEV)
+        #     input_sd.remove_coord("realization")
+        # else:
+        #     input_mean, input_sd = self.calculate_statistic_by_rolling_window(
+        #         input_cube
+        #     )
+
+        collapse_coords = ["time"]
+        for coord in ["realization", "percentile"]:
+            if input_cube.coords(coord):
+                collapse_coords.append(coord)
+        input_mean = input_cube.collapsed(collapse_coords, MEAN)
+        input_sd = input_cube.collapsed(collapse_coords, STD_DEV)
+        # Remove the realization and percentile coordinates from the mean and standard
+        # deviation cubes.
+        for coord in collapse_coords:
+            for cube in [input_mean, input_sd]:
+                if cube.coords(coord):
+                    cube.remove_coord(coord)
 
         return CubeList([input_mean, input_sd])
 
@@ -684,9 +703,11 @@ class ApplySAMOS(PostProcessingPlugin):
         ) + forecast_mean.data
         location_parameter.units = forecast_units
 
-        scale_parameter.data = (
-            scale_parameter.data * forecast_sd.data * forecast_sd.data
-        )
+        # The scale parameter returned by ApplyEMOS is the standard deviation for a
+        # normal distribution. To get the desired standard deviation in
+        # realization/percentile space we must multiply by the estimated forecast
+        # standard deviation.
+        scale_parameter.data = scale_parameter.data * forecast_sd.data
         scale_parameter.units = forecast_units
 
         # Generate output in desired format from distribution.
