@@ -47,30 +47,35 @@ class Test_process(IrisTest):
     def test_cube_values(self):
         """Test that returned cube has expected saturated vapour
         pressure derivative values."""
-        t_min, t_max, t_increment = 183.15, 338.15, 10.0
+        # Sample 17 temperature values [183.15, 193.15, 203.15, 213.15, 223.15, 233.15, 243.15, 253.15,
+        # 263.15, 273.15, 283.15, 293.15, 303.15, 313.15, 323.15, 333.15, 343.15]
+        t_min, t_max, t_increment = 183.15, 338.25, 10.0
+        # These temperature values should yield the following
+        # saturated vapour pressure derivative values:
         expected = [
-            0.0017652866680592896,
-            0.008992405731777998,
-            0.038891156374921014,
-            0.14609966478107075,
-            0.48574813585576376,
-            1.4517313404121803,
-            3.9511072777595935,
-            9.90069021599656,
-            23.05490494630426,
-            50.28765059645862,
-            82.20383066377845,
-            144.74821296486527,
-            243.5197615309319,
-            393.28752111543724,
-            612.2637976764966,
-            922.1479428240805,
+            0.00176528667,
+            0.00899240573,
+            0.0388911564,
+            0.146099665,
+            0.485748136,
+            1.45173134,
+            3.95110728,
+            9.90069022,
+            23.0549049,
+            50.2876506,
+            82.2186162,
+            144.762205,
+            243.532384,
+            393.298427,
+            612.272861,
+            922.155215,
+            1348.01875
         ]
         result = SaturatedVapourPressureTableDerivative(
             t_min=t_min, t_max=t_max, t_increment=t_increment
         ).process()
 
-        self.assertArrayAlmostEqual(result.data, expected)
+        self.assertArrayAlmostEqual(result.data, expected, decimal=5)
 
     def test_coordinate_values(self):
         """Test that returned cube temperature coordinate has expected

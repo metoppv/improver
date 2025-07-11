@@ -107,8 +107,8 @@ class SaturatedVapourPressureTableDerivative(SaturatedVapourPressureTable):
             self.t_min, self.t_max + 0.5 * self.t_increment, self.t_increment
         )
 
-        svp_data = self.derivative_saturation_vapour_pressure_goff_gratch(temperatures)
+        svp_derivative_data = self.derivative_saturation_vapour_pressure_goff_gratch(temperatures)
 
-        svp = self.as_cube(svp_data, temperatures)
+        svp_derivative = self.as_cube(svp_derivative_data, temperatures)
 
-        return svp
+        return svp_derivative
