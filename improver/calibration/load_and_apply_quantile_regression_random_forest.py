@@ -30,7 +30,7 @@ class LoadAndApplyQRF(PostProcessingPlugin):
         target_cube_name: str,
         n_estimators: int = 100,
         transformation: str = None,
-        pre_transform_addition: float = 0,
+        pre_transform_addition: float = None,
     ):
         """Loading and applying the trained model for Quantile Regression Random Forest.
 
@@ -85,7 +85,8 @@ class LoadAndApplyQRF(PostProcessingPlugin):
                 cube_inputs.append(cube)
             except ValueError:
                 qrf_model = joblib.load(file_path)
-            else:
+            except OSError:
+                # The specified model doesn't exist and the forecast will not be calibrated
                 return
 
         # Extract all additional cubes which are associated with a feature in the
