@@ -357,6 +357,9 @@ class WetBulbTemperatureIntegral(BasePlugin):
         # although the integral is computed over degC the standard unit is
         # 'K m', and these are equivalent
         wet_bulb_temperature_integral.units = Unit("K m")
+        wet_bulb_temperature_integral.data = wet_bulb_temperature_integral.data.astype(
+            np.float32
+        )
         return wet_bulb_temperature_integral
 
 
