@@ -126,6 +126,9 @@ class LoadAndTrainQRF(PostProcessingPlugin):
                         truth_table_path = file_path
                     if forecast_table_path and truth_table_path:
                         break
+            except OSError:
+                print("The directory doesn't exist, calibration is skipped for this cycle")
+                return
 
         forecast_periods = list(range(*map(int, forecast_periods.split(":"))))
         forecast_periods = [fp * 3600 for fp in forecast_periods]
@@ -153,16 +156,13 @@ class LoadAndTrainQRF(PostProcessingPlugin):
                 ("experiment", "==", experiment),
             ]
         ]
-        try:
-            forecast_df = pd.read_parquet(
-                forecast_table_path,
-                filters=filters,
-                schema=FORECAST_SCHEMA,
-                engine="pyarrow",
-            )
-        except TypeError:
-            # This handles missing tables in operations
-            return
+        
+        forecast_df = pd.read_parquet(
+            forecast_table_path,
+            filters=filters,
+            schema=FORECAST_SCHEMA,
+            engine="pyarrow",
+        )
 
         # Convert df columns from ms to pandas timestamp object to work with existing code
         for column in ["time", "forecast_reference_time", "blend_time"]:
@@ -176,14 +176,11 @@ class LoadAndTrainQRF(PostProcessingPlugin):
 
         # Load truths from parquet file filtering by diagnostic.
         filters = [[("diagnostic", "==", target_diagnostic_name)]]
-        
-        try:
-            truth_df = pd.read_parquet(
-                truth_table_path, filters=filters, schema=TRUTH_SCHEMA
-            )
-        except TypeError:
-            # This handles missing tables in operations
-            return
+
+
+        truth_df = pd.read_parquet(
+            truth_table_path, filters=filters, schema=TRUTH_SCHEMA
+        )
         
         truth_df["time"] = pd.to_datetime(truth_df["time"], unit="ns", utc=True)
 
