@@ -346,15 +346,23 @@ def with_output(
     Returns:
         Result of calling `wrapped` or None if `output` is given.
     """
+    import pickle
+
+    from iris.cube import Cube
+
     from improver.utilities.save import save_netcdf
 
     result = wrapped(*args, **kwargs)
 
-    if output and result:
+    if output and type(result) is Cube:
         save_netcdf(result, output, compression_level, least_significant_digit)
         if pass_through_output:
             return ObjectAsStr(result, output)
         return
+    elif output:
+        # If output is set and result is not a Cube, save it as a pickle file
+        with open(output, "wb") as f:
+            pickle.dump(result, f)
     return result
 
 
