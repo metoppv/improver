@@ -55,9 +55,7 @@ class SaturatedVapourPressureTableDerivative(SaturatedVapourPressureTable):
         # first derivative saturation vapour pressure values.
         svp_original = self.saturation_vapour_pressure_goff_gratch(temperature)
         svp_derivative = temperature.copy()
-        with np.nditer(
-            [svp_derivative, svp_original], op_flags=["readwrite"]
-        ) as it:
+        with np.nditer([svp_derivative, svp_original], op_flags=["readwrite"]) as it:
             for cell, svp_original_cell_val in it:
                 if cell > TRIPLE_PT_WATER:
                     n0 = (self.constants[1] * TRIPLE_PT_WATER) / (cell**2)
@@ -65,12 +63,19 @@ class SaturatedVapourPressureTableDerivative(SaturatedVapourPressureTable):
                     n2 = (
                         np.log(10)
                         * ((self.constants[3] * self.constants[4]) / TRIPLE_PT_WATER)
-                        * np.power(10, (self.constants[4] * ((cell / TRIPLE_PT_WATER) - 1.0)))
+                        * np.power(
+                            10, (self.constants[4] * ((cell / TRIPLE_PT_WATER) - 1.0))
+                        )
                     )
                     n3 = (
                         np.log(10)
-                        * ((self.constants[5] * self.constants[6] * TRIPLE_PT_WATER) / (cell**2))
-                        * np.power(10, (self.constants[6] * (1.0 - (TRIPLE_PT_WATER / cell))))
+                        * (
+                            (self.constants[5] * self.constants[6] * TRIPLE_PT_WATER)
+                            / (cell**2)
+                        )
+                        * np.power(
+                            10, (self.constants[6] * (1.0 - (TRIPLE_PT_WATER / cell)))
+                        )
                     )
                     cell[...] = np.log(10) * (n0 - n1 - n2 + n3) * svp_original_cell_val
                 else:
@@ -107,7 +112,9 @@ class SaturatedVapourPressureTableDerivative(SaturatedVapourPressureTable):
             self.t_min, self.t_max + 0.5 * self.t_increment, self.t_increment
         )
 
-        svp_derivative_data = self.derivative_saturation_vapour_pressure_goff_gratch(temperatures)
+        svp_derivative_data = self.derivative_saturation_vapour_pressure_goff_gratch(
+            temperatures
+        )
 
         svp_derivative = self.as_cube(svp_derivative_data, temperatures)
 
