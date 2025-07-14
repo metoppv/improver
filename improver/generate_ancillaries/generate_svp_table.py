@@ -102,10 +102,16 @@ class SaturatedVapourPressureTable(BasePlugin):
                     n0 = self.constants[1] * (1.0 - TRIPLE_PT_WATER / cell)
                     n1 = self.constants[2] * np.log10(cell / TRIPLE_PT_WATER)
                     n2 = self.constants[3] * (
-                        1.0 - np.power(10.0, (self.constants[4] * (cell / TRIPLE_PT_WATER - 1.0)))
+                        1.0
+                        - np.power(
+                            10.0, (self.constants[4] * (cell / TRIPLE_PT_WATER - 1.0))
+                        )
                     )
                     n3 = self.constants[5] * (
-                        np.power(10.0, (self.constants[6] * (1.0 - TRIPLE_PT_WATER / cell))) - 1.0
+                        np.power(
+                            10.0, (self.constants[6] * (1.0 - TRIPLE_PT_WATER / cell))
+                        )
+                        - 1.0
                     )
                     log_es = n0 - n1 + n2 + n3 + self.constants[7]
                     cell[...] = np.power(10.0, log_es)

@@ -69,7 +69,7 @@ class Test_process(IrisTest):
             393.298427,
             612.272861,
             922.155215,
-            1348.01875
+            1348.01875,
         ]
         result = SaturatedVapourPressureTableDerivative(
             t_min=t_min, t_max=t_max, t_increment=t_increment
