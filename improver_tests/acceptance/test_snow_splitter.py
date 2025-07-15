@@ -4,7 +4,6 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Tests for the snow-splitter CLI"""
 
-import iris
 import pytest
 
 from . import acceptance as acc
@@ -20,9 +19,10 @@ run_cli = acc.run_cli(CLI)
 def test_basic(tmp_path, output_variable, output_is_rain):
     """Test snow-splitter if desired output is rain or snow."""
     test_dir = acc.kgo_root() / "snow-splitter"
-    input_paths = iris.cube.CubeList(
-        [test_dir / f"{input}.nc" for input in ("rain", "snow", "precip_rate")]
-    )
+    input_paths = [
+        test_dir / f"{input}.nc" for input in ("rain", "snow", "precip_rate")
+    ]
+
     output_path = tmp_path / "output.nc"
     args = [*input_paths, "--output-is-rain", output_is_rain, "--output", output_path]
 
