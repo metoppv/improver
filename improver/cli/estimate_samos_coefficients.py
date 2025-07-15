@@ -3,8 +3,8 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""CLI to estimate coefficients for Standardized Anomaly Model Output Statistics
-(SAMOS)."""
+"""CLI to estimate the Ensemble Model Output Statistics (EMOS) coefficients for
+Standardized Anomaly Model Output Statistics (SAMOS)."""
 
 from improver import cli
 
@@ -14,8 +14,7 @@ from improver import cli
 def process(
     *cubes: cli.inputcube,
     truth_attribute: str,
-    forecast_gams,
-    truth_gams,
+    gams: cli.inputpickle,
     gam_features: cli.comma_separated_list,
     use_default_initial_guess=False,
     units=None,
@@ -23,7 +22,7 @@ def process(
     tolerance: float = 0.02,
     max_iterations: int = 1000,
 ):
-    """Estimate EMOS coefficients for SAMOS.
+    """Estimate EMOS coefficients for use with SAMOS.
 
     Loads in arguments for estimating coefficients for Ensemble Model
     Output Statistics (EMOS), otherwise known as Non-homogeneous Gaussian
@@ -36,12 +35,25 @@ def process(
             A list of cubes containing the historical forecasts and
             corresponding truth used for calibration. They must have the same
             cube name and will be separated based on the truth attribute.
-            Optionally this may also contain a single land-sea mask cube on the
-            same domain as the historic forecasts and truth (where land points
-            are set to one and sea points are set to zero).
+            Optionally this may also include any other cubes to be used as
+            additional features in the GAM or in EMOS. These cubes will be
+            identified by comparing the cube name to the names in `gam_features`.
+            Any additional cubes that are not in `gam_features` will be
+            considered as additional fields for EMOS.
         truth_attribute (str):
             An attribute and its value in the format of "attribute=value",
             which must be present on historical truth cubes.
+        gams (list of GAM models):
+            A list containing two lists of two fitted GAMs. The first list
+            contains two fitted GAMs, one for predicting the climatological mean
+            of the historical forecasts and the second predicting the
+            climatological standard deviation. The second list contains two
+            fitted GAMs, one for predicting the climatological mean of the truths
+            and the second predicting the climatological standard deviation.
+        gam_features (list of str):
+            A list of the names of the cubes that will be used as additional
+            features in the GAM. Additionaly the name of any coordinates
+            that are to be used as features in the GAM.
         use_default_initial_guess (bool):
             If True, use the default initial guess. The default initial guess
             assumes no adjustments are required to the initial choice of
@@ -69,16 +81,25 @@ def process(
             is raised. If the predictor is "realizations", then the number of
             iterations may require increasing, as there will be more
             coefficients to solve.
-
     Returns:
         iris.cube.CubeList:
             CubeList containing the coefficients estimated using EMOS. Each
             coefficient is stored in a separate cube.
     """
 
+    # monkey-patch to 'tweak' scipy to prevent errors occuring
+    import scipy.sparse
+
     from improver.calibration import split_cubes_for_samos
     from improver.calibration.samos_calibration import TrainEMOSForSAMOS
 
+    def to_array(self):
+        return self.toarray()
+
+    scipy.sparse.spmatrix.A = property(to_array)
+
+    # Split the cubes into forecast and truth cubes, along with any additional fields
+    # provided for the GAMs and EMOS.
     (
         forecast,
         truth,
@@ -93,7 +114,7 @@ def process(
         expect_emos_coeffs=False,
         expect_emos_fields=True,
     )
-
+    # Train emos coefficients for the SAMOS model.
     emos_kwargs = {
         "use_default_initial_guess": use_default_initial_guess,
         "desired_units": units,
@@ -106,8 +127,8 @@ def process(
     return plugin(
         historic_forecasts=forecast,
         truths=truth,
-        forecast_gams=forecast_gams,
-        truth_gams=truth_gams,
+        forecast_gams=gams[0],
+        truth_gams=gams[1],
         gam_features=gam_features,
         gam_additional_fields=gam_additional_fields,
         emos_additional_fields=emos_additional_fields,
