@@ -115,6 +115,62 @@ class Test_temperature_data_limits(unittest.TestCase):
                 self.assertFalse(any(message in str(warn.message) for warn in w))
 
 
+class Test_temperature_data_limits(unittest.TestCase):
+    """
+    Test that a warning message is raised if the temperature input values are outside
+    the range for which the method is considered valid.
+    MAX_VALID_TEMPERATURE = 373.0
+    MIN_VALID_TEMPERATURE = 173.0
+    """
+
+    def setUp(self):
+        """Set up the plugin for testing."""
+        self.plugin = SaturatedVapourPressureTable()
+
+    def test_warning_on_temperature_below_min(self):
+        """Test that a warning is raised if the temperature is below the minimum."""
+        temps = np.array([150.0, 180.0, 200.0])  # One temperature is below the minimum
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            self.plugin._check_temperature_limits(temps)
+            self.assertTrue(
+                any(
+                    "Temperatures out of SVP table range" in str(warn.message)
+                    for warn in w
+                )
+            )
+
+    def test_warning_on_temperature_above_max(self):
+        """Test that a warning is raised if the temperature is above the maximum."""
+        temps = np.array(
+            [370.0, 374.0, 380.0]
+        )  # Two temperatures are above the maximum
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            self.plugin._check_temperature_limits(temps)
+            self.assertTrue(
+                any(
+                    "Temperatures out of SVP table range" in str(warn.message)
+                    for warn in w
+                )
+            )
+
+    def test_no_warning_on_temperature_within_bounds(self):
+        """Test that no warning is raised if all temperatures are within bounds."""
+        temps = np.array(
+            [180.0, 200.0, 300.0, 370.0]
+        )  # All temperatures are within bounds
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            self.plugin._check_temperature_limits(temps)
+            self.assertFalse(
+                any(
+                    "Temperatures out of SVP table range" in str(warn.message)
+                    for warn in w
+                )
+            )
+
+
 class Test_process(IrisTest):
     """Test that the plugin functions as expected."""
 
