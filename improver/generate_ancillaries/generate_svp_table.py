@@ -20,8 +20,24 @@ class SaturatedVapourPressureTable(BasePlugin):
     Plugin to create a saturated vapour pressure lookup table.
     """
 
+    cube_name = "saturated_vapour_pressure"
+    svp_units = "hPa"
+    svp_si_units = "Pa"
     MAX_VALID_TEMPERATURE = 373.0
     MIN_VALID_TEMPERATURE = 173.0
+    constants = {
+        1: 10.79574,
+        2: 5.028,
+        3: 1.50475e-4,
+        4: -8.2969,
+        5: 0.42873e-3,
+        6: 4.76955,
+        7: 0.78614,
+        8: -9.09685,
+        9: 3.56654,
+        10: 0.87682,
+        11: 0.78614,
+    }
 
     def __init__(
         self, t_min: float = 183.15, t_max: float = 338.25, t_increment: float = 0.1
@@ -52,8 +68,8 @@ class SaturatedVapourPressureTable(BasePlugin):
     def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         result = (
-            "<SaturatedVapourPressureTable: t_min: {}; t_max: {}; "
-            "t_increment: {}>".format(self.t_min, self.t_max, self.t_increment)
+            f"<{self.__class__.__name__}: t_min: {self.t_min}; t_max: {self.t_max}; "
+            f"t_increment: {self.t_increment}>"
         )
         return result
 
@@ -75,23 +91,56 @@ class SaturatedVapourPressureTable(BasePlugin):
             technology. New series. Group V. Volume 4. Meteorology.
             Subvolume b. Physical and chemical properties of the air, P35.
         """
-        constants = {
-            1: 10.79574,
-            2: 5.028,
-            3: 1.50475e-4,
-            4: -8.2969,
-            5: 0.42873e-3,
-            6: 4.76955,
-            7: 0.78614,
-            8: -9.09685,
-            9: 3.56654,
-            10: 0.87682,
-            11: 0.78614,
-        }
-        triple_pt = TRIPLE_PT_WATER
+        self._check_temperature_limits(temperature)
 
-        # Values for which method is considered valid (see reference).
-        # WetBulbTemperature.check_range(temperature.data, 173., 373.)
+        # Iterate over the temperature array, updating the temperature values
+        # with newly calculated saturation vapour pressure values.
+        svp = temperature.copy()
+        with np.nditer(svp, op_flags=["readwrite"]) as it:
+            for cell in it:
+                if cell > TRIPLE_PT_WATER:
+                    n0 = self.constants[1] * (1.0 - TRIPLE_PT_WATER / cell)
+                    n1 = self.constants[2] * np.log10(cell / TRIPLE_PT_WATER)
+                    n2 = self.constants[3] * (
+                        1.0
+                        - np.power(
+                            10.0, (self.constants[4] * (cell / TRIPLE_PT_WATER - 1.0))
+                        )
+                    )
+                    n3 = self.constants[5] * (
+                        np.power(
+                            10.0, (self.constants[6] * (1.0 - TRIPLE_PT_WATER / cell))
+                        )
+                        - 1.0
+                    )
+                    log_es = n0 - n1 + n2 + n3 + self.constants[7]
+                    cell[...] = np.power(10.0, log_es)
+                else:
+                    n0 = self.constants[8] * ((TRIPLE_PT_WATER / cell) - 1.0)
+                    n1 = self.constants[9] * np.log10(TRIPLE_PT_WATER / cell)
+                    n2 = self.constants[10] * (1.0 - (cell / TRIPLE_PT_WATER))
+                    log_es = n0 - n1 + n2 + self.constants[11]
+                    cell[...] = np.power(10.0, log_es)
+
+        return svp
+
+    def _check_temperature_limits(self, temperature: ndarray):
+        """
+        Raise exception if temperature values fall outside the range for which the
+        method is considered valid (see reference).
+
+        Args:
+            temperature (ndarray):
+                Array of temperature values to be validated.
+
+        Raises:
+            UserWarning:
+                If any temperature value is outside the valid range defined by
+                self.MIN_VALID_TEMPERATURE and self.MAX_VALID_TEMPERATURE, a warning is issued.
+
+        Returns:
+            None
+        """
         if (
             temperature.max() > self.MAX_VALID_TEMPERATURE
             or temperature.min() < self.MIN_VALID_TEMPERATURE
@@ -99,56 +148,63 @@ class SaturatedVapourPressureTable(BasePlugin):
             msg = "Temperatures out of SVP table range: min {}, max {}"
             warnings.warn(msg.format(temperature.min(), temperature.max()))
 
-        svp = temperature.copy()
-        for cell in np.nditer(svp, op_flags=["readwrite"]):
-            if cell > triple_pt:
-                n0 = constants[1] * (1.0 - triple_pt / cell)
-                n1 = constants[2] * np.log10(cell / triple_pt)
-                n2 = constants[3] * (
-                    1.0 - np.power(10.0, (constants[4] * (cell / triple_pt - 1.0)))
-                )
-                n3 = constants[5] * (
-                    np.power(10.0, (constants[6] * (1.0 - triple_pt / cell))) - 1.0
-                )
-                log_es = n0 - n1 + n2 + n3 + constants[7]
-                cell[...] = np.power(10.0, log_es)
-            else:
-                n0 = constants[8] * ((triple_pt / cell) - 1.0)
-                n1 = constants[9] * np.log10(triple_pt / cell)
-                n2 = constants[10] * (1.0 - (cell / triple_pt))
-                log_es = n0 - n1 + n2 + constants[11]
-                cell[...] = np.power(10.0, log_es)
+    def as_cube(self, svp_data: np.ndarray, temperatures: np.ndarray) -> Cube:
+        """
+        Converts saturation vapor pressure data and corresponding temperatures into an Iris Cube.
 
+        Args:
+            svp_data (np.ndarray):
+                Array containing saturation vapor pressure values.
+            temperatures (np.ndarray):
+                Array of temperature values (in Kelvin) corresponding to the svp_data.
+
+        Returns
+            Cube:
+                An Iris Cube containing the saturation vapor pressure data with temperature as a dimension coordinate.
+                The cube is converted to SI units for vapor pressure and includes attributes for the minimum temperature,
+                maximum temperature, and temperature increment used in the data.
+        """
+        temperature_coord = iris.coords.DimCoord(
+            temperatures, "air_temperature", units="K"
+        )
+        # Output of the Goff-Gratch is in hPa, but we want to return in Pa.
+        svp = iris.cube.Cube(
+            svp_data,
+            long_name=self.cube_name,
+            units=self.svp_units,
+            dim_coords_and_dims=[(temperature_coord, 0)],
+        )
+        svp.convert_units(self.svp_si_units)
+        svp.attributes["minimum_temperature"] = self.t_min
+        svp.attributes["maximum_temperature"] = self.t_max
+        svp.attributes["temperature_increment"] = self.t_increment
         return svp
 
     def process(self) -> Cube:
         """
-        Create a lookup table of saturation vapour pressure in a pure water
-        vapour system for the range of required temperatures.
+        Creates a lookup table of saturation vapour pressure in a pure water vapour system for a specified temperature range.
+
+        Args:
+            self.t_min (float):
+                Minimum temperature (inclusive) for the lookup table.
+            self.t_max (float):
+                Maximum temperature (inclusive) for the lookup table.
+            self.t_increment (float):
+                Temperature increment for the lookup table.
+            self.saturation_vapour_pressure_goff_gratch (callable):
+                Method to calculate saturation vapour pressure for given temperatures.
+            self.as_cube (callable):
+                Method to convert data and temperatures into a Cube object.
 
         Returns:
-           A cube of saturated vapour pressure values at temperature
-           points defined by t_min, t_max, and t_increment (defined above).
+            Cube:
+                A cube of saturated vapour pressure values at temperature points defined by t_min, t_max, and t_increment.
         """
         temperatures = np.arange(
             self.t_min, self.t_max + 0.5 * self.t_increment, self.t_increment
         )
         svp_data = self.saturation_vapour_pressure_goff_gratch(temperatures)
 
-        temperature_coord = iris.coords.DimCoord(
-            temperatures, "air_temperature", units="K"
-        )
-
-        # Output of the Goff-Gratch is in hPa, but we want to return in Pa.
-        svp = iris.cube.Cube(
-            svp_data,
-            long_name="saturated_vapour_pressure",
-            units="hPa",
-            dim_coords_and_dims=[(temperature_coord, 0)],
-        )
-        svp.convert_units("Pa")
-        svp.attributes["minimum_temperature"] = self.t_min
-        svp.attributes["maximum_temperature"] = self.t_max
-        svp.attributes["temperature_increment"] = self.t_increment
+        svp = self.as_cube(svp_data, temperatures)
 
         return svp
