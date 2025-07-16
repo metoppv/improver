@@ -78,23 +78,24 @@ class LoadAndApplyQRF(PostProcessingPlugin):
         """
 
         cube_inputs = iris.cube.CubeList([])
-
+        qrf_model = None
         for file_path in file_paths:
             try:
                 cube = iris.load_cube(file_path)
                 cube_inputs.append(cube)
             except ValueError:
                 qrf_model = joblib.load(file_path)
-            except OSError:
-                # The specified model doesn't exist and the forecast will not be calibrated
-                return
-
+        
         # Extract all additional cubes which are associated with a feature in the
         # feature_config.
 
         forecast_constraint = iris.Constraint(name=target_cube_name)
         forecast_cube = cube_inputs.extract_cube(forecast_constraint)
 
+        if not qrf_model:
+            # The specified model doesn't exist and the forecast will not be calibrated
+            return forecast_cube
+        
         # If target diagnostic not a feature in the training then remove.
         if target_cube_name not in feature_config.keys():
             cube_inputs.remove(forecast_cube)
