@@ -201,6 +201,10 @@ class ModalCategory(BaseModalCategory):
         ]
         self.code_max = max(codes) + 1
         self.unset_code_indicator = min(codes) - 100
+        self.min_dtype = np.result_type(
+            np.min_scalar_type(self.unset_code_indicator),
+            np.min_scalar_type(self.code_max),
+        )
         self.code_groups = self._code_groups()
 
     def _code_groups(self) -> Dict:
@@ -265,6 +269,7 @@ class ModalCategory(BaseModalCategory):
         # Aggregation coordinate is moved to the -1 position in initialisation;
         # move this back to the leading coordinate
         data = np.moveaxis(data, [axis], [0])
+        data = data.astype(self.min_dtype)
         minimum_significant_count = 0.3 * data.shape[0]
         mode_result, counts = stats.mode(self.code_max - data, axis=0)
         mode_result[counts < minimum_significant_count] = (
@@ -312,6 +317,11 @@ class ModalCategory(BaseModalCategory):
         cube = self._prepare_input_cubes(
             cubes, self.record_run_attr, self.model_id_attr
         )
+        # dtype may be escalated in modal calculation to accommodate the
+        # unset_code_indicator and code_max. The modes must exist within
+        # the range of the original data type, so we keep this to reset
+        # the data type at the end of the process.
+        original_dtype = cube.data.dtype
 
         self._unify_day_and_night(cube)
 
@@ -330,6 +340,7 @@ class ModalCategory(BaseModalCategory):
         if (result.data == self.unset_code_indicator).any():
             self._group_codes(result, cube)
 
+        result.data = result.data.astype(original_dtype)
         return result
 
 
