@@ -202,7 +202,8 @@ class ModalCategory(BaseModalCategory):
         self.code_max = max(codes) + 1
         self.unset_code_indicator = min(codes) - 100
         self.min_dtype = np.result_type(
-            np.min_scalar_type(self.unset_code_indicator), np.min_scalar_type(self.code_max)
+            np.min_scalar_type(self.unset_code_indicator),
+            np.min_scalar_type(self.code_max),
         )
         self.code_groups = self._code_groups()
 
