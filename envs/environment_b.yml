@@ -29,14 +29,12 @@ dependencies:
   - treelite=2.3.0
   # Development
   - astroid
-  - bandit
   - filelock
   - mock
   - mypy
   - pytest
   - pytest-cov
   - pytest-xdist
-  - safety
   - sphinx-autodoc-typehints
   - sphinx_rtd_theme
   - threadpoolctl
