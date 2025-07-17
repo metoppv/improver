@@ -3,9 +3,8 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""CLI to estimate coefficients for Ensemble Model Output
-Statistics (EMOS), otherwise known as Non-homogeneous Gaussian
-Regression (NGR)."""
+"""CLI to estimate coefficients for Standardized Anomaly Model Output Statistics
+(SAMOS)."""
 
 from improver import cli
 
@@ -14,16 +13,17 @@ from improver import cli
 @cli.with_output
 def process(
     *cubes: cli.inputcube,
-    distribution,
-    truth_attribute,
-    point_by_point=False,
+    truth_attribute: str,
+    forecast_gams,
+    truth_gams,
+    gam_features: cli.comma_separated_list,
     use_default_initial_guess=False,
     units=None,
     predictor="mean",
     tolerance: float = 0.02,
     max_iterations: int = 1000,
 ):
-    """Estimate coefficients for Ensemble Model Output Statistics.
+    """Estimate EMOS coefficients for SAMOS.
 
     Loads in arguments for estimating coefficients for Ensemble Model
     Output Statistics (EMOS), otherwise known as Non-homogeneous Gaussian
@@ -39,21 +39,9 @@ def process(
             Optionally this may also contain a single land-sea mask cube on the
             same domain as the historic forecasts and truth (where land points
             are set to one and sea points are set to zero).
-        distribution (str):
-            The distribution that will be used for minimising the
-            Continuous Ranked Probability Score when estimating the EMOS
-            coefficients. This will be dependent upon the input phenomenon.
         truth_attribute (str):
             An attribute and its value in the format of "attribute=value",
             which must be present on historical truth cubes.
-        point_by_point (bool):
-            If True, coefficients are calculated independently for each point
-            within the input cube by creating an initial guess and minimising
-            each grid point independently. If False, a single set of
-            coefficients is calculated using all points.
-            Warning: This option is memory intensive and is unsuitable for
-            gridded input. Using a default initial guess may reduce the memory
-            overhead option.
         use_default_initial_guess (bool):
             If True, use the default initial guess. The default initial guess
             assumes no adjustments are required to the initial choice of
@@ -88,20 +76,39 @@ def process(
             coefficient is stored in a separate cube.
     """
 
-    from improver.calibration import split_forecasts_and_truth
-    from improver.calibration.emos_calibration import (
-        EstimateCoefficientsForEnsembleCalibration,
+    from improver.calibration import split_cubes_for_samos
+    from improver.calibration.samos_calibration import TrainEMOSForSAMOS
+
+    (
+        forecast,
+        truth,
+        gam_additional_fields,
+        _,
+        emos_additional_fields,
+        _,
+    ) = split_cubes_for_samos(
+        cubes=cubes,
+        gam_features=gam_features,
+        truth_attribute=truth_attribute,
+        expect_emos_coeffs=False,
+        expect_emos_fields=True,
     )
 
-    forecast, truth, land_sea_mask = split_forecasts_and_truth(cubes, truth_attribute)
+    emos_kwargs = {
+        "use_default_initial_guess": use_default_initial_guess,
+        "desired_units": units,
+        "predictor": predictor,
+        "tolerance": tolerance,
+        "max_iterations": max_iterations,
+    }
 
-    plugin = EstimateCoefficientsForEnsembleCalibration(
-        distribution,
-        point_by_point=point_by_point,
-        use_default_initial_guess=use_default_initial_guess,
-        desired_units=units,
-        predictor=predictor,
-        tolerance=tolerance,
-        max_iterations=max_iterations,
+    plugin = TrainEMOSForSAMOS(distribution="norm", emos_kwargs=emos_kwargs)
+    return plugin(
+        historic_forecasts=forecast,
+        truths=truth,
+        forecast_gams=forecast_gams,
+        truth_gams=truth_gams,
+        gam_features=gam_features,
+        gam_additional_fields=gam_additional_fields,
+        emos_additional_fields=emos_additional_fields,
     )
-    return plugin(forecast, truth, landsea_mask=land_sea_mask)

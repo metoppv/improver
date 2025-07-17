@@ -3,9 +3,8 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""Script to apply coefficients for Ensemble Model Output
-Statistics (EMOS), otherwise known as Non-homogeneous Gaussian
-Regression (NGR)."""
+"""Script to apply Standardised Anomaly Model Output
+Statistics (SAMOS) calibration."""
 
 from improver import cli
 
@@ -14,14 +13,14 @@ from improver import cli
 @cli.with_output
 def process(
     *cubes: cli.inputcubelist,
-    validity_times: cli.comma_separated_list = None,
+    forecast_gams: cli.inputjson,
+    gam_features: cli.comma_separated_list,
     realizations_count: int = None,
     randomise=False,
     random_seed: int = None,
     ignore_ecc_bounds_exceedance=False,
     tolerate_time_mismatch=False,
     predictor="mean",
-    land_sea_mask_name: str = None,
     percentiles: cli.comma_separated_list = None,
 ):
     """Applying coefficients for Ensemble Model Output Statistics.
@@ -107,73 +106,32 @@ def process(
             The calibrated forecast cube.
 
     """
-    import warnings
+    from improver.calibration import split_cubes_for_samos
+    from improver.calibration.samos_calibration import ApplySAMOS
 
-    import numpy as np
-
-    from improver.calibration import (
-        add_warning_comment,
-        split_forecasts_and_coeffs,
-        validity_time_check,
-    )
-    from improver.calibration.emos_calibration import ApplyEMOS
-    from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
-        ResamplePercentiles,
-    )
-
-    (forecast, coefficients, additional_predictors, land_sea_mask, prob_template) = (
-        split_forecasts_and_coeffs(cubes, land_sea_mask_name)
-    )
-
-    if validity_times is not None and not validity_time_check(forecast, validity_times):
-        if percentiles:
-            # Ensure that a consistent set of percentiles are returned,
-            # regardless of whether EMOS is successfully applied.
-            percentiles = [np.float32(p) for p in percentiles]
-            forecast = ResamplePercentiles(
-                ecc_bounds_warning=ignore_ecc_bounds_exceedance
-            )(forecast, percentiles=percentiles)
-        elif prob_template:
-            forecast = prob_template
-        forecast = add_warning_comment(forecast)
-        return forecast
-
-    if coefficients is None:
-        if prob_template:
-            msg = (
-                "There are no coefficients provided for calibration. As a "
-                "probability template has been provided with the aim of "
-                "creating a calibrated probability forecast, the probability "
-                "template will be returned as the uncalibrated probability "
-                "forecast."
-            )
-            warnings.warn(msg)
-            prob_template = add_warning_comment(prob_template)
-            return prob_template
-
-        if percentiles:
-            # Ensure that a consistent set of percentiles are returned,
-            # regardless of whether EMOS is successfully applied.
-            percentiles = [np.float32(p) for p in percentiles]
-            forecast = ResamplePercentiles(
-                ecc_bounds_warning=ignore_ecc_bounds_exceedance
-            )(forecast, percentiles=percentiles)
-
-        msg = (
-            "There are no coefficients provided for calibration. The "
-            "uncalibrated forecast will be returned."
-        )
-        warnings.warn(msg)
-
-        forecast = add_warning_comment(forecast)
-        return forecast
-
-    calibration_plugin = ApplyEMOS(percentiles=percentiles)
-    result = calibration_plugin(
+    (
         forecast,
-        coefficients,
-        additional_fields=additional_predictors,
-        land_sea_mask=land_sea_mask,
+        _,
+        gam_additional_fields,
+        emos_coefficients,
+        emos_additional_fields,
+        prob_template,
+    ) = split_cubes_for_samos(
+        cubes=cubes,
+        gam_features=gam_features,
+        truth_attribute=None,
+        expect_emos_coeffs=True,
+        expect_emos_fields=True,
+    )
+
+    plugin = ApplySAMOS(percentiles=percentiles)
+    result = plugin.process(
+        forecast=forecast,
+        forecast_gams=forecast_gams,
+        gam_features=gam_features,
+        emos_coefficients=emos_coefficients,
+        gam_additional_fields=gam_additional_fields,
+        emos_additional_fields=emos_additional_fields,
         prob_template=prob_template,
         realizations_count=realizations_count,
         ignore_ecc_bounds=ignore_ecc_bounds_exceedance,
@@ -182,4 +140,5 @@ def process(
         randomise=randomise,
         random_seed=random_seed,
     )
+
     return result
