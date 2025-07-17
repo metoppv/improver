@@ -194,8 +194,8 @@ class ThresholdInterpolation(PostProcessingPlugin):
 
         original_mask = self.mask_checking(forecast_at_thresholds)
 
-        if forecast_at_thresholds.coords("realization"):
-            forecast_at_thresholds = collapse_realizations(forecast_at_thresholds)
+#        if forecast_at_thresholds.coords("realization"):
+#            forecast_at_thresholds = collapse_realizations(forecast_at_thresholds)
 
         forecast_at_thresholds_data = self._interpolate_thresholds(
             forecast_at_thresholds,
