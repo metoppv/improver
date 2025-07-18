@@ -9,11 +9,28 @@ from typing import Optional
 import iris
 import joblib
 import numpy as np
+import pandas as pd
 from iris.cube import Cube, CubeList
 from quantile_forest import RandomForestQuantileRegressor
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.constants import DAYS_IN_YEAR, HOURS_IN_DAY
+
+
+def _remove_item_from_list(alist, items):
+    """Remove items from a list. If no items can be removed,
+    return an empty list."""
+    entries_removed = 0
+    new_list = []
+    for entry in alist:
+        if entry in items:
+            entries_removed += 1
+        else:
+            new_list.append(entry)
+
+    if entries_removed == 0:
+        return []
+    return new_list
 
 
 def prep_feature(
@@ -49,12 +66,14 @@ def prep_feature(
             ["realization"], iris.analysis.STD_DEV
         ).data.flatten()
     elif feature in ["latitude", "longitude", "altitude"]:
-        dims.pop(collapsed_cube.coord_dims("spot_index")[0])
+        dims = _remove_item_from_list(dims, collapsed_cube.coord_dims("spot_index"))
         coord_multidim = np.expand_dims(feature_cube.coord(feature).points, dims)
         feature_values = np.broadcast_to(coord_multidim, collapsed_cube.shape).flatten()
     elif feature == "forecast_period":
         if len(feature_cube.coord_dims("forecast_period")) == 1:
-            dims.pop(collapsed_cube.coord_dims("forecast_period")[0])
+            dims = _remove_item_from_list(
+                dims, collapsed_cube.coord_dims("forecast_period")
+            )
             coord_multidim = np.expand_dims(
                 feature_cube.coord("forecast_period").points, dims
             )
@@ -62,45 +81,117 @@ def prep_feature(
             coord_multidim = feature_cube.coord("forecast_period").points
 
         feature_values = np.broadcast_to(coord_multidim, collapsed_cube.shape).flatten()
-    elif feature in ["day_of_year", "day_of_year_sin", "day_of_year_cos"]:
-        if len(feature_cube.coord_dims("time")) > 1:
-            day_of_year = np.zeros(feature_cube.coord("time").shape)
-            for i in range(feature_cube.coord("time").shape[0]):
-                for j in range(feature_cube.coord("time").shape[1]):
-                    day_of_year[i, j] = np.int32(
-                        feature_cube.coord("time")[i][j].cell(0).point.strftime("%j")
-                    )
-
-            day_of_year = day_of_year.T
-            [dims.pop(dim) for dim in collapsed_cube.coord_dims("time")]
-            coord_multidim = np.expand_dims(day_of_year, dims)
-        else:
-            time_coord = feature_cube.coord("time").copy()
-            day_of_year = np.array(
-                [np.int32(c.point.strftime("%j")) for c in time_coord.cells()]
+    elif feature == "model_weights":
+        if len(feature_cube.coord_dims("forecast_period")) == 1:
+            dims = _remove_item_from_list(
+                dims, collapsed_cube.coord_dims("forecast_period")
             )
-            coord_multidim = day_of_year
+            # dims.pop(collapsed_cube.coord_dims("forecast_period")[0])
+            coord_multidim = np.expand_dims(
+                feature_cube.coord("model_weights").points, dims
+            )
+        else:
+            coord_multidim = feature_cube.coord("model_weights").points
 
         feature_values = np.broadcast_to(coord_multidim, collapsed_cube.shape).flatten()
+    elif feature in ["day_of_year", "day_of_year_sin", "day_of_year_cos"]:
+        frt_dims = feature_cube.coord_dims("forecast_reference_time")
+        fp_dims = feature_cube.coord_dims("forecast_period")
+        frt_coord = feature_cube.coord("forecast_reference_time")
+        fp_coord = feature_cube.coord("forecast_period")
+
+        if len(frt_dims) == 0 and len(fp_dims) == 0:
+            time_point = frt_coord.cell(0).point._to_real_datetime() + pd.to_timedelta(
+                fp_coord.points[0], unit=str(fp_coord.units)
+            )
+            day_of_year = np.array([np.int32(time_point.strftime("%j"))])
+        elif frt_dims == fp_dims:
+            # Forecast reference time and forecast period share a dimension coordinate.
+            # Forecast reference time and forecast period must be mixed together
+            # along one dimension.
+            day_of_year = []
+            for frt_cell, fp_point in zip(frt_coord.cells(), fp_coord.points):
+                time_point = frt_cell.point._to_real_datetime() + pd.to_timedelta(
+                    fp_point, unit=str(fp_coord.units)
+                )
+                day_of_year.append(np.int32(time_point.strftime("%j")))
+            day_of_year = np.array(day_of_year)
+            # frt_dims and fp_dims are the same, so we can choose one of them to pop.
+            dims = _remove_item_from_list(
+                dims, collapsed_cube.coord_dims("forecast_reference_time")
+            )
+            day_of_year = np.expand_dims(day_of_year, dims)
+        else:
+            # Forecast reference time and forecast period are different dimensions.
+            day_of_year = np.zeros((len(frt_coord.points), len(fp_coord.points)))
+            for i, frt_cell in enumerate(frt_coord.cells()):
+                for j, fp_point in enumerate(fp_coord.points):
+                    time_point = frt_cell.point._to_real_datetime() + pd.to_timedelta(
+                        fp_point, unit=str(fp_coord.units)
+                    )
+                    day_of_year[i, j] = time_point.strftime("%j")
+            day_of_year = day_of_year.T
+
+            dims = _remove_item_from_list(
+                dims,
+                [
+                    collapsed_cube.coord_dims("forecast_reference_time")[0],
+                    collapsed_cube.coord_dims("forecast_period")[0],
+                ],
+            )
+            day_of_year = np.expand_dims(np.array(day_of_year), dims)
+
+        feature_values = np.broadcast_to(day_of_year, collapsed_cube.shape).flatten()
         if feature == "day_of_year_sin":
             feature_values = np.sin(2 * np.pi * feature_values / (DAYS_IN_YEAR + 1))
         elif feature == "day_of_year_cos":
             feature_values = np.cos(2 * np.pi * feature_values / (DAYS_IN_YEAR + 1))
     elif feature in ["hour_of_day", "hour_of_day_sin", "hour_of_day_cos"]:
-        if len(feature_cube.coord_dims("time")) > 1:
-            hour_of_day = np.zeros(feature_cube.coord("time").shape)
-            for i in range(feature_cube.coord("time").shape[0]):
-                for j in range(feature_cube.coord("time").shape[1]):
-                    hour_of_day[i, j] = (
-                        feature_cube.coord("time")[i][j].cell(0).point.hour
-                    )
-            hour_of_day = hour_of_day.T
-            [dims.pop(dim) for dim in collapsed_cube.coord_dims("time")]
-            hour_of_day = np.expand_dims(np.array(hour_of_day), dims)
+        frt_dims = feature_cube.coord_dims("forecast_reference_time")
+        fp_dims = feature_cube.coord_dims("forecast_period")
+        frt_coord = feature_cube.coord("forecast_reference_time")
+        fp_coord = feature_cube.coord("forecast_period")
+
+        if len(frt_dims) == 0 and len(fp_dims) == 0:
+            time_point = frt_coord.cell(0).point._to_real_datetime() + pd.to_timedelta(
+                fp_coord.points[0], unit=str(fp_coord.units)
+            )
+            hour_of_day = np.array([np.int32(time_point.hour)])
+        elif frt_dims == fp_dims:
+            # Forecast reference time and forecast period share a dimension coordinate.
+            # Forecast reference time and forecast period must be mixed together
+            # along one dimension.
+            hour_of_day = []
+            for frt_cell, fp_point in zip(frt_coord.cells(), fp_coord.points):
+                time_point = frt_cell.point._to_real_datetime() + pd.to_timedelta(
+                    fp_point, unit=str(fp_coord.units)
+                )
+                hour_of_day.append(np.int32(time_point.hour))
+            hour_of_day = np.array(hour_of_day)
+
+            # frt_dims and fp_dims are the same, so we can choose one of them to pop.
+            dims = _remove_item_from_list(
+                dims, collapsed_cube.coord_dims("forecast_reference_time")
+            )
+            hour_of_day = np.expand_dims(hour_of_day, dims)
         else:
-            time_coord = feature_cube.coord("time").copy()
-            hour_of_day = np.array([np.int32(c.point.hour) for c in time_coord.cells()])
-            coord_multidim = hour_of_day
+            # Forecast reference time and forecast period are different dimensions.
+            hour_of_day = np.zeros((len(frt_coord.points), len(fp_coord.points)))
+            for i, frt_cell in enumerate(frt_coord.cells()):
+                for j, fp_point in enumerate(fp_coord.points):
+                    time_point = frt_cell.point._to_real_datetime() + pd.to_timedelta(
+                        fp_point, unit=str(fp_coord.units)
+                    )
+                    hour_of_day[i, j] = time_point.hour
+            hour_of_day = hour_of_day.T
+            dims = _remove_item_from_list(
+                dims,
+                [
+                    collapsed_cube.coord_dims("forecast_reference_time")[0],
+                    collapsed_cube.coord_dims("forecast_period")[0],
+                ],
+            )
+            hour_of_day = np.expand_dims(np.array(hour_of_day), dims)
 
         feature_values = np.broadcast_to(hour_of_day, collapsed_cube.shape).flatten()
         if feature == "hour_of_day_sin":
@@ -109,7 +200,9 @@ def prep_feature(
             feature_values = np.cos(2 * np.pi * feature_values / HOURS_IN_DAY)
     elif feature == "day_of_training_period":
         if len(feature_cube.coord_dims("day_of_training_period")) == 1:
-            dims.pop(collapsed_cube.coord_dims("day_of_training_period")[0])
+            dims = _remove_item_from_list(
+                dims, collapsed_cube.coord_dims("day_of_training_period")
+            )
             coord_multidim = np.expand_dims(
                 feature_cube.coord("day_of_training_period").points, dims
             )
@@ -118,7 +211,7 @@ def prep_feature(
 
         feature_values = np.broadcast_to(coord_multidim, collapsed_cube.shape).flatten()
     elif feature == "static":
-        dims.pop(collapsed_cube.coord_dims("spot_index")[0])
+        dims = _remove_item_from_list(dims, collapsed_cube.coord_dims("spot_index"))
         coord_multidim = np.expand_dims(feature_cube.data, dims)
         feature_values = np.broadcast_to(coord_multidim, collapsed_cube.shape).flatten()
 
@@ -209,7 +302,7 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
     def fit_qrf(
         self, forecast_features: np.ndarray, target: np.ndarray
     ) -> RandomForestQuantileRegressor:
-        """Fit the quantile regression model.
+        """Fit the quantile regression random forest model.
         Args:
             forecast_features (numpy.ndarray):
                 Array of forecast features.
@@ -235,18 +328,48 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
         time of the forecast. This might mean that the truth data is repeated, if, for
         example, the forecast has multiple forecast reference times and multiple
         forecast periods that have the same validity time."""
-        # If there is a multi-dimensional time coordinate, assume that forecast_period
-        # and forecast_reference_time are the associated dimension coordinates.
-        if len(forecast_cube.coord("time").shape) > 1:
-            time_cells = []
-            for fp_slice in forecast_cube.slices_over("forecast_period"):
-                for frt_slice in fp_slice.slices_over("forecast_reference_time"):
-                    time_cells.extend(list(frt_slice.coord("time").cells()))
+        frt_dims = forecast_cube.coord_dims("forecast_reference_time")
+        fp_dims = forecast_cube.coord_dims("forecast_period")
+
+        frt_coord = forecast_cube.coord("forecast_reference_time")
+        fp_coord = forecast_cube.coord("forecast_period")
+
+        time_datetimes = []
+        # Forecast reference time and forecast period are both non-dimensional
+        # coordinates. Cube must have no time dimensions.
+        if frt_dims is None and fp_dims is None:
+            time_datetimes.append(
+                frt_coord.cell(0).point._to_real_datetime()
+                + pd.to_timedelta(fp_coord.points, unit=str(fp_coord.units))
+            )
+        elif frt_dims == fp_dims:
+            # Forecast reference time and forecast period share a dimension coordinate.
+            # Forecast reference time and forecast period must be mixed together
+            # along one dimension.
+            for frt, fp in zip(
+                list(frt_coord.cells()),
+                fp_coord.points,
+            ):
+                time_datetimes.append(
+                    frt.point._to_real_datetime()
+                    + pd.to_timedelta(
+                        fp, unit=str(forecast_cube.coord("forecast_period").units)
+                    )
+                )
         else:
-            time_cells = list(forecast_cube.coord("time").cells())
+            # Forecast reference time and forecast period are different dimensions.
+            for frt in list(frt_coord.cells()):
+                for fp in fp_coord.points:
+                    time_datetimes.append(
+                        frt.point._to_real_datetime()
+                        + pd.to_timedelta(
+                            fp, unit=str(forecast_cube.coord("forecast_period").units)
+                        )
+                    )
+
         truth_data_list = []
-        for time_cell in time_cells:
-            constr = iris.Constraint(time=time_cell)
+        for time_datetime in time_datetimes:
+            constr = iris.Constraint(time=lambda cell: cell.point == time_datetime)
             truth_data_list.append(truth_cube.extract(constr).data)
         return truth_data_list
 
@@ -273,6 +396,22 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
             feature_cubes:
                 List of additional feature cubes. The name of the cube should match a
                 key in the feature_config dictionary.
+
+        References:
+            Johnson. (2024). quantile-forest: A Python Package for Quantile
+            Regression Forests. Journal of Open Source Software, 9(93), 5976.
+            https://doi.org/10.21105/joss.05976.
+            Meinshausen, N. (2006). Quantile regression forests.
+            Journal of Machine Learning Research,
+            7(35), 983–999. http://jmlr.org/papers/v7/meinshausen06a.html
+            Taillardat, M., O. Mestre, M. Zamo, and P. Naveau, 2016: Calibrated
+            Ensemble Forecasts Using Quantile Regression Forests and Ensemble Model
+            Output Statistics. Mon. Wea. Rev., 144, 2375–2393,
+            https://doi.org/10.1175/MWR-D-15-0260.1.
+            Taillardat, M. and Mestre, O.: From research to applications – examples of
+            operational ensemble post-processing in France using machine learning,
+            Nonlin. Processes Geophys., 27, 329–347,
+            https://doi.org/10.5194/npg-27-329-2020, 2020.
         """
 
         if self.transformation:
@@ -296,7 +435,7 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
 
         truth_data_list = self._organise_truth_data(forecast_cube, truth_cube)
         target_values = np.array(truth_data_list).flatten()
-
+        print(feature_values, feature_values.shape)
         # Fit the quantile regression model
         qrf_model = self.fit_qrf(feature_values, target_values)
 
@@ -337,6 +476,9 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
                 Transformation to be applied to the data before fitting.
             pre_transform_addition (float):
                 Value to be added before transformation.
+
+        Raises:
+            ValueError: If the transformation is not one of the supported types.
         """
 
         self.feature_config = feature_config
@@ -350,24 +492,12 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
             raise ValueError(msg)
         self.pre_transform_addition = pre_transform_addition
 
-    def process(
-        self,
-        forecast_cube: Cube,
-        template_forecast_cube: Cube,
-        qrf_model: RandomForestQuantileRegressor,
-        feature_cubes: Optional[CubeList] = None,
-    ) -> Cube:
-        """Apply a quantile regression random forests model.
+    def _reverse_transformation(self, forecast_cube: Cube):
+        """Reverse the transformation applied to the data prior to fitting the QRF.
+        The forecast cube provided is modified in place.
 
         Args:
             forecast_cube: Forecast to be calibrated.
-            template_forecast_cube: Template forecast cube that acts only as a template.
-                This is expected to have
-            qrf_model (RandomForestQuantileRegressor): _description_
-            feature_cubes (Optional[CubeList], optional): _description_. Defaults to None.
-
-        Returns:
-            Cube: _description_
         """
         if self.transformation:
             if self.transformation == "log":
@@ -383,6 +513,28 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
             elif self.transformation == "cbrt":
                 forecast_cube.data = forecast_cube.data**3 - self.pre_transform_addition
 
+    def process(
+        self,
+        qrf_model: RandomForestQuantileRegressor,
+        feature_cubes: CubeList,
+        template_forecast_cube: Cube,
+    ) -> Cube:
+        """Apply a quantile regression random forests model.
+
+        Args:
+            qrf_model: A trained QRF model.
+            feature_cubes: CubeList of features. This should include the forecast to be
+                calibrated, if that has been used as a feature in the training, and
+                any features that can be provided as cubes.
+            template_forecast_cube: Template forecast cube that provides the required
+                metadata and shape for the output cube. The data from this cube will not
+                be used.
+
+        Returns:
+            Calibrated forecast cube with the same metadata as the template
+            forecast cube.
+
+        """
         feature_values = []
 
         for feature_name in self.feature_config.keys():
@@ -393,10 +545,14 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
                 )
 
         feature_values = np.array(feature_values).T
-        calibrated_forecast = qrf_model.predict(feature_values, self.quantiles)
+        calibrated_forecast = qrf_model.predict(
+            feature_values, quantiles=self.quantiles
+        )
         calibrated_forecast = np.float32(calibrated_forecast)
 
-        calibrated_forecast_cube = forecast_cube.copy(
-            data=np.broadcast_to(calibrated_forecast.T, forecast_cube.shape)
+        calibrated_forecast_cube = template_forecast_cube.copy(
+            data=np.broadcast_to(calibrated_forecast.T, template_forecast_cube.shape)
         )
+        self._reverse_transformation(calibrated_forecast_cube)
+
         return calibrated_forecast_cube

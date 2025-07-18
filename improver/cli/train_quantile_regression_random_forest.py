@@ -95,8 +95,7 @@ def process(
         LoadAndTrainQRF,
     )
 
-    result = LoadAndTrainQRF()(
-        file_paths,
+    result = LoadAndTrainQRF(
         experiment=experiment,
         feature_config=feature_config,
         target_diagnostic_name=target_diagnostic_name,
@@ -109,6 +108,8 @@ def process(
         transformation=transformation,
         pre_transform_addition=pre_transform_addition,
         compression=compression,
+    )(
+        file_paths,
         model_output=model_output,
     )
     return result
