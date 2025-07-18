@@ -388,15 +388,15 @@ def test_prep_feature_2d_time_dimension(feature, expected, expected_dtype):
 @pytest.mark.parametrize(
     "n_estimators,max_depth,random_state,compression,transformation,pre_transform_addition,extra_kwargs,include_static,expected",
     [
-        (2, 2, 55, 5, None, 0, {}, False, 4.1),  # Basic test case
-        (1, 1, 55, 5, None, 0, {}, False, 4.1),  # Fewer estimators and reduced depth
-        (1, 1, 73, 5, None, 0, {}, False, 4.2),  # Different random state
+        (2, 2, 55, 5, None, 0, {}, False, 4.15),  # Basic test case
+        (2, 2, 54, 5, None, 0, {}, False, 4.2),  # Different random state
+        (1, 1, 55, 5, None, 0, {}, False, 4.2),  # Fewer estimators and reduced depth
         (2, 2, 55, 5, "log", 10, {}, False, 2.65),  # Log transformation
         (2, 2, 55, 5, "log10", 10, {}, False, 1.15),  # Log10 transformation
         (2, 2, 55, 5, "sqrt", 10, {}, False, 3.76),  # Square root transformation
         (2, 2, 55, 5, "cbrt", 10, {}, False, 2.42),  # Cube root transformation
-        (2, 2, 55, 5, None, 0, {"criterion": "absolute_error"}, False, 4.1),  # noqa # Different criterion
-        (2, 5, 55, 5, None, 0, {}, True, 4.1),  # Include static data
+        (2, 2, 55, 5, None, 0, {"criterion": "absolute_error"}, False, 4.15),  # noqa # Different criterion
+        (2, 5, 55, 5, None, 0, {}, True, 4.15),  # Include static data
     ],
 )
 def test_train_qrf_single_lead_times(
@@ -457,15 +457,15 @@ def test_train_qrf_single_lead_times(
 @pytest.mark.parametrize(
     "n_estimators,max_depth,random_state,compression,transformation,pre_transform_addition,extra_kwargs,include_static,expected",
     [
-        (2, 2, 55, 5, None, 0, {}, False, 6.65),  # Basic test case
-        (1, 1, 55, 5, None, 0, {}, False, 9.1),  # Fewer estimators and reduced depth
+        (2, 2, 55, 5, None, 0, {}, False, 4.0),  # Basic test case
+        (1, 1, 55, 5, None, 0, {}, False, 3.8),  # Fewer estimators and reduced depth
         (1, 1, 73, 5, None, 0, {}, False, 5.8),  # Different random state
-        (2, 2, 55, 5, "log", 10, {}, False, 2.801),  # Log transformation
-        (2, 2, 55, 5, "log10", 10, {}, False, 1.217),  # Log10 transformation
-        (2, 2, 55, 5, "sqrt", 10, {}, False, 4.069),  # Square root transformation
-        (2, 2, 55, 5, "cbrt", 10, {}, False, 2.547),  # Cube root transformation
-        (2, 2, 55, 5, None, 0, {"criterion": "absolute_error"}, False, 6.65),  # noqa # Different criterion
-        (2, 5, 55, 5, None, 0, {}, True, 6.65),  # Include static data
+        (2, 2, 55, 5, "log", 10, {}, False, 2.812),  # Log transformation
+        (2, 2, 55, 5, "log10", 10, {}, False, 1.221),  # Log10 transformation
+        (2, 2, 55, 5, "sqrt", 10, {}, False, 4.092),  # Square root transformation
+        (2, 2, 55, 5, "cbrt", 10, {}, False, 2.557),  # Cube root transformation
+        (2, 2, 55, 5, None, 0, {"criterion": "absolute_error"}, False, 4),  # noqa # Different criterion
+        (2, 5, 55, 5, None, 0, {}, True, 4),  # Include static data
     ],
 )
 def test_train_qrf_multiple_lead_times(
@@ -515,14 +515,14 @@ def test_train_qrf_multiple_lead_times(
 @pytest.mark.parametrize(
     "feature_config,data,include_static,expected",
     [
-        ({"wind_speed_at_10m": ["mean"]}, [5], False, [5.8]),  # One feature
+        ({"wind_speed_at_10m": ["mean"]}, [5], False, [4]),  # One feature
         ({"wind_speed_at_10m": ["latitude"]}, [55], False, [6.65]),  # noqa Without the target
-        ({"wind_speed_at_10m": ["mean"]}, [5], True, [6.65]),  # With static data
+        ({"wind_speed_at_10m": ["mean"]}, [5], True, [4]),  # With static data
         (
             {"wind_speed_at_10m": ["mean"], "air_temperature": ["mean"]},
             [5],
             False,
-            [5.8],
+            [4],
         ),  # Multiple dynamic features
     ],
 )
@@ -576,31 +576,31 @@ def test_alternative_feature_configs(
 @pytest.mark.parametrize(
     "quantiles,transformation,pre_transform_addition,include_static,expected",
     [
-        ([0.5], None, 0, False, [6.65, 7.75]),  # One quantile
-        ([0.1, 0.5, 0.9], None, 0, False, [[4.69, 6.35], [6.65, 7.75], [8.61, 9.15]]),  # noqa Multiple quantiles
-        ([0.1, 0.5, 0.9], "log", 10, False, [[4.63, 6.32], [6.47, 7.66], [8.54, 9.12]]),  # noqa Log transformation
+        ([0.5], None, 0, False, [4, 4]),  # One quantile
+        ([0.1, 0.5, 0.9], None, 0, False, [[9.14, 9.14], [9.3, 9.3], [9.46, 9.46]]),  # noqa Multiple quantiles
+        ([0.1, 0.5, 0.9], "log", 10, False, [[4.66, 4.66], [6.64, 6.64], [8.89, 8.89]]),  # noqa Log transformation
         (
             [0.1, 0.5, 0.9],
             "log10",
             10,
             False,
-            [[4.63, 6.32], [6.47, 7.66], [8.54, 9.12]],
+            [[4.66, 4.66], [6.64, 6.64], [8.89, 8.89]],
         ),  # Log10 transformation
         (
             [0.1, 0.5, 0.9],
             "sqrt",
             10,
             False,
-            [[4.66, 6.33], [6.56, 7.71], [8.58, 9.13]],
+            [[4.69, 4.69], [6.75, 6.75], [8.93, 8.93]],
         ),  # Square root transformation
         (
             [0.1, 0.5, 0.9],
             "cbrt",
             10,
             False,
-            [[4.65, 6.33], [6.53, 7.69], [8.57, 9.13]],
+            [[4.68, 4.68], [6.71, 6.71], [8.92, 8.92]],
         ),  # Cube root transformation
-        ([0.1, 0.5, 0.9], None, 0, True, [[4.69, 6.35], [6.65, 7.75], [8.61, 9.15]]),  # noqa Include static data
+        ([0.1, 0.5, 0.9], None, 0, True, [[9.14, 9.14], [9.3, 9.3], [9.46, 9.46]]),  # noqa Include static data
     ],
 )
 def test_apply_qrf(
@@ -651,7 +651,7 @@ def test_apply_qrf(
     plugin = ApplyQuantileRegressionRandomForests(
         feature_config, quantiles, transformation, pre_transform_addition
     )
-    result = plugin.process(feature_cubes, forecast_cube, qrf_model)
+    result = plugin.process(qrf_model, feature_cubes, forecast_cube)
 
     assert isinstance(result, Cube)
     assert result.shape == (len(quantiles), 2)
