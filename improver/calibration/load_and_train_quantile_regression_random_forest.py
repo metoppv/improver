@@ -185,29 +185,6 @@ class LoadAndTrainQRF(PostProcessingPlugin):
             msg = "Concatenating the forecast has failed to create a single cube."
             raise ValueError(msg)
 
-        # # Add time coordinate to the forecast cube.
-        # frt_dims = forecast_cube.coord_dims("forecast_reference_time")
-        # fp_dims = forecast_cube.coord_dims("forecast_period")
-        # if frt_dims == fp_dims:
-        #     time_dims = frt_dims
-        # else:
-        #     time_dims = frt_dims + fp_dims
-        # for frt, fp in zip(
-        #     list(forecast_cube.coord("forecast_reference_time").cells()),
-        #     forecast_cube.coord("forecast_period").points,
-        # ):
-        #     coord = iris.coords.AuxCoord(
-        #         datetime_to_iris_time(
-        #             frt.point._to_real_datetime()
-        #             + pd.to_timedelta(
-        #                 fp, unit=str(forecast_cube.coord("forecast_period").units)
-        #             )
-        #         ),
-        #         standard_name="time",
-        #         units=forecast_cube.coord("forecast_reference_time").units,
-        #     )
-        #     forecast_cube.add_aux_coord(coord, data_dims=time_dims)
-
         return forecast_cube, truth_cube
 
     @staticmethod

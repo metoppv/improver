@@ -17,9 +17,18 @@ from improver import BasePlugin, PostProcessingPlugin
 from improver.constants import DAYS_IN_YEAR, HOURS_IN_DAY
 
 
-def _remove_item_from_list(alist, items):
+def _remove_item_from_list(alist: list, items: list):
     """Remove items from a list. If no items can be removed,
-    return an empty list."""
+    return an empty list.
+    Args:
+        alist:
+            List from which items are to be removed.
+        items (list):
+            List of items to be removed from alist.
+    Returns:
+        A new list either containing the items that were not removed, or an empty list.
+
+    """
     entries_removed = 0
     new_list = []
     for entry in alist:
@@ -54,8 +63,6 @@ def prep_feature(
 
     collapsed_cube = template_cube.collapsed(["realization"], iris.analysis.MEAN)
 
-    # feature cube: train: "forecast_period", "forecast_reference_time", "realization", "spot_index"
-    # feature_cube: apply: "realization", "spot_index"
     dims = list(range(len(collapsed_cube.shape)))
     if "mean" == feature:
         feature_values = feature_cube.collapsed(
@@ -86,7 +93,6 @@ def prep_feature(
             dims = _remove_item_from_list(
                 dims, collapsed_cube.coord_dims("forecast_period")
             )
-            # dims.pop(collapsed_cube.coord_dims("forecast_period")[0])
             coord_multidim = np.expand_dims(
                 feature_cube.coord("model_weights").points, dims
             )
@@ -435,7 +441,6 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
 
         truth_data_list = self._organise_truth_data(forecast_cube, truth_cube)
         target_values = np.array(truth_data_list).flatten()
-        print(feature_values, feature_values.shape)
         # Fit the quantile regression model
         qrf_model = self.fit_qrf(feature_values, target_values)
 
