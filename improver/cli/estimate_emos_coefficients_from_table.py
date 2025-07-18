@@ -129,15 +129,13 @@ def process(
 
     # Load forecasts from parquet file filtering by diagnostic and blend_time.
     forecast_period_td = pd.Timedelta(int(forecast_period), unit="seconds")
-    # tz_localize(None) is used to facilitate filtering, although the dataframe
-    # is expected to be timezone aware upon load.
     cycletimes = pd.date_range(
         end=pd.Timestamp(cycletime)
         - pd.Timedelta(1, unit="days")
         - forecast_period_td.floor("D"),
         periods=int(training_length),
         freq="D",
-    ).tz_localize(None)
+    )
     filters = [[("diagnostic", "==", diagnostic), ("blend_time", "in", cycletimes)]]
     forecast_df = pd.read_parquet(forecast, filters=filters)
 
