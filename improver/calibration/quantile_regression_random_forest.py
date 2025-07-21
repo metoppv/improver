@@ -544,7 +544,16 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
 
         for feature_name in self.feature_config.keys():
             feature_cube = feature_cubes.extract(iris.Constraint(feature_name))
-            for feature in self.feature_config[feature_name]:
+            for index, feature in enumerate(self.feature_config[feature_name]):
+                if (
+                    self.transformation
+                    and feature in ["mean", "std"]
+                    and feature_cube[0].name() == template_forecast_cube.name()
+                    and index == 0
+                ):
+                    feature_cube[0].data = getattr(np, self.transformation)(
+                        feature_cube[0].data + self.pre_transform_addition
+                    )
                 feature_values.append(
                     prep_feature(template_forecast_cube, feature_cube[0], feature)
                 )
