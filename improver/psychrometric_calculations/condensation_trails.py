@@ -11,6 +11,9 @@ from iris.cube import Cube, CubeList
 
 from improver import BasePlugin
 from improver.constants import EARTH_REPSILON
+from improver.psychrometric_calculations.psychrometric_calculations import (
+    calculate_svp_in_air,
+)
 from improver.utilities.common_input_handle import as_cubelist
 
 
@@ -73,6 +76,22 @@ class CondensationTrailFormation(BasePlugin):
             / EARTH_REPSILON
         )
 
+    def _find_local_vapour_pressure(self, pressure_levels: np.ndarray) -> np.ndarray:
+        """
+        Calculate the local vapour pressure (svp) at the given pressure levels using the temperature and pressure data.
+
+        Args:
+            pressure_levels (np.ndarray): Pressure levels (Pa).
+
+        Returns:
+            np.ndarray: The localised vapour pressure at the given
+                pressure levels (Pa).
+        """
+        svp = calculate_svp_in_air(
+            temperature=self.temperature, pressure=pressure_levels
+        )
+        return self.relative_humidity * svp
+
     def process_from_arrays(
         self, temperature: np.ndarray, humidity: np.ndarray, pressure_levels: np.ndarray
     ) -> np.ndarray:
@@ -95,6 +114,9 @@ class CondensationTrailFormation(BasePlugin):
         self.humidity = humidity
         self.pressure_levels = pressure_levels
         self.engine_mixing_ratios = self._calculate_engine_mixing_ratios(
+            self.pressure_levels
+        )
+        self.local_vapour_pressure = self._find_local_vapour_pressure(
             self.pressure_levels
         )
         return self.engine_mixing_ratios
