@@ -12,6 +12,9 @@ import pytest
 from improver.psychrometric_calculations.condensation_trails import (
     CondensationTrailFormation,
 )
+from improver.psychrometric_calculations.psychrometric_calculations import (
+    calculate_svp_in_air,
+)
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 LOCAL_MANDATORY_ATTRIBUTES = {
@@ -168,3 +171,71 @@ def test_engine_mixing_ratio(
     # Check that _calculate_engine_mixing_ratios works after process
     mixing_ratios = plugin._calculate_engine_mixing_ratios(pressure_levels)
     np.testing.assert_array_equal(mixing_ratios, expected_mixing_ratios)
+
+
+@pytest.mark.parametrize(
+    "temperature, relative_humidity, pressure_levels, expected_vapour_pressure",
+    [
+        # Test with multiple pressure levels
+        (
+            np.array([250.0, 260.0, 270.0], dtype=np.float32),
+            np.array([0.5, 0.6, 0.7], dtype=np.float32),
+            np.array([100000, 90000, 80000], dtype=np.float32),
+            np.array(
+                [
+                    calculate_svp_in_air(
+                        np.float32(250.0), np.array([100000], dtype=np.float32)
+                    )
+                    * 0.5,
+                    calculate_svp_in_air(
+                        np.float32(260.0), np.array([90000], dtype=np.float32)
+                    )
+                    * 0.6,
+                    calculate_svp_in_air(
+                        np.float32(270.0), np.array([80000], dtype=np.float32)
+                    )
+                    * 0.7,
+                ],
+                dtype=np.float32,
+            ),
+        ),
+        # Test with single pressure level
+        (
+            np.array([280.0], dtype=np.float32),
+            np.array([0.8], dtype=np.float32),
+            np.array([95000], dtype=np.float32),
+            np.array(
+                [
+                    calculate_svp_in_air(
+                        np.float32(280.0), np.array([95000], dtype=np.float32)
+                    )
+                    * np.float32(0.8)
+                ],
+                dtype=np.float32,
+            ),
+        ),
+    ],
+)
+def test_find_local_vapour_pressure(
+    temperature: np.ndarray,
+    relative_humidity: np.ndarray,
+    pressure_levels: np.ndarray,
+    expected_vapour_pressure: np.ndarray,
+) -> None:
+    """
+    Test that _find_local_vapour_pressure returns the expected local vapour pressure values.
+
+    This test sets the temperature and relative_humidity attributes on the plugin,
+    calls _find_local_vapour_pressure, and checks the output against expected values.
+
+    Args:
+        temperature (np.ndarray): Array of temperature values (K).
+        relative_humidity (np.ndarray): Array of relative humidity values (fraction).
+        pressure_levels (np.ndarray): Array of pressure levels (Pa).
+        expected_vapour_pressure (np.ndarray): Expected vapour pressure output (Pa).
+    """
+    plugin = CondensationTrailFormation()
+    plugin.temperature = temperature
+    plugin.relative_humidity = relative_humidity
+    result = plugin._find_local_vapour_pressure(pressure_levels)
+    np.testing.assert_allclose(result, expected_vapour_pressure)
