@@ -16,6 +16,7 @@ from improver.metadata.probabilistic import (
     get_diagnostic_cube_name_from_probability_name,
 )
 from improver.utilities.cube_manipulation import MergeCubes
+from improver.utilities.flatten import flatten
 
 
 def split_forecasts_and_truth(
@@ -244,7 +245,7 @@ def split_cubes_for_samos(
     if truth_attribute:
         truth_key, truth_value = truth_attribute.split("=")
 
-    for cube in cubes:
+    for cube in flatten(cubes):
         if "time" in [c.name() for c in cube.coords()]:
             if truth_key and cube.attributes.get(truth_key) == truth_value:
                 truth.append(cube.copy())
@@ -283,6 +284,7 @@ def split_cubes_for_samos(
         raise IOError(msg)
 
     # Split out prob_template cube if required.
+    emos_coefficients = emos_coefficients if emos_coefficients else None
     forecast_names = [c.name() for c in forecast]
     prob_forecast_names = [name for name in forecast_names if "probability" in name]
     if len(set(prob_forecast_names)) != 1:

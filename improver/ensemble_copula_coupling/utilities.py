@@ -350,3 +350,94 @@ def interpolate_multiple_rows_same_y(*args):
             "Module numba unavailable. ConvertProbabilitiesToPercentiles will be slower."
         )
         return slow_interp_same_y(*args)
+
+
+def prepare_cube_no_calibration(
+    forecast: Cube,
+    emos_coefficients: Cube,
+    ignore_ecc_bounds_exceedance: bool = False,
+    validity_times: List[str] = None,
+    percentiles: List[float] = None,
+    prob_template: Cube = None,
+) -> Cube:
+    """
+    Function to add appropriate metadata to cubes that cannot be calibrated. If the forecast
+    can be calibrated then nothing is returned.
+    Args:
+        forecast (iris.cube.Cube):
+            The forecast to be calibrated. The input format could be either
+            realizations, probabilities or percentiles.
+        validity_times (List[str]):
+            Times at which the forecast must be valid. This must be provided
+            as a four digit string (HHMM) where the first two digits represent the hour
+            and the last two digits represent the minutes e.g. 0300 or 0315. If the
+            forecast provided is at a different validity time then no coefficients
+            will be applied.
+        emos_coefficients (iris.cube.Cube):
+            The EMOS coefficients to be applied to the forecast.
+        percentiles (List[float]):
+            The set of percentiles used to create the calibrated forecast.
+        ignore_ecc_bounds_exceedance (bool):
+            If True, where the percentiles exceed the ECC bounds range,
+            raises a warning rather than an exception. This occurs when the
+            current forecasts is in the form of probabilities and is
+            converted to percentiles, as part of converting the input
+            probabilities into realizations.
+        prob_template (iris.cube.Cube):
+            Optionally, a cube containing a probability forecast that will be
+            used as a template when generating probability output when the input
+            format of the forecast cube is not probabilities i.e. realizations
+            or percentiles. If no coefficients are provided and a probability
+            template is provided, the probability template forecast will be
+            returned as the uncalibrated probability forecast.
+    Returns:
+        iris.cube.Cube:
+            The prepared forecast cube.
+    """
+    from improver.calibration import add_warning_comment, validity_time_check
+    from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
+        ResamplePercentiles,
+    )
+
+    if validity_times is not None and not validity_time_check(forecast, validity_times):
+        if percentiles:
+            # Ensure that a consistent set of percentiles are returned,
+            # regardless of whether SAMOS is successfully applied.
+            percentiles = [np.float32(p) for p in percentiles]
+            forecast = ResamplePercentiles(
+                ecc_bounds_warning=ignore_ecc_bounds_exceedance
+            )(forecast, percentiles=percentiles)
+        elif prob_template:
+            forecast = prob_template
+        forecast = add_warning_comment(forecast)
+        return forecast
+    print(emos_coefficients)
+    if emos_coefficients is None:
+        if prob_template:
+            msg = (
+                "There are no coefficients provided for calibration. As a "
+                "probability template has been provided with the aim of "
+                "creating a calibrated probability forecast, the probability "
+                "template will be returned as the uncalibrated probability "
+                "forecast."
+            )
+            warnings.warn(msg)
+            prob_template = add_warning_comment(prob_template)
+            return prob_template
+
+        if percentiles:
+            # Ensure that a consistent set of percentiles are returned,
+            # regardless of whether SAMOS is successfully applied.
+            percentiles = [np.float32(p) for p in percentiles]
+            forecast = ResamplePercentiles(
+                ecc_bounds_warning=ignore_ecc_bounds_exceedance
+            )(forecast, percentiles=percentiles)
+
+        msg = (
+            "There are no coefficients provided for calibration. The "
+            "uncalibrated forecast will be returned."
+        )
+        warnings.warn(msg)
+
+        forecast = add_warning_comment(forecast)
+        return forecast

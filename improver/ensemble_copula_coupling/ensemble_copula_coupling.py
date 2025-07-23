@@ -1003,10 +1003,10 @@ class ConvertLocationAndScaleParametersToPercentiles(
             result[index, :] = percentile_method.ppf(percentile_list)
             # If percent point function (PPF) returns NaNs, fill in
             # mean instead of NaN values. NaN will only be generated if the
-            # scale parameter (standard deviation) is zero. Therefore, if the
-            # scale parameter (standard deviation) is zero, the mean value is
+            # scale parameter (standard deviation) is zero or negative. Therefore, if the
+            # scale parameter (standard deviation) is zero or negative, the mean value is
             # used for all gridpoints with a NaN.
-            if np.any(scale_data == 0):
+            if np.any(scale_data <= 0):
                 nan_index = np.argwhere(np.isnan(result[index, :]))
                 result[index, nan_index] = location_data[nan_index]
             if np.any(np.isnan(result)):
