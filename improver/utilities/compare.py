@@ -383,7 +383,9 @@ def compare_objects(
     actual_var: PathLike, desired_var: PathLike, reporter: Callable[[str], None]
 ) -> None:
     """
-    Compare two pickled objects.
+    Compare two pickled objects. This is not a complete comparison as two
+    objects may have the same string representation but be different
+    objects.
 
     Args:
         actual_var: Path to the pickled object produced by test run.

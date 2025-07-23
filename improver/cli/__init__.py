@@ -362,7 +362,7 @@ def with_output(
 
     result = wrapped(*args, **kwargs)
 
-    if output and type(result) is Cube or CubeList:
+    if output and (type(result) is Cube or type(result) is CubeList):
         save_netcdf(result, output, compression_level, least_significant_digit)
         if pass_through_output:
             return ObjectAsStr(result, output)
