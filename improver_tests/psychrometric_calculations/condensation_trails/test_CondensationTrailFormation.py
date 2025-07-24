@@ -181,38 +181,22 @@ def test_engine_mixing_ratio(
             np.array([250.0, 260.0, 270.0], dtype=np.float32),
             np.array([0.5, 0.6, 0.7], dtype=np.float32),
             np.array([100000, 90000, 80000], dtype=np.float32),
-            np.array(
-                [
-                    calculate_svp_in_air(
-                        np.float32(250.0), np.array([100000], dtype=np.float32)
-                    )
-                    * 0.5,
-                    calculate_svp_in_air(
-                        np.float32(260.0), np.array([90000], dtype=np.float32)
-                    )
-                    * 0.6,
-                    calculate_svp_in_air(
-                        np.float32(270.0), np.array([80000], dtype=np.float32)
-                    )
-                    * 0.7,
-                ],
-                dtype=np.float32,
-            ),
+            calculate_svp_in_air(
+                np.array([250.0, 260.0, 270.0], dtype=np.float32),
+                np.array([100000, 90000, 80000], dtype=np.float32),
+            )
+            * np.array([0.5, 0.6, 0.7], dtype=np.float32),
         ),
         # Test with single pressure level
         (
             np.array([280.0], dtype=np.float32),
             np.array([0.8], dtype=np.float32),
             np.array([95000], dtype=np.float32),
-            np.array(
-                [
-                    calculate_svp_in_air(
-                        np.float32(280.0), np.array([95000], dtype=np.float32)
-                    )
-                    * np.float32(0.8)
-                ],
-                dtype=np.float32,
-            ),
+            calculate_svp_in_air(
+                np.array([280.0], dtype=np.float32),
+                np.array([95000], dtype=np.float32),
+            )
+            * np.array([0.8], dtype=np.float32),
         ),
     ],
 )
