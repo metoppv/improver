@@ -90,7 +90,7 @@ class CondensationTrailFormation(BasePlugin):
         svp = calculate_svp_in_air(
             temperature=self.temperature, pressure=pressure_levels
         )
-        return self.relative_humidity * svp
+        return np.array(self.relative_humidity * svp, dtype=np.float32)
 
     def process_from_arrays(
         self, temperature: np.ndarray, humidity: np.ndarray, pressure_levels: np.ndarray
