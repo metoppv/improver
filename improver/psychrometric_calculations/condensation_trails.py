@@ -93,7 +93,10 @@ class CondensationTrailFormation(BasePlugin):
         return np.array(self.relative_humidity * svp, dtype=np.float32)
 
     def process_from_arrays(
-        self, temperature: np.ndarray, humidity: np.ndarray, pressure_levels: np.ndarray
+        self,
+        temperature: np.ndarray,
+        relative_humidity: np.ndarray,
+        pressure_levels: np.ndarray,
     ) -> np.ndarray:
         """
         Main entry point of this class for data as Numpy arrays
@@ -103,7 +106,7 @@ class CondensationTrailFormation(BasePlugin):
 
         Args:
             temperature (np.ndarray): Temperature data on pressure levels where pressure is the leading axis (K).
-            humidity (np.ndarray): Relative humidity data on pressure levels where pressure is the leading axis (kg kg-1).
+            relative_humidity (np.ndarray): Relative humidity data on pressure levels where pressure is the leading axis (kg kg-1).
             pressure_levels (np.ndarray): Pressure levels (Pa).
 
         Returns:
@@ -111,7 +114,7 @@ class CondensationTrailFormation(BasePlugin):
             This is a placeholder until the full contrail formation logic is implemented.
         """
         self.temperature = temperature
-        self.humidity = humidity
+        self.relative_humidity = relative_humidity
         self.pressure_levels = pressure_levels
         self.engine_mixing_ratios = self._calculate_engine_mixing_ratios(
             self.pressure_levels
