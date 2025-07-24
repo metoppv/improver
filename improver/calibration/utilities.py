@@ -109,6 +109,7 @@ def flatten_ignoring_masked_data(
         # dimension is inferred through the use of -1.
         final_shape = (data_array.shape[0], -1)
         result = result.reshape(final_shape)
+
     return result
 
 

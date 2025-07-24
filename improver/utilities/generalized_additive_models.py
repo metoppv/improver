@@ -120,8 +120,20 @@ class GAMFit(BasePlugin):
         Returns:
             A fitted pyGAM GAM model.
         """
+        # Monkey patch for pyGAM due to handling of sparse arrays in some versions of
+        # scipy.
+        import scipy.sparse
+
+        def to_array(self):
+            return self.toarray()
+
+        scipy.sparse.spmatrix.A = property(to_array)
         # Import from pygam here to minimize dependencies
         from pygam import GAM
+
+        # Remove nans from arrays.
+        predictors = predictors[~np.isnan(targets)]
+        targets = targets[~np.isnan(targets)]
 
         eqn = self.create_pygam_model()
         gam = GAM(

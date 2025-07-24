@@ -2,7 +2,7 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""Unit tests for the GAMPredict class within statistical.py"""
+"""Unit tests for the GAMPredict class within generalized_additive_models.py"""
 
 import numpy as np
 import pytest
@@ -46,6 +46,14 @@ def test_process(X_new, expected):
     The "wage" dataset used in this test consists of the features Year, Age, and
     Education (as a category) with the target being a value for the expected wage.
     """
+    # Monkey patch for pyGAM due to handling of sparse arrays in some versions of
+    # scipy.
+    import scipy.sparse
+
+    def to_array(self):
+        return self.toarray()
+
+    scipy.sparse.spmatrix.A = property(to_array)
     # Skip test if pyGAM not available.
     pytest.importorskip("pygam")
     from pygam import GAM, f, s
