@@ -117,46 +117,20 @@ def process(
     """
 
     import iris
-    import pandas as pd
     from iris.cube import CubeList
 
-    from improver.calibration.dataframe_utilities import (
-        forecast_and_truth_dataframes_to_cubes,
-    )
     from improver.calibration.emos_calibration import (
         EstimateCoefficientsForEnsembleCalibration,
     )
+    from improver.ensemble_copula_coupling.utilities import convert_parquet_to_cube
 
-    # Load forecasts from parquet file filtering by diagnostic and blend_time.
-    forecast_period_td = pd.Timedelta(int(forecast_period), unit="seconds")
-    # tz_localize(None) is used to facilitate filtering, although the dataframe
-    # is expected to be timezone aware upon load.
-    cycletimes = pd.date_range(
-        end=pd.Timestamp(cycletime)
-        - pd.Timedelta(1, unit="days")
-        - forecast_period_td.floor("D"),
-        periods=int(training_length),
-        freq="D",
-    ).tz_localize(None)
-    filters = [[("diagnostic", "==", diagnostic), ("blend_time", "in", cycletimes)]]
-    forecast_df = pd.read_parquet(forecast, filters=filters)
-
-    # Load truths from parquet file filtering by diagnostic.
-    filters = [[("diagnostic", "==", diagnostic)]]
-    truth_df = pd.read_parquet(truth, filters=filters)
-    if truth_df.empty:
-        msg = (
-            f"The requested filepath {truth} does not contain the "
-            f"requested contents: {filters}"
-        )
-        raise IOError(msg)
-
-    forecast_cube, truth_cube = forecast_and_truth_dataframes_to_cubes(
-        forecast_df,
-        truth_df,
-        cycletime,
-        forecast_period,
-        training_length,
+    forecast_cube, truth_cube = convert_parquet_to_cube(
+        forecast,
+        truth,
+        diagnostic=diagnostic,
+        cycletime=cycletime,
+        forecast_period=forecast_period,
+        training_length=training_length,
         percentiles=percentiles,
         experiment=experiment,
     )
