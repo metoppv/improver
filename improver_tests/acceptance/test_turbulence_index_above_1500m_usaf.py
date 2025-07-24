@@ -28,8 +28,8 @@ def test_basic(tmp_path, with_model_attr):
         kgo_dir / "VWindComponentAt550mb.nc",
         kgo_dir / "UWindComponentAt500mb.nc",
         kgo_dir / "VWindComponentAt500mb.nc",
-        kgo_dir / "GeopotentialHeightAt550.nc",
-        kgo_dir / "GeopotentialHeightAt500.nc",
+        kgo_dir / "GeopotentialHeightAt550mb.nc",
+        kgo_dir / "GeopotentialHeightAt500mb.nc",
         "--output",
         f"{output_path}",
     ]
