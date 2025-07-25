@@ -14,7 +14,6 @@ def process(
     *file_paths: cli.inputpath,
     feature_config: cli.inputjson,
     target_cube_name: str,
-    n_estimators: int = 100,
     transformation: str = None,
     pre_transform_addition: float = 0,
 ):
@@ -52,8 +51,6 @@ def process(
             A string containing the cube name of the forecast to be
             calibrated. This will be used to separate it from the rest of the
             feature cubes, if present.
-        n_estimators (int):
-            Number of trees in the forest.
         transformation (str):
             Transformation to be applied to the data before fitting.
         pre_transform_addition (float):
@@ -71,7 +68,6 @@ def process(
         file_paths,
         feature_config=feature_config,
         target_cube_name=target_cube_name,
-        n_estimators=n_estimators,
         transformation=transformation,
         pre_transform_addition=pre_transform_addition,
     )

@@ -32,7 +32,7 @@ class LoadAndApplyQRF(PostProcessingPlugin):
         feature_config: dict[str, list[str]],
         target_cube_name: str,
         transformation: str = None,
-        pre_transform_addition: float = 0,
+        pre_transform_addition: float = None,
     ):
         """Initialise the plugin.
 
@@ -131,6 +131,10 @@ class LoadAndApplyQRF(PostProcessingPlugin):
             )
             raise ValueError(msg)
 
+        if not qrf_model:
+            # The specified model doesn't exist and the forecast will not be calibrated
+            return forecast_cube
+        
         # If target diagnostic not a feature in the training then remove.
         if self.target_cube_name not in self.feature_config.keys():
             cube_inputs.remove(forecast_cube)

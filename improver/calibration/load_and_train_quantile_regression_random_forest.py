@@ -78,6 +78,9 @@ class LoadAndTrainQRF(PostProcessingPlugin):
                         truth_table_path = file_path
                     if forecast_table_path and truth_table_path:
                         break
+            except OSError:
+                print("The directory doesn't exist, calibration is skipped for this cycle")
+                return
 
         if len(self.feature_config.keys()) not in [
             len(cube_inputs),
@@ -122,6 +125,7 @@ class LoadAndTrainQRF(PostProcessingPlugin):
                 ("experiment", "==", self.experiment),
             ]
         ]
+
         for file in Path(forecast_table_path).glob("**/*.parquet"):
             if pq.read_schema(file).get_all_field_indices("percentile"):
                 altered_schema = FORECAST_SCHEMA
@@ -162,6 +166,7 @@ class LoadAndTrainQRF(PostProcessingPlugin):
         truth_df = pd.read_parquet(
             truth_table_path, filters=filters, schema=TRUTH_SCHEMA, engine="pyarrow"
         )
+        
         truth_df["time"] = pd.to_datetime(truth_df["time"], unit="ns", utc=True)
 
         if truth_df.empty:

@@ -501,6 +501,7 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
                 f"and cbrt. The transformation supplied was {self.transformation}."
             )
             raise ValueError(msg)
+        print(pre_transform_addition)
         self.pre_transform_addition = pre_transform_addition
 
     def _reverse_transformation(self, forecast_cube: Cube):
