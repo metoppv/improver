@@ -87,9 +87,13 @@ class CondensationTrailFormation(BasePlugin):
             np.ndarray: The localised vapour pressure at the given
                 pressure levels (Pa).
         """
+        # Pressure levels has to be reshaped to match the temperature and humidity dimensions
+        pressure_levels_reshaped = np.reshape(
+            pressure_levels,
+            (len(pressure_levels),) + (1,) * (self.temperature.ndim - 1),
+        )
         svp = calculate_svp_in_air(
-            temperature=self.temperature,
-            pressure=pressure_levels[:, np.newaxis, np.newaxis],  # Reshape for 3D array
+            temperature=self.temperature, pressure=pressure_levels_reshaped
         )
         return self.relative_humidity * svp
 
