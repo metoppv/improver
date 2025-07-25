@@ -64,11 +64,12 @@ def process(
         LoadAndApplyQRF,
     )
 
-    result = LoadAndApplyQRF()(
-        file_paths,
+    result = LoadAndApplyQRF(
         feature_config=feature_config,
         target_cube_name=target_cube_name,
         transformation=transformation,
         pre_transform_addition=pre_transform_addition,
+    )(
+        file_paths,
     )
     return result

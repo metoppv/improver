@@ -43,21 +43,21 @@ def process(
             for calibration.
             - Optionally, paths to NetCDF files containing additional preictors.
         feature_config (dict):
-            Feature configuration defining the features to be used for quantile regression.
-                The configuration is a dictionary of strings, where the keys are the names of
-                the input cube(s) supplied, and the values are a list. This list can contain both
-                computed features, such as the mean or standard deviation (std), or static
-                features, such as the altitude. The computed features will be computed using
-                the cube defined in the dictionary key. If the key is the feature itself e.g.
-                a distance to water cube, then the value should state "static". This will ensure
-                the cube's data is used as the feature.
-                The config will have the structure:
-                "DYNAMIC_VARIABLE_NAME": ["FEATURE1", "FEATURE2"] e.g:
-                {
-                "air_temperature": ["mean", "std", "altitude"],
-                "visibility_at_screen_level": ["mean", "std"]
-                "distance_to_water": ["static"],
-                }
+            Feature configuration defining the features to be used for quantile
+            regression. The configuration is a dictionary of strings, where the
+            keys are the names of the input cube(s) supplied, and the values are a list.
+            This list can contain both computed features, such as the mean or standard
+            deviation (std), or static features, such as the altitude. The computed
+            features will be computed using the cube defined in the dictionary key.
+            If the key is the feature itself e.g. a distance to water cube, then the
+            value should state "static". This will ensure the cube's data is used as
+            the feature. The config will have the structure:
+            "DYNAMIC_VARIABLE_NAME": ["FEATURE1", "FEATURE2"] e.g:
+            {
+            "air_temperature": ["mean", "std", "altitude"],
+            "visibility_at_screen_level": ["mean", "std"]
+            "distance_to_water": ["static"],
+            }
         target_diagnostic_name (str):
             A string containing the diagnostic name of the forecast to be
             calibrated. This will be used to filter the target forecast and truth

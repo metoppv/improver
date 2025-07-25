@@ -79,10 +79,9 @@ class LoadAndTrainQRF(PostProcessingPlugin):
                     if forecast_table_path and truth_table_path:
                         break
             except OSError:
-                print(
-                    "The directory doesn't exist, calibration is skipped for this cycle"
-                )
-                return
+                # This will occur when the filepath does not exist. In this case,
+                # return None.
+                return None, None, None
 
         if len(self.feature_config.keys()) not in [
             len(cube_inputs),

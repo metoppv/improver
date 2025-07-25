@@ -15,7 +15,7 @@ import pytest
 
 from improver import cli
 from improver.constants import DEFAULT_TOLERANCE
-from improver.utilities.compare import compare_netcdfs
+from improver.utilities.compare import compare_netcdfs, compare_pickled_forest
 
 RECREATE_DIR_ENVVAR = "RECREATE_KGO"
 ACC_TEST_DIR_ENVVAR = "IMPROVER_ACC_TEST_DIR"
@@ -306,6 +306,7 @@ def compare(
     rtol=DEFAULT_TOLERANCE,
     exclude_vars=None,
     exclude_attributes=None,
+    file_type="netCDF",
 ):
     """
     Compare output against expected using KGO file with absolute and
@@ -348,15 +349,23 @@ def compare(
     else:
         exclude_attributes = IGNORED_ATTRIBUTES
 
-    compare_netcdfs(
-        output_path,
-        kgo_path,
-        atol=atol,
-        rtol=rtol,
-        exclude_vars=exclude_vars,
-        reporter=message_recorder,
-        ignored_attributes=exclude_attributes,
-    )
+    if file_type == "netCDF":
+        compare_netcdfs(
+            output_path,
+            kgo_path,
+            atol=atol,
+            rtol=rtol,
+            exclude_vars=exclude_vars,
+            reporter=message_recorder,
+            ignored_attributes=exclude_attributes,
+        )
+    elif file_type == "pickled_forest":
+        compare_pickled_forest(
+            output_path,
+            kgo_path,
+            reporter=message_recorder,
+        )
+
     if difference_found:
         if recreate:
             recreate_if_needed(output_path, kgo_path)
