@@ -28,7 +28,6 @@ class LoadAndApplyQRF(PostProcessingPlugin):
         file_paths: pathlib.Path,
         feature_config: dict,
         target_cube_name: str,
-        n_estimators: int = 100,
         transformation: str = None,
         pre_transform_addition: float = None,
     ):
@@ -66,8 +65,6 @@ class LoadAndApplyQRF(PostProcessingPlugin):
                 A string containing the cube name of the forecast to be
                 calibrated. This will be used to separate it from the rest of the
                 dynamic predictors, if present.
-            n_estimators (int):
-                Number of trees in the forest.
             transformation (str):
                 Transformation to be applied to the data before fitting.
             pre_transform_addition (float):
@@ -155,7 +152,6 @@ class LoadAndApplyQRF(PostProcessingPlugin):
         result = ApplyQuantileRegressionRandomForests(
             feature_config=feature_config,
             quantiles=percentiles,
-            n_estimators=n_estimators,
             transformation=transformation,
             pre_transform_addition=pre_transform_addition,
         )(forecast_cube, template_forecast_cube, qrf_model, cube_inputs)

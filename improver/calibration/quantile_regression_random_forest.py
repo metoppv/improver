@@ -222,7 +222,6 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
         self,
         feature_config,
         quantiles,
-        n_estimators,
         transformation,
         pre_transform_addition,
     ):
@@ -246,8 +245,6 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
                 }
             quantiles (float):
                 Quantiles used for prediction (values ranging from 0 to 1)
-            n_estimators (int):
-                Number of trees in the forest.
             transformation (str):
                 Transformation to be applied to the data before fitting.
             pre_transform_addition (float):
@@ -256,7 +253,6 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
 
         self.feature_config = feature_config
         self.quantiles = quantiles
-        self.n_estimators = n_estimators
         self.transformation = transformation
         if self.transformation not in ["log", "log10", "sqrt", "cbrt", None]:
             msg = (
