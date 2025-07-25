@@ -4,7 +4,7 @@
 # See LICENSE in the root of the repository for full licensing details.
 """A module for generating a distance to feature ancillary cube."""
 
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from geopandas import GeoDataFrame, GeoSeries, clip
 from iris.cube import Cube
@@ -32,7 +32,12 @@ class DistanceTo(BasePlugin):
     geometry but information may be lost at the edges of the domain.
     """
 
-    def __init__(self, new_name: str = None, buffer: float = 30000, clip: bool = False):
+    def __init__(
+        self,
+        new_name: Optional[str] = None,
+        buffer: float = 30000,
+        clip_geometry_flag: bool = False,
+    ):
         """Initialise the DistanceTo plugin.
         Args:
             new_name:
@@ -41,10 +46,15 @@ class DistanceTo(BasePlugin):
                 A buffer distance in m. If the geometry is clipped, this distance will
                 be added onto the outermost site locations to define the domain to clip
                 the geometry to.
+            clip_geometry_flag:
+                A flag to indicate whether the geometry should be clipped to the bounds of
+                the site locations with a buffer distance added to the bounds. If set to
+                False, the full geometry will be used to calculate the distance to the
+                nearest feature.
         """
         self.new_name = new_name
         self.buffer = buffer
-        self.clip = clip
+        self.clip_geometry_flag = clip_geometry_flag
 
     def clip_coordinates(self, points: List[float]) -> List[float]:
         """Get the coordinates to use when clipping the geometry. This is determined by
@@ -88,10 +98,12 @@ class DistanceTo(BasePlugin):
             geometry, mask=[bounds_x[0], bounds_y[0], bounds_x[1], bounds_y[1]]
         )
         if clipped_geometry.empty:
-            raise ValueError(f"""Clipping the geometry with a buffer size of
-                             {self.buffer}m has produced an empty geometry. Either
-                             increase the buffer size or set clip to False to use the
-                             full geometry.""")
+            raise ValueError(
+                "Clipping the geometry with a buffer size of "
+                f"{self.buffer}m has produced an empty geometry. Either "
+                "increase the buffer size or set clip_geometry_flag to "
+                "False to use the full geometry."
+            )
 
         return clipped_geometry
 
@@ -113,13 +125,13 @@ class DistanceTo(BasePlugin):
         x_points = site_cube.coord(axis="x").points
         y_points = site_cube.coord(axis="y").points
 
-        points = [Point(x, y) for x, y in zip(x_points, y_points)]
+        site_points_list = [Point(x, y) for x, y in zip(x_points, y_points)]
 
         projection_dict = {"latitude": 4326, "projection_y_coordinate": 3035}
 
         site_coord = site_cube.coord(axis="y").name()
 
-        site_points = GeoSeries(points, crs=projection_dict[site_coord])
+        site_points = GeoSeries(site_points_list, crs=projection_dict[site_coord])
         geometry_reprojection = geometry.to_crs(3035)
         site_points = site_points.to_crs(3035)
         return site_points, geometry_reprojection
@@ -204,7 +216,7 @@ class DistanceTo(BasePlugin):
         # projection.
         site_coords, geometry_projection = self.project_geometry(geometry, site_cube)
 
-        if self.clip:
+        if self.clip_geometry_flag:
             # Clip the geometry to the bounds of the site coordinates with a buffer if
             # requested
             x_bounds = self.clip_coordinates(site_coords.x)

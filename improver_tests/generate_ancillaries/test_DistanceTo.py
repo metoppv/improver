@@ -14,7 +14,7 @@ from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 
 
 @pytest.fixture()
-def geometry_point_latlong():
+def geometry_point_latlon():
     """Create a single point geometry on a latitude, longitude grid.
     The location of the points is identical to geometry_point_laea, but in a different
     CRS.
@@ -38,7 +38,7 @@ def geometry_point_latlong():
 @pytest.fixture()
 def geometry_point_laea():
     """Create a single point geometry on a Lambert azimuthal equal-area grid.
-    The location of the points is identical to geometry_point_latlong, but in a
+    The location of the points is identical to geometry_point_latlon, but in a
     different CRS.
 
     The points locations look like:
@@ -57,7 +57,7 @@ def geometry_point_laea():
 
 
 @pytest.fixture()
-def geometry_line_latlong():
+def geometry_line_latlon():
     """Create a simple line geometry on a latitude, longitude grid.
     The line defined is identical to geometry_line_laea, but in a different CRS.
 
@@ -86,7 +86,7 @@ def geometry_line_latlong():
 @pytest.fixture()
 def geometry_line_laea():
     """Create a simple line geometry on a Lambert azimuthal equal area grid.
-    The line defined is identical to geometry_point_latlong, but in a different CRS.
+    The line defined is identical to geometry_point_latlon, but in a different CRS.
 
     The line looks like:
              x-------x
@@ -110,7 +110,7 @@ def geometry_line_laea():
 
 
 @pytest.fixture()
-def geometry_polygon_latlong():
+def geometry_polygon_latlon():
     """Create a simple polygon geometry on a latitude, longitude grid.
     The polygon defined is identical to geometry_polygon_laea, but in a different CRS.
 
@@ -137,7 +137,7 @@ def geometry_polygon_latlong():
 @pytest.fixture()
 def geometry_polygon_laea():
     """Create a simple polygon geometry on a Lambert azimuthal equal area grid.
-    The polygon defined is identical to geometry_polygon_latlong, but in a different CRS.
+    The polygon defined is identical to geometry_polygon_latlon, but in a different CRS.
 
     The polygon looks like:
              x-------x
@@ -227,7 +227,7 @@ def multiple_site_cube():
     ],
 )
 @pytest.mark.parametrize(
-    "shape_file_crs", ["geometry_point_laea", "geometry_point_latlong"]
+    "shape_file_crs", ["geometry_point_laea", "geometry_point_latlon"]
 )
 def test_distance_to_with_points_geometry(
     single_site_cube,
@@ -269,9 +269,7 @@ def test_distance_to_with_points_geometry(
         ),  # Site is at the exact centre of the square formed by the line
     ],
 )
-@pytest.mark.parametrize(
-    "geometry_crs", ["geometry_line_laea", "geometry_line_latlong"]
-)
+@pytest.mark.parametrize("geometry_crs", ["geometry_line_laea", "geometry_line_latlon"])
 def test_distance_to_with_line_geometry(
     single_site_cube,
     geometry_crs,
@@ -314,7 +312,7 @@ def test_distance_to_with_line_geometry(
     ],
 )
 @pytest.mark.parametrize(
-    "geometry_crs", ["geometry_polygon_laea", "geometry_polygon_latlong"]
+    "geometry_crs", ["geometry_polygon_laea", "geometry_polygon_latlon"]
 )
 def test_distance_to_with_polygon_geometry(
     single_site_cube,
@@ -347,7 +345,7 @@ def test_distance_to_with_polygon_geometry(
         ("polygon", [0, 0, 0, 500]),
     ],
 )
-@pytest.mark.parametrize("geometry_crs", ("laea", "latlong"))
+@pytest.mark.parametrize("geometry_crs", ("laea", "latlon"))
 def test_distance_to_with_multiple_sites(
     multiple_site_cube,
     geometry_type,
@@ -411,9 +409,11 @@ def test_distance_to_clipping_loss_of_data(
     geometry = GeoDataFrame(geometry=data, crs="EPSG:3035")
 
     if clip:
-        output_cube = DistanceTo(clip=True, buffer=buffer)(site_cubes, geometry)
+        output_cube = DistanceTo(clip_geometry_flag=True, buffer=buffer)(
+            site_cubes, geometry
+        )
     else:
-        output_cube = DistanceTo(clip=False)(site_cubes, geometry)
+        output_cube = DistanceTo(clip_geometry_flag=False)(site_cubes, geometry)
 
     assert output_cube.name() == "rain_rate"
     assert output_cube.units == "m"
@@ -427,4 +427,6 @@ def test_distance_to_with_empty_geometry(single_site_cube, geometry_point_laea):
     with pytest.raises(
         ValueError, match="Clipping the geometry with a buffer size of 100m"
     ):
-        DistanceTo(clip=True, buffer=100)(single_site_cube, geometry_point_laea)
+        DistanceTo(clip_geometry_flag=True, buffer=100)(
+            single_site_cube, geometry_point_laea
+        )
