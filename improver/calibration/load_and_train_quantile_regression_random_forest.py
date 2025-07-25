@@ -79,7 +79,9 @@ class LoadAndTrainQRF(PostProcessingPlugin):
                     if forecast_table_path and truth_table_path:
                         break
             except OSError:
-                print("The directory doesn't exist, calibration is skipped for this cycle")
+                print(
+                    "The directory doesn't exist, calibration is skipped for this cycle"
+                )
                 return
 
         if len(self.feature_config.keys()) not in [
@@ -166,7 +168,7 @@ class LoadAndTrainQRF(PostProcessingPlugin):
         truth_df = pd.read_parquet(
             truth_table_path, filters=filters, schema=TRUTH_SCHEMA, engine="pyarrow"
         )
-        
+
         truth_df["time"] = pd.to_datetime(truth_df["time"], unit="ns", utc=True)
 
         if truth_df.empty:

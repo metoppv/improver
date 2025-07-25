@@ -14,6 +14,7 @@ from iris.cube import Cube, CubeList
 from quantile_forest import RandomForestQuantileRegressor
 
 from improver import PostProcessingPlugin
+from improver.calibration import add_warning_comment
 from improver.calibration.quantile_regression_random_forest import (
     ApplyQuantileRegressionRandomForests,
 )
@@ -120,6 +121,7 @@ class LoadAndApplyQRF(PostProcessingPlugin):
             raise ValueError(msg)
 
         if not qrf_model:
+            forecast_cube = add_warning_comment(forecast_cube)
             return None, forecast_cube, None
 
         if len(cube_inputs) != len(self.feature_config.keys()):
@@ -134,7 +136,7 @@ class LoadAndApplyQRF(PostProcessingPlugin):
         if not qrf_model:
             # The specified model doesn't exist and the forecast will not be calibrated
             return forecast_cube
-        
+
         # If target diagnostic not a feature in the training then remove.
         if self.target_cube_name not in self.feature_config.keys():
             cube_inputs.remove(forecast_cube)

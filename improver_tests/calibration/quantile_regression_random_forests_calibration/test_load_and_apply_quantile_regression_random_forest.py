@@ -169,7 +169,7 @@ def test_exceptions(
     tmp_path,
     exception,
 ):
-    """Test the LoadAndApplyQRF plugin."""
+    """Test the expected exceptions caused by the LoadAndApplyQRF plugin."""
     feature_config = {"wind_speed_at_10m": ["mean", "std", "latitude", "longitude"]}
 
     n_estimators = 2

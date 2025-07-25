@@ -524,6 +524,12 @@ def test_train_qrf_multiple_lead_times(
             False,
             [4],
         ),  # Multiple dynamic features
+        (
+            {"wind_speed_at_10m": ["mean"], "pressure_at_mean_sea_level": ["mean"]},
+            [5],
+            False,
+            "Feature cube for pressure_at_mean_sea_level",
+        ),  # Multiple dynamic features
     ],
 )
 def test_alternative_feature_configs(
@@ -542,6 +548,22 @@ def test_alternative_feature_configs(
     extra_kwargs = {}
     transformation = None
     pre_transform_addition = 0
+
+    if "pressure_at_mean_sea_level" in feature_config:
+        with pytest.raises(ValueError, match=expected):
+            _run_train_qrf(
+                tmp_path,
+                feature_config,
+                n_estimators,
+                max_depth,
+                random_state,
+                compression,
+                transformation,
+                pre_transform_addition,
+                extra_kwargs,
+                include_static,
+            )
+        return
 
     model_output = _run_train_qrf(
         tmp_path,

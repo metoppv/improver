@@ -438,6 +438,12 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
 
         for feature_name in self.feature_config.keys():
             feature_cube = feature_cubes.extract(iris.Constraint(feature_name))
+            if not feature_cube:
+                msg = (
+                    f"Feature cube for {feature_name} not found in the provided "
+                    "feature cubes."
+                )
+                raise ValueError(msg)
             for feature in self.feature_config[feature_name]:
                 print("feature = ", feature)
                 feature_values.append(

@@ -22,7 +22,7 @@ WMO_ID = ["03001", "03002", "03003", "03004", "03005"]
 
 
 def _create_multi_site_forecast_parquet_file(tmp_path, representation="percentile"):
-    """Create a Parquet file with forecast data."""
+    """Create a parquet file with multi-site forecast data."""
 
     data_dict = {
         "percentile": np.repeat(50, 5),
@@ -71,7 +71,7 @@ def _create_multi_site_forecast_parquet_file(tmp_path, representation="percentil
 
 
 def _create_multi_percentile_forecast_parquet_file(tmp_path, representation=None):
-    """Create a Parquet file with forecast data."""
+    """Create a parquet file with multi-percentile forecast data."""
 
     data_dict = {
         "percentile": [16 + 2 / 3, 33 + 1 / 3, 50, 66 + 2 / 3, 83 + 1 / 3],
@@ -113,7 +113,7 @@ def _create_multi_percentile_forecast_parquet_file(tmp_path, representation=None
 
 
 def _create_multi_forecast_period_forecast_parquet_file(tmp_path, representation=None):
-    """Create a Parquet file with forecast data."""
+    """Create a parquet file with multi-forecast period forecast data."""
 
     data_dict = {
         "percentile": [50, 50, 50, 50],
@@ -164,6 +164,7 @@ def _create_multi_forecast_period_forecast_parquet_file(tmp_path, representation
 
 
 def _create_multi_site_truth_parquet_file(tmp_path):
+    """Create a parquet file with multi-site truth data."""
     data_dict = {
         "diagnostic": ["temperature_at_screen_level"] * 5,
         "latitude": [60.1, 59.9, 59.7, 58, 57],
@@ -188,6 +189,7 @@ def _create_multi_site_truth_parquet_file(tmp_path):
 
 
 def _create_multi_percentile_truth_parquet_file(tmp_path):
+    """Create a parquet file with multi-percentile truth data."""
     data_dict = {
         "diagnostic": ["temperature_at_screen_level"],
         "latitude": [60.1],
@@ -212,6 +214,7 @@ def _create_multi_percentile_truth_parquet_file(tmp_path):
 
 
 def _create_multi_forecast_period_truth_parquet_file(tmp_path):
+    """Create a parquet file with multi-forecast period truth data."""
     data_dict = {
         "diagnostic": ["temperature_at_screen_level"] * 4,
         "latitude": [60.1, 59.9, 60.1, 59.9],
@@ -239,6 +242,7 @@ def _create_multi_forecast_period_truth_parquet_file(tmp_path):
 
 
 def _create_multi_site_truth_parquet_file_alt(tmp_path):
+    """Create a parquet file with multi-site truth data for wind speed."""
     data_dict = {
         "diagnostic": ["wind_speed_at_10m"] * 5,
         "latitude": [60.1, 59.9, 59.7, 58, 57],
@@ -250,33 +254,6 @@ def _create_multi_site_truth_parquet_file_alt(tmp_path):
     }
     wind_speed_dict = data_dict.copy()
     wind_speed_dict["ob_value"] = [3, 22, 24, 11, 9]
-    wind_speed_dict["diagnostic"] = "wind_speed_at_10m"
-    data_df = pd.DataFrame(data_dict)
-    wind_speed_df = pd.DataFrame(wind_speed_dict)
-    joined_df = pd.concat([data_df, wind_speed_df], ignore_index=True)
-
-    output_dir = tmp_path / "truth_parquet_files"
-    output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = str(output_dir / "truth.parquet")
-    joined_df.to_parquet(output_path, index=False, engine="pyarrow")
-    return output_dir
-
-
-def _create_multi_forecast_period_truth_parquet_file_alt(tmp_path):
-    data_dict = {
-        "diagnostic": ["temperature_at_screen_level"] * 4,
-        "latitude": [60.1, 59.9, 60.1, 59.9],
-        "longitude": [1, 2, 1, 2],
-        "altitude": [10, 83, 10, 83],
-        "time": np.repeat(
-            [pd.Timestamp("2017-01-02 06:00:00"), pd.Timestamp("2017-01-02 12:00:00")],
-            2,
-        ),
-        "wmo_id": ["03001", "03002", "03003", "03004"],
-        "ob_value": [280, 273, 284, 275],
-    }
-    wind_speed_dict = data_dict.copy()
-    wind_speed_dict["ob_value"] = [2, 11, 10, 14]
     wind_speed_dict["diagnostic"] = "wind_speed_at_10m"
     data_df = pd.DataFrame(data_dict)
     wind_speed_df = pd.DataFrame(wind_speed_dict)
@@ -368,7 +345,7 @@ def _create_ancil_file(tmp_path, wmo_ids):
             _create_multi_site_truth_parquet_file,
             False,
             False,
-            "realization",
+            "realization",  # Provide realization input
             5.6,
         ),
     ],
@@ -382,6 +359,7 @@ def test_load_and_train_qrf(
     representation,
     expected,
 ):
+    """Test the LoadAndTrainQRF plugin."""
     feature_config = {"air_temperature": ["mean", "std", "altitude"]}
     n_estimators = 2
     max_depth = 5
@@ -441,6 +419,8 @@ def test_load_and_train_qrf(
 
 @pytest.mark.parametrize("make_files", [(False, True)])
 def test_load_and_train_qrf_no_paths(tmp_path, make_files):
+    """Test the LoadAndTrainQRF plugin when the no valid file paths are provided.
+    Either the paths do not exist, or the paths exist but the directories are empty."""
     feature_config = {"air_temperature": ["mean", "std", "altitude"]}
     n_estimators = 2
     max_depth = 5
@@ -510,6 +490,7 @@ def test_load_and_train_qrf_no_paths(tmp_path, make_files):
 def test_exceptions(
     tmp_path, exception, forecast_creation, truth_creation, representation
 ):
+    """Test the expected exceptions caused by the LoadAndTrainQRF plugin."""
     feature_config = {"air_temperature": ["mean", "std", "altitude"]}
     n_estimators = 2
     max_depth = 5
