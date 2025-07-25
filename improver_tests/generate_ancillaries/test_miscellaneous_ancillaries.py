@@ -32,16 +32,16 @@ def distance_cube_template():
 
     altitude = np.array(
         [-99999, -99999, -99999, -99999]
-    )  # These values are not used but is required for cube creation.
+    )  # These values are not used but are required for cube creation.
     data = np.array(
         [-99999, -99999, -99999, -99999]
-    )  # These values are not used but is required for cube creation.
+    )  # These values are not used but are required for cube creation.
     wmo_id = [
         "00000",
         "00001",
         "00002",
         "00003",
-    ]  # These values are not used but is required for cube creation.
+    ]  # These values are not used but are required for cube creation.
 
     prob_cube = build_spotdata_cube(
         data,
@@ -56,7 +56,7 @@ def distance_cube_template():
 
 
 @pytest.fixture()
-def coastine():
+def coastline():
     """Create a GeoDataFrame representing a simple coastline.
     x-------x
     |       |
@@ -82,7 +82,7 @@ def coastine():
 @pytest.fixture()
 def land():
     """Create a simple polygon representing a land area surrounded
-    by the coastline defined in the coastine fixture.
+    by the coastline defined in the coastline fixture.
 
     The polygon looks like:
              x-------x
@@ -112,14 +112,14 @@ def site_locations():
 
     altitude = np.array(
         [-99999, -99999]
-    )  # These values are not used but is required for cube creation.
+    )  # These values are not used but are required for cube creation.
     data = np.array(
         [-99999, -99999]
-    )  # These values are not used but is required for cube creation.
+    )  # These values are not used but are required for cube creation.
     wmo_id = [
         "00000",
         "00001",
-    ]  # These values are not used but is required for cube creation.
+    ]  # These values are not used but are required for cube creation.
     site_cube = build_spotdata_cube(
         data,
         name="site_locations",
@@ -229,11 +229,11 @@ def test_distance_to_water(distance_cube_template):
     assert_array_equal(output_cube.data, [100, 200, 200, 10])
 
 
-def test_distance_to_ocean(site_locations, coastine, land):
+def test_distance_to_ocean(site_locations, coastline, land):
     """Test the distance to ocean ancillary is generated correctly."""
 
     # Generate the distance to ocean ancillary
-    distance_to_ocean = generate_distance_to_ocean(coastine, land, site_locations)
+    distance_to_ocean = generate_distance_to_ocean(coastline, land, site_locations)
 
     # Ensure the cube has the correct metadata
     assert distance_to_ocean.name() == "distance_to_ocean"
