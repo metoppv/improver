@@ -181,7 +181,7 @@ def calculate_svp_derivative_in_air(temperature: ndarray, pressure: ndarray) -> 
     temp_C = temperature + consts.ABSOLUTE_ZERO
     correction = 1.0 + 1.0e-8 * pressure * (4.5 + 6.0e-4 * temp_C * temp_C)
     derivative_correction_term = correction * svp_derivative + (
-        2 * 1.0e-8 * 6.0e-4 * pressure * svp
+        2 * 1.0e-8 * 6.0e-4 * pressure * temp_C * svp
     )
     return svp_derivative * derivative_correction_term.astype(np.float32)
 
