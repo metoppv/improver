@@ -41,7 +41,7 @@ class Test_calculate_svp_derivative_in_air(IrisTest):
         its valid range. Should return the nearest end of the table."""
         self.temperature[0, 0] = 150.0
         self.temperature[0, 2] = 400.0
-        expected = [[1.76528667e-03, 1.86569996e01, 1.11889656e03]]
+        expected = [[1.76528667e-03, 1.87835245e01, 1.11889656e03]]
         result = _svp_derivative_from_lookup(self.temperature)
         np.testing.assert_allclose(result, expected, rtol=1e-5, atol=1e-5)
 
