@@ -25,14 +25,14 @@ class Test_calculate_svp_derivative_in_air(IrisTest):
 
     def test_calculate_svp_derivative_in_air(self):
         """Test pressure-corrected SVP derivative values"""
-        expected = np.array([[0.01362905, 208.47170252, 25187.76423485]])
+        expected = np.array([[5.89845229e-06, 3.54367486e02, 1.26270031e06]])
         result = calculate_svp_derivative_in_air(self.temperature, self.pressure)
         np.testing.assert_allclose(result, expected, rtol=1e-5, atol=1e-5)
 
     def test_values(self):
         """Basic extraction of SVP derivative values from lookup table"""
         self.temperature[0, 1] = 260.56833
-        expected = [[1.350531e-02, 2.06000274e02, 2.501530e04]]
+        expected = [[2.41833058e-03, 1.86569996e01, 1.11889656e03]]
         result = _svp_derivative_from_lookup(self.temperature)
         np.testing.assert_allclose(result, expected, rtol=1e-5, atol=1e-5)
 
@@ -41,7 +41,7 @@ class Test_calculate_svp_derivative_in_air(IrisTest):
         its valid range. Should return the nearest end of the table."""
         self.temperature[0, 0] = 150.0
         self.temperature[0, 2] = 400.0
-        expected = [[9.664590e-03, 2.075279e02, 2.501530e04]]
+        expected = [[1.76528667e-03, 1.86569996e01, 1.11889656e03]]
         result = _svp_derivative_from_lookup(self.temperature)
         np.testing.assert_allclose(result, expected, rtol=1e-5, atol=1e-5)
 

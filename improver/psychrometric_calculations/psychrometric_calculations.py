@@ -16,9 +16,11 @@ from scipy.optimize import newton
 
 import improver.constants as consts
 from improver import BasePlugin
+from improver.generate_ancillaries.generate_svp_derivative_table import (
+    SaturatedVapourPressureTableDerivative,
+)
 from improver.generate_ancillaries.generate_svp_table import (
     SaturatedVapourPressureTable,
-    SaturatedVapourPressureTableDerivative,
 )
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
