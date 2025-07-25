@@ -88,9 +88,10 @@ class CondensationTrailFormation(BasePlugin):
                 pressure levels (Pa).
         """
         svp = calculate_svp_in_air(
-            temperature=self.temperature, pressure=pressure_levels
+            temperature=self.temperature,
+            pressure=pressure_levels[:, np.newaxis, np.newaxis],  # Reshape for 3D array
         )
-        return np.array(self.relative_humidity * svp, dtype=np.float32)
+        return self.relative_humidity * svp
 
     def process_from_arrays(
         self,
