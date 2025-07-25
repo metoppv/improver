@@ -15,6 +15,7 @@ from quantile_forest import RandomForestQuantileRegressor
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.constants import DAYS_IN_YEAR, HOURS_IN_DAY
+from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 
 def _remove_item_from_list(alist: list, items: list):
@@ -364,8 +365,13 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
                 )
         else:
             # Forecast reference time and forecast period are different dimensions.
-            for frt in list(frt_coord.cells()):
-                for fp in fp_coord.points:
+            enforce_coordinate_ordering(
+                forecast_cube,
+                ["forecast_period", "forecast_reference_time"],
+                anchor_start=True,
+            )
+            for fp in fp_coord.points:
+                for frt in list(frt_coord.cells()):
                     time_datetimes.append(
                         frt.point._to_real_datetime()
                         + pd.to_timedelta(

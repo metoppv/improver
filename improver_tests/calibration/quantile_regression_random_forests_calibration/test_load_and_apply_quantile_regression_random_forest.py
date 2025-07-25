@@ -31,7 +31,7 @@ from improver_tests.calibration.quantile_regression_random_forests_calibration.t
         (100, 2, 55, 5, None, 0, {}, False, [0.5, 0.9], [[4.1, 5.1], [4.2, 5.1]]),  # noqa Multiple quantiles
         (1, 1, 55, 5, None, 0, {}, False, [0.5], [6.2, 6.2]),  # noqa Fewer estimators and reduced depth
         (1, 1, 73, 5, None, 0, {}, False, [0.5], [4.2, 6.2]),  # Different random state
-        (2, 2, 55, 5, "log", 10, {}, False, [0.5], [4.1, 5.1]),  # Log transformation
+        (2, 2, 55, 5, "log", 10, {}, False, [0.5], [5.11, 5.64]),  # Log transformation
         (
             2,
             2,
@@ -42,7 +42,7 @@ from improver_tests.calibration.quantile_regression_random_forests_calibration.t
             {},
             False,
             [0.5],
-            [4.1, 5.1],
+            [5.11, 5.64],
         ),  # Log10 transformation
         (
             2,
@@ -54,7 +54,7 @@ from improver_tests.calibration.quantile_regression_random_forests_calibration.t
             {},
             False,
             [0.5],
-            [4.1, 5.1],
+            [5.11, 5.64],
         ),  # Square root transformation
         (
             2,
@@ -66,7 +66,7 @@ from improver_tests.calibration.quantile_regression_random_forests_calibration.t
             {},
             False,
             [0.5],
-            [4.1, 5.1],
+            [5.13, 5.64],
         ),  # Cube root transformation
         (2, 2, 55, 5, None, 0, {"max_samples_leaf": 0.5}, False, [0.5], [5.15, 6.2]),  # noqa # Different criterion
         (2, 5, 55, 5, None, 0, {}, True, [0.5], [5.15, 5.65]),  # Include static data
@@ -155,7 +155,16 @@ def test_load_and_apply_qrf(
     assert result.units == "m s-1"
 
 
-@pytest.mark.parametrize("exception", ["no_model_output", "no_features"])
+@pytest.mark.parametrize(
+    "exception",
+    [
+        "no_model_output",
+        "no_features",
+        "missing_target_feature",
+        "missing_static_feature",
+        "missing_dynamic_feature",
+    ],
+)
 def test_exceptions(
     tmp_path,
     exception,
@@ -207,6 +216,10 @@ def test_exceptions(
         forecast_cube, day_of_training_period, "forecast_reference_time"
     )
 
+    ancil_cube = _create_ancil_file()
+    ancil_filepath = tmp_path / "ancil.nc"
+    save_netcdf(ancil_cube, ancil_filepath)
+
     features_dir = tmp_path / "features"
     features_dir.mkdir(parents=True)
     forecast_filepath = str(features_dir / "forecast.nc")
@@ -219,12 +232,40 @@ def test_exceptions(
         pre_transform_addition=pre_transform_addition,
     )
 
-    if exception == "no_qrf_model":
+    if exception == "no_model_output":
         file_paths = [forecast_filepath]
-        with pytest.raises(ValueError, match="No QRF model found"):
-            plugin.process(file_paths=file_paths)
-
-    if exception == "no_features":
+        result = plugin.process(file_paths=file_paths)
+        assert isinstance(result, Cube)
+        # assert result == forecast_cube
+        assert result.name() == "wind_speed_at_10m"
+        assert result.units == "m s-1"
+        assert result.data.shape == forecast_cube.data.shape
+        assert np.allclose(result.data, forecast_cube.data)
+    elif exception == "no_features":
         file_paths = [model_output]
         with pytest.raises(ValueError, match="No features found"):
             plugin.process(file_paths=file_paths)
+    elif exception == "missing_target_feature":
+        file_paths = [model_output, ancil_filepath]
+        with pytest.raises(ValueError, match="No target forecast provided."):
+            plugin.process(file_paths=file_paths)
+    elif exception == "missing_static_feature":
+        feature_config = {
+            "wind_speed_at_10m": ["mean", "std"],
+            "distance_to_water": ["static"],
+        }
+        plugin.feature_config = feature_config
+        file_paths = [model_output, forecast_filepath]
+        with pytest.raises(ValueError, match="The number of cubes loaded."):
+            plugin.process(file_paths=file_paths)
+    elif exception == "missing_dynamic_feature":
+        feature_config = {
+            "wind_speed_at_10m": ["mean", "std"],
+            "air_temperature": ["mean", "std"],
+        }
+        plugin.feature_config = feature_config
+        file_paths = [model_output, forecast_filepath]
+        with pytest.raises(ValueError, match="The number of cubes loaded."):
+            plugin.process(file_paths=file_paths)
+    else:
+        raise ValueError(f"Unknown exception type: {exception}")

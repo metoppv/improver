@@ -97,12 +97,6 @@ class LoadAndApplyQRF(PostProcessingPlugin):
             except ValueError:
                 qrf_model = joblib.load(file_path)
 
-        if not qrf_model:
-            msg = (
-                "No QRF model found in the provided file paths. "
-                "A trained QRF model must be provided."
-            )
-            raise ValueError(msg)
         if not cube_inputs:
             msg = (
                 "No features found in the provided file paths. "
@@ -113,18 +107,34 @@ class LoadAndApplyQRF(PostProcessingPlugin):
         # Extract all additional cubes which are associated with a feature in the
         # feature_config.
         forecast_constraint = iris.Constraint(name=self.target_cube_name)
-        forecast_cube = cube_inputs.extract_cube(forecast_constraint)
+        forecast_cube = cube_inputs.extract(forecast_constraint)
+
+        if forecast_cube:
+            (forecast_cube,) = forecast_cube
+        else:
+            msg = (
+                "No target forecast provided. An input file representing the target "
+                "must be provided, even if the target will not be used as a feature. "
+                f"The target is '{self.target_cube_name}'."
+            )
+            raise ValueError(msg)
+
+        if not qrf_model:
+            return None, forecast_cube, None
+
+        if len(cube_inputs) != len(self.feature_config.keys()):
+            msg = (
+                "The number of cubes loaded does not match the number of features "
+                "expected. The number of cubes loaded was: "
+                f"{len(cube_inputs)}. The number of features expected was: "
+                f"{len(self.feature_config.keys())}."
+            )
+            raise ValueError(msg)
 
         # If target diagnostic not a feature in the training then remove.
         if self.target_cube_name not in self.feature_config.keys():
             cube_inputs.remove(forecast_cube)
 
-        if len(cube_inputs) + 1 != len(file_paths):
-            raise ValueError(
-                "Unable to identify the correct number of inputs. "
-                f"The number of file paths provided was: {len(file_paths)}. "
-                f"The number of items loaded into cubes was: {len(cube_inputs)}."
-            )
         return cube_inputs, forecast_cube, qrf_model
 
     @staticmethod
@@ -232,6 +242,8 @@ class LoadAndApplyQRF(PostProcessingPlugin):
                 The calibrated forecast cube.
         """
         cube_inputs, forecast_cube, qrf_model = self._get_inputs(file_paths)
+        if not qrf_model:
+            return forecast_cube
         if forecast_cube.coords("percentile"):
             percentiles = self._compute_percentiles(forecast_cube, "percentile")
             cube_inputs = self._percentiles_to_realizations(cube_inputs)

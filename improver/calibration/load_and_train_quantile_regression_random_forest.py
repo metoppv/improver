@@ -10,6 +10,7 @@ from pathlib import Path
 import iris
 import numpy as np
 import pandas as pd
+import pyarrow as pa
 import pyarrow.parquet as pq
 
 from improver import PostProcessingPlugin
@@ -67,7 +68,7 @@ class LoadAndTrainQRF(PostProcessingPlugin):
             try:
                 cube = load_cube(str(file_path))
                 cube_inputs.append(cube)
-            except (OSError, IsADirectoryError):
+            except IsADirectoryError:
                 # For loop here because the read_schema must read a .parquet file rather than a directory.
                 for file in Path(file_path).glob("**/*.parquet"):
                     try:
@@ -77,6 +78,19 @@ class LoadAndTrainQRF(PostProcessingPlugin):
                         truth_table_path = file_path
                     if forecast_table_path and truth_table_path:
                         break
+
+        if len(self.feature_config.keys()) not in [
+            len(cube_inputs),
+            len(cube_inputs) + 1,
+        ]:
+            msg = (
+                "The number of cubes loaded does not match the number of features "
+                "expected. These can mismatch if the some features are coming from the "
+                "historic forecast. The number of cubes loaded was: "
+                f"{len(cube_inputs)}. The number of features expected was: "
+                f"{len(self.feature_config.keys())}."
+            )
+            raise ValueError(msg)
 
         return forecast_table_path, truth_table_path, cube_inputs
 
@@ -108,12 +122,31 @@ class LoadAndTrainQRF(PostProcessingPlugin):
                 ("experiment", "==", self.experiment),
             ]
         ]
+        for file in Path(forecast_table_path).glob("**/*.parquet"):
+            if pq.read_schema(file).get_all_field_indices("percentile"):
+                altered_schema = FORECAST_SCHEMA
+            elif pq.read_schema(file).get_all_field_indices("realization"):
+                altered_schema = FORECAST_SCHEMA.remove(
+                    FORECAST_SCHEMA.get_field_index("percentile")
+                )
+                altered_schema = altered_schema.append(
+                    pa.field("realization", pa.int64())
+                )
+            else:
+                msg = (
+                    "The forecast parquet file is expected to contain either a "
+                    "'percentile' or 'realization' field. Neither was found."
+                )
+                raise ValueError(msg)
+            break
+
         forecast_df = pd.read_parquet(
             forecast_table_path,
             filters=filters,
-            schema=FORECAST_SCHEMA,
+            schema=altered_schema,
             engine="pyarrow",
         )
+
         # Convert df columns from ms to pandas timestamp object to work with existing code
         for column in ["time", "forecast_reference_time", "blend_time"]:
             forecast_df[column] = pd.to_datetime(
@@ -293,12 +326,6 @@ class LoadAndTrainQRF(PostProcessingPlugin):
         forecast_cube, truth_cube = self._dataframe_to_cubes(
             forecast_df, truth_df, forecast_periods
         )
-
-        # Check the number of features provided as separate files, plus 2
-        # (the forecasts and truths for training) are equal to the total number of
-        # file paths provided.
-        if len(cube_inputs) + 2 != len(file_paths):
-            raise ValueError("Unable to identify the correct number of inputs")
 
         # If target_forecast is also a dynamic feature in the feature config then
         # add it to cube_inputs
