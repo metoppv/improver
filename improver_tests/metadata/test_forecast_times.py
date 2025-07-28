@@ -281,20 +281,14 @@ class Test_unify_cycletime(IrisTest):
             iris.coords.AuxCoord(["uk_det"], long_name="model_configuration")
         )
 
-    def test_cubelist_input(self):
-        """Test when supplying a cubelist as input containing cubes
-        representing UK deterministic and UK ensemble model configuration
-        and unifying the forecast_reference_time, so that both model
-        configurations have a common forecast_reference_time."""
         cube_uk_ens = set_up_variable_cube(
             np.full((3, 4, 4), 273.15, dtype=np.float32),
             time=self.cycletime,
             frt=datetime(2017, 1, 10, 4),
         )
-
         # set up forecast periods of 5, 7 and 9 hours
         time_points = [1484031600, 1484038800, 1484046000]
-        cube_uk_ens = add_coordinate(
+        self.cube_uk_ens = add_coordinate(
             cube_uk_ens,
             time_points,
             "time",
@@ -302,17 +296,23 @@ class Test_unify_cycletime(IrisTest):
             coord_units="seconds since 1970-01-01 00:00:00",
         )
 
+    def test_cubelist_input(self):
+        """Test when supplying a cubelist as input containing cubes
+        representing UK deterministic and UK ensemble model configuration
+        and unifying the forecast_reference_time, so that both model
+        configurations have a common forecast_reference_time."""
+
         expected_uk_det = self.cube_uk_det.copy()
         frt_units = expected_uk_det.coord("forecast_reference_time").units
         frt_points = [np.round(frt_units.date2num(self.cycletime)).astype(np.int64)]
         expected_uk_det.coord("forecast_reference_time").points = frt_points
         expected_uk_det.coord("forecast_period").points = np.array([3, 5, 7]) * 3600
-        expected_uk_ens = cube_uk_ens.copy()
+        expected_uk_ens = self.cube_uk_ens.copy()
         expected_uk_ens.coord("forecast_reference_time").points = frt_points
         expected_uk_ens.coord("forecast_period").points = np.array([1, 3, 5]) * 3600
         expected = iris.cube.CubeList([expected_uk_det, expected_uk_ens])
 
-        cubes = iris.cube.CubeList([self.cube_uk_det, cube_uk_ens])
+        cubes = iris.cube.CubeList([self.cube_uk_det, self.cube_uk_ens])
         result = unify_cycletime(cubes, self.cycletime)
 
         self.assertIsInstance(result, iris.cube.CubeList)
@@ -346,6 +346,42 @@ class Test_unify_cycletime(IrisTest):
         result = unify_cycletime([cube_uk_det], self.cycletime)
         self.assertIsInstance(result, iris.cube.CubeList)
         self.assertEqual(result[0], expected_uk_det)
+
+    def test_multiple_coordinate_update(self):
+        """Test that both a forecast_reference_time and an extant blend_time
+        coordinate can be updated in a single call."""
+
+        det_blend_time = self.cube_uk_det.coord("forecast_reference_time").copy()
+        det_blend_time.rename("blend_time")
+        ens_blend_time = self.cube_uk_ens.coord("forecast_reference_time").copy()
+        ens_blend_time.rename("blend_time")
+
+        self.cube_uk_det.add_aux_coord(det_blend_time)
+        self.cube_uk_ens.add_aux_coord(ens_blend_time)
+
+        update_coords = ["blend_time", "forecast_reference_time"]
+
+        result_det, result_ens = unify_cycletime(
+            [self.cube_uk_det, self.cube_uk_ens],
+            self.cycletime,
+            target_coords=update_coords,
+        )
+        for crd in update_coords:
+            self.assertEqual(result_det.coord(crd).cell(0).point, self.cycletime)
+            self.assertEqual(result_ens.coord(crd).cell(0).point, self.cycletime)
+
+    def test_invalid_coord_exception(self):
+        """Test that an exception is raised if any of the target coordinates for
+        updating are something other than forecast_reference_time or blend_time."""
+
+        update_coords = ["kittens", "forecast_reference_time"]
+        msg = "Target_coords must be one or both of 'forecast_reference_time' or 'blend_time'."
+        with self.assertRaisesRegex(ValueError, msg):
+            unify_cycletime(
+                [self.cube_uk_det],
+                self.cycletime,
+                target_coords=update_coords,
+            )
 
 
 class Test__find_latest_cycletime(IrisTest):

@@ -26,7 +26,9 @@ dependencies:
   - statsmodels
   - lightgbm
   - numba
+  - pygam=0.8.0
   - pysteps
+  - python-utils=3.5.2
   - treelite=2.3.0
   # Development
   - astroid

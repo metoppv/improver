@@ -2,7 +2,12 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""Module containing class for recalibrating blended probabilities."""
+"""Module containing class for recalibrating blended probabilities.
+
+.. See the documentation for a more detailed discussion of this plugin.
+.. include:: extended_documentation/calibration/beta_recalibration/
+   beta_recalibration.rst
+"""
 
 from typing import Any, Dict
 
@@ -14,12 +19,6 @@ from scipy.stats import beta
 
 from improver import PostProcessingPlugin
 from improver.metadata.probabilistic import is_probability
-
-"""
-.. See the documentation for a more detailed discussion of this plugin.
-.. include:: extended_documentation/calibration/beta_recalibration/
-    beta_recalibration.rst
-"""
 
 
 class BetaRecalibrate(PostProcessingPlugin):

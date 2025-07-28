@@ -177,6 +177,15 @@ def add_grid_hash(target, source):
             {"extract_percentiles": [50]},
             np.array([278.5, 279.5]),
         ),
+        # Resample existing percentiles to extract target percentiles. Use skip_ecc_bounds option so that the largest
+        # extracted percentile should be derived by nearest neighbour interpolation.
+        (
+            gridded_percentiles,
+            np.arange(273, 291).reshape(2, 3, 3),
+            np.array([[[1, 2], [0, 0], [5, 10]]]),
+            {"extract_percentiles": [50, 90], "skip_ecc_bounds": True},
+            np.array([[278.5, 279.5], [283, 284]]),
+        ),
         # Extract single percentile from a probability input cube.
         (
             gridded_probabilities,

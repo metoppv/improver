@@ -13,10 +13,10 @@ from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 
 from improver import PostProcessingPlugin
-from improver.lapse_rate import compute_lapse_rate_adjustment
 from improver.metadata.probabilistic import is_probability
 from improver.metadata.utilities import check_grid_match
 from improver.spotdata.spot_extraction import SpotExtraction
+from improver.temperature.lapse_rate import compute_lapse_rate_adjustment
 
 
 class SpotLapseRateAdjust(PostProcessingPlugin):

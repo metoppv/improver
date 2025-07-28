@@ -129,6 +129,33 @@ def test_basic(
     assert np.isclose(result[1].data, expected_p, atol=1e-0).all()
 
 
+@pytest.mark.parametrize(
+    "temperature_value, pressure_value, humidity_value",
+    (
+        (293, 100000, 2.7e-1),
+        (300, 100000, 1.0e-1),
+        (189, 60300, 0.334),  # This case was found in MOGREPS-G outputs.
+    ),
+)
+def test_for_limited_values(
+    temperature,
+    pressure,
+    humidity,
+    temperature_value,
+    pressure_value,
+    humidity_value,
+):
+    """Check that for each pair of values, we get the surface temperature and pressure returned
+    and that the metadata are as expected."""
+    temperature.data = np.full_like(temperature.data, temperature_value)
+    pressure.data = np.full_like(pressure.data, pressure_value)
+    humidity.data = np.full_like(humidity.data, humidity_value)
+    result = CloudCondensationLevel()([temperature, pressure, humidity])
+    metadata_ok(result, temperature)
+    assert np.isclose(result[0].data, temperature_value, atol=1e-2).all()
+    assert np.isclose(result[1].data, pressure_value, atol=1e-0).all()
+
+
 @pytest.mark.parametrize("model_id_attr", ("mosg__model_configuration", None))
 def test_model_id_attr(temperature, pressure, humidity, model_id_attr):
     """Check that tests pass if model_id_attr is set on inputs and is applied or not"""

@@ -19,13 +19,15 @@ def _order_cell_methods(cube: Cube) -> None:
     """
     Sorts the cell methods on a cube such that if there are multiple methods
     they are always written in a consistent order in the output cube. The
-    input cube is modified.
+    input cube is modified. Ensure that if there are any identical duplicate
+    cell methods, only one of these is included in the outputs.
 
     Args:
         cube:
             The cube on which the cell methods are to be sorted.
     """
-    cell_methods = tuple(sorted(cube.cell_methods))
+    cell_methods = set(cube.cell_methods)
+    cell_methods = tuple(sorted(cell_methods))
     cube.cell_methods = cell_methods
 
 
@@ -55,6 +57,7 @@ def save_netcdf(
     filename: str,
     compression_level: int = 1,
     least_significant_digit: Optional[int] = None,
+    fill_value: Optional[float] = None,
 ) -> None:
     """Save the input Cube or CubeList as a NetCDF file and check metadata
     where required for integrity.
@@ -78,7 +81,11 @@ def save_netcdf(
             http://www.esrl.noaa.gov/psd/data/gridded/conventions/cdc_netcdf_standard.shtml
             for details. When used with `compression level`, this will result in lossy
             compression.
-
+        fill_value:
+            If specified, will set the fill value for missing data. If not specified,
+            the default fill value for the data type will be used. If the data is not masked then
+            the numpy array's fill value will retain the default value while the _FillValue attribute
+            in the NetCDF file will be updated.
     Raises:
         warning if cubelist contains cubes of varying dimensions.
     """
@@ -142,5 +149,6 @@ def save_netcdf(
         zlib=compression_level > 0,
         chunksizes=chunksizes,
         least_significant_digit=least_significant_digit,
+        fill_value=fill_value,
     )
     os.rename(ftmp, filename)

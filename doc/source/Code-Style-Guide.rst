@@ -653,7 +653,8 @@ validating that the behaviour is as expected. In IMPROVER, GitHub
 Actions are used to run a series of tests on each pull request to ensure
 that the pull request meets the expected standards. Tests can be run
 from the top-level directory using bin/improver-tests or using
-`pytest <https://docs.pytest.org/en/latest/>`_.
+`pytest <https://docs.pytest.org/en/latest/>`_. Further instructions on 
+running these tests can be found in :doc:`Running-at-your-site`.
 
 Unit Testing
 ~~~~~~~~~~~~
@@ -678,7 +679,7 @@ Unit tests should:
    dimensions (consistent with what is enforced by the 'load' module).
 2. Use centralised test `cube set-up
    utilities <https://github.com/metoppv/improver/blob/master/improver/synthetic_data/set_up_test_cubes.py>`_
-   where possible.
+   where possible to ensure input cubes conform to the `IMPROVER metadata standard <https://improver.readthedocs.io/en/latest/metadata/Introduction.html>`_.
 3. Consider the most likely uses of the plugin and ensure these are represented
    in the unit tests.
 4. Consider possible edge cases e.g. cubes with different input dimensions.

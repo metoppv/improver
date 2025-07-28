@@ -16,6 +16,7 @@ from iris.exceptions import CoordinateNotFoundError
 from improver import BasePlugin
 from improver.metadata.constants import FLOAT_DTYPE, FLOAT_TYPES
 from improver.metadata.probabilistic import find_threshold_coordinate
+from improver.metadata.utilities import enforce_time_point_standard
 from improver.utilities.common_input_handle import as_cube
 from improver.utilities.cube_checker import check_cube_coordinates
 
@@ -54,6 +55,39 @@ def collapsed(cube: Cube, *args: Any, **kwargs: Any) -> Cube:
                 )
 
     return new_cube
+
+
+def collapse_time(cube, *args: Any) -> Cube:
+    """Collapses a time / forecast period coord of a cube and modifies the
+    time coordinates to place the point at the end of the bound range. If the
+    coordinate being collapsed (time or forecast_period) is of length 1 the
+    cube is returned unchanged as there is nothing to collapse.
+
+    Args:
+        cube:
+            A Cube to be collapsed.
+        args:
+            Takes the arguments that are provided to the iris.Cube.collapsed
+            method. These include the coordinate name and the collapse
+            method, e.g. iris.analysis.SUM.
+    Returns:
+        Cube with the specified coordinate collapsed and the time coordinate
+        updated. The points of the time-related coordinates have been updated
+        to be at the end of their bound range in line with IMPROVER's metadata
+        standards.
+    """
+    if "time" not in args and "forecast_period" not in args:
+        raise ValueError(
+            "The collapse_time wrapper should only be used for collapsing "
+            "the time or forecast_period coordinates."
+        )
+    if cube.coord("time").shape[0] == 1:
+        return cube
+
+    collapsed_cube = collapsed(cube, *args)
+    enforce_time_point_standard(collapsed_cube)
+
+    return collapsed_cube
 
 
 def collapse_realizations(cube: Cube, method="mean") -> Cube:

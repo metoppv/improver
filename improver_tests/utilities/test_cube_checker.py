@@ -315,7 +315,8 @@ class Test_spatial_coords_match(IrisTest):
 
 @pytest.fixture(name="cubes")
 def cubes_fixture(time_bounds) -> List[Cube]:
-    """Set up matching r, y, x cubes matching Plugin requirements, with or without time bounds"""
+    """Set up matching r, y, x cubes matching Plugin requirements, with or without time
+    bounds"""
     cubes = []
     data = np.ones((2, 3, 4), dtype=np.float32)
     kwargs = {}

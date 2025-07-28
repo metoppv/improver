@@ -102,6 +102,10 @@ At the Python interpreter prompt:
 Test suite
 ----------
 
+Please ensure IMPROVER provides the expected functionality at your site by running the 
+test suite described below. Any test failures would highlight a problem with the
+installation.
+
 Tests can be run from the top-level directory using bin/improver-tests
 or directly using `pytest <https://docs.pytest.org/en/latest/>`_.
 
@@ -118,10 +122,13 @@ tests are quick to run. Unit tests are run as part of the test suite on
    pytest -m 'not acc'
    # To run a particular function within a unit test, you can use the :: notation
    pytest -m improver_tests/test_unit_test.py::Test_function
+   # An applied example
+   pytest -m improver_tests/standardise/tests_standardise.py
+   
 
 The CLI (command line interface) acceptance tests use known good output
 (KGO) files for validating that the behaviour is as expected. This data
-can be found in the `improver_test_data` open source repository on GitHub.
+can be found in the `improver_test_data <https://github.com/metoppv/improver_test_data>`_ open source repository on GitHub.
 
 The path to the acceptance test data is set using the
 ``IMPROVER_ACC_TEST_DIR`` environment variable. Acceptance tests will be
@@ -135,11 +142,40 @@ To run the acceptance tests you can use the following:
    pytest -m acc
    # Acceptance tests can be run significantly faster in parallel using the pytest-xdist plugin
    pytest -n 8
-   # An example of running just one particular acceptance test
+   # The structure of running just one particular acceptance test
    pytest -v -s -m acc -k test_cli_name.py
+   # An applied example
+   pytest -v -s -m acc -k test_weighted_blending.py
+   # To run a particular function within an acceptance test, you can use the :: notation
+   pytest -v improver-tests/acceptance/test_weighted_blending.py::test_weights_dict
 
 To run all tests together at once, the following command can be input
 
 .. code:: bash
 
    bin/improver-tests # runs all tests
+
+The tests available using the ``improver-tests`` interface are documented in the table 
+below.
+
+.. list-table::
+   :header-rows: 1
+   
+   * - Test Type
+     - Summary
+   * - black
+     - Auto-formats code (by default, applies changes to files rather than check-only).
+   * - isort
+     - Sorts imports (by default, applies changes to files rather than check-only).
+   * - pylintE
+     - Check whether `pylint <https://www.pylint.org/>`_ reports any errors.
+   * - pylint
+     - `Pylint <https://www.pylint.org/>`_ checks code quality and style, 
+       returning an assessment that includes a score for each file it analyses.
+   * - doc
+     - Build the documentation from the code docstrings using `Sphinx <https://www.sphinx-doc.org/en/master/>`_.
+   * - unit
+     - Run unit tests that test individual functions within the IMPROVER code.
+   * - cli
+     - Run the Command Line Interface (CLI) acceptance tests to test both the interface 
+       itself and by using known good output to check the code's behaviour.
