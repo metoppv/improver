@@ -141,6 +141,8 @@ class CloudCondensationLevel(PostProcessingPlugin):
     def process(self, *cubes: Union[Cube, CubeList]) -> Tuple[Cube, Cube]:
         """
         Calculates the cloud condensation level from the near-surface inputs.
+        Values will be limited to the surface values where the calculated pressure is greater than
+        the original pressure, which can occur in super-saturated conditions.
 
         Args:
             cubes:
@@ -157,6 +159,11 @@ class CloudCondensationLevel(PostProcessingPlugin):
             ["air_temperature", "surface_air_pressure", "humidity_mixing_ratio"]
         )
         ccl_pressure, ccl_temperature = self._iterate_to_ccl()
+        # Limit values so they are no greater than the original pressure.
+        # This occurs in super-saturated conditions.
+        mask = ccl_pressure > self.pressure.data
+        ccl_pressure = np.where(mask, self.pressure.data, ccl_pressure)
+        ccl_temperature = np.where(mask, self.temperature.data, ccl_temperature)
         return (
             self._make_ccl_cube(ccl_temperature, is_temperature=True),
             self._make_ccl_cube(ccl_pressure, is_temperature=False),
