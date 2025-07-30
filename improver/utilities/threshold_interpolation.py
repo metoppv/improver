@@ -4,10 +4,12 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Script to linearly interpolate thresholds"""
 
-from typing import List, Optional
+import numbers
+from typing import Dict, List, Optional, Union
 
 import iris
 import numpy as np
+from cf_units import Unit
 from iris.cube import Cube
 from numpy import ndarray
 
@@ -27,24 +29,93 @@ from improver.utilities.cube_manipulation import (
 
 
 class ThresholdInterpolation(PostProcessingPlugin):
-    def __init__(self, thresholds: List[float]):
+    def __init__(
+        self,
+        threshold_values: Optional[Union[List[float], float]] = None,
+        threshold_config: Optional[Union[List[float], Dict[str, str]]] = None,
+        threshold_units: Optional[str] = None,
+    ):
         """
         Args:
-            thresholds:
-                List of the desired output thresholds.
+            threshold_values:
+                The desired output thresholds, either as a list of float values or a
+                single float value.
+            threshold_config:
+                Threshold configuration containing threshold values. It should contain
+                either a list of float values or a dictionary of strings that can be
+                interpreted as floats with the structure: "THRESHOLD_VALUE": "None".
+                Repeated thresholds with different bounds are ignored; only the
+                last duplicate will be used.
+                Threshold_values and threshold_config are mutually exclusive
+                arguments, defining both will lead to an exception.
+            threshold_units:
+                Units of the threshold values. If not provided the units are
+                assumed to be the same as those of the input cube.
 
         Raises:
-            ValueError:
-                If the thresholds list is empty.
+            ValueError: If threshold_config and threshold_values are both set
+            ValueError: If neither threshold_config or threshold_values are set
         """
-        if not thresholds:
-            raise ValueError("The thresholds list cannot be empty.")
-        self.thresholds = thresholds
+        if threshold_config and threshold_values:
+            raise ValueError(
+                "Threshold_config and threshold_values are mutually exclusive "
+                "arguments - please provide one or the other, not both"
+            )
+        if threshold_config is None and threshold_values is None:
+            raise ValueError(
+                "One of threshold_config or threshold_values must be provided."
+            )
+        self.threshold_values = threshold_values
         self.threshold_coord = None
+        self.threshold_config = threshold_config
+
+        thresholds = self._set_thresholds(threshold_values, threshold_config)
+        self.thresholds = [thresholds] if np.isscalar(thresholds) else thresholds
+        self.threshold_units = (
+            None if threshold_units is None else Unit(threshold_units)
+        )
+
+        self.original_units = None
+
+    @staticmethod
+    def _set_thresholds(
+        threshold_values: Optional[Union[List[float], float]] = None,
+        threshold_config: Optional[Union[List[float], Dict[str, str]]] = None,
+    ) -> List[float]:
+        """
+        Interprets a threshold_config dictionary if provided, or ensures that
+        a list of thresholds has suitable precision.
+
+        Args:
+            threshold_values:
+                A list of threshold values or a single threshold value.
+            threshold_config:
+                Either a list of float values or a dictionary of strings that can be
+                interpreted as floats with the structure: "THRESHOLD_VALUE": "None".
+
+        Returns:
+            thresholds:
+                A list of input thresholds as float64 type.
+        """
+        if threshold_config and isinstance(threshold_config, dict):
+            thresholds = []
+            for key in threshold_config.keys():
+                # Ensure thresholds are float64 to avoid rounding errors during
+                # possible unit conversion.
+                thresholds.append(float(key))
+        elif threshold_config and isinstance(threshold_config, list):
+            thresholds = [float(x) for x in threshold_config]
+        else:
+            # Convert threshold_values to a list if it is a single value.
+            if isinstance(threshold_values, numbers.Number):
+                threshold_values = [threshold_values]
+            thresholds = [float(x) for x in threshold_values]
+        return thresholds
 
     def mask_checking(self, forecast_at_thresholds: Cube) -> Optional[np.ndarray]:
         """
-        Check if the mask is consistent across different slices of the threshold coordinate.
+        Check if the mask is consistent across different slices of the threshold
+        coordinate.
 
         Args:
             forecast_at_thresholds:
@@ -52,19 +123,21 @@ class ThresholdInterpolation(PostProcessingPlugin):
 
         Returns:
             original_mask:
-                The original mask if the data is masked and the mask is consistent across
-                different slices of the threshold coordinate, otherwise None.
+                The original mask if the data is masked and the mask is consistent
+                across different slices of the threshold coordinate, otherwise None.
 
         Raises:
-            ValueError: If the mask varies across different slices of the threshold coordinate.
+            ValueError: If the mask varies across different slices of the threshold
+            coordinate.
         """
         original_mask = None
         if np.ma.is_masked(forecast_at_thresholds.data):
             (crd_dim,) = forecast_at_thresholds.coord_dims(self.threshold_coord.name())
             if np.diff(forecast_at_thresholds.data.mask, axis=crd_dim).any():
                 raise ValueError(
-                    f"The mask is expected to be constant across different slices of the {self.threshold_coord.name()}"
-                    f" dimension, however, in the dataset provided, the mask varies across the {self.threshold_coord.name()}"
+                    "The mask is expected to be constant across different slices of"
+                    f"the {self.threshold_coord.name()} dimension, however, in the dataset"
+                    f"provided, the mask varies across the {self.threshold_coord.name()}"
                     f" dimension. This is not currently supported."
                 )
             else:
@@ -149,6 +222,9 @@ class ThresholdInterpolation(PostProcessingPlugin):
         )
         template_cube.remove_coord(self.threshold_coord)
 
+        if self.threshold_units is not None:
+            template_cube.units = self.threshold_units
+
         # create cube with new threshold dimension
         cubes = iris.cube.CubeList([])
         for point in self.thresholds:
@@ -175,11 +251,16 @@ class ThresholdInterpolation(PostProcessingPlugin):
 
         This method performs the following steps:
         1. Identifies the threshold coordinate in the input cube.
-        2. Checks if the mask is consistent across different slices of the threshold coordinate.
-        3. Collapses the realizations if present.
-        4. Interpolates the forecast data to the new set of thresholds.
-        5. Creates a new cube with the interpolated threshold data.
-        6. Applies the original mask to the new cube if it exists.
+        2. Checks if the mask is consistent across different slices of the threshold
+        coordinate.
+        3. Converts the threshold coordinate to the specified units if provided.
+        4. Collapses the realizations if present.
+        5. Interpolates the data to the new set of thresholds.
+        6. Creates a new cube with the interpolated threshold data.
+        7. Applies the original mask to the new cube if it exists.
+        8. Converts the threshold coordinate units back to the original units.
+        9. Converts the interpolated cube data units to the original units, in case
+        these have been changed by the processing.
 
         Args:
             forecast_at_thresholds:
@@ -191,8 +272,16 @@ class ThresholdInterpolation(PostProcessingPlugin):
                 The threshold coordinate is always the zeroth dimension.
         """
         self.threshold_coord = find_threshold_coordinate(forecast_at_thresholds)
+        self.threshold_coord_name = self.threshold_coord.name()
+        self.original_units = forecast_at_thresholds.units
+        self.original_threshold_units = self.threshold_coord.units
 
         original_mask = self.mask_checking(forecast_at_thresholds)
+
+        if self.threshold_units is not None:
+            forecast_at_thresholds.coord(self.threshold_coord_name).convert_units(
+                self.threshold_units
+            )
 
         if forecast_at_thresholds.coords("realization"):
             forecast_at_thresholds = collapse_realizations(forecast_at_thresholds)
@@ -204,10 +293,19 @@ class ThresholdInterpolation(PostProcessingPlugin):
             forecast_at_thresholds,
             forecast_at_thresholds_data,
         )
+
         if original_mask is not None:
             original_mask = np.broadcast_to(original_mask, threshold_cube.shape)
             threshold_cube.data = np.ma.MaskedArray(
                 threshold_cube.data, mask=original_mask
             )
+
+        # Revert the threshold coordinate's units
+        threshold_cube.coord(self.threshold_coord_name).convert_units(
+            self.original_threshold_units
+        )
+
+        # Ensure the cube's overall units are restored
+        threshold_cube.units = self.original_units
 
         return threshold_cube
