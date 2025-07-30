@@ -9,7 +9,6 @@ import unittest
 import numpy as np
 from iris.coords import AuxCoord
 from iris.cube import CubeList
-from iris.tests import IrisTest
 
 from improver.metadata.check_datatypes import (
     check_mandatory_standards,
@@ -23,7 +22,7 @@ from improver.synthetic_data.set_up_test_cubes import (
 )
 
 
-class Test_check_mandatory_standards(IrisTest):
+class Test_check_mandatory_standards(unittest.TestCase):
     """Test whether a cube conforms to mandatory dtype and units standards."""
 
     def setUp(self):
@@ -76,7 +75,7 @@ class Test_check_mandatory_standards(IrisTest):
             # describing all aspects of the cube (including a checksum of the
             # data) to verify that nothing has been changed anywhere on the
             # cube.
-            self.assertStringEqual(
+            self.assertEqual(
                 CubeList([cube]).xml(checksum=True),
                 CubeList([result]).xml(checksum=True),
             )
@@ -154,7 +153,7 @@ class Test_check_mandatory_standards(IrisTest):
             check_mandatory_standards(self.percentile_cube)
 
 
-class Test_enforce_dtypes(IrisTest):
+class Test_enforce_dtypes(unittest.TestCase):
     """Test whether a cube conforms to mandatory dtype and units standards."""
 
     def setUp(self):
@@ -186,7 +185,7 @@ class Test_enforce_dtypes(IrisTest):
         enforce_dtype("add", inputs, result)
         result_checksums = [CubeList([c]).xml(checksum=True) for c in inputs + [result]]
         for a, b in zip(expected_checksums, result_checksums):
-            self.assertStringEqual(a, b)
+            self.assertEqual(a, b)
 
     def test_fail(self):
         """Test non-conformant data (error is thrown and inputs are not changed)"""
@@ -208,10 +207,10 @@ class Test_enforce_dtypes(IrisTest):
             enforce_dtype("add", inputs, result)
         result_checksums = [CubeList([c]).xml(checksum=True) for c in inputs + [result]]
         for a, b in zip(expected_checksums, result_checksums):
-            self.assertStringEqual(a, b)
+            self.assertEqual(a, b)
 
 
-class Test_check_units(IrisTest):
+class Test_check_units(unittest.TestCase):
     """Test method to check object units"""
 
     def setUp(self):
@@ -230,7 +229,7 @@ class Test_check_units(IrisTest):
         # The following statement renders each cube into an XML string
         # describing all aspects of the cube (including a checksum of the
         # data) to verify that nothing has been changed anywhere on the cube.
-        self.assertStringEqual(
+        self.assertEqual(
             CubeList([self.cube]).xml(checksum=True),
             CubeList([input_cube]).xml(checksum=True),
         )

@@ -321,6 +321,7 @@ class Accumulation(BasePlugin):
             # Calculate new data and insert into cube.
             accumulation_cube.data = accumulation
             accumulation_cube.convert_units(self.accumulation_units)
+            accumulation_cube.data = accumulation_cube.data.astype(np.float32)
             accumulation_cubes.append(accumulation_cube)
 
         return accumulation_cubes

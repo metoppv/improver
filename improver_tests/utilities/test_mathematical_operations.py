@@ -226,7 +226,7 @@ class Test_perform_integration(IrisTest):
             result.coord("height").points, np.array([10.0, 5.0])
         )
         self.assertArrayAlmostEqual(
-            result.coord("height").bounds, np.array([[10.0, 20.0], [5.0, 10.0]])
+            result.coord("height").bounds, np.array([[20.0, 10.0], [10.0, 5.0]])
         )
 
     def test_positive_values_in_data(self):
@@ -429,7 +429,7 @@ class Test_process(IrisTest):
             result.coord("height").points, np.array([10.0, 5.0])
         )
         self.assertArrayAlmostEqual(
-            result.coord("height").bounds, np.array([[10.0, 20.0], [5.0, 10.0]])
+            result.coord("height").bounds, np.array([[20.0, 10.0], [10.0, 5.0]])
         )
 
     def test_metadata(self):

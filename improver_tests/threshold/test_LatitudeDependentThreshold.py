@@ -267,7 +267,7 @@ class Test_process(IrisTest):
 
     def test_threshold_point_nan(self):
         """Test behaviour for a single NaN grid cell."""
-        self.cube.data[2][2] = np.NAN
+        self.cube.data[2][2] = np.nan
         msg = "NaN detected in input cube data"
         with self.assertRaisesRegex(ValueError, msg):
             self.plugin(self.cube)

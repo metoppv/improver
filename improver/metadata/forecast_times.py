@@ -322,5 +322,9 @@ def _find_latest_cycletime(cubelist: Union[CubeList, List[Cube]]) -> datetime:
         next_coord.convert_units(frt_coord.units)
         if next_coord.points[0] > frt_coord.points[0]:
             frt_coord = next_coord
-    (cycletime,) = frt_coord.units.num2date(frt_coord.points)
+    (cycletime,) = frt_coord.units.num2date(
+        frt_coord.points,
+        only_use_cftime_datetimes=False,
+        only_use_python_datetimes=True,
+    )
     return cycletime

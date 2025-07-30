@@ -106,6 +106,17 @@ class Test_calculate_sleet_probability(IrisTest):
         name = "probability_of_sleet"
         self.assertEqual(result.long_name, name)
 
+    def test_different_data_types(self):
+        """Test that an exception is raised if the data types of the input cubes do not match."""
+        rain = self.rain_prob_cube
+        snow = self.snow_prob_cube.copy(self.snow_prob_cube.data.astype(np.int8))
+        msg = (
+            "The data types of the input cubes do not match. "
+            f"prob_of_snow: {snow.dtype}, prob_of_rain: {rain.dtype}"
+        )
+        with self.assertRaisesRegex(ValueError, msg):
+            calculate_sleet_probability(snow, rain)
+
 
 if __name__ == "__main__":
     unittest.main()

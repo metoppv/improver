@@ -58,7 +58,8 @@ variables are typically diagnostic variables for the ensemble realization (inclu
 but can include static and dynamic ancillary variables, such as local solar time, and whole-of-ensemble
 values for diagnostic variables, such as mean or standard deviation.
 
-Here we use LightGBM for training the models, and compile the models with Treelite for efficient prediction.
+Here we use LightGBM for training the models, and compile the models with TL2cgen
+(TreeLite 2 C GENerator) for efficient prediction.
 
 ================================
 GBDT vs manually constructed DT

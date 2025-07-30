@@ -135,7 +135,7 @@ class CloudCondensationLevel(PostProcessingPlugin):
         ).astype(np.float32)
         ccl_temperature = dry_adiabatic_temperature(
             self.temperature.data, self.pressure.data, ccl_pressure
-        )
+        ).astype(np.float32)
         return ccl_pressure, ccl_temperature
 
     def process(self, *cubes: Union[Cube, CubeList]) -> Tuple[Cube, Cube]:
