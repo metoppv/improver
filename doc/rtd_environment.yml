@@ -8,9 +8,11 @@ channels:
 dependencies:
   - python=3
   - iris>=3.12.2
-  - cf_units
   - python-stratify
-  - sphinx
-  - sphinx-autodoc-typehints
-  - sphinx_rtd_theme
   - clize
+  - pip
+  - pip:
+    - cf_units
+    - sphinx
+    - sphinx-autodoc-typehints
+    - sphinx_rtd_theme
