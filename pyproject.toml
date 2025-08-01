@@ -2,12 +2,19 @@
 target-version = "py37"
 
 [tool.ruff.lint]
-extend-select = ["E", "F", "W", "I"]  # add C90 later
+extend-select = [
+    "S",    # flake8-bandit
+    "E",    # pycodestyle
+    "F",    # pyflakes
+    "W",    # pycodestyle warnings
+    "I",    # isort
+    #"C90",  # McCabe complexity, add later
+]
 ignore = ["E203", "E731", "E501", "E741"]  # remove "E501", "E741" later
 
 [tool.ruff.format]
 # Enable reformatting of code snippets in docstrings.
 docstring-code-format = true
 
-[tool.bandit]
-exclude_dirs = ["improver_tests"]
+[tool.ruff.lint.extend-per-file-ignores]
+"improver_tests/*" = ["S101"]
