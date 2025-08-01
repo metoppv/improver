@@ -393,7 +393,7 @@ def test_import_cli():
         'assert "numpy" not in sys.modules, '
         '"rogue numpy import via improver.cli"'
     )
-    subprocess.run([sys.executable, "-c", script], check=True)  # nosec
+    subprocess.run([sys.executable, "-c", script], check=True)  # noqa: S603
 
 
 def test_help_no_stderr():

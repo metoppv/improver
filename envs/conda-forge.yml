@@ -18,7 +18,6 @@ dependencies:
   - sphinx
   - pandas
   # Additional libraries to run tests, not included in improver-feedstock
-  - bandit
   - filelock
   - pytest
   - setuptools
