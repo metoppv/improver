@@ -7,26 +7,22 @@ name: improver_b
 channels:
   - conda-forge
 dependencies:
-  - python=3.8
+  - python=3.12
   # Required
-  - cartopy=0.19
-  - cftime=1.2.1
-  - cf-units=2.1.5
-  - clize=4.2.0
-  - dask=2021.8.1
-  - iris=3.0.3
-  - netCDF4=1.5.7
-  - numpy=1.20
-  - pandas=1.3.4
-  - pytz=2020.5
-  - scipy=1.6.2
-  - sigtools=2.0.3
-  - sphinx=4.0.2
+  - cartopy
+  - clize
+  - iris=3.12
+  - numpy=2.2
+  - pandas
+  - pytz
+  - scipy=1.15
+  - sphinx
   # Optional
-  - lightgbm=3.2.1
-  - numba=0.53.1
-  - python-stratify=0.2.post0
-  - treelite=2.3.0
+  - lightgbm>=4.0.0
+  - numba
+  - python-stratify
+  - treelite>=4.0.0
+  - tl2cgen>=1.0.0
   # Development
   - astroid
   - filelock
@@ -38,5 +34,3 @@ dependencies:
   - sphinx-autodoc-typehints
   - sphinx_rtd_theme
   - threadpoolctl
-  # pinned dependencies of dependencies
-  - pyparsing=3.1.2

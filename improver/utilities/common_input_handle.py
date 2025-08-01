@@ -27,7 +27,8 @@ def as_cubelist(*cubes: Union[Cube, CubeList]):
 
     Args:
         cubes:
-            Input data provided in the form of one or more cubes or cubelists (or mixture thereof).
+            Input data provided in the form of one or more cubes or cubelists
+            (or mixture thereof).
             Any iterable is supported.
 
     Returns:
@@ -35,10 +36,6 @@ def as_cubelist(*cubes: Union[Cube, CubeList]):
             A CubeList containing all the cubes provided as input.
     """
     cubes = CubeList(flatten(cubes))
-    # Remove CubeList verification for iris >=3.3.0
-    for cube in cubes:
-        if not hasattr(cube, "add_aux_coord"):
-            raise TypeError("A non iris Cube object has been provided.")
     if len(cubes) == 0:
         raise ValueError("One or more cubes should be provided.")
     return cubes

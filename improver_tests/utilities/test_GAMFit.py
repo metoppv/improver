@@ -112,6 +112,14 @@ def test_process():
     The "wage" dataset used in this test consists of the features Year, Age, and
     Education (as a category) with the target being a value for the expected wage.
     """
+    # Monkey patch for pyGAM due to handling of sparse arrays in some versions of
+    # scipy.
+    import scipy.sparse
+
+    def to_array(self):
+        return self.toarray()
+
+    scipy.sparse.spmatrix.A = property(to_array)
     # Skip test if pyGAM not available.
     pytest.importorskip("pygam")
     from pygam import GAM, f, s

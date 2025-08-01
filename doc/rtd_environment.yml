@@ -6,13 +6,13 @@ name: improver
 channels:
   - conda-forge
 dependencies:
-  - python=3.7
-  - iris=3.0
-  - cf_units
+  - python=3
+  - iris>=3.12.2
   - python-stratify
-  - sphinx=5.3.0
-  - sphinx-autodoc-typehints
-  - sphinx_rtd_theme
+  - clize
   - pip
   - pip:
-    - clize
+    - cf_units
+    - sphinx
+    - sphinx-autodoc-typehints
+    - sphinx_rtd_theme

@@ -49,7 +49,7 @@ class Test_check_input_coords(IrisTest):
         vel2.add_aux_coord(DimCoord(2, standard_name="realization"))
         (invalid_3d,) = (iris.cube.CubeList([vel1, vel2])).merge()
         msg = "Cube has 3"
-        with self.assertRaisesRegexp(InvalidCubeError, msg):
+        with self.assertRaisesRegex(InvalidCubeError, msg):
             check_input_coords(invalid_3d)
 
     def test_time(self):
@@ -57,7 +57,7 @@ class Test_check_input_coords(IrisTest):
         cube = self.valid.copy()
         cube.remove_coord("time")
         msg = "Input cube has no time coordinate"
-        with self.assertRaisesRegexp(InvalidCubeError, msg):
+        with self.assertRaisesRegex(InvalidCubeError, msg):
             check_input_coords(cube, require_time=True)
 
 

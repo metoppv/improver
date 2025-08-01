@@ -8,19 +8,15 @@ name: improver_conda_forge
 channels:
   - conda-forge
 dependencies:
-  - python>=3.6
+  - python=3.12
   # Included in improver-feedstock requirements
-  - cartopy<0.20
-  - cftime<1.5
-  - cf-units=2.1.5
+  - cartopy
   - clize
-  - dask
-  - iris>=3.0,<3.1
-  - netCDF4
-  - numpy<1.21
-  - scipy<1.7
-  - sigtools
-  - sphinx=5.3.0
+  - iris=3.12
+  - numpy=2.2
+  - scipy=1.15
+  - sphinx
+  - pandas
   # Additional libraries to run tests, not included in improver-feedstock
   - filelock
   - pytest
@@ -28,6 +24,3 @@ dependencies:
   - sphinx-autodoc-typehints
   - sphinx_rtd_theme
   - threadpoolctl
-  # Pinned dependencies of dependencies
-  - pillow<=10.0.1  # https://github.com/metoppv/improver/issues/2010
-  - pandas<=2.0.0  # https://github.com/metoppv/improver/issues/2010

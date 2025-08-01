@@ -38,7 +38,8 @@ def islambda(function):
             True if the input object is a lambda function, False if not.
     """
     return (
-        isinstance(function, collections.Callable) and function.__name__ == "<lambda>"
+        isinstance(function, collections.abc.Callable)
+        and function.__name__ == "<lambda>"
     )
 
 

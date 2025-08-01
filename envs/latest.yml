@@ -7,29 +7,24 @@ name: improver_latest
 channels:
   - conda-forge
 dependencies:
-  - python=3
+  - python
   # Required
-  - cartopy<0.20
-  - cftime<1.5
-  - cf-units=2.1.5
+  - cartopy
   - clize
-  - dask
-  - iris>=3.0
-  - netCDF4
-  - numpy<1.21
+  - iris
+  - numpy
   - pytz
   - scipy
-  - sigtools
   - sphinx
   # Optional
   - python-stratify
   - statsmodels
   - lightgbm
   - numba
-  - pygam=0.8.0
+  - pygam
   - pysteps
-  - python-utils=3.5.2
-  - treelite=2.3.0
+  - treelite
+  - tl2cgen
   # Development
   - astroid
   - codacy-coverage
@@ -42,6 +37,3 @@ dependencies:
   - sphinx-autodoc-typehints
   - sphinx_rtd_theme
   - threadpoolctl
-  # Pinned dependencies of dependencies
-  - pillow<=10.0.1  # https://github.com/metoppv/improver/issues/2010
-  - pandas<=2.0.0  # https://github.com/metoppv/improver/issues/2010

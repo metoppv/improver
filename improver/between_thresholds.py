@@ -45,7 +45,7 @@ class OccurrenceBetweenThresholds(PostProcessingPlugin):
         threshold_diffs = np.diff(threshold_ranges)
         if any(diff < 1e-5 for diff in threshold_diffs):
             raise ValueError(
-                "Plugin cannot distinguish between thresholds at " "{} {}".format(
+                "Plugin cannot distinguish between thresholds at {} {}".format(
                     threshold_ranges, threshold_units
                 )
             )
@@ -98,7 +98,7 @@ class OccurrenceBetweenThresholds(PostProcessingPlugin):
 
         return cubes
 
-    def _get_multiplier(self) -> float:
+    def _get_multiplier(self) -> np.float32:
         """
         Check whether the cube contains "above" or "below" threshold
         probabilities.  For "above", the probability of occurrence between
@@ -124,7 +124,7 @@ class OccurrenceBetweenThresholds(PostProcessingPlugin):
                 "Input cube must contain probabilities of "
                 "occurrence above or below threshold"
             )
-        return multiplier
+        return np.float32(multiplier)
 
     def _calculate_probabilities(self) -> Cube:
         """

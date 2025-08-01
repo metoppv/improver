@@ -129,13 +129,13 @@ def test_process_threshold_basic(threshold_cube):
     expval = ExpectedValue().process(threshold_cube)
     # threshold probablities are asymmetric, so the mean is slightly above the
     # 282 kelvin threshold
-    assert_allclose(expval.data, 282.15, atol=1e-6, rtol=0.0)
+    assert_allclose(expval.data, np.float32(282.15), atol=1e-6, rtol=0.0)
 
 
 def test_process_threshold_unequal(unequal_threshold_cube):
     """Check calculation of expected value using unevenly spaced threshold data."""
     expval = ExpectedValue().process(unequal_threshold_cube)
-    assert_allclose(expval.data, 282.0925, atol=1e-6, rtol=0.0)
+    assert_allclose(expval.data, np.float32(282.0925), atol=1e-6, rtol=0.0)
 
 
 def test_process_threshold_doublebounded(double_bounded_threshold_cube):

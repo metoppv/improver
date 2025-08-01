@@ -22,7 +22,7 @@ def process(
     Args:
         cube (iris.cube.Cube):
             Probability cube to be recalibrated.
-        weighting_config (dict):
+        recalibration_config (dict):
             Dictionary from which to interpolate parameters of
             beta distribution. Dictionary format is as specified in
             improver.blending.recalibrate.Recalibrate

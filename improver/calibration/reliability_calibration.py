@@ -251,9 +251,10 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
 
         # Define reliability table specific coordinates
         probability_bins_coord = self._create_probability_bins_coord()
-        (reliability_index_coord, reliability_name_coord) = (
-            self._create_reliability_table_coords()
-        )
+        (
+            reliability_index_coord,
+            reliability_name_coord,
+        ) = self._create_reliability_table_coords()
         frt_coord = create_unified_frt_coord(forecast.coord("forecast_reference_time"))
 
         # List of required non-spatial coordinates from the forecast
@@ -1306,9 +1307,10 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
             reliability_threshold = self._extract_matching_reliability_table(
                 forecast_threshold, reliability_table
             )
-            (reliability_probabilities, observation_frequencies) = (
-                self._calculate_reliability_probabilities(reliability_threshold)
-            )
+            (
+                reliability_probabilities,
+                observation_frequencies,
+            ) = self._calculate_reliability_probabilities(reliability_threshold)
 
             if reliability_probabilities is None:
                 calibrated_cubes.append(forecast_threshold)
@@ -1329,6 +1331,7 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
         self._ensure_monotonicity_across_thresholds(calibrated_forecast)
 
         if uncalibrated_thresholds:
+            uncalibrated_thresholds = list(map(float, uncalibrated_thresholds))
             msg = (
                 "The following thresholds were not calibrated due to "
                 "insufficient forecast counts in reliability table bins: "

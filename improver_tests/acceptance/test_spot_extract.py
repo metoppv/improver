@@ -335,7 +335,7 @@ def test_percentile_deterministic_quiet(tmp_path):
         UK_SPOT_TITLE,
         "--suppress-warnings",
     ]
-    with pytest.warns(None) as collected_warns:
+    with pytest.warns(UserWarning) as collected_warns:
         run_cli(args)
 
     msg = "Diagnostic cube is not a known probabilistic type."

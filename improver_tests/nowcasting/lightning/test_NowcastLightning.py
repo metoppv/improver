@@ -303,7 +303,7 @@ class Test__modify_first_guess(IrisTest):
         """Test that the method raises an error if the meta-data cube has no
         time coordinate."""
         self.cube.remove_coord("time")
-        msg = "Expected to find exactly 1 time coordinate, but found none."
+        msg = "Expected to find exactly 1 'time' coordinate, but found none."
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
             self.plugin._modify_first_guess(
                 self.cube, self.fg_cube, self.ltng_cube, self.precip_cube, None

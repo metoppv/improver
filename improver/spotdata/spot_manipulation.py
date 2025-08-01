@@ -204,7 +204,7 @@ class SpotManipulation(BasePlugin):
         # to minimise processing time; usually there are far fewer spot sites than
         # grid points.
         if self.extract_percentiles:
-            extract_percentiles = [np.float32(x) for x in self.extract_percentiles]
+            extract_percentiles = [float(x) for x in self.extract_percentiles]
             try:
                 perc_coordinate = find_percentile_coordinate(result)
             except CoordinateNotFoundError:
