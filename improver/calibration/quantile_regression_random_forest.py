@@ -87,6 +87,19 @@ def prep_feature(
     feature: str,
 ) -> np.ndarray:
     """Prepare the feature values for the quantile regression random forest model.
+    Each expected feature is handled separately. The key steps are:
+        - Collapse the template cube over the realization dimension to get a shape
+        template.
+        - Extract the feature values from the feature cube provided.
+        - Handle different types of features separately (mean, std, spatial coordinates,
+        forecast period, model weights, day of year, hour of day, and static features)
+        to ensure they are broadcasted correctly to match the template cube shape.
+        Time coordinates are the most complex to handle as they can be scalar, span a
+        single dimension or span multiple dimensions.
+        - Flatten the feature values to create a 1D array.
+        - Set the output dtype based on the feature type.
+        - Return the flattened array of feature values.
+
     Args:
         template_cube (cube):
             The forecast cube that acts only as a template.
@@ -99,9 +112,10 @@ def prep_feature(
         feature_values (numpy.ndarray):
             Flattened array of feature values.
     """
-
+    # Collapse the template cube to get a shape template.
     collapsed_cube = template_cube.collapsed(["realization"], iris.analysis.MEAN)
 
+    # Handle each expected feature type separately.
     if "mean" == feature:
         feature_values = feature_cube.collapsed(
             ["realization"], iris.analysis.MEAN
@@ -247,6 +261,12 @@ def prep_feature(
     elif feature == "static":
         coord_multidim = _expand_dims(collapsed_cube, feature_cube.data, ["spot_index"])
         feature_values = np.broadcast_to(coord_multidim, collapsed_cube.shape).flatten()
+    else:
+        # If the feature is not one of the expected types, raise an error.
+        msg = f"Feature {feature} is not supported."
+        raise ValueError(msg)
+
+    # Ensure the feature values are returned with the correct dtype.
     if feature in ["mean", "std", "static"]:
         feature_values = feature_values.astype(feature_cube.dtype)
     elif feature in [
@@ -264,6 +284,21 @@ def prep_feature(
     return feature_values
 
 
+def _check_valid_transformation(transformation: str):
+    """Check if the transformation is one of the supported types.
+    Args:
+        transformation: Transformation to be checked.
+    Raises:
+        ValueError: If the transformation is not one of the supported types.
+    """
+    if transformation not in ["log", "log10", "sqrt", "cbrt", None]:
+        msg = (
+            "Currently the only supported transformations are log, log10, sqrt "
+            f"and cbrt. The transformation supplied was {transformation}."
+        )
+        raise ValueError(msg)
+
+
 class TrainQuantileRegressionRandomForests(BasePlugin):
     """Plugin to train a model using quantile regression random forests."""
 
@@ -271,32 +306,33 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
         self,
         feature_config: dict[str, list[str]],
         n_estimators: int,
-        max_depth: int = None,
-        random_state: int = None,
-        transformation: str = None,
+        max_depth: Optional[int] = None,
+        random_state: Optional[int] = None,
+        transformation: Optional[str] = None,
         pre_transform_addition: np.float32 = 0,
         compression: int = 5,
-        model_output: str = None,
+        model_output: Optional[str] = None,
         **kwargs,
     ) -> None:
         """Initialise the plugin.
         Args:
             feature_config (dict):
-                Feature configuration defining the features to be used for quantile regression.
-                The configuration is a dictionary of strings, where the keys are the names of
-                the input cube(s) supplied, and the values are a list. This list can contain both
-                computed features, such as the mean or standard deviation (std), or static
-                features, such as the altitude. The computed features will be computed using
-                the cube defined in the dictionary key. If the key is the feature itself e.g.
-                a distance to water cube, then the value should state "static". This will ensure
-                the cube's data is used as the feature.
-                The config will have the structure:
-                "DYNAMIC_VARIABLE_NAME": ["FEATURE1", "FEATURE2"] e.g:
-                {
-                "air_temperature": ["mean", "std", "altitude"],
-                "visibility_at_screen_level": ["mean", "std"]
-                "distance_to_water": ["static"],
-                }
+                Feature configuration defining the features to be used for quantile
+                regression. The configuration is a dictionary of strings, where the
+                keys are the names of the input cube(s) supplied, and the values are
+                a list. This list can contain both computed features, such as the
+                mean or standard deviation (std), or static features, such as the
+                altitude. The computed features will be computed using the cube defined
+                in the dictionary key. If the key is the feature itself e.g. a distance
+                to water cube, then the value should state "static". This will ensure
+                the cube's data is used as the feature. The config will have the
+                structure:
+                    "DYNAMIC_VARIABLE_NAME": ["FEATURE1", "FEATURE2"] e.g:
+                    {
+                    "air_temperature": ["mean", "std", "altitude"],
+                    "visibility_at_screen_level": ["mean", "std"]
+                    "distance_to_water": ["static"],
+                    }
             n_estimators (int):
                 Number of trees in the forest.
             max_depth (int):
@@ -320,12 +356,7 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
         self.max_depth = max_depth
         self.random_state = random_state
         self.transformation = transformation
-        if self.transformation not in ["log", "log10", "sqrt", "cbrt", None]:
-            msg = (
-                "Currently the only supported transformations are log, log10, sqrt "
-                f"and cbrt. The transformation supplied was {self.transformation}."
-            )
-            raise ValueError(msg)
+        _check_valid_transformation(self.transformation)
         self.pre_transform_addition = pre_transform_addition
         self.compression = compression
         self.output = model_output
@@ -367,17 +398,18 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
         fp_coord = forecast_cube.coord("forecast_period")
 
         time_datetimes = []
-        # Forecast reference time and forecast period are both non-dimensional
-        # coordinates. Cube must have no time dimensions.
+
+        # Handle the case where both forecast reference time and forecast period are
+        # non-dimensional coordinates (i.e., the cube has no time dimensions).
         if frt_dims is None and fp_dims is None:
             time_datetimes.append(
                 frt_coord.cell(0).point._to_real_datetime()
                 + pd.to_timedelta(fp_coord.points, unit=str(fp_coord.units))
             )
         elif frt_dims == fp_dims:
-            # Forecast reference time and forecast period share a dimension coordinate.
-            # Forecast reference time and forecast period must be mixed together
-            # along one dimension.
+            # Handle the case where forecast reference time and forecast period share
+            # the same dimension. This means both are mixed together along one
+            # dimension.
             for frt, fp in zip(
                 list(frt_coord.cells()),
                 fp_coord.points,
@@ -389,7 +421,9 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
                     )
                 )
         else:
-            # Forecast reference time and forecast period are different dimensions.
+            # Handle the case where forecast reference time and forecast period are on
+            # different dimensions. This requires iterating over all combinations of
+            # forecast period and forecast reference time.
             enforce_coordinate_ordering(
                 forecast_cube,
                 ["forecast_period", "forecast_reference_time"],
@@ -528,13 +562,7 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
         self.feature_config = feature_config
         self.quantiles = quantiles
         self.transformation = transformation
-        if self.transformation not in ["log", "log10", "sqrt", "cbrt", None]:
-            msg = (
-                "Currently the only supported transformations are log, log10, sqrt "
-                f"and cbrt. The transformation supplied was {self.transformation}."
-            )
-            raise ValueError(msg)
-        print(pre_transform_addition)
+        _check_valid_transformation(self.transformation)
         self.pre_transform_addition = pre_transform_addition
 
     def _reverse_transformation(self, forecast_cube: Cube):
@@ -583,19 +611,21 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
         feature_values = []
 
         for feature_name in self.feature_config.keys():
-            feature_cube = feature_cubes.extract(iris.Constraint(feature_name))
-            for index, feature in enumerate(self.feature_config[feature_name]):
-                if (
-                    self.transformation
-                    and feature in ["mean", "std"]
-                    and feature_cube[0].name() == template_forecast_cube.name()
-                    and index == 0
-                ):
-                    feature_cube[0].data = getattr(np, self.transformation)(
-                        feature_cube[0].data + self.pre_transform_addition
-                    )
+            feature_cube = feature_cubes.extract_cube(iris.Constraint(feature_name))
+
+            # Transform the feature cube data if a transformation is specified.
+            if (
+                self.transformation
+                and set(["mean", "std"]).intersection(self.feature_config[feature_name])
+                and feature_cube.name() == template_forecast_cube.name()
+            ):
+                feature_cube.data = getattr(np, self.transformation)(
+                    feature_cube.data + self.pre_transform_addition
+                )
+
+            for feature in self.feature_config[feature_name]:
                 feature_values.append(
-                    prep_feature(template_forecast_cube, feature_cube[0], feature)
+                    prep_feature(template_forecast_cube, feature_cube, feature)
                 )
 
         feature_values = np.array(feature_values).T

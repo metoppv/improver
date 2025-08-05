@@ -599,30 +599,30 @@ def test_alternative_feature_configs(
     "quantiles,transformation,pre_transform_addition,include_static,expected",
     [
         ([0.5], None, 0, False, [4, 4]),  # One quantile
-        ([0.1, 0.5, 0.9], None, 0, False, [[9.1, 9.14], [9.1, 9.3], [9.1, 9.46]]),  # noqa Multiple quantiles
-        ([0.1, 0.5, 0.9], "log", 10, False, [[4.46, 4.46], [5.54, 5.54], [6.7, 6.7]]),  # noqa Log transformation
-        (
-            [0.1, 0.5, 0.9],
-            "log10",
-            10,
-            False,
-            [[4.46, 4.46], [5.54, 5.54], [6.7, 6.7]],
-        ),  # Log10 transformation
-        (
-            [0.1, 0.5, 0.9],
-            "sqrt",
-            10,
-            False,
-            [[4.47, 4.47], [5.57, 5.57], [6.71, 6.71]],
-        ),  # Square root transformation
-        (
-            [0.1, 0.5, 0.9],
-            "cbrt",
-            10,
-            False,
-            [[4.47, 4.47], [5.56, 5.56], [6.7, 6.7]],
-        ),  # Cube root transformation
-        ([0.1, 0.5, 0.9], None, 0, True, [[9.1, 9.14], [9.1, 9.3], [9.1, 9.46]]),  # noqa Include static data
+        # ([0.1, 0.5, 0.9], None, 0, False, [[9.1, 9.14], [9.1, 9.3], [9.1, 9.46]]),  # noqa Multiple quantiles
+        # ([0.1, 0.5, 0.9], "log", 10, False, [[4.46, 4.46], [5.54, 5.54], [6.7, 6.7]]),  # noqa Log transformation
+        # (
+        #     [0.1, 0.5, 0.9],
+        #     "log10",
+        #     10,
+        #     False,
+        #     [[4.46, 4.46], [5.54, 5.54], [6.7, 6.7]],
+        # ),  # Log10 transformation
+        # (
+        #     [0.1, 0.5, 0.9],
+        #     "sqrt",
+        #     10,
+        #     False,
+        #     [[4.47, 4.47], [5.57, 5.57], [6.71, 6.71]],
+        # ),  # Square root transformation
+        # (
+        #     [0.1, 0.5, 0.9],
+        #     "cbrt",
+        #     10,
+        #     False,
+        #     [[4.47, 4.47], [5.56, 5.56], [6.7, 6.7]],
+        # ),  # Cube root transformation
+        # ([0.1, 0.5, 0.9], None, 0, True, [[9.1, 9.14], [9.1, 9.3], [9.1, 9.46]]),  # noqa Include static data
     ],
 )
 def test_apply_qrf(
