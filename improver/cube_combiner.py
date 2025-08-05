@@ -34,7 +34,8 @@ class Combine(BasePlugin):
     The first cube in the input list provides the template for output metadata.
     If coordinates are expanded as a result of this combine operation
     (e.g. expanding time for accumulations / max in period) the upper bound of
-    the new coordinate will also be used as the point for the new coordinate.
+    the new coordinate will also be used as the point for the new coordinate, unless
+    midpoint_bound is True, in which case the midpoint of the bounds is used instead.
     """
 
     def __init__(
@@ -45,6 +46,7 @@ class Combine(BasePlugin):
         new_name: str = None,
         cell_method_coordinate: str = None,
         expand_bound: bool = True,
+        midpoint_bound: bool = False,
     ):
         r"""
         Args:
@@ -66,6 +68,9 @@ class Combine(BasePlugin):
                 provided. This is only available for max, min and mean operations.
             expand_bound:
                 If True then coord bounds will be extended to represent all cubes being combined.
+            midpoint_bound:
+                If True, set the coordinate point to the midpoint of the bounds;
+                otherwise, use the upper bound. This is only used if expand_bound is True.
         """
         try:
             self.minimum_realizations = int(minimum_realizations)
@@ -77,12 +82,14 @@ class Combine(BasePlugin):
         self.broadcast = broadcast
         self.cell_method_coordinate = cell_method_coordinate
         self.expand_bound = expand_bound
+        self.midpoint_bound = midpoint_bound
 
         self.plugin = CubeCombiner(
             operation,
             cell_method_coordinate=cell_method_coordinate,
             broadcast=self.broadcast,
             expand_bound=self.expand_bound,
+            midpoint_bound=self.midpoint_bound,
         )
 
     def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
@@ -177,6 +184,7 @@ class CubeCombiner(BasePlugin):
         cell_method_coordinate: str = None,
         broadcast: str = None,
         expand_bound: bool = True,
+        midpoint_bound: bool = False,
     ) -> None:
         """Create a CubeCombiner plugin
 
@@ -191,6 +199,9 @@ class CubeCombiner(BasePlugin):
                 the coord must already exist on the first input cube.
             expand_bound:
                 If True then coord bounds will be extended to represent all cubes being combined.
+            midpoint_bound:
+                If True, set the coordinate point to the midpoint of the bounds;
+                otherwise, use the upper bound. This is only used if expand_bound is True.
         Raises:
             ValueError: if operation is not recognised in dictionary
         """
@@ -204,6 +215,7 @@ class CubeCombiner(BasePlugin):
         self.broadcast = broadcast
         self.normalise = operation == "mean"
         self.expand_bound = expand_bound
+        self.midpoint_bound = midpoint_bound
 
     @staticmethod
     def _check_dimensions_match(
@@ -450,7 +462,12 @@ class CubeCombiner(BasePlugin):
             update_diagnostic_name(cube_list[0], new_diagnostic_name, result)
         else:
             if expanded_coord_names and self.expand_bound:
-                result = expand_bounds(result, cube_list, expanded_coord_names)
+                result = expand_bounds(
+                    result,
+                    cube_list,
+                    expanded_coord_names,
+                    midpoint_bound=self.midpoint_bound,
+                )
             result.rename(new_diagnostic_name)
             self._add_cell_method(result)
 

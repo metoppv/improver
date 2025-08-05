@@ -597,7 +597,10 @@ def clip_cube_data(cube: Cube, minimum_value: float, maximum_value: float) -> Cu
 
 
 def expand_bounds(
-    result_cube: Cube, cubelist: Union[List[Cube], CubeList], coord_names: List[str]
+    result_cube: Cube,
+    cubelist: Union[List[Cube], CubeList],
+    coord_names: List[str],
+    midpoint_bound: bool = False,
 ) -> Cube:
     """Alter a coordinate on result_cube such that bounds are expanded to cover
     the entire range of the input cubes (cubelist).  The input result_cube is
@@ -606,7 +609,8 @@ def expand_bounds(
     For example, in the case of time cubes if the input cubes have
     bounds of [0000Z, 0100Z] & [0100Z, 0200Z] then the output cube will
     have bounds of [0000Z,0200Z]. The returned coordinate point will be
-    equal to the upper bound.
+    equal to the upper bound by default. If mid_point_bound is true the midpoint is
+    returned instead (e.g. 0100Z).
 
     Args:
         result_cube:
@@ -615,6 +619,9 @@ def expand_bounds(
             List of input cubes with source coords
         coord_names:
             Coordinates which should be expanded
+        midpoint_bound:
+            If True, set the coordinate point to the midpoint of the bounds;
+            otherwise, use the upper bound.
 
     Returns:
         Cube with coords expanded.
@@ -646,7 +653,11 @@ def expand_bounds(
         if result_coord.bounds.dtype in FLOAT_TYPES:
             result_coord.bounds = result_coord.bounds.astype(FLOAT_DTYPE)
 
-        result_coord.points = [new_top_bound]
+        if midpoint_bound:
+            result_coord.points = [(new_low_bound + new_top_bound) / 2]
+        else:
+            result_coord.points = [new_top_bound]
+
         if result_coord.points.dtype in FLOAT_TYPES:
             result_coord.points = result_coord.points.astype(FLOAT_DTYPE)
 
