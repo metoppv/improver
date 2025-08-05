@@ -18,29 +18,67 @@ from improver.constants import DAYS_IN_YEAR, HOURS_IN_DAY
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 
-def _remove_item_from_list(alist: list, items: list):
-    """Remove items from a list. If no items can be removed,
-    return an empty list.
+def _expand_dims(
+    template_cube: Cube, expansion_array: np.ndarray, features: list[str]
+) -> np.ndarray:
+    """Expand dimensions of the expansion_array to match the dimensions of the template
+    cube. For example, the dimensions of the expansion_array may only span a portion
+    of the dimensions present in the template cube. If the expansion_array has
+    singleton dimensions that are not present in the template cube, these singleton
+    dimension will be squeezed away.
+
     Args:
-        alist:
-            List from which items are to be removed.
-        items (list):
-            List of items to be removed from alist.
+        template_cube: Cube that acts as a template for the output. The dimension
+            coordinates and coordinates associated with the dimension coordinates on
+            this cube will be used to expand the expansion_array.
+        expansion_array: Array that will be expanded to match the dimensions of the
+            template_cube.
+        features: List of feature names that are present in the template_cube. These
+            may correspond to dimension coordinates or coordinates associated with
+            dimension coordinates or scalar coordinates.
+
     Returns:
-        A new list either containing the items that were not removed, or an empty list.
-
+        Array with dimensions expanded to match the template_cube.
     """
-    entries_removed = 0
-    new_list = []
-    for entry in alist:
-        if entry in items:
-            entries_removed += 1
-        else:
-            new_list.append(entry)
+    # The aim here is to find the names of the dimension coordinates but check
+    # whether the name of any coordinate associated with a dimension coordinate matches
+    # the features provided. If there is a match, then use the feature name, rather than
+    # the dimension coordinate name.
+    dim_coord_names = [c.name() for c in template_cube.coords(dim_coords=True)]
+    refined_dim_coord_names = []
+    for coord in template_cube.coords():
+        # Ignore scalar coordinates.
+        if len(template_cube.coord_dims(coord)) > 0:
+            associated_coords = [
+                c.name()
+                for c in template_cube.coords(
+                    dimensions=template_cube.coord_dims(coord)
+                )
+            ]
+            feature_associated_coords = list(
+                set(associated_coords).intersection(features)
+            )
+            if feature_associated_coords:
+                refined_dim_coord_names.append(feature_associated_coords[0])
+            elif coord.name() in dim_coord_names:
+                refined_dim_coord_names.append(coord.name())
+    refined_dim_coord_names = list(set(refined_dim_coord_names))
 
-    if entries_removed == 0:
-        return []
-    return new_list
+    expansion_dim_names = list(set(refined_dim_coord_names) - set(features))
+
+    # If the expansion_dims and refined_dim_coord_names match, this implies that
+    # the features provided are not dimension coordinates nor associated with any
+    # dimension coordinate. In this case, any singleton dimensions on the
+    # expansion_array should be removed, as it isn't relevant for defining the shape
+    # of the template cube.
+    if expansion_dim_names == refined_dim_coord_names:
+        expansion_array = np.squeeze(expansion_array)
+
+    dims = []
+    for dim_name in expansion_dim_names:
+        dims.extend(template_cube.coord_dims(dim_name))
+
+    return np.expand_dims(expansion_array, dims)
 
 
 def prep_feature(
@@ -64,7 +102,6 @@ def prep_feature(
 
     collapsed_cube = template_cube.collapsed(["realization"], iris.analysis.MEAN)
 
-    dims = list(range(len(collapsed_cube.shape)))
     if "mean" == feature:
         feature_values = feature_cube.collapsed(
             ["realization"], iris.analysis.MEAN
@@ -74,16 +111,16 @@ def prep_feature(
             ["realization"], iris.analysis.STD_DEV
         ).data.flatten()
     elif feature in ["latitude", "longitude", "altitude"]:
-        dims = _remove_item_from_list(dims, collapsed_cube.coord_dims("spot_index"))
-        coord_multidim = np.expand_dims(feature_cube.coord(feature).points, dims)
+        coord_multidim = _expand_dims(
+            collapsed_cube, feature_cube.coord(feature).points, ["spot_index"]
+        )
         feature_values = np.broadcast_to(coord_multidim, collapsed_cube.shape).flatten()
     elif feature == "forecast_period":
         if len(feature_cube.coord_dims("forecast_period")) == 1:
-            dims = _remove_item_from_list(
-                dims, collapsed_cube.coord_dims("forecast_period")
-            )
-            coord_multidim = np.expand_dims(
-                feature_cube.coord("forecast_period").points, dims
+            coord_multidim = _expand_dims(
+                collapsed_cube,
+                feature_cube.coord("forecast_period").points,
+                ["forecast_period"],
             )
         else:
             coord_multidim = feature_cube.coord("forecast_period").points
@@ -91,11 +128,10 @@ def prep_feature(
         feature_values = np.broadcast_to(coord_multidim, collapsed_cube.shape).flatten()
     elif feature == "model_weights":
         if len(feature_cube.coord_dims("forecast_period")) == 1:
-            dims = _remove_item_from_list(
-                dims, collapsed_cube.coord_dims("forecast_period")
-            )
-            coord_multidim = np.expand_dims(
-                feature_cube.coord("model_weights").points, dims
+            coord_multidim = _expand_dims(
+                collapsed_cube,
+                feature_cube.coord("model_weights").points,
+                ["forecast_period"],
             )
         else:
             coord_multidim = feature_cube.coord("model_weights").points
@@ -124,10 +160,9 @@ def prep_feature(
                 day_of_year.append(np.int32(time_point.strftime("%j")))
             day_of_year = np.array(day_of_year)
             # frt_dims and fp_dims are the same, so we can choose one of them to pop.
-            dims = _remove_item_from_list(
-                dims, collapsed_cube.coord_dims("forecast_reference_time")
+            day_of_year = _expand_dims(
+                collapsed_cube, day_of_year, ["forecast_reference_time"]
             )
-            day_of_year = np.expand_dims(day_of_year, dims)
         else:
             # Forecast reference time and forecast period are different dimensions.
             day_of_year = np.zeros((len(frt_coord.points), len(fp_coord.points)))
@@ -139,14 +174,11 @@ def prep_feature(
                     day_of_year[i, j] = time_point.strftime("%j")
             day_of_year = day_of_year.T
 
-            dims = _remove_item_from_list(
-                dims,
-                [
-                    collapsed_cube.coord_dims("forecast_reference_time")[0],
-                    collapsed_cube.coord_dims("forecast_period")[0],
-                ],
+            day_of_year = _expand_dims(
+                collapsed_cube,
+                day_of_year,
+                ["forecast_reference_time", "forecast_period"],
             )
-            day_of_year = np.expand_dims(np.array(day_of_year), dims)
 
         feature_values = np.broadcast_to(day_of_year, collapsed_cube.shape).flatten()
         if feature == "day_of_year_sin":
@@ -177,10 +209,9 @@ def prep_feature(
             hour_of_day = np.array(hour_of_day)
 
             # frt_dims and fp_dims are the same, so we can choose one of them to pop.
-            dims = _remove_item_from_list(
-                dims, collapsed_cube.coord_dims("forecast_reference_time")
+            hour_of_day = _expand_dims(
+                collapsed_cube, hour_of_day, ["forecast_reference_time"]
             )
-            hour_of_day = np.expand_dims(hour_of_day, dims)
         else:
             # Forecast reference time and forecast period are different dimensions.
             hour_of_day = np.zeros((len(frt_coord.points), len(fp_coord.points)))
@@ -191,14 +222,11 @@ def prep_feature(
                     )
                     hour_of_day[i, j] = time_point.hour
             hour_of_day = hour_of_day.T
-            dims = _remove_item_from_list(
-                dims,
-                [
-                    collapsed_cube.coord_dims("forecast_reference_time")[0],
-                    collapsed_cube.coord_dims("forecast_period")[0],
-                ],
+            hour_of_day = _expand_dims(
+                collapsed_cube,
+                hour_of_day,
+                ["forecast_reference_time", "forecast_period"],
             )
-            hour_of_day = np.expand_dims(np.array(hour_of_day), dims)
 
         feature_values = np.broadcast_to(hour_of_day, collapsed_cube.shape).flatten()
         if feature == "hour_of_day_sin":
@@ -207,21 +235,18 @@ def prep_feature(
             feature_values = np.cos(2 * np.pi * feature_values / HOURS_IN_DAY)
     elif feature == "day_of_training_period":
         if len(feature_cube.coord_dims("day_of_training_period")) == 1:
-            dims = _remove_item_from_list(
-                dims, collapsed_cube.coord_dims("day_of_training_period")
-            )
-            coord_multidim = np.expand_dims(
-                feature_cube.coord("day_of_training_period").points, dims
+            coord_multidim = _expand_dims(
+                collapsed_cube,
+                feature_cube.coord("day_of_training_period").points,
+                ["day_of_training_period"],
             )
         else:
             coord_multidim = feature_cube.coord("day_of_training_period").points
 
         feature_values = np.broadcast_to(coord_multidim, collapsed_cube.shape).flatten()
     elif feature == "static":
-        dims = _remove_item_from_list(dims, collapsed_cube.coord_dims("spot_index"))
-        coord_multidim = np.expand_dims(feature_cube.data, dims)
+        coord_multidim = _expand_dims(collapsed_cube, feature_cube.data, ["spot_index"])
         feature_values = np.broadcast_to(coord_multidim, collapsed_cube.shape).flatten()
-
     if feature in ["mean", "std", "static"]:
         feature_values = feature_values.astype(feature_cube.dtype)
     elif feature in [
@@ -397,7 +422,9 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
                 Cube containing the realization forecasts. If the cube provided
                 contains multiple forecast periods, then the cube is expected to have
                 forecast period, forecast reference time, realization
-                and spot_index as the dimensions.
+                and spot_index as the dimensions. This cube is only used as a template.
+                If the forecast cube is a feature cube, then it should also be provided
+                within the feature_cubes list.
             truth_cube:
                 Cube containing the truths. The truths should have the same validity
                 times as the forecast. If the same validity time occurs multiple times
