@@ -1,0 +1,47 @@
+# (C) Crown Copyright, Met Office. All rights reserved.
+#
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
+# See LICENSE in the root of the repository for full licensing details.
+import pytest
+
+from improver.constants import LOOSE_TOLERANCE
+
+from . import acceptance as acc
+
+pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
+
+
+@pytest.mark.parametrize(
+    "transformation",
+    ["without_transformation", "with_transformation"],
+)
+def test_basic(tmp_path, transformation):
+    """Test"""
+    kgo_dir = acc.kgo_root() / "apply-quantile-regression-random-forest/"
+    kgo_path = kgo_dir / f"{transformation}_kgo.nc"
+    qrf_path = kgo_dir / f"{transformation}_input.pickle"
+    forecast_path = kgo_dir / "input_forecast.nc"
+    config_path = kgo_dir / "config.json"
+    output_path = tmp_path / "output.nc"
+    args = [
+        forecast_path,
+        qrf_path,
+        "--feature-config",
+        config_path,
+        "--target-cube-name",
+        "air_temperature",
+        "--output",
+        output_path,
+    ]
+
+    if transformation == "with_transformation":
+        args += [
+            "--transformation",
+            "log",
+            "--pre-transform-addition",
+            "0.1",
+        ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
