@@ -6,6 +6,7 @@
 """Script to load and apply the trained Quantile Regression Random Forest (QRF) model."""
 
 import pathlib
+from typing import Optional
 
 import iris
 import joblib
@@ -32,8 +33,8 @@ class LoadAndApplyQRF(PostProcessingPlugin):
         self,
         feature_config: dict[str, list[str]],
         target_cube_name: str,
-        transformation: str = None,
-        pre_transform_addition: float = None,
+        transformation: Optional[str] = None,
+        pre_transform_addition: Optional[float] = None,
     ):
         """Initialise the plugin.
 
@@ -71,13 +72,13 @@ class LoadAndApplyQRF(PostProcessingPlugin):
         self.pre_transform_addition = pre_transform_addition
 
     def _get_inputs(
-        self, file_paths: pathlib.Path
+        self, file_paths: list[pathlib.Path]
     ) -> tuple[CubeList, Cube, RandomForestQuantileRegressor]:
         """Get inputs from disk and separate the model and the features.
 
         Args:
-            file_paths: Path to the trained QRF model and the forecast to be calibrated,
-                and the features, as required.
+            file_paths: List of paths to the trained QRF model and the forecast to be
+                calibrated and the features, as required.
 
         Returns:
             CubeList of the features cubes, the forecast cube, and the
@@ -162,7 +163,7 @@ class LoadAndApplyQRF(PostProcessingPlugin):
         return percentiles
 
     @staticmethod
-    def _percentiles_to_realizations(cube_inputs: Cube) -> CubeList:
+    def _percentiles_to_realizations(cube_inputs: CubeList) -> CubeList:
         """Convert percentiles to realizations. The input forecasts are expected to
         be percentiles but these percentiles are rebadged as realizations.
 
@@ -226,14 +227,12 @@ class LoadAndApplyQRF(PostProcessingPlugin):
 
     def process(
         self,
-        file_paths: pathlib.Path,
+        file_paths: list[pathlib.Path],
     ) -> Cube:
-        """Loading and applying the trained model for Quantile Regression Random Forest.
-
-        Load in the previously trained model for Quantile Regression Random
-        Forest (QRF). The model is applied to the forecast that is supplied,
-        so as to calibrate the forecast. The calibrated forecast is written
-        to a cube. If no model is provided the input forecast is returned unchanged.
+        """Load and applying the trained Quantile Regression Random Forest (QRF) model.
+        The model is applied to the forecast supplied to calibrate the forecast.
+        The calibrated forecast is written to a cube. If no model is provided the
+        input forecast is returned unchanged.
 
         Args:
             file_paths (cli.inputpaths):
@@ -241,7 +240,7 @@ class LoadAndApplyQRF(PostProcessingPlugin):
                 - The path to a QRF trained model in pickle file format to be used
                 for calibration.
                 - The path to a NetCDF file containing the forecast to be calibrated.
-                - Optionally, paths to NetCDF files containing additional preictors.
+                - Optionally, paths to NetCDF files containing additional predictors.
 
         Returns:
             iris.cube.Cube:

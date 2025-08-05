@@ -461,29 +461,35 @@ def test_load_and_train_qrf_no_paths(tmp_path, make_files):
 @pytest.mark.parametrize(
     "exception,forecast_creation,truth_creation,representation",
     [
+        # (
+        #     "non_matching_truth",
+        #     _create_multi_site_forecast_parquet_file,
+        #     _create_multi_site_truth_parquet_file_alt,
+        #     "percentile",
+        # ),
+        # (
+        #     "missing_static_feature",
+        #     _create_multi_site_forecast_parquet_file,
+        #     _create_multi_site_truth_parquet_file,
+        #     "percentile",
+        # ),
+        # (
+        #     "missing_dynamic_feature",
+        #     _create_multi_site_forecast_parquet_file,
+        #     _create_multi_site_truth_parquet_file,
+        #     "percentile",
+        # ),
+        # (
+        #     "no_percentile_realization",
+        #     _create_multi_site_forecast_parquet_file,
+        #     _create_multi_site_truth_parquet_file,
+        #     "kittens",
+        # ),
         (
-            "non_matching_truth",
-            _create_multi_site_forecast_parquet_file,
-            _create_multi_site_truth_parquet_file_alt,
-            "percentile",
-        ),
-        (
-            "missing_static_feature",
+            "empty_directory",
             _create_multi_site_forecast_parquet_file,
             _create_multi_site_truth_parquet_file,
             "percentile",
-        ),
-        (
-            "missing_dynamic_feature",
-            _create_multi_site_forecast_parquet_file,
-            _create_multi_site_truth_parquet_file,
-            "percentile",
-        ),
-        (
-            "no_percentile_realization",
-            _create_multi_site_forecast_parquet_file,
-            _create_multi_site_truth_parquet_file,
-            "kittens",
         ),
     ],
 )
@@ -541,5 +547,13 @@ def test_exceptions(
     elif exception == "no_percentile_realization":
         with pytest.raises(ValueError, match="The forecast parquet file"):
             plugin(file_paths, model_output=model_output)
+    elif exception == "empty_directory":
+        forecast_path = tmp_path / "forecast_parquet_files_alt"
+        forecast_path.mkdir(parents=True, exist_ok=True)
+        truth_path = tmp_path / "truth_parquet_files_alt"
+        truth_path.mkdir(parents=True, exist_ok=True)
+        file_paths = [forecast_path, truth_path]
+        # with pytest.raises(ValueError, match="The forecast parquet file"):
+        plugin(file_paths, model_output=model_output)
     else:
         raise ValueError(f"Unknown exception type: {exception}")

@@ -64,6 +64,16 @@ def _create_forecasts(
 
 
 def _add_day_of_training_period(cube, day_of_training_period, secondary_coord):
+    """Add day of training period coordinate to the cube.
+
+    Args:
+        cube: Cube to which the day of training period coordinate will be added.
+        day_of_training_period: Day of training period to be added.
+        secondary_coord: Coordinate to associate the day of training period with.
+
+    Returns:
+        Cube with the day of training period coordinate added.
+    """
     dims = cube.coord_dims(secondary_coord)
     day_of_training_period_coord = AuxCoord(
         np.array(day_of_training_period, dtype=np.int32),
