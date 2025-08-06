@@ -30,7 +30,7 @@ def process(
             - The path to a QRF trained model in pickle file format to be used
             for calibration.
             - The path to a NetCDF file containing the forecast to be calibrated.
-            - Optionally, paths to NetCDF files containing additional preictors.
+            - Optionally, paths to NetCDF files containing additional predictors.
         feature_config (dict):
             Feature configuration defining the features to be used for quantile regression.
                 The configuration is a dictionary of strings, where the keys are the names of
@@ -64,11 +64,12 @@ def process(
         LoadAndApplyQRF,
     )
 
-    result = LoadAndApplyQRF()(
-        file_paths,
+    result = LoadAndApplyQRF(
         feature_config=feature_config,
         target_cube_name=target_cube_name,
         transformation=transformation,
         pre_transform_addition=pre_transform_addition,
+    )(
+        file_paths,
     )
     return result

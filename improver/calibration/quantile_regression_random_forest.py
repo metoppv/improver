@@ -18,29 +18,67 @@ from improver.constants import DAYS_IN_YEAR, HOURS_IN_DAY
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 
-def _remove_item_from_list(alist: list, items: list):
-    """Remove items from a list. If no items can be removed,
-    return an empty list.
+def _expand_dims(
+    template_cube: Cube, expansion_array: np.ndarray, features: list[str]
+) -> np.ndarray:
+    """Expand dimensions of the expansion_array to match the dimensions of the template
+    cube. For example, the dimensions of the expansion_array may only span a portion
+    of the dimensions present in the template cube. If the expansion_array has
+    singleton dimensions that are not present in the template cube, these singleton
+    dimension will be squeezed away.
+
     Args:
-        alist:
-            List from which items are to be removed.
-        items (list):
-            List of items to be removed from alist.
+        template_cube: Cube that acts as a template for the output. The dimension
+            coordinates and coordinates associated with the dimension coordinates on
+            this cube will be used to expand the expansion_array.
+        expansion_array: Array that will be expanded to match the dimensions of the
+            template_cube.
+        features: List of feature names that are present in the template_cube. These
+            may correspond to dimension coordinates or coordinates associated with
+            dimension coordinates or scalar coordinates.
+
     Returns:
-        A new list either containing the items that were not removed, or an empty list.
-
+        Array with dimensions expanded to match the template_cube.
     """
-    entries_removed = 0
-    new_list = []
-    for entry in alist:
-        if entry in items:
-            entries_removed += 1
-        else:
-            new_list.append(entry)
+    # The aim here is to find the names of the dimension coordinates but check
+    # whether the name of any coordinate associated with a dimension coordinate matches
+    # the features provided. If there is a match, then use the feature name, rather than
+    # the dimension coordinate name.
+    dim_coord_names = [c.name() for c in template_cube.coords(dim_coords=True)]
+    refined_dim_coord_names = []
+    for coord in template_cube.coords():
+        # Ignore scalar coordinates.
+        if len(template_cube.coord_dims(coord)) > 0:
+            associated_coords = [
+                c.name()
+                for c in template_cube.coords(
+                    dimensions=template_cube.coord_dims(coord)
+                )
+            ]
+            feature_associated_coords = list(
+                set(associated_coords).intersection(features)
+            )
+            if feature_associated_coords:
+                refined_dim_coord_names.append(feature_associated_coords[0])
+            elif coord.name() in dim_coord_names:
+                refined_dim_coord_names.append(coord.name())
+    refined_dim_coord_names = list(set(refined_dim_coord_names))
 
-    if entries_removed == 0:
-        return []
-    return new_list
+    expansion_dim_names = list(set(refined_dim_coord_names) - set(features))
+
+    # If the expansion_dims and refined_dim_coord_names match, this implies that
+    # the features provided are not dimension coordinates nor associated with any
+    # dimension coordinate. In this case, any singleton dimensions on the
+    # expansion_array should be removed, as it isn't relevant for defining the shape
+    # of the template cube.
+    if expansion_dim_names == refined_dim_coord_names:
+        expansion_array = np.squeeze(expansion_array)
+
+    dims = []
+    for dim_name in expansion_dim_names:
+        dims.extend(template_cube.coord_dims(dim_name))
+
+    return np.expand_dims(expansion_array, dims)
 
 
 def prep_feature(
@@ -49,6 +87,19 @@ def prep_feature(
     feature: str,
 ) -> np.ndarray:
     """Prepare the feature values for the quantile regression random forest model.
+    Each expected feature is handled separately. The key steps are:
+        - Collapse the template cube over the realization dimension to get a shape
+        template.
+        - Extract the feature values from the feature cube provided.
+        - Handle different types of features separately (mean, std, spatial coordinates,
+        forecast period, model weights, day of year, hour of day, and static features)
+        to ensure they are broadcasted correctly to match the template cube shape.
+        Time coordinates are the most complex to handle as they can be scalar, span a
+        single dimension or span multiple dimensions.
+        - Flatten the feature values to create a 1D array.
+        - Set the output dtype based on the feature type.
+        - Return the flattened array of feature values.
+
     Args:
         template_cube (cube):
             The forecast cube that acts only as a template.
@@ -61,10 +112,10 @@ def prep_feature(
         feature_values (numpy.ndarray):
             Flattened array of feature values.
     """
-
+    # Collapse the template cube to get a shape template.
     collapsed_cube = template_cube.collapsed(["realization"], iris.analysis.MEAN)
 
-    dims = list(range(len(collapsed_cube.shape)))
+    # Handle each expected feature type separately.
     if "mean" == feature:
         feature_values = feature_cube.collapsed(
             ["realization"], iris.analysis.MEAN
@@ -74,16 +125,16 @@ def prep_feature(
             ["realization"], iris.analysis.STD_DEV
         ).data.flatten()
     elif feature in ["latitude", "longitude", "altitude"]:
-        dims = _remove_item_from_list(dims, collapsed_cube.coord_dims("spot_index"))
-        coord_multidim = np.expand_dims(feature_cube.coord(feature).points, dims)
+        coord_multidim = _expand_dims(
+            collapsed_cube, feature_cube.coord(feature).points, ["spot_index"]
+        )
         feature_values = np.broadcast_to(coord_multidim, collapsed_cube.shape).flatten()
     elif feature == "forecast_period":
         if len(feature_cube.coord_dims("forecast_period")) == 1:
-            dims = _remove_item_from_list(
-                dims, collapsed_cube.coord_dims("forecast_period")
-            )
-            coord_multidim = np.expand_dims(
-                feature_cube.coord("forecast_period").points, dims
+            coord_multidim = _expand_dims(
+                collapsed_cube,
+                feature_cube.coord("forecast_period").points,
+                ["forecast_period"],
             )
         else:
             coord_multidim = feature_cube.coord("forecast_period").points
@@ -91,11 +142,10 @@ def prep_feature(
         feature_values = np.broadcast_to(coord_multidim, collapsed_cube.shape).flatten()
     elif feature == "model_weights":
         if len(feature_cube.coord_dims("forecast_period")) == 1:
-            dims = _remove_item_from_list(
-                dims, collapsed_cube.coord_dims("forecast_period")
-            )
-            coord_multidim = np.expand_dims(
-                feature_cube.coord("model_weights").points, dims
+            coord_multidim = _expand_dims(
+                collapsed_cube,
+                feature_cube.coord("model_weights").points,
+                ["forecast_period"],
             )
         else:
             coord_multidim = feature_cube.coord("model_weights").points
@@ -124,10 +174,9 @@ def prep_feature(
                 day_of_year.append(np.int32(time_point.strftime("%j")))
             day_of_year = np.array(day_of_year)
             # frt_dims and fp_dims are the same, so we can choose one of them to pop.
-            dims = _remove_item_from_list(
-                dims, collapsed_cube.coord_dims("forecast_reference_time")
+            day_of_year = _expand_dims(
+                collapsed_cube, day_of_year, ["forecast_reference_time"]
             )
-            day_of_year = np.expand_dims(day_of_year, dims)
         else:
             # Forecast reference time and forecast period are different dimensions.
             day_of_year = np.zeros((len(frt_coord.points), len(fp_coord.points)))
@@ -139,14 +188,11 @@ def prep_feature(
                     day_of_year[i, j] = time_point.strftime("%j")
             day_of_year = day_of_year.T
 
-            dims = _remove_item_from_list(
-                dims,
-                [
-                    collapsed_cube.coord_dims("forecast_reference_time")[0],
-                    collapsed_cube.coord_dims("forecast_period")[0],
-                ],
+            day_of_year = _expand_dims(
+                collapsed_cube,
+                day_of_year,
+                ["forecast_reference_time", "forecast_period"],
             )
-            day_of_year = np.expand_dims(np.array(day_of_year), dims)
 
         feature_values = np.broadcast_to(day_of_year, collapsed_cube.shape).flatten()
         if feature == "day_of_year_sin":
@@ -177,10 +223,9 @@ def prep_feature(
             hour_of_day = np.array(hour_of_day)
 
             # frt_dims and fp_dims are the same, so we can choose one of them to pop.
-            dims = _remove_item_from_list(
-                dims, collapsed_cube.coord_dims("forecast_reference_time")
+            hour_of_day = _expand_dims(
+                collapsed_cube, hour_of_day, ["forecast_reference_time"]
             )
-            hour_of_day = np.expand_dims(hour_of_day, dims)
         else:
             # Forecast reference time and forecast period are different dimensions.
             hour_of_day = np.zeros((len(frt_coord.points), len(fp_coord.points)))
@@ -191,14 +236,11 @@ def prep_feature(
                     )
                     hour_of_day[i, j] = time_point.hour
             hour_of_day = hour_of_day.T
-            dims = _remove_item_from_list(
-                dims,
-                [
-                    collapsed_cube.coord_dims("forecast_reference_time")[0],
-                    collapsed_cube.coord_dims("forecast_period")[0],
-                ],
+            hour_of_day = _expand_dims(
+                collapsed_cube,
+                hour_of_day,
+                ["forecast_reference_time", "forecast_period"],
             )
-            hour_of_day = np.expand_dims(np.array(hour_of_day), dims)
 
         feature_values = np.broadcast_to(hour_of_day, collapsed_cube.shape).flatten()
         if feature == "hour_of_day_sin":
@@ -207,21 +249,24 @@ def prep_feature(
             feature_values = np.cos(2 * np.pi * feature_values / HOURS_IN_DAY)
     elif feature == "day_of_training_period":
         if len(feature_cube.coord_dims("day_of_training_period")) == 1:
-            dims = _remove_item_from_list(
-                dims, collapsed_cube.coord_dims("day_of_training_period")
-            )
-            coord_multidim = np.expand_dims(
-                feature_cube.coord("day_of_training_period").points, dims
+            coord_multidim = _expand_dims(
+                collapsed_cube,
+                feature_cube.coord("day_of_training_period").points,
+                ["day_of_training_period"],
             )
         else:
             coord_multidim = feature_cube.coord("day_of_training_period").points
 
         feature_values = np.broadcast_to(coord_multidim, collapsed_cube.shape).flatten()
     elif feature == "static":
-        dims = _remove_item_from_list(dims, collapsed_cube.coord_dims("spot_index"))
-        coord_multidim = np.expand_dims(feature_cube.data, dims)
+        coord_multidim = _expand_dims(collapsed_cube, feature_cube.data, ["spot_index"])
         feature_values = np.broadcast_to(coord_multidim, collapsed_cube.shape).flatten()
+    else:
+        # If the feature is not one of the expected types, raise an error.
+        msg = f"Feature {feature} is not supported."
+        raise ValueError(msg)
 
+    # Ensure the feature values are returned with the correct dtype.
     if feature in ["mean", "std", "static"]:
         feature_values = feature_values.astype(feature_cube.dtype)
     elif feature in [
@@ -239,6 +284,21 @@ def prep_feature(
     return feature_values
 
 
+def _check_valid_transformation(transformation: str):
+    """Check if the transformation is one of the supported types.
+    Args:
+        transformation: Transformation to be checked.
+    Raises:
+        ValueError: If the transformation is not one of the supported types.
+    """
+    if transformation not in ["log", "log10", "sqrt", "cbrt", None]:
+        msg = (
+            "Currently the only supported transformations are log, log10, sqrt "
+            f"and cbrt. The transformation supplied was {transformation}."
+        )
+        raise ValueError(msg)
+
+
 class TrainQuantileRegressionRandomForests(BasePlugin):
     """Plugin to train a model using quantile regression random forests."""
 
@@ -246,32 +306,33 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
         self,
         feature_config: dict[str, list[str]],
         n_estimators: int,
-        max_depth: int = None,
-        random_state: int = None,
-        transformation: str = None,
+        max_depth: Optional[int] = None,
+        random_state: Optional[int] = None,
+        transformation: Optional[str] = None,
         pre_transform_addition: np.float32 = 0,
         compression: int = 5,
-        model_output: str = None,
+        model_output: Optional[str] = None,
         **kwargs,
     ) -> None:
         """Initialise the plugin.
         Args:
             feature_config (dict):
-                Feature configuration defining the features to be used for quantile regression.
-                The configuration is a dictionary of strings, where the keys are the names of
-                the input cube(s) supplied, and the values are a list. This list can contain both
-                computed features, such as the mean or standard deviation (std), or static
-                features, such as the altitude. The computed features will be computed using
-                the cube defined in the dictionary key. If the key is the feature itself e.g.
-                a distance to water cube, then the value should state "static". This will ensure
-                the cube's data is used as the feature.
-                The config will have the structure:
-                "DYNAMIC_VARIABLE_NAME": ["FEATURE1", "FEATURE2"] e.g:
-                {
-                "air_temperature": ["mean", "std", "altitude"],
-                "visibility_at_screen_level": ["mean", "std"]
-                "distance_to_water": ["static"],
-                }
+                Feature configuration defining the features to be used for quantile
+                regression. The configuration is a dictionary of strings, where the
+                keys are the names of the input cube(s) supplied, and the values are
+                a list. This list can contain both computed features, such as the
+                mean or standard deviation (std), or static features, such as the
+                altitude. The computed features will be computed using the cube defined
+                in the dictionary key. If the key is the feature itself e.g. a distance
+                to water cube, then the value should state "static". This will ensure
+                the cube's data is used as the feature. The config will have the
+                structure:
+                    "DYNAMIC_VARIABLE_NAME": ["FEATURE1", "FEATURE2"] e.g:
+                    {
+                    "air_temperature": ["mean", "std", "altitude"],
+                    "visibility_at_screen_level": ["mean", "std"]
+                    "distance_to_water": ["static"],
+                    }
             n_estimators (int):
                 Number of trees in the forest.
             max_depth (int):
@@ -295,12 +356,7 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
         self.max_depth = max_depth
         self.random_state = random_state
         self.transformation = transformation
-        if self.transformation not in ["log", "log10", "sqrt", "cbrt", None]:
-            msg = (
-                "Currently the only supported transformations are log, log10, sqrt "
-                f"and cbrt. The transformation supplied was {self.transformation}."
-            )
-            raise ValueError(msg)
+        _check_valid_transformation(self.transformation)
         self.pre_transform_addition = pre_transform_addition
         self.compression = compression
         self.output = model_output
@@ -342,17 +398,18 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
         fp_coord = forecast_cube.coord("forecast_period")
 
         time_datetimes = []
-        # Forecast reference time and forecast period are both non-dimensional
-        # coordinates. Cube must have no time dimensions.
+
+        # Handle the case where both forecast reference time and forecast period are
+        # non-dimensional coordinates (i.e., the cube has no time dimensions).
         if frt_dims is None and fp_dims is None:
             time_datetimes.append(
                 frt_coord.cell(0).point._to_real_datetime()
                 + pd.to_timedelta(fp_coord.points, unit=str(fp_coord.units))
             )
         elif frt_dims == fp_dims:
-            # Forecast reference time and forecast period share a dimension coordinate.
-            # Forecast reference time and forecast period must be mixed together
-            # along one dimension.
+            # Handle the case where forecast reference time and forecast period share
+            # the same dimension. This means both are mixed together along one
+            # dimension.
             for frt, fp in zip(
                 list(frt_coord.cells()),
                 fp_coord.points,
@@ -364,7 +421,9 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
                     )
                 )
         else:
-            # Forecast reference time and forecast period are different dimensions.
+            # Handle the case where forecast reference time and forecast period are on
+            # different dimensions. This requires iterating over all combinations of
+            # forecast period and forecast reference time.
             enforce_coordinate_ordering(
                 forecast_cube,
                 ["forecast_period", "forecast_reference_time"],
@@ -397,7 +456,9 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
                 Cube containing the realization forecasts. If the cube provided
                 contains multiple forecast periods, then the cube is expected to have
                 forecast period, forecast reference time, realization
-                and spot_index as the dimensions.
+                and spot_index as the dimensions. This cube is only used as a template.
+                If the forecast cube is a feature cube, then it should also be provided
+                within the feature_cubes list.
             truth_cube:
                 Cube containing the truths. The truths should have the same validity
                 times as the forecast. If the same validity time occurs multiple times
@@ -438,6 +499,12 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
 
         for feature_name in self.feature_config.keys():
             feature_cube = feature_cubes.extract(iris.Constraint(feature_name))
+            if not feature_cube:
+                msg = (
+                    f"Feature cube for {feature_name} not found in the provided "
+                    "feature cubes."
+                )
+                raise ValueError(msg)
             for feature in self.feature_config[feature_name]:
                 print("feature = ", feature)
                 feature_values.append(
@@ -495,13 +562,7 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
         self.feature_config = feature_config
         self.quantiles = quantiles
         self.transformation = transformation
-        if self.transformation not in ["log", "log10", "sqrt", "cbrt", None]:
-            msg = (
-                "Currently the only supported transformations are log, log10, sqrt "
-                f"and cbrt. The transformation supplied was {self.transformation}."
-            )
-            raise ValueError(msg)
-        print(pre_transform_addition)
+        _check_valid_transformation(self.transformation)
         self.pre_transform_addition = pre_transform_addition
 
     def _reverse_transformation(self, forecast_cube: Cube):
@@ -550,19 +611,21 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
         feature_values = []
 
         for feature_name in self.feature_config.keys():
-            feature_cube = feature_cubes.extract(iris.Constraint(feature_name))
-            for index, feature in enumerate(self.feature_config[feature_name]):
-                if (
-                    self.transformation
-                    and feature in ["mean", "std"]
-                    and feature_cube[0].name() == template_forecast_cube.name()
-                    and index == 0
-                ):
-                    feature_cube[0].data = getattr(np, self.transformation)(
-                        feature_cube[0].data + self.pre_transform_addition
-                    )
+            feature_cube = feature_cubes.extract_cube(iris.Constraint(feature_name))
+
+            # Transform the feature cube data if a transformation is specified.
+            if (
+                self.transformation
+                and set(["mean", "std"]).intersection(self.feature_config[feature_name])
+                and feature_cube.name() == template_forecast_cube.name()
+            ):
+                feature_cube.data = getattr(np, self.transformation)(
+                    feature_cube.data + self.pre_transform_addition
+                )
+
+            for feature in self.feature_config[feature_name]:
                 feature_values.append(
-                    prep_feature(template_forecast_cube, feature_cube[0], feature)
+                    prep_feature(template_forecast_cube, feature_cube, feature)
                 )
 
         feature_values = np.array(feature_values).T
