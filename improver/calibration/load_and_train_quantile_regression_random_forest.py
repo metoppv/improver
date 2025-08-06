@@ -198,9 +198,9 @@ class LoadAndTrainQRF(PostProcessingPlugin):
                 forecast_df[column], unit="ns", utc=True
             )
         forecast_df["forecast_period"] = pd.to_timedelta(
-            forecast_df["forecast_period"], unit="us"
+            forecast_df["forecast_period"], unit="ns"
         )
-        forecast_df["period"] = pd.to_timedelta(forecast_df["period"], unit="us")
+        forecast_df["period"] = pd.to_timedelta(forecast_df["period"], unit="ns")
 
         # Load truths from parquet file filtering by diagnostic.
         filters = [[("diagnostic", "==", self.target_diagnostic_name)]]
