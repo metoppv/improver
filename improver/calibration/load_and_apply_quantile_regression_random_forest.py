@@ -3,7 +3,8 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""Script to load and apply the trained Quantile Regression Random Forest (QRF) model."""
+"""Script to load and apply the trained Quantile Regression Random Forest (QRF)
+model."""
 
 import pathlib
 from typing import Optional
@@ -177,8 +178,8 @@ class LoadAndApplyQRF(PostProcessingPlugin):
                 where appropriate
         """
 
-        # Ensure there is a realization dimension on all cubes. This assumes a percentile
-        # dimension is present.
+        # Ensure there is a realization dimension on all cubes. This assumes a
+        # percentile dimension is present.
         realization_cube_inputs = iris.cube.CubeList([])
         for feature_cube in cube_inputs:
             if feature_cube.coords("percentile"):

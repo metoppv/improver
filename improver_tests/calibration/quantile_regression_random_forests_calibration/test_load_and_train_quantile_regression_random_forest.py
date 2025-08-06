@@ -290,11 +290,12 @@ def _create_ancil_file(tmp_path, wmo_ids):
 
 
 @pytest.mark.parametrize(
-    "forecast_creation,truth_creation,include_static,remove_target,representation,expected",
+    "forecast_creation,truth_creation,forecast_periods,include_static,remove_target,representation,expected",
     [
         (
             _create_multi_site_forecast_parquet_file,
             _create_multi_site_truth_parquet_file,
+            "6:18:6",
             False,
             False,
             "percentile",
@@ -303,6 +304,7 @@ def _create_ancil_file(tmp_path, wmo_ids):
         (
             _create_multi_site_forecast_parquet_file,
             _create_multi_site_truth_parquet_file,
+            "6:18:6",
             True,
             False,
             "percentile",
@@ -311,6 +313,7 @@ def _create_ancil_file(tmp_path, wmo_ids):
         (
             _create_multi_percentile_forecast_parquet_file,
             _create_multi_percentile_truth_parquet_file,
+            "6:18:6",
             False,
             False,
             "percentile",
@@ -319,6 +322,7 @@ def _create_ancil_file(tmp_path, wmo_ids):
         (
             _create_multi_percentile_forecast_parquet_file,
             _create_multi_percentile_truth_parquet_file,
+            "6:18:6",
             True,
             False,
             "percentile",
@@ -327,6 +331,7 @@ def _create_ancil_file(tmp_path, wmo_ids):
         (
             _create_multi_forecast_period_forecast_parquet_file,
             _create_multi_forecast_period_truth_parquet_file,
+            "6:18:6",
             False,
             False,
             "percentile",
@@ -335,6 +340,7 @@ def _create_ancil_file(tmp_path, wmo_ids):
         (
             _create_multi_forecast_period_forecast_parquet_file,
             _create_multi_forecast_period_truth_parquet_file,
+            "6:18:6",
             True,
             True,  # Remove target feature
             "percentile",
@@ -343,10 +349,20 @@ def _create_ancil_file(tmp_path, wmo_ids):
         (
             _create_multi_site_forecast_parquet_file,
             _create_multi_site_truth_parquet_file,
+            "6:18:6",
             False,
             False,
             "realization",  # Provide realization input
             5.6,
+        ),
+        (
+            _create_multi_forecast_period_forecast_parquet_file,
+            _create_multi_forecast_period_truth_parquet_file,
+            "12",
+            False,
+            False,
+            "percentile",
+            5.64,
         ),
     ],
 )
@@ -354,6 +370,7 @@ def test_load_and_train_qrf(
     tmp_path,
     forecast_creation,
     truth_creation,
+    forecast_periods,
     include_static,
     remove_target,
     representation,
@@ -386,7 +403,7 @@ def test_load_and_train_qrf(
         experiment="latestblend",
         feature_config=feature_config,
         target_diagnostic_name="temperature_at_screen_level",
-        forecast_periods="6:18:6",
+        forecast_periods=forecast_periods,
         cycletime="20170103T0000Z",
         training_length=2,
         n_estimators=n_estimators,
@@ -459,42 +476,52 @@ def test_load_and_train_qrf_no_paths(tmp_path, make_files):
 
 
 @pytest.mark.parametrize(
-    "exception,forecast_creation,truth_creation,representation",
+    "exception,forecast_creation,truth_creation,forecast_periods,representation",
     [
-        # (
-        #     "non_matching_truth",
-        #     _create_multi_site_forecast_parquet_file,
-        #     _create_multi_site_truth_parquet_file_alt,
-        #     "percentile",
-        # ),
-        # (
-        #     "missing_static_feature",
-        #     _create_multi_site_forecast_parquet_file,
-        #     _create_multi_site_truth_parquet_file,
-        #     "percentile",
-        # ),
-        # (
-        #     "missing_dynamic_feature",
-        #     _create_multi_site_forecast_parquet_file,
-        #     _create_multi_site_truth_parquet_file,
-        #     "percentile",
-        # ),
-        # (
-        #     "no_percentile_realization",
-        #     _create_multi_site_forecast_parquet_file,
-        #     _create_multi_site_truth_parquet_file,
-        #     "kittens",
-        # ),
         (
-            "empty_directory",
+            "non_matching_truth",
+            _create_multi_site_forecast_parquet_file,
+            _create_multi_site_truth_parquet_file_alt,
+            "6:18:6",
+            "percentile",
+        ),
+        (
+            "missing_static_feature",
             _create_multi_site_forecast_parquet_file,
             _create_multi_site_truth_parquet_file,
+            "6:18:6",
+            "percentile",
+        ),
+        (
+            "missing_dynamic_feature",
+            _create_multi_site_forecast_parquet_file,
+            _create_multi_site_truth_parquet_file,
+            "6:18:6",
+            "percentile",
+        ),
+        (
+            "no_percentile_realization",
+            _create_multi_site_forecast_parquet_file,
+            _create_multi_site_truth_parquet_file,
+            "6:18:6",
+            "kittens",
+        ),
+        (
+            "alternative_forecast_period",
+            _create_multi_site_forecast_parquet_file,
+            _create_multi_site_truth_parquet_file,
+            "6,12",
             "percentile",
         ),
     ],
 )
 def test_exceptions(
-    tmp_path, exception, forecast_creation, truth_creation, representation
+    tmp_path,
+    exception,
+    forecast_creation,
+    truth_creation,
+    forecast_periods,
+    representation,
 ):
     """Test the expected exceptions caused by the LoadAndTrainQRF plugin."""
     feature_config = {"air_temperature": ["mean", "std", "altitude"]}
@@ -515,7 +542,7 @@ def test_exceptions(
         experiment="latestblend",
         feature_config=feature_config,
         target_diagnostic_name="temperature_at_screen_level",
-        forecast_periods="6:18:6",
+        forecast_periods=forecast_periods,
         cycletime="20170103T0000Z",
         training_length=2,
         n_estimators=n_estimators,
@@ -547,13 +574,8 @@ def test_exceptions(
     elif exception == "no_percentile_realization":
         with pytest.raises(ValueError, match="The forecast parquet file"):
             plugin(file_paths, model_output=model_output)
-    elif exception == "empty_directory":
-        forecast_path = tmp_path / "forecast_parquet_files_alt"
-        forecast_path.mkdir(parents=True, exist_ok=True)
-        truth_path = tmp_path / "truth_parquet_files_alt"
-        truth_path.mkdir(parents=True, exist_ok=True)
-        file_paths = [forecast_path, truth_path]
-        # with pytest.raises(ValueError, match="The forecast parquet file"):
-        plugin(file_paths, model_output=model_output)
+    elif exception == "alternative_forecast_period":
+        with pytest.raises(ValueError, match="The forecast_periods argument"):
+            plugin(file_paths, model_output=model_output)
     else:
         raise ValueError(f"Unknown exception type: {exception}")

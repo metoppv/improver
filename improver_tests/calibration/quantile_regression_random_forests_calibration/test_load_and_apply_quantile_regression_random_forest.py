@@ -36,18 +36,7 @@ from improver_tests.calibration.quantile_regression_random_forests_calibration.t
         (2, 2, 55, 5, "sqrt", 10, {}, False, [0.5], [5.11, 5.64]),  # noqa Square root transformation
         (2, 2, 55, 5, "cbrt", 10, {}, False, [0.5], [5.13, 5.64]),  # noqa Cube root transformation
         (2, 2, 55, 5, None, 0, {"max_samples_leaf": 0.5}, False, [0.5], [5.15, 6.2]),  # noqa # Different criterion
-        (
-            2,
-            5,
-            55,
-            5,
-            None,
-            0,
-            {},
-            True,
-            [0.5],
-            [5.15, 5.65],
-        ),  # Include an additional static feature
+        (2, 5, 55, 5, None, 0, {}, True, [0.5], [5.15, 5.65]),  # noqa Include an additional static feature
     ],
 )
 def test_load_and_apply_qrf(

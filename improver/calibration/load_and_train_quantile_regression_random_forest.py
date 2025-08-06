@@ -2,7 +2,8 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""Script to load inputs and train a model using Quantile Regression Random Forest (QRF)."""
+"""Script to load inputs and train a model using Quantile Regression Random Forest
+(QRF)."""
 
 import pathlib
 from pathlib import Path
@@ -86,7 +87,8 @@ class LoadAndTrainQRF(PostProcessingPlugin):
                 cube = load_cube(str(file_path))
                 cube_inputs.append(cube)
             except IsADirectoryError:
-                # For loop here because the read_schema must read a .parquet file rather than a directory.
+                # For loop here because the read_schema must read a .parquet file
+                # rather than a directory.
                 for file in Path(file_path).glob("**/*.parquet"):
                     try:
                         pq.read_schema(file).field("forecast_period")
@@ -189,7 +191,8 @@ class LoadAndTrainQRF(PostProcessingPlugin):
             engine="pyarrow",
         )
 
-        # Convert df columns from ms to pandas timestamp object to work with existing code
+        # Convert df columns from ms to pandas timestamp object to work with existing
+        # code
         for column in ["time", "forecast_reference_time", "blend_time"]:
             forecast_df[column] = pd.to_datetime(
                 forecast_df[column], unit="ns", utc=True
@@ -356,8 +359,10 @@ class LoadAndTrainQRF(PostProcessingPlugin):
                 calibrated. This will be used to filter the target forecast and truth
                 dataframes.
             forecast_period (int):
-                Range of forecast periods to be included in training in hours in the
-                form: "start:end:interval" e.g. "6:18:6".
+                Range of forecast periods to be calibrated in hours in the form:
+                "start:end:interval" e.g. "6:18:6" or a single forecast period e.g. "6".
+                The end value is exclusive, so "6:18:6" will calibrate the 6 and 12
+                hours.
             cycletime (str):
                 Cycletime of the forecast to be calibrated in a format similar to
                 20170109T0000Z. This is used to filter the correct blendtimes from
@@ -391,8 +396,19 @@ class LoadAndTrainQRF(PostProcessingPlugin):
         if not forecast_table_path or not truth_table_path:
             return None
 
-        forecast_periods = list(range(*map(int, self.forecast_periods.split(":"))))
-        forecast_periods = [fp * 3600 for fp in forecast_periods]
+        if ":" in self.forecast_periods:
+            forecast_periods = list(range(*map(int, self.forecast_periods.split(":"))))
+            forecast_periods = [fp * 3600 for fp in forecast_periods]
+        else:
+            try:
+                forecast_periods = [int(self.forecast_periods) * 3600]
+            except ValueError:
+                msg = (
+                    "The forecast_periods argument must be a single integer or "
+                    "a range in the form 'start:end:interval'. The forecast period"
+                    f"provided was: {self.forecast_periods}."
+                )
+                raise ValueError(msg)
 
         forecast_df, truth_df = self._read_parquet_files(
             forecast_table_path, truth_table_path, forecast_periods

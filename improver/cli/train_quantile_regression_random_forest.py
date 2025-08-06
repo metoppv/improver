@@ -62,9 +62,10 @@ def process(
             A string containing the diagnostic name of the forecast to be
             calibrated. This will be used to filter the target forecast and truth
             dataframes.
-        forecast_periods (int):
+        forecast_periods (str):
             Range of forecast periods to be calibrated in hours in the form:
-            "start:end:interval" e.g. "6:18:6".
+            "start:end:interval" e.g. "6:18:6" or a single forecast period e.g. "6".
+            The end value is exclusive, so "6:18:6" will calibrate the 6 and 12 hours.
         cycletime (str):
             Cycletime of a format similar to 20170109T0000Z used to filter the
             correct blendtimes from the dataframe on load.
