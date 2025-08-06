@@ -383,6 +383,7 @@ def compare_pickled_forest(
     Args:
         output_path: data file produced by test run
         kgo_path: data file considered good e.g. KGO
+        reporter: callback function for reporting differences
     """
 
     def raise_reporter(message):
