@@ -304,7 +304,7 @@ class LoadAndTrainQRF(PostProcessingPlugin):
         nan_mask = np.any(np.isnan(truth_cube.data), axis=truth_cube.coord_dims("time"))
         all_site_ids = truth_cube.coord("wmo_id").points
         bad_site_ids = all_site_ids[nan_mask]
-        constr = iris.Constraint(wmo_id=lambda cell: cell not in bad_site_ids)
+        constr = iris.Constraint(wmo_id=lambda cell: cell not in bad_site_ids.tolist())
         truth_cube = truth_cube.extract(constr)
         forecast_cube = forecast_cube.extract(constr)
         feature_cube_inputs = iris.cube.CubeList([])
