@@ -17,6 +17,7 @@ from improver import BasePlugin
 from improver.metadata.amend import update_diagnostic_name
 from improver.metadata.check_datatypes import enforce_dtype
 from improver.metadata.constants.time_types import TIME_COORDS
+from improver.metadata.forecast_times import rebadge_forecasts_as_latest_cycle
 from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.utilities.common_input_handle import as_cubelist
 from improver.utilities.cube_manipulation import (
@@ -45,6 +46,7 @@ class Combine(BasePlugin):
         new_name: str = None,
         cell_method_coordinate: str = None,
         expand_bound: bool = True,
+        use_latest_frt: bool = False,
     ):
         r"""
         Args:
@@ -52,20 +54,32 @@ class Combine(BasePlugin):
                 An operation to use in combining input cubes. One of:
                 +, -, \*, add, subtract, multiply, min, max, mean
             broadcast (str):
-                If specified, broadcast input cubes to the stated coord prior to combining -
-                the coord must already exist on the first input cube.
+                If specified, broadcast input cubes to the stated coord prior
+                to combining - the coord must already exist on the first input
+                cube.
             minimum_realizations (int):
-                If specified, the input cubes will be filtered to ensure that only realizations that
-                include all available lead times are combined. If the number of realizations that
-                meet this criteria are fewer than this integer, an error will be raised.
-                Minimum value is 1.
+                If specified, the input cubes will be filtered to ensure that
+                only realizations that include all available lead times are
+                combined. If the number of realizations that meet this criteria
+                are fewer than this integer, an error will be raised. Minimum
+                value is 1.
             new_name (str):
                 New name for the resulting dataset.
             cell_method_coordinate (str):
-                If specified, a cell method is added to the output with the coordinate
-                provided. This is only available for max, min and mean operations.
+                If specified, a cell method is added to the output with the
+                coordinate provided. This is only available for max, min and
+                mean operations.
             expand_bound:
-                If True then coord bounds will be extended to represent all cubes being combined.
+                If True then scalar coord bounds will be extended to represent
+                all cubes being combined. For example a time coordinate will
+                be set using the latest time available as the point and with
+                bounds describing the range. If false the first cube provided
+                sets the metadata and the scalar coordinates from this cube
+                will be used.
+            use_latest_frt:
+                If True then the latest forecast_reference_time available
+                across the input cubes will be used for the output with a
+                suitably updated forecast_period.
         """
         try:
             self.minimum_realizations = int(minimum_realizations)
@@ -77,6 +91,7 @@ class Combine(BasePlugin):
         self.broadcast = broadcast
         self.cell_method_coordinate = cell_method_coordinate
         self.expand_bound = expand_bound
+        self.use_latest_frt = use_latest_frt
 
         self.plugin = CubeCombiner(
             operation,
@@ -126,6 +141,10 @@ class Combine(BasePlugin):
                     f"({self.minimum_realizations})"
                 )
             filtered_cubes = cube.slices_over("time")
+
+        if self.use_latest_frt:
+            filtered_cubes = rebadge_forecasts_as_latest_cycle(filtered_cubes)
+
         return self.plugin(CubeList(filtered_cubes), self.new_name)
 
 
@@ -183,14 +202,22 @@ class CubeCombiner(BasePlugin):
         Args:
             operation:
                 Operation (+, - etc) to apply to the incoming cubes.
-            cell_method_coordinate:
-                If specified, a cell method is added to the output with the coordinate
-                provided. This is only available for max, min and mean operations.
-            broadcast:
-                If specified, broadcast input cubes to the stated coord prior to combining -
-                the coord must already exist on the first input cube.
+            cell_method_coordinate (str):
+                If specified, a cell method is added to the output with the
+                coordinate provided. This is only available for max, min and
+                mean operations.
+            broadcast (str):
+                If specified, broadcast input cubes to the stated coord prior
+                to combining - the coord must already exist on the first input
+                cube.
             expand_bound:
-                If True then coord bounds will be extended to represent all cubes being combined.
+                If True then scalar coord bounds will be extended to represent
+                all cubes being combined. For example a time coordinate will
+                be set using the latest time available as the point and with
+                bounds describing the range. If false the first cube provided
+                sets the metadata and the scalar coordinates from this cube
+                will be used.
+
         Raises:
             ValueError: if operation is not recognised in dictionary
         """
