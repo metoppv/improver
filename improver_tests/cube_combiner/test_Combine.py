@@ -130,3 +130,31 @@ def test_minimum_realizations_exceptions(
     """Ensure specifying too few realizations will raise an error"""
     with pytest.raises(error_class, match=msg):
         Combine("+", minimum_realizations=minimum_realizations)(realization_cubes)
+
+
+@pytest.mark.parametrize("expand_bound", (True, False))
+def test_use_latest_frt(realization_cubes, expand_bound):
+    """Checks use_latest_frt results in the latest forecast_reference_time
+    being used for the returned cube.
+
+    If expand_bound is True the time coordinate will be expanded and the
+    time point will be the end of the period. If expand_bound is False the
+    time point will be taken from the first cube in the list."""
+
+    cube1, cube2, cube3 = realization_cubes[0].slices_over("time")
+    frt = cube2.coord("forecast_reference_time").points[0].copy()
+    frt += 3600 * 3  # Add 3 hours to the FRT
+    cube2.coord("forecast_reference_time").points = [frt.copy()]
+
+    result = Combine(
+        "max",
+        expand_bound=expand_bound,
+        use_latest_frt=True,
+        cell_method_coordinate="time",
+    )([cube1, cube2, cube3])
+
+    assert result.coord("forecast_reference_time").points[0] == frt
+    if expand_bound:
+        assert result.coord("time").points[0] == cube3.coord("time").points[0]
+    else:
+        assert result.coord("time").points[0] == cube1.coord("time").points[0]

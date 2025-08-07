@@ -17,6 +17,7 @@ from improver import BasePlugin
 from improver.metadata.amend import update_diagnostic_name
 from improver.metadata.check_datatypes import enforce_dtype
 from improver.metadata.constants.time_types import TIME_COORDS
+from improver.metadata.forecast_times import rebadge_forecasts_as_latest_cycle
 from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.utilities.common_input_handle import as_cubelist
 from improver.utilities.cube_manipulation import (
@@ -45,6 +46,7 @@ class Combine(BasePlugin):
         new_name: str = None,
         cell_method_coordinate: str = None,
         expand_bound: bool = True,
+        use_latest_frt: bool = False,
     ):
         r"""
         Args:
@@ -66,6 +68,9 @@ class Combine(BasePlugin):
                 provided. This is only available for max, min and mean operations.
             expand_bound:
                 If True then coord bounds will be extended to represent all cubes being combined.
+            use_latest_frt:
+                If True then the latest forecast_reference_time available across the input cubes
+                will be used for the output with a suitably updated forecast_period.
         """
         try:
             self.minimum_realizations = int(minimum_realizations)
@@ -77,6 +82,7 @@ class Combine(BasePlugin):
         self.broadcast = broadcast
         self.cell_method_coordinate = cell_method_coordinate
         self.expand_bound = expand_bound
+        self.use_latest_frt = use_latest_frt
 
         self.plugin = CubeCombiner(
             operation,
@@ -126,6 +132,10 @@ class Combine(BasePlugin):
                     f"({self.minimum_realizations})"
                 )
             filtered_cubes = cube.slices_over("time")
+
+        if self.use_latest_frt:
+            filtered_cubes = rebadge_forecasts_as_latest_cycle(filtered_cubes)
+
         return self.plugin(CubeList(filtered_cubes), self.new_name)
 
 
@@ -191,6 +201,7 @@ class CubeCombiner(BasePlugin):
                 the coord must already exist on the first input cube.
             expand_bound:
                 If True then coord bounds will be extended to represent all cubes being combined.
+
         Raises:
             ValueError: if operation is not recognised in dictionary
         """
