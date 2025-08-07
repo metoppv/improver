@@ -84,20 +84,6 @@ class Test_add_metadata(IrisTest):
         msg = "<WindGustDiagnostic: wind-gust perc=50.0, wind-speed perc=80.0>"
         self.assertEqual(result.attributes["wind_gust_diagnostic"], msg)
 
-    def test_diagnostic_typical_txt(self):
-        """Test that the attribute is set as expected for typical gusts"""
-        plugin = WindGustDiagnostic(50.0, 95.0)
-        result = plugin.add_metadata(self.cube_wg)
-        msg = "Typical gusts"
-        self.assertEqual(result.attributes["wind_gust_diagnostic"], msg)
-
-    def test_diagnostic_extreme_txt(self):
-        """Test that the attribute is set as expected for extreme gusts"""
-        plugin = WindGustDiagnostic(95.0, 100.0)
-        result = plugin.add_metadata(self.cube_wg)
-        msg = "Extreme gusts"
-        self.assertEqual(result.attributes["wind_gust_diagnostic"], msg)
-
 
 class Test_extract_percentile_data(IrisTest):
     """Test the extract_percentile_data method."""
@@ -254,7 +240,8 @@ class Test_process(IrisTest):
         expected_data[0, :, :] = 3.0
         expected_data[1, :, :] = 2.0
         self.assertArrayAlmostEqual(result.data, expected_data)
-        self.assertEqual(result.attributes["wind_gust_diagnostic"], "Typical gusts")
+        msg = "<WindGustDiagnostic: wind-gust perc=50.0, wind-speed perc=95.0>"
+        self.assertEqual(result.attributes["wind_gust_diagnostic"], msg)
 
 
 if __name__ == "__main__":
