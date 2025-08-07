@@ -22,6 +22,7 @@ from improver.calibration.quantile_regression_random_forest import (
 )
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     RebadgePercentilesAsRealizations,
+    RebadgeRealizationsAsPercentiles,
 )
 from improver.ensemble_copula_coupling.utilities import choose_set_of_percentiles
 from improver.utilities.cube_checker import assert_spatial_coords_match
@@ -185,8 +186,7 @@ class LoadAndApplyQRF(PostProcessingPlugin):
             if feature_cube.coords("percentile"):
                 feature_cube = RebadgePercentilesAsRealizations()(feature_cube)
             realization_cube_inputs.append(feature_cube)
-        cube_inputs = realization_cube_inputs
-        return cube_inputs
+        return realization_cube_inputs
 
     @staticmethod
     def _organise_cubes(
@@ -250,14 +250,19 @@ class LoadAndApplyQRF(PostProcessingPlugin):
         cube_inputs, forecast_cube, qrf_model = self._get_inputs(file_paths)
         if not qrf_model:
             return forecast_cube
+
+        template_forecast_cube = forecast_cube.copy()
         if forecast_cube.coords("percentile"):
-            percentiles = self._compute_percentiles(forecast_cube, "percentile")
-            cube_inputs = self._percentiles_to_realizations(cube_inputs)
+            percentiles = self._compute_percentiles(forecast_cube.copy(), "percentile")
+            cube_inputs = self._percentiles_to_realizations(cube_inputs.copy())
+            template_forecast_cube = RebadgePercentilesAsRealizations()(
+                template_forecast_cube
+            )
         elif forecast_cube.coords("realization"):
-            percentiles = self._compute_percentiles(forecast_cube, "realization")
+            percentiles = self._compute_percentiles(forecast_cube.copy(), "realization")
 
         cube_inputs, template_forecast_cube = self._organise_cubes(
-            cube_inputs, forecast_cube
+            cube_inputs, template_forecast_cube
         )
 
         result = ApplyQuantileRegressionRandomForests(
@@ -266,4 +271,7 @@ class LoadAndApplyQRF(PostProcessingPlugin):
             transformation=self.transformation,
             pre_transform_addition=self.pre_transform_addition,
         )(qrf_model, cube_inputs, template_forecast_cube)
+
+        if forecast_cube.coords("percentile"):
+            result = RebadgeRealizationsAsPercentiles()(result)
         return result
