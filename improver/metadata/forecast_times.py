@@ -214,6 +214,9 @@ def rebadge_forecasts_as_latest_cycle(
     Function to update the forecast_reference_time and forecast_period
     on a list of input forecasts to match either a given cycletime, or
     the most recent forecast in the list (proxy for the current cycle).
+    If a blend_time coordinate is present on any cube it will be
+    updated on all cubes to ensure it remains consistent with the
+    forecast_reference_time coordinate.
 
     Args:
         cubes:
@@ -234,7 +237,17 @@ def rebadge_forecasts_as_latest_cycle(
         if cycletime is None
         else cycletime_to_datetime(cycletime)
     )
-    return unify_cycletime(cubes, cycle_datetime)
+    update_coords = ["forecast_reference_time"]
+    blend_time = [True for cube in cubes if cube.coords("blend_time")]
+    if any(blend_time):
+        if len(blend_time) != len(cubes):
+            raise ValueError(
+                "All cubes must have a blend_time coordinate if one is "
+                "present on any cube in order that forecasts can all be "
+                "rebadged consistently."
+            )
+        update_coords.append("blend_time")
+    return unify_cycletime(cubes, cycle_datetime, target_coords=update_coords)
 
 
 def unify_cycletime(
