@@ -229,6 +229,9 @@ def rebadge_forecasts_as_latest_cycle(
 
     Returns:
         Updated cubes
+
+    Raises:
+        ValueError: if blend_time is present on some cubes but not all.
     """
     if cycletime is None and len(cubes) == 1:
         return cubes
