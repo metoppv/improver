@@ -29,7 +29,7 @@ def _create_multi_site_forecast_parquet_file(tmp_path, representation="percentil
         "forecast": [281, 272, 287, 280, 290],
         "altitude": [10, 83, 56, 23, 2],
         "blend_time": [pd.Timestamp("2017-01-02 00:00:00")] * 5,
-        "forecast_period": [pd.Timedelta(nanoseconds=6 * 3600 * 1e12)] * 5,
+        "forecast_period": [6 * 3.6e12] * 5,
         "forecast_reference_time": [pd.Timestamp("2017-01-02 00:00:00")] * 5,
         "latitude": [60.1, 59.9, 59.7, 58, 57],
         "longitude": [1, 2, -1, -2, -3],
@@ -78,7 +78,7 @@ def _create_multi_percentile_forecast_parquet_file(tmp_path, representation=None
         "forecast": [272, 274, 275, 277, 280],
         "altitude": [10, 10, 10, 10, 10],
         "blend_time": [pd.Timestamp("2017-01-02 00:00:00")] * 5,
-        "forecast_period": [pd.Timedelta(nanoseconds=6 * 3600 * 1e12)] * 5,
+        "forecast_period": [6 * 3.6e12] * 5,
         "forecast_reference_time": [pd.Timestamp("2017-01-02 00:00:00")] * 5,
         "latitude": [60.1, 60.1, 60.1, 60.1, 60.1],
         "longitude": [1, 1, 1, 1, 1],
@@ -122,8 +122,8 @@ def _create_multi_forecast_period_forecast_parquet_file(tmp_path, representation
         "blend_time": [pd.Timestamp("2017-01-02 00:00:00")] * 4,
         "forecast_period": np.repeat(
             [
-                pd.Timedelta(nanoseconds=6 * 3600 * 1e12),
-                pd.Timedelta(nanoseconds=12 * 3600 * 1e12),
+                [6 * 3.6e12],
+                [12 * 3.6e12],
             ],
             2,
         ),
@@ -461,6 +461,50 @@ def test_load_and_train_qrf_no_paths(tmp_path, make_files):
         target_diagnostic_name="temperature_at_screen_level",
         forecast_periods="6:12:6",
         cycletime="20170102T0000Z",
+        training_length=2,
+        n_estimators=n_estimators,
+        max_depth=max_depth,
+        random_state=random_state,
+        transformation="log",
+        pre_transform_addition=1,
+    )
+    result = plugin(file_paths, model_output=model_output)
+    # Expecting None since no valid paths are provided
+    assert result is None
+    # Check if the model output file is not created
+    assert not (model_output_dir / "qrf_model.pkl").exists()
+
+
+@pytest.mark.parametrize(
+    "cycletime,forecast_periods",
+    [
+        ("20200102T0000Z", "6:12:6"),
+        ("20170102T0000Z", "30:36:6"),
+    ],
+)
+def test_load_and_train_qrf_mismatches(tmp_path, cycletime, forecast_periods):
+    """Test the LoadAndTrainQRF plugin when the cycletime or forecast_periods
+    requested are not present in the provided files."""
+    feature_config = {"air_temperature": ["mean", "std", "altitude"]}
+    n_estimators = 2
+    max_depth = 5
+    random_state = 46
+
+    file_paths = [
+        tmp_path / "partition" / "forecast_table/",
+        tmp_path / "partition" / "truth_table/",
+    ]
+
+    model_output_dir = tmp_path / "train_qrf"
+    model_output_dir.mkdir(parents=True)
+    model_output = str(model_output_dir / "qrf_model.pkl")
+
+    plugin = LoadAndTrainQRF(
+        experiment="latestblend",
+        feature_config=feature_config,
+        target_diagnostic_name="temperature_at_screen_level",
+        forecast_periods=forecast_periods,
+        cycletime=cycletime,
         training_length=2,
         n_estimators=n_estimators,
         max_depth=max_depth,

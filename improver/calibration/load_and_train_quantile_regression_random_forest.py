@@ -271,6 +271,9 @@ class LoadAndTrainQRF(PostProcessingPlugin):
                 truth_slice = iris.util.new_axis(truth_slice, "time")
                 truth_cubes.append(truth_slice)
 
+        if len(forecast_cubes) == 0 or len(truth_cubes) == 0:
+            return None, None
+
         truth_cube = truth_cubes.concatenate_cube()
         forecast_cube = forecast_cubes.concatenate()
 
@@ -417,6 +420,8 @@ class LoadAndTrainQRF(PostProcessingPlugin):
         forecast_cube, truth_cube = self._dataframe_to_cubes(
             forecast_df, truth_df, forecast_periods
         )
+        if forecast_cube is None or truth_cube is None:
+            return None
 
         # If target_forecast is also a dynamic feature in the feature config then
         # add it to cube_inputs
