@@ -28,7 +28,7 @@ from improver_tests.calibration.quantile_regression_random_forests_calibration.t
     "n_estimators,max_depth,random_state,compression,transformation,pre_transform_addition,extra_kwargs,include_static,quantiles,expected",
     [
         (2, 2, 55, 5, None, 0, {}, False, [0.5], [5.15, 5.65]),  # noqa Basic test case
-        (100, 2, 55, 5, None, 0, {}, False, [0.5, 0.9], [[4.1, 5.1], [4.2, 5.1]]),  # noqa Multiple quantiles
+        (100, 2, 55, 5, None, 0, {}, False, [1 / 3, 2 / 3], [[4.1, 5.1], [4.2, 5.1]]),  # noqa Multiple quantiles
         (1, 1, 55, 5, None, 0, {}, False, [0.5], [6.2, 6.2]),  # noqa Fewer estimators and reduced depth
         (1, 1, 73, 5, None, 0, {}, False, [0.5], [4.2, 6.2]),  # Different random state
         (2, 2, 55, 5, "log", 10, {}, False, [0.5], [5.11, 5.64]),  # Log transformation
@@ -120,6 +120,16 @@ def test_load_and_apply_qrf(
     # Check that the metadata is as expected
     assert result.name() == "wind_speed_at_10m"
     assert result.units == "m s-1"
+
+    if percentile_input:
+        percentiles = np.array(quantiles, dtype=np.float32) * 100
+        assert result.coords("percentile")
+        assert result.coord("percentile").units == "%"
+        assert np.allclose(result.coord("percentile").points, percentiles)
+    else:
+        assert result.coords("realization")
+        assert result.coord("realization").units == "1"
+        assert np.allclose(result.coord("realization").points, range(len(quantiles)))
 
 
 @pytest.mark.parametrize(

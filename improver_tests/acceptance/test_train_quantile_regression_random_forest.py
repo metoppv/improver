@@ -46,7 +46,7 @@ def test_basic(
         "--forecast-periods",
         "6:18:6",
         "--cycletime",
-        "20250716T0000Z",
+        "20250804T0000Z",
         "--training-length",
         "2",
         "--experiment",
