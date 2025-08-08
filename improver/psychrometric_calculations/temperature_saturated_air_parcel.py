@@ -85,7 +85,7 @@ class TemperatureSaturatedAirParcel(BasePlugin):
         CCL_temp: Cube,
     ) -> Cube:
         """Puts the temperature information into a cube with appropriate metadata.
-        
+
         Args:
             temp_after_saturated_ascent:
                 An n dimensional array of the temperature after a saturated air parcel has
@@ -93,7 +93,7 @@ class TemperatureSaturatedAirParcel(BasePlugin):
                 pressure level (K).
             CCL_temp:
                 Cube of cloud condensation level temperature
-        
+
         Returns:
             A cube of the temperature of a saturated air parcel when it has been lifted
             adiabatically from the CCL to another pressure level (K)
