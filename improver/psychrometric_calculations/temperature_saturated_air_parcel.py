@@ -7,28 +7,27 @@
 ascended adiabatically from the cloud condensation level (CCL) to a pressure
 level."""
 
+from typing import Tuple, Union
+
 import numpy as np
 from iris.cube import Cube, CubeList
 
-from improver.utilities.common_input_handle import as_cubelist
 from improver import BasePlugin
-from typing import Tuple, Union
-
-from improver.psychrometric_calculations.psychrometric_calculations import (
-    adjust_for_latent_heat,
-    dry_adiabatic_temperature,
-    saturated_humidity,
-    HumidityMixingRatio,
-)
-
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
-
 from improver.psychrometric_calculations.cloud_condensation_level import (
     CloudCondensationLevel,
 )
+from improver.psychrometric_calculations.psychrometric_calculations import (
+    HumidityMixingRatio,
+    adjust_for_latent_heat,
+    dry_adiabatic_temperature,
+    saturated_humidity,
+)
+from improver.utilities.common_input_handle import as_cubelist
+
 
 class TemperatureSaturatedAirParcel(BasePlugin):
     """
@@ -41,16 +40,16 @@ class TemperatureSaturatedAirParcel(BasePlugin):
         """
         Set up class
         """
-        self.temperature=None,
-        self.pressure=None,
-        self.RH=None,
-        
+        self.temperature = (None,)
+        self.pressure = (None,)
+        self.RH = (None,)
+
     @staticmethod
     def parcel_temp_after_ascent(
         temperature: Cube,
         pressure: Cube,
         RH: Cube,
-        pressure_level: float=50000.0,
+        pressure_level: float = 50000.0,
     ) -> Tuple[np.array, Cube]:
         """Calculates the temperature of a saturated air parcel when it has been lifted
         from the CCL to a pressure level. This has been set at 500 hPa for the easy
@@ -71,15 +70,23 @@ class TemperatureSaturatedAirParcel(BasePlugin):
             of CCL (K)
         """
         humidity = HumidityMixingRatio()([temperature, pressure, RH])
-        CCL_temp, CCL_pressure = CloudCondensationLevel()([temperature, pressure, humidity])
+        CCL_temp, CCL_pressure = CloudCondensationLevel()(
+            [temperature, pressure, humidity]
+        )
         shape = CCL_temp.shape
-        pressure_array = np.full(shape, pressure_level)
-        humidity_mixing_ratio_at_ccl = saturated_humidity(CCL_temp.data, CCL_pressure.data)
-        t_dry = dry_adiabatic_temperature(CCL_temp.data, CCL_pressure.data, pressure_array)
-        t_2, _ = adjust_for_latent_heat(t_dry, humidity_mixing_ratio_at_ccl, pressure_array)
+        pressure_array = np.full(shape, np.float32(pressure_level))
+        humidity_mixing_ratio_at_ccl = saturated_humidity(
+            CCL_temp.data, CCL_pressure.data
+        )
+        t_dry = dry_adiabatic_temperature(
+            CCL_temp.data, CCL_pressure.data, pressure_array
+        )
+        t_2, _ = adjust_for_latent_heat(
+            t_dry, humidity_mixing_ratio_at_ccl, pressure_array
+        )
         return t_2, CCL_temp
 
-    @staticmethod        
+    @staticmethod
     def make_temperature_cube(
         temp_after_saturated_ascent: np.ndarray,
         CCL_temp: Cube,
@@ -102,18 +109,15 @@ class TemperatureSaturatedAirParcel(BasePlugin):
             name="parcel_temperature_after_saturated_ascent_from_ccl_to_pressure_level",
             units="K",
             template_cube=CCL_temp,
-            mandatory_attributes=generate_mandatory_attributes(
-                [CCL_temp]),
-            data = temp_after_saturated_ascent,  
+            mandatory_attributes=generate_mandatory_attributes([CCL_temp]),
+            data=temp_after_saturated_ascent,
         )
-        temp_cube.data = temp_cube.core_data().astype(np.float32)
         return temp_cube
-
 
     def process(
         self,
         *cubes: Union[Cube, CubeList],
-        pressure_level: float=50000.0,
+        pressure_level: float = 50000.0,
     ) -> Cube:
         """
         Calculates the temperature of a saturated air parcel that has risen adiabatically
@@ -140,8 +144,9 @@ class TemperatureSaturatedAirParcel(BasePlugin):
             self.pressure,
             self.RH,
             pressure_level,
-       )
+        )
         temp_cube = self.make_temperature_cube(
-            parcel_temp_at_pressure_level, CCL_temp,
+            parcel_temp_at_pressure_level,
+            CCL_temp,
         )
         return temp_cube
