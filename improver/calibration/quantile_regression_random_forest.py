@@ -186,7 +186,6 @@ def prep_feature(
                         fp_point, unit=str(fp_coord.units)
                     )
                     day_of_year[i, j] = time_point.strftime("%j")
-            day_of_year = day_of_year.T
 
             day_of_year = _expand_dims(
                 collapsed_cube,
@@ -235,7 +234,7 @@ def prep_feature(
                         fp_point, unit=str(fp_coord.units)
                     )
                     hour_of_day[i, j] = time_point.hour
-            hour_of_day = hour_of_day.T
+
             hour_of_day = _expand_dims(
                 collapsed_cube,
                 hour_of_day,
