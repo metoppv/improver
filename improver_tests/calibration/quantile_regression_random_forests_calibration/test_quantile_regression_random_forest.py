@@ -330,32 +330,36 @@ def test_prep_feature_1d_time_dimension(feature, expected, expected_dtype):
 @pytest.mark.parametrize(
     "feature,expected,expected_dtype",
     [
-        ("mean", np.repeat(6, 8).astype(np.float32), np.float32),
-        ("std", np.repeat(4, 8).astype(np.float32), np.float32),
-        ("latitude", np.tile([50, 60], 4).astype(np.float32), np.float32),
-        ("longitude", np.tile([0, 10], 4).astype(np.float32), np.float32),
-        ("altitude", np.tile([10, 20], 4).astype(np.float32), np.float32),
+        ("mean", np.repeat(6, 12).astype(np.float32), np.float32),
+        ("std", np.repeat(4, 12).astype(np.float32), np.float32),
+        ("latitude", np.tile([50, 60], 6).astype(np.float32), np.float32),
+        ("longitude", np.tile([0, 10], 6).astype(np.float32), np.float32),
+        ("altitude", np.tile([10, 20], 6).astype(np.float32), np.float32),
         (
             "day_of_year",
-            np.tile([1, 1, 2, 2], 2).astype(np.float32),
+            np.repeat([1, 2, 3], 4).astype(np.float32),
             np.float32,
         ),
         (
             "day_of_year_sin",
-            np.repeat([0.017166, 0.034328, 0.017166, 0.034328], 2).astype(np.float32),
+            np.repeat([0.017166, 0.034328, 0.051479], 4).astype(np.float32),
             np.float32,
         ),
         (
             "day_of_year_cos",
-            np.repeat([0.999853, 0.999411, 0.999853, 0.999411], 2).astype(np.float32),
+            np.repeat([0.999853, 0.999411, 0.998674], 4).astype(np.float32),
             np.float32,
         ),
-        ("hour_of_day", np.repeat([6, 12], 4).astype(np.float32), np.float32),
-        ("hour_of_day_sin", np.repeat([1, 0], 4).astype(np.float32), np.float32),
-        ("hour_of_day_cos", np.repeat([0, -1], 4).astype(np.float32), np.float32),
-        ("forecast_period", np.repeat([21600, 43200], 4).astype(np.int32), np.int32),
-        ("day_of_training_period", np.tile([0, 0, 1, 1], 2).astype(np.int32), np.int32),
-        ("static", np.tile([2, 3], 4).astype(np.float32), np.float32),
+        ("hour_of_day", np.tile([6, 6, 12, 12], 3).astype(np.float32), np.float32),
+        ("hour_of_day_sin", np.tile([1, 1, 0, 0], 3).astype(np.float32), np.float32),
+        ("hour_of_day_cos", np.tile([0, 0, -1, -1], 3).astype(np.float32), np.float32),
+        (
+            "forecast_period",
+            np.tile([21600, 21600, 43200, 43200], 3).astype(np.int32),
+            np.int32,
+        ),
+        ("day_of_training_period", np.repeat([0, 1, 2], 4).astype(np.int32), np.int32),
+        ("static", np.tile([2, 3], 6).astype(np.float32), np.float32),
     ],
 )
 def test_prep_feature_2d_time_dimension(feature, expected, expected_dtype):
@@ -365,12 +369,16 @@ def test_prep_feature_2d_time_dimension(feature, expected, expected_dtype):
         "20170101T0000Z",
         "20170102T0000Z",
         "20170102T0000Z",
+        "20170103T0000Z",
+        "20170103T0000Z",
     ]
     validity_times = [
         "20170101T0600Z",
         "20170101T1200Z",
         "20170102T0600Z",
         "20170102T1200Z",
+        "20170103T0600Z",
+        "20170103T1200Z",
     ]
 
     data = [2, 6, 10]
@@ -378,7 +386,10 @@ def test_prep_feature_2d_time_dimension(feature, expected, expected_dtype):
     for frt, vt in zip(forecast_reference_times, validity_times):
         forecast_cubes.append(_create_forecasts(frt, vt, data))
     forecast_cube = forecast_cubes.merge_cube()
-    day_of_training_period = [0, 1]
+    # Ensure coordinate order is forecast_reference_time, forecast_period,
+    # realization, spot_index
+    forecast_cube.transpose([1, 0, 2, 3])
+    day_of_training_period = [0, 1, 2]
     forecast_cube = _add_day_of_training_period(
         forecast_cube, day_of_training_period, "forecast_reference_time"
     )
@@ -390,7 +401,7 @@ def test_prep_feature_2d_time_dimension(feature, expected, expected_dtype):
 
     result = prep_feature(forecast_cube, feature_cube, feature)
 
-    assert result.shape == (8,)
+    assert result.shape == (12,)
     assert result.dtype == expected_dtype
     np.testing.assert_allclose(result, expected, atol=1e-6)
 
