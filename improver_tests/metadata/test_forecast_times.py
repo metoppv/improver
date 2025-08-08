@@ -253,6 +253,40 @@ class Test_rebadge_forecasts_as_latest_cycle(IrisTest):
         )
         self.assertEqual(result.coord("forecast_period").points[0], expected_fp_point)
 
+    def test_cubelist_with_blendtime(self):
+        """Test a list of cubes that include a blendtime which should be found
+        and also updated."""
+        cube_late = self.cube_late.copy()
+        crd = cube_late.coord("forecast_reference_time").copy()
+        crd.rename("blend_time")
+        cube_late.add_aux_coord(crd)
+        cube_early = self.cube_early.copy()
+        crd = cube_early.coord("forecast_reference_time").copy()
+        crd.rename("blend_time")
+        cube_early.add_aux_coord(crd)
+
+        expected = cube_late.copy()
+        result = rebadge_forecasts_as_latest_cycle([cube_early, cube_late])
+        self.assertIsInstance(result, iris.cube.CubeList)
+        self.assertEqual(len(result), 2)
+        for cube in result:
+            for coord in ["forecast_reference_time", "blend_time", "forecast_period"]:
+                self.assertEqual(cube.coord(coord), expected.coord(coord))
+
+    def test_cubelist_with_partial_blendtime(self):
+        """Test that a list of cubes in which only one cube includes a blendtime
+        results in an exception being raised."""
+
+        cube_early = self.cube_early.copy()
+        crd = cube_early.coord("forecast_reference_time").copy()
+        crd.rename("blend_time")
+        cube_early.add_aux_coord(crd)
+
+        with pytest.raises(
+            ValueError, match="All cubes must have a blend_time coordinate"
+        ):
+            rebadge_forecasts_as_latest_cycle([cube_early, self.cube_late])
+
 
 class Test_unify_cycletime(IrisTest):
     """Test the unify_cycletime function."""
