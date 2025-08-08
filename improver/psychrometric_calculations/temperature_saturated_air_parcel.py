@@ -49,7 +49,7 @@ class TemperatureSaturatedAirParcel(BasePlugin):
         temperature: Cube,
         pressure: Cube,
         RH: Cube,
-        pressure_level: float = 50000.0,
+        pressure_level: np.float32 = 50000.0,
     ) -> Tuple[np.array, Cube]:
         """Calculates the temperature of a saturated air parcel when it has been lifted
         from the CCL to a pressure level. This has been set at 500 hPa for the easy
@@ -73,16 +73,14 @@ class TemperatureSaturatedAirParcel(BasePlugin):
         CCL_temp, CCL_pressure = CloudCondensationLevel()(
             [temperature, pressure, humidity]
         )
-        shape = CCL_temp.shape
-        pressure_array = np.full(shape, np.float32(pressure_level))
         humidity_mixing_ratio_at_ccl = saturated_humidity(
             CCL_temp.data, CCL_pressure.data
         )
         t_dry = dry_adiabatic_temperature(
-            CCL_temp.data, CCL_pressure.data, pressure_array
+            CCL_temp.data, CCL_pressure.data, pressure_level
         )
         t_2, _ = adjust_for_latent_heat(
-            t_dry, humidity_mixing_ratio_at_ccl, pressure_array
+            t_dry, humidity_mixing_ratio_at_ccl, pressure_level
         )
         return t_2, CCL_temp
 
