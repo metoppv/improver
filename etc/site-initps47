@@ -1,8 +1,0 @@
-#!/bin/bash
-# IMPROVER site-init script.
-export IMPROVER_ACC_TEST_DIR=${IMPROVER_ACC_TEST_DIR:-/home/users/max.white/improver_test_data/data}
-# activate conda environment called improver, the set +/-u is required for supressed unbound vars
-# centrally maintained production environment /data/users/ppdev/conda/envs/improver_production
-# OS45 environment with pyGAM added in at /home/users/ben.r.hooper/.conda/envs/improver_production_OS45_pygam
-# Gavin's PS47 IMPROVER production environment at /data/users/gavin.evans/conda_envs/improver_unpinned
-set +u; source /opt/conda/bin/activate /home/users/benjamin.ayliffe/.conda/envs/improver_unpinned; set -u
