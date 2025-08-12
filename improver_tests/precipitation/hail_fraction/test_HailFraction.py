@@ -107,6 +107,7 @@ def setup_cubes():
     )
 
 
+@pytest.mark.parametrize("cct_is_masked", (True, False))
 @pytest.mark.parametrize("model_id_attr", (None, "mosg__model_configuration"))
 @pytest.mark.parametrize(
     "vertical_updraught_value,hail_size_value,cloud_condensation_level_value,"
@@ -148,6 +149,7 @@ def test_basic(
     altitude_value,
     expected,
     model_id_attr,
+    cct_is_masked,
 ):
     """Test hail fraction plugin."""
     expected_attributes = COMMON_ATTRS.copy()
@@ -170,11 +172,10 @@ def test_basic(
     cloud_condensation_level.data = np.full_like(
         cloud_condensation_level.data, cloud_condensation_level_value
     )
-    convective_cloud_top.data = np.ma.masked_invalid(
-        np.full_like(
-            convective_cloud_top.data, convective_cloud_top_value
-        )
-    )
+    cct_data = np.full_like(convective_cloud_top.data, convective_cloud_top_value)
+    if cct_is_masked:
+        cct_data = np.ma.masked_invalid(cct_data)
+    convective_cloud_top.data = cct_data
     hail_melting_level.data = np.full_like(
         hail_melting_level.data, hail_melting_level_value
     )
