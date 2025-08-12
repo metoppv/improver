@@ -258,24 +258,22 @@ class LoadAndTrainQRF(PostProcessingPlugin):
 
             if not forecast_cube.coords("realization", dim_coords=True):
                 forecast_cube = iris.util.new_axis(forecast_cube, "realization")
-            forecast_cube = iris.util.new_axis(forecast_cube, "forecast_period")
-            forecast_cube.remove_coord("time")
 
             for forecast_slice in forecast_cube.slices_over("forecast_reference_time"):
-                forecast_slice = iris.util.new_axis(
-                    forecast_slice, "forecast_reference_time"
-                )
                 forecast_cubes.append(forecast_slice)
 
             for truth_slice in truth_cube.slices_over("time"):
                 truth_slice = iris.util.new_axis(truth_slice, "time")
-                truth_cubes.append(truth_slice)
+                # Multiple forecasts can match to the same observation. This check
+                # ensures that we do not add the same truth slice multiple times.
+                if truth_slice not in truth_cubes:
+                    truth_cubes.append(truth_slice)
 
-        if len(forecast_cubes) == 0 or len(truth_cubes) == 0:
+        if not forecast_cubes or not truth_cubes:
             return None, None
 
         truth_cube = truth_cubes.concatenate_cube()
-        forecast_cube = forecast_cubes.concatenate()
+        forecast_cube = forecast_cubes.merge()
 
         # concatenate_cube() can fail for the forecast_cube, even though calling
         # concatenate() results in a single cube. This check ensures the concatenation
@@ -285,6 +283,12 @@ class LoadAndTrainQRF(PostProcessingPlugin):
         else:
             msg = "Concatenating the forecast has failed to create a single cube."
             raise ValueError(msg)
+        
+        # Promote the forecast_reference_time coord to a dimension coordinate if the forecast_period is one.
+        if forecast_cube.coord_dims("forecast_period") and not forecast_cube.coord_dims("forecast_reference_time"):
+            forecast_cube = iris.util.new_axis(forecast_cube, "forecast_reference_time")
+        if not forecast_cube.coords("forecast_period", dim_coords=True) and forecast_cube.coord_dims("forecast_period"):
+            iris.util.promote_aux_coord_to_dim_coord(forecast_cube, "forecast_period")
 
         return forecast_cube, truth_cube
 

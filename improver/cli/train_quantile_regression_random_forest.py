@@ -23,7 +23,7 @@ def process(
     transformation: str = None,
     pre_transform_addition: float = 0,
     compression: int = 5,
-    model_output: str = None,
+    output: str = None,
 ):
     """Training a model using Quantile Regression Random Forest.
 
@@ -85,7 +85,7 @@ def process(
             Value to be added before transformation.
         compression (int):
             Compression level for saving the model.
-        model_output (str):
+        output (str):
             Full path including model file name that will store the pickled model.
     Returns:
         None:
@@ -111,6 +111,6 @@ def process(
         compression=compression,
     )(
         file_paths,
-        model_output=model_output,
+        model_output=output,
     )
     return result

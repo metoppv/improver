@@ -494,6 +494,17 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
                 truth_cube.data + self.pre_transform_addition
             )
 
+        # Ensure the forecast cube has the correct dimension ordering for prep_feature.
+        
+        coord_dims = [forecast_cube.coord_dims(c) for c in ["forecast_reference_time", "forecast_period"]]
+        coord_names = [forecast_cube.coord(dimensions=d, dim_coords=True).name() for d in coord_dims if len(d) > 0]
+        print("im here")
+        enforce_coordinate_ordering(
+                forecast_cube,
+                [coord_names],
+                anchor_start=True,
+            )
+
         feature_values = []
 
         for feature_name in self.feature_config.keys():
