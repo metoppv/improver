@@ -70,7 +70,7 @@ class Combine(BasePlugin):
                 If True then coord bounds will be extended to represent all cubes being combined.
             midpoint_bound:
                 If True, set the coordinate point to the midpoint of the bounds;
-                otherwise, use the upper bound. This is only used if expand_bound is True.
+                otherwise, use the upper bound. This is only used if expand_bound is also True.
         """
         try:
             self.minimum_realizations = int(minimum_realizations)
@@ -201,7 +201,7 @@ class CubeCombiner(BasePlugin):
                 If True then coord bounds will be extended to represent all cubes being combined.
             midpoint_bound:
                 If True, set the coordinate point to the midpoint of the bounds;
-                otherwise, use the upper bound. This is only used if expand_bound is True.
+                otherwise, use the upper bound. This is only used if expand_bound is also True.
         Raises:
             ValueError: if operation is not recognised in dictionary
         """

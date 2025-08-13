@@ -609,7 +609,7 @@ def expand_bounds(
     For example, in the case of time cubes if the input cubes have
     bounds of [0000Z, 0100Z] & [0100Z, 0200Z] then the output cube will
     have bounds of [0000Z,0200Z]. The returned coordinate point will be
-    equal to the upper bound by default. If mid_point_bound is true the midpoint is
+    equal to the upper bound by default. If midpoint_bound is true, the midpoint is
     returned instead (e.g. 0100Z).
 
     Args:
