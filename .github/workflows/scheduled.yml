@@ -70,12 +70,8 @@ jobs:
 
     - name: safety
       run: |
+        micromamba install safety
         safety check || true
-      shell: micromamba-shell {0}
-
-    - name: bandit
-      run: |
-        bandit -r improver
       shell: micromamba-shell {0}
 
   Type-checking:
@@ -107,3 +103,42 @@ jobs:
       run: |
         mypy improver || true
       shell: micromamba-shell {0}
+
+  pre-commit-checks:
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+    steps:
+
+    - name: improver checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: 3.9
+        cache: 'pip'
+
+    - name: pip install pre-commit
+      run: |
+        pip install pre-commit
+
+    - name: Python interpreter version sha (PYSHA)
+      run: echo "PYSHA=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
+
+    - name: Cache pre-commit
+      uses: actions/cache@v4
+      id: pre-commit-cache
+      with:
+        path: ~/.cache/pre-commit
+        key: pre-commit|${{ env.PYSHA }}|${{ hashFiles('.pre-commit-config.yaml') }}
+
+    - name: pre-commit install
+      run: |
+        pre-commit install
+
+    - name: pre-commit run
+      run: |
+        pre-commit run --verbose --color=always --all-files
