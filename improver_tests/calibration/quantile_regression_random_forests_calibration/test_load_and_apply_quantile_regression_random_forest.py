@@ -27,16 +27,16 @@ from improver_tests.calibration.quantile_regression_random_forests_calibration.t
 @pytest.mark.parametrize(
     "n_estimators,max_depth,random_state,compression,transformation,pre_transform_addition,extra_kwargs,include_static,quantiles,expected",
     [
-        (2, 2, 55, 5, None, 0, {}, False, [0.5], [5.15, 5.65]),  # noqa Basic test case
-        (100, 2, 55, 5, None, 0, {}, False, [1 / 3, 2 / 3], [[4.1, 5.1], [4.2, 5.1]]),  # noqa Multiple quantiles
-        (1, 1, 55, 5, None, 0, {}, False, [0.5], [6.2, 6.2]),  # noqa Fewer estimators and reduced depth
+        (2, 2, 55, 5, None, 0, {}, False, [0.5], [4.1, 5.65]),  # noqa Basic test case
+        (100, 2, 55, 5, None, 0, {}, False, [1 / 3, 2 / 3], [[4.1, 5.1], [5.1, 5.1]]),  # noqa Multiple quantiles
+        (1, 1, 55, 5, None, 0, {}, False, [0.5], [4.1, 6.2]),  # noqa Fewer estimators and reduced depth
         (1, 1, 73, 5, None, 0, {}, False, [0.5], [4.2, 6.2]),  # Different random state
-        (2, 2, 55, 5, "log", 10, {}, False, [0.5], [5.11, 5.64]),  # Log transformation
-        (2, 2, 55, 5, "log10", 10, {}, False, [0.5], [5.11, 5.64]),  # noqa Log10 transformation
-        (2, 2, 55, 5, "sqrt", 10, {}, False, [0.5], [5.11, 5.64]),  # noqa Square root transformation
-        (2, 2, 55, 5, "cbrt", 10, {}, False, [0.5], [5.13, 5.64]),  # noqa Cube root transformation
-        (2, 2, 55, 5, None, 0, {"max_samples_leaf": 0.5}, False, [0.5], [5.15, 6.2]),  # noqa # Different criterion
-        (2, 5, 55, 5, None, 0, {}, True, [0.5], [5.15, 5.65]),  # noqa Include an additional static feature
+        (2, 2, 55, 5, "log", 10, {}, False, [0.5], [4.1, 5.1]),  # Log transformation
+        (2, 2, 55, 5, "log10", 10, {}, False, [0.5], [4.1, 5.1]),  # noqa Log10 transformation
+        (2, 2, 55, 5, "sqrt", 10, {}, False, [0.5], [4.1, 5.1]),  # noqa Square root transformation
+        (2, 2, 55, 5, "cbrt", 10, {}, False, [0.5], [4.1, 5.1]),  # noqa Cube root transformation
+        (2, 2, 55, 5, None, 0, {"max_samples_leaf": 0.5}, False, [0.5], [4.1, 6.2]),  # noqa # Different criterion
+        (2, 5, 55, 5, None, 0, {}, True, [0.5], [4.1, 5.65]),  # noqa Include an additional static feature
     ],
 )
 def test_load_and_apply_qrf(

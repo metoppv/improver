@@ -59,7 +59,7 @@ def test_basic(
         "42",
         "--compression",
         "5",
-        "--model-output",
+        "--output",
         output_path,
     ]
     if transformation == "with_transformation":

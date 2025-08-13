@@ -360,6 +360,7 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
         self.compression = compression
         self.output = model_output
         self.kwargs = kwargs
+        self.expected_coordinate_order = ["forecast_reference_time", "forecast_period"]
 
     def fit_qrf(
         self, forecast_features: np.ndarray, target: np.ndarray
@@ -384,8 +385,9 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
         qrf_model.fit(forecast_features, target)
         return qrf_model
 
-    @staticmethod
-    def _organise_truth_data(forecast_cube: Cube, truth_cube: Cube) -> list[np.ndarray]:
+    def _organise_truth_data(
+        self, forecast_cube: Cube, truth_cube: Cube
+    ) -> list[np.ndarray]:
         """Organise the truth data, so that the validity time matches the validity
         time of the forecast. This might mean that the truth data is repeated, if, for
         example, the forecast has multiple forecast reference times and multiple
@@ -425,7 +427,7 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
             # forecast period and forecast reference time.
             enforce_coordinate_ordering(
                 forecast_cube,
-                ["forecast_period", "forecast_reference_time"],
+                self.expected_coordinate_order[::-1],
                 anchor_start=True,
             )
             for fp in fp_coord.points:
@@ -495,15 +497,20 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
             )
 
         # Ensure the forecast cube has the correct dimension ordering for prep_feature.
-        
-        coord_dims = [forecast_cube.coord_dims(c) for c in ["forecast_reference_time", "forecast_period"]]
-        coord_names = [forecast_cube.coord(dimensions=d, dim_coords=True).name() for d in coord_dims if len(d) > 0]
-        print("im here")
+
+        coord_dims = [
+            forecast_cube.coord_dims(c) for c in self.expected_coordinate_order
+        ]
+        coord_names = [
+            forecast_cube.coord(dimensions=d, dim_coords=True).name()
+            for d in coord_dims
+            if len(d) > 0
+        ]
         enforce_coordinate_ordering(
-                forecast_cube,
-                [coord_names],
-                anchor_start=True,
-            )
+            forecast_cube,
+            [coord_names],
+            anchor_start=True,
+        )
 
         feature_values = []
 
@@ -521,9 +528,9 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
                     prep_feature(forecast_cube, feature_cube[0], feature)
                 )
         feature_values = np.array(feature_values).T
-
         truth_data_list = self._organise_truth_data(forecast_cube, truth_cube)
         target_values = np.array(truth_data_list).flatten()
+
         # Fit the quantile regression model
         qrf_model = self.fit_qrf(feature_values, target_values)
 
