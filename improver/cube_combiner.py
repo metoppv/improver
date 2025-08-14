@@ -35,7 +35,8 @@ class Combine(BasePlugin):
     The first cube in the input list provides the template for output metadata.
     If coordinates are expanded as a result of this combine operation
     (e.g. expanding time for accumulations / max in period) the upper bound of
-    the new coordinate will also be used as the point for the new coordinate.
+    the new coordinate will also be used as the point for the new coordinate, unless
+    midpoint_bound is True, in which case the midpoint of the bounds is used instead.
     """
 
     def __init__(
@@ -46,6 +47,7 @@ class Combine(BasePlugin):
         new_name: str = None,
         cell_method_coordinate: str = None,
         expand_bound: bool = True,
+        midpoint_bound: bool = False,
         use_latest_frt: bool = False,
     ):
         r"""
@@ -76,6 +78,9 @@ class Combine(BasePlugin):
                 bounds describing the range. If false the first cube provided
                 sets the metadata and the scalar coordinates from this cube
                 will be used.
+            midpoint_bound:
+                If True, set the coordinate point to the midpoint of the bounds;
+                otherwise, use the upper bound. This is only used if expand_bound is also True.
             use_latest_frt:
                 If True then the latest forecast_reference_time available
                 across the input cubes will be used for the output with a
@@ -91,6 +96,7 @@ class Combine(BasePlugin):
         self.broadcast = broadcast
         self.cell_method_coordinate = cell_method_coordinate
         self.expand_bound = expand_bound
+        self.midpoint_bound = midpoint_bound
         self.use_latest_frt = use_latest_frt
 
         self.plugin = CubeCombiner(
@@ -98,6 +104,7 @@ class Combine(BasePlugin):
             cell_method_coordinate=cell_method_coordinate,
             broadcast=self.broadcast,
             expand_bound=self.expand_bound,
+            midpoint_bound=self.midpoint_bound,
         )
 
     def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
@@ -196,6 +203,7 @@ class CubeCombiner(BasePlugin):
         cell_method_coordinate: str = None,
         broadcast: str = None,
         expand_bound: bool = True,
+        midpoint_bound: bool = False,
     ) -> None:
         """Create a CubeCombiner plugin
 
@@ -217,7 +225,9 @@ class CubeCombiner(BasePlugin):
                 bounds describing the range. If false the first cube provided
                 sets the metadata and the scalar coordinates from this cube
                 will be used.
-
+            midpoint_bound:
+                If True, set the coordinate point to the midpoint of the bounds;
+                otherwise, use the upper bound. This is only used if expand_bound is also True.
         Raises:
             ValueError: if operation is not recognised in dictionary
         """
@@ -231,6 +241,7 @@ class CubeCombiner(BasePlugin):
         self.broadcast = broadcast
         self.normalise = operation == "mean"
         self.expand_bound = expand_bound
+        self.midpoint_bound = midpoint_bound
 
     @staticmethod
     def _check_dimensions_match(
@@ -477,7 +488,12 @@ class CubeCombiner(BasePlugin):
             update_diagnostic_name(cube_list[0], new_diagnostic_name, result)
         else:
             if expanded_coord_names and self.expand_bound:
-                result = expand_bounds(result, cube_list, expanded_coord_names)
+                result = expand_bounds(
+                    result,
+                    cube_list,
+                    expanded_coord_names,
+                    midpoint_bound=self.midpoint_bound,
+                )
             result.rename(new_diagnostic_name)
             self._add_cell_method(result)
 
