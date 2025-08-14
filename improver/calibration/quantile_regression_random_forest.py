@@ -16,6 +16,9 @@ from quantile_forest import RandomForestQuantileRegressor
 from improver import BasePlugin, PostProcessingPlugin
 from improver.constants import DAYS_IN_YEAR, HOURS_IN_DAY
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
+from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
+            RebadgeRealizationsAsPercentiles,
+        )
 
 
 def _expand_dims(
@@ -497,8 +500,18 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
         # Ensure the forecast cube has the correct dimension ordering for prep_feature.
         
         coord_dims = [forecast_cube.coord_dims(c) for c in ["forecast_reference_time", "forecast_period"]]
-        coord_names = [forecast_cube.coord(dimensions=d, dim_coords=True).name() for d in coord_dims if len(d) > 0]
-        print("im here")
+        coord_names = []
+        for dim in coord_dims:
+            if len(dim) == 0:
+                continue
+            if len(forecast_cube.coords(dimensions=dim, dim_coords=True)) == 0:
+                continue
+            coord_names.append(
+                forecast_cube.coord(dimensions=dim, dim_coords=True).name()
+            )
+
+        # If the temporal coord is 2D then this ensures sometimes that the coordinates are ordered correctly.
+        # However, if the temporal coord is 1D then iris currently ensures the dimension is always the first dimension.
         enforce_coordinate_ordering(
                 forecast_cube,
                 [coord_names],
@@ -516,7 +529,6 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
                 )
                 raise ValueError(msg)
             for feature in self.feature_config[feature_name]:
-                print("feature = ", feature)
                 feature_values.append(
                     prep_feature(forecast_cube, feature_cube[0], feature)
                 )
@@ -648,5 +660,8 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
             data=np.broadcast_to(calibrated_forecast.T, template_forecast_cube.shape)
         )
         self._reverse_transformation(calibrated_forecast_cube)
+        
+        # Rebadge the percentiles as realizations.
+        calibrated_forecast_cube = RebadgeRealizationsAsPercentiles()(calibrated_forecast_cube)
 
         return calibrated_forecast_cube

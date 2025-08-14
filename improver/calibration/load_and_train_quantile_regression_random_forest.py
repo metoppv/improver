@@ -264,6 +264,7 @@ class LoadAndTrainQRF(PostProcessingPlugin):
 
             for truth_slice in truth_cube.slices_over("time"):
                 truth_slice = iris.util.new_axis(truth_slice, "time")
+                
                 # Multiple forecasts can match to the same observation. This check
                 # ensures that we do not add the same truth slice multiple times.
                 if truth_slice not in truth_cubes:
@@ -284,11 +285,10 @@ class LoadAndTrainQRF(PostProcessingPlugin):
             msg = "Concatenating the forecast has failed to create a single cube."
             raise ValueError(msg)
         
-        # Promote the forecast_reference_time coord to a dimension coordinate if the forecast_period is one.
+        # Promote the forecast_reference_time coord to a dimension coordinate if
+        # the forecast_period is one.
         if forecast_cube.coord_dims("forecast_period") and not forecast_cube.coord_dims("forecast_reference_time"):
             forecast_cube = iris.util.new_axis(forecast_cube, "forecast_reference_time")
-        if not forecast_cube.coords("forecast_period", dim_coords=True) and forecast_cube.coord_dims("forecast_period"):
-            iris.util.promote_aux_coord_to_dim_coord(forecast_cube, "forecast_period")
 
         return forecast_cube, truth_cube
 
@@ -400,6 +400,7 @@ class LoadAndTrainQRF(PostProcessingPlugin):
         forecast_table_path, truth_table_path, cube_inputs = (
             self._split_cubes_and_parquet_files(file_paths)
         )
+
         if not forecast_table_path or not truth_table_path:
             return None
 
