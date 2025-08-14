@@ -283,12 +283,12 @@ class LoadAndTrainQRF(PostProcessingPlugin):
         else:
             msg = "Concatenating the forecast has failed to create a single cube."
             raise ValueError(msg)
-        
+
         # Promote the forecast_reference_time coord to a dimension coordinate if the forecast_period is one.
-        if forecast_cube.coord_dims("forecast_period") and not forecast_cube.coord_dims("forecast_reference_time"):
+        if forecast_cube.coord_dims("forecast_period") and not forecast_cube.coord_dims(
+            "forecast_reference_time"
+        ):
             forecast_cube = iris.util.new_axis(forecast_cube, "forecast_reference_time")
-        if not forecast_cube.coords("forecast_period", dim_coords=True) and forecast_cube.coord_dims("forecast_period"):
-            iris.util.promote_aux_coord_to_dim_coord(forecast_cube, "forecast_period")
 
         return forecast_cube, truth_cube
 

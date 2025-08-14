@@ -501,11 +501,15 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
         coord_dims = [
             forecast_cube.coord_dims(c) for c in self.expected_coordinate_order
         ]
-        coord_names = [
-            forecast_cube.coord(dimensions=d, dim_coords=True).name()
-            for d in coord_dims
-            if len(d) > 0
-        ]
+        coord_names = []
+        for dim in coord_dims:
+            if len(dim) == 0:
+                continue
+            if len(forecast_cube.coords(dimensions=dim, dim_coords=True)) == 0:
+                continue
+            coord_names.append(
+                forecast_cube.coord(dimensions=dim, dim_coords=True).name()
+            )
         enforce_coordinate_ordering(
             forecast_cube,
             [coord_names],
