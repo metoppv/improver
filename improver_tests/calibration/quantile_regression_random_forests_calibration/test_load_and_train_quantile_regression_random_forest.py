@@ -362,7 +362,7 @@ def _create_ancil_file(tmp_path, wmo_ids):
             False,
             False,
             "percentile",
-            5.64,
+            5.61,
         ),
     ],
 )
@@ -391,7 +391,7 @@ def test_load_and_train_qrf(
     model_output = str(model_output_dir / "qrf_model.pkl")
 
     if include_static:
-        ancil_path = _create_ancil_file(tmp_path, list(set(wmo_ids)))
+        ancil_path = _create_ancil_file(tmp_path, sorted(list(set(wmo_ids))))
         file_paths.append(ancil_path)
         feature_config["distance_to_water"] = ["static"]
 
@@ -423,7 +423,7 @@ def test_load_and_train_qrf(
     if remove_target:
         current_forecast = []
     else:
-        current_forecast = [279, 3, 55]
+        current_forecast = [5.64, 3, 55]
 
     if include_static:
         current_forecast.append(2.5)

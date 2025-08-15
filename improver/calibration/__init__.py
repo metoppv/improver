@@ -24,7 +24,7 @@ FORECAST_SCHEMA = pa.schema(
         ("altitude", pa.float32()),
         ("blend_time", pa.timestamp("s", "utc")),
         ("forecast_period", pa.int64()),
-        ("forecast_reference_time", pa.int64()),
+        ("forecast_reference_time", pa.timestamp("s", "utc")),
         ("latitude", pa.float32()),
         ("longitude", pa.float32()),
         ("time", pa.timestamp("s", "utc")),
@@ -44,7 +44,7 @@ TRUTH_SCHEMA = pa.schema(
         ("latitude", pa.float32()),
         ("longitude", pa.float32()),
         ("altitude", pa.float32()),
-        ("time", pa.int64()),
+        ("time", pa.timestamp("s", "utc")),
         ("wmo_id", pa.string()),
         ("ob_value", pa.float32()),
     ]

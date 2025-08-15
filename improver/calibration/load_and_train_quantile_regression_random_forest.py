@@ -10,20 +10,19 @@ from pathlib import Path
 from typing import Optional
 
 import iris
-import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
+from iris.pandas import as_data_frame
 
 from improver import PostProcessingPlugin
 from improver.calibration import FORECAST_SCHEMA, TRUTH_SCHEMA
-from improver.calibration.dataframe_utilities import (
-    forecast_and_truth_dataframes_to_cubes,
-)
 from improver.calibration.quantile_regression_random_forest import (
     TrainQuantileRegressionRandomForests,
 )
 from improver.utilities.load import load_cube
+
+iris.FUTURE.pandas_ndim = True
 
 
 class LoadAndTrainQRF(PostProcessingPlugin):
@@ -218,111 +217,68 @@ class LoadAndTrainQRF(PostProcessingPlugin):
             raise IOError(msg)
         return forecast_df, truth_df
 
-    def _dataframe_to_cubes(
-        self,
-        forecast_df: pd.DataFrame,
-        truth_df: pd.DataFrame,
-        forecast_periods: list[int],
-    ) -> tuple[iris.cube.Cube, iris.cube.Cube]:
-        """Convert the forecast and truth dataframes to cubes at each forecast period
-        required.
+    def _check_matching_times(
+        self, forecast_df: pd.DataFrame, truth_df: pd.DataFrame
+    ) -> list[pd.Timestamp]:
+        return list(set(forecast_df["time"]).intersection(set(truth_df["time"])))
+
+    def _add_features_to_df(
+        self, forecast_df: pd.DataFrame, cube_inputs: iris.cube.CubeList
+    ) -> pd.DataFrame:
+        """Add features to the forecast DataFrame based on the feature configuration.
 
         Args:
             forecast_df: DataFrame containing the forecast data.
-            truth_df: DataFrame containing the truth data.
-            forecast_periods: List of forecast periods in seconds.
+            cube_inputs: List of cubes containing additional features.
 
         Returns:
-            Tuple containing:
-                - Cube containing the forecast data.
-                - Cube containing the truth data.
-
-        Raises:
-            ValueError: The forecast has failed to concatenate into a single cube.
+            DataFrame with additional features added.
         """
-        forecast_cubes = iris.cube.CubeList([])
-        truth_cubes = iris.cube.CubeList([])
-
-        for forecast_period in forecast_periods:
-            forecast_cube, truth_cube = forecast_and_truth_dataframes_to_cubes(
-                forecast_df,
-                truth_df,
-                self.cycletime,
-                forecast_period,
-                self.training_length,
-                experiment=self.experiment,
-            )
-
-            if forecast_cube is None or truth_cube is None:
-                continue
-
-            if not forecast_cube.coords("realization", dim_coords=True):
-                forecast_cube = iris.util.new_axis(forecast_cube, "realization")
-
-            for forecast_slice in forecast_cube.slices_over("forecast_reference_time"):
-                forecast_cubes.append(forecast_slice)
-
-            for truth_slice in truth_cube.slices_over("time"):
-                truth_slice = iris.util.new_axis(truth_slice, "time")
-                # Multiple forecasts can match to the same observation. This check
-                # ensures that we do not add the same truth slice multiple times.
-                if truth_slice not in truth_cubes:
-                    truth_cubes.append(truth_slice)
-
-        if not forecast_cubes or not truth_cubes:
-            return None, None
-
-        truth_cube = truth_cubes.concatenate_cube()
-        forecast_cube = forecast_cubes.merge()
-
-        # concatenate_cube() can fail for the forecast_cube, even though calling
-        # concatenate() results in a single cube. This check ensures the concatenation
-        # was successful.
-        if len(forecast_cube) == 1:
-            forecast_cube = forecast_cube[0]
-        else:
-            msg = "Concatenating the forecast has failed to create a single cube."
-            raise ValueError(msg)
-
-        # Promote the forecast_reference_time coord to a dimension coordinate if the forecast_period is one.
-        if forecast_cube.coord_dims("forecast_period") and not forecast_cube.coord_dims(
-            "forecast_reference_time"
-        ):
-            forecast_cube = iris.util.new_axis(forecast_cube, "forecast_reference_time")
-
-        return forecast_cube, truth_cube
+        for feature_name, feature_list in self.feature_config.items():
+            for feature in feature_list:
+                if feature == "static":
+                    # Use the cube's data directly as a feature.
+                    constr = iris.Constraint(name=feature_name)
+                    feature_cube = cube_inputs.extract_cube(constr)
+                    feature_df = as_data_frame(feature_cube, add_aux_coords=True)
+                    forecast_df = forecast_df.merge(
+                        feature_df[["wmo_id", feature_name]], on=["wmo_id"], how="left"
+                    )
+        return forecast_df
 
     @staticmethod
     def filter_bad_sites(
-        forecast_cube: iris.cube.Cube,
-        truth_cube: iris.cube.Cube,
-        cube_inputs: iris.cube.CubeList,
-    ) -> tuple[iris.cube.Cube, iris.cube.Cube, iris.cube.CubeList]:
+        forecast_df: pd.DataFrame,
+        truth_df: pd.DataFrame,
+    ) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Remove sites that have NaNs in the data.
 
         Args:
-            forecast_cube: Cube containing the forecast data.
-            truth_cube: Cube containing the truth data.
-            cube_inputs: List of additional feature cubes.
+            feature_df: DataFrame containing the forecast data with features.
+            truth_df: DataFrame containing the truth data.
 
         Returns:
             Tuple containing:
-                - Cube containing the forecast data with bad sites removed.
-                - Cube containing the truth data with bad sites removed.
-                - List of additional feature cubes with bad sites removed.
+                - DataFrame containing the forecast data with bad sites removed.
+                - DataFrame containing the truth data with bad sites removed.
         """
-        nan_mask = np.any(np.isnan(truth_cube.data), axis=truth_cube.coord_dims("time"))
-        all_site_ids = truth_cube.coord("wmo_id").points
-        bad_site_ids = all_site_ids[nan_mask]
-        constr = iris.Constraint(wmo_id=lambda cell: cell not in bad_site_ids.tolist())
-        truth_cube = truth_cube.extract(constr)
-        forecast_cube = forecast_cube.extract(constr)
-        feature_cube_inputs = iris.cube.CubeList([])
-        for cube in cube_inputs:
-            cube = cube.extract(constr)
-            feature_cube_inputs.append(cube)
+        # import pdb
+        # pdb.set_trace()
+        # for coord in ["latitude", "longitude", "altitude", "ob_value"]:
+        #     truth_df = truth_df.groupby("wmo_id").filter(
+        #         lambda x: ~(x[coord].isna().any())
+        #     )
+        # import pdb
+        # pdb.set_trace()
+        truth_df.dropna(
+            subset=["latitude", "longitude", "altitude", "ob_value"], inplace=True
+        )
 
-        return forecast_cube, truth_cube, feature_cube_inputs
+        wmo_ids = set(forecast_df["wmo_id"]).intersection(set(truth_df["wmo_id"]))
+
+        forecast_df = forecast_df[forecast_df["wmo_id"].isin(wmo_ids)]
+        truth_df = truth_df[truth_df["wmo_id"].isin(wmo_ids)]
+        return forecast_df, truth_df
 
     def process(
         self,
@@ -421,23 +377,20 @@ class LoadAndTrainQRF(PostProcessingPlugin):
             forecast_table_path, truth_table_path, forecast_periods
         )
 
-        forecast_cube, truth_cube = self._dataframe_to_cubes(
-            forecast_df, truth_df, forecast_periods
+        forecast_df = forecast_df[forecast_df["experiment"] == self.experiment]
+        forecast_df = forecast_df.rename(
+            columns={"forecast": forecast_df["cf_name"][0]}
         )
-        if forecast_cube is None or truth_cube is None:
+        # forecast_df = forecast_df.drop(columns=["cf_name", "diagnostic"])
+        intersecting_times = self._check_matching_times(forecast_df, truth_df)
+        if len(intersecting_times) == 0:
             return None
 
-        # If target_forecast is also a dynamic feature in the feature config then
-        # add it to cube_inputs
-        for feature_name in self.feature_config.keys():
-            if feature_name == forecast_cube[0].name():
-                cube_inputs.append(forecast_cube)
-
-        forecast_cube, truth_cube, feature_cube_inputs = self.filter_bad_sites(
-            forecast_cube, truth_cube, cube_inputs
-        )
+        forecast_df = self._add_features_to_df(forecast_df, cube_inputs)
+        forecast_df, truth_df = self.filter_bad_sites(forecast_df, truth_df)
 
         TrainQuantileRegressionRandomForests(
+            target_name=forecast_df["cf_name"][0],
             feature_config=self.feature_config,
             n_estimators=self.n_estimators,
             max_depth=self.max_depth,
@@ -446,4 +399,4 @@ class LoadAndTrainQRF(PostProcessingPlugin):
             pre_transform_addition=self.pre_transform_addition,
             compression=self.compression,
             model_output=model_output,
-        )(forecast_cube, truth_cube, feature_cube_inputs)
+        )(forecast_df, truth_df)

@@ -13,6 +13,7 @@ import iris
 import joblib
 import numpy as np
 from iris.cube import Cube, CubeList
+from iris.pandas import as_data_frame
 from quantile_forest import RandomForestQuantileRegressor
 
 from improver import PostProcessingPlugin
@@ -26,6 +27,8 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
 )
 from improver.ensemble_copula_coupling.utilities import choose_set_of_percentiles
 from improver.utilities.cube_checker import assert_spatial_coords_match
+
+iris.FUTURE.pandas_ndim = True
 
 
 class LoadAndApplyQRF(PostProcessingPlugin):
@@ -188,44 +191,6 @@ class LoadAndApplyQRF(PostProcessingPlugin):
             realization_cube_inputs.append(feature_cube)
         return realization_cube_inputs
 
-    @staticmethod
-    def _organise_cubes(
-        cube_inputs: CubeList, forecast_cube: Cube
-    ) -> tuple[CubeList, Cube]:
-        """Promote the forecast period and forecast reference time coordinates to be
-        dimension coordinates, if present, on the feature cubes and the template
-        forecast cube.
-
-        Args:
-            cube_inputs: CubeList of feature cubes, which may include the forecast to be
-            forecast_cube: Forecast cube for use as a template.
-
-        Returns:
-            Feature cubes and template cube with forecast period and
-            forecast reference time promoted to dimension coordinates.
-        """
-        # Ensure that forecast_period is a dimension on all cubes.
-        fp_dim_cube_inputs = iris.cube.CubeList([])
-        for feature_cube in cube_inputs:
-            if feature_cube.coords("forecast_period", dim_coords=False):
-                feature_cube = iris.util.new_axis(feature_cube, "forecast_period")
-            if feature_cube.coords("forecast_reference_time", dim_coords=False):
-                feature_cube = iris.util.new_axis(
-                    feature_cube, "forecast_reference_time"
-                )
-            fp_dim_cube_inputs.append(feature_cube)
-        cube_inputs = fp_dim_cube_inputs
-
-        # Ensure the forecast cube has the same dimensions as the features
-        template_forecast_cube = iris.util.new_axis(forecast_cube, "forecast_period")
-        template_forecast_cube = iris.util.new_axis(
-            template_forecast_cube, "forecast_reference_time"
-        )
-
-        # Check that the grids are the same for all dynamic predictors and the forecast
-        assert_spatial_coords_match(cube_inputs)
-        return cube_inputs, template_forecast_cube
-
     def process(
         self,
         file_paths: list[pathlib.Path],
@@ -261,17 +226,41 @@ class LoadAndApplyQRF(PostProcessingPlugin):
         elif forecast_cube.coords("realization"):
             percentiles = self._compute_percentiles(forecast_cube.copy(), "realization")
 
-        cube_inputs, template_forecast_cube = self._organise_cubes(
-            cube_inputs, template_forecast_cube
-        )
+        assert_spatial_coords_match(cube_inputs)
 
-        result = ApplyQuantileRegressionRandomForests(
+        df = as_data_frame(cube_inputs[0], add_aux_coords=True).reset_index()
+
+        for cube in cube_inputs[1:]:
+            temporary_df = as_data_frame(cube, add_aux_coords=True).reset_index()
+            possible_columns = [
+                "wmo_id",
+                "time",
+                "forecast_reference_time",
+                "forecast_period",
+            ]
+            merge_columns = [
+                col for col in possible_columns if col in temporary_df.columns
+            ]
+            df = df.merge(
+                temporary_df[merge_columns + [cube.name()]],
+                on=merge_columns,
+                how="left",
+            )
+
+        calibrated_forecast = ApplyQuantileRegressionRandomForests(
+            target_name=self.target_cube_name,
             feature_config=self.feature_config,
             quantiles=percentiles,
             transformation=self.transformation,
             pre_transform_addition=self.pre_transform_addition,
-        )(qrf_model, cube_inputs, template_forecast_cube)
+        )(qrf_model, df)
+
+        calibrated_forecast_cube = template_forecast_cube.copy(
+            data=np.broadcast_to(calibrated_forecast.T, template_forecast_cube.shape)
+        )
 
         if forecast_cube.coords("percentile"):
-            result = RebadgeRealizationsAsPercentiles()(result)
-        return result
+            calibrated_forecast_cube = RebadgeRealizationsAsPercentiles()(
+                calibrated_forecast_cube
+            )
+        return calibrated_forecast_cube

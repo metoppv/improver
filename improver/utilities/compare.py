@@ -406,10 +406,18 @@ def compare_pickled_forest(
         reporter(str(exc))
         return
 
-    assert output.n_features_in_ == kgo.n_features_in_
-    assert output.n_outputs_ == kgo.n_outputs_
-    assert output.max_depth == kgo.max_depth
-    assert output.n_estimators == kgo.n_estimators
-    assert output.random_state == kgo.random_state
-    for output_estimator, kgo_estimator in zip(output.estimators_, kgo.estimators_):
-        assert (output_estimator.tree_.value == kgo_estimator.tree_.value).all()
+    difference_found = False
+    try:
+        assert output.n_features_in_ == kgo.n_features_in_
+        assert output.n_outputs_ == kgo.n_outputs_
+        assert output.max_depth == kgo.max_depth
+        assert output.n_estimators == kgo.n_estimators
+        assert output.random_state == kgo.random_state
+        for output_estimator, kgo_estimator in zip(output.estimators_, kgo.estimators_):
+            assert (output_estimator.tree_.value == kgo_estimator.tree_.value).all()
+    except AssertionError:
+        difference_found = True
+    # call the reporter function outside the except block to avoid nested
+    # exceptions if the reporter function is raising an exception
+    if difference_found:
+        reporter("different pickled forest")
