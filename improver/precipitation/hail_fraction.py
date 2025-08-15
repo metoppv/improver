@@ -82,18 +82,18 @@ class HailFraction(PostProcessingPlugin):
         # a hail fraction of 0 is set.
         cct_limit = 258.15
 
-        # Ensure CCT is a masked array.
-        ctt_data = convective_cloud_top.data
-        if not isinstance(ctt_data, np.ma.MaskedArray):
-            ctt_data = np.ma.masked_invalid(ctt_data)
+        # Ensure convective cloud top temperature is a masked array.
+        cct_data = convective_cloud_top.data
+        if not isinstance(cct_data, np.ma.MaskedArray):
+            cct_data = np.ma.masked_invalid(cct_data)
 
         hail_fraction = np.interp(vertical_updraught.data, [5, 50], [0, 0.25]).astype(
             np.float32
         )
         hail_fraction[
             (cloud_condensation_level.data < ccl_limit)
-            | ctt_data.mask
-            | (ctt_data > cct_limit)
+            | cct_data.mask
+            | (cct_data > cct_limit)
             | (hail_melting_level.data > orography.data)
         ] = 0
         hail_fraction[(hail_size.data > hail_size_limit) & (hail_fraction < 0.05)] = (
