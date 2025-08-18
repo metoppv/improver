@@ -36,14 +36,7 @@ def temperature_fixture() -> Cube:
 @pytest.fixture(name="pressure")
 def pressure_fixture() -> Cube:
     """Set up a cube of pressure data"""
-    data = np.full(
-        (
-            2,
-            2,
-        ),
-        fill_value=100000.0,
-        dtype=np.float32,
-    )
+    data = np.full((2, 2), fill_value=100000.0, dtype=np.float32)
     data[0, 0] = 100200.0
     pressure = set_up_variable_cube(
         data,
