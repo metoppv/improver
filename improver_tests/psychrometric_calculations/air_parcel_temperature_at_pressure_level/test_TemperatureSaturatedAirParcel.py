@@ -54,24 +54,10 @@ def pressure_fixture() -> Cube:
     return pressure
 
 
-@pytest.fixture(name="RH")
-def RH_fixture() -> Cube:
-    """Set up a cube of relative humidity data"""
-    data = np.full((2, 2), fill_value=0.9, dtype=np.float32)
-    data[1, 1] = 1.0
-    RH = set_up_variable_cube(
-        data,
-        name="relative_humidity",
-        units="1",
-        attributes=LOCAL_MANDATORY_ATTRIBUTES,
-    )
-    return RH
-
-
 @pytest.fixture(name="air_parcel")
 def air_parcel_fixture() -> Cube:
     """Set up a result cube"""
-    data = np.array([[[264.50, 267.73], [264.61, 266.58]]], np.float32)
+    data = np.array([[[266.47, 269.69], [266.58, 266.58]]], np.float32)
     air_parcel = set_up_variable_cube(
         data,
         name="parcel_temperature_after_saturated_ascent_from_ccl_to_pressure_level",
@@ -86,7 +72,7 @@ def air_parcel_fixture() -> Cube:
 @pytest.fixture(name="air_parcel_diff_pressure")
 def air_parcel_diff_pressure_fixture() -> Cube:
     """Set up a result cube using a different pressure level than the default"""
-    data = np.array([[[271.84, 274.64], [271.94, 273.57]]], np.float32)
+    data = np.array([[[273.48, 276.41], [273.57, 273.57]]], np.float32)
     air_parcel_diff_pressure = set_up_variable_cube(
         data,
         name="parcel_temperature_after_saturated_ascent_from_ccl_to_pressure_level",
@@ -134,29 +120,19 @@ def metadata_ok(air_parcel: Cube, baseline: Cube, model_id_attr=None) -> None:
     assert sorted(mandatory_attr_keys) == sorted(MANDATORY_ATTRIBUTES)
 
 
-def test_basic(
-    temperature,
-    pressure,
-    RH,
-    air_parcel,
-):
+def test_basic(temperature, pressure, air_parcel):
     """Check that for each pair of values, we get the expected result
     and that the metadata are as expected."""
-    result = TemperatureSaturatedAirParcel()([temperature, pressure, RH])
+    result = TemperatureSaturatedAirParcel()([temperature, pressure])
     metadata_ok(result, air_parcel)
     assert np.isclose(result.data, air_parcel.data, atol=1e-2).all()
 
 
-def test_different_pressure(
-    temperature,
-    pressure,
-    RH,
-    air_parcel_diff_pressure,
-):
+def test_different_pressure(temperature, pressure, air_parcel_diff_pressure):
     """Check that we get the expected result from the plugin when we use
     a different pressure (600hPa)."""
     result = TemperatureSaturatedAirParcel(pressure_level=60000.0)(
-        [temperature, pressure, RH]
+        [temperature, pressure]
     )
     metadata_ok(result, air_parcel_diff_pressure)
     assert np.isclose(result.data, air_parcel_diff_pressure.data, atol=1e-2).all()
