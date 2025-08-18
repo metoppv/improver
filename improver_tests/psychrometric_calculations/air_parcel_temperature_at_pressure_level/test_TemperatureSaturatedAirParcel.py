@@ -4,6 +4,7 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Tests for the CloudCondensationLevel plugin"""
 
+import iris.util
 import numpy as np
 import pytest
 from iris.cube import Cube
@@ -70,27 +71,31 @@ def RH_fixture() -> Cube:
 @pytest.fixture(name="air_parcel")
 def air_parcel_fixture() -> Cube:
     """Set up a result cube"""
-    data = np.array([[264.50, 267.73], [264.61, 266.58]], np.float32)
+    data = np.array([[[264.50, 267.73], [264.61, 266.58]]], np.float32)
     air_parcel = set_up_variable_cube(
         data,
         name="parcel_temperature_after_saturated_ascent_from_ccl_to_pressure_level",
         units="K",
         attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        vertical_levels=[50000],
+        pressure=True,
     )
-    return air_parcel
+    return iris.util.squeeze(air_parcel)
 
 
 @pytest.fixture(name="air_parcel_diff_pressure")
 def air_parcel_diff_pressure_fixture() -> Cube:
     """Set up a result cube using a different pressure level than the default"""
-    data = np.array([[271.84, 274.64], [271.94, 273.57]], np.float32)
+    data = np.array([[[271.84, 274.64], [271.94, 273.57]]], np.float32)
     air_parcel_diff_pressure = set_up_variable_cube(
         data,
         name="parcel_temperature_after_saturated_ascent_from_ccl_to_pressure_level",
         units="K",
         attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        vertical_levels=[60000],
+        pressure=True,
     )
-    return air_parcel_diff_pressure
+    return iris.util.squeeze(air_parcel_diff_pressure)
 
 
 def metadata_ok(air_parcel: Cube, baseline: Cube, model_id_attr=None) -> None:
@@ -112,10 +117,10 @@ def metadata_ok(air_parcel: Cube, baseline: Cube, model_id_attr=None) -> None:
     )
     assert air_parcel.units == "K"
     assert air_parcel.dtype == np.float32
-    for coord in air_parcel.coords():
-        base_coord = baseline.coord(coord.name())
-        assert air_parcel.coord_dims(coord) == baseline.coord_dims(base_coord)
-        assert coord == base_coord
+    for coord in baseline.coords():
+        result_coord = air_parcel.coord(coord.name())
+        assert air_parcel.coord_dims(coord) == baseline.coord_dims(result_coord)
+        assert result_coord == coord
     for attr in MANDATORY_ATTRIBUTES:
         assert air_parcel.attributes[attr] == baseline.attributes[attr]
     all_attr_keys = list(air_parcel.attributes.keys())
@@ -154,4 +159,5 @@ def test_different_pressure(
         [temperature, pressure, RH],
         pressure_level=60000.0,
     )
+    metadata_ok(result, air_parcel_diff_pressure)
     assert np.isclose(result.data, air_parcel_diff_pressure.data, atol=1e-2).all()
