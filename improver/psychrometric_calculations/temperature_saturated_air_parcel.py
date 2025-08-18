@@ -63,7 +63,7 @@ class TemperatureSaturatedAirParcel(BasePlugin):
             RH:
                 Cube of relative humidity at the surface
             pressure_level:
-                The pressure level you want the temperature to be ascended to. The default
+                The pressure level to which you want the air parcel ascend. The default
                 is 500 hPa (for the Lifted Index)
         Returns:
             Tuple of temperature of an air parcel at a pressure level (K) and temperature
