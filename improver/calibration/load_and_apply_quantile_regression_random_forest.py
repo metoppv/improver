@@ -12,6 +12,7 @@ from typing import Optional
 import iris
 import joblib
 import numpy as np
+import pandas as pd
 from iris.cube import Cube, CubeList
 from iris.pandas import as_data_frame
 from quantile_forest import RandomForestQuantileRegressor
@@ -23,7 +24,6 @@ from improver.calibration.quantile_regression_random_forest import (
 )
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     RebadgePercentilesAsRealizations,
-    RebadgeRealizationsAsPercentiles,
 )
 from improver.ensemble_copula_coupling.utilities import choose_set_of_percentiles
 from improver.utilities.cube_checker import assert_spatial_coords_match
@@ -37,7 +37,7 @@ class LoadAndApplyQRF(PostProcessingPlugin):
     def __init__(
         self,
         feature_config: dict[str, list[str]],
-        target_cube_name: str,
+        target_cf_name: str,
         transformation: Optional[str] = None,
         pre_transform_addition: Optional[float] = None,
     ):
@@ -55,16 +55,16 @@ class LoadAndApplyQRF(PostProcessingPlugin):
                 water cube, then the value should state "static". This will ensure
                 the cube's data is used as the feature.
                 The config will have the structure:
-                "DYNAMIC_VARIABLE_NAME": ["FEATURE1", "FEATURE2"] e.g:
+                "DYNAMIC_VARIABLE_CF_NAME": ["FEATURE1", "FEATURE2"] e.g:
                 {
                 "air_temperature": ["mean", "std", "altitude"],
                 "visibility_at_screen_level": ["mean", "std"]
                 "distance_to_water": ["static"],
                 }
-            target_cube_name (str):
-                A string containing the cube name of the forecast to be
-                calibrated. This will be used to separate it from the rest of the
-                dynamic predictors, if present.
+            target_cf_name (str):
+                A string containing the CF name of diagnostic to be calibrated. This
+                will be used to separate it from the rest of the dynamic predictors,
+                if present.
             transformation (str):
                 Transformation to be applied to the data before fitting.
             pre_transform_addition (float):
@@ -72,7 +72,7 @@ class LoadAndApplyQRF(PostProcessingPlugin):
 
         """
         self.feature_config = feature_config
-        self.target_cube_name = target_cube_name
+        self.target_cf_name = target_cf_name
         self.transformation = transformation
         self.pre_transform_addition = pre_transform_addition
 
@@ -113,7 +113,7 @@ class LoadAndApplyQRF(PostProcessingPlugin):
 
         # Extract all additional cubes which are associated with a feature in the
         # feature_config.
-        forecast_constraint = iris.Constraint(name=self.target_cube_name)
+        forecast_constraint = iris.Constraint(name=self.target_cf_name)
         forecast_cube = cube_inputs.extract(forecast_constraint)
 
         if forecast_cube:
@@ -122,7 +122,7 @@ class LoadAndApplyQRF(PostProcessingPlugin):
             msg = (
                 "No target forecast provided. An input file representing the target "
                 "must be provided, even if the target will not be used as a feature. "
-                f"The target is '{self.target_cube_name}'."
+                f"The target is '{self.target_cf_name}'."
             )
             raise ValueError(msg)
 
@@ -144,7 +144,7 @@ class LoadAndApplyQRF(PostProcessingPlugin):
             return forecast_cube
 
         # If target diagnostic not a feature in the training then remove.
-        if self.target_cube_name not in self.feature_config.keys():
+        if self.target_cf_name not in self.feature_config.keys():
             cube_inputs.remove(forecast_cube)
 
         return cube_inputs, forecast_cube, qrf_model
@@ -191,6 +191,42 @@ class LoadAndApplyQRF(PostProcessingPlugin):
             realization_cube_inputs.append(feature_cube)
         return realization_cube_inputs
 
+    @staticmethod
+    def _cube_to_dataframe(cube_inputs: CubeList) -> pd.DataFrame:
+        """Convert cube inputs to a pandas DataFrame.
+
+        Args:
+            cube_inputs: List of cubes containing the features and the forecast to be
+                calibrated.
+        Returns:
+            DataFrame containing the data from the cubes, with auxiliary coordinates
+            included as columns.
+        """
+        # Convert the first cube to a DataFrame.
+        df = as_data_frame(cube_inputs[0], add_aux_coords=True).reset_index()
+
+        # Iteratively convert remaining cubes to DataFrame and merge.
+        for cube in cube_inputs[1:]:
+            temporary_df = as_data_frame(cube, add_aux_coords=True).reset_index()
+            possible_columns = [
+                "wmo_id",
+                "time",
+                "forecast_reference_time",
+                "forecast_period",
+            ]
+            merge_columns = [
+                col for col in possible_columns if col in temporary_df.columns
+            ]
+            df = df.merge(
+                temporary_df[merge_columns + [cube.name()]],
+                on=merge_columns,
+                how="left",
+            )
+
+        for column in ["forecast_reference_time", "time"]:
+            df[column] = df[column].apply(lambda x: x._to_real_datetime())
+        return df
+
     def process(
         self,
         file_paths: list[pathlib.Path],
@@ -219,48 +255,21 @@ class LoadAndApplyQRF(PostProcessingPlugin):
         template_forecast_cube = forecast_cube.copy()
         if forecast_cube.coords("percentile"):
             percentiles = self._compute_percentiles(forecast_cube.copy(), "percentile")
-            cube_inputs = self._percentiles_to_realizations(cube_inputs.copy())
-            template_forecast_cube = RebadgePercentilesAsRealizations()(
-                template_forecast_cube
-            )
         elif forecast_cube.coords("realization"):
             percentiles = self._compute_percentiles(forecast_cube.copy(), "realization")
 
         assert_spatial_coords_match(cube_inputs)
-
-        df = as_data_frame(cube_inputs[0], add_aux_coords=True).reset_index()
-
-        for cube in cube_inputs[1:]:
-            temporary_df = as_data_frame(cube, add_aux_coords=True).reset_index()
-            possible_columns = [
-                "wmo_id",
-                "time",
-                "forecast_reference_time",
-                "forecast_period",
-            ]
-            merge_columns = [
-                col for col in possible_columns if col in temporary_df.columns
-            ]
-            df = df.merge(
-                temporary_df[merge_columns + [cube.name()]],
-                on=merge_columns,
-                how="left",
-            )
+        df = self._cube_to_dataframe(cube_inputs)
 
         calibrated_forecast = ApplyQuantileRegressionRandomForests(
-            target_name=self.target_cube_name,
+            target_name=self.target_cf_name,
             feature_config=self.feature_config,
             quantiles=percentiles,
             transformation=self.transformation,
             pre_transform_addition=self.pre_transform_addition,
         )(qrf_model, df)
-
         calibrated_forecast_cube = template_forecast_cube.copy(
             data=np.broadcast_to(calibrated_forecast.T, template_forecast_cube.shape)
         )
 
-        if forecast_cube.coords("percentile"):
-            calibrated_forecast_cube = RebadgeRealizationsAsPercentiles()(
-                calibrated_forecast_cube
-            )
         return calibrated_forecast_cube

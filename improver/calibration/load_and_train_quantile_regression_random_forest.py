@@ -32,6 +32,7 @@ class LoadAndTrainQRF(PostProcessingPlugin):
         self,
         feature_config: dict[str, list[str]],
         target_diagnostic_name: str,
+        target_cf_name: str,
         forecast_periods: str,
         cycletime: str,
         training_length: int,
@@ -46,6 +47,7 @@ class LoadAndTrainQRF(PostProcessingPlugin):
         """Initialise the LoadAndTrainQRF plugin."""
         self.feature_config = feature_config
         self.target_diagnostic_name = target_diagnostic_name
+        self.target_cf_name = target_cf_name
         self.forecast_periods = forecast_periods
         self.cycletime = cycletime
         self.training_length = training_length
@@ -217,9 +219,19 @@ class LoadAndTrainQRF(PostProcessingPlugin):
             raise IOError(msg)
         return forecast_df, truth_df
 
+    @staticmethod
     def _check_matching_times(
-        self, forecast_df: pd.DataFrame, truth_df: pd.DataFrame
+        forecast_df: pd.DataFrame, truth_df: pd.DataFrame
     ) -> list[pd.Timestamp]:
+        """Find the intersecting times available within the forecast and truth
+        DataFrames.
+
+        Args:
+            forecast_df: DataFrame containing the forecast data.
+            truth_df: DataFrame containing the truth data.
+        Returns:
+            List of intersecting times as pandas Timestamp objects.
+        """
         return list(set(forecast_df["time"]).intersection(set(truth_df["time"])))
 
     def _add_features_to_df(
@@ -262,14 +274,6 @@ class LoadAndTrainQRF(PostProcessingPlugin):
                 - DataFrame containing the forecast data with bad sites removed.
                 - DataFrame containing the truth data with bad sites removed.
         """
-        # import pdb
-        # pdb.set_trace()
-        # for coord in ["latitude", "longitude", "altitude", "ob_value"]:
-        #     truth_df = truth_df.groupby("wmo_id").filter(
-        #         lambda x: ~(x[coord].isna().any())
-        #     )
-        # import pdb
-        # pdb.set_trace()
         truth_df.dropna(
             subset=["latitude", "longitude", "altitude", "ob_value"], inplace=True
         )
@@ -311,7 +315,7 @@ class LoadAndTrainQRF(PostProcessingPlugin):
                 water cube, then the value should state "static". This will ensure
                 the cube's data is used as the feature. The config will have the
                 structure:
-                    "DYNAMIC_VARIABLE_NAME": ["FEATURE1", "FEATURE2"] e.g:
+                    "DYNAMIC_VARIABLE_CF_NAME": ["FEATURE1", "FEATURE2"] e.g:
                     {
                     "air_temperature": ["mean", "std", "altitude"],
                     "visibility_at_screen_level": ["mean", "std"]
@@ -376,12 +380,8 @@ class LoadAndTrainQRF(PostProcessingPlugin):
         forecast_df, truth_df = self._read_parquet_files(
             forecast_table_path, truth_table_path, forecast_periods
         )
-
         forecast_df = forecast_df[forecast_df["experiment"] == self.experiment]
-        forecast_df = forecast_df.rename(
-            columns={"forecast": forecast_df["cf_name"][0]}
-        )
-        # forecast_df = forecast_df.drop(columns=["cf_name", "diagnostic"])
+        forecast_df = forecast_df.rename(columns={"forecast": self.target_cf_name})
         intersecting_times = self._check_matching_times(forecast_df, truth_df)
         if len(intersecting_times) == 0:
             return None
@@ -390,7 +390,7 @@ class LoadAndTrainQRF(PostProcessingPlugin):
         forecast_df, truth_df = self.filter_bad_sites(forecast_df, truth_df)
 
         TrainQuantileRegressionRandomForests(
-            target_name=forecast_df["cf_name"][0],
+            target_name=self.target_cf_name,
             feature_config=self.feature_config,
             n_estimators=self.n_estimators,
             max_depth=self.max_depth,

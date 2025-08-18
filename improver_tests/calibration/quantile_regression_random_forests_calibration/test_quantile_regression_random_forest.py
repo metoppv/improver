@@ -17,8 +17,8 @@ from iris.pandas import as_data_frame
 from improver.calibration.quantile_regression_random_forest import (
     ApplyQuantileRegressionRandomForests,
     TrainQuantileRegressionRandomForests,
+    get_required_column_names,
     prep_feature,
-    select_features,
 )
 from improver.metadata.constants.time_types import DT_FORMAT
 from improver.synthetic_data.set_up_test_cubes import set_up_spot_variable_cube
@@ -405,7 +405,7 @@ def test_prep_feature_more_times(feature, expected, expected_dtype):
         {"wind_speed_at_10m": ["latitude", "longitude", "height"]},
     ],
 )
-def test_select_features(feature_config):
+def test_get_required_column_names(feature_config):
     data_dict = {
         "wmo_id": np.tile(WMO_ID, 3),
         "latitude": np.tile(LATITUDE, 3),
@@ -431,9 +431,9 @@ def test_select_features(feature_config):
 
     if "height" in feature_config["wind_speed_at_10m"]:
         with pytest.raises(ValueError, match="Feature 'height' is not supported."):
-            select_features(df, feature_config)
+            get_required_column_names(df, feature_config)
     else:
-        result = select_features(df, feature_config)
+        result = get_required_column_names(df, feature_config)
         assert len(result) == len(expected)
         assert result == expected
 

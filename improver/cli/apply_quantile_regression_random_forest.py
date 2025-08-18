@@ -13,7 +13,7 @@ from improver import cli
 def process(
     *file_paths: cli.inputpath,
     feature_config: cli.inputjson,
-    target_cube_name: str,
+    target_cf_name: str,
     transformation: str = None,
     pre_transform_addition: float = 0,
 ):
@@ -32,23 +32,23 @@ def process(
             - The path to a NetCDF file containing the forecast to be calibrated.
             - Optionally, paths to NetCDF files containing additional predictors.
         feature_config (dict):
-            Feature configuration defining the features to be used for quantile regression.
-                The configuration is a dictionary of strings, where the keys are the names of
-                the input cube(s) supplied, and the values are a list. This list can contain both
-                computed features, such as the mean or standard deviation (std), or static
-                features, such as the altitude. The computed features will be computed using
-                the cube defined in the dictionary key. If the key is the feature itself e.g.
-                a distance to water cube, then the value should state "static". This will ensure
-                the cube's data is used as the feature.
-                The config will have the structure:
-                "DYNAMIC_VARIABLE_NAME": ["FEATURE1", "FEATURE2"] e.g:
+            Feature configuration defining the features to be used for quantile
+            regression. The configuration is a dictionary of strings, where the keys
+            are the names of the input cube(s) supplied, and the values are a list.
+            This list can contain both computed features, such as the mean or
+            standard deviation (std), or static features, such as the altitude. The
+            computed features will be computed using the cube defined in the
+            dictionary key. If the key is the feature itself e.g. a distance to water
+            cube, then the value should state "static". This will ensure the cube's
+            data is used as the feature. The config will have the structure:
+                "DYNAMIC_VARIABLE_CF_NAME": ["FEATURE1", "FEATURE2"] e.g:
                 {
                 "air_temperature": ["mean", "std", "altitude"],
                 "visibility_at_screen_level": ["mean", "std"]
                 "distance_to_water": ["static"],
                 }
-        target_cube_name (str):
-            A string containing the cube name of the forecast to be
+        target_cf_name (str):
+            A string containing the CF name of the forecast to be
             calibrated. This will be used to separate it from the rest of the
             feature cubes, if present.
         transformation (str):
@@ -66,7 +66,7 @@ def process(
 
     result = LoadAndApplyQRF(
         feature_config=feature_config,
-        target_cube_name=target_cube_name,
+        target_cf_name=target_cf_name,
         transformation=transformation,
         pre_transform_addition=pre_transform_addition,
     )(

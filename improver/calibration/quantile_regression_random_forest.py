@@ -9,7 +9,6 @@ from typing import Optional
 import joblib
 import numpy as np
 import pandas as pd
-from iris.cube import Cube
 from quantile_forest import RandomForestQuantileRegressor
 
 from improver import BasePlugin, PostProcessingPlugin
@@ -18,70 +17,102 @@ from improver.constants import DAYS_IN_YEAR, HOURS_IN_DAY
 
 def prep_feature(
     df: pd.DataFrame,
+    variable_name: str,
     feature_name: str,
-    feature: str,
 ) -> pd.DataFrame:
-    if feature in ["mean", "std"]:
+    """Prepare features that require computation from the input DataFrame. Options
+    available are mean and standard deviation of the input feature, the
+    day of year, sine of day of year, cosine of day of year, hour of day,
+    sine of hour of day and cosine of hour of day. When computing the mean or standard
+    deviation, these will be computed over either the percentile or realization column,
+    depending upon which is available.
+
+    Args:
+        df: Input DataFrame.
+        variable_name: Name of the variable to be used for the computation.
+        feature_name: Feature to be computed. Options are "mean", "std", "day_of_year",
+            "day_of_year_sin", "day_of_year_cos", "hour_of_day",
+            "hour_of_day_sin" and "hour_of_day_cos".
+    Returns:
+        df: DataFrame with the computed feature added.
+    """
+    if feature_name in ["mean", "std"]:
         representation_name = [
             n for n in ["percentile", "realization"] if n in df.columns
         ][0]
-        subset_cols = [
-            "forecast_reference_time",
-            "forecast_period",
-            "wmo_id",
-            representation_name,
-            feature_name,
-        ]
         groupby_cols = ["forecast_reference_time", "forecast_period", "wmo_id"]
-        if feature == "mean":
+        subset_cols = [*groupby_cols] + [
+            representation_name,
+            variable_name,
+        ]
+        # For a subset of the input DataFrame compute the mean or standard deviation
+        # over the representation column, grouped by the groupby columns.
+        if feature_name == "mean":
             subset_df = df[subset_cols].groupby(groupby_cols).mean()
-        elif feature == "std":
+        elif feature_name == "std":
             subset_df = df[subset_cols].groupby(groupby_cols).std()
 
         subset_df = subset_df.reset_index()
+        # Rename the column to distinguish the computed feature from the original.
         subset_df.rename(
-            columns={feature_name: f"{feature_name}_{feature}"}, inplace=True
+            columns={variable_name: f"{variable_name}_{feature_name}"}, inplace=True
         )
-        # df.drop(columns=[representation_name], inplace=True)
-        # df.drop_duplicates(inplace=True)
+        # Merge the computed feature back into the original DataFrame.
         df = df.merge(
-            subset_df[groupby_cols + [f"{feature_name}_{feature}"]],
-            on=["forecast_reference_time", "forecast_period", "wmo_id"],
+            subset_df[groupby_cols + [f"{variable_name}_{feature_name}"]],
+            on=groupby_cols,
             how="left",
         )
 
-    elif feature in ["day_of_year", "day_of_year_sin", "day_of_year_cos"]:
-        day_of_year = df["time"].dt.strftime("%j")
-        day_of_year = np.array(day_of_year, dtype=np.int32)
-        if feature == "day_of_year":
+    elif feature_name in ["day_of_year", "day_of_year_sin", "day_of_year_cos"]:
+        # If there is only one unique time, compute the day of year for the first row.
+        if df["time"].nunique() == 1:
+            day_of_year = np.int32(df["time"].iloc[0].strftime("%j"))
+        else:
+            day_of_year = np.array(df["time"].dt.strftime("%j"), dtype=np.int32)
+        if feature_name == "day_of_year":
             feature_values = day_of_year
-        elif feature == "day_of_year_sin":
+        elif feature_name == "day_of_year_sin":
             feature_values = np.sin(
                 2 * np.pi * day_of_year / (DAYS_IN_YEAR + 1)
             ).astype(np.float32)
-        elif feature == "day_of_year_cos":
+        elif feature_name == "day_of_year_cos":
             feature_values = np.cos(
                 2 * np.pi * day_of_year / (DAYS_IN_YEAR + 1)
             ).astype(np.float32)
-        df[feature] = feature_values
-    elif feature in ["hour_of_day", "hour_of_day_sin", "hour_of_day_cos"]:
-        hour_of_day = df["time"].dt.hour
-        hour_of_day = np.array(hour_of_day, dtype=np.int32)
-        if feature == "hour_of_day":
+        df[feature_name] = feature_values
+    elif feature_name in ["hour_of_day", "hour_of_day_sin", "hour_of_day_cos"]:
+        if df["time"].nunique() == 1:
+            hour_of_day = np.int32(df["time"].iloc[0].hour)
+        else:
+            hour_of_day = np.array(df["time"].dt.hour, dtype=np.int32)
+        if feature_name == "hour_of_day":
             feature_values = hour_of_day
-        elif feature == "hour_of_day_sin":
+        elif feature_name == "hour_of_day_sin":
             feature_values = np.sin(2 * np.pi * hour_of_day / HOURS_IN_DAY).astype(
                 np.float32
             )
-        elif feature == "hour_of_day_cos":
+        elif feature_name == "hour_of_day_cos":
             feature_values = np.cos(2 * np.pi * hour_of_day / HOURS_IN_DAY).astype(
                 np.float32
             )
-        df[feature] = feature_values
+        df[feature_name] = feature_values
     return df
 
 
-def sanitise_forecast_dataframe(df: pd.DataFrame, feature_config: dict) -> pd.DataFrame:
+def sanitise_forecast_dataframe(
+    df: pd.DataFrame, feature_config: dict[str, list[str]]
+) -> pd.DataFrame:
+    """Sanitise the forecast DataFrame by removing columns that are no longer
+    required. Following the computation of e.g. the mean or standard deviation,
+    the original feature can be removed. The column over which the mean or
+    standard deviation has been computed (e.g. the percentile or realization column)
+    is also removed.
+
+    Args:
+        df: Input DataFrame, potentially including some computed features.
+        feature_config: Feature configuration defining the features to be used for QRF.
+    """
     representation_name = [n for n in ["percentile", "realization"] if n in df.columns][
         0
     ]
@@ -94,12 +125,21 @@ def sanitise_forecast_dataframe(df: pd.DataFrame, feature_config: dict) -> pd.Da
     return df
 
 
-def select_features(df, feature_config):
-    """Prepare the features from a DataFrame for quantile regression random forest."""
+def get_required_column_names(
+    df: pd.DataFrame, feature_config: dict[str, list[str]]
+) -> list[str]:
+    """Process the feature_config to return the expected column names that will be
+    used as features with the QRF.
 
-    # Remove columns that are no longer required e.g. as the mean or std have been computed.
-    # Removing these columns allows a lot of duplicates to then be removed.
-
+    Args:
+        df: Input DataFrame.
+        feature_config: Feature configuration defining the features to be used for QRF.
+    Returns:
+        List of expected column names that will be used as features with the QRF.
+    Raises:
+        ValueError: If a feature expected in the feature_config is not present in
+        the DataFrame.
+    """
     feature_column_names = []
     for feature_name in feature_config.keys():
         for feature in feature_config[feature_name]:
@@ -162,7 +202,7 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
                 should state "static". In this case, the name of feature e.g.
                 'distance_to_water' is expected to be a column name in the input
                 dataframe. The config will have the structure:
-                    "DYNAMIC_VARIABLE_NAME": ["FEATURE1", "FEATURE2"] e.g:
+                    "DYNAMIC_VARIABLE_CF_NAME": ["FEATURE1", "FEATURE2"] e.g:
                     {
                     "air_temperature": ["mean", "std", "altitude"],
                     "visibility_at_screen_level": ["mean", "std"]
@@ -259,15 +299,20 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
                 truth_df["ob_value"] + self.pre_transform_addition
             )
 
-        for feature_name in self.feature_config.keys():
-            if feature_name not in forecast_df.columns:
-                msg = f"Feature '{feature_name}' is not present in the forecast DataFrame."
+        for variable_name in self.feature_config.keys():
+            if variable_name not in forecast_df.columns:
+                msg = (
+                    f"Feature '{variable_name}' is not present in the "
+                    "forecast DataFrame."
+                )
                 raise ValueError(msg)
-            for feature in self.feature_config[feature_name]:
-                forecast_df = prep_feature(forecast_df, feature_name, feature)
+            for feature_name in self.feature_config[variable_name]:
+                forecast_df = prep_feature(forecast_df, variable_name, feature_name)
 
         forecast_df = sanitise_forecast_dataframe(forecast_df, self.feature_config)
-        feature_column_names = select_features(forecast_df, self.feature_config)
+        feature_column_names = get_required_column_names(
+            forecast_df, self.feature_config
+        )
 
         merge_columns = ["wmo_id", "time"]
         combined_df = forecast_df.merge(
@@ -276,7 +321,6 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
         feature_values = np.array(combined_df[feature_column_names])
         target_values = combined_df["ob_value"].values
 
-        print(feature_values, target_values)
         # Fit the quantile regression model
         qrf_model = self.fit_qrf(feature_values, target_values)
 
@@ -308,14 +352,14 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
                 should state "static". In this case, the name of feature e.g.
                 'distance_to_water' is expected to be a column name in the input
                 dataframe. The config will have the structure:
-                    "DYNAMIC_VARIABLE_NAME": ["FEATURE1", "FEATURE2"] e.g:
+                    "DYNAMIC_VARIABLE_CF_NAME": ["FEATURE1", "FEATURE2"] e.g:
                     {
                     "air_temperature": ["mean", "std", "altitude"],
                     "visibility_at_screen_level": ["mean", "std"]
                     "distance_to_water": ["static"],
                     }
             quantiles (float):
-                Quantiles used for prediction (values ranging from 0 to 1)
+                Quantiles used for prediction (values ranging from 0 to 1).
             transformation (str):
                 Transformation to be applied to the data before fitting.
             pre_transform_addition (float):
@@ -333,10 +377,11 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
 
     def _reverse_transformation(self, forecast: np.ndarray) -> np.ndarray:
         """Reverse the transformation applied to the data prior to fitting the QRF.
-        The forecast cube provided is modified in place.
 
         Args:
-            forecast_cube: Forecast to be calibrated.
+            forecast: Calibrated forecast.
+        Returns:
+            forecast: Forecast with the transformation reversed.
         """
         if self.transformation:
             if self.transformation == "log":
@@ -353,41 +398,39 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
         self,
         qrf_model: RandomForestQuantileRegressor,
         forecast_df: pd.DataFrame,
-    ) -> Cube:
+    ) -> np.ndarray:
         """Apply a quantile regression random forests model.
 
         Args:
             qrf_model: A trained QRF model.
-            feature_cubes: CubeList of features. This should include the forecast to be
-                calibrated, if that has been used as a feature in the training, and
-                any features that can be provided as cubes.
-            template_forecast_cube: Template forecast cube that provides the required
-                metadata and shape for the output cube. The data from this cube will not
-                be used.
+            forecast_df: DataFrame containing the forecast information and features.
 
         Returns:
-            Calibrated forecast cube with the same metadata as the template
-            forecast cube.
+            Calibrated forecast as a numpy array.
 
         """
         feature_values = []
 
-        for feature_name in self.feature_config.keys():
+        for variable_name in self.feature_config.keys():
             # Transform the feature cube data if a transformation is specified.
             if (
                 self.transformation
-                and set(["mean", "std"]).intersection(self.feature_config[feature_name])
+                and set(["mean", "std"]).intersection(
+                    self.feature_config[variable_name]
+                )
                 and self.target_name in forecast_df.columns
             ):
                 forecast_df[self.target_name] = getattr(np, self.transformation)(
                     forecast_df[self.target_name] + self.pre_transform_addition
                 )
 
-            for feature in self.feature_config[feature_name]:
-                forecast_df = prep_feature(forecast_df, feature_name, feature)
+            for feature_name in self.feature_config[variable_name]:
+                forecast_df = prep_feature(forecast_df, variable_name, feature_name)
 
         forecast_df = sanitise_forecast_dataframe(forecast_df, self.feature_config)
-        feature_column_names = select_features(forecast_df, self.feature_config)
+        feature_column_names = get_required_column_names(
+            forecast_df, self.feature_config
+        )
 
         feature_values = np.array(forecast_df[feature_column_names])
 
@@ -397,5 +440,4 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
         calibrated_forecast = np.float32(calibrated_forecast)
 
         calibrated_forecast = self._reverse_transformation(calibrated_forecast)
-
         return calibrated_forecast
