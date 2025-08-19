@@ -7,15 +7,15 @@ This module defines all the "plugins" specific to Standardised Anomaly Model Out
 Statistics (SAMOS).
 """
 
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import iris
 import iris.pandas
 import pandas as pd
+import pygam
 from iris.analysis import MEAN, STD_DEV
 from iris.cube import Cube, CubeList
 from iris.util import new_axis
-from numpy import diff
 from numpy.ma import masked_all_like
 from pandas import merge
 
@@ -23,7 +23,6 @@ from improver import BasePlugin
 from improver.calibration.emos_calibration import (
     EstimateCoefficientsForEnsembleCalibration,
 )
-from improver.metadata.constants.time_types import TIME_COORDS
 from improver.utilities.generalized_additive_models import GAMFit, GAMPredict
 from improver.utilities.mathematical_operations import CalculateClimateAnomalies
 
@@ -133,37 +132,43 @@ class TrainGAMsForSAMOS(BasePlugin):
 
     def __init__(
         self,
-        model_specification: Dict,
+        model_specification: List[List[str, List[int], Dict[Any]]],
         max_iter: int = 100,
         tol: float = 0.0001,
         distribution: str = "normal",
         link: str = "identity",
         fit_intercept: bool = True,
+        window_length: int = 11,
     ):
         """
         Initialize the class.
 
         Args:
             model_specification:
-                a list containing three items (in order):
-                    1. a string containing a single pyGAM term; one of 'l' (linear),
-                    's' (spline), 'te' (tensor), or 'f' (factor)
+                A list of lists which each contain three items (in order):
+                    1. a string containing a single pyGAM term; one of 'linear',
+                    'spline', 'tensor', or 'factor'
                     2. a list of integers which correspond to the features to be
                     included in that term
                     3. a dictionary of kwargs to be included when defining the term
             max_iter:
-                a pyGAM argument which determines the maximum iterations allowed when
+                A pyGAM argument which determines the maximum iterations allowed when
                 fitting the GAM
             tol:
-                a pyGAM argument determining the tolerance used to define the stopping
+                A pyGAM argument determining the tolerance used to define the stopping
                 criteria
             distribution:
-                a pyGAM argument determining the distribution to be used in the model
+                A pyGAM argument determining the distribution to be used in the model
             link:
-                a pyGAM argument determining the link function to be used in the model
+                A pyGAM argument determining the link function to be used in the model
             fit_intercept:
-                a pyGAM argument determining whether to include an intercept term in
+                A pyGAM argument determining whether to include an intercept term in
                 the model
+            window_length:
+                The length of the rolling window used to calculate the mean and standard
+                deviation of the input cube when the input cube does not have a
+                realization dimension coordinate. This must be an odd integer greater
+                than 1.
         """
         self.model_specification = model_specification
         self.max_iter = max_iter
@@ -172,8 +177,113 @@ class TrainGAMsForSAMOS(BasePlugin):
         self.link = link
         self.fit_intercept = fit_intercept
 
-    @staticmethod
-    def calculate_cube_statistics(input_cube: Cube) -> CubeList:
+        if window_length < 3 or window_length % 2 == 0:
+            raise ValueError(
+                "window_length must be an odd integer greater than 1. "
+                f"Received: {window_length}"
+            )
+        else:
+            self.window_length = window_length
+
+    def calculate_statistic_by_rolling_window(self, input_cube: Cube):
+        """Function to calculate mean and standard deviation of input_cube using a
+        rolling window calculation over the time coordinate.
+
+        The input_cube time coordinate is padded at the beginning and end of the time
+        coordinate, to ensure that the result of the rolling window calculation has the
+        same shape as input_cube. Additionally, any missing time points in the input
+        cube are filled with masked data, so that the rolling window is always taken
+        over a period containing an equal number of time points.
+        """
+        removed_coords = []
+        pad_width = (self.window_length - 1) / 2
+
+        # Pad the time coordinate of the input cube, then calculate the mean and
+        # standard deviation using a rolling window over the time coordinate.
+        time_coord = input_cube.coord("time")
+        increments = time_coord.points[1:] - time_coord.points[:-1]
+        min_increment = increments.min()
+        if all(x % min_increment == 0 for x in increments):
+            padded_cube = input_cube.copy()
+            # Remove time related coordinates other than the coordinate called
+            # "time" on the input cube in order to allow extension of the "time"
+            # coordinate. These coordinates are saved and added back to the output
+            # cubes.
+            for coord in [
+                "forecast_reference_time",
+                "forecast_period",
+                "blend_time",
+            ]:
+                if padded_cube.coords(coord):
+                    removed_coords.append(padded_cube.coord(coord).copy())
+                    padded_cube.remove_coord(coord)
+
+            # Create slices of artificial cube data to pad the existing cube time
+            # coordinate and fill any gaps. This ensures that all of the time points
+            # are equally spaced and the padding ensures that the output of the
+            # rolling window calculation is the same shape as the input cube.
+            existing_points = time_coord.points
+            desired_points = [
+                x
+                for x in range(
+                    min(existing_points) - (min_increment * pad_width),
+                    max(existing_points) + (min_increment * pad_width),
+                    min_increment,
+                )
+            ]
+
+            # Slice input_cube over time dimension so that the artificial cubes can be
+            # concatenated correctly.
+            padded_cubelist = iris.cube.CubeList([])
+            for cslice in padded_cube.slices_over("time"):
+                padded_cubelist.append(new_axis(cslice.copy(), "time"))
+
+            # For each desired point which doesn't already correspond to a time point
+            # on the cube, create a new cube slice with that time point with all data
+            # masked.
+            cslice = padded_cube.extract(iris.Constraint(time=time_coord.cell(0)))
+            for point in desired_points:
+                if point not in existing_points:
+                    # Create a new cube slice with time point equal to point.
+                    new_slice = cslice.copy()
+                    new_slice.coord("time").points = point
+                    new_slice = new_axis(new_slice, "time")
+                    new_slice.data = masked_all_like(new_slice.data)
+                    padded_cubelist.append(new_slice)
+            padded_cube = padded_cubelist.concatenate_cube()
+
+            # Calculate mean and standard deviation using rolling window over padded
+            # time coordinate. Remove bounds from this coordinate in resulting cubes
+            # as they aren't needed for later calculations.
+            input_mean = padded_cube.rolling_window(
+                coord="time", aggregator=MEAN, window=self.window_length
+            )
+            input_mean.coord("time").bounds = None
+
+            input_sd = padded_cube.rolling_window(
+                coord="time", aggregator=STD_DEV, window=self.window_length
+            )
+            input_sd.coord("time").bounds = None
+
+            # Add any removed time coordinates back on to the mean and standard
+            # deviation cubes.
+            for coord in removed_coords:
+                time_dim = padded_cube.coord_dims("time")
+                kwargs = {"data_dims": time_dim} if len(coord.points) > 1 else {}
+                input_mean.add_aux_coord(coord, **kwargs)
+                input_sd.add_aux_coord(coord, **kwargs)
+        else:
+            raise ValueError(
+                "The increments between points in the time coordinate of the input "
+                "cube must be divisible by the smallest increment between points to "
+                "allow for rolling window calculations to be performed over the time "
+                "coordinate. The increments between points in the time coordinate "
+                f"were: {increments}. The smallest increment was: {min_increment}."
+            )
+
+        return input_mean, input_sd
+
+    def calculate_cube_statistics(self, input_cube: Cube) -> CubeList:
         """Function to calculate mean and standard deviation of the input cube. If the
         cube has a realization dimension then statistics will be calculated by
         collapsing over this dimension. Otherwise, a rolling window calculation over
@@ -205,7 +315,6 @@ class TrainGAMsForSAMOS(BasePlugin):
             ValueError: If input_cube does not contain a realization coordinate and
             does contain a time coordinate with unevenly spaced points.
         """
-        removed_coords = []
         if input_cube.coords("realization"):
             # Calculate forecast mean and standard deviation over the realization
             # coordinate.
@@ -214,86 +323,9 @@ class TrainGAMsForSAMOS(BasePlugin):
             input_sd = input_cube.collapsed("realization", STD_DEV)
             input_sd.remove_coord("realization")
         else:
-            # Pad the time coordinate of the input cube, then calculate the mean and
-            # standard deviation using a rolling window over the time coordinate.
-            time_coord = input_cube.coord("time")
-            increments = diff(time_coord.points)
-            if len(set(increments)) > 1:
-                msg = (
-                    "In order to extend the time coordinate to permit calculation of "
-                    "means and standard deviations, the existing points on the time "
-                    "coordinate must be evenly spaced. The following points were "
-                    f"found on the time coordinate: {time_coord.points}."
-                )
-                raise ValueError(msg)
-            else:
-                # Remove time related coordinates other than the coordinate called
-                # "time" on the input cube in order to allow extension of the "time"
-                # coordinate. These coordinates are saved and added back to the output
-                # cubes.
-                for coord in TIME_COORDS.keys():
-                    if input_cube.coords(coord) and coord != "time":
-                        removed_coords.append(input_cube.coord(coord).copy())
-                        input_cube.remove_coord(coord)
-
-                increment = increments[0]
-
-                # Number of indices to append to the start/end of the time coordinates,
-                # so that the total length of the time coordinates increases by double
-                # this.
-                pad_width = 2
-
-                # Get first and last time slices in the input cube, to be used to create
-                # cube slices which are before/after the first/last slice.
-                first_slice = input_cube.extract(
-                    iris.Constraint(time=time_coord.cell(0))
-                )
-                last_slice = input_cube.extract(
-                    iris.Constraint(time=time_coord.cell(-1))
-                )
-
-                padded_cube = iris.cube.CubeList([input_cube])
-                for i in range(pad_width):
-                    # Create cubes with an earlier/later time to use to pad the input.
-                    # All data in these cubes is masked to prevent them contributing to
-                    # later calculations.
-                    early_cube = first_slice.copy()
-                    early_cube.coord("time").points = (
-                        early_cube.coord("time").points - (i + 1) * increment
-                    )
-                    early_cube = new_axis(early_cube, "time")
-                    early_cube.data = masked_all_like(early_cube.data)
-
-                    late_cube = last_slice.copy()
-                    late_cube.coord("time").points = (
-                        late_cube.coord("time").points + (i + 1) * increment
-                    )
-                    late_cube = new_axis(late_cube, "time")
-                    late_cube.data = masked_all_like(late_cube.data)
-
-                    padded_cube.extend([early_cube, late_cube])
-
-                padded_cube = padded_cube.concatenate_cube()
-
-                # Calculate mean and standard deviation using rolling window over padded
-                # time coordinate. Remove bounds from this coordinate in resulting cubes
-                # as they aren't needed for later calculations.
-                input_mean = padded_cube.rolling_window(
-                    coord="time", aggregator=MEAN, window=(2 * pad_width) + 1
-                )
-                input_mean.coord("time").bounds = None
-                input_sd = padded_cube.rolling_window(
-                    coord="time", aggregator=STD_DEV, window=(2 * pad_width) + 1
-                )
-                input_sd.coord("time").bounds = None
-
-                # Add any removed time coordinates back on to the mean and standard
-                # deviation cubes.
-                for coord in removed_coords:
-                    time_dim = padded_cube.coord_dims("time")
-                    kwargs = {"data_dims": time_dim} if len(coord.points) > 1 else {}
-                    input_mean.add_aux_coord(coord, **kwargs)
-                    input_sd.add_aux_coord(coord, **kwargs)
+            input_mean, input_sd = self.calculate_statistic_by_rolling_window(
+                input_cube
+            )
 
         return CubeList([input_mean, input_sd])
 
@@ -367,10 +399,10 @@ class TrainGAMsForSAMOS(BasePlugin):
         for stat_cube in stat_cubes:
             df = prepare_data_for_gam(stat_cube, additional_fields)
 
-            X_input = df[features].values
-            y_input = df[input_cube.name()].values
+            feature_values = df[features].values
+            targets = df[input_cube.name()].values
 
-            output.append(plugin.process(X_input, y_input))
+            output.append(plugin.process(feature_values, targets))
 
         return output
 
@@ -412,7 +444,7 @@ class TrainEMOSForSAMOS(BasePlugin):
     @staticmethod
     def get_climatological_stats(
         input_cube: Cube,
-        gams: List,
+        gams: List[pygam.GAM],
         gam_features: List[str],
         additional_fields: Optional[CubeList],
     ) -> Tuple[Cube, Cube]:
@@ -469,12 +501,13 @@ class TrainEMOSForSAMOS(BasePlugin):
         Args:
             forecast_cubes:
                 A list of three cubes: a cube containing historic forecasts, a cube
-                containing climatological mean predictions and a cube containing
-                climatological standard deviation predictions.
+                containing climatological mean predictions of the forecasts and a cube
+                containing climatological standard deviation predictions of the
+                forecasts.
             truth_cubes:
                 A list of three cubes: a cube containing historic truths, a cube
-                containing climatological mean predictions and a cube containing
-                climatological standard deviation predictions.
+                containing climatological mean predictions of the truths and a cube
+                containing climatological standard deviation predictions of the truths.
             additional_fields:
                 Additional fields to use as supplementary predictors.
             landsea_mask:
@@ -540,7 +573,7 @@ class TrainEMOSForSAMOS(BasePlugin):
             gam_features:
                 The list of features. These must be either coordinates on input_cube or
                 share a name with a cube in gam_additional_fields. The index of each
-                feature should match the indices used in model_specification.
+                feature must match the indices used in model_specification.
             gam_additional_fields:
                 Additional fields to use as supplementary predictors in the GAMs.
             emos_additional_fields:

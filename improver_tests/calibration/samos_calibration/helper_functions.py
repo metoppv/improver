@@ -170,10 +170,10 @@ def create_cubes_for_gam_fitting(
         altitude_cube.data = altitude_cube.data * altitude_multiplier
         additional_cubes.append(altitude_cube)
 
-        # Subtract values from input_cube data which increase with altitude.
         altitude_multiplier = np.broadcast_to(
             altitude_multiplier, shape=input_cube.data.shape
         )
+        # Subtract values from input_cube data which increase with altitude.
         input_cube.data = input_cube.data - (5.0 * altitude_multiplier)
 
     return input_cube, additional_cubes

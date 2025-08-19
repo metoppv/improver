@@ -153,7 +153,7 @@ def test_calculate_cube_statistics(
 def test_calculate_cube_statistics_exception():
     """Test that this method raises the correct exception when a rolling window
     calculation over the time coordinate is required to calculate the cube statistics,
-    but the time coordindate as unevenly spaced points.
+    but the time coordinate as unevenly spaced points.
     """
     create_cube_kwargs = {
         "forecast_type": "spot",
@@ -165,12 +165,11 @@ def test_calculate_cube_statistics_exception():
 
     # Returns cube with 3 time points at one day intervals.
     test_cube = create_simple_cube(**create_cube_kwargs)
-    print(test_cube.coord("time").points)
+
     # Modify the time points so that they are not equally spaced
     test_cube.coord("time").points = test_cube.coord("time").points + np.array(
         [0, 0, 1]
     )
-    print(test_cube.coord("time").points)
 
     msg = (
         "In order to extend the time coordinate to permit calculation of means and "
