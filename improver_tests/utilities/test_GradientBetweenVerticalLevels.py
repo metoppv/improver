@@ -87,7 +87,7 @@ def test_height_and_pressure(
         expected_bounds = {"pressure": [[85000, 100000]]}
         expected_coord = {"pressure": 100000}
 
-    cubes.append([temperature_at_850hPa, temperature_at_screen_level])
+    cubes.extend([temperature_at_850hPa, temperature_at_screen_level])
 
     expected = [[0.03, 0.01], [-0.01, -0.03]]
     result = GradientBetweenVerticalLevels()(iris.cube.CubeList(cubes))

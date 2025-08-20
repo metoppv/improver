@@ -98,7 +98,7 @@ def test_collapse_realization(tmp_path):
         "--collapse-coord",
         "realization",
     ]
-    with pytest.warns(None) as record:
+    with pytest.warns() as record:
         run_cli(args)
     for msg in record:
         assert "Blending masked data without spatial" not in str(msg.message)

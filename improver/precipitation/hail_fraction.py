@@ -54,6 +54,9 @@ class HailFraction(PostProcessingPlugin):
         elicitation. Next, the hail fraction is set to zero if either the cloud
         condensation level temperature is below -5 Celsius, the convective cloud top
         temperature is above -15 Celsius or the hail melting level is above orography.
+        The convective cloud top temperature can also be missing, indicating that
+        there is no deep convection, in which case the hail fraction is also set to
+        zero.
         As a final check, the hail size is then checked for hail with a size larger
         than 2 mm. If the hail size is above this limit but the hail fraction is
         below 0.05, the hail fraction is set to 0.05.
@@ -75,16 +78,22 @@ class HailFraction(PostProcessingPlugin):
         # Cloud condensation level temperature in Kelvin. If below this temperature,
         # a hail fraction of 0 is set.
         ccl_limit = 268.15
-        # Convective cloud top temperature in Kelvin. If above this temperature,
+        # Convective cloud top temperature in Kelvin. If above this temperature, or missing,
         # a hail fraction of 0 is set.
         cct_limit = 258.15
+
+        # Ensure convective cloud top temperature is a masked array.
+        cct_data = convective_cloud_top.data
+        if not isinstance(cct_data, np.ma.MaskedArray):
+            cct_data = np.ma.masked_invalid(cct_data)
 
         hail_fraction = np.interp(vertical_updraught.data, [5, 50], [0, 0.25]).astype(
             np.float32
         )
         hail_fraction[
             (cloud_condensation_level.data < ccl_limit)
-            | (convective_cloud_top.data > cct_limit)
+            | cct_data.mask
+            | (cct_data > cct_limit)
             | (hail_melting_level.data > orography.data)
         ] = 0
         hail_fraction[(hail_size.data > hail_size_limit) & (hail_fraction < 0.05)] = (

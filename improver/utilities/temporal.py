@@ -104,10 +104,15 @@ def iris_time_to_datetime(
     """
     coord = time_coord.copy()
     coord.convert_units("seconds since 1970-01-01 00:00:00")
+
     if point_or_bound == "point":
-        datetime_list = [value.point for value in coord.cells()]
+        datetime_list = [value.point._to_real_datetime() for value in coord.cells()]
     elif point_or_bound == "bound":
-        datetime_list = [value.bound for value in coord.cells()]
+        datetime_list = [
+            [c.bound[0]._to_real_datetime(), c.bound[1]._to_real_datetime()]
+            for c in coord.cells()
+        ]
+
     return datetime_list
 
 

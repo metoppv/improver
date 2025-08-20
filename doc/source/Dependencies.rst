@@ -161,9 +161,18 @@ Required for CLIs: ``apply-rainforests-calibration``
 
 Treelite
 ~~~~~~~~~~~~~~~~~~
-Model compiler for decision tree ensembles, used for more efficient computation
-of GBDT ensembles required for RainForests calibration.
+Lightweight binary format for specifying decision tree models, used for
+RainForests calibration.
 
 https://treelite.readthedocs.io/en/latest/index.html
+
+Required for CLIs: ``apply-rainforests-calibration``
+
+TL2cgen (TreeLite 2 C GENerator)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Model compiler for decision tree models, used for more efficient computation
+of GBDT models required for RainForests calibration.
+
+https://tl2cgen.readthedocs.io/en/latest/index.html
 
 Required for CLIs: ``apply-rainforests-calibration``

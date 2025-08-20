@@ -6,8 +6,7 @@
 [![Codacy Badge](https://api.codacy.com/project/badge/Coverage/f7dcb46e8e1b4110b3d194dba03fe526)](https://www.codacy.com/app/metoppv_tech/improver?utm_source=github.com&utm_medium=referral&utm_content=metoppv/improver&utm_campaign=Badge_Coverage)
 [![codecov](https://codecov.io/gh/metoppv/improver/branch/master/graph/badge.svg)](https://codecov.io/gh/metoppv/improver)
 [![Documentation Status](https://readthedocs.org/projects/improver/badge/?version=latest)](http://improver.readthedocs.io/en/latest/?badge=latest)
-[![Python 3.6](https://img.shields.io/badge/python-3.6-blue.svg)](https://www.python.org/downloads/release/python-360/)
-[![Python 3.7](https://img.shields.io/badge/python-3.7-blue.svg)](https://www.python.org/downloads/release/python-370/)
+[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/release/python-3120/)
 [![DOI](https://zenodo.org/badge/85334761.svg)](https://zenodo.org/badge/latestdoi/85334761)
 
 IMPROVER is a library of algorithms for meteorological post-processing and verification.
@@ -22,22 +21,22 @@ install a mamba environment
 ```
 conda create -c conda-forge --override-channels mamba -n mamba
 ```
- 
+
 activate this mamba environment
 ```
 conda activate mamba
 ```
- 
+
 install the improver environment using mamba
 ```
-mamba create -c conda-forge python=3.7 improver -n improver
+mamba create -c conda-forge python=3 improver -n improver
 ```
- 
+
 deactivate your mamba environment
 ```
 conda deactivate
 ```
- 
+
 activate your new improver environment
 ```
 conda activate improver

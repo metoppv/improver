@@ -228,6 +228,45 @@ class Test_save_netcdf(IrisTest):
         cube = load_cube(self.filepath)
         self.assertNotIn("least_significant_digit", cube.attributes)
 
+    def test_fill_value_no_mask(self):
+        """Test that the default fill_value is not overriden if there
+        is no masked data."""
+        save_netcdf(self.cube, self.filepath)
+        cube = load_cube(self.filepath)
+        self.assertEqual(
+            cube.data.get_fill_value(), 1e20
+        )  # Default fill value for float32
+
+    def test_fill_value_no_mask_integer_data(self):
+        """Test that the default fill_value is not overriden if there is
+        no masked data and integer data is provided."""
+        cube = self.cube.copy()
+        cube.data = np.array(cube.data.astype(int))
+
+        save_netcdf(cube, self.filepath)
+        cube = load_cube(self.filepath)
+        self.assertEqual(
+            cube.data.get_fill_value(), 999999
+        )  # default fill value for int32
+
+    def test_fill_value_with_mask(self):
+        """Test that fill_value can be overriden."""
+        cube = self.cube.copy()
+        mask = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+        cube.data = np.ma.masked_array(cube.data, mask=mask)
+        save_netcdf(cube, self.filepath, fill_value=99)
+        cube = load_cube(self.filepath)
+        self.assertEqual(cube.data.get_fill_value(), 99)
+
+    def test_fill_value_with_mask_integer_data(self):
+        """Test that fill_value can be overriden when integer data is provided."""
+        cube = self.cube.copy()
+        mask = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+        cube.data = np.ma.masked_array(cube.data.astype(int), mask=mask)
+        save_netcdf(cube, self.filepath, fill_value=99)
+        cube = load_cube(self.filepath)
+        self.assertEqual(cube.data.get_fill_value(), 99)
+
 
 @pytest.fixture(name="bitshaving_cube")
 def bitshaving_cube_fixture():

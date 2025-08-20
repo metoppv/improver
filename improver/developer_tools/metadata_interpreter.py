@@ -8,7 +8,7 @@ import re
 from typing import Callable, Dict, Iterable, List
 
 from iris.coords import CellMethod, Coord
-from iris.cube import Cube
+from iris.cube import Cube, CubeAttrsDict
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.metadata.check_datatypes import check_mandatory_standards
@@ -337,9 +337,11 @@ class MOMetadataInterpreter:
                     f"expected substring {BLEND_TITLE_SUBSTR}."
                 )
 
-    def check_attributes(self, attrs: Dict) -> None:
+    def check_attributes(self, cube_attrs: CubeAttrsDict) -> None:
         """Checks for unexpected attributes, then interprets values for model
         information and checks for self-consistency"""
+        # Convert cube attributes to a dictionary for nicer formatted strings
+        attrs = dict(cube_attrs)
         if self.diagnostic in DIAG_ATTRS:
             permitted_attributes = COMPLIANT_ATTRS + DIAG_ATTRS[self.diagnostic]
         else:

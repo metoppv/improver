@@ -18,7 +18,7 @@ def process(
     output_thresholds: cli.comma_separated_list_of_float = None,
     output_threshold_config: cli.inputjson = None,
     threshold_units: str = None,
-    threads: int = 1,
+    threads: int = None,
     bin_data: bool = False,
 ):
     """
@@ -63,6 +63,7 @@ def process(
             will allow a suitable conversion to match the input units of forecast_cube.
         threads (int):
             Number of threads to use during prediction with tree-model objects.
+            If unset, uses the default value set by the model library used.
         bin_data:
             Bin data according to splits used in models. This speeds up prediction
             if there are many data points which fall into the same bins for all threshold models.

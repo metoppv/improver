@@ -629,16 +629,16 @@ class Test_process_dimensionless(IrisTest):
         )
         self.assertIsInstance(ucomp, np.ndarray)
         self.assertIsInstance(vcomp, np.ndarray)
-        self.assertAlmostEqual(np.mean(ucomp), 0.97735876)
-        self.assertAlmostEqual(np.mean(vcomp), -0.97735894)
+        self.assertAlmostEqual(np.mean(ucomp), 0.97735876, places=6)
+        self.assertAlmostEqual(np.mean(vcomp), -0.97735894, places=6)
 
     def test_axis_inversion(self):
         """Test inverting x and y axis indices gives the correct result"""
         ucomp, vcomp = self.plugin.process_dimensionless(
             self.first_input, self.second_input, 1, 0, self.smoothing_kernel
         )
-        self.assertAlmostEqual(np.mean(ucomp), -0.97735894)
-        self.assertAlmostEqual(np.mean(vcomp), 0.97735876)
+        self.assertAlmostEqual(np.mean(ucomp), -0.97735894, places=6)
+        self.assertAlmostEqual(np.mean(vcomp), 0.97735876, places=6)
 
 
 class Test_process(IrisTest):
@@ -703,7 +703,7 @@ class Test_process(IrisTest):
         """Test velocity values are as expected (in m/s)"""
         ucube, vcube = self.plugin.process(self.cube1, self.cube2, boxsize=3)
         self.assertAlmostEqual(np.mean(ucube.data), -2.1719084)
-        self.assertAlmostEqual(np.mean(vcube.data), 2.1719084)
+        self.assertAlmostEqual(np.mean(vcube.data), 2.1719084, places=6)
 
     def test_values_perturbation(self):
         """Test velocity values are as expected when input cubes are presented
@@ -716,7 +716,7 @@ class Test_process(IrisTest):
         self.cube1.coord("forecast_period").points = [15 * 60]
         ucube, vcube = self.plugin.process(self.cube1, self.cube2, boxsize=3)
         self.assertAlmostEqual(np.mean(ucube.data), -2.1719084)
-        self.assertAlmostEqual(np.mean(vcube.data), 2.1719084)
+        self.assertAlmostEqual(np.mean(vcube.data), 2.1719084, places=6)
 
     def test_values_with_precip_rate_in_m_per_s(self):
         """Test velocity values are as expected (in m/s) when the input
@@ -726,7 +726,7 @@ class Test_process(IrisTest):
         self.cube2.convert_units("m s-1")
         ucube, vcube = self.plugin.process(self.cube1, self.cube2, boxsize=3)
         self.assertAlmostEqual(np.mean(ucube.data), -2.1719084)
-        self.assertAlmostEqual(np.mean(vcube.data), 2.1719084)
+        self.assertAlmostEqual(np.mean(vcube.data), 2.1719084, places=6)
 
     def test_values_with_masked_data(self):
         """Test velocity values are as expected when masked cubes are used as
@@ -769,10 +769,10 @@ class Test_process(IrisTest):
             unmasked_cube1, unmasked_cube2, boxsize=3
         )
 
-        self.assertAlmostEqual(np.mean(ucube_masked.data), -1.4995803)
-        self.assertAlmostEqual(np.mean(vcube_masked.data), 1.4995805)
-        self.assertAlmostEqual(np.mean(ucube_unmasked.data), -0.2869996)
-        self.assertAlmostEqual(np.mean(vcube_unmasked.data), 0.28699964)
+        self.assertAlmostEqual(np.mean(ucube_masked.data), -1.4995803, places=6)
+        self.assertAlmostEqual(np.mean(vcube_masked.data), 1.4995805, places=6)
+        self.assertAlmostEqual(np.mean(ucube_unmasked.data), -0.2869996, places=6)
+        self.assertAlmostEqual(np.mean(vcube_unmasked.data), 0.28699964, places=6)
 
     def test_error_for_unconvertable_units(self):
         """Test that an exception is raised if the input precipitation cubes
@@ -812,7 +812,7 @@ class Test_process(IrisTest):
 
         ucube, vcube = self.plugin.process(self.cube1, self.cube2, boxsize=3)
         self.assertAlmostEqual(np.mean(ucube.data), -2.1719084 * 2.0)
-        self.assertAlmostEqual(np.mean(vcube.data), 2.1719084 * 2.0)
+        self.assertAlmostEqual(np.mean(vcube.data), 2.1719084 * 2.0, places=6)
 
     def test_increase_time_interval(self):
         """Test that increasing the time interval between radar frames above

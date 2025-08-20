@@ -25,9 +25,9 @@ dependencies:
   - pygam
   - pysteps
   - treelite
+  - tl2cgen
   # Development
   - astroid
-  - bandit
   - codacy-coverage
   - filelock
   - mock
@@ -35,7 +35,6 @@ dependencies:
   - pytest
   - pytest-cov
   - pytest-xdist
-  - safety
   - sphinx-autodoc-typehints
   - sphinx_rtd_theme
   - threadpoolctl

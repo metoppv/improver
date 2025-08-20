@@ -483,7 +483,7 @@ class Test_process(IrisTest):
             new_precip_cubes.append(precip_cube)
 
         plugin = ApplyOrographicEnhancement("add")
-        result = plugin.process(self.precip_cubes, self.oe_cube)
+        result = plugin.process(precip_cubes, self.oe_cube)
 
         self.assertIsInstance(result, iris.cube.CubeList)
         for aresult, precip_cube in zip(result, self.precip_cubes):
@@ -530,7 +530,7 @@ class Test_process(IrisTest):
             new_precip_cubes.append(precip_cube)
 
         plugin = ApplyOrographicEnhancement("subtract")
-        result = plugin.process(self.precip_cubes, self.oe_cube)
+        result = plugin.process(precip_cubes, self.oe_cube)
         self.assertIsInstance(result, iris.cube.CubeList)
         for aresult, precip_cube in zip(result, self.precip_cubes):
             self.assertIsInstance(aresult.data, np.ma.MaskedArray)
