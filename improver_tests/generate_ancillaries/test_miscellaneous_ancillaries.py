@@ -211,8 +211,7 @@ def gridded_template_cube():
 
 
 def test_distance_to_water(distance_cube_template):
-    """Test a ValueError is raised if the chosen smoothing coefficient limits
-    are outside the range 0 to 0.5 inclusive."""
+    """Test the distance to water ancillary is generated correctly."""
 
     river_cube = distance_cube_template.copy()
     river_cube.data = np.array([100, 200, 300, 400])
