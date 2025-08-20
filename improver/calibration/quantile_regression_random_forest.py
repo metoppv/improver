@@ -65,23 +65,27 @@ def prep_feature(
         )
 
     elif feature_name in ["day_of_year", "day_of_year_sin", "day_of_year_cos"]:
-        # If there is only one unique time, compute the day of year for the first row.
-        if df["time"].nunique() == 1:
-            day_of_year = np.int32(df["time"].iloc[0].strftime("%j"))
-        else:
-            day_of_year = np.array(df["time"].dt.strftime("%j"), dtype=np.int32)
-        if feature_name == "day_of_year":
-            feature_values = day_of_year
-        elif feature_name == "day_of_year_sin":
-            feature_values = np.sin(
-                2 * np.pi * day_of_year / (DAYS_IN_YEAR + 1)
+        # For a large DataFrame, the strftime("%j") computation can take a noticeable
+        # amount of time, so this computation is done once for each unique time
+        # and then merged back into the DataFrame.
+        doy_df = pd.DataFrame({"time": df["time"].unique()})
+        doy_df["day_of_year"] = np.array(doy_df["time"].dt.strftime("%j"), np.int32)
+
+        if feature_name == "day_of_year_sin":
+            doy_df[feature_name] = np.sin(
+                2 * np.pi * doy_df["day_of_year"].values / (DAYS_IN_YEAR + 1)
             ).astype(np.float32)
         elif feature_name == "day_of_year_cos":
-            feature_values = np.cos(
-                2 * np.pi * day_of_year / (DAYS_IN_YEAR + 1)
+            doy_df[feature_name] = np.cos(
+                2 * np.pi * doy_df["day_of_year"].values / (DAYS_IN_YEAR + 1)
             ).astype(np.float32)
-        df[feature_name] = feature_values
+        df = df.merge(
+            doy_df[["time", feature_name]], on="time", how="left"
+        )
     elif feature_name in ["hour_of_day", "hour_of_day_sin", "hour_of_day_cos"]:
+        # For hour_of_day, unlike day_of_year, the hour attribute doesn't require
+        # computation, therefore there is no benefit to creating the separate DataFrame
+        # and merging it back into the DataFrame.
         if df["time"].nunique() == 1:
             hour_of_day = np.int32(df["time"].iloc[0].hour)
         else:
@@ -120,8 +124,12 @@ def sanitise_forecast_dataframe(
     for key, values in feature_config.items():
         collapsed_features.extend([key for v in values if v in ["mean", "std"]])
     collapsed_features = list(set(collapsed_features))
-
-    df = df.drop(columns=[representation_name, *collapsed_features]).drop_duplicates()
+    # Subset the dataframe by the first value of the representation column
+    # and drop the representation column and any features where the original variable
+    # is no longer required. This reduces the size of the DataFrame e.g. if there are
+    # 3 percentiles initially, the subsetted dataframe will be 1/3 of the size.
+    df = df[df[representation_name] == df[representation_name].iloc[0]]
+    df = df.drop(columns=[representation_name, *collapsed_features])
     return df
 
 
@@ -141,12 +149,12 @@ def get_required_column_names(
         the DataFrame.
     """
     feature_column_names = []
-    for feature_name in feature_config.keys():
-        for feature in feature_config[feature_name]:
+    for variable_name in feature_config.keys():
+        for feature in feature_config[variable_name]:
             if feature in ["mean", "std"]:
-                feature_column_names.append(f"{feature_name}_{feature}")
+                feature_column_names.append(f"{variable_name}_{feature}")
             elif feature in ["static"]:
-                feature_column_names.append(feature_name)
+                feature_column_names.append(variable_name)
             else:
                 feature_column_names.append(feature)
 
@@ -181,6 +189,7 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
         feature_config: dict[str, list[str]],
         n_estimators: int,
         max_depth: Optional[int] = None,
+        max_samples: Optional[float] = None,
         random_state: Optional[int] = None,
         transformation: Optional[str] = None,
         pre_transform_addition: np.float32 = 0,
@@ -212,6 +221,11 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
                 Number of trees in the forest.
             max_depth (int):
                 Maximum depth of the tree.
+            max_samples (float):
+                If an int, then it is the number of samples to draw to train
+                each tree. If a float, then it is the fraction of samples to draw
+                to train each tree. If None, then each tree contains the same
+                total number of samples as originally provided.
             random_state (int):
                 Random seed for reproducibility.
             transformation (str):
@@ -229,6 +243,7 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
         self.feature_config = feature_config
         self.n_estimators = n_estimators
         self.max_depth = max_depth
+        self.max_samples = max_samples
         self.random_state = random_state
         self.transformation = transformation
         _check_valid_transformation(self.transformation)
@@ -255,6 +270,7 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
         qrf_model = RandomForestQuantileRegressor(
             n_estimators=self.n_estimators,
             max_depth=self.max_depth,
+            max_samples=self.max_samples,
             random_state=self.random_state,
             **self.kwargs,
         )
@@ -290,7 +306,6 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
             Nonlin. Processes Geophys., 27, 329–347,
             https://doi.org/10.5194/npg-27-329-2020, 2020.
         """
-
         if self.transformation:
             forecast_df[self.target_name] = getattr(np, self.transformation)(
                 forecast_df[self.target_name] + self.pre_transform_addition
@@ -313,7 +328,6 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
         feature_column_names = get_required_column_names(
             forecast_df, self.feature_config
         )
-
         merge_columns = ["wmo_id", "time"]
         combined_df = forecast_df.merge(
             truth_df[merge_columns + ["ob_value"]], on=merge_columns, how="inner"

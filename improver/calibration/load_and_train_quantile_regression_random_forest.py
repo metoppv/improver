@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Optional
 
 import iris
+import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -36,11 +37,12 @@ class LoadAndTrainQRF(PostProcessingPlugin):
         forecast_periods: str,
         cycletime: str,
         training_length: int,
-        experiment: str = None,
+        experiment: Optional[str] = None,
         n_estimators: int = 100,
-        max_depth: int = None,
-        random_state: int = None,
-        transformation: str = None,
+        max_depth: Optional[int] = None,
+        max_samples: Optional[float] = None,
+        random_state: Optional[int] = None,
+        transformation: Optional[str] = None,
         pre_transform_addition: float = 0,
         compression: int = 5,
     ):
@@ -54,6 +56,7 @@ class LoadAndTrainQRF(PostProcessingPlugin):
         self.experiment = experiment
         self.n_estimators = n_estimators
         self.max_depth = max_depth
+        self.max_samples = max_samples
         self.random_state = random_state
         self.transformation = transformation
         self.pre_transform_addition = pre_transform_addition
@@ -84,24 +87,24 @@ class LoadAndTrainQRF(PostProcessingPlugin):
 
         # file extraction loop:
         for file_path in file_paths:
-            try:
-                cube = load_cube(str(file_path))
-                cube_inputs.append(cube)
-            except IsADirectoryError:
-                # For loop here because the read_schema must read a .parquet file
-                # rather than a directory.
-                for file in Path(file_path).glob("**/*.parquet"):
-                    try:
-                        pq.read_schema(file).field("forecast_period")
-                        forecast_table_path = file_path
-                    except KeyError:
-                        truth_table_path = file_path
-                    if forecast_table_path and truth_table_path:
-                        break
-            except OSError:
+            if not Path(file_path).exists():
                 # This will occur when the filepath does not exist. In this case,
                 # return None.
                 return None, None, None
+            elif Path(file_path).is_dir():
+                try:
+                    example_file_path = next(Path(file_path).glob("**/*.parquet"))
+                except StopIteration:
+                    # If no parquet files are found, return None.
+                    return None, None, None
+                try:
+                    pq.read_schema(example_file_path).field("forecast_period")
+                    forecast_table_path = file_path
+                except KeyError:
+                    truth_table_path = file_path
+            else:
+                cube = load_cube(str(file_path))
+                cube_inputs.append(cube)
 
         if len(self.feature_config.keys()) not in [
             len(cube_inputs),
@@ -143,7 +146,6 @@ class LoadAndTrainQRF(PostProcessingPlugin):
                 fields.
         """
         cycletimes = []
-
         for forecast_period in forecast_periods:
             # Load forecasts from parquet file filtering by diagnostic and blend_time.
             forecast_period_td = pd.Timedelta(int(forecast_period), unit="seconds")
@@ -167,23 +169,20 @@ class LoadAndTrainQRF(PostProcessingPlugin):
             ]
         ]
 
-        for file in Path(forecast_table_path).glob("**/*.parquet"):
-            if pq.read_schema(file).get_all_field_indices("percentile"):
-                altered_schema = FORECAST_SCHEMA
-            elif pq.read_schema(file).get_all_field_indices("realization"):
-                altered_schema = FORECAST_SCHEMA.remove(
-                    FORECAST_SCHEMA.get_field_index("percentile")
-                )
-                altered_schema = altered_schema.append(
-                    pa.field("realization", pa.int64())
-                )
-            else:
-                msg = (
-                    "The forecast parquet file is expected to contain either a "
-                    "'percentile' or 'realization' field. Neither was found."
-                )
-                raise ValueError(msg)
-            break
+        example_file_path = next(Path(forecast_table_path).glob("**/*.parquet"))
+        if pq.read_schema(example_file_path).get_all_field_indices("percentile"):
+            altered_schema = FORECAST_SCHEMA
+        elif pq.read_schema(example_file_path).get_all_field_indices("realization"):
+            altered_schema = FORECAST_SCHEMA.remove(
+                FORECAST_SCHEMA.get_field_index("percentile")
+            )
+            altered_schema = altered_schema.append(pa.field("realization", pa.int64()))
+        else:
+            msg = (
+                "The forecast parquet file is expected to contain either a "
+                "'percentile' or 'realization' field. Neither was found."
+            )
+            raise ValueError(msg)
 
         forecast_df = pd.read_parquet(
             forecast_table_path,
@@ -192,16 +191,18 @@ class LoadAndTrainQRF(PostProcessingPlugin):
             engine="pyarrow",
         )
 
-        # Convert df columns from ms to pandas timestamp object to work with existing
-        # code
+        forecast_df = forecast_df[
+            forecast_df["forecast_period"].isin(np.array(forecast_periods)* 1e9)
+        ]
+        # Convert df columns from ns to pandas timestamp object.
         for column in ["time", "forecast_reference_time", "blend_time"]:
             forecast_df[column] = pd.to_datetime(
                 forecast_df[column], unit="ns", utc=True
             )
-        forecast_df["forecast_period"] = pd.to_timedelta(
-            forecast_df["forecast_period"], unit="ns"
-        )
-        forecast_df["period"] = pd.to_timedelta(forecast_df["period"], unit="ns")
+        for column in ["forecast_period", "period"]:
+            forecast_df[column] = pd.to_timedelta(forecast_df[column], unit="ns")
+
+        forecast_df = forecast_df.rename(columns={"forecast": self.target_cf_name})
 
         # Load truths from parquet file filtering by diagnostic.
         filters = [[("diagnostic", "==", self.target_diagnostic_name)]]
@@ -232,7 +233,13 @@ class LoadAndTrainQRF(PostProcessingPlugin):
         Returns:
             List of intersecting times as pandas Timestamp objects.
         """
-        return list(set(forecast_df["time"]).intersection(set(truth_df["time"])))
+        # Calling unique() on the time column is quicker than relying upon set() to 
+        # find the unique times.
+        return list(
+            set(forecast_df["time"].unique()).intersection(
+                set(truth_df["time"].unique())
+            )
+        )
 
     def _add_features_to_df(
         self, forecast_df: pd.DataFrame, cube_inputs: iris.cube.CubeList
@@ -278,7 +285,9 @@ class LoadAndTrainQRF(PostProcessingPlugin):
             subset=["latitude", "longitude", "altitude", "ob_value"], inplace=True
         )
 
-        wmo_ids = set(forecast_df["wmo_id"]).intersection(set(truth_df["wmo_id"]))
+        wmo_ids = set(forecast_df["wmo_id"]).intersection(
+            set(truth_df["wmo_id"])
+        )
 
         forecast_df = forecast_df[forecast_df["wmo_id"].isin(wmo_ids)]
         truth_df = truth_df[truth_df["wmo_id"].isin(wmo_ids)]
@@ -304,55 +313,6 @@ class LoadAndTrainQRF(PostProcessingPlugin):
                 - The path to a Parquet file containing the forecasts to be used
                 for calibration.
                 - Optionally, paths to NetCDF files containing additional predictors.
-            feature_config (dict):
-                Feature configuration defining the features to be used for quantile
-                regression. The configuration is a dictionary of strings, where the
-                keys are the names of the input cube(s) supplied, and the values are
-                a list. This list can contain both computed features, such as the mean
-                or standard deviation (std), or static features, such as the altitude.
-                The computed features will be computed using the cube defined in the
-                dictionary key. If the key is the feature itself e.g. a distance to
-                water cube, then the value should state "static". This will ensure
-                the cube's data is used as the feature. The config will have the
-                structure:
-                    "DYNAMIC_VARIABLE_CF_NAME": ["FEATURE1", "FEATURE2"] e.g:
-                    {
-                    "air_temperature": ["mean", "std", "altitude"],
-                    "visibility_at_screen_level": ["mean", "std"]
-                    "distance_to_water": ["static"],
-                    }
-            target_diagnostic_name (str):
-                A string containing the diagnostic name of the forecast to be
-                calibrated. This will be used to filter the target forecast and truth
-                dataframes.
-            forecast_period (int):
-                Range of forecast periods to be calibrated in hours in the form:
-                "start:end:interval" e.g. "6:18:6" or a single forecast period e.g. "6".
-                The end value is exclusive, so "6:18:6" will calibrate the 6 and 12
-                hours.
-            cycletime (str):
-                Cycletime of the forecast to be calibrated in a format similar to
-                20170109T0000Z. This is used to filter the correct blendtimes from
-                the dataframe on load.
-            training_length (int):
-                The length of the training period in days.
-            experiment (str):
-                The name of the experiment (step) that calibration is applied to.
-            n_estimators (int):
-                Number of trees in the forest.
-            max_depth (int):
-                Maximum depth of the tree.
-            random_state (int):
-                Random seed for reproducibility.
-            transformation (str):
-                Transformation to be applied to the data before fitting.
-                Supported transformations are "log", "log10", "sqrt", and "cbrt".
-            pre_transform_addition (float):
-                Value to be added before transformation. This is useful for ensuring
-                that the data is positive before applying a transformation such as log.
-            compression (int):
-                Compression level for saving the model. Please see the joblib
-                documentation for more information on compression levels.
             model_output (str):
                 Full path including model file name that will store the pickled model.
 
@@ -380,8 +340,6 @@ class LoadAndTrainQRF(PostProcessingPlugin):
         forecast_df, truth_df = self._read_parquet_files(
             forecast_table_path, truth_table_path, forecast_periods
         )
-        forecast_df = forecast_df[forecast_df["experiment"] == self.experiment]
-        forecast_df = forecast_df.rename(columns={"forecast": self.target_cf_name})
         intersecting_times = self._check_matching_times(forecast_df, truth_df)
         if len(intersecting_times) == 0:
             return None
@@ -394,6 +352,7 @@ class LoadAndTrainQRF(PostProcessingPlugin):
             feature_config=self.feature_config,
             n_estimators=self.n_estimators,
             max_depth=self.max_depth,
+            max_samples=self.max_samples,
             random_state=self.random_state,
             transformation=self.transformation,
             pre_transform_addition=self.pre_transform_addition,

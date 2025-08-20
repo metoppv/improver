@@ -20,6 +20,7 @@ def process(
     experiment: str = None,
     n_estimators: int = 100,
     max_depth: int = None,
+    max_samples: float = None,
     random_state: int = None,
     transformation: str = None,
     pre_transform_addition: float = 0,
@@ -80,6 +81,11 @@ def process(
             Number of trees in the forest.
         max_depth (int):
             Maximum depth of the tree.
+        max_samples (float):
+            If an int, then it is the number of samples to draw to train
+            each tree. If a float, then it is the fraction of samples to draw
+            to train each tree. If None, then each tree contains the same
+            total number of samples as originally provided.
         random_state (int):
             Random seed for reproducibility.
         transformation (str):
@@ -109,6 +115,7 @@ def process(
         training_length=training_length,
         n_estimators=n_estimators,
         max_depth=max_depth,
+        max_samples=max_samples,
         random_state=random_state,
         transformation=transformation,
         pre_transform_addition=pre_transform_addition,

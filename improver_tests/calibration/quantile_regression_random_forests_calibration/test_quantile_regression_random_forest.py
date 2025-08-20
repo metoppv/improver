@@ -7,18 +7,22 @@
 from datetime import datetime as dt
 
 import iris
+import itertools
 import joblib
 import numpy as np
 import pandas as pd
 import pytest
 from iris.cube import Cube
 from iris.pandas import as_data_frame
+from pandas.testing import assert_frame_equal
 
 from improver.calibration.quantile_regression_random_forest import (
     ApplyQuantileRegressionRandomForests,
     TrainQuantileRegressionRandomForests,
+    _check_valid_transformation,
     get_required_column_names,
     prep_feature,
+    sanitise_forecast_dataframe,
 )
 from improver.metadata.constants.time_types import DT_FORMAT
 from improver.synthetic_data.set_up_test_cubes import set_up_spot_variable_cube
@@ -405,7 +409,8 @@ def test_prep_feature_more_times(feature, expected, expected_dtype):
         {"wind_speed_at_10m": ["latitude", "longitude", "height"]},
     ],
 )
-def test_get_required_column_names(feature_config):
+def test_sanitise_forecast_dataframe(feature_config):
+    """Test sanitise_forecast_dataframe function."""
     data_dict = {
         "wmo_id": np.tile(WMO_ID, 3),
         "latitude": np.tile(LATITUDE, 3),
@@ -419,23 +424,82 @@ def test_get_required_column_names(feature_config):
     }
     df = pd.DataFrame(data_dict)
 
-    expected = []
-    for key, values in feature_config.items():
-        for value in values:
-            if "mean" in value or "std" in value:
-                expected.append(f"wind_speed_at_10m_{value}")
-            elif value == "static":
-                expected.append(key)
-            else:
-                expected.append(value)
+    expected = df.copy()
+    if (
+        "mean" in feature_config["wind_speed_at_10m"]
+        or "std" in feature_config["wind_speed_at_10m"]
+    ):
+        expected.drop(
+            columns=[
+                "wind_speed_at_10m",
+            ],
+            inplace=True,
+        )
+    expected = expected[expected["realization"] == 1]
+    expected = expected.drop(columns=["realization"])
 
-    if "height" in feature_config["wind_speed_at_10m"]:
+    result = sanitise_forecast_dataframe(df, feature_config)
+    assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "feature_config",
+    [
+        {"wind_speed_at_10m": ["mean", "std", "latitude", "longitude"]},
+        {"wind_speed_at_10m": ["latitude", "longitude"]},
+        {
+            "wind_speed_at_10m": ["latitude", "longitude"],
+            "distance_to_water": ["static"],
+        },
+        {"wind_speed_at_10m": ["latitude", "longitude", "height"]},
+    ],
+)
+def test_get_required_column_names(feature_config):
+    """Test the get_required_column_names function."""
+    data_dict = {
+        "wmo_id": np.tile(WMO_ID, 3),
+        "latitude": np.tile(LATITUDE, 3),
+        "longitude": np.tile(LONGITUDE, 3),
+        "altitude": np.tile(ALTITUDE, 3),
+        "wind_speed_at_10m_mean": np.repeat(5, 6),
+        "wind_speed_at_10m_std": np.repeat(1, 6),
+        "wind_speed_at_10m": np.tile([4, 6], 3),
+        "realization": np.tile([1, 2], 3),
+        "distance_to_water": np.tile([2.0, 3.0], 3),
+    }
+    df = pd.DataFrame(data_dict)
+
+    # expected = feature_config["wind_speed_at_10m"].copy()
+    expected = list(itertools.chain.from_iterable(feature_config.values()))
+    if "mean" in expected:
+        expected = ["wind_speed_at_10m_mean" if e == "mean" else e for e in expected]
+    if "std" in expected:
+        expected = ["wind_speed_at_10m_std" if e == "std" else e for e in expected]
+    if "static" in expected:
+        expected = ["distance_to_water" if e == "static" else e for e in expected]
+
+    if "height" in expected:
         with pytest.raises(ValueError, match="Feature 'height' is not supported."):
             get_required_column_names(df, feature_config)
     else:
         result = get_required_column_names(df, feature_config)
-        assert len(result) == len(expected)
         assert result == expected
+
+
+@pytest.mark.parametrize(
+    "transformation", ["log", "log10", "sqrt", "cbrt", None, "yeojohnson"]
+)
+def test_check_valid_transformation(transformation):
+    """Test the _check_valid_transformation function."""
+
+    if transformation == "yeojohnson":
+        with pytest.raises(
+            ValueError, match="Currently the only supported transformations"
+        ):
+            _check_valid_transformation(transformation)
+    else:
+        result = _check_valid_transformation(transformation)
+        assert result is None
 
 
 @pytest.mark.parametrize(
@@ -568,7 +632,7 @@ def test_train_qrf_multiple_lead_times(
     "feature_config,data,include_static,expected",
     [
         ({"wind_speed_at_10m": ["mean"]}, [5], False, [5]),  # One feature
-        ({"wind_speed_at_10m": ["latitude"]}, [61], False, [4.9]),  # noqa Without the target
+        ({"wind_speed_at_10m": ["latitude"]}, [61], False, [7.75]),  # noqa Without the target
         ({"wind_speed_at_10m": ["mean"]}, [5], True, [4]),  # With static data
         (
             {"wind_speed_at_10m": ["mean"], "air_temperature": ["mean"]},
@@ -650,31 +714,31 @@ def test_alternative_feature_configs(
 @pytest.mark.parametrize(
     "quantiles,transformation,pre_transform_addition,include_static,expected",
     [
-        # ([0.5], None, 0, False, [5, 4.9]),  # One quantile
-        ([0.1, 0.5, 0.9], None, 0, False, [[7.25, 8.25, 9.25], [6.35, 7.75, 9.15]]),  # noqa Multiple quantiles
-        # ([0.1, 0.5, 0.9], "log", 10, False, [[4.37, 4.37], [5.07, 5.07], [5.81, 5.81]]),  # noqa Log transformation
-        # (
-        #     [0.1, 0.5, 0.9],
-        #     "log10",
-        #     10,
-        #     False,
-        #     [[4.37, 4.37], [5.07, 5.07], [5.81, 5.81]],
-        # ),  # Log10 transformation
-        # (
-        #     [0.1, 0.5, 0.9],
-        #     "sqrt",
-        #     10,
-        #     False,
-        #     [[4.38, 4.38], [5.09, 5.09], [5.82, 5.82]],
-        # ),  # Square root transformation
-        # (
-        #     [0.1, 0.5, 0.9],
-        #     "cbrt",
-        #     10,
-        #     False,
-        #     [[4.37, 4.37], [5.08, 5.08], [5.81, 5.81]],
-        # ),  # Cube root transformation
-        # ([0.1, 0.5, 0.9], None, 0, True, [[9.14, 9.14], [9.3, 9.3], [9.46, 9.46]]),  # noqa Include static data
+        ([0.5], None, 0, False, [5, 4.9]),  # One quantile
+        ([0.1, 0.5, 0.9], None, 0, False, [[7.25, 8.25, 9.25], [6.35, 7.75, 9.14]]),  # noqa Multiple quantiles
+        ([0.1, 0.5, 0.9], "log", 10, False, [[4.48, 5.67, 6.96], [4.48, 5.67, 6.96]]),  # noqa Log transformation
+        (
+            [0.1, 0.5, 0.9],
+            "log10",
+            10,
+            False,
+            [[4.48, 5.67, 6.96], [4.48, 5.67, 6.96]],
+        ),  # Log10 transformation
+        (
+            [0.1, 0.5, 0.9],
+            "sqrt",
+            10,
+            False,
+            [[4.5, 5.71, 6.98], [4.5, 5.71, 6.98]],
+        ),  # Square root transformation
+        (
+            [0.1, 0.5, 0.9],
+            "cbrt",
+            10,
+            False,
+            [[4.49, 5.7, 6.97], [4.49, 5.7, 6.97]],
+        ),  # Cube root transformation
+        ([0.1, 0.5, 0.9], None, 0, True, [[7.25, 8.25, 9.25], [6.35, 7.75, 9.15]]),  # noqa Include static data
     ],
 )
 def test_apply_qrf(
@@ -730,7 +794,10 @@ def test_apply_qrf(
     result = plugin.process(qrf_model, forecast_df)
 
     assert isinstance(result, np.ndarray)
-    assert result.shape == (2, 3)
+    if len(quantiles) == 3:
+        assert result.shape == (2, 3)
+    else:
+        assert result.shape == (2,)
     assert result.dtype == np.float32
     # expected_data = np.full((len(quantiles), 2), expected, dtype=np.float32)
     np.testing.assert_almost_equal(result, expected, decimal=2)

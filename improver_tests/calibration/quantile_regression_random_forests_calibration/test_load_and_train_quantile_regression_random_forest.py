@@ -60,9 +60,6 @@ def _create_multi_site_forecast_parquet_file(tmp_path, representation="percentil
     wind_speed_df = pd.DataFrame(wind_speed_dict)
     joined_df = pd.concat([data_df, wind_speed_df], ignore_index=True)
 
-    joined_df["forecast_period"] = joined_df["forecast_period"].astype(
-        "timedelta64[ms]"
-    )
     output_dir = tmp_path / "forecast_parquet_files"
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path = str(output_dir / "forecast.parquet")
@@ -101,9 +98,6 @@ def _create_multi_percentile_forecast_parquet_file(tmp_path, representation=None
     data_df = pd.DataFrame(data_dict)
     wind_speed_df = pd.DataFrame(wind_speed_dict)
     joined_df = pd.concat([data_df, wind_speed_df], ignore_index=True)
-    joined_df["forecast_period"] = joined_df["forecast_period"].astype(
-        "timedelta64[ms]"
-    )
 
     output_dir = tmp_path / "forecast_parquet_files"
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -152,9 +146,6 @@ def _create_multi_forecast_period_forecast_parquet_file(tmp_path, representation
     data_df = pd.DataFrame(data_dict)
     wind_speed_df = pd.DataFrame(wind_speed_dict)
     joined_df = pd.concat([data_df, wind_speed_df], ignore_index=True)
-    joined_df["forecast_period"] = joined_df["forecast_period"].astype(
-        "timedelta64[ms]"
-    )
 
     output_dir = tmp_path / "forecast_parquet_files"
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -353,7 +344,7 @@ def _create_ancil_file(tmp_path, wmo_ids):
             False,
             False,
             "realization",  # Provide realization input
-            5.6,
+            5.62,
         ),
         (
             _create_multi_forecast_period_forecast_parquet_file,
@@ -362,7 +353,7 @@ def _create_ancil_file(tmp_path, wmo_ids):
             False,
             False,
             "percentile",
-            5.61,
+            5.64,
         ),
     ],
 )
