@@ -44,9 +44,9 @@ def generate_distance_to_ocean(
 
     # As we only care about identifying sites on land (i.e. 0m) we can use a small buffer
     # to speed up the calculation.
-    distance_to_land = DistanceTo(new_name="distance_to_land", buffer=10, clip=True)(
-        site_cube, land
-    )
+    distance_to_land = DistanceTo(
+        new_name="distance_to_land", buffer=10, clip_geometry_flag=True
+    )(site_cube, land)
 
     # Set the distance to ocean to 0 for sites that are in the ocean
     distance_to_ocean = distance_to_coastline.copy(data=distance_to_coastline.data)
