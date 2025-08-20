@@ -37,8 +37,10 @@ class DistanceTo(BasePlugin):
         new_name: Optional[str] = None,
         buffer: float = 30000,
         clip_geometry_flag: bool = False,
-    ):
-        """Initialise the DistanceTo plugin.
+    ) -> None:
+        """
+        Initialise the DistanceTo plugin.
+
         Args:
             new_name:
                 The name of the output cube.
@@ -140,6 +142,7 @@ class DistanceTo(BasePlugin):
     def distance_to(self, site_points: GeoSeries, geometry: GeoDataFrame) -> List[int]:
         """Calculate the distance from each site point to the nearest feature in the
         geometry.
+
         Args:
             site_points:
                 A GeoSeries containing the site points in a Lambert azimuthal equal-area
