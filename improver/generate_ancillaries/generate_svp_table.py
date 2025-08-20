@@ -88,7 +88,8 @@ class SaturatedVapourPressureTable(BasePlugin):
             10: 0.87682,
             11: 0.78614,
         }
-        triple_pt = TRIPLE_PT_WATER
+        # Make float64 for calculations below.
+        triple_pt = np.float64(TRIPLE_PT_WATER)
 
         # Values for which method is considered valid (see reference).
         # WetBulbTemperature.check_range(temperature.data, 173., 373.)

@@ -710,8 +710,8 @@ class Test_check_forecast_consistency(IrisTest):
         forecasts = iris.cube.CubeList([self.forecast1, forecast2]).merge_cube()
 
         msg = (
-            "Forecasts have been provided with differing hours for the "
-            "forecast reference time {1, 2}"
+            "Forecasts have been provided with differing hours for the forecast "
+            "reference time {1, 2}"
         )
 
         with self.assertRaisesRegex(ValueError, msg):

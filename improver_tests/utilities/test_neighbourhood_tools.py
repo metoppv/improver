@@ -85,7 +85,7 @@ def test_padding_neighbourhood_size_2(array_size_5):
         + [[i, 0, j, 0] for i in range(5) for j in [0, 1]]
         + [[i, 5, j, 1] for i in range(5) for j in [0, 1]]
     )
-    outer_part = padded[list(zip(*border_index))]
+    outer_part = padded[tuple(zip(*border_index))]
     np.testing.assert_array_equal(outer_part, np.zeros(40, dtype=np.int32))
 
 
@@ -98,7 +98,7 @@ def test_padding_non_zero(array_size_5):
         + [[i, 0, j, 0] for i in range(5) for j in [0, 1]]
         + [[i, 5, j, 1] for i in range(5) for j in [0, 1]]
     )
-    outer_part = padded[list(zip(*border_index))]
+    outer_part = padded[tuple(zip(*border_index))]
     np.testing.assert_array_equal(outer_part, np.ones(40, dtype=np.int32))
 
 

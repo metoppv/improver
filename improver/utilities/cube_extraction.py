@@ -472,8 +472,8 @@ class ExtractLevel(BasePlugin):
         for c in range(first, last, step):
             c_slice = [slice(None)] * data.ndim
             c_slice[coordinate_axis] = slice(c, c + 1)
-            data[c_slice] = np.ma.where(
-                data.mask[c_slice], data[last_slice] + local_increment, data[c_slice]
+            data[*c_slice] = np.ma.where(
+                data.mask[*c_slice], data[*last_slice] + local_increment, data[*c_slice]
             )
             last_slice = c_slice
 

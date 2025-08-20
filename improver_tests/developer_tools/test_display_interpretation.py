@@ -61,7 +61,7 @@ def test_warnings_displayed(wind_gust_percentile_cube, interpreter):
         "It has undergone no significant post-processing\n"
         "It contains data from MOGREPS-UK\n"
         "WARNINGS:\n"
-        "dict_keys(['source', 'title', 'institution', 'mosg__model_configuration', "
+        "dict_keys(['title', 'source', 'institution', 'mosg__model_configuration', "
         "'wind_gust_diagnostic', 'enigma']) include unexpected attributes ['enigma']. "
         "Please check the standard to ensure this is valid.\n"
     )

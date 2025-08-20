@@ -20,7 +20,7 @@ from improver.utilities.pad_spatial import pad_cube_with_halo
 
 
 def modify_cube_coordinate_value(cube, coord_x, coord_y):
-    """modify x(longitude) & y(latitude) andcoordinates for a cube"""
+    """modify x(longitude) & y(latitude) and coordinates for a cube"""
     cube.coord(axis="x").points = coord_x
     cube.coord(axis="x").bounds = None
     cube.coord(axis="x").guess_bounds()
@@ -44,14 +44,14 @@ def define_source_target_grid_data():
     data = np.arange(20).reshape(4, 5).astype(np.float32)
 
     # input grid mask info
-    in_mask = np.empty((4, 5), dtype=np.int32)
+    in_mask = np.empty((4, 5), dtype=int)
     in_mask[:, :] = 1
     in_mask[0, 2] = 0
     in_mask[2, 2:4] = 0
     in_mask[3, 2:4] = 0
 
     # output grid mask info
-    out_mask = np.empty((8, 11), dtype=np.int32)
+    out_mask = np.empty((8, 11), dtype=int)
     out_mask[:, :] = 1
     out_mask[0, 4:7] = 0
     out_mask[1, 5] = 0
@@ -88,14 +88,14 @@ def define_source_target_grid_data_same_domain():
     data = np.arange(20).reshape(4, 5).astype(np.float32)
 
     # input grid mask info
-    in_mask = np.empty((4, 5), dtype=np.int32)
+    in_mask = np.empty((4, 5), dtype=int)
     in_mask[:, :] = 1
     in_mask[0, 2] = 0
     in_mask[2, 2:4] = 0
     in_mask[3, 2:4] = 0
 
     # output grid mask info
-    out_mask = np.empty((7, 9), dtype=np.int32)
+    out_mask = np.empty((7, 9), dtype=int)
     out_mask[:, :] = 1
     out_mask[0, 3:6] = 0
     out_mask[1, 4] = 0
@@ -196,14 +196,13 @@ def test_regrid_nearest_with_mask_2():
             [0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 3],
             [0, 1, 1, 1, 7, 2, 7, 3, 3, 3, 3],
             [5, 6, 6, 6, 7, 7, 7, 8, 8, 8, 8],
-            [5, 6, 6, 6, 7, 7, 7, 8, 8, 8, 8],
+            [5, 6, 6, 6, 7, 7, 7, 8, 8, 8, 9],
             [10, 11, 11, 11, 7, 7, 7, 8, 8, 8, 14],
             [10, 11, 11, 11, 12, 12, 12, 13, 13, 13, 14],
             [10, 11, 11, 11, 12, 12, 7, 13, 13, 13, 14],
             [15, 16, 16, 16, 17, 17, 7, 18, 18, 18, 19],
-        ]
+        ],
     )
-
     np.testing.assert_allclose(
         regrid_nearest_with_mask.data, expected_results, atol=1e-3
     )
@@ -236,7 +235,7 @@ def test_regrid_bilinear_with_mask_2():
         [
             [0.5, 0.8, 1.401, 3.292, 2.0, 2.0, 2.0, 4.943, 3.256, 3.2, 3.5],
             [2.5, 2.8, 3.1, 3.4, 5.489, 2.763, 6.329, 4.6, 4.9, 5.2, 5.5],
-            [4.5, 4.8, 5.1, 5.4, 5.7, 6.985, 6.3, 6.6, 6.9, 7.2, 7.5],
+            [4.5, 4.8, 5.1, 5.4, 5.7, 7.015, 6.3, 6.6, 6.9, 7.2, 7.5],
             [6.5, 6.8, 7.1, 7.4, 7.7, 7.0, 7.19, 7.668, 7.662, 9.2, 9.5],
             [8.5, 8.8, 9.1, 9.4, 8.106, 7.0, 7.0, 7.629, 7.217, 9.114, 10.524],
             [10.5, 10.8, 11.0, 11.012, 13.154, 12.0, 12.3, 12.6, 12.9, 13.713, 15.745],

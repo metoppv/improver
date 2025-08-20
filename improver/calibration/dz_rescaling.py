@@ -326,6 +326,7 @@ class ApplyDzRescaling(PostProcessingPlugin):
             mismatched_sites = set(
                 forecast.coord(self.site_id_coord).points
             ).symmetric_difference(scaled_dz.coord(self.site_id_coord).points)
+            mismatched_sites = set(map(str, mismatched_sites))
             n_forecast_sites = len(forecast.coord(self.site_id_coord).points)
             n_scaled_dz_sites = len(scaled_dz.coord(self.site_id_coord).points)
             msg = (
