@@ -56,7 +56,7 @@ class DistanceTo(BasePlugin):
         self.buffer = buffer
         self.clip_geometry_flag = clip_geometry_flag
 
-    def clip_coordinates(self, points: List[float]) -> List[float]:
+    def get_clip_values(self, points: List[float]) -> List[float]:
         """Get the coordinates to use when clipping the geometry. This is determined by
         finding the maximum and minimum coordinate points from a list. A buffer distance
         is then added/subtracted to the max/min.
@@ -127,6 +127,7 @@ class DistanceTo(BasePlugin):
 
         site_points_list = [Point(x, y) for x, y in zip(x_points, y_points)]
 
+        # EPSG codes that identify the coordinate systems
         projection_dict = {"latitude": 4326, "projection_y_coordinate": 3035}
 
         site_coord = site_cube.coord(axis="y").name()
@@ -158,8 +159,9 @@ class DistanceTo(BasePlugin):
 
     def create_output_cube(self, site_cube: Cube, data: List[int]) -> Cube:
         """Create an output cube that will have the same metadata as the input site
-        cube except the units are changed to meters and, if requested, the name of the
-        output cube will be changed
+        cube except the units are changed to metres and, if requested, the name of the
+        output cube will be changed.
+
         Args:
            site_cube:
                The input cube containing site locations.
@@ -185,7 +187,7 @@ class DistanceTo(BasePlugin):
         location of the sites and these are projected to the Lambert azimuthal
         equal-area projection. The geometry is also projected to the same projection.
 
-        If requested the geometry will be clipped to smallest square possible such that
+        If requested the geometry will be clipped to the smallest square possible such that
         all sites in site_cube are included. A buffer distance is then added to each
         edge of the square which defines the size the geometry will be clipped to. This
         is useful when the geometry size is large and it would be expensive to calculate
@@ -204,8 +206,7 @@ class DistanceTo(BasePlugin):
         Args:
             site_cube:
                 The input cube containing site locations. This cube must have x and y
-                axis which contain
-                the site coordinates in latitude and longitude.
+                axis which contain the site coordinates in latitude and longitude.
             geometry:
                 The GeoDataFrame containing the geometry to calculate distances to.
         Returns:
@@ -219,8 +220,8 @@ class DistanceTo(BasePlugin):
         if self.clip_geometry_flag:
             # Clip the geometry to the bounds of the site coordinates with a buffer if
             # requested
-            x_bounds = self.clip_coordinates(site_coords.x)
-            y_bounds = self.clip_coordinates(site_coords.y)
+            x_bounds = self.get_clip_values(site_coords.x)
+            y_bounds = self.get_clip_values(site_coords.y)
 
             clipped_geometry = self.clip_geometry(
                 geometry_projection, x_bounds, y_bounds

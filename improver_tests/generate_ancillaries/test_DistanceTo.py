@@ -15,7 +15,7 @@ from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 
 @pytest.fixture()
 def geometry_point_latlon():
-    """Create a single point geometry on a latitude, longitude grid.
+    """Create a geometry containing points on a latitude, longitude grid.
     The location of the points is identical to geometry_point_laea, but in a different
     CRS.
 
@@ -37,7 +37,7 @@ def geometry_point_latlon():
 
 @pytest.fixture()
 def geometry_point_laea():
-    """Create a single point geometry on a Lambert azimuthal equal-area grid.
+    """Create a geometry containing points on a Lambert azimuthal equal-area grid.
     The location of the points is identical to geometry_point_latlon, but in a
     different CRS.
 
