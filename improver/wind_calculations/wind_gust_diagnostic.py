@@ -74,13 +74,7 @@ class WindGustDiagnostic(PostProcessingPlugin):
         """
         result = cube
         result.rename("wind_speed_of_gust")
-        if self.percentile_gust == 50.0 and self.percentile_windspeed == 95.0:
-            diagnostic_txt = "Typical gusts"
-        elif self.percentile_gust == 95.0 and self.percentile_windspeed == 100.0:
-            diagnostic_txt = "Extreme gusts"
-        else:
-            diagnostic_txt = str(self)
-        result.attributes.update({"wind_gust_diagnostic": diagnostic_txt})
+        result.attributes.update({"wind_gust_diagnostic": str(self)})
 
         return result
 

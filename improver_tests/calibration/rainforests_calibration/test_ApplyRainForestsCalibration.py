@@ -4,76 +4,89 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the ApplyRainForestsCalibration class."""
 
+import re
 import sys
 
 import numpy as np
 import pytest
 
-from improver.calibration.rainforest_calibration import ApplyRainForestsCalibration
-
-try:
-    import treelite_runtime
-except ModuleNotFoundError:
-    TREELITE_ENABLED = False
-else:
-    TREELITE_ENABLED = True
-
-lightgbm = pytest.importorskip("lightgbm")
-treelite_available = pytest.mark.skipif(
-    not TREELITE_ENABLED, reason="Required dependency missing."
+from improver.calibration.rainforest_calibration import (
+    ApplyRainForestsCalibration,
+    ApplyRainForestsCalibrationLightGBM,
+    ApplyRainForestsCalibrationTreelite,
+    ModelFileNotFoundError,
 )
 
+from .utils import MockBooster, MockPredictor
 
-class MockBooster:
-    def __init__(self, model_file, **kwargs):
-        self.model_class = "lightgbm-Booster"
-        self.model_file = model_file
-
-    def reset_parameter(self, params):
-        self.threads = params.get("num_threads")
-        return self
+lightgbm = pytest.importorskip("lightgbm")
+tl2cgen = pytest.importorskip("tl2cgen")
+treelite = pytest.importorskip("treelite")
 
 
-class MockPredictor:
-    def __init__(self, libpath, nthread, **kwargs):
-        self.model_class = "treelite-Predictor"
-        self.threads = nthread
-        self.model_file = libpath
-
-
-@pytest.mark.parametrize("lightgbm_keys", (True, False))
-@pytest.mark.parametrize("treelite_model", (TREELITE_ENABLED, False))
-@pytest.mark.parametrize("treelite_file", (True, False))
+# Whether the treelite module is available
+@pytest.mark.parametrize(
+    "treelite_module_available",
+    (True, False),
+    ids=["treelite_enabled", "treelite_disabled"],
+)
+# Whether treelite keys are present in the model config
+@pytest.mark.parametrize(
+    "treelite_keys",
+    (True, False),
+    ids=["treelite_keys_present", "treelite_keys_absent"],
+)
+# Whether LightGBM keys are present in the model config
+@pytest.mark.parametrize(
+    "lightgbm_keys",
+    (True, False),
+    ids=["lightgbm_keys_present", "lightgbm_keys_absent"],
+)
 def test__new__(
-    lightgbm_keys, treelite_model, treelite_file, monkeypatch, model_config
+    lightgbm_keys, treelite_module_available, treelite_keys, monkeypatch, model_config
 ):
-    """Test treelite models are loaded if model_config correctly defines them. If all thresholds
-    contain treelite model AND the treelite module is available, treelite Predictor is returned,
-    otherwise return lightgbm Boosters. Checks outputs are ordered when inputs can be unordered.
-    If neither treelite nor lightgbm configs are complete, a ValueError is expected."""
-    if treelite_model:
-        monkeypatch.setattr(treelite_runtime, "Predictor", MockPredictor)
+    """Test models are loaded if model_config correctly defines them.
+
+    If all thresholds contain treelite model AND the treelite module is
+    available, tl2cgen Predictor is returned, otherwise return lightgbm
+    Boosters. If neither treelite nor lightgbm configs are complete, a
+    ModelFileNotFoundError is expected.
+
+    A summary of the expected results for each combination of input parameters
+    can be found below:
+
+    | Treelite modules | Treelite keys | LightGBM keys | Expected class/result               |
+    |------------------|---------------|---------------|-------------------------------------|
+    | Available        | Yes           | Yes           | ApplyRainForestsCalibrationTreelite |
+    | Unavailable      | Yes           | Yes           | ApplyRainForestsCalibrationLightGBM |
+    | Available        | No            | Yes           | ApplyRainForestsCalibrationLightGBM |
+    | Unavailable      | No            | Yes           | ApplyRainForestsCalibrationLightGBM |
+    | Available        | Yes           | No            | ApplyRainForestsCalibrationTreelite |
+    | Unavailable      | Yes           | No            | ModelFileNotFoundError              |
+    | Available        | No            | No            | ModelFileNotFoundError              |
+    | Unavailable      | No            | No            | ModelFileNotFoundError              |
+    """
+    if treelite_module_available:
+        monkeypatch.setattr(tl2cgen, "Predictor", MockPredictor)
     else:
-        monkeypatch.setitem(sys.modules, "treelite_runtime", None)
+        monkeypatch.setitem(sys.modules, "tl2cgen", None)
     monkeypatch.setattr(lightgbm, "Booster", MockBooster)
-    if not treelite_file:
-        # Model type should default to lightgbm if there are any treelite models
-        # missing across any thresholds
+    if not treelite_keys:
         model_config["24"]["0.0000"].pop("treelite_model", None)
     if not lightgbm_keys:
         model_config["24"]["0.0000"].pop("lightgbm_model", None)
 
-    if treelite_model and treelite_file:
-        expected_class = "ApplyRainForestsCalibrationTreelite"
+    if treelite_module_available and treelite_keys:
+        expected_class = ApplyRainForestsCalibrationTreelite
     elif lightgbm_keys:
-        expected_class = "ApplyRainForestsCalibrationLightGBM"
+        expected_class = ApplyRainForestsCalibrationLightGBM
     else:
-        with pytest.raises(ValueError, match="Path to lightgbm model missing"):
+        with pytest.raises(ModelFileNotFoundError):
             ApplyRainForestsCalibration(model_config)
         return
 
     result = ApplyRainForestsCalibration(model_config)
-    assert type(result).__name__ == expected_class
+    assert type(result) is expected_class
 
 
 @pytest.mark.parametrize("treelite_file", (True, False))
@@ -81,8 +94,10 @@ def test__get_feature_splits(
     treelite_file, model_config, plugin_and_dummy_models, lightgbm_model_files
 ):
     """Test that _get_feature_splits returns a dict in the expected format.
-    The lightgbm_model_files parameter is not used explicitly, but it is
-    required in order to make the files available."""
+
+    Note: The lightgbm_model_files parameter is not used explicitly, but it is
+    required in order to make the files available.
+    """
     if not treelite_file:
         # Model type should default to lightgbm if there are any treelite models
         # missing across any thresholds
@@ -103,12 +118,15 @@ def test__get_feature_splits(
     assert all([len(x) == num_features for x in splits.values()])
 
 
-def test_check_filenames(model_config):
-    """Test that check_filenames raises an error if an invalid
+@pytest.mark.parametrize(
+    "key_name", ("tensorflow_models", 123, -1, True, False, "treelite")
+)
+def test_check_filenames_with_invalid_key_name(model_config, key_name):
+    """Test that check_filenames() raises an error if an invalid
     key_name is specified."""
 
-    msg = "key_name must be 'lightgbm_model' or 'treelite_model'"
-    with pytest.raises(ValueError, match=msg):
+    msg = "key_name must be one of the following: ('lightgbm_model', 'treelite_model')"
+    with pytest.raises(ValueError, match=re.escape(msg)):
         ApplyRainForestsCalibration.check_filenames(
-            key_name="tensorflow_models", model_config_dict=model_config
+            key_name=key_name, model_config_dict=model_config
         )

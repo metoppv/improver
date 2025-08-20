@@ -55,7 +55,7 @@ class SetupExpectedCoefficients(IrisTest):
             [-0.6989, -0.4923, 0.3968, 0.7732, 0.0001, 1.0787], dtype=np.float32
         )
         self.expected_mean_pred_norm_alt = np.array(
-            [0.9980, 1.0, 0.0, 0.0, 0.6976], dtype=np.float32
+            [0.9495, 1.0001, 0.0, 0.0, 1.1253], dtype=np.float32
         )
 
         self.expected_mean_pred_each_grid_point = {
@@ -143,18 +143,18 @@ class SetupExpectedCoefficients(IrisTest):
             ),
         }
         self.expected_mean_pred_each_site = {
-            "emos_coefficient_alpha": np.array([0.993, 0.993, 1.0014, 0.993]),
-            "emos_coefficient_beta": np.array([1.0, 1.0, 1.0, 1.0]),
-            "emos_coefficient_gamma": np.array([0.0, 0.0, 0.0, 0.0]),
-            "emos_coefficient_delta": np.array([1.1899, 1.1899, 1.1897, 1.1899]),
+            "emos_coefficient_alpha": np.array([0.9387, 0.9387, 0.9469, 0.9387]),
+            "emos_coefficient_beta": np.array([1.0002, 1.0002, 1.0002, 1.0002]),
+            "emos_coefficient_gamma": np.array([0.0001, 0.0001, 0.0001, 0.0001]),
+            "emos_coefficient_delta": np.array([1.0793, 1.0793, 1.0788, 1.0792]),
         }
         self.expected_mean_pred_each_site_alt = {
-            "emos_coefficient_alpha": np.array([0.0092, 0.0023, 0.0011, 0.0006]),
+            "emos_coefficient_alpha": np.array([0.0100, 0.0025, 0.0011, 0.0006]),
             "emos_coefficient_beta": np.array(
-                [[1.0, 1.0, 1.0, 1.0], [0.0987, 0.0497, 0.0334, 0.0249]]
+                [[1.0, 1.0, 1.0, 0.9999], [0.0986, 0.0497, 0.0334, 0.0258]]
             ),
             "emos_coefficient_gamma": np.array([0.0, 0.0, 0.0, 0.0]),
-            "emos_coefficient_delta": np.array([0.9906, 0.5446, 0.5805, 0.6700]),
+            "emos_coefficient_delta": np.array([1.0248, 1.0819, 1.0868, 1.1720]),
         }
         self.expected_realizations_each_site_alt = {
             "emos_coefficient_alpha": np.array([0.0045, 0.0011, 0.0005, 0.0003]),
@@ -174,12 +174,12 @@ class SetupExpectedCoefficients(IrisTest):
             "emos_coefficient_delta": np.array([0.6324, 0.6335, 0.6354, 0.6331]),
         }
         self.expected_realizations_each_site = {
-            "emos_coefficient_alpha": np.array([0.8126, 0.8126, 0.8126, 0.8126]),
+            "emos_coefficient_alpha": np.array([0.7417, 0.7417, 0.7417, 0.7417]),
             "emos_coefficient_beta": np.array(
-                [[0.8166, 0.8166, 0.8166, 0.8166], [0.5778, 0.5778, 0.5778, 0.5778]]
+                [[0.6317, 0.6317, 0.6317, 0.6317], [0.7758, 0.7758, 0.7758, 0.7758]]
             ),
-            "emos_coefficient_gamma": np.array([0.0005, 0.0005, 0.0005, 0.0005]),
-            "emos_coefficient_delta": np.array([0.2673, 0.2673, 0.2673, 0.2673]),
+            "emos_coefficient_gamma": np.array([0.0004, 0.0004, 0.0004, 0.0004]),
+            "emos_coefficient_delta": np.array([0.5045, 0.5045, 0.5045, 0.5045]),
         }
 
 
@@ -1189,6 +1189,7 @@ class Test_process(
         expected_dim_coords = ["spot_index"]
         plugin = self.plugin(self.distribution, point_by_point=True)
         result = plugin.process(self.historic_forecast_spot_cube, self.truth_spot_cube)
+
         for cube in result:
             self.assertEMOSCoefficientsAlmostEqual(
                 cube.data, self.expected_mean_pred_each_site[cube.name()]

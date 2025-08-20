@@ -364,6 +364,7 @@ def check_forecast_consistency(forecasts: Cube) -> None:
     frt_hours = get_frt_hours(forecasts.coord("forecast_reference_time"))
 
     if len(frt_hours) != 1:
+        frt_hours = set(map(int, frt_hours))
         msg = (
             "Forecasts have been provided with differing hours for the "
             "forecast reference time {}"

@@ -18,6 +18,7 @@ def process(
     minimum_realizations=None,
     cell_method_coordinate=None,
     expand_bound=True,
+    use_latest_frt=False,
 ):
     r"""Combine input cubes.
 
@@ -48,6 +49,9 @@ def process(
             provided. This is only available for max, min and mean operations.
         expand_bound (bool):
             If True then coord bounds will be extended to represent all cubes being combined.
+        use_latest_frt (bool):
+            If True then the latest forecast_reference_time available across the input cubes
+            will be used for the output with a suitably updated forecast_period.
     Returns:
         result (iris.cube.Cube):
             Returns a cube with the combined data.
@@ -61,4 +65,5 @@ def process(
         new_name=new_name,
         cell_method_coordinate=cell_method_coordinate,
         expand_bound=expand_bound,
+        use_latest_frt=use_latest_frt,
     )(*cubes)

@@ -198,7 +198,7 @@ class Test_load_cube(IrisTest):
     def test_prefix_cube_removed(self):
         """Test metadata prefix cube is discarded during load"""
         msg = "No cubes found"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             load_cube(self.filepath, "prefixes")
 
     def test_no_lazy_load(self):
@@ -209,6 +209,10 @@ class Test_load_cube(IrisTest):
 
     def test_lazy_load(self):
         """Test that the loading works correctly with lazy loading."""
+        # Override default value within iris to ensure that the file is loaded lazily.
+        from iris.fileformats.netcdf import loader
+
+        loader._LAZYVAR_MIN_BYTES = 0
         result = load_cube(self.filepath)
         self.assertTrue(result.has_lazy_data())
 
@@ -405,8 +409,11 @@ class Test_load_cubelist(IrisTest):
             )
 
     def test_lazy_load(self):
-        """Test that the cubelist returned upon loading does contain
-        lazy data."""
+        """Test that the cubelist returned upon loading does contain lazy data."""
+        # Override default value within iris to ensure that the file is loaded lazily.
+        from iris.fileformats.netcdf import loader
+
+        loader._LAZYVAR_MIN_BYTES = 0
         result = load_cubelist([self.filepath, self.filepath])
         self.assertArrayEqual([True, True], [_.has_lazy_data() for _ in result])
 

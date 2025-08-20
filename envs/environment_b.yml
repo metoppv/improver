@@ -18,20 +18,19 @@ dependencies:
   - scipy=1.15
   - sphinx
   # Optional
-  - lightgbm
+  - lightgbm>=4.0.0
   - numba
   - python-stratify
-  - treelite
+  - treelite>=4.0.0
+  - tl2cgen>=1.0.0
   # Development
   - astroid
-  - bandit
   - filelock
   - mock
   - mypy
   - pytest
   - pytest-cov
   - pytest-xdist
-  - safety
   - sphinx-autodoc-typehints
   - sphinx_rtd_theme
   - threadpoolctl

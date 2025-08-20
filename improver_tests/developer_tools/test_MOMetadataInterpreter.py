@@ -267,7 +267,7 @@ def test_warning_wind_gust_attribute_wrong_diagnostic(
     wind_gust_percentile_cube.rename("wind_speed")
     interpreter.run(wind_gust_percentile_cube)
     assert interpreter.warnings == [
-        "dict_keys(['source', 'title', 'institution', 'mosg__model_configuration', "
+        "dict_keys(['title', 'source', 'institution', 'mosg__model_configuration', "
         "'wind_gust_diagnostic']) include unexpected attributes ['wind_gust_diagnostic']. "
         "Please check the standard to ensure this is valid."
     ]
@@ -284,7 +284,7 @@ def test_warning_unexpected_cell_method(wind_gust_percentile_cube, interpreter):
     )
     interpreter.run(wind_gust_percentile_cube)
     assert interpreter.warnings == [
-        "Unexpected cell method variance: time. Please check the standard to "
+        "Unexpected cell method time: variance. Please check the standard to "
         "ensure this is valid"
     ]
 
