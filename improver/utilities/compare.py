@@ -415,7 +415,7 @@ def compare_pickled_forest(
         assert output.random_state == kgo.random_state
         for output_estimator, kgo_estimator in zip(output.estimators_, kgo.estimators_):
             assert (output_estimator.tree_.value == kgo_estimator.tree_.value).all()
-    except AssertionError:
+    except (AssertionError, ValueError):
         difference_found = True
     # call the reporter function outside the except block to avoid nested
     # exceptions if the reporter function is raising an exception
