@@ -18,6 +18,7 @@ dependencies:
   - sphinx
   # Optional
   - python-stratify
+  - geopandas
   - statsmodels
   - lightgbm
   - numba
