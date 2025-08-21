@@ -135,8 +135,10 @@ class DistanceTo(BasePlugin):
         site_coord = site_cube.coord(axis="y").name()
 
         site_points = GeoSeries(site_points_list, crs=projection_dict[site_coord])
-        geometry_reprojection = geometry.to_crs(3035)
-        site_points = site_points.to_crs(3035)
+        geometry_reprojection = geometry.to_crs(
+            projection_dict["projection_y_coordinate"]
+        )
+        site_points = site_points.to_crs(projection_dict["projection_y_coordinate"])
         return site_points, geometry_reprojection
 
     def distance_to(self, site_points: GeoSeries, geometry: GeoDataFrame) -> List[int]:
