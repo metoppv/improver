@@ -16,6 +16,7 @@ dependencies:
   # Optional
   - fastparquet
   - statsmodels
+  - geopandas
   - numba
   - pygam
   - pysteps
