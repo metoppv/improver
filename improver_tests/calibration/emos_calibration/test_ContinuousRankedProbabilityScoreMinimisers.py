@@ -16,7 +16,7 @@ import pytest
 from iris.cube import CubeList
 from iris.tests import IrisTest
 
-from improver.calibration.ensemble_calibration import (
+from improver.calibration.emos_calibration import (
     ContinuousRankedProbabilityScoreMinimisers as Plugin,
 )
 from improver.calibration.utilities import convert_cube_data_to_2d

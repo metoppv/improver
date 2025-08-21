@@ -9,13 +9,15 @@ plugins.
 """
 
 import warnings
+from pathlib import Path
 from typing import List, Optional, Union
 
 import cf_units as unit
 import iris
 import numpy as np
+import pandas as pd
 from cf_units import Unit
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 from numpy import ndarray
 
 from improver.ensemble_copula_coupling.constants import BOUNDS_FOR_ECDF
@@ -350,3 +352,182 @@ def interpolate_multiple_rows_same_y(*args):
             "Module numba unavailable. ConvertProbabilitiesToPercentiles will be slower."
         )
         return slow_interp_same_y(*args)
+
+
+def prepare_cube_no_calibration(
+    forecast: Cube,
+    emos_coefficients: Cube,
+    ignore_ecc_bounds_exceedance: bool = False,
+    validity_times: List[str] = None,
+    percentiles: List[float] = None,
+    prob_template: Cube = None,
+) -> Cube:
+    """
+    Function to add appropriate metadata to cubes that cannot be calibrated. If the forecast
+    can be calibrated then nothing is returned.
+    Args:
+        forecast (iris.cube.Cube):
+            The forecast to be calibrated. The input format could be either
+            realizations, probabilities or percentiles.
+        validity_times (List[str]):
+            Times at which the forecast must be valid. This must be provided
+            as a four digit string (HHMM) where the first two digits represent the hour
+            and the last two digits represent the minutes e.g. 0300 or 0315. If the
+            forecast provided is at a different validity time then no coefficients
+            will be applied.
+        emos_coefficients (iris.cube.Cube):
+            The EMOS coefficients to be applied to the forecast.
+        percentiles (List[float]):
+            The set of percentiles used to create the calibrated forecast.
+        ignore_ecc_bounds_exceedance (bool):
+            If True, where the percentiles exceed the ECC bounds range,
+            raises a warning rather than an exception. This occurs when the
+            current forecasts is in the form of probabilities and is
+            converted to percentiles, as part of converting the input
+            probabilities into realizations.
+        prob_template (iris.cube.Cube):
+            Optionally, a cube containing a probability forecast that will be
+            used as a template when generating probability output when the input
+            format of the forecast cube is not probabilities i.e. realizations
+            or percentiles. If no coefficients are provided and a probability
+            template is provided, the probability template forecast will be
+            returned as the uncalibrated probability forecast.
+    Returns:
+        iris.cube.Cube:
+            The prepared forecast cube.
+    """
+    from improver.calibration import add_warning_comment, validity_time_check
+    from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
+        ResamplePercentiles,
+    )
+
+    if validity_times is not None and not validity_time_check(forecast, validity_times):
+        if percentiles:
+            # Ensure that a consistent set of percentiles are returned,
+            # regardless of whether SAMOS is successfully applied.
+            percentiles = [np.float32(p) for p in percentiles]
+            forecast = ResamplePercentiles(
+                ecc_bounds_warning=ignore_ecc_bounds_exceedance
+            )(forecast, percentiles=percentiles)
+        elif prob_template:
+            forecast = prob_template
+        forecast = add_warning_comment(forecast)
+        return forecast
+
+    if emos_coefficients is None:
+        if prob_template:
+            msg = (
+                "There are no coefficients provided for calibration. As a "
+                "probability template has been provided with the aim of "
+                "creating a calibrated probability forecast, the probability "
+                "template will be returned as the uncalibrated probability "
+                "forecast."
+            )
+            warnings.warn(msg)
+            prob_template = add_warning_comment(prob_template)
+            return prob_template
+
+        if percentiles:
+            # Ensure that a consistent set of percentiles are returned,
+            # regardless of whether SAMOS is successfully applied.
+            percentiles = [np.float32(p) for p in percentiles]
+            forecast = ResamplePercentiles(
+                ecc_bounds_warning=ignore_ecc_bounds_exceedance
+            )(forecast, percentiles=percentiles)
+
+        msg = (
+            "There are no coefficients provided for calibration. The "
+            "uncalibrated forecast will be returned."
+        )
+        warnings.warn(msg)
+
+        forecast = add_warning_comment(forecast)
+        return forecast
+
+
+def convert_parquet_to_cube(
+    forecast: Path,
+    truth: Path,
+    forecast_period: int,
+    cycletime: str,
+    training_length: int,
+    diagnostic: str,
+    percentiles: List[float],
+    experiment: str,
+) -> iris.cube.CubeList:
+    """Function to convert a parquet file containing forecast and truth data
+    into a CubeList for use in calibration.
+
+    Args:
+        forecast (pathlib.Path):
+            The path to a Parquet file containing the historical forecasts
+            to be used for calibration.The expected columns within the
+            Parquet file are: forecast, blend_time, forecast_period,
+            forecast_reference_time, time, wmo_id, percentile, diagnostic,
+            latitude, longitude, period, height, cf_name, units.
+        truth (pathlib.Path):
+            The path to a Parquet file containing the truths to be used
+            for calibration. The expected columns within the
+            Parquet file are: ob_value, time, wmo_id, diagnostic, latitude,
+            longitude and altitude.
+        forecast_period (int):
+            Forecast period to be calibrated in seconds.
+        cycletime (str):
+            Cycletime of a format similar to 20170109T0000Z.
+        training_length (int):
+            Number of days within the training period.
+        diagnostic (str):
+            The name of the diagnostic to be calibrated within the forecast
+            and truth tables. This name is used to filter the Parquet file
+            when reading from disk.
+        percentiles (List[float]):
+            The set of percentiles to be used for estimating coefficients.
+            These should be a set of equally spaced quantiles.
+        experiment (str):
+            A value within the experiment column to select from the forecast
+            table.
+
+    Returns:
+        A CubeList containing the forecast and truth cubes, with the
+        forecast cube containing the percentiles as an auxiliary coordinate.
+    """
+    from improver.calibration.dataframe_utilities import (
+        forecast_and_truth_dataframes_to_cubes,
+    )
+
+    # Load forecasts from parquet file filtering by diagnostic and blend_time.
+    forecast_period_td = pd.Timedelta(int(forecast_period), unit="seconds")
+
+    cycletimes = pd.date_range(
+        end=pd.Timestamp(cycletime)
+        - pd.Timedelta(1, unit="days")
+        - forecast_period_td.floor("D"),
+        periods=int(training_length),
+        freq="D",
+    )
+    filters = [[("diagnostic", "==", diagnostic), ("blend_time", "in", cycletimes)]]
+    forecast_df = pd.read_parquet(forecast, filters=filters)
+
+    # Load truths from parquet file filtering by diagnostic.
+    filters = [[("diagnostic", "==", diagnostic)]]
+    truth_df = pd.read_parquet(truth, filters=filters)
+    if truth_df.empty:
+        msg = (
+            f"The requested filepath {truth} does not contain the "
+            f"requested contents: {filters}"
+        )
+        raise IOError(msg)
+
+    forecast_cube, truth_cube = forecast_and_truth_dataframes_to_cubes(
+        forecast_df,
+        truth_df,
+        cycletime,
+        forecast_period,
+        training_length,
+        percentiles=percentiles,
+        experiment=experiment,
+    )
+    if not forecast_cube or not truth_cube:
+        return [None, None]
+    else:
+        return CubeList([forecast_cube, truth_cube])

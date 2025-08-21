@@ -20,7 +20,7 @@ from iris.coords import AuxCoord, DimCoord
 from iris.cube import CubeList
 from iris.tests import IrisTest
 
-from improver.calibration.ensemble_calibration import (
+from improver.calibration.emos_calibration import (
     EstimateCoefficientsForEnsembleCalibration as Plugin,
 )
 from improver.metadata.utilities import generate_mandatory_attributes

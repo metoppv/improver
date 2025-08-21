@@ -187,6 +187,14 @@ def inputjson(to_convert):
 
 
 @value_converter
+def inputpickle(to_convert):
+    """load pickled object from file or returns passed object."""
+    from improver.utilities.cli_utilities import load_pickle_or_none
+
+    return maybe_coerce_with(load_pickle_or_none, to_convert)
+
+
+@value_converter
 def comma_separated_list(to_convert):
     """Converts comma separated string to list or returns passed object.
 
@@ -346,15 +354,23 @@ def with_output(
     Returns:
         Result of calling `wrapped` or None if `output` is given.
     """
+    import pickle
+
+    from iris.cube import Cube, CubeList
+
     from improver.utilities.save import save_netcdf
 
     result = wrapped(*args, **kwargs)
 
-    if output and result:
+    if output and (type(result) is Cube or type(result) is CubeList):
         save_netcdf(result, output, compression_level, least_significant_digit)
         if pass_through_output:
             return ObjectAsStr(result, output)
         return
+    elif output:
+        # If output is set and result is not a Cube, save it as a pickle file
+        with open(output, "wb") as f:
+            pickle.dump(result, f)
     return result
 
 

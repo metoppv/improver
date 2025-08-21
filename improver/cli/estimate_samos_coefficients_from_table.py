@@ -3,9 +3,8 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""CLI to estimate coefficients for Ensemble Model Output
-Statistics (EMOS), otherwise known as Non-homogeneous Gaussian
-Regression (NGR)."""
+"""CLI to estimate the Ensemble Model Output Statistics (EMOS) coefficients for
+Standardized Anomaly Model Output Statistics (SAMOS)."""
 
 from improver import cli
 
@@ -15,14 +14,9 @@ from improver import cli
 def process(
     forecast: cli.inputpath,
     truth: cli.inputpath,
-    additional_predictors: cli.inputcubelist = None,
-    *,
-    diagnostic,
-    cycletime,
-    forecast_period,
-    training_length,
-    distribution,
-    point_by_point=False,
+    gams: cli.inputpickle,
+    *samos_additional_predictors: cli.inputcube,
+    gam_features: cli.comma_separated_list,
     use_default_initial_guess=False,
     units=None,
     predictor="mean",
@@ -30,8 +24,12 @@ def process(
     max_iterations: int = 1000,
     percentiles: cli.comma_separated_list = None,
     experiment: str = None,
+    forecast_period: int,
+    training_length: int,
+    diagnostic: str,
+    cycletime: str,
 ):
-    """Estimate coefficients for Ensemble Model Output Statistics.
+    """Estimate EMOS coefficients for use with SAMOS.
 
     Loads in arguments for estimating coefficients for Ensemble Model
     Output Statistics (EMOS), otherwise known as Non-homogeneous Gaussian
@@ -51,31 +49,21 @@ def process(
             for calibration. The expected columns within the
             Parquet file are: ob_value, time, wmo_id, diagnostic, latitude,
             longitude and altitude.
-        additional_predictors (iris.cube.Cube):
-            A cube for a static additional predictor to be used, in addition
-            to the forecast, when estimating the EMOS coefficients.
-        diagnostic (str):
-            The name of the diagnostic to be calibrated within the forecast
-            and truth tables. This name is used to filter the Parquet file
-            when reading from disk.
-        cycletime (str):
-            Cycletime of a format similar to 20170109T0000Z.
-        forecast_period (int):
-            Forecast period to be calibrated in seconds.
-        training_length (int):
-            Number of days within the training period.
-        distribution (str):
-            The distribution that will be used for minimising the
-            Continuous Ranked Probability Score when estimating the EMOS
-            coefficients. This will be dependent upon the input phenomenon.
-        point_by_point (bool):
-            If True, coefficients are calculated independently for each point
-            within the input cube by creating an initial guess and minimising
-            each grid point independently. If False, a single set of
-            coefficients is calculated using all points.
-            Warning: This option is memory intensive and is unsuitable for
-            gridded input. Using a default initial guess may reduce the memory
-            overhead option.
+        samos_additional_predictors (iris.cube.CubeList):
+            A list of cubes for additional predictors to be used when
+            estimating the SAMOS coefficients. The name of all cubes in this
+            list must be in the gam_features list.
+        gams (list of GAM models):
+            A list containing two lists of two fitted GAMs. The first list
+            contains two fitted GAMs, one for predicting the climatological mean
+            of the historical forecasts and the second predicting the
+            climatological standard deviation. The second list contains two
+            fitted GAMs, one for predicting the climatological mean of the truths
+            and the second predicting the climatological standard deviation.
+        gam_features (list of str):
+            A list of the names of the cubes that will be used as additional
+            features in the GAM. Additionaly the name of any coordinates
+            that are to be used as features in the GAM.
         use_default_initial_guess (bool):
             If True, use the default initial guess. The default initial guess
             assumes no adjustments are required to the initial choice of
@@ -109,20 +97,37 @@ def process(
         experiment (str):
             A value within the experiment column to select from the forecast
             table.
+        forecast_period (int):
+            Forecast period to be calibrated in seconds.
+        training_length (int):
+            Number of days within the training period.
+        diagnostic (str):
+            The name of the diagnostic to be calibrated within the forecast
+            and truth tables. This name is used to filter the Parquet file
+            when reading from disk.
+        cycletime (str):
+            Cycletime of a format similar to 20170109T0000Z.
 
     Returns:
         iris.cube.CubeList:
             CubeList containing the coefficients estimated using EMOS. Each
             coefficient is stored in a separate cube.
+        OR
+        None:
+            If a forecast or truth cube cannot be created from the parquet table then None is returned.
     """
-
-    import iris
+    # monkey-patch to 'tweak' scipy to prevent errors occuring
+    import scipy.sparse
+    from iris import Constraint
     from iris.cube import CubeList
 
-    from improver.calibration.emos_calibration import (
-        EstimateCoefficientsForEnsembleCalibration,
-    )
+    from improver.calibration.samos_calibration import TrainEMOSForSAMOS
     from improver.ensemble_copula_coupling.utilities import convert_parquet_to_cube
+
+    def to_array(self):
+        return self.toarray()
+
+    scipy.sparse.spmatrix.A = property(to_array)
 
     forecast_cube, truth_cube = convert_parquet_to_cube(
         forecast,
@@ -138,20 +143,21 @@ def process(
     if not forecast_cube or not truth_cube:
         return
 
-    # Extract WMO IDs from the additional predictors.
-    if additional_predictors:
-        constr = iris.Constraint(wmo_id=truth_cube.coord("wmo_id").points)
-        additional_predictors = CubeList(
-            [ap.extract(constr) for ap in additional_predictors]
-        )
+    # Train emos coefficients for the SAMOS model.
+    emos_kwargs = {
+        "use_default_initial_guess": use_default_initial_guess,
+        "desired_units": units,
+        "predictor": predictor,
+        "tolerance": tolerance,
+        "max_iterations": max_iterations,
+    }
 
-    plugin = EstimateCoefficientsForEnsembleCalibration(
-        distribution,
-        point_by_point=point_by_point,
-        use_default_initial_guess=use_default_initial_guess,
-        desired_units=units,
-        predictor=predictor,
-        tolerance=tolerance,
-        max_iterations=max_iterations,
+    plugin = TrainEMOSForSAMOS(distribution="norm", emos_kwargs=emos_kwargs)
+    return plugin(
+        historic_forecasts=forecast_cube,
+        truths=truth_cube,
+        forecast_gams=gams[0],
+        truth_gams=gams[1],
+        gam_features=gam_features,
+        gam_additional_fields=samos_additional_predictors,
     )
-    return plugin(forecast_cube, truth_cube, additional_fields=additional_predictors)
