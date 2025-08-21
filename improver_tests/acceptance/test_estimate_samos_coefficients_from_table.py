@@ -49,10 +49,8 @@ def test_additional_features_coords(tmp_path):
 
     gam_config = kgo_dir / "gam_coordinates.pkl"
 
-    compulsory_args = [history_path, truth_path]
+    compulsory_args = [history_path, truth_path, gam_config]
     named_args = [
-        "--gams",
-        gam_config,
         "--gam-features",
         "latitude,longitude,altitude",
         "--percentiles",
@@ -92,59 +90,8 @@ def test_additional_gam_features_cube(tmp_path):
     gam_additional_features = kgo_dir / "distance_to_water.nc"
     gam_config = kgo_dir / "gam_coordinates.pkl"
 
-    compulsory_args = [history_path, truth_path, None, gam_additional_features]
+    compulsory_args = [history_path, truth_path, gam_config, gam_additional_features]
     named_args = [
-        "--gams",
-        gam_config,
-        "--gam-features",
-        "latitude,longitude,distance_to_water",
-        "--percentiles",
-        "10,20,30,40,50,60,70,80,90",
-        "--forecast-period",
-        "86400",
-        "--training-length",
-        "5",
-        "--diagnostic",
-        "temperature_at_screen_level",
-        "--cycletime",
-        "20210805T2100Z",
-        "--output",
-        output_path,
-    ]
-
-    run_cli(compulsory_args + named_args)
-    acc.compare(
-        output_path, kgo_path, atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE
-    )
-
-
-@pytest.mark.slow
-def test_additional_gam_and_emos_features_cube(tmp_path):
-    """
-    Test estimate-samos-coefficients-from-table with an example forecast and truth
-    table for screen temperature. Extra features for the GAMs and emos are provided
-    as cubes.
-    """
-    source_dir = acc.kgo_root() / "estimate-emos-coefficients-from-table/"
-    history_path = source_dir / "forecast_table"
-    truth_path = source_dir / "truth_table"
-
-    kgo_dir = acc.kgo_root() / "estimate-samos-coefficients-from-table/"
-    kgo_path = kgo_dir / "kgo_gam_and_emos_cube.nc"
-    output_path = tmp_path / "output.nc"
-    gam_additional_features = kgo_dir / "distance_to_water.nc"
-    emos_additional_features = source_dir / "altitude.nc"
-    gam_config = kgo_dir / "gam_coordinates.pkl"
-
-    compulsory_args = [
-        history_path,
-        truth_path,
-        emos_additional_features,
-        gam_additional_features,
-    ]
-    named_args = [
-        "--gams",
-        gam_config,
         "--gam-features",
         "latitude,longitude,distance_to_water",
         "--percentiles",
@@ -180,10 +127,8 @@ def test_return_none(tmp_path):
     output_path = tmp_path / "output.nc"
     gam_config = kgo_dir / "gam_coordinates.pkl"
 
-    compulsory_args = [history_path, truth_path]
+    compulsory_args = [history_path, truth_path, gam_config]
     named_args = [
-        "--gams",
-        gam_config,
         "--gam-features",
         "projection_y_coordinate,projection_x_coordinate,height",
         "--percentiles",

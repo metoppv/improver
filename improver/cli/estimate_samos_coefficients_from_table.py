@@ -14,10 +14,8 @@ from improver import cli
 def process(
     forecast: cli.inputpath,
     truth: cli.inputpath,
-    emos_additional_predictors: cli.inputcubelist = None,
-    samos_additional_predictors: cli.inputcubelist = None,
-    *,
     gams: cli.inputpickle,
+    *samos_additional_predictors: cli.inputcube,
     gam_features: cli.comma_separated_list,
     use_default_initial_guess=False,
     units=None,
@@ -51,9 +49,6 @@ def process(
             for calibration. The expected columns within the
             Parquet file are: ob_value, time, wmo_id, diagnostic, latitude,
             longitude and altitude.
-        emos_additional_predictors (iris.cube.Cube):
-            A cube for a static additional predictor to be used, in addition
-            to the forecast, when estimating the EMOS coefficients.
         samos_additional_predictors (iris.cube.CubeList):
             A list of cubes for additional predictors to be used when
             estimating the SAMOS coefficients. The name of all cubes in this
@@ -157,13 +152,6 @@ def process(
         "max_iterations": max_iterations,
     }
 
-    # Extract WMO IDs from the emos additional predictors.
-    if emos_additional_predictors:
-        constr = Constraint(wmo_id=truth_cube.coord("wmo_id").points)
-        emos_additional_predictors = CubeList(
-            [ap.extract(constr) for ap in emos_additional_predictors]
-        )
-
     plugin = TrainEMOSForSAMOS(distribution="norm", emos_kwargs=emos_kwargs)
     return plugin(
         historic_forecasts=forecast_cube,
@@ -172,5 +160,4 @@ def process(
         truth_gams=gams[1],
         gam_features=gam_features,
         gam_additional_fields=samos_additional_predictors,
-        emos_additional_fields=emos_additional_predictors,
     )
