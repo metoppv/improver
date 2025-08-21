@@ -14,8 +14,7 @@ from improver import cli
 def process(
     forecast: cli.inputpath,
     truth: cli.inputpath,
-    additional_predictors: cli.inputcubelist = None,
-    *,
+    *additional_predictors: cli.inputcube,
     gam_features: cli.comma_separated_list,
     model_specification: cli.inputjson,
     tolerance: float = 0.02,
@@ -45,8 +44,8 @@ def process(
             Parquet file are: ob_value, time, wmo_id, diagnostic, latitude,
             longitude and altitude.
         additional_predictors (iris.cube.Cube):
-            A cube for a static additional predictor to be used, in addition
-            to the forecast, when estimating the EMOS coefficients.
+            Cubes of static additional predictors to be used, in addition
+            to the forecast, when estimating the GAM.
         gam_features (list of str):
             A list of the names of the cubes that will be used as additional
             features in the GAM. Additionaly the name of any coordinates
