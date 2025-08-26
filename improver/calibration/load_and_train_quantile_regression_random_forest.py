@@ -171,10 +171,10 @@ class LoadAndTrainQRF(PostProcessingPlugin):
 
         example_file_path = next(Path(forecast_table_path).glob("**/*.parquet"))
         if pq.read_schema(example_file_path).get_all_field_indices("percentile"):
-            altered_schema = CalibrationSchemas.FORECAST_SCHEMA
+            altered_schema = CalibrationSchemas().FORECAST_SCHEMA
         elif pq.read_schema(example_file_path).get_all_field_indices("realization"):
-            altered_schema = CalibrationSchemas.FORECAST_SCHEMA.remove(
-                CalibrationSchemas.FORECAST_SCHEMA.get_field_index("percentile")
+            altered_schema = CalibrationSchemas().FORECAST_SCHEMA.remove(
+                CalibrationSchemas().FORECAST_SCHEMA.get_field_index("percentile")
             )
             altered_schema = altered_schema.append(pa.field("realization", pa.int64()))
         else:
@@ -209,7 +209,7 @@ class LoadAndTrainQRF(PostProcessingPlugin):
         truth_df = pd.read_parquet(
             truth_table_path,
             filters=filters,
-            schema=CalibrationSchemas.TRUTH_SCHEMA,
+            schema=CalibrationSchemas().TRUTH_SCHEMA,
             engine="pyarrow",
         )
 

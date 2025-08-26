@@ -18,40 +18,42 @@ from improver.utilities.cube_manipulation import MergeCubes
 
 
 class CalibrationSchemas:
-    import pyarrow as pa
+    def __init__(self):
+        """Define the pyarrow schemas for forecast and truth parquet files."""
+        import pyarrow as pa
 
-    FORECAST_SCHEMA = pa.schema(
-        [
-            ("percentile", pa.float64()),
-            ("forecast", pa.float32()),
-            ("altitude", pa.float32()),
-            ("blend_time", pa.timestamp("s", "utc")),
-            ("forecast_period", pa.int64()),
-            ("forecast_reference_time", pa.timestamp("s", "utc")),
-            ("latitude", pa.float32()),
-            ("longitude", pa.float32()),
-            ("time", pa.timestamp("s", "utc")),
-            ("wmo_id", pa.string()),
-            ("station_id", pa.string()),
-            ("cf_name", pa.string()),
-            ("units", pa.string()),
-            ("experiment", pa.string()),
-            ("period", pa.int64()),
-            ("height", pa.float32()),
-            ("diagnostic", pa.string()),
-        ]
-    )
-    TRUTH_SCHEMA = pa.schema(
-        [
-            ("diagnostic", pa.string()),
-            ("latitude", pa.float32()),
-            ("longitude", pa.float32()),
-            ("altitude", pa.float32()),
-            ("time", pa.timestamp("s", "utc")),
-            ("wmo_id", pa.string()),
-            ("ob_value", pa.float32()),
-        ]
-    )
+        self.FORECAST_SCHEMA = pa.schema(
+            [
+                ("percentile", pa.float64()),
+                ("forecast", pa.float32()),
+                ("altitude", pa.float32()),
+                ("blend_time", pa.timestamp("s", "utc")),
+                ("forecast_period", pa.int64()),
+                ("forecast_reference_time", pa.timestamp("s", "utc")),
+                ("latitude", pa.float32()),
+                ("longitude", pa.float32()),
+                ("time", pa.timestamp("s", "utc")),
+                ("wmo_id", pa.string()),
+                ("station_id", pa.string()),
+                ("cf_name", pa.string()),
+                ("units", pa.string()),
+                ("experiment", pa.string()),
+                ("period", pa.int64()),
+                ("height", pa.float32()),
+                ("diagnostic", pa.string()),
+            ]
+        )
+        self.TRUTH_SCHEMA = pa.schema(
+            [
+                ("diagnostic", pa.string()),
+                ("latitude", pa.float32()),
+                ("longitude", pa.float32()),
+                ("altitude", pa.float32()),
+                ("time", pa.timestamp("s", "utc")),
+                ("wmo_id", pa.string()),
+                ("ob_value", pa.float32()),
+            ]
+        )
 
 
 def split_forecasts_and_truth(
