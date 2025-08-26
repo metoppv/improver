@@ -16,21 +16,21 @@ import pandas as pd
 from iris.cube import Cube, CubeList
 from iris.pandas import as_data_frame
 
-import typing
-if typing.TYPE_CHECKING:
-    from quantile_forest import RandomForestQuantileRegressor 
-
-
 from improver import PostProcessingPlugin
 from improver.calibration import add_warning_comment
 from improver.calibration.quantile_regression_random_forest import (
-    ApplyQuantileRegressionRandomForests,
+    ApplyQuantileRegressionRandomForests, quantile_forest_package_available
 )
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     RebadgePercentilesAsRealizations,
 )
 from improver.ensemble_copula_coupling.utilities import choose_set_of_percentiles
 from improver.utilities.cube_checker import assert_spatial_coords_match
+
+try:
+    from quantile_forest import RandomForestQuantileRegressor
+except ModuleNotFoundError:
+    pass
 
 iris.FUTURE.pandas_ndim = True
 
@@ -83,7 +83,7 @@ class LoadAndApplyQRF(PostProcessingPlugin):
 
     def _get_inputs(
         self, file_paths: list[pathlib.Path]
-    ) -> tuple[CubeList, Cube, "RandomForestQuantileRegressor"]:
+    ) -> tuple[CubeList, Cube, RandomForestQuantileRegressor]:
         """Get inputs from disk and separate the model and the features.
 
         Args:
@@ -99,7 +99,6 @@ class LoadAndApplyQRF(PostProcessingPlugin):
             ValueError: If no features are found in the provided file paths.
             ValueError: If the number of inputs does not match the number of file paths.
         """
-        
         cube_inputs = iris.cube.CubeList([])
         qrf_model = None
 
@@ -254,8 +253,10 @@ class LoadAndApplyQRF(PostProcessingPlugin):
             iris.cube.Cube:
                 The calibrated forecast cube.
         """
-
         cube_inputs, forecast_cube, qrf_model = self._get_inputs(file_paths)
+        import pdb; pdb.set_trace()
+        if not quantile_forest_package_available():
+            return forecast_cube
         if not qrf_model:
             return forecast_cube
 

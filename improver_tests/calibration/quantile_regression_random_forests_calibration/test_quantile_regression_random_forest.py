@@ -22,10 +22,14 @@ from improver.calibration.quantile_regression_random_forest import (
     _check_valid_transformation,
     get_required_column_names,
     prep_feature,
+    quantile_forest_package_available,
     sanitise_forecast_dataframe,
 )
 from improver.metadata.constants.time_types import DT_FORMAT
 from improver.synthetic_data.set_up_test_cubes import set_up_spot_variable_cube
+
+
+pytest.importorskip("quantile_forest")
 
 ALTITUDE = [10, 20]
 LATITUDE = [50, 60]
@@ -211,6 +215,18 @@ def _run_train_qrf(
     )
     plugin.process(forecast_df, truth_df)
     return model_output
+
+
+def test_quantile_forest_package_available():
+    """Test the quantile_forest_package_available function."""
+    result = quantile_forest_package_available()
+    try:
+        from quantile_forest import RandomForestQuantileRegressor  # noqa
+
+        expected = True
+    except ModuleNotFoundError:
+        expected = False
+    assert result == expected
 
 
 @pytest.mark.parametrize(

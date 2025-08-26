@@ -13,7 +13,13 @@ import pytest
 from improver.calibration.load_and_train_quantile_regression_random_forest import (
     LoadAndTrainQRF,
 )
+from improver.calibration.quantile_regression_random_forest import (
+    quantile_forest_package_available,
+)
 from improver.synthetic_data.set_up_test_cubes import set_up_spot_variable_cube
+
+pytest.importorskip("quantile_forest")
+
 
 ALTITUDE = [10, 20]
 LATITUDE = [50, 60]
@@ -551,9 +557,16 @@ def test_load_and_train_qrf_mismatches(tmp_path, cycletime, forecast_periods):
             "6,12",
             "percentile",
         ),
+        (
+            "no_quantile_forest_package",
+            _create_multi_site_forecast_parquet_file,
+            _create_multi_site_truth_parquet_file,
+            "6:18:6",
+            "percentile",
+        ),
     ],
 )
-def test_exceptions(
+def test_unexpected(
     tmp_path,
     exception,
     forecast_creation,
@@ -616,5 +629,11 @@ def test_exceptions(
     elif exception == "alternative_forecast_period":
         with pytest.raises(ValueError, match="The forecast_periods argument"):
             plugin(file_paths, model_output=model_output)
+    elif exception == "no_quantile_forest_package":
+        pytest.MonkeyPatch.setattr(
+            quantile_forest_package_available, "__call__", lambda: False
+        )
+        result = plugin(file_paths, model_output=model_output)
+        assert result is None
     else:
         raise ValueError(f"Unknown exception type: {exception}")

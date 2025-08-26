@@ -17,9 +17,10 @@ from iris.pandas import as_data_frame
 from improver import PostProcessingPlugin
 from improver.calibration import CalibrationSchemas
 from improver.calibration.quantile_regression_random_forest import (
-    TrainQuantileRegressionRandomForests,
+    TrainQuantileRegressionRandomForests, quantile_forest_package_available
 )
 from improver.utilities.load import load_cube
+
 
 iris.FUTURE.pandas_ndim = True
 
@@ -319,6 +320,8 @@ class LoadAndTrainQRF(PostProcessingPlugin):
                 Full path including model file name that will store the pickled model.
 
         """
+        if not quantile_forest_package_available():
+            return None
         forecast_table_path, truth_table_path, cube_inputs = (
             self._split_cubes_and_parquet_files(file_paths)
         )
