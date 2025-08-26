@@ -47,8 +47,8 @@ class TemperatureSaturatedAirParcel(BasePlugin):
                 from the cloud condensation level. (Pa)
         """
         self.pressure_level = pressure_level
-        self.temperature = (None,)
-        self.pressure = (None,)
+        self.temperature: Cube = None
+        self.pressure: Cube = None
 
     def parcel_temp_after_ascent(self) -> np.array:
         """Calculates the temperature of a saturated air parcel when it has been lifted
@@ -58,23 +58,25 @@ class TemperatureSaturatedAirParcel(BasePlugin):
         Returns:
             Array of temperature of an air parcel at a pressure level (K)
         """
-        relative_humidity = self.make_saturated_relative_humidity_cube()
-        humidity = HumidityMixingRatio()(
-            [self.temperature, self.pressure, relative_humidity]
+        relative_humidity_cube = self.make_saturated_relative_humidity_cube()
+        humidity_cube = HumidityMixingRatio()(
+            [self.temperature, self.pressure, relative_humidity_cube]
         )
-        ccl_temp, ccl_pressure = CloudCondensationLevel()(
-            [self.temperature, self.pressure, humidity]
+        ccl_temperature_cube, ccl_pressure_cube = CloudCondensationLevel()(
+            [self.temperature, self.pressure, humidity_cube]
         )
         humidity_mixing_ratio_at_ccl = saturated_humidity(
-            ccl_temp.data, ccl_pressure.data
+            ccl_temperature_cube.data, ccl_pressure_cube.data
         )
-        t_dry = dry_adiabatic_temperature(
-            ccl_temp.data, ccl_pressure.data, self.pressure_level
+        dry_parcel_temperature_after_ascent = dry_adiabatic_temperature(
+            ccl_temperature_cube.data, ccl_pressure_cube.data, self.pressure_level
         )
-        t_2, _ = adjust_for_latent_heat(
-            t_dry, humidity_mixing_ratio_at_ccl, self.pressure_level
+        parcel_temperature_after_ascent, _ = adjust_for_latent_heat(
+            dry_parcel_temperature_after_ascent,
+            humidity_mixing_ratio_at_ccl,
+            self.pressure_level,
         )
-        return t_2
+        return parcel_temperature_after_ascent
 
     def make_saturated_relative_humidity_cube(self) -> Cube:
         """Creates a cube of relative humidity at the cloud condensation level (CCL)
@@ -87,10 +89,12 @@ class TemperatureSaturatedAirParcel(BasePlugin):
         Returns:
             A cube of relative humidity at the CCL with a value of 1.0.
         """
-        relative_humidity = self.temperature.copy(np.ones_like(self.temperature.data))
-        relative_humidity.rename("relative_humidity")
-        relative_humidity.units = "1"
-        return relative_humidity
+        relative_humidity_cube = self.temperature.copy(
+            np.ones_like(self.temperature.data)
+        )
+        relative_humidity_cube.rename("relative_humidity")
+        relative_humidity_cube.units = "1"
+        return relative_humidity_cube
 
     def make_temperature_cube(self, temp_after_saturated_ascent: np.ndarray) -> Cube:
         """Puts the temperature information into a cube with appropriate metadata.
