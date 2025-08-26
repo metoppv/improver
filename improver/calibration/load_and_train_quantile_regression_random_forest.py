@@ -14,16 +14,16 @@ import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
+from iris.pandas import as_data_frame
 
 from improver import PostProcessingPlugin
 from improver.calibration import FORECAST_SCHEMA, TRUTH_SCHEMA
-from improver.calibration.dataframe_utilities import (
-    forecast_and_truth_dataframes_to_cubes,
-)
 from improver.calibration.quantile_regression_random_forest import (
     TrainQuantileRegressionRandomForests,
 )
 from improver.utilities.load import load_cube
+
+iris.FUTURE.pandas_ndim = True
 
 
 class LoadAndTrainQRF(PostProcessingPlugin):
@@ -33,26 +33,30 @@ class LoadAndTrainQRF(PostProcessingPlugin):
         self,
         feature_config: dict[str, list[str]],
         target_diagnostic_name: str,
+        target_cf_name: str,
         forecast_periods: str,
         cycletime: str,
         training_length: int,
-        experiment: str = None,
+        experiment: Optional[str] = None,
         n_estimators: int = 100,
-        max_depth: int = None,
-        random_state: int = None,
-        transformation: str = None,
+        max_depth: Optional[int] = None,
+        max_samples: Optional[float] = None,
+        random_state: Optional[int] = None,
+        transformation: Optional[str] = None,
         pre_transform_addition: float = 0,
         compression: int = 5,
     ):
         """Initialise the LoadAndTrainQRF plugin."""
         self.feature_config = feature_config
         self.target_diagnostic_name = target_diagnostic_name
+        self.target_cf_name = target_cf_name
         self.forecast_periods = forecast_periods
         self.cycletime = cycletime
         self.training_length = training_length
         self.experiment = experiment
         self.n_estimators = n_estimators
         self.max_depth = max_depth
+        self.max_samples = max_samples
         self.random_state = random_state
         self.transformation = transformation
         self.pre_transform_addition = pre_transform_addition
@@ -83,24 +87,24 @@ class LoadAndTrainQRF(PostProcessingPlugin):
 
         # file extraction loop:
         for file_path in file_paths:
-            try:
-                cube = load_cube(str(file_path))
-                cube_inputs.append(cube)
-            except IsADirectoryError:
-                # For loop here because the read_schema must read a .parquet file
-                # rather than a directory.
-                for file in Path(file_path).glob("**/*.parquet"):
-                    try:
-                        pq.read_schema(file).field("forecast_period")
-                        forecast_table_path = file_path
-                    except KeyError:
-                        truth_table_path = file_path
-                    if forecast_table_path and truth_table_path:
-                        break
-            except OSError:
+            if not Path(file_path).exists():
                 # This will occur when the filepath does not exist. In this case,
                 # return None.
                 return None, None, None
+            elif Path(file_path).is_dir():
+                try:
+                    example_file_path = next(Path(file_path).glob("**/*.parquet"))
+                except StopIteration:
+                    # If no parquet files are found, return None.
+                    return None, None, None
+                try:
+                    pq.read_schema(example_file_path).field("forecast_period")
+                    forecast_table_path = file_path
+                except KeyError:
+                    truth_table_path = file_path
+            else:
+                cube = load_cube(str(file_path))
+                cube_inputs.append(cube)
 
         if len(self.feature_config.keys()) not in [
             len(cube_inputs),
@@ -142,7 +146,6 @@ class LoadAndTrainQRF(PostProcessingPlugin):
                 fields.
         """
         cycletimes = []
-
         for forecast_period in forecast_periods:
             # Load forecasts from parquet file filtering by diagnostic and blend_time.
             forecast_period_td = pd.Timedelta(int(forecast_period), unit="seconds")
@@ -166,23 +169,20 @@ class LoadAndTrainQRF(PostProcessingPlugin):
             ]
         ]
 
-        for file in Path(forecast_table_path).glob("**/*.parquet"):
-            if pq.read_schema(file).get_all_field_indices("percentile"):
-                altered_schema = FORECAST_SCHEMA
-            elif pq.read_schema(file).get_all_field_indices("realization"):
-                altered_schema = FORECAST_SCHEMA.remove(
-                    FORECAST_SCHEMA.get_field_index("percentile")
-                )
-                altered_schema = altered_schema.append(
-                    pa.field("realization", pa.int64())
-                )
-            else:
-                msg = (
-                    "The forecast parquet file is expected to contain either a "
-                    "'percentile' or 'realization' field. Neither was found."
-                )
-                raise ValueError(msg)
-            break
+        example_file_path = next(Path(forecast_table_path).glob("**/*.parquet"))
+        if pq.read_schema(example_file_path).get_all_field_indices("percentile"):
+            altered_schema = FORECAST_SCHEMA
+        elif pq.read_schema(example_file_path).get_all_field_indices("realization"):
+            altered_schema = FORECAST_SCHEMA.remove(
+                FORECAST_SCHEMA.get_field_index("percentile")
+            )
+            altered_schema = altered_schema.append(pa.field("realization", pa.int64()))
+        else:
+            msg = (
+                "The forecast parquet file is expected to contain either a "
+                "'percentile' or 'realization' field. Neither was found."
+            )
+            raise ValueError(msg)
 
         forecast_df = pd.read_parquet(
             forecast_table_path,
@@ -191,16 +191,18 @@ class LoadAndTrainQRF(PostProcessingPlugin):
             engine="pyarrow",
         )
 
-        # Convert df columns from ms to pandas timestamp object to work with existing
-        # code
+        forecast_df = forecast_df[
+            forecast_df["forecast_period"].isin(np.array(forecast_periods) * 1e9)
+        ]
+        # Convert df columns from ns to pandas timestamp object.
         for column in ["time", "forecast_reference_time", "blend_time"]:
             forecast_df[column] = pd.to_datetime(
                 forecast_df[column], unit="ns", utc=True
             )
-        forecast_df["forecast_period"] = pd.to_timedelta(
-            forecast_df["forecast_period"], unit="ns"
-        )
-        forecast_df["period"] = pd.to_timedelta(forecast_df["period"], unit="ns")
+        for column in ["forecast_period", "period"]:
+            forecast_df[column] = pd.to_timedelta(forecast_df[column], unit="ns")
+
+        forecast_df = forecast_df.rename(columns={"forecast": self.target_cf_name})
 
         # Load truths from parquet file filtering by diagnostic.
         filters = [[("diagnostic", "==", self.target_diagnostic_name)]]
@@ -218,111 +220,76 @@ class LoadAndTrainQRF(PostProcessingPlugin):
             raise IOError(msg)
         return forecast_df, truth_df
 
-    def _dataframe_to_cubes(
-        self,
-        forecast_df: pd.DataFrame,
-        truth_df: pd.DataFrame,
-        forecast_periods: list[int],
-    ) -> tuple[iris.cube.Cube, iris.cube.Cube]:
-        """Convert the forecast and truth dataframes to cubes at each forecast period
-        required.
+    @staticmethod
+    def _check_matching_times(
+        forecast_df: pd.DataFrame, truth_df: pd.DataFrame
+    ) -> list[pd.Timestamp]:
+        """Find the intersecting times available within the forecast and truth
+        DataFrames.
 
         Args:
             forecast_df: DataFrame containing the forecast data.
             truth_df: DataFrame containing the truth data.
-            forecast_periods: List of forecast periods in seconds.
+        Returns:
+            List of intersecting times as pandas Timestamp objects.
+        """
+        # Calling unique() on the time column is quicker than relying upon set() to
+        # find the unique times.
+        return list(
+            set(forecast_df["time"].unique()).intersection(
+                set(truth_df["time"].unique())
+            )
+        )
+
+    def _add_features_to_df(
+        self, forecast_df: pd.DataFrame, cube_inputs: iris.cube.CubeList
+    ) -> pd.DataFrame:
+        """Add features to the forecast DataFrame based on the feature configuration.
+
+        Args:
+            forecast_df: DataFrame containing the forecast data.
+            cube_inputs: List of cubes containing additional features.
 
         Returns:
-            Tuple containing:
-                - Cube containing the forecast data.
-                - Cube containing the truth data.
-
-        Raises:
-            ValueError: The forecast has failed to concatenate into a single cube.
+            DataFrame with additional features added.
         """
-        forecast_cubes = iris.cube.CubeList([])
-        truth_cubes = iris.cube.CubeList([])
-
-        for forecast_period in forecast_periods:
-            forecast_cube, truth_cube = forecast_and_truth_dataframes_to_cubes(
-                forecast_df,
-                truth_df,
-                self.cycletime,
-                forecast_period,
-                self.training_length,
-                experiment=self.experiment,
-            )
-
-            if forecast_cube is None or truth_cube is None:
-                continue
-
-            if not forecast_cube.coords("realization", dim_coords=True):
-                forecast_cube = iris.util.new_axis(forecast_cube, "realization")
-
-            for forecast_slice in forecast_cube.slices_over("forecast_reference_time"):
-                forecast_cubes.append(forecast_slice)
-
-            for truth_slice in truth_cube.slices_over("time"):
-                truth_slice = iris.util.new_axis(truth_slice, "time")
-                
-                # Multiple forecasts can match to the same observation. This check
-                # ensures that we do not add the same truth slice multiple times.
-                if truth_slice not in truth_cubes:
-                    truth_cubes.append(truth_slice)
-
-        if not forecast_cubes or not truth_cubes:
-            return None, None
-
-        truth_cube = truth_cubes.concatenate_cube()
-        forecast_cube = forecast_cubes.merge()
-
-        # concatenate_cube() can fail for the forecast_cube, even though calling
-        # concatenate() results in a single cube. This check ensures the concatenation
-        # was successful.
-        if len(forecast_cube) == 1:
-            forecast_cube = forecast_cube[0]
-        else:
-            msg = "Concatenating the forecast has failed to create a single cube."
-            raise ValueError(msg)
-        
-        # Promote the forecast_reference_time coord to a dimension coordinate if
-        # the forecast_period is one.
-        if forecast_cube.coord_dims("forecast_period") and not forecast_cube.coord_dims("forecast_reference_time"):
-            forecast_cube = iris.util.new_axis(forecast_cube, "forecast_reference_time")
-
-        return forecast_cube, truth_cube
+        for feature_name, feature_list in self.feature_config.items():
+            for feature in feature_list:
+                if feature == "static":
+                    # Use the cube's data directly as a feature.
+                    constr = iris.Constraint(name=feature_name)
+                    feature_cube = cube_inputs.extract_cube(constr)
+                    feature_df = as_data_frame(feature_cube, add_aux_coords=True)
+                    forecast_df = forecast_df.merge(
+                        feature_df[["wmo_id", feature_name]], on=["wmo_id"], how="left"
+                    )
+        return forecast_df
 
     @staticmethod
     def filter_bad_sites(
-        forecast_cube: iris.cube.Cube,
-        truth_cube: iris.cube.Cube,
-        cube_inputs: iris.cube.CubeList,
-    ) -> tuple[iris.cube.Cube, iris.cube.Cube, iris.cube.CubeList]:
+        forecast_df: pd.DataFrame,
+        truth_df: pd.DataFrame,
+    ) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Remove sites that have NaNs in the data.
 
         Args:
-            forecast_cube: Cube containing the forecast data.
-            truth_cube: Cube containing the truth data.
-            cube_inputs: List of additional feature cubes.
+            feature_df: DataFrame containing the forecast data with features.
+            truth_df: DataFrame containing the truth data.
 
         Returns:
             Tuple containing:
-                - Cube containing the forecast data with bad sites removed.
-                - Cube containing the truth data with bad sites removed.
-                - List of additional feature cubes with bad sites removed.
+                - DataFrame containing the forecast data with bad sites removed.
+                - DataFrame containing the truth data with bad sites removed.
         """
-        nan_mask = np.any(np.isnan(truth_cube.data), axis=truth_cube.coord_dims("time"))
-        all_site_ids = truth_cube.coord("wmo_id").points
-        bad_site_ids = all_site_ids[nan_mask]
-        constr = iris.Constraint(wmo_id=lambda cell: cell not in bad_site_ids.tolist())
-        truth_cube = truth_cube.extract(constr)
-        forecast_cube = forecast_cube.extract(constr)
-        feature_cube_inputs = iris.cube.CubeList([])
-        for cube in cube_inputs:
-            cube = cube.extract(constr)
-            feature_cube_inputs.append(cube)
+        truth_df.dropna(
+            subset=["latitude", "longitude", "altitude", "ob_value"], inplace=True
+        )
 
-        return forecast_cube, truth_cube, feature_cube_inputs
+        wmo_ids = set(forecast_df["wmo_id"]).intersection(set(truth_df["wmo_id"]))
+
+        forecast_df = forecast_df[forecast_df["wmo_id"].isin(wmo_ids)]
+        truth_df = truth_df[truth_df["wmo_id"].isin(wmo_ids)]
+        return forecast_df, truth_df
 
     def process(
         self,
@@ -344,55 +311,6 @@ class LoadAndTrainQRF(PostProcessingPlugin):
                 - The path to a Parquet file containing the forecasts to be used
                 for calibration.
                 - Optionally, paths to NetCDF files containing additional predictors.
-            feature_config (dict):
-                Feature configuration defining the features to be used for quantile
-                regression. The configuration is a dictionary of strings, where the
-                keys are the names of the input cube(s) supplied, and the values are
-                a list. This list can contain both computed features, such as the mean
-                or standard deviation (std), or static features, such as the altitude.
-                The computed features will be computed using the cube defined in the
-                dictionary key. If the key is the feature itself e.g. a distance to
-                water cube, then the value should state "static". This will ensure
-                the cube's data is used as the feature. The config will have the
-                structure:
-                    "DYNAMIC_VARIABLE_NAME": ["FEATURE1", "FEATURE2"] e.g:
-                    {
-                    "air_temperature": ["mean", "std", "altitude"],
-                    "visibility_at_screen_level": ["mean", "std"]
-                    "distance_to_water": ["static"],
-                    }
-            target_diagnostic_name (str):
-                A string containing the diagnostic name of the forecast to be
-                calibrated. This will be used to filter the target forecast and truth
-                dataframes.
-            forecast_period (int):
-                Range of forecast periods to be calibrated in hours in the form:
-                "start:end:interval" e.g. "6:18:6" or a single forecast period e.g. "6".
-                The end value is exclusive, so "6:18:6" will calibrate the 6 and 12
-                hours.
-            cycletime (str):
-                Cycletime of the forecast to be calibrated in a format similar to
-                20170109T0000Z. This is used to filter the correct blendtimes from
-                the dataframe on load.
-            training_length (int):
-                The length of the training period in days.
-            experiment (str):
-                The name of the experiment (step) that calibration is applied to.
-            n_estimators (int):
-                Number of trees in the forest.
-            max_depth (int):
-                Maximum depth of the tree.
-            random_state (int):
-                Random seed for reproducibility.
-            transformation (str):
-                Transformation to be applied to the data before fitting.
-                Supported transformations are "log", "log10", "sqrt", and "cbrt".
-            pre_transform_addition (float):
-                Value to be added before transformation. This is useful for ensuring
-                that the data is positive before applying a transformation such as log.
-            compression (int):
-                Compression level for saving the model. Please see the joblib
-                documentation for more information on compression levels.
             model_output (str):
                 Full path including model file name that will store the pickled model.
 
@@ -421,30 +339,22 @@ class LoadAndTrainQRF(PostProcessingPlugin):
         forecast_df, truth_df = self._read_parquet_files(
             forecast_table_path, truth_table_path, forecast_periods
         )
-
-        forecast_cube, truth_cube = self._dataframe_to_cubes(
-            forecast_df, truth_df, forecast_periods
-        )
-        if forecast_cube is None or truth_cube is None:
+        intersecting_times = self._check_matching_times(forecast_df, truth_df)
+        if len(intersecting_times) == 0:
             return None
 
-        # If target_forecast is also a dynamic feature in the feature config then
-        # add it to cube_inputs
-        for feature_name in self.feature_config.keys():
-            if feature_name == forecast_cube[0].name():
-                cube_inputs.append(forecast_cube)
-
-        forecast_cube, truth_cube, feature_cube_inputs = self.filter_bad_sites(
-            forecast_cube, truth_cube, cube_inputs
-        )
+        forecast_df = self._add_features_to_df(forecast_df, cube_inputs)
+        forecast_df, truth_df = self.filter_bad_sites(forecast_df, truth_df)
 
         TrainQuantileRegressionRandomForests(
+            target_name=self.target_cf_name,
             feature_config=self.feature_config,
             n_estimators=self.n_estimators,
             max_depth=self.max_depth,
+            max_samples=self.max_samples,
             random_state=self.random_state,
             transformation=self.transformation,
             pre_transform_addition=self.pre_transform_addition,
             compression=self.compression,
             model_output=model_output,
-        )(forecast_cube, truth_cube, feature_cube_inputs)
+        )(forecast_df, truth_df)

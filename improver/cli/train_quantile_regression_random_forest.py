@@ -13,12 +13,14 @@ def process(
     *file_paths: cli.inputpath,
     feature_config: cli.inputjson,
     target_diagnostic_name: str,
+    target_cf_name: str,
     forecast_periods: str,
     cycletime: str,
     training_length: int,
     experiment: str = None,
     n_estimators: int = 100,
     max_depth: int = None,
+    max_samples: float = None,
     random_state: int = None,
     transformation: str = None,
     pre_transform_addition: float = 0,
@@ -52,7 +54,7 @@ def process(
             If the key is the feature itself e.g. a distance to water cube, then the
             value should state "static". This will ensure the cube's data is used as
             the feature. The config will have the structure:
-            "DYNAMIC_VARIABLE_NAME": ["FEATURE1", "FEATURE2"] e.g:
+            "DYNAMIC_VARIABLE_CF_NAME": ["FEATURE1", "FEATURE2"] e.g:
             {
             "air_temperature": ["mean", "std", "altitude"],
             "visibility_at_screen_level": ["mean", "std"]
@@ -62,6 +64,8 @@ def process(
             A string containing the diagnostic name of the forecast to be
             calibrated. This will be used to filter the target forecast and truth
             dataframes.
+        target_cf_name (str):
+            A string containing the CF name of the forecast to be calibrated.
         forecast_periods (str):
             Range of forecast periods to be calibrated in hours in the form:
             "start:end:interval" e.g. "6:18:6" or a single forecast period e.g. "6".
@@ -77,6 +81,11 @@ def process(
             Number of trees in the forest.
         max_depth (int):
             Maximum depth of the tree.
+        max_samples (float):
+            If an int, then it is the number of samples to draw to train
+            each tree. If a float, then it is the fraction of samples to draw
+            to train each tree. If None, then each tree contains the same
+            total number of samples as originally provided.
         random_state (int):
             Random seed for reproducibility.
         transformation (str):
@@ -100,11 +109,13 @@ def process(
         experiment=experiment,
         feature_config=feature_config,
         target_diagnostic_name=target_diagnostic_name,
+        target_cf_name=target_cf_name,
         forecast_periods=forecast_periods,
         cycletime=cycletime,
         training_length=training_length,
         n_estimators=n_estimators,
         max_depth=max_depth,
+        max_samples=max_samples,
         random_state=random_state,
         transformation=transformation,
         pre_transform_addition=pre_transform_addition,

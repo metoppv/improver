@@ -60,9 +60,6 @@ def _create_multi_site_forecast_parquet_file(tmp_path, representation="percentil
     wind_speed_df = pd.DataFrame(wind_speed_dict)
     joined_df = pd.concat([data_df, wind_speed_df], ignore_index=True)
 
-    joined_df["forecast_period"] = joined_df["forecast_period"].astype(
-        "timedelta64[ms]"
-    )
     output_dir = tmp_path / "forecast_parquet_files"
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path = str(output_dir / "forecast.parquet")
@@ -101,9 +98,6 @@ def _create_multi_percentile_forecast_parquet_file(tmp_path, representation=None
     data_df = pd.DataFrame(data_dict)
     wind_speed_df = pd.DataFrame(wind_speed_dict)
     joined_df = pd.concat([data_df, wind_speed_df], ignore_index=True)
-    joined_df["forecast_period"] = joined_df["forecast_period"].astype(
-        "timedelta64[ms]"
-    )
 
     output_dir = tmp_path / "forecast_parquet_files"
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -152,9 +146,6 @@ def _create_multi_forecast_period_forecast_parquet_file(tmp_path, representation
     data_df = pd.DataFrame(data_dict)
     wind_speed_df = pd.DataFrame(wind_speed_dict)
     joined_df = pd.concat([data_df, wind_speed_df], ignore_index=True)
-    joined_df["forecast_period"] = joined_df["forecast_period"].astype(
-        "timedelta64[ms]"
-    )
 
     output_dir = tmp_path / "forecast_parquet_files"
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -353,7 +344,7 @@ def _create_ancil_file(tmp_path, wmo_ids):
             False,
             False,
             "realization",  # Provide realization input
-            5.6,
+            5.62,
         ),
         (
             _create_multi_forecast_period_forecast_parquet_file,
@@ -391,7 +382,7 @@ def test_load_and_train_qrf(
     model_output = str(model_output_dir / "qrf_model.pkl")
 
     if include_static:
-        ancil_path = _create_ancil_file(tmp_path, list(set(wmo_ids)))
+        ancil_path = _create_ancil_file(tmp_path, sorted(list(set(wmo_ids))))
         file_paths.append(ancil_path)
         feature_config["distance_to_water"] = ["static"]
 
@@ -403,6 +394,7 @@ def test_load_and_train_qrf(
         experiment="latestblend",
         feature_config=feature_config,
         target_diagnostic_name="temperature_at_screen_level",
+        target_cf_name="air_temperature",
         forecast_periods=forecast_periods,
         cycletime="20170103T0000Z",
         training_length=2,
@@ -423,7 +415,7 @@ def test_load_and_train_qrf(
     if remove_target:
         current_forecast = []
     else:
-        current_forecast = [279, 3, 55]
+        current_forecast = [5.64, 3, 55]
 
     if include_static:
         current_forecast.append(2.5)
@@ -459,6 +451,7 @@ def test_load_and_train_qrf_no_paths(tmp_path, make_files):
         experiment="latestblend",
         feature_config=feature_config,
         target_diagnostic_name="temperature_at_screen_level",
+        target_cf_name="air_temperature",
         forecast_periods="6:12:6",
         cycletime="20170102T0000Z",
         training_length=2,
@@ -503,6 +496,7 @@ def test_load_and_train_qrf_mismatches(tmp_path, cycletime, forecast_periods):
         experiment="latestblend",
         feature_config=feature_config,
         target_diagnostic_name="temperature_at_screen_level",
+        target_cf_name="air_temperature",
         forecast_periods=forecast_periods,
         cycletime=cycletime,
         training_length=2,
@@ -586,6 +580,7 @@ def test_exceptions(
         experiment="latestblend",
         feature_config=feature_config,
         target_diagnostic_name="temperature_at_screen_level",
+        target_cf_name="air_temperature",
         forecast_periods=forecast_periods,
         cycletime="20170103T0000Z",
         training_length=2,

@@ -43,6 +43,8 @@ def test_basic(
         config_path,
         "--target-diagnostic-name",
         "temperature_at_screen_level",
+        "--target-cf-name",
+        "air_temperature",
         "--forecast-periods",
         "6:18:6",
         "--cycletime",
@@ -59,7 +61,7 @@ def test_basic(
         "42",
         "--compression",
         "5",
-        "--model-output",
+        "--output",
         output_path,
     ]
     if transformation == "with_transformation":

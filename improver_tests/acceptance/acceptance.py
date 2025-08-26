@@ -320,6 +320,8 @@ def compare(
         rtol (float): Relative tolerance
         exclude_vars (Iterable[str]): Variables to exclude from comparison
         exclude_attributes (Iterable[str]): Attributes to exclude from comparison
+        file_type (str): Name of file type to compare, either "netCDF" or
+            "pickled_forest".
 
     Returns:
         None

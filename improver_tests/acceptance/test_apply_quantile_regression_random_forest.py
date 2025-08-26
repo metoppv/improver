@@ -30,7 +30,7 @@ def test_basic(tmp_path, transformation):
         qrf_path,
         "--feature-config",
         config_path,
-        "--target-cube-name",
+        "--target-cf-name",
         "air_temperature",
         "--output",
         output_path,
