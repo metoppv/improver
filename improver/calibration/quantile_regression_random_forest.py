@@ -196,6 +196,7 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
         **kwargs,
     ) -> None:
         """Initialise the plugin.
+
         Args:
             target_name (str):
                 Name of the target variable to be calibrated e.g. 'air_temperature'.
@@ -209,12 +210,12 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
                 should state "static". In this case, the name of feature e.g.
                 'distance_to_water' is expected to be a column name in the input
                 dataframe. The config will have the structure:
-                    "DYNAMIC_VARIABLE_CF_NAME": ["FEATURE1", "FEATURE2"] e.g:
-                    {
-                    "air_temperature": ["mean", "std", "altitude"],
-                    "visibility_at_screen_level": ["mean", "std"]
-                    "distance_to_water": ["static"],
-                    }
+                "DYNAMIC_VARIABLE_CF_NAME": ["FEATURE1", "FEATURE2"] e.g.
+                {
+                "air_temperature": ["mean", "std", "altitude"],
+                "visibility_at_screen_level": ["mean", "std"]
+                "distance_to_water": ["static"],
+                }
             n_estimators (int):
                 Number of trees in the forest.
             max_depth (int):
@@ -236,6 +237,7 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
                 Full path including model file name that will store the pickled model.
             kwargs:
                 Additional keyword arguments for the quantile regression model.
+
         """
         self.target_name = target_name
         self.feature_config = feature_config
@@ -281,6 +283,7 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
         truth_df: pd.DataFrame,
     ) -> None:
         """Train a quantile regression random forests model.
+
         Args:
             forecast_df:
                 DataFrame containing the forecast information and features.
@@ -303,6 +306,7 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
             operational ensemble post-processing in France using machine learning,
             Nonlin. Processes Geophys., 27, 329–347,
             https://doi.org/10.5194/npg-27-329-2020, 2020.
+
         """
         if self.transformation:
             forecast_df[self.target_name] = getattr(np, self.transformation)(
@@ -351,6 +355,7 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
         pre_transform_addition: np.float32 = 0,
     ) -> None:
         """Initialise the plugin.
+
         Args:
             target_name (str):
                 Name of the target variable to be calibrated.
@@ -364,12 +369,12 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
                 should state "static". In this case, the name of feature e.g.
                 'distance_to_water' is expected to be a column name in the input
                 dataframe. The config will have the structure:
-                    "DYNAMIC_VARIABLE_CF_NAME": ["FEATURE1", "FEATURE2"] e.g:
-                    {
-                    "air_temperature": ["mean", "std", "altitude"],
-                    "visibility_at_screen_level": ["mean", "std"]
-                    "distance_to_water": ["static"],
-                    }
+                "DYNAMIC_VARIABLE_CF_NAME": ["FEATURE1", "FEATURE2"] e.g.
+                {
+                "air_temperature": ["mean", "std", "altitude"],
+                "visibility_at_screen_level": ["mean", "std"]
+                "distance_to_water": ["static"],
+                }
             quantiles (float):
                 Quantiles used for prediction (values ranging from 0 to 1).
             transformation (str):
@@ -379,6 +384,7 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
 
         Raises:
             ValueError: If the transformation is not one of the supported types.
+
         """
         self.target_name = target_name
         self.feature_config = feature_config
