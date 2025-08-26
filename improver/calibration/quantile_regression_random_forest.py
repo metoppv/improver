@@ -5,11 +5,13 @@
 """Plugins to perform quantile regression using random forests."""
 
 from typing import Optional
+import typing
+if typing.TYPE_CHECKING:
+    from quantile_forest import RandomForestQuantileRegressor 
 
 import joblib
 import numpy as np
 import pandas as pd
-from quantile_forest import RandomForestQuantileRegressor
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.constants import DAYS_IN_YEAR, HOURS_IN_DAY
@@ -255,7 +257,7 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
 
     def fit_qrf(
         self, forecast_features: np.ndarray, target: np.ndarray
-    ) -> RandomForestQuantileRegressor:
+    ) -> "RandomForestQuantileRegressor":
         """Fit the quantile regression random forest model.
         Args:
             forecast_features (numpy.ndarray):

@@ -12,8 +12,6 @@ from typing import Optional
 import iris
 import numpy as np
 import pandas as pd
-import pyarrow as pa
-import pyarrow.parquet as pq
 from iris.pandas import as_data_frame
 
 from improver import PostProcessingPlugin
@@ -80,6 +78,7 @@ class LoadAndTrainQRF(PostProcessingPlugin):
             ValueError: If the number of cubes loaded does not match the number of
                 features expected.
         """
+        import pyarrow.parquet as pq
 
         forecast_table_path = None
         truth_table_path = None
@@ -145,6 +144,8 @@ class LoadAndTrainQRF(PostProcessingPlugin):
             ValueError: If the truth parquet file does not contain the expected
                 fields.
         """
+        import pyarrow as pa
+        import pyarrow.parquet as pq
         cycletimes = []
         for forecast_period in forecast_periods:
             # Load forecasts from parquet file filtering by diagnostic and blend_time.

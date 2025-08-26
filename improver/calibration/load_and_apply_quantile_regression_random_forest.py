@@ -15,7 +15,11 @@ import numpy as np
 import pandas as pd
 from iris.cube import Cube, CubeList
 from iris.pandas import as_data_frame
-from quantile_forest import RandomForestQuantileRegressor
+
+import typing
+if typing.TYPE_CHECKING:
+    from quantile_forest import RandomForestQuantileRegressor 
+
 
 from improver import PostProcessingPlugin
 from improver.calibration import add_warning_comment
@@ -71,6 +75,7 @@ class LoadAndApplyQRF(PostProcessingPlugin):
                 Value to be added before transformation.
 
         """
+
         self.feature_config = feature_config
         self.target_cf_name = target_cf_name
         self.transformation = transformation
@@ -78,7 +83,7 @@ class LoadAndApplyQRF(PostProcessingPlugin):
 
     def _get_inputs(
         self, file_paths: list[pathlib.Path]
-    ) -> tuple[CubeList, Cube, RandomForestQuantileRegressor]:
+    ) -> tuple[CubeList, Cube, "RandomForestQuantileRegressor"]:
         """Get inputs from disk and separate the model and the features.
 
         Args:
@@ -94,6 +99,7 @@ class LoadAndApplyQRF(PostProcessingPlugin):
             ValueError: If no features are found in the provided file paths.
             ValueError: If the number of inputs does not match the number of file paths.
         """
+        
         cube_inputs = iris.cube.CubeList([])
         qrf_model = None
 
@@ -248,6 +254,7 @@ class LoadAndApplyQRF(PostProcessingPlugin):
             iris.cube.Cube:
                 The calibrated forecast cube.
         """
+
         cube_inputs, forecast_cube, qrf_model = self._get_inputs(file_paths)
         if not qrf_model:
             return forecast_cube
