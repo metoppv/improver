@@ -408,13 +408,15 @@ def compare_pickled_forest(
 
     difference_found = False
     try:
-        assert output.n_features_in_ == kgo.n_features_in_
-        assert output.n_outputs_ == kgo.n_outputs_
-        assert output.max_depth == kgo.max_depth
-        assert output.n_estimators == kgo.n_estimators
-        assert output.random_state == kgo.random_state
+        np.testing.assert_equal(output.n_features_in_, kgo.n_features_in_)
+        np.testing.assert_equal(output.n_outputs_, kgo.n_outputs_)
+        np.testing.assert_equal(output.max_depth, kgo.max_depth)
+        np.testing.assert_equal(output.n_estimators, kgo.n_estimators)
+        np.testing.assert_equal(output.random_state, kgo.random_state)
         for output_estimator, kgo_estimator in zip(output.estimators_, kgo.estimators_):
-            assert (output_estimator.tree_.value == kgo_estimator.tree_.value).all()
+            np.testing.assert_allclose(
+                output_estimator.tree_.value, kgo_estimator.tree_.value
+            )
     except (AssertionError, ValueError):
         difference_found = True
     # call the reporter function outside the except block to avoid nested
