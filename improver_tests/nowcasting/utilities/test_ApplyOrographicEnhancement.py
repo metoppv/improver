@@ -379,7 +379,7 @@ class Test__apply_minimum_precip_rate(IrisTest):
             [
                 [
                     [0.0, 1.0, 2.0],
-                    [np.NaN, np.NaN, np.NaN],
+                    [np.nan, np.nan, np.nan],
                     [0.0, 1.0, MIN_PRECIP_RATE_MMH],
                 ]
             ]
@@ -388,7 +388,7 @@ class Test__apply_minimum_precip_rate(IrisTest):
         subtracted_cube = self.subtracted_cube.copy()
         subtracted_cube.convert_units("mm/hr")
         subtracted_cube.data = np.array(
-            [[[0.0, 1.0, 2.0], [np.NaN, np.NaN, np.NaN], [0.0, 1.0, 0.0]]]
+            [[[0.0, 1.0, 2.0], [np.nan, np.nan, np.nan], [0.0, 1.0, 0.0]]]
         )
         subtracted_cube.convert_units("m/s")
         plugin = ApplyOrographicEnhancement("subtract")
@@ -483,7 +483,7 @@ class Test_process(IrisTest):
             new_precip_cubes.append(precip_cube)
 
         plugin = ApplyOrographicEnhancement("add")
-        result = plugin.process(self.precip_cubes, self.oe_cube)
+        result = plugin.process(precip_cubes, self.oe_cube)
 
         self.assertIsInstance(result, iris.cube.CubeList)
         for aresult, precip_cube in zip(result, self.precip_cubes):
@@ -530,7 +530,7 @@ class Test_process(IrisTest):
             new_precip_cubes.append(precip_cube)
 
         plugin = ApplyOrographicEnhancement("subtract")
-        result = plugin.process(self.precip_cubes, self.oe_cube)
+        result = plugin.process(precip_cubes, self.oe_cube)
         self.assertIsInstance(result, iris.cube.CubeList)
         for aresult, precip_cube in zip(result, self.precip_cubes):
             self.assertIsInstance(aresult.data, np.ma.MaskedArray)

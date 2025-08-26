@@ -476,8 +476,7 @@ class Test_process(Test_ReliabilityCalibrate):
         )
         warning_msg = (
             "The following thresholds were not calibrated due to "
-            "insufficient forecast counts in reliability table "
-            "bins: \\[275.0\\]"
+            "insufficient forecast counts in reliability table bins: \\[275.0\\]"
         )
         with pytest.warns(UserWarning, match=warning_msg):
             result = self.plugin.process(self.forecast, reliability_cubelist)

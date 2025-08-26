@@ -267,6 +267,19 @@ class Test_process(CombinerTest):
             result.coord("time").bounds, self.cube1.coord("time").bounds
         )
 
+    def test_bounds_midpoint(self):
+        """Test that the plugin calculates the sum of the input cubes and
+        the midpoint of the bounds is returned"""
+        plugin = CubeCombiner("add", expand_bound=True, midpoint_bound=True)
+        cubelist = iris.cube.CubeList([self.cube1, self.cube2])
+        result = plugin.process(cubelist, "new_cube_name")
+        expected_data = np.full((2, 2), 1.1, dtype=np.float32)
+        self.assertEqual(result.name(), "new_cube_name")
+        self.assertArrayAlmostEqual(result.data, expected_data)
+
+        self.assertEqual(result.coord("time").points[0], 1447891200)
+        self.assertArrayEqual(result.coord("time").bounds, [[1447887600, 1447894800]])
+
     def test_unmatched_scalar_coords(self):
         """Test a scalar coordinate that is present on the first cube is
         present unmodified on the output; and if present on a later cube is

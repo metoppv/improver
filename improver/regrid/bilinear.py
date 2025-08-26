@@ -168,7 +168,7 @@ def adjust_boundary_indexes(
         )[0]
 
         # if point_lat_lon_max_index exists, handle it.
-        if point_lat_lon_max_index:
+        if point_lat_lon_max_index.size > 0:
             point_lat_lon_max = point_lat_max[point_lat_lon_max_index[0]]
             point_lat_max = np.delete(
                 point_lat_max, np.where(point_lat_max == point_lat_lon_max)[0]

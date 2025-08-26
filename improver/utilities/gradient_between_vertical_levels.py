@@ -92,7 +92,7 @@ class GradientBetweenVerticalLevels(BasePlugin):
                 if geopotential_height:
                     height_ASL = geopotential_height.extract(
                         iris.Constraint(pressure=cube.coord("pressure").points)
-                    )
+                    ).data
                     coord_used.append("pressure")
                 else:
                     raise ValueError(
@@ -101,7 +101,7 @@ class GradientBetweenVerticalLevels(BasePlugin):
                     )
             else:
                 if orography:
-                    height_ASL = orography + cube_height
+                    height_ASL = orography.data + cube_height
                     coord_used.append("height")
                 elif not (orography or geopotential_height):
                     height_ASL = cube_height
@@ -114,7 +114,7 @@ class GradientBetweenVerticalLevels(BasePlugin):
             cube_heights.append(height_ASL)
 
         height_diff = cube_heights[0] - cube_heights[1]
-        height_diff.data = np.ma.masked_where(height_diff.data == 0, height_diff.data)
+        height_diff = np.ma.masked_where(height_diff == 0, height_diff)
 
         if "height" in coord_used and "pressure" in coord_used:
             try:

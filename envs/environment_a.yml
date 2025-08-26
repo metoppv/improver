@@ -2,34 +2,26 @@
 name: improver_a
 channels:
   - conda-forge
-  - main
 dependencies:
-  - python=3.7
+  - python=3.12
   # Required
-  - cartopy=0.19
-  - cftime=1.2.1
-  - cf-units=2.1.5
-  - clize=4.1.1
-  - dask=2021.8.1
-  - iris=3.0.3
-  - netCDF4=1.4.1
-  - numpy=1.20.2
-  - pandas=1.2.4
-  - pytz=2020.5
-  - scipy=1.6.2
-  - sigtools=2.0.2
-  - sphinx=4.0.1
+  - cartopy
+  - clize
+  - iris=3.12
+  - numpy=2.2
+  - pandas
+  - pytz
+  - scipy=1.15
+  - sphinx
   # Optional
-  - fastparquet=0.7.1
-  - statsmodels=0.12.2
-  - numba=0.53.1
-  - pygam=0.8.0
-  - pysteps=1.4.1
-  - python-stratify=0.1.1
-  - python-utils=3.5.2
+  - fastparquet
+  - statsmodels
+  - numba
+  - pygam
+  - pysteps
+  - python-stratify
   # Development
   - astroid
-  - bandit
   - codacy-coverage
   - filelock
   - mock
@@ -37,7 +29,6 @@ dependencies:
   - pytest
   - pytest-cov
   - pytest-xdist
-  - safety
   - sphinx-autodoc-typehints
   - sphinx_rtd_theme
   - threadpoolctl

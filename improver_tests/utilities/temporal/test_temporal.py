@@ -90,9 +90,9 @@ class Test_cycletime_to_number(IrisTest):
     def test_basic(self):
         """Test that a number is returned of the expected value."""
         cycletime = "20171122T0000Z"
-        dt = 419808.0
+        dt = 419808
         result = cycletime_to_number(cycletime)
-        self.assertIsInstance(result, float)
+        self.assertIsInstance(result, np.int64)
         self.assertAlmostEqual(result, dt)
 
     def test_cycletime_format_defined(self):
