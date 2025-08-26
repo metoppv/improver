@@ -192,7 +192,7 @@ class LoadAndTrainQRF(PostProcessingPlugin):
         )
 
         forecast_df = forecast_df[
-            forecast_df["forecast_period"].isin(np.array(forecast_periods)* 1e9)
+            forecast_df["forecast_period"].isin(np.array(forecast_periods) * 1e9)
         ]
         # Convert df columns from ns to pandas timestamp object.
         for column in ["time", "forecast_reference_time", "blend_time"]:
@@ -233,7 +233,7 @@ class LoadAndTrainQRF(PostProcessingPlugin):
         Returns:
             List of intersecting times as pandas Timestamp objects.
         """
-        # Calling unique() on the time column is quicker than relying upon set() to 
+        # Calling unique() on the time column is quicker than relying upon set() to
         # find the unique times.
         return list(
             set(forecast_df["time"].unique()).intersection(
@@ -285,9 +285,7 @@ class LoadAndTrainQRF(PostProcessingPlugin):
             subset=["latitude", "longitude", "altitude", "ob_value"], inplace=True
         )
 
-        wmo_ids = set(forecast_df["wmo_id"]).intersection(
-            set(truth_df["wmo_id"])
-        )
+        wmo_ids = set(forecast_df["wmo_id"]).intersection(set(truth_df["wmo_id"]))
 
         forecast_df = forecast_df[forecast_df["wmo_id"].isin(wmo_ids)]
         truth_df = truth_df[truth_df["wmo_id"].isin(wmo_ids)]
@@ -320,6 +318,7 @@ class LoadAndTrainQRF(PostProcessingPlugin):
         forecast_table_path, truth_table_path, cube_inputs = (
             self._split_cubes_and_parquet_files(file_paths)
         )
+
         if not forecast_table_path or not truth_table_path:
             return None
 

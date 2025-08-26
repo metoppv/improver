@@ -79,9 +79,7 @@ def prep_feature(
             doy_df[feature_name] = np.cos(
                 2 * np.pi * doy_df["day_of_year"].values / (DAYS_IN_YEAR + 1)
             ).astype(np.float32)
-        df = df.merge(
-            doy_df[["time", feature_name]], on="time", how="left"
-        )
+        df = df.merge(doy_df[["time", feature_name]], on="time", how="left")
     elif feature_name in ["hour_of_day", "hour_of_day_sin", "hour_of_day_cos"]:
         # For hour_of_day, unlike day_of_year, the hour attribute doesn't require
         # computation, therefore there is no benefit to creating the separate DataFrame
