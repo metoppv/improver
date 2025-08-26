@@ -207,7 +207,10 @@ class LoadAndTrainQRF(PostProcessingPlugin):
         # Load truths from parquet file filtering by diagnostic.
         filters = [[("diagnostic", "==", self.target_diagnostic_name)]]
         truth_df = pd.read_parquet(
-            truth_table_path, filters=filters, schema=CalibrationSchemas.TRUTH_SCHEMA, engine="pyarrow"
+            truth_table_path,
+            filters=filters,
+            schema=CalibrationSchemas.TRUTH_SCHEMA,
+            engine="pyarrow",
         )
 
         truth_df["time"] = pd.to_datetime(truth_df["time"], unit="ns", utc=True)

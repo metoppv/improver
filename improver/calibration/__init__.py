@@ -16,8 +16,10 @@ from improver.metadata.probabilistic import (
 )
 from improver.utilities.cube_manipulation import MergeCubes
 
-class CalibrationSchemas():
+
+class CalibrationSchemas:
     import pyarrow as pa
+
     FORECAST_SCHEMA = pa.schema(
         [
             ("percentile", pa.float64()),
