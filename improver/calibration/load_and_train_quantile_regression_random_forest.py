@@ -17,7 +17,7 @@ import pyarrow.parquet as pq
 from iris.pandas import as_data_frame
 
 from improver import PostProcessingPlugin
-from improver.calibration import FORECAST_SCHEMA, TRUTH_SCHEMA
+from improver.calibration import CalibrationSchemas
 from improver.calibration.quantile_regression_random_forest import (
     TrainQuantileRegressionRandomForests,
 )
@@ -171,10 +171,10 @@ class LoadAndTrainQRF(PostProcessingPlugin):
 
         example_file_path = next(Path(forecast_table_path).glob("**/*.parquet"))
         if pq.read_schema(example_file_path).get_all_field_indices("percentile"):
-            altered_schema = FORECAST_SCHEMA
+            altered_schema = CalibrationSchemas.FORECAST_SCHEMA
         elif pq.read_schema(example_file_path).get_all_field_indices("realization"):
-            altered_schema = FORECAST_SCHEMA.remove(
-                FORECAST_SCHEMA.get_field_index("percentile")
+            altered_schema = CalibrationSchemas.FORECAST_SCHEMA.remove(
+                CalibrationSchemas.FORECAST_SCHEMA.get_field_index("percentile")
             )
             altered_schema = altered_schema.append(pa.field("realization", pa.int64()))
         else:
@@ -207,7 +207,7 @@ class LoadAndTrainQRF(PostProcessingPlugin):
         # Load truths from parquet file filtering by diagnostic.
         filters = [[("diagnostic", "==", self.target_diagnostic_name)]]
         truth_df = pd.read_parquet(
-            truth_table_path, filters=filters, schema=TRUTH_SCHEMA, engine="pyarrow"
+            truth_table_path, filters=filters, schema=CalibrationSchemas.TRUTH_SCHEMA, engine="pyarrow"
         )
 
         truth_df["time"] = pd.to_datetime(truth_df["time"], unit="ns", utc=True)
