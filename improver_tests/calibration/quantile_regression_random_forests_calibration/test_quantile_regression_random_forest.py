@@ -4,10 +4,10 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the Quantile Regression Random Forest plugins."""
 
+import itertools
 from datetime import datetime as dt
 
 import iris
-import itertools
 import joblib
 import numpy as np
 import pandas as pd
