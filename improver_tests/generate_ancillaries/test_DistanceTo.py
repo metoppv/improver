@@ -245,7 +245,7 @@ def test_distance_to_with_points_geometry(
     single_site_cube.coord("latitude").points = site_latitude
     single_site_cube.coord("longitude").points = site_longitude
 
-    output_cube = DistanceTo()(single_site_cube, geometry)
+    output_cube = DistanceTo(3035)(single_site_cube, geometry)
     assert output_cube.name() == "rain_rate"
     assert output_cube.units == "m"
     assert output_cube.coord("latitude").points == site_latitude
@@ -286,7 +286,7 @@ def test_distance_to_with_line_geometry(
     single_site_cube.coord("latitude").points = site_latitude
     single_site_cube.coord("longitude").points = site_longitude
 
-    output_cube = DistanceTo()(single_site_cube, geometry)
+    output_cube = DistanceTo(3035)(single_site_cube, geometry)
     assert output_cube.name() == "rain_rate"
     assert output_cube.units == "m"
     assert output_cube.coord("latitude").points == site_latitude
@@ -329,7 +329,7 @@ def test_distance_to_with_polygon_geometry(
     single_site_cube.coord("latitude").points = site_latitude
     single_site_cube.coord("longitude").points = site_longitude
 
-    output_cube = DistanceTo()(single_site_cube, geometry)
+    output_cube = DistanceTo(3035)(single_site_cube, geometry)
     assert output_cube.name() == "rain_rate"
     assert output_cube.units == "m"
     assert output_cube.coord("latitude").points == site_latitude
@@ -358,7 +358,7 @@ def test_distance_to_with_multiple_sites(
 
     geometry = request.getfixturevalue(f"geometry_{geometry_type}_{geometry_crs}")
 
-    output_cube = DistanceTo()(multiple_site_cube, geometry)
+    output_cube = DistanceTo(3035)(multiple_site_cube, geometry)
     assert output_cube.name() == "rain_rate"
     assert output_cube.units == "m"
 
@@ -371,7 +371,7 @@ def test_distance_to_with_new_name(single_site_cube, geometry_point_laea):
     single_site_cube.coord("latitude").points = 49.539047274
     single_site_cube.coord("longitude").points = -1.386459578
 
-    output_cube = DistanceTo(new_name="distance_to_river")(
+    output_cube = DistanceTo(3035, new_name="distance_to_river")(
         single_site_cube, geometry_point_laea
     )
     assert output_cube.name() == "distance_to_river"
@@ -409,11 +409,11 @@ def test_distance_to_clipping_loss_of_data(
     geometry = GeoDataFrame(geometry=data, crs="EPSG:3035")
 
     if clip:
-        output_cube = DistanceTo(clip_geometry_flag=True, buffer=buffer)(
+        output_cube = DistanceTo(3035, clip_geometry_flag=True, buffer=buffer)(
             site_cubes, geometry
         )
     else:
-        output_cube = DistanceTo(clip_geometry_flag=False)(site_cubes, geometry)
+        output_cube = DistanceTo(3035, clip_geometry_flag=False)(site_cubes, geometry)
 
     assert output_cube.name() == "rain_rate"
     assert output_cube.units == "m"
@@ -427,6 +427,19 @@ def test_distance_to_with_empty_geometry(single_site_cube, geometry_point_laea):
     with pytest.raises(
         ValueError, match="Clipping the geometry with a buffer size of 100m"
     ):
-        DistanceTo(clip_geometry_flag=True, buffer=100)(
+        DistanceTo(3035, clip_geometry_flag=True, buffer=100)(
             single_site_cube, geometry_point_laea
         )
+
+
+def test_distance_to_with_unsuitable_projection(single_site_cube, geometry_point_laea):
+    """Test the DistanceTo plugin raises a ValueError when the projection is unsuitable."""
+
+    msg = (
+        "The provided projection defined by EPSG code 3112 is not suitable "
+        "for the site locations provided. Limits of this domain are: x: 112.85 "
+        "to 153.69, y: -43.7 to -9.86, whilst the site locations are bounded by "
+        "x: -1.386459578 to -1.386459578, y: 49.539047274 to 49.539047274."
+    )
+    with pytest.raises(ValueError, match=msg):
+        DistanceTo(3112)(single_site_cube, geometry_point_laea)
