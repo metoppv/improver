@@ -16,7 +16,8 @@ from improver.constants import DAYS_IN_YEAR, HOURS_IN_DAY
 try:
     from quantile_forest import RandomForestQuantileRegressor
 except ModuleNotFoundError:
-    pass
+    class RandomForestQuantileRegressor:
+        pass
 
 
 def quantile_forest_package_available():
@@ -269,7 +270,7 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
 
     def fit_qrf(
         self, forecast_features: np.ndarray, target: np.ndarray
-    ) -> "RandomForestQuantileRegressor":
+    ) -> RandomForestQuantileRegressor:
         """Fit the quantile regression random forest model.
         Args:
             forecast_features (numpy.ndarray):
@@ -427,7 +428,7 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
 
     def process(
         self,
-        qrf_model: "RandomForestQuantileRegressor",
+        qrf_model: RandomForestQuantileRegressor,
         forecast_df: pd.DataFrame,
     ) -> np.ndarray:
         """Apply a quantile regression random forests model.

@@ -31,7 +31,8 @@ from improver.utilities.cube_checker import assert_spatial_coords_match
 try:
     from quantile_forest import RandomForestQuantileRegressor
 except ModuleNotFoundError:
-    pass
+    class RandomForestQuantileRegressor:
+        pass
 
 iris.FUTURE.pandas_ndim = True
 
@@ -85,7 +86,7 @@ class LoadAndApplyQRF(PostProcessingPlugin):
 
     def _get_inputs(
         self, file_paths: list[pathlib.Path]
-    ) -> tuple[CubeList, Cube, "RandomForestQuantileRegressor"]:
+    ) -> tuple[CubeList, Cube, RandomForestQuantileRegressor]:
         """Get inputs from disk and separate the model and the features.
 
         Args:
