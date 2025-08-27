@@ -18,10 +18,11 @@ try:
 except ModuleNotFoundError:
     pass
 
+
 def quantile_forest_package_available():
     """Return True if quantile_forest package is available, False otherwise."""
     try:
-        from quantile_forest import RandomForestQuantileRegressor # noqa F401
+        from quantile_forest import RandomForestQuantileRegressor  # noqa F401
     except ModuleNotFoundError:
         return False
     return True
@@ -268,7 +269,7 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
 
     def fit_qrf(
         self, forecast_features: np.ndarray, target: np.ndarray
-    ) -> RandomForestQuantileRegressor:
+    ) -> "RandomForestQuantileRegressor":
         """Fit the quantile regression random forest model.
         Args:
             forecast_features (numpy.ndarray):
@@ -426,7 +427,7 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
 
     def process(
         self,
-        qrf_model: RandomForestQuantileRegressor,
+        qrf_model: "RandomForestQuantileRegressor",
         forecast_df: pd.DataFrame,
     ) -> np.ndarray:
         """Apply a quantile regression random forests model.

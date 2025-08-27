@@ -17,10 +17,10 @@ from iris.pandas import as_data_frame
 from improver import PostProcessingPlugin
 from improver.calibration import CalibrationSchemas
 from improver.calibration.quantile_regression_random_forest import (
-    TrainQuantileRegressionRandomForests, quantile_forest_package_available
+    TrainQuantileRegressionRandomForests,
+    quantile_forest_package_available,
 )
 from improver.utilities.load import load_cube
-
 
 iris.FUTURE.pandas_ndim = True
 
@@ -148,6 +148,7 @@ class LoadAndTrainQRF(PostProcessingPlugin):
         """
         import pyarrow as pa
         import pyarrow.parquet as pq
+
         cycletimes = []
         for forecast_period in forecast_periods:
             # Load forecasts from parquet file filtering by diagnostic and blend_time.

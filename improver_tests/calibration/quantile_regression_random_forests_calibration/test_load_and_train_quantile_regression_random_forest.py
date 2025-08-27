@@ -13,9 +13,6 @@ import pytest
 from improver.calibration.load_and_train_quantile_regression_random_forest import (
     LoadAndTrainQRF,
 )
-from improver.calibration.quantile_regression_random_forest import (
-    quantile_forest_package_available,
-)
 from improver.synthetic_data.set_up_test_cubes import set_up_spot_variable_cube
 
 pytest.importorskip("quantile_forest")

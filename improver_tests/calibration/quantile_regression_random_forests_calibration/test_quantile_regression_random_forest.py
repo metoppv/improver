@@ -28,7 +28,6 @@ from improver.calibration.quantile_regression_random_forest import (
 from improver.metadata.constants.time_types import DT_FORMAT
 from improver.synthetic_data.set_up_test_cubes import set_up_spot_variable_cube
 
-
 pytest.importorskip("quantile_forest")
 
 ALTITUDE = [10, 20]

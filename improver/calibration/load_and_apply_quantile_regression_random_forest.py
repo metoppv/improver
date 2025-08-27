@@ -19,7 +19,8 @@ from iris.pandas import as_data_frame
 from improver import PostProcessingPlugin
 from improver.calibration import add_warning_comment
 from improver.calibration.quantile_regression_random_forest import (
-    ApplyQuantileRegressionRandomForests, quantile_forest_package_available
+    ApplyQuantileRegressionRandomForests,
+    quantile_forest_package_available,
 )
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     RebadgePercentilesAsRealizations,
@@ -84,7 +85,7 @@ class LoadAndApplyQRF(PostProcessingPlugin):
 
     def _get_inputs(
         self, file_paths: list[pathlib.Path]
-    ) -> tuple[CubeList, Cube, RandomForestQuantileRegressor]:
+    ) -> tuple[CubeList, Cube, "RandomForestQuantileRegressor"]:
         """Get inputs from disk and separate the model and the features.
 
         Args:
