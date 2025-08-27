@@ -22,6 +22,8 @@ from improver_tests.calibration.quantile_regression_random_forests_calibration.t
     _run_train_qrf,
 )
 
+pytest.importorskip("quantile_forest")
+
 
 def _add_day_of_training_period_to_cube(cube, day_of_training_period, secondary_coord):
     """Add day of training period coordinate to the cube.
@@ -159,13 +161,14 @@ def test_load_and_apply_qrf(
         "missing_target_feature",
         "missing_static_feature",
         "missing_dynamic_feature",
+        "no_quantile_forest_package",
     ],
 )
-def test_exceptions(
+def test_unexpected(
     tmp_path,
     exception,
 ):
-    """Test the expected exceptions caused by the LoadAndApplyQRF plugin."""
+    """Test LoadAndApplyQRF plugin behaviour in atypical situations."""
     feature_config = {"wind_speed_at_10m": ["mean", "std", "latitude", "longitude"]}
 
     n_estimators = 2
@@ -260,5 +263,14 @@ def test_exceptions(
         file_paths = [model_output, forecast_filepath]
         with pytest.raises(ValueError, match="The number of cubes loaded."):
             plugin.process(file_paths=file_paths)
+    elif exception == "no_quantile_forest_package":
+        plugin.quantile_forest_installed = False
+        file_paths = [model_output, forecast_filepath]
+        result = plugin.process(file_paths=file_paths)
+        assert isinstance(result, Cube)
+        assert result.name() == "wind_speed_at_10m"
+        assert result.units == "m s-1"
+        assert result.data.shape == forecast_cube.data.shape
+        assert np.allclose(result.data, forecast_cube.data)
     else:
         raise ValueError(f"Unknown exception type: {exception}")

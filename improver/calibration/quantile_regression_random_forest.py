@@ -5,9 +5,6 @@
 """Plugins to perform quantile regression using random forests."""
 
 from typing import Optional
-import typing
-if typing.TYPE_CHECKING:
-    from quantile_forest import RandomForestQuantileRegressor 
 
 import joblib
 import numpy as np
@@ -15,6 +12,22 @@ import pandas as pd
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.constants import DAYS_IN_YEAR, HOURS_IN_DAY
+
+try:
+    from quantile_forest import RandomForestQuantileRegressor
+except ModuleNotFoundError:
+    # Define empty class to avoid type hint errors.
+    class RandomForestQuantileRegressor:
+        pass
+
+
+def quantile_forest_package_available():
+    """Return True if quantile_forest package is available, False otherwise."""
+    try:
+        from quantile_forest import RandomForestQuantileRegressor  # noqa F401
+    except ModuleNotFoundError:
+        return False
+    return True
 
 
 def prep_feature(
@@ -241,6 +254,7 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
                 Additional keyword arguments for the quantile regression model.
 
         """
+
         self.target_name = target_name
         self.feature_config = feature_config
         self.n_estimators = n_estimators
@@ -257,7 +271,7 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
 
     def fit_qrf(
         self, forecast_features: np.ndarray, target: np.ndarray
-    ) -> "RandomForestQuantileRegressor":
+    ) -> RandomForestQuantileRegressor:
         """Fit the quantile regression random forest model.
         Args:
             forecast_features (numpy.ndarray):
@@ -268,7 +282,6 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
             qrf_model (RandomForestQuantileRegressor):
                 Fitted quantile regression model.
         """
-
         qrf_model = RandomForestQuantileRegressor(
             n_estimators=self.n_estimators,
             max_depth=self.max_depth,

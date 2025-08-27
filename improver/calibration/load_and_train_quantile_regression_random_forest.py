@@ -18,6 +18,7 @@ from improver import PostProcessingPlugin
 from improver.calibration import CalibrationSchemas
 from improver.calibration.quantile_regression_random_forest import (
     TrainQuantileRegressionRandomForests,
+    quantile_forest_package_available,
 )
 from improver.utilities.load import load_cube
 
@@ -59,6 +60,7 @@ class LoadAndTrainQRF(PostProcessingPlugin):
         self.transformation = transformation
         self.pre_transform_addition = pre_transform_addition
         self.compression = compression
+        self.quantile_forest_installed = quantile_forest_package_available()
 
     def _split_cubes_and_parquet_files(
         self, file_paths: list[pathlib.Path | str]
@@ -146,6 +148,7 @@ class LoadAndTrainQRF(PostProcessingPlugin):
         """
         import pyarrow as pa
         import pyarrow.parquet as pq
+
         cycletimes = []
         for forecast_period in forecast_periods:
             # Load forecasts from parquet file filtering by diagnostic and blend_time.
@@ -319,6 +322,8 @@ class LoadAndTrainQRF(PostProcessingPlugin):
                 Full path including model file name that will store the pickled model.
 
         """
+        if not self.quantile_forest_installed:
+            return None
         forecast_table_path, truth_table_path, cube_inputs = (
             self._split_cubes_and_parquet_files(file_paths)
         )
