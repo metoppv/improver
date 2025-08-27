@@ -16,8 +16,6 @@ from improver_tests.calibration.samos_calibration.helper_functions import (
     create_simple_cube,
 )
 
-np.random.seed(1)
-
 
 @pytest.fixture
 def model_specification():

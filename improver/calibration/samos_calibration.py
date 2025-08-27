@@ -32,105 +32,6 @@ from improver import BasePlugin
 from improver.calibration.emos_calibration import (
     EstimateCoefficientsForEnsembleCalibration,
 )
-from improver.utilities.generalized_additive_models import GAMFit, GAMPredict
-from improver.utilities.mathematical_operations import CalculateClimateAnomalies
-
-# Setting to allow cubes with more than 2 dimensions to be converted to/from dataframes.
-iris.FUTURE.pandas_ndim = True
-
-
-def prepare_data_for_gam(
-    input_cube: Cube,
-    additional_fields: Optional[CubeList] = None,
-) -> pd.DataFrame:
-    """
-    Convert input cubes in to a single, combined dataframe.
-
-    Each of the input cubes is converted to a pandas dataframe. The dataframe derived
-    from input_cube then forms the left in a series of left dataframe joins with those
-    derived from each cube in additional_fields. The x and y coordinates are used to
-    perform this join. This means that the resulting combined dataframe will contain all
-    of the sites/grid points in input_cube, but not any other sites/grid points in the
-    additional_fields cubes.
-
-    Args:
-        input_cube: A cube of forecast or observation data.
-        additional_fields: Additional cubes with points which can be matched with points
-        in input_cube by matching spatial coordinate values.
-
-    Returns:
-        A pandas dataframe with rows equal to the number of sites/grid points in
-        input_cube and containing the following columns:
-        1. A column with the same name as input_cube containing the original cube data
-        2. A series of columns derived from the input_cube dimension coordinates
-        3. A series of columns associated with any auxiliary coordinates (scalar or otherwise) of input_cube
-        4. One column associated with each of the cubes in additional cubes, with column names matching the associated cube
-
-
-    """
-    spatial_coords = [
-        input_cube.coord(axis="x").name(),
-        input_cube.coord(axis="y").name(),
-    ]
-    df = iris.pandas.as_data_frame(
-        input_cube,
-        add_aux_coords=True,
-        add_cell_measures=True,
-        add_ancillary_variables=True,
-    )
-    df.reset_index(inplace=True)
-    if additional_fields:
-        for cube in additional_fields:
-            new_df = iris.pandas.as_data_frame(
-                cube,
-                add_aux_coords=True,
-                add_cell_measures=True,
-                add_ancillary_variables=True,
-            )
-            new_df.reset_index(inplace=True)
-            match_coords = spatial_coords.copy()
-            match_coords.append(cube.name())
-            df = merge(left=df, right=new_df[match_coords], how="left")
-
-    return df
-
-
-def convert_dataframe_to_cube(
-    df: pd.DataFrame,
-    template_cube: Cube,
-) -> Cube:
-    """Function to convert a Pandas dataframe to Iris cube format by using a template
-    cube. The input template_cube provides all metadata for the output.
-
-    Args:
-        df: A Pandas dataframe which must contain at least the following columns:
-            1. A column matching the name of template_cube
-            2. A series of columns with names which match the dimension coordinates on
-            template_cube. The data in these columns should match the points on the
-            corresponding dimension of template_cube.
-        template_cube: A cube which will provide all metadata for the output cube
-
-    Returns:
-        A copy of template_cube containing data from df.
-    """
-    dim_coords = [c.name() for c in template_cube.coords(dim_coords=True)]
-    diagnostic = template_cube.name()
-
-    indexed_df = df.set_index(dim_coords, inplace=False)
-    indexed_df.sort_index(inplace=True)
-
-    converted_cube = iris.pandas.as_cubes(df[[diagnostic]])[
-        0
-    ]  # as_cubes() returns a cubelist
-    result = template_cube.copy(data=converted_cube.data)
-
-    return result
-
-
-from improver import BasePlugin
-from improver.calibration.emos_calibration import (
-    EstimateCoefficientsForEnsembleCalibration,
-)
 from improver.utilities.cube_manipulation import collapse_realizations
 from improver.utilities.generalized_additive_models import GAMFit, GAMPredict
 from improver.utilities.mathematical_operations import CalculateClimateAnomalies
@@ -641,60 +542,29 @@ class TrainEMOSForSAMOS(BasePlugin):
         landsea_mask: Optional[Cube] = None,
     ) -> CubeList:
         """Function to convert forecasts and truths to climate anomalies then calculate
-                        EMOS coefficients for the climate anomalies.
-
-        <<<<<<< HEAD
-                        Args:
-                            forecast_cubes:
-                                A list of three cubes: a cube containing historic forecasts, a cube
-                <<<<<<< HEAD
-                                containing climatological mean predictions of the forecasts and a cube
-                                containing climatological standard deviation predictions of the
-                                forecasts.
-                            truth_cubes:
-                                A list of three cubes: a cube containing historic truths, a cube
-                                containing climatological mean predictions of the truths and a cube
-                                containing climatological standard deviation predictions of the truths.
-                =======
-                                containing climatological mean predictions and a cube containing
-                                climatological standard deviation predictions.
-                            truth_cubes:
-                                A list of three cubes: a cube containing historic truths, a cube
-                                containing climatological mean predictions and a cube containing
-                                climatological standard deviation predictions.
-                >>>>>>> 7ab5bb78 (Improvements to doc-strings and other changes following first review.)
-                            additional_fields:
-                                Additional fields to use as supplementary predictors.
-                            landsea_mask:
-                                The optional cube containing a land-sea mask. If provided, only
-                                land points are used to calculate the coefficients. Within the
-                                land-sea mask cube land points should be specified as ones,
-                                and sea points as zeros.
-        =======
-                Args:
-                    forecast_cubes:
-                        A list of three cubes: a cube containing historic forecasts, a cube
-                        containing climatological mean predictions of the forecasts and a cube
-                        containing climatological standard deviation predictions of the
-                        forecasts.
-                    truth_cubes:
-                        A list of three cubes: a cube containing historic truths, a cube
-                        containing climatological mean predictions of the truths and a cube
-                        containing climatological standard deviation predictions of the truths.
-                    additional_fields:
-                        Additional fields to use as supplementary predictors.
-                    landsea_mask:
-                        The optional cube containing a land-sea mask. If provided, only
-                        land points are used to calculate the coefficients. Within the
-                        land-sea mask cube land points should be specified as ones,
-                        and sea points as zeros.
-        >>>>>>> c6a51d86 (Changes following review. Largest change is addition of calculate_statistic_by_rolling_window method to TrainGAMsForSAMOS class.)
-
-                        Returns:
-                            CubeList constructed using the coefficients provided and using
-                            metadata from the historic_forecasts cube. Each cube within the
-                            cubelist is for a separate EMOS coefficient e.g. alpha, beta,
-                            gamma, delta.
+        EMOS coefficients for the climate anomalies.
+        Args:
+            forecast_cubes:
+                A list of three cubes: a cube containing historic forecasts, a cube
+                containing climatological mean predictions of the forecasts and a cube
+                containing climatological standard deviation predictions of the
+                forecasts.
+            truth_cubes:
+                A list of three cubes: a cube containing historic truths, a cube
+                containing climatological mean predictions of the truths and a cube
+                containing climatological standard deviation predictions of the truths.
+            additional_fields:
+                Additional fields to use as supplementary predictors.
+            landsea_mask:
+                The optional cube containing a land-sea mask. If provided, only
+                land points are used to calculate the coefficients. Within the
+                land-sea mask cube land points should be specified as ones,
+                and sea points as zeros.
+        Returns:
+            CubeList constructed using the coefficients provided and using
+            metadata from the historic_forecasts cube. Each cube within the
+            cubelist is for a separate EMOS coefficient e.g. alpha, beta,
+            gamma, delta.
         """
         # Convert forecasts and truths to climatological anomalies.
         forecast_ca = CalculateClimateAnomalies(ignore_temporal_mismatch=True).process(
@@ -727,77 +597,41 @@ class TrainEMOSForSAMOS(BasePlugin):
         landsea_mask: Optional[Cube] = None,
     ) -> CubeList:
         """Function to convert historic forecasts and truths to climatological
-                        anomalies, then fit EMOS coefficients to these anomalies.
+        anomalies, then fit EMOS coefficients to these anomalies.
 
-        <<<<<<< HEAD
-                        Args:
-                            historic_forecasts:
-                                Historic forecasts from the training dataset.
-                            truths:
-                                Truths from the training dataset.
-                            forecast_gams:
-                                A list containing two fitted GAMs, the first for predicting the
-                                climatological mean of the locations in historic_forecasts and the
-                                second predicting the climatological standard deviation. Appropriate
-                                GAMs are produced by the TrainGAMsForSAMOS plugin.
-                            truth_gams:
-                                A list containing two fitted GAMs, the first for predicting the
-                                climatological mean of the locations in truths and the second
-                                predicting the climatological standard deviation. Appropriate
-                                GAMs are produced by the TrainGAMsForSAMOS plugin.
-                            gam_features:
-                                The list of features. These must be either coordinates on input_cube or
-                                share a name with a cube in gam_additional_fields. The index of each
-                <<<<<<< HEAD
-                                feature must match the indices used in model_specification.
-                =======
-                                feature should match the indices used in model_specification.
-                >>>>>>> 7ab5bb78 (Improvements to doc-strings and other changes following first review.)
-                            gam_additional_fields:
-                                Additional fields to use as supplementary predictors in the GAMs.
-                            emos_additional_fields:
-                                Additional fields to use as supplementary predictors in EMOS.
-                            landsea_mask:
-                                The optional cube containing a land-sea mask. If provided, only
-                                land points are used to calculate the EMOS coefficients. Within the
-                                land-sea mask cube land points should be specified as ones,
-                                and sea points as zeros.
-        =======
-                Args:
-                    historic_forecasts:
-                        Historic forecasts from the training dataset.
-                    truths:
-                        Truths from the training dataset.
-                    forecast_gams:
-                        A list containing two fitted GAMs, the first for predicting the
-                        climatological mean of the locations in historic_forecasts and the
-                        second predicting the climatological standard deviation. Appropriate
-                        GAMs are produced by the TrainGAMsForSAMOS plugin.
-                    truth_gams:
-                        A list containing two fitted GAMs, the first for predicting the
-                        climatological mean of the locations in truths and the second
-                        predicting the climatological standard deviation. Appropriate
-                        GAMs are produced by the TrainGAMsForSAMOS plugin.
-                    gam_features:
-                        The list of features. These must be either coordinates on input_cube or
-                        share a name with a cube in gam_additional_fields. The index of each
-                        feature must match the indices used in model_specification.
-                    gam_additional_fields:
-                        Additional fields to use as supplementary predictors in the GAMs.
-                    emos_additional_fields:
-                        Additional fields to use as supplementary predictors in EMOS.
-                    landsea_mask:
-                        The optional cube containing a land-sea mask. If provided, only
-                        land points are used to calculate the EMOS coefficients. Within the
-                        land-sea mask cube land points should be specified as ones,
-                        and sea points as zeros.
-        >>>>>>> c6a51d86 (Changes following review. Largest change is addition of calculate_statistic_by_rolling_window method to TrainGAMsForSAMOS class.)
-
-                        Returns:
-                            CubeList constructed using the coefficients provided and using
-                            metadata from the historic_forecasts cube. Each cube within the
-                            cubelist is for a separate EMOS coefficient e.g. alpha, beta,
-                            gamma, delta.
+        Args:
+            historic_forecasts:
+                Historic forecasts from the training dataset.
+            truths:
+                Truths from the training dataset.
+            forecast_gams:
+                A list containing two fitted GAMs, the first for predicting the
+                climatological mean of the locations in historic_forecasts and the
+                second predicting the climatological standard deviation. Appropriate
+                GAMs are produced by the TrainGAMsForSAMOS plugin.
+            truth_gams:
+                A list containing two fitted GAMs, the first for predicting the
+                climatological mean of the locations in truths and the second
+                predicting the climatological standard deviation. Appropriate
+                GAMs are produced by the TrainGAMsForSAMOS plugin.
+            gam_features:
+                The list of features. These must be either coordinates on input_cube or
+                share a name with a cube in gam_additional_fields. The index of each
+                feature must match the indices used in model_specification.
+            gam_additional_fields:
+                Additional fields to use as supplementary predictors in the GAMs.
+            emos_additional_fields:
+                Additional fields to use as supplementary predictors in EMOS.
+            landsea_mask:
+                The optional cube containing a land-sea mask. If provided, only
+                land points are used to calculate the EMOS coefficients. Within the
+                land-sea mask cube land points should be specified as ones,
+                and sea points as zeros.
+        Returns:
+            CubeList constructed using the coefficients provided and using
+            metadata from the historic_forecasts cube. Each cube within the
+            cubelist is for a separate EMOS coefficient e.g. alpha, beta,
+            gamma, delta.
         """
         forecast_mean, forecast_sd = self.get_climatological_stats(
             historic_forecasts, forecast_gams, gam_features, gam_additional_fields
