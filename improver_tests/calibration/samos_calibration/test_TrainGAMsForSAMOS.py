@@ -17,8 +17,6 @@ from improver_tests.calibration.samos_calibration.helper_functions import (
     create_simple_cube,
 )
 
-np.random.seed(1)
-
 
 @pytest.fixture
 def model_specification():
@@ -43,6 +41,10 @@ def model_specification():
             "link": "inverse",
             "fit_intercept": False,
         },  # Check that inputs related to the model design are initialised correctly.
+        {
+            "model_specification": [["linear", [0], {}]],
+            "window_length": 7,
+        },  # Check that window length is initialised correctly.
     ],
 )
 def test__init__(kwargs):
@@ -58,12 +60,27 @@ def test__init__(kwargs):
         "distribution": "normal",
         "link": "identity",
         "fit_intercept": True,
+        "window_length": 11,
     }
     expected.update(kwargs)
     result = TrainGAMsForSAMOS(**kwargs)
 
     for key in kwargs.keys():
         assert getattr(result, key) == kwargs[key]
+
+
+@pytest.mark.parametrize("window_length", [4, -3, 3.5])
+def test_init_window_length_exception(model_specification, window_length):
+    """Test that an exception is raised if the window_length is not a positive,
+    odd integer."""
+    msg = (
+        "The window_length input must be an odd integer greater than 1. "
+        f"Received: {window_length}."
+    )
+    with pytest.raises(ValueError, match=msg):
+        TrainGAMsForSAMOS(
+            model_specification=model_specification, window_length=window_length
+        )
 
 
 @pytest.mark.parametrize("forecast_type", ["gridded", "spot"])
@@ -74,6 +91,7 @@ def test_calculate_cube_statistics(
     n_realizations,
     n_times,
     include_blend_time,
+    model_specification,
 ):
     """Test that this method correctly calculates the mean and standard deviation of
     the input cube."""
@@ -134,6 +152,7 @@ def test_calculate_cube_statistics(
         # Expect statistics to be calculated over the time dimension.
         expected_mean.add_cell_method(CellMethod("mean", coords="time"))
         expected_sd.add_cell_method(CellMethod("standard_deviation", coords="time"))
+
     if include_blend_time:
         # Add a blend time coordinate to the input cubes and additional cubes which is a
         # renamed copy of the pre-existing forecast_reference_time coordinate.
@@ -145,12 +164,126 @@ def test_calculate_cube_statistics(
 
     expected = CubeList([expected_mean, expected_sd])
 
-    result = TrainGAMsForSAMOS.calculate_cube_statistics(input_cube)
+    result = TrainGAMsForSAMOS(
+        model_specification=model_specification, window_length=5
+    ).calculate_cube_statistics(input_cube=input_cube)
 
     assert expected == result
 
 
-def test_calculate_cube_statistics_exception():
+def test_calculate_cube_statistics_missing_data(model_specification):
+    """Test that this method still calculates the mean and standard deviations
+    correctly when there is missing data in the time period covered by the
+    input_cube.
+    """
+    create_cube_kwargs = {
+        "forecast_type": "spot",
+        "n_spatial_points": 2,
+        "n_realizations": 1,
+        "n_times": 5,
+        "fill_value": 305.0,
+    }
+
+    expected_cube_kwargs = {
+        "forecast_type": "spot",
+        "n_spatial_points": 2,
+        "n_realizations": 1,
+        "n_times": 5,
+    }
+    shape = [5, 1]
+
+    # Set up input cube. Time coordinate is modified so that the time points are not
+    # evenly spaced, but a single artificial time point can be added during processing
+    # to allow rolling window calculations.
+    input_cube = create_simple_cube(**create_cube_kwargs)
+    add_values = np.array([-1.0, 0.0, 0.0, 0.0, 1.0]).reshape(shape)
+    input_cube.data = input_cube.data + np.broadcast_to(
+        add_values, input_cube.data.shape
+    )
+
+    input_cube.coord("time").points = input_cube.coord("time").points + np.array(
+        [0, 86400, 86400, 86400, 86400], dtype=np.int64
+    )
+
+    # Set up expected output cubes.
+    expected_mean = create_simple_cube(fill_value=305.0, **expected_cube_kwargs)
+    add_values_mean = np.array([-0.5, -0.25, 0.25, 0.25, 0.333333]).reshape(shape)
+    expected_mean.data = expected_mean.data + add_values_mean
+    expected_mean.coord("time").points = expected_mean.coord("time").points + np.array(
+        [0, 86400, 86400, 86400, 86400], dtype=np.int64
+    )
+
+    expected_sd = create_simple_cube(fill_value=0.0, **expected_cube_kwargs)
+    add_values_sd = np.array([0.707106, 0.5, 0.5, 0.5, 0.577350]).reshape(shape)
+    expected_sd.data = expected_sd.data + add_values_sd
+    expected_sd.coord("time").points = expected_sd.coord("time").points + np.array(
+        [0, 86400, 86400, 86400, 86400], dtype=np.int64
+    )
+
+    # Expect statistics to be calculated over the time dimension.
+    expected_mean.add_cell_method(CellMethod("mean", coords="time"))
+    expected_sd.add_cell_method(CellMethod("standard_deviation", coords="time"))
+
+    expected = CubeList([expected_mean, expected_sd])
+
+    result = TrainGAMsForSAMOS(
+        model_specification=model_specification, window_length=5
+    ).calculate_cube_statistics(input_cube=input_cube)
+
+    assert expected == result
+
+
+def test_calculate_cube_statistics_period_diagnostic(model_specification):
+    """Test that this method correctly calculates the mean and standard deviation of
+    when the input cube contains a period diagnostic.
+    """
+    create_cube_kwargs = {
+        "forecast_type": "spot",
+        "n_spatial_points": 2,
+        "n_realizations": 1,
+        "n_times": 5,
+        "fill_value": 305.0,
+    }
+
+    expected_cube_kwargs = {
+        "forecast_type": "spot",
+        "n_spatial_points": 2,
+        "n_realizations": 1,
+        "n_times": 5,
+    }
+
+    time_bounds = np.array(
+        [
+            [1510200000, 1510286400],
+            [1510286400, 1510372800],
+            [1510372800, 1510459200],
+            [1510459200, 1510545600],
+            [1510545600, 1510632000],
+        ],
+    )
+
+    input_cube = create_simple_cube(**create_cube_kwargs)
+    expected_mean = create_simple_cube(fill_value=305.0, **expected_cube_kwargs)
+    expected_sd = create_simple_cube(fill_value=0.0, **expected_cube_kwargs)
+
+    input_cube.coord("time").bounds = time_bounds
+    # expected_mean.coord("time").bounds = time_bounds
+    # expected_sd.coord("time").bounds = time_bounds
+
+    # Expect statistics to be calculated over the time dimension.
+    expected_mean.add_cell_method(CellMethod("mean", coords="time"))
+    expected_sd.add_cell_method(CellMethod("standard_deviation", coords="time"))
+
+    expected = CubeList([expected_mean, expected_sd])
+
+    result = TrainGAMsForSAMOS(
+        model_specification=model_specification, window_length=5
+    ).calculate_cube_statistics(input_cube=input_cube)
+
+    assert expected == result
+
+
+def test_calculate_cube_statistics_exception(model_specification):
     """Test that this method raises the correct exception when a rolling window
     calculation over the time coordinate is required to calculate the cube statistics,
     but the time coordinate as unevenly spaced points.
@@ -168,17 +301,21 @@ def test_calculate_cube_statistics_exception():
 
     # Modify the time points so that they are not equally spaced
     test_cube.coord("time").points = test_cube.coord("time").points + np.array(
-        [0, 0, 1]
+        [0, 0, 1], dtype=np.int64
     )
 
     msg = (
-        "In order to extend the time coordinate to permit calculation of means and "
-        "standard deviations, the existing points on the time coordinate must be "
-        "evenly spaced."
+        "The increments between points in the time coordinate of the input "
+        "cube must be divisible by the smallest increment between points to "
+        "allow for rolling window calculations to be performed over the time "
+        "coordinate. The increments between points in the time coordinate "
+        "were: \\[86400 86401\\]. The smallest increment was: 86400."
     )
 
     with pytest.raises(ValueError, match=msg):
-        TrainGAMsForSAMOS.calculate_cube_statistics(test_cube)
+        TrainGAMsForSAMOS(
+            model_specification=model_specification
+        ).calculate_cube_statistics(input_cube=test_cube)
 
 
 @pytest.mark.parametrize(
@@ -188,30 +325,50 @@ def test_calculate_cube_statistics_exception():
             False,
             [["linear", [0], {}], ["linear", [1], {}]],
             11,
-            [288.15298254, 0.48331375],
+            np.array([288.14942357, 0.50000486], dtype=np.float64),
         ],
         [
             True,
             [["linear", [0], {}], ["linear", [1], {}]],
             11,
-            [288.15007863, 0.49052109],
+            np.array([288.16681245, 0.50060569], dtype=np.float64),
         ],
-        [False, [["tensor", [0, 1], {}]], 11, [288.22168378, 0.5010813]],
-        [True, [["tensor", [0, 1], {}]], 11, [288.1290978, 0.44678148]],
+        [
+            False,
+            [["tensor", [0, 1], {}]],
+            11,
+            np.array([288.13047912, 0.48075810], dtype=np.float64),
+        ],
+        [
+            True,
+            [["tensor", [0, 1], {}]],
+            11,
+            np.array([288.13571987, 0.48000211], dtype=np.float64),
+        ],
         [
             False,
             [["linear", [0], {}], ["linear", [1], {}]],
             1,
-            [288.17666906, 0.48082173],
+            np.array([288.16497963, 0.51062603], dtype=np.float64),
         ],
         [
             True,
             [["linear", [0], {}], ["linear", [1], {}]],
             1,
-            [288.14031069, 0.42215065],
+            np.array([288.15651954, 0.49548990], dtype=np.float64),
         ],
-        [False, [["tensor", [0, 1], {}]], 1, [288.14178362, 0.44964758]],
-        [True, [["tensor", [0, 1], {}]], 1, [288.14402253, 0.51517678]],
+        [
+            False,
+            [["tensor", [0, 1], {}]],
+            1,
+            np.array([287.99195197, 0.46191877], dtype=np.float64),
+        ],
+        [
+            True,
+            [["tensor", [0, 1], {}]],
+            1,
+            np.array([287.97881919, 0.44321410], dtype=np.float64),
+        ],
     ],
 )
 def test_process(

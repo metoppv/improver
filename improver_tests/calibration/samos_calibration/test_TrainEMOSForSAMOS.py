@@ -13,8 +13,6 @@ from improver_tests.calibration.samos_calibration.helper_functions import (
     create_simple_cube,
 )
 
-np.random.seed(1)
-
 
 @pytest.mark.parametrize(
     "kwargs",
@@ -94,30 +92,30 @@ def test_get_climatological_stats(
     if not include_altitude:
         expected_mean.data = np.array(
             [
-                [[284.40612416, 288.15826842], [288.16342809, 291.91557236]],
-                [[284.40612416, 288.15826842], [288.16342809, 291.91557236]],
+                [[284.39363425, 288.14659092], [288.14237183, 291.8953285]],
+                [[284.39363425, 288.14659092], [288.14237183, 291.8953285]],
             ],
             dtype=np.float32,
         )
         expected_sd.data = np.array(
             [
-                [[0.35133422, 0.4753756], [0.47594341, 0.59998479]],
-                [[0.35133422, 0.4753756], [0.47594341, 0.59998479]],
+                [[0.36190698, 0.49423461], [0.48704575, 0.61937337]],
+                [[0.36190698, 0.49423461], [0.48704575, 0.61937337]],
             ],
             dtype=np.float32,
         )
     else:
         expected_mean.data = np.array(
             [
-                [[274.37687093, 288.16193833], [278.13439548, 291.91946287]],
-                [[274.37687093, 288.16193833], [278.13439548, 291.91946287]],
+                [[274.41442381, 288.1640568], [278.16316139, 291.91279438]],
+                [[274.41442381, 288.1640568], [278.16316139, 291.91279438]],
             ],
             dtype=np.float32,
         )
         expected_sd.data = np.array(
             [
-                [[0.37329375, 0.48791014], [0.49727166, 0.61188805]],
-                [[0.37329375, 0.48791014], [0.49727166, 0.61188805]],
+                [[0.36048627, 0.50103523], [0.48562504, 0.626174]],
+                [[0.36048627, 0.50103523], [0.48562504, 0.626174]],
             ],
             dtype=np.float32,
         )
@@ -222,10 +220,12 @@ def test_process(include_altitude):
         "emos_coefficient_delta",
     ]
     if include_altitude:
-        expected_data = [0.094867475, 0.13698582, 0.016275924, 1.0714376]
+        expected_data = [0.0450892, -0.1451314, 0.0, 1.05]
     else:
-        expected_data = [0.01539446, -0.038133737, 0.00030830433, 1.0188572]
+        expected_data = [-0.05576817, 0.08254312, 0.0, 1.0012305]
 
     for i, cube in enumerate(result):
         assert expected_names[i] == cube.name()
-        assert expected_data[i] == cube.data
+        np.testing.assert_array_almost_equal(
+            result[i].data, np.array(expected_data[i], dtype=np.float32), decimal=8
+        )

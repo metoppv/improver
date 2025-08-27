@@ -5,11 +5,11 @@
 """Helper functions for SAMOS unit tests."""
 
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 import iris.cube
 import numpy as np
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 
 from improver.synthetic_data.set_up_test_cubes import (
     set_up_spot_variable_cube,
@@ -89,7 +89,7 @@ def create_cubes_for_gam_fitting(
     n_times: int,
     include_altitude: bool,
     fixed_forecast_period=False,
-) -> Tuple[Cube, List[Cube]]:
+) -> Tuple[Cube, CubeList]:
     """Function to create a temperature cube with data which varies spatially.
     Optionally, may also produce an altitude cube whilst simultaneously modifying the
     temperature cube so that this is a useful predictor of the temperature.
@@ -137,10 +137,11 @@ def create_cubes_for_gam_fitting(
     addition = np.broadcast_to(addition, shape=input_cube.data.shape)
     # Create array of random noise which increases with x and y, so that there is
     # some variance in the data to model in the standard deviation GAM.
-    noise = np.random.normal(loc=0.0, scale=addition / 30)
+    rng = np.random.RandomState(210825)  # Set seed for reproducible results.
+    noise = rng.normal(loc=0.0, scale=addition / 30)
     input_cube.data = input_cube.data + addition + noise
 
-    additional_cubes = []
+    additional_cubes = iris.cube.CubeList([])
     if include_altitude:
         # Create an altitude cube with small values in the centre of the domain and
         # large values around the outside of the domain, with a smooth gradient in

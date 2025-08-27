@@ -7,7 +7,7 @@ This module defines all the "plugins" specific to Standardised Anomaly Model Out
 Statistics (SAMOS).
 """
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import iris
 import iris.pandas
@@ -16,6 +16,7 @@ import pygam
 from iris.analysis import MEAN, STD_DEV
 from iris.cube import Cube, CubeList
 from iris.util import new_axis
+from numpy import array, int64, nan
 from numpy.ma import masked_all_like
 from pandas import merge
 
@@ -132,7 +133,7 @@ class TrainGAMsForSAMOS(BasePlugin):
 
     def __init__(
         self,
-        model_specification: List[List[str, List[int], Dict[Any]]],
+        model_specification: List,
         max_iter: int = 100,
         tol: float = 0.0001,
         distribution: str = "normal",
@@ -177,10 +178,10 @@ class TrainGAMsForSAMOS(BasePlugin):
         self.link = link
         self.fit_intercept = fit_intercept
 
-        if window_length < 3 or window_length % 2 == 0:
+        if window_length < 3 or window_length % 2 == 0 or window_length % 1 != 0:
             raise ValueError(
-                "window_length must be an odd integer greater than 1. "
-                f"Received: {window_length}"
+                "The window_length input must be an odd integer greater than 1. "
+                f"Received: {window_length}."
             )
         else:
             self.window_length = window_length
@@ -196,7 +197,7 @@ class TrainGAMsForSAMOS(BasePlugin):
         over a period containing an equal number of time points.
         """
         removed_coords = []
-        pad_width = (self.window_length - 1) / 2
+        pad_width = int((self.window_length - 1) / 2)
 
         # Pad the time coordinate of the input cube, then calculate the mean and
         # standard deviation using a rolling window over the time coordinate.
@@ -205,6 +206,15 @@ class TrainGAMsForSAMOS(BasePlugin):
         min_increment = increments.min()
         if all(x % min_increment == 0 for x in increments):
             padded_cube = input_cube.copy()
+
+            # Check if we are dealing with a period diagnostic.
+            if padded_cube.coord("time").bounds is not None:
+                bounds_width = (
+                    padded_cube.coord("time").bounds[0][1]
+                    - padded_cube.coord("time").bounds[0][0]
+                )
+            else:
+                bounds_width = None
             # Remove time related coordinates other than the coordinate called
             # "time" on the input cube in order to allow extension of the "time"
             # coordinate. These coordinates are saved and added back to the output
@@ -219,18 +229,21 @@ class TrainGAMsForSAMOS(BasePlugin):
                     padded_cube.remove_coord(coord)
 
             # Create slices of artificial cube data to pad the existing cube time
-            # coordinate and fill any gaps. This ensures that all of the time points
+            # coordinate and fill any gaps. This ensures that all the time points
             # are equally spaced and the padding ensures that the output of the
             # rolling window calculation is the same shape as the input cube.
             existing_points = time_coord.points
-            desired_points = [
-                x
-                for x in range(
-                    min(existing_points) - (min_increment * pad_width),
-                    max(existing_points) + (min_increment * pad_width),
-                    min_increment,
-                )
-            ]
+            desired_points = array(
+                [
+                    x
+                    for x in range(
+                        min(existing_points) - (min_increment * pad_width),
+                        max(existing_points) + (min_increment * pad_width) + 1,
+                        min_increment,
+                    )
+                ],
+                dtype=int64,
+            )
 
             # Slice input_cube over time dimension so that the artificial cubes can be
             # concatenated correctly.
@@ -247,6 +260,9 @@ class TrainGAMsForSAMOS(BasePlugin):
                     # Create a new cube slice with time point equal to point.
                     new_slice = cslice.copy()
                     new_slice.coord("time").points = point
+                    if bounds_width:
+                        # Add correct bounds to point if required.
+                        new_slice.coord("time").bounds = [point - bounds_width, point]
                     new_slice = new_axis(new_slice, "time")
                     new_slice.data = masked_all_like(new_slice.data)
                     padded_cubelist.append(new_slice)
@@ -259,11 +275,25 @@ class TrainGAMsForSAMOS(BasePlugin):
                 coord="time", aggregator=MEAN, window=self.window_length
             )
             input_mean.coord("time").bounds = None
+            input_mean.coord("time").points = input_mean.coord("time").points.astype(
+                int64
+            )
+            input_mean.data = input_mean.data.filled(nan)
 
             input_sd = padded_cube.rolling_window(
                 coord="time", aggregator=STD_DEV, window=self.window_length
             )
             input_sd.coord("time").bounds = None
+            input_sd.coord("time").points = input_sd.coord("time").points.astype(int64)
+            input_sd.data = input_sd.data.filled(nan)
+
+            # Create constraint to extract only those time points which were present in
+            # the original input cube.
+            constr = iris.Constraint(
+                time=lambda cell: cell.point in input_cube.coord("time").cells()
+            )
+            input_mean = input_mean.extract(constr)
+            input_sd = input_sd.extract(constr)
 
             # Add any removed time coordinates back on to the mean and standard
             # deviation cubes.
@@ -297,10 +327,10 @@ class TrainGAMsForSAMOS(BasePlugin):
         resulting cube.
 
         To enable this calculation to produce a cube of the same dimensions as
-        input_cube, the data in input_cube is first padded with additional data. A
-        rolling window of width 5 is used in this method, so 2 data slices are added to
-        the start and end of the input_cube time coordinate. The data in these slices
-        are masked so that they don't affect the calculated statistics.
+        input_cube, the data in input_cube is first padded with additional data. For a
+        rolling window of width 5, 2 data slices are added to the start and end of the
+        input_cube time coordinate. The data in these slices are masked so that they
+        don't affect the calculated statistics.
 
         Args:
             input_cube:
@@ -362,7 +392,7 @@ class TrainGAMsForSAMOS(BasePlugin):
             ValueError: If the input cube does not have a realization coordinate and the
             time coordinate that it does have contains only one point.
         """
-        if not input_cube.coords("realization"):
+        if not input_cube.coords("realization", dim_coords=True):
             if not input_cube.coords("time"):
                 msg = (
                     "The input cube must contain at least one of a realization or time "

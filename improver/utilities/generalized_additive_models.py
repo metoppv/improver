@@ -6,7 +6,7 @@
 models."""
 
 from copy import deepcopy
-from typing import Any, Dict, List
+from typing import List
 
 import numpy as np
 
@@ -24,7 +24,7 @@ class GAMFit(BasePlugin):
 
     def __init__(
         self,
-        model_specification: List[List[str, List[int], Dict[Any]]],
+        model_specification: List,
         max_iter: int = 100,
         tol: float = 0.0001,
         distribution: str = "normal",
