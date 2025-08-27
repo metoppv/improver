@@ -153,6 +153,9 @@ def test_calculate_cube_statistics(
         model_specification=model_specification, window_length=5
     ).calculate_cube_statistics(input_cube=input_cube)
 
+    for expected_cube, result_cube in zip(expected, result):
+        print(expected_cube, result_cube)
+
     assert expected == result
 
 
