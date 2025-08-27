@@ -24,6 +24,7 @@ from improver import BasePlugin
 from improver.calibration.emos_calibration import (
     EstimateCoefficientsForEnsembleCalibration,
 )
+from improver.utilities.cube_manipulation import collapse_realizations
 from improver.utilities.generalized_additive_models import GAMFit, GAMPredict
 from improver.utilities.mathematical_operations import CalculateClimateAnomalies
 
@@ -274,6 +275,7 @@ class TrainGAMsForSAMOS(BasePlugin):
             input_mean = padded_cube.rolling_window(
                 coord="time", aggregator=MEAN, window=self.window_length
             )
+            input_mean.cell_methods = ()
             input_mean.coord("time").bounds = None
             input_mean.coord("time").points = input_mean.coord("time").points.astype(
                 int64
@@ -283,6 +285,7 @@ class TrainGAMsForSAMOS(BasePlugin):
             input_sd = padded_cube.rolling_window(
                 coord="time", aggregator=STD_DEV, window=self.window_length
             )
+            input_sd.cell_methods = ()
             input_sd.coord("time").bounds = None
             input_sd.coord("time").points = input_sd.coord("time").points.astype(int64)
             input_sd.data = input_sd.data.filled(nan)
@@ -346,12 +349,8 @@ class TrainGAMsForSAMOS(BasePlugin):
             does contain a time coordinate with unevenly spaced points.
         """
         if input_cube.coords("realization"):
-            # Calculate forecast mean and standard deviation over the realization
-            # coordinate.
-            input_mean = input_cube.collapsed("realization", MEAN)
-            input_mean.remove_coord("realization")
-            input_sd = input_cube.collapsed("realization", STD_DEV)
-            input_sd.remove_coord("realization")
+            input_mean = collapse_realizations(input_cube, method="mean")
+            input_sd = collapse_realizations(input_cube, method="std_dev")
         else:
             input_mean, input_sd = self.calculate_statistic_by_rolling_window(
                 input_cube

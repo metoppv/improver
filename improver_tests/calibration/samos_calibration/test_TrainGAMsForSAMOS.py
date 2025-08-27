@@ -8,7 +8,6 @@ from copy import deepcopy
 
 import numpy as np
 import pytest
-from iris.coords import CellMethod
 from iris.cube import CubeList
 
 from improver.calibration.samos_calibration import TrainGAMsForSAMOS
@@ -142,17 +141,6 @@ def test_calculate_cube_statistics(
         )
         expected_sd.data = expected_sd.data + add_values_sd
 
-    if n_realizations > 1:
-        # Expect statistics to be calculated over the realization dimension.
-        expected_mean.add_cell_method(CellMethod("mean", coords="realization"))
-        expected_sd.add_cell_method(
-            CellMethod("standard_deviation", coords="realization")
-        )
-    else:
-        # Expect statistics to be calculated over the time dimension.
-        expected_mean.add_cell_method(CellMethod("mean", coords="time"))
-        expected_sd.add_cell_method(CellMethod("standard_deviation", coords="time"))
-
     if include_blend_time:
         # Add a blend time coordinate to the input cubes and additional cubes which is a
         # renamed copy of the pre-existing forecast_reference_time coordinate.
@@ -167,6 +155,9 @@ def test_calculate_cube_statistics(
     result = TrainGAMsForSAMOS(
         model_specification=model_specification, window_length=5
     ).calculate_cube_statistics(input_cube=input_cube)
+
+    for expected_cube, result_cube in zip(expected, result):
+        print(expected_cube, result_cube)
 
     assert expected == result
 
@@ -220,10 +211,6 @@ def test_calculate_cube_statistics_missing_data(model_specification):
         [0, 86400, 86400, 86400, 86400], dtype=np.int64
     )
 
-    # Expect statistics to be calculated over the time dimension.
-    expected_mean.add_cell_method(CellMethod("mean", coords="time"))
-    expected_sd.add_cell_method(CellMethod("standard_deviation", coords="time"))
-
     expected = CubeList([expected_mean, expected_sd])
 
     result = TrainGAMsForSAMOS(
@@ -267,12 +254,6 @@ def test_calculate_cube_statistics_period_diagnostic(model_specification):
     expected_sd = create_simple_cube(fill_value=0.0, **expected_cube_kwargs)
 
     input_cube.coord("time").bounds = time_bounds
-    # expected_mean.coord("time").bounds = time_bounds
-    # expected_sd.coord("time").bounds = time_bounds
-
-    # Expect statistics to be calculated over the time dimension.
-    expected_mean.add_cell_method(CellMethod("mean", coords="time"))
-    expected_sd.add_cell_method(CellMethod("standard_deviation", coords="time"))
 
     expected = CubeList([expected_mean, expected_sd])
 
