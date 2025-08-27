@@ -21,13 +21,14 @@ class DistanceTo(BasePlugin):
     sites to the nearest metre.
 
     Given a cube containing site locations and a GeoDataFrame the distance to each site
-    from the nearest point of the geometry is calculated. This is done by converting
-    the geometry and sites to a common target orography that must be specified using a
+    from the nearest point of the feature geometry is calculated. This is done by converting
+    the feature geometry and sites to a common target orography that must be specified using a
     European Petroleum Survey Group (EPSG) code that identifies the projection. For the
     UK code 3035, that provides a Lambert Azimuthal Equal Areas projection across the
-    region might be used. The distance method from Shapely is used to find the distance
-    from each site to every point in the geometry. The minimum of these distances is
-    returned as the distance to the nearest feature in the geometry and this is rounded
+    region might be used. The chosen projection should match the projection on which the
+    ancillary will be used. The distance method from Shapely is used to find the distance
+    from each site to every point in the feature geometry. The minimum of these distances is
+    returned as the distance to the nearest feature in the feature geometry and this is rounded
     to the nearest metre.
 
     If requested, the provided geometry will be clipped to the bounds of the site
@@ -151,7 +152,10 @@ class DistanceTo(BasePlugin):
             raise ValueError(
                 "The provided projection defined by EPSG code "
                 f"{self.epsg_projection} is not suitable for the site "
-                "locations provided. Please provide a suitable projection."
+                "locations provided. Limits of this domain are: "
+                f"x: {x_min} to {x_max}, y: {y_min} to {y_max}, whilst "
+                f"the site locations are bounded by x: {x_bounds[0]} to {x_bounds[1]}, "
+                f"y: {y_bounds[0]} to {y_bounds[1]}."
             )
 
     def project_geometry(
