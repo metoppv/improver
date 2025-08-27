@@ -31,8 +31,10 @@ from improver.utilities.cube_checker import assert_spatial_coords_match
 try:
     from quantile_forest import RandomForestQuantileRegressor
 except ModuleNotFoundError:
+    # Define empty class to avoid type hint errors.
     class RandomForestQuantileRegressor:
         pass
+
 
 iris.FUTURE.pandas_ndim = True
 

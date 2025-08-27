@@ -16,6 +16,7 @@ from improver.constants import DAYS_IN_YEAR, HOURS_IN_DAY
 try:
     from quantile_forest import RandomForestQuantileRegressor
 except ModuleNotFoundError:
+    # Define empty class to avoid type hint errors.
     class RandomForestQuantileRegressor:
         pass
 
