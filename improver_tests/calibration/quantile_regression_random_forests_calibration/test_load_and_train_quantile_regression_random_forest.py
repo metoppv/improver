@@ -574,7 +574,7 @@ def test_unexpected(
     forecast_periods,
     representation,
 ):
-    """Test the expected exceptions caused by the LoadAndTrainQRF plugin."""
+    """Test LoadAndTrainQRF plugin behaviour in atypical situations."""
     feature_config = {"air_temperature": ["mean", "std", "altitude"]}
     n_estimators = 2
     max_depth = 5
@@ -630,9 +630,7 @@ def test_unexpected(
         with pytest.raises(ValueError, match="The forecast_periods argument"):
             plugin(file_paths, model_output=model_output)
     elif exception == "no_quantile_forest_package":
-        pytest.MonkeyPatch.setattr(
-            quantile_forest_package_available, "__call__", lambda: False
-        )
+        plugin.quantile_forest_installed = False
         result = plugin(file_paths, model_output=model_output)
         assert result is None
     else:

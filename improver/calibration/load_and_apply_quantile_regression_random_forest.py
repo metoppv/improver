@@ -80,6 +80,7 @@ class LoadAndApplyQRF(PostProcessingPlugin):
         self.target_cf_name = target_cf_name
         self.transformation = transformation
         self.pre_transform_addition = pre_transform_addition
+        self.quantile_forest_installed = quantile_forest_package_available()
 
     def _get_inputs(
         self, file_paths: list[pathlib.Path]
@@ -254,8 +255,7 @@ class LoadAndApplyQRF(PostProcessingPlugin):
                 The calibrated forecast cube.
         """
         cube_inputs, forecast_cube, qrf_model = self._get_inputs(file_paths)
-        import pdb; pdb.set_trace()
-        if not quantile_forest_package_available():
+        if not self.quantile_forest_installed:
             return forecast_cube
         if not qrf_model:
             return forecast_cube

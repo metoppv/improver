@@ -12,10 +12,6 @@ from iris.cube import Cube
 from improver.calibration.load_and_apply_quantile_regression_random_forest import (
     LoadAndApplyQRF,
 )
-import improver.calibration.quantile_regression_random_forest
-from improver.calibration.quantile_regression_random_forest import (
-    quantile_forest_package_available,
-)
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     RebadgeRealizationsAsPercentiles,
 )
@@ -160,20 +156,19 @@ def test_load_and_apply_qrf(
 @pytest.mark.parametrize(
     "exception",
     [
-        # "no_model_output",
-        # "no_features",
-        # "missing_target_feature",
-        # "missing_static_feature",
-        # "missing_dynamic_feature",
+        "no_model_output",
+        "no_features",
+        "missing_target_feature",
+        "missing_static_feature",
+        "missing_dynamic_feature",
         "no_quantile_forest_package",
     ],
 )
 def test_unexpected(
     tmp_path,
     exception,
-    monkeypatch,
 ):
-    """Test the expected exceptions caused by the LoadAndApplyQRF plugin."""
+    """Test LoadAndApplyQRF plugin behaviour in atypical situations."""
     feature_config = {"wind_speed_at_10m": ["mean", "std", "latitude", "longitude"]}
 
     n_estimators = 2
@@ -269,21 +264,13 @@ def test_unexpected(
         with pytest.raises(ValueError, match="The number of cubes loaded."):
             plugin.process(file_paths=file_paths)
     elif exception == "no_quantile_forest_package":
-        def my_function():
-            return False
-
-        with monkeypatch.context() as m:
-            m.setattr(
-                "improver.calibration.quantile_regression_random_forest.quantile_forest_package_available",
-                my_function
-            )
-            file_paths = [model_output, forecast_filepath]
-            result = plugin.process(file_paths=file_paths)
+        plugin.quantile_forest_installed = False
+        file_paths = [model_output, forecast_filepath]
+        result = plugin.process(file_paths=file_paths)
         assert isinstance(result, Cube)
         assert result.name() == "wind_speed_at_10m"
         assert result.units == "m s-1"
         assert result.data.shape == forecast_cube.data.shape
-        import pdb; pdb.set_trace()
         assert np.allclose(result.data, forecast_cube.data)
     else:
         raise ValueError(f"Unknown exception type: {exception}")
