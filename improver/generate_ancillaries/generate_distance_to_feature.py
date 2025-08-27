@@ -6,6 +6,7 @@
 
 from typing import List, Optional, Tuple
 
+import pyproj
 from geopandas import GeoDataFrame, GeoSeries, clip
 from iris.cube import Cube
 from numpy import array, min, round
@@ -20,11 +21,14 @@ class DistanceTo(BasePlugin):
     sites to the nearest metre.
 
     Given a cube containing site locations and a GeoDataFrame the distance to each site
-    from the nearest point of the geometry is calculated by converting the geometry and
-    site cube to the Lambert Azimuthal Equal Area projection (EPSG:3035) and using the
-    distance method from Shapely to find the distance from each site to every point in
-    the geometry. The minimum of these distances is returned as the distance to the
-    nearest feature in the geometry and this is rounded to the nearest metre.
+    from the nearest point of the geometry is calculated. This is done by converting
+    the geometry and sites to a common target orography that must be specified using a
+    European Petroleum Survey Group (EPSG) code that identifies the projection. For the
+    UK code 3035, that provides a Lambert Azimuthal Equal Areas projection across the
+    region might be used. The distance method from Shapely is used to find the distance
+    from each site to every point in the geometry. The minimum of these distances is
+    returned as the distance to the nearest feature in the geometry and this is rounded
+    to the nearest metre.
 
     If requested, the provided geometry will be clipped to the bounds of the site
     locations with a buffer to improve performance. This is useful when the geometry is
@@ -34,6 +38,7 @@ class DistanceTo(BasePlugin):
 
     def __init__(
         self,
+        epsg_projection: int,
         new_name: Optional[str] = None,
         buffer: float = 30000,
         clip_geometry_flag: bool = False,
@@ -42,6 +47,12 @@ class DistanceTo(BasePlugin):
         Initialise the DistanceTo plugin.
 
         Args:
+            epsg_projection:
+                The EPSG code of the coordinate reference system on to which latitude
+                and longitudes will be projected to calculate distances. This is
+                a projected coordinate system in which distances are measured in metres,
+                for example a Lambert Azimuthal Equal Areas projection across the UK,
+                code 3035.
             new_name:
                 The name of the output cube.
             buffer:
@@ -54,26 +65,29 @@ class DistanceTo(BasePlugin):
                 False, the full geometry will be used to calculate the distance to the
                 nearest feature.
         """
+        self.epsg_projection = epsg_projection
         self.new_name = new_name
         self.buffer = buffer
         self.clip_geometry_flag = clip_geometry_flag
 
-    def get_clip_values(self, points: List[float]) -> List[float]:
+    @staticmethod
+    def get_clip_values(points: List[float], buffer: float) -> List[float]:
         """Get the coordinates to use when clipping the geometry. This is determined by
         finding the maximum and minimum coordinate points from a list. A buffer distance
-        is then added/subtracted to the max/min.
+        may then be added/subtracted to the max/min.
 
         Args:
             points:
                 A list of points to find the min and max from.
+            buffer:
+                The buffer distance to add/subtract to the max/min points.
         Returns:
             A list containing the maximum and minimum points with the buffer added
             or subtracted respectively."""
 
         ordered_points = sorted(set(points))
-
-        min_point = ordered_points[0] - self.buffer
-        max_point = ordered_points[-1] + self.buffer
+        min_point = ordered_points[0] - buffer
+        max_point = ordered_points[-1] + buffer
 
         return [min_point, max_point]
 
@@ -109,18 +123,49 @@ class DistanceTo(BasePlugin):
 
         return clipped_geometry
 
+    def check_target_crs(self, site_points: GeoSeries):
+        """Check that the provided target projection is suitable for the sites
+        being used.
+
+        Args:
+            site_points:
+                A GeoSeries containing the site points.
+
+        Raises:
+            ValueError: If the provided target coordinate reference system is not
+                        suitable for the site points.
+        """
+        x_bounds = self.get_clip_values(site_points.x, 0)
+        y_bounds = self.get_clip_values(site_points.y, 0)
+
+        target_crs = pyproj.CRS.from_epsg(self.epsg_projection)
+        x_min, y_min, x_max, y_max = target_crs.area_of_use.bounds
+
+        valid_target = (
+            x_bounds[0] > x_min
+            and x_bounds[1] < x_max
+            and y_bounds[0] > y_min
+            and y_bounds[1] < y_max
+        )
+        if not valid_target:
+            raise ValueError(
+                "The provided projection defined by EPSG code "
+                f"{self.epsg_projection} is not suitable for the site "
+                "locations provided. Please provide a suitable projection."
+            )
+
     def project_geometry(
         self, geometry: GeoDataFrame, site_cube: Cube
     ) -> Tuple[GeoSeries, GeoDataFrame]:
-        """Project the geometry and site cube to Lambert azimuthal
-        equal-area projection (EPSG:3035).
+        """Project the geometry and site cube to the target projection.
 
         Args:
             geometry:
                 The geometry to reproject.
             site_cube:
                 The cube containing the site locations. It is assumed that the site
-                coordinates are defined as latitude and longitude.
+                coordinates are defined as latitude and longitude on a WGS84
+                coordinate system (EPSG:4326).
         Returns:
             A tuple containing the projected site locations and geometry."""
 
@@ -128,17 +173,15 @@ class DistanceTo(BasePlugin):
         y_points = site_cube.coord(axis="y").points
 
         site_points_list = [Point(x, y) for x, y in zip(x_points, y_points)]
+        # Assumes site coordinates are defined as latitude and longitude
+        # defaulting to an EPSG:4326 coordinate system, which is WGS84.
+        site_points = GeoSeries(site_points_list, crs=4326)
 
-        # EPSG codes that identify the coordinate systems
-        projection_dict = {"latitude": 4326, "projection_y_coordinate": 3035}
+        # Check that the provided target projection is suitable for the site points
+        self.check_target_crs(site_points)
 
-        site_coord = site_cube.coord(axis="y").name()
-
-        site_points = GeoSeries(site_points_list, crs=projection_dict[site_coord])
-        geometry_reprojection = geometry.to_crs(
-            projection_dict["projection_y_coordinate"]
-        )
-        site_points = site_points.to_crs(projection_dict["projection_y_coordinate"])
+        geometry_reprojection = geometry.to_crs(self.epsg_projection)
+        site_points = site_points.to_crs(self.epsg_projection)
         return site_points, geometry_reprojection
 
     def distance_to(self, site_points: GeoSeries, geometry: GeoDataFrame) -> List[int]:
@@ -147,11 +190,9 @@ class DistanceTo(BasePlugin):
 
         Args:
             site_points:
-                A GeoSeries containing the site points in a Lambert azimuthal equal-area
-                projection.
+                A GeoSeries containing the site points in the target projection.
             geometry:
-                A GeoDataFrame containing the geometry in a Lambert azimuthal
-                equal-area projection.
+                A GeoDataFrame containing the geometry in the target projection.
         Returns:
             A list of distances from each site point to the nearest feature in the
             geometry rounded to the nearest metre."""
@@ -169,7 +210,8 @@ class DistanceTo(BasePlugin):
 
         Args:
            site_cube:
-               The input cube containing site locations.
+               The input cube containing site locations that are defined by latitude
+               and longitude coordinates.
            data:
                A list of distances from each site point to the nearest feature in the
                geometry.
@@ -185,22 +227,22 @@ class DistanceTo(BasePlugin):
         return output_cube
 
     def process(self, site_cube: Cube, geometry: GeoDataFrame) -> Cube:
-        """Generate a cube of the distance from sites in site_cube to the nearest point
-        in geometry.
+        """Generate a cube of the distance from sites in site_cube to the
+        nearest point in geometry.
 
-        The latitude, longitude coordinates in the site_cube are extracted to define the
-        location of the sites and these are projected to the Lambert azimuthal
-        equal-area projection. The geometry is also projected to the same projection.
+        The latitude, longitude coordinates in the site_cube are extracted
+        to define the location of the sites. The sites and feature geometry
+        are reprojected to the target projection.
 
-        If requested the geometry will be clipped to the smallest square possible such that
-        all sites in site_cube are included. A buffer distance is then added to each
-        edge of the square which defines the size the geometry will be clipped to. This
-        is useful when the geometry size is large and it would be expensive to calculate
-        the distance to all features in the geometry or where the domain of the geometry
-        is much larger than the site locations. Information may be lost at the edges of
+        If requested the feature geometry will be clipped to the smallest square possible
+        such that all sites in site_cube are included. A buffer distance is then added to each
+        edge of the square which defines the size the feature geometry will be clipped to. This
+        is useful when the feature geometry size is large and it would be expensive to calculate
+        the distance to all features in the geometry or where the domain of the feature geometry
+        is much larger than the area containing the site locations. Information may be lost at the edges of
         the domain if the feature is sparsely located in the geometry.
 
-        The distance from each site to every point in the geometry is then calculated
+        The distance from each site to every point in the feature geometry is then calculated
         and the minimum of these distances is returned. The distances are rounded to the
         nearest metre.
 
@@ -214,19 +256,19 @@ class DistanceTo(BasePlugin):
                 axis which contain the site coordinates in latitude and longitude.
             geometry:
                 The GeoDataFrame containing the geometry to calculate distances to.
+
         Returns:
             A new cube containing the distances from each site to the nearest feature
             in the geometry rounded to the nearest metre."""
 
-        # Project the geometry and site cube coordinates to Lambert azimuthal equal-area
-        # projection.
+        # Project the geometry and site cube coordinates to the target projection.
         site_coords, geometry_projection = self.project_geometry(geometry, site_cube)
 
         if self.clip_geometry_flag:
             # Clip the geometry to the bounds of the site coordinates with a buffer if
             # requested
-            x_bounds = self.get_clip_values(site_coords.x)
-            y_bounds = self.get_clip_values(site_coords.y)
+            x_bounds = self.get_clip_values(site_coords.x, self.buffer)
+            y_bounds = self.get_clip_values(site_coords.y, self.buffer)
 
             clipped_geometry = self.clip_geometry(
                 geometry_projection, x_bounds, y_bounds
