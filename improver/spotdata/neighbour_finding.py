@@ -190,6 +190,12 @@ class NeighbourSelection(BasePlugin):
             - The y_coords modified to filter out the sites falling
               outside the grid domain of the cube.
         """
+        # Ensure bounds exist
+        if not cube.coord(axis="x").has_bounds():
+            cube.coord(axis="x").guess_bounds()
+        if not cube.coord(axis="y").has_bounds():
+            cube.coord(axis="y").guess_bounds()
+
         # Get the grid domain limits
         x_min = cube.coord(axis="x").bounds.min()
         x_max = cube.coord(axis="x").bounds.max()

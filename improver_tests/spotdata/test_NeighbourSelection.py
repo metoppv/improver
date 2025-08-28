@@ -321,6 +321,31 @@ class Test_check_sites_are_within_domain(Test_NeighbourSelection):
         self.assertArrayEqual(out_x, x_points)
         self.assertArrayEqual(out_y, y_points)
 
+    def test_bounds_guessing(self):
+        """Test case in which all sites are valid but region_orography has no
+        bounds, so these are guessed using guess_bounds method before checking."""
+        plugin = NeighbourSelection()
+        sites = [
+            {"projection_x_coordinate": 1.0e4, "projection_y_coordinate": 1.0e4},
+            {"projection_x_coordinate": 1.0e5, "projection_y_coordinate": 5.0e4},
+        ]
+        x_points = np.array([site["projection_x_coordinate"] for site in sites])
+        y_points = np.array([site["projection_y_coordinate"] for site in sites])
+        site_coords = np.stack((x_points, y_points), axis=1)
+
+        region_orography = self.region_orography.copy()
+        region_orography.coord(axis="x").bounds = None
+        region_orography.coord(axis="y").bounds = None
+
+        sites_out, site_coords_out, out_x, out_y = plugin.check_sites_are_within_domain(
+            sites, site_coords, x_points, y_points, region_orography
+        )
+
+        self.assertArrayEqual(sites_out, sites)
+        self.assertArrayEqual(site_coords_out, site_coords)
+        self.assertArrayEqual(out_x, x_points)
+        self.assertArrayEqual(out_y, y_points)
+
 
 class Test_get_nearest_indices(Test_NeighbourSelection):
     """Test function wrapping iris functionality to get nearest grid point
