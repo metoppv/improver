@@ -232,7 +232,7 @@ def test_distance_to_ocean(site_locations, coastline, land):
     """Test the distance to ocean ancillary is generated correctly."""
 
     # Generate the distance to ocean ancillary
-    distance_to_ocean = generate_distance_to_ocean(coastline, land, site_locations)
+    distance_to_ocean = generate_distance_to_ocean(3035, coastline, land, site_locations)
 
     # Ensure the cube has the correct metadata
     assert distance_to_ocean.name() == "distance_to_ocean"

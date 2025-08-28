@@ -15,7 +15,7 @@ from improver.spotdata.spot_extraction import SpotExtraction
 
 
 def generate_distance_to_ocean(
-    coastline: GeoDataFrame, land: GeoDataFrame, site_cube: Cube
+    epsg_projection: int, coastline: GeoDataFrame, land: GeoDataFrame, site_cube: Cube
 ) -> Cube:
     """Generate a distance to ocean ancillary cube. The DistanceTo plugin can't be used
     directly because there isn't a GeoDataFrame for the ocean.
@@ -27,6 +27,12 @@ def generate_distance_to_ocean(
     the ocean.
 
     Args:
+        epsg_projection:
+            The EPSG code of the coordinate reference system on to which latitude
+            and longitudes will be projected to calculate distances. This is
+            a projected coordinate system in which distances are measured in metres,
+            for example a Lambert Azimuthal Equal Areas projection across the UK,
+            code 3035.
         coastline:
             A GeoDataFrame containing the coastline geometry.
         land:
@@ -38,14 +44,14 @@ def generate_distance_to_ocean(
         A cube containing the distance to ocean ancillary data.
     """
 
-    distance_to_coastline = DistanceTo(new_name="distance_to_coastline")(
+    distance_to_coastline = DistanceTo(epsg_projection, new_name="distance_to_coastline")(
         site_cube, coastline
     )
 
     # As we only care about identifying sites on land (i.e. 0m) we can use a small buffer
     # to speed up the calculation.
     distance_to_land = DistanceTo(
-        new_name="distance_to_land", buffer=10, clip_geometry_flag=True
+        epsg_projection, new_name="distance_to_land", buffer=10, clip_geometry_flag=True
     )(site_cube, land)
 
     # Set the distance to ocean to 0 for sites that are in the ocean
