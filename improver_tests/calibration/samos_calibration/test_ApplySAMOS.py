@@ -317,6 +317,7 @@ def test_process(
     result = ApplySAMOS(percentiles=None).process(
         forecast=forecast_slice,
         forecast_gams=forecast_gams,
+        truth_gams=forecast_gams,
         gam_features=features,
         emos_coefficients=emos_coefficients,
         gam_additional_fields=None,

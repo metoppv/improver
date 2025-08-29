@@ -877,13 +877,14 @@ class ApplySAMOS(PostProcessingPlugin):
             self.distribution, template, self.percentiles, randomise, random_seed
         )
 
-        # Enforce that the result is within sensible bounds.
-        bounds_pairing = get_bounds_of_distribution(
-            bounds_pairing_key=result.name(), desired_units=result.units
-        )
-        result.data = clip(
-            result.data, a_min=bounds_pairing[0], a_max=bounds_pairing[1]
-        )
+        if input_forecast_type != "probabilities" and not prob_template:
+            # Enforce that the result is within sensible bounds.
+            bounds_pairing = get_bounds_of_distribution(
+                bounds_pairing_key=result.name(), desired_units=result.units
+            )
+            result.data = clip(
+                result.data, a_min=bounds_pairing[0], a_max=bounds_pairing[1]
+            )
 
         # Enforce correct dtype.
         result.data = result.data.astype(dtype=float32)
