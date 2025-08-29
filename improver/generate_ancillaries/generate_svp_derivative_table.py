@@ -57,7 +57,7 @@ class SaturatedVapourPressureTableDerivative(SaturatedVapourPressureTable):
         svp_derivative = temperature.copy()
         with np.nditer([svp_derivative, svp_original], op_flags=["readwrite"]) as it:
             for cell, svp_original_cell_val in it:
-                if cell > TRIPLE_PT_WATER:
+                if (cell > TRIPLE_PT_WATER or self.water_only) and not self.ice_only:
                     n0 = (self.constants[1] * TRIPLE_PT_WATER) / (cell**2)
                     n1 = self.constants[2] / (cell * np.log(10))
                     n2 = (

@@ -40,7 +40,8 @@ class SaturatedVapourPressureTable(BasePlugin):
     }
 
     def __init__(
-        self, t_min: float = 183.15, t_max: float = 338.25, t_increment: float = 0.1
+        self, t_min: float = 183.15, t_max: float = 338.25, t_increment: float = 0.1, 
+        water_only: bool = False, ice_only: bool = False
     ) -> None:
         """
         Create a table of saturated vapour pressures that can be interpolated
@@ -60,10 +61,22 @@ class SaturatedVapourPressureTable(BasePlugin):
             t_increment:
                 The temperature increment at which to create values for the
                 saturated vapour pressure between t_min and t_max.
+            water_only:
+                The table will only create values for the saturated vapour
+                pressure with respect to water.
+            ice_only:
+                The table will only create values for the saturated vapour
+                pressure with respect to ice.
+
         """
         self.t_min = t_min
         self.t_max = t_max
         self.t_increment = t_increment
+        self.water_only = water_only
+        self.ice_only = ice_only
+
+        if self.water_only == True and self.ice_only == True:
+            raise ValueError("'water_only' and 'ice_only' flags cannot both be set to True")
 
     def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
@@ -98,7 +111,7 @@ class SaturatedVapourPressureTable(BasePlugin):
         svp = temperature.copy()
         with np.nditer(svp, op_flags=["readwrite"]) as it:
             for cell in it:
-                if cell > TRIPLE_PT_WATER:
+                if (cell > TRIPLE_PT_WATER or self.water_only) and not self.ice_only:
                     n0 = self.constants[1] * (1.0 - TRIPLE_PT_WATER / cell)
                     n1 = self.constants[2] * np.log10(cell / TRIPLE_PT_WATER)
                     n2 = self.constants[3] * (
