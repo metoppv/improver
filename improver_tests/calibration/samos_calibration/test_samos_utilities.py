@@ -11,11 +11,13 @@ import cf_units
 import numpy as np
 import pandas as pd
 import pytest
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 from pandas.testing import assert_frame_equal
 
 from improver.calibration.samos_calibration import (
+    TrainGAMsForSAMOS,
     convert_dataframe_to_cube,
+    get_climatological_stats,
     prepare_data_for_gam,
 )
 from improver.synthetic_data.set_up_test_cubes import (
@@ -23,6 +25,7 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_variable_cube,
 )
 from improver_tests.calibration.samos_calibration.helper_functions import (
+    create_cubes_for_gam_fitting,
     create_simple_cube,
 )
 
@@ -163,7 +166,7 @@ def test_prepare_data_for_gam_gridded(
         set_up_kwargs=set_up_kwargs,
     )
 
-    additional_cubes = []
+    additional_cubes = CubeList()
     if include_altitude:
         additional_cubes.append(altitude_cube("gridded", set_up_kwargs))
         surface_altitude = np.array([10.0, 20.0, 20.0, 10.0] * 2, dtype=np.float32)
@@ -194,13 +197,17 @@ def test_prepare_data_for_gam_spot(
         fill_value=305.0,
     )
 
-    additional_cubes = []
+    additional_cubes = CubeList()
     if include_altitude:
         additional_cubes.append(altitude_cube("spot"))
         surface_altitude = np.array([10.0, 20.0] * 2, dtype=np.float32)
         spot_dataframe["surface_altitude"] = surface_altitude
     if include_land_fraction:
-        additional_cubes.append(land_fraction_cube("spot"))
+        land_fraction_cube_spot = land_fraction_cube("spot")
+        land_fraction_cube_spot.coord("wmo_id").points = np.array(
+            ["00000", "00003", "00002", "00001"], dtype="<U5"
+        )
+        additional_cubes.append(land_fraction_cube_spot)
         land_fraction = np.array([0.0, 0.3] * 2, dtype=np.float32)
         spot_dataframe["land_fraction"] = land_fraction
 
@@ -268,3 +275,85 @@ def test_convert_dataframe_to_cube_spot(spot_dataframe):
     result = convert_dataframe_to_cube(spot_dataframe, template_cube)
 
     assert result == expected_cube
+
+
+@pytest.mark.parametrize("include_altitude", [False, True])
+def test_get_climatological_stats(
+    include_altitude,
+):
+    """Test that the get_climatological_stats method returns the expected results."""
+    # Set up model terms for spatial predictors.
+    model_specification = [["linear", [0], {}], ["linear", [1], {}]]
+    features = ["latitude", "longitude"]
+    n_spatial_points = 5
+    n_realizations = 5
+    n_times = 20
+
+    if include_altitude:
+        features.append("surface_altitude")
+        model_specification.append(["spline", [features.index("surface_altitude")], {}])
+
+    cube_for_gam, additional_cubes_for_gam = create_cubes_for_gam_fitting(
+        n_spatial_points=n_spatial_points,
+        n_realizations=n_realizations,
+        n_times=n_times,
+        include_altitude=include_altitude,
+    )
+
+    gams = TrainGAMsForSAMOS(model_specification).process(
+        cube_for_gam, features, additional_cubes_for_gam
+    )
+
+    cube_for_test, additional_cubes_for_test = create_cubes_for_gam_fitting(
+        n_spatial_points=2,
+        n_realizations=2,
+        n_times=1,
+        include_altitude=include_altitude,
+    )
+
+    result_mean, result_sd = get_climatological_stats(
+        cube_for_test, gams, features, additional_cubes_for_test
+    )
+
+    expected_mean = create_simple_cube(
+        forecast_type="gridded",
+        n_spatial_points=2,
+        n_realizations=2,
+        n_times=1,
+        fill_value=0.0,
+    )
+    expected_sd = expected_mean.copy()
+
+    if not include_altitude:
+        expected_mean.data = np.array(
+            [
+                [[284.39363425, 288.14659092], [288.14237183, 291.8953285]],
+                [[284.39363425, 288.14659092], [288.14237183, 291.8953285]],
+            ],
+            dtype=np.float32,
+        )
+        expected_sd.data = np.array(
+            [
+                [[0.36190698, 0.49423461], [0.48704575, 0.61937337]],
+                [[0.36190698, 0.49423461], [0.48704575, 0.61937337]],
+            ],
+            dtype=np.float32,
+        )
+    else:
+        expected_mean.data = np.array(
+            [
+                [[274.41442381, 288.1640568], [278.16316139, 291.91279438]],
+                [[274.41442381, 288.1640568], [278.16316139, 291.91279438]],
+            ],
+            dtype=np.float32,
+        )
+        expected_sd.data = np.array(
+            [
+                [[0.36048627, 0.50103523], [0.48562504, 0.626174]],
+                [[0.36048627, 0.50103523], [0.48562504, 0.626174]],
+            ],
+            dtype=np.float32,
+        )
+
+    assert result_mean == expected_mean
+    assert result_sd == expected_sd
