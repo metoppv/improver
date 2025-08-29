@@ -196,7 +196,9 @@ class TrainGAMsForSAMOS(BasePlugin):
         else:
             self.window_length = window_length
 
-    def _apply_aggregator(self, padded_cube, aggregator) -> Cube:
+    def apply_aggregator(
+        self, padded_cube: Cube, aggregator: iris.analysis.WeightedAggregator
+    ) -> Cube:
         """
         Internal function to apply rolling window aggregator to padded cube.
         Args:
@@ -314,7 +316,7 @@ class TrainGAMsForSAMOS(BasePlugin):
 
         aggregated_cubes = {}
         for aggregator in [MEAN, STD_DEV]:
-            aggregated_cubes[aggregator.name()] = self._apply_aggregator(
+            aggregated_cubes[aggregator.name()] = self.apply_aggregator(
                 padded_cube, aggregator
             )
 
