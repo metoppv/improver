@@ -47,6 +47,9 @@ def test_get_climatological_stats(
     include_altitude,
 ):
     """Test that the get_climatological_stats method returns the expected results."""
+    # Skip test if pyGAM not available.
+    pytest.importorskip("pygam")
+
     # Set up model terms for spatial predictors.
     model_specification = [["linear", [0], {}], ["linear", [1], {}]]
     features = ["latitude", "longitude"]
@@ -126,6 +129,9 @@ def test_get_climatological_stats(
 
 def test_climate_anomaly_emos():
     """Test that the climate_anomaly_emos method returns the expected results."""
+    # Skip test if pyGAM not available.
+    pytest.importorskip("pygam")
+
     create_cube_kwargs = {
         "forecast_type": "gridded",
         "n_spatial_points": 2,
@@ -168,6 +174,9 @@ def test_climate_anomaly_emos():
 @pytest.mark.parametrize("include_altitude", [False, True])
 def test_process(include_altitude):
     """Test that the process method returns the expected results."""
+    # Skip test if pyGAM not available.
+    pytest.importorskip("pygam")
+
     # Set up model terms for spatial predictors.
     model_specification = [["linear", [0], {}], ["linear", [1], {}]]
     features = ["latitude", "longitude"]

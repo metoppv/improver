@@ -48,9 +48,6 @@ def model_specification():
 )
 def test__init__(kwargs):
     """Test that the class initializes variables correctly."""
-    # Skip test if pyGAM not available.
-    pytest.importorskip("pygam")
-
     # Define the default, then update with any differently specified inputs.
     expected = {
         "model_specification": None,
@@ -355,6 +352,9 @@ def test_process(
     """Test that this method takes an input cube, a list of features, and possibly
     additional predictor cubes and correctly returns a fitted GAM.
     """
+    # Skip test if pyGAM not available.
+    pytest.importorskip("pygam")
+
     full_model_specification = deepcopy(spatial_model_specification)
     features = ["latitude", "longitude"]
     gam_kwargs = {
