@@ -156,9 +156,6 @@ def test_calculate_cube_statistics(
         model_specification=model_specification, window_length=5
     ).calculate_cube_statistics(input_cube=input_cube)
 
-    for expected_cube, result_cube in zip(expected, result):
-        print(expected_cube, result_cube)
-
     assert expected == result
 
 
@@ -221,8 +218,8 @@ def test_calculate_cube_statistics_missing_data(model_specification):
 
 
 def test_calculate_cube_statistics_period_diagnostic(model_specification):
-    """Test that this method correctly calculates the mean and standard deviation of
-    when the input cube contains a period diagnostic.
+    """Test that this method correctly calculates the mean and standard deviation when
+    the input cube contains a period diagnostic.
     """
     create_cube_kwargs = {
         "forecast_type": "spot",
@@ -267,7 +264,7 @@ def test_calculate_cube_statistics_period_diagnostic(model_specification):
 def test_calculate_cube_statistics_exception(model_specification):
     """Test that this method raises the correct exception when a rolling window
     calculation over the time coordinate is required to calculate the cube statistics,
-    but the time coordinate as unevenly spaced points.
+    but the time coordinate has unevenly spaced points.
     """
     create_cube_kwargs = {
         "forecast_type": "spot",

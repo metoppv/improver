@@ -64,10 +64,10 @@ def create_simple_cube(
 
     if forecast_type == "gridded":
         data_shape = [n_spatial_points, n_spatial_points]  # Latitude, Longitude.
-        plugin = set_up_variable_cube
+        func = set_up_variable_cube
     elif forecast_type == "spot":
         data_shape = [n_spatial_points]  # Number of sites.
-        plugin = set_up_spot_variable_cube
+        func = set_up_spot_variable_cube
 
     if n_realizations > 1:
         data_shape.insert(0, n_realizations)
@@ -77,7 +77,7 @@ def create_simple_cube(
         frt = initial_frt + timedelta(days=i) if fixed_forecast_period else initial_frt
 
         data = np.full(data_shape, fill_value, dtype=np.float32)
-        new_cube = plugin(data=data, time=dt, frt=frt, **set_up_kwargs)
+        new_cube = func(data=data, time=dt, frt=frt, **set_up_kwargs)
         result.append(new_cube.copy())
 
     return result.merge_cube()
