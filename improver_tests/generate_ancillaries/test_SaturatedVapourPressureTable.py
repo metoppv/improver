@@ -19,6 +19,15 @@ from improver.generate_ancillaries.generate_svp_table import (
 )
 
 
+class Test__init__(unittest.TestCase):
+    """Test the init method"""
+
+    def test_raise_error_if_both_flags_true(self):
+        """If both the water and ice flags are true, the plugin should raise an exception."""
+        with self.assertRaises(ValueError):
+            SaturatedVapourPressureTable(water_only = True, ice_only = True)
+
+
 class Test__repr__(IrisTest):
     """Test the repr method."""
 
@@ -194,6 +203,66 @@ class Test_process(IrisTest):
         ]
         result = SaturatedVapourPressureTable(
             t_min=t_min, t_max=t_max, t_increment=t_increment
+        ).process()
+
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_cube_values_water_only(self):
+        """
+        Test that returned cube has expected values when the table 
+        is constructed with respect to water only.
+        """
+        t_min, t_max, t_increment = 183.15, 338.15, 10.0
+        expected = [
+            0.018690,
+            0.107194,
+            0.491913,
+            1.897283,
+            6.354202,
+            18.909257,
+            50.868046,
+            125.375832,
+            286.221982,
+            610.695096,
+            1227.088842,
+            2337.080198,
+            4242.725995,
+            7377.329405,
+            12338.999605,
+            19925.436284
+        ]
+        result = SaturatedVapourPressureTable(
+            t_min=t_min, t_max=t_max, t_increment=t_increment, water_only=True
+        ).process()
+
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_cube_values_ice_only(self):
+        """
+        Test that returned cube has expected values when the table 
+        is constructed with respect to ice only.
+        """
+        t_min, t_max, t_increment = 183.15, 338.15, 10.0
+        expected = [
+            0.009665,
+            0.054684,
+            0.261355,
+            1.079993,
+            3.933366,
+            12.828610,
+            37.971459,
+            103.153275,
+            259.661737,
+            610.635936,
+            1351.017491,
+            2829.351643,
+            5638.441933,
+            10742.038523,
+            19644.167698,
+            34606.291988
+        ]
+        result = SaturatedVapourPressureTable(
+            t_min=t_min, t_max=t_max, t_increment=t_increment, ice_only=True
         ).process()
 
         self.assertArrayAlmostEqual(result.data, expected)

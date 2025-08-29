@@ -17,6 +17,15 @@ from improver.generate_ancillaries.generate_svp_derivative_table import (
 )
 
 
+class Test__init__(unittest.TestCase):
+    """Test the init method"""
+
+    def test_raise_error_if_both_flags_true(self):
+        """If both the water and ice flags are true, the plugin should raise an exception."""
+        with self.assertRaises(ValueError):
+            SaturatedVapourPressureTableDerivative(water_only = True, ice_only = True)
+
+
 class Test__repr__(IrisTest):
     """Test the repr method."""
 
@@ -73,6 +82,70 @@ class Test_process(IrisTest):
         ]
         result = SaturatedVapourPressureTableDerivative(
             t_min=t_min, t_max=t_max, t_increment=t_increment
+        ).process()
+
+        self.assertArrayAlmostEqual(result.data, expected, decimal=5)
+
+    def test_cube_values_water_only(self):
+        """
+        Test that returned cube has expected saturated vapour
+        pressure derivative values. Table constructed with respect 
+        to water only.
+        """
+        t_min, t_max, t_increment = 183.15, 338.25, 10.0
+        expected = [
+            0.003516,
+            0.017420,
+            0.070356,
+            0.241868,
+            0.728414,
+            1.961939,
+            4.801103,
+            10.809001,
+            22.619253,
+            44.376241,
+            82.218616,
+            144.762205,
+            243.532384,
+            393.298427,
+            612.272861,
+            922.155215,
+            1348.018754
+        ]
+        result = SaturatedVapourPressureTableDerivative(
+            t_min=t_min, t_max=t_max, t_increment=t_increment, water_only=True
+        ).process()
+
+        self.assertArrayAlmostEqual(result.data, expected, decimal=5)
+
+    def test_cube_values_ice_only(self):
+        """
+        Test that returned cube has expected saturated vapour
+        pressure derivative values. Table constructed with respect 
+        to ice only.
+        """
+        t_min, t_max, t_increment = 183.15, 338.25, 10.0
+        expected = [
+            0.001765,
+            0.008992,
+            0.038891,
+            0.146100,
+            0.485748,
+            1.451731,
+            3.951107,
+            9.900690,
+            23.054905,
+            50.287651,
+            103.448396,
+            201.888953,
+            375.710661,
+            669.714555,
+            1147.955795,
+            1898.717510,
+            3039.638789
+        ]
+        result = SaturatedVapourPressureTableDerivative(
+            t_min=t_min, t_max=t_max, t_increment=t_increment, ice_only=True
         ).process()
 
         self.assertArrayAlmostEqual(result.data, expected, decimal=5)
