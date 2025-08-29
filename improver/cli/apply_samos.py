@@ -14,6 +14,7 @@ from improver import cli
 def process(
     *cubes: cli.inputcubelist,
     forecast_gams: cli.inputjson,
+    truth_gams: cli.inputjson,
     gam_features: cli.comma_separated_list,
     realizations_count: int = None,
     randomise=False,
@@ -128,6 +129,7 @@ def process(
     result = plugin.process(
         forecast=forecast,
         forecast_gams=forecast_gams,
+        truth_gams=truth_gams,
         gam_features=gam_features,
         emos_coefficients=emos_coefficients,
         gam_additional_fields=gam_additional_fields,

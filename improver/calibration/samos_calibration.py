@@ -23,7 +23,7 @@ except ModuleNotFoundError:
 from iris.analysis import MEAN, STD_DEV
 from iris.cube import Cube, CubeList
 from iris.util import new_axis
-from numpy import array, int64, nan, float32
+from numpy import array, clip, float32, int64, nan
 from numpy.ma import masked_all_like
 from pandas import merge
 
@@ -36,8 +36,9 @@ from improver.calibration.emos_calibration import (
     get_attribute_from_coefficients,
     get_forecast_type,
 )
-from improver.utilities.cube_manipulation import collapse_realizations
+from improver.ensemble_copula_coupling.utilities import get_bounds_of_distribution
 from improver.metadata.probabilistic import find_threshold_coordinate
+from improver.utilities.cube_manipulation import collapse_realizations
 from improver.utilities.generalized_additive_models import GAMFit, GAMPredict
 from improver.utilities.mathematical_operations import CalculateClimateAnomalies
 
@@ -142,6 +143,7 @@ def get_climatological_stats(
     gams: List,
     gam_features: List[str],
     additional_cubes: Optional[CubeList],
+    sd_clip: float = 0.25,
 ) -> Tuple[Cube, Cube]:
     """Function to predict climatological means and standard deviations given fitted
     GAMs for each statistic and cubes which can be used to construct a dataframe
@@ -151,13 +153,16 @@ def get_climatological_stats(
         input_cube
         gams: A list containing two fitted GAMs, the first for predicting the
             climatological mean of the locations in input_cube and the second
-            predicting the climatoloigcal standard deviation
+            predicting the climatological standard deviation.
         gam_features:
             The list of features. These must be either coordinates on input_cube or
             share a name with a cube in additional_cubes. The index of each
             feature should match the indices used in model_specification.
         additional_cubes:
             Additional fields to use as supplementary predictors.
+        sd_clip:
+            The minimum standard deviation value to allow when predicting from the GAM.
+            Any predictions below this value will be set to this value.
 
     Returns:
         A pair of cubes containing climatological mean and climatological standard
@@ -178,6 +183,7 @@ def get_climatological_stats(
 
     df[diagnostic] = sd_pred
     sd_cube = convert_dataframe_to_cube(df, input_cube)
+    sd_cube.data = clip(sd_cube.data, a_min=sd_clip, a_max=None)
 
     return mean_cube, sd_cube
 
@@ -726,6 +732,7 @@ class ApplySAMOS(PostProcessingPlugin):
         self,
         forecast: Cube,
         forecast_gams: List,
+        truth_gams: List,
         gam_features: List[str],
         emos_coefficients: CubeList,
         gam_additional_fields: Optional[CubeList] = None,
@@ -746,6 +753,10 @@ class ApplySAMOS(PostProcessingPlugin):
                 Uncalibrated forecast as probabilities, percentiles or
                 realizations.
             forecast_gams:
+                A list containing two fitted GAMs, the first for predicting the
+                climatological mean of the locations in historic_forecasts and the
+                second predicting the climatological standard deviation.
+            truth_gams:
                 A list containing two fitted GAMs, the first for predicting the
                 climatological mean of the locations in historic_forecasts and the
                 second predicting the climatological standard deviation.
@@ -821,9 +832,16 @@ class ApplySAMOS(PostProcessingPlugin):
             return_parameters=True,
         )
 
+        truth_mean, truth_sd = get_climatological_stats(
+            forecast_as_realizations,
+            truth_gams,
+            gam_features,
+            gam_additional_fields,
+        )
+
         # The data in these cubes are identical along the realization dimensions.
-        forecast_mean = next(forecast_mean.slices_over("realization"))
-        forecast_sd = next(forecast_sd.slices_over("realization"))
+        truth_mean = next(truth_mean.slices_over("realization"))
+        truth_sd = next(truth_sd.slices_over("realization"))
 
         # Transform location and scale parameters so that they represent a distribution
         # in the units of the original forecast, rather than climatological anomalies.
@@ -833,15 +851,15 @@ class ApplySAMOS(PostProcessingPlugin):
             else find_threshold_coordinate(forecast).units
         )
         location_parameter.data = (
-            location_parameter.data * forecast_sd.data
-        ) + forecast_mean.data
+            location_parameter.data * truth_sd.data
+        ) + truth_mean.data
         location_parameter.units = forecast_units
 
         # The scale parameter returned by ApplyEMOS is the standard deviation for a
         # normal distribution. To get the desired standard deviation in
         # realization/percentile space we must multiply by the estimated forecast
         # standard deviation.
-        scale_parameter.data = scale_parameter.data * forecast_sd.data
+        scale_parameter.data = scale_parameter.data * truth_sd.data
         scale_parameter.units = forecast_units
 
         # Generate output in desired format from distribution.
@@ -858,5 +876,16 @@ class ApplySAMOS(PostProcessingPlugin):
         result = generate_forecast_from_distribution(
             self.distribution, template, self.percentiles, randomise, random_seed
         )
+
+        # Enforce that the result is within sensible bounds.
+        bounds_pairing = get_bounds_of_distribution(
+            bounds_pairing_key=result.name(), desired_units=result.units
+        )
+        result.data = clip(
+            result.data, a_min=bounds_pairing[0], a_max=bounds_pairing[1]
+        )
+
+        # Enforce correct dtype.
+        result.data = result.data.astype(dtype=float32)
 
         return result
