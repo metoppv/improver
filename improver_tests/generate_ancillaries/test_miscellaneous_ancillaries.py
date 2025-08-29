@@ -6,6 +6,7 @@
 Unit tests for the the miscellaneous ancillary generation functions.
 """
 
+import cartopy.crs as ccrs
 import numpy as np
 import pytest
 from geopandas import GeoDataFrame
@@ -232,7 +233,9 @@ def test_distance_to_ocean(site_locations, coastline, land):
     """Test the distance to ocean ancillary is generated correctly."""
 
     # Generate the distance to ocean ancillary
-    distance_to_ocean = generate_distance_to_ocean(3035, coastline, land, site_locations)
+    distance_to_ocean = generate_distance_to_ocean(
+        3035, coastline, land, site_locations
+    )
 
     # Ensure the cube has the correct metadata
     assert distance_to_ocean.name() == "distance_to_ocean"
@@ -240,19 +243,84 @@ def test_distance_to_ocean(site_locations, coastline, land):
     assert_array_equal(distance_to_ocean.data, [500, 0])
 
 
-def test_land_area_fraction_ancillary(
-    neighbour_cube, gridded_template_cube, corine_land_cover
-):
-    """Test that the land area fraction ancillary is generated correctly."""
+@pytest.mark.parametrize(
+    "radius, expected",
+    (
+        (2500, [0.0, 1.0 / 3.0, 8.0 / 9.0, 1.0]),
+        (5000, [1.0 / 3.0, 0.5, 0.5, 8.0 / 9.0]),
+        (20000, [0.5, 0.5, 0.5, 0.5]),
+    ),
+)
+def test_land_area_fraction_ancillary(corine_land_cover, radius, expected):
+    """Test that the land area fraction ancillary is generated correctly.
+    A site list is defined that traverses the corine land cover cube from
+    top left to bottom right across the grid for nearest neighbours.
+
+    The corine land cover grid looks like this once translated into a
+    land sea mask:
+
+        [[0 0 0 0]
+         [0 0 1 1]
+         [0 1 1 1]
+         [0 1 1 1]]
+
+    The cell spacing is 2500m.
+    With a radius of 2500m the top left point gets a 2x2 neighbourhood full
+    of sea (0) and is classified as 100% sea (0). The next point down and to
+    the right has a 3x3 neighbourhood that is 1/3 land (1) and 2/3 sea (0),
+    giving a land area fraction of 1/3. The next point down and to the right
+    has a 3x3 neighbourhood that is 8/9 land and 1/9 sea, giving a land area
+    fraction of 8/9. The final point in the bottom right has a 2x2
+    neighbourhood that is 100% land, giving a land area fraction of 1.
+
+    Larger radii are tested which capture more of the domain and give different
+    land fractions. The last test has a radius large enough to capture the
+    entire domain for all sites, giving a land area fraction of 0.5 for all
+    sites.
+    """
+    x_points = corine_land_cover.coord(axis="x").points
+    y_points = corine_land_cover.coord(axis="y").points
+    target_crs = corine_land_cover.coord(axis="x").coord_system.as_cartopy_crs()
+    new_points = ccrs.PlateCarree().transform_points(target_crs, x_points, y_points)[
+        :, 0:2
+    ]
+
+    site_list = [
+        {
+            "altitude": 0,
+            "latitude": new_points[0, 1],
+            "longitude": new_points[0, 0],
+            "wmo_id": 0,
+        },
+        {
+            "altitude": 1,
+            "latitude": new_points[1, 1],
+            "longitude": new_points[1, 0],
+            "wmo_id": 1,
+        },
+        {
+            "altitude": 3,
+            "latitude": new_points[2, 1],
+            "longitude": new_points[2, 0],
+            "wmo_id": 2,
+        },
+        {
+            "altitude": 2,
+            "latitude": new_points[3, 1],
+            "longitude": new_points[3, 0],
+            "wmo_id": 3,
+        },
+    ]
 
     land_area_fraction = generate_land_area_fraction_at_sites(
-        corine_land_cover, gridded_template_cube, neighbour_cube
+        corine_land_cover,
+        site_list,
+        radius=radius,
     )
-    # Ensure the cube has the correct metadata
 
     assert land_area_fraction.name() == "land_area_fraction"
     assert land_area_fraction.units == "1"
-    assert_array_almost_equal(land_area_fraction.data, [0.3125, 0.3125, 0.9375, 0.9375])
+    assert_array_almost_equal(land_area_fraction.data, expected)
 
 
 def test_roughness_length_ancillary(neighbour_cube, gridded_template_cube):

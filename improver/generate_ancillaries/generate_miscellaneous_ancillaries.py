@@ -4,14 +4,21 @@
 # See LICENSE in the root of the repository for full licensing details.
 """A module for functions that generate ancillary cubes."""
 
+from typing import Dict
+
 import numpy as np
 from geopandas import GeoDataFrame
+from iris import Constraint
 from iris.cube import Cube, CubeList
 
 from improver.generate_ancillaries.generate_distance_to_feature import DistanceTo
-from improver.nbhood.nbhood import MetaNeighbourhood
-from improver.regrid.landsea import RegridLandSea
+from improver.spotdata.build_spotdata_cube import build_spotdata_cube
+from improver.spotdata.neighbour_finding import NeighbourSelection
 from improver.spotdata.spot_extraction import SpotExtraction
+from improver.utilities.spatial import (
+    check_if_grid_is_equal_area,
+    distance_to_number_of_grid_cells,
+)
 
 
 def generate_distance_to_ocean(
@@ -44,9 +51,9 @@ def generate_distance_to_ocean(
         A cube containing the distance to ocean ancillary data.
     """
 
-    distance_to_coastline = DistanceTo(epsg_projection, new_name="distance_to_coastline")(
-        site_cube, coastline
-    )
+    distance_to_coastline = DistanceTo(
+        epsg_projection, new_name="distance_to_coastline"
+    )(site_cube, coastline)
 
     # As we only care about identifying sites on land (i.e. 0m) we can use a small buffer
     # to speed up the calculation.
@@ -121,7 +128,7 @@ def generate_roughness_length_at_sites(
 
 
 def generate_land_area_fraction_at_sites(
-    land_cover_cube: Cube, gridded_template_cube: Cube, neighbour_cube: Cube
+    land_cover_cube: Cube, site_definitions: Dict, radius: int = 2500
 ) -> Cube:
     """Generate a land area fraction ancillary cube at the site locations by utilising
     the Corine Land cover.
@@ -130,26 +137,43 @@ def generate_land_area_fraction_at_sites(
     https://doi.org/10.2909/960998c1-1870-4e82-8051-6485205ebbac. This
     function requires the land cover file is provided as an iris cube.
 
-    The land_cover cube is first regridded to be on the same projection as the provided
-    gridded template. A neighbourhood is then applied to the regridded land cover cube
-    to calculate the land area fraction at each grid point. The neighbourhood radius is
-    set to 2500m. The land area fraction is then extracted at the site locations using
-    the neighbour_cube.
+    A neighbour cube is generated on the native grid of the input land cover cube.
+    This allows us to select the cell, on what ever resolution this data is provided,
+    that is closest to each site location. A box can then be formed about this cell
+    of a given size and the fraction of points within the box that are classified as
+    land can be counted. The returned value is the fraction of the total box size
+    that is classified as land on the input land cover grid.
 
     Args:
         land_cover_cube:
             A cube containing the Corine Land cover data. The data values should be
             integers representing
             different land cover types.
-        gridded_template_cube:
-            A cube containing the gridded template to regrid the land cover cube to.
-        neighbour_cube:
-            A cube containing information about the spot data sites and their grid point
-            neighbours.
+        site_definitions:
+            A list of dictionaries defining the spot sites for which
+            neighbours land fraction values are to be found. The dictionaries
+            are the same as those used to generate neighbour cubes, taking the
+            form:
+
+                [{'altitude': 11.0, 'latitude': 57.867000579833984,
+                'longitude': -5.632999897003174, 'wmo_id': 3034}]
+            An additional key is inferred as the optional unique_site_id_key,
+            e.g. met_office_site_id.
+        radius:
+            The radius in metres of the box about each site location to use to calculate
+            the land area fraction. The default value of 2500m gives a box of
+            approximately 5km x 5km.
 
     Returns:
         A cube containing the land area fraction at the site locations.
     """
+    # Determine the grid resolution of the land cover data in metres
+    check_if_grid_is_equal_area(land_cover_cube)
+    cell_radius = distance_to_number_of_grid_cells(land_cover_cube, radius)
+
+    # Ensure we are working with an x/y grid only
+    xaxis, yaxis = land_cover_cube.coord(axis="x"), land_cover_cube.coord(axis="y")
+    land_cover_cube = next(land_cover_cube.slices([xaxis, yaxis]))
 
     # 41-44 is the key for water in the Corine Land cover dataset.
     land_mask = land_cover_cube.copy(data=np.where(land_cover_cube.data > 40, 0, 1))
@@ -158,36 +182,54 @@ def generate_land_area_fraction_at_sites(
     # 48 is the key for complex land surfaces in Corine
     land_mask.data = np.where(land_cover_cube.data == 48, 1, land_mask.data)
 
-    # regrid the land mask to the same projection as the gridded template. This may lead
-    # to grid squares not being 1 or 0 but as the land mask will be neighbourhooded this
-    # will not be an issue.
-    land_cover_cube_uk_regrid = RegridLandSea()(
-        cube=land_mask, target_grid=gridded_template_cube
+    # If a unique site id is present, we need to extract the name for reuse.
+    default_keys = ["altitude", "latitude", "longitude", "wmo_id"]
+    try:
+        (unique_site_id_key,) = [
+            key for key in site_definitions[0].keys() if key not in default_keys
+        ]
+    except ValueError:
+        unique_site_id_key = None
+
+    # Find nearest grid point to each site on the land cover grid.
+    neighbour_plugin = NeighbourSelection(unique_site_id_key=unique_site_id_key)
+    # We are using the land cover data here as both orography and landmask,
+    # but we don't need any orographic information for a nearest neighbour
+    # selection and with a guaranteed set of complete site altitudes provided
+    # by the neighbour cube, so this is okay.
+    neighbours = neighbour_plugin(site_definitions, land_mask, land_mask)
+
+    kwargs = (
+        {"unique_site_id": 0, "unique_site_id_key": unique_site_id_key}
+        if unique_site_id_key is not None
+        else {}
     )
-
-    # Neighbourhood around each grid point to get a land area fraction
-    land_mask_neighbourhood = MetaNeighbourhood(
-        neighbourhood_output="probabilities", radii=2500
-    )(cube=land_cover_cube_uk_regrid)
-
-    spot_extracted_land_fraction = SpotExtraction(neighbour_selection_method="nearest")(
-        neighbour_cube=neighbour_cube, diagnostic_cube=land_mask_neighbourhood
+    template = build_spotdata_cube(
+        0, "land_area_fraction", 1, 0, 0, 0, "00000", **kwargs
     )
+    # Iris does not concatenate variable length strings, so we need to set
+    # types explicitly in each site cube to ensure these can be concatenated.
+    crd_types = {crd.name(): neighbours.coord(crd).dtype for crd in template.coords()}
 
-    # Update metadata
-    spot_extracted_land_fraction.rename("land_area_fraction")
+    # Constraints to allow us to extract the x and y grid indices.
+    x_index_con = Constraint(grid_attributes_key="x_index")
+    y_index_con = Constraint(grid_attributes_key="y_index")
 
-    spot_extracted_land_fraction.attributes = {
-        k: v
-        for k, v in spot_extracted_land_fraction.attributes.items()
-        if k == "conventions"
-    }
+    land_fraction = CubeList()
+    for site in neighbours.slices_over("spot_index"):
+        ix, iy = (
+            site.extract(x_index_con).data.astype(int).item(),
+            site.extract(y_index_con).data.astype(int).item(),
+        )
+        subset = land_mask.data[
+            max(0, ix - cell_radius) : ix + cell_radius + 1,
+            max(0, iy - cell_radius) : iy + cell_radius + 1,
+        ]
+        fraction = subset.sum() / subset.size
 
-    cube_coord = [coord.name() for coord in spot_extracted_land_fraction.coords()]
+        site_frac = template.copy(data=np.array([fraction], dtype=np.float32))
+        for crd, crd_type in crd_types.items():
+            site_frac.coord(crd).points = site.coord(crd).points.astype(crd_type)
+        land_fraction.append(site_frac)
 
-    coordinates_to_remove = ["band", "spatial_ref"]
-    for coord in coordinates_to_remove:
-        if coord in cube_coord:
-            spot_extracted_land_fraction.remove_coord(coord)
-
-    return spot_extracted_land_fraction
+    return land_fraction.concatenate_cube()
