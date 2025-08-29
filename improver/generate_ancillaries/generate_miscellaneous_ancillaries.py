@@ -4,8 +4,6 @@
 # See LICENSE in the root of the repository for full licensing details.
 """A module for functions that generate ancillary cubes."""
 
-from typing import Dict
-
 import numpy as np
 from geopandas import GeoDataFrame
 from iris import Constraint
@@ -15,6 +13,7 @@ from improver.generate_ancillaries.generate_distance_to_feature import DistanceT
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.spotdata.neighbour_finding import NeighbourSelection
 from improver.spotdata.spot_extraction import SpotExtraction
+from improver.spotdata.utilities import extract_site_json
 from improver.utilities.spatial import (
     check_if_grid_is_equal_area,
     distance_to_number_of_grid_cells,
@@ -128,7 +127,7 @@ def generate_roughness_length_at_sites(
 
 
 def generate_land_area_fraction_at_sites(
-    land_cover_cube: Cube, site_definitions: Dict, radius: int = 2500
+    land_cover_cube: Cube, neighbour_cube: Cube, radius: int = 2500
 ) -> Cube:
     """Generate a land area fraction ancillary cube at the site locations by utilising
     the Corine Land cover.
@@ -149,16 +148,11 @@ def generate_land_area_fraction_at_sites(
             A cube containing the Corine Land cover data. The data values should be
             integers representing
             different land cover types.
-        site_definitions:
-            A list of dictionaries defining the spot sites for which
-            neighbours land fraction values are to be found. The dictionaries
-            are the same as those used to generate neighbour cubes, taking the
-            form:
-
-                [{'altitude': 11.0, 'latitude': 57.867000579833984,
-                'longitude': -5.632999897003174, 'wmo_id': 3034}]
-            An additional key is inferred as the optional unique_site_id_key,
-            e.g. met_office_site_id.
+        neighbour_cube:
+            A cube containing information about the spot data sites. We use this rather
+            than a site list as it contains a completed set of altitudes which have
+            been extracted from orography data on the model domain. These fill in
+            where the site source data may be missing altitude information.
         radius:
             The radius in metres of the box about each site location to use to calculate
             the land area fraction. The default value of 2500m gives a box of
@@ -181,6 +175,9 @@ def generate_land_area_fraction_at_sites(
     land_mask.data = np.where(land_cover_cube.data < 0, 0, land_mask.data)
     # 48 is the key for complex land surfaces in Corine
     land_mask.data = np.where(land_cover_cube.data == 48, 1, land_mask.data)
+
+    # Extract the site definitions from the provided neighbour cube.
+    site_definitions = extract_site_json(neighbour_cube)
 
     # If a unique site id is present, we need to extract the name for reuse.
     default_keys = ["altitude", "latitude", "longitude", "wmo_id"]

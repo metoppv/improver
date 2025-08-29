@@ -133,20 +133,9 @@ def site_locations():
     return site_cube
 
 
-@pytest.fixture()
-def neighbour_cube():
+def neighbour_cube(neighbours, altitudes, latitudes, longitudes, wmo_ids):
     """Set up a neighbour cube with a simple grid of neighbours."""
-    neighbours = np.array(
-        [
-            [[0.0, 0.0, 2.0, 2.0], [0.0, 0.0, 2.0, 2.0], [0.0, -1.0, 0.0, 1.0]],
-            [[1.0, 1.0, 2.0, 2.0], [1.0, 1.0, 2.0, 2.0], [-1.0, 0.0, 0.0, 1.0]],
-        ]
-    )
 
-    altitudes = np.array([0, 1, 3, 2])
-    latitudes = np.array([10, 10, 20, 20])
-    longitudes = np.array([10, 10, 20, 20])
-    wmo_ids = np.arange(4)
     grid_attributes = ["x_index", "y_index", "vertical_displacement"]
     neighbour_methods = ["nearest", "nearest_land"]
     neighbour_cube = build_spotdata_cube(
@@ -164,6 +153,25 @@ def neighbour_cube():
         "e5b78c90234ed2f4a17f4109abce231c3826577bd738940af0e227c9e2892069"
     )
     return neighbour_cube
+
+
+@pytest.fixture()
+def default_neighbour_cube():
+    """Set up a neighbour cube with a simple grid of neighbours."""
+
+    neighbours = np.array(
+        [
+            [[0.0, 0.0, 2.0, 2.0], [0.0, 0.0, 2.0, 2.0], [0.0, -1.0, 0.0, 1.0]],
+            [[1.0, 1.0, 2.0, 2.0], [1.0, 1.0, 2.0, 2.0], [-1.0, 0.0, 0.0, 1.0]],
+        ]
+    )
+
+    altitudes = np.array([0, 1, 3, 2])
+    latitudes = np.array([10, 10, 20, 20])
+    longitudes = np.array([10, 10, 20, 20])
+    wmo_ids = np.arange(4)
+
+    return neighbour_cube(neighbours, altitudes, latitudes, longitudes, wmo_ids)
 
 
 @pytest.fixture()
@@ -281,40 +289,18 @@ def test_land_area_fraction_ancillary(corine_land_cover, radius, expected):
     x_points = corine_land_cover.coord(axis="x").points
     y_points = corine_land_cover.coord(axis="y").points
     target_crs = corine_land_cover.coord(axis="x").coord_system.as_cartopy_crs()
-    new_points = ccrs.PlateCarree().transform_points(target_crs, x_points, y_points)[
-        :, 0:2
-    ]
+    longitudes, latitudes = (
+        ccrs.PlateCarree().transform_points(target_crs, x_points, y_points)[:, 0:2].T
+    )
 
-    site_list = [
-        {
-            "altitude": 0,
-            "latitude": new_points[0, 1],
-            "longitude": new_points[0, 0],
-            "wmo_id": 0,
-        },
-        {
-            "altitude": 1,
-            "latitude": new_points[1, 1],
-            "longitude": new_points[1, 0],
-            "wmo_id": 1,
-        },
-        {
-            "altitude": 3,
-            "latitude": new_points[2, 1],
-            "longitude": new_points[2, 0],
-            "wmo_id": 2,
-        },
-        {
-            "altitude": 2,
-            "latitude": new_points[3, 1],
-            "longitude": new_points[3, 0],
-            "wmo_id": 3,
-        },
-    ]
+    # The grid point neighbour indices are not used, so all set to 1.
+    neighbours = neighbour_cube(
+        np.ones((2, 3, 4)), np.ones(4), latitudes, longitudes, np.arange(4)
+    )
 
     land_area_fraction = generate_land_area_fraction_at_sites(
         corine_land_cover,
-        site_list,
+        neighbours,
         radius=radius,
     )
 
@@ -323,7 +309,7 @@ def test_land_area_fraction_ancillary(corine_land_cover, radius, expected):
     assert_array_almost_equal(land_area_fraction.data, expected)
 
 
-def test_roughness_length_ancillary(neighbour_cube, gridded_template_cube):
+def test_roughness_length_ancillary(default_neighbour_cube, gridded_template_cube):
     """Test that the roughness length ancillary is generated correctly."""
 
     # Create a gridded roughness length cube
@@ -333,7 +319,7 @@ def test_roughness_length_ancillary(neighbour_cube, gridded_template_cube):
     roughness_cube.data = np.array([[0.1, 0.2, 0.3], [0.4, 0.5, 0.6], [0.7, 0.8, 0.9]])
 
     # Generate the roughness length ancillary
-    result = generate_roughness_length_at_sites(roughness_cube, neighbour_cube)
+    result = generate_roughness_length_at_sites(roughness_cube, default_neighbour_cube)
 
     # Ensure the cube has the correct metadata
     assert result.name() == "roughness_length"
