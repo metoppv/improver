@@ -23,8 +23,10 @@ class SaturatedVapourPressureTable(BasePlugin):
     cube_name = "saturated_vapour_pressure"
     svp_units = "hPa"
     svp_si_units = "Pa"
-    MAX_VALID_TEMPERATURE = 373.0
-    MIN_VALID_TEMPERATURE = 173.0
+    MAX_VALID_TEMPERATURE_WATER = 373.0
+    MAX_VALID_TEMPERATURE_ICE = 273.15
+    MIN_VALID_TEMPERATURE_WATER = 223.0
+    MIN_VALID_TEMPERATURE_ICE = 173.0
     constants = {
         1: 10.79574,
         2: 5.028,
@@ -155,16 +157,33 @@ class SaturatedVapourPressureTable(BasePlugin):
         Raises:
             UserWarning:
                 If any temperature value is outside the valid range defined by
-                self.MIN_VALID_TEMPERATURE and self.MAX_VALID_TEMPERATURE, a warning is issued.
+                self.MIN_VALID_TEMPERATURE_ICE and self.MAX_VALID_TEMPERATURE_WATER,
+                a warning is issued.
+
+                If either self.water_only or self.ice_only has been set to True, the
+                warning will use the corresponding minimum and maximum temperature
+                values.
 
         Returns:
             None
         """
         if (
-            temperature.max() > self.MAX_VALID_TEMPERATURE
-            or temperature.min() < self.MIN_VALID_TEMPERATURE
-        ):
+            temperature.max() > self.MAX_VALID_TEMPERATURE_WATER
+            or temperature.min() < self.MIN_VALID_TEMPERATURE_ICE
+        ) and not (self.water_only or self.ice_only):
             msg = "Temperatures out of SVP table range: min {}, max {}"
+            warnings.warn(msg.format(temperature.min(), temperature.max()))
+        elif (
+            temperature.max() > self.MAX_VALID_TEMPERATURE_WATER
+            or temperature.min() < self.MIN_VALID_TEMPERATURE_WATER
+        ) and self.water_only:
+            msg = "Temperatures out of SVP table range for water: min {}, max {}"
+            warnings.warn(msg.format(temperature.min(), temperature.max()))
+        elif (
+            temperature.max() > self.MAX_VALID_TEMPERATURE_ICE
+            or temperature.min() < self.MIN_VALID_TEMPERATURE_ICE
+        ) and self.ice_only:
+            msg = "Temperatures out of SVP table range for ice: min {}, max {}"
             warnings.warn(msg.format(temperature.min(), temperature.max()))
 
     def as_cube(self, svp_data: np.ndarray, temperatures: np.ndarray) -> Cube:
