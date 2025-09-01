@@ -101,7 +101,8 @@ class SaturatedVapourPressureTable(BasePlugin):
 
         Args:
             temperature:
-                Temperature values in Kelvin. Valid from 173K to 373K
+                Temperature values in Kelvin. Valid from 173 K to 373 K
+                (173 K < T < 273.15 K for ice, 223 K < T < 373 K for water).
 
         Returns:
             Corresponding values of saturation vapour pressure for a pure

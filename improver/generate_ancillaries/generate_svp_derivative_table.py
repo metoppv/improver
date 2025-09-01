@@ -17,7 +17,7 @@ from improver.generate_ancillaries.generate_svp_table import (
 class SaturatedVapourPressureTableDerivative(SaturatedVapourPressureTable):
     """
     Plugin to create a first derivative saturated vapour pressure lookup table,
-    which is only valid for temperatures between 173K and 373K.
+    which is only valid for temperatures between 173 K and 373 K.
 
     .. Further information is available in:
     .. include:: extended_documentation/generate_ancillaries/
@@ -37,7 +37,8 @@ class SaturatedVapourPressureTableDerivative(SaturatedVapourPressureTable):
 
         Args:
             temperature:
-                Temperature values in Kelvin. Valid from 173K to 373K
+                Temperature values in Kelvin. Valid from 173 K to 373 K
+                (173 K < T < 273.15 K for ice, 223 K < T < 373 K for water).
 
         Returns:
             Corresponding values of saturation vapour pressure first derivative
