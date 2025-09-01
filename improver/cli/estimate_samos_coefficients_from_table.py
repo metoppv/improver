@@ -109,12 +109,10 @@ def process(
             Cycletime of a format similar to 20170109T0000Z.
 
     Returns:
-        iris.cube.CubeList:
+        iris.cube.CubeList or None:
             CubeList containing the coefficients estimated using EMOS. Each
-            coefficient is stored in a separate cube.
-        OR
-        None:
-            If a forecast or truth cube cannot be created from the parquet table then None is returned.
+            coefficient is stored in a separate cube. None if a forecast or
+            truth cube cannot be created from the parquet table.
     """
     # monkey-patch to 'tweak' scipy to prevent errors occuring
     import scipy.sparse

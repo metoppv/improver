@@ -362,7 +362,7 @@ def with_output(
 
     result = wrapped(*args, **kwargs)
 
-    if output and (type(result) is Cube or type(result) is CubeList):
+    if output and (isinstance(result, Cube) or isinstance(result, CubeList)):
         save_netcdf(result, output, compression_level, least_significant_digit)
         if pass_through_output:
             return ObjectAsStr(result, output)
@@ -371,6 +371,7 @@ def with_output(
         # If output is set and result is not a Cube, save it as a pickle file
         with open(output, "wb") as f:
             pickle.dump(result, f)
+        return
     return result
 
 
