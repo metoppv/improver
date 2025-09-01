@@ -4,13 +4,17 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Module to contain Condensation trail formation calculations."""
 
-from typing import Union
+from typing import Tuple, Union
 
 import numpy as np
 from iris.cube import Cube, CubeList
 
 from improver import BasePlugin
 from improver.constants import EARTH_REPSILON
+from improver.generate_ancillaries.generate_svp_derivative_table import (
+    SaturatedVapourPressureTable,
+    SaturatedVapourPressureTableDerivative,
+)
 from improver.psychrometric_calculations.psychrometric_calculations import (
     calculate_svp_in_air,
 )
@@ -40,6 +44,8 @@ class CondensationTrailFormation(BasePlugin):
     humidity = None
     pressure_levels = None
     engine_mixing_ratios = None
+    critical_temperatures = None
+    critical_intercepts = None
 
     def __init__(self, engine_contrail_factors: list = [3e-5, 3.4e-5, 3.9e-5]):
         """Initialises the Class
@@ -96,6 +102,94 @@ class CondensationTrailFormation(BasePlugin):
             temperature=self.temperature, pressure=pressure_levels_reshaped
         )
         return self.relative_humidity * svp
+
+    @staticmethod
+    def _critical_temperatures_all_rh(
+        mixing_ratio: float, svp_derivative_table: Cube, svp_table: Cube
+    ) -> Tuple[np.ndarray, float]:
+        """
+        For a given engine mixing ratio (at a constant pressure level) return the critical
+        temperatures and critical intercept from the tangent with the SVP curve for all
+        relative humidities.
+        """
+
+        def find_nearest(array, value) -> Tuple[np.ndarray, int]:
+            """Return array element and index of nearest element to a given value"""
+            idx = (np.abs(array - value)).argmin()
+            return array[idx], idx
+
+        temperature_table = svp_derivative_table.coord("air_temperature").points
+
+        # de_s/dT = m is satisifed at the critical temperature, Tc, at 100% RH (Schrader 1997, section 3)
+        svp_derivative_Tc_RH100, idx = find_nearest(
+            svp_derivative_table.data, mixing_ratio
+        )
+        Tc_RH100 = temperature_table[idx]
+
+        # saturation vapour pressure at critical temperature
+        svp_Tc_RH100 = svp_table[idx].data
+
+        # critical intercept (eqn. 2 of the ticket instructions)
+        Ic = svp_Tc_RH100 - svp_derivative_Tc_RH100 * Tc_RH100
+
+        # tangent to SVP curve with gradient m
+        y_tangent = svp_derivative_Tc_RH100 * temperature_table + Ic
+
+        # Tc at 0% RH given by point where tangent crosses e = 0
+        _, idx = find_nearest(y_tangent, 0)
+        Tc_RH0 = temperature_table[idx]
+
+        mask = (temperature_table >= Tc_RH0) & (temperature_table <= Tc_RH100)
+        Tc_all = temperature_table[mask]
+
+        RH_all = np.zeros(Tc_all.size)
+
+        # calculate the relative humidities at each critical temperature
+        for Tci, Tc in enumerate(Tc_all):
+            T, Ti = find_nearest(temperature_table, Tc)
+
+            e = y_tangent[Ti]
+
+            esat = svp_table[Ti].data
+
+            RH_all[Tci] = e / esat
+
+        return RH_all, Tc_all, Ic
+
+    def _calculate_critical_temperatures(
+        self,
+        pressure_levels: np.ndarray,
+        engine_mixing_ratios: np.ndarray,
+        relative_humidity: Cube,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Get critical temperatures and intercepts for the relative humidity
+        and pressure level data contained within the contrail class
+        """
+
+        critical_temperatures = np.zeros(
+            ((engine_mixing_ratios.shape[0],) + relative_humidity.shape)
+        )
+        critical_intercepts = np.zeros(critical_temperatures.shape[:2])
+
+        # TODO: pass 'water_only=True' flag after PR approved
+        svp = SaturatedVapourPressureTable().process()
+        svp_derivative = SaturatedVapourPressureTableDerivative().process()
+
+        for cfi in range(engine_mixing_ratios.shape[0]):
+            for pi in range(pressure_levels.size):
+                rh, tc, ic = CondensationTrailFormation._critical_temperatures_all_rh(
+                    engine_mixing_ratios[cfi, pi], svp_derivative, svp
+                )
+
+                # lookup critical temperature for a given relative humidity
+                critical_temperatures[cfi, pi, :, :] = np.interp(
+                    relative_humidity[pi, :, :].data, rh, tc
+                )
+
+                critical_intercepts[cfi, pi] = ic
+
+        return critical_temperatures, critical_intercepts
 
     def process_from_arrays(
         self,
@@ -157,6 +251,14 @@ class CondensationTrailFormation(BasePlugin):
         # Calculate contrail formation using numpy arrays
         _ = self.process_from_arrays(
             temperature_cube.data, humidity_cube.data, pressure_coord.points
+        )
+
+        self.critical_temperatures, self.critical_intercepts = (
+            self._calculate_critical_temperatures(
+                pressure_levels=pressure_coord.points,
+                engine_mixing_ratios=self.engine_mixing_ratios,
+                relative_humidity=humidity_cube,
+            )
         )
 
         # Placeholder return to silence my type checker
