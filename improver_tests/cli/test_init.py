@@ -191,8 +191,8 @@ class Test_with_output(unittest.TestCase):
         """Tests that save_netcdf is called with object and string, default
         compression_level=1 and default least_significant_digit=None"""
         # pylint disable is needed as it can't see the wrappers output kwarg.
-        result = wrapped_with_output.cli("argv[0]", "2", "--output=foo")
-        m.assert_called_with(4, "foo", 1, None)
+        result = wrapped_with_output.cli("argv[0]", "2", "--output=foo.nc")
+        m.assert_called_with(4, "foo.nc", 1, None)
         self.assertEqual(result, None)
 
     @patch("improver.utilities.save.save_netcdf")
@@ -200,9 +200,9 @@ class Test_with_output(unittest.TestCase):
         """Tests save_netcdf, compression-level=9 and default least-significant-digit=None"""
         # pylint disable is needed as it can't see the wrappers output kwarg.
         result = wrapped_with_output.cli(
-            "argv[0]", "2", "--output=foo", "--compression-level=9"
+            "argv[0]", "2", "--output=foo.nc", "--compression-level=9"
         )
-        m.assert_called_with(4, "foo", 9, None)
+        m.assert_called_with(4, "foo.nc", 9, None)
         self.assertEqual(result, None)
 
     @patch("improver.utilities.save.save_netcdf")
@@ -210,9 +210,9 @@ class Test_with_output(unittest.TestCase):
         """Tests save_netcdf, compression-level=0 and default least-significant-digit=None"""
         # pylint disable is needed as it can't see the wrappers output kwarg.
         result = wrapped_with_output.cli(
-            "argv[0]", "2", "--output=foo", "--compression-level=0"
+            "argv[0]", "2", "--output=foo.nc", "--compression-level=0"
         )
-        m.assert_called_with(4, "foo", 0, None)
+        m.assert_called_with(4, "foo.nc", 0, None)
         self.assertEqual(result, None)
 
     @patch("improver.utilities.save.save_netcdf")
@@ -222,11 +222,37 @@ class Test_with_output(unittest.TestCase):
         result = wrapped_with_output.cli(
             "argv[0]",
             "2",
-            "--output=foo",
+            "--output=foo.nc",
             "--compression-level=0",
             "--least-significant-digit=2",
         )
-        m.assert_called_with(4, "foo", 0, 2)
+        m.assert_called_with(4, "foo.nc", 0, 2)
+        self.assertEqual(result, None)
+
+    @patch("joblib.dump")
+    def test_with_output_pickle(self, m):
+        """Tests that joblib.dump is called with object and string, default
+        compression_level=1 and default least_significant_digit=None"""
+        # pylint disable is needed as it can't see the wrappers output kwarg.
+        result = wrapped_with_output.cli(
+            "argv[0]",
+            "2",
+            "--output=foo.pickle",
+        )
+        m.assert_called_with(4, "foo.pickle", compress=1)
+        self.assertEqual(result, None)
+
+    @patch("joblib.dump")
+    def test_with_output_pkl(self, m):
+        """Tests that joblib.dump is called with object and string, default
+        compression_level=1 and default least_significant_digit=None"""
+        # pylint disable is needed as it can't see the wrappers output kwarg.
+        result = wrapped_with_output.cli(
+            "argv[0]",
+            "2",
+            "--output=foo.pkl",
+        )
+        m.assert_called_with(4, "foo.pkl", compress=1)
         self.assertEqual(result, None)
 
 

@@ -138,7 +138,6 @@ def _create_ancil_file(return_cube=False):
 
 
 def _run_train_qrf(
-    tmp_path,
     feature_config,
     n_estimators,
     max_depth,
@@ -162,6 +161,7 @@ def _run_train_qrf(
     ],
     realization_data=[2, 6, 10],
     truth_data=[4.2, 3.8, 5.8, 6, 7, 7.3, 9.1, 9.5],
+    tmp_path=None,
 ):
     realization_data = np.array(realization_data, dtype=np.float32)
     forecast_dfs = []
@@ -196,10 +196,6 @@ def _run_train_qrf(
             forecast_df["wind_speed_at_10m"] + 10, dtype=np.float32
         )
 
-    model_output_dir = tmp_path / "train_qrf"
-    model_output_dir.mkdir(parents=True)
-    model_output = str(model_output_dir / "qrf_model.pkl")
-
     plugin = TrainQuantileRegressionRandomForests(
         target_name="wind_speed_at_10m",
         feature_config=feature_config,
@@ -208,12 +204,14 @@ def _run_train_qrf(
         random_state=random_state,
         transformation=transformation,
         pre_transform_addition=pre_transform_addition,
-        compression=compression,
-        model_output=model_output,
         **extra_kwargs,
     )
-    plugin.process(forecast_df, truth_df)
-    return model_output
+    result = plugin.process(forecast_df, truth_df)
+    if tmp_path is not None:
+        model_output = tmp_path / "qrf_model.pickle"
+        joblib.dump(result, model_output, compress=compression)
+        return model_output
+    return result
 
 
 def test_quantile_forest_package_available():
@@ -532,7 +530,6 @@ def test_check_valid_transformation(transformation):
     ],
 )
 def test_train_qrf_single_lead_times(
-    tmp_path,
     n_estimators,
     max_depth,
     random_state,
@@ -548,8 +545,7 @@ def test_train_qrf_single_lead_times(
 
     feature_config = {"wind_speed_at_10m": ["mean", "std", "latitude", "longitude"]}
 
-    model_output = _run_train_qrf(
-        tmp_path,
+    qrf_model = _run_train_qrf(
         feature_config,
         n_estimators,
         max_depth,
@@ -570,7 +566,6 @@ def test_train_qrf_single_lead_times(
         realization_data=[2, 6, 10],
         truth_data=[4.2, 4.1, 4.2, 4.1],
     )
-    qrf_model = joblib.load(model_output)
 
     assert qrf_model.n_estimators == n_estimators
     assert qrf_model.max_depth == max_depth
@@ -600,7 +595,6 @@ def test_train_qrf_single_lead_times(
     ],
 )
 def test_train_qrf_multiple_lead_times(
-    tmp_path,
     n_estimators,
     max_depth,
     random_state,
@@ -616,8 +610,7 @@ def test_train_qrf_multiple_lead_times(
 
     feature_config = {"wind_speed_at_10m": ["mean", "std", "latitude", "longitude"]}
 
-    model_output = _run_train_qrf(
-        tmp_path,
+    qrf_model = _run_train_qrf(
         feature_config,
         n_estimators,
         max_depth,
@@ -628,7 +621,6 @@ def test_train_qrf_multiple_lead_times(
         extra_kwargs,
         include_static,
     )
-    qrf_model = joblib.load(model_output)
 
     assert qrf_model.n_estimators == n_estimators
     assert qrf_model.max_depth == max_depth
@@ -664,7 +656,6 @@ def test_train_qrf_multiple_lead_times(
     ],
 )
 def test_alternative_feature_configs(
-    tmp_path,
     feature_config,
     data,
     include_static,
@@ -683,7 +674,6 @@ def test_alternative_feature_configs(
     if "pressure_at_mean_sea_level" in feature_config:
         with pytest.raises(ValueError, match=expected):
             _run_train_qrf(
-                tmp_path,
                 feature_config,
                 n_estimators,
                 max_depth,
@@ -696,8 +686,7 @@ def test_alternative_feature_configs(
             )
         return
 
-    model_output = _run_train_qrf(
-        tmp_path,
+    qrf_model = _run_train_qrf(
         feature_config,
         n_estimators,
         max_depth,
@@ -708,7 +697,6 @@ def test_alternative_feature_configs(
         extra_kwargs,
         include_static,
     )
-    qrf_model = joblib.load(model_output)
 
     assert qrf_model.n_estimators == n_estimators
     assert qrf_model.max_depth == max_depth
@@ -757,7 +745,6 @@ def test_alternative_feature_configs(
     ],
 )
 def test_apply_qrf(
-    tmp_path,
     quantiles,
     transformation,
     pre_transform_addition,
@@ -772,8 +759,7 @@ def test_apply_qrf(
     compression = 5
     extra_kwargs = {}
 
-    model_output = _run_train_qrf(
-        tmp_path,
+    qrf_model = _run_train_qrf(
         feature_config,
         n_estimators,
         max_depth,
@@ -784,7 +770,6 @@ def test_apply_qrf(
         extra_kwargs,
         include_static,
     )
-    qrf_model = joblib.load(model_output)
 
     frt = "20170103T0000Z"
     vt = "20170103T1200Z"

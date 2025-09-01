@@ -59,7 +59,7 @@ def test_basic(
         "5",
         "--random-state",
         "42",
-        "--compression",
+        "--compression-level",
         "5",
         "--output",
         output_path,

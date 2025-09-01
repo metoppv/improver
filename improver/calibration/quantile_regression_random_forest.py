@@ -6,7 +6,6 @@
 
 from typing import Optional
 
-import joblib
 import numpy as np
 import pandas as pd
 
@@ -206,8 +205,6 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
         random_state: Optional[int] = None,
         transformation: Optional[str] = None,
         pre_transform_addition: np.float32 = 0,
-        compression: int = 5,
-        model_output: Optional[str] = None,
         **kwargs,
     ) -> None:
         """Initialise the plugin.
@@ -246,10 +243,6 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
                 Transformation to be applied to the data before fitting.
             pre_transform_addition (float):
                 Value to be added before transformation.
-            compression (int):
-                Compression level for saving the model.
-            model_output (str):
-                Full path including model file name that will store the pickled model.
             kwargs:
                 Additional keyword arguments for the quantile regression model.
 
@@ -264,8 +257,6 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
         self.transformation = transformation
         _check_valid_transformation(self.transformation)
         self.pre_transform_addition = pre_transform_addition
-        self.compression = compression
-        self.output = model_output
         self.kwargs = kwargs
         self.expected_coordinate_order = ["forecast_reference_time", "forecast_period"]
 
@@ -353,9 +344,7 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
         target_values = combined_df["ob_value"].values
 
         # Fit the quantile regression model
-        qrf_model = self.fit_qrf(feature_values, target_values)
-
-        joblib.dump(qrf_model, self.output, compress=self.compression)
+        return self.fit_qrf(feature_values, target_values)
 
 
 class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):

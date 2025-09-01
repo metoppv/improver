@@ -9,6 +9,7 @@ from improver import cli
 
 
 @cli.clizefy
+@cli.with_output
 def process(
     *file_paths: cli.inputpath,
     feature_config: cli.inputjson,
@@ -24,8 +25,6 @@ def process(
     random_state: int = None,
     transformation: str = None,
     pre_transform_addition: float = 0,
-    compression: int = 5,
-    output: str = None,
 ):
     """Training a model using Quantile Regression Random Forest.
 
@@ -92,10 +91,6 @@ def process(
             Transformation to be applied to the data before fitting.
         pre_transform_addition (float):
             Value to be added before transformation.
-        compression (int):
-            Compression level for saving the model.
-        output (str):
-            Full path including model file name that will store the pickled model.
     Returns:
         None:
             The function creates a pickle file.
@@ -119,9 +114,7 @@ def process(
         random_state=random_state,
         transformation=transformation,
         pre_transform_addition=pre_transform_addition,
-        compression=compression,
     )(
         file_paths,
-        model_output=output,
     )
     return result
