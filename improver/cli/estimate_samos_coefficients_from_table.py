@@ -118,8 +118,6 @@ def process(
     """
     # monkey-patch to 'tweak' scipy to prevent errors occuring
     import scipy.sparse
-    from iris import Constraint
-    from iris.cube import CubeList
 
     from improver.calibration.samos_calibration import TrainEMOSForSAMOS
     from improver.ensemble_copula_coupling.utilities import convert_parquet_to_cube

@@ -6,7 +6,9 @@
 This module defines all the "plugins" specific to Standardised Anomaly Model Output
 Statistics (SAMOS).
 """
-from typing import Dict, List, Optional, Tuple
+
+from typing import Dict, List, Optional, Sequence, Tuple
+
 import iris
 import iris.pandas
 import pandas as pd

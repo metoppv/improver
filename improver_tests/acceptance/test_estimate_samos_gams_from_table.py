@@ -118,7 +118,6 @@ def test_additional_features_cube(
     acc.compare_pickled_objects(output_path, kgo_path)
 
 
-
 @pytest.mark.slow
 def test_additional_features_cubes(
     tmp_path,
