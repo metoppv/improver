@@ -40,8 +40,12 @@ class SaturatedVapourPressureTable(BasePlugin):
     }
 
     def __init__(
-        self, t_min: float = 183.15, t_max: float = 338.25, t_increment: float = 0.1, 
-        water_only: bool = False, ice_only: bool = False
+        self,
+        t_min: float = 183.15,
+        t_max: float = 338.25,
+        t_increment: float = 0.1,
+        water_only: bool = False,
+        ice_only: bool = False,
     ) -> None:
         """
         Create a table of saturated vapour pressures that can be interpolated
@@ -75,8 +79,10 @@ class SaturatedVapourPressureTable(BasePlugin):
         self.water_only = water_only
         self.ice_only = ice_only
 
-        if self.water_only == True and self.ice_only == True:
-            raise ValueError("'water_only' and 'ice_only' flags cannot both be set to True")
+        if self.water_only and self.ice_only:
+            raise ValueError(
+                "'water_only' and 'ice_only' flags cannot both be set to True"
+            )
 
     def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
