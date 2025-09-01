@@ -16,7 +16,6 @@ from improver.metadata.probabilistic import (
     get_diagnostic_cube_name_from_probability_name,
 )
 from improver.utilities.cube_manipulation import MergeCubes
-from improver.utilities.flatten import flatten
 
 
 def split_forecasts_and_truth(
