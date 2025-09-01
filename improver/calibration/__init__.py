@@ -247,7 +247,7 @@ def split_cubes_for_samos(
     if truth_attribute:
         truth_key, truth_value = truth_attribute.split("=")
 
-    for cube in flatten(cubes):
+    for cube in cubes:
         if "time" in [c.name() for c in cube.coords()]:
             if truth_key and cube.attributes.get(truth_key) == truth_value:
                 truth.append(cube.copy())
@@ -286,7 +286,6 @@ def split_cubes_for_samos(
         raise IOError(msg)
 
     # Split out prob_template cube if required.
-    emos_coefficients = emos_coefficients if emos_coefficients else None
     forecast_names = [c.name() for c in forecast]
     prob_forecast_names = [name for name in forecast_names if "probability" in name]
     if len(set(prob_forecast_names)) != 1:

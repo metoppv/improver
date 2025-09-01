@@ -5,11 +5,11 @@
 """Helper functions for SAMOS unit tests."""
 
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 import iris.cube
 import numpy as np
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 
 from improver.synthetic_data.set_up_test_cubes import (
     set_up_spot_variable_cube,
@@ -70,10 +70,10 @@ def create_simple_cube(
 
     if forecast_type == "gridded":
         data_shape = [n_spatial_points, n_spatial_points]  # Latitude, Longitude.
-        plugin = set_up_variable_cube
+        func = set_up_variable_cube
     elif forecast_type == "spot":
         data_shape = [n_spatial_points]  # Number of sites.
-        plugin = set_up_spot_variable_cube
+        func = set_up_spot_variable_cube
 
     if n_realizations > 1:
         data_shape.insert(0, n_realizations)
@@ -83,7 +83,7 @@ def create_simple_cube(
         frt = initial_frt + timedelta(days=i) if fixed_forecast_period else initial_frt
 
         data = np.full(data_shape, fill_value, dtype=np.float32)
-        new_cube = plugin(data=data, time=dt, frt=frt, **set_up_kwargs)
+        new_cube = func(data=data, time=dt, frt=frt, **set_up_kwargs)
         result.append(new_cube.copy())
 
     return result.merge_cube()
@@ -95,7 +95,7 @@ def create_cubes_for_gam_fitting(
     n_times: int,
     include_altitude: bool,
     fixed_forecast_period=False,
-) -> Tuple[Cube, List[Cube]]:
+) -> Tuple[Cube, CubeList]:
     """Function to create a temperature cube with data which varies spatially.
     Optionally, may also produce an altitude cube whilst simultaneously modifying the
     temperature cube so that this is a useful predictor of the temperature.
@@ -143,11 +143,11 @@ def create_cubes_for_gam_fitting(
     addition = np.broadcast_to(addition, shape=input_cube.data.shape)
     # Create array of random noise which increases with x and y, so that there is
     # some variance in the data to model in the standard deviation GAM.
-    rng = np.random.RandomState(1)
-    noise = rng.normal(loc=0.0, scale=0.05 + (addition / 30))
+    rng = np.random.RandomState(210825)  # Set seed for reproducible results.
+    noise = rng.normal(loc=0.0, scale=addition / 30)
     input_cube.data = input_cube.data + addition + noise
 
-    additional_cubes = []
+    additional_cubes = iris.cube.CubeList([])
     if include_altitude:
         # Create an altitude cube with small values in the centre of the domain and
         # large values around the outside of the domain, with a smooth gradient in
@@ -177,10 +177,10 @@ def create_cubes_for_gam_fitting(
         altitude_cube.data = altitude_cube.data * altitude_multiplier
         additional_cubes.append(altitude_cube)
 
-        # Subtract values from input_cube data which increase with altitude.
         altitude_multiplier = np.broadcast_to(
             altitude_multiplier, shape=input_cube.data.shape
         )
+        # Subtract values from input_cube data which increase with altitude.
         input_cube.data = input_cube.data - (5.0 * altitude_multiplier)
 
     return input_cube, additional_cubes

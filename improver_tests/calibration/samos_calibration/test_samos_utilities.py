@@ -11,7 +11,7 @@ import cf_units
 import numpy as np
 import pandas as pd
 import pytest
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 from pandas.testing import assert_frame_equal
 
 from improver.calibration.samos_calibration import (
@@ -166,7 +166,7 @@ def test_prepare_data_for_gam_gridded(
         set_up_kwargs=set_up_kwargs,
     )
 
-    additional_cubes = []
+    additional_cubes = CubeList()
     if include_altitude:
         additional_cubes.append(altitude_cube("gridded", set_up_kwargs))
         surface_altitude = np.array([10.0, 20.0, 20.0, 10.0] * 2, dtype=np.float32)
@@ -197,13 +197,17 @@ def test_prepare_data_for_gam_spot(
         fill_value=305.0,
     )
 
-    additional_cubes = []
+    additional_cubes = CubeList()
     if include_altitude:
         additional_cubes.append(altitude_cube("spot"))
         surface_altitude = np.array([10.0, 20.0] * 2, dtype=np.float32)
         spot_dataframe["surface_altitude"] = surface_altitude
     if include_land_fraction:
-        additional_cubes.append(land_fraction_cube("spot"))
+        land_fraction_cube_spot = land_fraction_cube("spot")
+        land_fraction_cube_spot.coord("wmo_id").points = np.array(
+            ["00000", "00003", "00002", "00001"], dtype="<U5"
+        )
+        additional_cubes.append(land_fraction_cube_spot)
         land_fraction = np.array([0.0, 0.3] * 2, dtype=np.float32)
         spot_dataframe["land_fraction"] = land_fraction
 
@@ -278,8 +282,6 @@ def test_get_climatological_stats(
     include_altitude,
 ):
     """Test that the get_climatological_stats method returns the expected results."""
-    np.random.seed(1)  # Set random seed to enable test to be reproducible.
-
     # Set up model terms for spatial predictors.
     model_specification = [["linear", [0], {}], ["linear", [1], {}]]
     features = ["latitude", "longitude"]
@@ -325,30 +327,30 @@ def test_get_climatological_stats(
     if not include_altitude:
         expected_mean.data = np.array(
             [
-                [[284.40612416, 288.15826842], [288.16342809, 291.91557236]],
-                [[284.40612416, 288.15826842], [288.16342809, 291.91557236]],
+                [[284.39363425, 288.14659092], [288.14237183, 291.8953285]],
+                [[284.39363425, 288.14659092], [288.14237183, 291.8953285]],
             ],
             dtype=np.float32,
         )
         expected_sd.data = np.array(
             [
-                [[0.35133422, 0.4753756], [0.47594341, 0.59998479]],
-                [[0.35133422, 0.4753756], [0.47594341, 0.59998479]],
+                [[0.36190698, 0.49423461], [0.48704575, 0.61937337]],
+                [[0.36190698, 0.49423461], [0.48704575, 0.61937337]],
             ],
             dtype=np.float32,
         )
     else:
         expected_mean.data = np.array(
             [
-                [[274.37179911, 288.13418784], [278.12910304, 291.89149177]],
-                [[274.37179911, 288.13418784], [278.12910304, 291.89149177]],
+                [[274.41442381, 288.1640568], [278.16316139, 291.91279438]],
+                [[274.41442381, 288.1640568], [278.16316139, 291.91279438]],
             ],
             dtype=np.float32,
         )
         expected_sd.data = np.array(
             [
-                [[0.36610248, 0.46112538], [0.49071167, 0.58573457]],
-                [[0.36610248, 0.46112538], [0.49071167, 0.58573457]],
+                [[0.36048627, 0.50103523], [0.48562504, 0.626174]],
+                [[0.36048627, 0.50103523], [0.48562504, 0.626174]],
             ],
             dtype=np.float32,
         )
