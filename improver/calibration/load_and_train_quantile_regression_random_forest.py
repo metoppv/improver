@@ -43,7 +43,6 @@ class LoadAndTrainQRF(PostProcessingPlugin):
         random_state: Optional[int] = None,
         transformation: Optional[str] = None,
         pre_transform_addition: float = 0,
-        compression: int = 5,
     ):
         """Initialise the LoadAndTrainQRF plugin."""
         self.feature_config = feature_config
@@ -59,7 +58,6 @@ class LoadAndTrainQRF(PostProcessingPlugin):
         self.random_state = random_state
         self.transformation = transformation
         self.pre_transform_addition = pre_transform_addition
-        self.compression = compression
         self.quantile_forest_installed = quantile_forest_package_available()
 
     def _split_cubes_and_parquet_files(
@@ -355,7 +353,7 @@ class LoadAndTrainQRF(PostProcessingPlugin):
         forecast_df = self._add_features_to_df(forecast_df, cube_inputs)
         forecast_df, truth_df = self.filter_bad_sites(forecast_df, truth_df)
 
-        TrainQuantileRegressionRandomForests(
+        result = TrainQuantileRegressionRandomForests(
             target_name=self.target_cf_name,
             feature_config=self.feature_config,
             n_estimators=self.n_estimators,
@@ -364,6 +362,6 @@ class LoadAndTrainQRF(PostProcessingPlugin):
             random_state=self.random_state,
             transformation=self.transformation,
             pre_transform_addition=self.pre_transform_addition,
-            compression=self.compression,
             model_output=model_output,
         )(forecast_df, truth_df)
+        return result

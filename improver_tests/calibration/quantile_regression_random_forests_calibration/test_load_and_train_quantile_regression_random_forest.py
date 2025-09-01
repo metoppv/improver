@@ -5,7 +5,6 @@
 """Unit tests for the LoadAndTrainQRF plugin."""
 
 import iris
-import joblib
 import numpy as np
 import pandas as pd
 import pytest
@@ -380,10 +379,6 @@ def test_load_and_train_qrf(
     truth_path = truth_creation(tmp_path)
     file_paths = [forecast_path, truth_path]
 
-    model_output_dir = tmp_path / "train_qrf"
-    model_output_dir.mkdir(parents=True)
-    model_output = str(model_output_dir / "qrf_model.pkl")
-
     if include_static:
         ancil_path = _create_ancil_file(tmp_path, sorted(list(set(wmo_ids))))
         file_paths.append(ancil_path)
@@ -407,9 +402,7 @@ def test_load_and_train_qrf(
         transformation="log",
         pre_transform_addition=1,
     )
-    plugin(file_paths, model_output=model_output)
-
-    qrf_model = joblib.load(model_output)
+    qrf_model = plugin(file_paths)
 
     assert qrf_model.n_estimators == n_estimators
     assert qrf_model.max_depth == max_depth
@@ -446,10 +439,6 @@ def test_load_and_train_qrf_no_paths(tmp_path, make_files):
         for file_path in file_paths:
             (tmp_path / file_path).mkdir(parents=True, exist_ok=True)
 
-    model_output_dir = tmp_path / "train_qrf"
-    model_output_dir.mkdir(parents=True)
-    model_output = str(model_output_dir / "qrf_model.pkl")
-
     plugin = LoadAndTrainQRF(
         experiment="latestblend",
         feature_config=feature_config,
@@ -464,11 +453,9 @@ def test_load_and_train_qrf_no_paths(tmp_path, make_files):
         transformation="log",
         pre_transform_addition=1,
     )
-    result = plugin(file_paths, model_output=model_output)
+    result = plugin(file_paths)
     # Expecting None since no valid paths are provided
     assert result is None
-    # Check if the model output file is not created
-    assert not (model_output_dir / "qrf_model.pkl").exists()
 
 
 @pytest.mark.parametrize(
@@ -491,10 +478,6 @@ def test_load_and_train_qrf_mismatches(tmp_path, cycletime, forecast_periods):
         tmp_path / "partition" / "truth_table/",
     ]
 
-    model_output_dir = tmp_path / "train_qrf"
-    model_output_dir.mkdir(parents=True)
-    model_output = str(model_output_dir / "qrf_model.pkl")
-
     plugin = LoadAndTrainQRF(
         experiment="latestblend",
         feature_config=feature_config,
@@ -509,11 +492,9 @@ def test_load_and_train_qrf_mismatches(tmp_path, cycletime, forecast_periods):
         transformation="log",
         pre_transform_addition=1,
     )
-    result = plugin(file_paths, model_output=model_output)
+    result = plugin(file_paths)
     # Expecting None since no valid paths are provided
     assert result is None
-    # Check if the model output file is not created
-    assert not (model_output_dir / "qrf_model.pkl").exists()
 
 
 @pytest.mark.parametrize(
@@ -581,10 +562,6 @@ def test_unexpected(
     truth_path = truth_creation(tmp_path)
     file_paths = [forecast_path, truth_path]
 
-    model_output_dir = tmp_path / "train_qrf"
-    model_output_dir.mkdir(parents=True)
-    model_output = str(model_output_dir / "qrf_model.pkl")
-
     # Create an instance of LoadAndTrainQRF with the required parameters
     plugin = LoadAndTrainQRF(
         experiment="latestblend",
@@ -603,7 +580,7 @@ def test_unexpected(
 
     if exception == "non_matching_truth":
         with pytest.raises(IOError, match="The requested filepath"):
-            plugin(file_paths, model_output=model_output)
+            plugin(file_paths)
     elif exception == "missing_static_feature":
         feature_config = {
             "wind_speed_at_10m": ["mean", "std"],
@@ -622,13 +599,13 @@ def test_unexpected(
             plugin.process(file_paths=file_paths)
     elif exception == "no_percentile_realization":
         with pytest.raises(ValueError, match="The forecast parquet file"):
-            plugin(file_paths, model_output=model_output)
+            plugin(file_paths)
     elif exception == "alternative_forecast_period":
         with pytest.raises(ValueError, match="The forecast_periods argument"):
-            plugin(file_paths, model_output=model_output)
+            plugin(file_paths)
     elif exception == "no_quantile_forest_package":
         plugin.quantile_forest_installed = False
-        result = plugin(file_paths, model_output=model_output)
+        result = plugin(file_paths)
         assert result is None
     else:
         raise ValueError(f"Unknown exception type: {exception}")

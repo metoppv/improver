@@ -78,7 +78,6 @@ def test_load_and_apply_qrf(
     feature_config = {"wind_speed_at_10m": ["mean", "std", "latitude", "longitude"]}
 
     model_output = _run_train_qrf(
-        tmp_path,
         feature_config,
         n_estimators,
         max_depth,
@@ -98,6 +97,7 @@ def test_load_and_apply_qrf(
         ],
         realization_data=[2, 6, 10],
         truth_data=[4.2, 6.2, 4.1, 5.1],
+        tmp_path=tmp_path,
     )
 
     frt = "20170103T0000Z"
@@ -182,7 +182,6 @@ def test_unexpected(
     quantiles = [0.5]
 
     model_output = _run_train_qrf(
-        tmp_path,
         feature_config,
         n_estimators,
         max_depth,
@@ -202,6 +201,7 @@ def test_unexpected(
         ],
         realization_data=[2, 6, 10],
         truth_data=[4.2, 6.2, 4.1, 5.1],
+        tmp_path=tmp_path,
     )
 
     frt = "20170103T0000Z"
