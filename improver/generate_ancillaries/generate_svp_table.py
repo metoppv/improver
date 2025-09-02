@@ -69,10 +69,14 @@ class SaturatedVapourPressureTable(BasePlugin):
                 saturated vapour pressure between t_min and t_max.
             water_only:
                 The table will only create values for the saturated vapour
-                pressure with respect to water.
+                pressure with respect to water. Values for temperatures
+                outside the range 223 K < T < 373 K have not been
+                experimentally validated.
             ice_only:
                 The table will only create values for the saturated vapour
-                pressure with respect to ice.
+                pressure with respect to ice. Values for temperatures
+                outside the range 173 K < T < 273.15 K have not been
+                experimentally validated.
 
         """
         self.t_min = t_min
@@ -102,7 +106,6 @@ class SaturatedVapourPressureTable(BasePlugin):
         Args:
             temperature:
                 Temperature values in Kelvin. Valid from 173 K to 373 K
-                (173 K < T < 273.15 K for ice, 223 K < T < 373 K for water).
 
         Returns:
             Corresponding values of saturation vapour pressure for a pure
@@ -172,20 +175,29 @@ class SaturatedVapourPressureTable(BasePlugin):
             temperature.max() > self.MAX_VALID_TEMPERATURE_WATER
             or temperature.min() < self.MIN_VALID_TEMPERATURE_ICE
         ) and not (self.water_only or self.ice_only):
-            msg = "Temperatures out of SVP table range: min {}, max {}"
-            warnings.warn(msg.format(temperature.min(), temperature.max()))
+            msg = (
+                f"Temperatures out of SVP table range: min {temperature.min()}, max {temperature.max()} "
+                f"(valid in range {self.MIN_VALID_TEMPERATURE_ICE:.0f} K < T < {self.MAX_VALID_TEMPERATURE_WATER:.0f} K)"
+            )
+            warnings.warn(msg)
         elif (
             temperature.max() > self.MAX_VALID_TEMPERATURE_WATER
             or temperature.min() < self.MIN_VALID_TEMPERATURE_WATER
         ) and self.water_only:
-            msg = "Temperatures out of SVP table range for water: min {}, max {}"
-            warnings.warn(msg.format(temperature.min(), temperature.max()))
+            msg = (
+                f"Temperatures out of SVP table range for water: min {temperature.min()}, max {temperature.max()} "
+                f"(valid in range {self.MIN_VALID_TEMPERATURE_WATER:.0f} K < T < {self.MAX_VALID_TEMPERATURE_WATER:.0f} K)"
+            )
+            warnings.warn(msg)
         elif (
             temperature.max() > self.MAX_VALID_TEMPERATURE_ICE
             or temperature.min() < self.MIN_VALID_TEMPERATURE_ICE
         ) and self.ice_only:
-            msg = "Temperatures out of SVP table range for ice: min {}, max {}"
-            warnings.warn(msg.format(temperature.min(), temperature.max()))
+            msg = (
+                f"Temperatures out of SVP table range for ice: min {temperature.min()}, max {temperature.max()} "
+                f"(valid in range {self.MIN_VALID_TEMPERATURE_ICE:.0f} K < T < {self.MAX_VALID_TEMPERATURE_ICE:.2f} K)"
+            )
+            warnings.warn(msg)
 
     def as_cube(self, svp_data: np.ndarray, temperatures: np.ndarray) -> Cube:
         """
