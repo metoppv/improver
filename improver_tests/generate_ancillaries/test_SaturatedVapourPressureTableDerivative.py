@@ -23,7 +23,7 @@ class Test__init__(unittest.TestCase):
     def test_raise_error_if_both_flags_true(self):
         """If both the water and ice flags are true, the plugin should raise an exception."""
         with self.assertRaises(ValueError):
-            SaturatedVapourPressureTableDerivative(water_only = True, ice_only = True)
+            SaturatedVapourPressureTableDerivative(water_only=True, ice_only=True)
 
 
 class Test__repr__(IrisTest):
@@ -89,7 +89,7 @@ class Test_process(IrisTest):
     def test_cube_values_water_only(self):
         """
         Test that returned cube has expected saturated vapour
-        pressure derivative values. Table constructed with respect 
+        pressure derivative values. Table constructed with respect
         to water only.
         """
         t_min, t_max, t_increment = 183.15, 338.25, 10.0
@@ -110,7 +110,7 @@ class Test_process(IrisTest):
             393.298427,
             612.272861,
             922.155215,
-            1348.018754
+            1348.018754,
         ]
         result = SaturatedVapourPressureTableDerivative(
             t_min=t_min, t_max=t_max, t_increment=t_increment, water_only=True
@@ -121,7 +121,7 @@ class Test_process(IrisTest):
     def test_cube_values_ice_only(self):
         """
         Test that returned cube has expected saturated vapour
-        pressure derivative values. Table constructed with respect 
+        pressure derivative values. Table constructed with respect
         to ice only.
         """
         t_min, t_max, t_increment = 183.15, 338.25, 10.0
@@ -142,7 +142,7 @@ class Test_process(IrisTest):
             669.714555,
             1147.955795,
             1898.717510,
-            3039.638789
+            3039.638789,
         ]
         result = SaturatedVapourPressureTableDerivative(
             t_min=t_min, t_max=t_max, t_increment=t_increment, ice_only=True
