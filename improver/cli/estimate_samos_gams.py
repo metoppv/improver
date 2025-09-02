@@ -21,6 +21,7 @@ def process(
     distribution: str = "normal",
     link: str = "identity",
     fit_intercept: bool = True,
+    unique_site_id_key: str = None,
 ):
     """Estimate General Additive Model (GAM) for SAMOS.
 
@@ -55,6 +56,10 @@ def process(
             or inverse-squared.
         fit_intercept (bool):
             Whether to include an intercept term in the model. Default is True.
+        unique_site_id_key (str):
+            If working with spot data and available, the name of the coordinate
+            in the input cubes that contains unique site IDs, e.g. "wmo_id" if
+            all sites have a valid wmo_id
 
     Returns:
         List:
@@ -88,6 +93,7 @@ def process(
         distribution=distribution,
         link=link,
         fit_intercept=fit_intercept,
+        unique_site_id_key=unique_site_id_key,
     )
 
     truth_gams = plugin.process(

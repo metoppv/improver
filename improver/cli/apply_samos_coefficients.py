@@ -108,7 +108,7 @@ def process(
             realizations ("realizations") are supported as the predictors.
         percentiles (List[float]):
             The set of percentiles used to create the calibrated forecast.
-        unique_site_id_key:
+        unique_site_id_key (str):
             If working with spot data and available, the name of the coordinate
             in the input cubes that contains unique site IDs, e.g. "wmo_id" if
             all sites have a valid wmo_id.
