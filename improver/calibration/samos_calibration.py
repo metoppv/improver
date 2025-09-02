@@ -51,6 +51,7 @@ iris.FUTURE.pandas_ndim = True
 def prepare_data_for_gam(
     input_cube: Cube,
     additional_fields: Optional[CubeList] = None,
+    unique_site_id_key: Optional[str] = None,
 ) -> pd.DataFrame:
     """
     Convert input cubes in to a single, combined dataframe.
@@ -63,9 +64,15 @@ def prepare_data_for_gam(
     additional_fields cubes.
 
     Args:
-        input_cube: A cube of forecast or observation data.
-        additional_fields: Additional cubes with points which can be matched with points
-        in input_cube by matching spatial coordinate values.
+        input_cube:
+            A cube of forecast or observation data.
+        additional_fields:
+            Additional cubes with points which can be matched with points
+            in input_cube by matching spatial coordinate values.
+        unique_site_id_key:
+            If working with spot data and available, the name of the coordinate
+            in the input cubes that contains unique site IDs, e.g. "wmo_id" if
+            all sites have a valid wmo_id.
 
     Returns:
         A pandas dataframe with rows equal to the number of sites/grid points in
@@ -84,11 +91,22 @@ def prepare_data_for_gam(
         add_ancillary_variables=True,
     )
     df.reset_index(inplace=True)
+
     if additional_fields:
         # Check if we are dealing with spot data.
-        wmo_id_present = "wmo_id" in [c.name() for c in input_cube.coords()]
-        if not wmo_id_present:
-            spatial_coords = [
+        site_data = "spot_index" in [c.name() for c in input_cube.coords()]
+
+        # For site data we should use unique IDs wherever possible. As a
+        # fallback we can match on latitude, longitude and altitude. We
+        # need altitude to accommodate e.g. sites with a lower and upper
+        # forecast altitude. If we are working with gridded data we use the
+        # spatial coordinates of the input cube.
+        if site_data and unique_site_id_key is not None:
+            match_coords = [unique_site_id_key]
+        elif site_data:
+            match_coords = ["latitude", "longitude", "altitude"]
+        else:
+            match_coords = [
                 input_cube.coord(axis="X").name(),
                 input_cube.coord(axis="Y").name(),
             ]
@@ -100,9 +118,7 @@ def prepare_data_for_gam(
                 add_ancillary_variables=True,
             )
             new_df.reset_index(inplace=True)
-            match_coords = ["wmo_id"] if wmo_id_present else spatial_coords.copy()
-            match_coords.append(cube.name())
-            df = merge(left=df, right=new_df[match_coords], how="left")
+            df = merge(left=df, right=new_df[match_coords + [cube.name()]], how="left")
 
     return df
 
@@ -146,6 +162,7 @@ def get_climatological_stats(
     gam_features: List[str],
     additional_cubes: Optional[CubeList],
     sd_clip: float = 0.25,
+    unique_site_id_key: Optional[str] = None,
 ) -> Tuple[Cube, Cube]:
     """Function to predict climatological means and standard deviations given fitted
     GAMs for each statistic and cubes which can be used to construct a dataframe
@@ -165,6 +182,10 @@ def get_climatological_stats(
         sd_clip:
             The minimum standard deviation value to allow when predicting from the GAM.
             Any predictions below this value will be set to this value.
+        unique_site_id_key:
+            If working with spot data and available, the name of the coordinate
+            in the input cubes that contains unique site IDs, e.g. "wmo_id" if
+            all sites have a valid wmo_id.
 
     Returns:
         A pair of cubes containing climatological mean and climatological standard
@@ -172,7 +193,7 @@ def get_climatological_stats(
     """
     diagnostic = input_cube.name()
 
-    df = prepare_data_for_gam(input_cube, additional_cubes)
+    df = prepare_data_for_gam(input_cube, additional_cubes, unique_site_id_key=unique_site_id_key)
 
     # Calculate climatological means and standard deviations using previously
     # fitted GAMs.
@@ -210,6 +231,7 @@ class TrainGAMsForSAMOS(BasePlugin):
         link: str = "identity",
         fit_intercept: bool = True,
         window_length: int = 11,
+        unique_site_id_key: Optional[str] = None,
     ):
         """
         Initialize the class.
@@ -239,6 +261,10 @@ class TrainGAMsForSAMOS(BasePlugin):
                 deviation of the input cube when the input cube does not have a
                 realization dimension coordinate. This must be an odd integer greater
                 than 1.
+            unique_site_id_key:
+                An optional key to use for uniquely identifying each site in the
+                training data. If not provided, the default behavior is to use the
+                spatial coordinates (latitude, longitude) of each site.
         """
         self.model_specification = model_specification
         self.max_iter = max_iter
@@ -246,6 +272,7 @@ class TrainGAMsForSAMOS(BasePlugin):
         self.distribution = distribution
         self.link = link
         self.fit_intercept = fit_intercept
+        self.unique_site_id_key = unique_site_id_key
 
         if window_length < 3 or window_length % 2 == 0 or window_length % 1 != 0:
             raise ValueError(
@@ -507,7 +534,7 @@ class TrainGAMsForSAMOS(BasePlugin):
         )
 
         for stat_cube in stat_cubes:
-            df = prepare_data_for_gam(stat_cube, additional_fields)
+            df = prepare_data_for_gam(stat_cube, additional_fields, unique_site_id_key=self.unique_site_id_key)
             feature_values = df[features].values
             targets = df[input_cube.name()].values
             output.append(plugin.process(feature_values, targets))
@@ -535,6 +562,7 @@ class TrainEMOSForSAMOS(BasePlugin):
         self,
         distribution: str,
         emos_kwargs: Optional[Dict] = None,
+        unique_site_id_key: Optional[str] = None,
     ) -> None:
         """Initialize the class.
         Args:
@@ -544,56 +572,14 @@ class TrainEMOSForSAMOS(BasePlugin):
             emos_kwargs: Keyword arguments accepted by the
                 EstimateCoefficientsForEnsembleCalibration plugin. Should not contain
                 a distribution argument.
+            unique_site_id_key:
+                If working with spot data and available, the name of the coordinate
+                in the input cubes that contains unique site IDs, e.g. "wmo_id" if
+                all sites have a valid wmo_id.
         """
         self.distribution = distribution
         self.emos_kwargs = emos_kwargs if emos_kwargs else {}
-
-    @staticmethod
-    def get_climatological_stats(
-        input_cube: Cube,
-        gams: List[pygam.GAM],
-        gam_features: List[str],
-        additional_fields: Optional[CubeList],
-    ) -> Tuple[Cube, Cube]:
-        """Function to predict climatological means and standard deviations given fitted
-        GAMs for each statistic and cubes which can be used to construct a dataframe
-        containing all required features for those GAMs.
-
-        Args:
-            input_cube:
-                A cube of forecasts or observations from the training dataset.
-            gams:
-                A list containing two fitted GAMs, the first for predicting the
-                climatological mean of the locations in input_cube and the second
-                predicting the climatological standard deviation.
-            gam_features:
-                The list of features. These must be either coordinates on input_cube or
-                share a name with a cube in additional_fields. The index of each
-                feature should match the indices used in model_specification.
-            additional_fields:
-                Additional fields to use as supplementary predictors.
-
-        Returns:
-            A pair of cubes containing climatological mean and climatological standard
-            deviation predictions respectively.
-        """
-        diagnostic = input_cube.name()
-
-        df = prepare_data_for_gam(input_cube, additional_fields)
-
-        # Calculate climatological means and standard deviations using previously
-        # fitted GAMs.
-        mean_pred = GAMPredict().process(gams[0], df[gam_features])
-        sd_pred = GAMPredict().process(gams[1], df[gam_features])
-
-        # Convert means and standard deviations into cubes
-        df[diagnostic] = mean_pred
-        mean_cube = convert_dataframe_to_cube(df, input_cube)
-
-        df[diagnostic] = sd_pred
-        sd_cube = convert_dataframe_to_cube(df, input_cube)
-
-        return mean_cube, sd_cube
+        self.unique_site_id_key = unique_site_id_key
 
     def climate_anomaly_emos(
         self,
@@ -695,10 +681,10 @@ class TrainEMOSForSAMOS(BasePlugin):
             gamma, delta.
         """
         forecast_mean, forecast_sd = get_climatological_stats(
-            historic_forecasts, forecast_gams, gam_features, gam_additional_fields
+            historic_forecasts, forecast_gams, gam_features, gam_additional_fields, unique_site_id_key=self.unique_site_id_key
         )
         truth_mean, truth_sd = get_climatological_stats(
-            truths, truth_gams, gam_features, gam_additional_fields
+            truths, truth_gams, gam_features, gam_additional_fields, unique_site_id_key=self.unique_site_id_key
         )
 
         emos_coefficients = self.climate_anomaly_emos(
@@ -721,14 +707,19 @@ class ApplySAMOS(PostProcessingPlugin):
     anomalies.
     """
 
-    def __init__(self, percentiles: Optional[Sequence] = None):
+    def __init__(self, percentiles: Optional[Sequence] = None, unique_site_id_key: Optional[str] = None):
         """Initialize class.
 
         Args:
             percentiles:
                 The set of percentiles used to create the calibrated forecast.
+            unique_site_id_key:
+                If working with spot data and available, the name of the coordinate
+                in the input cubes that contains unique site IDs, e.g. "wmo_id" if
+                all sites have a valid wmo_id.
         """
         self.percentiles = [float32(p) for p in percentiles] if percentiles else None
+        self.unique_site_id_key = unique_site_id_key
 
     def process(
         self,
@@ -807,16 +798,14 @@ class ApplySAMOS(PostProcessingPlugin):
             forecast_as_realizations = convert_to_realizations(
                 forecast.copy(), realizations_count, ignore_ecc_bounds
             )
-
         forecast_mean, forecast_sd = get_climatological_stats(
-            forecast_as_realizations, forecast_gams, gam_features, gam_additional_fields
+            forecast_as_realizations, forecast_gams, gam_features, gam_additional_fields, unique_site_id_key=self.unique_site_id_key
         )
         forecast_ca = CalculateClimateAnomalies(ignore_temporal_mismatch=True).process(
             diagnostic_cube=forecast_as_realizations,
             mean_cube=forecast_mean,
             std_cube=forecast_sd,
         )
-
         # Returns parameters which describe a climate anomaly distribution.
         location_parameter, scale_parameter = ApplyEMOS(
             percentiles=self.percentiles
@@ -833,12 +822,12 @@ class ApplySAMOS(PostProcessingPlugin):
             random_seed=random_seed,
             return_parameters=True,
         )
-
         truth_mean, truth_sd = get_climatological_stats(
             forecast_as_realizations,
             truth_gams,
             gam_features,
             gam_additional_fields,
+            unique_site_id_key=self.unique_site_id_key,
         )
 
         # The data in these cubes are identical along the realization dimensions.

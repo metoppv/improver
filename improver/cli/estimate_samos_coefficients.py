@@ -21,6 +21,7 @@ def process(
     predictor="mean",
     tolerance: float = 0.02,
     max_iterations: int = 1000,
+    unique_site_id_key: str = None,
 ):
     """Estimate EMOS coefficients for use with SAMOS.
 
@@ -81,6 +82,11 @@ def process(
             is raised. If the predictor is "realizations", then the number of
             iterations may require increasing, as there will be more
             coefficients to solve.
+        unique_site_id_key:
+            If working with spot data and available, the name of the coordinate
+            in the input cubes that contains unique site IDs, e.g. "wmo_id" if
+            all sites have a valid wmo_id.
+
     Returns:
         iris.cube.CubeList:
             CubeList containing the coefficients estimated using EMOS. Each
@@ -123,7 +129,7 @@ def process(
         "max_iterations": max_iterations,
     }
 
-    plugin = TrainEMOSForSAMOS(distribution="norm", emos_kwargs=emos_kwargs)
+    plugin = TrainEMOSForSAMOS(distribution="norm", emos_kwargs=emos_kwargs, unique_site_id_key=unique_site_id_key)
     return plugin(
         historic_forecasts=forecast,
         truths=truth,
