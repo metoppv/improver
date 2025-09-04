@@ -197,10 +197,10 @@ class Test_with_output(unittest.TestCase):
         m.assert_called_with(save_object, "foo", 1, None)
         self.assertEqual(result, None)
 
-    @patch("pickle.dump")
+    @patch("joblib.dump")
     @patch("builtins.open", unittest.mock.mock_open())
     def test_with_output_pickle(self, m):
-        """Tests that pickle.dump is called for a non-cube object"""
+        """Tests that joblib.dump is called for a non-cube object"""
         save_object = {"a": 1}
         result = wrapped_with_output.cli("argv[0]", [save_object], "--output=foo")
         m.assert_called_with(save_object, unittest.mock.ANY)
