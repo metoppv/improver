@@ -12,10 +12,7 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    forecast: cli.inputpath,
-    truth: cli.inputpath,
-    gams: cli.inputpickle,
-    *samos_additional_predictors: cli.inputcube,
+    *file_paths: cli.inputpath,
     gam_features: cli.comma_separated_list,
     use_default_initial_guess=False,
     units=None,
@@ -28,6 +25,7 @@ def process(
     training_length: int,
     diagnostic: str,
     cycletime: str,
+    unique_site_id_key: str = "wmo_id",
 ):
     """Estimate EMOS coefficients for use with SAMOS.
 
@@ -38,28 +36,27 @@ def process(
     The estimated coefficients are output as a cube.
 
     Args:
-        forecast (pathlib.Path):
-            The path to a Parquet file containing the historical forecasts
-            to be used for calibration.The expected columns within the
-            Parquet file are: forecast, blend_time, forecast_period,
-            forecast_reference_time, time, wmo_id, percentile, diagnostic,
-            latitude, longitude, period, height, cf_name, units.
-        truth (pathlib.Path):
-            The path to a Parquet file containing the truths to be used
-            for calibration. The expected columns within the
-            Parquet file are: ob_value, time, wmo_id, diagnostic, latitude,
-            longitude and altitude.
-        samos_additional_predictors (iris.cube.CubeList):
-            A list of cubes for additional predictors to be used when
-            estimating the SAMOS coefficients. The name of all cubes in this
-            list must be in the gam_features list.
-        gams (list of GAM models):
-            A list containing two lists of two fitted GAMs. The first list
-            contains two fitted GAMs, one for predicting the climatological mean
-            of the historical forecasts and the second predicting the
-            climatological standard deviation. The second list contains two
-            fitted GAMs, one for predicting the climatological mean of the truths
-            and the second predicting the climatological standard deviation.
+        file_paths (cli.inputpath):
+            A list of input paths containing:
+            - Path to a pickle file containing the GAMs to be used. This pickle
+              file contains two lists, each containing two fitted GAMs. The first list
+              contains GAMS for predicting each of the climatological mean and standard
+              deviation of the historical forecasts. The second list contains GAMS for
+              predicting each of the climatological mean and standard deviation of the
+              truths.
+            - The path to a Parquet file containing the historical forecasts
+              to be used for calibration.The expected columns within the
+              Parquet file are: forecast, blend_time, forecast_period,
+              forecast_reference_time, time, wmo_id, percentile, diagnostic,
+              latitude, longitude, period, height, cf_name, units.
+            - The path to a Parquet file containing the truths to be used
+              for calibration. The expected columns within the
+              Parquet file are: ob_value, time, wmo_id, diagnostic, latitude,
+              longitude and altitude.
+            - Optionally paths to additional NetCDF files that contain additional features
+              (static predictors) that will be provided when estimating the SAMOS
+              coefficients. The name of all cubes in this list must be in the gam_features
+              list.
         gam_features (list of str):
             A list of the names of the cubes that will be used as additional
             features in the GAM. Additionaly the name of any coordinates
@@ -107,6 +104,11 @@ def process(
             when reading from disk.
         cycletime (str):
             Cycletime of a format similar to 20170109T0000Z.
+        unique_site_id_key (str):
+            If working with spot data and available, the name of the coordinate
+            in the input cubes that contains unique site IDs, e.g. "wmo_id" if
+            all sites have a valid wmo_id. For estimation the default is "wmo_id"
+            as we expect to be including observation data.
 
     Returns:
         iris.cube.CubeList or None:
@@ -117,6 +119,7 @@ def process(
     # monkey-patch to 'tweak' scipy to prevent errors occuring
     import scipy.sparse
 
+    from improver.calibration import identify_parquet_type, split_pickle_parquet_and_netcdf
     from improver.calibration.samos_calibration import TrainEMOSForSAMOS
     from improver.ensemble_copula_coupling.utilities import convert_parquet_to_cube
 
@@ -124,6 +127,11 @@ def process(
         return self.toarray()
 
     scipy.sparse.spmatrix.A = property(to_array)
+
+    # Split the input paths into cubes and pickles.
+    samos_additional_predictors, parquets, gams = split_pickle_parquet_and_netcdf(file_paths)
+    # Determine which parquet path provides truths and which historic forecasts.
+    forecast, truth = identify_parquet_type(parquets)
 
     forecast_cube, truth_cube = convert_parquet_to_cube(
         forecast,
@@ -148,7 +156,7 @@ def process(
         "max_iterations": max_iterations,
     }
 
-    plugin = TrainEMOSForSAMOS(distribution="norm", emos_kwargs=emos_kwargs)
+    plugin = TrainEMOSForSAMOS(distribution="norm", emos_kwargs=emos_kwargs, unique_site_id_key=unique_site_id_key)
     return plugin(
         historic_forecasts=forecast_cube,
         truths=truth_cube,
