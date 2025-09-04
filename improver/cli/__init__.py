@@ -357,8 +357,8 @@ def with_output(
         if pass_through_output:
             return ObjectAsStr(result, output)
         return
-    elif output:
-        # If output is set and result is not a Cube, save it as a pickle file
+    elif output and result:
+        # If output is set and result exists but is not a Cube, save it as a pickle file
         joblib.dump(result, output, compress=compression_level)
         return
     return result
