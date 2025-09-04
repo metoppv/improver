@@ -29,7 +29,9 @@ def process(
         cubes (list of iris.cube.Cube):
             A list of cubes containing the historical forecasts and
             corresponding truth used for calibration. They must have the same
-            cube name and will be separated based on the truth attribute.
+            cube name and will be separated based on the truth attribute. The
+            list may also contain additional features (static predictors) that
+            will be provided when estimating the GAM.
         truth_attribute (str):
             An attribute and its value in the format of "attribute=value",
             which must be present on historical truth cubes.
@@ -85,6 +87,9 @@ def process(
         expect_emos_coeffs=False,
         expect_emos_fields=False,
     )
+
+    if forecast is None or truth is None:
+        return
 
     plugin = TrainGAMsForSAMOS(
         model_specification=model_specification,
