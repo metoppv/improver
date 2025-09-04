@@ -21,7 +21,7 @@ def process(
     distribution: str = "normal",
     link: str = "identity",
     fit_intercept: bool = True,
-    unique_site_id_key: str = None,
+    unique_site_id_key: str = "wmo_id",
 ):
     """Estimate General Additive Model (GAM) for SAMOS.
 
@@ -61,7 +61,9 @@ def process(
         unique_site_id_key (str):
             If working with spot data and available, the name of the coordinate
             in the input cubes that contains unique site IDs, e.g. "wmo_id" if
-            all sites have a valid wmo_id
+            all sites have a valid wmo_id. For GAM estimation the default is
+            "wmo_id" as we expect to have a training data set comprising matched
+            obs and forecast sites.
 
     Returns:
         List:
