@@ -12,16 +12,15 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    *cubes: cli.inputcube,
+    *file_paths: cli.inputpath,
     truth_attribute: str,
-    gams: cli.inputpickle,
     gam_features: cli.comma_separated_list,
     use_default_initial_guess=False,
     units=None,
     predictor="mean",
     tolerance: float = 0.02,
     max_iterations: int = 1000,
-    unique_site_id_key: str = None,
+    unique_site_id_key: str = "wmo_id",
 ):
     """Estimate EMOS coefficients for use with SAMOS.
 
@@ -32,25 +31,28 @@ def process(
     The estimated coefficients are output as a cube.
 
     Args:
-        cubes (list of iris.cube.Cube):
-            A list of cubes containing the historical forecasts and
-            corresponding truth used for calibration. They must have the same
-            cube name and will be separated based on the truth attribute.
-            Optionally this may also include any other cubes to be used as
-            additional features in the GAM or in EMOS. These cubes will be
-            identified by comparing the cube name to the names in `gam_features`.
-            Any additional cubes that are not in `gam_features` will be
-            considered as additional fields for EMOS.
+        file_paths (cli.inputpath):
+            A list of input paths containing:
+            - Path to a pickle file containing the GAMs to be used. This pickle
+              file contains two lists, each containing two fitted GAMs. The first list
+              contains GAMS for predicting each of the climatological mean and standard
+              deviation of the historical forecasts. The second list contains GAMS for
+              predicting each of the climatological mean and standard deviation of the
+              truths.
+            - Paths to NetCDF files containing the historical forecasts and
+              corresponding truths used for calibration. They must have the same
+              diagnostic name and will be separated based on the provided truth attribute.
+            - Optionally, paths to additional NetCDF files that will be provided to the
+              emos plugin representing static additional predictors. These static additional
+              predictors are expected not to have a time coordinate. These will be identified
+              by their omission from the gam_features list.
+            - Optionally paths to additional NetCDF files that contain additional features
+              (static predictors) that will be provided to the GAM to help calculate the
+              climatological statistics. The name of the cubes should match one of the names
+              in the gam_features list.
         truth_attribute (str):
             An attribute and its value in the format of "attribute=value",
             which must be present on historical truth cubes.
-        gams (list of GAM models):
-            A list containing two lists of two fitted GAMs. The first list
-            contains two fitted GAMs, one for predicting the climatological mean
-            of the historical forecasts and the second predicting the
-            climatological standard deviation. The second list contains two
-            fitted GAMs, one for predicting the climatological mean of the truths
-            and the second predicting the climatological standard deviation.
         gam_features (list of str):
             A list of the names of the cubes that will be used as additional
             features in the GAM. Additionaly the name of any coordinates
@@ -85,7 +87,8 @@ def process(
         unique_site_id_key (str):
             If working with spot data and available, the name of the coordinate
             in the input cubes that contains unique site IDs, e.g. "wmo_id" if
-            all sites have a valid wmo_id.
+            all sites have a valid wmo_id. For estimation the default is "wmo_id"
+            as we expect to be including observation data.
 
     Returns:
         iris.cube.CubeList:
@@ -96,13 +99,16 @@ def process(
     # monkey-patch to 'tweak' scipy to prevent errors occuring
     import scipy.sparse
 
-    from improver.calibration import split_cubes_for_samos
+    from improver.calibration import split_cubes_for_samos, split_pickle_parquet_and_netcdf
     from improver.calibration.samos_calibration import TrainEMOSForSAMOS
 
     def to_array(self):
         return self.toarray()
 
     scipy.sparse.spmatrix.A = property(to_array)
+
+    # Split the input paths into cubes and pickles
+    cubes, _, gams = split_pickle_parquet_and_netcdf(file_paths)
 
     # Split the cubes into forecast and truth cubes, along with any additional fields
     # provided for the GAMs and EMOS.
@@ -120,6 +126,10 @@ def process(
         expect_emos_coeffs=False,
         expect_emos_fields=True,
     )
+
+    if forecast is None or truth is None:
+        return
+
     # Train emos coefficients for the SAMOS model.
     emos_kwargs = {
         "use_default_initial_guess": use_default_initial_guess,

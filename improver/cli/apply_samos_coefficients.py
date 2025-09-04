@@ -12,8 +12,7 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    gams: cli.inputpickle,
-    *cubes: cli.inputcubelist,
+    *file_paths: cli.inputpath,
     gam_features: cli.comma_separated_list,
     validity_times: cli.comma_separated_list = None,
     realizations_count: int = None,
@@ -36,35 +35,36 @@ def process(
     forecast is returned unchanged.
 
     Args:
-        gams (list of GAM models):
-            A list containing two lists of two fitted GAMs. The first list
-            contains two fitted GAMs, one for predicting the climatological mean
-            of the historical forecasts and the second predicting the
-            climatological standard deviation. The second list contains two
-            fitted GAMs, one for predicting the climatological mean of the truths
-            and the second predicting the climatological standard deviation.
-        cubes (iris.cube.CubeList):
-            A list of cubes containing:
-            - A Cube containing the forecast to be calibrated. The input format
-            could be either realizations, probabilities or percentiles.
-            - A cubelist containing the coefficients to be used for calibration or None.
-            If none then the input, or probability template if provided,
-            is returned unchanged.
-            - Optionally, additional cubes that will be provided to the emos plugin
-            representing static additional predictors. These static additional
-            predictors are expected not to have a time coordinate.
-            - Optionally additional cubes that will be provided to the GAM to help
-            calculate the climatalogical statistics. The name of the cubes should
-            match one of the names in the gam_features list.
-            - Optionally, a cube containing the land-sea mask. This is used to
-            ensure that only land points are calibrated. If no land-sea mask is
-            provided, all points will be calibrated.
-            - Optionally, a cube containing a probability forecast that will be
-            used as a template when generating probability output when the input
-            format of the forecast cube is not probabilities i.e. realizations
-            or percentiles. If no coefficients are provided and a probability
-            template is provided, the probability template forecast will be
-            returned as the uncalibrated probability forecast.
+        file_paths (cli.inputpath):
+            A list of input paths containing:
+            - Path to a pickle file containing the GAMs to be used. This pickle
+              file contains two lists, each containing two fitted GAMs. The first list
+              contains GAMS for predicting each of the climatological mean and standard
+              deviation of the historical forecasts. The second list contains GAMS for
+              predicting each of the climatological mean and standard deviation of the
+              truths.
+            - Path to a NetCDF file containing the forecast to be calibrated. The input
+              forecast could be given as realizations, probabilities or percentiles.
+            - Path to a NetCDF file containing a cube list that includes the coefficients
+              to be used for calibration or None. If none then the input, or probability
+              template if provided, is returned unchanged.
+            - Optionally, paths to additional NetCDF files that will be provided to the
+              emos plugin representing static additional predictors. These static additional
+              predictors are expected not to have a time coordinate. These will be identified
+              by their omission from the gam_features list.
+            - Optionally paths to additional NetCDF files that contain additional features
+              (static predictors) that will be provided to the GAM to help calculate the
+              climatological statistics. The name of the cubes should match one of the names
+              in the gam_features list.
+            - Optionally, path to a NetCDF file containing the land-sea mask. This is used to
+              ensure that only land points are calibrated. If no land-sea mask is provided,
+              all points will be calibrated.
+            - Optionally, path to a NetCDF file containing a probability forecast that will
+              be used as a template when generating probability output when the input
+              format of the forecast cube is not probabilities i.e. realizations
+              or percentiles. If no coefficients are provided and a probability template is
+              provided, the probability template forecast will be returned as the
+              uncalibrated probability forecast.
         gam_features (list of str):
             A list of the names of the cubes that will be used as additional
             features in the GAM. Additionaly the name of any coordinates
@@ -121,7 +121,7 @@ def process(
     # monkey-patch to 'tweak' scipy to prevent errors occuring
     import scipy.sparse
 
-    from improver.calibration import split_cubes_for_samos
+    from improver.calibration import split_cubes_for_samos, split_pickle_parquet_and_netcdf
     from improver.calibration.samos_calibration import ApplySAMOS
     from improver.ensemble_copula_coupling.utilities import prepare_cube_no_calibration
 
@@ -130,6 +130,11 @@ def process(
 
     scipy.sparse.spmatrix.A = property(to_array)
 
+    # Split the input paths into cubes and pickles
+    cubes, _, gams = split_pickle_parquet_and_netcdf(file_paths)
+
+    # Split the cubes into forecast cubes, along with any additional fields
+    # provided for the GAMs and EMOS, and the coefficients to be used for calibration
     (
         forecast,
         _,
@@ -156,6 +161,7 @@ def process(
 
     if uncalibrated_forecast is not None:
         return uncalibrated_forecast
+
     plugin = ApplySAMOS(percentiles=percentiles, unique_site_id_key=unique_site_id_key)
     result = plugin.process(
         forecast=forecast,
