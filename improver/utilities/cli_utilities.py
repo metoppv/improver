@@ -5,6 +5,7 @@
 """Provides support utilities for cli scripts."""
 
 import json
+import pickle
 from typing import Dict, Optional
 
 
@@ -26,3 +27,21 @@ def load_json_or_none(file_path: Optional[str]) -> Optional[Dict]:
         with open(file_path, "r") as input_file:
             metadata_dict = json.load(input_file)
     return metadata_dict
+
+
+def load_pickle_or_none(file_path: Optional[str]) -> Optional[list]:
+    """If there is a path, load the pickled object and returns it. Else returns None.
+
+    Args:
+        file_path:
+            File path to the pickled object file to load.
+
+    Returns:
+        A list of contained pickled objects.
+        or
+        None
+    """
+    if file_path:
+        with open(file_path, "rb") as input_file:
+            object = pickle.load(input_file)
+    return object if file_path else None

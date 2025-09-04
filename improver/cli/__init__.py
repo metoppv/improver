@@ -346,14 +346,20 @@ def with_output(
     Returns:
         Result of calling `wrapped` or None if `output` is given.
     """
+    import joblib
+    from iris.cube import Cube, CubeList
     from improver.utilities.save import save_netcdf
 
     result = wrapped(*args, **kwargs)
 
-    if output and result:
+    if output and (isinstance(result, Cube) or isinstance(result, CubeList)):
         save_netcdf(result, output, compression_level, least_significant_digit)
         if pass_through_output:
             return ObjectAsStr(result, output)
+        return
+    elif output and result:
+        # If output is set and result exists but is not a Cube, save it as a pickle file
+        joblib.dump(result, output, compress=compression_level)
         return
     return result
 
