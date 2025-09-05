@@ -222,6 +222,10 @@ def test_process(include_altitude):
         gam_additional_fields=additional_cubes,
     )
 
+    for cube in result:
+        print(cube.name())
+        print(cube.data)
+
     expected_names = [
         "emos_coefficient_alpha",
         "emos_coefficient_beta",
@@ -229,9 +233,9 @@ def test_process(include_altitude):
         "emos_coefficient_delta",
     ]
     if include_altitude:
-        expected_data = [0.0450892, -0.1451314, 0.0, 1.05]
+        expected_data = [0.022377491, -0.106677316, 0.00039257813, 0.9976562]
     else:
-        expected_data = [-0.05576817, 0.08254312, 0.0, 1.0012305]
+        expected_data = [0.020675791, -0.10688154, 0.00018227004, 1.0193497]
 
     for i, cube in enumerate(result):
         assert expected_names[i] == cube.name()

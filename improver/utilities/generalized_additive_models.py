@@ -131,6 +131,10 @@ class GAMFit(BasePlugin):
         # Import from pygam here to minimize dependencies
         from pygam import GAM
 
+        # Remove nans from arrays.
+        predictors = predictors[~np.isnan(targets)]
+        targets = targets[~np.isnan(targets)]
+
         eqn = self.create_pygam_model()
         gam = GAM(
             eqn,
