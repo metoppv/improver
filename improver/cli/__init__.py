@@ -312,6 +312,7 @@ def with_output(
     pass_through_output=False,
     compression_level=1,
     least_significant_digit: int = None,
+    output_file_type="netCDF",
     **kwargs,
 ):
     """Add `output` keyword only argument.
@@ -346,14 +347,19 @@ def with_output(
     Returns:
         Result of calling `wrapped` or None if `output` is given.
     """
+    import joblib
+
     from improver.utilities.save import save_netcdf
 
     result = wrapped(*args, **kwargs)
 
-    if output and result:
+    if output and output.endswith(".nc"):
         save_netcdf(result, output, compression_level, least_significant_digit)
         if pass_through_output:
             return ObjectAsStr(result, output)
+        return
+    elif output and output.endswith((".pickle", ".pkl")):
+        joblib.dump(result, output, compress=compression_level)
         return
     return result
 
