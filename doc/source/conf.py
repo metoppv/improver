@@ -374,7 +374,7 @@ intersphinx_mapping = {
     "cartopy": ("https://cartopy.readthedocs.io/latest/", None),
     "cf_units": ("https://cf-units.readthedocs.io/en/stable/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
-    "scipy": ("https://docs.scipy.org/doc/scipy-1.15.0/reference/", None),
+    "scipy": ("https://docs.scipy.org/doc/scipy/reference", None),
     "pandas": ("https://pandas.pydata.org/pandas-docs/dev/", None),
 }
 
