@@ -71,6 +71,7 @@ PROCESSING_MODULES = {
     "HailSize": "improver.psychrometric_calculations.hail_size",
     "height_of_maximum": "improver.utilities.cube_manipulation",
     "HumidityMixingRatio": "improver.psychrometric_calculations.psychrometric_calculations",
+    "IcingSeverityMultivariateRegression_USAF2024": "improver.icing",
     "Integration": "improver.utilities.mathematical_operations",
     "InterpolateUsingDifference": "improver.utilities.interpolation",
     "LapseRate": "improver.temperature.lapse_rate",
