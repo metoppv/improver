@@ -117,6 +117,7 @@ PROCESSING_MODULES = {
     "SpotLapseRateAdjust": "improver.spotdata.apply_lapse_rate",
     "SpotManipulation": "improver.spotdata.spot_manipulation",
     "StandardiseMetadata": "improver.standardise",
+    "TemperatureSaturatedAirParcel": "improver.psychrometric_calculations.temperature_saturated_air_parcel",
     "TemporalInterpolation": "improver.utilities.temporal_interpolation",
     "Threshold": "improver.threshold",
     "TriangularWeightedBlendAcrossAdjacentPoints": "improver.blending.blend_across_adjacent_points",
