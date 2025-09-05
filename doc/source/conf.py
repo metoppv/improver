@@ -371,7 +371,7 @@ texinfo_documents = [
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
     "iris": ("https://scitools-iris.readthedocs.io/en/latest/", None),
-    "cartopy": ("https://cartopy.readthedocs.io/latest/", None),
+    "cartopy": ("https://cartopy.readthedocs.io/stable/", None),
     "cf_units": ("https://cf-units.readthedocs.io/en/stable/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
     "scipy": ("https://docs.scipy.org/doc/scipy/reference", None),
