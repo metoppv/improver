@@ -371,10 +371,10 @@ texinfo_documents = [
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
     "iris": ("https://scitools-iris.readthedocs.io/en/latest/", None),
-    "cartopy": ("https://scitools.org.uk/cartopy/docs/latest/", None),
+    "cartopy": ("https://cartopy.readthedocs.io/latest/", None),
     "cf_units": ("https://cf-units.readthedocs.io/en/stable/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
-    "scipy": ("https://docs.scipy.org/doc/scipy-1.6.2/reference/", None),
+    "scipy": ("https://docs.scipy.org/doc/scipy-1.15.0/reference/", None),
     "pandas": ("https://pandas.pydata.org/pandas-docs/dev/", None),
 }
 
