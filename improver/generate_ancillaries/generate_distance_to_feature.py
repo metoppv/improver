@@ -50,8 +50,9 @@ class DistanceTo(BasePlugin):
             epsg_projection:
                 The EPSG code of the coordinate reference system on to which latitudes
                 and longitudes will be projected to calculate distances. This is
-                a projected coordinate system in which distances are measured in metres
-                - for example, EPSG code 3035, which defines a Lambert Azimuthal Equal Areas projection suitable for the UK. 
+                a projected coordinate system in which distances are measured in metres,
+                for example, EPSG code 3035, which defines a Lambert Azimuthal Equal
+                Areas projection suitable for the UK.
             new_name:
                 The name of the output cube.
             buffer:
