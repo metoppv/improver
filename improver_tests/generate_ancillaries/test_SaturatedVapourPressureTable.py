@@ -41,8 +41,8 @@ class Test_saturation_vapour_pressure_goff_gratch(IrisTest):
         data = np.array([[260.0, 270.0, 280.0]], dtype=np.float32)
         plugin = SaturatedVapourPressureTable()
         result = plugin.saturation_vapour_pressure_goff_gratch(data)
-        expected = 0.01 * np.array([[195.6419, 469.67078, 990.9421]])
-        self.assertArrayAlmostEqual(result, expected)
+        expected = np.array([[1.956417, 4.696705, 9.909414]], dtype=np.float32)
+        self.assertArrayAlmostEqual(expected, result)
 
 
 class Test_temperature_data_limits(unittest.TestCase):
