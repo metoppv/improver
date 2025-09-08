@@ -112,22 +112,24 @@ class CondensationTrailFormation(BasePlugin):
         temperature: np.ndarray,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
-        For engine mixing ratios on pressure levels for a given engine contrail factor,
-        return the critical temperatures and critical intercepts of contrail formation.
+        For engine mixing ratios on pressure levels for a given engine contrail
+        factor, calculate the critical temperatures and critical intercepts at
+        which contrails may form.
 
-        These are calculated for each pressure level by drawing a tangent to the saturation
-        vapour pressure curve, with a gradient equal to the engine mixing ratio.
+        These are calculated for each pressure level by drawing a tangent to
+        the saturation vapour pressure curve, with a gradient equal to the
+        engine mixing ratio.
 
         Args:
             mixing_ratios (np.ndarray): Engine mixing ratios on pressure levels for a given engine contrail factor (Pa/K).
             relative_humidity (np.ndarray): Relative humidity on pressure levels (kg kg-1).
             svp (np.ndarray): Lookup table of saturation vapour pressure with respect to water (Pa).
             svp_derivative (np.ndarray): Lookup table of the first derivative of saturation vapour pressure with respect to water (Pa/K).
-            temeprature (np.ndarray): Air temperatures corresponding to both lookup tables (K).
+            temperature (np.ndarray): Air temperatures corresponding to both lookup tables (K).
 
         Returns:
-            np.ndarray: The critical temperatures at which contrails may form, on pressure levels (K).
-            np.ndarray: The critical intercepts at which contrails may form, on pressure levels (Pa).
+            np.ndarray: Critical temperatures on pressure levels (K).
+            np.ndarray: Critical intercepts on pressure levels (Pa).
 
         """
         num_pressure_levels = mixing_ratios.shape[0]
@@ -212,15 +214,15 @@ class CondensationTrailFormation(BasePlugin):
         relative_humidity: np.ndarray,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
-        Calculate the critical temperatures and intercepts on pressure levels, for all engine contrail factors.
+        Calculate the critical temperatures and intercepts on pressure levels for all engine contrail factors.
 
         Args:
             engine_mixing_ratios (np.ndarray): Engine mixing ratios on pressure levels for all engine contrail factors (Pa/K).
             relative_humidity (np.ndarray): Relative humidity on pressure levels (kg/kg).
 
         Returns:
-            np.ndarray: The critical temperatures at which contrails may form, on pressure levels, for all engine contrail factors (K).
-            np.ndarray: The critical intercepts at which contrails may form, on pressure levels, for all engine contrail factors (K).
+            np.ndarray: Critical temperatures on pressure levels for all engine contrail factors (K).
+            np.ndarray: Critical intercepts on pressure levels for all engine contrail factors (Pa).
         """
         critical_temperatures = np.zeros(
             ((engine_mixing_ratios.shape[0],) + relative_humidity.shape)
