@@ -103,73 +103,93 @@ class CondensationTrailFormation(BasePlugin):
         )
         return self.relative_humidity * svp
 
-    @staticmethod
-    def _critical_temperatures_all_rh_as_arrays(
-        mixing_ratios: np.ndarray, svp_derivative_table: Cube, svp_table: Cube
+    def _critical_temperatures(
+        self, mixing_ratios: np.ndarray, svp_derivative_table: Cube, svp_table: Cube
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         For engine mixing ratios at a given engine contrail factor, return the critical
         temperatures and critical intercepts from the tangents with the SVP curve for all
         relative humidities.
         """
-
+        num_pressure_levels = mixing_ratios.shape[0]
         temperature_table = svp_derivative_table.coord("air_temperature").points
 
-        # de_s/dT = m is satisifed at the critical temperature, Tc, at 100% RH (Schrader 1997, section 3)
-        indices = [
+        # critical temperature maximum (at 100% relative humidity) is given by point
+        # where SVP derivative curve is equal to the engine mixing ratio
+        ind_max = [
             (np.abs(svp_derivative_table.data - m)).argmin() for m in mixing_ratios
         ]
-        svp_derivative_Tc_RH100 = svp_derivative_table[indices].data
-        Tc_RH100 = temperature_table[indices]
-
-        # saturation vapour pressures at critical temperatures
-        svp_Tc_RH100 = svp_table[indices].data
-
-        # critical intercepts (eqn. 2 of the ticket instructions)
-        Ic = svp_Tc_RH100 - svp_derivative_Tc_RH100 * Tc_RH100
+        tangent_gradient = svp_derivative_table[ind_max].data
+        critical_temperature_maximum = temperature_table[ind_max]
 
         # tangents to SVP curve, with gradients equal to mixing ratios
-        y_tangent = (
-            svp_derivative_Tc_RH100[:, np.newaxis] * temperature_table[np.newaxis, :]
-            + Ic[:, np.newaxis]
+        critical_intercepts = (
+            svp_table[ind_max].data - tangent_gradient * critical_temperature_maximum
+        )
+        tangent_vapour_pressure = (
+            tangent_gradient[:, np.newaxis] * temperature_table[np.newaxis, :]
+            + critical_intercepts[:, np.newaxis]
         )
 
-        # Tc at 0% RH given by point where tangent crosses e = 0
-        indices = [
-            np.abs(y_tangent[mi, :]).argmin() for mi in range(mixing_ratios.shape[0])
+        # critical temperature minimum (at 0% relative humidity) is given by point
+        # where the tangent crosses the line of zero vapour pressure
+        ind_min = [
+            np.abs(tangent_vapour_pressure[i, :]).argmin()
+            for i in range(num_pressure_levels)
         ]
-        Tc_RH0 = temperature_table[indices]
+        critical_temperature_minimum = temperature_table[ind_min]
 
-        # critical temperatures for all pressure levels and relative humidites (0 to 100)
-        Tc_all = np.array(
+        # critical temperatures for all relative humidites (0% to 100%)
+        critical_temperature_all_relative_humidities = np.array(
             [
-                np.linspace(Tc_RH0[mi], Tc_RH100[mi], num=100)
-                for mi in range(mixing_ratios.shape[0])
+                np.linspace(
+                    critical_temperature_minimum[i],
+                    critical_temperature_maximum[i],
+                    num=100,
+                )
+                for i in range(num_pressure_levels)
             ]
         )
 
         # vapour pressure interpolated from tangent
         e = np.array(
             [
-                np.interp(Tc_all[mi, :], temperature_table, y_tangent[mi, :])
-                for mi in range(mixing_ratios.shape[0])
+                np.interp(
+                    critical_temperature_all_relative_humidities[i, :],
+                    temperature_table,
+                    tangent_vapour_pressure[i, :],
+                )
+                for i in range(num_pressure_levels)
             ]
         )
 
-        # svp interpolated from curve
+        # saturation vapour pressure interpolated from curve
         esat = np.array(
             [
-                np.interp(Tc_all[mi, :], temperature_table, svp_table.data)
-                for mi in range(mixing_ratios.shape[0])
+                np.interp(
+                    critical_temperature_all_relative_humidities[i, :],
+                    temperature_table,
+                    svp_table.data,
+                )
+                for i in range(num_pressure_levels)
             ]
         )
 
-        # relative humidity for each critical temperature
-        RH_all = e / esat
+        # critical temperatures interpolated at stored relative humidities
+        critical_temperatures = np.array(
+            [
+                np.interp(
+                    self.relative_humidity[i, :, :].data,
+                    e[i, :] / esat[i, :],
+                    critical_temperature_all_relative_humidities[i, :],
+                )
+                for i in range(num_pressure_levels)
+            ]
+        )
 
-        return RH_all, Tc_all, Ic
+        return critical_temperatures, critical_intercepts
 
-    def _calculate_critical_temperatures_as_arrays(
+    def _calculate_critical_temperatures(
         self,
         engine_mixing_ratios: np.ndarray,
         relative_humidity: Cube,
@@ -191,19 +211,10 @@ class CondensationTrailFormation(BasePlugin):
         ).process()
 
         for cfi in range(engine_mixing_ratios.shape[0]):
-            # compute critical temperatures for all relative humidities over pressure levels
-            rh, tc, critical_intercepts[cfi, :] = (
-                CondensationTrailFormation._critical_temperatures_all_rh_as_arrays(
+            critical_temperatures[cfi, :, :, :], critical_intercepts[cfi, :] = (
+                self._critical_temperatures(
                     engine_mixing_ratios[cfi, :], svp_derivative, svp
                 )
-            )
-
-            # lookup critical temperatures for stored relative humidities
-            critical_temperatures[cfi, :, :, :] = np.array(
-                [
-                    np.interp(relative_humidity[mi, :, :].data, rh[mi, :], tc[mi, :])
-                    for mi in range(engine_mixing_ratios.shape[1])
-                ]
             )
 
         return critical_temperatures, critical_intercepts
@@ -271,7 +282,7 @@ class CondensationTrailFormation(BasePlugin):
         )
 
         self.critical_temperatures, self.critical_intercepts = (
-            self._calculate_critical_temperatures_as_arrays(
+            self._calculate_critical_temperatures(
                 self.engine_mixing_ratios,
                 humidity_cube,
             )
