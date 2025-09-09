@@ -17,7 +17,7 @@ from scipy.optimize import newton
 import improver.constants as consts
 from improver import BasePlugin
 from improver.generate_ancillaries.generate_svp_derivative_table import (
-    SaturatedVapourPressureTableDerivative,
+    SaturatedVapourPressureDerivativeTable,
 )
 from improver.generate_ancillaries.generate_svp_table import (
     SaturatedVapourPressureTable,
@@ -74,7 +74,7 @@ def _svp_derivative_table() -> ndarray:
     Returns:
         Array of first derivative saturated vapour pressures (Pa).
     """
-    svp_derivative_data = SaturatedVapourPressureTableDerivative(
+    svp_derivative_data = SaturatedVapourPressureDerivativeTable(
         t_min=SVP_T_MIN, t_max=SVP_T_MAX, t_increment=SVP_T_INCREMENT
     ).process()
     return svp_derivative_data.data
