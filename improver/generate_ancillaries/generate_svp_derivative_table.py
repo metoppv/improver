@@ -14,10 +14,10 @@ from improver.generate_ancillaries.generate_svp_table import (
 )
 
 
-class SaturatedVapourPressureTableDerivative(SaturatedVapourPressureTable):
+class SaturatedVapourPressureDerivativeTable(SaturatedVapourPressureTable):
     """
     Plugin to create a first derivative saturated vapour pressure lookup table,
-    which is only valid for temperatures between 173K and 373K.
+    which is only valid for temperatures between 173 K and 373 K.
 
     .. Further information is available in:
     .. include:: extended_documentation/generate_ancillaries/
@@ -37,7 +37,8 @@ class SaturatedVapourPressureTableDerivative(SaturatedVapourPressureTable):
 
         Args:
             temperature:
-                Temperature values in Kelvin. Valid from 173K to 373K
+                Temperature values in Kelvin. Valid from 173 K to 373 K
+                (173 K < T < 273.15 K for ice, 223 K < T < 373 K for water).
 
         Returns:
             Corresponding values of saturation vapour pressure first derivative
@@ -57,7 +58,7 @@ class SaturatedVapourPressureTableDerivative(SaturatedVapourPressureTable):
         svp_derivative = temperature.copy()
         with np.nditer([svp_derivative, svp_original], op_flags=["readwrite"]) as it:
             for cell, svp_original_cell_val in it:
-                if cell > TRIPLE_PT_WATER:
+                if (cell > TRIPLE_PT_WATER or self.water_only) and not self.ice_only:
                     n0 = (self.constants[1] * TRIPLE_PT_WATER) / (cell**2)
                     n1 = self.constants[2] / (cell * np.log(10))
                     n2 = (
