@@ -14,7 +14,7 @@ from improver.generate_ancillaries.generate_svp_table import (
 )
 
 
-class SaturatedVapourPressureTableDerivative(SaturatedVapourPressureTable):
+class SaturatedVapourPressureDerivativeTable(SaturatedVapourPressureTable):
     """
     Plugin to create a first derivative saturated vapour pressure lookup table,
     which is only valid for temperatures between 173 K and 373 K.
