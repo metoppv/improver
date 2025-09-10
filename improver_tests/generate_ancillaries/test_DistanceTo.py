@@ -325,7 +325,6 @@ def test_distance_to_with_line_geometry(
 
 
 @pytest.mark.parametrize(
-
     "target_projection, site_latitude, site_longitude, expected_distance",
     [
         (
