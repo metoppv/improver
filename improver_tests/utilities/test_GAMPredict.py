@@ -2,7 +2,7 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""Unit tests for the GAMPredict class within statistical.py"""
+"""Unit tests for the GAMPredict class within generalized_additive_models.py"""
 
 import numpy as np
 import pytest

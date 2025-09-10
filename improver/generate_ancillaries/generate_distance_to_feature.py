@@ -20,21 +20,21 @@ class DistanceTo(BasePlugin):
     Plugin to calculate the distance to the nearest feature in a geometry from
     sites to the nearest metre.
 
-    Given a cube containing site locations and a GeoDataFrame the distance to each site
+    Given a cube containing site locations and a GeoDataFrame, the distance to each site
     from the nearest point of the feature geometry is calculated. This is done by converting
     the feature geometry and sites to a common target orography that must be specified using a
     European Petroleum Survey Group (EPSG) code that identifies the projection. For the
-    UK code 3035, that provides a Lambert Azimuthal Equal Areas projection across the
-    region might be used. The chosen projection should match the projection on which the
+    UK, EPSG code 3035 may be used to provide a Lambert Azimuthal Equal Area projection that
+    is suitable for the region. The chosen projection should match the projection on which the
     ancillary will be used. The distance method from Shapely is used to find the distance
     from each site to every point in the feature geometry. The minimum of these distances is
     returned as the distance to the nearest feature in the feature geometry and this is rounded
     to the nearest metre.
 
     If requested, the provided geometry will be clipped to the bounds of the site
-    locations with a buffer to improve performance. This is useful when the geometry is
-    large and it would be expensive to calculate the distance to all features in the
-    geometry but information may be lost at the edges of the domain.
+    locations with a buffer to improve performance by reducing computation. This is useful when
+    the geometry is large and it would be expensive to calculate the distance to all features
+    in the geometry but information may be lost at the edges of the domain.
     """
 
     def __init__(
@@ -49,11 +49,11 @@ class DistanceTo(BasePlugin):
 
         Args:
             epsg_projection:
-                The EPSG code of the coordinate reference system on to which latitude
+                The EPSG code of the coordinate reference system on to which latitudes
                 and longitudes will be projected to calculate distances. This is
                 a projected coordinate system in which distances are measured in metres,
-                for example a Lambert Azimuthal Equal Areas projection across the UK,
-                code 3035.
+                for example, EPSG code 3035, which defines a Lambert Azimuthal Equal
+                Areas projection suitable for the UK.
             new_name:
                 The name of the output cube.
             buffer:
