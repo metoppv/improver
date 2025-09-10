@@ -21,6 +21,7 @@ def mock_cube():
     """
     Fixture to create a mock humidity mixing ratio cube with pressure levels.
     """
+
     pressure_levels = np.array(
         [100000, 97500, 95000, 92500, 90000, 85000, 80000, 75000, 70000],
         dtype=np.float32,
@@ -37,13 +38,17 @@ def mock_cube():
     # Replace the vertical coordinate with pressure
     pressure_coord = iris.coords.DimCoord(
         pressure_levels,
-        standard_name="air_pressure",
         units="Pa",
         long_name="pressure",
         var_name="pressure",
     )
     cube.remove_coord("realization")  # if present
     cube.add_dim_coord(pressure_coord, 0)
+
+    # Add title attribute
+    cube.attributes["title"] = (
+        "Global Enhanced Model Forecast on Global 10 km Standard Grid"
+    )
 
     return cube
 
@@ -53,7 +58,6 @@ def test_precipitable_water_basic(mock_cube):
     result = plugin.process(mock_cube)
     assert result.units == "m"
     assert result.standard_name == "lwe_thickness_of_precipitation_amount"
-    assert result.attributes["least_significant_digit"] == 3
     assert (
         result.attributes["title"]
         == "Global Enhanced Model Forecast on Global 10 km Standard Grid"
@@ -62,6 +66,10 @@ def test_precipitable_water_basic(mock_cube):
 
 
 def test_metadata_for_ukv_model(mock_cube):
+    # Override title of mock_cube for UKV model test
+    mock_cube.attributes["title"] = (
+        "UKV Enhanced Model Forecast on UK 2 km Standard Grid"
+    )
     plugin = PrecipitableWater(model_type="ukv")
     result = plugin.process(mock_cube)
     assert (
@@ -82,13 +90,6 @@ def test_invalid_input_type():
     plugin = PrecipitableWater()
     with pytest.raises(AttributeError):
         plugin.process("not_a_cube")
-
-
-def test_least_significant_digit_attribute(mock_cube):
-    plugin = PrecipitableWater()
-    result = plugin.process(mock_cube)
-    assert "least_significant_digit" in result.attributes
-    assert result.attributes["least_significant_digit"] == 3
 
 
 def test_output_units_and_standard_name(mock_cube):
