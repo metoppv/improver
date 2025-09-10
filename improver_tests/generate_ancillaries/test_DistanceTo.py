@@ -215,15 +215,16 @@ def multiple_site_cube():
 
 
 @pytest.mark.parametrize(
-    "site_latitude, site_longitude, expected_distance",
+    "target_projection, site_latitude, site_longitude, expected_distance",
     [
-        (49.538352, -1.393298, 0),  # site is the same location as a point
-        (49.539047274, -1.386459578, 500),  # site is halfways between two points
-        (
-            49.543481633,
-            -1.387510304,
-            707,
-        ),  # Site is at the exact centre of the 4 points
+        (3035, 49.538352, -1.393298, 0),  # site is the same location as a point
+        (3035, 49.539047274, -1.386459578, 500),  # site is halfways between two points
+        (3035, 49.543481633, -1.387510304, 707),  # Site at centre of the 4 points
+        # Test a conic projection over Europe as well, which yields difference distances
+        # for the non-zero distance cases.
+        (9001, 49.538352, -1.393298, 0),  # site is the same location as a point
+        (9001, 49.539047274, -1.386459578, 498),  # site is halfways between two points
+        (9001, 49.543481633, -1.387510304, 603),  # Site at centre of the 4 points
     ],
 )
 @pytest.mark.parametrize(
@@ -232,6 +233,7 @@ def multiple_site_cube():
 def test_distance_to_with_points_geometry(
     single_site_cube,
     shape_file_crs,
+    target_projection,
     site_latitude,
     site_longitude,
     expected_distance,
@@ -245,7 +247,7 @@ def test_distance_to_with_points_geometry(
     single_site_cube.coord("latitude").points = site_latitude
     single_site_cube.coord("longitude").points = site_longitude
 
-    output_cube = DistanceTo(3035)(single_site_cube, geometry)
+    output_cube = DistanceTo(target_projection)(single_site_cube, geometry)
     assert output_cube.name() == "rain_rate"
     assert output_cube.units == "m"
     assert output_cube.coord("latitude").points == site_latitude
@@ -254,18 +256,45 @@ def test_distance_to_with_points_geometry(
 
 
 @pytest.mark.parametrize(
-    "site_latitude, site_longitude, expected_distance",
+    "target_projection, site_latitude, site_longitude, expected_distance",
     [
-        (49.538352, -1.393298, 0),  # site is the same location as a corner of the line
         (
+            3035,
+            49.538352,
+            -1.393298,
+            0,
+        ),  # site is the same location as a corner of the line
+        (
+            3035,
             49.539047274,
             -1.386459578,
             0,
         ),  # site is halfways between two points on the line
         (
+            3035,
             49.543481633,
             -1.387510304,
             500,
+        ),  # Site is at the exact centre of the square formed by the line
+        # Test a conic projection over Europe as well, which yields difference distances
+        # for the non-zero distance cases.
+        (
+            9001,
+            49.538352,
+            -1.393298,
+            0,
+        ),  # site is the same location as a corner of the line
+        (
+            9001,
+            49.539047274,
+            -1.386459578,
+            0,
+        ),  # site is halfways between two points on the line
+        (
+            9001,
+            49.543481633,
+            -1.387510304,
+            382,
         ),  # Site is at the exact centre of the square formed by the line
     ],
 )
@@ -273,6 +302,7 @@ def test_distance_to_with_points_geometry(
 def test_distance_to_with_line_geometry(
     single_site_cube,
     geometry_crs,
+    target_projection,
     site_latitude,
     site_longitude,
     expected_distance,
@@ -286,7 +316,7 @@ def test_distance_to_with_line_geometry(
     single_site_cube.coord("latitude").points = site_latitude
     single_site_cube.coord("longitude").points = site_longitude
 
-    output_cube = DistanceTo(3035)(single_site_cube, geometry)
+    output_cube = DistanceTo(target_projection)(single_site_cube, geometry)
     assert output_cube.name() == "rain_rate"
     assert output_cube.units == "m"
     assert output_cube.coord("latitude").points == site_latitude
@@ -295,20 +325,48 @@ def test_distance_to_with_line_geometry(
 
 
 @pytest.mark.parametrize(
-    "site_latitude, site_longitude, expected_distance",
+    "target_projection, site_latitude, site_longitude, expected_distance",
     [
         (
+            3035,
             49.538352,
             -1.393298,
             0,
         ),  # site is the same location as a corner of the polygon
         (
+            3035,
             49.539047274,
             -1.386459578,
             0,
         ),  # site is halfways between two points on the edge of the polygon
-        (49.543481633, -1.387510304, 0),  # Site is at the exact centre of the polygon
-        (49.551655272, -1.3964531, 500),  # Site is outside the polygon
+        (
+            3035,
+            49.543481633,
+            -1.387510304,
+            0,
+        ),  # Site is at the exact centre of the polygon
+        (3035, 49.551655272, -1.3964531, 500),  # Site is outside the polygon
+        # Test a conic projection over Europe as well, which yields difference distances
+        # for the non-zero distance cases.
+        (
+            9001,
+            49.538352,
+            -1.393298,
+            0,
+        ),  # site is the same location as a corner of the polygon
+        (
+            9001,
+            49.539047274,
+            -1.386459578,
+            0,
+        ),  # site is halfways between two points on the edge of the polygon
+        (
+            9001,
+            49.543481633,
+            -1.387510304,
+            0,
+        ),  # Site is at the exact centre of the polygon
+        (9001, 49.551655272, -1.3964531, 383),  # Site is outside the polygon
     ],
 )
 @pytest.mark.parametrize(
@@ -317,6 +375,7 @@ def test_distance_to_with_line_geometry(
 def test_distance_to_with_polygon_geometry(
     single_site_cube,
     geometry_crs,
+    target_projection,
     site_latitude,
     site_longitude,
     expected_distance,
@@ -329,7 +388,7 @@ def test_distance_to_with_polygon_geometry(
     single_site_cube.coord("latitude").points = site_latitude
     single_site_cube.coord("longitude").points = site_longitude
 
-    output_cube = DistanceTo(3035)(single_site_cube, geometry)
+    output_cube = DistanceTo(target_projection)(single_site_cube, geometry)
     assert output_cube.name() == "rain_rate"
     assert output_cube.units == "m"
     assert output_cube.coord("latitude").points == site_latitude
