@@ -211,7 +211,7 @@ def test_prepare_data_for_gam_spot(
         land_fraction = np.array([0.0, 0.3] * 2, dtype=np.float32)
         spot_dataframe["land_fraction"] = land_fraction
 
-    result = prepare_data_for_gam(input_cube, additional_cubes)
+    result = prepare_data_for_gam(input_cube, additional_cubes, unique_site_id_key="wmo_id")
 
     assert np.all(result.columns == spot_dataframe.columns)
     assert_frame_equal(result, spot_dataframe)

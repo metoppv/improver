@@ -45,6 +45,8 @@ def dummy_function(first, second=0, third=2):
         (iris.cube.Cube)
 
     """
+    if isinstance(first, list):
+        return first[0]
     first = int(first)
     return first + first
 
@@ -187,46 +189,55 @@ class Test_with_output(unittest.TestCase):
         self.assertEqual(result, 4)
 
     @patch("improver.utilities.save.save_netcdf")
-    def test_with_output(self, m):
+    def test_with_output_cube(self, m):
         """Tests that save_netcdf is called with object and string, default
         compression_level=1 and default least_significant_digit=None"""
-        # pylint disable is needed as it can't see the wrappers output kwarg.
-        result = wrapped_with_output.cli("argv[0]", "2", "--output=foo")
-        m.assert_called_with(4, "foo", 1, None)
+        save_object = Cube([0])
+        result = wrapped_with_output.cli("argv[0]", [save_object], "--output=foo")
+        m.assert_called_with(save_object, "foo", 1, None)
+        self.assertEqual(result, None)
+
+    @patch("joblib.dump")
+    @patch("builtins.open", unittest.mock.mock_open())
+    def test_with_output_pickle(self, m):
+        """Tests that joblib.dump is called for a non-cube object"""
+        save_object = {"a": 1}
+        result = wrapped_with_output.cli("argv[0]", [save_object], "--output=foo")
+        m.assert_called_with(save_object, unittest.mock.ANY)
         self.assertEqual(result, None)
 
     @patch("improver.utilities.save.save_netcdf")
     def test_with_output_compression_level(self, m):
         """Tests save_netcdf, compression-level=9 and default least-significant-digit=None"""
-        # pylint disable is needed as it can't see the wrappers output kwarg.
+        save_object = Cube([0])
         result = wrapped_with_output.cli(
-            "argv[0]", "2", "--output=foo", "--compression-level=9"
+            "argv[0]", [save_object], "--output=foo", "--compression-level=9"
         )
-        m.assert_called_with(4, "foo", 9, None)
+        m.assert_called_with(save_object, "foo", 9, None)
         self.assertEqual(result, None)
 
     @patch("improver.utilities.save.save_netcdf")
     def test_with_output_no_compression(self, m):
         """Tests save_netcdf, compression-level=0 and default least-significant-digit=None"""
-        # pylint disable is needed as it can't see the wrappers output kwarg.
+        save_object = Cube([0])
         result = wrapped_with_output.cli(
-            "argv[0]", "2", "--output=foo", "--compression-level=0"
+            "argv[0]", [save_object], "--output=foo", "--compression-level=0"
         )
-        m.assert_called_with(4, "foo", 0, None)
+        m.assert_called_with(save_object, "foo", 0, None)
         self.assertEqual(result, None)
 
     @patch("improver.utilities.save.save_netcdf")
     def test_with_output_with_least_significant_figure(self, m):
         """Tests save_netcdf, compression-level=0 and least-significant-digit=2"""
-        # pylint disable is needed as it can't see the wrappers output kwarg.
+        save_object = Cube([0])
         result = wrapped_with_output.cli(
             "argv[0]",
-            "2",
+            [save_object],
             "--output=foo",
             "--compression-level=0",
             "--least-significant-digit=2",
         )
-        m.assert_called_with(4, "foo", 0, 2)
+        m.assert_called_with(save_object, "foo", 0, 2)
         self.assertEqual(result, None)
 
 

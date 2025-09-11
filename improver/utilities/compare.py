@@ -377,3 +377,34 @@ def compare_data(
     # exceptions if the reporter function is raising an exception
     if difference_found:
         reporter(f"different data {name} - {numpy_err_message}")
+
+
+def compare_objects(
+    actual_var: PathLike, desired_var: PathLike, reporter: Callable[[str], None]
+) -> None:
+    """
+    Compare two pickled objects. This is not a complete comparison as two
+    objects may have the same string representation but be different
+    objects.
+
+    Args:
+        actual_var: Path to the pickled object produced by test run.
+        desired_var: Path to the pickled object considered good.
+        reporter: callback function for reporting differences
+    """
+    import pickle
+
+    try:
+        with open(actual_var, "rb") as f:
+            actual_data = pickle.load(f)
+    except OSError as exc:
+        reporter(str(exc))
+        return
+    try:
+        with open(desired_var, "rb") as f:
+            desired_data = pickle.load(f)
+    except OSError as exc:
+        reporter(str(exc))
+        return
+    if str(actual_data) != str(desired_data):
+        reporter(f"Different data found in {actual_data} and {desired_data}.")
