@@ -229,10 +229,11 @@ class CondensationTrailFormation(BasePlugin):
         )
         critical_intercepts = np.zeros(critical_temperatures.shape[:2])
 
-        # TODO: pass 'water_only=True' flag after PR approved
-        svp_table = SaturatedVapourPressureTable(183.15, 253.15, 0.01).process()
+        svp_table = SaturatedVapourPressureTable(
+            183.15, 253.15, 0.01, water_only=True
+        ).process()
         svp_derivative_table = SaturatedVapourPressureTableDerivative(
-            183.15, 253.15, 0.01
+            183.15, 253.15, 0.01, water_only=True
         ).process()
 
         for i in range(engine_mixing_ratios.shape[0]):
