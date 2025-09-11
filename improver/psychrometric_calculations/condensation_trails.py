@@ -12,8 +12,8 @@ from iris.cube import Cube, CubeList
 from improver import BasePlugin
 from improver.constants import EARTH_REPSILON
 from improver.generate_ancillaries.generate_svp_derivative_table import (
+    SaturatedVapourPressureDerivativeTable,
     SaturatedVapourPressureTable,
-    SaturatedVapourPressureTableDerivative,
 )
 from improver.psychrometric_calculations.psychrometric_calculations import (
     calculate_svp_in_air,
@@ -232,7 +232,7 @@ class CondensationTrailFormation(BasePlugin):
         svp_table = SaturatedVapourPressureTable(
             183.15, 253.15, 0.01, water_only=True
         ).process()
-        svp_derivative_table = SaturatedVapourPressureTableDerivative(
+        svp_derivative_table = SaturatedVapourPressureDerivativeTable(
             183.15, 253.15, 0.01, water_only=True
         ).process()
 
