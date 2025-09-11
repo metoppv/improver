@@ -122,16 +122,48 @@ class CondensationTrailFormation(BasePlugin):
 
         Args:
             mixing_ratios (np.ndarray): Engine mixing ratios on pressure levels for a given engine contrail factor (Pa/K).
-            relative_humidity (np.ndarray): Relative humidity on pressure levels (kg kg-1).
+            relative_humidity (np.ndarray): Relative humidity on pressure levels (kg/kg).
             svp (np.ndarray): Lookup table of saturation vapour pressure with respect to water (Pa).
             svp_derivative (np.ndarray): Lookup table of the first derivative of saturation vapour pressure with respect to water (Pa/K).
             temperature (np.ndarray): Air temperatures corresponding to both lookup tables (K).
 
         Returns:
-            np.ndarray: Critical temperatures on pressure levels (K).
-            np.ndarray: Critical intercepts on pressure levels (Pa).
+            np.ndarray: Critical temperatures on pressure levels, with same shape as relative_humidity (K).
+            np.ndarray: Critical intercepts on pressure levels, with same shape as mixing_ratios (Pa).
 
         """
+        if not all(
+            isinstance(arg, np.ndarray)
+            for arg in [
+                mixing_ratios,
+                relative_humidity,
+                svp,
+                svp_derivative,
+                temperature,
+            ]
+        ):
+            raise TypeError(f"Every input argument must be of type {np.ndarray}.")
+        if mixing_ratios.shape[0] != relative_humidity.shape[0]:
+            raise ValueError(
+                f"First dimension mismatch between mixing_ratios ({mixing_ratios.shape[0]:d}) and relative_humidity ({relative_humidity.shape[0]:d})."
+            )
+        if relative_humidity.ndim != 2 and relative_humidity.ndim != 3:
+            raise ValueError(
+                f"Incorrect number of dimensions for relative_humidity (expected 2 or 3, got {relative_humidity.ndim:d})"
+            )
+        if mixing_ratios.ndim != 1:
+            raise ValueError(
+                f"Incorrect number of dimensions for mixing_ratios (expected 1, got {mixing_ratios.ndim:d})"
+            )
+        if svp.ndim != 1 and svp_derivative.ndim != 1 and temperature.ndim != 1:
+            raise ValueError(
+                f"Dimension mismatch between svp ({svp.ndim}), svp_derivative ({svp_derivative.ndim:d}) and temperature ({temperature.ndim:d})."
+            )
+        if svp.size != svp_derivative.size != temperature.size:
+            raise ValueError(
+                f"Size mismatch between svp ({svp.size:d}), svp_derivative ({svp_derivative.size:d}) and temperature ({temperature.size:d})."
+            )
+
         num_pressure_levels = mixing_ratios.shape[0]
 
         # maximum critical temperature (at 100% relative humidity) is given by
@@ -174,9 +206,9 @@ class CondensationTrailFormation(BasePlugin):
         e = np.array(
             [
                 np.interp(
-                    critical_temperature_all_relative_humidities[i, :],
+                    critical_temperature_all_relative_humidities[i],
                     temperature,
-                    tangent_vapour_pressure[i, :],
+                    tangent_vapour_pressure[i],
                 )
                 for i in range(num_pressure_levels)
             ]
@@ -186,7 +218,7 @@ class CondensationTrailFormation(BasePlugin):
         esat = np.array(
             [
                 np.interp(
-                    critical_temperature_all_relative_humidities[i, :],
+                    critical_temperature_all_relative_humidities[i],
                     temperature,
                     svp,
                 )
@@ -198,14 +230,13 @@ class CondensationTrailFormation(BasePlugin):
         critical_temperatures = np.array(
             [
                 np.interp(
-                    relative_humidity[i, :, :],
-                    e[i, :] / esat[i, :],
-                    critical_temperature_all_relative_humidities[i, :],
+                    relative_humidity[i],
+                    e[i] / esat[i],
+                    critical_temperature_all_relative_humidities[i],
                 )
                 for i in range(num_pressure_levels)
             ]
         )
-
         return critical_temperatures, critical_intercepts
 
     @staticmethod
@@ -230,17 +261,17 @@ class CondensationTrailFormation(BasePlugin):
         critical_intercepts = np.zeros(critical_temperatures.shape[:2])
 
         svp_table = SaturatedVapourPressureTable(
-            183.15, 253.15, 0.01, water_only=True
+            183.15, 253.15, water_only=True
         ).process()
         svp_derivative_table = SaturatedVapourPressureDerivativeTable(
-            183.15, 253.15, 0.01, water_only=True
+            183.15, 253.15, water_only=True
         ).process()
 
         for i in range(engine_mixing_ratios.shape[0]):
             critical_temperatures[i], critical_intercepts[i] = (
                 CondensationTrailFormation._critical_temperatures_for_given_contrail_factor(
                     engine_mixing_ratios[i],
-                    relative_humidity.data,
+                    relative_humidity,
                     svp_table.data,
                     svp_derivative_table.data,
                     svp_table.coord("air_temperature").points,
