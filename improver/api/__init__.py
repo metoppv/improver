@@ -121,6 +121,7 @@ PROCESSING_MODULES = {
     "TemporalInterpolation": "improver.utilities.temporal_interpolation",
     "Threshold": "improver.threshold",
     "TriangularWeightedBlendAcrossAdjacentPoints": "improver.blending.blend_across_adjacent_points",
+    "TurbulenceIndexAbove1500m_USAF": "improver.turbulence",
     "VerticalUpdraught": "improver.wind_calculations.vertical_updraught",
     "VirtualTemperature": "improver.temperature.virtual_temperature",
     "VisibilityCombineCloudBase": "improver.visibility.visibility_combine_cloud_base",
