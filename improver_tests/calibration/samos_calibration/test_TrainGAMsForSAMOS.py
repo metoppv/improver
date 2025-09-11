@@ -286,7 +286,6 @@ def test_calculate_cube_statistics_exception(model_specification):
         "coordinate. The increments between points in the time coordinate "
         "were: \\[86400 86401\\]. The smallest increment was: 86400."
     )
-
     with pytest.raises(ValueError, match=msg):
         TrainGAMsForSAMOS(
             model_specification=model_specification

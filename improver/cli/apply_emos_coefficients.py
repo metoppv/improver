@@ -107,66 +107,27 @@ def process(
             The calibrated forecast cube.
 
     """
-    import warnings
-
-    import numpy as np
 
     from improver.calibration import (
-        add_warning_comment,
         split_forecasts_and_coeffs,
-        validity_time_check,
     )
     from improver.calibration.emos_calibration import ApplyEMOS
-    from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
-        ResamplePercentiles,
-    )
+    from improver.ensemble_copula_coupling.utilities import prepare_cube_no_calibration
 
     (forecast, coefficients, additional_predictors, land_sea_mask, prob_template) = (
         split_forecasts_and_coeffs(cubes, land_sea_mask_name)
     )
 
-    if validity_times is not None and not validity_time_check(forecast, validity_times):
-        if percentiles:
-            # Ensure that a consistent set of percentiles are returned,
-            # regardless of whether EMOS is successfully applied.
-            percentiles = [np.float32(p) for p in percentiles]
-            forecast = ResamplePercentiles(
-                ecc_bounds_warning=ignore_ecc_bounds_exceedance
-            )(forecast, percentiles=percentiles)
-        elif prob_template:
-            forecast = prob_template
-        forecast = add_warning_comment(forecast)
-        return forecast
-
-    if coefficients is None:
-        if prob_template:
-            msg = (
-                "There are no coefficients provided for calibration. As a "
-                "probability template has been provided with the aim of "
-                "creating a calibrated probability forecast, the probability "
-                "template will be returned as the uncalibrated probability "
-                "forecast."
-            )
-            warnings.warn(msg)
-            prob_template = add_warning_comment(prob_template)
-            return prob_template
-
-        if percentiles:
-            # Ensure that a consistent set of percentiles are returned,
-            # regardless of whether EMOS is successfully applied.
-            percentiles = [np.float32(p) for p in percentiles]
-            forecast = ResamplePercentiles(
-                ecc_bounds_warning=ignore_ecc_bounds_exceedance
-            )(forecast, percentiles=percentiles)
-
-        msg = (
-            "There are no coefficients provided for calibration. The "
-            "uncalibrated forecast will be returned."
-        )
-        warnings.warn(msg)
-
-        forecast = add_warning_comment(forecast)
-        return forecast
+    uncalibrated_forecast = prepare_cube_no_calibration(
+        forecast,
+        coefficients,
+        ignore_ecc_bounds_exceedance=ignore_ecc_bounds_exceedance,
+        validity_times=validity_times,
+        percentiles=percentiles,
+        prob_template=prob_template,
+    )
+    if uncalibrated_forecast is not None:
+        return uncalibrated_forecast
 
     calibration_plugin = ApplyEMOS(percentiles=percentiles)
     result = calibration_plugin(

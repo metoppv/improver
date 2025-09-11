@@ -353,12 +353,13 @@ class ResamplePercentiles(BasePlugin):
             bounds_pairing = get_bounds_of_distribution(
                 forecast_at_percentiles.name(), cube_units
             )
-            (original_percentiles, forecast_at_reshaped_percentiles) = (
-                self._add_bounds_to_percentiles_and_forecast_at_percentiles(
-                    original_percentiles,
-                    forecast_at_reshaped_percentiles,
-                    bounds_pairing,
-                )
+            (
+                original_percentiles,
+                forecast_at_reshaped_percentiles,
+            ) = self._add_bounds_to_percentiles_and_forecast_at_percentiles(
+                original_percentiles,
+                forecast_at_reshaped_percentiles,
+                bounds_pairing,
             )
 
         forecast_at_interpolated_percentiles = interpolate_multiple_rows_same_x(
@@ -658,10 +659,11 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
             )
             cube_units = forecast_probabilities.coord(threshold_coord.name()).units
             bounds_pairing = get_bounds_of_distribution(phenom_name, cube_units)
-            (threshold_points, probabilities_for_cdf) = (
-                self._add_bounds_to_thresholds_and_probabilities(
-                    threshold_points, probabilities_for_cdf, bounds_pairing
-                )
+            (
+                threshold_points,
+                probabilities_for_cdf,
+            ) = self._add_bounds_to_thresholds_and_probabilities(
+                threshold_points, probabilities_for_cdf, bounds_pairing
             )
 
         if np.any(np.diff(probabilities_for_cdf) < 0):
@@ -1001,10 +1003,10 @@ class ConvertLocationAndScaleParametersToPercentiles(
             result[index, :] = percentile_method.ppf(percentile_list)
             # If percent point function (PPF) returns NaNs, fill in
             # mean instead of NaN values. NaN will only be generated if the
-            # scale parameter (standard deviation) is zero. Therefore, if the
-            # scale parameter (standard deviation) is zero, the mean value is
+            # scale parameter (standard deviation) is zero or negative. Therefore, if the
+            # scale parameter (standard deviation) is zero or negative, the mean value is
             # used for all gridpoints with a NaN.
-            if np.any(scale_data == 0):
+            if np.any(scale_data <= 0):
                 nan_index = np.argwhere(np.isnan(result[index, :]))
                 result[index, nan_index] = location_data[nan_index]
             if np.any(np.isnan(result)):
@@ -1393,14 +1395,15 @@ class EnsembleReordering(BasePlugin):
         Raises:
             ValueError: tie_break is not either 'random' or 'realization'
         """
+        if random_seed is not None:
+            random_seed = int(random_seed)
+        random_seed = np.random.RandomState(random_seed)
+
         results = iris.cube.CubeList([])
         for rawfc, calfc in zip(
             raw_forecast_realizations.slices_over("time"),
             post_processed_forecast_percentiles.slices_over("time"),
         ):
-            if random_seed is not None:
-                random_seed = int(random_seed)
-            random_seed = np.random.RandomState(random_seed)
             if random_ordering:
                 random_data = random_seed.rand(*rawfc.data.shape)
                 # Returns the indices that would sort the array.

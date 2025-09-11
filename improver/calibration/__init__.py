@@ -8,13 +8,18 @@ and coefficient inputs.
 
 from collections import OrderedDict
 from typing import Dict, List, Optional, Tuple, Union
+from pathlib import Path
 
+import joblib
+import pyarrow.parquet as pq
+import iris.cube
 from iris.cube import Cube, CubeList
 
 from improver.metadata.probabilistic import (
     get_diagnostic_cube_name_from_probability_name,
 )
 from improver.utilities.cube_manipulation import MergeCubes
+from improver.utilities.flatten import flatten
 
 
 def split_forecasts_and_truth(
@@ -222,6 +227,170 @@ def split_forecasts_and_bias_files(cubes: CubeList) -> Tuple[Cube, Optional[Cube
     bias_cubes = bias_cubes if bias_cubes else None
 
     return forecast_cube, bias_cubes
+
+
+def split_pickle_parquet_and_netcdf(files):
+    """Split the input files into pickle, parquet, and netcdf files.
+    Only a single pickle file is expected.
+
+    Args:
+        files:
+            A list of input file paths which will be split into pickle,
+            parquet, and netcdf files.
+
+    Returns:
+        - A flattened cube list containing all the cubes contained within the
+          provided paths to NetCDF files.
+        - A list of paths to Parquet files.
+        - A loaded pickle file.
+
+    Raises:
+        ValueError: If multiple pickle files provided, as only one is ever expected.
+    """
+    cubes = []
+    loaded_pickles = []
+    parquets = []
+
+    for file_path in files:
+        if not file_path.exists():
+            continue
+
+        # Directories indicate we are working with parquet files.
+        if file_path.is_dir():
+            parquets.append(file_path)
+            continue
+
+        try:
+            cube = iris.load(file_path)
+            cubes.extend(cube)
+        except ValueError:
+            try:
+                loaded_pickles.append(joblib.load(file_path))
+            except Exception as e:
+                msg = f"Failed to load {file_path}: {e}"
+                raise ValueError(msg)
+
+    if len(loaded_pickles) > 1:
+        msg = "Multiple pickle inputs have been provided. Only one is expected."
+        raise ValueError(msg)
+
+    return cubes if cubes else None, parquets if parquets else None, loaded_pickles[0] if loaded_pickles else None
+
+
+def identify_parquet_type(parquet_paths: List[Path]):
+    """Determine whether the provided parquet paths contain forecast or truth data.
+    This is done by checking the columns within the parquet files for the presence
+    of a forecast_period column which is only present for forecast data.
+
+    Args:
+        parquet_paths:
+            A list of paths to Parquet files.
+
+    Returns:
+        - The path to the Parquet file containing the historical forecasts.
+        - The path to the Parquet file containing the truths.
+    """
+    forecast_table_path = None
+    truth_table_path = None
+    for file_path in parquet_paths:
+        try:
+            example_file_path = next(file_path.glob("**/*.parquet"))
+        except StopIteration:
+            continue
+        try:
+            pq.read_schema(example_file_path).field("forecast_period")
+            forecast_table_path = file_path
+        except KeyError:
+            truth_table_path = file_path
+
+    return forecast_table_path, truth_table_path
+
+
+def split_cubes_for_samos(
+    cubes: CubeList,
+    gam_features: List[str],
+    truth_attribute: Optional[str] = None,
+    expect_emos_coeffs: bool = False,
+    expect_emos_fields: bool = False,
+):
+    """Function to split the forecast, truth, gam additional predictors and emos
+    additional predictor cubes."""
+    forecast = iris.cube.CubeList([])
+    truth = iris.cube.CubeList([])
+    gam_additional_fields = iris.cube.CubeList([])
+    emos_coefficients = iris.cube.CubeList([])
+    emos_additional_fields = iris.cube.CubeList([])
+    prob_template = None
+
+    # Prepare variables used to split forecast and truth.
+    truth_key, truth_value = None, None
+    if truth_attribute:
+        truth_key, truth_value = truth_attribute.split("=")
+
+    for cube in flatten(cubes):
+        if "time" in [c.name() for c in cube.coords()]:
+            if truth_key and cube.attributes.get(truth_key) == truth_value:
+                truth.append(cube.copy())
+            else:
+                forecast.append(cube.copy())
+        elif "emos_coefficient" in cube.name():
+            emos_coefficients.append(cube.copy())
+        elif cube.name() in gam_features:
+            gam_additional_fields.append(cube.copy())
+        else:
+            emos_additional_fields.append(cube.copy())
+
+    # Check that all required inputs are present and no unexpected cubes have been
+    # found.
+    missing_inputs = []
+    if len(forecast) == 0:
+        missing_inputs.append("forecast")
+    if truth_key and len(truth) == 0:
+        missing_inputs.append("truth")
+    if missing_inputs:
+        raise IOError(f"Missing {' and '.join(missing_inputs)} input.")
+
+    if not expect_emos_coeffs and len(emos_coefficients) > 0:
+        msg = (
+            f"Found EMOS coefficients cubes when they were not expected. The following "
+            f"such cubes were found: {[c.name() for c in emos_coefficients]}."
+        )
+        raise IOError(msg)
+
+    if not expect_emos_fields and len(emos_additional_fields) > 0:
+        msg = (
+            f"Found additional fields cubes which do not match the features in "
+            f"gam_features. The following cubes were found: "
+            f"{[c.name() for c in emos_additional_fields]}."
+        )
+        raise IOError(msg)
+
+    # Split out prob_template cube if required.
+    forecast_names = [c.name() for c in forecast]
+    prob_forecast_names = [name for name in forecast_names if "probability" in name]
+    if len(set(prob_forecast_names)) != 1:
+        msg = (
+            "Providing multiple probability cubes is not supported. A probability cube "
+            "can either be provided as the forecast or the probability template, but "
+            f"not both. Cubes provided: {prob_forecast_names}."
+        )
+    else:
+        if len(set(forecast_names)) != 1:
+            prob_template = forecast.extract(prob_forecast_names[0])[0]
+            forecast.remove(prob_template)
+
+    forecast = MergeCubes()(forecast)
+    if truth_key:
+        truth = MergeCubes()(truth)
+
+    return (
+        None if not forecast else forecast,
+        None if not truth else truth,
+        None if not gam_additional_fields else gam_additional_fields,
+        None if not emos_coefficients else emos_coefficients,
+        None if not emos_additional_fields else emos_additional_fields,
+        prob_template,
+    )
 
 
 def validity_time_check(forecast: Cube, validity_times: List[str]) -> bool:
