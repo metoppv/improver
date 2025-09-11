@@ -9,6 +9,10 @@ from typing import List, Optional, Tuple
 import numpy as np
 import pytest
 
+from improver.generate_ancillaries.generate_svp_derivative_table import (
+    SaturatedVapourPressureDerivativeTable,
+    SaturatedVapourPressureTable,
+)
 from improver.psychrometric_calculations.condensation_trails import (
     CondensationTrailFormation,
 )
@@ -223,3 +227,78 @@ def test_find_local_vapour_pressure(
     plugin.relative_humidity = relative_humidity
     result = plugin._find_local_vapour_pressure(pressure_levels)
     np.testing.assert_allclose(result, expected_vapour_pressure)
+
+
+@pytest.mark.parametrize(
+    "engine_contrail_factor, pressure_levels, relative_humidity, expected_critical_temperatures, expected_critical_intercepts",
+    [
+        # one pressure level, 1D relative humidity
+        (
+            [3e-5],
+            np.array([1e4]),
+            np.array([0, 0.25, 0.5, 0.75, 1]),
+            np.zeros(1),
+            np.zeros(1),
+        ),
+        # multiple pressure levels, 1D relative humidity
+        (
+            [3e-5],
+            np.array([1e5, 1e4, 1e3]),
+            np.array([0, 0.25, 0.5, 0.75, 1]),
+            np.zeros(1),
+            np.zeros(1),
+        ),
+        # multiple pressure levels, 2D relative humidity
+        (
+            [3e-5],
+            np.array([1e5, 1e4, 1e3]),
+            np.array([[0, 0.2, 0.4], [0.6, 0.8, 1]]),
+            np.zeros(1),
+            np.zeros(1),
+        ),
+    ],
+)
+def test_critical_temperatures_for_given_contrail_factor(
+    engine_contrail_factor: List[float],
+    pressure_levels: np.ndarray,
+    relative_humidity: np.ndarray,
+    expected_critical_temperatures: np.ndarray,
+    expected_critical_intercepts: np.ndarray,
+):
+    """
+    One contrail factor
+
+    Test for one pressure level
+
+    Test for all pressure levels
+
+    Test for 1D and 2D relative humidity data
+
+    Shapes and values correct?
+    """
+    plugin = CondensationTrailFormation(engine_contrail_factor)
+    engine_mixing_ratios = plugin._calculate_engine_mixing_ratios(pressure_levels)
+    relative_humidity_on_pressure_levels = np.broadcast_to(
+        relative_humidity, pressure_levels.shape + relative_humidity.shape
+    )
+    svp_table = SaturatedVapourPressureTable(water_only=True).process()
+    svp_derivative_table = SaturatedVapourPressureDerivativeTable(
+        water_only=True
+    ).process()
+    temperature = svp_table.coord("air_temperature").points
+
+    for mixing_ratios_on_pressure_levels in engine_mixing_ratios:
+        critical_temperature, critical_intercept = (
+            CondensationTrailFormation._critical_temperatures_for_given_contrail_factor(
+                mixing_ratios_on_pressure_levels,
+                relative_humidity_on_pressure_levels,
+                svp_table.data,
+                svp_derivative_table.data,
+                temperature,
+            )
+        )
+    # TODO: compare array values
+    np.testing.assert_equal(
+        critical_temperature.shape, pressure_levels.shape + relative_humidity.shape
+    )
+    np.testing.assert_equal(critical_intercept.shape, pressure_levels.shape)
