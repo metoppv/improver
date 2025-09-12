@@ -258,7 +258,7 @@ def test_find_local_vapour_pressure(
         ),
     ],
 )
-def test_critical_temperatures_for_given_contrail_factor(
+def test_critical_temperatures_and_intercepts_for_given_contrail_factor(
     engine_contrail_factor: List[float],
     pressure_levels: np.ndarray,
     relative_humidity: np.ndarray,
@@ -289,7 +289,7 @@ def test_critical_temperatures_for_given_contrail_factor(
 
     for mixing_ratios_on_pressure_levels in engine_mixing_ratios:
         critical_temperature, critical_intercept = (
-            CondensationTrailFormation._critical_temperatures_for_given_contrail_factor(
+            CondensationTrailFormation._critical_temperatures_and_intercepts_for_given_contrail_factor(
                 mixing_ratios_on_pressure_levels,
                 relative_humidity_on_pressure_levels,
                 svp_table.data,
@@ -302,3 +302,25 @@ def test_critical_temperatures_for_given_contrail_factor(
         critical_temperature.shape, pressure_levels.shape + relative_humidity.shape
     )
     np.testing.assert_equal(critical_intercept.shape, pressure_levels.shape)
+
+
+@pytest.mark.skip()
+def test_calculate_critical_temperatures_and_intercepts():
+    """
+    Test for one CF on pressure levels
+
+    Test for all CF on pressure levels
+
+    Humidites from 0 to 100 in steps of 10
+
+    Compare to Schrader 1997 to 2nd or 3rd DP
+
+    """
+
+    # @staticmethod
+    # def _calculate_critical_temperatures(
+    #     engine_mixing_ratios: np.ndarray,
+    #     relative_humidity: np.ndarray,
+    # ) -> Tuple[np.ndarray, np.ndarray]:
+
+    assert False
