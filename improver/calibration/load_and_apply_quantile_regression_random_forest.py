@@ -6,11 +6,9 @@
 """Script to load and apply the trained Quantile Regression Random Forest (QRF)
 model."""
 
-import pathlib
 from typing import Optional
 
 import iris
-import joblib
 import numpy as np
 import pandas as pd
 from iris.cube import Cube, CubeList
@@ -39,7 +37,7 @@ except ModuleNotFoundError:
 iris.FUTURE.pandas_ndim = True
 
 
-class LoadAndApplyQRF(PostProcessingPlugin):
+class PrepareAndApplyQRF(PostProcessingPlugin):
     """Load and apply the trained Quantile Regression Random Forest (QRF) model."""
 
     def __init__(
@@ -87,40 +85,26 @@ class LoadAndApplyQRF(PostProcessingPlugin):
         self.quantile_forest_installed = quantile_forest_package_available()
 
     def _get_inputs(
-        self, file_paths: list[pathlib.Path]
-    ) -> tuple[CubeList, Cube, RandomForestQuantileRegressor]:
-        """Get inputs from disk and separate the model and the features.
+        self,
+        cube_inputs: iris.cube.CubeList,
+        qrf_model: Optional[RandomForestQuantileRegressor] = None,
+    ) -> tuple[CubeList, Cube]:
+        """Split the forecast to be calibrated from the other features. Handle
+        the case where the qrf_model is not provided. In this case, the uncalibrated
+        forecast is returned with a warning comment added.
 
         Args:
-            file_paths: List of paths to the trained QRF model and the forecast to be
-                calibrated and the features, as required.
+            cube_inputs: List of cubes containing the features and the forecast to be
+                calibrated.
 
         Returns:
-            CubeList of the features cubes, the forecast cube, and the
-            trained QRF model.
+            CubeList of the features cubes and the forecast cube.
 
         Raises:
-            ValueError: If no QRF model is found in the provided file paths.
-            ValueError: If no features are found in the provided file paths.
-            ValueError: If the number of inputs does not match the number of file paths.
+            ValueError: If not target forecast is provided.
+            ValueError: If the number of cubes provided does not match the number of
+                features expected.
         """
-        cube_inputs = iris.cube.CubeList([])
-        qrf_model = None
-
-        for file_path in file_paths:
-            try:
-                cube = iris.load_cube(file_path)
-                cube_inputs.append(cube)
-            except ValueError:
-                qrf_model = joblib.load(file_path)
-
-        if not cube_inputs:
-            msg = (
-                "No features found in the provided file paths. "
-                "At least one feature must be provided."
-            )
-            raise ValueError(msg)
-
         # Extract all additional cubes which are associated with a feature in the
         # feature_config.
         forecast_constraint = iris.Constraint(name=self.target_cf_name)
@@ -130,15 +114,16 @@ class LoadAndApplyQRF(PostProcessingPlugin):
             (forecast_cube,) = forecast_cube
         else:
             msg = (
-                "No target forecast provided. An input file representing the target "
+                "No target forecast provided. An input cube representing the target "
                 "must be provided, even if the target will not be used as a feature. "
                 f"The target is '{self.target_cf_name}'."
             )
             raise ValueError(msg)
 
         if not qrf_model:
+            # If no model is provided, return the input forecast with a warning.
             forecast_cube = add_warning_comment(forecast_cube)
-            return None, forecast_cube, None
+            return None, forecast_cube
 
         if len(cube_inputs) != len(self.feature_config.keys()):
             msg = (
@@ -149,15 +134,11 @@ class LoadAndApplyQRF(PostProcessingPlugin):
             )
             raise ValueError(msg)
 
-        if not qrf_model:
-            # The specified model doesn't exist and the forecast will not be calibrated
-            return forecast_cube
-
         # If target diagnostic not a feature in the training then remove.
         if self.target_cf_name not in self.feature_config.keys():
             cube_inputs.remove(forecast_cube)
 
-        return cube_inputs, forecast_cube, qrf_model
+        return cube_inputs, forecast_cube
 
     @staticmethod
     def _compute_percentiles(forecast_cube: Cube, coord: str) -> list[float]:
@@ -239,7 +220,8 @@ class LoadAndApplyQRF(PostProcessingPlugin):
 
     def process(
         self,
-        file_paths: list[pathlib.Path],
+        cube_inputs: CubeList,
+        qrf_model: Optional[RandomForestQuantileRegressor],
     ) -> Cube:
         """Load and applying the trained Quantile Regression Random Forest (QRF) model.
         The model is applied to the forecast supplied to calibrate the forecast.
@@ -247,18 +229,16 @@ class LoadAndApplyQRF(PostProcessingPlugin):
         input forecast is returned unchanged.
 
         Args:
-            file_paths (cli.inputpaths):
-                A list of input paths containing:
-                - The path to a QRF trained model in pickle file format to be used
-                for calibration.
-                - The path to a NetCDF file containing the forecast to be calibrated.
-                - Optionally, paths to NetCDF files containing additional predictors.
+            cube_inputs: List of cubes containing the features and the forecast to be
+                calibrated.
+            qrf_model: The trained QRF model to be applied to the forecast.
 
         Returns:
             iris.cube.Cube:
                 The calibrated forecast cube.
         """
-        cube_inputs, forecast_cube, qrf_model = self._get_inputs(file_paths)
+        cube_inputs, forecast_cube = self._get_inputs(cube_inputs, qrf_model=qrf_model)
+
         if not self.quantile_forest_installed:
             return forecast_cube
         if not qrf_model:

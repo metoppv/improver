@@ -97,24 +97,27 @@ def process(
     """
 
     from improver.calibration.load_and_train_quantile_regression_random_forest import (
-        LoadAndTrainQRF,
+        LoadForTrainQRF,
+        PrepareAndTrainQRF,
     )
 
-    result = LoadAndTrainQRF(
+    forecast_df, truth_df, cube_inputs = LoadForTrainQRF(
         experiment=experiment,
         feature_config=feature_config,
         target_diagnostic_name=target_diagnostic_name,
         target_cf_name=target_cf_name,
         forecast_periods=forecast_periods,
         cycletime=cycletime,
-        training_length=training_length,
+    )(file_paths)
+    result = PrepareAndTrainQRF(
+        feature_config=feature_config,
+        target_cf_name=target_cf_name,
         n_estimators=n_estimators,
         max_depth=max_depth,
         max_samples=max_samples,
         random_state=random_state,
         transformation=transformation,
         pre_transform_addition=pre_transform_addition,
-    )(
-        file_paths,
-    )
+    )(forecast_df, truth_df, cube_inputs)
+
     return result

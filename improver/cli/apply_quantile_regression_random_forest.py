@@ -59,17 +59,17 @@ def process(
         iris.cube.Cube:
             The calibrated forecast cube.
     """
-
+    from improver.calibration import split_pickle_parquet_and_netcdf
     from improver.calibration.load_and_apply_quantile_regression_random_forest import (
-        LoadAndApplyQRF,
+        PrepareAndApplyQRF,
     )
 
-    result = LoadAndApplyQRF(
+    cubes, _, qrf_model = split_pickle_parquet_and_netcdf(file_paths)
+
+    result = PrepareAndApplyQRF(
         feature_config=feature_config,
         target_cf_name=target_cf_name,
         transformation=transformation,
         pre_transform_addition=pre_transform_addition,
-    )(
-        file_paths,
-    )
+    )(cubes, qrf_model=qrf_model)
     return result

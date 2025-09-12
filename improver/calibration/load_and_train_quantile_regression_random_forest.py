@@ -30,7 +30,7 @@ from improver.calibration.quantile_regression_random_forest import (
 iris.FUTURE.pandas_ndim = True
 
 
-class LoadForQRF(PostProcessingPlugin):
+class LoadForTrainQRF(PostProcessingPlugin):
     """Plugin to load input files for training a Quantile Regression Random Forest
     (QRF) model."""
 

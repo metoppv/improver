@@ -2,7 +2,7 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""Unit tests for the LoadForQRF and PrepareAndTrain QRF plugins."""
+"""Unit tests for the LoadForTrainQRF and PrepareAndTrain QRF plugins."""
 
 import iris
 import numpy as np
@@ -10,7 +10,7 @@ import pandas as pd
 import pytest
 
 from improver.calibration.load_and_train_quantile_regression_random_forest import (
-    LoadForQRF,
+    LoadForTrainQRF,
     PrepareAndTrainQRF,
 )
 from improver.synthetic_data.set_up_test_cubes import set_up_spot_variable_cube
@@ -401,7 +401,7 @@ def test_load_for_qrf(
     remove_target,
     representation,
 ):
-    """Test the LoadAndTrainQRF plugin."""
+    """Test the LoadForTrainQRF plugin."""
     feature_config = {"air_temperature": ["mean", "std", "altitude"]}
 
     forecast_path, expected_forecast_df, wmo_ids = forecast_creation(
@@ -431,8 +431,8 @@ def test_load_for_qrf(
     if remove_target:
         feature_config.pop("air_temperature")
 
-    # Create an instance of LoadAndTrainQRF with the required parameters
-    plugin = LoadForQRF(
+    # Create an instance of LoadForTrainQRF with the required parameters
+    plugin = LoadForTrainQRF(
         experiment="latestblend",
         feature_config=feature_config,
         target_diagnostic_name="temperature_at_screen_level",
@@ -464,7 +464,7 @@ def test_load_for_qrf(
 
 @pytest.mark.parametrize("make_files", [(False, True)])
 def test_load_for_qrf_no_paths(tmp_path, make_files):
-    """Test the LoadAndTrainQRF plugin when the no valid file paths are provided.
+    """Test the LoadForTrainQRF plugin when the no valid file paths are provided.
     Either the paths do not exist, or the paths exist but the directories are empty."""
     feature_config = {"air_temperature": ["mean", "std", "altitude"]}
 
@@ -476,7 +476,7 @@ def test_load_for_qrf_no_paths(tmp_path, make_files):
         for file_path in file_paths:
             (tmp_path / file_path).mkdir(parents=True, exist_ok=True)
 
-    plugin = LoadForQRF(
+    plugin = LoadForTrainQRF(
         experiment="latestblend",
         feature_config=feature_config,
         target_diagnostic_name="temperature_at_screen_level",
@@ -514,7 +514,7 @@ def test_load_for_qrf_mismatches(
     cycletime,
     forecast_periods,
 ):
-    """Test the LoadAndTrainQRF plugin when the cycletime or forecast_periods
+    """Test the LoadForTrainQRF plugin when the cycletime or forecast_periods
     requested are not present in the provided files."""
     feature_config = {"air_temperature": ["mean", "std", "altitude"]}
     representation = "percentile"
@@ -534,7 +534,7 @@ def test_load_for_qrf_mismatches(
 
     file_paths = [forecast_path, truth_path]
 
-    plugin = LoadForQRF(
+    plugin = LoadForTrainQRF(
         experiment="latestblend",
         feature_config=feature_config,
         target_diagnostic_name="temperature_at_screen_level",
@@ -604,15 +604,15 @@ def test_unexpected(
     forecast_periods,
     representation,
 ):
-    """Test LoadAndTrainQRF plugin behaviour in atypical situations."""
+    """Test LoadForTrainQRF plugin behaviour in atypical situations."""
     feature_config = {"air_temperature": ["mean", "std", "altitude"]}
 
     forecast_path, _, _ = forecast_creation(tmp_path, representation)
     truth_path, _ = truth_creation(tmp_path)
     file_paths = [forecast_path, truth_path]
 
-    # Create an instance of LoadAndTrainQRF with the required parameters
-    plugin = LoadForQRF(
+    # Create an instance of LoadForTrainQRF with the required parameters
+    plugin = LoadForTrainQRF(
         experiment="latestblend",
         feature_config=feature_config,
         target_diagnostic_name="temperature_at_screen_level",
@@ -742,7 +742,7 @@ def test_prepare_and_train_qrf(
     representation,
     expected,
 ):
-    """Test the LoadAndTrainQRF plugin."""
+    """Test the PrepareAndTrainQRF plugin."""
     feature_config = {"air_temperature": ["mean", "std", "altitude"]}
     n_estimators = 2
     max_depth = 5
@@ -766,7 +766,7 @@ def test_prepare_and_train_qrf(
     if remove_target:
         feature_config.pop("air_temperature")
 
-    # Create an instance of LoadAndTrainQRF with the required parameters
+    # Create an instance of PrepareAndTrainQRF with the required parameters
     plugin = PrepareAndTrainQRF(
         feature_config=feature_config,
         target_cf_name=target_cf_name,
