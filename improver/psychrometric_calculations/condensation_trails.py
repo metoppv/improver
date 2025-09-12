@@ -228,19 +228,21 @@ class CondensationTrailFormation(BasePlugin):
             and isinstance(relative_humidity, np.ndarray)
         ):
             raise TypeError(
-                f"Incorrect types for engine_mixing_ratios (expected {np.ndarray}, got {type(engine_mixing_ratios)}) and relative_humidity (expected {np.ndarray}, got {type(relative_humidity)})."
+                f"Incorrect types for engine_mixing_ratios (expected {np.ndarray}, got {type(engine_mixing_ratios)}) "
+                f"and relative_humidity (expected {np.ndarray}, got {type(relative_humidity)})."
             )
         if engine_mixing_ratios.ndim != 2:
             raise ValueError(
-                f"Incorrect number of dimensions for engine_mixing_ratios (expected 2, got {engine_mixing_ratios.ndim:d})"
+                f"Incorrect number of dimensions for engine_mixing_ratios (expected 2, got {engine_mixing_ratios.ndim:d})."
             )
         if relative_humidity.ndim != 2 and relative_humidity.ndim != 3:
             raise ValueError(
-                f"Incorrect number of dimensions for relative_humidity (expected 2 or 3, got {relative_humidity.ndim:d})"
+                f"Incorrect number of dimensions for relative_humidity (expected 2 or 3, got {relative_humidity.ndim:d})."
             )
         if engine_mixing_ratios.shape[1] != relative_humidity.shape[0]:
             raise ValueError(
-                f"Mismatch between dimension 1 of engine_mixing_ratios ({engine_mixing_ratios.shape[1]:d}) and dimension 0 of relative_humidity ({relative_humidity.shape[0]:d})."
+                f"Mismatch between dimension 1 of engine_mixing_ratios ({engine_mixing_ratios.shape[1]:d}) and dimension 0 "
+                f"of relative_humidity ({relative_humidity.shape[0]:d})."
             )
 
         critical_temperatures = np.zeros(
