@@ -422,4 +422,18 @@ def compare_pickled_forest(
     # call the reporter function outside the except block to avoid nested
     # exceptions if the reporter function is raising an exception
     if difference_found:
-        reporter("different pickled forest")
+        msg = (
+            "Different pickled forest. \nThe output is: "
+            "n_features: {output.n_features_in_}, "
+            "n_outputs: {output.n_outputs_}, "
+            "max_depth: {output.max_depth}, "
+            "n_estimators: {output.n_estimators}, "
+            "random_state: {output.random_state}."
+            "\nThe KGO is: "
+            "n_features: {kgo.n_features_in_}, "
+            "n_outputs: {kgo.n_outputs_}, "
+            "max_depth: {kgo.max_depth}, "
+            "n_estimators: {kgo.n_estimators}, "
+            "random_state: {kgo.random_state}"
+        )
+        reporter(msg)

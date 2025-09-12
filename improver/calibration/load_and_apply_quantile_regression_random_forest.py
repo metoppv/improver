@@ -77,7 +77,6 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
                 Value to be added before transformation.
 
         """
-
         self.feature_config = feature_config
         self.target_cf_name = target_cf_name
         self.transformation = transformation

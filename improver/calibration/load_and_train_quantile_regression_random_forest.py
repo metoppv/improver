@@ -44,7 +44,25 @@ class LoadForTrainQRF(PostProcessingPlugin):
         training_length: int,
         experiment: Optional[str] = None,
     ):
-        """Initialise the LoadForQRF plugin."""
+        """Initialise the LoadForQRF plugin.
+
+        Args:
+            feature_config: Feature configuration defining the features to be used for
+                Quantile Regression Random Forests.
+            target_diagnostic_name: A string containing the diagnostic name of the
+                forecast to be calibrated. This will be used to filter the target
+                forecast and truth dataframes. This could be different from the CF name
+                e.g. 'temperature_at_screen_level'.
+            target_cf_name: A string containing the CF name of the forecast to be
+                calibrated e.g. air_temperature.
+            forecast_periods: Range of forecast periods to be calibrated in hours in
+                the form: "start:end:interval" e.g. "6:18:6" or a single forecast period
+                e.g. "6".
+            cycletime: The time at which the forecast is valid in the form:
+                YYYYMMDDTHHMMZ.
+            training_length: The number of days of training data to use.
+            experiment: The name of the experiment (step) that calibration is applied to.
+        """
         self.quantile_forest_installed = quantile_forest_package_available()
         self.feature_config = feature_config
         self.target_diagnostic_name = target_diagnostic_name
@@ -250,7 +268,21 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
         transformation: Optional[str] = None,
         pre_transform_addition: float = 0,
     ):
-        """Initialise the PrepareAndTrainQRF plugin."""
+        """Initialise the PrepareAndTrainQRF plugin.
+
+        Args:
+            feature_config: Feature configuration defining the features to be used for
+                Quantile Regression Random Forests.
+            target_cf_name: A string containing the CF name of the forecast to be
+                calibrated e.g. air_temperature.
+            n_estimators: The number of trees in the forest.
+            max_depth: The maximum depth of the trees.
+            max_samples: The maximum number of samples to draw from the total number of
+                samples to train each tree.
+            random_state: Seed used by the random number generator.
+            transformation: Transformation to be applied to the data before fitting.
+            pre_transform_addition: Value to be added before transformation.
+        """
         self.feature_config = feature_config
         self.target_cf_name = target_cf_name
         self.n_estimators = n_estimators
@@ -338,7 +370,7 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
         truth_df: pd.DataFrame,
         cube_inputs: Optional[iris.cube.CubeList] = None,
     ) -> None:
-        """Load input files and training a Quantile Regression Random Forest (QRF)
+        """Load input files and train a Quantile Regression Random Forest (QRF)
         model. This model can be applied later to calibrate the forecast. Two sources
         of input data must be provided: historical forecasts and historical truth data
         (to use in calibration). The model is output as a pickle file.

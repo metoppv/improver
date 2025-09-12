@@ -49,8 +49,8 @@ def process(
             }
         target_cf_name (str):
             A string containing the CF name of the forecast to be
-            calibrated. This will be used to separate it from the rest of the
-            feature cubes, if present.
+            calibrated e.g. air_temperature. This will be used to separate it from
+            the rest of the feature cubes, if present.
         transformation (str):
             Transformation to be applied to the data before fitting.
         pre_transform_addition (float):

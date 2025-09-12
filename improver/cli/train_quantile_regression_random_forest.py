@@ -62,9 +62,11 @@ def process(
         target_diagnostic_name (str):
             A string containing the diagnostic name of the forecast to be
             calibrated. This will be used to filter the target forecast and truth
-            dataframes.
+            dataframes. This could be different from the CF name e.g.
+            'temperature_at_screen_level'.
         target_cf_name (str):
-            A string containing the CF name of the forecast to be calibrated.
+            A string containing the CF name of the forecast to be calibrated
+            e.g. air_temperature.
         forecast_periods (str):
             Range of forecast periods to be calibrated in hours in the form:
             "start:end:interval" e.g. "6:18:6" or a single forecast period e.g. "6".
@@ -81,10 +83,16 @@ def process(
         max_depth (int):
             Maximum depth of the tree.
         max_samples (float):
-            If an int, then it is the number of samples to draw to train
-            each tree. If a float, then it is the fraction of samples to draw
-            to train each tree. If None, then each tree contains the same
-            total number of samples as originally provided.
+            If an int, then it is the number of samples to draw from the total number
+            of samples available to train each tree. Note that a 'sample' refers to
+            each row within the DataFrames constructed where each row will differ
+            primarily based on the site, forecast period, forecast reference time and
+            realization or percentile. If a float, then it is the fraction of samples
+            to draw from the total number of samples available to train each tree.
+            If None, then each tree contains the same number of samples as the total
+            available. The trees will therefore only differ due to the use of
+            bootstrapping (i.e. sampling with replacement) when creating the
+            each tree.
         random_state (int):
             Random seed for reproducibility.
         transformation (str):
@@ -92,8 +100,7 @@ def process(
         pre_transform_addition (float):
             Value to be added before transformation.
     Returns:
-        None:
-            The function creates a pickle file.
+        A quantile regression random forest model.
     """
 
     from improver.calibration.load_and_train_quantile_regression_random_forest import (
@@ -108,6 +115,7 @@ def process(
         target_cf_name=target_cf_name,
         forecast_periods=forecast_periods,
         cycletime=cycletime,
+        training_length=training_length,
     )(file_paths)
     result = PrepareAndTrainQRF(
         feature_config=feature_config,
