@@ -7,8 +7,12 @@ and coefficient inputs.
 """
 
 from collections import OrderedDict
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 
+import iris
+import joblib
+import pyarrow.parquet as pq
 from iris.cube import Cube, CubeList
 
 from improver.metadata.probabilistic import (
@@ -261,6 +265,82 @@ def split_forecasts_and_bias_files(cubes: CubeList) -> Tuple[Cube, Optional[Cube
     bias_cubes = bias_cubes if bias_cubes else None
 
     return forecast_cube, bias_cubes
+
+
+def split_pickle_parquet_and_netcdf(files):
+    """Split the input files into pickle, parquet, and netcdf files.
+    Only a single pickle file is expected.
+    Args:
+        files:
+            A list of input file paths which will be split into pickle,
+            parquet, and netcdf files.
+    Returns:
+        - A flattened cube list containing all the cubes contained within the
+          provided paths to NetCDF files.
+        - A list of paths to Parquet files.
+        - A loaded pickle file.
+    Raises:
+        ValueError: If multiple pickle files provided, as only one is ever expected.
+    """
+    cubes = iris.cube.CubeList()
+    loaded_pickles = []
+    parquets = []
+
+    for file_path in files:
+        if not file_path.exists():
+            continue
+
+        # Directories indicate we are working with parquet files.
+        if file_path.is_dir():
+            parquets.append(file_path)
+            continue
+
+        try:
+            cube = iris.load(file_path)
+            cubes.extend(cube)
+        except ValueError:
+            try:
+                loaded_pickles.append(joblib.load(file_path))
+            except Exception as e:
+                msg = f"Failed to load {file_path}: {e}"
+                raise ValueError(msg)
+
+    if len(loaded_pickles) > 1:
+        msg = "Multiple pickle inputs have been provided. Only one is expected."
+        raise ValueError(msg)
+
+    return (
+        cubes if cubes else None,
+        parquets if parquets else None,
+        loaded_pickles[0] if loaded_pickles else None,
+    )
+
+
+def identify_parquet_type(parquet_paths: List[Path]):
+    """Determine whether the provided parquet paths contain forecast or truth data.
+    This is done by checking the columns within the parquet files for the presence
+    of a forecast_period column which is only present for forecast data.
+    Args:
+        parquet_paths:
+            A list of paths to Parquet files.
+    Returns:
+        - The path to the Parquet file containing the historical forecasts.
+        - The path to the Parquet file containing the truths.
+    """
+    forecast_table_path = None
+    truth_table_path = None
+    for file_path in parquet_paths:
+        try:
+            example_file_path = next(file_path.glob("**/*.parquet"))
+        except StopIteration:
+            continue
+        try:
+            pq.read_schema(example_file_path).field("forecast_period")
+            forecast_table_path = file_path
+        except KeyError:
+            truth_table_path = file_path
+
+    return forecast_table_path, truth_table_path
 
 
 def validity_time_check(forecast: Cube, validity_times: List[str]) -> bool:

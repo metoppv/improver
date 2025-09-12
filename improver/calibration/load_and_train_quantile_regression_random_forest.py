@@ -12,21 +12,27 @@ from typing import Optional
 import iris
 import numpy as np
 import pandas as pd
+import pyarrow as pa
+import pyarrow.parquet as pq
 from iris.pandas import as_data_frame
 
 from improver import PostProcessingPlugin
-from improver.calibration import CalibrationSchemas
+from improver.calibration import (
+    CalibrationSchemas,
+    identify_parquet_type,
+    split_pickle_parquet_and_netcdf,
+)
 from improver.calibration.quantile_regression_random_forest import (
     TrainQuantileRegressionRandomForests,
     quantile_forest_package_available,
 )
-from improver.utilities.load import load_cube
 
 iris.FUTURE.pandas_ndim = True
 
 
-class LoadAndTrainQRF(PostProcessingPlugin):
-    """Plugin to load and train a Quantile Regression Random Forest (QRF) model."""
+class LoadForQRF(PostProcessingPlugin):
+    """Plugin to load input files for training a Quantile Regression Random Forest
+    (QRF) model."""
 
     def __init__(
         self,
@@ -37,14 +43,9 @@ class LoadAndTrainQRF(PostProcessingPlugin):
         cycletime: str,
         training_length: int,
         experiment: Optional[str] = None,
-        n_estimators: int = 100,
-        max_depth: Optional[int] = None,
-        max_samples: Optional[float] = None,
-        random_state: Optional[int] = None,
-        transformation: Optional[str] = None,
-        pre_transform_addition: float = 0,
     ):
-        """Initialise the LoadAndTrainQRF plugin."""
+        """Initialise the LoadForQRF plugin."""
+        self.quantile_forest_installed = quantile_forest_package_available()
         self.feature_config = feature_config
         self.target_diagnostic_name = target_diagnostic_name
         self.target_cf_name = target_cf_name
@@ -52,73 +53,31 @@ class LoadAndTrainQRF(PostProcessingPlugin):
         self.cycletime = cycletime
         self.training_length = training_length
         self.experiment = experiment
-        self.n_estimators = n_estimators
-        self.max_depth = max_depth
-        self.max_samples = max_samples
-        self.random_state = random_state
-        self.transformation = transformation
-        self.pre_transform_addition = pre_transform_addition
-        self.quantile_forest_installed = quantile_forest_package_available()
 
-    def _split_cubes_and_parquet_files(
-        self, file_paths: list[pathlib.Path | str]
-    ) -> tuple[Optional[pathlib.Path], Optional[pathlib.Path], iris.cube.CubeList]:
-        """Split the input file paths into cubes and parquet files.
-
-        Args:
-            file_paths: List of file paths.
+    def _parse_forecast_periods(self) -> list[int]:
+        """Parse the forecast periods argument to produce a list of forecast periods
+        in seconds.
 
         Returns:
-            Tuple containing the items below if found:
-                - Path to the forecast parquet file.
-                - Path to the truth parquet file.
-                - List of cubes loaded from the NetCDF files.
-
+            List of forecast periods in seconds.
         Raises:
-            ValueError: If the number of cubes loaded does not match the number of
-                features expected.
+            ValueError: If the forecast_periods argument is not a single integer or
+                a range in the form 'start:end:interval'.
         """
-        import pyarrow.parquet as pq
-
-        forecast_table_path = None
-        truth_table_path = None
-        cube_inputs = iris.cube.CubeList([])
-
-        # file extraction loop:
-        for file_path in file_paths:
-            if not Path(file_path).exists():
-                # This will occur when the filepath does not exist. In this case,
-                # return None.
-                return None, None, None
-            elif Path(file_path).is_dir():
-                try:
-                    example_file_path = next(Path(file_path).glob("**/*.parquet"))
-                except StopIteration:
-                    # If no parquet files are found, return None.
-                    return None, None, None
-                try:
-                    pq.read_schema(example_file_path).field("forecast_period")
-                    forecast_table_path = file_path
-                except KeyError:
-                    truth_table_path = file_path
-            else:
-                cube = load_cube(str(file_path))
-                cube_inputs.append(cube)
-
-        if len(self.feature_config.keys()) not in [
-            len(cube_inputs),
-            len(cube_inputs) + 1,
-        ]:
-            msg = (
-                "The number of cubes loaded does not match the number of features "
-                "expected. These can mismatch if some features are coming from the "
-                "historic forecast table. The number of cubes loaded was: "
-                f"{len(cube_inputs)}. The number of features expected was: "
-                f"{len(self.feature_config.keys())}."
-            )
-            raise ValueError(msg)
-
-        return forecast_table_path, truth_table_path, cube_inputs
+        if ":" in self.forecast_periods:
+            forecast_periods = list(range(*map(int, self.forecast_periods.split(":"))))
+            forecast_periods = [fp * 3600 for fp in forecast_periods]
+        else:
+            try:
+                forecast_periods = [int(self.forecast_periods) * 3600]
+            except ValueError:
+                msg = (
+                    "The forecast_periods argument must be a single integer or "
+                    "a range in the form 'start:end:interval'. The forecast period"
+                    f"provided was: {self.forecast_periods}."
+                )
+                raise ValueError(msg)
+        return forecast_periods
 
     def _read_parquet_files(
         self,
@@ -127,7 +86,7 @@ class LoadAndTrainQRF(PostProcessingPlugin):
         forecast_periods: list[int],
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Read the forecast and truth data from parquet files.
-
+        self.quantile_forest_installed = quantile_forest_package_available()
         Args:
             forecast_table_path: Path to the forecast parquet file.
             truth_table_path: Path to the truth parquet file.
@@ -144,9 +103,6 @@ class LoadAndTrainQRF(PostProcessingPlugin):
             ValueError: If the truth parquet file does not contain the expected
                 fields.
         """
-        import pyarrow as pa
-        import pyarrow.parquet as pq
-
         cycletimes = []
         for forecast_period in forecast_periods:
             # Load forecasts from parquet file filtering by diagnostic and blend_time.
@@ -195,14 +151,17 @@ class LoadAndTrainQRF(PostProcessingPlugin):
 
         forecast_df = forecast_df[
             forecast_df["forecast_period"].isin(np.array(forecast_periods) * 1e9)
-        ]
+        ].reset_index(drop=True)
+
         # Convert df columns from ns to pandas timestamp object.
         for column in ["time", "forecast_reference_time", "blend_time"]:
             forecast_df[column] = pd.to_datetime(
                 forecast_df[column], unit="ns", utc=True
             )
+            forecast_df[column] = forecast_df[column].astype("datetime64[ns, UTC]")
         for column in ["forecast_period", "period"]:
             forecast_df[column] = pd.to_timedelta(forecast_df[column], unit="ns")
+            forecast_df[column] = forecast_df[column].astype("timedelta64[ns]")
 
         forecast_df = forecast_df.rename(columns={"forecast": self.target_cf_name})
 
@@ -216,6 +175,7 @@ class LoadAndTrainQRF(PostProcessingPlugin):
         )
 
         truth_df["time"] = pd.to_datetime(truth_df["time"], unit="ns", utc=True)
+        truth_df["time"] = truth_df["time"].astype("datetime64[ns, UTC]")
 
         if truth_df.empty:
             msg = (
@@ -224,6 +184,82 @@ class LoadAndTrainQRF(PostProcessingPlugin):
             )
             raise IOError(msg)
         return forecast_df, truth_df
+
+    def process(
+        self,
+        file_paths: list[pathlib.Path | str],
+    ) -> Optional[tuple[iris.cube.CubeList, pathlib.Path | str, pathlib.Path | str]]:
+        """Load input files for training a Quantile Regression Random Forest (QRF)
+        model. Two sources of input data must be provided: historical forecasts and
+        historical truth data (to use in calibration).
+
+        Args:
+            file_paths (cli.inputpaths):
+                A list of input paths containing:
+                - The path to a Parquet file containing the truths to be used
+                for calibration. The expected columns within the
+                Parquet file are: ob_value, time, wmo_id, diagnostic, latitude,
+                longitude and altitude.
+                - The path to a Parquet file containing the forecasts to be used
+                for calibration.
+                - Optionally, paths to NetCDF files containing additional predictors.
+        """
+        if not self.quantile_forest_installed:
+            return None
+        cube_inputs, parquets, _ = split_pickle_parquet_and_netcdf(file_paths)
+
+        forecast_table_path, truth_table_path = identify_parquet_type(parquets)
+
+        if not forecast_table_path or not truth_table_path:
+            return None
+
+        forecast_periods = self._parse_forecast_periods()
+        forecast_df, truth_df = self._read_parquet_files(
+            forecast_table_path, truth_table_path, forecast_periods
+        )
+
+        if cube_inputs is None:
+            cube_inputs = iris.cube.CubeList()
+        missing_features = (
+            set(self.feature_config.keys())
+            - set(forecast_df.columns)
+            - set([c.name() for c in cube_inputs])
+        )
+
+        if len(missing_features) > 0:
+            msg = (
+                "The features requested in the feature_config are absent from "
+                "the forecast parquet file and the input cubes. The missing fields are: "
+                f"{missing_features}."
+            )
+            raise ValueError(msg)
+        return forecast_df, truth_df, cube_inputs
+
+
+class PrepareAndTrainQRF(PostProcessingPlugin):
+    """Plugin to prepare and train a Quantile Regression Random Forest (QRF) model."""
+
+    def __init__(
+        self,
+        feature_config: dict[str, list[str]],
+        target_cf_name: str,
+        n_estimators: int = 100,
+        max_depth: Optional[int] = None,
+        max_samples: Optional[float] = None,
+        random_state: Optional[int] = None,
+        transformation: Optional[str] = None,
+        pre_transform_addition: float = 0,
+    ):
+        """Initialise the PrepareAndTrainQRF plugin."""
+        self.feature_config = feature_config
+        self.target_cf_name = target_cf_name
+        self.n_estimators = n_estimators
+        self.max_depth = max_depth
+        self.max_samples = max_samples
+        self.random_state = random_state
+        self.transformation = transformation
+        self.pre_transform_addition = pre_transform_addition
+        self.quantile_forest_installed = quantile_forest_package_available()
 
     @staticmethod
     def _check_matching_times(
@@ -298,8 +334,9 @@ class LoadAndTrainQRF(PostProcessingPlugin):
 
     def process(
         self,
-        file_paths: list[pathlib.Path | str],
-        model_output: str = None,
+        forecast_df: pd.DataFrame,
+        truth_df: pd.DataFrame,
+        cube_inputs: Optional[iris.cube.CubeList] = None,
     ) -> None:
         """Load input files and training a Quantile Regression Random Forest (QRF)
         model. This model can be applied later to calibrate the forecast. Two sources
@@ -307,45 +344,17 @@ class LoadAndTrainQRF(PostProcessingPlugin):
         (to use in calibration). The model is output as a pickle file.
 
         Args:
-            file_paths (cli.inputpaths):
-                A list of input paths containing:
-                - The path to a Parquet file containing the truths to be used
-                for calibration. The expected columns within the
-                Parquet file are: ob_value, time, wmo_id, diagnostic, latitude,
-                longitude and altitude.
-                - The path to a Parquet file containing the forecasts to be used
-                for calibration.
-                - Optionally, paths to NetCDF files containing additional predictors.
-            model_output (str):
-                Full path including model file name that will store the pickled model.
+            forecast_df: DataFrame containing the forecast data.
+            truth_df: DataFrame containing the truth data.
+            cube_inputs: List of cubes containing additional features.
 
+        Raises:
+            ValueError: If the number of cubes loaded does not match the number of
+                features expected.
         """
         if not self.quantile_forest_installed:
             return None
-        forecast_table_path, truth_table_path, cube_inputs = (
-            self._split_cubes_and_parquet_files(file_paths)
-        )
 
-        if not forecast_table_path or not truth_table_path:
-            return None
-
-        if ":" in self.forecast_periods:
-            forecast_periods = list(range(*map(int, self.forecast_periods.split(":"))))
-            forecast_periods = [fp * 3600 for fp in forecast_periods]
-        else:
-            try:
-                forecast_periods = [int(self.forecast_periods) * 3600]
-            except ValueError:
-                msg = (
-                    "The forecast_periods argument must be a single integer or "
-                    "a range in the form 'start:end:interval'. The forecast period"
-                    f"provided was: {self.forecast_periods}."
-                )
-                raise ValueError(msg)
-
-        forecast_df, truth_df = self._read_parquet_files(
-            forecast_table_path, truth_table_path, forecast_periods
-        )
         intersecting_times = self._check_matching_times(forecast_df, truth_df)
         if len(intersecting_times) == 0:
             return None
@@ -362,6 +371,5 @@ class LoadAndTrainQRF(PostProcessingPlugin):
             random_state=self.random_state,
             transformation=self.transformation,
             pre_transform_addition=self.pre_transform_addition,
-            model_output=model_output,
         )(forecast_df, truth_df)
         return result
