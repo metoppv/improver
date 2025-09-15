@@ -325,7 +325,7 @@ def test_find_local_vapour_pressure(
         ),
     ],
 )
-def test_calculate_critical_temperatures_and_intercepts(
+def test_calculate_critical_temperatures_and_intercepts_values(
     engine_contrail_factors: List[float],
     pressure_levels: np.ndarray,
     relative_humidity: np.ndarray,
@@ -333,14 +333,15 @@ def test_calculate_critical_temperatures_and_intercepts(
     expected_critical_intercepts: np.ndarray,
 ):
     """
-    Test for one CF on pressure levels
+    Test that _calculate_critical_temperatures_and_intercepts() returns two arrays with
+    the expected shapes and values.
 
-    Test for all CF on pressure levels
-
-    Humidites from 0 to 100 in steps of 10
-
-    Compare to Schrader 1997 to 2nd or 3rd DP
-
+    Args:
+        engine_contrail_factors (List[float]) List of contrail factors used to initialise the contrails class (kg/kg/K).
+        pressure_levels (np.ndarray): Array of pressure levels (Pa).
+        relative_humidity (np.ndarray): Array of relative humidity values (kg/kg).
+        expected_critical_temperatures (np.ndarray): Expected critical temperature output on pressure levels. Array axes are [contrail factors, pressure levels, relative humidity] (K).
+        expected_critical_intercepts (np.ndarray): Expected critical intercept output on pressure levels. Array axes are [contrail factors, pressure levels] (Pa).
     """
     plugin = CondensationTrailFormation(engine_contrail_factors)
     engine_mixing_ratios_on_pressure_levels = plugin._calculate_engine_mixing_ratios(
@@ -369,3 +370,34 @@ def test_calculate_critical_temperatures_and_intercepts(
         strict=True,
         verbose=True,
     )
+
+
+@pytest.mark.parametrize(
+    "engine_mixing_ratios, relative_humidity, expected_exception",
+    [
+        ([1, 1], np.ones((2, 3)), TypeError),
+        (np.ones((1, 2)), [1, 1], TypeError),
+        (np.ones(1), np.ones((2, 3)), ValueError),
+        (np.ones((1, 2)), np.ones(2), ValueError),
+        (np.ones((1, 2)), np.ones((3, 2)), ValueError),
+    ],
+)
+def test_calculate_critical_temperatures_and_intercepts_raises_on_bad_input(
+    engine_mixing_ratios: np.ndarray | List,
+    relative_humidity: np.ndarray | List,
+    expected_exception: Exception,
+):
+    """
+    Test that _calculate_critical_temperatures_and_intercepts() raises the appropriate
+    exception when called with incorrect input parameters.
+
+    Args:
+        engine_mixing_ratios (np.ndarray | List): Engine mixing ratios on pressure levels. Engine contrail factors are the leading axis (Pa/K).
+        relative_humidity (np.ndarray | List): Relative humidity values on pressure levels. Pressure levels are the leading axis (kg/kg).
+        expected_exception (exception | None): The exception that should be raised by the function.
+    """
+    with pytest.raises(expected_exception):
+        CondensationTrailFormation._calculate_critical_temperatures_and_intercepts(
+            engine_mixing_ratios,
+            relative_humidity,
+        )
