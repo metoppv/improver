@@ -9,10 +9,6 @@ from typing import List, Optional, Tuple
 import numpy as np
 import pytest
 
-from improver.generate_ancillaries.generate_svp_derivative_table import (
-    SaturatedVapourPressureDerivativeTable,
-    SaturatedVapourPressureTable,
-)
 from improver.psychrometric_calculations.condensation_trails import (
     CondensationTrailFormation,
 )
@@ -230,82 +226,112 @@ def test_find_local_vapour_pressure(
 
 
 @pytest.mark.parametrize(
-    "engine_contrail_factor, pressure_levels, relative_humidity, expected_critical_temperatures, expected_critical_intercepts",
+    "engine_contrail_factors, pressure_levels, relative_humidity, expected_critical_temperatures, expected_critical_intercepts",
     [
-        # one pressure level, 1D relative humidity
+        # one contrail factor, one pressure level, 1D relative humidity
         (
             [3e-5],
-            np.array([1e4]),
-            np.array([0, 0.25, 0.5, 0.75, 1]),
-            np.zeros(1),
-            np.zeros(1),
+            np.array([1e4], dtype=np.float32),
+            np.array([0, 0.5, 1], dtype=np.float32),
+            np.array([[[210.87348485, 212.74835668, 219.25]]], dtype=np.float32),
+            np.array([[-101.36159382]], dtype=np.float32),
         ),
-        # multiple pressure levels, 1D relative humidity
+        # one contrail factor, multiple pressure levels, 1D relative humidity
         (
             [3e-5],
-            np.array([1e5, 1e4, 1e3]),
-            np.array([0, 0.25, 0.5, 0.75, 1]),
-            np.zeros(1),
-            np.zeros(1),
+            np.array([1e5, 1e4], dtype=np.float32),
+            np.array([0, 0.5, 1], dtype=np.float32),
+            np.array(
+                [
+                    [
+                        [232.65, 235.00909317, 243.25],
+                        [210.87348485, 212.74835668, 219.25],
+                    ]
+                ],
+                dtype=np.float32,
+            ),
+            np.array([[-1126.49826644, -101.36159382]], dtype=np.float32),
         ),
-        # multiple pressure levels, 2D relative humidity
+        # one contrail factor, multiple pressure levels, 2D relative humidity
         (
             [3e-5],
-            np.array([1e5, 1e4, 1e3]),
-            np.array([[0, 0.2, 0.4], [0.6, 0.8, 1]]),
-            np.zeros(1),
-            np.zeros(1),
+            np.array([1e5, 1e4], dtype=np.float32),
+            np.array([[0, 0.2, 0.4], [0.6, 0.8, 1]], dtype=np.float32),
+            np.array(
+                [
+                    [
+                        [
+                            [232.65, 233.45120317, 234.42736744],
+                            [235.68303131, 237.51159792, 243.25],
+                        ],
+                        [
+                            [210.87348485, 211.51295453, 212.28699057],
+                            [213.28191226, 214.72817613, 219.25],
+                        ],
+                    ]
+                ],
+                dtype=np.float32,
+            ),
+            np.array([[-1126.49826644, -101.36159382]], dtype=np.float32),
+        ),
+        # multiple contrail factors, multiple pressure levels, 2D relative humidity
+        (
+            [3e-5, 3.4e-5, 3.9e-5],
+            np.array([1e5, 1e4], dtype=np.float32),
+            np.array([[0, 0.2, 0.4], [0.6, 0.8, 1]], dtype=np.float32),
+            np.array(
+                [
+                    [
+                        [
+                            [232.65, 233.45120317, 234.42736744],
+                            [235.68303131, 237.51159792, 243.25],
+                        ],
+                        [
+                            [210.87348485, 211.51295453, 212.28699057],
+                            [213.28191226, 214.72817613, 219.25],
+                        ],
+                    ],
+                    [
+                        [
+                            [233.95, 234.72353454, 235.71222294],
+                            [236.98378723, 238.83600501, 244.65],
+                        ],
+                        [
+                            [211.96734685, 212.61486738, 213.39860275],
+                            [214.40593674, 215.87057442, 220.45],
+                        ],
+                    ],
+                    [
+                        [
+                            [235.45, 236.26764963, 237.27141769],
+                            [238.56273465, 240.44372252, 246.35],
+                        ],
+                        [
+                            [213.15171974, 213.80810569, 214.60240506],
+                            [215.62327924, 217.10765399, 221.75],
+                        ],
+                    ],
+                ],
+                dtype=np.float32,
+            ),
+            np.array(
+                [
+                    [-1126.49826644, -101.36159382],
+                    [-1274.79858365, -116.00541492],
+                    [-1478.1242258, -134.00868055],
+                ],
+                dtype=np.float32,
+            ),
         ),
     ],
 )
-def test_critical_temperatures_and_intercepts_for_given_contrail_factor(
-    engine_contrail_factor: List[float],
+def test_calculate_critical_temperatures_and_intercepts(
+    engine_contrail_factors: List[float],
     pressure_levels: np.ndarray,
     relative_humidity: np.ndarray,
     expected_critical_temperatures: np.ndarray,
     expected_critical_intercepts: np.ndarray,
 ):
-    """
-    One contrail factor
-
-    Test for one pressure level
-
-    Test for all pressure levels
-
-    Test for 1D and 2D relative humidity data
-
-    Shapes and values correct?
-    """
-    plugin = CondensationTrailFormation(engine_contrail_factor)
-    engine_mixing_ratios = plugin._calculate_engine_mixing_ratios(pressure_levels)
-    relative_humidity_on_pressure_levels = np.broadcast_to(
-        relative_humidity, pressure_levels.shape + relative_humidity.shape
-    )
-    svp_table = SaturatedVapourPressureTable(water_only=True).process()
-    svp_derivative_table = SaturatedVapourPressureDerivativeTable(
-        water_only=True
-    ).process()
-    temperature = svp_table.coord("air_temperature").points
-
-    for mixing_ratios_on_pressure_levels in engine_mixing_ratios:
-        critical_temperature, critical_intercept = (
-            CondensationTrailFormation._critical_temperatures_and_intercepts_for_given_contrail_factor(
-                mixing_ratios_on_pressure_levels,
-                relative_humidity_on_pressure_levels,
-                svp_table.data,
-                svp_derivative_table.data,
-                temperature,
-            )
-        )
-    # TODO: compare array values
-    np.testing.assert_equal(
-        critical_temperature.shape, pressure_levels.shape + relative_humidity.shape
-    )
-    np.testing.assert_equal(critical_intercept.shape, pressure_levels.shape)
-
-
-@pytest.mark.skip()
-def test_calculate_critical_temperatures_and_intercepts():
     """
     Test for one CF on pressure levels
 
@@ -316,11 +342,30 @@ def test_calculate_critical_temperatures_and_intercepts():
     Compare to Schrader 1997 to 2nd or 3rd DP
 
     """
-
-    # @staticmethod
-    # def _calculate_critical_temperatures(
-    #     engine_mixing_ratios: np.ndarray,
-    #     relative_humidity: np.ndarray,
-    # ) -> Tuple[np.ndarray, np.ndarray]:
-
-    assert False
+    plugin = CondensationTrailFormation(engine_contrail_factors)
+    engine_mixing_ratios_on_pressure_levels = plugin._calculate_engine_mixing_ratios(
+        pressure_levels
+    )
+    relative_humidity_on_pressure_levels = np.broadcast_to(
+        relative_humidity, pressure_levels.shape + relative_humidity.shape
+    )
+    critical_temperatures, critical_intercepts = (
+        CondensationTrailFormation._calculate_critical_temperatures_and_intercepts(
+            engine_mixing_ratios_on_pressure_levels,
+            relative_humidity_on_pressure_levels,
+        )
+    )
+    np.testing.assert_allclose(
+        critical_temperatures,
+        expected_critical_temperatures,
+        rtol=1e-3,
+        strict=True,
+        verbose=True,
+    )
+    np.testing.assert_allclose(
+        critical_intercepts,
+        expected_critical_intercepts,
+        rtol=1e-3,
+        strict=True,
+        verbose=True,
+    )

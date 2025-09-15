@@ -246,9 +246,12 @@ class CondensationTrailFormation(BasePlugin):
             )
 
         critical_temperatures = np.zeros(
-            ((engine_mixing_ratios.shape[0],) + relative_humidity.shape)
+            ((engine_mixing_ratios.shape[0],) + relative_humidity.shape),
+            dtype=np.float32,
         )
-        critical_intercepts = np.zeros(critical_temperatures.shape[:2])
+        critical_intercepts = np.zeros(
+            critical_temperatures.shape[:2], dtype=np.float32
+        )
 
         svp_table = SaturatedVapourPressureTable(
             183.15, 253.15, water_only=True
