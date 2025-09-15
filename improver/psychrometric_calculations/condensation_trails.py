@@ -38,6 +38,8 @@ class CondensationTrailFormation(BasePlugin):
         Schrader, M.L., 1997. Calculations of aircraft contrail
         formation critical temperatures. Journal of Applied
         Meteorology, 36(12), pp.1725-1729.
+
+    .. include:: extended_documentation/psychrometric_calculations/condensation_trails/condensation_trails_critical_temperature.rst
     """
 
     temperature = None
