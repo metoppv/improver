@@ -75,8 +75,7 @@ class CondensationTrailFormation(BasePlugin):
         weights of water and air on Earth.
 
         Returns:
-            np.ndarray: The mixing ratio of the atmosphere and aircraft
-                exhaust, provided in units: Pa/K.
+            np.ndarray: The mixing ratio of the atmosphere and aircraft exhaust, provided in units: Pa/K.
         """
         return (
             pressure_levels[np.newaxis, :]
@@ -92,8 +91,7 @@ class CondensationTrailFormation(BasePlugin):
             pressure_levels (np.ndarray): Pressure levels (Pa).
 
         Returns:
-            np.ndarray: The localised vapour pressure at the given
-                pressure levels (Pa).
+            np.ndarray: The localised vapour pressure at the given pressure levels (Pa).
         """
         # Pressure levels has to be reshaped to match the temperature and humidity dimensions
         pressure_levels_reshaped = np.reshape(
@@ -130,8 +128,7 @@ class CondensationTrailFormation(BasePlugin):
             temperature (np.ndarray): Air temperatures corresponding to both lookup tables (K).
 
         Returns:
-            np.ndarray: Critical temperatures on pressure levels, with same shape as relative_humidity (K).
-            np.ndarray: Critical intercepts on pressure levels, with same shape as mixing_ratios (Pa).
+            Tuple[np.ndarray, np.ndarray]: Arrays of critical temperatures on pressure levels (K), and critical intercepts on pressure levels (Pa).
 
         """
         num_pressure_levels = mixing_ratios.shape[0]
@@ -222,8 +219,7 @@ class CondensationTrailFormation(BasePlugin):
             relative_humidity (np.ndarray): Relative humidity on pressure levels. Pressure is the leading axis (kg/kg).
 
         Returns:
-            np.ndarray: Critical temperatures on pressure levels for all engine contrail factors (K).
-            np.ndarray: Critical intercepts on pressure levels for all engine contrail factors (Pa).
+            Tuple[np.ndarray, np.ndarry]: Arrays of critical temperatures on pressure levels for all engine contrail factors (K), and critical intercepts on pressure levels for all engine contrail factors (Pa).
         """
         if not (
             isinstance(engine_mixing_ratios, np.ndarray)
