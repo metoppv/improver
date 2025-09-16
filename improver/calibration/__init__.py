@@ -12,6 +12,7 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import iris
 import joblib
+import pandas as pd
 import pyarrow.parquet as pq
 from iris.cube import Cube, CubeList
 
@@ -387,3 +388,25 @@ def add_warning_comment(forecast: Cube) -> Cube:
             "however, no calibration has been applied."
         )
     return forecast
+
+
+def get_training_period_cycles(
+    cycletime: str, forecast_period: Union[int, str], training_length: int
+):
+    """Generate a list of forecast reference times for the training period.
+
+    Args:
+        cycletime: The time at which the forecast is issued in a format understood by
+            pandas.Timestamp e.g. 20170109T0000Z.
+        forecast_period: The forecast period in seconds.
+        training_length: The number of days in the training period.
+    """
+    forecast_period_td = pd.Timedelta(int(forecast_period), unit="seconds")
+
+    return pd.date_range(
+        end=pd.Timestamp(cycletime)
+        - pd.Timedelta(1, unit="days")
+        - forecast_period_td.floor("D"),
+        periods=int(training_length),
+        freq="D",
+    )

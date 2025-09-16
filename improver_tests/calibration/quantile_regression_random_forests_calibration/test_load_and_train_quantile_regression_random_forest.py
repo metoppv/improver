@@ -65,9 +65,15 @@ def _create_multi_site_forecast_parquet_file(tmp_path, representation="percentil
     wind_speed_dict["cf_name"] = "wind_speed"
     wind_speed_dict["units"] = "m s-1"
     wind_speed_dict["diagnostic"] = "wind_speed_at_10m"
+    wind_dir_dict = data_dict.copy()
+    wind_dir_dict["forecast"] = [90, 100, 110, 120, 130]
+    wind_dir_dict["cf_name"] = "wind_direction"
+    wind_dir_dict["units"] = "degrees"
+    wind_dir_dict["diagnostic"] = "wind_from_direction"
     data_df = pd.DataFrame(data_dict)
     wind_speed_df = pd.DataFrame(wind_speed_dict)
-    joined_df = pd.concat([data_df, wind_speed_df], ignore_index=True)
+    wind_dir_df = pd.DataFrame(wind_dir_dict)
+    joined_df = pd.concat([data_df, wind_speed_df, wind_dir_df], ignore_index=True)
 
     output_dir = tmp_path / "forecast_parquet_files"
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -99,15 +105,27 @@ def _create_multi_percentile_forecast_parquet_file(tmp_path, representation=None
         "height": [1.5] * 5,
         "diagnostic": ["temperature_at_screen_level"] * 5,
     }
+    if representation == "realization":
+        data_dict["realization"] = list(range(len(data_dict["percentile"])))
+        data_dict.pop("percentile")
+    elif representation == "kittens":
+        data_dict["kittens"] = list(range(len(data_dict["percentile"])))
+        data_dict.pop("percentile")
     # Add wind speed to demonstrate filtering.
     wind_speed_dict = data_dict.copy()
     wind_speed_dict["forecast"] = [6, 10, 11, 12, 15]
     wind_speed_dict["cf_name"] = "wind_speed"
     wind_speed_dict["units"] = "m s-1"
     wind_speed_dict["diagnostic"] = "wind_speed_at_10m"
+    wind_dir_dict = data_dict.copy()
+    wind_dir_dict["forecast"] = [90, 100, 110, 120, 130]
+    wind_dir_dict["cf_name"] = "wind_direction"
+    wind_dir_dict["units"] = "degrees"
+    wind_dir_dict["diagnostic"] = "wind_from_direction"
     data_df = pd.DataFrame(data_dict)
     wind_speed_df = pd.DataFrame(wind_speed_dict)
-    joined_df = pd.concat([data_df, wind_speed_df], ignore_index=True)
+    wind_dir_df = pd.DataFrame(wind_dir_dict)
+    joined_df = pd.concat([data_df, wind_speed_df, wind_dir_df], ignore_index=True)
 
     output_dir = tmp_path / "forecast_parquet_files"
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -147,15 +165,27 @@ def _create_multi_forecast_period_forecast_parquet_file(tmp_path, representation
         "height": [1.5] * 4,
         "diagnostic": ["temperature_at_screen_level"] * 4,
     }
+    if representation == "realization":
+        data_dict["realization"] = list(range(len(data_dict["percentile"])))
+        data_dict.pop("percentile")
+    elif representation == "kittens":
+        data_dict["kittens"] = list(range(len(data_dict["percentile"])))
+        data_dict.pop("percentile")
     # Add wind speed to demonstrate filtering.
     wind_speed_dict = data_dict.copy()
     wind_speed_dict["forecast"] = [6, 16, 12, 15]
     wind_speed_dict["cf_name"] = "wind_speed"
     wind_speed_dict["units"] = "m s-1"
     wind_speed_dict["diagnostic"] = "wind_speed_at_10m"
+    wind_dir_dict = data_dict.copy()
+    wind_dir_dict["forecast"] = [180, 190, 200, 210]
+    wind_dir_dict["cf_name"] = "wind_from_direction"
+    wind_dir_dict["units"] = "degrees"
+    wind_dir_dict["diagnostic"] = "wind_direction"
     data_df = pd.DataFrame(data_dict)
     wind_speed_df = pd.DataFrame(wind_speed_dict)
-    joined_df = pd.concat([data_df, wind_speed_df], ignore_index=True)
+    wind_dir_df = pd.DataFrame(wind_dir_dict)
+    joined_df = pd.concat([data_df, wind_speed_df, wind_dir_df], ignore_index=True)
 
     output_dir = tmp_path / "forecast_parquet_files"
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -304,122 +334,100 @@ def filter_forecast_periods(forecast_df, forecast_periods):
 
 
 def amend_expected_forecast_df(
-    forecast_df, forecast_periods, target_diagnostic_name, target_cf_name
+    forecast_df, forecast_periods, parquet_diagnostic_names, representation
 ):
     forecast_df = filter_forecast_periods(forecast_df, forecast_periods)
-    forecast_df = forecast_df[forecast_df["diagnostic"] == target_diagnostic_name]
     for column in ["time", "forecast_reference_time", "blend_time"]:
         forecast_df[column] = pd.to_datetime(forecast_df[column], unit="ns", utc=True)
     for column in ["forecast_period", "period"]:
         forecast_df[column] = pd.to_timedelta(forecast_df[column], unit="ns")
 
-    forecast_df = forecast_df.rename(columns={"forecast": target_cf_name})
+    base_df = forecast_df[forecast_df["diagnostic"] == parquet_diagnostic_names[0]]
+    for parquet_diagnostic_name in parquet_diagnostic_names[1:]:
+        additional_df = forecast_df[
+            forecast_df["diagnostic"] == parquet_diagnostic_name
+        ]
+        base_df = pd.merge(
+            base_df,
+            additional_df[
+                [
+                    "wmo_id",
+                    "forecast_reference_time",
+                    "forecast_period",
+                    representation,
+                    "forecast",
+                ]
+            ].rename(columns={"forecast": parquet_diagnostic_name}),
+            on=["wmo_id", "forecast_reference_time", "forecast_period", representation],
+            how="left",
+        )
+    forecast_df = base_df
+
+    forecast_df.rename(columns={"forecast": "air_temperature"}, inplace=True)
     return forecast_df
 
 
-def amend_expected_truth_df(truth_df, target_diagnostic_name):
-    truth_df = truth_df[truth_df["diagnostic"] == target_diagnostic_name]
+def amend_expected_truth_df(truth_df, parquet_diagnostic_name):
+    truth_df = truth_df[truth_df["diagnostic"] == parquet_diagnostic_name]
     truth_df["time"] = pd.to_datetime(truth_df["time"], unit="ns", utc=True)
     return truth_df
 
 
+@pytest.mark.parametrize("representation", ["percentile", "realization"])
+@pytest.mark.parametrize("include_dynamic", [True, False])
+@pytest.mark.parametrize("include_static", [True, False])
+@pytest.mark.parametrize("include_noncube_static", [True, False])
+@pytest.mark.parametrize("remove_target", [True, False])
 @pytest.mark.parametrize(
-    "forecast_creation,truth_creation,forecast_periods,include_static,remove_target,representation",
+    "forecast_creation,truth_creation,forecast_periods",
     [
         (
             _create_multi_site_forecast_parquet_file,
             _create_multi_site_truth_parquet_file,
             "6:18:6",
-            False,
-            False,
-            "percentile",
-        ),
-        (
-            _create_multi_site_forecast_parquet_file,
-            _create_multi_site_truth_parquet_file,
-            "6:18:6",
-            True,
-            False,
-            "percentile",
         ),
         (
             _create_multi_percentile_forecast_parquet_file,
             _create_multi_percentile_truth_parquet_file,
             "6:18:6",
-            False,
-            False,
-            "percentile",
-        ),
-        (
-            _create_multi_percentile_forecast_parquet_file,
-            _create_multi_percentile_truth_parquet_file,
-            "6:18:6",
-            True,
-            False,
-            "percentile",
         ),
         (
             _create_multi_forecast_period_forecast_parquet_file,
             _create_multi_forecast_period_truth_parquet_file,
             "6:18:6",
-            False,
-            False,
-            "percentile",
-        ),
-        (
-            _create_multi_forecast_period_forecast_parquet_file,
-            _create_multi_forecast_period_truth_parquet_file,
-            "6:18:6",
-            True,
-            True,  # Remove target feature
-            "percentile",
-        ),
-        (
-            _create_multi_site_forecast_parquet_file,
-            _create_multi_site_truth_parquet_file,
-            "6:18:6",
-            False,
-            False,
-            "realization",  # Provide realization input
         ),
         (
             _create_multi_forecast_period_forecast_parquet_file,
             _create_multi_forecast_period_truth_parquet_file,
             "12",
-            False,
-            False,
-            "percentile",
         ),
     ],
 )
 def test_load_for_qrf(
     tmp_path,
+    representation,
+    include_dynamic,
+    include_static,
+    include_noncube_static,
+    remove_target,
     forecast_creation,
     truth_creation,
     forecast_periods,
-    include_static,
-    remove_target,
-    representation,
 ):
     """Test the LoadForTrainQRF plugin."""
     feature_config = {"air_temperature": ["mean", "std", "altitude"]}
+    parquet_diagnostic_names = ["temperature_at_screen_level"]
 
-    forecast_path, expected_forecast_df, wmo_ids = forecast_creation(
+    forecast_path, base_expected_forecast_df, wmo_ids = forecast_creation(
         tmp_path, representation
     )
-    expected_forecast_df = amend_expected_forecast_df(
-        expected_forecast_df,
-        forecast_periods,
-        "temperature_at_screen_level",
-        "air_temperature",
-    )
-
     truth_path, expected_truth_df = truth_creation(tmp_path)
-    expected_truth_df = amend_expected_truth_df(
-        expected_truth_df, "temperature_at_screen_level"
-    )
 
     file_paths = [forecast_path, truth_path]
+
+    if include_dynamic:
+        feature_config["wind_speed_at_10m"] = ["mean", "std"]
+        parquet_diagnostic_names.append("wind_speed_at_10m")
 
     if include_static:
         ancil_path, expected_cube = _create_ancil_file(
@@ -428,14 +436,28 @@ def test_load_for_qrf(
         file_paths.append(ancil_path)
         feature_config["distance_to_water"] = ["static"]
 
+    if include_noncube_static:
+        feature_config["wind_from_direction"] = ["static"]
+        parquet_diagnostic_names.append("wind_from_direction")
+
     if remove_target:
         feature_config.pop("air_temperature")
+
+    expected_forecast_df = amend_expected_forecast_df(
+        base_expected_forecast_df.copy(),
+        forecast_periods,
+        parquet_diagnostic_names,
+        representation,
+    )
+    expected_truth_df = amend_expected_truth_df(
+        expected_truth_df, "temperature_at_screen_level"
+    )
 
     # Create an instance of LoadForTrainQRF with the required parameters
     plugin = LoadForTrainQRF(
         experiment="latestblend",
         feature_config=feature_config,
-        target_diagnostic_name="temperature_at_screen_level",
+        parquet_diagnostic_names=parquet_diagnostic_names,
         target_cf_name="air_temperature",
         forecast_periods=forecast_periods,
         cycletime="20170103T0000Z",
@@ -479,7 +501,7 @@ def test_load_for_qrf_no_paths(tmp_path, make_files):
     plugin = LoadForTrainQRF(
         experiment="latestblend",
         feature_config=feature_config,
-        target_diagnostic_name="temperature_at_screen_level",
+        parquet_diagnostic_names=["temperature_at_screen_level"],
         target_cf_name="air_temperature",
         forecast_periods="6:12:6",
         cycletime="20170102T0000Z",
@@ -523,8 +545,8 @@ def test_load_for_qrf_mismatches(
     expected_forecast_df = amend_expected_forecast_df(
         expected_forecast_df,
         forecast_periods,
-        "temperature_at_screen_level",
-        "air_temperature",
+        ["temperature_at_screen_level"],
+        "percentile",
     )
 
     truth_path, expected_truth_df = truth_creation(tmp_path)
@@ -537,7 +559,7 @@ def test_load_for_qrf_mismatches(
     plugin = LoadForTrainQRF(
         experiment="latestblend",
         feature_config=feature_config,
-        target_diagnostic_name="temperature_at_screen_level",
+        parquet_diagnostic_names=["temperature_at_screen_level"],
         target_cf_name="air_temperature",
         forecast_periods=forecast_periods,
         cycletime=cycletime,
@@ -615,7 +637,7 @@ def test_unexpected(
     plugin = LoadForTrainQRF(
         experiment="latestblend",
         feature_config=feature_config,
-        target_diagnostic_name="temperature_at_screen_level",
+        parquet_diagnostic_names=["temperature_at_screen_level"],
         target_cf_name="air_temperature",
         forecast_periods=forecast_periods,
         cycletime="20170103T0000Z",
@@ -655,92 +677,46 @@ def test_unexpected(
         raise ValueError(f"Unknown exception type: {exception}")
 
 
+@pytest.mark.parametrize("representation", ["percentile", "realization"])
+@pytest.mark.parametrize("include_dynamic", [True, False])
+@pytest.mark.parametrize("include_static", [True, False])
+@pytest.mark.parametrize("include_noncube_static", [True, False])
+@pytest.mark.parametrize("remove_target", [True, False])
 @pytest.mark.parametrize(
-    "forecast_creation,truth_creation,forecast_periods,include_static,remove_target,representation,expected",
+    "forecast_creation,truth_creation,forecast_periods",
     [
         (
             _create_multi_site_forecast_parquet_file,
             _create_multi_site_truth_parquet_file,
             "6:18:6",
-            False,
-            False,
-            "percentile",
-            5.6,
-        ),
-        (
-            _create_multi_site_forecast_parquet_file,
-            _create_multi_site_truth_parquet_file,
-            "6:18:6",
-            True,
-            False,
-            "percentile",
-            5.64,
-        ),
-        (
-            _create_multi_percentile_forecast_parquet_file,
-            _create_multi_percentile_truth_parquet_file,
-            "6:18:6",
-            False,
-            False,
-            "percentile",
-            5.62,
-        ),
-        (
-            _create_multi_percentile_forecast_parquet_file,
-            _create_multi_percentile_truth_parquet_file,
-            "6:18:6",
-            True,
-            False,
-            "percentile",
-            5.62,
         ),
         (
             _create_multi_forecast_period_forecast_parquet_file,
             _create_multi_forecast_period_truth_parquet_file,
             "6:18:6",
-            False,
-            False,
-            "percentile",
-            5.61,
-        ),
-        (
-            _create_multi_forecast_period_forecast_parquet_file,
-            _create_multi_forecast_period_truth_parquet_file,
-            "6:18:6",
-            True,
-            True,  # Remove target feature
-            "percentile",
-            5.62,
         ),
         (
             _create_multi_site_forecast_parquet_file,
             _create_multi_site_truth_parquet_file,
             "6:18:6",
-            False,
-            False,
-            "realization",  # Provide realization input
-            5.62,
         ),
         (
             _create_multi_forecast_period_forecast_parquet_file,
             _create_multi_forecast_period_truth_parquet_file,
             "12",
-            False,
-            False,
-            "percentile",
-            5.64,
         ),
     ],
 )
 def test_prepare_and_train_qrf(
     tmp_path,
+    representation,
+    include_dynamic,
+    include_static,
+    include_noncube_static,
+    remove_target,
     forecast_creation,
     truth_creation,
     forecast_periods,
-    include_static,
-    remove_target,
-    representation,
-    expected,
 ):
     """Test the PrepareAndTrainQRF plugin."""
     feature_config = {"air_temperature": ["mean", "std", "altitude"]}
@@ -751,20 +727,32 @@ def test_prepare_and_train_qrf(
 
     _, forecast_df, wmo_ids = forecast_creation(tmp_path, representation)
     forecast_df = amend_expected_forecast_df(
-        forecast_df,
-        forecast_periods,
-        "temperature_at_screen_level",
-        target_cf_name,
+        forecast_df, forecast_periods, ["temperature_at_screen_level"], representation
     )
     _, truth_df = truth_creation(tmp_path)
     truth_df = amend_expected_truth_df(truth_df, "temperature_at_screen_level")
+
+    if include_dynamic:
+        forecast_df["wind_speed_at_10m"] = [10.0, 20.0, 15.0, 12.0, 11.0][
+            : len(forecast_df)
+        ]
+        feature_config["wind_speed_at_10m"] = ["mean", "std"]
 
     if include_static:
         _, ancil_cube = _create_ancil_file(tmp_path, sorted(list(set(wmo_ids))))
         feature_config["distance_to_water"] = ["static"]
 
+    if include_noncube_static:
+        forecast_df["wind_from_direction"] = [90.0, 100.0, 110.0, 120.0, 130.0][
+            : len(forecast_df)
+        ]
+        feature_config["wind_from_direction"] = ["static"]
+
     if remove_target:
         feature_config.pop("air_temperature")
+
+    if feature_config == {}:
+        pytest.skip("No features to train on")
 
     # Create an instance of PrepareAndTrainQRF with the required parameters
     plugin = PrepareAndTrainQRF(
@@ -777,18 +765,30 @@ def test_prepare_and_train_qrf(
         pre_transform_addition=1,
     )
     if include_static:
-        qrf_model = plugin(forecast_df, truth_df, iris.cube.CubeList([ancil_cube]))
+        qrf_model, transformation, pre_transform_addition = plugin(
+            forecast_df, truth_df, iris.cube.CubeList([ancil_cube])
+        )
     else:
-        qrf_model = plugin(forecast_df, truth_df)
+        qrf_model, transformation, pre_transform_addition = plugin(
+            forecast_df, truth_df
+        )
 
     assert qrf_model.n_estimators == n_estimators
     assert qrf_model.max_depth == max_depth
     assert qrf_model.random_state == random_state
+    assert transformation == "log"
+    assert pre_transform_addition == 1
+
+    current_forecast = [5.64, 3, 55]
 
     if remove_target:
         current_forecast = []
-    else:
-        current_forecast = [5.64, 3, 55]
+
+    if include_dynamic:
+        current_forecast.extend([7, 1])
+
+    if include_noncube_static:
+        current_forecast.append(100)
 
     if include_static:
         current_forecast.append(2.5)
@@ -796,4 +796,5 @@ def test_prepare_and_train_qrf(
     result = qrf_model.predict(
         np.expand_dims(np.array(current_forecast), 0), quantiles=[0.5]
     )
-    np.testing.assert_almost_equal(result, expected, decimal=2)
+    expected = 5.6
+    np.testing.assert_almost_equal(result, expected, decimal=1)

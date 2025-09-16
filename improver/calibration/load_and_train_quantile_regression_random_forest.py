@@ -19,6 +19,7 @@ from iris.pandas import as_data_frame
 from improver import PostProcessingPlugin
 from improver.calibration import (
     CalibrationSchemas,
+    get_training_period_cycles,
     identify_parquet_type,
     split_pickle_parquet_and_netcdf,
 )
@@ -26,6 +27,14 @@ from improver.calibration.quantile_regression_random_forest import (
     TrainQuantileRegressionRandomForests,
     quantile_forest_package_available,
 )
+
+try:
+    from quantile_forest import RandomForestQuantileRegressor
+except ModuleNotFoundError:
+    # Define empty class to avoid type hint errors.
+    class RandomForestQuantileRegressor:
+        pass
+
 
 iris.FUTURE.pandas_ndim = True
 
@@ -37,7 +46,7 @@ class LoadForTrainQRF(PostProcessingPlugin):
     def __init__(
         self,
         feature_config: dict[str, list[str]],
-        target_diagnostic_name: str,
+        parquet_diagnostic_names: str,
         target_cf_name: str,
         forecast_periods: str,
         cycletime: str,
@@ -49,10 +58,11 @@ class LoadForTrainQRF(PostProcessingPlugin):
         Args:
             feature_config: Feature configuration defining the features to be used for
                 Quantile Regression Random Forests.
-            target_diagnostic_name: A string containing the diagnostic name of the
-                forecast to be calibrated. This will be used to filter the target
-                forecast and truth dataframes. This could be different from the CF name
-                e.g. 'temperature_at_screen_level'.
+            parquet_diagnostic_names (str):
+                A string containing the diagnostic name that will be used for filtering
+                the target diagnostic from the forecast and truth DataFrames read in
+                from the parquet files. This could be different from the CF name e.g.
+                'temperature_at_screen_level'.
             target_cf_name: A string containing the CF name of the forecast to be
                 calibrated e.g. air_temperature.
             forecast_periods: Range of forecast periods to be calibrated in hours in
@@ -65,7 +75,7 @@ class LoadForTrainQRF(PostProcessingPlugin):
         """
         self.quantile_forest_installed = quantile_forest_package_available()
         self.feature_config = feature_config
-        self.target_diagnostic_name = target_diagnostic_name
+        self.parquet_diagnostic_names = parquet_diagnostic_names
         self.target_cf_name = target_cf_name
         self.forecast_periods = forecast_periods
         self.cycletime = cycletime
@@ -124,22 +134,16 @@ class LoadForTrainQRF(PostProcessingPlugin):
         cycletimes = []
         for forecast_period in forecast_periods:
             # Load forecasts from parquet file filtering by diagnostic and blend_time.
-            forecast_period_td = pd.Timedelta(int(forecast_period), unit="seconds")
-
             cycletimes.extend(
-                pd.date_range(
-                    end=pd.Timestamp(self.cycletime)
-                    - pd.Timedelta(1, unit="days")
-                    - forecast_period_td.floor("D"),
-                    periods=int(self.training_length),
-                    freq="D",
+                get_training_period_cycles(
+                    self.cycletime, forecast_period, self.training_length
                 )
             )
         cycletimes = list(set(cycletimes))
 
         filters = [
             [
-                ("diagnostic", "==", self.target_diagnostic_name),
+                ("diagnostic", "in", self.parquet_diagnostic_names),
                 ("blend_time", "in", cycletimes),
                 ("experiment", "==", self.experiment),
             ]
@@ -181,10 +185,41 @@ class LoadForTrainQRF(PostProcessingPlugin):
             forecast_df[column] = pd.to_timedelta(forecast_df[column], unit="ns")
             forecast_df[column] = forecast_df[column].astype("timedelta64[ns]")
 
-        forecast_df = forecast_df.rename(columns={"forecast": self.target_cf_name})
+        # Convert additional features from rows to columns.
+        representation = (
+            "percentile" if "percentile" in forecast_df.columns else "realization"
+        )
+        base_df = forecast_df[
+            forecast_df["diagnostic"] == self.parquet_diagnostic_names[0]
+        ]
+        for parquet_diagnostic_name in self.parquet_diagnostic_names[1:]:
+            additional_df = forecast_df[
+                forecast_df["diagnostic"] == parquet_diagnostic_name
+            ]
+            base_df = pd.merge(
+                base_df,
+                additional_df[
+                    [
+                        "wmo_id",
+                        "forecast_reference_time",
+                        "forecast_period",
+                        representation,
+                        "forecast",
+                    ]
+                ].rename(columns={"forecast": parquet_diagnostic_name}),
+                on=[
+                    "wmo_id",
+                    "forecast_reference_time",
+                    "forecast_period",
+                    representation,
+                ],
+                how="left",
+            )
+        forecast_df = base_df
+        forecast_df.rename(columns={"forecast": self.target_cf_name}, inplace=True)
 
         # Load truths from parquet file filtering by diagnostic.
-        filters = [[("diagnostic", "==", self.target_diagnostic_name)]]
+        filters = [[("diagnostic", "==", self.parquet_diagnostic_names[0])]]
         truth_df = pd.read_parquet(
             truth_table_path,
             filters=filters,
@@ -314,10 +349,12 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
             )
         )
 
-    def _add_features_to_df(
+    def _add_static_features_from_cube_to_df(
         self, forecast_df: pd.DataFrame, cube_inputs: iris.cube.CubeList
     ) -> pd.DataFrame:
-        """Add features to the forecast DataFrame based on the feature configuration.
+        """Add features to the forecast DataFrame from cubes based on the feature
+        configuration. Other features are expected to already be present in the
+        forecast DataFrame.
 
         Args:
             forecast_df: DataFrame containing the forecast data.
@@ -326,11 +363,17 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
         Returns:
             DataFrame with additional features added.
         """
+        if cube_inputs is None or len(cube_inputs) == 0:
+            return forecast_df
         for feature_name, feature_list in self.feature_config.items():
             for feature in feature_list:
                 if feature == "static":
                     # Use the cube's data directly as a feature.
                     constr = iris.Constraint(name=feature_name)
+                    # Static features can be provided either as a cube or as a column
+                    # in the forecast DataFrame.
+                    if not cube_inputs.extract(constr):
+                        continue
                     feature_cube = cube_inputs.extract_cube(constr)
                     feature_df = as_data_frame(feature_cube, add_aux_coords=True)
                     forecast_df = forecast_df.merge(
@@ -369,7 +412,7 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
         forecast_df: pd.DataFrame,
         truth_df: pd.DataFrame,
         cube_inputs: Optional[iris.cube.CubeList] = None,
-    ) -> None:
+    ) -> Optional[tuple[RandomForestQuantileRegressor, str, float]]:
         """Load input files and train a Quantile Regression Random Forest (QRF)
         model. This model can be applied later to calibrate the forecast. Two sources
         of input data must be provided: historical forecasts and historical truth data
@@ -391,7 +434,9 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
         if len(intersecting_times) == 0:
             return None
 
-        forecast_df = self._add_features_to_df(forecast_df, cube_inputs)
+        forecast_df = self._add_static_features_from_cube_to_df(
+            forecast_df, cube_inputs
+        )
         forecast_df, truth_df = self.filter_bad_sites(forecast_df, truth_df)
 
         result = TrainQuantileRegressionRandomForests(
@@ -404,4 +449,7 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
             transformation=self.transformation,
             pre_transform_addition=self.pre_transform_addition,
         )(forecast_df, truth_df)
-        return result
+
+        # Create a tuple that returns the model, transformation and
+        # pre_transform_addition to allow these to be saved together.
+        return (result, self.transformation, self.pre_transform_addition)

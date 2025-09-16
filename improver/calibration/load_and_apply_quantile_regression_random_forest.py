@@ -44,8 +44,6 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
         self,
         feature_config: dict[str, list[str]],
         target_cf_name: str,
-        transformation: Optional[str] = None,
-        pre_transform_addition: Optional[float] = None,
     ):
         """Initialise the plugin.
 
@@ -71,16 +69,9 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
                 A string containing the CF name of diagnostic to be calibrated. This
                 will be used to separate it from the rest of the dynamic predictors,
                 if present.
-            transformation (str):
-                Transformation to be applied to the data before fitting.
-            pre_transform_addition (float):
-                Value to be added before transformation.
-
         """
         self.feature_config = feature_config
         self.target_cf_name = target_cf_name
-        self.transformation = transformation
-        self.pre_transform_addition = pre_transform_addition
         self.quantile_forest_installed = quantile_forest_package_available()
 
     def _get_inputs(
@@ -220,7 +211,9 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
     def process(
         self,
         cube_inputs: CubeList,
-        qrf_model: Optional[RandomForestQuantileRegressor],
+        qrf_descriptors: Optional[
+            tuple[RandomForestQuantileRegressor, str, float]
+        ] = None,
     ) -> Cube:
         """Load and applying the trained Quantile Regression Random Forest (QRF) model.
         The model is applied to the forecast supplied to calibrate the forecast.
@@ -230,12 +223,19 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
         Args:
             cube_inputs: List of cubes containing the features and the forecast to be
                 calibrated.
-            qrf_model: The trained QRF model to be applied to the forecast.
+            qrf_descriptors: The trained QRF model to be applied to the forecast
+                and the transformation and pre-transform addition applied during
+                training.
 
         Returns:
             iris.cube.Cube:
                 The calibrated forecast cube.
         """
+        if qrf_descriptors is None:
+            # If no descriptors are provided, return the input forecast with a warning.
+            # Descriptors expected: (qrf_model, transformation, pre_transform_addition)
+            qrf_descriptors = (None, None, 0)
+        qrf_model, transformation, pre_transform_addition = qrf_descriptors
         cube_inputs, forecast_cube = self._get_inputs(cube_inputs, qrf_model=qrf_model)
 
         if not self.quantile_forest_installed:
@@ -256,8 +256,8 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
             target_name=self.target_cf_name,
             feature_config=self.feature_config,
             quantiles=percentiles,
-            transformation=self.transformation,
-            pre_transform_addition=self.pre_transform_addition,
+            transformation=transformation,
+            pre_transform_addition=pre_transform_addition,
         )(qrf_model, df)
         calibrated_forecast_cube = template_forecast_cube.copy(
             data=np.broadcast_to(calibrated_forecast.T, template_forecast_cube.shape)

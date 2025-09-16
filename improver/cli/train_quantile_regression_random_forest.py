@@ -13,7 +13,7 @@ from improver import cli
 def process(
     *file_paths: cli.inputpath,
     feature_config: cli.inputjson,
-    target_diagnostic_name: str,
+    parquet_diagnostic_names: cli.comma_separated_list,
     target_cf_name: str,
     forecast_periods: str,
     cycletime: str,
@@ -59,10 +59,10 @@ def process(
             "visibility_at_screen_level": ["mean", "std"]
             "distance_to_water": ["static"],
             }
-        target_diagnostic_name (str):
-            A string containing the diagnostic name of the forecast to be
-            calibrated. This will be used to filter the target forecast and truth
-            dataframes. This could be different from the CF name e.g.
+        parquet_diagnostic_names (str):
+            A string containing the diagnostic name that will be used for filtering 
+            the target diagnostic from the forecast and truth DataFrames read in 
+            from the parquet files. This could be different from the CF name e.g.
             'temperature_at_screen_level'.
         target_cf_name (str):
             A string containing the CF name of the forecast to be calibrated
@@ -111,7 +111,7 @@ def process(
     forecast_df, truth_df, cube_inputs = LoadForTrainQRF(
         experiment=experiment,
         feature_config=feature_config,
-        target_diagnostic_name=target_diagnostic_name,
+        parquet_diagnostic_names=parquet_diagnostic_names,
         target_cf_name=target_cf_name,
         forecast_periods=forecast_periods,
         cycletime=cycletime,

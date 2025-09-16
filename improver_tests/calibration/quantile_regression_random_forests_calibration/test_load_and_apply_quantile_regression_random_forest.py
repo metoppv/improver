@@ -120,9 +120,7 @@ def test_prepare_and_apply_qrf(
     result = PrepareAndApplyQRF(
         feature_config,
         "wind_speed_at_10m",
-        transformation=transformation,
-        pre_transform_addition=pre_transform_addition,
-    )(cube_inputs, qrf_model)
+    )(cube_inputs, (qrf_model, transformation, pre_transform_addition))
     assert isinstance(result, Cube)
 
     assert result.data.shape == (len(quantiles), 2)
@@ -207,42 +205,48 @@ def test_unexpected(
     plugin = PrepareAndApplyQRF(
         feature_config,
         "wind_speed_at_10m",
-        transformation=transformation,
-        pre_transform_addition=pre_transform_addition,
     )
 
     if exception == "no_model_output":
-        result = plugin(cube_inputs, qrf_model=None)
+        result = plugin(cube_inputs, qrf_descriptors=None)
         assert isinstance(result, Cube)
         assert result.name() == "wind_speed_at_10m"
         assert result.units == "m s-1"
         assert result.data.shape == forecast_cube.data.shape
         assert np.allclose(result.data, forecast_cube.data)
     elif exception == "no_features":
+        qrf_descriptors = (qrf_model, transformation, pre_transform_addition)
         with pytest.raises(ValueError, match="No target forecast provided."):
-            plugin(CubeList(), qrf_model=qrf_model)
+            plugin(CubeList(), qrf_descriptors=qrf_descriptors)
     elif exception == "missing_target_feature":
+        qrf_descriptors = (qrf_model, transformation, pre_transform_addition)
         with pytest.raises(ValueError, match="No target forecast provided."):
-            plugin(CubeList([ancil_cube]), qrf_model=qrf_model)
+            plugin(
+                CubeList([ancil_cube]),
+                qrf_descriptors=qrf_descriptors,
+            )
     elif exception == "missing_static_feature":
+        qrf_descriptors = (qrf_model, transformation, pre_transform_addition)
         feature_config = {
             "wind_speed_at_10m": ["mean", "std"],
             "distance_to_water": ["static"],
         }
         plugin.feature_config = feature_config
         with pytest.raises(ValueError, match="The number of cubes loaded."):
-            plugin(CubeList([forecast_cube]), qrf_model=qrf_model)
+            plugin(CubeList([forecast_cube]), qrf_descriptors=qrf_descriptors)
     elif exception == "missing_dynamic_feature":
+        qrf_descriptors = (qrf_model, transformation, pre_transform_addition)
         feature_config = {
             "wind_speed_at_10m": ["mean", "std"],
             "air_temperature": ["mean", "std"],
         }
         plugin.feature_config = feature_config
         with pytest.raises(ValueError, match="The number of cubes loaded."):
-            plugin(CubeList([forecast_cube]), qrf_model=qrf_model)
+            plugin(CubeList([forecast_cube]), qrf_descriptors=qrf_descriptors)
     elif exception == "no_quantile_forest_package":
+        qrf_descriptors = (qrf_model, transformation, pre_transform_addition)
         plugin.quantile_forest_installed = False
-        result = plugin(CubeList([forecast_cube]), qrf_model=qrf_model)
+        result = plugin(CubeList([forecast_cube]), qrf_descriptors=qrf_descriptors)
         assert isinstance(result, Cube)
         assert result.name() == "wind_speed_at_10m"
         assert result.units == "m s-1"

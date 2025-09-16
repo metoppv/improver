@@ -287,7 +287,7 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
         self,
         forecast_df: pd.DataFrame,
         truth_df: pd.DataFrame,
-    ) -> None:
+    ) -> RandomForestQuantileRegressor:
         """Train a quantile regression random forests model.
 
         Args:
@@ -356,7 +356,7 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
         feature_config: dict[str, list[str]],
         quantiles: list[np.float32],
         transformation: str = None,
-        pre_transform_addition: np.float32 = 0,
+        pre_transform_addition: np.float32 = 0,        
     ) -> None:
         """Initialise the plugin.
 
@@ -384,7 +384,7 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
             transformation (str):
                 Transformation to be applied to the data before fitting.
             pre_transform_addition (float):
-                Value to be added before transformation.
+                Value to be added before transformation.                
 
         Raises:
             ValueError: If the transformation is not one of the supported types.
@@ -395,7 +395,7 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
         self.quantiles = quantiles
         self.transformation = transformation
         _check_valid_transformation(self.transformation)
-        self.pre_transform_addition = pre_transform_addition
+        self.pre_transform_addition = pre_transform_addition        
 
     def _reverse_transformation(self, forecast: np.ndarray) -> np.ndarray:
         """Reverse the transformation applied to the data prior to fitting the QRF.
