@@ -4,13 +4,17 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Module to contain Condensation trail formation calculations."""
 
-from typing import Union
+from typing import Tuple, Union
 
 import numpy as np
 from iris.cube import Cube, CubeList
 
 from improver import BasePlugin
 from improver.constants import EARTH_REPSILON
+from improver.generate_ancillaries.generate_svp_derivative_table import (
+    SaturatedVapourPressureDerivativeTable,
+    SaturatedVapourPressureTable,
+)
 from improver.psychrometric_calculations.psychrometric_calculations import (
     calculate_svp_in_air,
 )
@@ -30,6 +34,8 @@ class CondensationTrailFormation(BasePlugin):
     water and air (EARTH_REPSILON), and defined values for the engine
     contrail factor.
 
+    .. include:: extended_documentation/psychrometric_calculations/condensation_trails/appleman_diagram.rst
+
     References:
         Schrader, M.L., 1997. Calculations of aircraft contrail
         formation critical temperatures. Journal of Applied
@@ -40,6 +46,8 @@ class CondensationTrailFormation(BasePlugin):
     humidity = None
     pressure_levels = None
     engine_mixing_ratios = None
+    critical_temperatures = None
+    critical_intercepts = None
 
     def __init__(self, engine_contrail_factors: list = [3e-5, 3.4e-5, 3.9e-5]):
         """Initialises the Class
@@ -67,8 +75,7 @@ class CondensationTrailFormation(BasePlugin):
         weights of water and air on Earth.
 
         Returns:
-            np.ndarray: The mixing ratio of the atmosphere and aircraft
-                exhaust, provided in units: Pa/K.
+            np.ndarray: The mixing ratio of the atmosphere and aircraft exhaust, provided in units: Pa/K.
         """
         return (
             pressure_levels[np.newaxis, :]
@@ -84,8 +91,7 @@ class CondensationTrailFormation(BasePlugin):
             pressure_levels (np.ndarray): Pressure levels (Pa).
 
         Returns:
-            np.ndarray: The localised vapour pressure at the given
-                pressure levels (Pa).
+            np.ndarray: The localised vapour pressure at the given pressure levels (Pa).
         """
         # Pressure levels has to be reshaped to match the temperature and humidity dimensions
         pressure_levels_reshaped = np.reshape(
@@ -96,6 +102,175 @@ class CondensationTrailFormation(BasePlugin):
             temperature=self.temperature, pressure=pressure_levels_reshaped
         )
         return self.relative_humidity * svp
+
+    @staticmethod
+    def _critical_temperatures_and_intercepts_for_given_contrail_factor(
+        mixing_ratios: np.ndarray,
+        relative_humidity: np.ndarray,
+        svp: np.ndarray,
+        svp_derivative: np.ndarray,
+        temperature: np.ndarray,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Calculate the critical temperatures and critical intercepts on pressure levels
+        for a single engine contrail factor.
+
+        These are calculated at each pressure level by drawing a tangent to the saturation
+        vapour pressure curve with respect to water. The tangent gradient is equal to the
+        engine mixing ratio.
+
+        .. include:: extended_documentation/psychrometric_calculations/condensation_trails/critical_temperatures.rst
+
+        Args:
+            mixing_ratios (np.ndarray): Engine mixing ratios on pressure levels. Pressure is the leading axis (Pa/K).
+            relative_humidity (np.ndarray): Relative humidity on pressure levels. Pressure is the leading axis (kg/kg).
+            svp (np.ndarray): Lookup table of saturation vapour pressure with respect to water (Pa).
+            svp_derivative (np.ndarray): Lookup table of the first derivative of saturation vapour pressure with respect to water (Pa/K).
+            temperature (np.ndarray): Air temperatures corresponding to both lookup tables (K).
+
+        Returns:
+            Tuple[np.ndarray, np.ndarray]: Arrays of critical temperatures on pressure levels (K), and critical intercepts on pressure levels (Pa).
+
+        """
+        num_pressure_levels = mixing_ratios.shape[0]
+
+        # maximum critical temperature (at 100% relative humidity) is given by
+        # the point on the SVP derivative curve that is equal to the engine mixing
+        # ratio
+        ind_max = [(np.abs(svp_derivative - m)).argmin() for m in mixing_ratios]
+        tangent_gradient = svp_derivative[ind_max]
+        critical_temperature_maximum = temperature[ind_max]
+
+        # tangent to SVP curve, with gradient equal to the engine mixing ratio
+        critical_intercepts = (
+            svp[ind_max] - tangent_gradient * critical_temperature_maximum
+        )
+        tangent_vapour_pressure = (
+            tangent_gradient[:, np.newaxis] * temperature[np.newaxis, :]
+            + critical_intercepts[:, np.newaxis]
+        )
+
+        # minimum critical temperature (at 0% relative humidity) is given by
+        # point at which the tangent crosses the line of zero vapour pressure
+        ind_min = [
+            np.abs(tangent_vapour_pressure[i, :]).argmin()
+            for i in range(num_pressure_levels)
+        ]
+        critical_temperature_minimum = temperature[ind_min]
+
+        # critical temperature for all relative humidites (0% to 100%)
+        critical_temperature_all_relative_humidities = np.array(
+            [
+                np.linspace(
+                    critical_temperature_minimum[i],
+                    critical_temperature_maximum[i],
+                    num=100,
+                )
+                for i in range(num_pressure_levels)
+            ]
+        )
+
+        # vapour pressure at critical temperature
+        e = np.array(
+            [
+                np.interp(
+                    critical_temperature_all_relative_humidities[i],
+                    temperature,
+                    tangent_vapour_pressure[i],
+                )
+                for i in range(num_pressure_levels)
+            ]
+        )
+
+        # saturation vapour pressure at critical temperature
+        esat = np.array(
+            [
+                np.interp(
+                    critical_temperature_all_relative_humidities[i],
+                    temperature,
+                    svp,
+                )
+                for i in range(num_pressure_levels)
+            ]
+        )
+
+        # critical temperature at given relative humidities
+        critical_temperatures = np.array(
+            [
+                np.interp(
+                    relative_humidity[i],
+                    e[i] / esat[i],
+                    critical_temperature_all_relative_humidities[i],
+                )
+                for i in range(num_pressure_levels)
+            ]
+        )
+        return critical_temperatures, critical_intercepts
+
+    @staticmethod
+    def _calculate_critical_temperatures_and_intercepts(
+        engine_mixing_ratios: np.ndarray,
+        relative_humidity: np.ndarray,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Calculate the critical temperatures and intercepts on pressure levels for all engine contrail factors.
+
+        Args:
+            engine_mixing_ratios (np.ndarray): Engine mixing ratios on pressure levels. Engine contrail factors are the leading axis (Pa/K).
+            relative_humidity (np.ndarray): Relative humidity on pressure levels. Pressure is the leading axis (kg/kg).
+
+        Returns:
+            Tuple[np.ndarray, np.ndarry]: Arrays of critical temperatures on pressure levels for all engine contrail factors (K), and critical intercepts on pressure levels for all engine contrail factors (Pa).
+        """
+        if not (
+            isinstance(engine_mixing_ratios, np.ndarray)
+            and isinstance(relative_humidity, np.ndarray)
+        ):
+            raise TypeError(
+                f"Incorrect types for engine_mixing_ratios (expected {np.ndarray}, got {type(engine_mixing_ratios)}) "
+                f"and relative_humidity (expected {np.ndarray}, got {type(relative_humidity)})."
+            )
+        if engine_mixing_ratios.ndim != 2:
+            raise ValueError(
+                f"Incorrect number of dimensions for engine_mixing_ratios (expected 2, got {engine_mixing_ratios.ndim:d})."
+            )
+        if relative_humidity.ndim != 2 and relative_humidity.ndim != 3:
+            raise ValueError(
+                f"Incorrect number of dimensions for relative_humidity (expected 2 or 3, got {relative_humidity.ndim:d})."
+            )
+        if engine_mixing_ratios.shape[1] != relative_humidity.shape[0]:
+            raise ValueError(
+                f"Mismatch between dimension 1 of engine_mixing_ratios ({engine_mixing_ratios.shape[1]:d}) and dimension 0 "
+                f"of relative_humidity ({relative_humidity.shape[0]:d})."
+            )
+
+        critical_temperatures = np.zeros(
+            ((engine_mixing_ratios.shape[0],) + relative_humidity.shape),
+            dtype=np.float32,
+        )
+        critical_intercepts = np.zeros(
+            critical_temperatures.shape[:2], dtype=np.float32
+        )
+
+        svp_table = SaturatedVapourPressureTable(
+            183.15, 253.15, water_only=True
+        ).process()
+        svp_derivative_table = SaturatedVapourPressureDerivativeTable(
+            183.15, 253.15, water_only=True
+        ).process()
+
+        for i, mixing_ratios in enumerate(engine_mixing_ratios):
+            critical_temperatures[i], critical_intercepts[i] = (
+                CondensationTrailFormation._critical_temperatures_and_intercepts_for_given_contrail_factor(
+                    mixing_ratios,
+                    relative_humidity,
+                    svp_table.data,
+                    svp_derivative_table.data,
+                    svp_table.coord("air_temperature").points,
+                )
+            )
+
+        return critical_temperatures, critical_intercepts
 
     def process_from_arrays(
         self,
@@ -111,7 +286,7 @@ class CondensationTrailFormation(BasePlugin):
 
         Args:
             temperature (np.ndarray): Temperature data on pressure levels where pressure is the leading axis (K).
-            relative_humidity (np.ndarray): Relative humidity data on pressure levels where pressure is the leading axis (kg kg-1).
+            relative_humidity (np.ndarray): Relative humidity data on pressure levels where pressure is the leading axis (kg/kg).
             pressure_levels (np.ndarray): Pressure levels (Pa).
 
         Returns:
@@ -126,6 +301,12 @@ class CondensationTrailFormation(BasePlugin):
         )
         self.local_vapour_pressure = self._find_local_vapour_pressure(
             self.pressure_levels
+        )
+        self.critical_temperatures, self.critical_intercepts = (
+            CondensationTrailFormation._calculate_critical_temperatures_and_intercepts(
+                self.engine_mixing_ratios,
+                self.relative_humidity,
+            )
         )
         return self.engine_mixing_ratios
 
