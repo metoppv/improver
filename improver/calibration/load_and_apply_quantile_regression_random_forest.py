@@ -131,46 +131,21 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
         return cube_inputs, forecast_cube
 
     @staticmethod
-    def _compute_percentiles(forecast_cube: Cube, coord: str) -> list[float]:
-        """Compute the percentiles from the forecast cube.
+    def _compute_quantile_list(forecast_cube: Cube, coord: str) -> list[float]:
+        """Compute the list of quantiles e.g. 0.25, 0.5, 0.75 that will be produced
+        by using the forecast cube.
 
         Args:
             forecast_cube: Forecast to be calibrated.
             coord: Coordinate name. The length of the coordinate will be used to
-                determine the number of percentiles to compute.
+                determine the number of quantiles to compute.
 
         Returns:
-            List of percentiles computed from the forecast cube.
+            List of quantiles (e.g. 0.25, 0.5, 0.75) computed from the forecast cube.
         """
         n_percentiles = len(forecast_cube.coord(coord).points)
-        percentiles = (
-            np.array(choose_set_of_percentiles(n_percentiles)) / 100
-        ).tolist()
-        return percentiles
-
-    @staticmethod
-    def _percentiles_to_realizations(cube_inputs: CubeList) -> CubeList:
-        """Convert percentiles to realizations. The input forecasts are expected to
-        be percentiles but these percentiles are rebadged as realizations.
-
-        Args:
-            cube_inputs:
-                List of cubes containing the features and the forecast to be calibrated.
-                Some may be percentiles.
-        Returns:
-            cube_inputs:
-                List of cubes with percentiles rebadged as realizations,
-                where appropriate
-        """
-
-        # Ensure there is a realization dimension on all cubes. This assumes a
-        # percentile dimension is present.
-        realization_cube_inputs = iris.cube.CubeList([])
-        for feature_cube in cube_inputs:
-            if feature_cube.coords("percentile"):
-                feature_cube = RebadgePercentilesAsRealizations()(feature_cube)
-            realization_cube_inputs.append(feature_cube)
-        return realization_cube_inputs
+        quantiles = (np.array(choose_set_of_percentiles(n_percentiles)) / 100).tolist()
+        return quantiles
 
     @staticmethod
     def _cube_to_dataframe(cube_inputs: CubeList) -> pd.DataFrame:
@@ -242,23 +217,23 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
         if cube_inputs:
             assert_spatial_coords_match(cube_inputs)
 
-        if not self.quantile_forest_installed:
-            return forecast_cube
-        if not qrf_model:
+        if not self.quantile_forest_installed or not qrf_model:
             return forecast_cube
 
         template_forecast_cube = forecast_cube.copy()
-        if forecast_cube.coords("percentile"):
-            percentiles = self._compute_percentiles(forecast_cube.copy(), "percentile")
-        elif forecast_cube.coords("realization"):
-            percentiles = self._compute_percentiles(forecast_cube.copy(), "realization")
+        if forecast_cube.coords("realization"):
+            quantile_list = self._compute_quantile_list(
+                forecast_cube.copy(), "realization"
+            )
+        elif forecast_cube.coords("percentile"):
+            quantile_list = forecast_cube.coord("percentile").points / 100.0
 
         df = self._cube_to_dataframe(cube_inputs)
 
         calibrated_forecast = ApplyQuantileRegressionRandomForests(
             target_name=self.target_cf_name,
             feature_config=self.feature_config,
-            quantiles=percentiles,
+            quantiles=quantile_list,
             transformation=transformation,
             pre_transform_addition=pre_transform_addition,
         )(qrf_model, df)

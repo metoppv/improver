@@ -397,9 +397,6 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
             pre_transform_addition (float):
                 Value to be added before transformation.
 
-        Raises:
-            ValueError: If the transformation is not one of the supported types.
-
         """
         self.target_name = target_name
         self.feature_config = feature_config
@@ -468,7 +465,7 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
         calibrated_forecast = qrf_model.predict(
             feature_values, quantiles=self.quantiles
         )
+        calibrated_forecast = self._reverse_transformation(calibrated_forecast)
         calibrated_forecast = np.float32(calibrated_forecast)
 
-        calibrated_forecast = self._reverse_transformation(calibrated_forecast)
         return calibrated_forecast
