@@ -45,18 +45,26 @@ def _add_day_of_training_period_to_cube(cube, day_of_training_period, secondary_
 
 @pytest.mark.parametrize("percentile_input", [True, False])
 @pytest.mark.parametrize(
-    "n_estimators,max_depth,random_state,compression,transformation,pre_transform_addition,extra_kwargs,include_static,quantiles,expected",
+    "n_estimators,max_depth,random_state,transformation,pre_transform_addition,extra_kwargs,include_dynamic,include_static,include_nans,include_latlon_nans,quantiles,expected",
     [
-        (2, 2, 55, 5, None, 0, {}, False, [0.5], [4.1, 5.65]),  # noqa Basic test case
-        (100, 2, 55, 5, None, 0, {}, False, [1 / 3, 2 / 3], [[4.1, 5.1], [5.1, 5.1]]),  # noqa Multiple quantiles
-        (1, 1, 55, 5, None, 0, {}, False, [0.5], [4.1, 6.2]),  # noqa Fewer estimators and reduced depth
-        (1, 1, 73, 5, None, 0, {}, False, [0.5], [4.2, 6.2]),  # Different random state
-        (2, 2, 55, 5, "log", 10, {}, False, [0.5], [4.1, 5.64]),  # Log transformation
-        (2, 2, 55, 5, "log10", 10, {}, False, [0.5], [4.1, 5.64]),  # noqa Log10 transformation
-        (2, 2, 55, 5, "sqrt", 10, {}, False, [0.5], [4.1, 5.64]),  # noqa Square root transformation
-        (2, 2, 55, 5, "cbrt", 10, {}, False, [0.5], [4.1, 5.64]),  # noqa Cube root transformation
-        (2, 2, 55, 5, None, 0, {"max_samples_leaf": 0.5}, False, [0.5], [4.1, 6.2]),  # noqa # Different criterion
-        (2, 5, 55, 5, None, 0, {}, True, [0.5], [4.1, 5.65]),  # noqa Include an additional static feature
+        (2, 2, 55, None, 0, {}, False, False, False, False, [0.5], [4.1, 5.65]),  # noqa Basic test case
+        (100, 2, 55, None, 0, {}, False, False, False, False, [1 / 3, 2 / 3], [[4.1, 5.1], [5.1, 5.1]]),  # noqa Multiple quantiles
+        (1, 1, 55, None, 0, {}, False, False, False, False, [0.5], [4.1, 6.2]),  # noqa Fewer estimators and reduced depth
+        (1, 1, 73, None, 0, {}, False, False, False, False, [0.5], [4.2, 6.2]),  # Different random state
+        (2, 2, 55, "log", 10, {}, False, False, False, False, [0.5], [4.1, 5.64]),  # Log transformation
+        (2, 2, 55, "log10", 10, {}, False, False, False, False,[0.5], [4.1, 5.64]),  # noqa Log10 transformation
+        (2, 2, 55, "sqrt", 10, {}, False, False, False, False,[0.5], [4.1, 5.64]),  # noqa Square root transformation
+        (2, 2, 55, "cbrt", 10, {}, False, False, False, False,[0.5], [4.1, 5.64]),  # noqa Cube root transformation
+        (2, 2, 55, None, 0, {"max_samples_leaf": 0.5}, False, False, False, False, [0.5], [4.1, 6.2]),  # noqa # Different criterion
+        (2, 5, 55, None, 0, {}, True, False, False, False, [0.5], [4.1, 4.6]),  # noqa Include an additional dynamic feature
+        (2, 5, 55, None, 0, {}, False, True, False, False, [0.5], [4.1, 5.65]),  # noqa Include an additional static feature
+        (2, 5, 55, None, 0, {}, True, True, False, False, [0.5], [4.1, 4.6]),  # noqa Include an additional dynamic and static feature
+        (2, 2, 55, None, 0, {}, False, False, True, False, [0.5], [4.1, 5.65]),  # noqa NaNs in input data
+        (2, 2, 55, None, 0, {}, False, False, False, True, [0.5], [4.1, 5.65]),  # noqa NaNs in lat/lon
+        (2, 2, 55, None, 0, {}, True, False, False, True, [0.5], [4.1, 4.6]),  # noqa NaNs in lat/lon and dynamic feature
+        (2, 2, 55, None, 0, {}, False, True, False, True, [0.5], [4.1, 5.65]),  # noqa NaNs in lat/lon and static feature
+        (2, 2, 55, None, 0, {}, True, True, False, True, [0.5], [4.1, 4.6]),  # noqa NaNs in lat/lon, dynamic and static feature
+        (2, 2, 55, None, 0, {}, True, True, True, True, [0.5], [4.6, 4.6]),  # noqa NaNs in lat/lon, dynamic and static feature and input data
     ],
 )
 def test_prepare_and_apply_qrf(
@@ -64,23 +72,29 @@ def test_prepare_and_apply_qrf(
     n_estimators,
     max_depth,
     random_state,
-    compression,
     transformation,
     pre_transform_addition,
     extra_kwargs,
+    include_dynamic,
     include_static,
+    include_nans,
+    include_latlon_nans,
     quantiles,
     expected,
 ):
     """Test the PrepareAndApplyQRF plugin."""
     feature_config = {"wind_speed_at_10m": ["mean", "std", "latitude", "longitude"]}
 
+    if include_dynamic:
+        feature_config["air_temperature"] = ["mean", "std"]
+    if include_static:
+        feature_config["distance_to_water"] = ["static"]
+
     qrf_model = _run_train_qrf(
         feature_config,
         n_estimators,
         max_depth,
         random_state,
-        compression,
         transformation,
         pre_transform_addition,
         extra_kwargs,
@@ -112,9 +126,36 @@ def test_prepare_and_apply_qrf(
         forecast_cube = RebadgeRealizationsAsPercentiles()(forecast_cube)
 
     cube_inputs.append(forecast_cube)
+    if include_dynamic:
+        dynamic_cube = _create_forecasts(
+            frt,
+            vt,
+            data + 0.5,  # Slightly different data to the target feature
+            return_cube=True,
+        )
+        dynamic_cube.rename("air_temperature")
+        dynamic_cube = _add_day_of_training_period_to_cube(
+            dynamic_cube, day_of_training_period, "forecast_reference_time"
+        )
+        cube_inputs.append(dynamic_cube)
+
     if include_static:
         ancil_cube = _create_ancil_file(return_cube=True)
         cube_inputs.append(ancil_cube)
+
+    if include_nans:
+        # Add some NaNs to the input data to check that they are handled
+        for cube in cube_inputs:
+            if cube.name() == "distance_to_water":
+                cube.data[0] = np.nan
+            else:
+                cube.data[0, 0] = np.nan
+
+    if include_latlon_nans:
+        # Add some NaNs to the latitude and longitude to check that they are handled
+        for cube in cube_inputs:
+            cube.coord("latitude").points[1] = np.nan
+            cube.coord("longitude").points[1] = np.nan
 
     # cube_inputs, qrf_model = LoadForApplyQRF()(file_paths)
     result = PrepareAndApplyQRF(
@@ -161,7 +202,6 @@ def test_unexpected(
     n_estimators = 2
     max_depth = 2
     random_state = 55
-    compression = 5
     transformation = None
     pre_transform_addition = 0
     extra_kwargs = {}
@@ -173,7 +213,6 @@ def test_unexpected(
         n_estimators,
         max_depth,
         random_state,
-        compression,
         transformation,
         pre_transform_addition,
         extra_kwargs,

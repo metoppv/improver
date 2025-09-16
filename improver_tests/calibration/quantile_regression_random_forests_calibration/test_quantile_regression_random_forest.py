@@ -42,6 +42,7 @@ def _create_forecasts(
     forecast_reference_time: str,
     validity_time: str,
     data: list[int],
+    representation: str = "realization",
     return_cube: bool = False,
 ) -> Cube | pd.DataFrame:
     """Create site forecast cube with realizations.
@@ -68,6 +69,12 @@ def _create_forecasts(
         time=dt.strptime(validity_time, DT_FORMAT),
         frt=dt.strptime(forecast_reference_time, DT_FORMAT),
     )
+    if representation == "percentile":
+        increment = (1 / (len(cube.coord("realization").points) + 1)) * 100
+        cube.coord("realization").rename("percentile")
+        percentiles = np.array(np.arange(increment, 100, increment), dtype=np.float32)
+        cube.coord("percentile").points = percentiles
+
     if return_cube:
         return cube
     df = as_data_frame(
@@ -142,7 +149,6 @@ def _run_train_qrf(
     n_estimators,
     max_depth,
     random_state,
-    compression,
     transformation,
     pre_transform_addition,
     extra_kwargs,
@@ -162,6 +168,7 @@ def _run_train_qrf(
     realization_data=[2, 6, 10],
     truth_data=[4.2, 3.8, 5.8, 6, 7, 7.3, 9.1, 9.5],
     tmp_path=None,
+    compression=5,
 ):
     realization_data = np.array(realization_data, dtype=np.float32)
     forecast_dfs = []
@@ -226,8 +233,9 @@ def test_quantile_forest_package_available():
     assert result == expected
 
 
+@pytest.mark.parametrize("representation", ["percentile", "realization"])
 @pytest.mark.parametrize(
-    "feature,expected,expected_dtype",
+    "feature_name,expected,expected_dtype",
     [
         ("mean", np.tile(np.array([6, 8], dtype=np.float32), 3), np.float32),
         ("std", np.repeat(4, 6).astype(np.float32), np.float32),
@@ -257,17 +265,21 @@ def test_quantile_forest_package_available():
         ("static", np.tile(np.array([2, 3], dtype=np.float32), 3), np.float32),
     ],
 )
-def test_prep_feature_single_time(feature, expected, expected_dtype):
+def test_prep_feature_single_time(
+    representation, feature_name, expected, expected_dtype
+):
     """Test the prep_feature function for a single time."""
-    feature_name = "wind_speed_at_10m"
+    variable_name = "wind_speed_at_10m"
 
     forecast_reference_time = "20170101T0000Z"
     validity_time = "20170101T1200Z"
     data = np.array([2, 6, 10])
-    forecast_df = _create_forecasts(forecast_reference_time, validity_time, data)
+    forecast_df = _create_forecasts(
+        forecast_reference_time, validity_time, data, representation
+    )
     forecast_df = _add_day_of_training_period(forecast_df)
 
-    if feature == "static":
+    if feature_name == "static":
         feature_df = _create_ancil_file()
         forecast_df = forecast_df.merge(
             feature_df[["wmo_id", "distance_to_water"]], on=["wmo_id"], how="left"
@@ -275,12 +287,12 @@ def test_prep_feature_single_time(feature, expected, expected_dtype):
     else:
         forecast_df = forecast_df.copy()
 
-    result = prep_feature(forecast_df, feature_name, feature)
+    result = prep_feature(forecast_df, variable_name, feature_name)
 
-    if feature in ["mean", "std"]:
+    if feature_name in ["mean", "std"]:
         assert result.shape == (6, 12)
-        feature_name_modified = f"{feature_name}_{feature}"
-    elif feature in [
+        variable_name_modified = f"{variable_name}_{feature_name}"
+    elif feature_name in [
         "day_of_year",
         "day_of_year_sin",
         "day_of_year_cos",
@@ -289,20 +301,44 @@ def test_prep_feature_single_time(feature, expected, expected_dtype):
         "hour_of_day_cos",
     ]:
         assert result.shape == (6, 12)
-        feature_name_modified = feature
-    elif feature in ["static"]:
+        variable_name_modified = feature_name
+    elif feature_name in ["static"]:
         assert result.shape == (6, 12)
-        feature_name_modified = "distance_to_water"
+        variable_name_modified = "distance_to_water"
     else:
         assert result.shape == (6, 11)
-        feature_name_modified = feature
+        variable_name_modified = feature_name
 
-    assert result[feature_name_modified].dtype == expected_dtype
-    np.testing.assert_allclose(result[feature_name_modified], expected, atol=1e-6)
+    assert result[variable_name_modified].dtype == expected_dtype
+    np.testing.assert_allclose(result[variable_name_modified], expected, atol=1e-6)
+
+
+@pytest.mark.parametrize("scenario", ["uneven_percentiles1", "uneven_percentiles2"])
+def test_prep_feature_invalid_percentiles(scenario):
+    """Test that an error is raised if invalid percentiles are provided."""
+    variable_name = "wind_speed_at_10m"
+
+    forecast_reference_time = "20170101T0000Z"
+    validity_time = "20170101T1200Z"
+    data = np.array([2, 6, 10])
+    forecast_df = _create_forecasts(
+        forecast_reference_time, validity_time, data, representation="percentile"
+    )
+    forecast_df = _add_day_of_training_period(forecast_df)
+
+    if scenario == "uneven_percentiles1":
+        forecast_df.replace(to_replace={25: 10, 50: 20, 75: 20}, inplace=True)
+    elif scenario == "uneven_percentiles2":
+        forecast_df.replace(to_replace={25: 10, 75: 90}, inplace=True)
+
+    with pytest.raises(
+        ValueError, match="Forecast percentiles must be equally spaced."
+    ):
+        prep_feature(forecast_df, variable_name, "mean")
 
 
 @pytest.mark.parametrize(
-    "feature,expected,expected_dtype",
+    "feature_name,expected,expected_dtype",
     [
         ("mean", np.tile([6, 8], 18).astype(np.float32), np.float32),
         ("std", np.repeat(4, 36).astype(np.float32), np.float32),
@@ -344,7 +380,7 @@ def test_prep_feature_single_time(feature, expected, expected_dtype):
         ("static", np.tile([2, 3], 18).astype(np.float32), np.float32),
     ],
 )
-def test_prep_feature_more_times(feature, expected, expected_dtype):
+def test_prep_feature_more_times(feature_name, expected, expected_dtype):
     """Test the prep_feature function for multiple times."""
     forecast_reference_times = [
         "20170101T0000Z",
@@ -365,7 +401,7 @@ def test_prep_feature_more_times(feature, expected, expected_dtype):
 
     data = np.array([2, 6, 10])
 
-    feature_name = "wind_speed_at_10m"
+    variable_name = "wind_speed_at_10m"
 
     data = np.array([2, 6, 10])
 
@@ -375,7 +411,7 @@ def test_prep_feature_more_times(feature, expected, expected_dtype):
     forecast_df = pd.concat(forecast_dfs)
     forecast_df = _add_day_of_training_period(forecast_df)
 
-    if feature == "static":
+    if feature_name == "static":
         feature_df = _create_ancil_file()
         forecast_df = forecast_df.merge(
             feature_df[["wmo_id", "distance_to_water"]], on=["wmo_id"], how="left"
@@ -384,12 +420,12 @@ def test_prep_feature_more_times(feature, expected, expected_dtype):
     else:
         forecast_df = forecast_df.copy()
 
-    result = prep_feature(forecast_df, feature_name, feature)
+    result = prep_feature(forecast_df, variable_name, feature_name)
 
-    if feature in ["mean", "std"]:
+    if feature_name in ["mean", "std"]:
         assert result.shape == (36, 12)
-        feature_name_modified = f"{feature_name}_{feature}"
-    elif feature in [
+        variable_name_modified = f"{variable_name}_{feature_name}"
+    elif feature_name in [
         "day_of_year",
         "day_of_year_sin",
         "day_of_year_cos",
@@ -398,16 +434,16 @@ def test_prep_feature_more_times(feature, expected, expected_dtype):
         "hour_of_day_cos",
     ]:
         assert result.shape == (36, 12)
-        feature_name_modified = feature
-    elif feature in ["static"]:
+        variable_name_modified = feature_name
+    elif feature_name in ["static"]:
         assert result.shape == (36, 12)
-        feature_name_modified = "distance_to_water"
+        variable_name_modified = "distance_to_water"
     else:
         assert result.shape == (36, 11)
-        feature_name_modified = feature
+        variable_name_modified = feature_name
 
-    assert result[feature_name_modified].dtype == expected_dtype
-    np.testing.assert_allclose(result[feature_name_modified], expected, atol=1e-6)
+    assert result[variable_name_modified].dtype == expected_dtype
+    np.testing.assert_allclose(result[variable_name_modified], expected, atol=1e-6)
 
 
 @pytest.mark.parametrize(
@@ -516,24 +552,23 @@ def test_check_valid_transformation(transformation):
 
 
 @pytest.mark.parametrize(
-    "n_estimators,max_depth,random_state,compression,transformation,pre_transform_addition,extra_kwargs,include_static,expected",
+    "n_estimators,max_depth,random_state,transformation,pre_transform_addition,extra_kwargs,include_static,expected",
     [
-        (2, 2, 55, 5, None, 0, {}, False, 4.2),  # Basic test case
-        (2, 2, 54, 5, None, 0, {}, False, 4.15),  # Different random state
-        (1, 1, 54, 5, None, 0, {}, False, 4.2),  # Fewer estimators and reduced depth
-        (2, 2, 55, 5, "log", 10, {}, False, 2.65),  # Log transformation
-        (2, 2, 55, 5, "log10", 10, {}, False, 1.15),  # Log10 transformation
-        (2, 2, 55, 5, "sqrt", 10, {}, False, 3.76),  # Square root transformation
-        (2, 2, 55, 5, "cbrt", 10, {}, False, 2.42),  # Cube root transformation
-        (2, 2, 55, 5, None, 0, {"criterion": "absolute_error"}, False, 4.2),  # noqa # Different criterion
-        (2, 5, 55, 5, None, 0, {}, True, 4.2),  # Include static data
+        (2, 2, 55, None, 0, {}, False, 4.2),  # Basic test case
+        (2, 2, 54, None, 0, {}, False, 4.15),  # Different random state
+        (1, 1, 54, None, 0, {}, False, 4.2),  # Fewer estimators and reduced depth
+        (2, 2, 55, "log", 10, {}, False, 2.65),  # Log transformation
+        (2, 2, 55, "log10", 10, {}, False, 1.15),  # Log10 transformation
+        (2, 2, 55, "sqrt", 10, {}, False, 3.76),  # Square root transformation
+        (2, 2, 55, "cbrt", 10, {}, False, 2.42),  # Cube root transformation
+        (2, 2, 55, None, 0, {"criterion": "absolute_error"}, False, 4.2),  # noqa # Different criterion
+        (2, 5, 55, None, 0, {}, True, 4.2),  # Include static data
     ],
 )
 def test_train_qrf_single_lead_times(
     n_estimators,
     max_depth,
     random_state,
-    compression,
     transformation,
     pre_transform_addition,
     extra_kwargs,
@@ -550,7 +585,6 @@ def test_train_qrf_single_lead_times(
         n_estimators,
         max_depth,
         random_state,
-        compression,
         transformation,
         pre_transform_addition,
         extra_kwargs,
@@ -581,24 +615,23 @@ def test_train_qrf_single_lead_times(
 
 
 @pytest.mark.parametrize(
-    "n_estimators,max_depth,random_state,compression,transformation,pre_transform_addition,extra_kwargs,include_static,expected",
+    "n_estimators,max_depth,random_state,transformation,pre_transform_addition,extra_kwargs,include_static,expected",
     [
-        (2, 2, 55, 5, None, 0, {}, False, 5.8),  # Basic test case
-        (1, 1, 55, 5, None, 0, {}, False, 3.8),  # Fewer estimators and reduced depth
-        (1, 1, 73, 5, None, 0, {}, False, 5.8),  # Different random state
-        (2, 2, 55, 5, "log", 10, {}, False, 2.752),  # Log transformation
-        (2, 2, 55, 5, "log10", 10, {}, False, 1.195),  # Log10 transformation
-        (2, 2, 55, 5, "sqrt", 10, {}, False, 3.964),  # Square root transformation
-        (2, 2, 55, 5, "cbrt", 10, {}, False, 2.504),  # Cube root transformation
-        (2, 2, 55, 5, None, 0, {"criterion": "absolute_error"}, False, 5.8),  # noqa # Different criterion
-        (1, 1, 73, 5, None, 0, {}, True, 3.8),  # Include static data
+        (2, 2, 55, None, 0, {}, False, 5.8),  # Basic test case
+        (1, 1, 55, None, 0, {}, False, 3.8),  # Fewer estimators and reduced depth
+        (1, 1, 73, None, 0, {}, False, 5.8),  # Different random state
+        (2, 2, 55, "log", 10, {}, False, 2.752),  # Log transformation
+        (2, 2, 55, "log10", 10, {}, False, 1.195),  # Log10 transformation
+        (2, 2, 55, "sqrt", 10, {}, False, 3.964),  # Square root transformation
+        (2, 2, 55, "cbrt", 10, {}, False, 2.504),  # Cube root transformation
+        (2, 2, 55, None, 0, {"criterion": "absolute_error"}, False, 5.8),  # noqa # Different criterion
+        (1, 1, 73, None, 0, {}, True, 3.8),  # Include static data
     ],
 )
 def test_train_qrf_multiple_lead_times(
     n_estimators,
     max_depth,
     random_state,
-    compression,
     transformation,
     pre_transform_addition,
     extra_kwargs,
@@ -615,7 +648,6 @@ def test_train_qrf_multiple_lead_times(
         n_estimators,
         max_depth,
         random_state,
-        compression,
         transformation,
         pre_transform_addition,
         extra_kwargs,
@@ -666,7 +698,6 @@ def test_alternative_feature_configs(
     n_estimators = 2
     max_depth = 5
     random_state = 55
-    compression = 5
     extra_kwargs = {}
     transformation = None
     pre_transform_addition = 0
@@ -678,7 +709,6 @@ def test_alternative_feature_configs(
                 n_estimators,
                 max_depth,
                 random_state,
-                compression,
                 transformation,
                 pre_transform_addition,
                 extra_kwargs,
@@ -691,7 +721,6 @@ def test_alternative_feature_configs(
         n_estimators,
         max_depth,
         random_state,
-        compression,
         transformation,
         pre_transform_addition,
         extra_kwargs,
@@ -756,7 +785,6 @@ def test_apply_qrf(
     n_estimators = 2
     max_depth = 2
     random_state = 55
-    compression = 5
     extra_kwargs = {}
 
     qrf_model = _run_train_qrf(
@@ -764,7 +792,6 @@ def test_apply_qrf(
         n_estimators,
         max_depth,
         random_state,
-        compression,
         transformation,
         pre_transform_addition,
         extra_kwargs,

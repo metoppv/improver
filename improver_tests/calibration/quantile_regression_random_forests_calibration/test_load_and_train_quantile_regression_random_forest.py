@@ -166,10 +166,10 @@ def _create_multi_forecast_period_forecast_parquet_file(tmp_path, representation
         "diagnostic": ["temperature_at_screen_level"] * 4,
     }
     if representation == "realization":
-        data_dict["realization"] = list(range(len(data_dict["percentile"])))
+        data_dict["realization"] = [0, 1, 0, 1]
         data_dict.pop("percentile")
     elif representation == "kittens":
-        data_dict["kittens"] = list(range(len(data_dict["percentile"])))
+        data_dict["kittens"] = [0, 1, 0, 1]
         data_dict.pop("percentile")
     # Add wind speed to demonstrate filtering.
     wind_speed_dict = data_dict.copy()
@@ -682,6 +682,8 @@ def test_unexpected(
 @pytest.mark.parametrize("include_static", [True, False])
 @pytest.mark.parametrize("include_noncube_static", [True, False])
 @pytest.mark.parametrize("remove_target", [True, False])
+@pytest.mark.parametrize("include_nans", [True, False])
+@pytest.mark.parametrize("include_latlon_nans", [True, False])
 @pytest.mark.parametrize(
     "forecast_creation,truth_creation,forecast_periods",
     [
@@ -691,13 +693,13 @@ def test_unexpected(
             "6:18:6",
         ),
         (
-            _create_multi_forecast_period_forecast_parquet_file,
-            _create_multi_forecast_period_truth_parquet_file,
+            _create_multi_percentile_forecast_parquet_file,
+            _create_multi_percentile_truth_parquet_file,
             "6:18:6",
         ),
         (
-            _create_multi_site_forecast_parquet_file,
-            _create_multi_site_truth_parquet_file,
+            _create_multi_forecast_period_forecast_parquet_file,
+            _create_multi_forecast_period_truth_parquet_file,
             "6:18:6",
         ),
         (
@@ -714,6 +716,8 @@ def test_prepare_and_train_qrf(
     include_static,
     include_noncube_static,
     remove_target,
+    include_nans,
+    include_latlon_nans,
     forecast_creation,
     truth_creation,
     forecast_periods,
@@ -730,6 +734,7 @@ def test_prepare_and_train_qrf(
         forecast_df, forecast_periods, ["temperature_at_screen_level"], representation
     )
     _, truth_df = truth_creation(tmp_path)
+
     truth_df = amend_expected_truth_df(truth_df, "temperature_at_screen_level")
 
     if include_dynamic:
@@ -751,6 +756,14 @@ def test_prepare_and_train_qrf(
     if remove_target:
         feature_config.pop("air_temperature")
 
+    if include_nans:
+        # Insert a NaN will result in this row being dropped.
+        truth_df.loc[0, "ob_value"] = pd.NA
+
+    if include_latlon_nans:
+        # As latitude is not a feature, this NaN should be ignored.
+        truth_df.loc[1, "latitude"] = pd.NA
+
     if feature_config == {}:
         pytest.skip("No features to train on")
 
@@ -764,7 +777,11 @@ def test_prepare_and_train_qrf(
         transformation="log",
         pre_transform_addition=1,
     )
-    if include_static:
+    if truth_df["ob_value"].isna().all():
+        with pytest.raises(ValueError, match="Empty truth DataFrame"):
+            plugin(forecast_df, truth_df)
+        return
+    elif include_static:
         qrf_model, transformation, pre_transform_addition = plugin(
             forecast_df, truth_df, iris.cube.CubeList([ancil_cube])
         )

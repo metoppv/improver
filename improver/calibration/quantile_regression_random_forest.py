@@ -11,6 +11,7 @@ import pandas as pd
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.constants import DAYS_IN_YEAR, HOURS_IN_DAY
+from improver.calibration.dataframe_utilities import quantile_check
 
 try:
     from quantile_forest import RandomForestQuantileRegressor
@@ -39,7 +40,9 @@ def prep_feature(
     day of year, sine of day of year, cosine of day of year, hour of day,
     sine of hour of day and cosine of hour of day. When computing the mean or standard
     deviation, these will be computed over either the percentile or realization column,
-    depending upon which is available.
+    depending upon which is available. When a percentile column is provided, the
+    expectation is that these percentiles are equally spaced between 0 and 100, so that
+    these percentiles can be treated as being equally likely.
 
     Args:
         df: Input DataFrame.
@@ -59,6 +62,10 @@ def prep_feature(
             representation_name,
             variable_name,
         ]
+
+        if representation_name == "percentile":
+            quantile_check(df)
+
         # For a subset of the input DataFrame compute the mean or standard deviation
         # over the representation column, grouped by the groupby columns.
         if feature_name == "mean":
@@ -336,6 +343,7 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
         feature_column_names = get_required_column_names(
             forecast_df, self.feature_config
         )
+
         merge_columns = ["wmo_id", "time"]
         combined_df = forecast_df.merge(
             truth_df[merge_columns + ["ob_value"]], on=merge_columns, how="inner"
@@ -356,7 +364,7 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
         feature_config: dict[str, list[str]],
         quantiles: list[np.float32],
         transformation: str = None,
-        pre_transform_addition: np.float32 = 0,        
+        pre_transform_addition: np.float32 = 0,
     ) -> None:
         """Initialise the plugin.
 
@@ -384,7 +392,7 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
             transformation (str):
                 Transformation to be applied to the data before fitting.
             pre_transform_addition (float):
-                Value to be added before transformation.                
+                Value to be added before transformation.
 
         Raises:
             ValueError: If the transformation is not one of the supported types.
@@ -395,7 +403,7 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
         self.quantiles = quantiles
         self.transformation = transformation
         _check_valid_transformation(self.transformation)
-        self.pre_transform_addition = pre_transform_addition        
+        self.pre_transform_addition = pre_transform_addition
 
     def _reverse_transformation(self, forecast: np.ndarray) -> np.ndarray:
         """Reverse the transformation applied to the data prior to fitting the QRF.

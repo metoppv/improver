@@ -349,7 +349,7 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
             )
         )
 
-    def _add_static_features_from_cube_to_df(
+    def _add_static_features_from_cubes_to_df(
         self, forecast_df: pd.DataFrame, cube_inputs: iris.cube.CubeList
     ) -> pd.DataFrame:
         """Add features to the forecast DataFrame from cubes based on the feature
@@ -361,7 +361,7 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
             cube_inputs: List of cubes containing additional features.
 
         Returns:
-            DataFrame with additional features added.
+            DataFrame with additional features added from the input cubes.
         """
         if cube_inputs is None or len(cube_inputs) == 0:
             return forecast_df
@@ -381,8 +381,8 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
                     )
         return forecast_df
 
-    @staticmethod
     def filter_bad_sites(
+        self,
         forecast_df: pd.DataFrame,
         truth_df: pd.DataFrame,
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -397,9 +397,11 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
                 - DataFrame containing the forecast data with bad sites removed.
                 - DataFrame containing the truth data with bad sites removed.
         """
-        truth_df.dropna(
-            subset=["latitude", "longitude", "altitude", "ob_value"], inplace=True
-        )
+        truth_df.dropna(subset=["ob_value"], inplace=True)
+
+        if truth_df.empty:
+            msg = "Empty truth DataFrame after removing NaNs."
+            raise ValueError(msg)
 
         wmo_ids = set(forecast_df["wmo_id"]).intersection(set(truth_df["wmo_id"]))
 
@@ -434,7 +436,7 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
         if len(intersecting_times) == 0:
             return None
 
-        forecast_df = self._add_static_features_from_cube_to_df(
+        forecast_df = self._add_static_features_from_cubes_to_df(
             forecast_df, cube_inputs
         )
         forecast_df, truth_df = self.filter_bad_sites(forecast_df, truth_df)

@@ -236,7 +236,11 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
             # Descriptors expected: (qrf_model, transformation, pre_transform_addition)
             qrf_descriptors = (None, None, 0)
         qrf_model, transformation, pre_transform_addition = qrf_descriptors
+
         cube_inputs, forecast_cube = self._get_inputs(cube_inputs, qrf_model=qrf_model)
+
+        if cube_inputs:
+            assert_spatial_coords_match(cube_inputs)
 
         if not self.quantile_forest_installed:
             return forecast_cube
@@ -249,7 +253,6 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
         elif forecast_cube.coords("realization"):
             percentiles = self._compute_percentiles(forecast_cube.copy(), "realization")
 
-        assert_spatial_coords_match(cube_inputs)
         df = self._cube_to_dataframe(cube_inputs)
 
         calibrated_forecast = ApplyQuantileRegressionRandomForests(
