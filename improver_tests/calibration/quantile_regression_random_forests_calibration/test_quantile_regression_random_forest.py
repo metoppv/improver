@@ -20,7 +20,7 @@ from improver.calibration.quantile_regression_random_forest import (
     ApplyQuantileRegressionRandomForests,
     TrainQuantileRegressionRandomForests,
     _check_valid_transformation,
-    get_required_column_names,
+    prep_features_from_config,
     prep_feature,
     quantile_forest_package_available,
     sanitise_forecast_dataframe,
@@ -501,24 +501,25 @@ def test_sanitise_forecast_dataframe(feature_config):
             "distance_to_water": ["static"],
         },
         {"wind_speed_at_10m": ["latitude", "longitude", "height"]},
+        {"wind_speed_at_10m": ["mean", "std"], "surface_temperature": ["mean"]},
     ],
 )
-def test_get_required_column_names(feature_config):
-    """Test the get_required_column_names function."""
+def test_prep_features_from_config(feature_config):
+    """Test the prep_features_from_config function."""
     data_dict = {
         "wmo_id": np.tile(WMO_ID, 3),
         "latitude": np.tile(LATITUDE, 3),
         "longitude": np.tile(LONGITUDE, 3),
         "altitude": np.tile(ALTITUDE, 3),
-        "wind_speed_at_10m_mean": np.repeat(5, 6),
-        "wind_speed_at_10m_std": np.repeat(1, 6),
         "wind_speed_at_10m": np.tile([4, 6], 3),
         "realization": np.tile([1, 2], 3),
         "distance_to_water": np.tile([2.0, 3.0], 3),
+        "blend_time": pd.Timestamp("2017-01-02 00:00:00", tz="utc"),
+        "forecast_period": 6 * 3.6e12,
+        "forecast_reference_time": pd.Timestamp("2017-01-02 00:00:00", tz="utc"),
     }
     df = pd.DataFrame(data_dict)
 
-    # expected = feature_config["wind_speed_at_10m"].copy()
     expected = list(itertools.chain.from_iterable(feature_config.values()))
     if "mean" in expected:
         expected = ["wind_speed_at_10m_mean" if e == "mean" else e for e in expected]
@@ -528,11 +529,25 @@ def test_get_required_column_names(feature_config):
         expected = ["distance_to_water" if e == "static" else e for e in expected]
 
     if "height" in expected:
-        with pytest.raises(ValueError, match="Feature 'height' is not supported."):
-            get_required_column_names(df, feature_config)
+        with pytest.raises(
+            ValueError,
+            match=(
+                "Feature 'height' for variable 'wind_speed_at_10m' is not supported."
+            ),
+        ):
+            prep_features_from_config(df, feature_config)
+    elif "surface_temperature" in feature_config.keys():
+        with pytest.raises(
+            ValueError,
+            match=(
+                "Feature 'surface_temperature' is not present "
+                "in the forecast DataFrame."
+            ),
+        ):
+            prep_features_from_config(df, feature_config)
     else:
-        result = get_required_column_names(df, feature_config)
-        assert result == expected
+        _, result_names = prep_features_from_config(df, feature_config)
+        assert result_names == expected
 
 
 @pytest.mark.parametrize(

@@ -152,36 +152,48 @@ def sanitise_forecast_dataframe(
     return df
 
 
-def get_required_column_names(
+def prep_features_from_config(
     df: pd.DataFrame, feature_config: dict[str, list[str]]
-) -> list[str]:
-    """Process the feature_config to return the expected column names that will be
-    used as features with the QRF.
+) -> tuple[pd.DataFrame, list[str]]:
+    """Process the feature_config to prepare the features as required and return the
+    expected column names that will be used as features with the QRF.
 
     Args:
         df: Input DataFrame.
         feature_config: Feature configuration defining the features to be used for QRF.
     Returns:
-        List of expected column names that will be used as features with the QRF.
+        Processed DataFrame and a list of expected column names that will be used as
+        features with the QRF.
     Raises:
-        ValueError: If a feature expected in the feature_config is not present in
-        the DataFrame.
+        ValueError: If a variable expected in the feature_config is not present in
+        the DataFrame e.g. "surface temperature".
+        ValueError: If a feature expected for a specific variable in the feature_config
+        is not supported e.g. "interquartile_range".
     """
     feature_column_names = []
     for variable_name in feature_config.keys():
-        for feature in feature_config[variable_name]:
-            if feature in ["mean", "std"]:
-                feature_column_names.append(f"{variable_name}_{feature}")
-            elif feature in ["static"]:
+        if variable_name not in df.columns:
+            msg = f"Feature '{variable_name}' is not present in the forecast DataFrame."
+            raise ValueError(msg)
+        for feature_name in feature_config[variable_name]:
+            df = prep_feature(df, variable_name, feature_name)
+
+            if feature_name in ["mean", "std"]:
+                feature_column_names.append(f"{variable_name}_{feature_name}")
+            elif feature_name in ["static"]:
                 feature_column_names.append(variable_name)
+            elif feature_name in df.columns:
+                # For example, latitude, longitude, altitude, day_of_year, which
+                # are not tied to a specific variable.
+                feature_column_names.append(feature_name)
             else:
-                feature_column_names.append(feature)
+                msg = (
+                    f"Feature '{feature_name}' for variable "
+                    f"'{variable_name}' is not supported."
+                )
+                raise ValueError(msg)
 
-    if len(list(set(feature_column_names) - set(df.columns))) > 0:
-        msg = f"Feature '{feature}' is not supported."
-        raise ValueError(msg)
-
-    return feature_column_names
+    return df, feature_column_names
 
 
 def _check_valid_transformation(transformation: str):
@@ -329,20 +341,11 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
                 truth_df["ob_value"] + self.pre_transform_addition
             )
 
-        for variable_name in self.feature_config.keys():
-            if variable_name not in forecast_df.columns:
-                msg = (
-                    f"Feature '{variable_name}' is not present in the "
-                    "forecast DataFrame."
-                )
-                raise ValueError(msg)
-            for feature_name in self.feature_config[variable_name]:
-                forecast_df = prep_feature(forecast_df, variable_name, feature_name)
-
-        forecast_df = sanitise_forecast_dataframe(forecast_df, self.feature_config)
-        feature_column_names = get_required_column_names(
+        forecast_df, feature_column_names = prep_features_from_config(
             forecast_df, self.feature_config
         )
+
+        forecast_df = sanitise_forecast_dataframe(forecast_df, self.feature_config)
 
         merge_columns = ["wmo_id", "time"]
         combined_df = forecast_df.merge(
@@ -453,14 +456,12 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
                 forecast_df[self.target_name] = getattr(np, self.transformation)(
                     forecast_df[self.target_name] + self.pre_transform_addition
                 )
+                break
 
-            for feature_name in self.feature_config[variable_name]:
-                forecast_df = prep_feature(forecast_df, variable_name, feature_name)
-
-        forecast_df = sanitise_forecast_dataframe(forecast_df, self.feature_config)
-        feature_column_names = get_required_column_names(
+        forecast_df, feature_column_names = prep_features_from_config(
             forecast_df, self.feature_config
         )
+        forecast_df = sanitise_forecast_dataframe(forecast_df, self.feature_config)
 
         feature_values = np.array(forecast_df[feature_column_names])
 
