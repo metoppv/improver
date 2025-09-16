@@ -34,12 +34,12 @@ class CondensationTrailFormation(BasePlugin):
     water and air (EARTH_REPSILON), and defined values for the engine
     contrail factor.
 
+    .. include:: extended_documentation/psychrometric_calculations/condensation_trails/appleman_diagram.rst
+
     References:
         Schrader, M.L., 1997. Calculations of aircraft contrail
         formation critical temperatures. Journal of Applied
         Meteorology, 36(12), pp.1725-1729.
-
-    .. include:: extended_documentation/psychrometric_calculations/condensation_trails/condensation_trails_critical_temperature.rst
     """
 
     temperature = None
@@ -112,13 +112,14 @@ class CondensationTrailFormation(BasePlugin):
         temperature: np.ndarray,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
-        For engine mixing ratios on pressure levels for a given engine contrail
-        factor, calculate the critical temperatures and critical intercepts at
-        which contrails may form.
+        Calculate the critical temperatures and critical intercepts on pressure levels
+        for a single engine contrail factor.
 
-        These are calculated for each pressure level by drawing a tangent to
-        the saturation vapour pressure curve, with a gradient equal to the
+        These are calculated at each pressure level by drawing a tangent to the saturation
+        vapour pressure curve with respect to water. The tangent gradient is equal to the
         engine mixing ratio.
+
+        .. include:: extended_documentation/psychrometric_calculations/condensation_trails/critical_temperatures.rst
 
         Args:
             mixing_ratios (np.ndarray): Engine mixing ratios on pressure levels. Pressure is the leading axis (Pa/K).
