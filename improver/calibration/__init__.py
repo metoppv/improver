@@ -13,7 +13,6 @@ from typing import Dict, List, Optional, Tuple, Union
 import iris
 import joblib
 import pandas as pd
-import pyarrow.parquet as pq
 from iris.cube import Cube, CubeList
 
 from improver.metadata.probabilistic import (
@@ -272,6 +271,7 @@ def split_forecasts_and_bias_files(cubes: CubeList) -> Tuple[Cube, Optional[Cube
 def split_pickle_parquet_and_netcdf(files):
     """Split the input files into pickle, parquet, and netcdf files.
     Only a single pickle file is expected.
+
     Args:
         files:
             A list of input file paths which will be split into pickle,
@@ -329,6 +329,8 @@ def identify_parquet_type(parquet_paths: List[Path]):
         - The path to the Parquet file containing the historical forecasts.
         - The path to the Parquet file containing the truths.
     """
+    import pyarrow.parquet as pq
+
     forecast_table_path = None
     truth_table_path = None
     for file_path in parquet_paths:

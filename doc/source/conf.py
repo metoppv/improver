@@ -370,11 +370,11 @@ texinfo_documents = [
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
-    "iris": ("https://scitools-iris.readthedocs.io/en/latest/", None),
-    "cartopy": ("https://scitools.org.uk/cartopy/docs/latest/", None),
+    "iris": ("https://scitools-iris.readthedocs.io/en/stable/", None),
+    "cartopy": ("https://cartopy.readthedocs.io/stable/", None),
     "cf_units": ("https://cf-units.readthedocs.io/en/stable/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
-    "scipy": ("https://docs.scipy.org/doc/scipy-1.6.2/reference/", None),
+    "scipy": ("https://docs.scipy.org/doc/scipy/reference", None),
     "pandas": ("https://pandas.pydata.org/pandas-docs/dev/", None),
 }
 
