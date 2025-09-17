@@ -7,7 +7,7 @@
 
 import pathlib
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 import iris
 import numpy as np
@@ -52,7 +52,7 @@ class LoadForTrainQRF(PostProcessingPlugin):
         cycletime: str,
         training_length: int,
         experiment: Optional[str] = None,
-        unique_site_id_key: str = "wmo_id",
+        unique_site_id_keys: Union[list[str], str] = "wmo_id",
     ):
         """Initialise the LoadForQRF plugin.
 
@@ -84,7 +84,9 @@ class LoadForTrainQRF(PostProcessingPlugin):
         self.cycletime = cycletime
         self.training_length = training_length
         self.experiment = experiment
-        self.unique_site_id_key = unique_site_id_key
+        if isinstance(unique_site_id_keys, str):
+            unique_site_id_keys = [unique_site_id_keys]
+        self.unique_site_id_keys = unique_site_id_keys
 
     def _parse_forecast_periods(self) -> list[int]:
         """Parse the forecast periods argument to produce a list of forecast periods
@@ -204,7 +206,7 @@ class LoadForTrainQRF(PostProcessingPlugin):
                 base_df,
                 additional_df[
                     [
-                        self.unique_site_id_key,
+                        *self.unique_site_id_keys,
                         "forecast_reference_time",
                         "forecast_period",
                         representation,
@@ -212,7 +214,7 @@ class LoadForTrainQRF(PostProcessingPlugin):
                     ]
                 ].rename(columns={"forecast": parquet_diagnostic_name}),
                 on=[
-                    self.unique_site_id_key,
+                    *self.unique_site_id_keys,
                     "forecast_reference_time",
                     "forecast_period",
                     representation,
@@ -311,7 +313,7 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
         random_state: Optional[int] = None,
         transformation: Optional[str] = None,
         pre_transform_addition: float = 0,
-        unique_site_id_key: str = "wmo_id",
+        unique_site_id_keys: Union[list[str], str] = "wmo_id",
     ):
         """Initialise the PrepareAndTrainQRF plugin.
 
@@ -338,7 +340,9 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
         self.random_state = random_state
         self.transformation = transformation
         self.pre_transform_addition = pre_transform_addition
-        self.unique_site_id_key = unique_site_id_key
+        if isinstance(unique_site_id_keys, str):
+            unique_site_id_keys = [unique_site_id_keys]
+        self.unique_site_id_keys = unique_site_id_keys
         self.quantile_forest_installed = quantile_forest_package_available()
 
     @staticmethod
@@ -390,8 +394,8 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
                     feature_cube = cube_inputs.extract_cube(constr)
                     feature_df = as_data_frame(feature_cube, add_aux_coords=True)
                     forecast_df = forecast_df.merge(
-                        feature_df[[self.unique_site_id_key, feature_name]],
-                        on=[self.unique_site_id_key],
+                        feature_df[[*self.unique_site_id_keys, feature_name]],
+                        on=[*self.unique_site_id_keys],
                         how="left",
                     )
         return forecast_df
@@ -418,12 +422,11 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
             msg = "Empty truth DataFrame after removing NaNs."
             raise ValueError(msg)
 
-        site_ids = set(forecast_df[self.unique_site_id_key]).intersection(
-            set(truth_df[self.unique_site_id_key])
-        )
+        forecast_index = forecast_df.set_index([*self.unique_site_id_keys]).index
+        truth_index = truth_df.set_index([*self.unique_site_id_keys]).index
+        forecast_df = forecast_df[forecast_index.isin(truth_index)]
+        truth_df = truth_df[truth_index.isin(forecast_index)]
 
-        forecast_df = forecast_df[forecast_df[self.unique_site_id_key].isin(site_ids)]
-        truth_df = truth_df[truth_df[self.unique_site_id_key].isin(site_ids)]
         return forecast_df, truth_df
 
     def process(
@@ -467,7 +470,7 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
             random_state=self.random_state,
             transformation=self.transformation,
             pre_transform_addition=self.pre_transform_addition,
-            unique_site_id_key=self.unique_site_id_key,
+            unique_site_id_keys=self.unique_site_id_keys,
         )(forecast_df, truth_df)
 
         # Create a tuple that returns the model, transformation and

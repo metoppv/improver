@@ -20,8 +20,8 @@ from improver.calibration.quantile_regression_random_forest import (
     ApplyQuantileRegressionRandomForests,
     TrainQuantileRegressionRandomForests,
     _check_valid_transformation,
-    prep_features_from_config,
     prep_feature,
+    prep_features_from_config,
     quantile_forest_package_available,
     sanitise_forecast_dataframe,
 )
@@ -178,9 +178,7 @@ def _run_train_qrf(
     realization_data = np.array(realization_data, dtype=np.float32)
     forecast_dfs = []
     for index, (frt, vt) in enumerate(zip(forecast_reference_times, validity_times)):
-        forecast_df = _create_forecasts(
-            frt, vt, realization_data + index
-        )
+        forecast_df = _create_forecasts(frt, vt, realization_data + index)
         forecast_dfs.append(forecast_df)
     forecast_df = pd.concat(forecast_dfs)
     forecast_df = _add_day_of_training_period(forecast_df)
@@ -218,7 +216,7 @@ def _run_train_qrf(
         random_state=random_state,
         transformation=transformation,
         pre_transform_addition=pre_transform_addition,
-        unique_site_id_key=site_id,
+        unique_site_id_keys=site_id,
         **extra_kwargs,
     )
     result = plugin.process(forecast_df, truth_df)

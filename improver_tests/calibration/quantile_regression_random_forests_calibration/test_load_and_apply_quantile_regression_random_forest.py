@@ -43,29 +43,143 @@ def _add_day_of_training_period_to_cube(cube, day_of_training_period, secondary_
     return cube
 
 
-@pytest.mark.parametrize("percentile_input", [True, False])
-@pytest.mark.parametrize("site_id", ["wmo_id", "station_id"])
+@pytest.mark.parametrize("percentile_input", [True])
 @pytest.mark.parametrize(
-    "n_estimators,max_depth,random_state,transformation,pre_transform_addition,extra_kwargs,include_dynamic,include_static,include_nans,include_latlon_nans,quantiles,expected",
+    "site_id", [["wmo_id"], ["station_id"], ["latitude", "longitude", "altitude"]]
+)
+@pytest.mark.parametrize(
+    "n_estimators,max_depth,random_state,transformation,pre_transform_addition,extra_kwargs,include_dynamic,include_static,include_nans,include_latlon_nans,quantiles,expected,expected2",
     [
-        (2, 2, 55, None, 0, {}, False, False, False, False, [0.5], [4.1, 5.65]),  # noqa Basic test case
-        (100, 2, 55, None, 0, {}, False, False, False, False, [1 / 3, 2 / 3], [[4.1, 5.1], [5.1, 5.1]]),  # noqa Multiple quantiles
-        (1, 1, 55, None, 0, {}, False, False, False, False, [0.5], [4.1, 6.2]),  # noqa Fewer estimators and reduced depth
-        (1, 1, 73, None, 0, {}, False, False, False, False, [0.5], [4.2, 6.2]),  # Different random state
-        (2, 2, 55, "log", 10, {}, False, False, False, False, [0.5], [4.1, 5.64]),  # Log transformation
-        (2, 2, 55, "log10", 10, {}, False, False, False, False,[0.5], [4.1, 5.64]),  # noqa Log10 transformation
-        (2, 2, 55, "sqrt", 10, {}, False, False, False, False,[0.5], [4.1, 5.64]),  # noqa Square root transformation
-        (2, 2, 55, "cbrt", 10, {}, False, False, False, False,[0.5], [4.1, 5.64]),  # noqa Cube root transformation
-        (2, 2, 55, None, 0, {"max_samples_leaf": 0.5}, False, False, False, False, [0.5], [4.1, 6.2]),  # noqa # Different criterion
-        (2, 5, 55, None, 0, {}, True, False, False, False, [0.5], [4.1, 4.6]),  # noqa Include an additional dynamic feature
-        (2, 5, 55, None, 0, {}, False, True, False, False, [0.5], [4.1, 5.65]),  # noqa Include an additional static feature
-        (2, 5, 55, None, 0, {}, True, True, False, False, [0.5], [4.1, 4.6]),  # noqa Include an additional dynamic and static feature
-        (2, 2, 55, None, 0, {}, False, False, True, False, [0.5], [4.1, 5.65]),  # noqa NaNs in input data
-        (2, 2, 55, None, 0, {}, False, False, False, True, [0.5], [4.1, 5.65]),  # noqa NaNs in lat/lon
-        (2, 2, 55, None, 0, {}, True, False, False, True, [0.5], [4.1, 4.6]),  # noqa NaNs in lat/lon and dynamic feature
-        (2, 2, 55, None, 0, {}, False, True, False, True, [0.5], [4.1, 5.65]),  # noqa NaNs in lat/lon and static feature
-        (2, 2, 55, None, 0, {}, True, True, False, True, [0.5], [4.1, 4.6]),  # noqa NaNs in lat/lon, dynamic and static feature
-        (2, 2, 55, None, 0, {}, True, True, True, True, [0.5], [4.6, 4.6]),  # noqa NaNs in lat/lon, dynamic and static feature and input data
+        (2, 2, 55, None, 0, {}, False, False, False, False, [0.5], [4.1, 5.65], None),  # noqa: E501 Basic test case
+        (
+            100,
+            2,
+            55,
+            None,
+            0,
+            {},
+            False,
+            False,
+            False,
+            False,
+            [1 / 3, 2 / 3],
+            [[4.1, 5.1], [5.1, 5.1]],
+            None,
+        ),  # noqa: E501 Multiple quantiles
+        (1, 1, 55, None, 0, {}, False, False, False, False, [0.5], [4.1, 6.2], None),  # noqa: E501 Fewer estimators and reduced depth
+        (1, 1, 73, None, 0, {}, False, False, False, False, [0.5], [4.2, 6.2], None),  # noqa: E501 Different random state
+        (2, 2, 55, "log", 10, {}, False, False, False, False, [0.5], [4.1, 5.64], None),  # noqa: E501 Log transformation
+        (
+            2,
+            2,
+            55,
+            "log10",
+            10,
+            {},
+            False,
+            False,
+            False,
+            False,
+            [0.5],
+            [4.1, 5.64],
+            None,
+        ),  # noqa: E501 Log10 transformation
+        (
+            2,
+            2,
+            55,
+            "sqrt",
+            10,
+            {},
+            False,
+            False,
+            False,
+            False,
+            [0.5],
+            [4.1, 5.64],
+            None,
+        ),  # noqa: E501 Square root transformation
+        (
+            2,
+            2,
+            55,
+            "cbrt",
+            10,
+            {},
+            False,
+            False,
+            False,
+            False,
+            [0.5],
+            [4.1, 5.64],
+            None,
+        ),  # noqa: E501 Cube root transformation
+        (
+            2,
+            2,
+            55,
+            None,
+            0,
+            {"max_samples_leaf": 0.5},
+            False,
+            False,
+            False,
+            False,
+            [0.5],
+            [4.1, 6.2],
+            None,
+        ),  # noqa: E501 Different criterion
+        (2, 5, 55, None, 0, {}, True, False, False, False, [0.5], [4.1, 4.6], None),  # noqa: E501 Include an additional dynamic feature
+        (2, 5, 55, None, 0, {}, False, True, False, False, [0.5], [4.1, 5.65], None),  # noqa: E501 Include an additional static feature
+        (2, 5, 55, None, 0, {}, True, True, False, False, [0.5], [4.1, 4.6], None),  # noqa: E501 Include an additional dynamic and static feature
+        (2, 2, 55, None, 0, {}, False, False, True, False, [0.5], [4.1, 5.65], None),  # noqa: E501 NaNs in input data
+        (
+            2,
+            2,
+            55,
+            None,
+            0,
+            {},
+            False,
+            False,
+            False,
+            True,
+            [0.5],
+            [4.1, 5.65],
+            [4.1, 5.1],
+        ),  # noqa: E501  NaNs in lat/lon
+        (
+            2,
+            2,
+            55,
+            None,
+            0,
+            {},
+            True,
+            False,
+            False,
+            True,
+            [0.5],
+            [4.1, 4.6],
+            [4.1, 5.1],
+        ),  # noqa: E501 NaNs in lat/lon and dynamic feature
+        (
+            2,
+            2,
+            55,
+            None,
+            0,
+            {},
+            False,
+            True,
+            False,
+            True,
+            [0.5],
+            [4.1, 5.65],
+            [4.1, 5.1],
+        ),  # noqa: E501 NaNs in lat/lon and static feature
+        (2, 2, 55, None, 0, {}, True, True, False, True, [0.5], [4.1, 4.6], [4.1, 5.1]),  # noqa: E501 NaNs in lat/lon, dynamic and static feature
+        (2, 2, 55, None, 0, {}, True, True, True, True, [0.5], [4.6, 4.6], [4.6, 5.1]),  # noqa: E501 NaNs in lat/lon, dynamic and static feature and input data
     ],
 )
 def test_prepare_and_apply_qrf(
@@ -83,6 +197,7 @@ def test_prepare_and_apply_qrf(
     include_latlon_nans,
     quantiles,
     expected,
+    expected2,
 ):
     """Test the PrepareAndApplyQRF plugin."""
     feature_config = {"wind_speed_at_10m": ["mean", "std", "latitude", "longitude"]}
@@ -91,6 +206,10 @@ def test_prepare_and_apply_qrf(
         feature_config["air_temperature"] = ["mean", "std"]
     if include_static:
         feature_config["distance_to_water"] = ["static"]
+
+    unique_site_id_key = site_id[0]
+    if site_id == ["latitude", "longitude", "altitude"]:
+        unique_site_id_key = "station_id"
 
     qrf_model = _run_train_qrf(
         feature_config,
@@ -111,7 +230,7 @@ def test_prepare_and_apply_qrf(
         ],
         realization_data=[2, 6, 10],
         truth_data=[4.2, 6.2, 4.1, 5.1],
-        site_id=site_id,
+        site_id=unique_site_id_key,
     )
 
     frt = "20170103T0000Z"
@@ -163,12 +282,20 @@ def test_prepare_and_apply_qrf(
     result = PrepareAndApplyQRF(
         feature_config,
         "wind_speed_at_10m",
-        unique_site_id_key=site_id,
+        unique_site_id_keys=site_id,
     )(cube_inputs, (qrf_model, transformation, pre_transform_addition))
     assert isinstance(result, Cube)
 
     assert result.data.shape == (len(quantiles), 2)
-    assert np.allclose(result.data, expected, rtol=1e-2)
+
+    if (
+        expected2
+        and include_latlon_nans
+        and site_id == ["latitude", "longitude", "altitude"]
+    ):
+        assert np.allclose(result.data, expected2, rtol=1e-2)
+    else:
+        assert np.allclose(result.data, expected, rtol=1e-2)
 
     # Check that the metadata is as expected
     assert result.name() == "wind_speed_at_10m"

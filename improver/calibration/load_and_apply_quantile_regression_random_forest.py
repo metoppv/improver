@@ -41,7 +41,7 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
         self,
         feature_config: dict[str, list[str]],
         target_cf_name: str,
-        unique_site_id_key: str = "wmo_id",
+        unique_site_id_keys: list[str] = ["wmo_id"],
     ):
         """Initialise the plugin.
 
@@ -67,14 +67,14 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
                 A string containing the CF name of diagnostic to be calibrated. This
                 will be used to separate it from the rest of the dynamic predictors,
                 if present.
-            unique_site_id_key (str):
-                If working with spot data and available, the name of the coordinate
-                in the input cubes that contains unique site IDs, e.g. "wmo_id" if
-                all sites have a valid wmo_id.
+            unique_site_id_keys (list):
+                If working with spot data and available, a list of the names of the
+                coordinates in the input cubes that are to be used to uniquely identify
+                a site. For example, ["wmo_id"] or ["latitude", "longitude"].
         """
         self.feature_config = feature_config
         self.target_cf_name = target_cf_name
-        self.unique_site_id_key = unique_site_id_key
+        self.unique_site_id_keys = unique_site_id_keys
         self.quantile_forest_installed = quantile_forest_package_available()
 
     def _get_inputs(
@@ -163,17 +163,16 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
         # Convert the first cube to a DataFrame.
         df = as_data_frame(cube_inputs[0], add_aux_coords=True).reset_index()
 
-        
+        possible_columns = [
+            *self.unique_site_id_keys,
+            "time",
+            "forecast_reference_time",
+            "forecast_period",
+        ]
 
         # Iteratively convert remaining cubes to DataFrame and merge.
         for cube in cube_inputs[1:]:
             temporary_df = as_data_frame(cube, add_aux_coords=True).reset_index()
-            possible_columns = [
-                self.unique_site_id_key,
-                "time",
-                "forecast_reference_time",
-                "forecast_period",
-            ]
             merge_columns = [
                 col for col in possible_columns if col in temporary_df.columns
             ]
@@ -240,7 +239,7 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
             quantiles=quantile_list,
             transformation=transformation,
             pre_transform_addition=pre_transform_addition,
-            unique_site_id_key=self.unique_site_id_key,
+            unique_site_id_keys=self.unique_site_id_keys,
         )(qrf_model, df)
         calibrated_forecast_cube = template_forecast_cube.copy(
             data=np.broadcast_to(calibrated_forecast.T, template_forecast_cube.shape)

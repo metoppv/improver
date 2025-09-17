@@ -357,7 +357,7 @@ def amend_expected_forecast_df(
             base_df,
             additional_df[
                 [
-                    site_id,
+                    *site_id,
                     "forecast_reference_time",
                     "forecast_period",
                     representation,
@@ -365,7 +365,7 @@ def amend_expected_forecast_df(
                 ]
             ].rename(columns={"forecast": parquet_diagnostic_name}),
             on=[
-                site_id,
+                *site_id,
                 "forecast_reference_time",
                 "forecast_period",
                 representation,
@@ -389,7 +389,9 @@ def amend_expected_truth_df(truth_df, parquet_diagnostic_name):
 @pytest.mark.parametrize("include_static", [True, False])
 @pytest.mark.parametrize("include_noncube_static", [True, False])
 @pytest.mark.parametrize("remove_target", [True, False])
-@pytest.mark.parametrize("site_id", ["wmo_id", "station_id"])
+@pytest.mark.parametrize(
+    "site_id", ["wmo_id", "station_id", ["wmo_id"], ["latitude", "longitude"]]
+)
 @pytest.mark.parametrize(
     "forecast_creation,truth_creation,forecast_periods",
     [
@@ -430,6 +432,9 @@ def test_load_for_qrf(
     """Test the LoadForTrainQRF plugin."""
     feature_config = {"air_temperature": ["mean", "std", "altitude"]}
     parquet_diagnostic_names = ["temperature_at_screen_level"]
+
+    if isinstance(site_id, str):
+        site_id = [site_id]
 
     forecast_path, base_expected_forecast_df, site_ids = forecast_creation(
         tmp_path, representation
@@ -476,7 +481,7 @@ def test_load_for_qrf(
         forecast_periods=forecast_periods,
         cycletime="20170103T0000Z",
         training_length=2,
-        unique_site_id_key=site_id,
+        unique_site_id_keys=site_id,
     )
     forecast_df, truth_df, cube_inputs = plugin(file_paths)
 
@@ -700,7 +705,7 @@ def test_unexpected(
 @pytest.mark.parametrize("remove_target", [True, False])
 @pytest.mark.parametrize("include_nans", [True, False])
 @pytest.mark.parametrize("include_latlon_nans", [True, False])
-@pytest.mark.parametrize("site_id", ["wmo_id", "station_id"])
+@pytest.mark.parametrize("site_id", ["wmo_id", "station_id", ["wmo_id"], ["latitude", "longitude"]])
 @pytest.mark.parametrize(
     "forecast_creation,truth_creation,forecast_periods",
     [
@@ -747,6 +752,9 @@ def test_prepare_and_train_qrf(
     random_state = 46
     target_cf_name = "air_temperature"
 
+    if isinstance(site_id, str):
+        site_id = [site_id]
+
     _, forecast_df, site_ids = forecast_creation(tmp_path, representation)
     forecast_df = amend_expected_forecast_df(
         forecast_df,
@@ -766,9 +774,7 @@ def test_prepare_and_train_qrf(
         feature_config["wind_speed_at_10m"] = ["mean", "std"]
 
     if include_static:
-        _, ancil_cube = _create_ancil_file(
-            tmp_path, sorted(list(set(site_ids)))
-        )
+        _, ancil_cube = _create_ancil_file(tmp_path, sorted(list(set(site_ids))))
         feature_config["distance_to_water"] = ["static"]
 
     if include_noncube_static:
@@ -800,7 +806,7 @@ def test_prepare_and_train_qrf(
         random_state=random_state,
         transformation="log",
         pre_transform_addition=1,
-        unique_site_id_key=site_id,
+        unique_site_id_keys=site_id,
     )
     if truth_df["ob_value"].isna().all():
         with pytest.raises(ValueError, match="Empty truth DataFrame"):
