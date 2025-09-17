@@ -25,7 +25,7 @@ def process(
     random_state: int = None,
     transformation: str = None,
     pre_transform_addition: float = 0,
-    unique_site_id_key: str = "wmo_id",
+    unique_site_id_keys: cli.comma_separated_list = "wmo_id",
 ):
     """Training a model using Quantile Regression Random Forest.
 
@@ -61,7 +61,7 @@ def process(
             "distance_to_water": ["static"],
             }
         parquet_diagnostic_names (str):
-            A string containing the diagnostic name that will be used for filtering
+            A string containing the diagnostic names that will be used for filtering
             the target diagnostic from the forecast and truth DataFrames read in
             from the parquet files. This could be different from the CF name e.g.
             'temperature_at_screen_level'.
@@ -100,10 +100,9 @@ def process(
             Transformation to be applied to the data before fitting.
         pre_transform_addition (float):
             Value to be added before transformation.
-        unique_site_id_key (str):
-            If working with spot data and available, the name of the coordinate
-            in the input cubes that contains unique site IDs, e.g. "wmo_id" if
-            all sites have a valid wmo_id.
+        unique_site_id_keys (str):
+            The names of the coordinates that uniquely identify each site,
+            e.g. "wmo_id" or "latitude,longitude".
     Returns:
         A quantile regression random forest model.
     """
@@ -121,7 +120,7 @@ def process(
         forecast_periods=forecast_periods,
         cycletime=cycletime,
         training_length=training_length,
-        unique_site_id_key=unique_site_id_key,
+        unique_site_id_keys=unique_site_id_keys,
     )(file_paths)
     result = PrepareAndTrainQRF(
         feature_config=feature_config,
@@ -132,7 +131,7 @@ def process(
         random_state=random_state,
         transformation=transformation,
         pre_transform_addition=pre_transform_addition,
-        unique_site_id_key=unique_site_id_key,
+        unique_site_id_keys=unique_site_id_keys,
     )(forecast_df, truth_df, cube_inputs)
 
     return result

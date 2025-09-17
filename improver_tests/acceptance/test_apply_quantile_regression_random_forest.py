@@ -36,12 +36,5 @@ def test_basic(tmp_path, transformation):
         output_path,
     ]
 
-    if transformation == "with_transformation":
-        args += [
-            "--transformation",
-            "log",
-            "--pre-transform-addition",
-            "0.1",
-        ]
     run_cli(args)
     acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)

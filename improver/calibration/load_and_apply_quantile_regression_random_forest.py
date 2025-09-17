@@ -68,9 +68,8 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
                 will be used to separate it from the rest of the dynamic predictors,
                 if present.
             unique_site_id_keys (list):
-                If working with spot data and available, a list of the names of the
-                coordinates in the input cubes that are to be used to uniquely identify
-                a site. For example, ["wmo_id"] or ["latitude", "longitude"].
+                The names of the coordinates that uniquely identify each site, 
+                e.g. "wmo_id" or "latitude,longitude".
         """
         self.feature_config = feature_config
         self.target_cf_name = target_cf_name

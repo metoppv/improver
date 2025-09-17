@@ -51,8 +51,8 @@ def prep_feature(
         feature_name: Feature to be computed. Options are "mean", "std", "day_of_year",
             "day_of_year_sin", "day_of_year_cos", "hour_of_day",
             "hour_of_day_sin" and "hour_of_day_cos".
-        unique_site_id_keys: The name of the column in the DataFrame that
-            contains the unique site identifier e.g. wmo_id.
+        unique_site_id_keys: The names of the coordinates that uniquely identify
+            each site, e.g. "wmo_id" or "latitude,longitude".
     Returns:
         df: DataFrame with the computed feature added.
     """
@@ -172,8 +172,8 @@ def prep_features_from_config(
     Args:
         df: Input DataFrame.
         feature_config: Feature configuration defining the features to be used for QRF.
-        unique_site_id_keys: The name of the column in the DataFrame that
-            contains the unique site identifier e.g. wmo_id.
+        unique_site_id_keys: The names of the coordinates that uniquely identify
+            each site, e.g. "wmo_id" or "latitude,longitude".
     Returns:
         Processed DataFrame and a list of expected column names that will be used as
         features with the QRF.
@@ -279,8 +279,8 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
                 Transformation to be applied to the data before fitting.
             pre_transform_addition (float):
                 Value to be added before transformation.
-            unique_site_id_keys: The name of the column in the DataFrame that
-                contains the unique site identifier e.g. wmo_id.
+            unique_site_id_keys: The names of the coordinates that uniquely identify
+                each site, e.g. "wmo_id" or "latitude,longitude".
             kwargs:
                 Additional keyword arguments for the quantile regression model.
 
@@ -420,8 +420,8 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
                 Transformation to be applied to the data before fitting.
             pre_transform_addition (float):
                 Value to be added before transformation.
-            unique_site_id_keys: The names of the column in the DataFrame that
-                uniquely identify a site e.g. ["wmo_id"] or ["latitude", "longitude"].
+            unique_site_id_keys: The names of the coordinates that uniquely identify
+                each site, e.g. "wmo_id" or "latitude,longitude".
 
         """
         self.target_name = target_name

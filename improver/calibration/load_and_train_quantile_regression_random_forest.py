@@ -72,9 +72,9 @@ class LoadForTrainQRF(PostProcessingPlugin):
             cycletime: The time at which the forecast is valid in the form:
                 YYYYMMDDTHHMMZ.
             training_length: The number of days of training data to use.
-            experiment: The name of the experiment (step) that calibration is applied to.
-            unique_site_id_key: The name of the column in the parquet files that
-                contains the unique site identifier e.g. wmo_id.
+                experiment: The name of the experiment (step) that calibration is applied to.
+            unique_site_id_key: The names of the coordinates that uniquely identify
+                each site, e.g. "wmo_id" or "latitude,longitude".
         """
         self.quantile_forest_installed = quantile_forest_package_available()
         self.feature_config = feature_config
@@ -329,8 +329,8 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
             random_state: Seed used by the random number generator.
             transformation: Transformation to be applied to the data before fitting.
             pre_transform_addition: Value to be added before transformation.
-            unique_site_id_key: The name of the column in the parquet files that
-                contains the unique site identifier e.g. wmo_id.
+            unique_site_id_key: The names of the coordinates that uniquely identify
+                each site, e.g. "wmo_id" or "latitude,longitude".
         """
         self.feature_config = feature_config
         self.target_cf_name = target_cf_name

@@ -14,7 +14,7 @@ def process(
     *file_paths: cli.inputpath,
     feature_config: cli.inputjson,
     target_cf_name: str,
-    unique_site_id_key: str = "wmo_id",
+    unique_site_id_keys: cli.comma_separated_list = "wmo_id",
 ):
     """Applying the Quantile Regression Random Forest model.
 
@@ -50,10 +50,8 @@ def process(
             A string containing the CF name of the forecast to be
             calibrated e.g. air_temperature. This will be used to separate it from
             the rest of the feature cubes, if present.
-        unique_site_id_key (str):
-            If working with spot data and available, the name of the coordinate
-            in the input cubes that contains unique site IDs, e.g. "wmo_id" if
-            all sites have a valid wmo_id.
+            The names of the coordinates that uniquely identify each site,
+            e.g. "wmo_id" or "latitude,longitude".
     Returns:
         iris.cube.Cube:
             The calibrated forecast cube.
@@ -63,11 +61,11 @@ def process(
         PrepareAndApplyQRF,
     )
 
-    cubes, _, qrf_model = split_pickle_parquet_and_netcdf(file_paths)
+    cubes, _, qrf_descriptors = split_pickle_parquet_and_netcdf(file_paths)
 
     result = PrepareAndApplyQRF(
         feature_config=feature_config,
         target_cf_name=target_cf_name,
-        unique_site_id_key=unique_site_id_key,
-    )(cubes, qrf_model=qrf_model)
+        unique_site_id_keys=unique_site_id_keys,
+    )(cubes, qrf_descriptors=qrf_descriptors)
     return result
