@@ -705,7 +705,9 @@ def test_unexpected(
 @pytest.mark.parametrize("remove_target", [True, False])
 @pytest.mark.parametrize("include_nans", [True, False])
 @pytest.mark.parametrize("include_latlon_nans", [True, False])
-@pytest.mark.parametrize("site_id", ["wmo_id", "station_id", ["wmo_id"], ["latitude", "longitude"]])
+@pytest.mark.parametrize(
+    "site_id", ["wmo_id", "station_id", ["wmo_id"], ["latitude", "longitude"]]
+)
 @pytest.mark.parametrize(
     "forecast_creation,truth_creation,forecast_periods",
     [
