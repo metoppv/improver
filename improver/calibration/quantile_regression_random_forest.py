@@ -34,6 +34,7 @@ def prep_feature(
     df: pd.DataFrame,
     variable_name: str,
     feature_name: str,
+    unique_site_id_key: str = "wmo_id",
 ) -> pd.DataFrame:
     """Prepare features that require computation from the input DataFrame. Options
     available are mean and standard deviation of the input feature, the
@@ -50,6 +51,8 @@ def prep_feature(
         feature_name: Feature to be computed. Options are "mean", "std", "day_of_year",
             "day_of_year_sin", "day_of_year_cos", "hour_of_day",
             "hour_of_day_sin" and "hour_of_day_cos".
+        unique_site_id_key: The name of the column in the DataFrame that
+            contains the unique site identifier e.g. wmo_id.
     Returns:
         df: DataFrame with the computed feature added.
     """
@@ -57,7 +60,7 @@ def prep_feature(
         representation_name = [
             n for n in ["percentile", "realization"] if n in df.columns
         ][0]
-        groupby_cols = ["forecast_reference_time", "forecast_period", "wmo_id"]
+        groupby_cols = ["forecast_reference_time", "forecast_period", unique_site_id_key]
         subset_cols = [*groupby_cols] + [
             representation_name,
             variable_name,
@@ -153,7 +156,7 @@ def sanitise_forecast_dataframe(
 
 
 def prep_features_from_config(
-    df: pd.DataFrame, feature_config: dict[str, list[str]]
+    df: pd.DataFrame, feature_config: dict[str, list[str]], unique_site_id_key: str = "wmo_id"
 ) -> tuple[pd.DataFrame, list[str]]:
     """Process the feature_config to prepare the features as required and return the
     expected column names that will be used as features with the QRF.
@@ -161,6 +164,8 @@ def prep_features_from_config(
     Args:
         df: Input DataFrame.
         feature_config: Feature configuration defining the features to be used for QRF.
+        unique_site_id_key: The name of the column in the DataFrame that
+            contains the unique site identifier e.g. wmo_id.
     Returns:
         Processed DataFrame and a list of expected column names that will be used as
         features with the QRF.
@@ -176,7 +181,7 @@ def prep_features_from_config(
             msg = f"Feature '{variable_name}' is not present in the forecast DataFrame."
             raise ValueError(msg)
         for feature_name in feature_config[variable_name]:
-            df = prep_feature(df, variable_name, feature_name)
+            df = prep_feature(df, variable_name, feature_name, unique_site_id_key)
 
             if feature_name in ["mean", "std"]:
                 feature_column_names.append(f"{variable_name}_{feature_name}")
@@ -224,6 +229,7 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
         random_state: Optional[int] = None,
         transformation: Optional[str] = None,
         pre_transform_addition: np.float32 = 0,
+        unique_site_id_key: str = "wmo_id",
         **kwargs,
     ) -> None:
         """Initialise the plugin.
@@ -262,6 +268,8 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
                 Transformation to be applied to the data before fitting.
             pre_transform_addition (float):
                 Value to be added before transformation.
+            unique_site_id_key: The name of the column in the DataFrame that
+                contains the unique site identifier e.g. wmo_id.
             kwargs:
                 Additional keyword arguments for the quantile regression model.
 
@@ -276,6 +284,7 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
         self.transformation = transformation
         _check_valid_transformation(self.transformation)
         self.pre_transform_addition = pre_transform_addition
+        self.unique_site_id_key = unique_site_id_key
         self.kwargs = kwargs
         self.expected_coordinate_order = ["forecast_reference_time", "forecast_period"]
 
@@ -342,12 +351,12 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
             )
 
         forecast_df, feature_column_names = prep_features_from_config(
-            forecast_df, self.feature_config
+            forecast_df, self.feature_config, unique_site_id_key=self.unique_site_id_key
         )
 
         forecast_df = sanitise_forecast_dataframe(forecast_df, self.feature_config)
 
-        merge_columns = ["wmo_id", "time"]
+        merge_columns = [self.unique_site_id_key, "time"]
         combined_df = forecast_df.merge(
             truth_df[merge_columns + ["ob_value"]], on=merge_columns, how="inner"
         )
@@ -368,6 +377,7 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
         quantiles: list[np.float32],
         transformation: str = None,
         pre_transform_addition: np.float32 = 0,
+        unique_site_id_key: str = "wmo_id",
     ) -> None:
         """Initialise the plugin.
 
@@ -396,6 +406,8 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
                 Transformation to be applied to the data before fitting.
             pre_transform_addition (float):
                 Value to be added before transformation.
+            unique_site_id_key: The name of the column in the DataFrame that
+                contains the unique site identifier e.g. wmo_id.
 
         """
         self.target_name = target_name
@@ -404,6 +416,7 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
         self.transformation = transformation
         _check_valid_transformation(self.transformation)
         self.pre_transform_addition = pre_transform_addition
+        self.unique_site_id_key = unique_site_id_key
 
     def _reverse_transformation(self, forecast: np.ndarray) -> np.ndarray:
         """Reverse the transformation applied to the data prior to fitting the QRF.
@@ -456,7 +469,7 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
                 break
 
         forecast_df, feature_column_names = prep_features_from_config(
-            forecast_df, self.feature_config
+            forecast_df, self.feature_config, self.unique_site_id_key
         )
         forecast_df = sanitise_forecast_dataframe(forecast_df, self.feature_config)
 

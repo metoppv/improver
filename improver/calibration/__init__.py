@@ -56,6 +56,7 @@ class CalibrationSchemas:
                 ("altitude", pa.float32()),
                 ("time", pa.timestamp("s", "utc")),
                 ("wmo_id", pa.string()),
+                ("station_id", pa.string()),
                 ("ob_value", pa.float32()),
             ]
         )

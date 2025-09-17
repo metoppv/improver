@@ -44,6 +44,7 @@ def _add_day_of_training_period_to_cube(cube, day_of_training_period, secondary_
 
 
 @pytest.mark.parametrize("percentile_input", [True, False])
+@pytest.mark.parametrize("site_id", ["wmo_id", "station_id"])
 @pytest.mark.parametrize(
     "n_estimators,max_depth,random_state,transformation,pre_transform_addition,extra_kwargs,include_dynamic,include_static,include_nans,include_latlon_nans,quantiles,expected",
     [
@@ -69,6 +70,7 @@ def _add_day_of_training_period_to_cube(cube, day_of_training_period, secondary_
 )
 def test_prepare_and_apply_qrf(
     percentile_input,
+    site_id,
     n_estimators,
     max_depth,
     random_state,
@@ -109,6 +111,7 @@ def test_prepare_and_apply_qrf(
         ],
         realization_data=[2, 6, 10],
         truth_data=[4.2, 6.2, 4.1, 5.1],
+        site_id=site_id,
     )
 
     frt = "20170103T0000Z"
@@ -157,10 +160,10 @@ def test_prepare_and_apply_qrf(
             cube.coord("latitude").points[1] = np.nan
             cube.coord("longitude").points[1] = np.nan
 
-    # cube_inputs, qrf_model = LoadForApplyQRF()(file_paths)
     result = PrepareAndApplyQRF(
         feature_config,
         "wind_speed_at_10m",
+        unique_site_id_key=site_id,
     )(cube_inputs, (qrf_model, transformation, pre_transform_addition))
     assert isinstance(result, Cube)
 

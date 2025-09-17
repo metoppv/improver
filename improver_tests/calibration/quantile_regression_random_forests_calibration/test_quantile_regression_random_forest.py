@@ -63,6 +63,8 @@ def _create_forecasts(
         name="wind_speed_at_10m",
         units="m s-1",
         wmo_ids=WMO_ID,
+        unique_site_id=WMO_ID,
+        unique_site_id_key="station_id",
         latitudes=np.array([50, 60], np.float32),
         longitudes=np.array([0, 10], np.float32),
         altitudes=np.array([10, 20], np.float32),
@@ -122,6 +124,8 @@ def _create_ancil_file(return_cube=False):
     template_cube = set_up_spot_variable_cube(
         data,
         wmo_ids=WMO_ID,
+        unique_site_id=WMO_ID,
+        unique_site_id_key="station_id",
         latitudes=np.array([50, 60], np.float32),
         longitudes=np.array([0, 10], np.float32),
         altitudes=np.array([10, 20], np.float32),
@@ -169,11 +173,14 @@ def _run_train_qrf(
     truth_data=[4.2, 3.8, 5.8, 6, 7, 7.3, 9.1, 9.5],
     tmp_path=None,
     compression=5,
+    site_id="wmo_id",
 ):
     realization_data = np.array(realization_data, dtype=np.float32)
     forecast_dfs = []
     for index, (frt, vt) in enumerate(zip(forecast_reference_times, validity_times)):
-        forecast_df = _create_forecasts(frt, vt, realization_data + index)
+        forecast_df = _create_forecasts(
+            frt, vt, realization_data + index
+        )
         forecast_dfs.append(forecast_df)
     forecast_df = pd.concat(forecast_dfs)
     forecast_df = _add_day_of_training_period(forecast_df)
@@ -195,7 +202,7 @@ def _run_train_qrf(
     if include_static:
         ancil_df = _create_ancil_file()
         forecast_df = forecast_df.merge(
-            ancil_df[["wmo_id", "distance_to_water"]], on=["wmo_id"], how="left"
+            ancil_df[[site_id, "distance_to_water"]], on=[site_id], how="left"
         )
         feature_config["distance_to_water"] = ["static"]
     if "air_temperature" in feature_config.keys():
@@ -211,6 +218,7 @@ def _run_train_qrf(
         random_state=random_state,
         transformation=transformation,
         pre_transform_addition=pre_transform_addition,
+        unique_site_id_key=site_id,
         **extra_kwargs,
     )
     result = plugin.process(forecast_df, truth_df)
@@ -290,7 +298,7 @@ def test_prep_feature_single_time(
     result = prep_feature(forecast_df, variable_name, feature_name)
 
     if feature_name in ["mean", "std"]:
-        assert result.shape == (6, 12)
+        assert result.shape == (6, 13)
         variable_name_modified = f"{variable_name}_{feature_name}"
     elif feature_name in [
         "day_of_year",
@@ -300,13 +308,13 @@ def test_prep_feature_single_time(
         "hour_of_day_sin",
         "hour_of_day_cos",
     ]:
-        assert result.shape == (6, 12)
+        assert result.shape == (6, 13)
         variable_name_modified = feature_name
     elif feature_name in ["static"]:
-        assert result.shape == (6, 12)
+        assert result.shape == (6, 13)
         variable_name_modified = "distance_to_water"
     else:
-        assert result.shape == (6, 11)
+        assert result.shape == (6, 12)
         variable_name_modified = feature_name
 
     assert result[variable_name_modified].dtype == expected_dtype
@@ -423,7 +431,7 @@ def test_prep_feature_more_times(feature_name, expected, expected_dtype):
     result = prep_feature(forecast_df, variable_name, feature_name)
 
     if feature_name in ["mean", "std"]:
-        assert result.shape == (36, 12)
+        assert result.shape == (36, 13)
         variable_name_modified = f"{variable_name}_{feature_name}"
     elif feature_name in [
         "day_of_year",
@@ -433,13 +441,13 @@ def test_prep_feature_more_times(feature_name, expected, expected_dtype):
         "hour_of_day_sin",
         "hour_of_day_cos",
     ]:
-        assert result.shape == (36, 12)
+        assert result.shape == (36, 13)
         variable_name_modified = feature_name
     elif feature_name in ["static"]:
-        assert result.shape == (36, 12)
+        assert result.shape == (36, 13)
         variable_name_modified = "distance_to_water"
     else:
-        assert result.shape == (36, 11)
+        assert result.shape == (36, 12)
         variable_name_modified = feature_name
 
     assert result[variable_name_modified].dtype == expected_dtype
@@ -683,21 +691,24 @@ def test_train_qrf_multiple_lead_times(
 
 
 @pytest.mark.parametrize(
-    "feature_config,data,include_static,expected",
+    "feature_config,data,include_static,site_id,expected",
     [
-        ({"wind_speed_at_10m": ["mean"]}, [5], False, [5]),  # One feature
-        ({"wind_speed_at_10m": ["latitude"]}, [61], False, [7.75]),  # noqa Without the target
-        ({"wind_speed_at_10m": ["mean"]}, [5], True, [4]),  # With static data
+        ({"wind_speed_at_10m": ["mean"]}, [5], False, "wmo_id", [5]),  # One feature
+        ({"wind_speed_at_10m": ["mean"]}, [5], False, "station_id", [5]),  # One feature
+        ({"wind_speed_at_10m": ["latitude"]}, [61], False, "wmo_id", [7.75]),  # noqa Without the target
+        ({"wind_speed_at_10m": ["mean"]}, [5], True, "wmo_id", [4]),  # With static data
         (
             {"wind_speed_at_10m": ["mean"], "air_temperature": ["mean"]},
             [5],
             False,
+            "wmo_id",
             [5],
         ),  # Multiple dynamic features
         (
             {"wind_speed_at_10m": ["mean"], "pressure_at_mean_sea_level": ["mean"]},
             [5],
             False,
+            "wmo_id",
             "Feature 'pressure_at_mean_sea_level' is not present",
         ),  # Multiple dynamic features
     ],
@@ -706,6 +717,7 @@ def test_alternative_feature_configs(
     feature_config,
     data,
     include_static,
+    site_id,
     expected,
 ):
     """Test the TrainQuantileRegressionRandomForests plugin for a few different
@@ -740,6 +752,7 @@ def test_alternative_feature_configs(
         pre_transform_addition,
         extra_kwargs,
         include_static,
+        site_id=site_id,
     )
 
     assert qrf_model.n_estimators == n_estimators

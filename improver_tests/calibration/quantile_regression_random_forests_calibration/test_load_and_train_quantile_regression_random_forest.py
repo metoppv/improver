@@ -21,7 +21,7 @@ pytest.importorskip("quantile_forest")
 ALTITUDE = [10, 20]
 LATITUDE = [50, 60]
 LONGITUDE = [0, 10]
-WMO_ID = ["03001", "03002", "03003", "03004", "03005"]
+SITE_ID = ["03001", "03002", "03003", "03004", "03005"]
 
 
 def _create_multi_site_forecast_parquet_file(tmp_path, representation="percentile"):
@@ -203,6 +203,7 @@ def _create_multi_site_truth_parquet_file(tmp_path):
         "altitude": [10.0, 83.0, 56.0, 23.0, 2.0],
         "time": [pd.Timestamp("2017-01-02 06:00:00")] * 5,
         "wmo_id": ["03001", "03002", "03003", "03004", "03005"],
+        "station_id": ["03001", "03002", "03003", "03004", "03005"],
         "ob_value": [276.0, 270.0, 289.0, 290.0, 301.0],
     }
     wind_speed_dict = data_dict.copy()
@@ -228,6 +229,7 @@ def _create_multi_percentile_truth_parquet_file(tmp_path):
         "altitude": [10.0],
         "time": [pd.Timestamp("2017-01-02 06:00:00")],
         "wmo_id": ["03001"],
+        "station_id": ["03001"],
         "ob_value": [276.0],
     }
     wind_speed_dict = data_dict.copy()
@@ -256,6 +258,7 @@ def _create_multi_forecast_period_truth_parquet_file(tmp_path):
             2,
         ),
         "wmo_id": ["03001", "03002", "03001", "03002"],
+        "station_id": ["03001", "03002", "03001", "03002"],
         "ob_value": [280, 273, 284, 275],
     }
     wind_speed_dict = data_dict.copy()
@@ -272,7 +275,7 @@ def _create_multi_forecast_period_truth_parquet_file(tmp_path):
     return output_dir, joined_df
 
 
-def _create_multi_site_truth_parquet_file_alt(tmp_path):
+def _create_multi_site_truth_parquet_file_alt(tmp_path, site_id="wmo_id"):
     """Create a parquet file with multi-site truth data for wind speed."""
     data_dict = {
         "diagnostic": ["wind_speed_at_10m"] * 5,
@@ -281,6 +284,7 @@ def _create_multi_site_truth_parquet_file_alt(tmp_path):
         "altitude": [10.0, 83.0, 56.0, 23.0, 2.0],
         "time": [pd.Timestamp("2017-01-02 06:00:00")] * 5,
         "wmo_id": ["03001", "03002", "03003", "03004", "03005"],
+        "station_id": ["03001", "03002", "03003", "03004", "03005"],
         "ob_value": [10.0, 25.0, 4.0, 3.0, 11.0],
     }
     wind_speed_dict = data_dict.copy()
@@ -297,16 +301,18 @@ def _create_multi_site_truth_parquet_file_alt(tmp_path):
     return output_dir, joined_df
 
 
-def _create_ancil_file(tmp_path, wmo_ids):
+def _create_ancil_file(tmp_path, site_ids):
     """Create an ancillary file for testing.
 
     Returns:
         An ancillary cube with a single value.
     """
-    data = np.array(range(len(wmo_ids)), dtype=np.float32)
+    data = np.array(range(len(site_ids)), dtype=np.float32)
     template_cube = set_up_spot_variable_cube(
         data,
-        wmo_ids=wmo_ids,
+        wmo_ids=site_ids,
+        unique_site_id=site_ids,
+        unique_site_id_key="station_id",
         name="distance_to_water",
         units="m",
     )
@@ -334,7 +340,7 @@ def filter_forecast_periods(forecast_df, forecast_periods):
 
 
 def amend_expected_forecast_df(
-    forecast_df, forecast_periods, parquet_diagnostic_names, representation
+    forecast_df, forecast_periods, parquet_diagnostic_names, representation, site_id
 ):
     forecast_df = filter_forecast_periods(forecast_df, forecast_periods)
     for column in ["time", "forecast_reference_time", "blend_time"]:
@@ -351,14 +357,19 @@ def amend_expected_forecast_df(
             base_df,
             additional_df[
                 [
-                    "wmo_id",
+                    site_id,
                     "forecast_reference_time",
                     "forecast_period",
                     representation,
                     "forecast",
                 ]
             ].rename(columns={"forecast": parquet_diagnostic_name}),
-            on=["wmo_id", "forecast_reference_time", "forecast_period", representation],
+            on=[
+                site_id,
+                "forecast_reference_time",
+                "forecast_period",
+                representation,
+            ],
             how="left",
         )
     forecast_df = base_df
@@ -378,6 +389,7 @@ def amend_expected_truth_df(truth_df, parquet_diagnostic_name):
 @pytest.mark.parametrize("include_static", [True, False])
 @pytest.mark.parametrize("include_noncube_static", [True, False])
 @pytest.mark.parametrize("remove_target", [True, False])
+@pytest.mark.parametrize("site_id", ["wmo_id", "station_id"])
 @pytest.mark.parametrize(
     "forecast_creation,truth_creation,forecast_periods",
     [
@@ -410,6 +422,7 @@ def test_load_for_qrf(
     include_static,
     include_noncube_static,
     remove_target,
+    site_id,
     forecast_creation,
     truth_creation,
     forecast_periods,
@@ -418,7 +431,7 @@ def test_load_for_qrf(
     feature_config = {"air_temperature": ["mean", "std", "altitude"]}
     parquet_diagnostic_names = ["temperature_at_screen_level"]
 
-    forecast_path, base_expected_forecast_df, wmo_ids = forecast_creation(
+    forecast_path, base_expected_forecast_df, site_ids = forecast_creation(
         tmp_path, representation
     )
     truth_path, expected_truth_df = truth_creation(tmp_path)
@@ -431,7 +444,7 @@ def test_load_for_qrf(
 
     if include_static:
         ancil_path, expected_cube = _create_ancil_file(
-            tmp_path, sorted(list(set(wmo_ids)))
+            tmp_path, sorted(list(set(site_ids)))
         )
         file_paths.append(ancil_path)
         feature_config["distance_to_water"] = ["static"]
@@ -448,6 +461,7 @@ def test_load_for_qrf(
         forecast_periods,
         parquet_diagnostic_names,
         representation,
+        site_id,
     )
     expected_truth_df = amend_expected_truth_df(
         expected_truth_df, "temperature_at_screen_level"
@@ -462,6 +476,7 @@ def test_load_for_qrf(
         forecast_periods=forecast_periods,
         cycletime="20170103T0000Z",
         training_length=2,
+        unique_site_id_key=site_id,
     )
     forecast_df, truth_df, cube_inputs = plugin(file_paths)
 
@@ -484,7 +499,7 @@ def test_load_for_qrf(
         np.testing.assert_almost_equal(cube_inputs[0].data, expected_cube.data)
 
 
-@pytest.mark.parametrize("make_files", [(False, True)])
+@pytest.mark.parametrize("make_files", [False, True])
 def test_load_for_qrf_no_paths(tmp_path, make_files):
     """Test the LoadForTrainQRF plugin when the no valid file paths are provided.
     Either the paths do not exist, or the paths exist but the directories are empty."""
@@ -547,6 +562,7 @@ def test_load_for_qrf_mismatches(
         forecast_periods,
         ["temperature_at_screen_level"],
         "percentile",
+        "wmo_id",
     )
 
     truth_path, expected_truth_df = truth_creation(tmp_path)
@@ -684,6 +700,7 @@ def test_unexpected(
 @pytest.mark.parametrize("remove_target", [True, False])
 @pytest.mark.parametrize("include_nans", [True, False])
 @pytest.mark.parametrize("include_latlon_nans", [True, False])
+@pytest.mark.parametrize("site_id", ["wmo_id", "station_id"])
 @pytest.mark.parametrize(
     "forecast_creation,truth_creation,forecast_periods",
     [
@@ -718,6 +735,7 @@ def test_prepare_and_train_qrf(
     remove_target,
     include_nans,
     include_latlon_nans,
+    site_id,
     forecast_creation,
     truth_creation,
     forecast_periods,
@@ -729,9 +747,13 @@ def test_prepare_and_train_qrf(
     random_state = 46
     target_cf_name = "air_temperature"
 
-    _, forecast_df, wmo_ids = forecast_creation(tmp_path, representation)
+    _, forecast_df, site_ids = forecast_creation(tmp_path, representation)
     forecast_df = amend_expected_forecast_df(
-        forecast_df, forecast_periods, ["temperature_at_screen_level"], representation
+        forecast_df,
+        forecast_periods,
+        ["temperature_at_screen_level"],
+        representation,
+        site_id,
     )
     _, truth_df = truth_creation(tmp_path)
 
@@ -744,7 +766,9 @@ def test_prepare_and_train_qrf(
         feature_config["wind_speed_at_10m"] = ["mean", "std"]
 
     if include_static:
-        _, ancil_cube = _create_ancil_file(tmp_path, sorted(list(set(wmo_ids))))
+        _, ancil_cube = _create_ancil_file(
+            tmp_path, sorted(list(set(site_ids)))
+        )
         feature_config["distance_to_water"] = ["static"]
 
     if include_noncube_static:
@@ -776,6 +800,7 @@ def test_prepare_and_train_qrf(
         random_state=random_state,
         transformation="log",
         pre_transform_addition=1,
+        unique_site_id_key=site_id,
     )
     if truth_df["ob_value"].isna().all():
         with pytest.raises(ValueError, match="Empty truth DataFrame"):

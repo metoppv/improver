@@ -52,6 +52,7 @@ class LoadForTrainQRF(PostProcessingPlugin):
         cycletime: str,
         training_length: int,
         experiment: Optional[str] = None,
+        unique_site_id_key: str = "wmo_id",
     ):
         """Initialise the LoadForQRF plugin.
 
@@ -72,6 +73,8 @@ class LoadForTrainQRF(PostProcessingPlugin):
                 YYYYMMDDTHHMMZ.
             training_length: The number of days of training data to use.
             experiment: The name of the experiment (step) that calibration is applied to.
+            unique_site_id_key: The name of the column in the parquet files that
+                contains the unique site identifier e.g. wmo_id.
         """
         self.quantile_forest_installed = quantile_forest_package_available()
         self.feature_config = feature_config
@@ -81,6 +84,7 @@ class LoadForTrainQRF(PostProcessingPlugin):
         self.cycletime = cycletime
         self.training_length = training_length
         self.experiment = experiment
+        self.unique_site_id_key = unique_site_id_key
 
     def _parse_forecast_periods(self) -> list[int]:
         """Parse the forecast periods argument to produce a list of forecast periods
@@ -200,7 +204,7 @@ class LoadForTrainQRF(PostProcessingPlugin):
                 base_df,
                 additional_df[
                     [
-                        "wmo_id",
+                        self.unique_site_id_key,
                         "forecast_reference_time",
                         "forecast_period",
                         representation,
@@ -208,7 +212,7 @@ class LoadForTrainQRF(PostProcessingPlugin):
                     ]
                 ].rename(columns={"forecast": parquet_diagnostic_name}),
                 on=[
-                    "wmo_id",
+                    self.unique_site_id_key,
                     "forecast_reference_time",
                     "forecast_period",
                     representation,
@@ -261,8 +265,13 @@ class LoadForTrainQRF(PostProcessingPlugin):
             return None
         cube_inputs, parquets, _ = split_pickle_parquet_and_netcdf(file_paths)
 
+        # If there are no parquet files, return None.
+        if not parquets:
+            return None
+
         forecast_table_path, truth_table_path = identify_parquet_type(parquets)
 
+        # If either the forecast or truth parquet files are missing, return None.
         if not forecast_table_path or not truth_table_path:
             return None
 
@@ -302,6 +311,7 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
         random_state: Optional[int] = None,
         transformation: Optional[str] = None,
         pre_transform_addition: float = 0,
+        unique_site_id_key: str = "wmo_id",
     ):
         """Initialise the PrepareAndTrainQRF plugin.
 
@@ -317,6 +327,8 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
             random_state: Seed used by the random number generator.
             transformation: Transformation to be applied to the data before fitting.
             pre_transform_addition: Value to be added before transformation.
+            unique_site_id_key: The name of the column in the parquet files that
+                contains the unique site identifier e.g. wmo_id.
         """
         self.feature_config = feature_config
         self.target_cf_name = target_cf_name
@@ -326,6 +338,7 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
         self.random_state = random_state
         self.transformation = transformation
         self.pre_transform_addition = pre_transform_addition
+        self.unique_site_id_key = unique_site_id_key
         self.quantile_forest_installed = quantile_forest_package_available()
 
     @staticmethod
@@ -377,7 +390,9 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
                     feature_cube = cube_inputs.extract_cube(constr)
                     feature_df = as_data_frame(feature_cube, add_aux_coords=True)
                     forecast_df = forecast_df.merge(
-                        feature_df[["wmo_id", feature_name]], on=["wmo_id"], how="left"
+                        feature_df[[self.unique_site_id_key, feature_name]],
+                        on=[self.unique_site_id_key],
+                        how="left",
                     )
         return forecast_df
 
@@ -403,10 +418,12 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
             msg = "Empty truth DataFrame after removing NaNs."
             raise ValueError(msg)
 
-        wmo_ids = set(forecast_df["wmo_id"]).intersection(set(truth_df["wmo_id"]))
+        site_ids = set(forecast_df[self.unique_site_id_key]).intersection(
+            set(truth_df[self.unique_site_id_key])
+        )
 
-        forecast_df = forecast_df[forecast_df["wmo_id"].isin(wmo_ids)]
-        truth_df = truth_df[truth_df["wmo_id"].isin(wmo_ids)]
+        forecast_df = forecast_df[forecast_df[self.unique_site_id_key].isin(site_ids)]
+        truth_df = truth_df[truth_df[self.unique_site_id_key].isin(site_ids)]
         return forecast_df, truth_df
 
     def process(
@@ -450,6 +467,7 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
             random_state=self.random_state,
             transformation=self.transformation,
             pre_transform_addition=self.pre_transform_addition,
+            unique_site_id_key=self.unique_site_id_key,
         )(forecast_df, truth_df)
 
         # Create a tuple that returns the model, transformation and
