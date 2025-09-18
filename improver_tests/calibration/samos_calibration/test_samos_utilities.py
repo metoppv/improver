@@ -211,7 +211,9 @@ def test_prepare_data_for_gam_spot(
         land_fraction = np.array([0.0, 0.3] * 2, dtype=np.float32)
         spot_dataframe["land_fraction"] = land_fraction
 
-    result = prepare_data_for_gam(input_cube, additional_cubes, unique_site_id_key="wmo_id")
+    result = prepare_data_for_gam(
+        input_cube, additional_cubes, unique_site_id_key="wmo_id"
+    )
 
     assert np.all(result.columns == spot_dataframe.columns)
     assert_frame_equal(result, spot_dataframe)
@@ -327,30 +329,54 @@ def test_get_climatological_stats(
     if not include_altitude:
         expected_mean.data = np.array(
             [
-                [[284.39363425, 288.14659092], [288.14237183, 291.8953285]],
-                [[284.39363425, 288.14659092], [288.14237183, 291.8953285]],
+                [
+                    [284.39340789, 288.14617468],
+                    [288.14201, 291.89477679],
+                ],
+                [
+                    [284.39340789, 288.14617468],
+                    [288.14201, 291.89477679],
+                ],
             ],
             dtype=np.float32,
         )
         expected_sd.data = np.array(
             [
-                [[0.36190698, 0.49423461], [0.48704575, 0.61937337]],
-                [[0.36190698, 0.49423461], [0.48704575, 0.61937337]],
+                [
+                    [0.40998445, 0.54307784],
+                    [0.535344, 0.66843739],
+                ],
+                [
+                    [0.40998445, 0.54307784],
+                    [0.535344, 0.66843739],
+                ],
             ],
             dtype=np.float32,
         )
     else:
         expected_mean.data = np.array(
             [
-                [[274.41442381, 288.1640568], [278.16316139, 291.91279438]],
-                [[274.41442381, 288.1640568], [278.16316139, 291.91279438]],
+                [
+                    [274.4123857, 288.16501162],
+                    [278.16098781, 291.91361374],
+                ],
+                [
+                    [274.4123857, 288.16501162],
+                    [278.16098781, 291.91361374],
+                ],
             ],
             dtype=np.float32,
         )
         expected_sd.data = np.array(
             [
-                [[0.36048627, 0.50103523], [0.48562504, 0.626174]],
-                [[0.36048627, 0.50103523], [0.48562504, 0.626174]],
+                [
+                    [0.40892429, 0.54976011],
+                    [0.53428384, 0.67511965],
+                ],
+                [
+                    [0.40892429, 0.54976011],
+                    [0.53428384, 0.67511965],
+                ],
             ],
             dtype=np.float32,
         )

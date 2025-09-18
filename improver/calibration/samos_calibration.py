@@ -193,7 +193,9 @@ def get_climatological_stats(
     """
     diagnostic = input_cube.name()
 
-    df = prepare_data_for_gam(input_cube, additional_cubes, unique_site_id_key=unique_site_id_key)
+    df = prepare_data_for_gam(
+        input_cube, additional_cubes, unique_site_id_key=unique_site_id_key
+    )
 
     # Calculate climatological means and standard deviations using previously
     # fitted GAMs.
@@ -534,7 +536,9 @@ class TrainGAMsForSAMOS(BasePlugin):
         )
 
         for stat_cube in stat_cubes:
-            df = prepare_data_for_gam(stat_cube, additional_fields, unique_site_id_key=self.unique_site_id_key)
+            df = prepare_data_for_gam(
+                stat_cube, additional_fields, unique_site_id_key=self.unique_site_id_key
+            )
             feature_values = df[features].values
             targets = df[input_cube.name()].values
             output.append(plugin.process(feature_values, targets))
@@ -681,10 +685,18 @@ class TrainEMOSForSAMOS(BasePlugin):
             gamma, delta.
         """
         forecast_mean, forecast_sd = get_climatological_stats(
-            historic_forecasts, forecast_gams, gam_features, gam_additional_fields, unique_site_id_key=self.unique_site_id_key
+            historic_forecasts,
+            forecast_gams,
+            gam_features,
+            gam_additional_fields,
+            unique_site_id_key=self.unique_site_id_key,
         )
         truth_mean, truth_sd = get_climatological_stats(
-            truths, truth_gams, gam_features, gam_additional_fields, unique_site_id_key=self.unique_site_id_key
+            truths,
+            truth_gams,
+            gam_features,
+            gam_additional_fields,
+            unique_site_id_key=self.unique_site_id_key,
         )
 
         emos_coefficients = self.climate_anomaly_emos(
@@ -707,7 +719,11 @@ class ApplySAMOS(PostProcessingPlugin):
     anomalies.
     """
 
-    def __init__(self, percentiles: Optional[Sequence] = None, unique_site_id_key: Optional[str] = None):
+    def __init__(
+        self,
+        percentiles: Optional[Sequence] = None,
+        unique_site_id_key: Optional[str] = None,
+    ):
         """Initialize class.
 
         Args:
@@ -799,13 +815,18 @@ class ApplySAMOS(PostProcessingPlugin):
                 forecast.copy(), realizations_count, ignore_ecc_bounds
             )
         forecast_mean, forecast_sd = get_climatological_stats(
-            forecast_as_realizations, forecast_gams, gam_features, gam_additional_fields, unique_site_id_key=self.unique_site_id_key
+            forecast_as_realizations,
+            forecast_gams,
+            gam_features,
+            gam_additional_fields,
+            unique_site_id_key=self.unique_site_id_key,
         )
         forecast_ca = CalculateClimateAnomalies(ignore_temporal_mismatch=True).process(
             diagnostic_cube=forecast_as_realizations,
             mean_cube=forecast_mean,
             std_cube=forecast_sd,
         )
+
         # Returns parameters which describe a climate anomaly distribution.
         location_parameter, scale_parameter = ApplyEMOS(
             percentiles=self.percentiles

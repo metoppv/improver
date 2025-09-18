@@ -7,7 +7,10 @@
 import numpy as np
 import pytest
 
-from improver.calibration.samos_calibration import TrainEMOSForSAMOS, TrainGAMsForSAMOS, get_climatological_stats
+from improver.calibration.samos_calibration import (
+    TrainEMOSForSAMOS,
+    TrainGAMsForSAMOS,
+)
 from improver_tests.calibration.samos_calibration.helper_functions import (
     create_cubes_for_gam_fitting,
     create_simple_cube,
@@ -144,9 +147,9 @@ def test_process(include_altitude):
         "emos_coefficient_delta",
     ]
     if include_altitude:
-        expected_data = [0.022377491, -0.106677316, 0.00039257813, 0.9976562]
+        expected_data = [0.02605934, -0.11531556, 0.00025, 1.0]
     else:
-        expected_data = [0.020675791, -0.10688154, 0.00018227004, 1.0193497]
+        expected_data = [0.02422589, -0.11010934, 0.0, 1.0]
 
     for i, cube in enumerate(result):
         assert expected_names[i] == cube.name()

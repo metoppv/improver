@@ -52,6 +52,7 @@ def test_gam_features_on_cube(tmp_path):
         output_path,
     ]
     run_cli(args)
+
     # Compare the output with the known good output. This
     # comparison only ensures that the string version of the
     # pickled objects are the same, not the actual objects as

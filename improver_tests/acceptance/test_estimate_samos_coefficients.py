@@ -50,16 +50,15 @@ def test_coordinates(tmp_path):
     kgo_dir = acc.kgo_root() / "estimate-samos-coefficients"
     output_path = tmp_path / "output.nc"
     kgo_path = kgo_dir / "kgo_coordinates.nc"
-    gam_list = kgo_dir / "gam_configs/samos_gam.pkl"
+    gam_path = kgo_dir / "gam_configs/samos_gam.pkl"
     gam_features = "projection_y_coordinate,projection_x_coordinate,height"
 
     args = [
         history_path,
         truth_path,
+        gam_path,
         "--truth-attribute",
         "mosg__model_configuration=uk_det",
-        "--gams",
-        gam_list,
         "--gam-features",
         gam_features,
         "--output",
@@ -84,7 +83,7 @@ def test_normal_cube_gam_features(tmp_path):
     additional_features_path = kgo_dir / "additional_features/roughness_length.nc"
     output_path = tmp_path / "output.nc"
     kgo_path = kgo_dir / "kgo_extra_gam_feature.nc"
-    gam_list = kgo_dir / "gam_configs/samos_gam_additional_features.pkl"
+    gam_path = kgo_dir / "gam_configs/samos_gam_additional_features.pkl"
     gam_features = (
         "projection_y_coordinate,projection_x_coordinate,vegetative_roughness_length"
     )
@@ -93,57 +92,15 @@ def test_normal_cube_gam_features(tmp_path):
         history_path,
         truth_path,
         additional_features_path,
+        gam_path,
         "--truth-attribute",
         "mosg__model_configuration=uk_det",
-        "--gams",
-        gam_list,
         "--gam-features",
         gam_features,
         "--output",
         output_path,
     ]
     run_cli(args)
-    acc.compare(
-        output_path, kgo_path, atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE
-    )
-
-
-def test_normal_cube_gam_features_and_emos_features(tmp_path):
-    """
-    Test estimate-samos-coefficients for diagnostic with assumed
-    normal distribution and additional features provided as a cube
-    and additional emos cube.
-    """
-    source_emos_dir = acc.kgo_root() / "estimate-emos-coefficients/normal"
-    history_path = source_emos_dir / "history/*.nc"
-    truth_path = source_emos_dir / "truth/*.nc"
-
-    kgo_dir = acc.kgo_root() / "estimate-samos-coefficients"
-    additional_features_path = kgo_dir / "additional_features/roughness_length.nc"
-    additional_emos_feature_path = kgo_dir / "additional_features/landmask.nc"
-    output_path = tmp_path / "output.nc"
-    kgo_path = kgo_dir / "kgo_gam_and_emos.nc"
-    forecast_gam = kgo_dir / "gam_configs/samos_gam_additional_features.pkl"
-    gam_features = (
-        "projection_y_coordinate,projection_x_coordinate,vegetative_roughness_length"
-    )
-
-    args = [
-        history_path,
-        truth_path,
-        additional_features_path,
-        additional_emos_feature_path,
-        "--truth-attribute",
-        "mosg__model_configuration=uk_det",
-        "--gams",
-        forecast_gam,
-        "--gam-features",
-        gam_features,
-        "--output",
-        output_path,
-    ]
-    run_cli(args)
-
     acc.compare(
         output_path, kgo_path, atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE
     )
@@ -163,16 +120,15 @@ def test_estimate_samos_coefficients_sites(tmp_path):
     kgo_dir = acc.kgo_root() / "estimate-samos-coefficients"
     output_path = tmp_path / "output.nc"
     kgo_path = kgo_dir / "kgo_sites.nc"
-    gam_list = kgo_dir / "gam_configs/samos_gam_sites.pkl"
+    gam_path = kgo_dir / "gam_configs/samos_gam_sites.pkl"
     gam_features = "latitude,longitude,height"
 
     args = [
         history_path,
         truth_path,
+        gam_path,
         "--truth-attribute",
         "mosg__model_configuration=uk_det",
-        "--gams",
-        gam_list,
         "--gam-features",
         gam_features,
         "--output",

@@ -99,7 +99,10 @@ def process(
     # monkey-patch to 'tweak' scipy to prevent errors occuring
     import scipy.sparse
 
-    from improver.calibration import split_cubes_for_samos, split_pickle_parquet_and_netcdf
+    from improver.calibration import (
+        split_cubes_for_samos,
+        split_pickle_parquet_and_netcdf,
+    )
     from improver.calibration.samos_calibration import TrainEMOSForSAMOS
 
     def to_array(self):
@@ -107,8 +110,12 @@ def process(
 
     scipy.sparse.spmatrix.A = property(to_array)
 
+    print(file_paths)
+
     # Split the input paths into cubes and pickles
     cubes, _, gams = split_pickle_parquet_and_netcdf(file_paths)
+    print(cubes)
+    print(gams)
 
     # Split the cubes into forecast and truth cubes, along with any additional fields
     # provided for the GAMs and EMOS.
@@ -139,7 +146,11 @@ def process(
         "max_iterations": max_iterations,
     }
 
-    plugin = TrainEMOSForSAMOS(distribution="norm", emos_kwargs=emos_kwargs, unique_site_id_key=unique_site_id_key)
+    plugin = TrainEMOSForSAMOS(
+        distribution="norm",
+        emos_kwargs=emos_kwargs,
+        unique_site_id_key=unique_site_id_key,
+    )
     return plugin(
         historic_forecasts=forecast,
         truths=truth,

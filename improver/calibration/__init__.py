@@ -6,13 +6,14 @@
 and coefficient inputs.
 """
 
+import glob
 from collections import OrderedDict
-from typing import Dict, List, Optional, Tuple, Union
 from pathlib import Path
+from typing import Dict, List, Optional, Tuple, Union
 
+import iris.cube
 import joblib
 import pyarrow.parquet as pq
-import iris.cube
 from iris.cube import Cube, CubeList
 
 from improver.metadata.probabilistic import (
@@ -251,30 +252,37 @@ def split_pickle_parquet_and_netcdf(files):
     loaded_pickles = []
     parquets = []
 
-    for file_path in files:
-        if not file_path.exists():
-            continue
+    for file in files:
+        file_paths = glob.glob(str(file))
+        for file_path_str in file_paths:
+            file_path = Path(file_path_str)
+            if not file_path.exists():
+                continue
 
-        # Directories indicate we are working with parquet files.
-        if file_path.is_dir():
-            parquets.append(file_path)
-            continue
+            # Directories indicate we are working with parquet files.
+            if file_path.is_dir():
+                parquets.append(file_path)
+                continue
 
-        try:
-            cube = iris.load(file_path)
-            cubes.extend(cube)
-        except ValueError:
             try:
-                loaded_pickles.append(joblib.load(file_path))
-            except Exception as e:
-                msg = f"Failed to load {file_path}: {e}"
-                raise ValueError(msg)
+                cube = iris.load(file_path)
+                cubes.extend(cube)
+            except ValueError:
+                try:
+                    loaded_pickles.append(joblib.load(file_path))
+                except Exception as e:
+                    msg = f"Failed to load {file_path}: {e}"
+                    raise ValueError(msg)
 
     if len(loaded_pickles) > 1:
         msg = "Multiple pickle inputs have been provided. Only one is expected."
         raise ValueError(msg)
 
-    return cubes if cubes else None, parquets if parquets else None, loaded_pickles[0] if loaded_pickles else None
+    return (
+        cubes if cubes else None,
+        parquets if parquets else None,
+        loaded_pickles[0] if loaded_pickles else None,
+    )
 
 
 def identify_parquet_type(parquet_paths: List[Path]):

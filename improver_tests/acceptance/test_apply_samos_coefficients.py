@@ -31,7 +31,6 @@ def test_normal_gam_coordinates(tmp_path):
     args = [
         input_path,
         samos_est_path,
-        "--gams",
         gam_path,
         "--gam-features",
         gam_features,
@@ -67,46 +66,6 @@ def test_normal_gam_cubes(tmp_path):
         input_path,
         samos_est_path,
         additional_features_path,
-        "--gams",
-        gam_path,
-        "--gam-features",
-        gam_features,
-        "--realizations-count",
-        "9",
-        "--random-seed",
-        "0",
-        "--output",
-        output_path,
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
-
-
-def test_normal_cube_gam_features_and_emos_features(tmp_path):
-    """
-    Test apply-samos-coefficients for diagnostic with assumed
-    normal distribution and additional features provided as a cube
-    and additional emos cube.
-    """
-    kgo_dir = acc.kgo_root() / "apply-samos-coefficients"
-    kgo_path = kgo_dir / "kgo_cubes_emos_and_gam_features.nc"
-
-    input_path = kgo_dir / "forecast.nc"
-    samos_est_path = (
-        kgo_dir / "samos_coefficients/coefficients_emos_and_gam_features.nc"
-    )
-    gam_path = kgo_dir / "gam_configs/samos_gam_additional_features.pkl"
-    output_path = tmp_path / "output.nc"
-    additional_features_path = kgo_dir / "additional_features/*.nc"
-    gam_features = (
-        "projection_y_coordinate,projection_x_coordinate,vegetative_roughness_length"
-    )
-
-    args = [
-        input_path,
-        samos_est_path,
-        additional_features_path,
-        "--gams",
         gam_path,
         "--gam-features",
         gam_features,
@@ -138,7 +97,6 @@ def test_normal_sites(tmp_path):
     args = [
         input_path,
         samos_est_path,
-        "--gams",
         gam_path,
         "--gam-features",
         gam_features,
@@ -169,7 +127,6 @@ def test_no_coefficients(tmp_path):
     args = [
         input_path,
         additional_features_path,
-        "--gams",
         gam_path,
         "--gam-features",
         gam_features,

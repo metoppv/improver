@@ -392,17 +392,17 @@ def compare_objects(
         desired_var: Path to the pickled object considered good.
         reporter: callback function for reporting differences
     """
-    import pickle
+    import joblib
 
     try:
         with open(actual_var, "rb") as f:
-            actual_data = pickle.load(f)
+            actual_data = joblib.load(f)
     except OSError as exc:
         reporter(str(exc))
         return
     try:
         with open(desired_var, "rb") as f:
-            desired_data = pickle.load(f)
+            desired_data = joblib.load(f)
     except OSError as exc:
         reporter(str(exc))
         return
