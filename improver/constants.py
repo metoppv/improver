@@ -62,3 +62,9 @@ DALR = -0.0098
 #: Environmental Lapse Rate (ELR; K m-1)
 #: Also known as Standard Atmosphere Lapse Rate
 ELR = -0.0065
+
+#: Acceleration due to gravity, Earth's surface (m s-2)
+EARTH_SURFACE_GRAVITY_ACCELERATION = 9.81
+
+#: Density of water: (kg m-3)
+WATER_DENSITY = 1000

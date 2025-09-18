@@ -95,6 +95,7 @@ PROCESSING_MODULES = {
     "PercentileConverter": "improver.percentile",
     "PhaseChangeLevel": "improver.psychrometric_calculations.psychrometric_calculations",
     "PostProcessingPlugin": "improver.__init__",
+    "PrecipitableWater": "improver.psychrometric_calculations.total_precipitable_water",
     "PrecipPhaseProbability": "improver.psychrometric_calculations.precip_phase_probability",
     "PystepsExtrapolate": "improver.nowcasting.pysteps_advection",
     "RebadgePercentilesAsRealizations": "improver.ensemble_copula_coupling.ensemble_copula_coupling",
