@@ -34,13 +34,16 @@ def prep_feature(
     df: pd.DataFrame,
     variable_name: str,
     feature_name: str,
+    transformation: Optional[str] = None,
+    pre_transform_addition: np.float32 = 0,
     unique_site_id_keys: Union[list[str], str] = "wmo_id",
 ) -> pd.DataFrame:
     """Prepare features that require computation from the input DataFrame. Options
-    available are mean and standard deviation of the input feature, the
-    day of year, sine of day of year, cosine of day of year, hour of day,
-    sine of hour of day and cosine of hour of day. When computing the mean or standard
-    deviation, these will be computed over either the percentile or realization column,
+    available are mean, standard deviation, min, max, percentiles and a members above
+    and a members below count of the input feature, the day of year,
+    sine of day of year, cosine of day of year, hour of day, sine of hour of day
+    and cosine of hour of day. When computing the mean or standard deviation,
+    these will be computed over either the percentile or realization column,
     depending upon which is available. When a percentile column is provided, the
     expectation is that these percentiles are equally spaced between 0 and 100, so that
     these percentiles can be treated as being equally likely.
@@ -48,15 +51,28 @@ def prep_feature(
     Args:
         df: Input DataFrame.
         variable_name: Name of the variable to be used for the computation.
-        feature_name: Feature to be computed. Options are "mean", "std", "day_of_year",
-            "day_of_year_sin", "day_of_year_cos", "hour_of_day",
+        feature_name: Feature to be computed. Options are "mean", "std", "min", "max",
+            "percentile_<perc>" where <perc> is the required percentile between 0 and
+            100, "members_below_<threshold>" where <threshold> is the threshold value
+            to count the number of members below, "members_above_<threshold>" where
+            <threshold> is the threshold value to count the number of members above,
+            "day_of_year", "day_of_year_sin", "day_of_year_cos", "hour_of_day",
             "hour_of_day_sin" and "hour_of_day_cos".
+        transformation: Transformation to be applied to the data before fitting. This
+            is only used when computing members_below or members_above features.
+        pre_transform_addition: Value to be added before transformation. This is only
+            used when computing members_below or members_above features.
         unique_site_id_keys: The names of the coordinates that uniquely identify
             each site, e.g. "wmo_id" or "latitude,longitude".
     Returns:
         df: DataFrame with the computed feature added.
     """
-    if feature_name in ["mean", "std"]:
+    if (
+        feature_name in ["mean", "std", "min", "max"]
+        or feature_name.startswith("percentile_")
+        or feature_name.startswith("members_below")
+        or feature_name.startswith("members_above")
+    ):
         if isinstance(unique_site_id_keys, str):
             unique_site_id_keys = [unique_site_id_keys]
         representation_name = [
@@ -81,6 +97,46 @@ def prep_feature(
             subset_df = df[subset_cols].groupby(groupby_cols).mean()
         elif feature_name == "std":
             subset_df = df[subset_cols].groupby(groupby_cols).std()
+        elif feature_name == "min":
+            subset_df = df[subset_cols].groupby(groupby_cols).min()
+        elif feature_name == "max":
+            subset_df = df[subset_cols].groupby(groupby_cols).max()
+        elif feature_name.startswith("members_below"):
+            threshold = float(feature_name.split("_")[2])
+            if transformation is not None:
+                threshold = getattr(np, transformation)(
+                    np.array(threshold) + pre_transform_addition
+                )
+            orig_dtype = df[variable_name].dtype
+            subset_df = (
+                df[subset_cols]
+                .assign(below_threshold=lambda x: x[variable_name] < threshold)
+                .groupby(groupby_cols)["below_threshold"]
+                .sum()
+            )
+            subset_df.rename(variable_name, inplace=True)
+            subset_df = subset_df.astype(orig_dtype)
+            # subset_df[variable_name].astype(orig_dtype)
+        elif feature_name.startswith("members_above"):
+            threshold = float(feature_name.split("_")[2])
+            if transformation is not None:
+                threshold = getattr(np, transformation)(
+                    np.array(threshold) + pre_transform_addition
+                )
+            orig_dtype = df[variable_name].dtype
+            subset_df = (
+                df[subset_cols]
+                .assign(above_threshold=lambda x: x[variable_name] > threshold)
+                .groupby(groupby_cols)["above_threshold"]
+                .sum()
+            )
+            subset_df.rename(variable_name, inplace=True)
+            subset_df = subset_df.astype(orig_dtype)
+        elif feature_name.startswith("percentile_"):
+            perc = float(feature_name.split("_")[1])
+            orig_dtype = df[variable_name].dtype
+            subset_df = df[subset_cols].groupby(groupby_cols).quantile(perc / 100.0)
+            subset_df[variable_name] = subset_df[variable_name].astype(orig_dtype)
 
         subset_df = subset_df.reset_index()
         # Rename the column to distinguish the computed feature from the original.
@@ -150,7 +206,16 @@ def sanitise_forecast_dataframe(
     ]
     collapsed_features = []
     for key, values in feature_config.items():
-        collapsed_features.extend([key for v in values if v in ["mean", "std"]])
+        collapsed_features.extend(
+            [
+                key
+                for v in values
+                if v in ["mean", "std", "min", "max"]
+                or v.startswith("percentile_")
+                or v.startswith("members_below")
+                or v.startswith("members_above")
+            ]
+        )
     collapsed_features = list(set(collapsed_features))
     # Subset the dataframe by the first value of the representation column
     # and drop the representation column and any features where the original variable
@@ -193,8 +258,12 @@ def prep_features_from_config(
             raise ValueError(msg)
         for feature_name in feature_config[variable_name]:
             df = prep_feature(df, variable_name, feature_name, unique_site_id_keys)
-
-            if feature_name in ["mean", "std"]:
+            if (
+                feature_name in ["mean", "std", "min", "max"]
+                or feature_name.startswith("percentile_")
+                or feature_name.startswith("members_below")
+                or feature_name.startswith("members_above")
+            ):
                 feature_column_names.append(f"{variable_name}_{feature_name}")
             elif feature_name in ["static"]:
                 feature_column_names.append(variable_name)
@@ -490,7 +559,6 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
         forecast_df = sanitise_forecast_dataframe(forecast_df, self.feature_config)
 
         feature_values = np.array(forecast_df[feature_column_names])
-
         calibrated_forecast = qrf_model.predict(
             feature_values, quantiles=self.quantiles
         )

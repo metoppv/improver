@@ -243,24 +243,29 @@ def test_quantile_forest_package_available():
 @pytest.mark.parametrize(
     "feature_name,expected,expected_dtype",
     [
-        ("mean", np.tile(np.array([6, 8], dtype=np.float32), 3), np.float32),
+        ("mean", np.tile([6, 8], 3).astype(np.float32), np.float32),
         ("std", np.repeat(4, 6).astype(np.float32), np.float32),
-        ("latitude", np.tile(np.array([50, 60], dtype=np.float32), 3), np.float32),
-        ("longitude", np.tile(np.array([0, 10], dtype=np.float32), 3), np.float32),
-        ("altitude", np.tile(np.array([10, 20], dtype=np.float32), 3), np.float32),
+        ("min", np.tile([2, 4], 3).astype(np.float32), np.float32),
+        ("max", np.tile([10, 12], 3).astype(np.float32), np.float32),
+        ("percentile_50", np.tile([6, 8], 3).astype(np.float32), np.float32),
+        ("members_below_5", np.repeat(1, 6).astype(np.float32), np.float32),
+        ("members_above_5", np.repeat(2, 6).astype(np.float32), np.float32),
+        ("latitude", np.tile([50, 60], 3).astype(np.float32), np.float32),
+        ("longitude", np.tile([0, 10], 3).astype(np.float32), np.float32),
+        ("altitude", np.tile([10, 20], 3).astype(np.float32), np.float32),
         (
             "day_of_year",
-            np.tile(np.array([1, 1], dtype=np.int32), 3),
+            np.tile([1, 1], 3).astype(np.int32),
             np.int32,
         ),
         (
             "day_of_year_sin",
-            np.tile(np.array([0.01716633, 0.01716633], dtype=np.float32), 3),
+            np.tile([0.01716633, 0.01716633], 3).astype(np.float32),
             np.float32,
         ),
         (
             "day_of_year_cos",
-            np.tile(np.array([0.99985266, 0.99985266], dtype=np.float32), 3),
+            np.tile([0.99985266, 0.99985266], 3).astype(np.float32),
             np.float32,
         ),
         ("hour_of_day", np.repeat(12, 6).astype(np.int32), np.int32),
@@ -268,7 +273,7 @@ def test_quantile_forest_package_available():
         ("hour_of_day_cos", np.repeat(-1, 6).astype(np.float32), np.float32),
         ("forecast_period", np.repeat(43200, 6).astype(np.int32), np.int32),
         ("day_of_training_period", np.repeat(0, 6).astype(np.int32), np.int32),
-        ("static", np.tile(np.array([2, 3], dtype=np.float32), 3), np.float32),
+        ("static", np.tile([2, 3], 3).astype(np.float32), np.float32),
     ],
 )
 def test_prep_feature_single_time(
@@ -295,7 +300,15 @@ def test_prep_feature_single_time(
 
     result = prep_feature(forecast_df, variable_name, feature_name)
 
-    if feature_name in ["mean", "std"]:
+    if feature_name in [
+        "mean",
+        "std",
+        "min",
+        "max",
+        "percentile_50",
+        "members_below_5",
+        "members_above_5",
+    ]:
         assert result.shape == (6, 13)
         variable_name_modified = f"{variable_name}_{feature_name}"
     elif feature_name in [
@@ -348,6 +361,11 @@ def test_prep_feature_invalid_percentiles(scenario):
     [
         ("mean", np.tile([6, 8], 18).astype(np.float32), np.float32),
         ("std", np.repeat(4, 36).astype(np.float32), np.float32),
+        ("min", np.tile([2, 4], 18).astype(np.float32), np.float32),
+        ("max", np.tile(np.array([10, 12], dtype=np.float32), 18), np.float32),
+        ("percentile_50", np.tile(np.array([6, 8], dtype=np.float32), 18), np.float32),
+        ("members_below_5", np.repeat(1, 36).astype(np.float32), np.float32),
+        ("members_above_5", np.repeat(2, 36).astype(np.float32), np.float32),
         ("latitude", np.tile([50, 60], 18).astype(np.float32), np.float32),
         ("longitude", np.tile([0, 10], 18).astype(np.float32), np.float32),
         ("altitude", np.tile([10, 20], 18).astype(np.float32), np.float32),
@@ -428,7 +446,15 @@ def test_prep_feature_more_times(feature_name, expected, expected_dtype):
 
     result = prep_feature(forecast_df, variable_name, feature_name)
 
-    if feature_name in ["mean", "std"]:
+    if feature_name in [
+        "mean",
+        "std",
+        "min",
+        "max",
+        "percentile_50",
+        "members_below_5",
+        "members_above_5",
+    ]:
         assert result.shape == (36, 13)
         variable_name_modified = f"{variable_name}_{feature_name}"
     elif feature_name in [

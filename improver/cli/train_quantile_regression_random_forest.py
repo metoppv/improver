@@ -92,8 +92,7 @@ def process(
             to draw from the total number of samples available to train each tree.
             If None, then each tree contains the same number of samples as the total
             available. The trees will therefore only differ due to the use of
-            bootstrapping (i.e. sampling with replacement) when creating the
-            each tree.
+            bootstrapping (i.e. sampling with replacement) when creating each tree.
         random_state (int):
             Random seed for reproducibility.
         transformation (str):
@@ -104,7 +103,8 @@ def process(
             The names of the coordinates that uniquely identify each site,
             e.g. "wmo_id" or "latitude,longitude".
     Returns:
-        A quantile regression random forest model.
+        A quantile regression random forest model with associated transformation and
+        pre-transformation addition that will be stored as a pickle file.
     """
 
     from improver.calibration.load_and_train_quantile_regression_random_forest import (
