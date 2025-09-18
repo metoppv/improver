@@ -116,10 +116,9 @@ def process(
             coefficient is stored in a separate cube.
     """
 
-    import iris
     import pandas as pd
-    from iris.cube import CubeList
 
+    from improver.calibration import get_common_wmo_ids
     from improver.calibration.dataframe_utilities import (
         forecast_and_truth_dataframes_to_cubes,
     )
@@ -164,9 +163,8 @@ def process(
 
     # Extract WMO IDs from the additional predictors.
     if additional_predictors:
-        constr = iris.Constraint(wmo_id=truth_cube.coord("wmo_id").points)
-        additional_predictors = CubeList(
-            [ap.extract(constr) for ap in additional_predictors]
+        forecast_cube, truth_cube, additional_predictors = get_common_wmo_ids(
+            forecast_cube, truth_cube, additional_predictors
         )
 
     plugin = EstimateCoefficientsForEnsembleCalibration(

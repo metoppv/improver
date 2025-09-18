@@ -9,6 +9,7 @@ and coefficient inputs.
 from collections import OrderedDict
 from typing import Dict, List, Optional, Tuple, Union
 
+import iris
 from iris.cube import Cube, CubeList
 
 from improver.metadata.probabilistic import (
@@ -268,3 +269,31 @@ def add_warning_comment(forecast: Cube) -> Cube:
             "however, no calibration has been applied."
         )
     return forecast
+
+
+def get_common_wmo_ids(forecast_cube, truth_cube, additional_predictors):
+    """Extracts the common WMO IDs from the forecast, truth and any additional
+    predictor cubes.
+
+    Args:
+        forecast_cube: Cube containing the forecast data.
+        truth_cube: Cube containing the truth data.
+        additional_predictors: List of cubes containing any additional predictors.
+
+    Returns:
+        The forecast, truth and additional predictor cubes with only the common
+        WMO IDs retained.
+    """
+    wmo_ids = []
+    wmo_ids.append(forecast_cube.coord("wmo_id").points)
+    wmo_ids.append(truth_cube.coord("wmo_id").points)
+    for ap in additional_predictors:
+        wmo_ids.append(ap.coord("wmo_id").points)
+    wmo_ids = list(set.intersection(*map(set, wmo_ids)))
+    constr = iris.Constraint(wmo_id=wmo_ids)
+    truth_cube = truth_cube.extract(constr)
+    forecast_cube = forecast_cube.extract(constr)
+    additional_predictors = CubeList(
+        [ap.extract(constr) for ap in additional_predictors]
+    )
+    return forecast_cube, truth_cube, additional_predictors
