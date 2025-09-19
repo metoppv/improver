@@ -5,8 +5,9 @@
 """Provides support utilities for cli scripts."""
 
 import json
-import pickle
 from typing import Dict, Optional
+
+import joblib
 
 
 def load_json_or_none(file_path: Optional[str]) -> Optional[Dict]:
@@ -43,5 +44,5 @@ def load_pickle_or_none(file_path: Optional[str]) -> Optional[list]:
     """
     if file_path:
         with open(file_path, "rb") as input_file:
-            object = pickle.load(input_file)
+            object = joblib.load(input_file)
     return object if file_path else None

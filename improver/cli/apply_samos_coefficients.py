@@ -64,6 +64,7 @@ def process(
                 realizations or percentiles. If no coefficients are provided and a
                 probability template is provided, the probability template forecast will
                 be returned as the uncalibrated probability forecast.
+
         gam_features (list of str):
             A list of the names of the cubes that will be used as additional
             features in the GAM. Additionaly the name of any coordinates

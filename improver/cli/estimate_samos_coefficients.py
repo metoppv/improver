@@ -51,6 +51,7 @@ def process(
                 features (static predictors) that will be provided to the GAM to help
                 calculate the climatological statistics. The name of the cubes should
                 match one of the names in the gam_features list.
+
         truth_attribute (str):
             An attribute and its value in the format of "attribute=value",
             which must be present on historical truth cubes.

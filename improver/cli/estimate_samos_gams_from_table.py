@@ -45,6 +45,7 @@ def process(
                 - Optionally paths to additional NetCDF files that contain additional
                 features (static predictors) that will be provided when estimating the
                 GAM.
+
         gam_features (list of str):
             A list of the names of the cubes that will be used as additional
             features in the GAM. Additionaly the name of any coordinates

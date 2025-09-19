@@ -57,6 +57,7 @@ def process(
                 features (static predictors) that will be provided when estimating the
                 SAMOS coefficients. The name of all cubes in this list must be in the
                 gam_features list.
+
         gam_features (list of str):
             A list of the names of the cubes that will be used as additional
             features in the GAM. Additionaly the name of any coordinates
