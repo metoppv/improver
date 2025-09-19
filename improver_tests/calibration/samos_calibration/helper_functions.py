@@ -16,6 +16,12 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_variable_cube,
 )
 
+FORECAST_ATTRIBUTES = {
+    "title": "MOGREPS-UK Forecast",
+    "source": "Met Office Unified Model",
+    "institution": "Met Office",
+}
+
 
 def create_simple_cube(
     forecast_type: str,
@@ -138,7 +144,7 @@ def create_cubes_for_gam_fitting(
     # Create array of random noise which increases with x and y, so that there is
     # some variance in the data to model in the standard deviation GAM.
     rng = np.random.RandomState(210825)  # Set seed for reproducible results.
-    noise = rng.normal(loc=0.0, scale=addition / 30)
+    noise = rng.normal(loc=0.0, scale=0.05 + (addition / 30))
     input_cube.data = input_cube.data + addition + noise
 
     additional_cubes = iris.cube.CubeList([])

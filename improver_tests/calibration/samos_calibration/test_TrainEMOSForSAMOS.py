@@ -7,7 +7,10 @@
 import numpy as np
 import pytest
 
-from improver.calibration.samos_calibration import TrainEMOSForSAMOS, TrainGAMsForSAMOS
+from improver.calibration.samos_calibration import (
+    TrainEMOSForSAMOS,
+    TrainGAMsForSAMOS,
+)
 from improver_tests.calibration.samos_calibration.helper_functions import (
     create_cubes_for_gam_fitting,
     create_simple_cube,
@@ -40,91 +43,6 @@ def test__init__(kwargs):
 
     for key in kwargs.keys():
         assert getattr(result, key) == kwargs[key]
-
-
-@pytest.mark.parametrize("include_altitude", [False, True])
-def test_get_climatological_stats(
-    include_altitude,
-):
-    """Test that the get_climatological_stats method returns the expected results."""
-    # Skip test if pyGAM not available.
-    pytest.importorskip("pygam")
-
-    # Set up model terms for spatial predictors.
-    model_specification = [["linear", [0], {}], ["linear", [1], {}]]
-    features = ["latitude", "longitude"]
-    n_spatial_points = 5
-    n_realizations = 5
-    n_times = 20
-
-    if include_altitude:
-        features.append("surface_altitude")
-        model_specification.append(["spline", [features.index("surface_altitude")], {}])
-
-    cube_for_gam, additional_cubes_for_gam = create_cubes_for_gam_fitting(
-        n_spatial_points=n_spatial_points,
-        n_realizations=n_realizations,
-        n_times=n_times,
-        include_altitude=include_altitude,
-    )
-
-    gams = TrainGAMsForSAMOS(model_specification).process(
-        cube_for_gam, features, additional_cubes_for_gam
-    )
-
-    cube_for_test, additional_cubes_for_test = create_cubes_for_gam_fitting(
-        n_spatial_points=2,
-        n_realizations=2,
-        n_times=1,
-        include_altitude=include_altitude,
-    )
-
-    result_mean, result_sd = TrainEMOSForSAMOS.get_climatological_stats(
-        cube_for_test, gams, features, additional_cubes_for_test
-    )
-
-    expected_mean = create_simple_cube(
-        forecast_type="gridded",
-        n_spatial_points=2,
-        n_realizations=2,
-        n_times=1,
-        fill_value=0.0,
-    )
-    expected_sd = expected_mean.copy()
-
-    if not include_altitude:
-        expected_mean.data = np.array(
-            [
-                [[284.39363425, 288.14659092], [288.14237183, 291.8953285]],
-                [[284.39363425, 288.14659092], [288.14237183, 291.8953285]],
-            ],
-            dtype=np.float32,
-        )
-        expected_sd.data = np.array(
-            [
-                [[0.36190698, 0.49423461], [0.48704575, 0.61937337]],
-                [[0.36190698, 0.49423461], [0.48704575, 0.61937337]],
-            ],
-            dtype=np.float32,
-        )
-    else:
-        expected_mean.data = np.array(
-            [
-                [[274.41442381, 288.1640568], [278.16316139, 291.91279438]],
-                [[274.41442381, 288.1640568], [278.16316139, 291.91279438]],
-            ],
-            dtype=np.float32,
-        )
-        expected_sd.data = np.array(
-            [
-                [[0.36048627, 0.50103523], [0.48562504, 0.626174]],
-                [[0.36048627, 0.50103523], [0.48562504, 0.626174]],
-            ],
-            dtype=np.float32,
-        )
-
-    assert result_mean == expected_mean
-    assert result_sd == expected_sd
 
 
 def test_climate_anomaly_emos():
@@ -229,9 +147,9 @@ def test_process(include_altitude):
         "emos_coefficient_delta",
     ]
     if include_altitude:
-        expected_data = [0.0450892, -0.1451314, 0.0, 1.05]
+        expected_data = [0.02605934, -0.11531556, 0.00025, 1.0]
     else:
-        expected_data = [-0.05576817, 0.08254312, 0.0, 1.0012305]
+        expected_data = [0.02422589, -0.11010934, 0.0, 1.0]
 
     for i, cube in enumerate(result):
         assert expected_names[i] == cube.name()
