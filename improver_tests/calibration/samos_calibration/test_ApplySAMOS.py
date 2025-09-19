@@ -250,6 +250,9 @@ def test_process(
     input_format, output_format, emos_include_altitude, gam_include_altitude
 ):
     """Test that the process method returns the expected results."""
+    # Skip test if pyGAM not available.
+    pytest.importorskip("pygam")
+
     # Set up model terms for spatial predictors.
     model_specification = [["linear", [0], {}], ["linear", [1], {}]]
     features = ["latitude", "longitude"]
