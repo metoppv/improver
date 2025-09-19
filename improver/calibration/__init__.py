@@ -13,7 +13,6 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import iris.cube
 import joblib
-import pyarrow.parquet as pq
 from iris.cube import Cube, CubeList
 
 from improver.metadata.probabilistic import (
@@ -298,6 +297,9 @@ def identify_parquet_type(parquet_paths: List[Path]):
         - The path to the Parquet file containing the historical forecasts.
         - The path to the Parquet file containing the truths.
     """
+    # import here to avoid dependency on pyarrow for all of improver
+    import pyarrow.parquet as pq
+
     forecast_table_path = None
     truth_table_path = None
     for file_path in parquet_paths:

@@ -348,6 +348,7 @@ def with_output(
     """
     import joblib
     from iris.cube import Cube, CubeList
+
     from improver.utilities.save import save_netcdf
 
     result = wrapped(*args, **kwargs)

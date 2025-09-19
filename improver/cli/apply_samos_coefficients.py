@@ -35,35 +35,35 @@ def process(
     Args:
         file_paths (cli.inputpath):
             A list of input paths containing:
-                - Path to a pickle file containing the GAMs to be used. This pickle
-                file contains two lists, each containing two fitted GAMs. The first list
-                contains GAMS for predicting each of the climatological mean and standard
-                deviation of the historical forecasts. The second list contains GAMS for
-                predicting each of the climatological mean and standard deviation of the
-                truths.
-                - Path to a NetCDF file containing the forecast to be calibrated. The
-                input forecast could be given as realizations, probabilities or
-                percentiles.
-                - Path to a NetCDF file containing a cube list that includes the
-                coefficients to be used for calibration or None. If none then the input,
-                or probability template if provided, is returned unchanged.
-                - Optionally, paths to additional NetCDF files that will be provided to
-                the emos plugin representing static additional predictors. These static
-                additional predictors are expected not to have a time coordinate. These
-                will be identified by their omission from the gam_features list.
-                - Optionally paths to additional NetCDF files that contain additional
-                features (static predictors) that will be provided to the GAM to help
-                calculate the climatological statistics. The name of the cubes should
-                match one of the names in the gam_features list.
-                - Optionally, path to a NetCDF file containing the land-sea mask. This
-                is used to ensure that only land points are calibrated. If no land-sea
-                mask is provided, all points will be calibrated.
-                - Optionally, path to a NetCDF file containing a probability forecast
-                that will be used as a template when generating probability output when
-                the input format of the forecast cube is not probabilities i.e.
-                realizations or percentiles. If no coefficients are provided and a
-                probability template is provided, the probability template forecast will
-                be returned as the uncalibrated probability forecast.
+            - Path to a pickle file containing the GAMs to be used. This pickle
+            file contains two lists, each containing two fitted GAMs. The first list
+            contains GAMS for predicting each of the climatological mean and standard
+            deviation of the historical forecasts. The second list contains GAMS for
+            predicting each of the climatological mean and standard deviation of the
+            truths.
+            - Path to a NetCDF file containing the forecast to be calibrated. The
+            input forecast could be given as realizations, probabilities or
+            percentiles.
+            - Path to a NetCDF file containing a cube list that includes the
+            coefficients to be used for calibration or None. If none then the input,
+            or probability template if provided, is returned unchanged.
+            - Optionally, paths to additional NetCDF files that will be provided to
+            the emos plugin representing static additional predictors. These static
+            additional predictors are expected not to have a time coordinate. These
+            will be identified by their omission from the gam_features list.
+            - Optionally paths to additional NetCDF files that contain additional
+            features (static predictors) that will be provided to the GAM to help
+            calculate the climatological statistics. The name of the cubes should
+            match one of the names in the gam_features list.
+            - Optionally, path to a NetCDF file containing the land-sea mask. This
+            is used to ensure that only land points are calibrated. If no land-sea
+            mask is provided, all points will be calibrated.
+            - Optionally, path to a NetCDF file containing a probability forecast
+            that will be used as a template when generating probability output when
+            the input format of the forecast cube is not probabilities i.e.
+            realizations or percentiles. If no coefficients are provided and a
+            probability template is provided, the probability template forecast will
+            be returned as the uncalibrated probability forecast.
 
         gam_features (list of str):
             A list of the names of the cubes that will be used as additional

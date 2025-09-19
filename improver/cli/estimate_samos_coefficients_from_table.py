@@ -38,25 +38,25 @@ def process(
     Args:
         file_paths (cli.inputpath):
             A list of input paths containing:
-                - Path to a pickle file containing the GAMs to be used. This pickle
-                file contains two lists, each containing two fitted GAMs. The first list
-                contains GAMS for predicting each of the climatological mean and
-                standard deviation of the historical forecasts. The second list contains
-                GAMS for predicting each of the climatological mean and standard
-                deviation of the truths.
-                - The path to a Parquet file containing the historical forecasts
-                to be used for calibration.The expected columns within the
-                Parquet file are: forecast, blend_time, forecast_period,
-                forecast_reference_time, time, wmo_id, percentile, diagnostic,
-                latitude, longitude, period, height, cf_name, units.
-                - The path to a Parquet file containing the truths to be used
-                for calibration. The expected columns within the
-                Parquet file are: ob_value, time, wmo_id, diagnostic, latitude,
-                longitude and altitude.
-                - Optionally paths to additional NetCDF files that contain additional
-                features (static predictors) that will be provided when estimating the
-                SAMOS coefficients. The name of all cubes in this list must be in the
-                gam_features list.
+            - Path to a pickle file containing the GAMs to be used. This pickle
+            file contains two lists, each containing two fitted GAMs. The first list
+            contains GAMS for predicting each of the climatological mean and
+            standard deviation of the historical forecasts. The second list contains
+            GAMS for predicting each of the climatological mean and standard
+            deviation of the truths.
+            - The path to a Parquet file containing the historical forecasts
+            to be used for calibration.The expected columns within the
+            Parquet file are: forecast, blend_time, forecast_period,
+            forecast_reference_time, time, wmo_id, percentile, diagnostic,
+            latitude, longitude, period, height, cf_name, units.
+            - The path to a Parquet file containing the truths to be used
+            for calibration. The expected columns within the
+            Parquet file are: ob_value, time, wmo_id, diagnostic, latitude,
+            longitude and altitude.
+            - Optionally paths to additional NetCDF files that contain additional
+            features (static predictors) that will be provided when estimating the
+            SAMOS coefficients. The name of all cubes in this list must be in the
+            gam_features list.
 
         gam_features (list of str):
             A list of the names of the cubes that will be used as additional

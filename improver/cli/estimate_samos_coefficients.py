@@ -33,24 +33,24 @@ def process(
     Args:
         file_paths (cli.inputpath):
             A list of input paths containing:
-                - Path to a pickle file containing the GAMs to be used. This pickle
-                file contains two lists, each containing two fitted GAMs. The first list
-                contains GAMS for predicting each of the climatological mean and
-                standard deviation of the historical forecasts. The second list contains
-                GAMS for predicting each of the climatological mean and standard
-                deviation of the truths.
-                - Paths to NetCDF files containing the historical forecasts and
-                corresponding truths used for calibration. They must have the same
-                diagnostic name and will be separated based on the provided truth
-                attribute.
-                - Optionally, paths to additional NetCDF files that will be provided to
-                the emos plugin representing static additional predictors. These static
-                additional predictors are expected not to have a time coordinate. These
-                will be identified by their omission from the gam_features list.
-                - Optionally paths to additional NetCDF files that contain additional
-                features (static predictors) that will be provided to the GAM to help
-                calculate the climatological statistics. The name of the cubes should
-                match one of the names in the gam_features list.
+            - Path to a pickle file containing the GAMs to be used. This pickle
+            file contains two lists, each containing two fitted GAMs. The first list
+            contains GAMS for predicting each of the climatological mean and
+            standard deviation of the historical forecasts. The second list contains
+            GAMS for predicting each of the climatological mean and standard
+            deviation of the truths.
+            - Paths to NetCDF files containing the historical forecasts and
+            corresponding truths used for calibration. They must have the same
+            diagnostic name and will be separated based on the provided truth
+            attribute.
+            - Optionally, paths to additional NetCDF files that will be provided to
+            the emos plugin representing static additional predictors. These static
+            additional predictors are expected not to have a time coordinate. These
+            will be identified by their omission from the gam_features list.
+            - Optionally paths to additional NetCDF files that contain additional
+            features (static predictors) that will be provided to the GAM to help
+            calculate the climatological statistics. The name of the cubes should
+            match one of the names in the gam_features list.
 
         truth_attribute (str):
             An attribute and its value in the format of "attribute=value",
