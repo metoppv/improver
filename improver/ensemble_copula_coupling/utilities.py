@@ -363,8 +363,9 @@ def prepare_cube_no_calibration(
     prob_template: Cube = None,
 ) -> Cube:
     """
-    Function to add appropriate metadata to cubes that cannot be calibrated. If the forecast
-    can be calibrated then nothing is returned.
+    Function to add appropriate metadata to cubes that cannot be calibrated. If the
+    forecast can be calibrated then nothing is returned.
+
     Args:
         forecast (iris.cube.Cube):
             The forecast to be calibrated. The input format could be either

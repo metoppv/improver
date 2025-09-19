@@ -38,25 +38,25 @@ def process(
     Args:
         file_paths (cli.inputpath):
             A list of input paths containing:
-            - Path to a pickle file containing the GAMs to be used. This pickle
-              file contains two lists, each containing two fitted GAMs. The first list
-              contains GAMS for predicting each of the climatological mean and standard
-              deviation of the historical forecasts. The second list contains GAMS for
-              predicting each of the climatological mean and standard deviation of the
-              truths.
-            - The path to a Parquet file containing the historical forecasts
-              to be used for calibration.The expected columns within the
-              Parquet file are: forecast, blend_time, forecast_period,
-              forecast_reference_time, time, wmo_id, percentile, diagnostic,
-              latitude, longitude, period, height, cf_name, units.
-            - The path to a Parquet file containing the truths to be used
-              for calibration. The expected columns within the
-              Parquet file are: ob_value, time, wmo_id, diagnostic, latitude,
-              longitude and altitude.
-            - Optionally paths to additional NetCDF files that contain additional features
-              (static predictors) that will be provided when estimating the SAMOS
-              coefficients. The name of all cubes in this list must be in the gam_features
-              list.
+                - Path to a pickle file containing the GAMs to be used. This pickle
+                file contains two lists, each containing two fitted GAMs. The first list
+                contains GAMS for predicting each of the climatological mean and
+                standard deviation of the historical forecasts. The second list contains
+                GAMS for predicting each of the climatological mean and standard
+                deviation of the truths.
+                - The path to a Parquet file containing the historical forecasts
+                to be used for calibration.The expected columns within the
+                Parquet file are: forecast, blend_time, forecast_period,
+                forecast_reference_time, time, wmo_id, percentile, diagnostic,
+                latitude, longitude, period, height, cf_name, units.
+                - The path to a Parquet file containing the truths to be used
+                for calibration. The expected columns within the
+                Parquet file are: ob_value, time, wmo_id, diagnostic, latitude,
+                longitude and altitude.
+                - Optionally paths to additional NetCDF files that contain additional
+                features (static predictors) that will be provided when estimating the
+                SAMOS coefficients. The name of all cubes in this list must be in the
+                gam_features list.
         gam_features (list of str):
             A list of the names of the cubes that will be used as additional
             features in the GAM. Additionaly the name of any coordinates
@@ -119,7 +119,10 @@ def process(
     # monkey-patch to 'tweak' scipy to prevent errors occuring
     import scipy.sparse
 
-    from improver.calibration import identify_parquet_type, split_pickle_parquet_and_netcdf
+    from improver.calibration import (
+        identify_parquet_type,
+        split_pickle_parquet_and_netcdf,
+    )
     from improver.calibration.samos_calibration import TrainEMOSForSAMOS
     from improver.ensemble_copula_coupling.utilities import convert_parquet_to_cube
 
@@ -129,7 +132,9 @@ def process(
     scipy.sparse.spmatrix.A = property(to_array)
 
     # Split the input paths into cubes and pickles.
-    samos_additional_predictors, parquets, gams = split_pickle_parquet_and_netcdf(file_paths)
+    samos_additional_predictors, parquets, gams = split_pickle_parquet_and_netcdf(
+        file_paths
+    )
     # Determine which parquet path provides truths and which historic forecasts.
     forecast, truth = identify_parquet_type(parquets)
 
@@ -156,7 +161,11 @@ def process(
         "max_iterations": max_iterations,
     }
 
-    plugin = TrainEMOSForSAMOS(distribution="norm", emos_kwargs=emos_kwargs, unique_site_id_key=unique_site_id_key)
+    plugin = TrainEMOSForSAMOS(
+        distribution="norm",
+        emos_kwargs=emos_kwargs,
+        unique_site_id_key=unique_site_id_key,
+    )
     return plugin(
         historic_forecasts=forecast_cube,
         truths=truth_cube,

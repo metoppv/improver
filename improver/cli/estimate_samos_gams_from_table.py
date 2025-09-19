@@ -31,19 +31,20 @@ def process(
     """Estimate General Additive Model (GAM) for SAMOS.
 
     Args:
-    file_paths (cli.inputpath):
-        A list of input paths containing:
-            - The path to a Parquet file containing the historical forecasts
-              to be used for calibration.The expected columns within the
-              Parquet file are: forecast, blend_time, forecast_period,
-              forecast_reference_time, time, wmo_id, percentile, diagnostic,
-              latitude, longitude, period, height, cf_name, units.
-            - The path to a Parquet file containing the truths to be used
-              for calibration. The expected columns within the
-              Parquet file are: ob_value, time, wmo_id, diagnostic, latitude,
-              longitude and altitude.
-            - Optionally paths to additional NetCDF files that contain additional features
-              (static predictors) that will be provided when estimating the GAM.
+        file_paths (cli.inputpath):
+            A list of input paths containing:
+                - The path to a Parquet file containing the historical forecasts
+                to be used for calibration.The expected columns within the
+                Parquet file are: forecast, blend_time, forecast_period,
+                forecast_reference_time, time, wmo_id, percentile, diagnostic,
+                latitude, longitude, period, height, cf_name, units.
+                - The path to a Parquet file containing the truths to be used
+                for calibration. The expected columns within the
+                Parquet file are: ob_value, time, wmo_id, diagnostic, latitude,
+                longitude and altitude.
+                - Optionally paths to additional NetCDF files that contain additional
+                features (static predictors) that will be provided when estimating the
+                GAM.
         gam_features (list of str):
             A list of the names of the cubes that will be used as additional
             features in the GAM. Additionaly the name of any coordinates
@@ -109,7 +110,10 @@ def process(
             and the second predicting the climatological standard deviation.
     """
 
-    from improver.calibration import identify_parquet_type, split_pickle_parquet_and_netcdf
+    from improver.calibration import (
+        identify_parquet_type,
+        split_pickle_parquet_and_netcdf,
+    )
     from improver.calibration.samos_calibration import TrainGAMsForSAMOS
     from improver.ensemble_copula_coupling.utilities import convert_parquet_to_cube
 
