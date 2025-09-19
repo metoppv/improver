@@ -203,7 +203,7 @@ class Test_with_output(unittest.TestCase):
         """Tests that joblib.dump is called for a non-cube object"""
         save_object = {"a": 1}
         result = wrapped_with_output.cli("argv[0]", [save_object], "--output=foo")
-        m.assert_called_with(save_object, unittest.mock.ANY)
+        m.assert_called_with(save_object, "foo", compress=1)
         self.assertEqual(result, None)
 
     @patch("improver.utilities.save.save_netcdf")
