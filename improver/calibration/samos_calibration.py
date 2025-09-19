@@ -237,14 +237,15 @@ class TrainGAMsForSAMOS(BasePlugin):
     ):
         """
         Initialize the class.
+
         Args:
             model_specification:
                 A list of lists which each contain three items (in order):
-                    1. a string containing a single pyGAM term; one of 'linear',
-                    'spline', 'tensor', or 'factor'
-                    2. a list of integers which correspond to the features to be
-                    included in that term
-                    3. a dictionary of kwargs to be included when defining the term
+                1. a string containing a single pyGAM term; one of 'linear',
+                'spline', 'tensor', or 'factor'
+                2. a list of integers which correspond to the features to be
+                included in that term
+                3. a dictionary of kwargs to be included when defining the term
             max_iter:
                 A pyGAM argument which determines the maximum iterations allowed when
                 fitting the GAM
@@ -289,6 +290,7 @@ class TrainGAMsForSAMOS(BasePlugin):
     ) -> Cube:
         """
         Internal function to apply rolling window aggregator to padded cube.
+
         Args:
             padded_cube:
                 The cube to have rolling window calculation applied to.
@@ -569,6 +571,7 @@ class TrainEMOSForSAMOS(BasePlugin):
         unique_site_id_key: Optional[str] = None,
     ) -> None:
         """Initialize the class.
+
         Args:
             distribution:
                 Name of distribution. Assume that a calibrated version of the
@@ -594,6 +597,7 @@ class TrainEMOSForSAMOS(BasePlugin):
     ) -> CubeList:
         """Function to convert forecasts and truths to climate anomalies then calculate
         EMOS coefficients for the climate anomalies.
+
         Args:
             forecast_cubes:
                 A list of three cubes: a cube containing historic forecasts, a cube
