@@ -378,14 +378,15 @@ def split_cubes_for_samos(
     # Split out prob_template cube if required.
     forecast_names = [c.name() for c in forecast]
     prob_forecast_names = [name for name in forecast_names if "probability" in name]
-    if len(set(prob_forecast_names)) != 1:
+    if len(set(prob_forecast_names)) > 1:
         msg = (
             "Providing multiple probability cubes is not supported. A probability cube "
             "can either be provided as the forecast or the probability template, but "
             f"not both. Cubes provided: {prob_forecast_names}."
         )
+        raise IOError(msg)
     else:
-        if len(set(forecast_names)) != 1:
+        if len(set(forecast_names)) > 1:
             prob_template = forecast.extract(prob_forecast_names[0])[0]
             forecast.remove(prob_template)
 
