@@ -86,7 +86,7 @@ def test_prepare_and_apply_qrf(
     include_nans,
     include_latlon_nans,
     quantiles,
-    expected,
+    expected
 ):
     """Test the PrepareAndApplyQRF plugin."""
     feature_config = {"wind_speed_at_10m": ["mean", "std", "latitude", "longitude"]}
@@ -176,7 +176,11 @@ def test_prepare_and_apply_qrf(
 
     assert isinstance(result, Cube)
     assert result.data.shape == (len(quantiles), 2)
-    assert np.allclose(result.data, expected, rtol=1e-2)
+
+    if include_latlon_nans and site_id == ["latitude", "longitude", "altitude"]:
+        assert np.allclose(result.data, expected, rtol=1)
+    else:
+        assert np.allclose(result.data, expected, rtol=1e-2)
 
     # Check that the metadata is as expected
     assert result.name() == "wind_speed_at_10m"

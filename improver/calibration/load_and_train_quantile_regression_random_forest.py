@@ -44,7 +44,7 @@ class LoadForTrainQRF(PostProcessingPlugin):
     def __init__(
         self,
         feature_config: dict[str, list[str]],
-        parquet_diagnostic_names: str,
+        parquet_diagnostic_names: Union[list[str], str],
         target_cf_name: str,
         forecast_periods: str,
         cycletime: str,
@@ -57,7 +57,7 @@ class LoadForTrainQRF(PostProcessingPlugin):
         Args:
             feature_config: Feature configuration defining the features to be used for
                 Quantile Regression Random Forests.
-            parquet_diagnostic_names (str):
+            parquet_diagnostic_names:
                 A string containing the diagnostic name that will be used for filtering
                 the target diagnostic from the forecast and truth DataFrames read in
                 from the parquet files. This could be different from the CF name e.g.
