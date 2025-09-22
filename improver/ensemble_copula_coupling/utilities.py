@@ -395,10 +395,7 @@ def prepare_cube_no_calibration(
             returned as the uncalibrated probability forecast.
 
     Returns:
-        None
-        or
-        iris.cube.Cube:
-            The prepared forecast cube.
+        The prepared forecast cube or None.
     """
     from improver.calibration import add_warning_comment, validity_time_check
     from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
