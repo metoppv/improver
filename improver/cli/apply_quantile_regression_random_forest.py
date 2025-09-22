@@ -52,6 +52,9 @@ def process(
             the rest of the feature cubes, if present.
             The names of the coordinates that uniquely identify each site,
             e.g. "wmo_id" or "latitude,longitude".
+        unique_site_id_keys (str):
+            The names of the coordinates that uniquely identify each site,
+            e.g. "wmo_id" or "latitude,longitude".
     Returns:
         iris.cube.Cube:
             The calibrated forecast cube.

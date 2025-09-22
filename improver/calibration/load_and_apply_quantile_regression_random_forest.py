@@ -35,7 +35,8 @@ iris.FUTURE.pandas_ndim = True
 
 
 class PrepareAndApplyQRF(PostProcessingPlugin):
-    """Load and apply the trained Quantile Regression Random Forest (QRF) model."""
+    """Prepare the input forecast for application of a trained Quantile Regression
+    Random Forest (QRF) model and apply the QRF model."""
 
     def __init__(
         self,
@@ -202,7 +203,8 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
                 calibrated.
             qrf_descriptors: The trained QRF model to be applied to the forecast
                 and the transformation and pre-transform addition applied during
-                training.
+                training. The descriptors expected are a tuple of:
+                (qrf_model, transformation, pre_transform_addition).
 
         Returns:
             iris.cube.Cube:

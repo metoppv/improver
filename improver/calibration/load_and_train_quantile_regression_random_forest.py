@@ -52,7 +52,7 @@ class LoadForTrainQRF(PostProcessingPlugin):
         experiment: Optional[str] = None,
         unique_site_id_keys: Union[list[str], str] = "wmo_id",
     ):
-        """Initialise the LoadForQRF plugin.
+        """Initialise the LoadForTrainQRF plugin.
 
         Args:
             feature_config: Feature configuration defining the features to be used for
