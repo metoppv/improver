@@ -393,6 +393,7 @@ def prepare_cube_no_calibration(
             or percentiles. If no coefficients are provided and a probability
             template is provided, the probability template forecast will be
             returned as the uncalibrated probability forecast.
+
     Returns:
         None
         or
