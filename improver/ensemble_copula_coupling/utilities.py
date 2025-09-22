@@ -356,12 +356,12 @@ def interpolate_multiple_rows_same_y(*args):
 
 def prepare_cube_no_calibration(
     forecast: Cube,
-    emos_coefficients: Cube,
+    emos_coefficients: CubeList,
     ignore_ecc_bounds_exceedance: bool = False,
     validity_times: List[str] = None,
     percentiles: List[float] = None,
     prob_template: Cube = None,
-) -> Cube:
+) -> Cube | None:
     """
     Function to add appropriate metadata to cubes that cannot be calibrated. If the
     forecast can be calibrated then nothing is returned.
@@ -376,7 +376,7 @@ def prepare_cube_no_calibration(
             and the last two digits represent the minutes e.g. 0300 or 0315. If the
             forecast provided is at a different validity time then no coefficients
             will be applied.
-        emos_coefficients (iris.cube.Cube):
+        emos_coefficients (iris.cube.CubeList):
             The EMOS coefficients to be applied to the forecast.
         percentiles (List[float]):
             The set of percentiles used to create the calibrated forecast.
@@ -394,6 +394,8 @@ def prepare_cube_no_calibration(
             template is provided, the probability template forecast will be
             returned as the uncalibrated probability forecast.
     Returns:
+        None
+        or
         iris.cube.Cube:
             The prepared forecast cube.
     """
