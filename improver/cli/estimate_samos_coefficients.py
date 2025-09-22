@@ -112,12 +112,8 @@ def process(
 
     scipy.sparse.spmatrix.A = property(to_array)
 
-    print(file_paths)
-
     # Split the input paths into cubes and pickles
     cubes, _, gams = split_pickle_parquet_and_netcdf(file_paths)
-    print(cubes)
-    print(gams)
 
     # Split the cubes into forecast and truth cubes, along with any additional fields
     # provided for the GAMs and EMOS.
