@@ -408,12 +408,18 @@ def compare_pickled_forest(
 
     difference_found = False
     try:
-        np.testing.assert_equal(output.n_features_in_, kgo.n_features_in_)
-        np.testing.assert_equal(output.n_outputs_, kgo.n_outputs_)
-        np.testing.assert_equal(output.max_depth, kgo.max_depth)
-        np.testing.assert_equal(output.n_estimators, kgo.n_estimators)
-        np.testing.assert_equal(output.random_state, kgo.random_state)
-        for output_estimator, kgo_estimator in zip(output.estimators_, kgo.estimators_):
+        model, transformation, pre_transform_addition = output
+        kgo_model, kgo_transformation, kgo_pre_transform_addition = kgo
+        np.testing.assert_equal(transformation, kgo_transformation)
+        np.testing.assert_equal(pre_transform_addition, kgo_pre_transform_addition)
+        np.testing.assert_equal(model.n_features_in_, kgo_model.n_features_in_)
+        np.testing.assert_equal(model.n_outputs_, kgo_model.n_outputs_)
+        np.testing.assert_equal(model.max_depth, kgo_model.max_depth)
+        np.testing.assert_equal(model.n_estimators, kgo_model.n_estimators)
+        np.testing.assert_equal(model.random_state, kgo_model.random_state)
+        for output_estimator, kgo_estimator in zip(
+            model.estimators_, kgo_model.estimators_
+        ):
             np.testing.assert_allclose(
                 output_estimator.tree_.value, kgo_estimator.tree_.value
             )
@@ -422,4 +428,27 @@ def compare_pickled_forest(
     # call the reporter function outside the except block to avoid nested
     # exceptions if the reporter function is raising an exception
     if difference_found:
-        reporter("different pickled forest")
+        try:
+            msg = (
+                "Different pickled forest. \nThe output is: "
+                f"n_features: {model.n_features_in_}, "
+                f"n_outputs: {model.n_outputs_}, "
+                f"max_depth: {model.max_depth}, "
+                f"n_estimators: {model.n_estimators}, "
+                f"random_state: {model.random_state}, "
+                f"transformation: {transformation}, "
+                f"pre_transform_addition: {pre_transform_addition}."
+                "\nThe KGO is: "
+                f"n_features: {kgo.n_features_in_}, "
+                f"n_outputs: {kgo.n_outputs_}, "
+                f"max_depth: {kgo.max_depth}, "
+                f"n_estimators: {kgo.n_estimators}, "
+                f"random_state: {kgo.random_state}, "
+                f"transformation: {kgo_transformation}, "
+                f"pre_transform_addition: {kgo_pre_transform_addition}."
+            )
+        except (AssertionError, ValueError, UnboundLocalError):
+            msg = "Different pickled forest."
+            reporter(msg)
+        else:
+            reporter(msg)

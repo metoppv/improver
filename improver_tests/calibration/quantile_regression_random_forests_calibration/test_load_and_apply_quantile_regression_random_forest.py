@@ -2,20 +2,19 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""Unit tests for the LoadAndApplyQRF plugin."""
+"""Unit tests for the PrepareAndApplyQRF plugin."""
 
 import numpy as np
 import pytest
 from iris.coords import AuxCoord
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 
 from improver.calibration.load_and_apply_quantile_regression_random_forest import (
-    LoadAndApplyQRF,
+    PrepareAndApplyQRF,
 )
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     RebadgeRealizationsAsPercentiles,
 )
-from improver.utilities.save import save_netcdf
 from improver_tests.calibration.quantile_regression_random_forests_calibration.test_quantile_regression_random_forest import (
     _create_ancil_file,
     _create_forecasts,
@@ -44,45 +43,68 @@ def _add_day_of_training_period_to_cube(cube, day_of_training_period, secondary_
     return cube
 
 
+# fmt: off
 @pytest.mark.parametrize("percentile_input", [True, False])
 @pytest.mark.parametrize(
-    "n_estimators,max_depth,random_state,compression,transformation,pre_transform_addition,extra_kwargs,include_static,quantiles,expected",
+    "site_id", [["wmo_id"], ["station_id"], ["latitude", "longitude", "altitude"]]
+)
+@pytest.mark.parametrize(
+    "n_estimators,max_depth,random_state,transformation,pre_transform_addition,extra_kwargs,include_dynamic,include_static,include_nans,include_latlon_nans,quantiles,expected",
     [
-        (2, 2, 55, 5, None, 0, {}, False, [0.5], [4.1, 5.65]),  # noqa Basic test case
-        (100, 2, 55, 5, None, 0, {}, False, [1 / 3, 2 / 3], [[4.1, 5.1], [5.1, 5.1]]),  # noqa Multiple quantiles
-        (1, 1, 55, 5, None, 0, {}, False, [0.5], [4.1, 6.2]),  # noqa Fewer estimators and reduced depth
-        (1, 1, 73, 5, None, 0, {}, False, [0.5], [4.2, 6.2]),  # Different random state
-        (2, 2, 55, 5, "log", 10, {}, False, [0.5], [4.1, 5.64]),  # Log transformation
-        (2, 2, 55, 5, "log10", 10, {}, False, [0.5], [4.1, 5.64]),  # noqa Log10 transformation
-        (2, 2, 55, 5, "sqrt", 10, {}, False, [0.5], [4.1, 5.64]),  # noqa Square root transformation
-        (2, 2, 55, 5, "cbrt", 10, {}, False, [0.5], [4.1, 5.64]),  # noqa Cube root transformation
-        (2, 2, 55, 5, None, 0, {"max_samples_leaf": 0.5}, False, [0.5], [4.1, 6.2]),  # noqa # Different criterion
-        (2, 5, 55, 5, None, 0, {}, True, [0.5], [4.1, 5.65]),  # noqa Include an additional static feature
+        (2, 2, 55, None, 0, {}, False, False, False, False, [0.5], [4.1, 5.65]),  # Basic test case
+        (100, 2, 55, None, 0, {}, False, False, False, False, [1 / 3, 2 / 3], [[4.1, 5.1], [5.1, 5.1]]),  # Multiple quantiles
+        (1, 1, 55, None, 0, {}, False, False, False, False, [0.5], [4.1, 6.2]),  # Fewer estimators and reduced depth
+        (1, 1, 73, None, 0, {}, False, False, False, False, [0.5], [4.2, 6.2]),  # Different random state
+        (2, 2, 55, "log", 10, {}, False, False, False, False, [0.5], [4.1, 5.64]),  # Log transformation
+        (2, 2, 55, "log10", 10, {}, False, False, False, False, [0.5], [4.1, 5.64]),  # Log10 transformation
+        (2, 2, 55, "sqrt", 10, {}, False, False, False, False, [0.5], [4.1, 5.64]),  # Square root transformation
+        (2, 2, 55, "cbrt", 10, {}, False, False, False, False, [0.5], [4.1, 5.64]),  # Cube root transformation
+        (2, 2, 55, None, 0, {"max_samples_leaf": 0.5}, False, False, False, False, [0.5], [4.1, 6.2]),  # Different criterion
+        (2, 5, 55, None, 0, {}, True, False, False, False, [0.5], [4.1, 4.6]),  # Include an additional dynamic feature
+        (2, 5, 55, None, 0, {}, False, True, False, False, [0.5], [4.1, 5.65]),  # Include an additional static feature
+        (2, 5, 55, None, 0, {}, True, True, False, False, [0.5], [4.1, 4.6]),  # Include an additional dynamic and static feature
+        (2, 2, 55, None, 0, {}, False, False, True, False, [0.5], [4.1, 5.65]),  # NaNs in input data
+        (2, 2, 55, None, 0, {}, False, False, False, True, [0.5], [4.1, 5.65]),  # NaNs in lat/lon
+        (2, 2, 55, None, 0, {}, True, False, False, True, [0.5], [4.1, 4.6]),  # NaNs in lat/lon and dynamic feature
+        (2, 2, 55, None, 0, {}, False, True, False, True, [0.5], [4.1, 5.65]),  # NaNs in lat/lon and static feature
+        (2, 2, 55, None, 0, {}, True, True, False, True, [0.5], [4.1, 4.6]),  # NaNs in lat/lon, dynamic and static feature
+        (2, 2, 55, None, 0, {}, True, True, True, True, [0.5], [4.6, 4.6]),  # NaNs in lat/lon, dynamic and static feature and input data
     ],
 )
-def test_load_and_apply_qrf(
-    tmp_path,
+# fmt: on
+def test_prepare_and_apply_qrf(
     percentile_input,
+    site_id,
     n_estimators,
     max_depth,
     random_state,
-    compression,
     transformation,
     pre_transform_addition,
     extra_kwargs,
+    include_dynamic,
     include_static,
+    include_nans,
+    include_latlon_nans,
     quantiles,
     expected,
 ):
-    """Test the LoadAndApplyQRF plugin."""
+    """Test the PrepareAndApplyQRF plugin."""
     feature_config = {"wind_speed_at_10m": ["mean", "std", "latitude", "longitude"]}
 
-    model_output = _run_train_qrf(
+    if include_dynamic:
+        feature_config["air_temperature"] = ["mean", "std"]
+    if include_static:
+        feature_config["distance_to_water"] = ["static"]
+
+    unique_site_id_key = site_id[0]
+    if site_id == ["latitude", "longitude", "altitude"]:
+        unique_site_id_key = "station_id"
+
+    qrf_model = _run_train_qrf(
         feature_config,
         n_estimators,
         max_depth,
         random_state,
-        compression,
         transformation,
         pre_transform_addition,
         extra_kwargs,
@@ -97,13 +119,14 @@ def test_load_and_apply_qrf(
         ],
         realization_data=[2, 6, 10],
         truth_data=[4.2, 6.2, 4.1, 5.1],
-        tmp_path=tmp_path,
+        site_id=unique_site_id_key,
     )
 
     frt = "20170103T0000Z"
     vt = "20170103T1200Z"
     data = np.arange(6, (len(quantiles) * 6) + 1, 6)
     day_of_training_period = 2
+    cube_inputs = CubeList()
     forecast_cube = _create_forecasts(frt, vt, data, return_cube=True)
 
     forecast_cube = _add_day_of_training_period_to_cube(
@@ -113,28 +136,45 @@ def test_load_and_apply_qrf(
     if percentile_input:
         forecast_cube = RebadgeRealizationsAsPercentiles()(forecast_cube)
 
-    features_dir = tmp_path / "features"
-    features_dir.mkdir(parents=True)
-    forecast_filepath = str(features_dir / "forecast.nc")
-    save_netcdf(forecast_cube, forecast_filepath)
-
-    file_paths = [model_output, forecast_filepath]
+    cube_inputs.append(forecast_cube)
+    if include_dynamic:
+        dynamic_cube = _create_forecasts(
+            frt,
+            vt,
+            data + 0.5,  # Slightly different data to the target feature
+            return_cube=True,
+        )
+        dynamic_cube.rename("air_temperature")
+        dynamic_cube = _add_day_of_training_period_to_cube(
+            dynamic_cube, day_of_training_period, "forecast_reference_time"
+        )
+        cube_inputs.append(dynamic_cube)
 
     if include_static:
         ancil_cube = _create_ancil_file(return_cube=True)
-        ancil_filepath = features_dir / "ancil.nc"
-        save_netcdf(ancil_cube, ancil_filepath)
-        file_paths.append(str(ancil_filepath))
+        cube_inputs.append(ancil_cube)
 
-    plugin = LoadAndApplyQRF(
+    if include_nans:
+        # Add some NaNs to the input data to check that they are handled
+        for cube in cube_inputs:
+            if cube.name() == "distance_to_water":
+                cube.data[0] = np.nan
+            else:
+                cube.data[0, 0] = np.nan
+
+    if include_latlon_nans:
+        # Add some NaNs to the latitude and longitude to check that they are handled
+        for cube in cube_inputs:
+            cube.coord("latitude").points[1] = np.nan
+            cube.coord("longitude").points[1] = np.nan
+
+    result = PrepareAndApplyQRF(
         feature_config,
         "wind_speed_at_10m",
-        transformation=transformation,
-        pre_transform_addition=pre_transform_addition,
-    )
-    result = plugin.process(file_paths=file_paths)
-    assert isinstance(result, Cube)
+        unique_site_id_keys=site_id,
+    )(cube_inputs, (qrf_model, transformation, pre_transform_addition))
 
+    assert isinstance(result, Cube)
     assert result.data.shape == (len(quantiles), 2)
     assert np.allclose(result.data, expected, rtol=1e-2)
 
@@ -165,28 +205,25 @@ def test_load_and_apply_qrf(
     ],
 )
 def test_unexpected(
-    tmp_path,
     exception,
 ):
-    """Test LoadAndApplyQRF plugin behaviour in atypical situations."""
+    """Test PrepareAndApplyQRF plugin behaviour in atypical situations."""
     feature_config = {"wind_speed_at_10m": ["mean", "std", "latitude", "longitude"]}
 
     n_estimators = 2
     max_depth = 2
     random_state = 55
-    compression = 5
     transformation = None
     pre_transform_addition = 0
     extra_kwargs = {}
     include_static = False
     quantiles = [0.5]
 
-    model_output = _run_train_qrf(
+    qrf_model = _run_train_qrf(
         feature_config,
         n_estimators,
         max_depth,
         random_state,
-        compression,
         transformation,
         pre_transform_addition,
         extra_kwargs,
@@ -201,7 +238,6 @@ def test_unexpected(
         ],
         realization_data=[2, 6, 10],
         truth_data=[4.2, 6.2, 4.1, 5.1],
-        tmp_path=tmp_path,
     )
 
     frt = "20170103T0000Z"
@@ -212,61 +248,55 @@ def test_unexpected(
     forecast_cube = _add_day_of_training_period_to_cube(
         forecast_cube, day_of_training_period, "forecast_reference_time"
     )
-
+    cube_inputs = CubeList([forecast_cube])
     ancil_cube = _create_ancil_file(return_cube=True)
-    ancil_filepath = tmp_path / "ancil.nc"
-    save_netcdf(ancil_cube, ancil_filepath)
+    cube_inputs.append(ancil_cube)
 
-    features_dir = tmp_path / "features"
-    features_dir.mkdir(parents=True)
-    forecast_filepath = str(features_dir / "forecast.nc")
-    save_netcdf(forecast_cube, forecast_filepath)
-
-    plugin = LoadAndApplyQRF(
+    plugin = PrepareAndApplyQRF(
         feature_config,
         "wind_speed_at_10m",
-        transformation=transformation,
-        pre_transform_addition=pre_transform_addition,
     )
 
     if exception == "no_model_output":
-        file_paths = [forecast_filepath]
-        result = plugin.process(file_paths=file_paths)
+        result = plugin(cube_inputs, qrf_descriptors=None)
         assert isinstance(result, Cube)
         assert result.name() == "wind_speed_at_10m"
         assert result.units == "m s-1"
         assert result.data.shape == forecast_cube.data.shape
         assert np.allclose(result.data, forecast_cube.data)
     elif exception == "no_features":
-        file_paths = [model_output]
-        with pytest.raises(ValueError, match="No features found"):
-            plugin.process(file_paths=file_paths)
-    elif exception == "missing_target_feature":
-        file_paths = [model_output, ancil_filepath]
+        qrf_descriptors = (qrf_model, transformation, pre_transform_addition)
         with pytest.raises(ValueError, match="No target forecast provided."):
-            plugin.process(file_paths=file_paths)
+            plugin(CubeList(), qrf_descriptors=qrf_descriptors)
+    elif exception == "missing_target_feature":
+        qrf_descriptors = (qrf_model, transformation, pre_transform_addition)
+        with pytest.raises(ValueError, match="No target forecast provided."):
+            plugin(
+                CubeList([ancil_cube]),
+                qrf_descriptors=qrf_descriptors,
+            )
     elif exception == "missing_static_feature":
+        qrf_descriptors = (qrf_model, transformation, pre_transform_addition)
         feature_config = {
             "wind_speed_at_10m": ["mean", "std"],
             "distance_to_water": ["static"],
         }
         plugin.feature_config = feature_config
-        file_paths = [model_output, forecast_filepath]
         with pytest.raises(ValueError, match="The number of cubes loaded."):
-            plugin.process(file_paths=file_paths)
+            plugin(CubeList([forecast_cube]), qrf_descriptors=qrf_descriptors)
     elif exception == "missing_dynamic_feature":
+        qrf_descriptors = (qrf_model, transformation, pre_transform_addition)
         feature_config = {
             "wind_speed_at_10m": ["mean", "std"],
             "air_temperature": ["mean", "std"],
         }
         plugin.feature_config = feature_config
-        file_paths = [model_output, forecast_filepath]
         with pytest.raises(ValueError, match="The number of cubes loaded."):
-            plugin.process(file_paths=file_paths)
+            plugin(CubeList([forecast_cube]), qrf_descriptors=qrf_descriptors)
     elif exception == "no_quantile_forest_package":
+        qrf_descriptors = (qrf_model, transformation, pre_transform_addition)
         plugin.quantile_forest_installed = False
-        file_paths = [model_output, forecast_filepath]
-        result = plugin.process(file_paths=file_paths)
+        result = plugin(CubeList([forecast_cube]), qrf_descriptors=qrf_descriptors)
         assert isinstance(result, Cube)
         assert result.name() == "wind_speed_at_10m"
         assert result.units == "m s-1"

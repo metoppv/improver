@@ -128,7 +128,7 @@ def _unique_check(df: DataFrame, column: str) -> None:
         raise ValueError(msg)
 
 
-def _quantile_check(df: DataFrame) -> None:
+def quantile_check(df: DataFrame) -> None:
     """Check that the percentiles provided can be considered to be
     quantiles with equal spacing spanning the percentile range.
 
@@ -142,7 +142,7 @@ def _quantile_check(df: DataFrame) -> None:
 
     if not np.allclose(expected_percentiles, df["percentile"].unique()):
         msg = (
-            "The forecast percentiles can not be considered as quantiles. "
+            "Forecast percentiles must be equally spaced. "
             f"The forecast percentiles are {df['percentile'].unique()}."
             "Based on the number of percentiles provided, the expected "
             f"percentiles would be {expected_percentiles}."
@@ -447,7 +447,7 @@ def _prepare_dataframes(
 
     # Check the percentiles can be considered to be equally space quantiles.
     if representation_type == "percentile":
-        _quantile_check(forecast_df)
+        quantile_check(forecast_df)
 
     # Remove forecast duplicates.
     forecast_cols = [

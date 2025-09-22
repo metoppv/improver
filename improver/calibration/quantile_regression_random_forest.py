@@ -4,12 +4,13 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Plugins to perform quantile regression using random forests."""
 
-from typing import Optional
+from typing import Optional, Union
 
 import numpy as np
 import pandas as pd
 
 from improver import BasePlugin, PostProcessingPlugin
+from improver.calibration.dataframe_utilities import quantile_check
 from improver.constants import DAYS_IN_YEAR, HOURS_IN_DAY
 
 try:
@@ -33,38 +34,109 @@ def prep_feature(
     df: pd.DataFrame,
     variable_name: str,
     feature_name: str,
+    transformation: Optional[str] = None,
+    pre_transform_addition: np.float32 = 0,
+    unique_site_id_keys: Union[list[str], str] = "wmo_id",
 ) -> pd.DataFrame:
     """Prepare features that require computation from the input DataFrame. Options
-    available are mean and standard deviation of the input feature, the
-    day of year, sine of day of year, cosine of day of year, hour of day,
-    sine of hour of day and cosine of hour of day. When computing the mean or standard
-    deviation, these will be computed over either the percentile or realization column,
-    depending upon which is available.
+    available are mean, standard deviation, min, max, percentiles and a members above
+    and a members below count of the input feature, the day of year,
+    sine of day of year, cosine of day of year, hour of day, sine of hour of day
+    and cosine of hour of day. When computing the mean or standard deviation,
+    these will be computed over either the percentile or realization column,
+    depending upon which is available. When a percentile column is provided, the
+    expectation is that these percentiles are equally spaced between 0 and 100, so that
+    these percentiles can be treated as being equally likely.
 
     Args:
         df: Input DataFrame.
         variable_name: Name of the variable to be used for the computation.
-        feature_name: Feature to be computed. Options are "mean", "std", "day_of_year",
-            "day_of_year_sin", "day_of_year_cos", "hour_of_day",
+        feature_name: Feature to be computed. Options are "mean", "std", "min", "max",
+            "percentile_<perc>" where <perc> is the required percentile between 0 and
+            100, "members_below_<threshold>" where <threshold> is the threshold value
+            to count the number of members below, "members_above_<threshold>" where
+            <threshold> is the threshold value to count the number of members above,
+            "day_of_year", "day_of_year_sin", "day_of_year_cos", "hour_of_day",
             "hour_of_day_sin" and "hour_of_day_cos".
+        transformation: Transformation to be applied to the data before fitting. This
+            is only used when computing members_below or members_above features.
+        pre_transform_addition: Value to be added before transformation. This is only
+            used when computing members_below or members_above features.
+        unique_site_id_keys: The names of the coordinates that uniquely identify
+            each site, e.g. "wmo_id" or "latitude,longitude".
     Returns:
         df: DataFrame with the computed feature added.
     """
-    if feature_name in ["mean", "std"]:
+    if (
+        feature_name in ["mean", "std", "min", "max"]
+        or feature_name.startswith("percentile_")
+        or feature_name.startswith("members_below")
+        or feature_name.startswith("members_above")
+    ):
+        if isinstance(unique_site_id_keys, str):
+            unique_site_id_keys = [unique_site_id_keys]
         representation_name = [
             n for n in ["percentile", "realization"] if n in df.columns
         ][0]
-        groupby_cols = ["forecast_reference_time", "forecast_period", "wmo_id"]
+        groupby_cols = [
+            "forecast_reference_time",
+            "forecast_period",
+            *unique_site_id_keys,
+        ]
         subset_cols = [*groupby_cols] + [
             representation_name,
             variable_name,
         ]
+
+        if representation_name == "percentile":
+            quantile_check(df)
+
         # For a subset of the input DataFrame compute the mean or standard deviation
         # over the representation column, grouped by the groupby columns.
         if feature_name == "mean":
             subset_df = df[subset_cols].groupby(groupby_cols).mean()
         elif feature_name == "std":
             subset_df = df[subset_cols].groupby(groupby_cols).std()
+        elif feature_name == "min":
+            subset_df = df[subset_cols].groupby(groupby_cols).min()
+        elif feature_name == "max":
+            subset_df = df[subset_cols].groupby(groupby_cols).max()
+        elif feature_name.startswith("members_below"):
+            threshold = float(feature_name.split("_")[2])
+            if transformation is not None:
+                threshold = getattr(np, transformation)(
+                    np.array(threshold) + pre_transform_addition
+                )
+            orig_dtype = df[variable_name].dtype
+            subset_df = (
+                df[subset_cols]
+                .assign(below_threshold=lambda x: x[variable_name] < threshold)
+                .groupby(groupby_cols)["below_threshold"]
+                .sum()
+            )
+            subset_df.rename(variable_name, inplace=True)
+            subset_df = subset_df.astype(orig_dtype)
+            # subset_df[variable_name].astype(orig_dtype)
+        elif feature_name.startswith("members_above"):
+            threshold = float(feature_name.split("_")[2])
+            if transformation is not None:
+                threshold = getattr(np, transformation)(
+                    np.array(threshold) + pre_transform_addition
+                )
+            orig_dtype = df[variable_name].dtype
+            subset_df = (
+                df[subset_cols]
+                .assign(above_threshold=lambda x: x[variable_name] > threshold)
+                .groupby(groupby_cols)["above_threshold"]
+                .sum()
+            )
+            subset_df.rename(variable_name, inplace=True)
+            subset_df = subset_df.astype(orig_dtype)
+        elif feature_name.startswith("percentile_"):
+            perc = float(feature_name.split("_")[1])
+            orig_dtype = df[variable_name].dtype
+            subset_df = df[subset_cols].groupby(groupby_cols).quantile(perc / 100.0)
+            subset_df[variable_name] = subset_df[variable_name].astype(orig_dtype)
 
         subset_df = subset_df.reset_index()
         # Rename the column to distinguish the computed feature from the original.
@@ -134,7 +206,16 @@ def sanitise_forecast_dataframe(
     ]
     collapsed_features = []
     for key, values in feature_config.items():
-        collapsed_features.extend([key for v in values if v in ["mean", "std"]])
+        collapsed_features.extend(
+            [
+                key
+                for v in values
+                if v in ["mean", "std", "min", "max"]
+                or v.startswith("percentile_")
+                or v.startswith("members_below")
+                or v.startswith("members_above")
+            ]
+        )
     collapsed_features = list(set(collapsed_features))
     # Subset the dataframe by the first value of the representation column
     # and drop the representation column and any features where the original variable
@@ -145,36 +226,59 @@ def sanitise_forecast_dataframe(
     return df
 
 
-def get_required_column_names(
-    df: pd.DataFrame, feature_config: dict[str, list[str]]
-) -> list[str]:
-    """Process the feature_config to return the expected column names that will be
-    used as features with the QRF.
+def prep_features_from_config(
+    df: pd.DataFrame,
+    feature_config: dict[str, list[str]],
+    unique_site_id_keys: Union[list[str], str] = "wmo_id",
+) -> tuple[pd.DataFrame, list[str]]:
+    """Process the feature_config to prepare the features as required and return the
+    expected column names that will be used as features with the QRF.
 
     Args:
         df: Input DataFrame.
         feature_config: Feature configuration defining the features to be used for QRF.
+        unique_site_id_keys: The names of the coordinates that uniquely identify
+            each site, e.g. "wmo_id" or "latitude,longitude".
     Returns:
-        List of expected column names that will be used as features with the QRF.
+        Processed DataFrame and a list of expected column names that will be used as
+        features with the QRF.
     Raises:
-        ValueError: If a feature expected in the feature_config is not present in
-        the DataFrame.
+        ValueError: If a variable expected in the feature_config is not present in
+        the DataFrame e.g. "surface temperature".
+        ValueError: If a feature expected for a specific variable in the feature_config
+        is not supported e.g. "interquartile_range".
     """
+    if isinstance(unique_site_id_keys, str):
+        unique_site_id_keys = [unique_site_id_keys]
+
     feature_column_names = []
     for variable_name in feature_config.keys():
-        for feature in feature_config[variable_name]:
-            if feature in ["mean", "std"]:
-                feature_column_names.append(f"{variable_name}_{feature}")
-            elif feature in ["static"]:
+        if variable_name not in df.columns:
+            msg = f"Feature '{variable_name}' is not present in the forecast DataFrame."
+            raise ValueError(msg)
+        for feature_name in feature_config[variable_name]:
+            df = prep_feature(df, variable_name, feature_name, unique_site_id_keys)
+            if (
+                feature_name in ["mean", "std", "min", "max"]
+                or feature_name.startswith("percentile_")
+                or feature_name.startswith("members_below")
+                or feature_name.startswith("members_above")
+            ):
+                feature_column_names.append(f"{variable_name}_{feature_name}")
+            elif feature_name in ["static"]:
                 feature_column_names.append(variable_name)
+            elif feature_name in df.columns:
+                # For example, latitude, longitude, altitude, day_of_year, which
+                # are not tied to a specific variable.
+                feature_column_names.append(feature_name)
             else:
-                feature_column_names.append(feature)
+                msg = (
+                    f"Feature '{feature_name}' for variable "
+                    f"'{variable_name}' is not supported."
+                )
+                raise ValueError(msg)
 
-    if len(list(set(feature_column_names) - set(df.columns))) > 0:
-        msg = f"Feature '{feature}' is not supported."
-        raise ValueError(msg)
-
-    return feature_column_names
+    return df, feature_column_names
 
 
 def _check_valid_transformation(transformation: str):
@@ -205,6 +309,7 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
         random_state: Optional[int] = None,
         transformation: Optional[str] = None,
         pre_transform_addition: np.float32 = 0,
+        unique_site_id_keys: Union[list[str], str] = "wmo_id",
         **kwargs,
     ) -> None:
         """Initialise the plugin.
@@ -243,6 +348,8 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
                 Transformation to be applied to the data before fitting.
             pre_transform_addition (float):
                 Value to be added before transformation.
+            unique_site_id_keys: The names of the coordinates that uniquely identify
+                each site, e.g. "wmo_id" or "latitude,longitude".
             kwargs:
                 Additional keyword arguments for the quantile regression model.
 
@@ -257,6 +364,9 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
         self.transformation = transformation
         _check_valid_transformation(self.transformation)
         self.pre_transform_addition = pre_transform_addition
+        if isinstance(unique_site_id_keys, str):
+            unique_site_id_keys = [unique_site_id_keys]
+        self.unique_site_id_keys = unique_site_id_keys
         self.kwargs = kwargs
         self.expected_coordinate_order = ["forecast_reference_time", "forecast_period"]
 
@@ -287,7 +397,7 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
         self,
         forecast_df: pd.DataFrame,
         truth_df: pd.DataFrame,
-    ) -> None:
+    ) -> RandomForestQuantileRegressor:
         """Train a quantile regression random forests model.
 
         Args:
@@ -322,21 +432,14 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
                 truth_df["ob_value"] + self.pre_transform_addition
             )
 
-        for variable_name in self.feature_config.keys():
-            if variable_name not in forecast_df.columns:
-                msg = (
-                    f"Feature '{variable_name}' is not present in the "
-                    "forecast DataFrame."
-                )
-                raise ValueError(msg)
-            for feature_name in self.feature_config[variable_name]:
-                forecast_df = prep_feature(forecast_df, variable_name, feature_name)
-
-        forecast_df = sanitise_forecast_dataframe(forecast_df, self.feature_config)
-        feature_column_names = get_required_column_names(
-            forecast_df, self.feature_config
+        forecast_df, feature_column_names = prep_features_from_config(
+            forecast_df,
+            self.feature_config,
+            unique_site_id_keys=self.unique_site_id_keys,
         )
-        merge_columns = ["wmo_id", "time"]
+        forecast_df = sanitise_forecast_dataframe(forecast_df, self.feature_config)
+
+        merge_columns = [*self.unique_site_id_keys, "time"]
         combined_df = forecast_df.merge(
             truth_df[merge_columns + ["ob_value"]], on=merge_columns, how="inner"
         )
@@ -357,6 +460,7 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
         quantiles: list[np.float32],
         transformation: str = None,
         pre_transform_addition: np.float32 = 0,
+        unique_site_id_keys: list[str] = ["wmo_id"],
     ) -> None:
         """Initialise the plugin.
 
@@ -385,9 +489,8 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
                 Transformation to be applied to the data before fitting.
             pre_transform_addition (float):
                 Value to be added before transformation.
-
-        Raises:
-            ValueError: If the transformation is not one of the supported types.
+            unique_site_id_keys: The names of the coordinates that uniquely identify
+                each site, e.g. "wmo_id" or "latitude,longitude".
 
         """
         self.target_name = target_name
@@ -396,6 +499,7 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
         self.transformation = transformation
         _check_valid_transformation(self.transformation)
         self.pre_transform_addition = pre_transform_addition
+        self.unique_site_id_keys = unique_site_id_keys
 
     def _reverse_transformation(self, forecast: np.ndarray) -> np.ndarray:
         """Reverse the transformation applied to the data prior to fitting the QRF.
@@ -445,21 +549,20 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
                 forecast_df[self.target_name] = getattr(np, self.transformation)(
                     forecast_df[self.target_name] + self.pre_transform_addition
                 )
+                break
 
-            for feature_name in self.feature_config[variable_name]:
-                forecast_df = prep_feature(forecast_df, variable_name, feature_name)
-
-        forecast_df = sanitise_forecast_dataframe(forecast_df, self.feature_config)
-        feature_column_names = get_required_column_names(
-            forecast_df, self.feature_config
+        forecast_df, feature_column_names = prep_features_from_config(
+            forecast_df,
+            self.feature_config,
+            unique_site_id_keys=self.unique_site_id_keys,
         )
+        forecast_df = sanitise_forecast_dataframe(forecast_df, self.feature_config)
 
         feature_values = np.array(forecast_df[feature_column_names])
-
         calibrated_forecast = qrf_model.predict(
             feature_values, quantiles=self.quantiles
         )
+        calibrated_forecast = self._reverse_transformation(calibrated_forecast)
         calibrated_forecast = np.float32(calibrated_forecast)
 
-        calibrated_forecast = self._reverse_transformation(calibrated_forecast)
         return calibrated_forecast

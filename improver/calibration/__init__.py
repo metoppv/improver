@@ -7,8 +7,12 @@ and coefficient inputs.
 """
 
 from collections import OrderedDict
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 
+import iris
+import joblib
+import pandas as pd
 from iris.cube import Cube, CubeList
 
 from improver.metadata.probabilistic import (
@@ -51,6 +55,7 @@ class CalibrationSchemas:
                 ("altitude", pa.float32()),
                 ("time", pa.timestamp("s", "utc")),
                 ("wmo_id", pa.string()),
+                ("station_id", pa.string()),
                 ("ob_value", pa.float32()),
             ]
         )
@@ -263,6 +268,85 @@ def split_forecasts_and_bias_files(cubes: CubeList) -> Tuple[Cube, Optional[Cube
     return forecast_cube, bias_cubes
 
 
+def split_pickle_parquet_and_netcdf(files):
+    """Split the input files into pickle, parquet, and netcdf files.
+    Only a single pickle file is expected.
+
+    Args:
+        files:
+            A list of input file paths which will be split into pickle,
+            parquet, and netcdf files.
+    Returns:
+        - A flattened cube list containing all the cubes contained within the
+          provided paths to NetCDF files.
+        - A list of paths to Parquet files.
+        - A loaded pickle file.
+    Raises:
+        ValueError: If multiple pickle files provided, as only one is ever expected.
+    """
+    cubes = iris.cube.CubeList()
+    loaded_pickles = []
+    parquets = []
+
+    for file_path in files:
+        if not file_path.exists():
+            continue
+
+        # Directories indicate we are working with parquet files.
+        if file_path.is_dir():
+            parquets.append(file_path)
+            continue
+
+        try:
+            cube = iris.load(file_path)
+            cubes.extend(cube)
+        except ValueError:
+            try:
+                loaded_pickles.append(joblib.load(file_path))
+            except Exception as e:
+                msg = f"Failed to load {file_path}: {e}"
+                raise ValueError(msg)
+
+    if len(loaded_pickles) > 1:
+        msg = "Multiple pickle inputs have been provided. Only one is expected."
+        raise ValueError(msg)
+
+    return (
+        cubes if cubes else None,
+        parquets if parquets else None,
+        loaded_pickles[0] if loaded_pickles else None,
+    )
+
+
+def identify_parquet_type(parquet_paths: List[Path]):
+    """Determine whether the provided parquet paths contain forecast or truth data.
+    This is done by checking the columns within the parquet files for the presence
+    of a forecast_period column which is only present for forecast data.
+    Args:
+        parquet_paths:
+            A list of paths to Parquet files.
+    Returns:
+        - The path to the Parquet file containing the historical forecasts.
+        - The path to the Parquet file containing the truths.
+    """
+    import pyarrow.parquet as pq
+
+    forecast_table_path = None
+    truth_table_path = None
+    for file_path in parquet_paths:
+        try:
+            example_file_path = next(file_path.glob("**/*.parquet"))
+        except StopIteration:
+            continue
+        try:
+            pq.read_schema(example_file_path).field("forecast_period")
+            forecast_table_path = file_path
+        except KeyError:
+            truth_table_path = file_path
+
+    return forecast_table_path, truth_table_path
+
+
 def validity_time_check(forecast: Cube, validity_times: List[str]) -> bool:
     """Check the validity time of the forecast matches the accepted validity times
     within the validity times list.
@@ -307,3 +391,25 @@ def add_warning_comment(forecast: Cube) -> Cube:
             "however, no calibration has been applied."
         )
     return forecast
+
+
+def get_training_period_cycles(
+    cycletime: str, forecast_period: Union[int, str], training_length: int
+):
+    """Generate a list of forecast reference times for the training period.
+
+    Args:
+        cycletime: The time at which the forecast is issued in a format understood by
+            pandas.Timestamp e.g. 20170109T0000Z.
+        forecast_period: The forecast period in seconds.
+        training_length: The number of days in the training period.
+    """
+    forecast_period_td = pd.Timedelta(int(forecast_period), unit="seconds")
+
+    return pd.date_range(
+        end=pd.Timestamp(cycletime)
+        - pd.Timedelta(1, unit="days")
+        - forecast_period_td.floor("D"),
+        periods=int(training_length),
+        freq="D",
+    )

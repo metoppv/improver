@@ -41,7 +41,7 @@ def test_basic(
     named_args = [
         "--feature-config",
         config_path,
-        "--target-diagnostic-name",
+        "--parquet-diagnostic-names",
         "temperature_at_screen_level",
         "--target-cf-name",
         "air_temperature",

@@ -13,7 +13,7 @@ from improver import cli
 def process(
     *file_paths: cli.inputpath,
     feature_config: cli.inputjson,
-    target_diagnostic_name: str,
+    parquet_diagnostic_names: cli.comma_separated_list,
     target_cf_name: str,
     forecast_periods: str,
     cycletime: str,
@@ -25,6 +25,7 @@ def process(
     random_state: int = None,
     transformation: str = None,
     pre_transform_addition: float = 0,
+    unique_site_id_keys: cli.comma_separated_list = "wmo_id",
 ):
     """Training a model using Quantile Regression Random Forest.
 
@@ -59,12 +60,14 @@ def process(
             "visibility_at_screen_level": ["mean", "std"]
             "distance_to_water": ["static"],
             }
-        target_diagnostic_name (str):
-            A string containing the diagnostic name of the forecast to be
-            calibrated. This will be used to filter the target forecast and truth
-            dataframes.
+        parquet_diagnostic_names (str):
+            A string containing the diagnostic names that will be used for filtering
+            the target diagnostic from the forecast and truth DataFrames read in
+            from the parquet files. This could be different from the CF name e.g.
+            'temperature_at_screen_level'.
         target_cf_name (str):
-            A string containing the CF name of the forecast to be calibrated.
+            A string containing the CF name of the forecast to be calibrated
+            e.g. air_temperature.
         forecast_periods (str):
             Range of forecast periods to be calibrated in hours in the form:
             "start:end:interval" e.g. "6:18:6" or a single forecast period e.g. "6".
@@ -81,40 +84,54 @@ def process(
         max_depth (int):
             Maximum depth of the tree.
         max_samples (float):
-            If an int, then it is the number of samples to draw to train
-            each tree. If a float, then it is the fraction of samples to draw
-            to train each tree. If None, then each tree contains the same
-            total number of samples as originally provided.
+            If an int, then it is the number of samples to draw from the total number
+            of samples available to train each tree. Note that a 'sample' refers to
+            each row within the DataFrames constructed where each row will differ
+            primarily based on the site, forecast period, forecast reference time and
+            realization or percentile. If a float, then it is the fraction of samples
+            to draw from the total number of samples available to train each tree.
+            If None, then each tree contains the same number of samples as the total
+            available. The trees will therefore only differ due to the use of
+            bootstrapping (i.e. sampling with replacement) when creating each tree.
         random_state (int):
             Random seed for reproducibility.
         transformation (str):
             Transformation to be applied to the data before fitting.
         pre_transform_addition (float):
             Value to be added before transformation.
+        unique_site_id_keys (str):
+            The names of the coordinates that uniquely identify each site,
+            e.g. "wmo_id" or "latitude,longitude".
     Returns:
-        None:
-            The function creates a pickle file.
+        A quantile regression random forest model with associated transformation and
+        pre-transformation addition that will be stored as a pickle file.
     """
 
     from improver.calibration.load_and_train_quantile_regression_random_forest import (
-        LoadAndTrainQRF,
+        LoadForTrainQRF,
+        PrepareAndTrainQRF,
     )
 
-    result = LoadAndTrainQRF(
+    forecast_df, truth_df, cube_inputs = LoadForTrainQRF(
         experiment=experiment,
         feature_config=feature_config,
-        target_diagnostic_name=target_diagnostic_name,
+        parquet_diagnostic_names=parquet_diagnostic_names,
         target_cf_name=target_cf_name,
         forecast_periods=forecast_periods,
         cycletime=cycletime,
         training_length=training_length,
+        unique_site_id_keys=unique_site_id_keys,
+    )(file_paths)
+    result = PrepareAndTrainQRF(
+        feature_config=feature_config,
+        target_cf_name=target_cf_name,
         n_estimators=n_estimators,
         max_depth=max_depth,
         max_samples=max_samples,
         random_state=random_state,
         transformation=transformation,
         pre_transform_addition=pre_transform_addition,
-    )(
-        file_paths,
-    )
+        unique_site_id_keys=unique_site_id_keys,
+    )(forecast_df, truth_df, cube_inputs)
+
     return result

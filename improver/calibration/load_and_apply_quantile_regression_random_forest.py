@@ -6,11 +6,9 @@
 """Script to load and apply the trained Quantile Regression Random Forest (QRF)
 model."""
 
-import pathlib
 from typing import Optional
 
 import iris
-import joblib
 import numpy as np
 import pandas as pd
 from iris.cube import Cube, CubeList
@@ -21,9 +19,6 @@ from improver.calibration import add_warning_comment
 from improver.calibration.quantile_regression_random_forest import (
     ApplyQuantileRegressionRandomForests,
     quantile_forest_package_available,
-)
-from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
-    RebadgePercentilesAsRealizations,
 )
 from improver.ensemble_copula_coupling.utilities import choose_set_of_percentiles
 from improver.utilities.cube_checker import assert_spatial_coords_match
@@ -39,15 +34,15 @@ except ModuleNotFoundError:
 iris.FUTURE.pandas_ndim = True
 
 
-class LoadAndApplyQRF(PostProcessingPlugin):
-    """Load and apply the trained Quantile Regression Random Forest (QRF) model."""
+class PrepareAndApplyQRF(PostProcessingPlugin):
+    """Prepare the input forecast for application of a trained Quantile Regression
+    Random Forest (QRF) model and apply the QRF model."""
 
     def __init__(
         self,
         feature_config: dict[str, list[str]],
         target_cf_name: str,
-        transformation: Optional[str] = None,
-        pre_transform_addition: Optional[float] = None,
+        unique_site_id_keys: list[str] = ["wmo_id"],
     ):
         """Initialise the plugin.
 
@@ -73,54 +68,36 @@ class LoadAndApplyQRF(PostProcessingPlugin):
                 A string containing the CF name of diagnostic to be calibrated. This
                 will be used to separate it from the rest of the dynamic predictors,
                 if present.
-            transformation (str):
-                Transformation to be applied to the data before fitting.
-            pre_transform_addition (float):
-                Value to be added before transformation.
-
+            unique_site_id_keys (list):
+                The names of the coordinates that uniquely identify each site,
+                e.g. "wmo_id" or "latitude,longitude".
         """
-
         self.feature_config = feature_config
         self.target_cf_name = target_cf_name
-        self.transformation = transformation
-        self.pre_transform_addition = pre_transform_addition
+        self.unique_site_id_keys = unique_site_id_keys
         self.quantile_forest_installed = quantile_forest_package_available()
 
     def _get_inputs(
-        self, file_paths: list[pathlib.Path]
-    ) -> tuple[CubeList, Cube, RandomForestQuantileRegressor]:
-        """Get inputs from disk and separate the model and the features.
+        self,
+        cube_inputs: iris.cube.CubeList,
+        qrf_model: Optional[RandomForestQuantileRegressor] = None,
+    ) -> tuple[CubeList, Cube]:
+        """Split the forecast to be calibrated from the other features. Handle
+        the case where the qrf_model is not provided. In this case, the uncalibrated
+        forecast is returned with a warning comment added.
 
         Args:
-            file_paths: List of paths to the trained QRF model and the forecast to be
-                calibrated and the features, as required.
+            cube_inputs: List of cubes containing the features and the forecast to be
+                calibrated.
 
         Returns:
-            CubeList of the features cubes, the forecast cube, and the
-            trained QRF model.
+            CubeList of the features cubes and the forecast cube.
 
         Raises:
-            ValueError: If no QRF model is found in the provided file paths.
-            ValueError: If no features are found in the provided file paths.
-            ValueError: If the number of inputs does not match the number of file paths.
+            ValueError: If not target forecast is provided.
+            ValueError: If the number of cubes provided does not match the number of
+                features expected.
         """
-        cube_inputs = iris.cube.CubeList([])
-        qrf_model = None
-
-        for file_path in file_paths:
-            try:
-                cube = iris.load_cube(file_path)
-                cube_inputs.append(cube)
-            except ValueError:
-                qrf_model = joblib.load(file_path)
-
-        if not cube_inputs:
-            msg = (
-                "No features found in the provided file paths. "
-                "At least one feature must be provided."
-            )
-            raise ValueError(msg)
-
         # Extract all additional cubes which are associated with a feature in the
         # feature_config.
         forecast_constraint = iris.Constraint(name=self.target_cf_name)
@@ -130,15 +107,16 @@ class LoadAndApplyQRF(PostProcessingPlugin):
             (forecast_cube,) = forecast_cube
         else:
             msg = (
-                "No target forecast provided. An input file representing the target "
+                "No target forecast provided. An input cube representing the target "
                 "must be provided, even if the target will not be used as a feature. "
                 f"The target is '{self.target_cf_name}'."
             )
             raise ValueError(msg)
 
         if not qrf_model:
+            # If no model is provided, return the input forecast with a warning.
             forecast_cube = add_warning_comment(forecast_cube)
-            return None, forecast_cube, None
+            return None, forecast_cube
 
         if len(cube_inputs) != len(self.feature_config.keys()):
             msg = (
@@ -149,60 +127,30 @@ class LoadAndApplyQRF(PostProcessingPlugin):
             )
             raise ValueError(msg)
 
-        if not qrf_model:
-            # The specified model doesn't exist and the forecast will not be calibrated
-            return forecast_cube
-
         # If target diagnostic not a feature in the training then remove.
         if self.target_cf_name not in self.feature_config.keys():
             cube_inputs.remove(forecast_cube)
 
-        return cube_inputs, forecast_cube, qrf_model
+        return cube_inputs, forecast_cube
 
     @staticmethod
-    def _compute_percentiles(forecast_cube: Cube, coord: str) -> list[float]:
-        """Compute the percentiles from the forecast cube.
+    def _compute_quantile_list(forecast_cube: Cube, coord: str) -> list[float]:
+        """Compute the list of quantiles e.g. 0.25, 0.5, 0.75 that will be produced
+        by using the forecast cube.
 
         Args:
             forecast_cube: Forecast to be calibrated.
             coord: Coordinate name. The length of the coordinate will be used to
-                determine the number of percentiles to compute.
+                determine the number of quantiles to compute.
 
         Returns:
-            List of percentiles computed from the forecast cube.
+            List of quantiles (e.g. 0.25, 0.5, 0.75) computed from the forecast cube.
         """
         n_percentiles = len(forecast_cube.coord(coord).points)
-        percentiles = (
-            np.array(choose_set_of_percentiles(n_percentiles)) / 100
-        ).tolist()
-        return percentiles
+        quantiles = (np.array(choose_set_of_percentiles(n_percentiles)) / 100).tolist()
+        return quantiles
 
-    @staticmethod
-    def _percentiles_to_realizations(cube_inputs: CubeList) -> CubeList:
-        """Convert percentiles to realizations. The input forecasts are expected to
-        be percentiles but these percentiles are rebadged as realizations.
-
-        Args:
-            cube_inputs:
-                List of cubes containing the features and the forecast to be calibrated.
-                Some may be percentiles.
-        Returns:
-            cube_inputs:
-                List of cubes with percentiles rebadged as realizations,
-                where appropriate
-        """
-
-        # Ensure there is a realization dimension on all cubes. This assumes a
-        # percentile dimension is present.
-        realization_cube_inputs = iris.cube.CubeList([])
-        for feature_cube in cube_inputs:
-            if feature_cube.coords("percentile"):
-                feature_cube = RebadgePercentilesAsRealizations()(feature_cube)
-            realization_cube_inputs.append(feature_cube)
-        return realization_cube_inputs
-
-    @staticmethod
-    def _cube_to_dataframe(cube_inputs: CubeList) -> pd.DataFrame:
+    def _cube_to_dataframe(self, cube_inputs: CubeList) -> pd.DataFrame:
         """Convert cube inputs to a pandas DataFrame.
 
         Args:
@@ -215,15 +163,16 @@ class LoadAndApplyQRF(PostProcessingPlugin):
         # Convert the first cube to a DataFrame.
         df = as_data_frame(cube_inputs[0], add_aux_coords=True).reset_index()
 
+        possible_columns = [
+            *self.unique_site_id_keys,
+            "time",
+            "forecast_reference_time",
+            "forecast_period",
+        ]
+
         # Iteratively convert remaining cubes to DataFrame and merge.
         for cube in cube_inputs[1:]:
             temporary_df = as_data_frame(cube, add_aux_coords=True).reset_index()
-            possible_columns = [
-                "wmo_id",
-                "time",
-                "forecast_reference_time",
-                "forecast_period",
-            ]
             merge_columns = [
                 col for col in possible_columns if col in temporary_df.columns
             ]
@@ -239,7 +188,10 @@ class LoadAndApplyQRF(PostProcessingPlugin):
 
     def process(
         self,
-        file_paths: list[pathlib.Path],
+        cube_inputs: CubeList,
+        qrf_descriptors: Optional[
+            tuple[RandomForestQuantileRegressor, str, float]
+        ] = None,
     ) -> Cube:
         """Load and applying the trained Quantile Regression Random Forest (QRF) model.
         The model is applied to the forecast supplied to calibrate the forecast.
@@ -247,38 +199,48 @@ class LoadAndApplyQRF(PostProcessingPlugin):
         input forecast is returned unchanged.
 
         Args:
-            file_paths (cli.inputpaths):
-                A list of input paths containing:
-                - The path to a QRF trained model in pickle file format to be used
-                for calibration.
-                - The path to a NetCDF file containing the forecast to be calibrated.
-                - Optionally, paths to NetCDF files containing additional predictors.
+            cube_inputs: List of cubes containing the features and the forecast to be
+                calibrated.
+            qrf_descriptors: The trained QRF model to be applied to the forecast
+                and the transformation and pre-transform addition applied during
+                training. The descriptors expected are a tuple of:
+                (qrf_model, transformation, pre_transform_addition).
 
         Returns:
             iris.cube.Cube:
                 The calibrated forecast cube.
         """
-        cube_inputs, forecast_cube, qrf_model = self._get_inputs(file_paths)
-        if not self.quantile_forest_installed:
-            return forecast_cube
-        if not qrf_model:
+        if qrf_descriptors is None:
+            # If no descriptors are provided, return the input forecast with a warning.
+            # Descriptors expected: (qrf_model, transformation, pre_transform_addition)
+            qrf_descriptors = (None, None, 0)
+        qrf_model, transformation, pre_transform_addition = qrf_descriptors
+
+        cube_inputs, forecast_cube = self._get_inputs(cube_inputs, qrf_model=qrf_model)
+
+        if cube_inputs:
+            assert_spatial_coords_match(cube_inputs)
+
+        if not self.quantile_forest_installed or not qrf_model:
             return forecast_cube
 
         template_forecast_cube = forecast_cube.copy()
-        if forecast_cube.coords("percentile"):
-            percentiles = self._compute_percentiles(forecast_cube.copy(), "percentile")
-        elif forecast_cube.coords("realization"):
-            percentiles = self._compute_percentiles(forecast_cube.copy(), "realization")
+        if forecast_cube.coords("realization"):
+            quantile_list = self._compute_quantile_list(
+                forecast_cube.copy(), "realization"
+            )
+        elif forecast_cube.coords("percentile"):
+            quantile_list = (forecast_cube.coord("percentile").points / 100.0).tolist()
 
-        assert_spatial_coords_match(cube_inputs)
         df = self._cube_to_dataframe(cube_inputs)
 
         calibrated_forecast = ApplyQuantileRegressionRandomForests(
             target_name=self.target_cf_name,
             feature_config=self.feature_config,
-            quantiles=percentiles,
-            transformation=self.transformation,
-            pre_transform_addition=self.pre_transform_addition,
+            quantiles=quantile_list,
+            transformation=transformation,
+            pre_transform_addition=pre_transform_addition,
+            unique_site_id_keys=self.unique_site_id_keys,
         )(qrf_model, df)
         calibrated_forecast_cube = template_forecast_cube.copy(
             data=np.broadcast_to(calibrated_forecast.T, template_forecast_cube.shape)
