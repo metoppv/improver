@@ -645,7 +645,7 @@ def test_load_for_qrf_mismatches(
         ),
     ],
 )
-def test_unexpected(
+def test_unexpected_loading(
     tmp_path,
     exception,
     forecast_creation,
@@ -860,3 +860,32 @@ def test_prepare_and_train_qrf(
     )
     expected = 5.6
     np.testing.assert_almost_equal(result, expected, decimal=1)
+
+
+def test_unexpected_preparation(
+    tmp_path,
+):
+    """Test the PrepareAndTrainQRF plugin."""
+    feature_config = {"air_temperature": ["mean", "std", "altitude"]}
+    n_estimators = 2
+    max_depth = 5
+    random_state = 46
+    target_cf_name = "air_temperature"
+
+    _, forecast_df, _ = _create_multi_site_forecast_parquet_file(tmp_path)
+    _, truth_df = _create_multi_site_truth_parquet_file(tmp_path)
+
+    truth_df.loc[:, "time"] = pd.Timestamp("2020-01-01 00:00:00", tz="utc")
+
+    plugin = PrepareAndTrainQRF(
+        feature_config=feature_config,
+        target_cf_name=target_cf_name,
+        n_estimators=n_estimators,
+        max_depth=max_depth,
+        random_state=random_state,
+    )
+    with pytest.warns(
+        UserWarning, match="No matching times between the forecast and truth data."
+    ):
+        result = plugin(forecast_df, truth_df)
+    assert result is None

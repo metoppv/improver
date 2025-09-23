@@ -463,6 +463,11 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
 
         intersecting_times = self._check_matching_times(forecast_df, truth_df)
         if len(intersecting_times) == 0:
+            msg = (
+                "No matching times between the forecast and truth data."
+                " Unable to train the Quantile Regression Random Forest model."
+            )
+            warnings.warn(msg)
             return None
 
         forecast_df = self._add_static_features_from_cubes_to_df(
