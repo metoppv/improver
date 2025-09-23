@@ -273,15 +273,18 @@ class LoadForTrainQRF(PostProcessingPlugin):
                 column is used to separate the forecast parquet file from the truth
                 parquet file.
                 - Optionally, paths to NetCDF files containing additional predictors.
+
         Returns:
             Tuple containing:
                 - DataFrame containing the forecast data.
                 - DataFrame containing the truth data.
                 - List of cubes containing additional features.
+
             A tuple of (None, None, None) is returned if:
                 - The quantile_forest package is not installed.
                 - No parquet files are provided.
                 - Either the forecast or truth parquet files are missing.
+
         """
         if not self.quantile_forest_installed:
             return None, None, None
@@ -471,10 +474,12 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
             forecast_df: DataFrame containing the forecast data.
             truth_df: DataFrame containing the truth data.
             cube_inputs: List of cubes containing additional features.
+
         Returns: A tuple containing:
             - The trained RandomForestQuantileRegressor model.
             - The transformation applied to the data before fitting.
             - The value added before transformation.
+
         Raises:
             ValueError: If there are no matching times between the forecast and truth
                 data.
