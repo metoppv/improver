@@ -182,9 +182,11 @@ class LoadForTrainQRF(PostProcessingPlugin):
             schema=altered_schema,
             engine="pyarrow",
         )
-
+        seconds_to_ns = 1e9
         forecast_df = forecast_df[
-            forecast_df["forecast_period"].isin(np.array(forecast_periods) * 1e9)
+            forecast_df["forecast_period"].isin(
+                np.array(forecast_periods) * seconds_to_ns
+            )
         ].reset_index(drop=True)
 
         # Convert df columns from ns to pandas timestamp object.
