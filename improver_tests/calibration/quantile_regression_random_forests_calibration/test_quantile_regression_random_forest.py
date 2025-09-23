@@ -20,6 +20,7 @@ from improver.calibration.quantile_regression_random_forest import (
     ApplyQuantileRegressionRandomForests,
     TrainQuantileRegressionRandomForests,
     _check_valid_transformation,
+    apply_transformation,
     prep_feature,
     prep_features_from_config,
     quantile_forest_package_available,
@@ -596,6 +597,26 @@ def test_check_valid_transformation(transformation):
     else:
         result = _check_valid_transformation(transformation)
         assert result is None
+
+
+@pytest.mark.parametrize("transformation", ["log", "log10", "sqrt", "cbrt", None])
+def test_apply_transformation(transformation, pre_transform_addition=10):
+    """Test the apply_transformation function."""
+    data = np.array([0, 1, 2], dtype=np.float32)
+
+    if transformation == "log":
+        expected = np.log(data + pre_transform_addition)
+    elif transformation == "log10":
+        expected = np.log10(data + pre_transform_addition)
+    elif transformation == "sqrt":
+        expected = np.sqrt(data + pre_transform_addition)
+    elif transformation == "cbrt":
+        expected = np.cbrt(data + pre_transform_addition)
+    else:
+        expected = data
+
+    result = apply_transformation(data, transformation, pre_transform_addition)
+    np.testing.assert_allclose(result, expected, atol=1e-6)
 
 
 @pytest.mark.parametrize(

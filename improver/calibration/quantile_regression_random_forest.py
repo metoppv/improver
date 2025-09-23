@@ -104,8 +104,8 @@ def prep_feature(
         elif feature_name.startswith("members_below"):
             threshold = float(feature_name.split("_")[2])
             if transformation is not None:
-                threshold = getattr(np, transformation)(
-                    np.array(threshold) + pre_transform_addition
+                threshold = apply_transformation(
+                    threshold, transformation, pre_transform_addition
                 )
             orig_dtype = df[variable_name].dtype
             subset_df = (
@@ -120,8 +120,8 @@ def prep_feature(
         elif feature_name.startswith("members_above"):
             threshold = float(feature_name.split("_")[2])
             if transformation is not None:
-                threshold = getattr(np, transformation)(
-                    np.array(threshold) + pre_transform_addition
+                threshold = apply_transformation(
+                    threshold, transformation, pre_transform_addition
                 )
             orig_dtype = df[variable_name].dtype
             subset_df = (
@@ -229,6 +229,8 @@ def sanitise_forecast_dataframe(
 def prep_features_from_config(
     df: pd.DataFrame,
     feature_config: dict[str, list[str]],
+    transformation: Optional[str] = None,
+    pre_transform_addition: np.float32 = 0,
     unique_site_id_keys: Union[list[str], str] = "wmo_id",
 ) -> tuple[pd.DataFrame, list[str]]:
     """Process the feature_config to prepare the features as required and return the
@@ -257,7 +259,14 @@ def prep_features_from_config(
             msg = f"Feature '{variable_name}' is not present in the forecast DataFrame."
             raise ValueError(msg)
         for feature_name in feature_config[variable_name]:
-            df = prep_feature(df, variable_name, feature_name, unique_site_id_keys)
+            df = prep_feature(
+                df,
+                variable_name,
+                feature_name,
+                transformation=transformation,
+                pre_transform_addition=pre_transform_addition,
+                unique_site_id_keys=unique_site_id_keys,
+            )
             if (
                 feature_name in ["mean", "std", "min", "max"]
                 or feature_name.startswith("percentile_")
@@ -294,6 +303,22 @@ def _check_valid_transformation(transformation: str):
             f"and cbrt. The transformation supplied was {transformation}."
         )
         raise ValueError(msg)
+
+
+def apply_transformation(
+    data: np.ndarray, transformation: str, pre_transform_addition: float
+):
+    """Apply the specified transformation to the data.
+    Args:
+        data: Data to be transformed.
+        transformation: Transformation to be applied.
+        pre_transform_addition: Value to be added before transformation.
+    Returns:
+        Transformed data.
+    """
+    if transformation:
+        data = getattr(np, transformation)(data + pre_transform_addition)
+    return data
 
 
 class TrainQuantileRegressionRandomForests(BasePlugin):
@@ -425,16 +450,22 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
 
         """
         if self.transformation:
-            forecast_df[self.target_name] = getattr(np, self.transformation)(
-                forecast_df[self.target_name] + self.pre_transform_addition
+            forecast_df.loc[:, self.target_name] = apply_transformation(
+                forecast_df[self.target_name],
+                self.transformation,
+                self.pre_transform_addition,
             )
-            truth_df["ob_value"] = getattr(np, self.transformation)(
-                truth_df["ob_value"] + self.pre_transform_addition
+            truth_df.loc[:, "ob_value"] = apply_transformation(
+                truth_df["ob_value"],
+                self.transformation,
+                self.pre_transform_addition,
             )
 
         forecast_df, feature_column_names = prep_features_from_config(
             forecast_df,
             self.feature_config,
+            transformation=self.transformation,
+            pre_transform_addition=self.pre_transform_addition,
             unique_site_id_keys=self.unique_site_id_keys,
         )
         forecast_df = sanitise_forecast_dataframe(forecast_df, self.feature_config)
@@ -546,8 +577,10 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
                 )
                 and self.target_name in forecast_df.columns
             ):
-                forecast_df[self.target_name] = getattr(np, self.transformation)(
-                    forecast_df[self.target_name] + self.pre_transform_addition
+                forecast_df.loc[:, self.target_name] = apply_transformation(
+                    forecast_df[self.target_name],
+                    self.transformation,
+                    self.pre_transform_addition,
                 )
                 break
 
