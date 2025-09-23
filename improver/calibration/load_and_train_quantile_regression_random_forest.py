@@ -315,6 +315,7 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
         transformation: Optional[str] = None,
         pre_transform_addition: float = 0,
         unique_site_id_keys: Union[list[str], str] = "wmo_id",
+        **kwargs,
     ):
         """Initialise the PrepareAndTrainQRF plugin.
 
@@ -332,6 +333,7 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
             pre_transform_addition: Value to be added before transformation.
             unique_site_id_key: The names of the coordinates that uniquely identify
                 each site, e.g. "wmo_id" or "latitude,longitude".
+            kwargs: Additional keyword arguments for the quantile regression model.
         """
         self.feature_config = feature_config
         self.target_cf_name = target_cf_name
@@ -344,6 +346,7 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
         if isinstance(unique_site_id_keys, str):
             unique_site_id_keys = [unique_site_id_keys]
         self.unique_site_id_keys = unique_site_id_keys
+        self.kwargs = kwargs
         self.quantile_forest_installed = quantile_forest_package_available()
 
     @staticmethod
@@ -472,6 +475,7 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
             transformation=self.transformation,
             pre_transform_addition=self.pre_transform_addition,
             unique_site_id_keys=self.unique_site_id_keys,
+            **self.kwargs,
         )(forecast_df, truth_df)
 
         # Create a tuple that returns the model, transformation and

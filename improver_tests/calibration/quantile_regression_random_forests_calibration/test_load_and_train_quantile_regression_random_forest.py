@@ -705,6 +705,7 @@ def test_unexpected(
 @pytest.mark.parametrize("remove_target", [True, False])
 @pytest.mark.parametrize("include_nans", [True, False])
 @pytest.mark.parametrize("include_latlon_nans", [True, False])
+@pytest.mark.parametrize("add_kwargs", [True, False])
 @pytest.mark.parametrize(
     "site_id", ["wmo_id", "station_id", ["wmo_id"], ["latitude", "longitude"]]
 )
@@ -742,6 +743,7 @@ def test_prepare_and_train_qrf(
     remove_target,
     include_nans,
     include_latlon_nans,
+    add_kwargs,
     site_id,
     forecast_creation,
     truth_creation,
@@ -796,6 +798,9 @@ def test_prepare_and_train_qrf(
         # As latitude is not a feature, this NaN should be ignored.
         truth_df.loc[1, "latitude"] = pd.NA
 
+    if add_kwargs:
+        kwargs = {"min_samples_leaf": 2}
+
     if feature_config == {}:
         pytest.skip("No features to train on")
 
@@ -809,6 +814,7 @@ def test_prepare_and_train_qrf(
         transformation="log",
         pre_transform_addition=1,
         unique_site_id_keys=site_id,
+        **(kwargs if add_kwargs else {}),
     )
     if truth_df["ob_value"].isna().all():
         with pytest.raises(ValueError, match="Empty truth DataFrame"):

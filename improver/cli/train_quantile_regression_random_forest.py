@@ -22,6 +22,7 @@ def process(
     n_estimators: int = 100,
     max_depth: int = None,
     max_samples: float = None,
+    max_features: float = None,
     random_state: int = None,
     transformation: str = None,
     pre_transform_addition: float = 0,
@@ -93,6 +94,9 @@ def process(
             If None, then each tree contains the same number of samples as the total
             available. The trees will therefore only differ due to the use of
             bootstrapping (i.e. sampling with replacement) when creating each tree.
+        max_features (float):
+            If a float, then it is the fraction of features to consider when looking
+            for the best split. If None, then all features are considered.
         random_state (int):
             Random seed for reproducibility.
         transformation (str):
@@ -102,6 +106,7 @@ def process(
         unique_site_id_keys (str):
             The names of the coordinates that uniquely identify each site,
             e.g. "wmo_id" or "latitude,longitude".
+        kwargs: Additional keyword arguments for the quantile regression model.
     Returns:
         A quantile regression random forest model with associated transformation and
         pre-transformation addition that will be stored as a pickle file.
@@ -124,6 +129,10 @@ def process(
     )(file_paths)
     if forecast_df is None or truth_df is None or cube_inputs is None:
         return None
+
+    kwargs = {}
+    if max_features is not None:
+        kwargs["max_features"] = max_features
     result = PrepareAndTrainQRF(
         feature_config=feature_config,
         target_cf_name=target_cf_name,
@@ -134,6 +143,7 @@ def process(
         transformation=transformation,
         pre_transform_addition=pre_transform_addition,
         unique_site_id_keys=unique_site_id_keys,
+        **kwargs,
     )(forecast_df, truth_df, cube_inputs)
 
     return result
