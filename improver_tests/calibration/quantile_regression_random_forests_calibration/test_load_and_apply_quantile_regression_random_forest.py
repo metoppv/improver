@@ -43,6 +43,7 @@ def _add_day_of_training_period_to_cube(cube, day_of_training_period, secondary_
     return cube
 
 
+# Disable ruff formatting to keep the parameter combinations aligned for readability.
 # fmt: off
 @pytest.mark.parametrize("percentile_input", [True, False])
 @pytest.mark.parametrize(

@@ -339,6 +339,10 @@ def compare(
     message = ""
 
     def message_recorder(exception_message):
+        """A callback function to record comparison failure messages.
+        Args:
+            exception_message (str): The message from the exception raised
+                during comparison."""
         nonlocal difference_found
         nonlocal message
         difference_found = True

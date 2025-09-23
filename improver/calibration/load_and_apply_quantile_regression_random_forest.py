@@ -71,7 +71,7 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
                 if present.
             unique_site_id_keys (list):
                 The names of the coordinates that uniquely identify each site,
-                e.g. "wmo_id" or "latitude,longitude".
+                e.g. "wmo_id" or ["latitude", "longitude"].
         """
         self.feature_config = feature_config
         self.target_cf_name = target_cf_name
@@ -84,18 +84,22 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
         qrf_model: Optional[RandomForestQuantileRegressor] = None,
     ) -> tuple[CubeList, Cube]:
         """Split the forecast to be calibrated from the other features. Handle
-        the case where the qrf_model is not provided. In this case, the uncalibrated
-        forecast is returned with a warning comment added.
+        the case where the qrf_model is not provided, for example, if the input
+        data required to train the QRF model isn't yet available. In this case,
+        the uncalibrated forecast is returned with a warning comment added.
 
         Args:
             cube_inputs: List of cubes containing the features and the forecast to be
                 calibrated.
+            qrf_model: The trained QRF model to be applied to the forecast. If None,
+                the input forecast will be returned unchanged with a warning comment
+                added.
 
         Returns:
             CubeList of the features cubes and the forecast cube.
 
         Raises:
-            ValueError: If not target forecast is provided.
+            ValueError: If the target forecast is not provided.
             ValueError: If the number of cubes provided does not match the number of
                 features expected.
         """
@@ -137,7 +141,7 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
     @staticmethod
     def _compute_quantile_list(forecast_cube: Cube, coord: str) -> list[float]:
         """Compute the list of quantiles e.g. 0.25, 0.5, 0.75 that will be produced
-        by using the forecast cube.
+        from a specified coordinate on the forecast cube.
 
         Args:
             forecast_cube: Forecast to be calibrated.
@@ -194,10 +198,10 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
             tuple[RandomForestQuantileRegressor, str, float]
         ] = None,
     ) -> Cube:
-        """Load and applying the trained Quantile Regression Random Forest (QRF) model.
-        The model is applied to the forecast supplied to calibrate the forecast.
-        The calibrated forecast is written to a cube. If no model is provided the
-        input forecast is returned unchanged.
+        """Load and apply the trained Quantile Regression Random Forest (QRF) model.
+        The model is used to calibrated the forecast provided. The calibrated forecast
+        is written to a cube. If no model is provided the input forecast is returned
+        unchanged.
 
         Args:
             cube_inputs: List of cubes containing the features and the forecast to be

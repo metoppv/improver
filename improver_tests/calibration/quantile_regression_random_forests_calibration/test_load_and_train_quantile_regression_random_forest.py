@@ -24,13 +24,14 @@ LONGITUDE = [0, 10]
 SITE_ID = ["03001", "03002", "03003", "03004", "03005"]
 
 
-def _create_multi_site_forecast_parquet_file(tmp_path, representation="percentile"):
+def _create_multi_site_forecast_parquet_file(tmp_path, representation=None):
     """Create a parquet file with multi-site forecast data.
 
     Args:
         tmp_path: Temporary path to save the parquet file.
         representation: The type of ensemble representation to use. Options are
-            "percentile" or "realization".
+            "percentile", "realization" or "kittens". "kittens" is just
+            used for testing that the code works with a non-standard name.
     """
 
     data_dict = {
@@ -52,6 +53,7 @@ def _create_multi_site_forecast_parquet_file(tmp_path, representation="percentil
         "height": [1.5] * 5,
         "diagnostic": ["temperature_at_screen_level"] * 5,
     }
+    # Other representations used for testing.
     if representation == "realization":
         data_dict["realization"] = list(range(len(data_dict["percentile"])))
         data_dict.pop("percentile")
@@ -84,7 +86,14 @@ def _create_multi_site_forecast_parquet_file(tmp_path, representation="percentil
 
 
 def _create_multi_percentile_forecast_parquet_file(tmp_path, representation=None):
-    """Create a parquet file with multi-percentile forecast data."""
+    """Create a parquet file with multi-percentile forecast data.
+
+    Args:
+        tmp_path: Temporary path to save the parquet file.
+        representation: The type of ensemble representation to use. Options are
+            "percentile" (default), "realization" or "kittens". "kittens" is just
+            used for testing that the code works with a non-standard name.
+    """
 
     data_dict = {
         "percentile": [16 + 2 / 3, 33 + 1 / 3, 50, 66 + 2 / 3, 83 + 1 / 3],
@@ -105,6 +114,7 @@ def _create_multi_percentile_forecast_parquet_file(tmp_path, representation=None
         "height": [1.5] * 5,
         "diagnostic": ["temperature_at_screen_level"] * 5,
     }
+    # Other representations used for testing.
     if representation == "realization":
         data_dict["realization"] = list(range(len(data_dict["percentile"])))
         data_dict.pop("percentile")
@@ -135,7 +145,14 @@ def _create_multi_percentile_forecast_parquet_file(tmp_path, representation=None
 
 
 def _create_multi_forecast_period_forecast_parquet_file(tmp_path, representation=None):
-    """Create a parquet file with multi-forecast period forecast data."""
+    """Create a parquet file with multi-forecast period forecast data.
+
+    Args:
+        tmp_path: Temporary path to save the parquet file.
+        representation: The type of ensemble representation to use. Options are
+            "percentile", "realization" or "kittens". "kittens" is just
+            used for testing that the code works with a non-standard name.
+    """
 
     data_dict = {
         "percentile": [50.0, 50.0, 50.0, 50.0],
@@ -165,6 +182,7 @@ def _create_multi_forecast_period_forecast_parquet_file(tmp_path, representation
         "height": [1.5] * 4,
         "diagnostic": ["temperature_at_screen_level"] * 4,
     }
+    # Other representations used for testing.
     if representation == "realization":
         data_dict["realization"] = [0, 1, 0, 1]
         data_dict.pop("percentile")
@@ -342,6 +360,7 @@ def filter_forecast_periods(forecast_df, forecast_periods):
 def amend_expected_forecast_df(
     forecast_df, forecast_periods, parquet_diagnostic_names, representation, site_id
 ):
+    """Amend the expected forecast DataFrame to match the output of the plugin."""
     forecast_df = filter_forecast_periods(forecast_df, forecast_periods)
     for column in ["time", "forecast_reference_time", "blend_time"]:
         forecast_df[column] = pd.to_datetime(forecast_df[column], unit="ns", utc=True)
@@ -379,6 +398,7 @@ def amend_expected_forecast_df(
 
 
 def amend_expected_truth_df(truth_df, parquet_diagnostic_name):
+    """Amend the expected truth DataFrame to match the output of the plugin."""
     truth_df = truth_df[truth_df["diagnostic"] == parquet_diagnostic_name]
     truth_df["time"] = pd.to_datetime(truth_df["time"], unit="ns", utc=True)
     return truth_df
@@ -699,7 +719,7 @@ def test_unexpected_loading(
     elif exception == "no_quantile_forest_package":
         plugin.quantile_forest_installed = False
         result = plugin(file_paths)
-        assert result is None
+        assert result == (None, None, None)
     else:
         raise ValueError(f"Unknown exception type: {exception}")
 
@@ -865,7 +885,7 @@ def test_prepare_and_train_qrf(
 def test_unexpected_preparation(
     tmp_path,
 ):
-    """Test the PrepareAndTrainQRF plugin."""
+    """Test the PrepareAndTrainQRF plugin for atypical situations."""
     feature_config = {"air_temperature": ["mean", "std", "altitude"]}
     n_estimators = 2
     max_depth = 5
@@ -888,4 +908,4 @@ def test_unexpected_preparation(
         UserWarning, match="No matching times between the forecast and truth data."
     ):
         result = plugin(forecast_df, truth_df)
-    assert result is None
+    assert result == (None, None, None)

@@ -21,8 +21,8 @@ def process(
     experiment: str = None,
     n_estimators: int = 100,
     max_depth: int = None,
-    max_samples: float = None,
-    max_features: float = None,
+    max_samples: int | float = None,
+    max_features: int | float = None,
     random_state: int = None,
     transformation: str = None,
     pre_transform_addition: float = 0,
@@ -37,13 +37,18 @@ def process(
 
     Args:
         file_paths (cli.inputpaths):
-            A list of input paths containing:
+            A list of input paths (in any order) containing:
             - The path to a Parquet file containing the truths to be used
             for calibration. The expected columns within the
             Parquet file are: ob_value, time, wmo_id, diagnostic, latitude,
             longitude and altitude.
             - The path to a Parquet file containing the forecasts to be used
-            for calibration.
+            for calibration. The expected columns within the Parquet file are:
+            forecast, blend_time, forecast_period, forecast_reference_time, time,
+            wmo_id, percentile, diagnostic, latitude, longitude, period, height,
+            cf_name, units. Please note that the presence of a forecast_period
+            column is used to separate the forecast parquet file from the truth
+            parquet file.
             - Optionally, paths to NetCDF files containing additional preictors.
         feature_config (dict):
             Feature configuration defining the features to be used for quantile
@@ -80,12 +85,13 @@ def process(
         training_length (int):
             The length of the training period in days.
         experiment (str):
-            The name of the experiment (step) that calibration is applied to.
+            The name of the experiment (step) that calibration is applied to. This
+            is used to filter the forecast DataFrame on load.
         n_estimators (int):
             Number of trees in the forest.
         max_depth (int):
             Maximum depth of the tree.
-        max_samples (float):
+        max_samples (int | float):
             If an int, then it is the number of samples to draw from the total number
             of samples available to train each tree. Note that a 'sample' refers to
             each row within the DataFrames constructed where each row will differ
@@ -95,9 +101,10 @@ def process(
             If None, then each tree contains the same number of samples as the total
             available. The trees will therefore only differ due to the use of
             bootstrapping (i.e. sampling with replacement) when creating each tree.
-        max_features (float):
+        max_features (int | float):
             If a float, then it is the fraction of features to consider when looking
-            for the best split. If None, then all features are considered.
+            for the best split. If int, then it is the number of features that will
+            be considered at each split. If None, then all features are considered.
         random_state (int):
             Random seed for reproducibility.
         transformation (str):

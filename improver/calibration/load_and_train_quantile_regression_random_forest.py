@@ -73,6 +73,8 @@ class LoadForTrainQRF(PostProcessingPlugin):
                 YYYYMMDDTHHMMZ.
             training_length: The number of days of training data to use.
                 experiment: The name of the experiment (step) that calibration is applied to.
+            experiment: The name of the experiment (step) that calibration is
+                applied to. This is used to filter the forecast DataFrame on load.
             unique_site_id_key: The names of the coordinates that uniquely identify
                 each site, e.g. "wmo_id" or "latitude,longitude".
         """
@@ -106,9 +108,10 @@ class LoadForTrainQRF(PostProcessingPlugin):
                 forecast_periods = [int(self.forecast_periods) * 3600]
             except ValueError:
                 msg = (
-                    "The forecast_periods argument must be a single integer or "
-                    "a range in the form 'start:end:interval'. The forecast period"
-                    f"provided was: {self.forecast_periods}."
+                    "The forecast_periods argument must be a single integer after "
+                    "extraction from the string input, or a range in the form "
+                    "'start:end:interval'. The forecast period provided was: "
+                    f"{self.forecast_periods}."
                 )
                 raise ValueError(msg)
         return forecast_periods
@@ -263,11 +266,25 @@ class LoadForTrainQRF(PostProcessingPlugin):
                 Parquet file are: ob_value, time, wmo_id, diagnostic, latitude,
                 longitude and altitude.
                 - The path to a Parquet file containing the forecasts to be used
-                for calibration.
+                for calibration. The expected columns within the Parquet file are:
+                forecast, blend_time, forecast_period, forecast_reference_time, time,
+                wmo_id, percentile, diagnostic, latitude, longitude, period, height,
+                cf_name, units. Please note that the presence of a forecast_period
+                column is used to separate the forecast parquet file from the truth
+                parquet file.
                 - Optionally, paths to NetCDF files containing additional predictors.
+        Returns:
+            Tuple containing:
+                - DataFrame containing the forecast data.
+                - DataFrame containing the truth data.
+                - List of cubes containing additional features.
+            A tuple of (None, None, None) is returned if:
+                - The quantile_forest package is not installed.
+                - No parquet files are provided.
+                - Either the forecast or truth parquet files are missing.
         """
         if not self.quantile_forest_installed:
-            return None
+            return None, None, None
         cube_inputs, parquets, _ = split_pickle_parquet_and_netcdf(file_paths)
 
         # If there are no parquet files, return None.
@@ -338,7 +355,7 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
             transformation: Transformation to be applied to the data before fitting.
             pre_transform_addition: Value to be added before transformation.
             unique_site_id_key: The names of the coordinates that uniquely identify
-                each site, e.g. "wmo_id" or "latitude,longitude".
+                each site, e.g. "wmo_id" or ["latitude", "longitude"].
             kwargs: Additional keyword arguments for the quantile regression model.
         """
         self.feature_config = feature_config
@@ -454,22 +471,25 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
             forecast_df: DataFrame containing the forecast data.
             truth_df: DataFrame containing the truth data.
             cube_inputs: List of cubes containing additional features.
-
+        Returns: A tuple containing:
+            - The trained RandomForestQuantileRegressor model.
+            - The transformation applied to the data before fitting.
+            - The value added before transformation.
         Raises:
-            ValueError: If the number of cubes loaded does not match the number of
-                features expected.
+            ValueError: If there are no matching times between the forecast and truth
+                data.
         """
         if not self.quantile_forest_installed:
-            return None
+            return None, None, None
 
         intersecting_times = self._check_matching_times(forecast_df, truth_df)
         if len(intersecting_times) == 0:
             msg = (
-                "No matching times between the forecast and truth data."
-                " Unable to train the Quantile Regression Random Forest model."
+                "No matching times between the forecast and truth data. "
+                "Unable to train the Quantile Regression Random Forest model."
             )
             warnings.warn(msg)
-            return None
+            return None, None, None
 
         forecast_df = self._add_static_features_from_cubes_to_df(
             forecast_df, cube_inputs
