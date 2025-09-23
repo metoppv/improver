@@ -61,10 +61,11 @@ def process(
             "visibility_at_screen_level": ["mean", "std"]
             "distance_to_water": ["static"],
             }
-        parquet_diagnostic_names (str):
-            A string containing the diagnostic names that will be used for filtering
-            the target diagnostic from the forecast and truth DataFrames read in
-            from the parquet files. This could be different from the CF name e.g.
+        parquet_diagnostic_names (list of str):
+            A list containing the diagnostic names that will be used for filtering
+            the forecast and truth DataFrames read in from the parquet files. The
+            target diagnostic name is expected to be the first item in the list.
+            These names could be different from the CF name e.g.
             'temperature_at_screen_level'.
         target_cf_name (str):
             A string containing the CF name of the forecast to be calibrated

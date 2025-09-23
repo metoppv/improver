@@ -59,9 +59,10 @@ class LoadForTrainQRF(PostProcessingPlugin):
             feature_config: Feature configuration defining the features to be used for
                 Quantile Regression Random Forests.
             parquet_diagnostic_names:
-                A string containing the diagnostic name that will be used for filtering
-                the target diagnostic from the forecast and truth DataFrames read in
-                from the parquet files. This could be different from the CF name e.g.
+                A list containing the diagnostic names that will be used for filtering
+                the forecast and truth DataFrames read in from the parquet files. The
+                target diagnostic name is expected to be the first item in the list.
+                These names could be different from the CF name e.g.
                 'temperature_at_screen_level'.
             target_cf_name: A string containing the CF name of the forecast to be
                 calibrated e.g. air_temperature.
