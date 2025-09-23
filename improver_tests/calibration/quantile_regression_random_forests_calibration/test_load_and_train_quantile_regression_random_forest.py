@@ -529,7 +529,7 @@ def test_load_for_qrf_no_paths(tmp_path, make_files):
     )
     result = plugin(file_paths)
     # Expecting None since no valid paths are provided
-    assert result is None
+    assert result == (None, None, None)
 
 
 @pytest.mark.parametrize(
