@@ -6,6 +6,7 @@
 (QRF)."""
 
 import pathlib
+import warnings
 from pathlib import Path
 from typing import Optional, Union
 
@@ -270,12 +271,16 @@ class LoadForTrainQRF(PostProcessingPlugin):
 
         # If there are no parquet files, return None.
         if not parquets:
+            msg = "No parquet files have been provided."
+            warnings.warn(msg)
             return None, None, None
 
         forecast_table_path, truth_table_path = identify_parquet_type(parquets)
 
         # If either the forecast or truth parquet files are missing, return None.
         if not forecast_table_path or not truth_table_path:
+            msg = "Both forecast and truth parquet files must be provided."
+            warnings.warn(msg)
             return None, None, None
 
         forecast_periods = self._parse_forecast_periods()

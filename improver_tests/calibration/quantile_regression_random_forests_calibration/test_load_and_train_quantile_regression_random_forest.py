@@ -527,7 +527,13 @@ def test_load_for_qrf_no_paths(tmp_path, make_files):
         cycletime="20170102T0000Z",
         training_length=2,
     )
-    result = plugin(file_paths)
+    if make_files:
+        msg = "Both forecast and truth parquet files must be provided."
+    else:
+        msg = "No parquet files have been provided."
+
+    with pytest.warns(UserWarning, match=msg):
+        result = plugin(file_paths)
     # Expecting None since no valid paths are provided
     assert result == (None, None, None)
 

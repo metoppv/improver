@@ -6,6 +6,7 @@
 """Script to load and apply the trained Quantile Regression Random Forest (QRF)
 model."""
 
+import warnings
 from typing import Optional
 
 import iris
@@ -222,6 +223,13 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
             assert_spatial_coords_match(cube_inputs)
 
         if not self.quantile_forest_installed or not qrf_model:
+            msg = "Unable to apply Quantile Regression Random Forest model."
+            if not self.quantile_forest_installed:
+                msg += " The 'quantile_forest' package is not installed."
+            elif not qrf_model:
+                msg += " No trained model has been provided."
+            msg += " Returning the input forecast without calibration."
+            warnings.warn(msg)
             return forecast_cube
 
         template_forecast_cube = forecast_cube.copy()
