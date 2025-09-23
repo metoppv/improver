@@ -122,6 +122,8 @@ def process(
         training_length=training_length,
         unique_site_id_keys=unique_site_id_keys,
     )(file_paths)
+    if forecast_df is None or truth_df is None or cube_inputs is None:
+        return None
     result = PrepareAndTrainQRF(
         feature_config=feature_config,
         target_cf_name=target_cf_name,

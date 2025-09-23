@@ -270,13 +270,13 @@ class LoadForTrainQRF(PostProcessingPlugin):
 
         # If there are no parquet files, return None.
         if not parquets:
-            return None
+            return None, None, None
 
         forecast_table_path, truth_table_path = identify_parquet_type(parquets)
 
         # If either the forecast or truth parquet files are missing, return None.
         if not forecast_table_path or not truth_table_path:
-            return None
+            return None, None, None
 
         forecast_periods = self._parse_forecast_periods()
         forecast_df, truth_df = self._read_parquet_files(

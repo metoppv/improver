@@ -74,3 +74,43 @@ def test_basic(
 
     run_cli(compulsory_args + named_args)
     acc.compare(output_path, kgo_path, file_type="pickled_forest")
+
+
+def test_missing_inputs(
+    tmp_path,
+):
+    """
+    Test train-quantile-regression-random-forest CLI with missing parquet inputs.
+    """
+    kgo_dir = acc.kgo_root() / CLI
+    config_path = kgo_dir / "config.json"
+    output_path = tmp_path / "output.pickle"
+    compulsory_args = []
+    named_args = [
+        "--feature-config",
+        config_path,
+        "--parquet-diagnostic-names",
+        "temperature_at_screen_level",
+        "--target-cf-name",
+        "air_temperature",
+        "--forecast-periods",
+        "6:18:6",
+        "--cycletime",
+        "20250804T0000Z",
+        "--training-length",
+        "2",
+        "--experiment",
+        "mix-latestblend",
+        "--n-estimators",
+        "10",
+        "--max-depth",
+        "5",
+        "--random-state",
+        "42",
+        "--compression-level",
+        "5",
+        "--output",
+        output_path,
+    ]
+
+    assert run_cli(compulsory_args + named_args) is None
