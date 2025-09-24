@@ -97,54 +97,46 @@ class CondensationTrailFormation(BasePlugin):
         )
         return self.relative_humidity * svp
 
-    @staticmethod
-    def _calculate_contrail_formation(
-        local_vapour_pressure_of_water: np.ndarray,
-        engine_mixing_ratio: np.ndarray,
-        air_temperature: np.ndarray,
-        critical_intercept: np.ndarray,
-        critical_temperature: np.ndarray,
-        saturated_vapour_pressure_of_ice: np.ndarray,
+    def _calculate_contrail_persistency(
+        self,
+        saturated_vapour_pressure_ice: np.ndarray,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Apply four conditions to determine whether persistent or non-persistent contrails will form.
 
+        .. include:: extended_documentation/psychrometric_calculations/condensation_trails/formation_conditions.rst
+
         Args:
-            local_vapour_pressure_of_water (np.ndarray):    3D [pressure, x, y]
-            engine_mixing_ratio (np.ndarray):               2D [contrail factor, pressure]
-            air_temperature (np.ndarray):                   3D [pressure, x, y]
-            critical_intercept (np.ndarray):                2D [contrail factor, pressure]
-            critical_temperature (np.ndarray):              4D [contrail factor, pressure, x, y]
-            saturated_vapour_pressure_of_ice (np.ndarray):  3D [pressure, x, y]
+            saturated_vapour_pressure_ice (np.ndarray): The saturated vapour pressure with respect to ice, on pressure levels [Pa].
 
         Returns:
-            Tuple[np.ndarray]: Two boolean arrays that state whether 'any' or 'persistent' contrails will form, respectively.
+            Tuple[np.ndarray]: Two boolean arrays that state whether 'persistent' or 'non-persistent' contrails will form, respectively.
         """
-
-        # saturated_vapour_pressure_of_ice = np.interp(air_temperature.data, saturated_vapour_pressure.coord("air_temperature").points, saturated_vapour_pressure.data)
-
         vapour_pressure_above_threshold = (
-            local_vapour_pressure_of_water[np.newaxis, :, :, :]
-            - engine_mixing_ratio[:, :, np.newaxis, np.newaxis]
-            * air_temperature[np.newaxis, :, :, :]
-            > critical_intercept[:, :, np.newaxis, np.newaxis]
+            self.local_vapour_pressure[np.newaxis, :, :, :]
+            - self.engine_mixing_ratios[:, :, np.newaxis, np.newaxis]
+            * self.temperature[np.newaxis, :, :, :]
+            > self.critical_intercepts[:, :, np.newaxis, np.newaxis]
         )
         temperature_below_threshold = (
-            air_temperature[np.newaxis, :, :, :] < critical_temperature
+            self.temperature[np.newaxis, :, :, :] < self.critical_temperatures
         )
-        air_is_saturated = (
-            local_vapour_pressure_of_water > saturated_vapour_pressure_of_ice
-        )
-        temperature_below_freezing = air_temperature < 273.15
+        air_is_saturated = self.local_vapour_pressure > saturated_vapour_pressure_ice
+        temperature_below_freezing = self.temperature < 273.15
 
-        any_contrails_formed = (
-            vapour_pressure_above_threshold & temperature_below_threshold
+        persistent_contrails = (
+            vapour_pressure_above_threshold
+            & temperature_below_threshold
+            & air_is_saturated
+            & temperature_below_freezing
         )
-        persistent_contrails_formed = (
-            any_contrails_formed & air_is_saturated & temperature_below_freezing
+        nonpersistent_contrails = (
+            vapour_pressure_above_threshold
+            & temperature_below_threshold
+            & ~(air_is_saturated & temperature_below_freezing)
         )
 
-        return any_contrails_formed, persistent_contrails_formed
+        return persistent_contrails, nonpersistent_contrails
 
     def process_from_arrays(
         self,
