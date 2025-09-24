@@ -153,5 +153,7 @@ def process(
         unique_site_id_keys=unique_site_id_keys,
         **kwargs,
     )(forecast_df, truth_df, cube_inputs)
+    if result == (None, None, None):
+        return None
 
     return result
