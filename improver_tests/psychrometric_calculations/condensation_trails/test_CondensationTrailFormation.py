@@ -9,6 +9,9 @@ from typing import List, Optional, Tuple
 import numpy as np
 import pytest
 
+from improver.generate_ancillaries.generate_svp_table import (
+    SaturatedVapourPressureTable,
+)
 from improver.psychrometric_calculations.condensation_trails import (
     CondensationTrailFormation,
 )
@@ -223,3 +226,52 @@ def test_find_local_vapour_pressure(
     plugin.relative_humidity = relative_humidity
     result = plugin._find_local_vapour_pressure(pressure_levels)
     np.testing.assert_allclose(result, expected_vapour_pressure)
+
+
+@pytest.mark.parametrize(
+    "contrail_factor, temperature, relative_humidity, pressure_levels",
+    [(3e-5, np.array([[200]]), np.array([[1]]), np.array([1e4]))],
+)
+def test_calculate_contrail_persistency(
+    contrail_factor, temperature, relative_humidity, pressure_levels
+) -> None:
+    """
+    Test that _calculate_contrail_persistency returns the expected boolean arrays.
+    """
+    temperature_on_pressure_levels = np.broadcast_to(
+        temperature, pressure_levels.shape + temperature.shape
+    )
+    relative_humidity_on_pressure_levels = np.broadcast_to(
+        relative_humidity, pressure_levels.shape + relative_humidity.shape
+    )
+
+    plugin = CondensationTrailFormation([contrail_factor])
+    plugin.process_from_arrays(
+        temperature_on_pressure_levels,
+        relative_humidity_on_pressure_levels,
+        pressure_levels,
+    )
+
+    # replace with '_calculate_critical_temperatures_and_intercepts' method, once that ticket gets merged
+    Tc = 220
+    Ic = -1200
+    plugin.critical_temperatures = np.broadcast_to(
+        Tc, (1,) + temperature_on_pressure_levels.shape
+    )
+    plugin.critical_intercepts = np.broadcast_to(Ic, plugin.engine_mixing_ratios.shape)
+
+    svp_ice_table = SaturatedVapourPressureTable(ice_only=True).process()
+    svp_ice_on_pressure_levels = np.interp(
+        temperature_on_pressure_levels,
+        svp_ice_table.coord("air_temperature").points,
+        svp_ice_table.data,
+    )
+
+    contrails_p, contrails_np = plugin._calculate_contrail_persistency(
+        svp_ice_on_pressure_levels
+    )
+
+    print("Persistent:     ", contrails_p, contrails_p.shape)
+    print("Non-persistent: ", contrails_np, contrails_np.shape)
+
+    assert False
