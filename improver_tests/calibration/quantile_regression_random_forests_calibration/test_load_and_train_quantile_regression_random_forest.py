@@ -24,6 +24,93 @@ LONGITUDE = [0, 10]
 SITE_ID = ["03001", "03002", "03003", "03004", "03005"]
 
 
+def write_to_parquet(df, tmp_path, dirname, filename):
+    """Write a DataFrame to a parquet file.
+
+    Args:
+        df: DataFrame to write to a parquet file.
+        tmp_path: Temporary path to save the parquet file.
+        dirname: Directory name.
+        filename: Name of parquet file.
+
+    Returns:
+        Output directory containing the parquet file.
+    """
+    output_dir = tmp_path / dirname
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_path = output_dir / filename
+    df.to_parquet(output_path, index=False, engine="pyarrow")
+    return output_dir
+
+
+def add_wind_data_to_forecasts(data_dict, wind_speed_values, wind_dir_values):
+    """Add wind speed and direction data to a data dictionary.
+
+    Args:
+        data_dict: Dictionary containing the data.
+        wind_speed_values: List of wind speed values to add.
+        wind_dir_values: List of wind direction values to add.
+    Returns:
+        A DataFrame containing the original data along with wind speed and
+        direction data.
+    """
+    # Add wind speed to demonstrate filtering.
+    wind_speed_dict = data_dict.copy()
+    wind_speed_dict["forecast"] = wind_speed_values
+    wind_speed_dict["cf_name"] = "wind_speed"
+    wind_speed_dict["units"] = "m s-1"
+    wind_speed_dict["diagnostic"] = "wind_speed_at_10m"
+    wind_dir_dict = data_dict.copy()
+    wind_dir_dict["forecast"] = wind_dir_values
+    wind_dir_dict["cf_name"] = "wind_direction"
+    wind_dir_dict["units"] = "degrees"
+    wind_dir_dict["diagnostic"] = "wind_from_direction"
+    data_df = pd.DataFrame(data_dict)
+    wind_speed_df = pd.DataFrame(wind_speed_dict)
+    wind_dir_df = pd.DataFrame(wind_dir_dict)
+    return pd.concat([data_df, wind_speed_df, wind_dir_df], ignore_index=True)
+
+
+def add_wind_data_to_truth(data_dict, wind_speed_values):
+    """Add wind speed data to a data dictionary.
+
+    Args:
+        data_dict: Dictionary containing the data.
+        wind_speed_values: List of wind speed values to add.
+
+    Returns:
+        A DataFrame containing the original data along with wind speed data.
+    """
+    wind_speed_dict = data_dict.copy()
+    wind_speed_dict["ob_value"] = wind_speed_values
+    wind_speed_dict["diagnostic"] = "wind_speed_at_10m"
+    data_df = pd.DataFrame(data_dict)
+    wind_speed_df = pd.DataFrame(wind_speed_dict)
+    return pd.concat([data_df, wind_speed_df], ignore_index=True)
+
+
+def modify_representation(data_dict, representation, values):
+    """Modify the ensemble representation in a data dictionary.
+
+    Args:
+        data_dict: Dictionary containing the data.
+        representation: The type of ensemble representation to use. Options are
+            "percentile", "realization" or "kittens". "kittens" is just used for testing
+            that the code works with a non-standard name.
+        values: List of values to use for the new representation.
+
+    Returns:
+        Amended dictionary.
+    """
+    if representation == "realization":
+        data_dict["realization"] = values
+        data_dict.pop("percentile")
+    elif representation == "kittens":
+        data_dict["kittens"] = values
+        data_dict.pop("percentile")
+    return data_dict
+
+
 def _create_multi_site_forecast_parquet_file(tmp_path, representation=None):
     """Create a parquet file with multi-site forecast data.
 
@@ -54,34 +141,15 @@ def _create_multi_site_forecast_parquet_file(tmp_path, representation=None):
         "diagnostic": ["temperature_at_screen_level"] * 5,
     }
     # Other representations used for testing.
-    if representation == "realization":
-        data_dict["realization"] = list(range(len(data_dict["percentile"])))
-        data_dict.pop("percentile")
-    elif representation == "kittens":
-        data_dict["kittens"] = list(range(len(data_dict["percentile"])))
-        data_dict.pop("percentile")
-
-    # Add wind speed to demonstrate filtering.
-    wind_speed_dict = data_dict.copy()
-    wind_speed_dict["forecast"] = [8, 19, 16, 12, 10]
-    wind_speed_dict["cf_name"] = "wind_speed"
-    wind_speed_dict["units"] = "m s-1"
-    wind_speed_dict["diagnostic"] = "wind_speed_at_10m"
-    wind_dir_dict = data_dict.copy()
-    wind_dir_dict["forecast"] = [90, 100, 110, 120, 130]
-    wind_dir_dict["cf_name"] = "wind_direction"
-    wind_dir_dict["units"] = "degrees"
-    wind_dir_dict["diagnostic"] = "wind_from_direction"
-    data_df = pd.DataFrame(data_dict)
-    wind_speed_df = pd.DataFrame(wind_speed_dict)
-    wind_dir_df = pd.DataFrame(wind_dir_dict)
-    joined_df = pd.concat([data_df, wind_speed_df, wind_dir_df], ignore_index=True)
-
-    output_dir = tmp_path / "forecast_parquet_files"
-    output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = output_dir / "forecast.parquet"
-    joined_df.to_parquet(output_path, index=False, engine="pyarrow")
-
+    data_dict = modify_representation(
+        data_dict, representation, list(range(len(data_dict["percentile"])))
+    )
+    joined_df = add_wind_data_to_forecasts(
+        data_dict, [8, 19, 16, 12, 10], [90, 100, 110, 120, 130]
+    )
+    output_dir = write_to_parquet(
+        joined_df, tmp_path, "forecast_parquet_files", "forecast.parquet"
+    )
     return output_dir, joined_df, data_dict["wmo_id"]
 
 
@@ -115,32 +183,15 @@ def _create_multi_percentile_forecast_parquet_file(tmp_path, representation=None
         "diagnostic": ["temperature_at_screen_level"] * 5,
     }
     # Other representations used for testing.
-    if representation == "realization":
-        data_dict["realization"] = list(range(len(data_dict["percentile"])))
-        data_dict.pop("percentile")
-    elif representation == "kittens":
-        data_dict["kittens"] = list(range(len(data_dict["percentile"])))
-        data_dict.pop("percentile")
-    # Add wind speed to demonstrate filtering.
-    wind_speed_dict = data_dict.copy()
-    wind_speed_dict["forecast"] = [6, 10, 11, 12, 15]
-    wind_speed_dict["cf_name"] = "wind_speed"
-    wind_speed_dict["units"] = "m s-1"
-    wind_speed_dict["diagnostic"] = "wind_speed_at_10m"
-    wind_dir_dict = data_dict.copy()
-    wind_dir_dict["forecast"] = [90, 100, 110, 120, 130]
-    wind_dir_dict["cf_name"] = "wind_direction"
-    wind_dir_dict["units"] = "degrees"
-    wind_dir_dict["diagnostic"] = "wind_from_direction"
-    data_df = pd.DataFrame(data_dict)
-    wind_speed_df = pd.DataFrame(wind_speed_dict)
-    wind_dir_df = pd.DataFrame(wind_dir_dict)
-    joined_df = pd.concat([data_df, wind_speed_df, wind_dir_df], ignore_index=True)
-
-    output_dir = tmp_path / "forecast_parquet_files"
-    output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = output_dir / "forecast.parquet"
-    joined_df.to_parquet(output_path, index=False, engine="pyarrow")
+    data_dict = modify_representation(
+        data_dict, representation, list(range(len(data_dict["percentile"])))
+    )
+    joined_df = add_wind_data_to_forecasts(
+        data_dict, [6, 10, 11, 12, 15], [90, 100, 110, 120, 130]
+    )
+    output_dir = write_to_parquet(
+        joined_df, tmp_path, "forecast_parquet_files", "forecast.parquet"
+    )
     return output_dir, joined_df, data_dict["wmo_id"]
 
 
@@ -182,33 +233,13 @@ def _create_multi_forecast_period_forecast_parquet_file(tmp_path, representation
         "height": [1.5] * 4,
         "diagnostic": ["temperature_at_screen_level"] * 4,
     }
-    # Other representations used for testing.
-    if representation == "realization":
-        data_dict["realization"] = [0, 1, 0, 1]
-        data_dict.pop("percentile")
-    elif representation == "kittens":
-        data_dict["kittens"] = [0, 1, 0, 1]
-        data_dict.pop("percentile")
-    # Add wind speed to demonstrate filtering.
-    wind_speed_dict = data_dict.copy()
-    wind_speed_dict["forecast"] = [6, 16, 12, 15]
-    wind_speed_dict["cf_name"] = "wind_speed"
-    wind_speed_dict["units"] = "m s-1"
-    wind_speed_dict["diagnostic"] = "wind_speed_at_10m"
-    wind_dir_dict = data_dict.copy()
-    wind_dir_dict["forecast"] = [180, 190, 200, 210]
-    wind_dir_dict["cf_name"] = "wind_from_direction"
-    wind_dir_dict["units"] = "degrees"
-    wind_dir_dict["diagnostic"] = "wind_direction"
-    data_df = pd.DataFrame(data_dict)
-    wind_speed_df = pd.DataFrame(wind_speed_dict)
-    wind_dir_df = pd.DataFrame(wind_dir_dict)
-    joined_df = pd.concat([data_df, wind_speed_df, wind_dir_df], ignore_index=True)
-
-    output_dir = tmp_path / "forecast_parquet_files"
-    output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = output_dir / "forecast.parquet"
-    joined_df.to_parquet(output_path, index=False, engine="pyarrow")
+    data_dict = modify_representation(data_dict, representation, [0, 1, 0, 1])
+    joined_df = add_wind_data_to_forecasts(
+        data_dict, [6, 16, 12, 15], [180, 190, 200, 210]
+    )
+    output_dir = write_to_parquet(
+        joined_df, tmp_path, "forecast_parquet_files", "forecast.parquet"
+    )
     return output_dir, joined_df, data_dict["wmo_id"]
 
 
@@ -224,17 +255,10 @@ def _create_multi_site_truth_parquet_file(tmp_path):
         "station_id": ["03001", "03002", "03003", "03004", "03005"],
         "ob_value": [276.0, 270.0, 289.0, 290.0, 301.0],
     }
-    wind_speed_dict = data_dict.copy()
-    wind_speed_dict["ob_value"] = [3, 22, 24, 11, 9]
-    wind_speed_dict["diagnostic"] = "wind_speed_at_10m"
-    data_df = pd.DataFrame(data_dict)
-    wind_speed_df = pd.DataFrame(wind_speed_dict)
-    joined_df = pd.concat([data_df, wind_speed_df], ignore_index=True)
-
-    output_dir = tmp_path / "truth_parquet_files"
-    output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = output_dir / "truth.parquet"
-    joined_df.to_parquet(output_path, index=False, engine="pyarrow")
+    joined_df = add_wind_data_to_truth(data_dict, [3, 22, 24, 11, 9])
+    output_dir = write_to_parquet(
+        joined_df, tmp_path, "truth_parquet_files", "truth.parquet"
+    )
     return output_dir, joined_df
 
 
@@ -250,17 +274,10 @@ def _create_multi_percentile_truth_parquet_file(tmp_path):
         "station_id": ["03001"],
         "ob_value": [276.0],
     }
-    wind_speed_dict = data_dict.copy()
-    wind_speed_dict["ob_value"] = [9]
-    wind_speed_dict["diagnostic"] = "wind_speed_at_10m"
-    data_df = pd.DataFrame(data_dict)
-    wind_speed_df = pd.DataFrame(wind_speed_dict)
-    joined_df = pd.concat([data_df, wind_speed_df], ignore_index=True)
-
-    output_dir = tmp_path / "truth_parquet_files"
-    output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = output_dir / "truth.parquet"
-    joined_df.to_parquet(output_path, index=False, engine="pyarrow")
+    joined_df = add_wind_data_to_truth(data_dict, [9])
+    output_dir = write_to_parquet(
+        joined_df, tmp_path, "truth_parquet_files", "truth.parquet"
+    )
     return output_dir, joined_df
 
 
@@ -279,17 +296,10 @@ def _create_multi_forecast_period_truth_parquet_file(tmp_path):
         "station_id": ["03001", "03002", "03001", "03002"],
         "ob_value": [280, 273, 284, 275],
     }
-    wind_speed_dict = data_dict.copy()
-    wind_speed_dict["ob_value"] = [2.0, 11.0, 10.0, 14.0]
-    wind_speed_dict["diagnostic"] = "wind_speed_at_10m"
-    data_df = pd.DataFrame(data_dict)
-    wind_speed_df = pd.DataFrame(wind_speed_dict)
-    joined_df = pd.concat([data_df, wind_speed_df], ignore_index=True)
-
-    output_dir = tmp_path / "truth_parquet_files"
-    output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = output_dir / "truth.parquet"
-    joined_df.to_parquet(output_path, index=False, engine="pyarrow")
+    joined_df = add_wind_data_to_truth(data_dict, [2.0, 11.0, 10.0, 14.0])
+    output_dir = write_to_parquet(
+        joined_df, tmp_path, "truth_parquet_files", "truth.parquet"
+    )
     return output_dir, joined_df
 
 
@@ -305,17 +315,10 @@ def _create_multi_site_truth_parquet_file_alt(tmp_path, site_id="wmo_id"):
         "station_id": ["03001", "03002", "03003", "03004", "03005"],
         "ob_value": [10.0, 25.0, 4.0, 3.0, 11.0],
     }
-    wind_speed_dict = data_dict.copy()
-    wind_speed_dict["ob_value"] = [3.0, 22.0, 24.0, 11.0, 9.0]
-    wind_speed_dict["diagnostic"] = "wind_speed_at_10m"
-    data_df = pd.DataFrame(data_dict)
-    wind_speed_df = pd.DataFrame(wind_speed_dict)
-    joined_df = pd.concat([data_df, wind_speed_df], ignore_index=True)
-
-    output_dir = tmp_path / "truth_parquet_files"
-    output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = output_dir / "truth.parquet"
-    joined_df.to_parquet(output_path, index=False, engine="pyarrow")
+    joined_df = add_wind_data_to_truth(data_dict, [3.0, 22.0, 24.0, 11.0, 9.0])
+    output_dir = write_to_parquet(
+        joined_df, tmp_path, "truth_parquet_files", "truth.parquet"
+    )
     return output_dir, joined_df
 
 
@@ -756,7 +759,7 @@ def test_unexpected_loading(
         (
             _create_multi_forecast_period_forecast_parquet_file,
             _create_multi_forecast_period_truth_parquet_file,
-            "12",
+            "6",
         ),
     ],
 )
@@ -822,7 +825,10 @@ def test_prepare_and_train_qrf(
 
     if include_latlon_nans:
         # As latitude is not a feature, this NaN should be ignored.
-        truth_df.loc[1, "latitude"] = pd.NA
+        if len(truth_df) == 1:
+            truth_df.loc[0, "latitude"] = pd.NA
+        else:
+            truth_df.loc[1, "latitude"] = pd.NA
 
     if add_kwargs:
         kwargs = {"min_samples_leaf": 2}
@@ -842,7 +848,7 @@ def test_prepare_and_train_qrf(
         unique_site_id_keys=site_id,
         **(kwargs if add_kwargs else {}),
     )
-    if truth_df["ob_value"].isna().all():
+    if truth_df["ob_value"].isna().all() or truth_df["latitude"].isna().all():
         with pytest.raises(ValueError, match="Empty truth DataFrame"):
             plugin(forecast_df, truth_df)
         return
@@ -880,6 +886,111 @@ def test_prepare_and_train_qrf(
     )
     expected = 5.6
     np.testing.assert_almost_equal(result, expected, decimal=1)
+
+
+@pytest.mark.parametrize("include_nans", [True, False])
+@pytest.mark.parametrize("include_latlon_nans", [True, False])
+@pytest.mark.parametrize("site_id", [["wmo_id"], ["latitude", "longitude"]])
+@pytest.mark.parametrize(
+    "forecast_creation,truth_creation",
+    [
+        (
+            _create_multi_site_forecast_parquet_file,
+            _create_multi_site_truth_parquet_file,
+        ),
+        (
+            _create_multi_percentile_forecast_parquet_file,
+            _create_multi_percentile_truth_parquet_file,
+        ),
+        (
+            _create_multi_forecast_period_forecast_parquet_file,
+            _create_multi_forecast_period_truth_parquet_file,
+        ),
+    ],
+)
+def test_filter_bad_sites(
+    tmp_path,
+    include_nans,
+    include_latlon_nans,
+    site_id,
+    forecast_creation,
+    truth_creation,
+):
+    # Check that the filtering of bad sites works as expected.
+    feature_config = {"air_temperature": ["mean", "std", "altitude"]}
+    n_estimators = 2
+    max_depth = 5
+    random_state = 46
+    target_cf_name = "air_temperature"
+    forecast_periods = "6:18:6"
+    representation = "percentile"
+
+    _, forecast_df, _ = forecast_creation(tmp_path, representation)
+    forecast_df = amend_expected_forecast_df(
+        forecast_df,
+        forecast_periods,
+        ["temperature_at_screen_level"],
+        representation,
+        site_id,
+    )
+    _, truth_df = truth_creation(tmp_path)
+
+    truth_df = amend_expected_truth_df(truth_df, "temperature_at_screen_level")
+
+    if include_nans:
+        # Insert a NaN will result in this row being dropped.
+        truth_df.loc[0, "ob_value"] = pd.NA
+
+    if include_latlon_nans:
+        # As latitude is not a feature, this NaN should be ignored.
+        if len(truth_df) == 1:
+            truth_df.loc[0, "latitude"] = pd.NA
+        else:
+            truth_df.loc[1, "latitude"] = pd.NA
+
+    # Create an instance of PrepareAndTrainQRF with the required parameters
+    plugin = PrepareAndTrainQRF(
+        feature_config=feature_config,
+        target_cf_name=target_cf_name,
+        n_estimators=n_estimators,
+        max_depth=max_depth,
+        random_state=random_state,
+        transformation="log",
+        pre_transform_addition=1,
+        unique_site_id_keys=site_id,
+    )
+    if include_nans and truth_df["ob_value"].isna().all():
+        with pytest.raises(ValueError, match="Empty truth DataFrame"):
+            plugin.filter_bad_sites(forecast_df.copy(), truth_df.copy())
+        return
+    elif (
+        include_latlon_nans
+        and truth_df["latitude"].isna().all()
+        and site_id
+        == [
+            "latitude",
+            "longitude",
+        ]
+    ):
+        with pytest.raises(ValueError, match="Empty truth DataFrame"):
+            plugin.filter_bad_sites(forecast_df.copy(), truth_df.copy())
+        return
+    result_forecast_df, result_truth_df = plugin.filter_bad_sites(
+        forecast_df.copy(),
+        truth_df.copy(),
+    )
+
+    expected_truth_len = len(truth_df)
+    expected_forecast_len = len(forecast_df)
+    if include_nans:
+        expected_truth_len -= 1
+        expected_forecast_len -= 1
+    if include_latlon_nans and "latitude" in site_id:
+        expected_truth_len -= 1
+        expected_forecast_len -= 1
+
+    assert len(result_truth_df) == expected_truth_len
+    assert len(result_forecast_df) == expected_forecast_len
 
 
 def test_unexpected_preparation(
