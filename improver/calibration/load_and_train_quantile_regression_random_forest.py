@@ -6,6 +6,7 @@
 (QRF)."""
 
 import pathlib
+import warnings
 from pathlib import Path
 from typing import Optional, Union
 
@@ -58,9 +59,10 @@ class LoadForTrainQRF(PostProcessingPlugin):
             feature_config: Feature configuration defining the features to be used for
                 Quantile Regression Random Forests.
             parquet_diagnostic_names:
-                A string containing the diagnostic name that will be used for filtering
-                the target diagnostic from the forecast and truth DataFrames read in
-                from the parquet files. This could be different from the CF name e.g.
+                A list containing the diagnostic names that will be used for filtering
+                the forecast and truth DataFrames read in from the parquet files. The
+                target diagnostic name is expected to be the first item in the list.
+                These names could be different from the CF name e.g.
                 'temperature_at_screen_level'.
             target_cf_name: A string containing the CF name of the forecast to be
                 calibrated e.g. air_temperature.
@@ -71,6 +73,8 @@ class LoadForTrainQRF(PostProcessingPlugin):
                 YYYYMMDDTHHMMZ.
             training_length: The number of days of training data to use.
                 experiment: The name of the experiment (step) that calibration is applied to.
+            experiment: The name of the experiment (step) that calibration is
+                applied to. This is used to filter the forecast DataFrame on load.
             unique_site_id_key: The names of the coordinates that uniquely identify
                 each site, e.g. "wmo_id" or "latitude,longitude".
         """
@@ -104,9 +108,10 @@ class LoadForTrainQRF(PostProcessingPlugin):
                 forecast_periods = [int(self.forecast_periods) * 3600]
             except ValueError:
                 msg = (
-                    "The forecast_periods argument must be a single integer or "
-                    "a range in the form 'start:end:interval'. The forecast period"
-                    f"provided was: {self.forecast_periods}."
+                    "The forecast_periods argument must be a single integer after "
+                    "extraction from the string input, or a range in the form "
+                    "'start:end:interval'. The forecast period provided was: "
+                    f"{self.forecast_periods}."
                 )
                 raise ValueError(msg)
         return forecast_periods
@@ -177,9 +182,11 @@ class LoadForTrainQRF(PostProcessingPlugin):
             schema=altered_schema,
             engine="pyarrow",
         )
-
+        seconds_to_ns = 1e9
         forecast_df = forecast_df[
-            forecast_df["forecast_period"].isin(np.array(forecast_periods) * 1e9)
+            forecast_df["forecast_period"].isin(
+                np.array(forecast_periods) * seconds_to_ns
+            )
         ].reset_index(drop=True)
 
         # Convert df columns from ns to pandas timestamp object.
@@ -261,21 +268,42 @@ class LoadForTrainQRF(PostProcessingPlugin):
                 Parquet file are: ob_value, time, wmo_id, diagnostic, latitude,
                 longitude and altitude.
                 - The path to a Parquet file containing the forecasts to be used
-                for calibration.
+                for calibration. The expected columns within the Parquet file are:
+                forecast, blend_time, forecast_period, forecast_reference_time, time,
+                wmo_id, percentile, diagnostic, latitude, longitude, period, height,
+                cf_name, units. Please note that the presence of a forecast_period
+                column is used to separate the forecast parquet file from the truth
+                parquet file.
                 - Optionally, paths to NetCDF files containing additional predictors.
+
+        Returns:
+            Tuple containing:
+                - DataFrame containing the forecast data.
+                - DataFrame containing the truth data.
+                - List of cubes containing additional features.
+
+            A tuple of (None, None, None) is returned if:
+                - The quantile_forest package is not installed.
+                - No parquet files are provided.
+                - Either the forecast or truth parquet files are missing.
+
         """
         if not self.quantile_forest_installed:
-            return None
+            return None, None, None
         cube_inputs, parquets, _ = split_pickle_parquet_and_netcdf(file_paths)
 
         # If there are no parquet files, return None.
         if not parquets:
+            msg = "No parquet files have been provided."
+            warnings.warn(msg)
             return None, None, None
 
         forecast_table_path, truth_table_path = identify_parquet_type(parquets)
 
         # If either the forecast or truth parquet files are missing, return None.
         if not forecast_table_path or not truth_table_path:
+            msg = "Both forecast and truth parquet files must be provided."
+            warnings.warn(msg)
             return None, None, None
 
         forecast_periods = self._parse_forecast_periods()
@@ -315,6 +343,7 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
         transformation: Optional[str] = None,
         pre_transform_addition: float = 0,
         unique_site_id_keys: Union[list[str], str] = "wmo_id",
+        **kwargs,
     ):
         """Initialise the PrepareAndTrainQRF plugin.
 
@@ -331,7 +360,8 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
             transformation: Transformation to be applied to the data before fitting.
             pre_transform_addition: Value to be added before transformation.
             unique_site_id_key: The names of the coordinates that uniquely identify
-                each site, e.g. "wmo_id" or "latitude,longitude".
+                each site, e.g. "wmo_id" or ["latitude", "longitude"].
+            kwargs: Additional keyword arguments for the quantile regression model.
         """
         self.feature_config = feature_config
         self.target_cf_name = target_cf_name
@@ -344,6 +374,7 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
         if isinstance(unique_site_id_keys, str):
             unique_site_id_keys = [unique_site_id_keys]
         self.unique_site_id_keys = unique_site_id_keys
+        self.kwargs = kwargs
         self.quantile_forest_installed = quantile_forest_package_available()
 
     @staticmethod
@@ -446,16 +477,26 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
             truth_df: DataFrame containing the truth data.
             cube_inputs: List of cubes containing additional features.
 
+        Returns: A tuple containing:
+            - The trained RandomForestQuantileRegressor model.
+            - The transformation applied to the data before fitting.
+            - The value added before transformation.
+
         Raises:
-            ValueError: If the number of cubes loaded does not match the number of
-                features expected.
+            ValueError: If there are no matching times between the forecast and truth
+                data.
         """
         if not self.quantile_forest_installed:
-            return None
+            return None, None, None
 
         intersecting_times = self._check_matching_times(forecast_df, truth_df)
         if len(intersecting_times) == 0:
-            return None
+            msg = (
+                "No matching times between the forecast and truth data. "
+                "Unable to train the Quantile Regression Random Forest model."
+            )
+            warnings.warn(msg)
+            return None, None, None
 
         forecast_df = self._add_static_features_from_cubes_to_df(
             forecast_df, cube_inputs
@@ -472,6 +513,7 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
             transformation=self.transformation,
             pre_transform_addition=self.pre_transform_addition,
             unique_site_id_keys=self.unique_site_id_keys,
+            **self.kwargs,
         )(forecast_df, truth_df)
 
         # Create a tuple that returns the model, transformation and

@@ -22,6 +22,7 @@ def process(
     n_estimators: int = 100,
     max_depth: int = None,
     max_samples: float = None,
+    max_features: float = None,
     random_state: int = None,
     transformation: str = None,
     pre_transform_addition: float = 0,
@@ -36,13 +37,18 @@ def process(
 
     Args:
         file_paths (cli.inputpaths):
-            A list of input paths containing:
+            A list of input paths (in any order) containing:
             - The path to a Parquet file containing the truths to be used
             for calibration. The expected columns within the
             Parquet file are: ob_value, time, wmo_id, diagnostic, latitude,
             longitude and altitude.
             - The path to a Parquet file containing the forecasts to be used
-            for calibration.
+            for calibration. The expected columns within the Parquet file are:
+            forecast, blend_time, forecast_period, forecast_reference_time, time,
+            wmo_id, percentile, diagnostic, latitude, longitude, period, height,
+            cf_name, units. Please note that the presence of a forecast_period
+            column is used to separate the forecast parquet file from the truth
+            parquet file.
             - Optionally, paths to NetCDF files containing additional preictors.
         feature_config (dict):
             Feature configuration defining the features to be used for quantile
@@ -60,10 +66,11 @@ def process(
             "visibility_at_screen_level": ["mean", "std"]
             "distance_to_water": ["static"],
             }
-        parquet_diagnostic_names (str):
-            A string containing the diagnostic names that will be used for filtering
-            the target diagnostic from the forecast and truth DataFrames read in
-            from the parquet files. This could be different from the CF name e.g.
+        parquet_diagnostic_names (list of str):
+            A list containing the diagnostic names that will be used for filtering
+            the forecast and truth DataFrames read in from the parquet files. The
+            target diagnostic name is expected to be the first item in the list.
+            These names could be different from the CF name e.g.
             'temperature_at_screen_level'.
         target_cf_name (str):
             A string containing the CF name of the forecast to be calibrated
@@ -78,12 +85,13 @@ def process(
         training_length (int):
             The length of the training period in days.
         experiment (str):
-            The name of the experiment (step) that calibration is applied to.
+            The name of the experiment (step) that calibration is applied to. This
+            is used to filter the forecast DataFrame on load.
         n_estimators (int):
             Number of trees in the forest.
         max_depth (int):
             Maximum depth of the tree.
-        max_samples (float):
+        max_samples (int | float):
             If an int, then it is the number of samples to draw from the total number
             of samples available to train each tree. Note that a 'sample' refers to
             each row within the DataFrames constructed where each row will differ
@@ -93,6 +101,10 @@ def process(
             If None, then each tree contains the same number of samples as the total
             available. The trees will therefore only differ due to the use of
             bootstrapping (i.e. sampling with replacement) when creating each tree.
+        max_features (int | float):
+            If a float, then it is the fraction of features to consider when looking
+            for the best split. If int, then it is the number of features that will
+            be considered at each split. If None, then all features are considered.
         random_state (int):
             Random seed for reproducibility.
         transformation (str):
@@ -102,6 +114,7 @@ def process(
         unique_site_id_keys (str):
             The names of the coordinates that uniquely identify each site,
             e.g. "wmo_id" or "latitude,longitude".
+        kwargs: Additional keyword arguments for the quantile regression model.
     Returns:
         A quantile regression random forest model with associated transformation and
         pre-transformation addition that will be stored as a pickle file.
@@ -124,6 +137,10 @@ def process(
     )(file_paths)
     if forecast_df is None or truth_df is None or cube_inputs is None:
         return None
+
+    kwargs = {}
+    if max_features is not None:
+        kwargs["max_features"] = max_features
     result = PrepareAndTrainQRF(
         feature_config=feature_config,
         target_cf_name=target_cf_name,
@@ -134,6 +151,7 @@ def process(
         transformation=transformation,
         pre_transform_addition=pre_transform_addition,
         unique_site_id_keys=unique_site_id_keys,
+        **kwargs,
     )(forecast_df, truth_df, cube_inputs)
 
     return result

@@ -53,6 +53,9 @@ def _create_forecasts(
         validity_time: Timestamp e.g. "20170101T0600Z".
         data: Data that will be repeated to create a cube with two sites. The
         length of the data will equal the number of realizations created.
+        representation: Either "realization" or "percentile" to define the
+        representation used in the DataFrame.
+        return_cube: If True, return a cube. If False, return a DataFrame.
 
     Returns:
         Forecast cube containing three percentiles and two sites.
@@ -99,7 +102,7 @@ def _create_forecasts(
     return df
 
 
-def _add_day_of_training_period(df):
+def _add_day_of_training_period(df: pd.DataFrame) -> pd.DataFrame:
     """Add day of training period coordinate to the dataframe.
 
     Args:
@@ -115,9 +118,11 @@ def _add_day_of_training_period(df):
     return df
 
 
-def _create_ancil_file(return_cube=False):
+def _create_ancil_file(return_cube: bool = False) -> Cube | pd.DataFrame:
     """Create an ancillary file for testing.
 
+    Args:
+        return_cube: If True, return a cube. If False, return a DataFrame.
     Returns:
         An ancillary DataFrame without temporal columns.
     """

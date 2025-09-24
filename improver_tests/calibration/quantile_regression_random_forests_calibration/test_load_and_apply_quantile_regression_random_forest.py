@@ -43,6 +43,7 @@ def _add_day_of_training_period_to_cube(cube, day_of_training_period, secondary_
     return cube
 
 
+# Disable ruff formatting to keep the parameter combinations aligned for readability.
 # fmt: off
 @pytest.mark.parametrize("percentile_input", [True, False])
 @pytest.mark.parametrize(
@@ -262,7 +263,8 @@ def test_unexpected(
     )
 
     if exception == "no_model_output":
-        result = plugin(cube_inputs, qrf_descriptors=None)
+        with pytest.warns(UserWarning, match="Unable to apply Quantile Regression Random Forest model."):
+            result = plugin(cube_inputs, qrf_descriptors=None)
         assert isinstance(result, Cube)
         assert result.name() == "wind_speed_at_10m"
         assert result.units == "m s-1"
@@ -300,7 +302,8 @@ def test_unexpected(
     elif exception == "no_quantile_forest_package":
         qrf_descriptors = (qrf_model, transformation, pre_transform_addition)
         plugin.quantile_forest_installed = False
-        result = plugin(CubeList([forecast_cube]), qrf_descriptors=qrf_descriptors)
+        with pytest.warns(UserWarning, match="Unable to apply Quantile Regression Random Forest model."):
+            result = plugin(CubeList([forecast_cube]), qrf_descriptors=qrf_descriptors)
         assert isinstance(result, Cube)
         assert result.name() == "wind_speed_at_10m"
         assert result.units == "m s-1"

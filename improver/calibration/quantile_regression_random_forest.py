@@ -38,11 +38,14 @@ def prep_feature(
     pre_transform_addition: np.float32 = 0,
     unique_site_id_keys: Union[list[str], str] = "wmo_id",
 ) -> pd.DataFrame:
-    """Prepare features that require computation from the input DataFrame. Options
-    available are mean, standard deviation, min, max, percentiles and a members above
-    and a members below count of the input feature, the day of year,
+    """Prepare features that require computation from the input DataFrame.
+
+    Options available are mean, standard deviation, min, max, percentiles and a
+    members above and a members below count of the input feature, the day of year,
     sine of day of year, cosine of day of year, hour of day, sine of hour of day
-    and cosine of hour of day. When computing the mean or standard deviation,
+    and cosine of hour of day.
+
+    When computing the mean or standard deviation,
     these will be computed over either the percentile or realization column,
     depending upon which is available. When a percentile column is provided, the
     expectation is that these percentiles are equally spaced between 0 and 100, so that
@@ -63,7 +66,7 @@ def prep_feature(
         pre_transform_addition: Value to be added before transformation. This is only
             used when computing members_below or members_above features.
         unique_site_id_keys: The names of the coordinates that uniquely identify
-            each site, e.g. "wmo_id" or "latitude,longitude".
+            each site, e.g. "wmo_id" or ["latitude", "longitude"].
     Returns:
         df: DataFrame with the computed feature added.
     """
@@ -240,7 +243,7 @@ def prep_features_from_config(
         df: Input DataFrame.
         feature_config: Feature configuration defining the features to be used for QRF.
         unique_site_id_keys: The names of the coordinates that uniquely identify
-            each site, e.g. "wmo_id" or "latitude,longitude".
+            each site, e.g. "wmo_id" or ["latitude", "longitude"].
     Returns:
         Processed DataFrame and a list of expected column names that will be used as
         features with the QRF.
@@ -374,7 +377,7 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
             pre_transform_addition (float):
                 Value to be added before transformation.
             unique_site_id_keys: The names of the coordinates that uniquely identify
-                each site, e.g. "wmo_id" or "latitude,longitude".
+                each site, e.g. "wmo_id" or ["latitude", "longitude"].
             kwargs:
                 Additional keyword arguments for the quantile regression model.
 
@@ -521,7 +524,7 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
             pre_transform_addition (float):
                 Value to be added before transformation.
             unique_site_id_keys: The names of the coordinates that uniquely identify
-                each site, e.g. "wmo_id" or "latitude,longitude".
+                each site, e.g. "wmo_id" or ["latitude", "longitude"].
 
         """
         self.target_name = target_name

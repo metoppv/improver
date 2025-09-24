@@ -312,7 +312,6 @@ def with_output(
     pass_through_output=False,
     compression_level=1,
     least_significant_digit: int = None,
-    output_file_type="netCDF",
     **kwargs,
 ):
     """Add `output` keyword only argument.

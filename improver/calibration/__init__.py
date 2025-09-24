@@ -268,24 +268,27 @@ def split_forecasts_and_bias_files(cubes: CubeList) -> Tuple[Cube, Optional[Cube
     return forecast_cube, bias_cubes
 
 
-def split_pickle_parquet_and_netcdf(files):
+def split_pickle_parquet_and_netcdf(
+    files: List[Path],
+) -> Tuple[Optional[CubeList], Optional[List[Path]], Optional[object]]:
     """Split the input files into pickle, parquet, and netcdf files.
-    Only a single pickle file is expected.
+    Any or all of NetCDF, Parquet, and pickle files can be loaded. Only a single
+    pickle file is expected, but multiple netCDF and parquet files can be provided.
 
     Args:
         files:
-            A list of input file paths which will be split into pickle,
-            parquet, and netcdf files.
+            A list of input file paths.
     Returns:
-        - A flattened cube list containing all the cubes contained within the
-          provided paths to NetCDF files.
-        - A list of paths to Parquet files.
-        - A loaded pickle file.
+        - A flattened cube list containing all the cubes loaded from NetCDF files, or None.
+        - A list of paths to Parquet files, or None.
+        - A loaded pickle file, or None.
     Raises:
+        ValueError: If the path provided is not loadable as a pickle file, parquet file
+            or netcdf file.
         ValueError: If multiple pickle files provided, as only one is ever expected.
     """
     cubes = iris.cube.CubeList()
-    loaded_pickles = []
+    loaded_pickle = None
     parquets = []
 
     for file_path in files:
@@ -301,24 +304,25 @@ def split_pickle_parquet_and_netcdf(files):
             cube = iris.load(file_path)
             cubes.extend(cube)
         except ValueError:
+            if loaded_pickle is not None:
+                msg = "Multiple pickle inputs have been provided. Only one is expected."
+                raise ValueError(msg)
             try:
-                loaded_pickles.append(joblib.load(file_path))
+                loaded_pickle = joblib.load(file_path)
             except Exception as e:
                 msg = f"Failed to load {file_path}: {e}"
                 raise ValueError(msg)
 
-    if len(loaded_pickles) > 1:
-        msg = "Multiple pickle inputs have been provided. Only one is expected."
-        raise ValueError(msg)
-
     return (
         cubes if cubes else None,
         parquets if parquets else None,
-        loaded_pickles[0] if loaded_pickles else None,
+        loaded_pickle if loaded_pickle else None,
     )
 
 
-def identify_parquet_type(parquet_paths: List[Path]):
+def identify_parquet_type(
+    parquet_paths: List[Path],
+) -> Tuple[Optional[Path], Optional[Path]]:
     """Determine whether the provided parquet paths contain forecast or truth data.
     This is done by checking the columns within the parquet files for the presence
     of a forecast_period column which is only present for forecast data.

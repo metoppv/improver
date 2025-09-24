@@ -24,13 +24,14 @@ LONGITUDE = [0, 10]
 SITE_ID = ["03001", "03002", "03003", "03004", "03005"]
 
 
-def _create_multi_site_forecast_parquet_file(tmp_path, representation="percentile"):
+def _create_multi_site_forecast_parquet_file(tmp_path, representation=None):
     """Create a parquet file with multi-site forecast data.
 
     Args:
         tmp_path: Temporary path to save the parquet file.
         representation: The type of ensemble representation to use. Options are
-            "percentile" or "realization".
+            "percentile", "realization" or "kittens". "kittens" is just
+            used for testing that the code works with a non-standard name.
     """
 
     data_dict = {
@@ -52,6 +53,7 @@ def _create_multi_site_forecast_parquet_file(tmp_path, representation="percentil
         "height": [1.5] * 5,
         "diagnostic": ["temperature_at_screen_level"] * 5,
     }
+    # Other representations used for testing.
     if representation == "realization":
         data_dict["realization"] = list(range(len(data_dict["percentile"])))
         data_dict.pop("percentile")
@@ -84,7 +86,14 @@ def _create_multi_site_forecast_parquet_file(tmp_path, representation="percentil
 
 
 def _create_multi_percentile_forecast_parquet_file(tmp_path, representation=None):
-    """Create a parquet file with multi-percentile forecast data."""
+    """Create a parquet file with multi-percentile forecast data.
+
+    Args:
+        tmp_path: Temporary path to save the parquet file.
+        representation: The type of ensemble representation to use. Options are
+            "percentile" (default), "realization" or "kittens". "kittens" is just
+            used for testing that the code works with a non-standard name.
+    """
 
     data_dict = {
         "percentile": [16 + 2 / 3, 33 + 1 / 3, 50, 66 + 2 / 3, 83 + 1 / 3],
@@ -105,6 +114,7 @@ def _create_multi_percentile_forecast_parquet_file(tmp_path, representation=None
         "height": [1.5] * 5,
         "diagnostic": ["temperature_at_screen_level"] * 5,
     }
+    # Other representations used for testing.
     if representation == "realization":
         data_dict["realization"] = list(range(len(data_dict["percentile"])))
         data_dict.pop("percentile")
@@ -135,7 +145,14 @@ def _create_multi_percentile_forecast_parquet_file(tmp_path, representation=None
 
 
 def _create_multi_forecast_period_forecast_parquet_file(tmp_path, representation=None):
-    """Create a parquet file with multi-forecast period forecast data."""
+    """Create a parquet file with multi-forecast period forecast data.
+
+    Args:
+        tmp_path: Temporary path to save the parquet file.
+        representation: The type of ensemble representation to use. Options are
+            "percentile", "realization" or "kittens". "kittens" is just
+            used for testing that the code works with a non-standard name.
+    """
 
     data_dict = {
         "percentile": [50.0, 50.0, 50.0, 50.0],
@@ -165,6 +182,7 @@ def _create_multi_forecast_period_forecast_parquet_file(tmp_path, representation
         "height": [1.5] * 4,
         "diagnostic": ["temperature_at_screen_level"] * 4,
     }
+    # Other representations used for testing.
     if representation == "realization":
         data_dict["realization"] = [0, 1, 0, 1]
         data_dict.pop("percentile")
@@ -342,6 +360,7 @@ def filter_forecast_periods(forecast_df, forecast_periods):
 def amend_expected_forecast_df(
     forecast_df, forecast_periods, parquet_diagnostic_names, representation, site_id
 ):
+    """Amend the expected forecast DataFrame to match the output of the plugin."""
     forecast_df = filter_forecast_periods(forecast_df, forecast_periods)
     for column in ["time", "forecast_reference_time", "blend_time"]:
         forecast_df[column] = pd.to_datetime(forecast_df[column], unit="ns", utc=True)
@@ -379,6 +398,7 @@ def amend_expected_forecast_df(
 
 
 def amend_expected_truth_df(truth_df, parquet_diagnostic_name):
+    """Amend the expected truth DataFrame to match the output of the plugin."""
     truth_df = truth_df[truth_df["diagnostic"] == parquet_diagnostic_name]
     truth_df["time"] = pd.to_datetime(truth_df["time"], unit="ns", utc=True)
     return truth_df
@@ -527,7 +547,13 @@ def test_load_for_qrf_no_paths(tmp_path, make_files):
         cycletime="20170102T0000Z",
         training_length=2,
     )
-    result = plugin(file_paths)
+    if make_files:
+        msg = "Both forecast and truth parquet files must be provided."
+    else:
+        msg = "No parquet files have been provided."
+
+    with pytest.warns(UserWarning, match=msg):
+        result = plugin(file_paths)
     # Expecting None since no valid paths are provided
     assert result == (None, None, None)
 
@@ -639,7 +665,7 @@ def test_load_for_qrf_mismatches(
         ),
     ],
 )
-def test_unexpected(
+def test_unexpected_loading(
     tmp_path,
     exception,
     forecast_creation,
@@ -693,7 +719,7 @@ def test_unexpected(
     elif exception == "no_quantile_forest_package":
         plugin.quantile_forest_installed = False
         result = plugin(file_paths)
-        assert result is None
+        assert result == (None, None, None)
     else:
         raise ValueError(f"Unknown exception type: {exception}")
 
@@ -705,6 +731,7 @@ def test_unexpected(
 @pytest.mark.parametrize("remove_target", [True, False])
 @pytest.mark.parametrize("include_nans", [True, False])
 @pytest.mark.parametrize("include_latlon_nans", [True, False])
+@pytest.mark.parametrize("add_kwargs", [True, False])
 @pytest.mark.parametrize(
     "site_id", ["wmo_id", "station_id", ["wmo_id"], ["latitude", "longitude"]]
 )
@@ -742,6 +769,7 @@ def test_prepare_and_train_qrf(
     remove_target,
     include_nans,
     include_latlon_nans,
+    add_kwargs,
     site_id,
     forecast_creation,
     truth_creation,
@@ -796,6 +824,9 @@ def test_prepare_and_train_qrf(
         # As latitude is not a feature, this NaN should be ignored.
         truth_df.loc[1, "latitude"] = pd.NA
 
+    if add_kwargs:
+        kwargs = {"min_samples_leaf": 2}
+
     if feature_config == {}:
         pytest.skip("No features to train on")
 
@@ -809,6 +840,7 @@ def test_prepare_and_train_qrf(
         transformation="log",
         pre_transform_addition=1,
         unique_site_id_keys=site_id,
+        **(kwargs if add_kwargs else {}),
     )
     if truth_df["ob_value"].isna().all():
         with pytest.raises(ValueError, match="Empty truth DataFrame"):
@@ -848,3 +880,32 @@ def test_prepare_and_train_qrf(
     )
     expected = 5.6
     np.testing.assert_almost_equal(result, expected, decimal=1)
+
+
+def test_unexpected_preparation(
+    tmp_path,
+):
+    """Test the PrepareAndTrainQRF plugin for atypical situations."""
+    feature_config = {"air_temperature": ["mean", "std", "altitude"]}
+    n_estimators = 2
+    max_depth = 5
+    random_state = 46
+    target_cf_name = "air_temperature"
+
+    _, forecast_df, _ = _create_multi_site_forecast_parquet_file(tmp_path)
+    _, truth_df = _create_multi_site_truth_parquet_file(tmp_path)
+
+    truth_df.loc[:, "time"] = pd.Timestamp("2020-01-01 00:00:00", tz="utc")
+
+    plugin = PrepareAndTrainQRF(
+        feature_config=feature_config,
+        target_cf_name=target_cf_name,
+        n_estimators=n_estimators,
+        max_depth=max_depth,
+        random_state=random_state,
+    )
+    with pytest.warns(
+        UserWarning, match="No matching times between the forecast and truth data."
+    ):
+        result = plugin(forecast_df, truth_df)
+    assert result == (None, None, None)
