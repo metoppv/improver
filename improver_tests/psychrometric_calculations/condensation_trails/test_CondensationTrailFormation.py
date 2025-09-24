@@ -237,6 +237,12 @@ def test_calculate_contrail_persistency(
 ) -> None:
     """
     Test that _calculate_contrail_persistency returns the expected boolean arrays.
+
+    Args:
+        contrail_factor (float):
+        temperature (np.ndarray):
+        relative_humidity (np.ndarray):
+        pressure_levels (np.ndarray):
     """
     temperature_on_pressure_levels = np.broadcast_to(
         temperature, pressure_levels.shape + temperature.shape
@@ -252,7 +258,7 @@ def test_calculate_contrail_persistency(
         pressure_levels,
     )
 
-    # replace with '_calculate_critical_temperatures_and_intercepts' method, once that ticket gets merged
+    # TODO: replace with '_calculate_critical_temperatures_and_intercepts' method, once that ticket gets merged
     Tc = 220
     Ic = -1200
     plugin.critical_temperatures = np.broadcast_to(
@@ -271,6 +277,7 @@ def test_calculate_contrail_persistency(
         svp_ice_on_pressure_levels
     )
 
+    # TODO: test expected values and shape
     print("Persistent:     ", contrails_p, contrails_p.shape)
     print("Non-persistent: ", contrails_np, contrails_np.shape)
 
