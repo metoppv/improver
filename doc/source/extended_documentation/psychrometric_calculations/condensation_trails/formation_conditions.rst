@@ -40,4 +40,3 @@ The air temperature is below the freezing point of water,
     \text{Persistent} &= \text{Any} \land C_3 \land C_4 \\
     \text{Non-persistent} &= \text{Any} \land \lnot \ \text{Persistent} \ \ \text{.}
     \end{aligned}
-| 
