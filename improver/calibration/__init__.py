@@ -247,7 +247,7 @@ def split_pickle_parquet_and_netcdf(files):
     Raises:
         ValueError: If multiple pickle files provided, as only one is ever expected.
     """
-    cubes = []
+    cubes = CubeList([])
     loaded_pickles = []
     parquets = []
 

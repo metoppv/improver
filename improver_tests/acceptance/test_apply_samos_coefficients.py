@@ -143,3 +143,7 @@ def test_no_coefficients(tmp_path):
 
     # Check output matches kgo.
     acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
+    # Check output only differs from input due to addition of a comment.
+    acc.compare(
+        output_path, input_path, atol=LOOSE_TOLERANCE, exclude_attributes=["comment"]
+    )

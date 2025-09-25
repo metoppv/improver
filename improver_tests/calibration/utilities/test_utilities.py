@@ -13,6 +13,7 @@ import unittest
 
 import iris
 import numpy as np
+import pytest
 from iris.coords import AuxCoord, DimCoord
 from iris.cube import CubeList
 from iris.tests import IrisTest
@@ -31,11 +32,13 @@ from improver.calibration.utilities import (
     forecast_coords_match,
     get_frt_hours,
     merge_land_and_sea,
+    prepare_cube_no_calibration,
 )
 from improver.metadata.constants.time_types import TIME_COORDS
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     set_up_percentile_cube,
+    set_up_probability_cube,
     set_up_variable_cube,
 )
 from improver.utilities.cube_manipulation import sort_coord_in_cube
@@ -912,6 +915,209 @@ class Test_check_data_sufficiency(SetupCubes):
                 point_by_point,
                 proportion_of_nans,
             )
+
+
+@pytest.fixture
+def forecast_cube():
+    return set_up_variable_cube(
+        data=np.array(
+            [[1.0, 2.0, 2.0], [2.0, 1.0, 3.0], [1.0, 3.0, 3.0]], dtype=np.float32
+        ),
+        name="wind_speed",
+        units="m/s",
+    )
+
+
+@pytest.fixture
+def forecast_percentile_cube():
+    return set_up_percentile_cube(
+        data=np.array(
+            [
+                [[1.0, 2.0, 2.0], [2.0, 1.0, 3.0], [1.0, 3.0, 3.0]],
+                [[3.0, 4.0, 4.0], [4.0, 3.0, 5.0], [3.0, 5.0, 5.0]],
+            ],
+            dtype=np.float32,
+        ),
+        percentiles=np.array([50, 60], dtype=np.float32),
+        name="wind_speed",
+        units="m/s",
+    )
+
+
+@pytest.fixture
+def prob_template():
+    return set_up_probability_cube(
+        data=np.ones((2, 3, 3), dtype=np.float32),
+        thresholds=[1.5, 2.5],
+        variable_name="wind_speed",
+    )
+
+
+@pytest.fixture
+def emos_coefficient_cubes():
+    # Set-up coefficient cubes
+    fp_names = ["wind_speed"]
+    predictor_index = DimCoord(
+        np.array(range(len(fp_names)), dtype=np.int32),
+        long_name="predictor_index",
+        units="1",
+    )
+    dim_coords_and_dims = ((predictor_index, 0),)
+    predictor_name = AuxCoord(fp_names, long_name="predictor_name", units="no_unit")
+    aux_coords_and_dims = ((predictor_name, 0),)
+
+    attributes = {
+        "diagnostic_standard_name": "wind_speed",
+        "distribution": "norm",
+    }
+    alpha = iris.cube.Cube(
+        np.array(0, dtype=np.float32),
+        long_name="emos_coefficients_alpha",
+        units="K",
+        attributes=attributes,
+    )
+    beta = iris.cube.Cube(
+        np.array([0.5], dtype=np.float32),
+        long_name="emos_coefficients_beta",
+        units="1",
+        attributes=attributes,
+        dim_coords_and_dims=dim_coords_and_dims,
+        aux_coords_and_dims=aux_coords_and_dims,
+    )
+    gamma = iris.cube.Cube(
+        np.array(0, dtype=np.float32),
+        long_name="emos_coefficients_gamma",
+        units="K",
+        attributes=attributes,
+    )
+    delta = iris.cube.Cube(
+        np.array(1, dtype=np.float32),
+        long_name="emos_coefficients_delta",
+        units="1",
+        attributes=attributes,
+    )
+
+    return CubeList([alpha, beta, gamma, delta])
+
+
+@pytest.mark.parametrize(
+    "include_coeffs,validity_times",
+    [
+        [True, None],
+        [True, ["0400"]],  # matches forecast cube validity time
+        [True, ["0500"]],  # does not match forecast cube validity time
+        [False, None],
+    ],
+)
+def test_prepare_cube_no_calibration_basic(
+    forecast_cube, emos_coefficient_cubes, include_coeffs, validity_times
+):
+    """Test that the function returns the expected result when coefficients are
+    provided with and without using the validity_time argument.
+    """
+    result = prepare_cube_no_calibration(
+        forecast_cube,
+        emos_coefficients=emos_coefficient_cubes if include_coeffs else None,
+        validity_times=validity_times,
+    )
+
+    if not include_coeffs or validity_times == ["0500"]:
+        # No matching coefficients so should return the input cube with some
+        # additional metadata.
+        assert isinstance(result, iris.cube.Cube)
+        assert result.coords() == forecast_cube.coords()
+        assert np.all(result.data == forecast_cube.data)
+        assert result.attributes["comment"] == (
+            "Warning: Calibration of this forecast has been attempted, however, no "
+            "calibration has been applied."
+        )
+    else:
+        assert result is None
+
+
+@pytest.mark.parametrize(
+    "include_coeffs,validity_times",
+    [
+        [True, None],
+        [True, ["0400"]],  # matches forecast cube validity time
+        [True, ["0500"]],  # does not match forecast cube validity time
+        [False, None],
+    ],
+)
+def test_prepare_cube_no_calibration_prob_template(
+    forecast_cube, emos_coefficient_cubes, prob_template, include_coeffs, validity_times
+):
+    """Test that the function returns the expected result when coefficients and a
+    probability template are provided with and without using the validity_time argument.
+    """
+    result = prepare_cube_no_calibration(
+        forecast_cube,
+        emos_coefficients=emos_coefficient_cubes if include_coeffs else None,
+        validity_times=validity_times,
+        prob_template=prob_template,
+    )
+
+    if not include_coeffs or validity_times == ["0500"]:
+        # No matching coefficients so should return the probability template cube with
+        # some additional metadata.
+        assert isinstance(result, iris.cube.Cube)
+        assert result.coords() == prob_template.coords()
+        assert np.all(result.data == prob_template.data)
+        assert result.attributes["comment"] == (
+            "Warning: Calibration of this forecast has been attempted, however, no "
+            "calibration has been applied."
+        )
+    else:
+        assert result is None
+
+
+@pytest.mark.parametrize(
+    "include_coeffs,validity_times",
+    [
+        [True, None],
+        [True, ["0400"]],  # matches forecast cube validity time
+        [True, ["0500"]],  # does not match forecast cube validity time
+        [False, None],
+    ],
+)
+def test_prepare_cube_no_calibration_percentiles(
+    forecast_percentile_cube, emos_coefficient_cubes, include_coeffs, validity_times
+):
+    """Test that the function returns the expected result when coefficients and a set
+    of percentiles are provided."""
+    percentiles = [55]
+
+    expected = set_up_percentile_cube(
+        data=np.array(
+            [
+                [[2.0, 3.0, 3.0], [3.0, 2.0, 4.0], [2.0, 4.0, 4.0]],
+            ],
+            dtype=np.float32,
+        ),
+        percentiles=np.array([55], dtype=np.float32),
+        name="wind_speed",
+        units="m/s",
+    )
+
+    result = prepare_cube_no_calibration(
+        forecast_percentile_cube,
+        emos_coefficients=emos_coefficient_cubes if include_coeffs else None,
+        validity_times=validity_times,
+        percentiles=percentiles,
+    )
+
+    if not include_coeffs or validity_times == ["0500"]:
+        # No matching coefficients so should return a cube with perceeeentiles
+        # resampled.
+        assert isinstance(result, iris.cube.Cube)
+        assert result.coords() == expected.coords()
+        assert np.all(result.data == expected.data)
+        assert result.attributes["comment"] == (
+            "Warning: Calibration of this forecast has been attempted, however, no "
+            "calibration has been applied."
+        )
+    else:
+        assert result is None
 
 
 if __name__ == "__main__":

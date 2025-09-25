@@ -112,7 +112,7 @@ def process(
         split_forecasts_and_coeffs,
     )
     from improver.calibration.emos_calibration import ApplyEMOS
-    from improver.ensemble_copula_coupling.utilities import prepare_cube_no_calibration
+    from improver.calibration.utilities import prepare_cube_no_calibration
 
     (forecast, coefficients, additional_predictors, land_sea_mask, prob_template) = (
         split_forecasts_and_coeffs(cubes, land_sea_mask_name)

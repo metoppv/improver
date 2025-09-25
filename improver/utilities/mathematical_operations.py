@@ -556,6 +556,7 @@ class CalculateClimateAnomalies(BasePlugin):
         self._add_reference_epoch_metadata(output_cube, mean_cube)
 
         anomalies_data = self.calculate_anomalies(diagnostic_cube, mean_cube, std_cube)
+        # Ensure any mask from the input cube is copied over to the output cube.
         try:
             anomalies_data.mask = output_cube.data.mask
         except AttributeError:

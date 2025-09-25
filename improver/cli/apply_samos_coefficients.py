@@ -3,8 +3,7 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""Script to apply Standardised Anomaly Model Output
-Statistics (SAMOS) calibration."""
+"""Script to apply Standardised Anomaly Model Output Statistics (SAMOS) calibration."""
 
 from improver import cli
 
@@ -67,7 +66,7 @@ def process(
 
         gam_features (list of str):
             A list of the names of the cubes that will be used as additional
-            features in the GAM. Additionaly the name of any coordinates
+            features in the GAM. Additionally, the name of any coordinates
             that are to be used as features in the GAM.
         validity_times (List[str]):
             Times at which the forecast must be valid. This must be provided
@@ -117,7 +116,6 @@ def process(
         iris.cube.Cube:
             The calibrated forecast cube.
     """
-    # monkey-patch to 'tweak' scipy to prevent errors occurring.
     import scipy.sparse
 
     from improver.calibration import (
@@ -125,8 +123,9 @@ def process(
         split_pickle_parquet_and_netcdf,
     )
     from improver.calibration.samos_calibration import ApplySAMOS
-    from improver.ensemble_copula_coupling.utilities import prepare_cube_no_calibration
+    from improver.calibration.utilities import prepare_cube_no_calibration
 
+    # monkey-patch to 'tweak' scipy to prevent errors occurring.
     def to_array(self):
         return self.toarray()
 

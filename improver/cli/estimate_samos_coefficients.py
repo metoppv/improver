@@ -57,7 +57,7 @@ def process(
             which must be present on historical truth cubes.
         gam_features (list of str):
             A list of the names of the cubes that will be used as additional
-            features in the GAM. Additionaly the name of any coordinates
+            features in the GAM. Additionally, the name of any coordinates
             that are to be used as features in the GAM.
         use_default_initial_guess (bool):
             If True, use the default initial guess. The default initial guess
@@ -97,8 +97,6 @@ def process(
             CubeList containing the coefficients estimated using EMOS. Each
             coefficient is stored in a separate cube.
     """
-
-    # monkey-patch to 'tweak' scipy to prevent errors occuring
     import scipy.sparse
 
     from improver.calibration import (
@@ -107,6 +105,7 @@ def process(
     )
     from improver.calibration.samos_calibration import TrainEMOSForSAMOS
 
+    # monkey-patch to 'tweak' scipy to prevent errors occurring
     def to_array(self):
         return self.toarray()
 

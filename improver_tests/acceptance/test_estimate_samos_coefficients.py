@@ -6,7 +6,7 @@
 Tests for the estimate-samos-coefficients CLI
 
 Many of these tests use globs which are expanded by IMPROVER code itself,
-rather than by shell glob expansion. There are also a some directory globs
+rather than by shell glob expansion. There are also some directory globs
 which expand directory names in addition to filenames.
 """
 

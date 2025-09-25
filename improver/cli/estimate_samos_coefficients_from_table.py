@@ -45,7 +45,7 @@ def process(
             GAMS for predicting each of the climatological mean and standard
             deviation of the truths.
             - The path to a Parquet file containing the historical forecasts
-            to be used for calibration.The expected columns within the
+            to be used for calibration. The expected columns within the
             Parquet file are: forecast, blend_time, forecast_period,
             forecast_reference_time, time, wmo_id, percentile, diagnostic,
             latitude, longitude, period, height, cf_name, units.
@@ -60,7 +60,7 @@ def process(
 
         gam_features (list of str):
             A list of the names of the cubes that will be used as additional
-            features in the GAM. Additionaly the name of any coordinates
+            features in the GAM. Additionally, the name of any coordinates
             that are to be used as features in the GAM.
         use_default_initial_guess (bool):
             If True, use the default initial guess. The default initial guess
@@ -125,7 +125,7 @@ def process(
         split_pickle_parquet_and_netcdf,
     )
     from improver.calibration.samos_calibration import TrainEMOSForSAMOS
-    from improver.ensemble_copula_coupling.utilities import convert_parquet_to_cube
+    from improver.calibration.utilities import convert_parquet_to_cube
 
     def to_array(self):
         return self.toarray()

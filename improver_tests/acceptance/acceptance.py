@@ -402,6 +402,8 @@ def compare_pickled_objects(
         if recreate:
             recreate_if_needed(output_path, kgo_path)
         raise AssertionError(message)
+    if not checksum_ignore():
+        verify_checksum(kgo_path)
 
 
 # Pytest decorator to skip tests if KGO is not available for use

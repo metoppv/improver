@@ -122,7 +122,7 @@ def process(
     from improver.calibration.emos_calibration import (
         EstimateCoefficientsForEnsembleCalibration,
     )
-    from improver.ensemble_copula_coupling.utilities import convert_parquet_to_cube
+    from improver.calibration.utilities import convert_parquet_to_cube
 
     forecast_cube, truth_cube = convert_parquet_to_cube(
         forecast,

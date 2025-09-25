@@ -3,8 +3,8 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""CLI to estimate the General Additive Model (GAM) for Standardized Anomaly
-Model Output Statistics (SAMOS)."""
+"""CLI to estimate the Generalized Additive Model (GAM) for Standardized Anomaly Model
+Output Statistics (SAMOS)."""
 
 from improver import cli
 
@@ -48,7 +48,7 @@ def process(
 
         gam_features (list of str):
             A list of the names of the cubes that will be used as additional
-            features in the GAM. Additionaly the name of any coordinates
+            features in the GAM. Additionally, the name of any coordinates
             that are to be used as features in the GAM.
         model_specification (dict):
             A list containing three items (in order):
@@ -116,7 +116,7 @@ def process(
         split_pickle_parquet_and_netcdf,
     )
     from improver.calibration.samos_calibration import TrainGAMsForSAMOS
-    from improver.ensemble_copula_coupling.utilities import convert_parquet_to_cube
+    from improver.calibration.utilities import convert_parquet_to_cube
 
     # Split the input paths into cubes and pickles.
     additional_predictors, parquets, _ = split_pickle_parquet_and_netcdf(file_paths)

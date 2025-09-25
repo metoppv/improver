@@ -741,6 +741,62 @@ class ApplySAMOS(PostProcessingPlugin):
         self.percentiles = [float32(p) for p in percentiles] if percentiles else None
         self.unique_site_id_key = unique_site_id_key
 
+    def transform_anomalies_to_original_units(
+        self,
+        location_parameter: Cube,
+        scale_parameter: Cube,
+        truth_mean: Cube,
+        truth_sd: Cube,
+        forecast: Cube,
+        input_forecast_type: str,
+    ) -> None:
+        """Function to transform location and scale parameters which describe a
+        climatological anomaly distribution to location and scale parameters which
+        describe a distribution in the units of the original forecast. Both parameter
+        cubes are modified in place.
+
+        Args:
+            location_parameter:
+                Cube containing the location parameter of the climatological anomaly
+                distribution. This is modified in place.
+            scale_parameter:
+                Cube containing the scale parameter of the climatological anomaly
+                distribution. This is modified in place.
+            truth_mean:
+                Cube containing climatological mean predictions of the truths.
+            truth_sd:
+                Cube containing climatological standard deviation predictions of the
+                truths.
+            forecast:
+                The original, uncalibrated forecast.
+            input_forecast_type:
+                The type of the original, uncalibrated forecast. One of 'realizations',
+                'percentiles' or 'probabilities'.
+        """
+
+        # The data in these cubes are identical along the realization dimensions.
+        truth_mean = next(truth_mean.slices_over("realization"))
+        truth_sd = next(truth_sd.slices_over("realization"))
+
+        # Transform location and scale parameters so that they represent a distribution
+        # in the units of the original forecast, rather than climatological anomalies.
+        forecast_units = (
+            forecast.units
+            if input_forecast_type != "probabilities"
+            else find_threshold_coordinate(forecast).units
+        )
+        location_parameter.data = (
+            location_parameter.data * truth_sd.data
+        ) + truth_mean.data
+        location_parameter.units = forecast_units
+
+        # The scale parameter returned by ApplyEMOS is the standard deviation for a
+        # normal distribution. To get the desired standard deviation in
+        # realization/percentile space we must multiply by the estimated forecast
+        # standard deviation.
+        scale_parameter.data = scale_parameter.data * truth_sd.data
+        scale_parameter.units = forecast_units
+
     def process(
         self,
         forecast: Cube,
@@ -767,11 +823,11 @@ class ApplySAMOS(PostProcessingPlugin):
                 realizations.
             forecast_gams:
                 A list containing two fitted GAMs, the first for predicting the
-                climatological mean of the locations in historic_forecasts and the
+                climatological mean of the historic forecasts at each location and the
                 second predicting the climatological standard deviation.
             truth_gams:
                 A list containing two fitted GAMs, the first for predicting the
-                climatological mean of the locations in historic_forecasts and the
+                climatological mean of the truths at each location and the
                 second predicting the climatological standard deviation.
             gam_features:
                 The list of features. These must be either coordinates on input_cube or
@@ -847,6 +903,7 @@ class ApplySAMOS(PostProcessingPlugin):
             random_seed=random_seed,
             return_parameters=True,
         )
+
         truth_mean, truth_sd = get_climatological_stats(
             forecast_as_realizations,
             truth_gams,
@@ -855,28 +912,16 @@ class ApplySAMOS(PostProcessingPlugin):
             unique_site_id_key=self.unique_site_id_key,
         )
 
-        # The data in these cubes are identical along the realization dimensions.
-        truth_mean = next(truth_mean.slices_over("realization"))
-        truth_sd = next(truth_sd.slices_over("realization"))
-
-        # Transform location and scale parameters so that they represent a distribution
-        # in the units of the original forecast, rather than climatological anomalies.
-        forecast_units = (
-            forecast.units
-            if input_forecast_type != "probabilities"
-            else find_threshold_coordinate(forecast).units
+        # Transform location and scale parameters to be in the same units as the
+        # original forecast.
+        self.transform_anomalies_to_original_units(
+            truth_mean=truth_mean,
+            truth_sd=truth_sd,
+            location_parameter=location_parameter,
+            scale_parameter=scale_parameter,
+            forecast=forecast,
+            input_forecast_type=input_forecast_type,
         )
-        location_parameter.data = (
-            location_parameter.data * truth_sd.data
-        ) + truth_mean.data
-        location_parameter.units = forecast_units
-
-        # The scale parameter returned by ApplyEMOS is the standard deviation for a
-        # normal distribution. To get the desired standard deviation in
-        # realization/percentile space we must multiply by the estimated forecast
-        # standard deviation.
-        scale_parameter.data = scale_parameter.data * truth_sd.data
-        scale_parameter.units = forecast_units
 
         # Generate output in desired format from distribution.
         self.distribution = {

@@ -3,8 +3,8 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""CLI to estimate the General Additive Model (GAM) for Standardized Anomaly Model Output Statistics
-(SAMOS)."""
+"""CLI to estimate the Generalized Additive Model (GAM) for Standardized Anomaly Model
+Output Statistics (SAMOS)."""
 
 from improver import cli
 

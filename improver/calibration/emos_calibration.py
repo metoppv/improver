@@ -1865,13 +1865,16 @@ class ApplyEMOS(PostProcessingPlugin):
             return result
 
 
-def get_forecast_type(forecast: Cube):
+def get_forecast_type(forecast: Cube) -> str:
     """Identifies whether the forecast is in probability, realization
     or percentile space.
 
     Args:
         forecast
 
+    Returns:
+        forecast_type: str
+            One of "probabilities", "realizations" or "percentiles"
     """
     try:
         find_percentile_coordinate(forecast)
@@ -1947,6 +1950,9 @@ def get_attribute_from_coefficients(
 
     Raises:
         ValueError: If coefficients do not share the expected attributes.
+        AttributeError: If the expected attribute is not on all coefficients cubes.
+        AttributeError: If the expected attribute is not the same across all
+            coefficients cubes.
     """
     attributes = [
         str(c.attributes[attribute_name])
