@@ -733,7 +733,7 @@ def test_unexpected_loading(
 @pytest.mark.parametrize("include_noncube_static", [True, False])
 @pytest.mark.parametrize("remove_target", [True, False])
 @pytest.mark.parametrize("include_nans", [True, False])
-@pytest.mark.parametrize("include_latlon_nans", [True, False])
+@pytest.mark.parametrize("include_site_id_nans", [True, False])
 @pytest.mark.parametrize("add_kwargs", [True, False])
 @pytest.mark.parametrize(
     "site_id", ["wmo_id", "station_id", ["wmo_id"], ["latitude", "longitude"]]
@@ -771,7 +771,7 @@ def test_prepare_and_train_qrf(
     include_noncube_static,
     remove_target,
     include_nans,
-    include_latlon_nans,
+    include_site_id_nans,
     add_kwargs,
     site_id,
     forecast_creation,
@@ -823,18 +823,23 @@ def test_prepare_and_train_qrf(
         # Insert a NaN will result in this row being dropped.
         truth_df.loc[0, "ob_value"] = pd.NA
 
-    if include_latlon_nans:
-        # As latitude is not a feature, this NaN should be ignored.
-        if len(truth_df) == 1:
-            truth_df.loc[0, "latitude"] = pd.NA
-        else:
-            truth_df.loc[1, "latitude"] = pd.NA
+    if include_site_id_nans:
+        for key in site_id:
+            # As latitude is not a feature, this NaN should be ignored.
+            if len(truth_df) == 1:
+                truth_df.loc[0, key] = pd.NA
+            else:
+                truth_df.loc[1, key] = pd.NA
 
     if add_kwargs:
         kwargs = {"min_samples_leaf": 2}
 
     if feature_config == {}:
         pytest.skip("No features to train on")
+
+    plugin_inputs = {"forecast_df": forecast_df, "truth_df": truth_df}
+    if include_static:
+        plugin_inputs["cube_inputs"] = iris.cube.CubeList([ancil_cube])
 
     # Create an instance of PrepareAndTrainQRF with the required parameters
     plugin = PrepareAndTrainQRF(
@@ -848,18 +853,16 @@ def test_prepare_and_train_qrf(
         unique_site_id_keys=site_id,
         **(kwargs if add_kwargs else {}),
     )
-    if truth_df["ob_value"].isna().all() or truth_df["latitude"].isna().all():
+
+    truth_subset_df = truth_df.dropna(subset=["ob_value"] + site_id)
+    merged_df = pd.merge(
+        forecast_df, truth_subset_df, on=[*site_id, "time"], how="inner"
+    )
+    if merged_df.empty:
         with pytest.raises(ValueError, match="Empty truth DataFrame"):
-            plugin(forecast_df, truth_df)
+            plugin(**plugin_inputs)
         return
-    elif include_static:
-        qrf_model, transformation, pre_transform_addition = plugin(
-            forecast_df, truth_df, iris.cube.CubeList([ancil_cube])
-        )
-    else:
-        qrf_model, transformation, pre_transform_addition = plugin(
-            forecast_df, truth_df
-        )
+    qrf_model, transformation, pre_transform_addition = plugin(**plugin_inputs)
 
     assert qrf_model.n_estimators == n_estimators
     assert qrf_model.max_depth == max_depth
