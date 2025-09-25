@@ -114,3 +114,51 @@ def test_missing_inputs(
     ]
 
     assert run_cli(compulsory_args + named_args) is None
+    # Check no file has been written to disk.
+    assert not output_path.exists()
+
+
+def test_invalid_cycletime(
+    tmp_path,
+):
+    """
+    Test train-quantile-regression-random-forest CLI when no training can occur
+    because there is no valid data in the parquet files to calibrate the cycletime
+    provided.
+    """
+    kgo_dir = acc.kgo_root() / CLI
+    config_path = kgo_dir / "config.json"
+    output_path = tmp_path / "output.pickle"
+    history_path = kgo_dir / "spot_calibration_tables"
+    truth_path = kgo_dir / "spot_observation_tables"
+    compulsory_args = [history_path, truth_path]
+    named_args = [
+        "--feature-config",
+        config_path,
+        "--parquet-diagnostic-names",
+        "temperature_at_screen_level",
+        "--target-cf-name",
+        "air_temperature",
+        "--forecast-periods",
+        "6:18:6",
+        "--cycletime",
+        "20250704T0000Z",
+        "--training-length",
+        "2",
+        "--experiment",
+        "mix-latestblend",
+        "--n-estimators",
+        "10",
+        "--max-depth",
+        "5",
+        "--random-state",
+        "42",
+        "--compression-level",
+        "5",
+        "--output",
+        output_path,
+    ]
+
+    assert run_cli(compulsory_args + named_args) is None
+    # Check no file has been written to disk.
+    assert not output_path.exists()

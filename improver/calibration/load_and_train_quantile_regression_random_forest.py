@@ -322,8 +322,8 @@ class LoadForTrainQRF(PostProcessingPlugin):
         if len(missing_features) > 0:
             msg = (
                 "The features requested in the feature_config are absent from "
-                "the forecast parquet file and the input cubes. The missing fields are: "
-                f"{missing_features}."
+                "the forecast parquet file and the input cubes. "
+                f"The missing fields are: {missing_features}."
             )
             raise ValueError(msg)
         return forecast_df, truth_df, cube_inputs
@@ -421,9 +421,12 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
                     constr = iris.Constraint(name=feature_name)
                     # Static features can be provided either as a cube or as a column
                     # in the forecast DataFrame.
-                    if not cube_inputs.extract(constr):
+                    try:
+                        feature_cube = cube_inputs.extract_cube(constr)
+                    except iris.exceptions.ConstraintMismatchError:
+                        feature_cube = None
+                    if not feature_cube:
                         continue
-                    feature_cube = cube_inputs.extract_cube(constr)
                     feature_df = as_data_frame(feature_cube, add_aux_coords=True)
                     forecast_df = forecast_df.merge(
                         feature_df[[*self.unique_site_id_keys, feature_name]],
@@ -448,14 +451,18 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
                 - DataFrame containing the forecast data with bad sites removed.
                 - DataFrame containing the truth data with bad sites removed.
         """
-        truth_df.dropna(subset=["ob_value"], inplace=True)
+        truth_df.dropna(subset=["ob_value"] + [*self.unique_site_id_keys], inplace=True)
 
         if truth_df.empty:
             msg = "Empty truth DataFrame after removing NaNs."
             raise ValueError(msg)
 
-        forecast_index = forecast_df.set_index([*self.unique_site_id_keys]).index
-        truth_index = truth_df.set_index([*self.unique_site_id_keys]).index
+        # Include time in the index, so that forecasts will be dropped if they
+        # correspond to a site and time that is not in the truth data.
+        forecast_index = forecast_df.set_index(
+            [*self.unique_site_id_keys] + ["time"]
+        ).index
+        truth_index = truth_df.set_index([*self.unique_site_id_keys] + ["time"]).index
         forecast_df = forecast_df[forecast_index.isin(truth_index)]
         truth_df = truth_df[truth_index.isin(forecast_index)]
 

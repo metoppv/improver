@@ -26,8 +26,11 @@ def process(
     Args:
         file_paths (cli.inputpaths):
             A list of input paths containing:
-            - The path to a QRF trained model in pickle file format to be used
-            for calibration.
+            - The path to the pickle file produced by training the QRF model.
+            The pickle file contains the QRF model and the transformation and
+            pre_transform_addition values if a transformation was applied. If no
+            transformation was applied then the transformation and
+            pre_transform_addition values will be None and 0, respectively.
             - The path to a NetCDF file containing the forecast to be calibrated.
             - Optionally, paths to NetCDF files containing additional predictors.
         feature_config (dict):
@@ -50,8 +53,6 @@ def process(
             A string containing the CF name of the forecast to be
             calibrated e.g. air_temperature. This will be used to separate it from
             the rest of the feature cubes, if present.
-            The names of the coordinates that uniquely identify each site,
-            e.g. "wmo_id" or "latitude,longitude".
         unique_site_id_keys (str):
             The names of the coordinates that uniquely identify each site,
             e.g. "wmo_id" or "latitude,longitude".

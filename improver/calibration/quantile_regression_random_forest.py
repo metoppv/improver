@@ -96,14 +96,9 @@ def prep_feature(
 
         # For a subset of the input DataFrame compute the mean or standard deviation
         # over the representation column, grouped by the groupby columns.
-        if feature_name == "mean":
-            subset_df = df[subset_cols].groupby(groupby_cols).mean()
-        elif feature_name == "std":
-            subset_df = df[subset_cols].groupby(groupby_cols).std()
-        elif feature_name == "min":
-            subset_df = df[subset_cols].groupby(groupby_cols).min()
-        elif feature_name == "max":
-            subset_df = df[subset_cols].groupby(groupby_cols).max()
+        if feature_name in ["min", "max", "mean", "std"]:
+            subset_grouped = df[subset_cols].groupby(groupby_cols)
+            subset_df = getattr(subset_grouped, feature_name)()
         elif feature_name.startswith("members_below"):
             threshold = float(feature_name.split("_")[2])
             if transformation is not None:
@@ -119,7 +114,6 @@ def prep_feature(
             )
             subset_df.rename(variable_name, inplace=True)
             subset_df = subset_df.astype(orig_dtype)
-            # subset_df[variable_name].astype(orig_dtype)
         elif feature_name.startswith("members_above"):
             threshold = float(feature_name.split("_")[2])
             if transformation is not None:

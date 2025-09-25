@@ -46,7 +46,8 @@ def _create_forecasts(
     representation: str = "realization",
     return_cube: bool = False,
 ) -> Cube | pd.DataFrame:
-    """Create site forecast cube with realizations.
+    """Create site forecast cube or DataFrame with the specified representation,
+    either realization or percentile.
 
     Args:
         forecast_reference_time: Timestamp e.g. "20170101T0000Z".
@@ -58,7 +59,8 @@ def _create_forecasts(
         return_cube: If True, return a cube. If False, return a DataFrame.
 
     Returns:
-        Forecast cube containing three percentiles and two sites.
+        Forecast cube or DataFrame containing three realizations or three percentiles
+        for two sites.
     """
     data = np.array([data, data + 2], dtype=np.float32).T
     cube = set_up_spot_variable_cube(
@@ -107,7 +109,6 @@ def _add_day_of_training_period(df: pd.DataFrame) -> pd.DataFrame:
 
     Args:
         df: DataFrame to which the day of training period coordinate will be added.
-        day_of_training_period: Day of training period to be added.
 
     Returns:
         Cube with the day of training period coordinate added.
@@ -178,8 +179,7 @@ def _run_train_qrf(
     realization_data=[2, 6, 10],
     truth_data=[4.2, 3.8, 5.8, 6, 7, 7.3, 9.1, 9.5],
     tmp_path=None,
-    compression=5,
-    site_id="wmo_id",
+    site_id=["wmo_id"],
 ):
     realization_data = np.array(realization_data, dtype=np.float32)
     forecast_dfs = []
@@ -206,7 +206,7 @@ def _run_train_qrf(
     if include_static:
         ancil_df = _create_ancil_file()
         forecast_df = forecast_df.merge(
-            ancil_df[[site_id, "distance_to_water"]], on=[site_id], how="left"
+            ancil_df[[*site_id, "distance_to_water"]], on=[*site_id], how="left"
         )
         feature_config["distance_to_water"] = ["static"]
     if "air_temperature" in feature_config.keys():
@@ -228,7 +228,7 @@ def _run_train_qrf(
     result = plugin.process(forecast_df, truth_df)
     if tmp_path is not None:
         model_output = tmp_path / "qrf_model.pickle"
-        joblib.dump(result, model_output, compress=compression)
+        joblib.dump(result, model_output)
         return model_output
     return result
 
@@ -743,22 +743,34 @@ def test_train_qrf_multiple_lead_times(
 @pytest.mark.parametrize(
     "feature_config,data,include_static,site_id,expected",
     [
-        ({"wind_speed_at_10m": ["mean"]}, [5], False, "wmo_id", [5]),  # One feature
-        ({"wind_speed_at_10m": ["mean"]}, [5], False, "station_id", [5]),  # One feature
-        ({"wind_speed_at_10m": ["latitude"]}, [61], False, "wmo_id", [7.75]),  # noqa Without the target
-        ({"wind_speed_at_10m": ["mean"]}, [5], True, "wmo_id", [4]),  # With static data
+        ({"wind_speed_at_10m": ["mean"]}, [5], False, ["wmo_id"], [5]),  # One feature
+        (
+            {"wind_speed_at_10m": ["mean"]},
+            [5],
+            False,
+            ["station_id"],
+            [5],
+        ),  # One feature
+        ({"wind_speed_at_10m": ["latitude"]}, [61], False, ["wmo_id"], [7.75]),  # noqa Without the target
+        (
+            {"wind_speed_at_10m": ["mean"]},
+            [5],
+            True,
+            ["wmo_id"],
+            [4],
+        ),  # With static data
         (
             {"wind_speed_at_10m": ["mean"], "air_temperature": ["mean"]},
             [5],
             False,
-            "wmo_id",
+            ["wmo_id"],
             [5],
         ),  # Multiple dynamic features
         (
             {"wind_speed_at_10m": ["mean"], "pressure_at_mean_sea_level": ["mean"]},
             [5],
             False,
-            "wmo_id",
+            ["wmo_id"],
             "Feature 'pressure_at_mean_sea_level' is not present",
         ),  # Multiple dynamic features
     ],
