@@ -4,8 +4,6 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Module to generate total precipitable water"""
 
-from typing import Tuple
-
 import iris
 import numpy as np
 from iris.cube import Cube
@@ -23,20 +21,7 @@ class PrecipitableWater(BasePlugin):
     the total precipitable water (TPW) in metres. It assumes pressure levels are in
     Pascals and uses constants for gravity and water density to convert the result
     into liquid water equivalent thickness.
-
-    Attributes:
-        model_type (str): Type of model used, e.g., 'global' or 'ukv'.
     """
-
-    def __init__(self, model_type: str = "global") -> None:
-        """
-        Initialise the PrecipitableWater plugin.
-
-        Args:
-            model_type:
-                Type of model used, e.g., 'global' or 'ukv'.
-        """
-        self.model_type = model_type.lower()
 
     @staticmethod
     def calculate_pressure_thickness(
@@ -55,7 +40,7 @@ class PrecipitableWater(BasePlugin):
             N-dimensional array of pressure thickness values reshaped to match
             the dimensions of the input data.
         """
-        delta_p = -np.diff(layer_bounds)
+        delta_p = np.abs(np.diff(layer_bounds))
         reshaped_delta_p = delta_p.reshape(
             (len(delta_p),) + (1,) * (cube_data.ndim - 1)
         )
@@ -82,61 +67,30 @@ class PrecipitableWater(BasePlugin):
             * reshaped_delta_p
             / (EARTH_SURFACE_GRAVITY_ACCELERATION * WATER_DENSITY)
         )
-        pw_data = np.maximum(pw_data, 0)
-        total_pw_data = np.sum(pw_data, axis=0)
+        total_pw_data = np.maximum(pw_data, 0)
         return total_pw_data
-
-    def sort_pressure_levels(self, cube: Cube) -> Tuple[ndarray, ndarray]:
-        """
-        Sort pressure levels in descending order and reorder the data accordingly.
-
-        Args:
-            cube:
-                Cube containing humidity mixing ratio data with a pressure coordinate.
-
-        Returns:
-            Tuple of sorted pressure levels and corresponding sorted data.
-
-        Raises:
-            ValueError: If the pressure coordinate is missing or not in Pascals.
-        """
-        try:
-            pressure_coord = cube.coord("pressure")
-        except iris.exceptions.CoordinateNotFoundError:
-            raise ValueError("Cube must have a 'pressure' coordinate.")
-
-        if pressure_coord.units != "Pa":
-            raise ValueError("Pressure units must be in Pascals (Pa).")
-
-        pressure_levels = pressure_coord.points
-        sorted_indices = np.argsort(pressure_levels)[::-1]
-        sorted_pressure = pressure_levels[sorted_indices]
-        sorted_data = cube.data[sorted_indices]
-
-        return sorted_pressure, sorted_data
 
     def calculate_layer_bounds(self, sorted_pressure: ndarray) -> ndarray:
         """
-        Calculate pressure layer boundaries from sorted pressure levels.
+        Calculate pressure layer boundaries from a 1D array of pressure levels.
+
+        This method estimates the boundaries between pressure levels by computing midpoints
+        between adjacent levels. It assumes that the topmost and bottommost layers are
+        half as thick as the internal layers, and extrapolates their bounds accordingly.
 
         Args:
             sorted_pressure:
-                1D array of pressure levels sorted in descending order.
+                1D array of pressure levels in Pascals.
 
         Returns:
-            1D array of pressure layer boundaries.
-
-        Raises:
-            ValueError: If the resulting layer bounds are not strictly decreasing.
+            1D array of pressure layer boundaries in Pascals.
         """
+
         midpoints = 0.5 * (sorted_pressure[:-1] + sorted_pressure[1:])
         layer_bounds = np.empty(len(sorted_pressure) + 1)
         layer_bounds[1:-1] = midpoints
         layer_bounds[0] = sorted_pressure[0] + (sorted_pressure[0] - midpoints[0])
         layer_bounds[-1] = sorted_pressure[-1] - (midpoints[-1] - sorted_pressure[-1])
-
-        if not (np.diff(layer_bounds) < 0).all():
-            raise ValueError("Layer bounds must be strictly decreasing.")
 
         return layer_bounds
 
@@ -153,14 +107,21 @@ class PrecipitableWater(BasePlugin):
         """
         cube = humidity_mixing_ratio_cube.copy()
 
-        sorted_pressure, sorted_data = self.sort_pressure_levels(cube)
-        layer_bounds = self.calculate_layer_bounds(sorted_pressure)
+        try:
+            pressure_coord = cube.coord("pressure")
+        except iris.exceptions.CoordinateNotFoundError:
+            raise ValueError("Cube must have a 'pressure' coordinate.")
 
-        reshaped_delta_p = self.calculate_pressure_thickness(layer_bounds, cube.data)
-        total_pw_data = self.calculate_precipitable_water(sorted_data, reshaped_delta_p)
+        pressure_coord.convert_units("Pa")
 
-        total_pw_cube = cube[0].copy(total_pw_data)
-        total_pw_cube.remove_coord("pressure")
+        pressure_levels = pressure_coord.points
+        data = cube.data
+
+        layer_bounds = self.calculate_layer_bounds(pressure_levels)
+        reshaped_delta_p = self.calculate_pressure_thickness(layer_bounds, data)
+        total_pw_data = self.calculate_precipitable_water(data, reshaped_delta_p)
+
+        total_pw_cube = cube.copy(data=total_pw_data)
         total_pw_cube.rename("total_precipitable_water")
         total_pw_cube.units = "m"
         total_pw_cube.standard_name = "lwe_thickness_of_precipitation_amount"
