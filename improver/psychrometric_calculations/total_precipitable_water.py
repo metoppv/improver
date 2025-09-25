@@ -13,6 +13,20 @@ from improver import BasePlugin
 from improver.constants import EARTH_SURFACE_GRAVITY_ACCELERATION, WATER_DENSITY
 
 
+def ensure_no_float_64(cube: Cube) -> Cube:
+    """
+    Convert float64 data and coordinates in the cube to float32 to ensure workflow compatibility.
+    """
+    if cube.data.dtype == np.float64:
+        cube.data = cube.data.astype(np.float32)
+    for coord in cube.coords():
+        if coord.points.dtype == np.float64:
+            coord.points = coord.points.astype(np.float32)
+        if coord.bounds is not None and coord.bounds.dtype == np.float64:
+            coord.bounds = coord.bounds.astype(np.float32)
+    return cube
+
+
 class PrecipitableWater(BasePlugin):
     """
     Plugin to calculate total precipitable water from a humidity mixing ratio cube.
@@ -126,5 +140,8 @@ class PrecipitableWater(BasePlugin):
         total_pw_cube.units = "m"
         total_pw_cube.standard_name = "lwe_thickness_of_precipitation_amount"
         total_pw_cube.attributes = cube.attributes.copy()
+
+        # Enforce float32 precision to avoid dtype errors in downstream processing
+        total_pw_cube = ensure_no_float_64(total_pw_cube)
 
         return total_pw_cube

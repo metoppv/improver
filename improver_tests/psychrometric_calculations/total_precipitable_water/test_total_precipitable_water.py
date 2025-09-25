@@ -184,3 +184,28 @@ def test_plugin_converts_hpa_to_pa(mock_cube):
     )
 
     np.testing.assert_array_equal(pressure_coord_converted.points, expected_pa)
+
+
+def test_plugin_converts_float64_to_float32(mock_cube):
+    """
+    Ensure that the plugin converts float64 input data to float32 in the output cube.
+    """
+
+    # Convert the cube data to float64
+    mock_cube.data = mock_cube.data.astype(np.float64)
+
+    plugin = PrecipitableWater()
+    result = plugin.process(mock_cube)
+
+    # Assert the output data is float32
+    assert result.data.dtype == np.float32, "Output data should be float32"
+
+    # Assert all coordinate points are not float64
+    for coord in result.coords():
+        assert (
+            coord.points.dtype != np.float64
+        ), f"{coord.name()} points should not be float64"
+        if coord.bounds is not None:
+            assert (
+                coord.bounds.dtype != np.float64
+            ), f"{coord.name()} bounds should not be float64"
