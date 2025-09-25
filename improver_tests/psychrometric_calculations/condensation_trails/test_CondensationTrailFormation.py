@@ -271,7 +271,7 @@ def test_calculate_contrail_persistency(
         temperature (float): Ambient air temperature (K).
         critical_intercept (float): Critical intercept threshold (Pa).
         critical_temperature (float): Critical temperature threshold (K).
-        svp_ice (float): Saturated vapour pressure, calcualted with respect to ice (Pa).
+        svp_ice (float): Saturated vapour pressure, calculated with respect to ice (Pa).
         forms_contrails (bool): True if any contrail will form.
         is_persistent (bool): True only if a persistent contrail will form.
     """
