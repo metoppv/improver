@@ -916,7 +916,9 @@ def test_filter_bad_sites(
     forecast_creation,
     truth_creation,
 ):
-    # Check that the filtering of bad sites works as expected.
+    """Check that the filtering of bad sites results in rows with observed values of
+    NaN or NaNs in the site_id e.g. ['wmo_id'] or ['latitude', 'longitude'] being
+    filtered out of both the truth and forecast DataFrames."""
     feature_config = {"air_temperature": ["mean", "std", "altitude"]}
     n_estimators = 2
     max_depth = 5

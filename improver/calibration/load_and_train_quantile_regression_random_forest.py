@@ -458,7 +458,7 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
             raise ValueError(msg)
 
         # Include time in the index, so that forecasts will be dropped if they
-        # corresponds to a site and time that is not in the truth data.
+        # correspond to a site and time that is not in the truth data.
         forecast_index = forecast_df.set_index(
             [*self.unique_site_id_keys] + ["time"]
         ).index
