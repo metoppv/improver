@@ -450,6 +450,11 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
             Tuple containing:
                 - DataFrame containing the forecast data with bad sites removed.
                 - DataFrame containing the truth data with bad sites removed.
+
+        Raises:
+            ValueError: If the truth DataFrame is empty after removing NaNs.
+            ValueError: If there are no matching sites and times between the
+                forecast and truth DataFrames after removing NaNs.
         """
         truth_df.dropna(subset=["ob_value"] + [*self.unique_site_id_keys], inplace=True)
 
@@ -465,6 +470,13 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
         truth_index = truth_df.set_index([*self.unique_site_id_keys] + ["time"]).index
         forecast_df = forecast_df[forecast_index.isin(truth_index)]
         truth_df = truth_df[truth_index.isin(forecast_index)]
+
+        if truth_df.empty:
+            msg = (
+                "Empty truth DataFrame after finding the intersection of sites "
+                "and times between the truth DataFrame and the forecast DataFrame."
+            )
+            raise ValueError(msg)
 
         return forecast_df, truth_df
 
