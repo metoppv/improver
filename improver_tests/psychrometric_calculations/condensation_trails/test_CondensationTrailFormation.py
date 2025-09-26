@@ -344,18 +344,17 @@ def test_calculate_critical_temperatures_and_intercepts_values(
         expected_critical_intercepts (np.ndarray): Expected critical intercept output on pressure levels. Array axes are [contrail factors, pressure levels] (Pa).
     """
     plugin = CondensationTrailFormation(engine_contrail_factors)
-    engine_mixing_ratios_on_pressure_levels = plugin._calculate_engine_mixing_ratios(
+    plugin.engine_mixing_ratios = plugin._calculate_engine_mixing_ratios(
         pressure_levels
     )
-    relative_humidity_on_pressure_levels = np.broadcast_to(
+    plugin.relative_humidity = np.broadcast_to(
         relative_humidity, pressure_levels.shape + relative_humidity.shape
     )
+
     critical_temperatures, critical_intercepts = (
-        CondensationTrailFormation._calculate_critical_temperatures_and_intercepts(
-            engine_mixing_ratios_on_pressure_levels,
-            relative_humidity_on_pressure_levels,
-        )
+        plugin._calculate_critical_temperatures_and_intercepts()
     )
+
     np.testing.assert_allclose(
         critical_temperatures,
         expected_critical_temperatures,
@@ -396,8 +395,8 @@ def test_calculate_critical_temperatures_and_intercepts_raises_on_bad_input(
         relative_humidity (np.ndarray | List): Relative humidity values on pressure levels. Pressure levels are the leading axis (kg/kg).
         expected_exception (exception | None): The exception that should be raised by the function.
     """
+    plugin = CondensationTrailFormation([3e-5])
+    plugin.engine_mixing_ratios = engine_mixing_ratios
+    plugin.relative_humidity = relative_humidity
     with pytest.raises(expected_exception):
-        CondensationTrailFormation._calculate_critical_temperatures_and_intercepts(
-            engine_mixing_ratios,
-            relative_humidity,
-        )
+        plugin._calculate_critical_temperatures_and_intercepts()

@@ -103,13 +103,11 @@ class CondensationTrailFormation(BasePlugin):
         )
         return self.relative_humidity * svp
 
-    @staticmethod
     def _critical_temperatures_and_intercepts_for_given_contrail_factor(
-        mixing_ratios: np.ndarray,
-        relative_humidity: np.ndarray,
-        svp: np.ndarray,
-        svp_derivative: np.ndarray,
-        temperature: np.ndarray,
+        self,
+        engine_mixing_ratios_for_contrail_factor: np.ndarray,
+        svp_table: Cube,
+        svp_derivative_table: Cube,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Calculate the critical temperatures and critical intercepts on pressure levels
@@ -122,36 +120,39 @@ class CondensationTrailFormation(BasePlugin):
         .. include:: extended_documentation/psychrometric_calculations/condensation_trails/critical_temperatures.rst
 
         Args:
-            mixing_ratios (np.ndarray): Engine mixing ratios on pressure levels. Pressure is the leading axis (Pa/K).
-            relative_humidity (np.ndarray): Relative humidity on pressure levels. Pressure is the leading axis (kg/kg).
-            svp (np.ndarray): Lookup table of saturation vapour pressure with respect to water (Pa).
-            svp_derivative (np.ndarray): Lookup table of the first derivative of saturation vapour pressure with respect to water (Pa/K).
-            temperature (np.ndarray): Air temperatures corresponding to both lookup tables (K).
+            engine_mixing_ratios_for_contrail_factor (np.ndarray): Engine mixing ratios for a single contrail factor on pressure levels. Pressure is the leading axis (Pa/K).
+            svp (iris.cube.Cube): Lookup table of saturation vapour pressure with respect to water (Pa).
+            svp_derivative (iris.cube.Cube): Lookup table of the first derivative of saturation vapour pressure with respect to water (Pa/K).
 
         Returns:
             Tuple[np.ndarray, np.ndarray]: Arrays of critical temperatures on pressure levels (K), and critical intercepts on pressure levels (Pa).
 
         """
+        temperature_from_svp_table = svp_table.coord("air_temperature").points
+
         # maximum critical temperature (at 100% relative humidity) is given by
         # the point on the SVP derivative curve that is equal to the engine mixing
         # ratio
-        ind_max = np.abs(svp_derivative - mixing_ratios[:, np.newaxis]).argmin(axis=1)
-        tangent_gradient = svp_derivative[ind_max]
-        critical_temperature_maximum = temperature[ind_max]
+        ind_max = np.abs(
+            svp_derivative_table.data
+            - engine_mixing_ratios_for_contrail_factor[:, np.newaxis]
+        ).argmin(axis=1)
+        tangent_gradient = svp_derivative_table.data[ind_max]
+        critical_temperature_maximum = temperature_from_svp_table[ind_max]
 
         # tangent to SVP curve, with gradient equal to the engine mixing ratio
         critical_intercepts = (
-            svp[ind_max] - tangent_gradient * critical_temperature_maximum
+            svp_table.data[ind_max] - tangent_gradient * critical_temperature_maximum
         )
         tangent_vapour_pressure = (
-            tangent_gradient[:, np.newaxis] * temperature[np.newaxis, :]
+            tangent_gradient[:, np.newaxis] * temperature_from_svp_table[np.newaxis, :]
             + critical_intercepts[:, np.newaxis]
         )
 
         # minimum critical temperature (at 0% relative humidity) is given by
         # point at which the tangent crosses the line of zero vapour pressure
         ind_min = np.abs(tangent_vapour_pressure).argmin(axis=1)
-        critical_temperature_minimum = temperature[ind_min]
+        critical_temperature_minimum = temperature_from_svp_table[ind_min]
 
         # critical temperature for all relative humidites (0% to 100%)
         critical_temperature_all_relative_humidities = np.linspace(
@@ -163,7 +164,7 @@ class CondensationTrailFormation(BasePlugin):
             [
                 np.interp(
                     critical_temperature_all_relative_humidities[i],
-                    temperature,
+                    temperature_from_svp_table,
                     tangent_vapour_pressure[i],
                 )
                 for i in range(critical_temperature_all_relative_humidities.shape[0])
@@ -175,8 +176,8 @@ class CondensationTrailFormation(BasePlugin):
             [
                 np.interp(
                     critical_temperature_all_relative_humidities[i],
-                    temperature,
-                    svp,
+                    temperature_from_svp_table,
+                    svp_table.data,
                 )
                 for i in range(critical_temperature_all_relative_humidities.shape[0])
             ]
@@ -186,7 +187,7 @@ class CondensationTrailFormation(BasePlugin):
         critical_temperatures = np.array(
             [
                 np.interp(
-                    relative_humidity[i],
+                    self.relative_humidity[i],
                     e[i] / esat[i],
                     critical_temperature_all_relative_humidities[i],
                 )
@@ -195,45 +196,39 @@ class CondensationTrailFormation(BasePlugin):
         )
         return critical_temperatures, critical_intercepts
 
-    @staticmethod
     def _calculate_critical_temperatures_and_intercepts(
-        engine_mixing_ratios: np.ndarray,
-        relative_humidity: np.ndarray,
+        self,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Calculate the critical temperatures and intercepts on pressure levels for all engine contrail factors.
-
-        Args:
-            engine_mixing_ratios (np.ndarray): Engine mixing ratios on pressure levels. Engine contrail factors are the leading axis (Pa/K).
-            relative_humidity (np.ndarray): Relative humidity on pressure levels. Pressure is the leading axis (kg/kg).
 
         Returns:
             Tuple[np.ndarray, np.ndarry]: Arrays of critical temperatures on pressure levels for all engine contrail factors (K), and critical intercepts on pressure levels for all engine contrail factors (Pa).
         """
         if not (
-            isinstance(engine_mixing_ratios, np.ndarray)
-            and isinstance(relative_humidity, np.ndarray)
+            isinstance(self.engine_mixing_ratios, np.ndarray)
+            and isinstance(self.relative_humidity, np.ndarray)
         ):
             raise TypeError(
-                f"Incorrect types for engine_mixing_ratios (expected {np.ndarray}, got {type(engine_mixing_ratios)}) "
-                f"and relative_humidity (expected {np.ndarray}, got {type(relative_humidity)})."
+                f"Incorrect types for engine_mixing_ratios (expected {np.ndarray}, got {type(self.engine_mixing_ratios)}) "
+                f"and relative_humidity (expected {np.ndarray}, got {type(self.relative_humidity)})."
             )
-        if engine_mixing_ratios.ndim != 2:
+        if self.engine_mixing_ratios.ndim != 2:
             raise ValueError(
-                f"Incorrect number of dimensions for engine_mixing_ratios (expected 2, got {engine_mixing_ratios.ndim:d})."
+                f"Incorrect number of dimensions for engine_mixing_ratios (expected 2, got {self.engine_mixing_ratios.ndim:d})."
             )
-        if relative_humidity.ndim != 2 and relative_humidity.ndim != 3:
+        if self.relative_humidity.ndim != 2 and self.relative_humidity.ndim != 3:
             raise ValueError(
-                f"Incorrect number of dimensions for relative_humidity (expected 2 or 3, got {relative_humidity.ndim:d})."
+                f"Incorrect number of dimensions for relative_humidity (expected 2 or 3, got {self.relative_humidity.ndim:d})."
             )
-        if engine_mixing_ratios.shape[1] != relative_humidity.shape[0]:
+        if self.engine_mixing_ratios.shape[1] != self.relative_humidity.shape[0]:
             raise ValueError(
-                f"Mismatch between dimension 1 of engine_mixing_ratios ({engine_mixing_ratios.shape[1]:d}) and dimension 0 "
-                f"of relative_humidity ({relative_humidity.shape[0]:d})."
+                f"Mismatch between dimension 1 of engine_mixing_ratios ({self.engine_mixing_ratios.shape[1]:d}) and dimension 0 "
+                f"of relative_humidity ({self.relative_humidity.shape[0]:d})."
             )
 
         critical_temperatures = np.zeros(
-            ((engine_mixing_ratios.shape[0],) + relative_humidity.shape),
+            ((self.engine_mixing_ratios.shape[0],) + self.relative_humidity.shape),
             dtype=np.float32,
         )
         critical_intercepts = np.zeros(
@@ -247,17 +242,17 @@ class CondensationTrailFormation(BasePlugin):
             183.15, 253.15, water_only=True
         ).process()
 
-        for i, mixing_ratios in enumerate(engine_mixing_ratios):
+        # loop over engine contrail factors
+        for i, engine_mixing_ratios_for_contrail_factor in enumerate(
+            self.engine_mixing_ratios
+        ):
             critical_temperatures[i], critical_intercepts[i] = (
-                CondensationTrailFormation._critical_temperatures_and_intercepts_for_given_contrail_factor(
-                    mixing_ratios,
-                    relative_humidity,
-                    svp_table.data,
-                    svp_derivative_table.data,
-                    svp_table.coord("air_temperature").points,
+                self._critical_temperatures_and_intercepts_for_given_contrail_factor(
+                    engine_mixing_ratios_for_contrail_factor,
+                    svp_table,
+                    svp_derivative_table,
                 )
             )
-
         return critical_temperatures, critical_intercepts
 
     def process_from_arrays(
@@ -291,10 +286,7 @@ class CondensationTrailFormation(BasePlugin):
             self.pressure_levels
         )
         self.critical_temperatures, self.critical_intercepts = (
-            CondensationTrailFormation._calculate_critical_temperatures_and_intercepts(
-                self.engine_mixing_ratios,
-                self.relative_humidity,
-            )
+            self._calculate_critical_temperatures_and_intercepts()
         )
         return self.engine_mixing_ratios
 
