@@ -357,8 +357,11 @@ def with_output(
     # save as netCDF
     if (
         output
-        and (isinstance(result, (Cube, CubeList)))
-        or all([isinstance(x, Cube) for x in result])
+        and result
+        and (
+            (isinstance(result, (Cube, CubeList)))
+            or all([isinstance(x, Cube) for x in result])
+        )
     ):
         save_netcdf(result, output, compression_level, least_significant_digit)
         if pass_through_output:
