@@ -825,7 +825,6 @@ def test_prepare_and_train_qrf(
 
     if include_site_id_nans:
         for key in site_id:
-            # As latitude is not a feature, this NaN should be ignored.
             if len(truth_df) == 1:
                 truth_df.loc[0, key] = pd.NA
             else:
