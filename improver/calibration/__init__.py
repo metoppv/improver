@@ -20,6 +20,7 @@ from improver.metadata.probabilistic import (
 )
 from improver.utilities.cube_manipulation import MergeCubes
 from improver.utilities.flatten import flatten
+from improver.utilities.load import load_cubelist
 
 
 def split_forecasts_and_truth(
@@ -229,8 +230,8 @@ def split_forecasts_and_bias_files(cubes: CubeList) -> Tuple[Cube, Optional[Cube
     return forecast_cube, bias_cubes
 
 
-def split_pickle_parquet_and_netcdf(files):
-    """Split the input files into pickle, parquet, and netcdf files.
+def split_netcdf_parquet_pickle(files):
+    """Split the input files into netcdf, parquet, and pickle files.
     Only a single pickle file is expected.
 
     Args:
@@ -264,7 +265,7 @@ def split_pickle_parquet_and_netcdf(files):
                 continue
 
             try:
-                cube = iris.load(file_path)
+                cube = load_cubelist(str(file_path))
                 cubes.extend(cube)
             except ValueError:
                 try:

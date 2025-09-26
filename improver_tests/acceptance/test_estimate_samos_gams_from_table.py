@@ -65,7 +65,7 @@ def test_additional_features_coords(
     # comparison only ensures that the string version of the
     # pickled objects are the same, not the actual objects as
     # there is no function to compare the Gam class objects.
-    acc.compare_pickled_objects(output_path, kgo_path)
+    acc.compare(output_path, kgo_path, file_type="pickled_forecast")
 
 
 @pytest.mark.slow
@@ -115,7 +115,7 @@ def test_additional_features_cube(
     # comparison only ensures that the string version of the
     # pickled objects are the same, not the actual objects as
     # there is no function to compare the Gam class objects.
-    acc.compare_pickled_objects(output_path, kgo_path)
+    acc.compare(output_path, kgo_path, file_type="pickled_forecast")
 
 
 @pytest.mark.slow
@@ -166,4 +166,4 @@ def test_additional_features_cubes(
     # comparison only ensures that the string version of the
     # pickled objects are the same, not the actual objects as
     # there is no function to compare the Gam class objects.
-    acc.compare_pickled_objects(output_path, kgo_path)
+    acc.compare(output_path, kgo_path, file_type="pickled_forecast")

@@ -101,7 +101,7 @@ def process(
 
     from improver.calibration import (
         split_cubes_for_samos,
-        split_pickle_parquet_and_netcdf,
+        split_netcdf_parquet_pickle,
     )
     from improver.calibration.samos_calibration import TrainEMOSForSAMOS
 
@@ -112,7 +112,7 @@ def process(
     scipy.sparse.spmatrix.A = property(to_array)
 
     # Split the input paths into cubes and pickles
-    cubes, _, gams = split_pickle_parquet_and_netcdf(file_paths)
+    cubes, _, gams = split_netcdf_parquet_pickle(file_paths)
 
     # Split the cubes into forecast and truth cubes, along with any additional fields
     # provided for the GAMs and EMOS.

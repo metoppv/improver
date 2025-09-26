@@ -6,18 +6,24 @@
 
 import unittest
 from datetime import datetime, timedelta
+from pathlib import Path
 
 import iris
+import joblib
 import numpy as np
+import pandas as pd
 import pytest
 from iris.cube import CubeList
+from pygam import pygam
 
 from improver.calibration import (
     add_warning_comment,
+    identify_parquet_type,
     split_cubes_for_samos,
     split_forecasts_and_bias_files,
     split_forecasts_and_coeffs,
     split_forecasts_and_truth,
+    split_netcdf_parquet_pickle,
     validity_time_check,
 )
 from improver.synthetic_data.set_up_test_cubes import (
@@ -25,6 +31,7 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_probability_cube,
     set_up_variable_cube,
 )
+from improver.utilities.save import save_netcdf
 from improver_tests import ImproverTest
 
 
@@ -654,6 +661,72 @@ def forecast_error_cubelist():
     return bias_cubes
 
 
+def create_netcdf_file(tmp_path):
+    """Create a netcdf file with forecast data."""
+    cube = set_up_variable_cube(
+        data=np.array(
+            [[1.0, 2.0, 2.0], [2.0, 1.0, 3.0], [1.0, 3.0, 3.0]], dtype=np.float32
+        ),
+        name="wind_speed",
+        units="m/s",
+    )
+
+    output_dir = tmp_path / "netcdf_files"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_path = str(output_dir / "forecast.nc")
+    save_netcdf(cubelist=cube, filename=output_path, compression_level=0)
+
+    return cube, output_path
+
+
+def create_multi_site_forecast_parquet_file(tmp_path, include_forecast_period=True):
+    """Create a parquet file with multi-site forecast data."""
+
+    data_dict = {
+        "percentile": np.repeat(50, 5),
+        "forecast": [281, 272, 287, 280, 290],
+        "altitude": [10, 83, 56, 23, 2],
+        "blend_time": [pd.Timestamp("2017-01-02 00:00:00")] * 5,
+        "forecast_reference_time": [pd.Timestamp("2017-01-02 00:00:00")] * 5,
+        "latitude": [60.1, 59.9, 59.7, 58, 57],
+        "longitude": [1, 2, -1, -2, -3],
+        "time": [pd.Timestamp("2017-01-02 06:00:00")] * 5,
+        "wmo_id": ["03001", "03002", "03003", "03004", "03005"],
+        "station_id": ["03001", "03002", "03003", "03004", "03005"],
+        "cf_name": ["air_temperature"] * 5,
+        "units": ["K"] * 5,
+        "experiment": ["latestblend"] * 5,
+        "period": [pd.NaT] * 5,
+        "height": [1.5] * 5,
+        "diagnostic": ["temperature_at_screen_level"] * 5,
+    }
+
+    parquet_type = "truth"
+    if include_forecast_period:
+        data_dict["forecast_period"] = [6 * 3.6e12] * 5
+        parquet_type = "forecast"
+
+    data_df = pd.DataFrame(data_dict)
+
+    output_dir = tmp_path / f"{parquet_type}_parquet_files"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_path = str(output_dir / f"{parquet_type}.parquet")
+    data_df.to_parquet(output_path, index=False, engine="pyarrow")
+
+    return output_dir
+
+
+def create_pickle_file(tmp_path, filename="data.pkl"):
+    """Create a pickle file containing a GAM object."""
+    obj = [pygam.GAM(pygam.s(0) + pygam.l(1)), pygam.GAM(pygam.te(0, 1))]
+    output_dir = tmp_path / "pickle_files"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_path = str(output_dir / filename)
+    joblib.dump(obj, output_path)
+
+    return obj, output_path
+
+
 @pytest.mark.parametrize("multiple_bias_cubes", [(True, False)])
 def test_split_forecasts_and_bias_files(
     forecast_cube, forecast_error_cubelist, multiple_bias_cubes
@@ -1063,6 +1136,118 @@ def test_split_cubes_for_samos_prob_template(
                 expect_emos_coeffs=True,
                 expect_emos_fields=True,
             )
+
+
+@pytest.mark.parametrize(
+    "include_forecast,include_truth", [(True, False), (False, True), (True, True)]
+)
+def test_identify_parquet_type_basic(tmp_path, include_forecast, include_truth):
+    """Test that this function correctly splits out input parquet files into forecasts
+    and truths."""
+    merged_input_paths = []
+    if include_forecast:
+        forecast_dir = create_multi_site_forecast_parquet_file(
+            tmp_path=tmp_path,
+            include_forecast_period=True,
+        )
+        merged_input_paths.append(Path(forecast_dir))
+    if include_truth:
+        truth_dir = create_multi_site_forecast_parquet_file(
+            tmp_path=tmp_path,
+            include_forecast_period=False,
+        )
+        merged_input_paths.append(Path(truth_dir))
+
+    (
+        result_forecast_paths,
+        result_truth_paths,
+    ) = identify_parquet_type(merged_input_paths)
+
+    assert result_forecast_paths == (
+        merged_input_paths[0] if include_forecast else None
+    )
+    assert result_truth_paths == (merged_input_paths[-1] if include_truth else None)
+
+
+@pytest.mark.parametrize("include_netcdf", [True, False])
+@pytest.mark.parametrize("include_parquet", [True, False])
+@pytest.mark.parametrize("n_pickles", [0, 1, 2])
+def test_split_netcdf_parquet_pickle_basic(
+    tmp_path, forecast_cubes_multi_time, include_netcdf, include_parquet, n_pickles
+):
+    """Test that this function correctly splits out input files into pickle, parquet
+    and netcdf files."""
+    merged_input_paths = []
+
+    if include_parquet:
+        forecast_dir = create_multi_site_forecast_parquet_file(
+            tmp_path=tmp_path,
+            include_forecast_period=True,
+        )
+        merged_input_paths.append(Path(forecast_dir))
+
+        truth_dir = create_multi_site_forecast_parquet_file(
+            tmp_path=tmp_path,
+            include_forecast_period=False,
+        )
+        merged_input_paths.append(Path(truth_dir))
+
+    if include_netcdf:
+        test_cube, netcdf_path = create_netcdf_file(
+            tmp_path=tmp_path,
+        )
+        merged_input_paths.append(Path(netcdf_path))
+
+    if n_pickles > 0:
+        pickle_object, pickle_path = create_pickle_file(
+            tmp_path=tmp_path, filename="data1.pkl"
+        )
+        merged_input_paths.append(Path(pickle_path))
+
+    if n_pickles == 2:
+        pickle_object, pickle_path = create_pickle_file(
+            tmp_path=tmp_path, filename="data2.pkl"
+        )
+        merged_input_paths.append(Path(pickle_path))
+
+        msg = "Multiple pickle inputs have been provided. Only one is expected."
+        with pytest.raises(ValueError, match=msg):
+            split_netcdf_parquet_pickle(merged_input_paths)
+    else:
+        (
+            result_cube,
+            result_parquets,
+            result_pickles,
+        ) = split_netcdf_parquet_pickle(merged_input_paths)
+
+        if include_netcdf:
+            assert len(result_cube) == 1
+            result_cube = result_cube[0]
+            # The save/load process adds a Conventions global attribute to the cube.
+            test_cube.attributes.globals["Conventions"] = "CF-1.7"
+            assert result_cube == test_cube
+        else:
+            assert result_cube is None
+
+        if include_parquet:
+            # Parquets are returned as filepaths.
+            assert result_parquets == merged_input_paths[0:2]
+        else:
+            assert result_parquets is None
+
+        if n_pickles == 1:
+            # The pickled object is a list containing 2 pygam GAMs.
+            for i in range(len(result_pickles)):
+                for key in ["max_iter", "tol", "fit_intercept"]:
+                    assert (
+                        result_pickles[i].get_params()[key]
+                        == pickle_object[i].get_params()[key]
+                    )
+                assert result_pickles[i].terms == pickle_object[i].terms
+                assert result_pickles[i].distribution == pickle_object[i].distribution
+                assert result_pickles[i].link == pickle_object[i].link
+        else:
+            assert result_pickles is None
 
 
 if __name__ == "__main__":

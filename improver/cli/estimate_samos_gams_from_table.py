@@ -113,13 +113,13 @@ def process(
 
     from improver.calibration import (
         identify_parquet_type,
-        split_pickle_parquet_and_netcdf,
+        split_netcdf_parquet_pickle,
     )
     from improver.calibration.samos_calibration import TrainGAMsForSAMOS
     from improver.calibration.utilities import convert_parquet_to_cube
 
     # Split the input paths into cubes and pickles.
-    additional_predictors, parquets, _ = split_pickle_parquet_and_netcdf(file_paths)
+    additional_predictors, parquets, _ = split_netcdf_parquet_pickle(file_paths)
     # Determine which parquet path provides truths and which historic forecasts.
     forecast, truth = identify_parquet_type(parquets)
 

@@ -15,7 +15,10 @@ import pytest
 
 from improver import cli
 from improver.constants import DEFAULT_TOLERANCE
-from improver.utilities.compare import compare_netcdfs, compare_objects
+from improver.utilities.compare import (
+    compare_netcdfs,
+    compare_pickled_forest,
+)
 
 RECREATE_DIR_ENVVAR = "RECREATE_KGO"
 ACC_TEST_DIR_ENVVAR = "IMPROVER_ACC_TEST_DIR"
@@ -306,6 +309,7 @@ def compare(
     rtol=DEFAULT_TOLERANCE,
     exclude_vars=None,
     exclude_attributes=None,
+    file_type="netCDF",
 ):
     """
     Compare output against expected using KGO file with absolute and
@@ -319,6 +323,8 @@ def compare(
         rtol (float): Relative tolerance
         exclude_vars (Iterable[str]): Variables to exclude from comparison
         exclude_attributes (Iterable[str]): Attributes to exclude from comparison
+        file_type (str): Name of file type to compare, either "netCDF" or
+            "pickled_forest".
 
     Returns:
         None
@@ -336,6 +342,10 @@ def compare(
     message = ""
 
     def message_recorder(exception_message):
+        """A callback function to record comparison failure messages.
+        Args:
+            exception_message (str): The message from the exception raised
+                during comparison."""
         nonlocal difference_found
         nonlocal message
         difference_found = True
@@ -348,55 +358,22 @@ def compare(
     else:
         exclude_attributes = IGNORED_ATTRIBUTES
 
-    compare_netcdfs(
-        output_path,
-        kgo_path,
-        atol=atol,
-        rtol=rtol,
-        exclude_vars=exclude_vars,
-        reporter=message_recorder,
-        ignored_attributes=exclude_attributes,
-    )
-    if difference_found:
-        if recreate:
-            recreate_if_needed(output_path, kgo_path)
-        raise AssertionError(message)
-    if not checksum_ignore():
-        verify_checksum(kgo_path)
-
-
-def compare_pickled_objects(
-    output_path,
-    kgo_path,
-    recreate=True,
-):
-    """
-    Compare output against expected using KGO file, and recreate KGO if that
-    setting is enabled. This function is used for comparing pickled objects.
-
-    Args:
-        output_path (pathlib.Path): Path to output produced by test
-        kgo_path (pathlib.Path): Path to KGO file
-        recreate (bool): False to disable KGO recreation, compare only
-
-    Returns:
-        None
-    """
-    # don't show this function in pytest tracebacks
-    __tracebackhide__ = True
-    assert output_path.is_absolute()
-    assert kgo_path.is_absolute()
-
-    difference_found = False
-    message = ""
-
-    def message_recorder(exception_message):
-        nonlocal difference_found
-        nonlocal message
-        difference_found = True
-        message = exception_message
-
-    compare_objects(output_path, kgo_path, reporter=message_recorder)
+    if file_type == "netCDF":
+        compare_netcdfs(
+            output_path,
+            kgo_path,
+            atol=atol,
+            rtol=rtol,
+            exclude_vars=exclude_vars,
+            reporter=message_recorder,
+            ignored_attributes=exclude_attributes,
+        )
+    elif file_type == "pickled_forest":
+        compare_pickled_forest(
+            output_path,
+            kgo_path,
+            reporter=message_recorder,
+        )
 
     if difference_found:
         if recreate:

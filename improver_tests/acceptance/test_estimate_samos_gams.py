@@ -57,7 +57,7 @@ def test_gam_features_on_cube(tmp_path):
     # comparison only ensures that the string version of the
     # pickled objects are the same, not the actual objects as
     # there is no function to compare the Gam class objects.
-    acc.compare_pickled_objects(output_path, kgo_path)
+    acc.compare(output_path, kgo_path, file_type="pickled_forecast")
 
 
 def test_gam_cube_gam_features(tmp_path):
@@ -100,7 +100,7 @@ def test_gam_cube_gam_features(tmp_path):
     # comparison only ensures that the string version of the
     # pickled objects are the same, not the actual objects as
     # there is no function to compare the Gam class objects.
-    acc.compare_pickled_objects(output_path, kgo_path)
+    acc.compare(output_path, kgo_path, file_type="pickled_forecast")
 
 
 def test_gam_at_sites():
@@ -139,4 +139,4 @@ def test_gam_at_sites():
     # comparison only ensures that the string version of the
     # pickled objects are the same, not the actual objects as
     # there is no function to compare the Gam class objects.
-    acc.compare_pickled_objects(output_path, kgo_path)
+    acc.compare(output_path, kgo_path, file_type="pickled_forecast")

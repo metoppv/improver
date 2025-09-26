@@ -117,23 +117,23 @@ def process(
             coefficient is stored in a separate cube. None if a forecast or
             truth cube cannot be created from the parquet table.
     """
-    # monkey-patch to 'tweak' scipy to prevent errors occuring
     import scipy.sparse
 
     from improver.calibration import (
         identify_parquet_type,
-        split_pickle_parquet_and_netcdf,
+        split_netcdf_parquet_pickle,
     )
     from improver.calibration.samos_calibration import TrainEMOSForSAMOS
     from improver.calibration.utilities import convert_parquet_to_cube
 
+    # monkey-patch to 'tweak' scipy to prevent errors occurring.
     def to_array(self):
         return self.toarray()
 
     scipy.sparse.spmatrix.A = property(to_array)
 
     # Split the input paths into cubes and pickles.
-    samos_additional_predictors, parquets, gams = split_pickle_parquet_and_netcdf(
+    samos_additional_predictors, parquets, gams = split_netcdf_parquet_pickle(
         file_paths
     )
     # Determine which parquet path provides truths and which historic forecasts.
