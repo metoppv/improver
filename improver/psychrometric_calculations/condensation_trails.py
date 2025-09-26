@@ -132,12 +132,10 @@ class CondensationTrailFormation(BasePlugin):
             Tuple[np.ndarray, np.ndarray]: Arrays of critical temperatures on pressure levels (K), and critical intercepts on pressure levels (Pa).
 
         """
-        num_pressure_levels = mixing_ratios.shape[0]
-
         # maximum critical temperature (at 100% relative humidity) is given by
         # the point on the SVP derivative curve that is equal to the engine mixing
         # ratio
-        ind_max = [(np.abs(svp_derivative - m)).argmin() for m in mixing_ratios]
+        ind_max = np.abs(svp_derivative - mixing_ratios[:, np.newaxis]).argmin(axis=1)
         tangent_gradient = svp_derivative[ind_max]
         critical_temperature_maximum = temperature[ind_max]
 
@@ -152,22 +150,12 @@ class CondensationTrailFormation(BasePlugin):
 
         # minimum critical temperature (at 0% relative humidity) is given by
         # point at which the tangent crosses the line of zero vapour pressure
-        ind_min = [
-            np.abs(tangent_vapour_pressure[i, :]).argmin()
-            for i in range(num_pressure_levels)
-        ]
+        ind_min = np.abs(tangent_vapour_pressure).argmin(axis=1)
         critical_temperature_minimum = temperature[ind_min]
 
         # critical temperature for all relative humidites (0% to 100%)
-        critical_temperature_all_relative_humidities = np.array(
-            [
-                np.linspace(
-                    critical_temperature_minimum[i],
-                    critical_temperature_maximum[i],
-                    num=100,
-                )
-                for i in range(num_pressure_levels)
-            ]
+        critical_temperature_all_relative_humidities = np.linspace(
+            critical_temperature_minimum, critical_temperature_maximum, num=100, axis=1
         )
 
         # vapour pressure at critical temperature
@@ -178,7 +166,7 @@ class CondensationTrailFormation(BasePlugin):
                     temperature,
                     tangent_vapour_pressure[i],
                 )
-                for i in range(num_pressure_levels)
+                for i in range(critical_temperature_all_relative_humidities.shape[0])
             ]
         )
 
@@ -190,7 +178,7 @@ class CondensationTrailFormation(BasePlugin):
                     temperature,
                     svp,
                 )
-                for i in range(num_pressure_levels)
+                for i in range(critical_temperature_all_relative_humidities.shape[0])
             ]
         )
 
@@ -202,7 +190,7 @@ class CondensationTrailFormation(BasePlugin):
                     e[i] / esat[i],
                     critical_temperature_all_relative_humidities[i],
                 )
-                for i in range(num_pressure_levels)
+                for i in range(critical_temperature_all_relative_humidities.shape[0])
             ]
         )
         return critical_temperatures, critical_intercepts
