@@ -6,6 +6,7 @@
 
 import numpy as np
 import pytest
+from iris.cube import CubeList
 
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
@@ -135,7 +136,9 @@ def test_metadata(
     expected_x_coord = cube.coord(axis="x").copy(expected_x_points)
     expected_y_coord = cube.coord(axis="y").copy(expected_y_points)
     plugin = GradientBetweenAdjacentGridSquares(regrid=regrid)
-    result_x, result_y = plugin(cube)
+    result = plugin(cube)
+    assert isinstance(result, CubeList)
+    result_x, result_y = result
     for result, name in [(result_x, "x"), (result_y, "y")]:
         assert result.name() == f"gradient_of_air_temperature_wrt_{name}"
         assert result.units == "K m-1"

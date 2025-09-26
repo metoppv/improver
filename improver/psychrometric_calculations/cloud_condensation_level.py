@@ -45,7 +45,7 @@ class MetaCloudCondensationLevel(PostProcessingPlugin):
             model_id_attr=model_id_attr
         )
 
-    def process(self, *cubes: Union[Cube, CubeList]) -> Tuple[Cube, Cube]:
+    def process(self, *cubes: Union[Cube, CubeList]) -> CubeList[Cube, Cube]:
         """
         Call HumidityMixingRatio followed by CloudCondensationLevel to calculate cloud
         condensation level.
@@ -138,7 +138,7 @@ class CloudCondensationLevel(PostProcessingPlugin):
         ).astype(np.float32)
         return ccl_pressure, ccl_temperature
 
-    def process(self, *cubes: Union[Cube, CubeList]) -> Tuple[Cube, Cube]:
+    def process(self, *cubes: Union[Cube, CubeList]) -> CubeList[Cube, Cube]:
         """
         Calculates the cloud condensation level from the near-surface inputs.
         Values will be limited to the surface values where the calculated pressure is greater than
@@ -164,7 +164,9 @@ class CloudCondensationLevel(PostProcessingPlugin):
         mask = ccl_pressure > self.pressure.data
         ccl_pressure = np.where(mask, self.pressure.data, ccl_pressure)
         ccl_temperature = np.where(mask, self.temperature.data, ccl_temperature)
-        return (
-            self._make_ccl_cube(ccl_temperature, is_temperature=True),
-            self._make_ccl_cube(ccl_pressure, is_temperature=False),
+        return CubeList(
+            [
+                self._make_ccl_cube(ccl_temperature, is_temperature=True),
+                self._make_ccl_cube(ccl_pressure, is_temperature=False),
+            ]
         )

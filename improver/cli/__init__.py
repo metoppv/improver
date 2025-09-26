@@ -353,7 +353,13 @@ def with_output(
 
     result = wrapped(*args, **kwargs)
 
-    if output and (isinstance(result, Cube) or isinstance(result, CubeList)):
+    # If result is a Cube or CubeList or an iterable containing only Cubes,
+    # save as netCDF
+    if (
+        output
+        and (isinstance(result, (Cube, CubeList)))
+        or all([isinstance(x, Cube) for x in result])
+    ):
         save_netcdf(result, output, compression_level, least_significant_digit)
         if pass_through_output:
             return ObjectAsStr(result, output)
