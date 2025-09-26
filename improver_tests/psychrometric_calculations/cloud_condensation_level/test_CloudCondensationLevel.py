@@ -9,7 +9,7 @@ from typing import Tuple
 import numpy as np
 import pytest
 from iris.coords import AuxCoord
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTES
 from improver.psychrometric_calculations.cloud_condensation_level import (
@@ -125,6 +125,7 @@ def test_basic(
     humidity.data = np.full_like(humidity.data, humidity_value)
     result = CloudCondensationLevel()([temperature, pressure, humidity])
     metadata_ok(result, temperature)
+    assert isinstance(result, CubeList)
     assert np.isclose(result[0].data, expected_t, atol=1e-2).all()
     assert np.isclose(result[1].data, expected_p, atol=1e-0).all()
 
