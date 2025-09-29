@@ -1094,7 +1094,7 @@ def test_prepare_cube_no_calibration_percentiles(
             ],
             dtype=np.float32,
         ),
-        percentiles=np.array([55], dtype=np.float32),
+        percentiles=np.array(percentiles, dtype=np.float32),
         name="wind_speed",
         units="m/s",
     )
@@ -1107,7 +1107,7 @@ def test_prepare_cube_no_calibration_percentiles(
     )
 
     if not include_coeffs or validity_times == ["0500"]:
-        # No matching coefficients so should return a cube with perceeeentiles
+        # No matching coefficients so should return a cube with percentiles
         # resampled.
         assert isinstance(result, iris.cube.Cube)
         assert result.coords() == expected.coords()
