@@ -7,14 +7,58 @@ and coefficient inputs.
 """
 
 from collections import OrderedDict
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 
+import iris
+import joblib
+import pandas as pd
 from iris.cube import Cube, CubeList
 
 from improver.metadata.probabilistic import (
     get_diagnostic_cube_name_from_probability_name,
 )
 from improver.utilities.cube_manipulation import MergeCubes
+
+
+class CalibrationSchemas:
+    def __init__(self):
+        """Define the pyarrow schemas for forecast and truth parquet files."""
+        import pyarrow as pa
+
+        self.FORECAST_SCHEMA = pa.schema(
+            [
+                ("percentile", pa.float64()),
+                ("forecast", pa.float32()),
+                ("altitude", pa.float32()),
+                ("blend_time", pa.timestamp("s", "utc")),
+                ("forecast_period", pa.int64()),
+                ("forecast_reference_time", pa.timestamp("s", "utc")),
+                ("latitude", pa.float32()),
+                ("longitude", pa.float32()),
+                ("time", pa.timestamp("s", "utc")),
+                ("wmo_id", pa.string()),
+                ("station_id", pa.string()),
+                ("cf_name", pa.string()),
+                ("units", pa.string()),
+                ("experiment", pa.string()),
+                ("period", pa.int64()),
+                ("height", pa.float32()),
+                ("diagnostic", pa.string()),
+            ]
+        )
+        self.TRUTH_SCHEMA = pa.schema(
+            [
+                ("diagnostic", pa.string()),
+                ("latitude", pa.float32()),
+                ("longitude", pa.float32()),
+                ("altitude", pa.float32()),
+                ("time", pa.timestamp("s", "utc")),
+                ("wmo_id", pa.string()),
+                ("station_id", pa.string()),
+                ("ob_value", pa.float32()),
+            ]
+        )
 
 
 def split_forecasts_and_truth(
@@ -224,6 +268,89 @@ def split_forecasts_and_bias_files(cubes: CubeList) -> Tuple[Cube, Optional[Cube
     return forecast_cube, bias_cubes
 
 
+def split_pickle_parquet_and_netcdf(
+    files: List[Path],
+) -> Tuple[Optional[CubeList], Optional[List[Path]], Optional[object]]:
+    """Split the input files into pickle, parquet, and netcdf files.
+    Any or all of NetCDF, Parquet, and pickle files can be loaded. Only a single
+    pickle file is expected, but multiple netCDF and parquet files can be provided.
+
+    Args:
+        files:
+            A list of input file paths.
+    Returns:
+        - A flattened cube list containing all the cubes loaded from NetCDF files, or None.
+        - A list of paths to Parquet files, or None.
+        - A loaded pickle file, or None.
+    Raises:
+        ValueError: If the path provided is not loadable as a pickle file, parquet file
+            or netcdf file.
+        ValueError: If multiple pickle files provided, as only one is ever expected.
+    """
+    cubes = iris.cube.CubeList()
+    loaded_pickle = None
+    parquets = []
+
+    for file_path in files:
+        if not file_path.exists():
+            continue
+
+        # Directories indicate we are working with parquet files.
+        if file_path.is_dir():
+            parquets.append(file_path)
+            continue
+
+        try:
+            cube = iris.load(file_path)
+            cubes.extend(cube)
+        except ValueError:
+            if loaded_pickle is not None:
+                msg = "Multiple pickle inputs have been provided. Only one is expected."
+                raise ValueError(msg)
+            try:
+                loaded_pickle = joblib.load(file_path)
+            except Exception as e:
+                msg = f"Failed to load {file_path}: {e}"
+                raise ValueError(msg)
+
+    return (
+        cubes if cubes else None,
+        parquets if parquets else None,
+        loaded_pickle if loaded_pickle else None,
+    )
+
+
+def identify_parquet_type(
+    parquet_paths: List[Path],
+) -> Tuple[Optional[Path], Optional[Path]]:
+    """Determine whether the provided parquet paths contain forecast or truth data.
+    This is done by checking the columns within the parquet files for the presence
+    of a forecast_period column which is only present for forecast data.
+    Args:
+        parquet_paths:
+            A list of paths to Parquet files.
+    Returns:
+        - The path to the Parquet file containing the historical forecasts.
+        - The path to the Parquet file containing the truths.
+    """
+    import pyarrow.parquet as pq
+
+    forecast_table_path = None
+    truth_table_path = None
+    for file_path in parquet_paths:
+        try:
+            example_file_path = next(file_path.glob("**/*.parquet"))
+        except StopIteration:
+            continue
+        try:
+            pq.read_schema(example_file_path).field("forecast_period")
+            forecast_table_path = file_path
+        except KeyError:
+            truth_table_path = file_path
+
+    return forecast_table_path, truth_table_path
+
+
 def validity_time_check(forecast: Cube, validity_times: List[str]) -> bool:
     """Check the validity time of the forecast matches the accepted validity times
     within the validity times list.
@@ -268,3 +395,25 @@ def add_warning_comment(forecast: Cube) -> Cube:
             "however, no calibration has been applied."
         )
     return forecast
+
+
+def get_training_period_cycles(
+    cycletime: str, forecast_period: Union[int, str], training_length: int
+):
+    """Generate a list of forecast reference times for the training period.
+
+    Args:
+        cycletime: The time at which the forecast is issued in a format understood by
+            pandas.Timestamp e.g. 20170109T0000Z.
+        forecast_period: The forecast period in seconds.
+        training_length: The number of days in the training period.
+    """
+    forecast_period_td = pd.Timedelta(int(forecast_period), unit="seconds")
+
+    return pd.date_range(
+        end=pd.Timestamp(cycletime)
+        - pd.Timedelta(1, unit="days")
+        - forecast_period_td.floor("D"),
+        periods=int(training_length),
+        freq="D",
+    )
