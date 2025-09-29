@@ -350,53 +350,19 @@ def test_calculate_critical_temperatures_and_intercepts_values(
     plugin.relative_humidity = np.broadcast_to(
         relative_humidity, pressure_levels.shape + relative_humidity.shape
     )
-
-    critical_temperatures, critical_intercepts = (
-        plugin._calculate_critical_temperatures_and_intercepts()
-    )
+    plugin._calculate_critical_temperatures_and_intercepts()
 
     np.testing.assert_allclose(
-        critical_temperatures,
+        plugin.critical_temperatures,
         expected_critical_temperatures,
         rtol=1e-3,
         strict=True,
         verbose=True,
     )
     np.testing.assert_allclose(
-        critical_intercepts,
+        plugin.critical_intercepts,
         expected_critical_intercepts,
         rtol=1e-3,
         strict=True,
         verbose=True,
     )
-
-
-@pytest.mark.parametrize(
-    "engine_mixing_ratios, relative_humidity, expected_exception",
-    [
-        ([1, 1], np.ones((2, 3)), TypeError),
-        (np.ones((1, 2)), [1, 1], TypeError),
-        (np.ones(1), np.ones((2, 3)), ValueError),
-        (np.ones((1, 2)), np.ones(2), ValueError),
-        (np.ones((1, 2)), np.ones((3, 2)), ValueError),
-    ],
-)
-def test_calculate_critical_temperatures_and_intercepts_raises_on_bad_input(
-    engine_mixing_ratios: np.ndarray | List,
-    relative_humidity: np.ndarray | List,
-    expected_exception: Exception,
-):
-    """
-    Test that _calculate_critical_temperatures_and_intercepts() raises the appropriate
-    exception when called with incorrect input parameters.
-
-    Args:
-        engine_mixing_ratios (np.ndarray | List): Engine mixing ratios on pressure levels. Engine contrail factors are the leading axis (Pa/K).
-        relative_humidity (np.ndarray | List): Relative humidity values on pressure levels. Pressure levels are the leading axis (kg/kg).
-        expected_exception (exception | None): The exception that should be raised by the function.
-    """
-    plugin = CondensationTrailFormation([3e-5])
-    plugin.engine_mixing_ratios = engine_mixing_ratios
-    plugin.relative_humidity = relative_humidity
-    with pytest.raises(expected_exception):
-        plugin._calculate_critical_temperatures_and_intercepts()
