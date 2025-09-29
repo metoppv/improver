@@ -4,7 +4,7 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Module to contain Condensation trail formation calculations."""
 
-from typing import Union
+from typing import Tuple, Union
 
 import numpy as np
 from iris.cube import Cube, CubeList
@@ -96,6 +96,62 @@ class CondensationTrailFormation(BasePlugin):
             temperature=self.temperature, pressure=pressure_levels_reshaped
         )
         return self.relative_humidity * svp
+
+    def _calculate_contrail_persistency(
+        self,
+        saturated_vapour_pressure_ice: np.ndarray,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Apply four conditions to determine whether persistent or non-persistent contrails will form.
+
+        .. include:: extended_documentation/psychrometric_calculations/condensation_trails/formation_conditions.rst
+
+        Args:
+            saturated_vapour_pressure_ice (np.ndarray): The saturated vapour pressure with respect to ice, on pressure levels [Pa].
+
+        Returns:
+            Tuple[np.ndarray]: Two boolean arrays that state whether 'persistent' or 'non-persistent' contrails will form, respectively.
+        """
+
+        # TODO: may not need to be a function (is any copying done, or is it just views?)
+        # This should allow for more flexible comparisons, e.g. critical_temperatures doesn't
+        # have to have an x and y dimension
+        def reshape_and_broadcast(arr, target_shape):
+            """Broadcast an input array to a target shape"""
+            num_missing_dims = len(target_shape) - arr.ndim
+            if num_missing_dims < 0:
+                raise ValueError("Target shape has fewer dimensions than input array.")
+
+            # reshape input array by adding trailing singleton dimensions
+            new_shape = arr.shape + (1,) * num_missing_dims
+            reshaped = arr.reshape(new_shape)
+            return np.broadcast_to(reshaped, target_shape)
+
+        vapour_pressure_above_threshold = self.local_vapour_pressure[
+            np.newaxis
+        ] - reshape_and_broadcast(
+            self.engine_mixing_ratios, self.critical_temperatures.shape
+        ) * self.temperature[np.newaxis] > reshape_and_broadcast(
+            self.critical_intercepts, self.critical_temperatures.shape
+        )
+        temperature_below_threshold = (
+            self.temperature[np.newaxis] < self.critical_temperatures
+        )
+        air_is_saturated = self.local_vapour_pressure > saturated_vapour_pressure_ice
+        temperature_below_freezing = self.temperature < 273.15
+
+        persistent_contrails = (
+            vapour_pressure_above_threshold
+            & temperature_below_threshold
+            & air_is_saturated
+            & temperature_below_freezing
+        )
+        nonpersistent_contrails = (
+            vapour_pressure_above_threshold
+            & temperature_below_threshold
+            & ~(air_is_saturated & temperature_below_freezing)
+        )
+        return persistent_contrails, nonpersistent_contrails
 
     def process_from_arrays(
         self,

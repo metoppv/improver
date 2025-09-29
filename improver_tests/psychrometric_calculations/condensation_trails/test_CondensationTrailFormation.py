@@ -223,3 +223,100 @@ def test_find_local_vapour_pressure(
     plugin.relative_humidity = relative_humidity
     result = plugin._find_local_vapour_pressure(pressure_levels)
     np.testing.assert_allclose(result, expected_vapour_pressure)
+
+
+@pytest.mark.parametrize(
+    "local_vapour_pressure, engine_mixing_ratio, temperature, critical_intercept, critical_temperature, svp_ice, forms_contrail, is_persistent",
+    [
+        (1e3, 0, 2e2, 0, 1e3, 0, True, True),
+        (1e3, 0, 3e2, 0, 1e3, 0, True, False),
+        (1e3, 0, 3e2, 0, 1e3, 1e5, True, False),
+        (1e3, 0, 2e2, 0, 1e3, 1e5, True, False),
+        (1e3, 0, 3e2, 0, 0, 0, False, False),
+        (0, 1, 2e2, 0, 1000, -1, False, False),
+        (0, 1, 2e2, 0, 0, -1, False, False),
+        (0, 1, 2e2, 0, 0, 1e5, False, False),
+        (0, 1, 2e2, 0, 0, 1e5, False, False),
+        (0, 1, 3e2, 0, 0, -1, False, False),
+        (1000, 0, 3e2, 0, 0, 0, False, False),
+        (1000, 0, 2e2, 0, 0, 1e5, False, False),
+        (0, 1, 3e2, 0, 1000, -1, False, False),
+        (0, 1, 3e2, 0, 1000, 1e5, False, False),
+        (0, 1, 2e2, 0, 0, -1, False, False),
+        (1000, 0, 2e2, 0, 0, 0, False, False),
+    ],
+)
+def test_calculate_contrail_persistency(
+    local_vapour_pressure,
+    engine_mixing_ratio,
+    temperature,
+    critical_intercept,
+    critical_temperature,
+    svp_ice,
+    forms_contrail,
+    is_persistent,
+) -> None:
+    """
+    Test that the contrail persistency calculation returns the expected pair of boolean arrays.
+
+    There are 16 sets of (mostly unphysical) input parameters to this test, which correspond to
+    the 2^4=16 unique combinations of the four conditions required for contrail formation.
+
+    In the context of this test, the elements within a given output array are identical, i.e.
+    all 'True' or all 'False'. However, the two arrays may differ.
+
+    Args:
+        local_vapour_pressure (float): Local vapour pressure, calculated with respect to water (Pa).
+        engine_mixing_ratio (float): Engine mixing ratio (Pa/K).
+        temperature (float): Ambient air temperature (K).
+        critical_intercept (float): Critical intercept threshold (Pa).
+        critical_temperature (float): Critical temperature threshold (K).
+        svp_ice (float): Saturated vapour pressure, calculated with respect to ice (Pa).
+        forms_contrails (bool): True if any contrail will form.
+        is_persistent (bool): True only if a persistent contrail will form.
+    """
+    # plugin output arrays will have expected shape: (3, 2, 5, 4)
+    contrail_factors = np.array([3e-5, 3.4e-9, 3.9e-9])
+    pressure_levels = np.array([1e4, 1e3])
+    temperature = np.full((5, 4), temperature)
+    temperature_on_pressure_levels = np.broadcast_to(
+        temperature, pressure_levels.shape + temperature.shape
+    )
+    plugin = CondensationTrailFormation(contrail_factors)
+
+    # broadcast test inputs to plugin arrays
+    plugin.local_vapour_pressure = np.broadcast_to(
+        local_vapour_pressure, temperature_on_pressure_levels.shape
+    )
+    plugin.engine_mixing_ratios = np.broadcast_to(
+        engine_mixing_ratio, contrail_factors.shape + pressure_levels.shape
+    )
+    plugin.temperature = temperature_on_pressure_levels
+    plugin.critical_intercepts = np.broadcast_to(
+        critical_intercept, contrail_factors.shape + pressure_levels.shape
+    )
+    plugin.critical_temperatures = np.broadcast_to(
+        critical_temperature,
+        contrail_factors.shape + temperature_on_pressure_levels.shape,
+    )
+    svp_ice_on_pressure_levels = np.broadcast_to(
+        svp_ice, temperature_on_pressure_levels.shape
+    )
+
+    persistent_result, nonpersistent_result = plugin._calculate_contrail_persistency(
+        svp_ice_on_pressure_levels
+    )
+
+    nonpersistent_expected = np.full(
+        plugin.critical_temperatures.shape,
+        forms_contrail and not is_persistent,
+        dtype=bool,
+    )
+    persistent_expected = np.full(
+        plugin.critical_temperatures.shape, forms_contrail and is_persistent, dtype=bool
+    )
+
+    np.testing.assert_array_equal(
+        nonpersistent_result, nonpersistent_expected, strict=True
+    )
+    np.testing.assert_array_equal(persistent_result, persistent_expected, strict=True)
