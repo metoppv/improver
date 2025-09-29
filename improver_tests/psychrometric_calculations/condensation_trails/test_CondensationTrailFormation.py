@@ -275,10 +275,10 @@ def test_calculate_contrail_persistency(
         forms_contrails (bool): True if any contrail will form.
         is_persistent (bool): True only if a persistent contrail will form.
     """
-    # plugin output arrays will have expected shape: (3, 2, 1, 4)
+    # plugin output arrays will have expected shape: (3, 2, 5, 4)
     contrail_factors = np.array([3e-5, 3.4e-9, 3.9e-9])
     pressure_levels = np.array([1e4, 1e3])
-    temperature = np.full((1, 4), temperature)
+    temperature = np.full((5, 4), temperature)
     temperature_on_pressure_levels = np.broadcast_to(
         temperature, pressure_levels.shape + temperature.shape
     )
