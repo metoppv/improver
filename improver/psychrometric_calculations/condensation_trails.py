@@ -120,15 +120,15 @@ class CondensationTrailFormation(BasePlugin):
 
         Args:
             engine_mixing_ratio_for_contrail_factor (np.ndarray): Engine mixing ratios on pressure levels for a single
-                contrail factor. Pressure is the only axis (Pa/K).
-            svp (iris.cube.Cube): Lookup table of saturation vapour pressure with respect to water (Pa).
-            svp_derivative (iris.cube.Cube): Lookup table of the first derivative of saturation vapour pressure with
+                contrail factor. Array axis is [pressure levels] (Pa/K).
+            svp_table (iris.cube.Cube): Lookup table of saturation vapour pressure with respect to water (Pa).
+            svp_derivative_table (iris.cube.Cube): Lookup table of the first derivative of saturation vapour pressure with
                 respect to water (Pa/K).
 
         Returns:
             Tuple[np.ndarray, np.ndarray]:
                 - Critical temperatures on pressure levels. Array axes are [pressure levels, latitude, longitude] (K).
-                - Critical intercepts on pressure levels. Array axes are [pressure levels] (Pa).
+                - Critical intercepts on pressure levels. Array axis is [pressure levels] (Pa).
         """
         temperature_from_svp_table = svp_table.coord("air_temperature").points
 
@@ -156,12 +156,19 @@ class CondensationTrailFormation(BasePlugin):
         ind_min = np.abs(tangent_vapour_pressure).argmin(axis=1)
         critical_temperature_minimum = temperature_from_svp_table[ind_min]
 
-        # critical temperature for all relative humidites (0% to 100%)
+        # full range of critical temperatures for all relative humidites, 0% to 100%
         critical_temperature_all_relative_humidities = np.linspace(
             critical_temperature_minimum, critical_temperature_maximum, num=100, axis=1
         )
 
-        # vapour pressure at critical temperature
+        # For each pressure level, construct the characteristic curve that shows
+        # the variation of critical temperature with relative humidity. An example
+        # curve is shown in the documentation for this method.
+        #
+        # The critical temperatures are then interpolated from the curve at the
+        # relative humidities stored in the contrails class.
+
+        # interpolate the local vapour pressure from the tangent
         e = np.array(
             [
                 np.interp(
@@ -173,7 +180,7 @@ class CondensationTrailFormation(BasePlugin):
             ]
         )
 
-        # saturation vapour pressure at critical temperature
+        # interpolate the saturation vapour pressure from the lookup table
         esat = np.array(
             [
                 np.interp(
@@ -185,7 +192,7 @@ class CondensationTrailFormation(BasePlugin):
             ]
         )
 
-        # critical temperature at given relative humidities, on pressure levels
+        # interpolate the critical temperature at given relative humidities
         critical_temperature = np.array(
             [
                 np.interp(
