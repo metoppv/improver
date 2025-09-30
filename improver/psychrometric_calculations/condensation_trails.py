@@ -120,7 +120,7 @@ class CondensationTrailFormation(BasePlugin):
 
         Args:
             engine_mixing_ratio_for_contrail_factor (np.ndarray): Engine mixing ratios on pressure levels for a single
-                contrail factor. Pressure is the leading axis (Pa/K).
+                contrail factor. Pressure is the only axis (Pa/K).
             svp (iris.cube.Cube): Lookup table of saturation vapour pressure with respect to water (Pa).
             svp_derivative (iris.cube.Cube): Lookup table of the first derivative of saturation vapour pressure with
                 respect to water (Pa/K).
