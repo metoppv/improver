@@ -196,9 +196,7 @@ class CondensationTrailFormation(BasePlugin):
         )
         return critical_temperatures, critical_intercepts
 
-    def _calculate_critical_temperatures_and_intercepts(
-        self,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    def _calculate_critical_temperatures_and_intercepts(self):
         """
         Calculate the critical temperatures and intercepts on pressure levels for all engine contrail factors.
         """
