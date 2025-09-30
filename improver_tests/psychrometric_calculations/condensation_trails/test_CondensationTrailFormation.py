@@ -325,7 +325,7 @@ def test_find_local_vapour_pressure(
         ),
     ],
 )
-def test_calculate_critical_temperatures_and_intercepts_values(
+def test_calculate_critical_temperatures_and_intercepts(
     engine_contrail_factors: List[float],
     pressure_levels: np.ndarray,
     relative_humidity: np.ndarray,
