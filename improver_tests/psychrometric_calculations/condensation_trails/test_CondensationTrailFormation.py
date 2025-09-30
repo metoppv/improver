@@ -223,3 +223,147 @@ def test_find_local_vapour_pressure(
     plugin.relative_humidity = relative_humidity
     result = plugin._find_local_vapour_pressure(pressure_levels)
     np.testing.assert_allclose(result, expected_vapour_pressure)
+
+
+@pytest.mark.parametrize(
+    "engine_contrail_factors, pressure_levels, relative_humidity, expected_critical_temperatures, expected_critical_intercepts",
+    [
+        # one contrail factor, one pressure level, 1D relative humidity
+        (
+            [3e-5],
+            np.array([1e4], dtype=np.float32),
+            np.array([0, 0.5, 1], dtype=np.float32),
+            np.array([[[210.8735, 212.7484, 219.25]]], dtype=np.float32),
+            np.array([[-101.3616]], dtype=np.float32),
+        ),
+        # one contrail factor, multiple pressure levels, 1D relative humidity
+        (
+            [3e-5],
+            np.array([1e5, 1e4], dtype=np.float32),
+            np.array([0, 0.5, 1], dtype=np.float32),
+            np.array(
+                [
+                    [
+                        [232.65, 235.0091, 243.25],
+                        [210.8735, 212.7484, 219.25],
+                    ]
+                ],
+                dtype=np.float32,
+            ),
+            np.array([[-1126.4983, -101.3616]], dtype=np.float32),
+        ),
+        # one contrail factor, multiple pressure levels, 2D relative humidity
+        (
+            [3e-5],
+            np.array([1e5, 1e4], dtype=np.float32),
+            np.array([[0, 0.2, 0.4], [0.6, 0.8, 1]], dtype=np.float32),
+            np.array(
+                [
+                    [
+                        [
+                            [232.65, 233.4512, 234.4274],
+                            [235.6830, 237.5116, 243.25],
+                        ],
+                        [
+                            [210.8735, 211.5130, 212.2870],
+                            [213.2819, 214.7282, 219.25],
+                        ],
+                    ]
+                ],
+                dtype=np.float32,
+            ),
+            np.array([[-1126.498, -101.3616]], dtype=np.float32),
+        ),
+        # multiple contrail factors, multiple pressure levels, 2D relative humidity
+        (
+            [3e-5, 3.4e-5, 3.9e-5],
+            np.array([1e5, 1e4], dtype=np.float32),
+            np.array([[0, 0.2, 0.4], [0.6, 0.8, 1]], dtype=np.float32),
+            np.array(
+                [
+                    [
+                        [
+                            [232.65, 233.4512, 234.4274],
+                            [235.6830, 237.5116, 243.25],
+                        ],
+                        [
+                            [210.8735, 211.5130, 212.2870],
+                            [213.2819, 214.7282, 219.25],
+                        ],
+                    ],
+                    [
+                        [
+                            [233.95, 234.7235, 235.7122],
+                            [236.9838, 238.8360, 244.65],
+                        ],
+                        [
+                            [211.9674, 212.6149, 213.3986],
+                            [214.4059, 215.8706, 220.45],
+                        ],
+                    ],
+                    [
+                        [
+                            [235.45, 236.2676, 237.2714],
+                            [238.5627, 240.4437, 246.35],
+                        ],
+                        [
+                            [213.1517, 213.8081, 214.6024],
+                            [215.6233, 217.1077, 221.75],
+                        ],
+                    ],
+                ],
+                dtype=np.float32,
+            ),
+            np.array(
+                [
+                    [-1126.498, -101.3616],
+                    [-1274.799, -116.0054],
+                    [-1478.124, -134.0087],
+                ],
+                dtype=np.float32,
+            ),
+        ),
+    ],
+)
+def test_calculate_critical_temperatures_and_intercepts(
+    engine_contrail_factors: List[float],
+    pressure_levels: np.ndarray,
+    relative_humidity: np.ndarray,
+    expected_critical_temperatures: np.ndarray,
+    expected_critical_intercepts: np.ndarray,
+):
+    """
+    Test that _calculate_critical_temperatures_and_intercepts() returns two arrays with the expected shapes and values.
+
+    Args:
+        engine_contrail_factors (List[float]) List of contrail factors used to initialise the contrails class (kg/kg/K).
+        pressure_levels (np.ndarray): Array of pressure levels (Pa).
+        relative_humidity (np.ndarray): Array of relative humidity values (kg/kg).
+        expected_critical_temperatures (np.ndarray): Expected critical temperature output on pressure levels. Array axes
+            are [contrail factors, pressure levels, relative humidity] (K).
+        expected_critical_intercepts (np.ndarray): Expected critical intercept output on pressure levels. Array axes
+            are [contrail factors, pressure levels] (Pa).
+    """
+    plugin = CondensationTrailFormation(engine_contrail_factors)
+    plugin.engine_mixing_ratios = plugin._calculate_engine_mixing_ratios(
+        pressure_levels
+    )
+    plugin.relative_humidity = np.broadcast_to(
+        relative_humidity, pressure_levels.shape + relative_humidity.shape
+    )
+    plugin._calculate_critical_temperatures_and_intercepts()
+
+    np.testing.assert_allclose(
+        plugin.critical_temperatures,
+        expected_critical_temperatures,
+        rtol=1e-6,
+        strict=True,
+        verbose=True,
+    )
+    np.testing.assert_allclose(
+        plugin.critical_intercepts,
+        expected_critical_intercepts,
+        rtol=1e-6,
+        strict=True,
+        verbose=True,
+    )
