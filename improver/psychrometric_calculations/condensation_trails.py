@@ -105,28 +105,30 @@ class CondensationTrailFormation(BasePlugin):
 
     def _critical_temperatures_and_intercepts_for_given_contrail_factor(
         self,
-        engine_mixing_ratios_for_contrail_factor: np.ndarray,
+        engine_mixing_ratio_for_contrail_factor: np.ndarray,
         svp_table: Cube,
         svp_derivative_table: Cube,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
-        Calculate the critical temperatures and critical intercepts on pressure levels
-        for a single engine contrail factor.
+        Calculate the critical temperatures and critical intercepts on pressure levels for a single engine contrail
+        factor.
 
-        These are calculated at each pressure level by drawing a tangent to the saturation
-        vapour pressure curve with respect to water. The tangent gradient is equal to the
-        engine mixing ratio.
+        These are calculated at each pressure level by drawing a tangent to the saturation vapour pressure curve with
+        respect to water. The tangent gradient is equal to the engine mixing ratio.
 
         .. include:: extended_documentation/psychrometric_calculations/condensation_trails/critical_temperatures.rst
 
         Args:
-            engine_mixing_ratios_for_contrail_factor (np.ndarray): Engine mixing ratios on pressure levels for a single contrail factor. Pressure is the leading axis (Pa/K).
+            engine_mixing_ratio_for_contrail_factor (np.ndarray): Engine mixing ratios on pressure levels for a single
+                contrail factor. Pressure is the leading axis (Pa/K).
             svp (iris.cube.Cube): Lookup table of saturation vapour pressure with respect to water (Pa).
-            svp_derivative (iris.cube.Cube): Lookup table of the first derivative of saturation vapour pressure with respect to water (Pa/K).
+            svp_derivative (iris.cube.Cube): Lookup table of the first derivative of saturation vapour pressure with
+                respect to water (Pa/K).
 
         Returns:
-            Tuple[np.ndarray, np.ndarray]: Two arrays of critical temperatures on pressure levels (K), and critical intercepts on pressure levels (Pa).
-
+            Tuple[np.ndarray, np.ndarray]:
+                - Critical temperatures on pressure levels. Array axes are [pressure levels, latitude, longitude] (K).
+                - Critical intercepts on pressure levels. Array axes are [pressure levels] (Pa).
         """
         temperature_from_svp_table = svp_table.coord("air_temperature").points
 
@@ -135,18 +137,18 @@ class CondensationTrailFormation(BasePlugin):
         # ratio
         ind_max = np.abs(
             svp_derivative_table.data
-            - engine_mixing_ratios_for_contrail_factor[:, np.newaxis]
+            - engine_mixing_ratio_for_contrail_factor[:, np.newaxis]
         ).argmin(axis=1)
         tangent_gradient = svp_derivative_table.data[ind_max]
         critical_temperature_maximum = temperature_from_svp_table[ind_max]
 
         # tangent to SVP curve, with gradient equal to the engine mixing ratio
-        critical_intercepts = (
+        critical_intercept = (
             svp_table.data[ind_max] - tangent_gradient * critical_temperature_maximum
         )
         tangent_vapour_pressure = (
             tangent_gradient[:, np.newaxis] * temperature_from_svp_table[np.newaxis, :]
-            + critical_intercepts[:, np.newaxis]
+            + critical_intercept[:, np.newaxis]
         )
 
         # minimum critical temperature (at 0% relative humidity) is given by
@@ -184,7 +186,7 @@ class CondensationTrailFormation(BasePlugin):
         )
 
         # critical temperature at given relative humidities, on pressure levels
-        critical_temperatures = np.array(
+        critical_temperature = np.array(
             [
                 np.interp(
                     self.relative_humidity[i],
@@ -194,12 +196,10 @@ class CondensationTrailFormation(BasePlugin):
                 for i in range(critical_temperature_all_relative_humidities.shape[0])
             ]
         )
-        return critical_temperatures, critical_intercepts
+        return critical_temperature, critical_intercept
 
     def _calculate_critical_temperatures_and_intercepts(self):
-        """
-        Calculate the critical temperatures and intercepts on pressure levels for all engine contrail factors.
-        """
+        """Calculate the critical temperatures and intercepts on pressure levels for all engine contrail factors."""
         self.critical_temperatures = np.zeros(
             self.engine_mixing_ratios.shape[:2] + self.relative_humidity.shape[1:],
             dtype=np.float32,
@@ -215,12 +215,12 @@ class CondensationTrailFormation(BasePlugin):
             183.15, 253.15, water_only=True
         ).process()
 
-        for i, engine_mixing_ratios_for_contrail_factor in enumerate(
+        for i, engine_mixing_ratio_for_contrail_factor in enumerate(
             self.engine_mixing_ratios
         ):
             self.critical_temperatures[i], self.critical_intercepts[i] = (
                 self._critical_temperatures_and_intercepts_for_given_contrail_factor(
-                    engine_mixing_ratios_for_contrail_factor,
+                    engine_mixing_ratio_for_contrail_factor,
                     svp_table,
                     svp_derivative_table,
                 )

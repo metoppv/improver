@@ -333,15 +333,16 @@ def test_calculate_critical_temperatures_and_intercepts_values(
     expected_critical_intercepts: np.ndarray,
 ):
     """
-    Test that _calculate_critical_temperatures_and_intercepts() returns two arrays with
-    the expected shapes and values.
+    Test that _calculate_critical_temperatures_and_intercepts() returns two arrays with the expected shapes and values.
 
     Args:
         engine_contrail_factors (List[float]) List of contrail factors used to initialise the contrails class (kg/kg/K).
         pressure_levels (np.ndarray): Array of pressure levels (Pa).
         relative_humidity (np.ndarray): Array of relative humidity values (kg/kg).
-        expected_critical_temperatures (np.ndarray): Expected critical temperature output on pressure levels. Array axes are [contrail factors, pressure levels, relative humidity] (K).
-        expected_critical_intercepts (np.ndarray): Expected critical intercept output on pressure levels. Array axes are [contrail factors, pressure levels] (Pa).
+        expected_critical_temperatures (np.ndarray): Expected critical temperature output on pressure levels. Array axes
+            are [contrail factors, pressure levels, relative humidity] (K).
+        expected_critical_intercepts (np.ndarray): Expected critical intercept output on pressure levels. Array axes
+            are [contrail factors, pressure levels] (Pa).
     """
     plugin = CondensationTrailFormation(engine_contrail_factors)
     plugin.engine_mixing_ratios = plugin._calculate_engine_mixing_ratios(
