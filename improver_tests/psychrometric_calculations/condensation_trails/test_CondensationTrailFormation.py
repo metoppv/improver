@@ -363,7 +363,7 @@ def test_calculate_critical_temperatures_and_intercepts_values(
     np.testing.assert_allclose(
         plugin.critical_intercepts,
         expected_critical_intercepts,
-        rtol=1e-3,
+        rtol=1e-6,
         strict=True,
         verbose=True,
     )
