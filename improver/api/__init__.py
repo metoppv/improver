@@ -30,6 +30,7 @@ PROCESSING_MODULES = {
     "BaseNeighbourhoodProcessing": "improver.nbhood.nbhood",
     "CalculateForecastBias": "improver.calibration.simple_bias_correction",
     "CalibratedForecastDistributionParameters": "improver.calibration.emos_calibration",
+    "call_object_method": "improver.utilities.call_object_method",
     "ChooseDefaultWeightsLinear": "improver.blending.weights",
     "ChooseDefaultWeightsNonLinear": "improver.blending.weights",
     "ChooseDefaultWeightsTriangular": "improver.blending.weights",
