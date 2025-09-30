@@ -65,7 +65,8 @@ class NeighbourSelection(BasePlugin):
                 altitude.
             search_radius:
                 The radius in metres from a spot site within which to search
-                for a grid point neighbour.
+                for a grid point neighbour. This is only used when a land point
+                or minimum dz constraint is applied.
             site_coordinate_system:
                 The coordinate system of the sitelist coordinates that will be
                 provided. This defaults to be a latitude/longitude grid, a
@@ -190,6 +191,12 @@ class NeighbourSelection(BasePlugin):
             - The y_coords modified to filter out the sites falling
               outside the grid domain of the cube.
         """
+        # Ensure bounds exist
+        if not cube.coord(axis="x").has_bounds():
+            cube.coord(axis="x").guess_bounds()
+        if not cube.coord(axis="y").has_bounds():
+            cube.coord(axis="y").guess_bounds()
+
         # Get the grid domain limits
         x_min = cube.coord(axis="x").bounds.min()
         x_max = cube.coord(axis="x").bounds.max()

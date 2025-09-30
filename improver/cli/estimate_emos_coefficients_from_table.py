@@ -115,7 +115,6 @@ def process(
             CubeList containing the coefficients estimated using EMOS. Each
             coefficient is stored in a separate cube.
     """
-
     import iris
     from iris.cube import CubeList
 

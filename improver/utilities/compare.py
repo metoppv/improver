@@ -128,7 +128,7 @@ def compare_datasets(
     desired_groups = set(desired_ds.groups.keys())
 
     if actual_groups != desired_groups:
-        msg = f"different groups {name}: " f"{sorted(actual_groups ^ desired_groups)}"
+        msg = f"different groups {name}: {sorted(actual_groups ^ desired_groups)}"
         reporter(msg)
 
     check_groups = actual_groups.intersection(desired_groups)
@@ -191,7 +191,7 @@ def compare_dims(
     desired_dims = set(desired_ds.dimensions.keys()) - set(exclude_vars)
 
     if actual_dims != desired_dims:
-        msg = "different dimensions - " f"{name} {sorted(actual_dims ^ desired_dims)}"
+        msg = f"different dimensions - {name} {sorted(actual_dims ^ desired_dims)}"
         reporter(msg)
 
     check_dims = actual_dims.intersection(desired_dims)
@@ -199,9 +199,7 @@ def compare_dims(
         actual_len = actual_ds.dimensions[dim].size
         desired_len = desired_ds.dimensions[dim].size
         if actual_len != desired_len:
-            msg = (
-                "different dimension size - " f"{name}/{dim} {actual_len} {desired_len}"
-            )
+            msg = f"different dimension size - {name}/{dim} {actual_len} {desired_len}"
             reporter(msg)
 
 
@@ -242,7 +240,7 @@ def compare_vars(
     desired_vars = set(desired_ds.variables) - set(exclude_vars)
 
     if actual_vars != desired_vars:
-        msg = f"different variables - {name} " f"{sorted(actual_vars ^ desired_vars)}"
+        msg = f"different variables - {name} {sorted(actual_vars ^ desired_vars)}"
         reporter(msg)
 
     check_vars = actual_vars.intersection(desired_vars)
@@ -298,10 +296,7 @@ def compare_attributes(
             desired_attrs.discard(attr)
 
     if actual_attrs != desired_attrs:
-        msg = (
-            f"different attributes of {name} - "
-            f"{sorted(actual_attrs ^ desired_attrs)}"
-        )
+        msg = f"different attributes of {name} - {sorted(actual_attrs ^ desired_attrs)}"
         reporter(msg)
 
     check_attrs = actual_attrs.intersection(desired_attrs)
@@ -323,8 +318,7 @@ def compare_attributes(
                 reporter(msg)
         elif actual_attr != desired_attr:
             msg = (
-                f"different attribute value {name}/{key} - "
-                f"{actual_attr} {desired_attr}"
+                f"different attribute value {name}/{key} - {actual_attr} {desired_attr}"
             )
             reporter(msg)
 
@@ -416,6 +410,7 @@ def compare_pickled_forest(
     reporter: Optional[Callable[[str], None]] = None,
 ):
     """Load a pickled forest (e.g. a Random Forest) and compare its contents.
+
     Args:
         output_path: data file produced by test run
         kgo_path: data file considered good e.g. KGO

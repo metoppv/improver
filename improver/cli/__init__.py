@@ -353,6 +353,8 @@ def with_output(
 
     result = wrapped(*args, **kwargs)
 
+    # If result is a Cube or CubeList or an iterable containing only Cubes,
+    # save as netCDF
     if (
         output
         and result

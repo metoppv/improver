@@ -11,8 +11,9 @@ from collections import OrderedDict
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 
-import iris.cube
+import iris
 import joblib
+import pandas as pd
 from iris.cube import Cube, CubeList
 
 from improver.metadata.probabilistic import (
@@ -21,6 +22,46 @@ from improver.metadata.probabilistic import (
 from improver.utilities.cube_manipulation import MergeCubes
 from improver.utilities.flatten import flatten
 from improver.utilities.load import load_cubelist
+
+
+class CalibrationSchemas:
+    def __init__(self):
+        """Define the pyarrow schemas for forecast and truth parquet files."""
+        import pyarrow as pa
+
+        self.FORECAST_SCHEMA = pa.schema(
+            [
+                ("percentile", pa.float64()),
+                ("forecast", pa.float32()),
+                ("altitude", pa.float32()),
+                ("blend_time", pa.timestamp("s", "utc")),
+                ("forecast_period", pa.int64()),
+                ("forecast_reference_time", pa.timestamp("s", "utc")),
+                ("latitude", pa.float32()),
+                ("longitude", pa.float32()),
+                ("time", pa.timestamp("s", "utc")),
+                ("wmo_id", pa.string()),
+                ("station_id", pa.string()),
+                ("cf_name", pa.string()),
+                ("units", pa.string()),
+                ("experiment", pa.string()),
+                ("period", pa.int64()),
+                ("height", pa.float32()),
+                ("diagnostic", pa.string()),
+            ]
+        )
+        self.TRUTH_SCHEMA = pa.schema(
+            [
+                ("diagnostic", pa.string()),
+                ("latitude", pa.float32()),
+                ("longitude", pa.float32()),
+                ("altitude", pa.float32()),
+                ("time", pa.timestamp("s", "utc")),
+                ("wmo_id", pa.string()),
+                ("station_id", pa.string()),
+                ("ob_value", pa.float32()),
+            ]
+        )
 
 
 def split_forecasts_and_truth(
@@ -294,6 +335,7 @@ def identify_parquet_type(parquet_paths: List[Path]):
         parquet_paths:
             A list of paths to Parquet files.
 
+
     Returns:
         - The path to the Parquet file containing the historical forecasts.
         - The path to the Parquet file containing the truths.
@@ -449,3 +491,25 @@ def add_warning_comment(forecast: Cube) -> Cube:
             "however, no calibration has been applied."
         )
     return forecast
+
+
+def get_training_period_cycles(
+    cycletime: str, forecast_period: Union[int, str], training_length: int
+):
+    """Generate a list of forecast reference times for the training period.
+
+    Args:
+        cycletime: The time at which the forecast is issued in a format understood by
+            pandas.Timestamp e.g. 20170109T0000Z.
+        forecast_period: The forecast period in seconds.
+        training_length: The number of days in the training period.
+    """
+    forecast_period_td = pd.Timedelta(int(forecast_period), unit="seconds")
+
+    return pd.date_range(
+        end=pd.Timestamp(cycletime)
+        - pd.Timedelta(1, unit="days")
+        - forecast_period_td.floor("D"),
+        periods=int(training_length),
+        freq="D",
+    )
