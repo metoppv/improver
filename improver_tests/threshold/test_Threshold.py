@@ -678,7 +678,7 @@ def test_bespoke_expected_values(custom_cube, kwargs, expected_result):
 
     assert result.data.shape == expected_result.shape
     assert np.allclose(result.data, expected_result)
-    assert type(result.data) == type(expected_result)
+    assert isinstance(result.data, type(expected_result))
     assert result.data.dtype == expected_result.dtype
     if np.ma.is_masked(result.data):
         assert (result.data.mask == expected_result.mask).all()
@@ -755,7 +755,7 @@ def test_vicinity_with_landmask(custom_cube, landmask, kwargs, expected_result):
 
     assert result.data.shape == expected_result.shape
     assert np.allclose(result.data, expected_result)
-    assert type(result.data) == type(expected_result)
+    assert isinstance(result.data, type(expected_result))
     assert result.data.dtype == expected_result.dtype
 
 
