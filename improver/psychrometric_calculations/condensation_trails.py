@@ -107,10 +107,12 @@ class CondensationTrailFormation(BasePlugin):
         .. include:: extended_documentation/psychrometric_calculations/condensation_trails/formation_conditions.rst
 
         Args:
-            saturated_vapour_pressure_ice (np.ndarray): The saturated vapour pressure with respect to ice, on pressure levels [Pa].
+            saturated_vapour_pressure_ice (np.ndarray): The saturated vapour pressure with respect to ice, on pressure
+                levels. Pressure is the leading axis (Pa).
 
         Returns:
-            Tuple[np.ndarray]: Two boolean arrays that state whether 'persistent' or 'non-persistent' contrails will form, respectively.
+            Tuple[np.ndarray]: Two boolean arrays that state whether 'persistent' or 'non-persistent' contrails will
+                form, respectively. Array axes are [contrail factor, pressure level, latitude, longitude].
         """
 
         def reshape_and_broadcast(arr, target_shape):
