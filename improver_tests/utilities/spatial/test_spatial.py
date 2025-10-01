@@ -897,7 +897,12 @@ def test_minimum_within_vicinity(grid, radius, landmask, expected_result):
     [
         # Vicinity processing, with one non-zero central value resulting
         # in the whole domain returning values of 1/9
-        (np.array([[0, 0, 0], [0, 1.0, 0], [0, 0, 0]]), 1, None, 1 / 9 * np.ones((3, 3))),
+        (
+            np.array([[0, 0, 0], [0, 1.0, 0], [0, 0, 0]]),
+            1,
+            None,
+            1 / 9 * np.ones((3, 3)),
+        ),
         # Vicinity processing, with one non-zero corner value resulting
         # in neighbouring cells values of 1 within the limit of the
         # defined vicinity radius
@@ -947,7 +952,7 @@ def test_minimum_within_vicinity(grid, radius, landmask, expected_result):
             np.array([[1, 1, 1], [1, 1, 1], [0.0, 1, 1]]),
             2,
             np.array([[1, 0, 1], [0, 1, 0], [0, 1, 0]]),
-            np.array([[1, 9/11, 1], [8/14, 1, 12/14], [8/17, 1, 14/17]]),
+            np.array([[1, 9 / 11, 1], [8 / 14, 1, 12 / 14], [8 / 17, 1, 14 / 17]]),
         ),
         # one zero masked value and a land mask set as well that separates
         # out the top row. The masked point is not considered, and so non-zero
@@ -1003,7 +1008,12 @@ def test_mean_within_vicinity(grid, radius, landmask, expected_result):
     [
         # Vicinity processing, with one non-zero central value resulting
         # in the whole domain returning values of 1/9
-        (np.array([[0, 0, 0], [0, 1.0, 0], [0, 0, 0]]), 1, None, 2 * np.sqrt(2) / 9 * np.ones((3, 3))),
+        (
+            np.array([[0, 0, 0], [0, 1.0, 0], [0, 0, 0]]),
+            1,
+            None,
+            2 * np.sqrt(2) / 9 * np.ones((3, 3)),
+        ),
         # Vicinity processing, with one non-zero corner value resulting
         # in neighbouring cells values of 1 within the limit of the
         # defined vicinity radius
@@ -1011,7 +1021,15 @@ def test_mean_within_vicinity(grid, radius, landmask, expected_result):
             np.array([[1.0, 0, 0], [0, 0, 0], [0, 0, 0]]),
             1,
             None,
-            1 / 9 * np.array([[2 * np.sqrt(5), np.sqrt(14), 0], [np.sqrt(14), 2 * np.sqrt(2), 0], [0, 0, 0]]),
+            1
+            / 9
+            * np.array(
+                [
+                    [2 * np.sqrt(5), np.sqrt(14), 0],
+                    [np.sqrt(14), 2 * np.sqrt(2), 0],
+                    [0, 0, 0],
+                ]
+            ),
         ),
         # Vicinity processing, with one non-zero masked value. This masked
         # point is not considered, and so zeros are returned at neighbouring
@@ -1053,7 +1071,13 @@ def test_mean_within_vicinity(grid, radius, landmask, expected_result):
             np.array([[1, 1, 1], [1, 1, 1], [0.0, 1, 1]]),
             2,
             np.array([[1, 0, 1], [0, 1, 0], [0, 1, 0]]),
-            np.array([[0, 3*np.sqrt(2)/11, 0], [2*np.sqrt(3)/7, 0, np.sqrt(6)/7], [6*np.sqrt(2)/17, 0, np.sqrt(42)/17]]),
+            np.array(
+                [
+                    [0, 3 * np.sqrt(2) / 11, 0],
+                    [2 * np.sqrt(3) / 7, 0, np.sqrt(6) / 7],
+                    [6 * np.sqrt(2) / 17, 0, np.sqrt(42) / 17],
+                ]
+            ),
         ),
         # one zero masked value and a land mask set as well that separates
         # out the top row. The masked point is not considered, and so non-zero
