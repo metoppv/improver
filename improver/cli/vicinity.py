@@ -15,6 +15,8 @@ def process(
     land_mask: cli.inputcube = None,
     *,
     vicinity: cli.comma_separated_list = None,
+    operator: str = "max",
+    new_name: str = None,
 ):
     """Module to apply vicinity processing to data.
 
@@ -45,13 +47,18 @@ def process(
             List of distances in metres used to define the vicinities within
             which to search for an occurrence. Each vicinity provided will
             lead to a different gridded field.
-
+        operator (str):
+            Operation to apply over vicinity. Opens are one of: ["max", "mean", "min", "std"]
+            with "max" being the default option.
     Returns:
         iris.cube.Cube:
             Cube with the vicinity processed data.
     """
     from improver.utilities.spatial import OccurrenceWithinVicinity
 
-    return OccurrenceWithinVicinity(radii=vicinity, land_mask_cube=land_mask).process(
-        cube
-    )
+    vicinity_cube = OccurrenceWithinVicinity(radii=vicinity, land_mask_cube=land_mask, operator=operator).process(cube)
+
+    if new_name is not None:
+        vicinity_cube.rename(new_name)
+
+    return vicinity_cube
