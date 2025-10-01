@@ -107,7 +107,7 @@ class CondensationTrailFormation(BasePlugin):
         .. include:: extended_documentation/psychrometric_calculations/condensation_trails/formation_conditions.rst
 
         Args:
-            saturated_vapour_pressure_ice (np.ndarray): The saturated vapour pressure with respect to ice, on pressure
+            saturated_vapour_pressure_ice: The saturated vapour pressure with respect to ice, on pressure
                 levels. Pressure is the leading axis (Pa).
 
         Returns:
