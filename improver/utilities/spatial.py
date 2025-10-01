@@ -1060,6 +1060,8 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
                 Binary land-sea mask data. True for land-points, False for sea.
                 Restricts in-vicinity processing to only include points of a
                 like mask value.
+            Operator:
+                Operator to evaluate over the vicinities. Defaults to max.
 
         Raises:
             ValueError: If both radii and grid point radii are set.
@@ -1110,7 +1112,7 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
     def process(self, cube: Cube) -> Cube:
         """
         Produces the vicinity processed data. The input data is sliced to
-        yield y-x slices to which the maximum_within_vicinity method is applied.
+        yield y-x slices to which the <operator>_within_vicinity method is applied.
         The different vicinity radii (if multiple) are looped over and a
         coordinate recording the radius used is added to each resulting cube.
         A single cube is returned with the leading coordinates of the input cube
@@ -1153,15 +1155,15 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
         ]
 
         for radius, grid_point_radius in zip(self.radii, grid_point_radii):
-            max_cubes = CubeList([])
+            vicinity_cubes = CubeList([])
             for cube_slice in cube.slices([cube.coord(axis="y"), cube.coord(axis="x")]):
                 result = cube_slice.copy(
                     data=self.vicinity_operator(
                         cube_slice.data, grid_point_radius, self.land_mask
                     )
                 )
-                max_cubes.append(result)
-            result_cube = max_cubes.merge_cube()
+                vicinity_cubes.append(result)
+            result_cube = vicinity_cubes.merge_cube()
 
             # Put dimensions back if they were there before.
             result_cube = check_cube_coordinates(cube, result_cube)
