@@ -113,26 +113,27 @@ class CondensationTrailFormation(BasePlugin):
             Tuple[np.ndarray]: Two boolean arrays that state whether 'persistent' or 'non-persistent' contrails will form, respectively.
         """
 
-        # TODO: may not need to be a function (is any copying done, or is it just views?)
-        # This should allow for more flexible comparisons, e.g. critical_temperatures doesn't
-        # have to have an x and y dimension
         def reshape_and_broadcast(arr, target_shape):
-            """Broadcast an input array to a target shape"""
+            """Broadcast an input array to a target shape. Returns a view."""
             num_missing_dims = len(target_shape) - arr.ndim
             if num_missing_dims < 0:
                 raise ValueError("Target shape has fewer dimensions than input array.")
 
             # reshape input array by adding trailing singleton dimensions
-            new_shape = arr.shape + (1,) * num_missing_dims
-            reshaped = arr.reshape(new_shape)
+            reshaped = arr.reshape(arr.shape + (1,) * num_missing_dims)
             return np.broadcast_to(reshaped, target_shape)
 
-        vapour_pressure_above_threshold = self.local_vapour_pressure[
-            np.newaxis
-        ] - reshape_and_broadcast(
+        engine_mixing_ratios_reshaped = reshape_and_broadcast(
             self.engine_mixing_ratios, self.critical_temperatures.shape
-        ) * self.temperature[np.newaxis] > reshape_and_broadcast(
+        )
+        critical_intercepts_reshaped = reshape_and_broadcast(
             self.critical_intercepts, self.critical_temperatures.shape
+        )
+
+        vapour_pressure_above_threshold = (
+            self.local_vapour_pressure[np.newaxis]
+            - engine_mixing_ratios_reshaped * self.temperature[np.newaxis]
+            > critical_intercepts_reshaped
         )
         temperature_below_threshold = (
             self.temperature[np.newaxis] < self.critical_temperatures
