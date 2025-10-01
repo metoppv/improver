@@ -49,3 +49,46 @@ def test_masked_vicinity(tmp_path):
 
     run_cli(args)
     acc.compare(output_path, kgo_path)
+
+
+@pytest.mark.parametrize("operator", ("max", "min", "mean", "std"))
+def test_different_vicinity_operators(tmp_path, operator):
+    kgo_dir = acc.kgo_root() / "vicinity"
+    kgo_path = kgo_dir / "operator" / f"kgo_{operator}.nc"
+    input_path = kgo_dir / "lightning.nc"
+    output_path = tmp_path / "output.nc"
+    args = [input_path, "20000", "--operator", operator, "--output", f"{output_path}"]
+
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_invalid_vicinity_operator(tmp_path):
+    """Test application with single radii, two values"""
+    kgo_dir = acc.kgo_root() / "vicinity"
+    input_path = kgo_dir / "lightning.nc"
+    output_path = tmp_path / "output.nc"
+    args = [input_path, "20000", "--operator", "mode", "--output", f"{output_path}"]
+
+    with pytest.raises(ValueError, match="Unsupported operator.*"):
+        run_cli(args)
+
+
+def test_vicinity_cube(tmp_path):
+    kgo_dir = acc.kgo_root() / "vicinity"
+    kgo_path = kgo_dir / f"kgo_new_name.nc"
+    input_path = kgo_dir / "lightning.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        "20000",
+        "--operator",
+        "mean",
+        "--new-name",
+        "mean_probability_in_vicinity_of_lightning_flash_density_above_threshold",
+        "--output",
+        f"{output_path}",
+    ]
+
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
