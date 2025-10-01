@@ -9,6 +9,7 @@ module.
 """
 
 import datetime
+import importlib
 import re
 import unittest
 from pathlib import Path
@@ -48,6 +49,10 @@ from improver.synthetic_data.set_up_test_cubes import (
 from improver.utilities.cube_manipulation import sort_coord_in_cube
 
 from ..emos_calibration.helper_functions import SetupCubes
+
+pyarrow_installed = True
+if not importlib.util.find_spec("pyarrow"):
+    pyarrow_installed = False
 
 
 class Test_convert_cube_data_to_2d(IrisTest):
@@ -1158,6 +1163,7 @@ def test_prepare_cube_no_calibration_prob_template(
         assert result is None
 
 
+@pytest.mark.skipif(not pyarrow_installed, reason="pyarrow not installed")
 @pytest.mark.parametrize(
     "include_coeffs,validity_times",
     [
@@ -1207,6 +1213,7 @@ def test_prepare_cube_no_calibration_percentiles(
         assert result is None
 
 
+@pytest.mark.skipif(not pyarrow_installed, reason="pyarrow not installed")
 @pytest.mark.parametrize("cycletime", ["20170103T0000Z", "20170104T0000Z"])
 def test_convert_parquet_to_cube_basic(tmp_path, cycletime):
     """Test that this function returns the expected cubes when provided with valid
@@ -1261,6 +1268,7 @@ def test_convert_parquet_to_cube_basic(tmp_path, cycletime):
         assert truth_cube is None
 
 
+@pytest.mark.skipif(not pyarrow_installed, reason="pyarrow not installed")
 def test_convert_parquet_to_cube_exception(tmp_path):
     """Test that the correct exception is raised when filtering returns an empty truth
     dataframe."""
