@@ -410,7 +410,6 @@ def compare_pickled_forest(
     reporter: Optional[Callable[[str], None]] = None,
 ):
     """Load a pickled forest (e.g. a Random Forest) and compare its contents.
-
     Args:
         output_path: data file produced by test run
         kgo_path: data file considered good e.g. KGO

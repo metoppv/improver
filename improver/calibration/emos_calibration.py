@@ -1949,7 +1949,6 @@ def get_attribute_from_coefficients(
         the value of the attribute is returned.
 
     Raises:
-        ValueError: If coefficients do not share the expected attributes.
         AttributeError: If the expected attribute is not on all coefficients cubes.
         AttributeError: If the expected attribute is not the same across all
             coefficients cubes.

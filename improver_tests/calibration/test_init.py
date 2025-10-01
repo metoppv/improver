@@ -4,6 +4,7 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for calibration.__init__"""
 
+import importlib
 import unittest
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -14,7 +15,6 @@ import numpy as np
 import pandas as pd
 import pytest
 from iris.cube import CubeList
-from pygam import pygam
 
 from improver.calibration import (
     add_warning_comment,
@@ -33,6 +33,12 @@ from improver.synthetic_data.set_up_test_cubes import (
 )
 from improver.utilities.save import save_netcdf
 from improver_tests import ImproverTest
+
+pyarrow_installed = True
+try:
+    importlib.util.find_spec("pyarrow")
+except ImportError:
+    pyarrow_installed = False
 
 
 class Test_split_forecasts_and_truth(unittest.TestCase):
@@ -718,6 +724,9 @@ def create_multi_site_forecast_parquet_file(tmp_path, include_forecast_period=Tr
 
 def create_pickle_file(tmp_path, filename="data.pkl"):
     """Create a pickle file containing a GAM object."""
+    # Import pygam here to avoid a dependency for the entire repository.
+    import pygam
+
     obj = [pygam.GAM(pygam.s(0) + pygam.l(1)), pygam.GAM(pygam.te(0, 1))]
     output_dir = tmp_path / "pickle_files"
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -1138,6 +1147,7 @@ def test_split_cubes_for_samos_prob_template(
             )
 
 
+@pytest.mark.skipif(not pyarrow_installed, reason="pyarrow not installed")
 @pytest.mark.parametrize(
     "include_forecast,include_truth", [(True, False), (False, True), (True, True)]
 )
@@ -1169,6 +1179,7 @@ def test_identify_parquet_type_basic(tmp_path, include_forecast, include_truth):
     assert result_truth_paths == (merged_input_paths[-1] if include_truth else None)
 
 
+@pytest.mark.skipif(not pyarrow_installed, reason="pyarrow not installed")
 @pytest.mark.parametrize("include_netcdf", [True, False])
 @pytest.mark.parametrize("include_parquet", [True, False])
 @pytest.mark.parametrize("n_pickles", [0, 1, 2])
@@ -1177,6 +1188,8 @@ def test_split_netcdf_parquet_pickle_basic(
 ):
     """Test that this function correctly splits out input files into pickle, parquet
     and netcdf files."""
+    pytest.importorskip("pygam")
+
     merged_input_paths = []
 
     if include_parquet:

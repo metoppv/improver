@@ -17,6 +17,7 @@ from improver import cli
 from improver.constants import DEFAULT_TOLERANCE
 from improver.utilities.compare import (
     compare_netcdfs,
+    compare_objects,
     compare_pickled_forest,
 )
 
@@ -323,8 +324,11 @@ def compare(
         rtol (float): Relative tolerance
         exclude_vars (Iterable[str]): Variables to exclude from comparison
         exclude_attributes (Iterable[str]): Attributes to exclude from comparison
-        file_type (str): Name of file type to compare, either "netCDF" or
-            "pickled_forest".
+        file_type (str): Name of file type to compare. One "netCDF", "pickled_forest",
+        or "generic_pickle".
+
+    Raises:
+        ValueError: if file_type is not recognised
 
     Returns:
         None
@@ -374,6 +378,11 @@ def compare(
             kgo_path,
             reporter=message_recorder,
         )
+    elif file_type == "generic_pickle":
+        compare_objects(output_path, kgo_path, reporter=message_recorder)
+    else:
+        msg = f"There is no support for comparing the file_type provided: {file_type}"
+        raise ValueError(msg)
 
     if difference_found:
         if recreate:

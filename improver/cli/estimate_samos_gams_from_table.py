@@ -28,7 +28,7 @@ def process(
     fit_intercept: bool = True,
     unique_site_id_key: str = "wmo_id",
 ):
-    """Estimate General Additive Model (GAM) for SAMOS.
+    """Estimate Generalized Additive Model (GAM) for SAMOS.
 
     Args:
         file_paths (cli.inputpath):

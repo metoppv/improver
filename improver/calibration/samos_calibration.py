@@ -755,6 +755,15 @@ class ApplySAMOS(PostProcessingPlugin):
         describe a distribution in the units of the original forecast. Both parameter
         cubes are modified in place.
 
+        Predictions of mean and standard deviation from the 'truth' GAMs are used for
+        this transformation. This ensures that the calibrated forecast follows the
+        'true' distribution, rather than the distribution of the original forecast,
+        following the suggested method in:
+
+        Dabernig, M., Mayr, G.J., Messner, J.W. and Zeileis, A. (2017).
+        Spatial ensemble post-processing with standardized anomalies.
+        Q.J.R. Meteorol. Soc, 143: 909-916. https://doi.org/10.1002/qj.2975
+
         Args:
             location_parameter:
                 Cube containing the location parameter of the climatological anomaly

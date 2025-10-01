@@ -42,7 +42,7 @@ def process(
     Args:
         forecast (pathlib.Path):
             The path to a Parquet file containing the historical forecasts
-            to be used for calibration.The expected columns within the
+            to be used for calibration. The expected columns within the
             Parquet file are: forecast, blend_time, forecast_period,
             forecast_reference_time, time, wmo_id, percentile, diagnostic,
             latitude, longitude, period, height, cf_name, units.
@@ -88,7 +88,7 @@ def process(
         predictor (str):
             String to specify the form of the predictor used to calculate the
             location parameter when estimating the EMOS coefficients.
-            Currently the ensemble mean ("mean") and the ensemble realizations
+            Currently, the ensemble mean ("mean") and the ensemble realizations
             ("realizations") are supported as options.
         tolerance (float):
             The tolerance for the Continuous Ranked Probability Score (CRPS)
