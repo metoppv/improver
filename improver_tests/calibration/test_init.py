@@ -35,9 +35,7 @@ from improver.utilities.save import save_netcdf
 from improver_tests import ImproverTest
 
 pyarrow_installed = True
-try:
-    importlib.util.find_spec("pyarrow")
-except ImportError:
+if not importlib.util.find_spec("pyarrow"):
     pyarrow_installed = False
 
 
