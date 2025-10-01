@@ -20,8 +20,8 @@ def process(
 ):
     """Module to apply vicinity processing to data.
 
-    Calculate the maximum value within a vicinity radius about each point
-    in each x-y slice of the input cube.
+    Calculate the operator value within a vicinity radius about each point
+    in each x-y slice of the input cube, with default being the maximum.
 
     If working with thresholded data, using this CLI to calculate a
     neighbourhood maximum ensemble probability, the vicinity process must
@@ -48,8 +48,12 @@ def process(
             which to search for an occurrence. Each vicinity provided will
             lead to a different gridded field.
         operator (str):
-            Operation to apply over vicinity. Opens are one of: ["max", "mean", "min", "std"]
-            with "max" being the default option.
+            Operation to apply over vicinity. Options are one of: ["max", "mean", "min", "std"]
+            with "max" being the default.
+        new_name (str):
+            Name to assign to the resultant cube after calculating the vicinity
+            values for the specified operator. Where no value is provided, the
+            cube will retain the same name as the input cube.
     Returns:
         iris.cube.Cube:
             Cube with the vicinity processed data.
