@@ -584,6 +584,8 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
         forecast_df, feature_column_names = prep_features_from_config(
             forecast_df,
             self.feature_config,
+            transformation=self.transformation,
+            pre_transform_addition=self.pre_transform_addition,
             unique_site_id_keys=self.unique_site_id_keys,
         )
         forecast_df = sanitise_forecast_dataframe(forecast_df, self.feature_config)
