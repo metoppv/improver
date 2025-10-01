@@ -76,7 +76,7 @@ def test_invalid_vicinity_operator(tmp_path):
 
 def test_vicinity_cube(tmp_path):
     kgo_dir = acc.kgo_root() / "vicinity"
-    kgo_path = kgo_dir / f"kgo_new_name.nc"
+    kgo_path = kgo_dir / "kgo_new_name.nc"
     input_path = kgo_dir / "lightning.nc"
     output_path = tmp_path / "output.nc"
     args = [

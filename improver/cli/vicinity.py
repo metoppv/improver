@@ -12,9 +12,14 @@ from improver import cli
 @cli.with_output
 def process(
     cube: cli.inputcube,
+<<<<<<< HEAD
     land_mask: cli.inputcube = None,
     *,
     vicinity: cli.comma_separated_list = None,
+=======
+    vicinity: cli.comma_separated_list = None,
+    *,
+>>>>>>> Fixes for pre-commit checks.
     operator: str = "max",
     new_name: str = None,
 ):
@@ -60,7 +65,13 @@ def process(
     """
     from improver.utilities.spatial import OccurrenceWithinVicinity
 
+<<<<<<< HEAD
     vicinity_cube = OccurrenceWithinVicinity(radii=vicinity, land_mask_cube=land_mask, operator=operator).process(cube)
+=======
+    vicinity_cube = OccurrenceWithinVicinity(radii=vicinity, operator=operator).process(
+        cube
+    )
+>>>>>>> Fixes for pre-commit checks.
 
     if new_name is not None:
         vicinity_cube.rename(new_name)
