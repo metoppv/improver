@@ -21,8 +21,6 @@ from numpy import ndarray
 from numpy.ma import MaskedArray
 from scipy.ndimage.filters import (
     generic_filter,
-    maximum_filter,
-    minimum_filter,
 )
 
 from improver import BasePlugin, PostProcessingPlugin

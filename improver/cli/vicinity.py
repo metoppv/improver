@@ -10,7 +10,12 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(cube: cli.inputcube, vicinity: cli.comma_separated_list = None, *, operator: str = "max", new_name: str = None,
+def process(
+    cube: cli.inputcube,
+    vicinity: cli.comma_separated_list = None,
+    *,
+    operator: str = "max",
+    new_name: str = None,
 ):
     """Module to apply vicinity processing to data.
 
@@ -50,7 +55,9 @@ def process(cube: cli.inputcube, vicinity: cli.comma_separated_list = None, *, o
     """
     from improver.utilities.spatial import OccurrenceWithinVicinity
 
-    vicinity_cube = OccurrenceWithinVicinity(radii=vicinity, operator=operator).process(cube)
+    vicinity_cube = OccurrenceWithinVicinity(radii=vicinity, operator=operator).process(
+        cube
+    )
 
     if new_name is not None:
         vicinity_cube.rename(new_name)
