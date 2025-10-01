@@ -111,8 +111,8 @@ class CondensationTrailFormation(BasePlugin):
                 levels. Pressure is the leading axis (Pa).
 
         Returns:
-            Tuple[np.ndarray]: Two boolean arrays that state whether 'persistent' or 'non-persistent' contrails will
-                form, respectively. Array axes are [contrail factor, pressure level, latitude, longitude].
+            Tuple[np.ndarray, np.ndarray]: Two boolean arrays that state whether 'persistent' or 'non-persistent'
+                contrails will form, respectively. Array axes are [contrail factor, pressure level, latitude, longitude].
         """
 
         def reshape_and_broadcast(arr, target_shape):
