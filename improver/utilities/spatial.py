@@ -19,8 +19,13 @@ from iris.coords import AuxCoord, CellMethod, Coord, DimCoord
 from iris.cube import Cube, CubeList
 from numpy import ndarray
 from numpy.ma import MaskedArray
-from scipy.ndimage.filters import maximum_filter, minimum_filter, uniform_filter, generic_filter
 from scipy.ndimage import standard_deviation
+from scipy.ndimage.filters import (
+    generic_filter,
+    maximum_filter,
+    minimum_filter,
+    uniform_filter,
+)
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.metadata.amend import update_diagnostic_name
@@ -810,8 +815,8 @@ def minimum_within_vicinity(
         they're equally likely to have occurred anywhere within the
         vicinity defined using the specified radius.
     """
-    # Value, the negative of which is used to fill masked points, ensuring
-    # that when we take a maximum the masked points do not contribute.
+    # Value, which is used to fill masked points, ensuring that when we
+    # take a minimum the masked points do not contribute.
     fill_value = netCDF4.default_fillvals.get(grid.dtype.str[1:], np.inf)
 
     # Convert the grid_point_radius into a number of points along an edge
@@ -873,9 +878,11 @@ def mean_within_vicinity(
         they're equally likely to have occurred anywhere within the
         vicinity defined using the specified radius.
     """
-    # Value, the negative of which is used to fill masked points, ensuring
-    # that when we take a maximum the masked points do not contribute.
-    fill_value = np.nan
+    # Value, which is used to fill masked points. Suitable choice for mean is
+    # tricky as use of fill-nan and nan-mean results in odd behaviours due to
+    # effect of altering denominator used in mean.
+    fill_value = 0
+
     # Convert the grid_point_radius into a number of points along an edge
     # length, including the central point, e.g. grid_point_radius = 1,
     # points along the edge = 3
@@ -883,15 +890,20 @@ def mean_within_vicinity(
     processed_grid = grid.copy()
     if np.ma.is_masked(grid):
         unmasked_grid = grid.data.copy()
-        unmasked_grid[grid.mask] = np.nan
+        unmasked_grid[grid.mask] = fill_value
     else:
         unmasked_grid = grid.copy()
     if landmask is not None:
         mean_data = np.empty_like(grid)
         for match in (True, False):
             matched_data = unmasked_grid.copy()
-            matched_data[landmask != match] = np.nan
-            matched_mean_data = uniform_filter(matched_data, size=grid_points)
+            padded_match_data = np.pad(matched_data, pad_width=grid_point_radius, mode='edge')
+            padded_match_data_landmask = np.pad(landmask, pad_width=grid_point_radius, mode='edge')
+            padded_match_data[padded_match_data_landmask != match] = np.nan
+            matched_mean_data = generic_filter(padded_match_data, np.nanmean, size=grid_points)
+            matched_mean_data = matched_mean_data[grid_point_radius:-grid_point_radius, grid_point_radius:-grid_point_radius]
+            # matched_data[landmask != match] = np.nan
+            # matched_mean_data = generic_filter(matched_data, np.nanmean, size=grid_points)
             mean_data = np.where(landmask == match, matched_mean_data, mean_data)
     else:
         # The following command finds the maximum value for each grid point
@@ -935,9 +947,6 @@ def std_within_vicinity(
         they're equally likely to have occurred anywhere within the
         vicinity defined using the specified radius.
     """
-    # Value, the negative of which is used to fill masked points, ensuring
-    # that when we take a maximum the masked points do not contribute.
-    fill_value = np.nan
     # Convert the grid_point_radius into a number of points along an edge
     # length, including the central point, e.g. grid_point_radius = 1,
     # points along the edge = 3
