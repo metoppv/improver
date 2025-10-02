@@ -48,6 +48,8 @@ def test_gam_features_on_cube(tmp_path):
         gam_features,
         "--model-specification",
         model_specification_path,
+        "--window-length",
+        "3",
         "--output",
         output_path,
     ]
@@ -92,6 +94,8 @@ def test_gam_cube_gam_features(tmp_path):
         gam_features,
         "--model-specification",
         model_specification_path,
+        "--window-length",
+        "3",
         "--output",
         output_path,
     ]
@@ -131,6 +135,8 @@ def test_gam_at_sites():
         gam_features,
         "--model-specification",
         model_specification_path,
+        "--window-length",
+        "3",
         "--output",
         output_path,
     ]

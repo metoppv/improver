@@ -219,8 +219,6 @@ def test_calculate_cube_statistics_missing_data(model_specification):
 
     assert expected == result
 
-    assert False
-
 
 def test_calculate_cube_statistics_period_diagnostic(model_specification):
     """Test that this method correctly calculates the mean and standard deviation when
