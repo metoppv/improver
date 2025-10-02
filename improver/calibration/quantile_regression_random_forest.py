@@ -236,6 +236,10 @@ def prep_features_from_config(
     Args:
         df: Input DataFrame.
         feature_config: Feature configuration defining the features to be used for QRF.
+        transformation: Transformation to be applied to the data before fitting. This
+            is only used when computing members_below or members_above features.
+        pre_transform_addition: Value to be added before transformation. This is only
+            used when computing members_below or members_above features.
         unique_site_id_keys: The names of the coordinates that uniquely identify
             each site, e.g. "wmo_id" or ["latitude", "longitude"].
     Returns:
@@ -584,6 +588,8 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
         forecast_df, feature_column_names = prep_features_from_config(
             forecast_df,
             self.feature_config,
+            transformation=self.transformation,
+            pre_transform_addition=self.pre_transform_addition,
             unique_site_id_keys=self.unique_site_id_keys,
         )
         forecast_df = sanitise_forecast_dataframe(forecast_df, self.feature_config)
