@@ -260,10 +260,12 @@ class TrainGAMsForSAMOS(BasePlugin):
                 A pyGAM argument determining whether to include an intercept term in
                 the model.
             window_length:
-                The length of the rolling window used to calculate the mean and standard
-                deviation of the input cube when the input cube does not have a
-                realization dimension coordinate. This must be an odd integer greater
-                than 1.
+                This must be an odd integer greater than 1. The length of the rolling
+                window used to calculate the mean and standard deviation of the input
+                cube when the input cube does not have a realization dimension
+                coordinate. If a given window has fewer than half valid data points
+                (not NaN) then the value returned for that window will be NaN and will
+                be excluded from training.
             unique_site_id_key:
                 An optional key to use for uniquely identifying each site in the
                 training data. If not provided, the default behavior is to use the
