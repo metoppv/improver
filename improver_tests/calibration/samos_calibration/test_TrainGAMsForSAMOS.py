@@ -194,6 +194,9 @@ def test_calculate_cube_statistics_missing_data(model_specification):
     expected_mean = create_simple_cube(fill_value=305.0, **expected_cube_kwargs)
     add_values_mean = np.array([-0.5, -0.25, 0.25, 0.25, 0.333333]).reshape(shape)
     expected_mean.data = expected_mean.data + add_values_mean
+    # These values have insufficient valid data points contributing to them. They
+    # should be replayed by nans in the output.
+    expected_mean.data[0, :] = np.array([np.nan, np.nan])
     expected_mean.coord("time").points = expected_mean.coord("time").points + np.array(
         [0, 86400, 86400, 86400, 86400], dtype=np.int64
     )
@@ -201,6 +204,9 @@ def test_calculate_cube_statistics_missing_data(model_specification):
     expected_sd = create_simple_cube(fill_value=0.0, **expected_cube_kwargs)
     add_values_sd = np.array([0.707106, 0.5, 0.5, 0.5, 0.577350]).reshape(shape)
     expected_sd.data = expected_sd.data + add_values_sd
+    # These values have insufficient valid data points contributing to them. They
+    # should be replayed by nans in the output.
+    expected_sd.data[0, :] = np.array([np.nan, np.nan])
     expected_sd.coord("time").points = expected_sd.coord("time").points + np.array(
         [0, 86400, 86400, 86400, 86400], dtype=np.int64
     )
@@ -212,6 +218,8 @@ def test_calculate_cube_statistics_missing_data(model_specification):
     ).calculate_cube_statistics(input_cube=input_cube)
 
     assert expected == result
+
+    assert False
 
 
 def test_calculate_cube_statistics_period_diagnostic(model_specification):

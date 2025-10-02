@@ -22,10 +22,10 @@ except ModuleNotFoundError:
             pass
 
 
-from iris.analysis import MEAN, STD_DEV
+from iris.analysis import MEAN, STD_DEV, SUM
 from iris.cube import Cube, CubeList
 from iris.util import new_axis
-from numpy import array, clip, float32, int64, nan
+from numpy import array, clip, float32, int64, isnan, nan
 from numpy.ma import masked_all_like
 from pandas import merge
 
@@ -404,11 +404,20 @@ class TrainGAMsForSAMOS(BasePlugin):
                 padded_cubelist.append(new_slice)
         padded_cube = padded_cubelist.concatenate_cube()
 
+        # A data sufficiency check is performed to ensure that each rolling window
+        # contains enough valid data points to produce a sensible result. Data is
+        # considered sufficient if at least 50% of the data points in the window are
+        # valid. Where data is considered insufficient, the result of the rolling
+        # window calculation is replaced with nan.
+        check_data = padded_cube.copy()
+        check_data.data = ~isnan(check_data.data) * 1.0
+        valid_count = self.apply_aggregator(check_data, SUM)
+
         aggregated_cubes = {}
         for aggregator in [MEAN, STD_DEV]:
-            aggregated_cubes[aggregator.name()] = self.apply_aggregator(
-                padded_cube, aggregator
-            )
+            aggregated_cube = self.apply_aggregator(padded_cube, aggregator)
+            aggregated_cube.data[valid_count.data <= pad_width] = nan
+            aggregated_cubes[aggregator.name()] = aggregated_cube.copy()
 
         # Create constraint to extract only those time points which were present in
         # the original input cube.
