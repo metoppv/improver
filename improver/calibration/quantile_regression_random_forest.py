@@ -236,6 +236,10 @@ def prep_features_from_config(
     Args:
         df: Input DataFrame.
         feature_config: Feature configuration defining the features to be used for QRF.
+        transformation: Transformation to be applied to the data before fitting. This
+            is only used when computing members_below or members_above features.
+        pre_transform_addition: Value to be added before transformation. This is only
+            used when computing members_below or members_above features.
         unique_site_id_keys: The names of the coordinates that uniquely identify
             each site, e.g. "wmo_id" or ["latitude", "longitude"].
     Returns:
