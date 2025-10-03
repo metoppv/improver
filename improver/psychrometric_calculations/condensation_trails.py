@@ -298,6 +298,24 @@ class CondensationTrailFormation(BasePlugin):
             & temperature_below_freezing
         )
         return nonpersistent_contrails, persistent_contrails
+    
+    def _categorical_from_boolean(
+        self, np_contrails: np.ndarray, p_contrails: np.ndarray
+    ) -> np.ndarray:
+        """
+        Combine boolean arrays into a single categorical (integer) array.
+
+        Args:
+            np_contrails: Boolean data of non-persistent contrails. Leading axes are [contrail factor, pressure level].
+            p_contrails: Boolean data of persistent contrails. Leading axes are [contrail factor, pressure level].
+
+        Returns:
+            Array of categorical (integer) data, where 0 = no contrails, 1 = non-persistent contrails and 2 = persistent
+            contrails. Has the same shape as the input arrays.
+        """
+        categorical = np.where(np_contrails & ~p_contrails, 1, 0)
+        categorical = np.where(~np_contrails & p_contrails, 2, categorical)
+        return categorical
 
     def process_from_arrays(
         self,
