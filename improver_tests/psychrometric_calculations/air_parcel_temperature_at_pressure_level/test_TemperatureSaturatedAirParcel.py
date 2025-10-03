@@ -39,7 +39,10 @@ def temperature_different_name_fixture() -> Cube:
     data = np.full((2, 2), fill_value=293.0, dtype=np.float32)
     data[0, 1] = 295.0
     temperature = set_up_variable_cube(
-        data, name="air_temperature_different_name", units="K", attributes=LOCAL_MANDATORY_ATTRIBUTES
+        data,
+        name="air_temperature_different_name",
+        units="K",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
     )
     return temperature
 
@@ -195,25 +198,37 @@ def test_different_pressure(temperature, pressure, air_parcel_diff_pressure):
     metadata_ok(result, air_parcel_diff_pressure)
     assert np.isclose(result.data, air_parcel_diff_pressure.data, atol=1e-2).all()
 
-def test_different_temperature_and_pressure_names(temperature_different_name, pressure_different_name, air_parcel):
+
+def test_different_temperature_and_pressure_names(
+    temperature_different_name, pressure_different_name, air_parcel
+):
     """Check that for each pair of values, we get the expected result
     and that the metadata are as expected when the temperature and pressure cubes have
     unexpected names, but can still be deduced by the plugin."""
-    result = TemperatureSaturatedAirParcel()([temperature_different_name, pressure_different_name])
+    result = TemperatureSaturatedAirParcel()(
+        [temperature_different_name, pressure_different_name]
+    )
     metadata_ok(result, air_parcel)
     assert np.isclose(result.data, air_parcel.data, atol=1e-2).all()
 
+
 def test_bad_temperature_name(temperature_bad_name, pressure):
-    """Check that if the temperature cube doesn't have a name containing 'temperature' 
+    """Check that if the temperature cube doesn't have a name containing 'temperature'
     then it cannot be used."""
-    with pytest.raises(ValueError, match="Cube with 'temperature' in its name is required"):
+    with pytest.raises(
+        ValueError, match="Cube with 'temperature' in its name is required"
+    ):
         TemperatureSaturatedAirParcel()([temperature_bad_name, pressure])
 
+
 def test_bad_pressure_name(temperature, pressure_bad_name):
-    """Check that if the pressure cube doesn't have a name containing 'pressure' 
+    """Check that if the pressure cube doesn't have a name containing 'pressure'
     then it cannot be used."""
-    with pytest.raises(ValueError, match="Cube with 'pressure' in its name is required"):
+    with pytest.raises(
+        ValueError, match="Cube with 'pressure' in its name is required"
+    ):
         TemperatureSaturatedAirParcel()([temperature, pressure_bad_name])
+
 
 def test_bad_temperature_units(pressure_or_temperature_bad_units, pressure):
     """Check that if the temperature cube doesn't have the correct units
@@ -221,8 +236,11 @@ def test_bad_temperature_units(pressure_or_temperature_bad_units, pressure):
     with pytest.raises(ValueError):
         TemperatureSaturatedAirParcel()([pressure_or_temperature_bad_units, pressure])
 
+
 def test_bad_pressure_units(temperature, pressure_or_temperature_bad_units):
     """Check that if the pressure cube doesn't have the correct units
     then it cannot be used."""
     with pytest.raises(ValueError):
-        TemperatureSaturatedAirParcel()([temperature, pressure_or_temperature_bad_units])
+        TemperatureSaturatedAirParcel()(
+            [temperature, pressure_or_temperature_bad_units]
+        )

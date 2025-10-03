@@ -149,14 +149,18 @@ class TemperatureSaturatedAirParcel(BasePlugin):
         for cube in cubes:
             cube_standard_name = cube.standard_name
             cube_name = cube.name()
-            if ((cube_standard_name is not None and cube_standard_name.find("temperature") != -1) or
-            (cube_name is not None and cube_name.find("temperature") != -1)):
+            if (
+                cube_standard_name is not None
+                and cube_standard_name.find("temperature") != -1
+            ) or (cube_name is not None and cube_name.find("temperature") != -1):
                 if cube.units != "K":
                     cube.convert_units("K")
                 cube.rename("air_temperature")
                 self.temperature = cube
-            if ((cube_standard_name is not None and cube_standard_name.find("pressure") != -1) or
-            (cube_name is not None and cube_name.find("pressure") != -1)):
+            if (
+                cube_standard_name is not None
+                and cube_standard_name.find("pressure") != -1
+            ) or (cube_name is not None and cube_name.find("pressure") != -1):
                 if cube.units != "Pa":
                     cube.convert_units("Pa")
                 cube.rename("surface_air_pressure")
