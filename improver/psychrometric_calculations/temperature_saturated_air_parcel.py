@@ -143,9 +143,24 @@ class TemperatureSaturatedAirParcel(BasePlugin):
 
         """
         cubes = as_cubelist(cubes)
-        (self.temperature, self.pressure) = CubeList(cubes).extract(
-            ["air_temperature", "surface_air_pressure"]
-        )
+        # Look for temperature and pressure cubes in the input list, and rename
+        # them to air_temperature and surface_air_pressure since these names are
+        # expected by the psychrometric calculations.
+        for cube in cubes:
+            cube_standard_name = cube.standard_name
+            cube_name = cube.name()
+            if ((cube_standard_name is not None and cube_standard_name.find("temperature") != -1) or
+            (cube_name is not None and cube_name.find("temperature") != -1)):
+                if cube.units != "K":
+                    cube.convert_units("K")
+                cube.rename("air_temperature")
+                self.temperature = cube
+            if ((cube_standard_name is not None and cube_standard_name.find("pressure") != -1) or
+            (cube_name is not None and cube_name.find("pressure") != -1)):
+                if cube.units != "Pa":
+                    cube.convert_units("Pa")
+                cube.rename("surface_air_pressure")
+                self.pressure = cube
         parcel_temp_at_pressure_level = self.parcel_temp_after_ascent()
         temp_cube = self.make_temperature_cube(parcel_temp_at_pressure_level)
         return temp_cube
