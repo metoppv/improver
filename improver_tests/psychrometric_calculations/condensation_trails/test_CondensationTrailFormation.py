@@ -557,3 +557,63 @@ def test_calculate_contrail_persistency_shapes(
         nonpersistent_result, nonpersistent_expected, strict=True
     )
     np.testing.assert_array_equal(persistent_result, persistent_expected, strict=True)
+
+    
+@pytest.mark.parametrize(
+    "nonpersistent_contrails, persistent_contrails, categorical_expected",
+    [
+        (
+            np.array([False, True, False], dtype=bool),
+            np.array([False, False, True], dtype=bool),
+            np.array([0, 1, 2]),
+        ),
+        (
+            np.array([[False, True], [True, False]], dtype=bool),
+            np.array([[False, False], [False, True]], dtype=bool),
+            np.array([[0, 1], [1, 2]]),
+        ),
+        (
+            np.array([[[False]], [[True]], [[False]]], dtype=bool),
+            np.array([[[False]], [[False]], [[True]]], dtype=bool),
+            np.array([[[0]], [[1]], [[2]]]),
+        ),
+        (
+            np.array(
+                [
+                    [[[False, False, True]], [[True, True, False]]],
+                    [[[False, False, True]], [[True, True, False]]],
+                ],
+                dtype=bool,
+            ),
+            np.array(
+                [
+                    [[[False, False, False]], [[False, False, True]]],
+                    [[[True, True, False]], [[False, False, False]]],
+                ],
+                dtype=bool,
+            ),
+            np.array([[[[0, 0, 1]], [[1, 1, 2]]], [[[2, 2, 1]], [[1, 1, 0]]]]),
+        ),
+    ],
+)
+def test_categorical_array_output(
+    nonpersistent_contrails: np.array,
+    persistent_contrails: np.array,
+    categorical_expected: np.array,
+) -> None:
+    """
+    Given two boolean arrays of non-persistent and persistent contrails, check that the expected categorical (integer)
+    array can be constructed.
+
+    Args:
+        nonpersistent_contrails (np.array): Boolean data of non-persistent contrails.
+        persistent_contrails (np.array): Boolean data of persistent contrails.
+        categorical_expected (np.array): Categorical (integer) array, where 0 = no contrails, 1 = non-persistent
+            contrails and 2 = persistent contrails.
+    """
+
+    plugin = CondensationTrailFormation()
+    categorical_result = plugin._categorical_from_boolean(
+        nonpersistent_contrails, persistent_contrails
+    )
+    np.testing.assert_array_equal(categorical_result, categorical_expected)
