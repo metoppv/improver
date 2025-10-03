@@ -161,6 +161,12 @@ class TemperatureSaturatedAirParcel(BasePlugin):
                     cube.convert_units("Pa")
                 cube.rename("surface_air_pressure")
                 self.pressure = cube
+
+        if self.temperature is None:
+            raise ValueError("Cube with 'temperature' in its name is required")
+        if self.pressure is None:
+            raise ValueError("Cube with 'pressure' in its name is required")
+
         parcel_temp_at_pressure_level = self.parcel_temp_after_ascent()
         temp_cube = self.make_temperature_cube(parcel_temp_at_pressure_level)
         return temp_cube
