@@ -4,7 +4,7 @@ The local vapour pressure sits above the tangent to the saturated
 vapour pressure curve,
 
 .. math::
-    C_1 - e_{local} - mT > I_{critical} \ \ \text{,}
+    C_1 = e_{local} - mT > I_{critical} \ \ \text{,}
 
 where :math:`e_{local}` is the local vapour pressure, :math:`m` is 
 the engine mixing ratio, :math:`T` is the ambient air temperature, 
