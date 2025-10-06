@@ -226,59 +226,77 @@ def test_find_local_vapour_pressure(
 
 
 @pytest.mark.parametrize(
-    "local_vapour_pressure, engine_mixing_ratio, temperature, critical_intercept, critical_temperature, svp_ice, forms_contrail, is_persistent",
+    "engine_mixing_ratio, critical_intercept, temperature, critical_temperature, local_vapour_pressure, svp_ice, forms_contrail, is_persistent",
     [
-        (1e3, 0, 2e2, 0, 1e3, 0, True, True),
-        (1e3, 0, 3e2, 0, 1e3, 0, True, False),
-        (1e3, 0, 3e2, 0, 1e3, 1e5, True, False),
-        (1e3, 0, 2e2, 0, 1e3, 1e5, True, False),
-        (1e3, 0, 3e2, 0, 0, 0, False, False),
-        (0, 1, 2e2, 0, 1000, -1, False, False),
-        (0, 1, 2e2, 0, 0, -1, False, False),
-        (0, 1, 2e2, 0, 0, 1e5, False, False),
-        (0, 1, 2e2, 0, 0, 1e5, False, False),
-        (0, 1, 3e2, 0, 0, -1, False, False),
-        (1000, 0, 3e2, 0, 0, 0, False, False),
-        (1000, 0, 2e2, 0, 0, 1e5, False, False),
-        (0, 1, 3e2, 0, 1000, -1, False, False),
-        (0, 1, 3e2, 0, 1000, 1e5, False, False),
-        (0, 1, 2e2, 0, 0, -1, False, False),
-        (1000, 0, 2e2, 0, 0, 0, False, False),
+        # air temperature = 212 K, increase relative humidity 1 -> 20 -> 40 -> 60 %
+        (0.482, -101.36, 212, 210.90, 0.00924, 0.924, False, False),
+        (0.482, -101.36, 212, 211.51, 0.531, 0.924, False, False),
+        (0.482, -101.36, 212, 212.29, 10.9, 0.924, True, True),
+        (0.482, -101.36, 212, 213.28, 117, 0.924, True, True),
+        # relative humidity = 10 %, increase air temperature from 208 K to 214 K
+        (0.482, -101.36, 208, 211.18, 0.022, 0.529, True, False),
+        (0.482, -101.36, 210, 211.18, 0.022, 0.701, True, False),
+        (0.482, -101.36, 212, 211.18, 0.022, 0.924, False, False),
+        (0.482, -101.36, 214, 211.18, 0.022, 1.21, False, False),
+        # arbitrary, unphysical values
+        (0, 0, 100, 300, 1, 0.01, True, True),
+        (0, 0, 280, 300, 0.01, 0.01, True, False),
+        (0, 0, 200, 300, 10, 10, True, False),
+        (0, 0, 280, 300, 10, 10, True, False),
+        (0, 0, 300, 0, 1, 0.01, False, False),
+        (1, 0, 200, 100, 0, -0.01, False, False),
+        (1, 0, 200, 0, 0, -0.01, False, False),
+        (1, 0, 200, 0, 0, 10, False, False),
+        (1, 0, 200, 0, 0, 10, False, False),
+        (1, 0, 300, 0, 0, -0.01, False, False),
+        (0, 0, 300, 0, 1, 0.01, False, False),
+        (0, 0, 200, 0, 1, 10, False, False),
+        (1, 0, 300, 100, 0, -0.01, False, False),
+        (1, 0, 300, 100, 0, 10, False, False),
+        (1, 0, 200, 0, 0, -0.01, False, False),
+        (0, 0, 200, 0, 1, 0.01, False, False),
     ],
 )
 def test_calculate_contrail_persistency_combinations(
-    local_vapour_pressure: float,
     engine_mixing_ratio: float,
-    temperature: float,
     critical_intercept: float,
+    temperature: float,
     critical_temperature: float,
+    local_vapour_pressure: float,
     svp_ice: float,
     forms_contrail: bool,
     is_persistent: bool,
 ) -> None:
     """
     Test that the contrail persistency calculation returns the expected pair of boolean arrays
-    for each combination of formation conditions.
+    for each combination of formation conditions. The first 8 sets of input parameters are physical
+    values that could exist in a real system, whereas the final 16 sets are arbitrary and unphysical.
 
-    There are 16 sets of (mostly unphysical) input parameters to this test, which correspond to
-    the 2^4=16 unique combinations of the four conditions required for contrail formation.
+    In the first 4 sets, the relative humidity is increased from 1 % to 60 %, whilst the air temperature
+    is held constant at 212 K. This causes the critical temperature to increase.
+
+    In the next 4 sets, the air temperature is increased from 208 K to 214 K, whilst the relative
+    humidity is held constant at 10 %. This causes the saturated vapour pressure to increase.
+
+    The final 16 sets correspond to the 2^4=16 unique combinations of the four conditions required for
+    contrail formation.
 
     In the context of this test, the elements within a given output array are identical, i.e.
     all 'True' or all 'False'. However, the two arrays may differ.
 
     Args:
-        local_vapour_pressure (float): Local vapour pressure, calculated with respect to water (Pa).
         engine_mixing_ratio (float): Engine mixing ratio (Pa/K).
-        temperature (float): Ambient air temperature (K).
         critical_intercept (float): Critical intercept threshold (Pa).
+        temperature (float): Ambient air temperature (K).
         critical_temperature (float): Critical temperature threshold (K).
+        local_vapour_pressure (float): Local vapour pressure, calculated with respect to water (Pa).
         svp_ice (float): Saturated vapour pressure, calculated with respect to ice (Pa).
         forms_contrails (bool): True if any contrail will form.
         is_persistent (bool): True only if a persistent contrail will form.
     """
-    # plugin output arrays will have expected shape: (3, 2, 5, 4)
-    contrail_factors = np.array([3e-5, 3.4e-9, 3.9e-9])
-    pressure_levels = np.array([1e4, 1e3])
+    # plugin output arrays will have expected shape: (1, 1, 5, 4)
+    contrail_factors = np.array([3e-5])
+    pressure_levels = np.array([1e4])
     temperature = np.full((5, 4), temperature)
     temperature_on_pressure_levels = np.broadcast_to(
         temperature, pressure_levels.shape + temperature.shape
