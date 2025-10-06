@@ -233,11 +233,11 @@ def test_find_local_vapour_pressure(
         (0.482, -101.36, 212, 211.51, 0.531, 0.924, False, False),
         (0.482, -101.36, 212, 212.29, 10.9, 0.924, True, True),
         (0.482, -101.36, 212, 213.28, 117, 0.924, True, True),
-        # relative humidity = 10 %, increase air temperature from 208 K to 214 K
-        (0.482, -101.36, 208, 211.18, 0.022, 0.529, True, False),
-        (0.482, -101.36, 210, 211.18, 0.022, 0.701, True, False),
-        (0.482, -101.36, 212, 211.18, 0.022, 0.924, False, False),
-        (0.482, -101.36, 214, 211.18, 0.022, 1.21, False, False),
+        # increase air temperature from 208 K to 214 K, relative humidity = 10 %,
+        (0.482, -101.36, 208, 211.18, 0.0529, 0.529, True, False),
+        (0.482, -101.36, 210, 211.18, 0.0701, 0.701, True, False),
+        (0.482, -101.36, 212, 211.18, 0.0924, 0.924, False, False),
+        (0.482, -101.36, 214, 211.18, 0.121, 1.21, False, False),
         # arbitrary, unphysical values
         (0, 0, 100, 300, 1, 0.01, True, True),
         (0, 0, 280, 300, 0.01, 0.01, True, False),
@@ -273,10 +273,10 @@ def test_calculate_contrail_persistency_combinations(
     values that could exist in a real system, whereas the final 16 sets are arbitrary and unphysical.
 
     In the first 4 sets, the relative humidity is increased from 1 % to 60 %, whilst the air temperature
-    is held constant at 212 K. This causes the critical temperature to increase.
+    is held constant at 212 K. This causes the local vapour pressure and critical temperature to increase.
 
     In the next 4 sets, the air temperature is increased from 208 K to 214 K, whilst the relative
-    humidity is held constant at 10 %. This causes the saturated vapour pressure to increase.
+    humidity is held constant at 10 %. This causes the local and saturated vapour pressures to increase.
 
     The final 16 sets correspond to the 2^4=16 unique combinations of the four conditions required for
     contrail formation.
