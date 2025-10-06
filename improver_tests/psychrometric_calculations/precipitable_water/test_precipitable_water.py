@@ -10,7 +10,7 @@ import iris.cube
 import numpy as np
 import pytest
 
-from improver.psychrometric_calculations.total_precipitable_water import (
+from improver.psychrometric_calculations.precipitable_water import (
     PrecipitableWater,
 )
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
@@ -59,6 +59,7 @@ def test_precipitable_water_basic(mock_cube):
         == "Global Enhanced Model Forecast on Global 10 km Standard Grid"
     )
     assert result.data.shape == mock_cube.data.shape
+    assert result.data.dtype == np.float32
 
 
 def test_metadata_for_ukv_model(mock_cube):
@@ -145,7 +146,7 @@ def test_process_with_pressure_coord(mock_cube):
     plugin = PrecipitableWater()
     result = plugin.process(mock_cube)
     assert isinstance(result, iris.cube.Cube)
-    assert result.coord("pressure") is not None
+    result.coord("pressure")
 
 
 def test_process_raises_if_pressure_coord_missing(mock_cube):

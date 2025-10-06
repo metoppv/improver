@@ -2,7 +2,7 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""Module to generate total precipitable water"""
+"""Module to generate precipitable water"""
 
 import iris
 import numpy as np
@@ -19,20 +19,15 @@ def ensure_no_float_64(cube: Cube) -> Cube:
     """
     if cube.data.dtype == np.float64:
         cube.data = cube.data.astype(np.float32)
-    for coord in cube.coords():
-        if coord.points.dtype == np.float64:
-            coord.points = coord.points.astype(np.float32)
-        if coord.bounds is not None and coord.bounds.dtype == np.float64:
-            coord.bounds = coord.bounds.astype(np.float32)
     return cube
 
 
 class PrecipitableWater(BasePlugin):
     """
-    Plugin to calculate total precipitable water from a humidity mixing ratio cube.
+    Plugin to calculate precipitable water from a humidity mixing ratio cube.
 
     This plugin integrates the humidity mixing ratio over pressure levels to compute
-    the total precipitable water (TPW) in metres. It assumes pressure levels are in
+    the precipitable water in metres. It assumes pressure levels are in
     Pascals and uses constants for gravity and water density to convert the result
     into liquid water equivalent thickness.
     """
@@ -62,27 +57,26 @@ class PrecipitableWater(BasePlugin):
 
     @staticmethod
     def calculate_precipitable_water(
-        sorted_data: ndarray, reshaped_delta_p: ndarray
+        humidity_data: ndarray, delta_p: ndarray
     ) -> ndarray:
         """
-        Calculate total precipitable water using sorted humidity data and pressure thickness.
+        Calculate precipitable water using sorted humidity data and pressure thickness.
 
         Args:
-            sorted_data:
+            humidity_data:
                 Humidity mixing ratio data sorted by pressure levels.
-            reshaped_delta_p:
+            delta_p:
                 Pressure thickness values reshaped to match the data dimensions.
 
         Returns:
-            Array of total precipitable water values in metres.
+            Array of precipitable water values in metres.
         """
         pw_data = (
-            sorted_data
-            * reshaped_delta_p
+            humidity_data
+            * delta_p
             / (EARTH_SURFACE_GRAVITY_ACCELERATION * WATER_DENSITY)
         )
-        total_pw_data = np.maximum(pw_data, 0)
-        return total_pw_data
+        return pw_data
 
     def calculate_layer_bounds(self, sorted_pressure: ndarray) -> ndarray:
         """
@@ -110,14 +104,14 @@ class PrecipitableWater(BasePlugin):
 
     def process(self, humidity_mixing_ratio_cube: Cube) -> Cube:
         """
-        Main method to calculate total precipitable water.
+        Calculate precipitable water on pressure levels.
 
         Args:
             humidity_mixing_ratio_cube:
                 Cube containing humidity mixing ratio data with pressure levels.
 
         Returns:
-            Cube containing total precipitable water in metres, with updated metadata.
+            Cube containing precipitable water in metres, with updated metadata, on pressure levels.
         """
         cube = humidity_mixing_ratio_cube.copy()
 
@@ -133,15 +127,15 @@ class PrecipitableWater(BasePlugin):
 
         layer_bounds = self.calculate_layer_bounds(pressure_levels)
         reshaped_delta_p = self.calculate_pressure_thickness(layer_bounds, data)
-        total_pw_data = self.calculate_precipitable_water(data, reshaped_delta_p)
+        pw_data = self.calculate_precipitable_water(data, reshaped_delta_p)
 
-        total_pw_cube = cube.copy(data=total_pw_data)
-        total_pw_cube.rename("total_precipitable_water")
-        total_pw_cube.units = "m"
-        total_pw_cube.standard_name = "lwe_thickness_of_precipitation_amount"
-        total_pw_cube.attributes = cube.attributes.copy()
+        pw_cube = cube.copy(data=pw_data)
+        pw_cube.rename("precipitable_water")
+        pw_cube.units = "m"
+        pw_cube.standard_name = "lwe_thickness_of_precipitation_amount"
+        pw_cube.attributes = cube.attributes.copy()
 
         # Enforce float32 precision to avoid dtype errors in downstream processing
-        total_pw_cube = ensure_no_float_64(total_pw_cube)
+        pw_cube = ensure_no_float_64(pw_cube)
 
-        return total_pw_cube
+        return pw_cube
