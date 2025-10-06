@@ -132,15 +132,19 @@ class CondensationTrailFormation(BasePlugin):
             self.critical_intercepts, self.critical_temperatures.shape
         )
 
+        # Condition 1
         vapour_pressure_above_threshold = (
             self.local_vapour_pressure[np.newaxis]
             - engine_mixing_ratios_reshaped * self.temperature[np.newaxis]
             > critical_intercepts_reshaped
         )
+        # Condition 2
         temperature_below_threshold = (
             self.temperature[np.newaxis] < self.critical_temperatures
         )
+        # Condition 3
         air_is_saturated = self.local_vapour_pressure > saturated_vapour_pressure_ice
+        # Condition 4
         temperature_below_freezing = self.temperature < 273.15
 
         persistent_contrails = (
