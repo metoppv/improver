@@ -8,6 +8,8 @@ from typing import List, Optional, Tuple
 
 import numpy as np
 import pytest
+from iris.coords import DimCoord
+from iris.cube import Cube
 
 from improver.psychrometric_calculations.condensation_trails import (
     CondensationTrailFormation,
@@ -617,3 +619,43 @@ def test_categorical_array_output(
         nonpersistent_contrails, persistent_contrails
     )
     np.testing.assert_array_equal(categorical_result, categorical_expected)
+
+
+@pytest.mark.parametrize(
+    "categorical_array",
+    [
+        np.array([0, 1, 2]),
+    ],
+)
+def test_categorical_cube_output(categorical_array) -> None:
+    """
+    Test that the expected categorical (integer) cube can be constructed.
+    """
+    plugin = CondensationTrailFormation()
+
+    pressure_levels = np.array([1e4, 1e3])
+    y_points = np.linspace(0, 10, 6)
+    x_points = np.linspace(0, 10, 8)
+
+    temperature_data = np.full(
+        pressure_levels.shape + y_points.shape + x_points.shape, 200
+    )
+
+    temperature_dim_coords = [
+        (DimCoord(pressure_levels, var_name="pressure"), 0),
+        (DimCoord(y_points, var_name="latitude"), 1),
+        (DimCoord(x_points, var_name="longitude"), 2),
+    ]
+
+    temperature_cube = Cube(
+        var_name="temperature",
+        dim_coords_and_dims=temperature_dim_coords,
+        data=temperature_data,
+    )
+
+    categorical_cube = plugin._create_contrail_formation_cube(
+        categorical_array, temperature_cube
+    )
+
+    print(categorical_cube)
+    assert False
