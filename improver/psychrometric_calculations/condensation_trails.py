@@ -7,18 +7,25 @@
 from typing import Tuple, Union
 
 import numpy as np
+from iris.coords import DimCoord
 from iris.cube import Cube, CubeList
 
 from improver import BasePlugin
+from improver.categorical.utilities import categorical_attributes
 from improver.constants import EARTH_REPSILON
 from improver.generate_ancillaries.generate_svp_derivative_table import (
     SaturatedVapourPressureDerivativeTable,
     SaturatedVapourPressureTable,
 )
+from improver.metadata.utilities import (
+    create_new_diagnostic_cube,
+    generate_mandatory_attributes,
+)
 from improver.psychrometric_calculations.psychrometric_calculations import (
     calculate_svp_in_air,
 )
 from improver.utilities.common_input_handle import as_cubelist
+from improver.utilities.cube_manipulation import add_coordinate_to_cube
 
 
 class CondensationTrailFormation(BasePlugin):
@@ -316,6 +323,52 @@ class CondensationTrailFormation(BasePlugin):
         categorical = np.where(np_contrails & ~p_contrails, 1, 0)
         categorical = np.where(~np_contrails & p_contrails, 2, categorical)
         return categorical
+
+    def _create_contrail_formation_cube(
+        self, categorical_data: np.ndarray, template_cube: Cube
+    ) -> Cube:
+        """
+        Create a contrail formation cube, populated with categorical data.
+
+        Args:
+            categorical_data: Categorical (integer) data of contrail formation. Leading axes are [contrail factor,
+                pressure level].
+            template_cube: Cube from which to derive dimensions, coordinates and mandatory attributes.
+
+        Returns:
+            Categorical cube of contrail formation, where 0 = no contrails, 1 = non-persistent contrails and
+                2 = persistent contrails. Has the same shape as categorical_data.
+        """
+        # https://improver.readthedocs.io/en/stable/improver.utilities.cube_manipulation.html
+        contrail_factor_coord = DimCoord(
+            points=self._engine_contrail_factors, var_name="engine_contrail_factor"
+        )
+        template_cube = add_coordinate_to_cube(
+            template_cube, new_coord=contrail_factor_coord
+        )
+
+        # https://improver.readthedocs.io/en/stable/improver.metadata.utilities.html
+        mandatory_attributes = generate_mandatory_attributes([template_cube])
+
+        # https://improver.readthedocs.io/en/stable/improver.categorical.utilities.html#improver.categorical.utilities.categorical_attributes
+        decision_tree = {
+            "0": {"leaf": "None"},
+            "1": {"leaf": "Non-persistent"},
+            "2": {"leaf": "Persistent"},
+        }
+        optional_attributes = categorical_attributes(decision_tree, "contrail_type")
+
+        # https://improver.readthedocs.io/en/stable/improver.metadata.utilities.html
+        contrails_cube = create_new_diagnostic_cube(
+            name="contrails_formation",
+            units="1",
+            template_cube=template_cube,
+            mandatory_attributes=mandatory_attributes,
+            optional_attributes=optional_attributes,
+            data=categorical_data,
+            dtype=np.uint8,
+        )
+        return contrails_cube
 
     def process_from_arrays(
         self,
