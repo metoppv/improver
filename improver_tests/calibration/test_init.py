@@ -666,8 +666,8 @@ def test_get_common_wmo_ids(situation):
     assert forecast_result.coord("wmo_id").points.tolist() == expected
     assert truth_result.coord("wmo_id").points.tolist() == expected
     assert additional_predictor_result[0].coord("wmo_id").points.tolist() == expected
-    
-    
+
+
 @pytest.mark.parametrize(
     "cycletime,forecast_period,training_length,expected",
     [

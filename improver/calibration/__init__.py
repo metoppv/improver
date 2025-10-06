@@ -423,8 +423,8 @@ def get_common_wmo_ids(forecast_cube, truth_cube, additional_predictors):
         [ap.extract(constr) for ap in additional_predictors]
     )
     return forecast_cube, truth_cube, additional_predictors
-  
-  
+
+
 def get_training_period_cycles(
     cycletime: str, forecast_period: Union[int, str], training_length: int
 ):
