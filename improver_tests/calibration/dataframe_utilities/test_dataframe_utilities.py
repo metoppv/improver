@@ -977,7 +977,7 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         self.forecast_df = self.forecast_df.replace(
             {"percentile": self.percentiles[0]}, 10.0
         )
-        msg = "The forecast percentiles can not be considered as quantiles"
+        msg = "Forecast percentiles must be equally spaced."
         with self.assertRaisesRegex(ValueError, msg):
             forecast_and_truth_dataframes_to_cubes(
                 self.forecast_df,

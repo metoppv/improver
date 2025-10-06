@@ -118,7 +118,7 @@ def process(
 
     import pandas as pd
 
-    from improver.calibration import get_common_wmo_ids
+    from improver.calibration import get_common_wmo_ids, get_training_period_cycles
     from improver.calibration.dataframe_utilities import (
         forecast_and_truth_dataframes_to_cubes,
     )
@@ -127,14 +127,7 @@ def process(
     )
 
     # Load forecasts from parquet file filtering by diagnostic and blend_time.
-    forecast_period_td = pd.Timedelta(int(forecast_period), unit="seconds")
-    cycletimes = pd.date_range(
-        end=pd.Timestamp(cycletime)
-        - pd.Timedelta(1, unit="days")
-        - forecast_period_td.floor("D"),
-        periods=int(training_length),
-        freq="D",
-    )
+    cycletimes = get_training_period_cycles(cycletime, forecast_period, training_length)
     filters = [[("diagnostic", "==", diagnostic), ("blend_time", "in", cycletimes)]]
     forecast_df = pd.read_parquet(forecast, filters=filters)
 

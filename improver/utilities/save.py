@@ -10,6 +10,7 @@ from typing import Optional, Union
 
 import cf_units
 import iris
+import iris.fileformats
 from iris.cube import Cube, CubeList
 
 from improver.metadata.check_datatypes import check_mandatory_standards
