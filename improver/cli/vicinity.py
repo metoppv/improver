@@ -10,7 +10,12 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(cube: cli.inputcube, land_mask: cli.inputcube = None, *, vicinity: cli.comma_separated_list = None):
+def process(
+    cube: cli.inputcube,
+    land_mask: cli.inputcube = None,
+    *,
+    vicinity: cli.comma_separated_list = None,
+):
     """Module to apply vicinity processing to data.
 
     Calculate the maximum value within a vicinity radius about each point
@@ -47,4 +52,6 @@ def process(cube: cli.inputcube, land_mask: cli.inputcube = None, *, vicinity: c
     """
     from improver.utilities.spatial import OccurrenceWithinVicinity
 
-    return OccurrenceWithinVicinity(radii=vicinity, land_mask_cube=land_mask).process(cube)
+    return OccurrenceWithinVicinity(radii=vicinity, land_mask_cube=land_mask).process(
+        cube
+    )
