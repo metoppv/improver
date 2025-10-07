@@ -37,14 +37,14 @@ def process(
     Args:
         cube (iris.cube.Cube):
             A cube containing data to which a vicinity is to be applied.
-        vicinity (list of float / int):
-            List of distances in metres used to define the vicinities within
-            which to search for an occurrence. Each vicinity provided will
-            lead to a different gridded field.
         land_mask (iris.cube.Cube):
             Binary land-sea mask data. True for land-points, False for sea.
             Restricts in-vicinity processing to only include points of a
             like mask value.
+        vicinity (list of float / int):
+            List of distances in metres used to define the vicinities within
+            which to search for an occurrence. Each vicinity provided will
+            lead to a different gridded field.
 
     Returns:
         iris.cube.Cube:

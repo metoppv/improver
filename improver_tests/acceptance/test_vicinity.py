@@ -45,7 +45,7 @@ def test_masked_vicinity(tmp_path):
     input_path = kgo_dir / "input.nc"
     mask_path = kgo_dir / "landmask.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, mask_path, "--vicinity", "10000", "--output", f"{output_path}"]
+    args = [input_path, mask_path, "--vicinity", "50000", "--output", f"{output_path}"]
 
     run_cli(args)
     acc.compare(output_path, kgo_path)
