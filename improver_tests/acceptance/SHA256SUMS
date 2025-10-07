@@ -1,3 +1,4 @@
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ./---.
 7b09ea9c0d798eb9d95496262f1b2328ee64b0ef0664d063fc540450b88bc880  ./aggregate-reliability-tables/basic/collapse_lat_lon_kgo.nc
 a3c1d9f50342b21f0b1949c0c1717219f09c2044f2338fec672442b479b0de1e  ./aggregate-reliability-tables/basic/multiple_tables_kgo.nc
 c0c38c5b1ba16fd5f7310b6d2ee0ab9d8b6bcdb3b23c8475193eefae1eb14a17  ./aggregate-reliability-tables/basic/reliability_table.nc
@@ -947,6 +948,7 @@ eb6f7c3f646c4c51a0964b9a19367f43d6e3762ff5523b982cfaf7bf2610f091  ./temporal-int
 e3b8f51a0be52c4fead55f95c0e3da29ee3d93f92deed26314e60ad43e8fd5ef  ./temporal-interpolate/uv/20181220T1200Z-PT0024H00M-uv_index.nc
 ff883af8e62213f87d9d10704776d9bf6b1ec57fcdf0a77dd18e42ff33c97772  ./temporal-interpolate/uv/kgo_t1.nc
 87720d24fc26e024541e7c513d1919b8c90c5c798ed8d38bc604df1366fd308c  ./temporal-interpolate/uv/kgo_t1_daynight.nc
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ./threshold-interpolation/---.
 2716f5f8207f602e1e0f47ac8516e46cbc5a15bb69f7758d011194c3b937390a  ./threshold-interpolation/extra_thresholds_kgo.nc
 022657626d7ae4608781c390ca9c30d9cbb949d71bedf74a2687228f5964b3e9  ./threshold-interpolation/input.nc
 12acca08e123437e07ad4e3aab81cc2fc0a3cfb72b5cb2fd06343bd5beb13f00  ./threshold-interpolation/input_realization.nc
@@ -1012,9 +1014,13 @@ e48c3b07bd14214a1a10c0bbf1e0acdf54cfedf93b2c6d766f594ce83a45c2b8  ./uv-index/bas
 b794823053a282e758f7eb8625867d497e55cc3757862a7be504fcbd7451bc32  ./vertical-updraught/precip_rate_max.nc
 064f9d2861e6312848a7ba24893b9b8ab0271e4b99793cb0d57fdda732931292  ./vertical-updraught/with_id_attr/kgo.nc
 d9f495774f4810e1631267bb4f40376a3c4b81170f2e8e5b5c051bc38dc4deeb  ./vertical-updraught/without_id_attr/kgo.nc
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ./vicinity/---.
+95afb2cca6460628af14766f076a758d4fe2355a879eb86c10c35600f0e5f017  ./vicinity/input.nc
 ce66f6de167ddba010a455127345a5cd5e70146906a6d7c68e765befcdbea590  ./vicinity/kgo_10000.nc
 43ed1afda7a6b22959982fe463a59124f4b1638dd0e43426b66db62e77c65f6b  ./vicinity/kgo_50000.nc
+19e6cde9fb739458cd50660c1594ab2c7742ee6f9c117acf255f9236309624e3  ./vicinity/kgo_masked.nc
 64ed1e7056ad529fd6fd2dd58517f625c592b73441aa0f6352cf98a1a3714ba2  ./vicinity/kgo_multiple_radii.nc
+5635ef28f038b262e1c36878583e7b80fdf85ee8acd9c972ed82ebce3670c909  ./vicinity/landmask.nc
 62310a69ab566416d0ef5c847e8ea57a9f9e5ded9771c313732549fe4e2df6c9  ./vicinity/lightning.nc
 ecb248c8c7aa906e7fb29bdecd5ddfe553252acd9a8a9a4f16c373cead2996e0  ./visibility-combine-cloud-base/gridded/cloud_base_ground.nc
 76bb402b849751f73dc873b321e7577da0c32ad6d1797ee8882a8cac4f69fc67  ./visibility-combine-cloud-base/gridded/kgo.nc
