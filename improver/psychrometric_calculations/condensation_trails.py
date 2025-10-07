@@ -233,6 +233,69 @@ class CondensationTrailFormation(BasePlugin):
                 )
             )
 
+    def _calculate_contrail_persistency(
+        self,
+        saturated_vapour_pressure_ice: np.ndarray,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Apply four conditions to determine whether non-persistent or persistent contrails will form.
+
+        .. include:: extended_documentation/psychrometric_calculations/condensation_trails/formation_conditions.rst
+
+        Args:
+            saturated_vapour_pressure_ice: The saturated vapour pressure with respect to ice, on pressure
+                levels. Pressure is the leading axis (Pa).
+
+        Returns:
+            Two boolean arrays that state whether 'non-persistent' or 'persistent' contrails will form, respectively.
+            Array axes are [contrail factor, pressure level, latitude, longitude].
+        """
+
+        def reshape_and_broadcast(arr, target_shape):
+            """Broadcast an input array to a target shape. Returns a view."""
+            num_missing_dims = len(target_shape) - arr.ndim
+            if num_missing_dims < 0:
+                raise ValueError("Target shape has fewer dimensions than input array.")
+
+            # reshape input array by adding trailing singleton dimensions
+            reshaped = arr.reshape(arr.shape + (1,) * num_missing_dims)
+            return np.broadcast_to(reshaped, target_shape)
+
+        engine_mixing_ratios_reshaped = reshape_and_broadcast(
+            self.engine_mixing_ratios, self.critical_temperatures.shape
+        )
+        critical_intercepts_reshaped = reshape_and_broadcast(
+            self.critical_intercepts, self.critical_temperatures.shape
+        )
+
+        # Condition 1
+        vapour_pressure_above_threshold = (
+            self.local_vapour_pressure[np.newaxis]
+            - engine_mixing_ratios_reshaped * self.temperature[np.newaxis]
+            > critical_intercepts_reshaped
+        )
+        # Condition 2
+        temperature_below_threshold = (
+            self.temperature[np.newaxis] < self.critical_temperatures
+        )
+        # Condition 3
+        air_is_saturated = self.local_vapour_pressure > saturated_vapour_pressure_ice
+        # Condition 4
+        temperature_below_freezing = self.temperature < 273.15
+
+        nonpersistent_contrails = (
+            vapour_pressure_above_threshold
+            & temperature_below_threshold
+            & ~(air_is_saturated & temperature_below_freezing)
+        )
+        persistent_contrails = (
+            vapour_pressure_above_threshold
+            & temperature_below_threshold
+            & air_is_saturated
+            & temperature_below_freezing
+        )
+        return nonpersistent_contrails, persistent_contrails
+
     def process_from_arrays(
         self,
         temperature: np.ndarray,
