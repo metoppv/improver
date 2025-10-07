@@ -23,7 +23,7 @@ TOLERANCE = str(1e-4)
 def test_gam_features_on_cube(tmp_path):
     """
     Test estimate-samos-gams-coefficients for diagnostic with assumed
-    normal distribution
+    normal distribution.
     """
     source_emos_dir = acc.kgo_root() / "estimate-emos-coefficients/normal"
     history_path = source_emos_dir / "history/*.nc"
@@ -56,14 +56,14 @@ def test_gam_features_on_cube(tmp_path):
     # Compare the output with the known good output. This
     # comparison only ensures that the string version of the
     # pickled objects are the same, not the actual objects as
-    # there is no function to compare the Gam class objects.
+    # there is no function to compare the GAM class objects.
     acc.compare(output_path, kgo_path, file_type="generic_pickle")
 
 
 def test_gam_cube_gam_features(tmp_path):
     """
     Test estimate-samos-gams-coefficients for diagnostic with assumed
-    normal distribution and additional features provided as a cube
+    normal distribution and additional features provided as a cube.
     """
     source_emos_dir = acc.kgo_root() / "estimate-emos-coefficients/normal"
     history_path = source_emos_dir / "history/*.nc"
@@ -99,14 +99,14 @@ def test_gam_cube_gam_features(tmp_path):
     # Compare the output with the known good output. This
     # comparison only ensures that the string version of the
     # pickled objects are the same, not the actual objects as
-    # there is no function to compare the Gam class objects.
+    # there is no function to compare the GAM class objects.
     acc.compare(output_path, kgo_path, file_type="generic_pickle")
 
 
 def test_gam_at_sites():
     """
     Test estimate-samos-gams-coefficients for diagnostic with assumed
-    normal distribution and additional features provided as a cube
+    normal distribution and additional features provided as a cube.
     """
     source_emos_dir = acc.kgo_root() / "estimate-emos-coefficients/normal/sites"
     history_path = source_emos_dir / "history/*.nc"
@@ -138,5 +138,5 @@ def test_gam_at_sites():
     # Compare the output with the known good output. This
     # comparison only ensures that the string version of the
     # pickled objects are the same, not the actual objects as
-    # there is no function to compare the Gam class objects.
+    # there is no function to compare the GAM class objects.
     acc.compare(output_path, kgo_path, file_type="generic_pickle")

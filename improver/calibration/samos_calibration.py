@@ -242,23 +242,23 @@ class TrainGAMsForSAMOS(BasePlugin):
             model_specification:
                 A list of lists which each contain three items (in order):
                 1. a string containing a single pyGAM term; one of 'linear',
-                'spline', 'tensor', or 'factor'
+                'spline', 'tensor', or 'factor'.
                 2. a list of integers which correspond to the features to be
-                included in that term
-                3. a dictionary of kwargs to be included when defining the term
+                included in that term.
+                3. a dictionary of kwargs to be included when defining the term.
             max_iter:
                 A pyGAM argument which determines the maximum iterations allowed when
-                fitting the GAM
+                fitting the GAM.
             tol:
                 A pyGAM argument determining the tolerance used to define the stopping
-                criteria
+                criteria.
             distribution:
-                A pyGAM argument determining the distribution to be used in the model
+                A pyGAM argument determining the distribution to be used in the model.
             link:
-                A pyGAM argument determining the link function to be used in the model
+                A pyGAM argument determining the link function to be used in the model.
             fit_intercept:
                 A pyGAM argument determining whether to include an intercept term in
-                the model
+                the model.
             window_length:
                 The length of the rolling window used to calculate the mean and standard
                 deviation of the input cube when the input cube does not have a

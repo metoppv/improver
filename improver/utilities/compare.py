@@ -384,7 +384,7 @@ def compare_objects(
     Args:
         actual_var: Path to the pickled object produced by test run.
         desired_var: Path to the pickled object considered good.
-        reporter: callback function for reporting differences
+        reporter: Callback function for reporting differences.
     """
     import joblib
 

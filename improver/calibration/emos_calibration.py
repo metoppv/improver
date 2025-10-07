@@ -1900,16 +1900,18 @@ def convert_to_realizations(
         realizations_count:
             Number of pseudo-realizations to generate from the input
             forecast
-        ignore_ecc_bounds
+        ignore_ecc_bounds:
+            If True, allow percentiles from probabilities to exceed the ECC bounds
+            range.  If input is not probabilities, this is ignored.
 
     Returns:
-        Cube with pseudo-realizations
+        Cube with pseudo-realizations.
     """
     input_forecast_type = get_forecast_type(forecast)
     if not realizations_count:
         raise ValueError(
             "The 'realizations_count' argument must be defined "
-            "for forecasts provided as {}".format(input_forecast_type)
+            f"for forecasts provided as {input_forecast_type}"
         )
 
     if input_forecast_type == "probabilities":

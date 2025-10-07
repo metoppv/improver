@@ -64,7 +64,7 @@ def test_additional_features_coords(
     # Compare the output with the known good output. This
     # comparison only ensures that the string version of the
     # pickled objects are the same, not the actual objects as
-    # there is no function to compare the Gam class objects.
+    # there is no function to compare the GAM class objects.
     acc.compare(output_path, kgo_path, file_type="generic_pickle")
 
 
@@ -114,7 +114,7 @@ def test_additional_features_cube(
     # Compare the output with the known good output. This
     # comparison only ensures that the string version of the
     # pickled objects are the same, not the actual objects as
-    # there is no function to compare the Gam class objects.
+    # there is no function to compare the GAM class objects.
     acc.compare(output_path, kgo_path, file_type="generic_pickle")
 
 
@@ -165,5 +165,5 @@ def test_additional_features_cubes(
     # Compare the output with the known good output. This
     # comparison only ensures that the string version of the
     # pickled objects are the same, not the actual objects as
-    # there is no function to compare the Gam class objects.
+    # there is no function to compare the GAM class objects.
     acc.compare(output_path, kgo_path, file_type="generic_pickle")

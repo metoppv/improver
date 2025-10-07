@@ -328,7 +328,7 @@ def compare(
         or "generic_pickle".
 
     Raises:
-        ValueError: if file_type is not recognised
+        ValueError: if file_type is not recognised.
 
     Returns:
         None

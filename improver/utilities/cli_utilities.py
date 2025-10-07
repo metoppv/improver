@@ -18,9 +18,7 @@ def load_json_or_none(file_path: Optional[str]) -> Optional[Dict]:
             File path to the json file to load.
 
     Returns:
-        A dictionary loaded from a json file.
-        or
-        None
+        A dictionary loaded from a json file, or None.
     """
     metadata_dict = None
     if file_path:
@@ -38,9 +36,7 @@ def load_pickle_or_none(file_path: Optional[str]) -> Optional[list]:
             File path to the pickled object file to load.
 
     Returns:
-        A list of contained pickled objects.
-        or
-        None
+        A list of contained pickled objects, or None.
     """
     if file_path:
         with open(file_path, "rb") as input_file:

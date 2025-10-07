@@ -126,10 +126,10 @@ def process(
     forecast_cube, truth_cube = convert_parquet_to_cube(
         forecast,
         truth,
-        diagnostic=diagnostic,
-        cycletime=cycletime,
         forecast_period=forecast_period,
+        cycletime=cycletime,
         training_length=training_length,
+        diagnostic=diagnostic,
         percentiles=percentiles,
         experiment=experiment,
     )

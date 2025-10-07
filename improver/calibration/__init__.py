@@ -367,7 +367,47 @@ def split_cubes_for_samos(
     expect_emos_fields: bool = False,
 ):
     """Function to split the forecast, truth, gam additional predictors and emos
-    additional predictor cubes."""
+    additional predictor cubes.
+
+    Args:
+        cubes:
+            A list of input cubes which will be split into relevant groups.
+        gam_features:
+            A list of strings containing the names of the additional fields
+            required for the SAMOS GAMs.
+        truth_attribute:
+            An attribute and its value in the format of "attribute=value",
+            which must be present on truth cubes. If None, no truth cubes are
+            expected or returned.
+        expect_emos_coeffs:
+            If True, EMOS coefficient cubes are expected to be found in the input
+            cubes. If False, an error will be raised if any such cubes are found.
+        expect_emos_fields:
+            If True, additional EMOS fields are expected to be found in the input
+            cubes. If False, an error will be raised if any such cubes are found.
+
+    Raises:
+        IOError:
+            If EMOS coefficients cubes are found when they are not expected.
+        IOError:
+            If additional fields cubes are found which do not match the features in
+            gam_features.
+        IOError:
+            If probability cubes are provided with more than one name.
+
+    Returns:
+        - A cube containing all the historic forecasts, or None if no such cubes
+          were found.
+        - A cube containing all the truth data, or None if no such cubes were found
+          or no truth_attribute was provided.
+        - A cubelist containing all the additional fields required for the GAMs,
+          or None if no such cubes were found.
+        - A cubelist containing all the EMOS coefficient cubes, or None if no such
+          cubes were found.
+        - A cubelist containing all the additional fields required for EMOS,
+          or None if no such cubes were found.
+        - A cube containing a probability template, or None if no such cube is found.
+    """
     forecast = iris.cube.CubeList([])
     truth = iris.cube.CubeList([])
     gam_additional_fields = iris.cube.CubeList([])

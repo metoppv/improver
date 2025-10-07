@@ -528,7 +528,7 @@ def forecast_cube():
 
 @pytest.fixture
 def forecast_cubes_multi_time():
-    output_cubes = iris.cube.CubeList()
+    output_cubes = CubeList()
     for day in [10, 11]:
         cube = set_up_variable_cube(
             data=np.array(
@@ -546,7 +546,7 @@ def forecast_cubes_multi_time():
 
 @pytest.fixture
 def probability_forecast_cubes_multi_time():
-    output_cubes = iris.cube.CubeList()
+    output_cubes = CubeList()
     for day in [10, 11]:
         prob_template_cube = set_up_probability_cube(
             data=np.ones((2, 3, 3), dtype=np.float32),
@@ -562,7 +562,7 @@ def probability_forecast_cubes_multi_time():
 
 @pytest.fixture
 def truth_cubes_multi_time():
-    output_cubes = iris.cube.CubeList()
+    output_cubes = CubeList()
     for day in [10, 11]:
         cube = set_up_variable_cube(
             data=np.array(
