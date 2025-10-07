@@ -37,6 +37,7 @@ def test_multiple_vicinities(tmp_path):
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
+
 def test_masked_vicinity(tmp_path):
     """Test application with landmask ancillary"""
     kgo_dir = acc.kgo_root() / "vicinity"
