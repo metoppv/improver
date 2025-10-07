@@ -382,10 +382,6 @@ class RecursiveFilter(PostProcessingPlugin):
         else:
             cube_mask = None
 
-        if mask_zeros:
-            cube.data = np.ma.masked_where(cube.data == 0.0, cube.data, copy=False)
-            # This masks any array element that is zero
-
         cube_format = next(cube.slices([cube.coord(axis="y"), cube.coord(axis="x")]))
         coeffs_x, coeffs_y = self._validate_coefficients(
             cube_format, smoothing_coefficients
@@ -401,6 +397,11 @@ class RecursiveFilter(PostProcessingPlugin):
                     raise ValueError(
                         "Input cube contains spatial slices with different masks."
                     )
+
+        # This masks any array element that is zero. Performed after variable array
+        # check as zeros may not be located consistently across slices.
+        if mask_zeros:
+            cube.data = np.ma.masked_where(cube.data == 0.0, cube.data, copy=False)
 
         recursed_cube = iris.cube.CubeList()
         for cslice in cube.slices([cube.coord(axis="y"), cube.coord(axis="x")]):
