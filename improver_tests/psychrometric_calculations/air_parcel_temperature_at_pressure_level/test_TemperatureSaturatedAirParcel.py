@@ -28,32 +28,7 @@ def temperature_fixture() -> Cube:
     data = np.full((2, 2), fill_value=293.0, dtype=np.float32)
     data[0, 1] = 295.0
     temperature = set_up_variable_cube(
-        data, name="air_temperature", units="K", attributes=LOCAL_MANDATORY_ATTRIBUTES
-    )
-    return temperature
-
-
-@pytest.fixture(name="temperature_different_name")
-def temperature_different_name_fixture() -> Cube:
-    """Set up a cube of temperature data"""
-    data = np.full((2, 2), fill_value=293.0, dtype=np.float32)
-    data[0, 1] = 295.0
-    temperature = set_up_variable_cube(
-        data,
-        name="air_temperature_different_name",
-        units="K",
-        attributes=LOCAL_MANDATORY_ATTRIBUTES,
-    )
-    return temperature
-
-
-@pytest.fixture(name="temperature_bad_name")
-def temperature_bad_name_fixture() -> Cube:
-    """Set up a cube of temperature data"""
-    data = np.full((2, 2), fill_value=293.0, dtype=np.float32)
-    data[0, 1] = 295.0
-    temperature = set_up_variable_cube(
-        data, name="air_hotness", units="K", attributes=LOCAL_MANDATORY_ATTRIBUTES
+        data, name="air_temperature_at_condensation_level", units="K", attributes=LOCAL_MANDATORY_ATTRIBUTES
     )
     return temperature
 
@@ -65,50 +40,37 @@ def pressure_fixture() -> Cube:
     data[0, 0] = 100200.0
     pressure = set_up_variable_cube(
         data,
-        name="surface_air_pressure",
+        name="air_pressure_at_condensation_level",
         units="Pa",
         attributes=LOCAL_MANDATORY_ATTRIBUTES,
     )
     return pressure
 
 
-@pytest.fixture(name="pressure_different_name")
-def pressure_different_name_fixture() -> Cube:
-    """Set up a cube of pressure data"""
-    data = np.full((2, 2), fill_value=100000.0, dtype=np.float32)
-    data[0, 0] = 100200.0
-    pressure = set_up_variable_cube(
-        data,
-        name="surface_air_pressure_different_name",
-        units="Pa",
-        attributes=LOCAL_MANDATORY_ATTRIBUTES,
-    )
-    return pressure
-
-
-@pytest.fixture(name="pressure_bad_name")
-def pressure_bad_name_fixture() -> Cube:
-    """Set up a cube of pressure data"""
-    data = np.full((2, 2), fill_value=100000.0, dtype=np.float32)
-    data[0, 0] = 100200.0
-    pressure = set_up_variable_cube(
-        data,
-        name="surface_air_pushiness",
-        units="Pa",
-        attributes=LOCAL_MANDATORY_ATTRIBUTES,
-    )
-    return pressure
-
-
-@pytest.fixture(name="pressure_or_temperature_bad_units")
-def pressure_or_temperature_bad_units_fixture() -> Cube:
-    """Set up a cube of something that could be pressure or temperature data
+@pytest.fixture(name="pressure_bad_units")
+def pressure_bad_units_fixture() -> Cube:
+    """Set up a cube of something that could be pressure data
     according to its name but has 'm' as units"""
     data = np.full((2, 2), fill_value=100000.0, dtype=np.float32)
     data[0, 0] = 100200.0
     pressure = set_up_variable_cube(
         data,
-        name="not_air_pressure_nor_temperature",
+        name="air_pressure_at_condensation_level",
+        units="m",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+    )
+    return pressure
+
+
+@pytest.fixture(name="temperature_bad_units")
+def temperature_bad_units_fixture() -> Cube:
+    """Set up a cube of something that could be temperature data
+    according to its name but has 'm' as units"""
+    data = np.full((2, 2), fill_value=100000.0, dtype=np.float32)
+    data[0, 0] = 100200.0
+    pressure = set_up_variable_cube(
+        data,
+        name="air_temperature_at_condensation_level",
         units="m",
         attributes=LOCAL_MANDATORY_ATTRIBUTES,
     )
@@ -199,48 +161,17 @@ def test_different_pressure(temperature, pressure, air_parcel_diff_pressure):
     assert np.isclose(result.data, air_parcel_diff_pressure.data, atol=1e-2).all()
 
 
-def test_different_temperature_and_pressure_names(
-    temperature_different_name, pressure_different_name, air_parcel
-):
-    """Check that for each pair of values, we get the expected result
-    and that the metadata are as expected when the temperature and pressure cubes have
-    unexpected names, but can still be deduced by the plugin."""
-    result = TemperatureSaturatedAirParcel()(
-        [temperature_different_name, pressure_different_name]
-    )
-    metadata_ok(result, air_parcel)
-    assert np.isclose(result.data, air_parcel.data, atol=1e-2).all()
-
-
-def test_bad_temperature_name(temperature_bad_name, pressure):
-    """Check that if the temperature cube doesn't have a name containing 'temperature'
-    then it cannot be used."""
-    with pytest.raises(
-        ValueError, match="Cube with 'temperature' in its name is required"
-    ):
-        TemperatureSaturatedAirParcel()([temperature_bad_name, pressure])
-
-
-def test_bad_pressure_name(temperature, pressure_bad_name):
-    """Check that if the pressure cube doesn't have a name containing 'pressure'
-    then it cannot be used."""
-    with pytest.raises(
-        ValueError, match="Cube with 'pressure' in its name is required"
-    ):
-        TemperatureSaturatedAirParcel()([temperature, pressure_bad_name])
-
-
-def test_bad_temperature_units(pressure_or_temperature_bad_units, pressure):
+def test_bad_temperature_units(temperature_bad_units, pressure):
     """Check that if the temperature cube doesn't have the correct units
     then it cannot be used."""
     with pytest.raises(ValueError):
-        TemperatureSaturatedAirParcel()([pressure_or_temperature_bad_units, pressure])
+        TemperatureSaturatedAirParcel()([temperature_bad_units, pressure])
 
 
-def test_bad_pressure_units(temperature, pressure_or_temperature_bad_units):
+def test_bad_pressure_units(temperature, pressure_bad_units):
     """Check that if the pressure cube doesn't have the correct units
     then it cannot be used."""
     with pytest.raises(ValueError):
         TemperatureSaturatedAirParcel()(
-            [temperature, pressure_or_temperature_bad_units]
+            [temperature, pressure_bad_units]
         )
