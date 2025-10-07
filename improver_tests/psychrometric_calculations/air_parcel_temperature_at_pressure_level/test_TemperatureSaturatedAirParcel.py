@@ -28,7 +28,10 @@ def temperature_fixture() -> Cube:
     data = np.full((2, 2), fill_value=293.0, dtype=np.float32)
     data[0, 1] = 295.0
     temperature = set_up_variable_cube(
-        data, name="air_temperature_at_condensation_level", units="K", attributes=LOCAL_MANDATORY_ATTRIBUTES
+        data,
+        name="air_temperature_at_condensation_level",
+        units="K",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
     )
     return temperature
 
@@ -172,6 +175,4 @@ def test_bad_pressure_units(temperature, pressure_bad_units):
     """Check that if the pressure cube doesn't have the correct units
     then it cannot be used."""
     with pytest.raises(ValueError):
-        TemperatureSaturatedAirParcel()(
-            [temperature, pressure_bad_units]
-        )
+        TemperatureSaturatedAirParcel()([temperature, pressure_bad_units])

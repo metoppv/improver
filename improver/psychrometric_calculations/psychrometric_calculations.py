@@ -358,6 +358,7 @@ class HumidityMixingRatio(BasePlugin):
             # Test is there is a cube with temperature in the name
             def test_temperature(cube):
                 return True if "temperature" in cube.name() else False
+
             self.temperature = cubes.extract_cube(
                 iris.Constraint(cube_func=test_temperature)
             )
