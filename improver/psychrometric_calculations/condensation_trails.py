@@ -306,6 +306,7 @@ class CondensationTrailFormation(BasePlugin):
         )
         return nonpersistent_contrails, persistent_contrails
     
+    # TODO: replace arguments with 'self' attributes
     def _categorical_from_boolean(
         self, np_contrails: np.ndarray, p_contrails: np.ndarray
     ) -> np.ndarray:
@@ -324,6 +325,7 @@ class CondensationTrailFormation(BasePlugin):
         categorical = np.where(~np_contrails & p_contrails, 2, categorical)
         return categorical
 
+    # TODO: replace arguments with 'self' attributes
     def _create_contrail_formation_cube(
         self, categorical_data: np.ndarray, template_cube: Cube
     ) -> Cube:
