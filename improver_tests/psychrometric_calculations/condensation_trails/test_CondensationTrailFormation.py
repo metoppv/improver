@@ -224,7 +224,7 @@ def test_find_local_vapour_pressure(
     result = plugin._find_local_vapour_pressure(pressure_levels)
     np.testing.assert_allclose(result, expected_vapour_pressure)
 
-    
+
 @pytest.mark.parametrize(
     "engine_contrail_factors, pressure_levels, relative_humidity, expected_critical_temperatures, expected_critical_intercepts",
     [
@@ -368,7 +368,7 @@ def test_calculate_critical_temperatures_and_intercepts(
         verbose=True,
     )
 
-    
+
 @pytest.mark.parametrize(
     "engine_mixing_ratio, critical_intercept, temperature, critical_temperature, local_vapour_pressure, svp_ice, forms_contrail, is_persistent",
     [

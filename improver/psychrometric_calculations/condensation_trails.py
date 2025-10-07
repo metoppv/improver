@@ -294,8 +294,8 @@ class CondensationTrailFormation(BasePlugin):
             & air_is_saturated
             & temperature_below_freezing
         )
-        return nonpersistent_contrails, persistent_contrails    
-            
+        return nonpersistent_contrails, persistent_contrails
+
     def process_from_arrays(
         self,
         temperature: np.ndarray,
