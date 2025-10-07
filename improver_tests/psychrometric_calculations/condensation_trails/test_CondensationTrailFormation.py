@@ -622,39 +622,53 @@ def test_categorical_array_output(
 
 
 @pytest.mark.parametrize(
-    "categorical_array",
+    "pressure_levels, y_points, x_points",
     [
-        np.array([0, 1, 2]),
+        (np.array([1e4, 1e3]), np.linspace(0, 10, 6), np.linspace(0, 10, 8)),
+        (np.array([1e4, 1e3]), None, np.linspace(0, 10, 8)),
+        (np.array([1e4, 1e3]), np.linspace(0, 10, 6), None),
+        (np.array([1e4, 1e3]), None, None),
     ],
 )
-def test_categorical_cube_output(categorical_array) -> None:
+def test_categorical_cube_output(
+    pressure_levels: np.ndarray,
+    y_points: np.ndarray | None,
+    x_points: np.ndarray | None,
+) -> None:
     """
     Test that the expected categorical (integer) cube can be constructed.
     """
-    plugin = CondensationTrailFormation()
 
-    pressure_levels = np.array([1e4, 1e3])
-    y_points = np.linspace(0, 10, 6)
-    x_points = np.linspace(0, 10, 8)
+    # construct template temperature cube
+    template_shape = pressure_levels.shape
+    temperature_dim_coords = [DimCoord(pressure_levels, var_name="pressure")]
+    if y_points is not None:
+        template_shape += y_points.shape
+        temperature_dim_coords.append(DimCoord(y_points, var_name="latitude"))
+    if x_points is not None:
+        template_shape += x_points.shape
+        temperature_dim_coords.append(DimCoord(x_points, var_name="longitude"))
 
-    temperature_data = np.full(
-        pressure_levels.shape + y_points.shape + x_points.shape, 200
-    )
-
-    temperature_dim_coords = [
-        (DimCoord(pressure_levels, var_name="pressure"), 0),
-        (DimCoord(y_points, var_name="latitude"), 1),
-        (DimCoord(x_points, var_name="longitude"), 2),
+    temperature_dim_coords_and_dims = [
+        (coord, i) for i, coord in enumerate(temperature_dim_coords)
     ]
 
     temperature_cube = Cube(
         var_name="temperature",
-        dim_coords_and_dims=temperature_dim_coords,
-        data=temperature_data,
+        dim_coords_and_dims=temperature_dim_coords_and_dims,
+        data=np.full(template_shape, 200),
     )
 
+    # generate input categorical data
+    plugin = CondensationTrailFormation()
+    output_shape = plugin._engine_contrail_factors.shape + temperature_cube.shape
+    categorical_data = np.zeros(output_shape, dtype=np.uint8)
+    categorical_data[np.random.randint(0, 3, output_shape)] = 1
+    categorical_data[np.random.randint(0, 3, output_shape)] = 2
+
+    # construct output categorical cube
     categorical_cube = plugin._create_contrail_formation_cube(
-        categorical_array, temperature_cube
+        categorical_data, temperature_cube
     )
 
     print(categorical_cube)

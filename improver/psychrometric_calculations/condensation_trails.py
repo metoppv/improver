@@ -358,6 +358,11 @@ class CondensationTrailFormation(BasePlugin):
         }
         optional_attributes = categorical_attributes(decision_tree, "contrail_type")
 
+        if categorical_data.shape != template_cube.shape:
+            raise Exception(
+                f"Shape of input data ({categorical_data.shape}) does not match shape of modified template cube ({template_cube.shape})"
+            )
+
         # https://improver.readthedocs.io/en/stable/improver.metadata.utilities.html
         contrails_cube = create_new_diagnostic_cube(
             name="contrails_formation",
