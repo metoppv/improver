@@ -399,7 +399,7 @@ class RecursiveFilter(PostProcessingPlugin):
                     )
 
         # This masks any array element that is zero. Performed after variable array
-        # check as zeros may not be located consistenly across slices.
+        # check as zeros may not be located consistently across slices.
         if mask_zeros:
             cube.data = np.ma.masked_where(cube.data == 0.0, cube.data, copy=False)
 
