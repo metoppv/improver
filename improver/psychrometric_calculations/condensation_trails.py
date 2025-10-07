@@ -339,18 +339,14 @@ class CondensationTrailFormation(BasePlugin):
             Categorical cube of contrail formation, where 0 = no contrails, 1 = non-persistent contrails and
                 2 = persistent contrails. Has the same shape as categorical_data.
         """
-        # https://improver.readthedocs.io/en/stable/improver.utilities.cube_manipulation.html
         contrail_factor_coord = DimCoord(
             points=self._engine_contrail_factors, var_name="engine_contrail_factor"
         )
         template_cube = add_coordinate_to_cube(
             template_cube, new_coord=contrail_factor_coord
         )
-
-        # https://improver.readthedocs.io/en/stable/improver.metadata.utilities.html
         mandatory_attributes = generate_mandatory_attributes([template_cube])
 
-        # https://improver.readthedocs.io/en/stable/improver.categorical.utilities.html#improver.categorical.utilities.categorical_attributes
         decision_tree = {
             "0": {"leaf": "None"},
             "1": {"leaf": "Non-persistent"},
@@ -358,12 +354,6 @@ class CondensationTrailFormation(BasePlugin):
         }
         optional_attributes = categorical_attributes(decision_tree, "contrail_type")
 
-        if categorical_data.shape != template_cube.shape:
-            raise Exception(
-                f"Shape of input data ({categorical_data.shape}) does not match shape of modified template cube ({template_cube.shape})"
-            )
-
-        # https://improver.readthedocs.io/en/stable/improver.metadata.utilities.html
         contrails_cube = create_new_diagnostic_cube(
             name="contrails_formation",
             units="1",

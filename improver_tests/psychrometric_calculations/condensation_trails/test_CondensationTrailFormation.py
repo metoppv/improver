@@ -18,6 +18,7 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
     calculate_svp_in_air,
 )
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
+from improver.utilities.cube_manipulation import get_dim_coord_names
 
 LOCAL_MANDATORY_ATTRIBUTES = {
     "title": "unit test data",
@@ -599,18 +600,18 @@ def test_calculate_contrail_persistency_shapes(
     ],
 )
 def test_categorical_array_output(
-    nonpersistent_contrails: np.array,
-    persistent_contrails: np.array,
-    categorical_expected: np.array,
+    nonpersistent_contrails: np.ndarray,
+    persistent_contrails: np.ndarray,
+    categorical_expected: np.ndarray,
 ) -> None:
     """
     Given two boolean arrays of non-persistent and persistent contrails, check that the expected categorical (integer)
     array can be constructed.
 
     Args:
-        nonpersistent_contrails (np.array): Boolean data of non-persistent contrails.
-        persistent_contrails (np.array): Boolean data of persistent contrails.
-        categorical_expected (np.array): Categorical (integer) array, where 0 = no contrails, 1 = non-persistent
+        nonpersistent_contrails (np.ndarray): Boolean data of non-persistent contrails.
+        persistent_contrails (np.ndarray): Boolean data of persistent contrails.
+        categorical_expected (np.ndarray): Categorical (integer) array, where 0 = no contrails, 1 = non-persistent
             contrails and 2 = persistent contrails.
     """
 
@@ -618,27 +619,34 @@ def test_categorical_array_output(
     categorical_result = plugin._categorical_from_boolean(
         nonpersistent_contrails, persistent_contrails
     )
+    assert isinstance(categorical_result, np.ndarray)
     np.testing.assert_array_equal(categorical_result, categorical_expected)
 
 
 @pytest.mark.parametrize(
     "pressure_levels, y_points, x_points",
     [
-        (np.array([1e4, 1e3]), np.linspace(0, 10, 6), np.linspace(0, 10, 8)),
-        (np.array([1e4, 1e3]), None, np.linspace(0, 10, 8)),
-        (np.array([1e4, 1e3]), np.linspace(0, 10, 6), None),
+        (np.array([1e4, 1e3]), np.linspace(0, 1e5, 6), np.linspace(0, 1e5, 8)),
+        (np.array([1e4, 1e3]), None, np.linspace(0, 1e5, 8)),
+        (np.array([1e4, 1e3]), np.linspace(0, 1e5, 6), None),
         (np.array([1e4, 1e3]), None, None),
     ],
 )
 def test_categorical_cube_output(
     pressure_levels: np.ndarray,
-    y_points: np.ndarray | None,
-    x_points: np.ndarray | None,
+    y_points: Optional[np.ndarray],
+    x_points: Optional[np.ndarray],
 ) -> None:
     """
-    Test that the expected categorical (integer) cube can be constructed.
-    """
+    Given pressure levels and optional geospatial points, check that the expected categorical cube of contrail
+    formation can be constructed. Data values are integers 0, 1 and 2, where 0 = no contrails, 1 = non-persistent
+    contrails and 2 = persistent contrails.
 
+    Args:
+        pressure_levels (np.ndarray): Float array of pressure levels (Pa).
+        y_points (Optional[np.ndarray]): Float array of latitude grid points (m).
+        x_points (Optional[np.ndarray]): Float array of longitude grid points (m).
+    """
     # construct template temperature cube
     template_shape = pressure_levels.shape
     temperature_dim_coords = [DimCoord(pressure_levels, var_name="pressure")]
@@ -652,7 +660,6 @@ def test_categorical_cube_output(
     temperature_dim_coords_and_dims = [
         (coord, i) for i, coord in enumerate(temperature_dim_coords)
     ]
-
     temperature_cube = Cube(
         var_name="temperature",
         dim_coords_and_dims=temperature_dim_coords_and_dims,
@@ -671,5 +678,18 @@ def test_categorical_cube_output(
         categorical_data, temperature_cube
     )
 
-    print(categorical_cube)
-    assert False
+    # type and data check
+    assert isinstance(categorical_cube, Cube)
+    assert categorical_cube.data.max() <= 2 and categorical_cube.data.min() >= 0
+    np.testing.assert_array_equal(
+        categorical_data, categorical_cube.data, strict=True, verbose=True
+    )
+
+    # coordinate check
+    output_coord_names = get_dim_coord_names(categorical_cube)
+    assert output_coord_names[0] == "engine_contrail_factor"
+    assert output_coord_names[1] == "pressure"
+    if y_points is not None:
+        assert "latitude" in output_coord_names
+    if x_points is not None:
+        assert "longitude" in output_coord_names
