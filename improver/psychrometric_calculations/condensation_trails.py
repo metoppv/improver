@@ -102,7 +102,7 @@ class CondensationTrailFormation(BasePlugin):
         saturated_vapour_pressure_ice: np.ndarray,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
-        Apply four conditions to determine whether persistent or non-persistent contrails will form.
+        Apply four conditions to determine whether non-persistent or persistent contrails will form.
 
         .. include:: extended_documentation/psychrometric_calculations/condensation_trails/formation_conditions.rst
 
@@ -111,7 +111,7 @@ class CondensationTrailFormation(BasePlugin):
                 levels. Pressure is the leading axis (Pa).
 
         Returns:
-            Two boolean arrays that state whether 'persistent' or 'non-persistent' contrails will form, respectively.
+            Two boolean arrays that state whether 'non-persistent' or 'persistent' contrails will form, respectively.
             Array axes are [contrail factor, pressure level, latitude, longitude].
         """
 
@@ -147,18 +147,18 @@ class CondensationTrailFormation(BasePlugin):
         # Condition 4
         temperature_below_freezing = self.temperature < 273.15
 
+        nonpersistent_contrails = (
+            vapour_pressure_above_threshold
+            & temperature_below_threshold
+            & ~(air_is_saturated & temperature_below_freezing)
+        )
         persistent_contrails = (
             vapour_pressure_above_threshold
             & temperature_below_threshold
             & air_is_saturated
             & temperature_below_freezing
         )
-        nonpersistent_contrails = (
-            vapour_pressure_above_threshold
-            & temperature_below_threshold
-            & ~(air_is_saturated & temperature_below_freezing)
-        )
-        return persistent_contrails, nonpersistent_contrails
+        return nonpersistent_contrails, persistent_contrails
 
     def process_from_arrays(
         self,

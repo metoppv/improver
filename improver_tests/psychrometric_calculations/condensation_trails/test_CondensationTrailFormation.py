@@ -321,7 +321,7 @@ def test_calculate_contrail_persistency_combinations(
     )
     svp_ice_on_pressure_levels = np.full(temperature_on_pressure_levels.shape, svp_ice)
 
-    persistent_result, nonpersistent_result = plugin._calculate_contrail_persistency(
+    nonpersistent_result, persistent_result = plugin._calculate_contrail_persistency(
         svp_ice_on_pressure_levels
     )
 
@@ -382,13 +382,13 @@ def test_calculate_contrail_persistency_shapes(
     # (contrail factors, pressure levels, latitude, longitude)
     cf_p_lat_long_shape = contrail_factors.shape + p_lat_long_shape
 
-    # unphysical values for input arrays that result in persistent contrails
-    local_vapour_pressure = 1e3
-    engine_mixing_ratio = 0
-    temperature = 2e2
-    critical_intercept = 0
-    critical_temperature = 1e3
-    svp_ice = 0
+    # values for input arrays that result in persistent contrails
+    engine_mixing_ratio = 0.482
+    critical_intercept = -101.36
+    temperature = 212
+    critical_temperature = 213.28
+    local_vapour_pressure = 117
+    svp_ice = 0.924
 
     plugin = CondensationTrailFormation(contrail_factors)
 
@@ -400,7 +400,7 @@ def test_calculate_contrail_persistency_shapes(
     plugin.critical_temperatures = np.full(cf_p_lat_long_shape, critical_temperature)
     svp_ice_on_pressure_levels = np.full(p_lat_long_shape, svp_ice)
 
-    persistent_result, nonpersistent_result = plugin._calculate_contrail_persistency(
+    nonpersistent_result, persistent_result = plugin._calculate_contrail_persistency(
         svp_ice_on_pressure_levels
     )
 
