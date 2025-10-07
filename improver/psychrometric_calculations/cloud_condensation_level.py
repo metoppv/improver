@@ -180,9 +180,7 @@ class CloudCondensationLevel(PostProcessingPlugin):
         self.humidity = cubes.extract_cube(
             iris.Constraint(name="humidity_mixing_ratio")
         )
-        # (self.temperature, self.pressure, self.humidity) = CubeList(cubes).extract(
-        #     ["air_temperature", "surface_air_pressure", "humidity_mixing_ratio"]
-        # )
+
         ccl_pressure, ccl_temperature = self._iterate_to_ccl()
         # Limit values so they are no greater than the original pressure.
         # This occurs in super-saturated conditions.
