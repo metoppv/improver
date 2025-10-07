@@ -367,3 +367,191 @@ def test_calculate_critical_temperatures_and_intercepts(
         strict=True,
         verbose=True,
     )
+
+
+@pytest.mark.parametrize(
+    "engine_mixing_ratio, critical_intercept, temperature, critical_temperature, local_vapour_pressure, svp_ice, forms_contrail, is_persistent",
+    [
+        # air temperature = 212 K, increase relative humidity 1 -> 20 -> 40 -> 60 %
+        (0.482, -101.36, 212, 210.90, 0.00924, 0.924, False, False),
+        (0.482, -101.36, 212, 211.51, 0.531, 0.924, False, False),
+        (0.482, -101.36, 212, 212.29, 10.9, 0.924, True, True),
+        (0.482, -101.36, 212, 213.28, 117, 0.924, True, True),
+        # increase air temperature from 208 K to 214 K, relative humidity = 10 %,
+        (0.482, -101.36, 208, 211.18, 0.0529, 0.529, True, False),
+        (0.482, -101.36, 210, 211.18, 0.0701, 0.701, True, False),
+        (0.482, -101.36, 212, 211.18, 0.0924, 0.924, False, False),
+        (0.482, -101.36, 214, 211.18, 0.121, 1.21, False, False),
+        # arbitrary, unphysical values
+        (0, 0, 100, 300, 1, 0.01, True, True),
+        (0, 0, 280, 300, 0.01, 0.01, True, False),
+        (0, 0, 200, 300, 10, 10, True, False),
+        (0, 0, 280, 300, 10, 10, True, False),
+        (0, 0, 300, 0, 1, 0.01, False, False),
+        (1, 0, 200, 100, 0, -0.01, False, False),
+        (1, 0, 200, 0, 0, -0.01, False, False),
+        (1, 0, 200, 0, 0, 10, False, False),
+        (1, 0, 200, 0, 0, 10, False, False),
+        (1, 0, 300, 0, 0, -0.01, False, False),
+        (0, 0, 300, 0, 1, 0.01, False, False),
+        (0, 0, 200, 0, 1, 10, False, False),
+        (1, 0, 300, 100, 0, -0.01, False, False),
+        (1, 0, 300, 100, 0, 10, False, False),
+        (1, 0, 200, 0, 0, -0.01, False, False),
+        (0, 0, 200, 0, 1, 0.01, False, False),
+    ],
+)
+def test_calculate_contrail_persistency_combinations(
+    engine_mixing_ratio: float,
+    critical_intercept: float,
+    temperature: float,
+    critical_temperature: float,
+    local_vapour_pressure: float,
+    svp_ice: float,
+    forms_contrail: bool,
+    is_persistent: bool,
+) -> None:
+    """
+    Test that the contrail persistency calculation returns the expected pair of boolean arrays
+    for each combination of formation conditions. The first 8 sets of input parameters are physical
+    values that could exist in a real system, whereas the final 16 sets are arbitrary and unphysical.
+
+    In the first 4 sets, the relative humidity is increased from 1 % to 60 %, whilst the air temperature
+    is held constant at 212 K. This causes the local vapour pressure and critical temperature to increase.
+
+    In the next 4 sets, the air temperature is increased from 208 K to 214 K, whilst the relative
+    humidity is held constant at 10 %. This causes the local and saturated vapour pressures to increase.
+
+    The final 16 sets correspond to the 2^4=16 unique combinations of the four conditions required for
+    contrail formation.
+
+    In the context of this test, the elements within a given output array are identical, i.e.
+    all 'True' or all 'False'. However, the two arrays may differ.
+
+    Args:
+        engine_mixing_ratio (float): Engine mixing ratio (Pa/K).
+        critical_intercept (float): Critical intercept threshold (Pa).
+        temperature (float): Ambient air temperature (K).
+        critical_temperature (float): Critical temperature threshold (K).
+        local_vapour_pressure (float): Local vapour pressure, calculated with respect to water (Pa).
+        svp_ice (float): Saturated vapour pressure, calculated with respect to ice (Pa).
+        forms_contrails (bool): True if any contrail will form.
+        is_persistent (bool): True only if a persistent contrail will form.
+    """
+    # plugin output arrays will have expected shape: (1, 1, 5, 4)
+    contrail_factors = np.array([3e-5])
+    pressure_levels = np.array([1e4])
+    temperature = np.full((5, 4), temperature)
+    temperature_on_pressure_levels = np.broadcast_to(
+        temperature, pressure_levels.shape + temperature.shape
+    )
+
+    plugin = CondensationTrailFormation(contrail_factors)
+    plugin.temperature = temperature_on_pressure_levels
+
+    # construct remaining input arrays, each filled with a specific value
+    plugin.local_vapour_pressure = np.full(
+        temperature_on_pressure_levels.shape, local_vapour_pressure
+    )
+    plugin.engine_mixing_ratios = np.full(
+        contrail_factors.shape + pressure_levels.shape, engine_mixing_ratio
+    )
+    plugin.critical_intercepts = np.full(
+        contrail_factors.shape + pressure_levels.shape, critical_intercept
+    )
+    plugin.critical_temperatures = np.full(
+        contrail_factors.shape + temperature_on_pressure_levels.shape,
+        critical_temperature,
+    )
+    svp_ice_on_pressure_levels = np.full(temperature_on_pressure_levels.shape, svp_ice)
+
+    nonpersistent_result, persistent_result = plugin._calculate_contrail_persistency(
+        svp_ice_on_pressure_levels
+    )
+
+    nonpersistent_expected = np.full(
+        plugin.critical_temperatures.shape,
+        forms_contrail and not is_persistent,
+        dtype=bool,
+    )
+    persistent_expected = np.full(
+        plugin.critical_temperatures.shape, forms_contrail and is_persistent, dtype=bool
+    )
+
+    np.testing.assert_array_equal(
+        nonpersistent_result, nonpersistent_expected, strict=True
+    )
+    np.testing.assert_array_equal(persistent_result, persistent_expected, strict=True)
+
+
+@pytest.mark.parametrize(
+    "latitude_dimension_size, longitude_dimension_size",
+    [
+        (0, 0),
+        (1, 0),
+        (0, 1),
+        (5, 4),
+    ],
+)
+def test_calculate_contrail_persistency_shapes(
+    latitude_dimension_size: int,
+    longitude_dimension_size: int,
+) -> None:
+    """
+    Test that the contrail persistency calculation returns the expected pair of boolean arrays when given input arrays
+    with differing shapes.
+
+    The output arrays of the persistency calculation always have leading axes of [contrail factors, pressure levels].
+    However, the temperature and humidity arrays of the contrails class may contain latitude and longitude axes. If
+    these are present, the persistency outputs will have axes [contrail factors, pressure levels, latitude, longitude].
+
+    Args:
+        latitude_dimension_size (int): Number of elements in the latitude axis of the air temperature array.
+        latitude_dimension_size (int): Number of elements in the longitude axis of the air temperature array.
+
+    """
+    contrail_factors = np.array([3e-5, 3.4e-9, 3.9e-9])
+    pressure_levels = np.array([1e4, 1e3])
+
+    # (contrail factors, pressure levels)
+    cf_p_shape = contrail_factors.shape + pressure_levels.shape
+
+    # (pressure levels, latitude, longitude)
+    p_lat_long_shape = pressure_levels.shape
+    if latitude_dimension_size > 0:
+        p_lat_long_shape += (latitude_dimension_size,)
+    if longitude_dimension_size > 0:
+        p_lat_long_shape += (longitude_dimension_size,)
+
+    # (contrail factors, pressure levels, latitude, longitude)
+    cf_p_lat_long_shape = contrail_factors.shape + p_lat_long_shape
+
+    # values for input arrays that result in persistent contrails
+    engine_mixing_ratio = 0.482
+    critical_intercept = -101.36
+    temperature = 212
+    critical_temperature = 213.28
+    local_vapour_pressure = 117
+    svp_ice = 0.924
+
+    plugin = CondensationTrailFormation(contrail_factors)
+
+    # construct input arrays, each filled with a specific value
+    plugin.temperature = np.full(p_lat_long_shape, temperature)
+    plugin.local_vapour_pressure = np.full(p_lat_long_shape, local_vapour_pressure)
+    plugin.engine_mixing_ratios = np.full(cf_p_shape, engine_mixing_ratio)
+    plugin.critical_intercepts = np.full(cf_p_shape, critical_intercept)
+    plugin.critical_temperatures = np.full(cf_p_lat_long_shape, critical_temperature)
+    svp_ice_on_pressure_levels = np.full(p_lat_long_shape, svp_ice)
+
+    nonpersistent_result, persistent_result = plugin._calculate_contrail_persistency(
+        svp_ice_on_pressure_levels
+    )
+
+    nonpersistent_expected = np.full(cf_p_lat_long_shape, False, dtype=bool)
+    persistent_expected = np.full(cf_p_lat_long_shape, True, dtype=bool)
+
+    np.testing.assert_array_equal(
+        nonpersistent_result, nonpersistent_expected, strict=True
+    )
+    np.testing.assert_array_equal(persistent_result, persistent_expected, strict=True)
