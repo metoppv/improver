@@ -375,35 +375,25 @@ def test_calculate_critical_temperatures_and_intercepts(
 
 
 @pytest.mark.parametrize(
-    "engine_mixing_ratio, critical_intercept, temperature, critical_temperature, local_vapour_pressure, svp_ice, forms_contrail, is_persistent",
+    "engine_mixing_ratio, critical_intercept, temperature, critical_temperature, local_vapour_pressure, forms_contrail, is_persistent",
     [
         # air temperature = 212 K, increase relative humidity 1 -> 20 -> 40 -> 60 %
-        (0.482, -101.36, 212, 210.90, 0.00924, 0.924, False, False),
-        (0.482, -101.36, 212, 211.51, 0.531, 0.924, False, False),
-        (0.482, -101.36, 212, 212.29, 10.9, 0.924, True, True),
-        (0.482, -101.36, 212, 213.28, 117, 0.924, True, True),
+        (0.482, -101.36, 212, 210.90, 0.00924, False, False),
+        (0.482, -101.36, 212, 211.51, 0.531, False, False),
+        (0.482, -101.36, 212, 212.29, 10.9, True, True),
+        (0.482, -101.36, 212, 213.28, 117, True, True),
         # increase air temperature from 208 K to 214 K, relative humidity = 10 %,
-        (0.482, -101.36, 208, 211.18, 0.0529, 0.529, True, False),
-        (0.482, -101.36, 210, 211.18, 0.0701, 0.701, True, False),
-        (0.482, -101.36, 212, 211.18, 0.0924, 0.924, False, False),
-        (0.482, -101.36, 214, 211.18, 0.121, 1.21, False, False),
+        (0.482, -101.36, 208, 211.18, 0.0529, True, False),
+        (0.482, -101.36, 210, 211.18, 0.0701, True, False),
+        (0.482, -101.36, 212, 211.18, 0.0924, False, False),
+        (0.482, -101.36, 214, 211.18, 0.121, False, False),
         # arbitrary, unphysical values
-        (0, 0, 100, 300, 1, 0.01, True, True),
-        (0, 0, 280, 300, 0.01, 0.01, True, False),
-        (0, 0, 200, 300, 10, 10, True, False),
-        (0, 0, 280, 300, 10, 10, True, False),
-        (0, 0, 300, 0, 1, 0.01, False, False),
-        (1, 0, 200, 100, 0, -0.01, False, False),
-        (1, 0, 200, 0, 0, -0.01, False, False),
-        (1, 0, 200, 0, 0, 10, False, False),
-        (1, 0, 200, 0, 0, 10, False, False),
-        (1, 0, 300, 0, 0, -0.01, False, False),
-        (0, 0, 300, 0, 1, 0.01, False, False),
-        (0, 0, 200, 0, 1, 10, False, False),
-        (1, 0, 300, 100, 0, -0.01, False, False),
-        (1, 0, 300, 100, 0, 10, False, False),
-        (1, 0, 200, 0, 0, -0.01, False, False),
-        (0, 0, 200, 0, 1, 0.01, False, False),
+        (0, 0, 280, 300, 0.01, True, False),
+        (0, 0, 280, 300, 10, True, False),
+        (0, 0, 200, 0, 1, False, False),
+        (1, 0, 200, 0, 0, False, False),
+        (0, 0, 300, 0, 1, False, False),
+        (1, 0, 300, 0, 0, False, False),
     ],
 )
 def test_calculate_contrail_persistency_combinations(
@@ -412,14 +402,13 @@ def test_calculate_contrail_persistency_combinations(
     temperature: float,
     critical_temperature: float,
     local_vapour_pressure: float,
-    svp_ice: float,
     forms_contrail: bool,
     is_persistent: bool,
 ) -> None:
     """
     Test that the contrail persistency calculation returns the expected pair of boolean arrays
-    for each combination of formation conditions. The first 8 sets of input parameters are physical
-    values that could exist in a real system, whereas the final 16 sets are arbitrary and unphysical.
+    for each combination of four formation conditions. The first 8 sets of input parameters are physical
+    values that could exist in a real system, whereas the remaining sets are arbitrary and unphysical.
 
     In the first 4 sets, the relative humidity is increased from 1 % to 60 %, whilst the air temperature
     is held constant at 212 K. This causes the local vapour pressure and critical temperature to increase.
@@ -427,8 +416,7 @@ def test_calculate_contrail_persistency_combinations(
     In the next 4 sets, the air temperature is increased from 208 K to 214 K, whilst the relative
     humidity is held constant at 10 %. This causes the local and saturated vapour pressures to increase.
 
-    The final 16 sets correspond to the 2^4=16 unique combinations of the four conditions required for
-    contrail formation.
+    The remaining unphysical sets check for other combinations of the conditions for contrail formation.
 
     In the context of this test, the elements within a given output array are identical, i.e.
     all 'True' or all 'False'. However, the two arrays may differ.
@@ -468,11 +456,7 @@ def test_calculate_contrail_persistency_combinations(
         contrail_factors.shape + temperature_on_pressure_levels.shape,
         critical_temperature,
     )
-    svp_ice_on_pressure_levels = np.full(temperature_on_pressure_levels.shape, svp_ice)
-
-    nonpersistent_result, persistent_result = plugin._calculate_contrail_persistency(
-        svp_ice_on_pressure_levels
-    )
+    plugin._calculate_contrail_persistency()
 
     nonpersistent_expected = np.full(
         plugin.critical_temperatures.shape,
@@ -484,9 +468,11 @@ def test_calculate_contrail_persistency_combinations(
     )
 
     np.testing.assert_array_equal(
-        nonpersistent_result, nonpersistent_expected, strict=True
+        plugin.nonpersistent_contrails, nonpersistent_expected, strict=True
     )
-    np.testing.assert_array_equal(persistent_result, persistent_expected, strict=True)
+    np.testing.assert_array_equal(
+        plugin.persistent_contrails, persistent_expected, strict=True
+    )
 
 
 @pytest.mark.parametrize(
@@ -537,7 +523,6 @@ def test_calculate_contrail_persistency_shapes(
     temperature = 212
     critical_temperature = 213.28
     local_vapour_pressure = 117
-    svp_ice = 0.924
 
     plugin = CondensationTrailFormation(contrail_factors)
 
@@ -547,21 +532,20 @@ def test_calculate_contrail_persistency_shapes(
     plugin.engine_mixing_ratios = np.full(cf_p_shape, engine_mixing_ratio)
     plugin.critical_intercepts = np.full(cf_p_shape, critical_intercept)
     plugin.critical_temperatures = np.full(cf_p_lat_long_shape, critical_temperature)
-    svp_ice_on_pressure_levels = np.full(p_lat_long_shape, svp_ice)
 
-    nonpersistent_result, persistent_result = plugin._calculate_contrail_persistency(
-        svp_ice_on_pressure_levels
-    )
+    plugin._calculate_contrail_persistency()
 
     nonpersistent_expected = np.full(cf_p_lat_long_shape, False, dtype=bool)
     persistent_expected = np.full(cf_p_lat_long_shape, True, dtype=bool)
 
     np.testing.assert_array_equal(
-        nonpersistent_result, nonpersistent_expected, strict=True
+        plugin.nonpersistent_contrails, nonpersistent_expected, strict=True
     )
-    np.testing.assert_array_equal(persistent_result, persistent_expected, strict=True)
+    np.testing.assert_array_equal(
+        plugin.persistent_contrails, persistent_expected, strict=True
+    )
 
-    
+
 @pytest.mark.parametrize(
     "nonpersistent_contrails, persistent_contrails, categorical_expected",
     [
@@ -616,9 +600,9 @@ def test_categorical_array_output(
     """
 
     plugin = CondensationTrailFormation()
-    categorical_result = plugin._categorical_from_boolean(
-        nonpersistent_contrails, persistent_contrails
-    )
+    plugin.nonpersistent_contrails = nonpersistent_contrails
+    plugin.persistent_contrails = persistent_contrails
+    categorical_result = plugin._boolean_to_categorical()
     assert isinstance(categorical_result, np.ndarray)
     np.testing.assert_array_equal(categorical_result, categorical_expected)
 
