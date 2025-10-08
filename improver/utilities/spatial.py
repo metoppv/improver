@@ -19,7 +19,9 @@ from iris.coords import AuxCoord, CellMethod, Coord, DimCoord
 from iris.cube import Cube, CubeList
 from numpy import ndarray
 from numpy.ma import MaskedArray
-from scipy.ndimage.filters import maximum_filter
+from scipy.ndimage.filters import (
+    generic_filter,
+)
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.metadata.amend import update_diagnostic_name
@@ -716,11 +718,75 @@ class GradientBetweenAdjacentGridSquares(PostProcessingPlugin):
         return gradients
 
 
+def operator_within_vicinity(
+    operator,
+    fill_value,
+    grid: Union[MaskedArray, ndarray],
+    grid_point_radius: int,
+    landmask: Optional[ndarray] = None,
+) -> Union[MaskedArray, ndarray]:
+    """
+    Evaluate the specified operator over grid points within a defined radius.
+    Where operator applied is evaluates area maxima or minima, all grid points
+    within the vicinity of the maxima/minima are recorded as having the same
+    occurrence. If a land-mask has been supplied, process land and sea points
+    separately.
+
+    Args:
+        grid:
+            An array of values to which the process is applied.
+        grid_point_radius:
+            The radius in grid points about each point within which to
+            determine the maximum value.
+        landmask:
+            A binary grid of the same size as grid that differentiates
+            between land and sea points to allow the different surface
+            types to be processed independently.
+
+    Returns:
+        Array where the occurrences have been spatially spread, so that
+        they're equally likely to have occurred anywhere within the
+        vicinity defined using the specified radius.
+    """
+
+    # Convert the grid_point_radius into a number of points along an edge
+    # length, including the central point, e.g. grid_point_radius = 1,
+    # points along the edge = 3
+    grid_points = (2 * grid_point_radius) + 1
+    processed_grid = grid.copy()
+    if np.ma.is_masked(grid):
+        unmasked_grid = grid.data.copy()
+        unmasked_grid[grid.mask] = fill_value
+    else:
+        unmasked_grid = grid.copy()
+    if landmask is not None:
+        max_data = np.empty_like(grid)
+        for match in (True, False):
+            matched_data = unmasked_grid.copy()
+            matched_data[landmask != match] = fill_value
+            matched_max_data = generic_filter(
+                matched_data, operator, size=grid_points, mode="nearest"
+            )
+            max_data = np.where(landmask == match, matched_max_data, max_data)
+    else:
+        # The following command finds the maximum value for each grid point
+        # from within a square of length "size"
+        max_data = generic_filter(
+            unmasked_grid, operator, size=grid_points, mode="nearest"
+        )
+    if np.ma.is_masked(grid):
+        # Update only the unmasked values
+        processed_grid.data[~grid.mask] = max_data[~grid.mask]
+    else:
+        processed_grid = max_data
+    return processed_grid
+
+
 def maximum_within_vicinity(
     grid: Union[MaskedArray, ndarray],
     grid_point_radius: int,
     landmask: Optional[ndarray] = None,
-) -> ndarray:
+) -> Union[MaskedArray, ndarray]:
     """
     Find grid points where a phenomenon occurs within a defined radius.
     The occurrences within this vicinity are maximised, such that all
@@ -742,40 +808,123 @@ def maximum_within_vicinity(
             types to be processed independently.
 
     Returns:
-        Array where the occurrences have been spatially spread, so that
-        they're equally likely to have occurred anywhere within the
-        vicinity defined using the specified radius.
+        Array where maximum is evaluated over spatial area; values are
+        spatially spread, so that they're equally likely to have occurred
+        anywhere within the vicinity defined using the specified radius.
     """
     # Value, the negative of which is used to fill masked points, ensuring
     # that when we take a maximum the masked points do not contribute.
-    fill_value = netCDF4.default_fillvals.get(grid.dtype.str[1:], np.inf)
+    fill_value = -1 * netCDF4.default_fillvals.get(grid.dtype.str[1:], np.inf)
+    processed_grid = operator_within_vicinity(
+        max, fill_value, grid, grid_point_radius, landmask
+    )
+    return processed_grid
 
-    # Convert the grid_point_radius into a number of points along an edge
-    # length, including the central point, e.g. grid_point_radius = 1,
-    # points along the edge = 3
-    grid_points = (2 * grid_point_radius) + 1
-    processed_grid = grid.copy()
-    if np.ma.is_masked(grid):
-        unmasked_grid = grid.data.copy()
-        unmasked_grid[grid.mask] = -fill_value
-    else:
-        unmasked_grid = grid.copy()
-    if landmask is not None:
-        max_data = np.empty_like(grid)
-        for match in (True, False):
-            matched_data = unmasked_grid.copy()
-            matched_data[landmask != match] = -fill_value
-            matched_max_data = maximum_filter(matched_data, size=grid_points)
-            max_data = np.where(landmask == match, matched_max_data, max_data)
-    else:
-        # The following command finds the maximum value for each grid point
-        # from within a square of length "size"
-        max_data = maximum_filter(unmasked_grid, size=grid_points)
-    if np.ma.is_masked(grid):
-        # Update only the unmasked values
-        processed_grid.data[~grid.mask] = max_data[~grid.mask]
-    else:
-        processed_grid = max_data
+
+def minimum_within_vicinity(
+    grid: Union[MaskedArray, ndarray],
+    grid_point_radius: int,
+    landmask: Optional[ndarray] = None,
+) -> Union[MaskedArray, ndarray]:
+    """
+    Find grid points where a phenomenon occurs within a defined radius.
+    The occurrences within this vicinity are minimised, such that all
+    grid points within the vicinity are recorded as having an occurrence.
+    For non-binary fields, if the vicinity of two occurrences overlap,
+    the minimum value within the vicinity is chosen.
+    If a land-mask has been supplied, process land and sea points
+    separately.
+
+    Args:
+        grid:
+            An array of values to which the process is applied.
+        grid_point_radius:
+            The radius in grid points about each point within which to
+            determine the maximum value.
+        landmask:
+            A binary grid of the same size as grid that differentiates
+            between land and sea points to allow the different surface
+            types to be processed independently.
+
+    Returns:
+        Array where minimum is evaluated over spatial area; values are
+        spatially spread, so that they're equally likely to have occurred
+        anywhere within the vicinity defined using the specified radius.
+    """
+    # Value, which is used to fill masked points, ensuring that when we
+    # take a minimum the masked points do not contribute.
+    fill_value = netCDF4.default_fillvals.get(grid.dtype.str[1:], np.inf)
+    processed_grid = operator_within_vicinity(
+        min, fill_value, grid, grid_point_radius, landmask
+    )
+
+    return processed_grid
+
+
+def mean_within_vicinity(
+    grid: Union[MaskedArray, ndarray],
+    grid_point_radius: int,
+    landmask: Optional[ndarray] = None,
+) -> Union[MaskedArray, ndarray]:
+    """
+    Find mean values over grid points within a defined radius.
+    If a land-mask has been supplied, process land and sea points
+    separately.
+
+    Args:
+        grid:
+            An array of values to which the process is applied.
+        grid_point_radius:
+            The radius in grid points about each point within which to
+            determine the maximum value.
+        landmask:
+            A binary grid of the same size as grid that differentiates
+            between land and sea points to allow the different surface
+            types to be processed independently.
+
+    Returns:
+        Array where mean is evaluated over spatial area; values are
+        centred on each grid looking within the vicinity defined by
+        the specified radius.
+    """
+    fill_value = np.nan
+    processed_grid = operator_within_vicinity(
+        np.nanmean, fill_value, grid, grid_point_radius, landmask
+    )
+
+    return processed_grid
+
+
+def std_within_vicinity(
+    grid: Union[MaskedArray, ndarray],
+    grid_point_radius: int,
+    landmask: Optional[ndarray] = None,
+) -> Union[MaskedArray, ndarray]:
+    """
+    Find mean values over grid points within a defined radius.
+    If a land-mask has been supplied, process land and sea points
+    separately.
+
+    Args:
+        grid:
+            An array of values to which the process is applied.
+        grid_point_radius:
+            The radius in grid points about each point within which to
+            determine the maximum value.
+        landmask:
+            A binary grid of the same size as grid that differentiates
+            between land and sea points to allow the different surface
+            types to be processed independently.
+
+    Returns:
+        Array where std is evaluated over spatial area; values are
+        centred on each grid looking within the vicinity defined by
+        the specified radius.
+    """
+    fill_value = np.nan
+    processed_grid = operator_within_vicinity(
+        np.nanstd, fill_value, grid, grid_point_radius, landmask
+    )
     return processed_grid
 
 
@@ -845,11 +994,19 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
        occurrence_within_vicinity.rst
     """
 
+    SUPPORTED_VICINITY_OPERATORS = {
+        "max": maximum_within_vicinity,
+        "min": minimum_within_vicinity,
+        "mean": mean_within_vicinity,
+        "std": std_within_vicinity,
+    }
+
     def __init__(
         self,
         radii: Optional[List[Union[float, int]]] = None,
         grid_point_radii: Optional[List[Union[float, int]]] = None,
         land_mask_cube: Cube = None,
+        operator: str = "max",
     ) -> None:
         """
         Args:
@@ -864,12 +1021,15 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
                 Binary land-sea mask data. True for land-points, False for sea.
                 Restricts in-vicinity processing to only include points of a
                 like mask value.
+            Operator:
+                Operator to evaluate over the vicinities. Defaults to max.
 
         Raises:
             ValueError: If both radii and grid point radii are set.
             ValueError: If neither radii or grid point radii are set.
             ValueError: If a provided vicinity radius is negative.
             ValueError: Land mask not named land_binary_mask.
+            ValueError: If operator not in SUPPORTED_VICINITY_OPERATORS.
         """
         if radii:
             radii = [float(x) for x in radii]
@@ -905,10 +1065,17 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
             self.land_mask = None
         self.land_mask_cube = land_mask_cube
 
+        if operator not in OccurrenceWithinVicinity.SUPPORTED_VICINITY_OPERATORS.keys():
+            raise ValueError("Unsupported operator to apply over vicinity.")
+        else:
+            self.vicinity_operator = (
+                OccurrenceWithinVicinity.SUPPORTED_VICINITY_OPERATORS[operator]
+            )
+
     def process(self, cube: Cube) -> Cube:
         """
         Produces the vicinity processed data. The input data is sliced to
-        yield y-x slices to which the maximum_within_vicinity method is applied.
+        yield y-x slices to which the <operator>_within_vicinity method is applied.
         The different vicinity radii (if multiple) are looped over and a
         coordinate recording the radius used is added to each resulting cube.
         A single cube is returned with the leading coordinates of the input cube
@@ -951,15 +1118,15 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
         ]
 
         for radius, grid_point_radius in zip(self.radii, grid_point_radii):
-            max_cubes = CubeList([])
+            vicinity_cubes = CubeList([])
             for cube_slice in cube.slices([cube.coord(axis="y"), cube.coord(axis="x")]):
                 result = cube_slice.copy(
-                    data=maximum_within_vicinity(
+                    data=self.vicinity_operator(
                         cube_slice.data, grid_point_radius, self.land_mask
                     )
                 )
-                max_cubes.append(result)
-            result_cube = max_cubes.merge_cube()
+                vicinity_cubes.append(result)
+            result_cube = vicinity_cubes.merge_cube()
 
             # Put dimensions back if they were there before.
             result_cube = check_cube_coordinates(cube, result_cube)
