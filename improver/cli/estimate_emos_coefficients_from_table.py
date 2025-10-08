@@ -42,7 +42,7 @@ def process(
     Args:
         forecast (pathlib.Path):
             The path to a Parquet file containing the historical forecasts
-            to be used for calibration.The expected columns within the
+            to be used for calibration. The expected columns within the
             Parquet file are: forecast, blend_time, forecast_period,
             forecast_reference_time, time, wmo_id, percentile, diagnostic,
             latitude, longitude, period, height, cf_name, units.
@@ -88,7 +88,7 @@ def process(
         predictor (str):
             String to specify the form of the predictor used to calculate the
             location parameter when estimating the EMOS coefficients.
-            Currently the ensemble mean ("mean") and the ensemble realizations
+            Currently, the ensemble mean ("mean") and the ensemble realizations
             ("realizations") are supported as options.
         tolerance (float):
             The tolerance for the Continuous Ranked Probability Score (CRPS)
@@ -115,40 +115,21 @@ def process(
             CubeList containing the coefficients estimated using EMOS. Each
             coefficient is stored in a separate cube.
     """
-
     import iris
-    import pandas as pd
     from iris.cube import CubeList
 
-    from improver.calibration import get_training_period_cycles
-    from improver.calibration.dataframe_utilities import (
-        forecast_and_truth_dataframes_to_cubes,
-    )
     from improver.calibration.emos_calibration import (
         EstimateCoefficientsForEnsembleCalibration,
     )
+    from improver.calibration.utilities import convert_parquet_to_cube
 
-    # Load forecasts from parquet file filtering by diagnostic and blend_time.
-    cycletimes = get_training_period_cycles(cycletime, forecast_period, training_length)
-    filters = [[("diagnostic", "==", diagnostic), ("blend_time", "in", cycletimes)]]
-    forecast_df = pd.read_parquet(forecast, filters=filters)
-
-    # Load truths from parquet file filtering by diagnostic.
-    filters = [[("diagnostic", "==", diagnostic)]]
-    truth_df = pd.read_parquet(truth, filters=filters)
-    if truth_df.empty:
-        msg = (
-            f"The requested filepath {truth} does not contain the "
-            f"requested contents: {filters}"
-        )
-        raise IOError(msg)
-
-    forecast_cube, truth_cube = forecast_and_truth_dataframes_to_cubes(
-        forecast_df,
-        truth_df,
-        cycletime,
-        forecast_period,
-        training_length,
+    forecast_cube, truth_cube = convert_parquet_to_cube(
+        forecast,
+        truth,
+        forecast_period=forecast_period,
+        cycletime=cycletime,
+        training_length=training_length,
+        diagnostic=diagnostic,
         percentiles=percentiles,
         experiment=experiment,
     )

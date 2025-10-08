@@ -20,7 +20,7 @@ from improver.calibration import (
     CalibrationSchemas,
     get_training_period_cycles,
     identify_parquet_type,
-    split_pickle_parquet_and_netcdf,
+    split_netcdf_parquet_pickle,
 )
 from improver.calibration.quantile_regression_random_forest import (
     TrainQuantileRegressionRandomForests,
@@ -290,7 +290,7 @@ class LoadForTrainQRF(PostProcessingPlugin):
         """
         if not self.quantile_forest_installed:
             return None, None, None
-        cube_inputs, parquets, _ = split_pickle_parquet_and_netcdf(file_paths)
+        cube_inputs, parquets, _ = split_netcdf_parquet_pickle(file_paths)
 
         # If there are no parquet files, return None.
         if not parquets:

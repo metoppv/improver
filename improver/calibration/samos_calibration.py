@@ -7,7 +7,7 @@ This module defines all the "plugins" specific to Standardised Anomaly Model Out
 Statistics (SAMOS).
 """
 
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 
 import iris
 import iris.pandas
@@ -25,14 +25,21 @@ except ModuleNotFoundError:
 from iris.analysis import MEAN, STD_DEV
 from iris.cube import Cube, CubeList
 from iris.util import new_axis
-from numpy import array, int64, nan
+from numpy import array, clip, float32, int64, nan
 from numpy.ma import masked_all_like
 from pandas import merge
 
-from improver import BasePlugin
+from improver import BasePlugin, PostProcessingPlugin
 from improver.calibration.emos_calibration import (
+    ApplyEMOS,
     EstimateCoefficientsForEnsembleCalibration,
+    convert_to_realizations,
+    generate_forecast_from_distribution,
+    get_attribute_from_coefficients,
+    get_forecast_type,
 )
+from improver.ensemble_copula_coupling.utilities import get_bounds_of_distribution
+from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.utilities.cube_manipulation import collapse_realizations
 from improver.utilities.generalized_additive_models import GAMFit, GAMPredict
 from improver.utilities.mathematical_operations import CalculateClimateAnomalies
@@ -44,6 +51,7 @@ iris.FUTURE.pandas_ndim = True
 def prepare_data_for_gam(
     input_cube: Cube,
     additional_fields: Optional[CubeList] = None,
+    unique_site_id_key: Optional[str] = None,
 ) -> pd.DataFrame:
     """
     Convert input cubes in to a single, combined dataframe.
@@ -56,9 +64,15 @@ def prepare_data_for_gam(
     additional_fields cubes.
 
     Args:
-        input_cube: A cube of forecast or observation data.
-        additional_fields: Additional cubes with points which can be matched with points
-        in input_cube by matching spatial coordinate values.
+        input_cube:
+            A cube of forecast or observation data.
+        additional_fields:
+            Additional cubes with points which can be matched with points
+            in input_cube by matching spatial coordinate values.
+        unique_site_id_key:
+            If working with spot data and available, the name of the coordinate
+            in the input cubes that contains unique site IDs, e.g. "wmo_id" if
+            all sites have a valid wmo_id.
 
     Returns:
         A pandas dataframe with rows equal to the number of sites/grid points in
@@ -77,11 +91,25 @@ def prepare_data_for_gam(
         add_ancillary_variables=True,
     )
     df.reset_index(inplace=True)
+
     if additional_fields:
-        spatial_coords = [
-            input_cube.coord(axis="X").name(),
-            input_cube.coord(axis="Y").name(),
-        ]
+        # Check if we are dealing with spot data.
+        site_data = "spot_index" in [c.name() for c in input_cube.coords()]
+
+        # For site data we should use unique IDs wherever possible. As a
+        # fallback we can match on latitude, longitude and altitude. We
+        # need altitude to accommodate e.g. sites with a lower and upper
+        # forecast altitude. If we are working with gridded data we use the
+        # spatial coordinates of the input cube.
+        if site_data and unique_site_id_key is not None:
+            match_coords = [unique_site_id_key]
+        elif site_data:
+            match_coords = ["latitude", "longitude", "altitude"]
+        else:
+            match_coords = [
+                input_cube.coord(axis="X").name(),
+                input_cube.coord(axis="Y").name(),
+            ]
         for cube in additional_fields:
             new_df = iris.pandas.as_data_frame(
                 cube,
@@ -90,9 +118,7 @@ def prepare_data_for_gam(
                 add_ancillary_variables=True,
             )
             new_df.reset_index(inplace=True)
-            match_coords = spatial_coords.copy()
-            match_coords.append(cube.name())
-            df = merge(left=df, right=new_df[match_coords], how="left")
+            df = merge(left=df, right=new_df[match_coords + [cube.name()]], how="left")
 
     return df
 
@@ -130,6 +156,63 @@ def convert_dataframe_to_cube(
     return result
 
 
+def get_climatological_stats(
+    input_cube: Cube,
+    gams: List,
+    gam_features: List[str],
+    additional_cubes: Optional[CubeList],
+    sd_clip: float = 0.25,
+    unique_site_id_key: Optional[str] = None,
+) -> Tuple[Cube, Cube]:
+    """Function to predict climatological means and standard deviations given fitted
+    GAMs for each statistic and cubes which can be used to construct a dataframe
+    containing all required features for those GAMs.
+
+    Args:
+        input_cube
+        gams: A list containing two fitted GAMs, the first for predicting the
+            climatological mean of the locations in input_cube and the second
+            predicting the climatological standard deviation.
+        gam_features:
+            The list of features. These must be either coordinates on input_cube or
+            share a name with a cube in additional_cubes. The index of each
+            feature should match the indices used in model_specification.
+        additional_cubes:
+            Additional fields to use as supplementary predictors.
+        sd_clip:
+            The minimum standard deviation value to allow when predicting from the GAM.
+            Any predictions below this value will be set to this value.
+        unique_site_id_key:
+            If working with spot data and available, the name of the coordinate
+            in the input cubes that contains unique site IDs, e.g. "wmo_id" if
+            all sites have a valid wmo_id.
+
+    Returns:
+        A pair of cubes containing climatological mean and climatological standard
+        deviation predictions respectively.
+    """
+    diagnostic = input_cube.name()
+
+    df = prepare_data_for_gam(
+        input_cube, additional_cubes, unique_site_id_key=unique_site_id_key
+    )
+
+    # Calculate climatological means and standard deviations using previously
+    # fitted GAMs.
+    mean_pred = GAMPredict().process(gams[0], df[gam_features])
+    sd_pred = GAMPredict().process(gams[1], df[gam_features])
+
+    # Convert means and standard deviations into cubes
+    df[diagnostic] = mean_pred
+    mean_cube = convert_dataframe_to_cube(df, input_cube)
+
+    df[diagnostic] = sd_pred
+    sd_cube = convert_dataframe_to_cube(df, input_cube)
+    sd_cube.data = clip(sd_cube.data, a_min=sd_clip, a_max=None)
+
+    return mean_cube, sd_cube
+
+
 class TrainGAMsForSAMOS(BasePlugin):
     """
     Class for fitting Generalised Additive Models (GAMs) to training data for use in
@@ -150,6 +233,7 @@ class TrainGAMsForSAMOS(BasePlugin):
         link: str = "identity",
         fit_intercept: bool = True,
         window_length: int = 11,
+        unique_site_id_key: Optional[str] = None,
     ):
         """
         Initialize the class.
@@ -157,29 +241,33 @@ class TrainGAMsForSAMOS(BasePlugin):
         Args:
             model_specification:
                 A list of lists which each contain three items (in order):
-                    1. a string containing a single pyGAM term; one of 'linear',
-                    'spline', 'tensor', or 'factor'
-                    2. a list of integers which correspond to the features to be
-                    included in that term
-                    3. a dictionary of kwargs to be included when defining the term
+                1. a string containing a single pyGAM term; one of 'linear',
+                'spline', 'tensor', or 'factor'.
+                2. a list of integers which correspond to the features to be
+                included in that term.
+                3. a dictionary of kwargs to be included when defining the term.
             max_iter:
                 A pyGAM argument which determines the maximum iterations allowed when
-                fitting the GAM
+                fitting the GAM.
             tol:
                 A pyGAM argument determining the tolerance used to define the stopping
-                criteria
+                criteria.
             distribution:
-                A pyGAM argument determining the distribution to be used in the model
+                A pyGAM argument determining the distribution to be used in the model.
             link:
-                A pyGAM argument determining the link function to be used in the model
+                A pyGAM argument determining the link function to be used in the model.
             fit_intercept:
                 A pyGAM argument determining whether to include an intercept term in
-                the model
+                the model.
             window_length:
                 The length of the rolling window used to calculate the mean and standard
                 deviation of the input cube when the input cube does not have a
                 realization dimension coordinate. This must be an odd integer greater
                 than 1.
+            unique_site_id_key:
+                An optional key to use for uniquely identifying each site in the
+                training data. If not provided, the default behavior is to use the
+                spatial coordinates (latitude, longitude) of each site.
         """
         self.model_specification = model_specification
         self.max_iter = max_iter
@@ -187,6 +275,7 @@ class TrainGAMsForSAMOS(BasePlugin):
         self.distribution = distribution
         self.link = link
         self.fit_intercept = fit_intercept
+        self.unique_site_id_key = unique_site_id_key
 
         if window_length < 3 or window_length % 2 == 0 or window_length % 1 != 0:
             raise ValueError(
@@ -201,6 +290,7 @@ class TrainGAMsForSAMOS(BasePlugin):
     ) -> Cube:
         """
         Internal function to apply rolling window aggregator to padded cube.
+
         Args:
             padded_cube:
                 The cube to have rolling window calculation applied to.
@@ -448,11 +538,11 @@ class TrainGAMsForSAMOS(BasePlugin):
         )
 
         for stat_cube in stat_cubes:
-            df = prepare_data_for_gam(stat_cube, additional_fields)
-
+            df = prepare_data_for_gam(
+                stat_cube, additional_fields, unique_site_id_key=self.unique_site_id_key
+            )
             feature_values = df[features].values
             targets = df[input_cube.name()].values
-
             output.append(plugin.process(feature_values, targets))
 
         return output
@@ -478,6 +568,7 @@ class TrainEMOSForSAMOS(BasePlugin):
         self,
         distribution: str,
         emos_kwargs: Optional[Dict] = None,
+        unique_site_id_key: Optional[str] = None,
     ) -> None:
         """Initialize the class.
 
@@ -488,56 +579,14 @@ class TrainEMOSForSAMOS(BasePlugin):
             emos_kwargs: Keyword arguments accepted by the
                 EstimateCoefficientsForEnsembleCalibration plugin. Should not contain
                 a distribution argument.
+            unique_site_id_key:
+                If working with spot data and available, the name of the coordinate
+                in the input cubes that contains unique site IDs, e.g. "wmo_id" if
+                all sites have a valid wmo_id.
         """
         self.distribution = distribution
         self.emos_kwargs = emos_kwargs if emos_kwargs else {}
-
-    @staticmethod
-    def get_climatological_stats(
-        input_cube: Cube,
-        gams: List[pygam.GAM],
-        gam_features: List[str],
-        additional_fields: Optional[CubeList],
-    ) -> Tuple[Cube, Cube]:
-        """Function to predict climatological means and standard deviations given fitted
-        GAMs for each statistic and cubes which can be used to construct a dataframe
-        containing all required features for those GAMs.
-
-        Args:
-            input_cube:
-                A cube of forecasts or observations from the training dataset.
-            gams:
-                A list containing two fitted GAMs, the first for predicting the
-                climatological mean of the locations in input_cube and the second
-                predicting the climatological standard deviation.
-            gam_features:
-                The list of features. These must be either coordinates on input_cube or
-                share a name with a cube in additional_fields. The index of each
-                feature should match the indices used in model_specification.
-            additional_fields:
-                Additional fields to use as supplementary predictors.
-
-        Returns:
-            A pair of cubes containing climatological mean and climatological standard
-            deviation predictions respectively.
-        """
-        diagnostic = input_cube.name()
-
-        df = prepare_data_for_gam(input_cube, additional_fields)
-
-        # Calculate climatological means and standard deviations using previously
-        # fitted GAMs.
-        mean_pred = GAMPredict().process(gams[0], df[gam_features])
-        sd_pred = GAMPredict().process(gams[1], df[gam_features])
-
-        # Convert means and standard deviations into cubes
-        df[diagnostic] = mean_pred
-        mean_cube = convert_dataframe_to_cube(df, input_cube)
-
-        df[diagnostic] = sd_pred
-        sd_cube = convert_dataframe_to_cube(df, input_cube)
-
-        return mean_cube, sd_cube
+        self.unique_site_id_key = unique_site_id_key
 
     def climate_anomaly_emos(
         self,
@@ -566,7 +615,6 @@ class TrainEMOSForSAMOS(BasePlugin):
                 land points are used to calculate the coefficients. Within the
                 land-sea mask cube land points should be specified as ones,
                 and sea points as zeros.
-
         Returns:
             CubeList constructed using the coefficients provided and using
             metadata from the historic_forecasts cube. Each cube within the
@@ -634,18 +682,25 @@ class TrainEMOSForSAMOS(BasePlugin):
                 land points are used to calculate the EMOS coefficients. Within the
                 land-sea mask cube land points should be specified as ones,
                 and sea points as zeros.
-
         Returns:
             CubeList constructed using the coefficients provided and using
             metadata from the historic_forecasts cube. Each cube within the
             cubelist is for a separate EMOS coefficient e.g. alpha, beta,
             gamma, delta.
         """
-        forecast_mean, forecast_sd = self.get_climatological_stats(
-            historic_forecasts, forecast_gams, gam_features, gam_additional_fields
+        forecast_mean, forecast_sd = get_climatological_stats(
+            historic_forecasts,
+            forecast_gams,
+            gam_features,
+            gam_additional_fields,
+            unique_site_id_key=self.unique_site_id_key,
         )
-        truth_mean, truth_sd = self.get_climatological_stats(
-            truths, truth_gams, gam_features, gam_additional_fields
+        truth_mean, truth_sd = get_climatological_stats(
+            truths,
+            truth_gams,
+            gam_features,
+            gam_additional_fields,
+            unique_site_id_key=self.unique_site_id_key,
         )
 
         emos_coefficients = self.climate_anomaly_emos(
@@ -656,3 +711,252 @@ class TrainEMOSForSAMOS(BasePlugin):
         )
 
         return emos_coefficients
+
+
+class ApplySAMOS(PostProcessingPlugin):
+    """
+    Class to calibrate an input forecast using SAMOS given the following inputs:
+    - Two GAMs which model, respectively, the climatological mean and standard
+    deviation of the forecast. This allows the forecast to be converted to
+    climatological anomalies.
+    - A set of EMOS coefficients which can be applied to correct the climatological
+    anomalies.
+    """
+
+    def __init__(
+        self,
+        percentiles: Optional[Sequence] = None,
+        unique_site_id_key: Optional[str] = None,
+    ):
+        """Initialize class.
+
+        Args:
+            percentiles:
+                The set of percentiles used to create the calibrated forecast.
+            unique_site_id_key:
+                If working with spot data and available, the name of the coordinate
+                in the input cubes that contains unique site IDs, e.g. "wmo_id" if
+                all sites have a valid wmo_id.
+        """
+        self.percentiles = [float32(p) for p in percentiles] if percentiles else None
+        self.unique_site_id_key = unique_site_id_key
+
+    def transform_anomalies_to_original_units(
+        self,
+        location_parameter: Cube,
+        scale_parameter: Cube,
+        truth_mean: Cube,
+        truth_sd: Cube,
+        forecast: Cube,
+        input_forecast_type: str,
+    ) -> None:
+        """Function to transform location and scale parameters which describe a
+        climatological anomaly distribution to location and scale parameters which
+        describe a distribution in the units of the original forecast. Both parameter
+        cubes are modified in place.
+
+        Predictions of mean and standard deviation from the 'truth' GAMs are used for
+        this transformation. This ensures that the calibrated forecast follows the
+        'true' distribution, rather than the distribution of the original forecast,
+        following the suggested method in:
+
+        Dabernig, M., Mayr, G.J., Messner, J.W. and Zeileis, A. (2017).
+        Spatial ensemble post-processing with standardized anomalies.
+        Q.J.R. Meteorol. Soc, 143: 909-916. https://doi.org/10.1002/qj.2975
+
+        Args:
+            location_parameter:
+                Cube containing the location parameter of the climatological anomaly
+                distribution. This is modified in place.
+            scale_parameter:
+                Cube containing the scale parameter of the climatological anomaly
+                distribution. This is modified in place.
+            truth_mean:
+                Cube containing climatological mean predictions of the truths.
+            truth_sd:
+                Cube containing climatological standard deviation predictions of the
+                truths.
+            forecast:
+                The original, uncalibrated forecast.
+            input_forecast_type:
+                The type of the original, uncalibrated forecast. One of 'realizations',
+                'percentiles' or 'probabilities'.
+        """
+
+        # The data in these cubes are identical along the realization dimensions.
+        truth_mean = next(truth_mean.slices_over("realization"))
+        truth_sd = next(truth_sd.slices_over("realization"))
+
+        # Transform location and scale parameters so that they represent a distribution
+        # in the units of the original forecast, rather than climatological anomalies.
+        forecast_units = (
+            forecast.units
+            if input_forecast_type != "probabilities"
+            else find_threshold_coordinate(forecast).units
+        )
+        location_parameter.data = (
+            location_parameter.data * truth_sd.data
+        ) + truth_mean.data
+        location_parameter.units = forecast_units
+
+        # The scale parameter returned by ApplyEMOS is the standard deviation for a
+        # normal distribution. To get the desired standard deviation in
+        # realization/percentile space we must multiply by the estimated forecast
+        # standard deviation.
+        scale_parameter.data = scale_parameter.data * truth_sd.data
+        scale_parameter.units = forecast_units
+
+    def process(
+        self,
+        forecast: Cube,
+        forecast_gams: List,
+        truth_gams: List,
+        gam_features: List[str],
+        emos_coefficients: CubeList,
+        gam_additional_fields: Optional[CubeList] = None,
+        emos_additional_fields: Optional[CubeList] = None,
+        prob_template: Optional[Cube] = None,
+        realizations_count: Optional[int] = None,
+        ignore_ecc_bounds: bool = True,
+        tolerate_time_mismatch: bool = False,
+        predictor: str = "mean",
+        randomise: bool = False,
+        random_seed: Optional[int] = None,
+    ):
+        """Calibrate input forecast using GAMs to convert the forecast to climatological
+         anomalies and pre-calculated EMOS coefficients to apply to those anomalies.
+
+        Args:
+            forecast:
+                Uncalibrated forecast as probabilities, percentiles or
+                realizations.
+            forecast_gams:
+                A list containing two fitted GAMs, the first for predicting the
+                climatological mean of the historic forecasts at each location and the
+                second predicting the climatological standard deviation.
+            truth_gams:
+                A list containing two fitted GAMs, the first for predicting the
+                climatological mean of the truths at each location and the
+                second predicting the climatological standard deviation.
+            gam_features:
+                The list of features. These must be either coordinates on input_cube or
+                share a name with a cube in additional_cubes. The index of each
+                feature should match the indices used in model_specification.
+            emos_coefficients:
+                EMOS coefficients.
+            gam_additional_fields:
+                Additional fields to use as supplementary predictors in the GAMs.
+            emos_additional_fields:
+                Additional fields to use as supplementary predictors in EMOS.
+            prob_template:
+                A cube containing a probability forecast that will be used as
+                a template when generating probability output when the input
+                format of the forecast cube is not probabilities i.e. realizations
+                or percentiles.
+            realizations_count:
+                Number of realizations to use when generating the intermediate
+                calibrated forecast from probability or percentile inputs
+            ignore_ecc_bounds:
+                If True, allow percentiles from probabilities to exceed the ECC
+                bounds range.  If input is not probabilities, this is ignored.
+            tolerate_time_mismatch:
+                If True, tolerate a mismatch in validity time and forecast
+                period for coefficients vs forecasts. Use with caution!
+            predictor:
+                Predictor to be used to calculate the location parameter of the
+                calibrated distribution.  Value is "mean" or "realizations".
+            randomise:
+                Used in generating calibrated realizations.  If input forecast
+                is probabilities or percentiles, this is ignored.
+            random_seed:
+                Used in generating calibrated realizations.  If input forecast
+                is probabilities or percentiles, this is ignored.
+
+        Returns:
+            Calibrated forecast in the form of the input (ie probabilities
+            percentiles or realizations).
+        """
+        input_forecast_type = get_forecast_type(forecast)
+
+        forecast_as_realizations = forecast.copy()
+        if input_forecast_type != "realizations":
+            forecast_as_realizations = convert_to_realizations(
+                forecast.copy(), realizations_count, ignore_ecc_bounds
+            )
+        forecast_mean, forecast_sd = get_climatological_stats(
+            forecast_as_realizations,
+            forecast_gams,
+            gam_features,
+            gam_additional_fields,
+            unique_site_id_key=self.unique_site_id_key,
+        )
+        forecast_ca = CalculateClimateAnomalies(ignore_temporal_mismatch=True).process(
+            diagnostic_cube=forecast_as_realizations,
+            mean_cube=forecast_mean,
+            std_cube=forecast_sd,
+        )
+
+        # Returns parameters which describe a climate anomaly distribution.
+        location_parameter, scale_parameter = ApplyEMOS(
+            percentiles=self.percentiles
+        ).process(
+            forecast=forecast_ca,
+            coefficients=emos_coefficients,
+            additional_fields=emos_additional_fields,
+            prob_template=prob_template,
+            realizations_count=realizations_count,
+            ignore_ecc_bounds=ignore_ecc_bounds,
+            tolerate_time_mismatch=tolerate_time_mismatch,
+            predictor=predictor,
+            randomise=randomise,
+            random_seed=random_seed,
+            return_parameters=True,
+        )
+
+        truth_mean, truth_sd = get_climatological_stats(
+            forecast_as_realizations,
+            truth_gams,
+            gam_features,
+            gam_additional_fields,
+            unique_site_id_key=self.unique_site_id_key,
+        )
+
+        # Transform location and scale parameters to be in the same units as the
+        # original forecast.
+        self.transform_anomalies_to_original_units(
+            truth_mean=truth_mean,
+            truth_sd=truth_sd,
+            location_parameter=location_parameter,
+            scale_parameter=scale_parameter,
+            forecast=forecast,
+            input_forecast_type=input_forecast_type,
+        )
+
+        # Generate output in desired format from distribution.
+        self.distribution = {
+            "name": get_attribute_from_coefficients(emos_coefficients, "distribution"),
+            "location": location_parameter,
+            "scale": scale_parameter,
+            "shape": get_attribute_from_coefficients(
+                emos_coefficients, "shape_parameters", optional=True
+            ),
+        }
+
+        template = prob_template if prob_template else forecast
+        result = generate_forecast_from_distribution(
+            self.distribution, template, self.percentiles, randomise, random_seed
+        )
+
+        if input_forecast_type != "probabilities" and not prob_template:
+            # Enforce that the result is within sensible bounds.
+            bounds_pairing = get_bounds_of_distribution(
+                bounds_pairing_key=result.name(), desired_units=result.units
+            )
+            result.data = clip(
+                result.data, a_min=bounds_pairing[0], a_max=bounds_pairing[1]
+            )
+
+        # Enforce correct dtype.
+        result.data = result.data.astype(dtype=float32)
+
+        return result
