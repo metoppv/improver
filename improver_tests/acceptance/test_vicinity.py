@@ -41,7 +41,7 @@ def test_multiple_vicinities(tmp_path):
 def test_masked_vicinity(tmp_path):
     """Test application with landmask ancillary"""
     kgo_dir = acc.kgo_root() / "vicinity"
-    kgo_path = kgo_dir / "kgo_masked.nc"
+    kgo_path = kgo_dir / "kgo_50000_masked.nc"
     input_path = kgo_dir / "input.nc"
     mask_path = kgo_dir / "landmask.nc"
     output_path = tmp_path / "output.nc"
