@@ -233,6 +233,7 @@ class TrainGAMsForSAMOS(BasePlugin):
         link: str = "identity",
         fit_intercept: bool = True,
         window_length: int = 11,
+        valid_rolling_window_fraction: float = 0.5,
         unique_site_id_key: Optional[str] = None,
     ):
         """
@@ -263,9 +264,12 @@ class TrainGAMsForSAMOS(BasePlugin):
                 This must be an odd integer greater than 1. The length of the rolling
                 window used to calculate the mean and standard deviation of the input
                 cube when the input cube does not have a realization dimension
-                coordinate. If a given window has fewer than half valid data points
-                (not NaN) then the value returned for that window will be NaN and will
-                be excluded from training.
+                coordinate.
+            valid_rolling_window_fraction:
+                This must be a float between 0 and 1, inclusive. When performing
+                rolling window calculations, if a given window has less than this
+                fraction of valid data points (not NaN) then the value returned will be
+                NaN and will be excluded from training.
             unique_site_id_key:
                 An optional key to use for uniquely identifying each site in the
                 training data. If not provided, the default behavior is to use the
@@ -286,6 +290,14 @@ class TrainGAMsForSAMOS(BasePlugin):
             )
         else:
             self.window_length = window_length
+
+        if not (0 <= valid_rolling_window_fraction <= 1):
+            raise ValueError(
+                "The valid_rolling_window_fraction input must be between 0 and 1. "
+                f"Received: {valid_rolling_window_fraction}."
+            )
+        else:
+            self.valid_rolling_window_fraction = valid_rolling_window_fraction
 
     def apply_aggregator(
         self, padded_cube: Cube, aggregator: iris.analysis.WeightedAggregator
@@ -327,6 +339,9 @@ class TrainGAMsForSAMOS(BasePlugin):
         """
         removed_coords = []
         pad_width = int((self.window_length - 1) / 2)
+        # Define the minimum number of valid points required in each rolling window.
+        # This threshold does not have to be an integer.
+        allowed_valid_count = self.window_length * self.valid_rolling_window_fraction
 
         # Pad the time coordinate of the input cube, then calculate the mean and
         # standard deviation using a rolling window over the time coordinate.
@@ -412,13 +427,13 @@ class TrainGAMsForSAMOS(BasePlugin):
         # valid. Where data is considered insufficient, the result of the rolling
         # window calculation is replaced with nan.
         check_data = padded_cube.copy()
-        check_data.data = ~isnan(check_data.data) * 1.0
+        check_data.data = (~isnan(check_data.data)).astype(float32)
         valid_count = self.apply_aggregator(check_data, SUM)
 
         aggregated_cubes = {}
         for aggregator in [MEAN, STD_DEV]:
             aggregated_cube = self.apply_aggregator(padded_cube, aggregator)
-            aggregated_cube.data[valid_count.data <= pad_width] = nan
+            aggregated_cube.data[valid_count.data < allowed_valid_count] = nan
             aggregated_cubes[aggregator.name()] = aggregated_cube.copy()
 
         # Create constraint to extract only those time points which were present in
