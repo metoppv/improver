@@ -25,7 +25,10 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
     calculate_svp_in_air,
 )
 from improver.utilities.common_input_handle import as_cubelist
-from improver.utilities.cube_manipulation import add_coordinate_to_cube
+from improver.utilities.cube_manipulation import (
+    add_coordinate_to_cube,
+    get_dim_coord_names,
+)
 
 
 class CondensationTrailFormation(BasePlugin):
@@ -387,16 +390,16 @@ class CondensationTrailFormation(BasePlugin):
         """
         arrays = (temperature, relative_humidity, pressure_levels)
         if arrays[2].ndim != 1:
+            raise ValueError(f"Expected 1D pressure array, got {arrays[2].ndim}D.")
+        if arrays[0].shape != arrays[1].shape:
             raise ValueError(
-                f"Pressure array must be 1D (got {arrays[2].ndim} dimensions)."
+                f"Temperature and relative humidity arrays must have same shape:"
+                f"  {arrays[0].shape}\n  {arrays[1].shape}"
             )
         if arrays[0].shape[0] != arrays[2].size or arrays[1].shape[0] != arrays[2].size:
             raise ValueError(
-                f"Leading axes of arrays must match {{{arrays[0].shape}, {arrays[1].shape}, {arrays[2].shape}}}."
-            )
-        if arrays[0].shape != arrays[1].shape:
-            raise ValueError(
-                f"Temperature and relative humidity arrays must have same shape {{{arrays[0].shape}, {arrays[1].shape}}}."
+                f"Leading axes of arrays must match:"
+                f"  {arrays[0].shape}\n  {arrays[1].shape}\n  {arrays[2].shape}"
             )
 
         self.temperature = temperature
@@ -433,21 +436,50 @@ class CondensationTrailFormation(BasePlugin):
             Cube dimensions are [contrail factor, pressure level, latitude, longitude], where latitude and longitude are
             only included if present in the input cubes.
         """
+        # Extract input cubes
         cubes = as_cubelist(*cubes)
-        (temperature_cube, humidity_cube) = CubeList(cubes).extract(
-            ["air_temperature", "relative_humidity"]
-        )
+        names_to_extract = ["air_temperature", "relative_humidity"]
+        if len(cubes) != len(names_to_extract):
+            raise ValueError(
+                f"Expected {len(names_to_extract)} cubes, got {len(cubes)}."
+            )
+        try:
+            (temperature_cube, humidity_cube) = CubeList(cubes).extract(
+                names_to_extract
+            )
+        except Exception as e:
+            raise ValueError(
+                f"Could not extract names '{names_to_extract}' from cubelist."
+            ) from e
+
+        # Check cube dimensions are equal
+        if (
+            get_dim_coord_names(temperature_cube) != get_dim_coord_names(humidity_cube)
+            or temperature_cube.shape != humidity_cube.shape
+        ):
+            raise ValueError(
+                f"Cube dimensional coordinates must match:"
+                f"  {temperature_cube.summary(True, 25)}"
+                f"  {humidity_cube.summary(True, 25)}"
+            )
+
         temperature_cube.convert_units("K")
         humidity_cube.convert_units("kg kg-1")
 
-        # Get the pressure levels from the first cube
+        # Get pressure levels
         pressure_coord = temperature_cube.coord("pressure")
         pressure_coord.convert_units("Pa")
+
+        if "pressure".casefold() != get_dim_coord_names(temperature_cube)[0]:
+            raise ValueError(
+                f"Pressure must be the leading axis (got '{get_dim_coord_names(temperature_cube)}')."
+            )
 
         # Calculate contrail formation using numpy arrays
         contrail_formation_data = self.process_from_arrays(
             temperature_cube.data, humidity_cube.data, pressure_coord.points
         )
+
         return self._create_contrail_formation_cube(
             contrail_formation_data, temperature_cube
         )
