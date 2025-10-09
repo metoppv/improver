@@ -79,6 +79,23 @@ def test_init_window_length_exception(model_specification, window_length):
         )
 
 
+@pytest.mark.parametrize("valid_rolling_window_fraction", [-0.05, 1.05, 23])
+def test_init_valid_rolling_window_fraction_exception(
+    model_specification, valid_rolling_window_fraction
+):
+    """Test that an exception is raised if the valid_rolling_window_fraction is not a
+    float between 0 and 1, inclusive."""
+    msg = (
+        "The valid_rolling_window_fraction input must be between 0 and 1. "
+        f"Received: {valid_rolling_window_fraction}."
+    )
+    with pytest.raises(ValueError, match=msg):
+        TrainGAMsForSAMOS(
+            model_specification=model_specification,
+            valid_rolling_window_fraction=valid_rolling_window_fraction,
+        )
+
+
 @pytest.mark.parametrize("forecast_type", ["gridded", "spot"])
 @pytest.mark.parametrize("n_realizations,n_times", [[5, 1], [5, 5], [1, 5]])
 @pytest.mark.parametrize("include_blend_time", [False, True])
@@ -194,6 +211,9 @@ def test_calculate_cube_statistics_missing_data(model_specification):
     expected_mean = create_simple_cube(fill_value=305.0, **expected_cube_kwargs)
     add_values_mean = np.array([-0.5, -0.25, 0.25, 0.25, 0.333333]).reshape(shape)
     expected_mean.data = expected_mean.data + add_values_mean
+    # These values have insufficient valid data points contributing to them. Therefore,
+    # these points are expected to be nans in the output.
+    expected_mean.data[0, :] = np.array([np.nan, np.nan])
     expected_mean.coord("time").points = expected_mean.coord("time").points + np.array(
         [0, 86400, 86400, 86400, 86400], dtype=np.int64
     )
@@ -201,6 +221,9 @@ def test_calculate_cube_statistics_missing_data(model_specification):
     expected_sd = create_simple_cube(fill_value=0.0, **expected_cube_kwargs)
     add_values_sd = np.array([0.707106, 0.5, 0.5, 0.5, 0.577350]).reshape(shape)
     expected_sd.data = expected_sd.data + add_values_sd
+    # These values have insufficient valid data points contributing to them. Therefore,
+    # these points are expected to be nans in the output.
+    expected_sd.data[0, :] = np.array([np.nan, np.nan])
     expected_sd.coord("time").points = expected_sd.coord("time").points + np.array(
         [0, 86400, 86400, 86400, 86400], dtype=np.int64
     )
