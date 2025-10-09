@@ -6,9 +6,10 @@
 
 from typing import Tuple, Union
 
+import iris._constraints
 import numpy as np
 from iris.cube import Cube, CubeList
-from iris.exceptions import CoordinateNotFoundError
+from iris.exceptions import ConstraintMismatchError, CoordinateNotFoundError
 from scipy.optimize import newton
 
 from improver import PostProcessingPlugin
@@ -155,9 +156,31 @@ class CloudCondensationLevel(PostProcessingPlugin):
 
         """
         cubes = as_cubelist(cubes)
-        (self.temperature, self.pressure, self.humidity) = CubeList(cubes).extract(
-            ["air_temperature", "surface_air_pressure", "humidity_mixing_ratio"]
+
+        try:
+            # Test is there is a cube with air_temperature in the name
+            def test_temperature(cube):
+                return True if "air_temperature" in cube.name() else False
+
+            self.temperature = cubes.extract_cube(
+                iris.Constraint(cube_func=test_temperature)
+            )
+        except ConstraintMismatchError as err:
+            raise ValueError("No cube with name 'air_temperature' found") from err
+
+        try:
+            # Test is there is a cube with air_pressure in the name
+            def test_pressure(cube):
+                return True if "air_pressure" in cube.name() else False
+
+            self.pressure = cubes.extract_cube(iris.Constraint(cube_func=test_pressure))
+        except ConstraintMismatchError as err:
+            raise ValueError("No cube with name 'air_pressure' found") from err
+
+        self.humidity = cubes.extract_cube(
+            iris.Constraint(name="humidity_mixing_ratio")
         )
+
         ccl_pressure, ccl_temperature = self._iterate_to_ccl()
         # Limit values so they are no greater than the original pressure.
         # This occurs in super-saturated conditions.
