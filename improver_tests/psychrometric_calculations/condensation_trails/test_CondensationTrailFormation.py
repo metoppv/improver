@@ -677,3 +677,44 @@ def test_categorical_cube_output(
         assert "latitude" in output_coord_names
     if x_points is not None:
         assert "longitude" in output_coord_names
+
+
+@pytest.mark.parametrize(
+    "temperature, relative_humidity, pressure_levels, expected_exception",
+    [
+        # correct inputs
+        (np.zeros(2), np.zeros(2), np.zeros(2), None),
+        (np.zeros((2, 3)), np.zeros((2, 3)), np.zeros(2), None),
+        (np.zeros((2, 3, 4)), np.zeros((2, 3, 4)), np.zeros(2), None),
+        # invalid types
+        (2, np.zeros(2), np.zeros(2), AttributeError),
+        (np.zeros(2), 2, np.zeros(2), AttributeError),
+        (np.zeros(2), np.zeros(2), 2, AttributeError),
+        # invalid leading axes
+        (np.zeros((1, 3, 4)), np.zeros((2, 3, 4)), np.zeros(2), ValueError),
+        (np.zeros((2, 3, 4)), np.zeros((1, 3, 4)), np.zeros(2), ValueError),
+        (np.zeros((2, 3, 4)), np.zeros((2, 3, 4)), np.zeros(1), ValueError),
+        # invalid shapes
+        (np.zeros((2, 1)), np.zeros((2, 3)), np.zeros(2), ValueError),
+        (np.zeros((2, 3, 1)), np.zeros((2, 3, 4)), np.zeros(2), ValueError),
+        (np.zeros((2, 1, 4)), np.zeros((2, 3, 4)), np.zeros(2), ValueError),
+        (np.zeros(2), np.zeros(2), np.zeros((2, 3)), ValueError),
+        (np.zeros(2), np.zeros(2), np.zeros(None), ValueError),
+    ],
+)
+def test_process_from_arrays_raises(
+    temperature: np.ndarray,
+    relative_humidity: np.ndarray,
+    pressure_levels: np.ndarray,
+    expected_exception: Optional[Exception],
+) -> None:
+    """Check that process_from_arrays returns the expected exceptions when given invalid inputs."""
+    plugin = CondensationTrailFormation()
+    if expected_exception:
+        with pytest.raises(expected_exception):
+            plugin.process_from_arrays(temperature, relative_humidity, pressure_levels)
+    else:
+        result = plugin.process_from_arrays(
+            temperature, relative_humidity, pressure_levels
+        )
+        assert isinstance(result, np.ndarray)

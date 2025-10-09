@@ -385,6 +385,20 @@ class CondensationTrailFormation(BasePlugin):
             Array axes are [contrail factor, pressure level, latitude, longitude], where latitude and longitude are
             only included if present in the temperature and relative humidity input arrays.
         """
+        arrays = (temperature, relative_humidity, pressure_levels)
+        if arrays[2].ndim != 1:
+            raise ValueError(
+                f"Pressure array must be 1D (got {arrays[2].ndim} dimensions)."
+            )
+        if arrays[0].shape[0] != arrays[2].size or arrays[1].shape[0] != arrays[2].size:
+            raise ValueError(
+                f"Leading axes of arrays must match {{{arrays[0].shape}, {arrays[1].shape}, {arrays[2].shape}}}."
+            )
+        if arrays[0].shape != arrays[1].shape:
+            raise ValueError(
+                f"Temperature and relative humidity arrays must have same shape {{{arrays[0].shape}, {arrays[1].shape}}}."
+            )
+
         self.temperature = temperature
         self.relative_humidity = relative_humidity
         self.pressure_levels = pressure_levels
