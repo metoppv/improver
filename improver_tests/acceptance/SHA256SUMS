@@ -455,7 +455,6 @@ e8e9661759ebf7cf8e78d259a33a57ba8a5f055a013bda68daf2f265d28de367  ./estimate-sam
 7c0268d6117de9002033a72a0388c963094c0f87b2448c2455802e41750960e0  ./estimate-samos-gam/kgo.pkl
 a979ae8ee62d3e7867ac6ed31a423c03bd65fc52f818d7e24ad212f789352c61  ./estimate-samos-gam/kgo_extra_cube.pkl
 33ae30a74bc600b0f4ff10feff1ae3443323f1c17e57ec6c2f0aec4cb0e72ae5  ./estimate-samos-gam/kgo_sites.pkl
-3bfb4f1b610528f34096745613fc62db3ca10b7f38c54b2495996a9b2cdfc695  ./estimate-samos-gam/output.pkl
 8964d00ec69f384501269e0093bb7c4684d1fd7cf292a8286ee4ea68fe3b73e4  ./estimate-samos-gam/roughness_length.nc
 34222261b96e60ffd281637d5876cf84664a59efc9977407cb3a7de30c99b0c9  ./estimate-samos-gam/samos_model_spec_simple.json
 cc3fb6e27313a487f17a69ca223523e86f3fa6c7c71f08574d2efcecab5bc4a2  ./estimate-samos-gams-from-table/distance_to_water.nc
