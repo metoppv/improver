@@ -455,7 +455,6 @@ e8e9661759ebf7cf8e78d259a33a57ba8a5f055a013bda68daf2f265d28de367  ./estimate-sam
 7c0268d6117de9002033a72a0388c963094c0f87b2448c2455802e41750960e0  ./estimate-samos-gam/kgo.pkl
 a979ae8ee62d3e7867ac6ed31a423c03bd65fc52f818d7e24ad212f789352c61  ./estimate-samos-gam/kgo_extra_cube.pkl
 33ae30a74bc600b0f4ff10feff1ae3443323f1c17e57ec6c2f0aec4cb0e72ae5  ./estimate-samos-gam/kgo_sites.pkl
-3bfb4f1b610528f34096745613fc62db3ca10b7f38c54b2495996a9b2cdfc695  ./estimate-samos-gam/output.pkl
 8964d00ec69f384501269e0093bb7c4684d1fd7cf292a8286ee4ea68fe3b73e4  ./estimate-samos-gam/roughness_length.nc
 34222261b96e60ffd281637d5876cf84664a59efc9977407cb3a7de30c99b0c9  ./estimate-samos-gam/samos_model_spec_simple.json
 cc3fb6e27313a487f17a69ca223523e86f3fa6c7c71f08574d2efcecab5bc4a2  ./estimate-samos-gams-from-table/distance_to_water.nc
@@ -1057,9 +1056,12 @@ e48c3b07bd14214a1a10c0bbf1e0acdf54cfedf93b2c6d766f594ce83a45c2b8  ./uv-index/bas
 b794823053a282e758f7eb8625867d497e55cc3757862a7be504fcbd7451bc32  ./vertical-updraught/precip_rate_max.nc
 064f9d2861e6312848a7ba24893b9b8ab0271e4b99793cb0d57fdda732931292  ./vertical-updraught/with_id_attr/kgo.nc
 d9f495774f4810e1631267bb4f40376a3c4b81170f2e8e5b5c051bc38dc4deeb  ./vertical-updraught/without_id_attr/kgo.nc
+95afb2cca6460628af14766f076a758d4fe2355a879eb86c10c35600f0e5f017  ./vicinity/input.nc
 ce66f6de167ddba010a455127345a5cd5e70146906a6d7c68e765befcdbea590  ./vicinity/kgo_10000.nc
 43ed1afda7a6b22959982fe463a59124f4b1638dd0e43426b66db62e77c65f6b  ./vicinity/kgo_50000.nc
+423df2b47361ab89c6cf95cb4306c55b464441063b29bffc52aed084314f574c  ./vicinity/kgo_50000_masked.nc
 64ed1e7056ad529fd6fd2dd58517f625c592b73441aa0f6352cf98a1a3714ba2  ./vicinity/kgo_multiple_radii.nc
+5635ef28f038b262e1c36878583e7b80fdf85ee8acd9c972ed82ebce3670c909  ./vicinity/landmask.nc
 62310a69ab566416d0ef5c847e8ea57a9f9e5ded9771c313732549fe4e2df6c9  ./vicinity/lightning.nc
 ecb248c8c7aa906e7fb29bdecd5ddfe553252acd9a8a9a4f16c373cead2996e0  ./visibility-combine-cloud-base/gridded/cloud_base_ground.nc
 76bb402b849751f73dc873b321e7577da0c32ad6d1797ee8882a8cac4f69fc67  ./visibility-combine-cloud-base/gridded/kgo.nc

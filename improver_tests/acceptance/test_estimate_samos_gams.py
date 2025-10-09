@@ -107,7 +107,7 @@ def test_gam_cube_gam_features(tmp_path):
     acc.compare(output_path, kgo_path, file_type="generic_pickle")
 
 
-def test_gam_at_sites():
+def test_gam_at_sites(tmp_path):
     """
     Test estimate-samos-gams-coefficients for diagnostic with assumed
     normal distribution and additional features provided as a cube.
@@ -119,7 +119,7 @@ def test_gam_at_sites():
     kgo_dir = acc.kgo_root() / "estimate-samos-gam"
     kgo_path = kgo_dir / "kgo_sites.pkl"
     model_specification_path = kgo_dir / "samos_model_spec_simple.json"
-    output_path = kgo_dir / "output.pkl"
+    output_path = tmp_path / "output.pkl"
 
     gam_features = "latitude,longitude,height"
     args = [
