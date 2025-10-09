@@ -355,15 +355,15 @@ class HumidityMixingRatio(BasePlugin):
         )
 
         try:
-            # Test is there is a cube with temperature in the name
+            # Test is there is a cube with air_temperature in the name
             def test_temperature(cube):
-                return True if "temperature" in cube.name() else False
+                return True if "air_temperature" in cube.name() else False
 
             self.temperature = cubes.extract_cube(
                 iris.Constraint(cube_func=test_temperature)
             )
         except ConstraintMismatchError as err:
-            raise ValueError("No cube with name 'temperature' found") from err
+            raise ValueError("No cube with name 'air_temperature' found") from err
 
         try:
             # Test if there is one, and only one, cube with pressure in the name
