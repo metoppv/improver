@@ -480,6 +480,9 @@ class CondensationTrailFormation(BasePlugin):
             temperature_cube.data, humidity_cube.data, pressure_coord.points
         )
 
-        return self._create_contrail_formation_cube(
+        # Create output cube using contrail formation data
+        contrail_formation_cube = self._create_contrail_formation_cube(
             contrail_formation_data, temperature_cube
         )
+
+        return contrail_formation_cube
