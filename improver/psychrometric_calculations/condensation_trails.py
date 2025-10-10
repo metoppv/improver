@@ -304,3 +304,112 @@ class CondensationTrailFormation(BasePlugin):
         )
 
         return return_cube
+
+
+class ContrailHeightExtractor(BasePlugin):
+    """Plugin to extract contrail formation heights by category. It extracts the maximum or minimum
+    height where contrail formation is 1 (non-persistent) or 2 (persistent).
+
+    The contrail height extractor takes two cubes as input:
+    - A categorical contrail formation cube with dimensions (engine_factor, pressure_level,
+      lat (optional), lon (optional)) and values: 0 = no contrails, 1 = non-persistent, 2 = persistent.
+    - A height cube with dimensions (pressure_level, lat (optional), lon (optional)).
+    """
+
+    def __init__(self, use_max=True):
+        """
+        Initialize the Class
+
+        Args:
+            use_max (bool, optional):
+                If True, extract maximum heights; if False, extract minimum heights.
+        """
+
+        self.use_max = use_max
+
+    def _define_max_min_height_contrail_cubes(
+            self, formation_cube: Cube, height_cube: Cube,
+            non_persistent_result: np.ndarray, persistent_result: np.ndarray,
+            operation: str) -> Tuple[Cube, Cube]:
+        """
+        Create new cubes containing the max or min heights
+        for persistent or non-persistent contrail formation.
+
+        Args:
+            formation_cube:
+                Categorical cube of shape (engine_factor, pressure_level, lat (optional), lon (optional))
+                Values: 0 = no contrails, 1 = non-persistent, 2 = persistent
+            height_cube:
+                Height cube of shape (pressure_level, lat (optional), lon (optional))
+            non_persistent_result:
+                Extracted height data for non-persistent contrails.
+            persistent_result:
+                Extracted height data for persistent contrails.
+            operation:
+                Either "max" or "min" indicating the type of extraction performed.
+
+        Returns:
+            non_persistent_height_cube, persistent_height_cube (tuple of iris.cube.Cube):
+                Cubes containing the extracted heights for non-persistent and persistent contrails.
+        """
+
+        template_cube = formation_cube.slices_over("pressure").next()
+        template_cube.remove_coord("pressure")
+
+        non_persistent_cube = template_cube.copy(
+           data=non_persistent_result,
+        )
+        non_persistent_cube.rename(f"{operation}_height_non_persistent_contrail")
+        non_persistent_cube.units = height_cube.units
+
+        persistent_cube = template_cube.copy(
+            data=persistent_result,
+        )
+        persistent_cube.rename(f"{operation}_height_persistent_contrail")
+        persistent_cube.units = height_cube.units
+
+        return non_persistent_cube, persistent_cube
+
+    def process(self, formation_cube: Cube, height_cube: Cube) -> Tuple[Cube, Cube]:
+        """
+        Main entry point for this class to extract the maximum or minimum height where contrail
+        formation is categorized as non-persistent (1) or persistent (2).
+
+        Args:
+            formation_cube:
+                Categorical cube of shape (engine_factor, pressure_level, lat (optional), lon (optional))
+                Values: 0 = no contrails, 1 = non-persistent, 2 = persistent
+            height_cube:
+                Height cube of shape (pressure_level, lat (optional), lon (optional))
+
+        Returns:
+            non_persistent_height_cube, persistent_height_cube (tuple of iris.cube.Cube):
+                Each cube has dimensions (engine_factor, lat (optional), lon (optional))
+                and contains the extracted height values for the respective contrail category.
+        """
+
+        height_data = height_cube.data
+        try:
+            broadcast_height = np.broadcast_to(height_data, formation_cube.shape)
+        except ValueError as broadcast_error:
+            raise ValueError(
+            f"Cannot broadcast height data of shape {height_data.shape} to formation_cube shape {formation_cube.shape}"
+            ) from broadcast_error
+
+        non_persistent_mask = formation_cube.data == 1
+        persistent_mask = formation_cube.data == 2
+
+        if self.use_max == True:
+            non_persistent_result = np.nanmax(np.where(non_persistent_mask, broadcast_height, np.nan), axis=1)
+            persistent_result = np.nanmax(np.where(persistent_mask, broadcast_height, np.nan), axis=1)
+            operation = "max"
+        else:
+            non_persistent_result = np.nanmin(np.where(non_persistent_mask, broadcast_height, np.nan), axis=1)
+            persistent_result = np.nanmin(np.where(persistent_mask, broadcast_height, np.nan), axis=1)
+            operation = "min"
+
+        non_persistent_cube, persistent_cube = self._define_max_min_height_contrail_cubes(
+            formation_cube, height_cube, non_persistent_result, persistent_result, operation
+        )
+
+        return non_persistent_cube, persistent_cube
