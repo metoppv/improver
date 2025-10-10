@@ -68,9 +68,7 @@ def test_max_extraction():
         ]
     )  # engine_factor 1
     # --> height data (pressure (x2), latitude (x2), longitude (x2))
-    height = np.array(
-        [[[100, 200], [300, 400]], [[200, 300], [400, 500]]]
-    )
+    height = np.array([[[100, 200], [300, 400]], [[200, 300], [400, 500]]])
 
     # 2. Turn test data into test cubes ready for passing into ContrailHeightExtractor
     formation_cube = make_cube(
@@ -118,9 +116,7 @@ def test_min_extraction():
         ]
     )
     # --> height data (pressure (x2), latitude (x2), longitude (x2))
-    height = np.array(
-        [[[100, 200], [300, 400]], [[200, 300], [400, 500]]]
-    )
+    height = np.array([[[100, 200], [300, 400]], [[200, 300], [400, 500]]])
 
     # 2. Turn test data into test cubes ready for passing into ContrailHeightExtractor
     formation_cube = make_cube(
@@ -167,9 +163,7 @@ def test_output_names_and_units():
         ]
     )
     # --> height data (pressure (x2), latitude (x2), longitude (x2))
-    height = np.array(
-        [[[100, 200], [300, 400]], [[200, 300], [400, 500]]]
-    )
+    height = np.array([[[100, 200], [300, 400]], [[200, 300], [400, 500]]])
 
     # 2. Turn test data into test cubes ready for passing into ContrailHeightExtractor
     formation_cube = make_cube(

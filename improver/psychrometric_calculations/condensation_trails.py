@@ -403,7 +403,7 @@ class ContrailHeightExtractor(BasePlugin):
         non_persistent_mask = formation_cube.data == 1
         persistent_mask = formation_cube.data == 2
 
-        if self.use_max == True:
+        if self.use_max:
             non_persistent_result = np.nanmax(
                 np.where(non_persistent_mask, broadcast_height, np.nan), axis=1
             )
