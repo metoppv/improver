@@ -18,6 +18,7 @@ from iris.cube import CubeList
 
 from improver.calibration import (
     add_warning_comment,
+    get_training_period_cycles,
     identify_parquet_type,
     split_cubes_for_samos,
     split_forecasts_and_bias_files,
@@ -1259,6 +1260,31 @@ def test_split_netcdf_parquet_pickle_basic(
                 assert result_pickles[i].link == pickle_object[i].link
         else:
             assert result_pickles is None
+
+
+@pytest.mark.parametrize(
+    "cycletime,forecast_period,training_length,expected",
+    [
+        ("20171110T0000Z", 3600, 1, [pd.Timestamp(2017, 11, 9, 0, 0, tz="UTC")]),  # noqa 1 hour
+        ("20171110T0000Z", 90000, 1, [pd.Timestamp(2017, 11, 8, 0, 0, tz="UTC")]),  # noqa 25 hours
+        ("20171110T0000Z", 176400, 1, [pd.Timestamp(2017, 11, 7, 0, 0, tz="UTC")]),  # noqa 49 hours
+        (
+            "20171110T0000Z",
+            3600,
+            2,
+            [
+                pd.Timestamp(2017, 11, 8, 0, 0, tz="UTC"),
+                pd.Timestamp(2017, 11, 9, 0, 0, tz="UTC"),
+            ],
+        ),  # 1 hour, 2 days
+    ],
+)
+def test_get_training_period_cycles(
+    cycletime, forecast_period, training_length, expected
+):
+    """Test that get_training_period_cycles returns the expected cycletimes."""
+    result = get_training_period_cycles(cycletime, forecast_period, training_length)
+    assert list(result) == expected
 
 
 if __name__ == "__main__":
