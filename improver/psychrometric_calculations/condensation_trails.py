@@ -307,13 +307,9 @@ class CondensationTrailFormation(BasePlugin):
 
 
 class ContrailHeightExtractor(BasePlugin):
-    """Plugin to extract contrail formation heights by category. It extracts the maximum or minimum
+    """
+    Plugin to extract contrail formation heights by category. It extracts the maximum or minimum
     height where contrail formation is 1 (non-persistent) or 2 (persistent).
-
-    The contrail height extractor takes two cubes as input:
-    - A categorical contrail formation cube with dimensions (engine_factor, pressure_level,
-      lat (optional), lon (optional)) and values: 0 = no contrails, 1 = non-persistent, 2 = persistent.
-    - A height cube with dimensions (pressure_level, lat (optional), lon (optional)).
     """
 
     def __init__(self, use_max=True):
