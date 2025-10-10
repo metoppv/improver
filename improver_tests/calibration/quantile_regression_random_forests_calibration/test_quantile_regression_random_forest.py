@@ -902,7 +902,7 @@ def test_apply_qrf(
         )
 
     plugin = ApplyQuantileRegressionRandomForests(
-        "air_temperature",
+        "wind_speed_at_10m",
         feature_config,
         quantiles,
         transformation,
@@ -916,5 +916,69 @@ def test_apply_qrf(
     else:
         assert result.shape == (2,)
     assert result.dtype == np.float32
-    # expected_data = np.full((len(quantiles), 2), expected, dtype=np.float32)
+    np.testing.assert_almost_equal(result, expected, decimal=2)
+
+
+@pytest.mark.parametrize(
+    "quantiles,transformation,pre_transform_addition,feature,expected",
+    [
+        ([0.5], None, 0, None, [5, 4.9]),  # No additional feature
+        ([0.5], "log", 10, "members_below_7", [8.02, 4.86]),  # members below
+        ([0.5], "log", 10, "members_above_7", [5.54, 4.77]),  # members above
+    ],
+)
+def test_apply_qrf_alternative_configs(
+    quantiles,
+    transformation,
+    pre_transform_addition,
+    feature,
+    expected,
+):
+    """Test the ApplyQuantileRegressionRandomForests plugin using alternative
+    configurations. For the members_below and members_above features, as
+    one realization is provided for this test, this effectively adds a feature
+    that is either zero of one to the feature set."""
+
+    feature_list = []
+    if feature is not None:
+        feature_list = [feature]
+    feature_config = {
+        "wind_speed_at_10m": ["mean", "std", "latitude", "longitude", *feature_list]
+    }
+
+    n_estimators = 2
+    max_depth = 2
+    random_state = 55
+    extra_kwargs = {}
+
+    qrf_model = _run_train_qrf(
+        feature_config,
+        n_estimators,
+        max_depth,
+        random_state,
+        transformation,
+        pre_transform_addition,
+        extra_kwargs,
+        False,
+    )
+
+    frt = "20170103T0000Z"
+    vt = "20170103T1200Z"
+    data = np.arange(6, (len(quantiles) * 6) + 1, 6)
+
+    forecast_df = _create_forecasts(frt, vt, data)
+    forecast_df = _add_day_of_training_period(forecast_df)
+
+    plugin = ApplyQuantileRegressionRandomForests(
+        "wind_speed_at_10m",
+        feature_config,
+        quantiles,
+        transformation,
+        pre_transform_addition,
+    )
+    result = plugin.process(qrf_model, forecast_df)
+
+    assert isinstance(result, np.ndarray)
+    assert result.shape == (2,)
+    assert result.dtype == np.float32
     np.testing.assert_almost_equal(result, expected, decimal=2)

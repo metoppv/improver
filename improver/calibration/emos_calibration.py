@@ -885,9 +885,10 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             cubelist is for a separate EMOS coefficient e.g. alpha, beta,
             gamma, delta.
         """
-        (template_dims, spatial_associated_coords) = (
-            self._get_spatial_associated_coordinates(historic_forecasts)
-        )
+        (
+            template_dims,
+            spatial_associated_coords,
+        ) = self._get_spatial_associated_coordinates(historic_forecasts)
         coords_to_replace = (
             self._create_temporal_coordinates(historic_forecasts)
             + spatial_associated_coords
@@ -1193,6 +1194,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 forecast_predictor_data = np.ma.stack(
                     broadcast_data_to_time_coord(forecast_predictors)
                 )
+
             initial_guess = self.compute_initial_guess(
                 truths.data,
                 forecast_predictor_data,
@@ -1743,181 +1745,6 @@ class ApplyEMOS(PostProcessingPlugin):
                     )
                     raise ValueError(msg)
 
-    @staticmethod
-    def _get_attribute(
-        coefficients: CubeList, attribute_name: str, optional: bool = False
-    ) -> Optional[Any]:
-        """Get the value for the requested attribute, ensuring that the
-        attribute is present consistently across the cubes within the
-        coefficients cubelist.
-
-        Args:
-            coefficients:
-                EMOS coefficients
-            attribute_name:
-                Name of expected attribute
-            optional:
-                Indicate whether the attribute is allowed to be optional.
-
-        Returns:
-            Returns None if the attribute is not present. Otherwise,
-            the value of the attribute is returned.
-
-        Raises:
-            ValueError: If coefficients do not share the expected attributes.
-        """
-        attributes = [
-            str(c.attributes[attribute_name])
-            for c in coefficients
-            if c.attributes.get(attribute_name) is not None
-        ]
-
-        if not attributes and optional:
-            return None
-        if not attributes and not optional:
-            msg = (
-                f"The {attribute_name} attribute must be specified on all "
-                "coefficients cubes."
-            )
-            raise AttributeError(msg)
-
-        if len(set(attributes)) == 1 and len(attributes) == len(coefficients):
-            return coefficients[0].attributes[attribute_name]
-
-        msg = (
-            "Coefficients must share the same {0} attribute. "
-            "{0} attributes provided: {1}".format(attribute_name, attributes)
-        )
-        raise AttributeError(msg)
-
-    def _get_input_forecast_type(self, forecast: Cube):
-        """Identifies whether the forecast is in probability, realization
-        or percentile space.
-
-        Args:
-            forecast
-
-        """
-        try:
-            find_percentile_coordinate(forecast)
-        except CoordinateNotFoundError:
-            if forecast.name().startswith("probability_of"):
-                forecast_type = "probabilities"
-            else:
-                forecast_type = "realizations"
-        else:
-            forecast_type = "percentiles"
-        self.input_forecast_type = forecast_type
-
-    def _convert_to_realizations(
-        self, forecast: Cube, realizations_count: Optional[int], ignore_ecc_bounds: bool
-    ) -> Cube:
-        """Convert an input forecast of probabilities or percentiles into
-        pseudo-realizations.
-
-        Args:
-            forecast
-            realizations_count:
-                Number of pseudo-realizations to generate from the input
-                forecast
-            ignore_ecc_bounds
-
-        Returns:
-            Cube with pseudo-realizations
-        """
-        if not realizations_count:
-            raise ValueError(
-                "The 'realizations_count' argument must be defined "
-                "for forecasts provided as {}".format(self.input_forecast_type)
-            )
-
-        if self.input_forecast_type == "probabilities":
-            conversion_plugin = ConvertProbabilitiesToPercentiles(
-                ecc_bounds_warning=ignore_ecc_bounds
-            )
-        if self.input_forecast_type == "percentiles":
-            conversion_plugin = ResamplePercentiles(
-                ecc_bounds_warning=ignore_ecc_bounds
-            )
-
-        forecast_as_percentiles = conversion_plugin(
-            forecast, no_of_percentiles=realizations_count
-        )
-        forecast_as_realizations = RebadgePercentilesAsRealizations()(
-            forecast_as_percentiles
-        )
-
-        return forecast_as_realizations
-
-    def _format_forecast(
-        self, template: Cube, randomise: bool, random_seed: Optional[int]
-    ) -> Cube:
-        """
-        Generate calibrated probability, percentile or realization output in
-        the desired format.
-
-        Args:
-            template:
-                A template cube containing the coordinates and metadata expected
-                on the calibrated forecast.
-            randomise:
-                If True, order realization output randomly rather than using
-                the input forecast.  If forecast type is not realizations, this
-                is ignored.
-            random_seed:
-                For realizations input if randomise is True, random seed for
-                generating re-ordered percentiles.  If randomise is False, the
-                random seed may still be used for splitting ties.
-
-        Returns:
-            Calibrated forecast
-        """
-        if self.output_forecast_type == "probabilities":
-            conversion_plugin = ConvertLocationAndScaleParametersToProbabilities(
-                distribution=self.distribution["name"],
-                shape_parameters=self.distribution["shape"],
-            )
-            result = conversion_plugin(
-                self.distribution["location"], self.distribution["scale"], template
-            )
-
-        else:
-            conversion_plugin = ConvertLocationAndScaleParametersToPercentiles(
-                distribution=self.distribution["name"],
-                shape_parameters=self.distribution["shape"],
-            )
-
-            if self.output_forecast_type == "percentiles":
-                perc_coord = find_percentile_coordinate(template)
-                result = conversion_plugin(
-                    self.distribution["location"],
-                    self.distribution["scale"],
-                    template,
-                    percentiles=(
-                        self.percentiles if self.percentiles else perc_coord.points
-                    ),
-                )
-            else:
-                no_of_percentiles = len(template.coord("realization").points)
-                percentiles = conversion_plugin(
-                    self.distribution["location"],
-                    self.distribution["scale"],
-                    template,
-                    no_of_percentiles=no_of_percentiles,
-                )
-                result = EnsembleReordering().process(
-                    percentiles,
-                    template,
-                    random_ordering=randomise,
-                    random_seed=random_seed,
-                )
-
-            # Preserve cell methods from template.
-            for cm in template.cell_methods:
-                result.add_cell_method(cm)
-
-        return result
-
     def process(
         self,
         forecast: Cube,
@@ -1931,7 +1758,8 @@ class ApplyEMOS(PostProcessingPlugin):
         predictor: str = "mean",
         randomise: bool = False,
         random_seed: Optional[int] = None,
-    ) -> Cube:
+        return_parameters: bool = False,
+    ) -> Union[Cube, CubeList]:
         """Calibrate input forecast using pre-calculated coefficients
 
         Args:
@@ -1969,12 +1797,18 @@ class ApplyEMOS(PostProcessingPlugin):
             random_seed:
                 Used in generating calibrated realizations.  If input forecast
                 is probabilities or percentiles, this is ignored.
+            return_parameters:
+                If True, return location and scale parameters of the calibrated forecast
+                distribution, rather than forecasts. This option supercedes all other
+                inputs which affect the format of the output.
 
         Returns:
             Calibrated forecast in the form of the input (ie probabilities
-            percentiles or realizations)
+            percentiles or realizations), or a tuple containing cubes of location and
+            scale parameters of the calibrated forecast distribution if
+            return_parameters is True.
         """
-        self._get_input_forecast_type(forecast)
+        self.input_forecast_type = get_forecast_type(forecast)
         self.output_forecast_type = (
             "probabilities" if prob_template else self.input_forecast_type
         )
@@ -1992,7 +1826,7 @@ class ApplyEMOS(PostProcessingPlugin):
 
         forecast_as_realizations = forecast.copy()
         if self.input_forecast_type != "realizations":
-            forecast_as_realizations = self._convert_to_realizations(
+            forecast_as_realizations = convert_to_realizations(
                 forecast.copy(), realizations_count, ignore_ecc_bounds
             )
 
@@ -2007,20 +1841,222 @@ class ApplyEMOS(PostProcessingPlugin):
             tolerate_time_mismatch=tolerate_time_mismatch,
         )
 
-        self.distribution = {
-            "name": self._get_attribute(coefficients, "distribution"),
-            "location": location_parameter,
-            "scale": scale_parameter,
-            "shape": self._get_attribute(
-                coefficients, "shape_parameters", optional=True
-            ),
-        }
+        if return_parameters:
+            return location_parameter, scale_parameter
+        else:
+            self.distribution = {
+                "name": get_attribute_from_coefficients(coefficients, "distribution"),
+                "location": location_parameter,
+                "scale": scale_parameter,
+                "shape": get_attribute_from_coefficients(
+                    coefficients, "shape_parameters", optional=True
+                ),
+            }
 
-        template = prob_template if prob_template else forecast
-        result = self._format_forecast(template, randomise, random_seed)
+            template = prob_template if prob_template else forecast
+            result = generate_forecast_from_distribution(
+                self.distribution, template, self.percentiles, randomise, random_seed
+            )
 
-        if land_sea_mask:
-            # fill in masked sea points with uncalibrated data
-            merge_land_and_sea(result, forecast)
+            if land_sea_mask:
+                # fill in masked sea points with uncalibrated data
+                merge_land_and_sea(result, forecast)
 
-        return result
+            return result
+
+
+def get_forecast_type(forecast: Cube) -> str:
+    """Identifies whether the forecast is in probability, realization
+    or percentile space.
+
+    Args:
+        forecast
+
+    Returns:
+        forecast_type: str
+            One of "probabilities", "realizations" or "percentiles"
+    """
+    try:
+        find_percentile_coordinate(forecast)
+    except CoordinateNotFoundError:
+        if forecast.name().startswith("probability_of"):
+            forecast_type = "probabilities"
+        else:
+            forecast_type = "realizations"
+    else:
+        forecast_type = "percentiles"
+
+    return forecast_type
+
+
+def convert_to_realizations(
+    forecast: Cube, realizations_count: Optional[int], ignore_ecc_bounds: bool
+) -> Cube:
+    """Convert an input forecast of probabilities or percentiles into
+    pseudo-realizations.
+
+    Args:
+        forecast
+        realizations_count:
+            Number of pseudo-realizations to generate from the input
+            forecast
+        ignore_ecc_bounds:
+            If True, allow percentiles from probabilities to exceed the ECC bounds
+            range.  If input is not probabilities, this is ignored.
+
+    Returns:
+        Cube with pseudo-realizations.
+    """
+    input_forecast_type = get_forecast_type(forecast)
+    if not realizations_count:
+        raise ValueError(
+            "The 'realizations_count' argument must be defined "
+            f"for forecasts provided as {input_forecast_type}"
+        )
+
+    if input_forecast_type == "probabilities":
+        conversion_plugin = ConvertProbabilitiesToPercentiles(
+            ecc_bounds_warning=ignore_ecc_bounds
+        )
+    if input_forecast_type == "percentiles":
+        conversion_plugin = ResamplePercentiles(ecc_bounds_warning=ignore_ecc_bounds)
+
+    forecast_as_percentiles = conversion_plugin(
+        forecast, no_of_percentiles=realizations_count
+    )
+    forecast_as_realizations = RebadgePercentilesAsRealizations()(
+        forecast_as_percentiles
+    )
+
+    return forecast_as_realizations
+
+
+def get_attribute_from_coefficients(
+    coefficients: CubeList, attribute_name: str, optional: bool = False
+) -> Optional[Any]:
+    """Get the value for the requested attribute, ensuring that the
+    attribute is present consistently across the cubes within the
+    coefficients cubelist.
+
+    Args:
+        coefficients:
+            EMOS coefficients
+        attribute_name:
+            Name of expected attribute
+        optional:
+            Indicate whether the attribute is allowed to be optional.
+
+    Returns:
+        Returns None if the attribute is not present. Otherwise,
+        the value of the attribute is returned.
+
+    Raises:
+        AttributeError: If the expected attribute is not on all coefficients cubes.
+        AttributeError: If the expected attribute is not the same across all
+            coefficients cubes.
+    """
+    attributes = [
+        str(c.attributes[attribute_name])
+        for c in coefficients
+        if c.attributes.get(attribute_name) is not None
+    ]
+
+    if not attributes and optional:
+        return None
+    if not attributes and not optional:
+        msg = (
+            f"The {attribute_name} attribute must be specified on all "
+            "coefficients cubes."
+        )
+        raise AttributeError(msg)
+
+    if len(set(attributes)) == 1 and len(attributes) == len(coefficients):
+        return coefficients[0].attributes[attribute_name]
+
+    msg = (
+        "Coefficients must share the same {0} attribute. "
+        "{0} attributes provided: {1}".format(attribute_name, attributes)
+    )
+    raise AttributeError(msg)
+
+
+def generate_forecast_from_distribution(
+    distribution: Dict,
+    template: Cube,
+    percentiles: Optional[Sequence],
+    randomise: bool,
+    random_seed: Optional[int],
+) -> Cube:
+    """
+    Generate calibrated probability, percentile or realization output in
+    the desired format.
+
+    Args:
+        distribution:
+            A dictionary with the following key-value pairs:
+            - "name": the name of the distribution
+            - "location": a cube of location parameters
+            - "scale": a cube of scale parameters
+            - "shape": an optional array of shape parameters
+        template:
+            A template cube containing the coordinates and metadata expected
+            on the calibrated forecast.
+        percentiles:
+            The set of percentiles used to create the calibrated forecast if the
+            template cube contains percentile data.
+        randomise:
+            If True, order realization output randomly rather than using
+            the input forecast.  If forecast type is not realizations, this
+            is ignored.
+        random_seed:
+            For realizations input if randomise is True, random seed for
+            generating re-ordered percentiles.  If randomise is False, the
+            random seed may still be used for splitting ties.
+
+    Returns:
+        Calibrated forecast
+    """
+    output_forecast_type = get_forecast_type(template)
+    if output_forecast_type == "probabilities":
+        conversion_plugin = ConvertLocationAndScaleParametersToProbabilities(
+            distribution=distribution["name"],
+            shape_parameters=distribution["shape"],
+        )
+        result = conversion_plugin(
+            distribution["location"], distribution["scale"], template
+        )
+
+    else:
+        conversion_plugin = ConvertLocationAndScaleParametersToPercentiles(
+            distribution=distribution["name"],
+            shape_parameters=distribution["shape"],
+        )
+
+        if output_forecast_type == "percentiles":
+            perc_coord = find_percentile_coordinate(template)
+            result = conversion_plugin(
+                distribution["location"],
+                distribution["scale"],
+                template,
+                percentiles=(percentiles if percentiles else perc_coord.points),
+            )
+        else:
+            no_of_percentiles = len(template.coord("realization").points)
+            percentiles = conversion_plugin(
+                distribution["location"],
+                distribution["scale"],
+                template,
+                no_of_percentiles=no_of_percentiles,
+            )
+            result = EnsembleReordering().process(
+                percentiles,
+                template,
+                random_ordering=randomise,
+                random_seed=random_seed,
+            )
+
+        # Preserve cell methods from template.
+        for cm in template.cell_methods:
+            result.add_cell_method(cm)
+
+    return result

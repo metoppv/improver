@@ -373,13 +373,43 @@ def compare_data(
         reporter(f"different data {name} - {numpy_err_message}")
 
 
+def compare_objects(
+    actual_var: PathLike, desired_var: PathLike, reporter: Callable[[str], None]
+) -> None:
+    """
+    Compare two pickled objects. This is not a complete comparison as two
+    objects may have the same string representation but be different
+    objects.
+
+    Args:
+        actual_var: Path to the pickled object produced by test run.
+        desired_var: Path to the pickled object considered good.
+        reporter: Callback function for reporting differences.
+    """
+    import joblib
+
+    try:
+        with open(actual_var, "rb") as f:
+            actual_data = joblib.load(f)
+    except OSError as exc:
+        reporter(str(exc))
+        return
+    try:
+        with open(desired_var, "rb") as f:
+            desired_data = joblib.load(f)
+    except OSError as exc:
+        reporter(str(exc))
+        return
+    if str(actual_data) != str(desired_data):
+        reporter(f"Different data found in {actual_data} and {desired_data}.")
+
+
 def compare_pickled_forest(
     output_path: PathLike,
     kgo_path: PathLike,
     reporter: Optional[Callable[[str], None]] = None,
 ):
     """Load a pickled forest (e.g. a Random Forest) and compare its contents.
-
     Args:
         output_path: data file produced by test run
         kgo_path: data file considered good e.g. KGO
