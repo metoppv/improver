@@ -155,10 +155,9 @@ def process(
         return
 
     # Extract WMO IDs from the additional predictors.
-    if additional_predictors:
-        forecast_cube, truth_cube, additional_predictors = get_common_wmo_ids(
-            forecast_cube, truth_cube, additional_predictors
-        )
+    forecast_cube, truth_cube, additional_predictors = get_common_wmo_ids(
+        forecast_cube, truth_cube, additional_predictors
+    )
 
     plugin = EstimateCoefficientsForEnsembleCalibration(
         distribution,

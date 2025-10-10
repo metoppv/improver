@@ -624,48 +624,56 @@ def test_add_warning_to_comment(comment):
         "fewer_in_forecast",
         "fewer_in_truth",
         "fewer_in_additional_predictors",
+        "no_additional_predictors",
         "mixture",
     ],
 )
 def test_get_common_wmo_ids(situation):
     """Test the get_common_wmo_ids function."""
-    data = np.ones(5, dtype=np.float32)
-    forecast_cube = set_up_spot_variable_cube(data, wmo_ids=[1, 2, 3, 4, 5])
-    truth_cube = set_up_spot_variable_cube(data, wmo_ids=[1, 2, 3, 4, 5])
-    additional_predictors = CubeList(
-        [set_up_spot_variable_cube(data, wmo_ids=[1, 2, 3, 4, 5])]
-    )
+    forecast_wmo_ids = [1, 2, 3, 4, 5]
+    truth_wmo_ids = [1, 2, 3, 4, 5]
+    additional_wmo_ids = [1, 2, 3, 4, 5]
 
     if situation == "fewer_in_forecast":
-        data = np.ones(3, dtype=np.float32)
-        forecast_cube = set_up_spot_variable_cube(data, wmo_ids=[1, 2, 3])
+        forecast_wmo_ids = [1, 2, 3]
     elif situation == "fewer_in_truth":
-        data = np.ones(3, dtype=np.float32)
-        truth_cube = set_up_spot_variable_cube(data, wmo_ids=[1, 2, 3])
+        truth_wmo_ids = [1, 2, 3]
     elif situation == "fewer_in_additional_predictors":
-        data = np.ones(3, dtype=np.float32)
-        additional_predictors = CubeList(
-            [set_up_spot_variable_cube(data, wmo_ids=[1, 2, 3])]
-        )
+        additional_wmo_ids = [1, 2, 3]
+    elif situation == "no_additional_predictors":
+        additional_wmo_ids = []
     elif situation == "mixture":
-        data = np.ones(4, dtype=np.float32)
-        forecast_cube = set_up_spot_variable_cube(data, wmo_ids=[1, 2, 3, 4])
-        truth_cube = set_up_spot_variable_cube(data, wmo_ids=[1, 2, 3, 5])
+        forecast_wmo_ids = [1, 2, 3, 4]
+        truth_wmo_ids = [1, 2, 3, 5]
+        additional_wmo_ids = [1, 2, 3, 6]
+
+    data = np.ones(len(forecast_wmo_ids), dtype=np.float32)
+    forecast_cube = set_up_spot_variable_cube(data, wmo_ids=forecast_wmo_ids)
+    data = np.ones(len(truth_wmo_ids), dtype=np.float32)
+    truth_cube = set_up_spot_variable_cube(data, wmo_ids=truth_wmo_ids)
+    data = np.ones(len(additional_wmo_ids), dtype=np.float32)
+    additional_predictors = None
+    if additional_wmo_ids:
         additional_predictors = CubeList(
-            [set_up_spot_variable_cube(data, wmo_ids=[1, 2, 3, 6])]
+            [set_up_spot_variable_cube(data, wmo_ids=additional_wmo_ids)]
         )
 
     forecast_result, truth_result, additional_predictor_result = get_common_wmo_ids(
         forecast_cube, truth_cube, additional_predictors
     )
 
-    if situation == "all_matching":
+    if situation in ["all_matching", "no_additional_predictors"]:
         expected = [f"{x:05}" for x in [1, 2, 3, 4, 5]]
     else:
         expected = [f"{x:05}" for x in [1, 2, 3]]
     assert forecast_result.coord("wmo_id").points.tolist() == expected
     assert truth_result.coord("wmo_id").points.tolist() == expected
-    assert additional_predictor_result[0].coord("wmo_id").points.tolist() == expected
+    if additional_predictors is None:
+        assert additional_predictor_result is None
+    else:
+        assert (
+            additional_predictor_result[0].coord("wmo_id").points.tolist() == expected
+        )
 
 
 @pytest.mark.parametrize(
