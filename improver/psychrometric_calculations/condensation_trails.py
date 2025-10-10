@@ -328,9 +328,13 @@ class ContrailHeightExtractor(BasePlugin):
         self.use_max = use_max
 
     def _define_max_min_height_contrail_cubes(
-            self, formation_cube: Cube, height_cube: Cube,
-            non_persistent_result: np.ndarray, persistent_result: np.ndarray,
-            operation: str) -> Tuple[Cube, Cube]:
+        self,
+        formation_cube: Cube,
+        height_cube: Cube,
+        non_persistent_result: np.ndarray,
+        persistent_result: np.ndarray,
+        operation: str,
+    ) -> Tuple[Cube, Cube]:
         """
         Create new cubes containing the max or min heights
         for persistent or non-persistent contrail formation.
@@ -357,7 +361,7 @@ class ContrailHeightExtractor(BasePlugin):
         template_cube.remove_coord("pressure")
 
         non_persistent_cube = template_cube.copy(
-           data=non_persistent_result,
+            data=non_persistent_result,
         )
         non_persistent_cube.rename(f"{operation}_height_non_persistent_contrail")
         non_persistent_cube.units = height_cube.units
@@ -393,23 +397,37 @@ class ContrailHeightExtractor(BasePlugin):
             broadcast_height = np.broadcast_to(height_data, formation_cube.shape)
         except ValueError as broadcast_error:
             raise ValueError(
-            f"Cannot broadcast height data of shape {height_data.shape} to formation_cube shape {formation_cube.shape}"
+                f"Cannot broadcast height data of shape {height_data.shape} to formation_cube shape {formation_cube.shape}"
             ) from broadcast_error
 
         non_persistent_mask = formation_cube.data == 1
         persistent_mask = formation_cube.data == 2
 
         if self.use_max == True:
-            non_persistent_result = np.nanmax(np.where(non_persistent_mask, broadcast_height, np.nan), axis=1)
-            persistent_result = np.nanmax(np.where(persistent_mask, broadcast_height, np.nan), axis=1)
+            non_persistent_result = np.nanmax(
+                np.where(non_persistent_mask, broadcast_height, np.nan), axis=1
+            )
+            persistent_result = np.nanmax(
+                np.where(persistent_mask, broadcast_height, np.nan), axis=1
+            )
             operation = "max"
         else:
-            non_persistent_result = np.nanmin(np.where(non_persistent_mask, broadcast_height, np.nan), axis=1)
-            persistent_result = np.nanmin(np.where(persistent_mask, broadcast_height, np.nan), axis=1)
+            non_persistent_result = np.nanmin(
+                np.where(non_persistent_mask, broadcast_height, np.nan), axis=1
+            )
+            persistent_result = np.nanmin(
+                np.where(persistent_mask, broadcast_height, np.nan), axis=1
+            )
             operation = "min"
 
-        non_persistent_cube, persistent_cube = self._define_max_min_height_contrail_cubes(
-            formation_cube, height_cube, non_persistent_result, persistent_result, operation
+        non_persistent_cube, persistent_cube = (
+            self._define_max_min_height_contrail_cubes(
+                formation_cube,
+                height_cube,
+                non_persistent_result,
+                persistent_result,
+                operation,
+            )
         )
 
         return non_persistent_cube, persistent_cube
