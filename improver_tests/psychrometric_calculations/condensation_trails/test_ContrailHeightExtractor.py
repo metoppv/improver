@@ -70,7 +70,7 @@ def test_max_extraction():
     # --> height data (pressure (x2), latitude (x2), longitude (x2))
     height = np.array(
         [[[100, 200], [300, 400]], [[200, 300], [400, 500]]]
-    )  # pressure level 1, pressure level 2
+    )
 
     # 2. Turn test data into test cubes ready for passing into ContrailHeightExtractor
     formation_cube = make_cube(
@@ -113,14 +113,14 @@ def test_min_extraction():
     # --> formation data (engine_factor (x2), pressure (x2), latitude (x2), longitude (x2))
     formation = np.array(
         [
-            [[[1, 1], [2, 2]], [[1, 1], [2, 0]]],  # engine_factor 0
+            [[[1, 1], [2, 2]], [[1, 1], [2, 0]]],
             [[[2, 0], [1, 1]], [[0, 1], [2, 1]]],
         ]
-    )  # engine_factor 1
+    )
     # --> height data (pressure (x2), latitude (x2), longitude (x2))
     height = np.array(
         [[[100, 200], [300, 400]], [[200, 300], [400, 500]]]
-    )  # pressure level 1, pressure level 2
+    )
 
     # 2. Turn test data into test cubes ready for passing into ContrailHeightExtractor
     formation_cube = make_cube(
@@ -162,14 +162,14 @@ def test_output_names_and_units():
     # --> formation data (engine_factor (x2), pressure (x2), latitude (x2), longitude (x2))
     formation = np.array(
         [
-            [[[1, 1], [2, 2]], [[1, 1], [2, 0]]],  # engine_factor 0
+            [[[1, 1], [2, 2]], [[1, 1], [2, 0]]],
             [[[2, 0], [1, 1]], [[0, 1], [2, 1]]],
         ]
-    )  # engine_factor 1
+    )
     # --> height data (pressure (x2), latitude (x2), longitude (x2))
     height = np.array(
         [[[100, 200], [300, 400]], [[200, 300], [400, 500]]]
-    )  # pressure level 1, pressure level 2
+    )
 
     # 2. Turn test data into test cubes ready for passing into ContrailHeightExtractor
     formation_cube = make_cube(
@@ -201,10 +201,10 @@ def test_error_handling():
     # --> formation data (engine_factor (x2), pressure (x2), latitude (x2), longitude (x2))
     formation = np.array(
         [
-            [[[1, 1], [2, 2]], [[1, 1], [2, 0]]],  # engine_factor 0
+            [[[1, 1], [2, 2]], [[1, 1], [2, 0]]],
             [[[2, 0], [1, 1]], [[0, 1], [2, 1]]],
         ]
-    )  # engine_factor 1
+    )
     # --> height data (pressure (x2), latitude (x3), longitude (x3))
     height = np.array(
         [[[100, 200, 300], [300, 400, 500]], [[100, 200, 300], [300, 400, 500]]]
