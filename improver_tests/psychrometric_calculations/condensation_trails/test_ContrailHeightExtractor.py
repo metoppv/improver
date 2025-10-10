@@ -15,12 +15,14 @@ from improver.psychrometric_calculations.condensation_trails import (
 
 def make_cube(data, name, units, dims=("pressure", "latitude", "longitude")):
     """
-    Simple cube factory for tests.
+    Simple cube factory for ContrailsHeightExtractor tests.
+
     Args:
         data (np.ndarray): Data array.
         name (str): Name of the cube.
         units (str): Units of the cube.
         dims (tuple): Dimensions of the cube.
+
     Returns:
         iris.cube.Cube: The constructed cube.
     """
@@ -63,10 +65,10 @@ def test_max_extraction():
     # --> formation data (engine_factor (x2), pressure (x2), latitude (x2), longitude (x2))
     formation = np.array(
         [
-            [[[1, 1], [2, 2]], [[1, 1], [2, 0]]],  # engine_factor 0
+            [[[1, 1], [2, 2]], [[1, 1], [2, 0]]],
             [[[2, 0], [1, 1]], [[0, 1], [2, 1]]],
         ]
-    )  # engine_factor 1
+    )
     # --> height data (pressure (x2), latitude (x2), longitude (x2))
     height = np.array([[[100, 200], [300, 400]], [[200, 300], [400, 500]]])
 

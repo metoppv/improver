@@ -340,16 +340,16 @@ class ContrailHeightExtractor(BasePlugin):
         for persistent or non-persistent contrail formation.
 
         Args:
-            formation_cube:
+            formation_cube (iris.cube.Cube):
                 Categorical cube of shape (engine_factor, pressure_level, lat (optional), lon (optional))
                 Values: 0 = no contrails, 1 = non-persistent, 2 = persistent
-            height_cube:
+            height_cube (iris.cube.Cube):
                 Height cube of shape (pressure_level, lat (optional), lon (optional))
-            non_persistent_result:
+            non_persistent_result (np.ndarray):
                 Extracted height data for non-persistent contrails.
-            persistent_result:
+            persistent_result (np.ndarray):
                 Extracted height data for persistent contrails.
-            operation:
+            operation (str):
                 Either "max" or "min" indicating the type of extraction performed.
 
         Returns:
@@ -380,10 +380,10 @@ class ContrailHeightExtractor(BasePlugin):
         formation is categorized as non-persistent (1) or persistent (2).
 
         Args:
-            formation_cube:
+            formation_cube (iris.cube.Cube):
                 Categorical cube of shape (engine_factor, pressure_level, lat (optional), lon (optional))
                 Values: 0 = no contrails, 1 = non-persistent, 2 = persistent
-            height_cube:
+            height_cube (iris.cube.Cube):
                 Height cube of shape (pressure_level, lat (optional), lon (optional))
 
         Returns:
