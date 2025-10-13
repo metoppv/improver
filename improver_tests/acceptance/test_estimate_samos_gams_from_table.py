@@ -56,6 +56,8 @@ def test_additional_features_coords(
         kgo_dir / "samos_model_spec_simple.json",
         "--percentiles",
         "10,20,30,40,50,60,70,80,90",
+        "--window-length",
+        "3",
         "--output",
         output_path,
     ]
@@ -106,6 +108,8 @@ def test_additional_features_cube(
         kgo_dir / "samos_model_spec_simple.json",
         "--percentiles",
         "10,20,30,40,50,60,70,80,90",
+        "--window-length",
+        "3",
         "--output",
         output_path,
     ]
@@ -157,6 +161,8 @@ def test_additional_features_cubes(
         kgo_dir / "samos_model_spec_simple.json",
         "--percentiles",
         "10,20,30,40,50,60,70,80,90",
+        "--window-length",
+        "3",
         "--output",
         output_path,
     ]
