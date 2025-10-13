@@ -123,7 +123,7 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
             forecast_cube = add_warning_comment(forecast_cube)
             return None, forecast_cube
 
-        if len(cube_inputs) != len(self.feature_config.keys()):
+        if len(cube_inputs) < len(self.feature_config.keys()):
             msg = (
                 "The number of cubes loaded does not match the number of features "
                 "expected. The number of cubes loaded was: "
