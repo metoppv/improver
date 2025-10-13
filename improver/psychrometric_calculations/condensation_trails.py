@@ -354,9 +354,6 @@ class CondensationTrailFormation(BasePlugin):
         }
         optional_attributes = categorical_attributes(decision_tree, "contrail_type")
 
-        print("Contrails mandatory attributes: ", mandatory_attributes)
-        print("Contrails optional attributes: ", optional_attributes)
-
         return create_new_diagnostic_cube(
             name="contrail_type",
             units="1",
