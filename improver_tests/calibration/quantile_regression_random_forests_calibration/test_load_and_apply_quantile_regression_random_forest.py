@@ -333,6 +333,31 @@ def test_missing_static_feature(set_up_for_unexpected):
     with pytest.raises(ValueError, match="The number of cubes loaded."):
         plugin(CubeList([forecast_cube]), qrf_descriptors=qrf_descriptors)
 
+def test_unused_static_feature(set_up_for_unexpected):
+    """Test PrepareAndApplyQRF plugin behaviour when a static feature is unused.
+    This test is to show that the plugin will ignore features that are provided
+    but not specified in the feature_config."""
+    (
+        qrf_model,
+        transformation,
+        pre_transform_addition,
+        cube_inputs,
+        forecast_cube,
+        ancil_cube,
+        plugin,
+    ) = set_up_for_unexpected
+
+    qrf_descriptors = (qrf_model, transformation, pre_transform_addition)
+    feature_config = {
+        "wind_speed_at_10m": ["mean", "std", "latitude", "longitude"],
+    }
+    plugin.feature_config = feature_config
+    result = plugin(CubeList([forecast_cube, ancil_cube]), qrf_descriptors=qrf_descriptors)
+    assert isinstance(result, Cube)
+    assert result.name() == "wind_speed_at_10m"
+    assert result.units == "m s-1"
+    assert result.data.shape == forecast_cube.data.shape
+
 def test_missing_dynamic_feature(set_up_for_unexpected):
     """Test PrepareAndApplyQRF plugin behaviour when a dynamic feature is missing."""
     (
