@@ -678,6 +678,16 @@ def test_categorical_cube_output(
     if x_points is not None:
         assert "longitude" in output_coord_names
 
+    # category check
+    categories_expected = {"None": 0, "Non-persistent": 1, "Persistent": 2}
+    categories_result = dict(
+        zip(
+            categorical_cube.attributes["contrail_type_meaning"].split(" "),
+            categorical_cube.attributes["contrail_type"],
+        )
+    )
+    assert categories_result == categories_expected
+
 
 @pytest.mark.parametrize(
     "temperature, relative_humidity, pressure_levels, expected_exception",
