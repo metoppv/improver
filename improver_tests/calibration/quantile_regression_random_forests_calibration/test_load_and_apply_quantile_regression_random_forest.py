@@ -121,7 +121,7 @@ def set_up_for_expected(
     percentile_input,
     site_id,
     quantiles,
-    alt_cycletime,
+    alt_cycletime=None,
 ):
     """Set up common elements for the tests where the expected test result will be
     checked.
@@ -194,6 +194,8 @@ def set_up_for_expected(
         dynamic_cube = _add_day_of_training_period_to_cube(
             dynamic_cube, day_of_training_period, "forecast_reference_time"
         )
+        if percentile_input:
+            dynamic_cube = RebadgeRealizationsAsPercentiles()(dynamic_cube)
         cube_inputs.append(dynamic_cube)
 
     if include_static:
@@ -268,6 +270,11 @@ def test_prepare_and_apply_qrf(
     """Test the PrepareAndApplyQRF plugin."""
     feature_config = {"wind_speed_at_10m": ["mean", "std", "latitude", "longitude"]}
 
+    if include_dynamic:
+        feature_config["air_temperature"] = ["mean", "std"]
+    if include_static:
+        feature_config["distance_to_water"] = ["static"]
+
     qrf_model, cube_inputs = set_up_for_expected(
         feature_config, n_estimators, max_depth, random_state,
         transformation, pre_transform_addition, extra_kwargs,
@@ -308,9 +315,9 @@ def test_prepare_and_apply_qrf(
     [
         (2, 2, 55, None, False, False, [4.1, 5.65]),  # Basic test case
         (2, 2, 55, "20170103T0000Z", False, False, [4.1, 5.65]),  # Specify cycletime
-        (2, 2, 55, "20170102T2300Z", True, False, [4.6, 5.1]),  # Cycletime with dynamic feature
+        (2, 2, 55, "20170102T2300Z", True, False, [4.1, 4.6]),  # Cycletime with dynamic feature
         (2, 2, 55, "20170102T2300Z", False, True, [4.1, 5.65]),  # Cycletime with static feature
-        (2, 2, 55, "20170102T2300Z", True, True, [4.6, 5.1]),  # Cycletime with dynamic and static feature
+        (2, 2, 55, "20170102T2300Z", True, True, [4.1, 4.6]),  # Cycletime with dynamic and static feature
     ],
 )
 def test_mismatching_temporal_coordinates(
@@ -355,8 +362,7 @@ def test_mismatching_temporal_coordinates(
         cycletime=cycletime,
         forecast_period=forecast_period*3600,
     )(cube_inputs, (qrf_model, transformation, pre_transform_addition))
-    import pdb
-    pdb.set_trace()
+
     assert isinstance(result, Cube)
     assert result.data.shape == (len(quantiles), 2)
     assert np.allclose(result.data, expected, rtol=1e-2)
@@ -493,6 +499,41 @@ def test_missing_dynamic_feature(set_up_for_unexpected):
     plugin.feature_config = feature_config
     with pytest.raises(ValueError, match="The number of cubes loaded."):
         plugin(CubeList([forecast_cube]), qrf_descriptors=qrf_descriptors)
+
+
+def test_nonmatching_representation(set_up_for_unexpected):
+    """Test PrepareAndApplyQRF plugin behaviour when the input cubes contain a mix
+    of realization and percentile coordinates."""
+    (
+        qrf_model,
+        transformation,
+        pre_transform_addition,
+        cube_inputs,
+        forecast_cube,
+        ancil_cube,
+        plugin,
+    ) = set_up_for_unexpected
+
+    qrf_descriptors = (qrf_model, transformation, pre_transform_addition)
+    feature_config = {
+        "wind_speed_at_10m": ["mean", "std", "latitude", "longitude"],
+        "air_temperature": ["mean", "std"],
+    }
+    plugin.feature_config = feature_config
+    dynamic_cube = _create_forecasts(
+        "20170103T0000Z",
+        "20170103T1200Z",
+        np.arange(6.5, 12.5, 6),
+        return_cube=True,
+    )
+    dynamic_cube.rename("air_temperature")
+    dynamic_cube = _add_day_of_training_period_to_cube(
+        dynamic_cube, 2, "forecast_reference_time"
+    )
+    dynamic_cube = RebadgeRealizationsAsPercentiles()(dynamic_cube)
+    with pytest.raises(ValueError, match="The input cubes contain a mix of realization"):
+        plugin(CubeList([forecast_cube, dynamic_cube, ancil_cube]), qrf_descriptors=qrf_descriptors)
+
 
 def test_no_quantile_forest_package(set_up_for_unexpected):
     """Test PrepareAndApplyQRF plugin behaviour when the quantile_forest package is not installed."""

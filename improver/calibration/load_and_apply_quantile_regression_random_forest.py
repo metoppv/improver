@@ -23,6 +23,7 @@ from improver.calibration.quantile_regression_random_forest import (
 )
 from improver.ensemble_copula_coupling.utilities import choose_set_of_percentiles
 from improver.utilities.cube_checker import assert_spatial_coords_match
+from improver.utilities.temporal import datetime_to_iris_time
 
 try:
     from quantile_forest import RandomForestQuantileRegressor
@@ -114,6 +115,8 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
             ValueError: If the target forecast is not provided.
             ValueError: If the number of cubes provided does not match the number of
                 features expected.
+            ValueError: If the input cubes contain a mix of realization and percentile
+                coordinates.
         """
         # Extract all additional cubes which are associated with a feature in the
         # feature_config.
@@ -148,6 +151,19 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
         if self.target_cf_name not in self.feature_config.keys():
             cube_inputs.remove(forecast_cube)
 
+        representations = []
+        for cube in cube_inputs:
+            for coord in ["percentile", "realization"]:
+                if cube.coords(coord):
+                    representations.append(coord)
+                    break
+        if len(set(representations)) > 1:
+            msg = (
+                "The input cubes contain a mix of realization and percentile "
+                "coordinates. All input cubes must use the same representation."
+            )
+            raise ValueError(msg)
+
         return cube_inputs, forecast_cube
 
     @staticmethod
@@ -167,18 +183,23 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
         quantiles = (np.array(choose_set_of_percentiles(n_percentiles)) / 100).tolist()
         return quantiles
 
-    def _cube_to_dataframe(self, cube_inputs: CubeList) -> pd.DataFrame:
-        """Convert cube inputs to a pandas DataFrame.
+    def _update_forecast_reference_time_and_period(
+        self, cube_inputs: CubeList
+    ) -> CubeList:
+        """Update the forecast_reference_time and forecast_period coordinates
+        on the input cubes to match those provided, if they are provided.
 
         Args:
             cube_inputs: List of cubes containing the features and the forecast to be
                 calibrated.
         Returns:
-            DataFrame containing the data from the cubes, with auxiliary coordinates
-            included as columns.
+            CubeList of the input cubes with updated forecast_reference_time and
+            forecast_period coordinates, if they were provided.
         """
         if self.cycletime:
-            cycletime = pd.to_datetime(self.cycletime, format="%Y%m%dT%H%MZ")
+            cycletime = datetime_to_iris_time(
+                pd.to_datetime(self.cycletime, format="%Y%m%dT%H%MZ")
+            )
         else:
             cycletime = cube_inputs[0].coord("forecast_reference_time").points
 
@@ -190,11 +211,22 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
         # Update the forecast_reference_time and forecast_period to match those
         # provided, if they are provided.
         for cube in cube_inputs:
-            if "forecast_reference_tim" in [coord.name() for coord in cube.coords()]:
+            if "forecast_reference_time" in [coord.name() for coord in cube.coords()]:
                 cube.coord("forecast_reference_time").points = cycletime
             if "forecast_period" in [coord.name() for coord in cube.coords()]:
                 cube.coord("forecast_period").points = forecast_period
+        return cube_inputs
 
+    def _cube_to_dataframe(self, cube_inputs: CubeList) -> pd.DataFrame:
+        """Convert cube inputs to a pandas DataFrame.
+
+        Args:
+            cube_inputs: List of cubes containing the features and the forecast to be
+                calibrated.
+        Returns:
+            DataFrame containing the data from the cubes, with auxiliary coordinates
+            included as columns.
+        """
         # Convert the first cube to a DataFrame.
         df = as_data_frame(cube_inputs[0], add_aux_coords=True).reset_index()
 
@@ -275,6 +307,8 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
             )
         elif forecast_cube.coords("percentile"):
             quantile_list = (forecast_cube.coord("percentile").points / 100.0).tolist()
+
+        cube_inputs = self._update_forecast_reference_time_and_period(cube_inputs)
 
         df = self._cube_to_dataframe(cube_inputs)
 
