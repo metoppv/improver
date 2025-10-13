@@ -337,7 +337,9 @@ class CondensationTrailFormation(BasePlugin):
             2 = persistent contrails. Has the same shape as categorical_data.
         """
         contrail_factor_coord = DimCoord(
-            points=self._engine_contrail_factors, var_name="engine_contrail_factor"
+            points=self._engine_contrail_factors,
+            var_name="engine_contrail_factor",
+            units="kg kg-1 K-1",
         )
         template_cube = add_coordinate_to_cube(
             template_cube, new_coord=contrail_factor_coord
@@ -345,20 +347,23 @@ class CondensationTrailFormation(BasePlugin):
         mandatory_attributes = generate_mandatory_attributes([template_cube])
 
         decision_tree = {
-            "0": {"leaf": "None"},
-            "1": {"leaf": "Non-persistent"},
-            "2": {"leaf": "Persistent"},
+            "meta": {"name": "contrail_type"},
+            "None": {"leaf": 0},
+            "Non-persistent": {"leaf": 1},
+            "Persistent": {"leaf": 2},
         }
         optional_attributes = categorical_attributes(decision_tree, "contrail_type")
 
+        print("Contrails mandatory attributes: ", mandatory_attributes)
+        print("Contrails optional attributes: ", optional_attributes)
+
         return create_new_diagnostic_cube(
-            name="contrails_formation",
+            name="contrail_type",
             units="1",
             template_cube=template_cube,
             mandatory_attributes=mandatory_attributes,
             optional_attributes=optional_attributes,
-            data=categorical_data,
-            dtype=np.uint8,
+            data=categorical_data.astype(np.uint8),
         )
 
     def process_from_arrays(
