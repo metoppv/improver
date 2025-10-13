@@ -907,9 +907,10 @@ def test_get_common_wmo_ids(situation):
     forecast_cube = set_up_spot_variable_cube(data, wmo_ids=forecast_wmo_ids)
     data = np.ones(len(truth_wmo_ids), dtype=np.float32)
     truth_cube = set_up_spot_variable_cube(data, wmo_ids=truth_wmo_ids)
-    data = np.ones(len(additional_wmo_ids), dtype=np.float32)
+
     additional_predictors = None
     if additional_wmo_ids:
+        data = np.ones(len(additional_wmo_ids), dtype=np.float32)
         additional_predictors = CubeList(
             [set_up_spot_variable_cube(data, wmo_ids=additional_wmo_ids)]
         )
