@@ -353,7 +353,10 @@ class HailSize(BasePlugin):
         """
 
         vectorised = np.vectorize(lambda n: bisect_right(self._wbzh_keys, n))
-        height_index = np.array(vectorised(wet_bulb_height) - 1).astype(int)
+        height_index = np.array(vectorised(wet_bulb_height) - 1)
+        # Check height_index contains ints
+        if not np.issubdtype(height_index.dtype, np.integer):
+            height_index = height_index.astype(int)
 
         vectorised = np.vectorize(lambda n: bisect_right(self._hail_groups, n))
         hail_index = vectorised(hail_size)
