@@ -877,19 +877,6 @@ def test_split_cubes_for_samos_basic(
     "situation",
     [
         "all_matching",
-        "fewer_in_forecast",
-        "fewer_in_truth",
-        "fewer_in_additional_predictors",
-        "no_additional_predictors",
-        "mixture",
-        "no_overlapping_sites",
-        "multiple_predictors",
-    ],
-)
-@pytest.mark.parametrize(
-    "situation",
-    [
-        "all_matching",
         "all_matching_with_multiple_predictors",
         "fewer_in_forecast",
         "fewer_in_truth",
