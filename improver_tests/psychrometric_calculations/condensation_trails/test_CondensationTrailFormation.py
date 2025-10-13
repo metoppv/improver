@@ -718,7 +718,15 @@ def test_process_from_arrays_raises(
     pressure_levels: np.ndarray,
     expected_exception: Optional[Exception],
 ) -> None:
-    """Check that process_from_arrays returns the expected exceptions when given invalid inputs."""
+    """
+    Check that 'process_from_arrays' returns the expected exceptions when given invalid inputs.
+
+    Args:
+        temperature (np.ndarray): Float array of ambient air temperature array (K).
+        relative_humidity (np.ndarray): Float array of relative humidity (kg/kg).
+        pressure_levels (np.ndarray): Float array of pressure levels (Pa).
+        expected_exception (Optional[Exception]): The exception returned by 'process_from_arrays'.
+    """
     plugin = CondensationTrailFormation()
     if expected_exception:
         with pytest.raises(expected_exception):
@@ -728,3 +736,116 @@ def test_process_from_arrays_raises(
             temperature, relative_humidity, pressure_levels
         )
         assert isinstance(result, np.ndarray)
+
+
+@pytest.mark.parametrize(
+    "cube_names, cube_shapes, coord_names, expected_exception, expected_message",
+    [
+        # correct inputs
+        (
+            ("air_temperature", "relative_humidity"),
+            ((2, 2), (2, 2)),
+            (("pressure", "latitude"), ("pressure", "latitude")),
+            None,
+            None,
+        ),
+        # wrong variable name
+        (
+            ("air_temperature", "surface_air_pressure"),
+            ((2, 2), (2, 2)),
+            (("pressure", "latitude"), ("pressure", "latitude")),
+            ValueError,
+            "could not extract",
+        ),
+        # single cube
+        (
+            ("air_temperature",),
+            ((2,), (2,)),
+            (("pressure", "latitude"),),
+            ValueError,
+            "cubes, got",
+        ),
+        # unmatching coordinates
+        (
+            ("air_temperature", "relative_humidity"),
+            ((2, 3), (2, 2)),
+            (("pressure", "latitude"), ("pressure", "latitude")),
+            ValueError,
+            "coordinates must match",
+        ),
+        (
+            ("air_temperature", "relative_humidity"),
+            ((2, 2), (2, 2)),
+            (("pressure", "latitude"), ("pressure", "longitude")),
+            ValueError,
+            "coordinates must match",
+        ),
+        # pressure not leading axis
+        (
+            ("air_temperature", "relative_humidity"),
+            ((2, 2), (2, 2)),
+            (("latitude", "pressure"), ("latitude", "pressure")),
+            ValueError,
+            "must be the leading axis",
+        ),
+    ],
+)
+def test_process_raises(
+    cube_names: Tuple[str],
+    cube_shapes: Tuple[int],
+    coord_names: Tuple[Tuple[str]],
+    expected_exception: Optional[Exception],
+    expected_message: Optional[str],
+) -> None:
+    """
+    Check that 'process' returns the expected exceptions when given invalid inputs.
+
+    Args:
+        cube_names (Tuple[str]): Names of input cubes.
+        cube_shapes (Tuple[int]): Shapes of input cubes.
+        coord_names (Tuple[Tuple[str]]): Names of dimensional coordinates for each cube.
+        expected_exception (Optional[Exception]): The exception returned by 'process'.
+        expected_message (Optional[str]): The message associated with the exception.
+    """
+    units_dict = {
+        "air_temperature": "K",
+        "relative_humidity": "kg kg-1",
+        "pressure": "Pa",
+        "latitude": "m",
+        "longitude": "m",
+        "surface_air_pressure": "Pa",
+    }
+
+    input_cubes = []
+    for cube_name, cube_shape, coord_names_for_cube in zip(
+        cube_names, cube_shapes, coord_names
+    ):
+        # create dimensional coordinates
+        dim_coords = []
+        for coord_name, coord_shape in zip(coord_names_for_cube, cube_shape):
+            points = np.linspace(0, 1, coord_shape)
+            dim_coords.append(
+                DimCoord(points, var_name=coord_name, units=units_dict[coord_name])
+            )
+
+        dim_coords_and_dims = [(coord, i) for i, coord in enumerate(dim_coords)]
+
+        # create input cube
+        input_cubes.append(
+            Cube(
+                var_name=cube_name,
+                dim_coords_and_dims=dim_coords_and_dims,
+                data=np.ones(cube_shape),
+                units=units_dict[cube_name],
+            )
+        )
+
+    # check exceptions are raised
+    plugin = CondensationTrailFormation()
+    if expected_exception:
+        with pytest.raises(expected_exception) as e:
+            plugin.process(input_cubes)
+        assert expected_message.casefold() in str(e.value).casefold()
+    else:
+        result = plugin.process(input_cubes)
+        assert isinstance(result, Cube)

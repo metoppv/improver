@@ -472,7 +472,7 @@ class CondensationTrailFormation(BasePlugin):
         pressure_coord = temperature_cube.coord("pressure")
         pressure_coord.convert_units("Pa")
 
-        if "pressure".casefold() != get_dim_coord_names(temperature_cube)[0]:
+        if "pressure".casefold() != get_dim_coord_names(temperature_cube)[0].casefold():
             raise ValueError(
                 f"Pressure must be the leading axis (got '{get_dim_coord_names(temperature_cube)}')."
             )
