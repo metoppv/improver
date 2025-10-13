@@ -26,6 +26,7 @@ def process(
     distribution: str = "normal",
     link: str = "identity",
     fit_intercept: bool = True,
+    window_length: int = 11,
     unique_site_id_key: str = "wmo_id",
 ):
     """Estimate Generalized Additive Model (GAM) for SAMOS.
@@ -93,6 +94,12 @@ def process(
             or inverse-squared.
         fit_intercept (bool):
             Whether to include an intercept term in the model. Default is True.
+        window_length (int):
+            This must be an odd integer greater than 1. The length of the rolling
+            window used to calculate the mean and standard deviation of the input cube
+            when the input cube does not have a realization dimension coordinate. If a
+            given window has fewer than half valid data points (not NaN) then the value
+            returned for that window will be NaN and will be excluded from training.
         unique_site_id_key (str):
             If working with spot data and available, the name of the coordinate
             in the input cubes that contains unique site IDs, e.g. "wmo_id" if
@@ -143,6 +150,7 @@ def process(
         distribution=distribution,
         link=link,
         fit_intercept=fit_intercept,
+        window_length=window_length,
         unique_site_id_key=unique_site_id_key,
     )
 
