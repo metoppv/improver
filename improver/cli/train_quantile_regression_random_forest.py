@@ -14,7 +14,7 @@ def process(
     *file_paths: cli.inputpath,
     feature_config: cli.inputjson,
     parquet_diagnostic_names: cli.comma_separated_list,
-    target_cf_name: str,
+    cf_names: cli.comma_separated_list,
     forecast_periods: str,
     cycletime: str,
     training_length: int,
@@ -72,9 +72,11 @@ def process(
             target diagnostic name is expected to be the first item in the list.
             These names could be different from the CF name e.g.
             'temperature_at_screen_level'.
-        target_cf_name (str):
-            A string containing the CF name of the forecast to be calibrated
-            e.g. air_temperature.
+        cf_names (list of str):
+            A list containing the CF names of the diagnostics matching
+            the parquet_diagnostic_names variable. The target diagnostic to be
+            calibrated is expected to be the first item in the list. These names
+            could be different from the diagnostic name e.g. air_temperature.
         forecast_periods (str):
             Range of forecast periods to be calibrated in hours in the form:
             "start:end:interval" e.g. "6:18:6" or a single forecast period e.g. "6".
@@ -129,7 +131,7 @@ def process(
         experiments=experiments,
         feature_config=feature_config,
         parquet_diagnostic_names=parquet_diagnostic_names,
-        target_cf_name=target_cf_name,
+        cf_names=cf_names,
         forecast_periods=forecast_periods,
         cycletime=cycletime,
         training_length=training_length,
@@ -143,7 +145,7 @@ def process(
         kwargs["max_features"] = max_features
     result = PrepareAndTrainQRF(
         feature_config=feature_config,
-        target_cf_name=target_cf_name,
+        target_cf_name=cf_names[0],
         n_estimators=n_estimators,
         max_depth=max_depth,
         max_samples=max_samples,

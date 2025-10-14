@@ -46,7 +46,7 @@ class LoadForTrainQRF(PostProcessingPlugin):
         self,
         feature_config: dict[str, list[str]],
         parquet_diagnostic_names: Union[list[str], str],
-        target_cf_name: str,
+        cf_names: Union[list[str], str],
         forecast_periods: str,
         cycletime: str,
         training_length: int,
@@ -64,8 +64,10 @@ class LoadForTrainQRF(PostProcessingPlugin):
                 target diagnostic name is expected to be the first item in the list.
                 These names could be different from the CF name e.g.
                 'temperature_at_screen_level'.
-            target_cf_name: A string containing the CF name of the forecast to be
-                calibrated e.g. air_temperature.
+            cf_names: A list containing the CF names of the diagnostics matching
+                the parquet_diagnostic_names variable. The target diagnostic to be
+                calibrated is expected to be the first item in the list. These names
+                could be different from the diagnostic name e.g. air_temperature.
             forecast_periods: Range of forecast periods to be calibrated in hours in
                 the form: "start:end:interval" e.g. "6:18:6" or a single forecast period
                 e.g. "6".
@@ -81,7 +83,7 @@ class LoadForTrainQRF(PostProcessingPlugin):
         self.quantile_forest_installed = quantile_forest_package_available()
         self.feature_config = feature_config
         self.parquet_diagnostic_names = parquet_diagnostic_names
-        self.target_cf_name = target_cf_name
+        self.cf_names = cf_names
         self.forecast_periods = forecast_periods
         self.cycletime = cycletime
         self.training_length = training_length
@@ -212,7 +214,9 @@ class LoadForTrainQRF(PostProcessingPlugin):
         base_df = forecast_df[
             forecast_df["diagnostic"] == self.parquet_diagnostic_names[0]
         ]
-        for parquet_diagnostic_name in self.parquet_diagnostic_names[1:]:
+        for parquet_diagnostic_name, cf_name in zip(
+            self.parquet_diagnostic_names[1:], self.cf_names[1:]
+        ):
             additional_df = forecast_df[
                 forecast_df["diagnostic"] == parquet_diagnostic_name
             ]
@@ -232,7 +236,7 @@ class LoadForTrainQRF(PostProcessingPlugin):
                         representation,
                         "forecast",
                     ]
-                ].rename(columns={"forecast": parquet_diagnostic_name}),
+                ].rename(columns={"forecast": cf_name}),
                 on=[
                     *self.unique_site_id_keys,
                     "forecast_reference_time",
@@ -242,7 +246,7 @@ class LoadForTrainQRF(PostProcessingPlugin):
                 how="left",
             )
         forecast_df = base_df
-        forecast_df.rename(columns={"forecast": self.target_cf_name}, inplace=True)
+        forecast_df.rename(columns={"forecast": self.cf_names[0]}, inplace=True)
 
         # Load truths from parquet file filtering by diagnostic.
         filters = [[("diagnostic", "==", self.parquet_diagnostic_names[0])]]
