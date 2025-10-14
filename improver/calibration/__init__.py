@@ -546,6 +546,9 @@ def get_common_wmo_ids(
         truth_cube: Cube containing the truth data.
         additional_predictors: CubeList containing any additional predictors.
 
+    Raises:
+        IOError: If no common WMO IDs are found in the input cubes.
+
     Returns:
         The forecast, truth and additional predictor cubes with only the common
         WMO IDs retained.
@@ -556,8 +559,10 @@ def get_common_wmo_ids(
     if additional_predictors is not None:
         for ap in additional_predictors:
             wmo_ids.append(ap.coord("wmo_id").points)
-    wmo_ids = list(set.intersection(*map(set, wmo_ids)))
-    constr = iris.Constraint(wmo_id=wmo_ids)
+    common_wmo_ids = list(set.intersection(*map(set, wmo_ids)))
+    if not common_wmo_ids:
+        raise IOError("No common WMO IDs found in the input cubes.")
+    constr = iris.Constraint(wmo_id=common_wmo_ids)
     truth_cube = truth_cube.extract(constr)
     forecast_cube = forecast_cube.extract(constr)
     if additional_predictors is not None:
