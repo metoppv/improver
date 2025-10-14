@@ -18,7 +18,7 @@ def process(
     forecast_periods: str,
     cycletime: str,
     training_length: int,
-    experiment: str = None,
+    experiments: cli.comma_separated_list = None,
     n_estimators: int = 100,
     max_depth: int = None,
     max_samples: float = None,
@@ -84,8 +84,8 @@ def process(
             correct blendtimes from the dataframe on load.
         training_length (int):
             The length of the training period in days.
-        experiment (str):
-            The name of the experiment (step) that calibration is applied to. This
+        experiments (list of str):
+            The name of the experiments (step) that calibration is applied to. This
             is used to filter the forecast DataFrame on load.
         n_estimators (int):
             Number of trees in the forest.
@@ -126,7 +126,7 @@ def process(
     )
 
     forecast_df, truth_df, cube_inputs = LoadForTrainQRF(
-        experiment=experiment,
+        experiments=experiments,
         feature_config=feature_config,
         parquet_diagnostic_names=parquet_diagnostic_names,
         target_cf_name=target_cf_name,

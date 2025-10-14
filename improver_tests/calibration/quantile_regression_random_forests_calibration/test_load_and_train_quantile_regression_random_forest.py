@@ -44,7 +44,9 @@ def write_to_parquet(df, tmp_path, dirname, filename):
 
 
 def add_wind_data_to_forecasts(data_dict, wind_speed_values, wind_dir_values):
-    """Add wind speed and direction data to a data dictionary.
+    """Add wind speed and direction data to a data dictionary. Set experiment to
+    "recentblend". Note that this experiment is different to the default experiment
+    in the data dictionary which is "latestblend".
 
     Args:
         data_dict: Dictionary containing the data.
@@ -60,11 +62,13 @@ def add_wind_data_to_forecasts(data_dict, wind_speed_values, wind_dir_values):
     wind_speed_dict["cf_name"] = "wind_speed"
     wind_speed_dict["units"] = "m s-1"
     wind_speed_dict["diagnostic"] = "wind_speed_at_10m"
+    wind_speed_dict["experiment"] = "recentblend"
     wind_dir_dict = data_dict.copy()
     wind_dir_dict["forecast"] = wind_dir_values
     wind_dir_dict["cf_name"] = "wind_direction"
     wind_dir_dict["units"] = "degrees"
     wind_dir_dict["diagnostic"] = "wind_from_direction"
+    wind_speed_dict["experiment"] = "recentblend"
     data_df = pd.DataFrame(data_dict)
     wind_speed_df = pd.DataFrame(wind_speed_dict)
     wind_dir_df = pd.DataFrame(wind_dir_dict)
@@ -412,6 +416,7 @@ def amend_expected_truth_df(truth_df, parquet_diagnostic_name):
 @pytest.mark.parametrize("include_static", [True, False])
 @pytest.mark.parametrize("include_noncube_static", [True, False])
 @pytest.mark.parametrize("remove_target", [True, False])
+@pytest.mark.parametrize("experiments", [["latestblend"], None])
 @pytest.mark.parametrize(
     "site_id", ["wmo_id", "station_id", ["wmo_id"], ["latitude", "longitude"]]
 )
@@ -447,6 +452,7 @@ def test_load_for_qrf(
     include_static,
     include_noncube_static,
     remove_target,
+    experiments,
     site_id,
     forecast_creation,
     truth_creation,
@@ -455,6 +461,7 @@ def test_load_for_qrf(
     """Test the LoadForTrainQRF plugin."""
     feature_config = {"air_temperature": ["mean", "std", "altitude"]}
     parquet_diagnostic_names = ["temperature_at_screen_level"]
+    experiments = ["latestblend"]
 
     if isinstance(site_id, str):
         site_id = [site_id]
@@ -469,6 +476,9 @@ def test_load_for_qrf(
     if include_dynamic:
         feature_config["wind_speed_at_10m"] = ["mean", "std"]
         parquet_diagnostic_names.append("wind_speed_at_10m")
+        if not experiments:
+            pytest.skip("Cannot append an experiment to None.")
+        experiments.append("recentblend")
 
     if include_static:
         ancil_path, expected_cube = _create_ancil_file(
@@ -497,7 +507,7 @@ def test_load_for_qrf(
 
     # Create an instance of LoadForTrainQRF with the required parameters
     plugin = LoadForTrainQRF(
-        experiment="latestblend",
+        experiments=experiments,
         feature_config=feature_config,
         parquet_diagnostic_names=parquet_diagnostic_names,
         target_cf_name="air_temperature",
@@ -507,7 +517,6 @@ def test_load_for_qrf(
         unique_site_id_keys=site_id,
     )
     forecast_df, truth_df, cube_inputs = plugin(file_paths)
-
     assert isinstance(forecast_df, pd.DataFrame)
     assert isinstance(truth_df, pd.DataFrame)
 
@@ -542,7 +551,7 @@ def test_load_for_qrf_no_paths(tmp_path, make_files):
             (tmp_path / file_path).mkdir(parents=True, exist_ok=True)
 
     plugin = LoadForTrainQRF(
-        experiment="latestblend",
+        experiments=["latestblend"],
         feature_config=feature_config,
         parquet_diagnostic_names=["temperature_at_screen_level"],
         target_cf_name="air_temperature",
@@ -607,7 +616,7 @@ def test_load_for_qrf_mismatches(
     file_paths = [forecast_path, truth_path]
 
     plugin = LoadForTrainQRF(
-        experiment="latestblend",
+        experiments=["latestblend"],
         feature_config=feature_config,
         parquet_diagnostic_names=["temperature_at_screen_level"],
         target_cf_name="air_temperature",
@@ -615,10 +624,13 @@ def test_load_for_qrf_mismatches(
         cycletime=cycletime,
         training_length=2,
     )
-    forecast_df, _, _ = plugin(file_paths)
+    with pytest.warns(
+        UserWarning, match="The forecast parquet files are empty after filtering."
+    ):
+        forecast_df, _, _ = plugin(file_paths)
     # Expecting an empty DataFrame since the cycletime or forecast_periods
     # requested are not present in the provided file.
-    assert forecast_df.empty
+    assert forecast_df is None
 
 
 @pytest.mark.parametrize(
@@ -640,6 +652,13 @@ def test_load_for_qrf_mismatches(
         ),
         (
             "missing_dynamic_feature",
+            _create_multi_site_forecast_parquet_file,
+            _create_multi_site_truth_parquet_file,
+            "6:18:6",
+            "percentile",
+        ),
+        (
+            "incorrect_dynamic_feature_experiment",
             _create_multi_site_forecast_parquet_file,
             _create_multi_site_truth_parquet_file,
             "6:18:6",
@@ -683,11 +702,18 @@ def test_unexpected_loading(
     truth_path, _ = truth_creation(tmp_path)
     file_paths = [forecast_path, truth_path]
 
+    experiments = ["latestblend"]
+    parquet_diagnostic_names = ["temperature_at_screen_level"]
+
+    if exception == "incorrect_dynamic_feature_experiment":
+        parquet_diagnostic_names.append("wind_speed_at_10m")
+        experiments.append("latestblend")
+
     # Create an instance of LoadForTrainQRF with the required parameters
     plugin = LoadForTrainQRF(
-        experiment="latestblend",
+        experiments=experiments,
         feature_config=feature_config,
-        parquet_diagnostic_names=["temperature_at_screen_level"],
+        parquet_diagnostic_names=parquet_diagnostic_names,
         target_cf_name="air_temperature",
         forecast_periods=forecast_periods,
         cycletime="20170103T0000Z",
@@ -713,6 +739,14 @@ def test_unexpected_loading(
         plugin.feature_config = feature_config
         with pytest.raises(ValueError, match="The features requested in the"):
             plugin.process(file_paths=file_paths)
+    elif exception == "incorrect_dynamic_feature_experiment":
+        feature_config = {
+            "wind_speed_at_10m": ["mean", "std"],
+            "air_temperature": ["mean", "std", "altitude"],
+        }
+        plugin.feature_config = feature_config
+        with pytest.raises(ValueError, match="The requested parquet diagnostic"):
+            plugin(file_paths)
     elif exception == "no_percentile_realization":
         with pytest.raises(ValueError, match="The forecast parquet file"):
             plugin(file_paths)
