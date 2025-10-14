@@ -50,7 +50,7 @@ class LoadForTrainQRF(PostProcessingPlugin):
         forecast_periods: str,
         cycletime: str,
         training_length: int,
-        experiment: Optional[str] = None,
+        experiments: Optional[list[str]] = None,
         unique_site_id_keys: Union[list[str], str] = "wmo_id",
     ):
         """Initialise the LoadForTrainQRF plugin.
@@ -73,7 +73,7 @@ class LoadForTrainQRF(PostProcessingPlugin):
                 YYYYMMDDTHHMMZ.
             training_length: The number of days of training data to use.
                 experiment: The name of the experiment (step) that calibration is applied to.
-            experiment: The name of the experiment (step) that calibration is
+            experiments: The names of the experiment (step) that calibration is
                 applied to. This is used to filter the forecast DataFrame on load.
             unique_site_id_key: The names of the coordinates that uniquely identify
                 each site, e.g. "wmo_id" or "latitude,longitude".
@@ -85,7 +85,9 @@ class LoadForTrainQRF(PostProcessingPlugin):
         self.forecast_periods = forecast_periods
         self.cycletime = cycletime
         self.training_length = training_length
-        self.experiment = experiment
+        if experiments is None:
+            experiments = []
+        self.experiments = experiments
         if isinstance(unique_site_id_keys, str):
             unique_site_id_keys = [unique_site_id_keys]
         self.unique_site_id_keys = unique_site_id_keys
@@ -157,7 +159,7 @@ class LoadForTrainQRF(PostProcessingPlugin):
             [
                 ("diagnostic", "in", self.parquet_diagnostic_names),
                 ("blend_time", "in", cycletimes),
-                ("experiment", "==", self.experiment),
+                ("experiment", "in", self.experiments),
             ]
         ]
 
@@ -182,6 +184,8 @@ class LoadForTrainQRF(PostProcessingPlugin):
             schema=altered_schema,
             engine="pyarrow",
         )
+        if forecast_df.empty:
+            return None, None
         seconds_to_ns = 1e9
         forecast_df = forecast_df[
             forecast_df["forecast_period"].isin(
@@ -310,6 +314,13 @@ class LoadForTrainQRF(PostProcessingPlugin):
         forecast_df, truth_df = self._read_parquet_files(
             forecast_table_path, truth_table_path, forecast_periods
         )
+        if forecast_df is Noneforecast_df.empty:
+            msg = (
+                "The forecast parquet files are empty after filtering. "
+                "Unable to train the Quantile Regression Random Forest model."
+            )
+            warnings.warn(msg)
+            return None, None, None
 
         if cube_inputs is None:
             cube_inputs = iris.cube.CubeList()
