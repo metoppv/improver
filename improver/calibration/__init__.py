@@ -537,7 +537,7 @@ def get_common_wmo_ids(
     forecast_cube: Cube,
     truth_cube: Cube,
     additional_predictors: Optional[CubeList] = None,
-) -> Tuple[Optional[Cube], Optional[Cube], Optional[CubeList]]:
+) -> Tuple[Cube, Cube, CubeList]:
     """Extracts the common WMO IDs from the forecast, truth and any additional
     predictor cubes.
 
@@ -546,9 +546,12 @@ def get_common_wmo_ids(
         truth_cube: Cube containing the truth data.
         additional_predictors: CubeList containing any additional predictors.
 
+    Raises:
+        IOError: If no common WMO IDs are found in the input cubes.
+
     Returns:
         The forecast, truth and additional predictor cubes with only the common
-        WMO IDs retained, or None for each if there are no common WMO IDs.
+        WMO IDs retained.
     """
     wmo_ids = []
     wmo_ids.append(forecast_cube.coord("wmo_id").points)
