@@ -76,8 +76,7 @@ def _dataframe_column_check(df: DataFrame, compulsory_columns: Sequence) -> None
     if not set(compulsory_columns).issubset(df.columns):
         diff = set(compulsory_columns).difference(df.columns)
         msg = (
-            "The following compulsory column(s) are missing from the "
-            f"DataFrame: {diff}"
+            f"The following compulsory column(s) are missing from the DataFrame: {diff}"
         )
         raise ValueError(msg)
 
@@ -129,7 +128,7 @@ def _unique_check(df: DataFrame, column: str) -> None:
         raise ValueError(msg)
 
 
-def _quantile_check(df: DataFrame) -> None:
+def quantile_check(df: DataFrame) -> None:
     """Check that the percentiles provided can be considered to be
     quantiles with equal spacing spanning the percentile range.
 
@@ -143,7 +142,7 @@ def _quantile_check(df: DataFrame) -> None:
 
     if not np.allclose(expected_percentiles, df["percentile"].unique()):
         msg = (
-            "The forecast percentiles can not be considered as quantiles. "
+            "Forecast percentiles must be equally spaced. "
             f"The forecast percentiles are {df['percentile'].unique()}."
             "Based on the number of percentiles provided, the expected "
             f"percentiles would be {expected_percentiles}."
@@ -183,11 +182,7 @@ def _fill_missing_entries(df, combi_cols, static_cols, site_id_col):
     df = df.set_index(combi_cols).reindex(new_index).reset_index(level=combi_cols)
 
     # Fill the NaNs within the static columns for each wmo_id.
-    filled_df = (
-        df.groupby(site_id_col)[combi_cols + static_cols]
-        .fillna(method="ffill")
-        .fillna(method="bfill")
-    )
+    filled_df = df.groupby(site_id_col)[combi_cols + static_cols].ffill().bfill()
     df = df.drop(columns=static_cols)
     df = df.merge(filled_df, on=combi_cols)
 
@@ -361,8 +356,7 @@ def get_forecast_representation(df: DataFrame) -> str:
         )
     if len(representations) == 0:
         raise ValueError(
-            f"None of the columns {REPRESENTATION_COLUMNS} "
-            "exist in the input dataset"
+            f"None of the columns {REPRESENTATION_COLUMNS} exist in the input dataset"
         )
     return representations.pop()
 
@@ -453,7 +447,7 @@ def _prepare_dataframes(
 
     # Check the percentiles can be considered to be equally space quantiles.
     if representation_type == "percentile":
-        _quantile_check(forecast_df)
+        quantile_check(forecast_df)
 
     # Remove forecast duplicates.
     forecast_cols = [

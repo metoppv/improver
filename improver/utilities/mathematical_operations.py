@@ -18,9 +18,7 @@ from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
-from improver.utilities.cube_checker import (
-    assert_spatial_coords_match,
-)
+from improver.utilities.cube_checker import assert_spatial_coords_match
 from improver.utilities.cube_manipulation import (
     enforce_coordinate_ordering,
     get_dim_coord_names,
@@ -468,8 +466,10 @@ class CalculateClimateAnomalies(BasePlugin):
     ) -> ndarray:
         """Calculate climate anomalies from the input cubes."""
         anomalies_data = diagnostic_cube.data - mean_cube.data
+
         if std_cube:
             anomalies_data = anomalies_data / std_cube.data
+
         return anomalies_data
 
     @staticmethod
@@ -511,11 +511,21 @@ class CalculateClimateAnomalies(BasePlugin):
 
         The output_cube is modified in place.
         """
+        end_time = mean_cube.coord("time").points[-1]
+        if mean_cube.coord("time").has_bounds():
+            bounds = [
+                mean_cube.coord("time").bounds[0][0],  # Earliest bound on cube.
+                mean_cube.coord("time").bounds[-1][-1],  # Latest bound on cube.
+            ]
+        else:
+            bounds = [
+                mean_cube.coord("time").points[0],
+                mean_cube.coord("time").points[-1],
+            ]
+
         reference_epoch = iris.coords.AuxCoord(
-            points=mean_cube.coord("time").points,
-            bounds=mean_cube.coord("time").bounds
-            if mean_cube.coord("time").has_bounds()
-            else None,
+            points=end_time,
+            bounds=bounds,
             long_name="reference_epoch",
             units=mean_cube.coord("time").units,
         )
@@ -546,6 +556,11 @@ class CalculateClimateAnomalies(BasePlugin):
         self._add_reference_epoch_metadata(output_cube, mean_cube)
 
         anomalies_data = self.calculate_anomalies(diagnostic_cube, mean_cube, std_cube)
+        # Ensure any mask from the input cube is copied over to the output cube.
+        try:
+            anomalies_data.mask = output_cube.data.mask
+        except AttributeError:
+            pass
 
         output_cube.data = anomalies_data
 
@@ -832,7 +847,10 @@ def verify_time_coords_match(
     if not ignore_temporal_mismatch:
         diagnostic_max = diagnostic_cube.coord("time").cell(-1).point
         diagnostic_min = diagnostic_cube.coord("time").cell(0).point
-        mean_time_bounds = mean_cube.coord("time").bounds[0]
+        mean_time_bounds = [
+            mean_cube.coord("time").bounds[0][0],
+            mean_cube.coord("time").bounds[-1][-1],
+        ]
         mean_time_bounds = [
             mean_cube.coord("time").units.num2date(bound) for bound in mean_time_bounds
         ]

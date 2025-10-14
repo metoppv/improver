@@ -6,7 +6,7 @@
 models."""
 
 from copy import deepcopy
-from typing import Any, List
+from typing import List
 
 import numpy as np
 
@@ -24,7 +24,7 @@ class GAMFit(BasePlugin):
 
     def __init__(
         self,
-        model_specification: List[List[Any]],
+        model_specification: List,
         max_iter: int = 100,
         tol: float = 0.0001,
         distribution: str = "normal",
@@ -130,6 +130,10 @@ class GAMFit(BasePlugin):
         scipy.sparse.spmatrix.A = property(to_array)
         # Import from pygam here to minimize dependencies
         from pygam import GAM
+
+        # Remove nans from arrays.
+        predictors = predictors[~np.isnan(targets)]
+        targets = targets[~np.isnan(targets)]
 
         eqn = self.create_pygam_model()
         gam = GAM(

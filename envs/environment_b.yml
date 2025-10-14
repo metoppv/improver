@@ -18,6 +18,7 @@ dependencies:
   - scipy=1.15
   - sphinx
   # Optional
+  - geopandas
   - lightgbm>=4.0.0
   - numba
   - python-stratify

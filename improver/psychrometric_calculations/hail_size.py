@@ -438,7 +438,7 @@ class HailSize(BasePlugin):
             hail_size:
                 An n dimensional array of the diameter of hail stones (m)
             ccl_temperature:
-                Cube of cloud condensation level pressure
+                Cube of cloud condensation level temperature
             ccl_pressure:
                 Cube of cloud condensation level pressure
             attributes:
