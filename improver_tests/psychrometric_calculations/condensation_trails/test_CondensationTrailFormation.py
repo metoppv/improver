@@ -849,3 +849,64 @@ def test_process_raises(
     else:
         result = plugin.process(input_cubes)
         assert isinstance(result, Cube)
+
+
+@pytest.mark.parametrize(
+    "contrail_factor, pressure, temperature, relative_humidity, forms_contrail",
+    [
+        # always form
+        (3e-5, 5e3, 198, 0, True),  # -75 C
+        (3e-5, 5e3, 203, 0, True),  # -70
+        (3e-5, 1e4, 198, 0, True),
+        (3e-5, 1e4, 208, 0, True),  # -65
+        (3e-5, 2e4, 198, 0, True),
+        (3e-5, 2e4, 213, 0, True),  # -60
+        (3e-5, 4e4, 198, 0, True),
+        (3e-5, 4e4, 218, 0, True),  # -55
+        # never form
+        (3e-5, 5e3, 238, 1, False),  # -35 C
+        (3e-5, 5e3, 218, 1, False),  # -55
+        (3e-5, 1e4, 238, 1, False),
+        (3e-5, 1e4, 223, 1, False),  # -50
+        (3e-5, 2e4, 238, 1, False),
+        (3e-5, 2e4, 228, 1, False),  # -45
+        (3e-5, 4e4, 238, 1, False),
+        (3e-5, 4e4, 235, 1, False),  # -38
+    ],
+)
+def test_process_values(
+    contrail_factor: float,
+    pressure: float,
+    temperature: float,
+    relative_humidity: float,
+    forms_contrail: bool,
+) -> None:
+    """Docstring goes here"""
+
+    pressure_levels = np.array([pressure])
+    temperatures = np.array([temperature])
+    relative_humidities = np.array([relative_humidity])
+
+    dim_coords_and_dims = [
+        (DimCoord(pressure_levels, var_name="pressure", units="Pa"), 0),
+    ]
+    temperature_cube = Cube(
+        var_name="air_temperature",
+        dim_coords_and_dims=dim_coords_and_dims,
+        data=temperatures,
+        units="K",
+    )
+    humidity_cube = Cube(
+        var_name="relative_humidity",
+        dim_coords_and_dims=dim_coords_and_dims,
+        data=relative_humidities,
+        units="kg kg-1",
+    )
+
+    plugin = CondensationTrailFormation([contrail_factor])
+    result = plugin.process([temperature_cube, humidity_cube])
+
+    if forms_contrail:
+        assert result.data[0, 0] == 1 or 2
+    else:
+        assert result.data[0, 0] == 0
