@@ -80,6 +80,7 @@ BOUNDS_FOR_ECDF = {
     ),
     "relative_humidity": Bounds((0, 1.2), "1"),
     "visibility_in_air": Bounds((0, 100000), "m"),
+    "visibility_in_air_in_vicinity": Bounds((0, 100000), "m"),
     "ultraviolet_index": Bounds((0, 25.0), "1"),
     "ultraviolet_index_daytime_max": Bounds((0, 25.0), "1"),
 }
