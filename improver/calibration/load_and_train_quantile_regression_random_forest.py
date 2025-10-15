@@ -95,7 +95,10 @@ class LoadForTrainQRF(PostProcessingPlugin):
             unique_site_id_keys = [unique_site_id_keys]
         self.unique_site_id_keys = unique_site_id_keys
 
-        if set([len(parquet_diagnostic_names), len(cf_names), len(experiments)]) != 1:
+        if (
+            len(set([len(parquet_diagnostic_names), len(cf_names), len(experiments)]))
+            > 1
+        ):
             msg = (
                 "The length of the parquet_diagnostic_names list must match the length "
                 "of the cf_names list and the length of the experiments list. "
