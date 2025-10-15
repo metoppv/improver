@@ -14,7 +14,7 @@ def process(
     *file_paths: cli.inputpath,
     feature_config: cli.inputjson,
     parquet_diagnostic_names: cli.comma_separated_list,
-    target_cf_name: str,
+    cf_names: cli.comma_separated_list,
     forecast_periods: str,
     cycletime: str,
     training_length: int,
@@ -129,7 +129,7 @@ def process(
         experiments=experiments,
         feature_config=feature_config,
         parquet_diagnostic_names=parquet_diagnostic_names,
-        target_cf_name=target_cf_name,
+        cf_names=cf_names,
         forecast_periods=forecast_periods,
         cycletime=cycletime,
         training_length=training_length,
@@ -143,7 +143,7 @@ def process(
         kwargs["max_features"] = max_features
     result = PrepareAndTrainQRF(
         feature_config=feature_config,
-        target_cf_name=target_cf_name,
+        cf_names=cf_names,
         n_estimators=n_estimators,
         max_depth=max_depth,
         max_samples=max_samples,

@@ -46,7 +46,7 @@ class LoadForTrainQRF(PostProcessingPlugin):
         self,
         feature_config: dict[str, list[str]],
         parquet_diagnostic_names: Union[list[str], str],
-        target_cf_name: str,
+        cf_names: Union[list[str], str],
         forecast_periods: str,
         cycletime: str,
         training_length: int,
@@ -81,7 +81,7 @@ class LoadForTrainQRF(PostProcessingPlugin):
         self.quantile_forest_installed = quantile_forest_package_available()
         self.feature_config = feature_config
         self.parquet_diagnostic_names = parquet_diagnostic_names
-        self.target_cf_name = target_cf_name
+        self.cf_names = cf_names
         self.forecast_periods = forecast_periods
         self.cycletime = cycletime
         self.training_length = training_length
@@ -178,12 +178,7 @@ class LoadForTrainQRF(PostProcessingPlugin):
             )
             raise ValueError(msg)
 
-        forecast_df = pd.read_parquet(
-            forecast_table_path,
-            filters=filters,
-            schema=altered_schema,
-            engine="pyarrow",
-        )
+        forecast_df = pd.read_parquet(forecast_table_path,filters=filters,schema=altered_schema,engine="pyarrow")
         if forecast_df.empty:
             return None, None
         seconds_to_ns = 1e9
@@ -192,7 +187,7 @@ class LoadForTrainQRF(PostProcessingPlugin):
                 np.array(forecast_periods) * seconds_to_ns
             )
         ].reset_index(drop=True)
-
+        
         # Convert df columns from ns to pandas timestamp object.
         for column in ["time", "forecast_reference_time", "blend_time"]:
             forecast_df[column] = pd.to_datetime(
@@ -207,13 +202,21 @@ class LoadForTrainQRF(PostProcessingPlugin):
         representation = (
             "percentile" if "percentile" in forecast_df.columns else "realization"
         )
+
         base_df = forecast_df[
             forecast_df["diagnostic"] == self.parquet_diagnostic_names[0]
         ]
-        for parquet_diagnostic_name in self.parquet_diagnostic_names[1:]:
+
+        for parquet_diagnostic_name, cf_name in zip(self.parquet_diagnostic_names[1:], self.cf_names[1:]):
             additional_df = forecast_df[
                 forecast_df["diagnostic"] == parquet_diagnostic_name
             ]
+            if additional_df.empty:
+                msg = (
+                    "The requested parquet diagnostic name is not present in the "
+                    f"forecast parquet file: {parquet_diagnostic_name}."
+                )
+                raise ValueError(msg)
             base_df = pd.merge(
                 base_df,
                 additional_df[
@@ -224,7 +227,7 @@ class LoadForTrainQRF(PostProcessingPlugin):
                         representation,
                         "forecast",
                     ]
-                ].rename(columns={"forecast": parquet_diagnostic_name}),
+                ].rename(columns={"forecast": cf_name}),
                 on=[
                     *self.unique_site_id_keys,
                     "forecast_reference_time",
@@ -234,7 +237,7 @@ class LoadForTrainQRF(PostProcessingPlugin):
                 how="left",
             )
         forecast_df = base_df
-        forecast_df.rename(columns={"forecast": self.target_cf_name}, inplace=True)
+        forecast_df.rename(columns={"forecast": self.cf_names[0]}, inplace=True)
 
         # Load truths from parquet file filtering by diagnostic.
         filters = [[("diagnostic", "==", self.parquet_diagnostic_names[0])]]
@@ -314,7 +317,7 @@ class LoadForTrainQRF(PostProcessingPlugin):
         forecast_df, truth_df = self._read_parquet_files(
             forecast_table_path, truth_table_path, forecast_periods
         )
-        if forecast_df is Noneforecast_df.empty:
+        if forecast_df is None:
             msg = (
                 "The forecast parquet files are empty after filtering. "
                 "Unable to train the Quantile Regression Random Forest model."
