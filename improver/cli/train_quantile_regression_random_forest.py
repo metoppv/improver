@@ -18,7 +18,7 @@ def process(
     forecast_periods: str,
     cycletime: str,
     training_length: int,
-    experiments: cli.comma_separated_list = None,
+    experiments: cli.comma_separated_list,
     n_estimators: int = 100,
     max_depth: int = None,
     max_samples: float = None,
@@ -73,10 +73,13 @@ def process(
             These names could be different from the CF name e.g.
             'temperature_at_screen_level'.
         cf_names (list of str):
-            A list containing the CF names of the diagnostics matching
-            the parquet_diagnostic_names variable. The target diagnostic to be
+            A list containing the CF names of the diagnostics. The CF names should
+            match the order of the parquet_diagnostic_names. The target diagnostic to be
             calibrated is expected to be the first item in the list. These names
-            could be different from the diagnostic name e.g. air_temperature.
+            could be different from the diagnostic name used to identify in the
+            parquet files. For example, the diagnostic name could be
+            'temperature_at_screen_level' and the corresponding CF name could be
+            'air_temperature'.
         forecast_periods (str):
             Range of forecast periods to be calibrated in hours in the form:
             "start:end:interval" e.g. "6:18:6" or a single forecast period e.g. "6".

@@ -50,7 +50,7 @@ class LoadForTrainQRF(PostProcessingPlugin):
         forecast_periods: str,
         cycletime: str,
         training_length: int,
-        experiments: Optional[list[str]] = None,
+        experiments: list[str],
         unique_site_id_keys: Union[list[str], str] = "wmo_id",
     ):
         """Initialise the LoadForTrainQRF plugin.
@@ -64,10 +64,13 @@ class LoadForTrainQRF(PostProcessingPlugin):
                 target diagnostic name is expected to be the first item in the list.
                 These names could be different from the CF name e.g.
                 'temperature_at_screen_level'.
-            cf_names: A list containing the CF names of the diagnostics matching
-                the parquet_diagnostic_names variable. The target diagnostic to be
+            cf_names: A list containing the CF names of the diagnostics. The CF names should
+                match the order of the parquet_diagnostic_names. The target diagnostic to be
                 calibrated is expected to be the first item in the list. These names
-                could be different from the diagnostic name e.g. air_temperature.
+                could be different from the diagnostic name used to identify in the
+                parquet files. For example, the diagnostic name could be
+                'temperature_at_screen_level' and the corresponding CF name could be
+                'air_temperature'.
             forecast_periods: Range of forecast periods to be calibrated in hours in
                 the form: "start:end:interval" e.g. "6:18:6" or a single forecast period
                 e.g. "6".
@@ -87,12 +90,20 @@ class LoadForTrainQRF(PostProcessingPlugin):
         self.forecast_periods = forecast_periods
         self.cycletime = cycletime
         self.training_length = training_length
-        if experiments is None:
-            experiments = []
         self.experiments = experiments
         if isinstance(unique_site_id_keys, str):
             unique_site_id_keys = [unique_site_id_keys]
         self.unique_site_id_keys = unique_site_id_keys
+
+        if set([len(parquet_diagnostic_names), len(cf_names), len(experiments)]) != 1:
+            msg = (
+                "The length of the parquet_diagnostic_names list must match the length "
+                "of the cf_names list and the length of the experiments list. "
+                "The lengths provided are "
+                f"{len(parquet_diagnostic_names)}, {len(cf_names)} and "
+                f"{len(experiments)}, respectively."
+            )
+            raise ValueError(msg)
 
     def _parse_forecast_periods(self) -> list[int]:
         """Parse the forecast periods argument to produce a list of forecast periods
@@ -159,14 +170,6 @@ class LoadForTrainQRF(PostProcessingPlugin):
             )
         cycletimes = list(set(cycletimes))
 
-        filters = [
-            [
-                ("diagnostic", "in", self.parquet_diagnostic_names),
-                ("blend_time", "in", cycletimes),
-                ("experiment", "in", self.experiments),
-            ]
-        ]
-
         example_file_path = next(Path(forecast_table_path).glob("**/*.parquet"))
         if pq.read_schema(example_file_path).get_all_field_indices("percentile"):
             altered_schema = CalibrationSchemas().FORECAST_SCHEMA
@@ -182,52 +185,47 @@ class LoadForTrainQRF(PostProcessingPlugin):
             )
             raise ValueError(msg)
 
-        forecast_df = pd.read_parquet(
-            forecast_table_path,
-            filters=filters,
-            schema=altered_schema,
-            engine="pyarrow",
-        )
-        if forecast_df.empty:
-            return None, None
-        seconds_to_ns = 1e9
-        forecast_df = forecast_df[
-            forecast_df["forecast_period"].isin(
-                np.array(forecast_periods) * seconds_to_ns
-            )
-        ].reset_index(drop=True)
-
-        # Convert df columns from ns to pandas timestamp object.
-        for column in ["time", "forecast_reference_time", "blend_time"]:
-            forecast_df[column] = pd.to_datetime(
-                forecast_df[column], unit="ns", utc=True
-            )
-            forecast_df[column] = forecast_df[column].astype("datetime64[ns, UTC]")
-        for column in ["forecast_period", "period"]:
-            forecast_df[column] = pd.to_timedelta(forecast_df[column], unit="ns")
-            forecast_df[column] = forecast_df[column].astype("timedelta64[ns]")
-
-        # Convert additional features from rows to columns.
-        representation = (
-            "percentile" if "percentile" in forecast_df.columns else "realization"
-        )
-        base_df = forecast_df[
-            forecast_df["diagnostic"] == self.parquet_diagnostic_names[0]
-        ]
-        for parquet_diagnostic_name, cf_name in zip(
-            self.parquet_diagnostic_names[1:], self.cf_names[1:]
+        forecast_df = None
+        for parquet_diagnostic_name, cf_name, experiment in zip(
+            self.parquet_diagnostic_names, self.cf_names, self.experiments
         ):
-            additional_df = forecast_df[
-                forecast_df["diagnostic"] == parquet_diagnostic_name
+            filters = [
+                [
+                    ("diagnostic", "==", parquet_diagnostic_name),
+                    ("blend_time", "in", cycletimes),
+                    ("experiment", "==", experiment),
+                ]
             ]
+
+            additional_df = pd.read_parquet(
+                forecast_table_path,
+                filters=filters,
+                schema=altered_schema,
+                engine="pyarrow",
+            )
+
+            if forecast_df is None:
+                # If processing the first diagnostic, use it to create the base
+                # DataFrame.
+                if additional_df.empty:
+                    return None, None
+                additional_df.rename(columns={"forecast": cf_name}, inplace=True)
+                forecast_df = additional_df
+                continue
+
+            # Convert additional features from rows to columns.
+            representation = (
+                "percentile" if "percentile" in additional_df.columns else "realization"
+            )
+
             if additional_df.empty:
                 msg = (
                     "The requested parquet diagnostic name is not present in the "
                     f"forecast parquet file: {parquet_diagnostic_name}."
                 )
                 raise ValueError(msg)
-            base_df = pd.merge(
-                base_df,
+            forecast_df = pd.merge(
+                forecast_df,
                 additional_df[
                     [
                         *self.unique_site_id_keys,
@@ -245,8 +243,23 @@ class LoadForTrainQRF(PostProcessingPlugin):
                 ],
                 how="left",
             )
-        forecast_df = base_df
-        forecast_df.rename(columns={"forecast": self.cf_names[0]}, inplace=True)
+
+        seconds_to_ns = 1e9
+        forecast_df = forecast_df[
+            forecast_df["forecast_period"].isin(
+                np.array(forecast_periods) * seconds_to_ns
+            )
+        ].reset_index(drop=True)
+
+        # Convert df columns from ns to pandas timestamp object.
+        for column in ["time", "forecast_reference_time", "blend_time"]:
+            forecast_df[column] = pd.to_datetime(
+                forecast_df[column], unit="ns", utc=True
+            )
+            forecast_df[column] = forecast_df[column].astype("datetime64[ns, UTC]")
+        for column in ["forecast_period", "period"]:
+            forecast_df[column] = pd.to_timedelta(forecast_df[column], unit="ns")
+            forecast_df[column] = forecast_df[column].astype("timedelta64[ns]")
 
         # Load truths from parquet file filtering by diagnostic.
         filters = [[("diagnostic", "==", self.parquet_diagnostic_names[0])]]

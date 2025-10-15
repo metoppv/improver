@@ -68,7 +68,7 @@ def add_wind_data_to_forecasts(data_dict, wind_speed_values, wind_dir_values):
     wind_dir_dict["cf_name"] = "wind_from_direction"
     wind_dir_dict["units"] = "degrees"
     wind_dir_dict["diagnostic"] = "wind_direction_at_10m"
-    wind_speed_dict["experiment"] = "recentblend"
+    wind_dir_dict["experiment"] = "recentblend"
     data_df = pd.DataFrame(data_dict)
     wind_speed_df = pd.DataFrame(wind_speed_dict)
     wind_dir_df = pd.DataFrame(wind_dir_dict)
@@ -423,7 +423,6 @@ def amend_expected_truth_df(truth_df, parquet_diagnostic_name):
 @pytest.mark.parametrize("include_static", [True, False])
 @pytest.mark.parametrize("include_noncube_static", [True, False])
 @pytest.mark.parametrize("remove_target", [True, False])
-@pytest.mark.parametrize("experiments", [["latestblend"], None])
 @pytest.mark.parametrize(
     "site_id", ["wmo_id", "station_id", ["wmo_id"], ["latitude", "longitude"]]
 )
@@ -459,7 +458,6 @@ def test_load_for_qrf(
     include_static,
     include_noncube_static,
     remove_target,
-    experiments,
     site_id,
     forecast_creation,
     truth_creation,
@@ -485,8 +483,6 @@ def test_load_for_qrf(
         feature_config["wind_speed"] = ["mean", "std"]
         parquet_diagnostic_names.append("wind_speed_at_10m")
         cf_names.append("wind_speed")
-        if not experiments:
-            pytest.skip("Cannot append an experiment to None.")
         experiments.append("recentblend")
 
     if include_static:
@@ -500,6 +496,7 @@ def test_load_for_qrf(
         feature_config["wind_from_direction"] = ["static"]
         parquet_diagnostic_names.append("wind_direction_at_10m")
         cf_names.append("wind_from_direction")
+        experiments.append("recentblend")
 
     if remove_target:
         feature_config.pop("air_temperature")
@@ -677,6 +674,13 @@ def test_load_for_qrf_mismatches(
             "percentile",
         ),
         (
+            "mismatching_lists",
+            _create_multi_site_forecast_parquet_file,
+            _create_multi_site_truth_parquet_file,
+            "6:18:6",
+            "percentile",
+        ),
+        (
             "no_percentile_realization",
             _create_multi_site_forecast_parquet_file,
             _create_multi_site_truth_parquet_file,
@@ -722,6 +726,22 @@ def test_unexpected_loading(
         parquet_diagnostic_names.append("wind_speed_at_10m")
         cf_names.append("wind_speed")
         experiments.append("latestblend")
+
+    if exception == "mismatching_lists":
+        parquet_diagnostic_names.append("wind_speed_at_10m")
+        cf_names.append("wind_speed")
+        # Intentionally not appending to experiments to create a mismatch
+        with pytest.raises(ValueError, match="The length of the"):
+            LoadForTrainQRF(
+                experiments=experiments,
+                feature_config=feature_config,
+                parquet_diagnostic_names=parquet_diagnostic_names,
+                cf_names=cf_names,
+                forecast_periods=forecast_periods,
+                cycletime="20170103T0000Z",
+                training_length=2,
+            )
+        return
 
     # Create an instance of LoadForTrainQRF with the required parameters
     plugin = LoadForTrainQRF(
