@@ -128,7 +128,7 @@ def compare_datasets(
     desired_groups = set(desired_ds.groups.keys())
 
     if actual_groups != desired_groups:
-        msg = f"different groups {name}: " f"{sorted(actual_groups ^ desired_groups)}"
+        msg = f"different groups {name}: {sorted(actual_groups ^ desired_groups)}"
         reporter(msg)
 
     check_groups = actual_groups.intersection(desired_groups)
@@ -191,7 +191,7 @@ def compare_dims(
     desired_dims = set(desired_ds.dimensions.keys()) - set(exclude_vars)
 
     if actual_dims != desired_dims:
-        msg = "different dimensions - " f"{name} {sorted(actual_dims ^ desired_dims)}"
+        msg = f"different dimensions - {name} {sorted(actual_dims ^ desired_dims)}"
         reporter(msg)
 
     check_dims = actual_dims.intersection(desired_dims)
@@ -199,9 +199,7 @@ def compare_dims(
         actual_len = actual_ds.dimensions[dim].size
         desired_len = desired_ds.dimensions[dim].size
         if actual_len != desired_len:
-            msg = (
-                "different dimension size - " f"{name}/{dim} {actual_len} {desired_len}"
-            )
+            msg = f"different dimension size - {name}/{dim} {actual_len} {desired_len}"
             reporter(msg)
 
 
@@ -242,7 +240,7 @@ def compare_vars(
     desired_vars = set(desired_ds.variables) - set(exclude_vars)
 
     if actual_vars != desired_vars:
-        msg = f"different variables - {name} " f"{sorted(actual_vars ^ desired_vars)}"
+        msg = f"different variables - {name} {sorted(actual_vars ^ desired_vars)}"
         reporter(msg)
 
     check_vars = actual_vars.intersection(desired_vars)
@@ -298,10 +296,7 @@ def compare_attributes(
             desired_attrs.discard(attr)
 
     if actual_attrs != desired_attrs:
-        msg = (
-            f"different attributes of {name} - "
-            f"{sorted(actual_attrs ^ desired_attrs)}"
-        )
+        msg = f"different attributes of {name} - {sorted(actual_attrs ^ desired_attrs)}"
         reporter(msg)
 
     check_attrs = actual_attrs.intersection(desired_attrs)
@@ -323,8 +318,7 @@ def compare_attributes(
                 reporter(msg)
         elif actual_attr != desired_attr:
             msg = (
-                f"different attribute value {name}/{key} - "
-                f"{actual_attr} {desired_attr}"
+                f"different attribute value {name}/{key} - {actual_attr} {desired_attr}"
             )
             reporter(msg)
 
@@ -377,3 +371,114 @@ def compare_data(
     # exceptions if the reporter function is raising an exception
     if difference_found:
         reporter(f"different data {name} - {numpy_err_message}")
+
+
+def compare_objects(
+    actual_var: PathLike, desired_var: PathLike, reporter: Callable[[str], None]
+) -> None:
+    """
+    Compare two pickled objects. This is not a complete comparison as two
+    objects may have the same string representation but be different
+    objects.
+
+    Args:
+        actual_var: Path to the pickled object produced by test run.
+        desired_var: Path to the pickled object considered good.
+        reporter: Callback function for reporting differences.
+    """
+    import joblib
+
+    try:
+        with open(actual_var, "rb") as f:
+            actual_data = joblib.load(f)
+    except OSError as exc:
+        reporter(str(exc))
+        return
+    try:
+        with open(desired_var, "rb") as f:
+            desired_data = joblib.load(f)
+    except OSError as exc:
+        reporter(str(exc))
+        return
+    if str(actual_data) != str(desired_data):
+        reporter(f"Different data found in {actual_data} and {desired_data}.")
+
+
+def compare_pickled_forest(
+    output_path: PathLike,
+    kgo_path: PathLike,
+    reporter: Optional[Callable[[str], None]] = None,
+):
+    """Load a pickled forest (e.g. a Random Forest) and compare its contents.
+    Args:
+        output_path: data file produced by test run
+        kgo_path: data file considered good e.g. KGO
+        reporter: callback function for reporting differences
+    """
+
+    def raise_reporter(message):
+        raise ValueError(message)
+
+    if reporter is None:
+        reporter = raise_reporter
+
+    import joblib
+
+    try:
+        output = joblib.load(output_path)
+    except OSError as exc:
+        reporter(str(exc))
+        return
+
+    try:
+        kgo = joblib.load(kgo_path)
+    except OSError as exc:
+        reporter(str(exc))
+        return
+
+    difference_found = False
+    try:
+        model, transformation, pre_transform_addition = output
+        kgo_model, kgo_transformation, kgo_pre_transform_addition = kgo
+        np.testing.assert_equal(transformation, kgo_transformation)
+        np.testing.assert_equal(pre_transform_addition, kgo_pre_transform_addition)
+        np.testing.assert_equal(model.n_features_in_, kgo_model.n_features_in_)
+        np.testing.assert_equal(model.n_outputs_, kgo_model.n_outputs_)
+        np.testing.assert_equal(model.max_depth, kgo_model.max_depth)
+        np.testing.assert_equal(model.n_estimators, kgo_model.n_estimators)
+        np.testing.assert_equal(model.random_state, kgo_model.random_state)
+        for output_estimator, kgo_estimator in zip(
+            model.estimators_, kgo_model.estimators_
+        ):
+            np.testing.assert_allclose(
+                output_estimator.tree_.value, kgo_estimator.tree_.value
+            )
+    except (AssertionError, ValueError):
+        difference_found = True
+    # call the reporter function outside the except block to avoid nested
+    # exceptions if the reporter function is raising an exception
+    if difference_found:
+        try:
+            msg = (
+                "Different pickled forest. \nThe output is: "
+                f"n_features: {model.n_features_in_}, "
+                f"n_outputs: {model.n_outputs_}, "
+                f"max_depth: {model.max_depth}, "
+                f"n_estimators: {model.n_estimators}, "
+                f"random_state: {model.random_state}, "
+                f"transformation: {transformation}, "
+                f"pre_transform_addition: {pre_transform_addition}."
+                "\nThe KGO is: "
+                f"n_features: {kgo.n_features_in_}, "
+                f"n_outputs: {kgo.n_outputs_}, "
+                f"max_depth: {kgo.max_depth}, "
+                f"n_estimators: {kgo.n_estimators}, "
+                f"random_state: {kgo.random_state}, "
+                f"transformation: {kgo_transformation}, "
+                f"pre_transform_addition: {kgo_pre_transform_addition}."
+            )
+        except (AssertionError, ValueError, UnboundLocalError):
+            msg = "Different pickled forest."
+            reporter(msg)
+        else:
+            reporter(msg)

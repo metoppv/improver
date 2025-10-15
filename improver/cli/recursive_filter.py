@@ -16,6 +16,7 @@ def process(
     *,
     iterations: int = 1,
     variable_mask: bool = False,
+    mask_zeros: bool = False,
 ):
     """Module to apply a recursive filter to neighbourhooded data.
 
@@ -50,6 +51,11 @@ def process(
             different mask. If False and cube is masked, a check will be made that
             the same mask is present on each spatial slice. If True, each spatial
             slice of cube may contain a different spatial mask.
+        mask_zeros (bool):
+            If set true all of the values of 0 in the cube will be masked,
+            stopping the recursive filter from spreading values into these areas.
+            They will then be unmasked later on. If the input cube was masked
+            this mask will be reapplied to the output at the end.
 
     Returns:
         iris.cube.Cube:
@@ -59,5 +65,8 @@ def process(
 
     plugin = RecursiveFilter(iterations=iterations)
     return plugin(
-        cube, smoothing_coefficients=smoothing_coefficients, variable_mask=variable_mask
+        cube,
+        smoothing_coefficients=smoothing_coefficients,
+        variable_mask=variable_mask,
+        mask_zeros=mask_zeros,
     )

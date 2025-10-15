@@ -10,7 +10,12 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(cube: cli.inputcube, vicinity: cli.comma_separated_list = None):
+def process(
+    cube: cli.inputcube,
+    land_mask: cli.inputcube = None,
+    *,
+    vicinity: cli.comma_separated_list = None,
+):
     """Module to apply vicinity processing to data.
 
     Calculate the maximum value within a vicinity radius about each point
@@ -32,6 +37,10 @@ def process(cube: cli.inputcube, vicinity: cli.comma_separated_list = None):
     Args:
         cube (iris.cube.Cube):
             A cube containing data to which a vicinity is to be applied.
+        land_mask (iris.cube.Cube):
+            Binary land-sea mask data. True for land-points, False for sea.
+            Restricts in-vicinity processing to only include points of a
+            like mask value.
         vicinity (list of float / int):
             List of distances in metres used to define the vicinities within
             which to search for an occurrence. Each vicinity provided will
@@ -43,4 +52,6 @@ def process(cube: cli.inputcube, vicinity: cli.comma_separated_list = None):
     """
     from improver.utilities.spatial import OccurrenceWithinVicinity
 
-    return OccurrenceWithinVicinity(radii=vicinity).process(cube)
+    return OccurrenceWithinVicinity(radii=vicinity, land_mask_cube=land_mask).process(
+        cube
+    )

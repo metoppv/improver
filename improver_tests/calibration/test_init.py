@@ -4,27 +4,42 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for calibration.__init__"""
 
+import importlib
 import unittest
 from datetime import datetime, timedelta
+from pathlib import Path
 
 import iris
+import joblib
 import numpy as np
+import pandas as pd
 import pytest
 from iris.cube import CubeList
 
 from improver.calibration import (
     add_warning_comment,
+    get_common_wmo_ids,
+    get_training_period_cycles,
+    identify_parquet_type,
+    split_cubes_for_samos,
     split_forecasts_and_bias_files,
     split_forecasts_and_coeffs,
     split_forecasts_and_truth,
+    split_netcdf_parquet_pickle,
     validity_time_check,
 )
 from improver.synthetic_data.set_up_test_cubes import (
     set_up_percentile_cube,
     set_up_probability_cube,
+    set_up_spot_variable_cube,
     set_up_variable_cube,
 )
+from improver.utilities.save import save_netcdf
 from improver_tests import ImproverTest
+
+pyarrow_installed = True
+if not importlib.util.find_spec("pyarrow"):
+    pyarrow_installed = False
 
 
 class Test_split_forecasts_and_truth(unittest.TestCase):
@@ -515,6 +530,126 @@ def forecast_cube():
 
 
 @pytest.fixture
+def forecast_cubes_multi_time():
+    output_cubes = CubeList()
+    for day in [10, 11]:
+        cube = set_up_variable_cube(
+            data=np.array(
+                [[1.0, 2.0, 2.0], [2.0, 1.0, 3.0], [1.0, 3.0, 3.0]], dtype=np.float32
+            ),
+            name="wind_speed",
+            units="m/s",
+            time=datetime(2017, 11, day, 0, 0),
+            frt=datetime(2017, 11, day - 1, 0, 0),
+        )
+        output_cubes.append(cube.copy())
+
+    return output_cubes
+
+
+@pytest.fixture
+def probability_forecast_cubes_multi_time():
+    output_cubes = CubeList()
+    for day in [10, 11]:
+        prob_template_cube = set_up_probability_cube(
+            data=np.ones((2, 3, 3), dtype=np.float32),
+            thresholds=[1.5, 2.5],
+            time=datetime(2017, 11, day, 0, 0),
+            frt=datetime(2017, 11, day - 1, 0, 0),
+            variable_name="wind_speed",
+        )
+        output_cubes.append(prob_template_cube.copy())
+
+    return output_cubes
+
+
+@pytest.fixture
+def truth_cubes_multi_time():
+    output_cubes = CubeList()
+    for day in [10, 11]:
+        cube = set_up_variable_cube(
+            data=np.array(
+                [[1.0, 2.0, 2.0], [2.0, 1.0, 3.0], [1.0, 3.0, 3.0]], dtype=np.float32
+            ),
+            name="wind_speed",
+            units="m/s",
+            time=datetime(2017, 11, int(day), 0, 0),
+        )
+        cube.remove_coord("forecast_reference_time")
+        cube.remove_coord("forecast_period")
+        cube.attributes["truth_attribute"] = "truth"
+        output_cubes.append(cube.copy())
+
+    return output_cubes
+
+
+@pytest.fixture
+def emos_coefficient_cubes():
+    # Set-up coefficient cubes
+    fp_names = ["wind_speed"]
+    predictor_index = iris.coords.DimCoord(
+        np.array(range(len(fp_names)), dtype=np.int32),
+        long_name="predictor_index",
+        units="1",
+    )
+    dim_coords_and_dims = ((predictor_index, 0),)
+    predictor_name = iris.coords.AuxCoord(
+        fp_names, long_name="predictor_name", units="no_unit"
+    )
+    aux_coords_and_dims = ((predictor_name, 0),)
+
+    attributes = {
+        "diagnostic_standard_name": "wind_speed",
+        "distribution": "norm",
+    }
+    alpha = iris.cube.Cube(
+        np.array(0, dtype=np.float32),
+        long_name="emos_coefficients_alpha",
+        units="K",
+        attributes=attributes,
+    )
+    beta = iris.cube.Cube(
+        np.array([0.5], dtype=np.float32),
+        long_name="emos_coefficients_beta",
+        units="1",
+        attributes=attributes,
+        dim_coords_and_dims=dim_coords_and_dims,
+        aux_coords_and_dims=aux_coords_and_dims,
+    )
+    gamma = iris.cube.Cube(
+        np.array(0, dtype=np.float32),
+        long_name="emos_coefficients_gamma",
+        units="K",
+        attributes=attributes,
+    )
+    delta = iris.cube.Cube(
+        np.array(1, dtype=np.float32),
+        long_name="emos_coefficients_delta",
+        units="1",
+        attributes=attributes,
+    )
+
+    return CubeList([alpha, beta, gamma, delta])
+
+
+@pytest.fixture
+def emos_additional_fields():
+    altitude = set_up_variable_cube(
+        np.ones((3, 3), dtype=np.float32), name="surface_altitude", units="m"
+    )
+    d2o = set_up_variable_cube(
+        np.ones((3, 3), dtype=np.float32), name="distance_to_ocean", units="m"
+    )
+
+    output_cubes = CubeList([altitude, d2o])
+    for cube in output_cubes:
+        for coord in ["time", "forecast_reference_time", "forecast_period"]:
+            cube.remove_coord(coord)
+
+    return output_cubes
+
+
+@pytest.fixture
 def forecast_error_cubelist():
     bias_cubes = CubeList()
     for bias_index in range(-1, 2):
@@ -531,6 +666,75 @@ def forecast_error_cubelist():
         bias_cube.remove_coord("time")
         bias_cubes.append(bias_cube)
     return bias_cubes
+
+
+def create_netcdf_file(tmp_path):
+    """Create a netcdf file with forecast data."""
+    cube = set_up_variable_cube(
+        data=np.array(
+            [[1.0, 2.0, 2.0], [2.0, 1.0, 3.0], [1.0, 3.0, 3.0]], dtype=np.float32
+        ),
+        name="wind_speed",
+        units="m/s",
+    )
+
+    output_dir = tmp_path / "netcdf_files"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_path = str(output_dir / "forecast.nc")
+    save_netcdf(cubelist=cube, filename=output_path, compression_level=0)
+
+    return cube, output_path
+
+
+def create_multi_site_forecast_parquet_file(tmp_path, include_forecast_period=True):
+    """Create a parquet file with multi-site forecast data."""
+
+    data_dict = {
+        "percentile": np.repeat(50, 5),
+        "forecast": [281, 272, 287, 280, 290],
+        "altitude": [10, 83, 56, 23, 2],
+        "blend_time": [pd.Timestamp("2017-01-02 00:00:00")] * 5,
+        "forecast_reference_time": [pd.Timestamp("2017-01-02 00:00:00")] * 5,
+        "latitude": [60.1, 59.9, 59.7, 58, 57],
+        "longitude": [1, 2, -1, -2, -3],
+        "time": [pd.Timestamp("2017-01-02 06:00:00")] * 5,
+        "wmo_id": ["03001", "03002", "03003", "03004", "03005"],
+        "station_id": ["03001", "03002", "03003", "03004", "03005"],
+        "cf_name": ["air_temperature"] * 5,
+        "units": ["K"] * 5,
+        "experiment": ["latestblend"] * 5,
+        "period": [pd.NaT] * 5,
+        "height": [1.5] * 5,
+        "diagnostic": ["temperature_at_screen_level"] * 5,
+    }
+
+    parquet_type = "truth"
+    if include_forecast_period:
+        data_dict["forecast_period"] = [6 * 3.6e12] * 5
+        parquet_type = "forecast"
+
+    data_df = pd.DataFrame(data_dict)
+
+    output_dir = tmp_path / f"{parquet_type}_parquet_files"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_path = str(output_dir / f"{parquet_type}.parquet")
+    data_df.to_parquet(output_path, index=False, engine="pyarrow")
+
+    return output_dir
+
+
+def create_pickle_file(tmp_path, filename="data.pkl"):
+    """Create a pickle file containing a GAM object."""
+    # Import pygam here to avoid a dependency for the entire repository.
+    import pygam
+
+    obj = [pygam.GAM(pygam.s(0) + pygam.l(1)), pygam.GAM(pygam.te(0, 1))]
+    output_dir = tmp_path / "pickle_files"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_path = str(output_dir / filename)
+    joblib.dump(obj, output_path)
+
+    return obj, output_path
 
 
 @pytest.mark.parametrize("multiple_bias_cubes", [(True, False)])
@@ -611,6 +815,562 @@ def test_add_warning_to_comment(comment):
         expected = "\n".join([comment, expected])
     result = add_warning_comment(cube)
     assert result.attributes["comment"] == expected
+
+
+@pytest.mark.parametrize("forecast_type", ["realization", "probability"])
+def test_split_cubes_for_samos_basic(
+    forecast_cubes_multi_time,
+    probability_forecast_cubes_multi_time,
+    truth_cubes_multi_time,
+    forecast_type,
+):
+    """Test that the split_cubes_for_samos function correctly separates out input
+    forecast and truth cubes."""
+    merged_input_cubelist = truth_cubes_multi_time.copy()
+
+    if forecast_type == "realization":
+        merged_input_cubelist.extend(forecast_cubes_multi_time)
+        expected_name = "wind_speed"
+        expected_shape = (2, 3, 3)
+    else:
+        merged_input_cubelist.extend(probability_forecast_cubes_multi_time)
+        expected_name = "probability_of_wind_speed_above_threshold"
+        expected_shape = (2, 2, 3, 3)
+
+    (
+        result_forecast_cube,
+        result_truth_cube,
+        result_gam_additional_fields,
+        result_emos_coefficients,
+        result_emos_additional_fields,
+        result_prob_template,
+    ) = split_cubes_for_samos(
+        merged_input_cubelist, gam_features=[], truth_attribute="truth_attribute=truth"
+    )
+
+    # Check that the output forecast cube is as expected.
+    assert isinstance(result_forecast_cube, iris.cube.Cube)
+    assert result_forecast_cube.name() == expected_name
+    assert result_forecast_cube.shape == expected_shape
+    assert "forecast_reference_time" in [
+        c.name() for c in result_forecast_cube.coords()
+    ]
+    assert "forecast_period" in [c.name() for c in result_forecast_cube.coords()]
+
+    # Check that the output truth cube is as expected.
+    assert isinstance(result_truth_cube, iris.cube.Cube)
+    assert result_truth_cube.shape == (2, 3, 3)
+    assert "forecast_reference_time" not in [
+        c.name() for c in result_truth_cube.coords()
+    ]
+    assert "forecast_period" not in [c.name() for c in result_truth_cube.coords()]
+    assert result_truth_cube.attributes["truth_attribute"] == "truth"
+
+    # Check all other outputs are None.
+    assert result_gam_additional_fields is None
+    assert result_emos_coefficients is None
+    assert result_emos_additional_fields is None
+    assert result_prob_template is None
+
+
+@pytest.mark.parametrize(
+    "situation",
+    [
+        "all_matching",
+        "all_matching_with_multiple_additional_predictors",
+        "fewer_in_forecast",
+        "fewer_in_truth",
+        "fewer_in_additional_predictors",
+        "no_additional_predictors",
+        "mixture",
+        "no_overlapping_sites",
+    ],
+)
+def test_get_common_wmo_ids(situation):
+    """Test the get_common_wmo_ids function."""
+    forecast_wmo_ids = [1, 2, 3, 4, 5]
+    truth_wmo_ids = [1, 2, 3, 4, 5]
+    additional_wmo_ids = [1, 2, 3, 4, 5]
+
+    if situation == "all_matching_with_multiple_additional_predictors":
+        additional_wmo_ids = [1, 2, 3, 4, 5, 6]
+        # A second 'additional predictor' cube will be added later
+    elif situation == "fewer_in_forecast":
+        forecast_wmo_ids = [1, 2, 3]
+    elif situation == "fewer_in_truth":
+        truth_wmo_ids = [1, 2, 3]
+    elif situation == "fewer_in_additional_predictors":
+        additional_wmo_ids = [1, 2, 3]
+    elif situation == "no_additional_predictors":
+        additional_wmo_ids = []
+    elif situation == "mixture":
+        forecast_wmo_ids = [1, 2, 3, 4]
+        truth_wmo_ids = [1, 2, 3, 5]
+        additional_wmo_ids = [1, 2, 3, 6]
+    elif situation == "no_overlapping_sites":
+        forecast_wmo_ids = [1, 2]
+        truth_wmo_ids = [3, 4]
+        additional_wmo_ids = [5, 6]
+
+    data = np.ones(len(forecast_wmo_ids), dtype=np.float32)
+    forecast_cube = set_up_spot_variable_cube(data, wmo_ids=forecast_wmo_ids)
+    data = np.ones(len(truth_wmo_ids), dtype=np.float32)
+    truth_cube = set_up_spot_variable_cube(data, wmo_ids=truth_wmo_ids)
+
+    additional_predictors = None
+    if additional_wmo_ids:
+        data = np.ones(len(additional_wmo_ids), dtype=np.float32)
+        additional_predictors = CubeList(
+            [set_up_spot_variable_cube(data, wmo_ids=additional_wmo_ids)]
+        )
+        # Add a second additional predictor cube to the 'additional_predictors' list
+        if situation == "all_matching_with_multiple_additional_predictors":
+            additional_predictors.append(
+                set_up_spot_variable_cube(data, wmo_ids=additional_wmo_ids)
+            )
+
+    if situation == "no_overlapping_sites":
+        with pytest.raises(
+            IOError, match="No common WMO IDs found in the input cubes."
+        ):
+            get_common_wmo_ids(forecast_cube, truth_cube, additional_predictors)
+        return
+
+    forecast_result, truth_result, additional_predictor_result = get_common_wmo_ids(
+        forecast_cube, truth_cube, additional_predictors
+    )
+
+    if situation in [
+        "all_matching",
+        "all_matching_with_multiple_additional_predictors",
+        "no_additional_predictors",
+    ]:
+        expected = [f"{x:05}" for x in [1, 2, 3, 4, 5]]
+    else:
+        expected = [f"{x:05}" for x in [1, 2, 3]]
+    assert forecast_result.coord("wmo_id").points.tolist() == expected
+    assert truth_result.coord("wmo_id").points.tolist() == expected
+    if additional_predictors is None:
+        assert additional_predictor_result is None
+    else:
+        for cube in additional_predictor_result:
+            assert cube.coord("wmo_id").points.tolist() == expected
+
+
+@pytest.mark.parametrize(
+    "provide_emos_coefficients,expect_emos_coefficients,provide_emos_additional_fields,expect_emos_additional_fields",
+    [
+        [True, True, False, False],
+        [True, False, False, False],
+        [False, False, True, True],
+        [False, False, True, False],
+        [True, True, True, True],
+    ],
+)
+def test_split_cubes_for_samos_emos_cubes(
+    forecast_cubes_multi_time,
+    truth_cubes_multi_time,
+    emos_coefficient_cubes,
+    emos_additional_fields,
+    provide_emos_coefficients,
+    expect_emos_coefficients,
+    provide_emos_additional_fields,
+    expect_emos_additional_fields,
+):
+    """Test that the split_cubes_for_samos function correctly separates out input
+    cubes when cubes for EMOS calibration are provided. Also test that the correct
+    exceptions are raised if cubes for EMOS are provided but not expected."""
+    merged_input_cubelist = truth_cubes_multi_time.copy()
+    merged_input_cubelist.extend(forecast_cubes_multi_time)
+
+    if provide_emos_coefficients:
+        merged_input_cubelist.extend(emos_coefficient_cubes)
+    if provide_emos_additional_fields:
+        merged_input_cubelist.extend(emos_additional_fields)
+
+    if provide_emos_coefficients and not expect_emos_coefficients:
+        with pytest.raises(
+            IOError,
+            match="Found EMOS coefficients cubes when they were not expected.",
+        ):
+            split_cubes_for_samos(
+                merged_input_cubelist,
+                gam_features=[],
+                truth_attribute="truth_attribute=truth",
+                expect_emos_coeffs=expect_emos_coefficients,
+                expect_emos_fields=expect_emos_additional_fields,
+            )
+    elif provide_emos_additional_fields and not expect_emos_additional_fields:
+        with pytest.raises(
+            IOError,
+            match="Found additional fields cubes which do not match the features in "
+            "gam_features.",
+        ):
+            split_cubes_for_samos(
+                merged_input_cubelist,
+                gam_features=[],
+                truth_attribute="truth_attribute=truth",
+                expect_emos_coeffs=expect_emos_coefficients,
+                expect_emos_fields=expect_emos_additional_fields,
+            )
+    else:
+        (
+            result_forecast_cube,
+            result_truth_cube,
+            result_gam_additional_fields,
+            result_emos_coefficients,
+            result_emos_additional_fields,
+            result_prob_template,
+        ) = split_cubes_for_samos(
+            merged_input_cubelist,
+            gam_features=[],
+            truth_attribute="truth_attribute=truth",
+            expect_emos_coeffs=expect_emos_coefficients,
+            expect_emos_fields=expect_emos_additional_fields,
+        )
+
+        # Check that the output forecast cube is as expected.
+        assert isinstance(result_forecast_cube, iris.cube.Cube)
+        assert result_forecast_cube.shape == (2, 3, 3)
+        assert "forecast_reference_time" in [
+            c.name() for c in result_forecast_cube.coords()
+        ]
+        assert "forecast_period" in [c.name() for c in result_forecast_cube.coords()]
+
+        # Check that the output truth cube is as expected.
+        assert isinstance(result_truth_cube, iris.cube.Cube)
+        assert result_truth_cube.shape == (2, 3, 3)
+        assert "forecast_reference_time" not in [
+            c.name() for c in result_truth_cube.coords()
+        ]
+        assert "forecast_period" not in [c.name() for c in result_truth_cube.coords()]
+        assert result_truth_cube.attributes["truth_attribute"] == "truth"
+
+        if expect_emos_coefficients:
+            # Check that the output EMOS coefficient cubes are as expected.
+            assert isinstance(result_emos_coefficients, CubeList)
+            assert len(result_emos_coefficients) == 4
+            expected_names = [
+                "emos_coefficients_alpha",
+                "emos_coefficients_beta",
+                "emos_coefficients_gamma",
+                "emos_coefficients_delta",
+            ]
+            for i, cube in enumerate(result_emos_coefficients):
+                assert expected_names[i] == cube.name()
+
+        if expect_emos_additional_fields:
+            # Check that the output EMOS additional fields cubes are as expected.
+            assert isinstance(result_emos_additional_fields, CubeList)
+            assert len(result_emos_additional_fields) == 2
+            expected_names = ["surface_altitude", "distance_to_ocean"]
+            for i, cube in enumerate(result_emos_additional_fields):
+                assert expected_names[i] == cube.name()
+
+        # Check all other outputs are None.
+        assert result_gam_additional_fields is None
+        assert result_prob_template is None
+
+
+@pytest.mark.parametrize(
+    "gam_features",
+    [
+        [],
+        ["surface_altitude"],
+        ["distance_to_ocean"],
+        ["surface_altitude", "distance_to_ocean"],
+    ],
+)
+def test_split_cubes_for_samos_gam_and_emos_cubes(
+    forecast_cubes_multi_time,
+    truth_cubes_multi_time,
+    emos_additional_fields,
+    gam_features,
+):
+    """Test that the split_cubes_for_samos function correctly separates out input
+    cubes when cubes for both EMOS calibration and GAM are provided."""
+    merged_input_cubelist = truth_cubes_multi_time.copy()
+    merged_input_cubelist.extend(forecast_cubes_multi_time)
+    merged_input_cubelist.extend(emos_additional_fields)
+
+    emos_feature_names = [
+        name
+        for name in ["surface_altitude", "distance_to_ocean"]
+        if name not in gam_features
+    ]
+    expect_emos_additional_fields = True if len(emos_feature_names) > 0 else False
+
+    (
+        result_forecast_cube,
+        result_truth_cube,
+        result_gam_additional_fields,
+        result_emos_coefficients,
+        result_emos_additional_fields,
+        result_prob_template,
+    ) = split_cubes_for_samos(
+        merged_input_cubelist,
+        gam_features=gam_features,
+        truth_attribute="truth_attribute=truth",
+        expect_emos_coeffs=False,
+        expect_emos_fields=expect_emos_additional_fields,
+    )
+
+    # Check that the output forecast cube is as expected.
+    assert isinstance(result_forecast_cube, iris.cube.Cube)
+    assert result_forecast_cube.shape == (2, 3, 3)
+    assert "forecast_reference_time" in [
+        c.name() for c in result_forecast_cube.coords()
+    ]
+    assert "forecast_period" in [c.name() for c in result_forecast_cube.coords()]
+
+    # Check that the output truth cube is as expected.
+    assert isinstance(result_truth_cube, iris.cube.Cube)
+    assert result_truth_cube.shape == (2, 3, 3)
+    assert "forecast_reference_time" not in [
+        c.name() for c in result_truth_cube.coords()
+    ]
+    assert "forecast_period" not in [c.name() for c in result_truth_cube.coords()]
+    assert result_truth_cube.attributes["truth_attribute"] == "truth"
+
+    # Check that the output GAM additional fields cubes are as expected.
+    if len(gam_features) > 0:
+        assert len(result_gam_additional_fields) == len(gam_features)
+        for cube in result_gam_additional_fields:
+            assert cube.name() in gam_features
+    else:
+        assert result_gam_additional_fields is None
+
+    # Check that the output EMOS additional fields cubes are as expected.
+    if len(emos_feature_names) > 0:
+        assert len(result_emos_additional_fields) == len(emos_feature_names)
+        for cube in result_emos_additional_fields:
+            assert cube.name() in emos_feature_names
+    else:
+        assert result_emos_additional_fields is None
+
+    # Check all other outputs are None.
+    assert result_emos_coefficients is None
+    assert result_prob_template is None
+
+
+@pytest.mark.parametrize("n_prob_templates", [1, 2])
+def test_split_cubes_for_samos_prob_template(
+    forecast_cubes_multi_time,
+    truth_cubes_multi_time,
+    probability_forecast_cubes_multi_time,
+    n_prob_templates,
+):
+    """Test that the split_cubes_for_samos function correctly separates out input
+    cubes when a probability template cube is provided."""
+    merged_input_cubelist = truth_cubes_multi_time.copy()
+    merged_input_cubelist.extend(forecast_cubes_multi_time)
+
+    if n_prob_templates == 1:
+        merged_input_cubelist.append(probability_forecast_cubes_multi_time[0])
+
+        (
+            result_forecast_cube,
+            result_truth_cube,
+            result_gam_additional_fields,
+            result_emos_coefficients,
+            result_emos_additional_fields,
+            result_prob_template,
+        ) = split_cubes_for_samos(
+            merged_input_cubelist,
+            gam_features=[],
+            truth_attribute="truth_attribute=truth",
+            expect_emos_coeffs=True,
+            expect_emos_fields=True,
+        )
+
+        # Check that the output forecast cube is as expected.
+        assert isinstance(result_forecast_cube, iris.cube.Cube)
+        assert result_forecast_cube.shape == (2, 3, 3)
+        assert "forecast_reference_time" in [
+            c.name() for c in result_forecast_cube.coords()
+        ]
+        assert "forecast_period" in [c.name() for c in result_forecast_cube.coords()]
+
+        # Check that the output truth cube is as expected.
+        assert isinstance(result_truth_cube, iris.cube.Cube)
+        assert result_truth_cube.shape == (2, 3, 3)
+        assert "forecast_reference_time" not in [
+            c.name() for c in result_truth_cube.coords()
+        ]
+        assert "forecast_period" not in [c.name() for c in result_truth_cube.coords()]
+        assert result_truth_cube.attributes["truth_attribute"] == "truth"
+
+        # Check that the output probability template cube is as expected.
+        assert isinstance(result_prob_template, iris.cube.Cube)
+        assert result_prob_template.shape == (2, 3, 3)
+        assert "wind_speed" in [c.name() for c in result_prob_template.coords()]
+        assert "forecast_reference_time" in [
+            c.name() for c in result_prob_template.coords()
+        ]
+        assert "forecast_period" in [c.name() for c in result_prob_template.coords()]
+
+        # Check all other outputs are None.
+        assert result_gam_additional_fields is None
+        assert result_emos_coefficients is None
+        assert result_emos_additional_fields is None
+
+    else:
+        probability_cubes = probability_forecast_cubes_multi_time.copy()
+        probability_cubes[1].rename("probability_of_air_temperature_above_threshold")
+        probability_cubes[1].coord("wind_speed").rename("air_temperature")
+        merged_input_cubelist.extend(probability_cubes)
+
+        with pytest.raises(
+            IOError, match="Providing multiple probability cubes is not supported."
+        ):
+            split_cubes_for_samos(
+                merged_input_cubelist,
+                gam_features=[],
+                truth_attribute="truth_attribute=truth",
+                expect_emos_coeffs=True,
+                expect_emos_fields=True,
+            )
+
+
+@pytest.mark.skipif(not pyarrow_installed, reason="pyarrow not installed")
+@pytest.mark.parametrize(
+    "include_forecast,include_truth", [(True, False), (False, True), (True, True)]
+)
+def test_identify_parquet_type_basic(tmp_path, include_forecast, include_truth):
+    """Test that this function correctly splits out input parquet files into forecasts
+    and truths."""
+    merged_input_paths = []
+    if include_forecast:
+        forecast_dir = create_multi_site_forecast_parquet_file(
+            tmp_path=tmp_path,
+            include_forecast_period=True,
+        )
+        merged_input_paths.append(Path(forecast_dir))
+    if include_truth:
+        truth_dir = create_multi_site_forecast_parquet_file(
+            tmp_path=tmp_path,
+            include_forecast_period=False,
+        )
+        merged_input_paths.append(Path(truth_dir))
+
+    (
+        result_forecast_paths,
+        result_truth_paths,
+    ) = identify_parquet_type(merged_input_paths)
+
+    assert result_forecast_paths == (
+        merged_input_paths[0] if include_forecast else None
+    )
+    assert result_truth_paths == (merged_input_paths[-1] if include_truth else None)
+
+
+@pytest.mark.skipif(not pyarrow_installed, reason="pyarrow not installed")
+@pytest.mark.parametrize("include_netcdf", [True, False])
+@pytest.mark.parametrize("include_parquet", [True, False])
+@pytest.mark.parametrize("n_pickles", [0, 1, 2])
+def test_split_netcdf_parquet_pickle_basic(
+    tmp_path, forecast_cubes_multi_time, include_netcdf, include_parquet, n_pickles
+):
+    """Test that this function correctly splits out input files into pickle, parquet
+    and netcdf files."""
+    pytest.importorskip("pygam")
+
+    merged_input_paths = []
+
+    if include_parquet:
+        forecast_dir = create_multi_site_forecast_parquet_file(
+            tmp_path=tmp_path,
+            include_forecast_period=True,
+        )
+        merged_input_paths.append(Path(forecast_dir))
+
+        truth_dir = create_multi_site_forecast_parquet_file(
+            tmp_path=tmp_path,
+            include_forecast_period=False,
+        )
+        merged_input_paths.append(Path(truth_dir))
+
+    if include_netcdf:
+        test_cube, netcdf_path = create_netcdf_file(
+            tmp_path=tmp_path,
+        )
+        merged_input_paths.append(Path(netcdf_path))
+
+    if n_pickles > 0:
+        pickle_object, pickle_path = create_pickle_file(
+            tmp_path=tmp_path, filename="data1.pkl"
+        )
+        merged_input_paths.append(Path(pickle_path))
+
+    if n_pickles == 2:
+        pickle_object, pickle_path = create_pickle_file(
+            tmp_path=tmp_path, filename="data2.pkl"
+        )
+        merged_input_paths.append(Path(pickle_path))
+
+        msg = "Multiple pickle inputs have been provided. Only one is expected."
+        with pytest.raises(ValueError, match=msg):
+            split_netcdf_parquet_pickle(merged_input_paths)
+    else:
+        (
+            result_cube,
+            result_parquets,
+            result_pickles,
+        ) = split_netcdf_parquet_pickle(merged_input_paths)
+
+        if include_netcdf:
+            assert len(result_cube) == 1
+            result_cube = result_cube[0]
+            # The save/load process adds a Conventions global attribute to the cube.
+            test_cube.attributes.globals["Conventions"] = "CF-1.7"
+            assert result_cube == test_cube
+        else:
+            assert result_cube is None
+
+        if include_parquet:
+            # Parquets are returned as filepaths.
+            assert result_parquets == merged_input_paths[0:2]
+        else:
+            assert result_parquets is None
+
+        if n_pickles == 1:
+            # The pickled object is a list containing 2 pygam GAMs.
+            for i in range(len(result_pickles)):
+                for key in ["max_iter", "tol", "fit_intercept"]:
+                    assert (
+                        result_pickles[i].get_params()[key]
+                        == pickle_object[i].get_params()[key]
+                    )
+                assert result_pickles[i].terms == pickle_object[i].terms
+                assert result_pickles[i].distribution == pickle_object[i].distribution
+                assert result_pickles[i].link == pickle_object[i].link
+        else:
+            assert result_pickles is None
+
+
+@pytest.mark.parametrize(
+    "cycletime,forecast_period,training_length,expected",
+    [
+        ("20171110T0000Z", 3600, 1, [pd.Timestamp(2017, 11, 9, 0, 0, tz="UTC")]),  # noqa 1 hour
+        ("20171110T0000Z", 90000, 1, [pd.Timestamp(2017, 11, 8, 0, 0, tz="UTC")]),  # noqa 25 hours
+        ("20171110T0000Z", 176400, 1, [pd.Timestamp(2017, 11, 7, 0, 0, tz="UTC")]),  # noqa 49 hours
+        (
+            "20171110T0000Z",
+            3600,
+            2,
+            [
+                pd.Timestamp(2017, 11, 8, 0, 0, tz="UTC"),
+                pd.Timestamp(2017, 11, 9, 0, 0, tz="UTC"),
+            ],
+        ),  # 1 hour, 2 days
+    ],
+)
+def test_get_training_period_cycles(
+    cycletime, forecast_period, training_length, expected
+):
+    """Test that get_training_period_cycles returns the expected cycletimes."""
+    result = get_training_period_cycles(cycletime, forecast_period, training_length)
+    assert list(result) == expected
 
 
 if __name__ == "__main__":

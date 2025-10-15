@@ -55,3 +55,21 @@ def test_variable_internal_mask(tmp_path):
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
+
+
+def test_zero_masking(tmp_path):
+    """Test recursive filter with zero masking preserves areas of zeros."""
+    kgo_dir = acc.kgo_root() / "recursive-filter"
+    kgo_path = kgo_dir / "kgo_with_zeros.nc"
+    input_path = kgo_dir / "input_with_zeros.nc"
+    smoothing_coefficients_path = kgo_dir / "smoothing_coefficients.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        smoothing_coefficients_path,
+        "--mask-zeros",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)

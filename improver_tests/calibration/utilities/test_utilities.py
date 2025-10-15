@@ -9,10 +9,15 @@ module.
 """
 
 import datetime
+import importlib
+import re
 import unittest
+from pathlib import Path
 
 import iris
 import numpy as np
+import pandas as pd
+import pytest
 from iris.coords import AuxCoord, DimCoord
 from iris.cube import CubeList
 from iris.tests import IrisTest
@@ -25,22 +30,29 @@ from improver.calibration.utilities import (
     check_forecast_consistency,
     check_predictor,
     convert_cube_data_to_2d,
+    convert_parquet_to_cube,
     create_unified_frt_coord,
     filter_non_matching_cubes,
     flatten_ignoring_masked_data,
     forecast_coords_match,
     get_frt_hours,
     merge_land_and_sea,
+    prepare_cube_no_calibration,
 )
 from improver.metadata.constants.time_types import TIME_COORDS
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     set_up_percentile_cube,
+    set_up_probability_cube,
     set_up_variable_cube,
 )
 from improver.utilities.cube_manipulation import sort_coord_in_cube
 
 from ..emos_calibration.helper_functions import SetupCubes
+
+pyarrow_installed = True
+if not importlib.util.find_spec("pyarrow"):
+    pyarrow_installed = False
 
 
 class Test_convert_cube_data_to_2d(IrisTest):
@@ -912,6 +924,375 @@ class Test_check_data_sufficiency(SetupCubes):
                 point_by_point,
                 proportion_of_nans,
             )
+
+
+@pytest.fixture
+def forecast_cube():
+    return set_up_variable_cube(
+        data=np.array(
+            [[1.0, 2.0, 2.0], [2.0, 1.0, 3.0], [1.0, 3.0, 3.0]], dtype=np.float32
+        ),
+        name="wind_speed",
+        units="m/s",
+    )
+
+
+@pytest.fixture
+def forecast_percentile_cube():
+    return set_up_percentile_cube(
+        data=np.array(
+            [
+                [[1.0, 2.0, 2.0], [2.0, 1.0, 3.0], [1.0, 3.0, 3.0]],
+                [[3.0, 4.0, 4.0], [4.0, 3.0, 5.0], [3.0, 5.0, 5.0]],
+            ],
+            dtype=np.float32,
+        ),
+        percentiles=np.array([50, 60], dtype=np.float32),
+        name="wind_speed",
+        units="m/s",
+    )
+
+
+@pytest.fixture
+def prob_template():
+    return set_up_probability_cube(
+        data=np.ones((2, 3, 3), dtype=np.float32),
+        thresholds=[1.5, 2.5],
+        variable_name="wind_speed",
+    )
+
+
+@pytest.fixture
+def emos_coefficient_cubes():
+    # Set-up coefficient cubes
+    fp_names = ["wind_speed"]
+    predictor_index = DimCoord(
+        np.array(range(len(fp_names)), dtype=np.int32),
+        long_name="predictor_index",
+        units="1",
+    )
+    dim_coords_and_dims = ((predictor_index, 0),)
+    predictor_name = AuxCoord(fp_names, long_name="predictor_name", units="no_unit")
+    aux_coords_and_dims = ((predictor_name, 0),)
+
+    attributes = {
+        "diagnostic_standard_name": "wind_speed",
+        "distribution": "norm",
+    }
+    alpha = iris.cube.Cube(
+        np.array(0, dtype=np.float32),
+        long_name="emos_coefficients_alpha",
+        units="K",
+        attributes=attributes,
+    )
+    beta = iris.cube.Cube(
+        np.array([0.5], dtype=np.float32),
+        long_name="emos_coefficients_beta",
+        units="1",
+        attributes=attributes,
+        dim_coords_and_dims=dim_coords_and_dims,
+        aux_coords_and_dims=aux_coords_and_dims,
+    )
+    gamma = iris.cube.Cube(
+        np.array(0, dtype=np.float32),
+        long_name="emos_coefficients_gamma",
+        units="K",
+        attributes=attributes,
+    )
+    delta = iris.cube.Cube(
+        np.array(1, dtype=np.float32),
+        long_name="emos_coefficients_delta",
+        units="1",
+        attributes=attributes,
+    )
+
+    return CubeList([alpha, beta, gamma, delta])
+
+
+def create_multi_forecast_period_forecast_parquet_file(tmp_path):
+    """Create a parquet file with multi-forecast period forecast data."""
+
+    data_dict = {
+        "percentile": [50, 50, 50, 50],
+        "forecast": [277, 270, 280, 269],
+        "altitude": [10, 83, 10, 83],
+        "blend_time": [pd.Timestamp("2017-01-02 00:00:00", tz="utc")] * 4,
+        "forecast_period": np.repeat(
+            [
+                [pd.Timedelta(int(6 * 3.6e3), unit="seconds")],
+                [pd.Timedelta(int(12 * 3.6e3), unit="seconds")],
+            ],
+            2,
+        ),
+        "forecast_reference_time": [pd.Timestamp("2017-01-02 00:00:00", tz="utc")] * 4,
+        "latitude": [60.1, 59.9, 60.1, 59.9],
+        "longitude": [1, 2, 1, 2],
+        "time": np.repeat(
+            [
+                pd.Timestamp("2017-01-02 06:00:00", tz="utc"),
+                pd.Timestamp("2017-01-02 12:00:00", tz="utc"),
+            ],
+            2,
+        ),
+        "wmo_id": ["03001", "03002", "03001", "03002"],
+        "station_id": ["03001", "03002", "03001", "03002"],
+        "cf_name": ["air_temperature"] * 4,
+        "units": ["K"] * 4,
+        "experiment": ["latestblend"] * 4,
+        "period": [pd.NaT] * 4,
+        "height": [1.5] * 4,
+        "diagnostic": ["temperature_at_screen_level"] * 4,
+    }
+    # Add wind speed to demonstrate filtering.
+    wind_speed_dict = data_dict.copy()
+    wind_speed_dict["forecast"] = [6, 16, 12, 15]
+    wind_speed_dict["cf_name"] = "wind_speed"
+    wind_speed_dict["units"] = "m s-1"
+    wind_speed_dict["diagnostic"] = "wind_speed_at_10m"
+    data_df = pd.DataFrame(data_dict)
+    wind_speed_df = pd.DataFrame(wind_speed_dict)
+    joined_df = pd.concat([data_df, wind_speed_df], ignore_index=True)
+
+    output_dir = tmp_path / "forecast_parquet_files"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_path = str(output_dir / "forecast.parquet")
+    joined_df.to_parquet(output_path, index=False, engine="pyarrow")
+
+    return data_df, output_dir
+
+
+def create_multi_forecast_period_truth_parquet_file(tmp_path):
+    """Create a parquet file with multi-forecast period truth data."""
+    data_dict = {
+        "diagnostic": ["temperature_at_screen_level"] * 4,
+        "latitude": [60.1, 59.9, 60.1, 59.9],
+        "longitude": [1, 2, 1, 2],
+        "altitude": [10, 83, 10, 83],
+        "time": np.repeat(
+            [
+                pd.Timestamp("2017-01-02 06:00:00", tz="utc"),
+                pd.Timestamp("2017-01-02 12:00:00", tz="utc"),
+            ],
+            2,
+        ),
+        "wmo_id": ["03001", "03002", "03001", "03002"],
+        "ob_value": [280, 273, 284, 275],
+    }
+    wind_speed_dict = data_dict.copy()
+    wind_speed_dict["ob_value"] = [2, 11, 10, 14]
+    wind_speed_dict["diagnostic"] = "wind_speed_at_10m"
+    data_df = pd.DataFrame(data_dict)
+    wind_speed_df = pd.DataFrame(wind_speed_dict)
+    joined_df = pd.concat([data_df, wind_speed_df], ignore_index=True)
+
+    output_dir = tmp_path / "truth_parquet_files"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_path = str(output_dir / "truth.parquet")
+    joined_df.to_parquet(output_path, index=False, engine="pyarrow")
+    return data_df, output_dir
+
+
+@pytest.mark.parametrize(
+    "include_coeffs,validity_times",
+    [
+        [True, None],
+        [True, ["0400"]],  # matches forecast cube validity time
+        [True, ["0500"]],  # does not match forecast cube validity time
+        [False, None],
+    ],
+)
+def test_prepare_cube_no_calibration_basic(
+    forecast_cube, emos_coefficient_cubes, include_coeffs, validity_times
+):
+    """Test that the function returns the expected result when coefficients are
+    provided with and without using the validity_time argument.
+    """
+    result = prepare_cube_no_calibration(
+        forecast_cube,
+        emos_coefficients=emos_coefficient_cubes if include_coeffs else None,
+        validity_times=validity_times,
+    )
+
+    if not include_coeffs or validity_times == ["0500"]:
+        # No matching coefficients so should return the input cube with some
+        # additional metadata.
+        assert isinstance(result, iris.cube.Cube)
+        assert result.coords() == forecast_cube.coords()
+        assert np.all(result.data == forecast_cube.data)
+        assert result.attributes["comment"] == (
+            "Warning: Calibration of this forecast has been attempted, however, no "
+            "calibration has been applied."
+        )
+    else:
+        assert result is None
+
+
+@pytest.mark.parametrize(
+    "include_coeffs,validity_times",
+    [
+        [True, None],
+        [True, ["0400"]],  # matches forecast cube validity time
+        [True, ["0500"]],  # does not match forecast cube validity time
+        [False, None],
+    ],
+)
+def test_prepare_cube_no_calibration_prob_template(
+    forecast_cube, emos_coefficient_cubes, prob_template, include_coeffs, validity_times
+):
+    """Test that the function returns the expected result when coefficients and a
+    probability template are provided with and without using the validity_time argument.
+    """
+    result = prepare_cube_no_calibration(
+        forecast_cube,
+        emos_coefficients=emos_coefficient_cubes if include_coeffs else None,
+        validity_times=validity_times,
+        prob_template=prob_template,
+    )
+
+    if not include_coeffs or validity_times == ["0500"]:
+        # No matching coefficients so should return the probability template cube with
+        # some additional metadata.
+        assert isinstance(result, iris.cube.Cube)
+        assert result.coords() == prob_template.coords()
+        assert np.all(result.data == prob_template.data)
+        assert result.attributes["comment"] == (
+            "Warning: Calibration of this forecast has been attempted, however, no "
+            "calibration has been applied."
+        )
+    else:
+        assert result is None
+
+
+@pytest.mark.skipif(not pyarrow_installed, reason="pyarrow not installed")
+@pytest.mark.parametrize(
+    "include_coeffs,validity_times",
+    [
+        [True, None],
+        [True, ["0400"]],  # matches forecast cube validity time
+        [True, ["0500"]],  # does not match forecast cube validity time
+        [False, None],
+    ],
+)
+def test_prepare_cube_no_calibration_percentiles(
+    forecast_percentile_cube, emos_coefficient_cubes, include_coeffs, validity_times
+):
+    """Test that the function returns the expected result when coefficients and a set
+    of percentiles are provided."""
+    percentiles = [55]
+
+    expected = set_up_percentile_cube(
+        data=np.array(
+            [
+                [[2.0, 3.0, 3.0], [3.0, 2.0, 4.0], [2.0, 4.0, 4.0]],
+            ],
+            dtype=np.float32,
+        ),
+        percentiles=np.array(percentiles, dtype=np.float32),
+        name="wind_speed",
+        units="m/s",
+    )
+
+    result = prepare_cube_no_calibration(
+        forecast_percentile_cube,
+        emos_coefficients=emos_coefficient_cubes if include_coeffs else None,
+        validity_times=validity_times,
+        percentiles=percentiles,
+    )
+
+    if not include_coeffs or validity_times == ["0500"]:
+        # No matching coefficients so should return a cube with percentiles
+        # resampled.
+        assert isinstance(result, iris.cube.Cube)
+        assert result.coords() == expected.coords()
+        assert np.all(result.data == expected.data)
+        assert result.attributes["comment"] == (
+            "Warning: Calibration of this forecast has been attempted, however, no "
+            "calibration has been applied."
+        )
+    else:
+        assert result is None
+
+
+@pytest.mark.skipif(not pyarrow_installed, reason="pyarrow not installed")
+@pytest.mark.parametrize("cycletime", ["20170103T0000Z", "20170104T0000Z"])
+def test_convert_parquet_to_cube_basic(tmp_path, cycletime):
+    """Test that this function returns the expected cubes when provided with valid
+    inputs."""
+    fcs_df, fcs_path = create_multi_forecast_period_forecast_parquet_file(tmp_path)
+
+    truth_df, truth_path = create_multi_forecast_period_truth_parquet_file(tmp_path)
+
+    fcs_cube, truth_cube = convert_parquet_to_cube(
+        Path(fcs_path),
+        Path(truth_path),
+        forecast_period=6 * 3.6e3,  # seconds
+        cycletime=cycletime,
+        training_length=1,
+        diagnostic="temperature_at_screen_level",
+        percentiles=[50],
+        experiment="latestblend",
+    )
+
+    if cycletime == "20170103T0000Z":
+        # There is valid training data in the dataframes for this cycletime.
+        assert isinstance(fcs_cube, iris.cube.Cube)
+        assert isinstance(truth_cube, iris.cube.Cube)
+
+        for cube in [fcs_cube, truth_cube]:
+            assert cube.name() == "air_temperature"
+            assert (
+                cube.coord("time").points
+                == pd.Timestamp("2017-01-02 06:00:00", tz="utc").timestamp()
+            )
+            np.testing.assert_array_almost_equal(
+                cube.coord("altitude").points, np.array([10, 83], dtype=np.float32)
+            )
+            np.testing.assert_array_almost_equal(
+                cube.coord("latitude").points, np.array([60.1, 59.9], dtype=np.float32)
+            )
+            np.testing.assert_array_almost_equal(
+                cube.coord("longitude").points, np.array([1, 2], dtype=np.float32)
+            )
+            np.testing.assert_array_equal(
+                cube.coord("wmo_id").points, np.array(["03001", "03002"])
+            )
+
+        assert (
+            fcs_cube.coord("forecast_reference_time").points
+            == pd.Timestamp("2017-01-02 00:00:00", tz="utc").timestamp()
+        )
+        assert fcs_cube.coord("forecast_period").points == 6 * 3.6e3
+    else:
+        # There is no valid training data in the dataframes for this cycletime.
+        assert fcs_cube is None
+        assert truth_cube is None
+
+
+@pytest.mark.skipif(not pyarrow_installed, reason="pyarrow not installed")
+def test_convert_parquet_to_cube_exception(tmp_path):
+    """Test that the correct exception is raised when filtering returns an empty truth
+    dataframe."""
+    fcs_df, fcs_path = create_multi_forecast_period_forecast_parquet_file(tmp_path)
+
+    truth_df, truth_path = create_multi_forecast_period_truth_parquet_file(tmp_path)
+
+    # This input diagnostic does not exist in the forecast or truth dataframes.
+    diagnostic = "lwe_precipitation_rate"
+    msg = re.escape(
+        f"The requested filepath {truth_path} does not contain the requested contents: "
+        "[[('diagnostic', '==', 'lwe_precipitation_rate')]]"
+    )
+    with pytest.raises(IOError, match=msg):
+        convert_parquet_to_cube(
+            Path(fcs_path),
+            Path(truth_path),
+            forecast_period=6 * 3.6e3,  # seconds
+            cycletime="20170103T0000Z",
+            training_length=1,
+            diagnostic=diagnostic,
+            percentiles=[50],
+            experiment="latestblend",
+        )
 
 
 if __name__ == "__main__":

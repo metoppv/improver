@@ -681,7 +681,7 @@ class GradientBetweenAdjacentGridSquares(PostProcessingPlugin):
         )
         return grad_cube
 
-    def process(self, cube: Cube) -> Tuple[Cube, Cube]:
+    def process(self, cube: Cube) -> CubeList[Cube, Cube]:
         """
         Calculate the gradient along the x and y axes and return
         the result in separate cubes. The difference along each axis is
@@ -699,7 +699,7 @@ class GradientBetweenAdjacentGridSquares(PostProcessingPlugin):
               y-axis.
         """
         axis = ["x", "y"]
-        gradients = []
+        gradients = CubeList([])
         diffs = DifferenceBetweenAdjacentGridSquares()(cube)
         distances = DistanceBetweenGridSquares()(cube)
 
@@ -713,7 +713,7 @@ class GradientBetweenAdjacentGridSquares(PostProcessingPlugin):
                 grad_cube = grad_cube.regrid(cube, iris.analysis.Linear())
             gradients.append(grad_cube)
 
-        return tuple(gradients)
+        return gradients
 
 
 def maximum_within_vicinity(
