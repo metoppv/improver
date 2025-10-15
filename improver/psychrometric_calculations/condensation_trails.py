@@ -354,6 +354,8 @@ class ContrailHeightExtractor(BasePlugin):
 
         template_cube = formation_cube.slices_over("pressure").next()
         template_cube.remove_coord("pressure")
+        template_cube.attributes.pop("contrail_type", None)
+        template_cube.attributes.pop("contrail_type_meaning", None)
 
         non_persistent_cube = template_cube.copy(
             data=non_persistent_result,
