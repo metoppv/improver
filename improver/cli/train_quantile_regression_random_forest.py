@@ -71,7 +71,8 @@ def process(
             the forecast and truth DataFrames read in from the parquet files. The
             target diagnostic name is expected to be the first item in the list.
             These names could be different from the CF name e.g.
-            'temperature_at_screen_level'.
+            'temperature_at_screen_level'. This is expected to be the same length
+            as the cf_names and experiments lists.
         cf_names (list of str):
             A list containing the CF names of the diagnostics. The CF names should
             match the order of the parquet_diagnostic_names. The target diagnostic to be
@@ -79,7 +80,8 @@ def process(
             could be different from the diagnostic name used to identify in the
             parquet files. For example, the diagnostic name could be
             'temperature_at_screen_level' and the corresponding CF name could be
-            'air_temperature'.
+            'air_temperature'. This is expected to be the same length as the
+            parquet_diagnostic_names and experiments lists.
         forecast_periods (str):
             Range of forecast periods to be calibrated in hours in the form:
             "start:end:interval" e.g. "6:18:6" or a single forecast period e.g. "6".
@@ -90,8 +92,10 @@ def process(
         training_length (int):
             The length of the training period in days.
         experiments (list of str):
-            The name of the experiments (step) that calibration is applied to. This
-            is used to filter the forecast DataFrame on load.
+            The names of the experiment (step) that calibration is
+            applied to. This is used to filter the forecast DataFrame on load.
+            This is expected to be the same length as the parquet_diagnostic_names
+            and cf_names lists.
         n_estimators (int):
             Number of trees in the forest.
         max_depth (int):
