@@ -16,7 +16,7 @@ def process(
     target_cf_name: str,
     unique_site_id_keys: cli.comma_separated_list = "wmo_id",
     cycletime: str = None,
-    forecast_period: str = None,
+    forecast_period: int = None,
 ):
     """Applying the Quantile Regression Random Forest model.
 
