@@ -143,7 +143,7 @@ def process(
         kwargs["max_features"] = max_features
     result = PrepareAndTrainQRF(
         feature_config=feature_config,
-        cf_names=cf_names,
+        target_cf_name=cf_names[0],
         n_estimators=n_estimators,
         max_depth=max_depth,
         max_samples=max_samples,
