@@ -311,13 +311,14 @@ def test_prepare_and_apply_qrf(
 
 
 @pytest.mark.parametrize(
-    "n_estimators,max_depth,random_state,cycletime,include_dynamic,include_static,expected",
+    "n_estimators,max_depth,random_state,cycletime,include_dynamic,include_static,add_fp_bounds,expected",
     [
-        (2, 2, 55, None, False, False, [4.1, 5.65]),  # Basic test case
-        (2, 2, 55, "20170103T0000Z", False, False, [4.1, 5.65]),  # Specify cycletime
-        (2, 2, 55, "20170102T2300Z", True, False, [4.1, 4.6]),  # Cycletime with dynamic feature
-        (2, 2, 55, "20170102T2300Z", False, True, [4.1, 5.65]),  # Cycletime with static feature
-        (2, 2, 55, "20170102T2300Z", True, True, [4.1, 4.6]),  # Cycletime with dynamic and static feature
+        (2, 2, 55, None, False, False, False, [4.1, 5.65]),  # Basic test case
+        (2, 2, 55, "20170103T0000Z", False, False, False, [4.1, 5.65]),  # Specify cycletime
+        (2, 2, 55, "20170102T2300Z", True, False, False, [4.1, 4.6]),  # Cycletime with dynamic feature
+        (2, 2, 55, "20170102T2300Z", False, True, False, [4.1, 5.65]),  # Cycletime with static feature
+        (2, 2, 55, "20170102T2300Z", True, True, False, [4.1, 4.6]),  # Cycletime with dynamic and static feature
+        (2, 2, 55, "20170102T2300Z", True, False, True, [4.1, 4.6]),  # Cycletime with dynamic feature and forecast period bounds
     ],
 )
 def test_mismatching_temporal_coordinates(
@@ -327,9 +328,18 @@ def test_mismatching_temporal_coordinates(
     cycletime,
     include_dynamic,
     include_static,
+    add_fp_bounds,
     expected
 ):
-    """Test the PrepareAndApplyQRF plugin."""
+    """Test the PrepareAndApplyQRF plugin where the temporal coordinates i.e.
+    forecast_period or forecast_reference_time do not match between the different
+    features. In these tests, if a dynamic feature is present, the
+    cycletime of this feature will be different to that of the target feature.
+    This test modifies the cycletime (forecast_reference_time) and forecast period,
+    but these values are only used for merging the DataFrames within the plugin.
+    The forecast reference time and forecast period on the resulting cube,
+    are however, unchanged, because these are taken from the input target feature cube
+    without modification."""
     feature_config = {"wind_speed_at_10m": ["mean", "std", "latitude", "longitude"]}
     transformation = None
     pre_transform_addition = 0
@@ -353,7 +363,11 @@ def test_mismatching_temporal_coordinates(
         feature_config, n_estimators, max_depth, random_state,
         transformation, pre_transform_addition, extra_kwargs,
         include_dynamic, include_static, include_nans, include_latlon_nans,
-        percentile_input, site_id, quantiles, cycletime)
+        percentile_input, site_id, quantiles, alt_cycletime=cycletime)
+
+    if add_fp_bounds:
+        fp_point = cube_inputs[0].coord("forecast_period").points[0]
+        cube_inputs[0].coord("forecast_period").bounds = [[fp_point - 3600, fp_point]]
 
     result = PrepareAndApplyQRF(
         feature_config,

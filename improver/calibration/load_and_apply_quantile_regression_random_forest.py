@@ -46,7 +46,7 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
         target_cf_name: str,
         unique_site_id_keys: list[str] = ["wmo_id"],
         cycletime: Optional[str] = None,
-        forecast_period: Optional[str] = None,
+        forecast_period: Optional[int] = None,
     ):
         """Initialise the plugin.
 
@@ -77,11 +77,11 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
                 e.g. "wmo_id" or ["latitude", "longitude"].
             cycletime (str):
                 The cycle time of the forecast to be calibrated in the format
-                YYYYMMDDTHHMMZ. If not provided, the first cycle time found in
-                the forecast cube will be used.
-            forecast_period (str):
+                YYYYMMDDTHHMMZ. If not provided, the cycle time found in the first
+                forecast cube will be used.
+            forecast_period (int):
                 The forecast period of the forecast to be calibrated in seconds. If not
-                provided, the first forecast period found in the forecast cube
+                provided, the forecast period found in the first forecast cube
                 will be used.
         """
         self.feature_config = feature_config
@@ -187,7 +187,11 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
         self, cube_inputs: CubeList
     ) -> CubeList:
         """Update the forecast_reference_time and forecast_period coordinates
-        on the input cubes to match those provided, if they are provided.
+        on the input cubes to match those provided, if they are provided. The rebadging
+        of the forecast_period introduces a slight discrepancy between the forecasts
+        used for training and application of the QRF model. However, as any forecast
+        period rebadging is expected to be small (e.g. a few hours), this is not
+        expected to be a significant issue.
 
         Args:
             cube_inputs: List of cubes containing the features and the forecast to be
@@ -211,10 +215,19 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
         # Update the forecast_reference_time and forecast_period to match those
         # provided, if they are provided.
         for cube in cube_inputs:
-            if "forecast_reference_time" in [coord.name() for coord in cube.coords()]:
-                cube.coord("forecast_reference_time").points = cycletime
+            for coord_name in ["blend_time", "forecast_reference_time"]:
+                if coord_name in [coord.name() for coord in cube.coords()]:
+                    cube.coord(coord_name).points = cycletime
             if "forecast_period" in [coord.name() for coord in cube.coords()]:
                 cube.coord("forecast_period").points = forecast_period
+                if cube.coord("forecast_period").bounds is not None:
+                    diff = (
+                        cube.coord("forecast_period").bounds[0][1]
+                        - cube.coord("forecast_period").bounds[0][0]
+                    )
+                    cube.coord("forecast_period").bounds = np.array(
+                        [forecast_period - diff, forecast_period]
+                    )
         return cube_inputs
 
     def _cube_to_dataframe(self, cube_inputs: CubeList) -> pd.DataFrame:

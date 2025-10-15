@@ -16,7 +16,7 @@ def process(
     target_cf_name: str,
     unique_site_id_keys: cli.comma_separated_list = "wmo_id",
     cycletime: str = None,
-    forecast_period: str = None,
+    forecast_period: int = None,
 ):
     """Applying the Quantile Regression Random Forest model.
 
@@ -62,7 +62,7 @@ def process(
             The cycle time of the forecast to be calibrated in the format
             YYYYMMDDTHHMMZ. If not provided, the first cycle time found in
             the forecast cube will be used.
-        forecast_period (str):
+        forecast_period (int):
             The forecast period of the forecast to be calibrated in seconds. If not
             provided, the first forecast period found in the forecast cube
             will be used.
