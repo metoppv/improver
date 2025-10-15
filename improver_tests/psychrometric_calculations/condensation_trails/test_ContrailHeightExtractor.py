@@ -13,7 +13,14 @@ from improver.psychrometric_calculations.condensation_trails import (
 )
 
 
-def make_cube(data, name, units, dims=("pressure", "latitude", "longitude")):
+def make_cube(
+    data,
+    name,
+    units,
+    dims=("pressure", "latitude", "longitude"),
+    contrail_type_values=None,
+    contrail_type_meaning_values=None,
+):
     """
     Simple cube factory for ContrailsHeightExtractor tests.
 
@@ -21,6 +28,8 @@ def make_cube(data, name, units, dims=("pressure", "latitude", "longitude")):
         data (np.ndarray): Data array.
         name (str): Name of the cube.
         units (str): Units of the cube.
+        contrail_type_values (list): Values for the contrail_type attribute, e.g. [0, 1, 2]
+        contrail_type_meaning_values (str): Meanings for the contrail_type attribute, e.g. "None Non-persistent Persistent"
         dims (tuple): Dimensions of the cube.
 
     Returns:
@@ -53,6 +62,9 @@ def make_cube(data, name, units, dims=("pressure", "latitude", "longitude")):
             cube.add_dim_coord(iris.coords.DimCoord(points, long_name="pressure"), dim)
         else:
             cube.add_dim_coord(iris.coords.DimCoord(points, coord_name), dim)
+    if contrail_type_values and contrail_type_meaning_values:
+        cube.attributes["contrail_type"] = contrail_type_values
+        cube.attributes["contrail_type_meaning"] = contrail_type_meaning_values
     return cube
 
 
@@ -78,6 +90,8 @@ def test_max_extraction():
         "formation",
         "1",
         dims=("engine_factor", "pressure", "latitude", "longitude"),
+        contrail_type_values=[0, 1, 2],
+        contrail_type_meaning_values="None Non-persistent Persistent",
     )
     height_cube = make_cube(
         height, "height", "m", dims=("pressure", "latitude", "longitude")
@@ -126,6 +140,8 @@ def test_min_extraction():
         "formation",
         "1",
         dims=("engine_factor", "pressure", "latitude", "longitude"),
+        contrail_type_values=[0, 1, 2],
+        contrail_type_meaning_values="None Non-persistent Persistent",
     )
     height_cube = make_cube(
         height, "height", "m", dims=("pressure", "latitude", "longitude")
@@ -173,6 +189,8 @@ def test_output_names_and_units():
         "formation",
         "1",
         dims=("engine_factor", "pressure", "latitude", "longitude"),
+        contrail_type_values=[0, 1, 2],
+        contrail_type_meaning_values="None Non-persistent Persistent",
     )
     height_cube = make_cube(
         height, "height", "m", dims=("pressure", "latitude", "longitude")
@@ -189,7 +207,7 @@ def test_output_names_and_units():
     assert persistent.units == height_cube.units
 
 
-def test_error_handling():
+def test_cube_shape_error_handling():
     """
     Test that an error is raised when input cubes have incompatible shapes using ContrailHeightExtractor.
     """
@@ -212,11 +230,79 @@ def test_error_handling():
         "formation",
         "1",
         dims=("engine_factor", "pressure", "latitude", "longitude"),
+        contrail_type_values=[0, 1, 2],
+        contrail_type_meaning_values="None Non-persistent Persistent",
     )
     height_cube = make_cube(
         height, "height", "m", dims=("pressure", "latitude", "longitude")
     )
 
+    # 3. Run ContrailHeightExtractor using the test cubes and check that it raises a ValueError
+    extractor = ContrailHeightExtractor(use_max=True)
+    with pytest.raises(ValueError):
+        extractor.process(formation_cube, height_cube)
+
+
+def test_attribute_availability_error_handling():
+    """
+    Test that an error is raised when input cubes are missing required attributes using ContrailHeightExtractor.
+    """
+    # 1. Create test input data
+    # --> formation data (engine_factor (x2), pressure (x2), latitude (x2), longitude (x2))
+    formation = np.array(
+        [
+            [[[1, 1], [2, 2]], [[1, 1], [2, 0]]],
+            [[[2, 0], [1, 1]], [[0, 1], [2, 1]]],
+        ]
+    )
+    # --> height data (pressure (x2), latitude (x2), longitude (x2))
+    height = np.array([[[100, 200], [300, 400]], [[200, 300], [400, 500]]])
+
+    # 2. Turn test data into test cubes ready for passing into ContrailHeightExtractor
+    # Note: formation_cube is created without the required contrail_type and contrail_type_meaning attributes
+    formation_cube = make_cube(
+        formation,
+        "formation",
+        "1",
+        dims=("engine_factor", "pressure", "latitude", "longitude"),
+    )  # Missing attributes
+    height_cube = make_cube(
+        height, "height", "m", dims=("pressure", "latitude", "longitude")
+    )
+    # 3. Run ContrailHeightExtractor using the test cubes and check that it raises a ValueError
+    extractor = ContrailHeightExtractor(use_max=True)
+    with pytest.raises(ValueError):
+        extractor.process(formation_cube, height_cube)
+
+
+def test_attribute_length_error_handling():
+    """
+    Test that an error is raised when input cubes have mismatched attribute lengths using ContrailHeightExtractor.
+    """
+    # 1. Create test input data
+    # --> formation data (engine_factor (x2), pressure (x2), latitude (x2), longitude (x2))
+    formation = np.array(
+        [
+            [[[1, 1], [2, 2]], [[1, 1], [2, 0]]],
+            [[[2, 0], [1, 1]], [[0, 1], [2, 1]]],
+        ]
+    )
+    # --> height data (pressure (x2), latitude (x2), longitude (x2))
+    height = np.array([[[100, 200], [300, 400]], [[200, 300], [400, 500]]])
+
+    # 2. Turn test data into test cubes ready for passing into ContrailHeightExtractor
+    # Note: formation_cube is created with mismatched contrail_type and contrail_type_meaning attributes
+    formation_cube = make_cube(
+        formation,
+        "formation",
+        "1",
+        dims=("engine_factor", "pressure", "latitude", "longitude"),
+        contrail_type_values=[0, 1],  # Mismatched lengths
+        contrail_type_meaning_values="None Non-persistent Persistent",
+    )
+    height_cube = make_cube(
+        height, "height", "m", dims=("pressure", "latitude", "longitude")
+    )
     # 3. Run ContrailHeightExtractor using the test cubes and check that it raises a ValueError
     extractor = ContrailHeightExtractor(use_max=True)
     with pytest.raises(ValueError):

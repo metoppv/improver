@@ -309,7 +309,7 @@ class CondensationTrailFormation(BasePlugin):
 class ContrailHeightExtractor(BasePlugin):
     """
     Plugin to extract contrail formation heights by category. It extracts the maximum or minimum
-    height where contrail formation is 1 (non-persistent) or 2 (persistent).
+    height where contrail formation is Non-persistent or Persistent.
     """
 
     def __init__(self, use_max=True):
@@ -338,7 +338,6 @@ class ContrailHeightExtractor(BasePlugin):
         Args:
             formation_cube (iris.cube.Cube):
                 Categorical cube of shape (engine_factor, pressure_level, lat (optional), lon (optional))
-                Values: 0 = no contrails, 1 = non-persistent, 2 = persistent
             height_cube (iris.cube.Cube):
                 Height cube of shape (pressure_level, lat (optional), lon (optional))
             non_persistent_result (np.ndarray):
@@ -373,12 +372,11 @@ class ContrailHeightExtractor(BasePlugin):
     def process(self, formation_cube: Cube, height_cube: Cube) -> Tuple[Cube, Cube]:
         """
         Main entry point for this class to extract the maximum or minimum height where contrail
-        formation is categorized as non-persistent (1) or persistent (2).
+        formation is categorized as Non-persistent or Persistent.
 
         Args:
             formation_cube (iris.cube.Cube):
                 Categorical cube of shape (engine_factor, pressure_level, lat (optional), lon (optional))
-                Values: 0 = no contrails, 1 = non-persistent, 2 = persistent
             height_cube (iris.cube.Cube):
                 Height cube of shape (pressure_level, lat (optional), lon (optional))
 
@@ -396,8 +394,34 @@ class ContrailHeightExtractor(BasePlugin):
                 f"Cannot broadcast height data of shape {height_data.shape} to formation_cube shape {formation_cube.shape}"
             ) from broadcast_error
 
-        non_persistent_mask = formation_cube.data == 1
-        persistent_mask = formation_cube.data == 2
+        if "contrail_type_meaning" not in formation_cube.attributes:
+            raise ValueError(
+                "formation_cube is missing the 'contrail_type_meaning' attribute."
+            )
+        if "contrail_type" not in formation_cube.attributes:
+            raise ValueError("formation_cube is missing the 'contrail_type' attribute.")
+        if len(formation_cube.attributes["contrail_type"]) != len(
+            formation_cube.attributes["contrail_type_meaning"].split()
+        ):
+            raise ValueError(
+                "The length of the 'contrail_type' and 'contrail_type_meaning' attributes do not match."
+            )
+
+        contrail_types = [
+            ct.casefold()
+            for ct in formation_cube.attributes["contrail_type_meaning"].split()
+        ]
+        non_persistent_index = contrail_types.index("non-persistent")
+        persistent_index = contrail_types.index("persistent")
+
+        non_persistent_mask = (
+            formation_cube.data
+            == formation_cube.attributes["contrail_type"][non_persistent_index]
+        )
+        persistent_mask = (
+            formation_cube.data
+            == formation_cube.attributes["contrail_type"][persistent_index]
+        )
 
         if self.use_max:
             non_persistent_result = np.nanmax(
