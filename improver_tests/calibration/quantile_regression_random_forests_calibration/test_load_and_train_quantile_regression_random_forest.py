@@ -44,7 +44,9 @@ def write_to_parquet(df, tmp_path, dirname, filename):
 
 
 def add_wind_data_to_forecasts(data_dict, wind_speed_values, wind_dir_values):
-    """Add wind speed and direction data to a data dictionary.
+    """Add wind speed and direction data to a data dictionary. Set experiment to
+    "recentblend". Note that this experiment is different to the default experiment
+    in the data dictionary which is "latestblend".
 
     Args:
         data_dict: Dictionary containing the data.
@@ -60,11 +62,13 @@ def add_wind_data_to_forecasts(data_dict, wind_speed_values, wind_dir_values):
     wind_speed_dict["cf_name"] = "wind_speed"
     wind_speed_dict["units"] = "m s-1"
     wind_speed_dict["diagnostic"] = "wind_speed_at_10m"
+    wind_speed_dict["experiment"] = "recentblend"
     wind_dir_dict = data_dict.copy()
     wind_dir_dict["forecast"] = wind_dir_values
-    wind_dir_dict["cf_name"] = "wind_direction"
+    wind_dir_dict["cf_name"] = "wind_from_direction"
     wind_dir_dict["units"] = "degrees"
-    wind_dir_dict["diagnostic"] = "wind_from_direction"
+    wind_dir_dict["diagnostic"] = "wind_direction_at_10m"
+    wind_dir_dict["experiment"] = "recentblend"
     data_df = pd.DataFrame(data_dict)
     wind_speed_df = pd.DataFrame(wind_speed_dict)
     wind_dir_df = pd.DataFrame(wind_dir_dict)
@@ -361,7 +365,12 @@ def filter_forecast_periods(forecast_df, forecast_periods):
 
 
 def amend_expected_forecast_df(
-    forecast_df, forecast_periods, parquet_diagnostic_names, representation, site_id
+    forecast_df,
+    forecast_periods,
+    parquet_diagnostic_names,
+    cf_names,
+    representation,
+    site_id,
 ):
     """Amend the expected forecast DataFrame to match the output of the plugin."""
     forecast_df = filter_forecast_periods(forecast_df, forecast_periods)
@@ -371,7 +380,9 @@ def amend_expected_forecast_df(
         forecast_df[column] = pd.to_timedelta(forecast_df[column], unit="ns")
 
     base_df = forecast_df[forecast_df["diagnostic"] == parquet_diagnostic_names[0]]
-    for parquet_diagnostic_name in parquet_diagnostic_names[1:]:
+    for parquet_diagnostic_name, cf_name in zip(
+        parquet_diagnostic_names[1:], cf_names[1:]
+    ):
         additional_df = forecast_df[
             forecast_df["diagnostic"] == parquet_diagnostic_name
         ]
@@ -385,7 +396,7 @@ def amend_expected_forecast_df(
                     representation,
                     "forecast",
                 ]
-            ].rename(columns={"forecast": parquet_diagnostic_name}),
+            ].rename(columns={"forecast": cf_name}),
             on=[
                 *site_id,
                 "forecast_reference_time",
@@ -455,6 +466,8 @@ def test_load_for_qrf(
     """Test the LoadForTrainQRF plugin."""
     feature_config = {"air_temperature": ["mean", "std", "altitude"]}
     parquet_diagnostic_names = ["temperature_at_screen_level"]
+    cf_names = ["air_temperature"]
+    experiments = ["latestblend"]
 
     if isinstance(site_id, str):
         site_id = [site_id]
@@ -467,8 +480,10 @@ def test_load_for_qrf(
     file_paths = [forecast_path, truth_path]
 
     if include_dynamic:
-        feature_config["wind_speed_at_10m"] = ["mean", "std"]
+        feature_config["wind_speed"] = ["mean", "std"]
         parquet_diagnostic_names.append("wind_speed_at_10m")
+        cf_names.append("wind_speed")
+        experiments.append("recentblend")
 
     if include_static:
         ancil_path, expected_cube = _create_ancil_file(
@@ -479,7 +494,9 @@ def test_load_for_qrf(
 
     if include_noncube_static:
         feature_config["wind_from_direction"] = ["static"]
-        parquet_diagnostic_names.append("wind_from_direction")
+        parquet_diagnostic_names.append("wind_direction_at_10m")
+        cf_names.append("wind_from_direction")
+        experiments.append("recentblend")
 
     if remove_target:
         feature_config.pop("air_temperature")
@@ -488,6 +505,7 @@ def test_load_for_qrf(
         base_expected_forecast_df.copy(),
         forecast_periods,
         parquet_diagnostic_names,
+        cf_names,
         representation,
         site_id,
     )
@@ -497,17 +515,16 @@ def test_load_for_qrf(
 
     # Create an instance of LoadForTrainQRF with the required parameters
     plugin = LoadForTrainQRF(
-        experiment="latestblend",
+        experiments=experiments,
         feature_config=feature_config,
         parquet_diagnostic_names=parquet_diagnostic_names,
-        target_cf_name="air_temperature",
+        cf_names=cf_names,
         forecast_periods=forecast_periods,
         cycletime="20170103T0000Z",
         training_length=2,
         unique_site_id_keys=site_id,
     )
     forecast_df, truth_df, cube_inputs = plugin(file_paths)
-
     assert isinstance(forecast_df, pd.DataFrame)
     assert isinstance(truth_df, pd.DataFrame)
 
@@ -542,10 +559,10 @@ def test_load_for_qrf_no_paths(tmp_path, make_files):
             (tmp_path / file_path).mkdir(parents=True, exist_ok=True)
 
     plugin = LoadForTrainQRF(
-        experiment="latestblend",
+        experiments=["latestblend"],
         feature_config=feature_config,
         parquet_diagnostic_names=["temperature_at_screen_level"],
-        target_cf_name="air_temperature",
+        cf_names=["air_temperature"],
         forecast_periods="6:12:6",
         cycletime="20170102T0000Z",
         training_length=2,
@@ -595,6 +612,7 @@ def test_load_for_qrf_mismatches(
         expected_forecast_df,
         forecast_periods,
         ["temperature_at_screen_level"],
+        ["air_temperature"],
         "percentile",
         "wmo_id",
     )
@@ -607,18 +625,21 @@ def test_load_for_qrf_mismatches(
     file_paths = [forecast_path, truth_path]
 
     plugin = LoadForTrainQRF(
-        experiment="latestblend",
+        experiments=["latestblend"],
         feature_config=feature_config,
         parquet_diagnostic_names=["temperature_at_screen_level"],
-        target_cf_name="air_temperature",
+        cf_names=["air_temperature"],
         forecast_periods=forecast_periods,
         cycletime=cycletime,
         training_length=2,
     )
-    forecast_df, _, _ = plugin(file_paths)
+    with pytest.warns(
+        UserWarning, match="The forecast parquet files are empty after filtering."
+    ):
+        forecast_df, _, _ = plugin(file_paths)
     # Expecting an empty DataFrame since the cycletime or forecast_periods
     # requested are not present in the provided file.
-    assert forecast_df.empty
+    assert forecast_df is None
 
 
 @pytest.mark.parametrize(
@@ -640,6 +661,20 @@ def test_load_for_qrf_mismatches(
         ),
         (
             "missing_dynamic_feature",
+            _create_multi_site_forecast_parquet_file,
+            _create_multi_site_truth_parquet_file,
+            "6:18:6",
+            "percentile",
+        ),
+        (
+            "incorrect_dynamic_feature_experiment",
+            _create_multi_site_forecast_parquet_file,
+            _create_multi_site_truth_parquet_file,
+            "6:18:6",
+            "percentile",
+        ),
+        (
+            "mismatching_lists",
             _create_multi_site_forecast_parquet_file,
             _create_multi_site_truth_parquet_file,
             "6:18:6",
@@ -683,12 +718,37 @@ def test_unexpected_loading(
     truth_path, _ = truth_creation(tmp_path)
     file_paths = [forecast_path, truth_path]
 
+    experiments = ["latestblend"]
+    parquet_diagnostic_names = ["temperature_at_screen_level"]
+    cf_names = ["air_temperature"]
+
+    if exception == "incorrect_dynamic_feature_experiment":
+        parquet_diagnostic_names.append("wind_speed_at_10m")
+        cf_names.append("wind_speed")
+        experiments.append("latestblend")
+
+    if exception == "mismatching_lists":
+        parquet_diagnostic_names.append("wind_speed_at_10m")
+        cf_names.append("wind_speed")
+        # Intentionally not appending to experiments to create a mismatch
+        with pytest.raises(ValueError, match="The length of the"):
+            LoadForTrainQRF(
+                experiments=experiments,
+                feature_config=feature_config,
+                parquet_diagnostic_names=parquet_diagnostic_names,
+                cf_names=cf_names,
+                forecast_periods=forecast_periods,
+                cycletime="20170103T0000Z",
+                training_length=2,
+            )
+        return
+
     # Create an instance of LoadForTrainQRF with the required parameters
     plugin = LoadForTrainQRF(
-        experiment="latestblend",
+        experiments=experiments,
         feature_config=feature_config,
-        parquet_diagnostic_names=["temperature_at_screen_level"],
-        target_cf_name="air_temperature",
+        parquet_diagnostic_names=parquet_diagnostic_names,
+        cf_names=cf_names,
         forecast_periods=forecast_periods,
         cycletime="20170103T0000Z",
         training_length=2,
@@ -699,7 +759,7 @@ def test_unexpected_loading(
             plugin(file_paths)
     elif exception == "missing_static_feature":
         feature_config = {
-            "wind_speed_at_10m": ["mean", "std"],
+            "wind_speed": ["mean", "std"],
             "distance_to_water": ["static"],
         }
         plugin.feature_config = feature_config
@@ -707,12 +767,20 @@ def test_unexpected_loading(
             plugin.process(file_paths=file_paths)
     elif exception == "missing_dynamic_feature":
         feature_config = {
-            "wind_speed_at_10m": ["mean", "std"],
+            "wind_speed": ["mean", "std"],
             "air_temperature": ["mean", "std"],
         }
         plugin.feature_config = feature_config
         with pytest.raises(ValueError, match="The features requested in the"):
             plugin.process(file_paths=file_paths)
+    elif exception == "incorrect_dynamic_feature_experiment":
+        feature_config = {
+            "wind_speed": ["mean", "std"],
+            "air_temperature": ["mean", "std", "altitude"],
+        }
+        plugin.feature_config = feature_config
+        with pytest.raises(ValueError, match="The requested parquet diagnostic"):
+            plugin(file_paths)
     elif exception == "no_percentile_realization":
         with pytest.raises(ValueError, match="The forecast parquet file"):
             plugin(file_paths)
@@ -793,6 +861,7 @@ def test_prepare_and_train_qrf(
         forecast_df,
         forecast_periods,
         ["temperature_at_screen_level"],
+        ["air_temperature"],
         representation,
         site_id,
     )
@@ -801,10 +870,8 @@ def test_prepare_and_train_qrf(
     truth_df = amend_expected_truth_df(truth_df, "temperature_at_screen_level")
 
     if include_dynamic:
-        forecast_df["wind_speed_at_10m"] = [10.0, 20.0, 15.0, 12.0, 11.0][
-            : len(forecast_df)
-        ]
-        feature_config["wind_speed_at_10m"] = ["mean", "std"]
+        forecast_df["wind_speed"] = [10.0, 20.0, 15.0, 12.0, 11.0][: len(forecast_df)]
+        feature_config["wind_speed"] = ["mean", "std"]
 
     if include_static:
         _, ancil_cube = _create_ancil_file(tmp_path, sorted(list(set(site_ids))))
@@ -934,6 +1001,7 @@ def test_filter_bad_sites(
         forecast_df,
         forecast_periods,
         ["temperature_at_screen_level"],
+        ["air_temperature"],
         representation,
         site_id,
     )
