@@ -309,7 +309,7 @@ def test_prepare_and_apply_qrf(
         assert result.coord("realization").units == "1"
         assert np.allclose(result.coord("realization").points, range(len(quantiles)))
 
-
+@pytest.mark.parametrize("forecast_period", [None, 13])
 @pytest.mark.parametrize(
     "n_estimators,max_depth,random_state,cycletime,include_dynamic,include_static,add_fp_bounds,expected",
     [
@@ -322,6 +322,7 @@ def test_prepare_and_apply_qrf(
     ],
 )
 def test_mismatching_temporal_coordinates(
+    forecast_period,
     n_estimators,
     max_depth,
     random_state,
@@ -350,9 +351,9 @@ def test_mismatching_temporal_coordinates(
     site_id = ["wmo_id"]
     quantiles = [0.5]
     if not cycletime or cycletime == "20170103T0000Z":
-        forecast_period = 12  # hours
-    else:
-        forecast_period = 13  # hours
+        forecast_period = 12 * 3600
+    elif forecast_period is not None:
+        forecast_period = forecast_period * 3600
 
     if include_dynamic:
         feature_config["air_temperature"] = ["mean", "std"]
@@ -374,7 +375,7 @@ def test_mismatching_temporal_coordinates(
         "wind_speed_at_10m",
         unique_site_id_keys=site_id,
         cycletime=cycletime,
-        forecast_period=forecast_period*3600,
+        forecast_period=forecast_period,
     )(cube_inputs, (qrf_model, transformation, pre_transform_addition))
 
     assert isinstance(result, Cube)
