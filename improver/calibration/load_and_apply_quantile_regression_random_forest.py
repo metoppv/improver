@@ -205,12 +205,12 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
                 pd.to_datetime(self.cycletime, format="%Y%m%dT%H%MZ")
             )
         else:
-            cycletime = cube_inputs[0].coord("forecast_reference_time").points
+            cycletime, = cube_inputs[0].coord("forecast_reference_time").points
 
         if self.forecast_period:
             forecast_period = self.forecast_period
         else:
-            forecast_period = cube_inputs[0].coord("forecast_period").points
+            forecast_period, = cube_inputs[0].coord("forecast_period").points
 
         # Update the forecast_reference_time and forecast_period to match those
         # provided, if they are provided.
@@ -226,7 +226,7 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
                         - cube.coord("forecast_period").bounds[0][0]
                     )
                     cube.coord("forecast_period").bounds = np.array(
-                        [forecast_period - diff, forecast_period]
+                        [[forecast_period - diff, forecast_period]]
                     )
         return cube_inputs
 
