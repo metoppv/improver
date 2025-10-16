@@ -14,11 +14,11 @@ def process(
     *file_paths: cli.inputpath,
     feature_config: cli.inputjson,
     parquet_diagnostic_names: cli.comma_separated_list,
-    target_cf_name: str,
+    cf_names: cli.comma_separated_list,
     forecast_periods: str,
     cycletime: str,
     training_length: int,
-    experiment: str = None,
+    experiments: cli.comma_separated_list,
     n_estimators: int = 100,
     max_depth: int = None,
     max_samples: float = None,
@@ -71,10 +71,17 @@ def process(
             the forecast and truth DataFrames read in from the parquet files. The
             target diagnostic name is expected to be the first item in the list.
             These names could be different from the CF name e.g.
-            'temperature_at_screen_level'.
-        target_cf_name (str):
-            A string containing the CF name of the forecast to be calibrated
-            e.g. air_temperature.
+            'temperature_at_screen_level'. This is expected to be the same length
+            as the cf_names and experiments lists.
+        cf_names (list of str):
+            A list containing the CF names of the diagnostics. The CF names should
+            match the order of the parquet_diagnostic_names. The target diagnostic to be
+            calibrated is expected to be the first item in the list. These names
+            could be different from the diagnostic name used to identify in the
+            parquet files. For example, the diagnostic name could be
+            'temperature_at_screen_level' and the corresponding CF name could be
+            'air_temperature'. This is expected to be the same length as the
+            parquet_diagnostic_names and experiments lists.
         forecast_periods (str):
             Range of forecast periods to be calibrated in hours in the form:
             "start:end:interval" e.g. "6:18:6" or a single forecast period e.g. "6".
@@ -84,9 +91,11 @@ def process(
             correct blendtimes from the dataframe on load.
         training_length (int):
             The length of the training period in days.
-        experiment (str):
-            The name of the experiment (step) that calibration is applied to. This
-            is used to filter the forecast DataFrame on load.
+        experiments (list of str):
+            The names of the experiment (step) that calibration is
+            applied to. This is used to filter the forecast DataFrame on load.
+            This is expected to be the same length as the parquet_diagnostic_names
+            and cf_names lists.
         n_estimators (int):
             Number of trees in the forest.
         max_depth (int):
@@ -126,10 +135,10 @@ def process(
     )
 
     forecast_df, truth_df, cube_inputs = LoadForTrainQRF(
-        experiment=experiment,
+        experiments=experiments,
         feature_config=feature_config,
         parquet_diagnostic_names=parquet_diagnostic_names,
-        target_cf_name=target_cf_name,
+        cf_names=cf_names,
         forecast_periods=forecast_periods,
         cycletime=cycletime,
         training_length=training_length,
@@ -143,7 +152,7 @@ def process(
         kwargs["max_features"] = max_features
     result = PrepareAndTrainQRF(
         feature_config=feature_config,
-        target_cf_name=target_cf_name,
+        target_cf_name=cf_names[0],
         n_estimators=n_estimators,
         max_depth=max_depth,
         max_samples=max_samples,
