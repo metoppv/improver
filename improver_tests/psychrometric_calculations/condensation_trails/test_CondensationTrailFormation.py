@@ -881,7 +881,13 @@ def test_process_values(
     relative_humidity: float,
     forms_contrail: bool,
 ) -> None:
-    """Docstring goes here"""
+    """
+    Check that 'process' returns the expected values.
+
+    TODO:
+    - Add 'may form' inputs with known outputs
+    - Improve inputs after persistency fix
+    """
 
     pressure_levels = np.array([pressure])
     temperatures = np.array([temperature])
@@ -910,3 +916,24 @@ def test_process_values(
         assert result.data[0, 0] == 1 or 2
     else:
         assert result.data[0, 0] == 0
+
+    # TODO: remove once test is complete
+    # svp_ice_table = SaturatedVapourPressureTable(ice_only = True, t_min = temperature, t_max = temperature + 0.15).process()
+    # svp_ice = svp_ice_table.data[0]
+
+    # condition_1 = plugin.local_vapour_pressure[0] - plugin.engine_mixing_ratios[0, 0] * temperature > plugin.critical_intercepts[0, 0]
+    # condition_2 = temperature < plugin.critical_temperatures[0, 0]
+    # condition_3 = plugin.local_vapour_pressure[0] > svp_ice
+    # condition_4 = temperature < 273.15
+
+    # c1c2 = condition_1 and condition_2
+    # c3c4 = condition_3 and condition_4
+
+    # if c1c2 and not c3c4:
+    #     expected_category = 1
+    # elif c1c2 and c3c4:
+    #     expected_category = 2
+    # else:
+    #     expected_category = 0
+
+    # assert result.data[0, 0] == expected_category
