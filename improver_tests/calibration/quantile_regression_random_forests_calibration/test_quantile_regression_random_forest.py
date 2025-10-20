@@ -833,6 +833,38 @@ def test_alternative_feature_configs(
     np.testing.assert_almost_equal(result, expected, decimal=2)
 
 
+def test_train_qrf_many_nans():
+    """Test the TrainQuantileRegressionRandomForests plugin when the forecast cube
+    for training contains more than 50% undefined data. This raises an exception
+    as such a large volumn of missing forecast data suggests an issue."""
+
+    feature_config = {"wind_speed_at_10m": ["mean", "std", "latitude", "longitude"]}
+
+    with pytest.raises(
+        ValueError, match="More than 50% of the forecast data has been removed"
+    ):
+        _run_train_qrf(
+            feature_config,
+            2,
+            3,
+            55,
+            "log10",
+            0,
+            {},
+            True,
+            forecast_reference_times=[
+                "20170101T0000Z",
+                "20170102T0000Z",
+            ],
+            validity_times=[
+                "20170101T1200Z",
+                "20170102T1200Z",
+            ],
+            realization_data=[2, np.nan, np.nan],
+            truth_data=[4.2, 4.1, 4.2, 4.1],
+        )
+
+
 @pytest.mark.parametrize(
     "quantiles,transformation,pre_transform_addition,include_static,expected",
     [

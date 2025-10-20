@@ -379,6 +379,8 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
             kwargs:
                 Additional keyword arguments for the quantile regression model.
 
+        Raises:
+            ValueError: If more than 50% of the training forecast data contains nans.
         """
 
         self.target_name = target_name
@@ -469,9 +471,20 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
             pre_transform_addition=self.pre_transform_addition,
             unique_site_id_keys=self.unique_site_id_keys,
         )
+        merge_columns = [*self.unique_site_id_keys, "time"]
         forecast_df = sanitise_forecast_dataframe(forecast_df, self.feature_config)
 
-        merge_columns = [*self.unique_site_id_keys, "time"]
+        # Exclude all extraneous columns, e.g. period, so we can drop nans across
+        # all columns without removing data due to nans in unused columns.
+        forecast_df = forecast_df[merge_columns + feature_column_names]
+        forecast_df_length = len(forecast_df)
+        forecast_df.dropna(inplace=True)
+        if (forecast_df_length - len(forecast_df)) / forecast_df_length > 0.5:
+            raise ValueError(
+                "More than 50% of the forecast data has been removed after dropping "
+                "NaNs. Please check the input data and feature configuration."
+            )
+
         combined_df = forecast_df.merge(
             truth_df[merge_columns + ["ob_value"]], on=merge_columns, how="inner"
         )
