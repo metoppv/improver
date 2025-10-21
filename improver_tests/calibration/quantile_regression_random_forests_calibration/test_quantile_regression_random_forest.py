@@ -31,9 +31,9 @@ from improver.synthetic_data.set_up_test_cubes import set_up_spot_variable_cube
 
 pytest.importorskip("quantile_forest")
 
-ALTITUDE = [10, 20]
-LATITUDE = [50, 60]
-LONGITUDE = [0, 10]
+ALTITUDE = [10.0, 20.0]
+LATITUDE = [50.1, 60.9]
+LONGITUDE = [0.1, 10.9]
 WMO_ID = ["00001", "00002"]
 
 iris.FUTURE.pandas_ndim = True
@@ -71,9 +71,9 @@ def _create_forecasts(
         wmo_ids=WMO_ID,
         unique_site_id=WMO_ID,
         unique_site_id_key="station_id",
-        latitudes=np.array([50, 60], np.float32),
-        longitudes=np.array([0, 10], np.float32),
-        altitudes=np.array([10, 20], np.float32),
+        latitudes=np.array(LATITUDE, np.float32),
+        longitudes=np.array(LONGITUDE, np.float32),
+        altitudes=np.array(ALTITUDE, np.float32),
         time=dt.strptime(validity_time, DT_FORMAT),
         frt=dt.strptime(forecast_reference_time, DT_FORMAT),
     )
@@ -133,9 +133,9 @@ def _create_ancil_file(return_cube: bool = False) -> Cube | pd.DataFrame:
         wmo_ids=WMO_ID,
         unique_site_id=WMO_ID,
         unique_site_id_key="station_id",
-        latitudes=np.array([50, 60], np.float32),
-        longitudes=np.array([0, 10], np.float32),
-        altitudes=np.array([10, 20], np.float32),
+        latitudes=np.array(LATITUDE, np.float32),
+        longitudes=np.array(LONGITUDE, np.float32),
+        altitudes=np.array(ALTITUDE, np.float32),
         name="distance_to_water",
         units="m",
     )

@@ -16,7 +16,7 @@ from iris.cube import Cube, CubeList
 from iris.pandas import as_data_frame
 
 from improver import PostProcessingPlugin
-from improver.calibration import add_warning_comment
+from improver.calibration import add_static_feature_from_cube_to_df, add_warning_comment
 from improver.calibration.quantile_regression_random_forest import (
     ApplyQuantileRegressionRandomForests,
     quantile_forest_package_available,
@@ -254,14 +254,11 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
 
         # Iteratively convert remaining cubes to DataFrame and merge.
         for cube in cube_inputs[1:]:
-            temporary_df = as_data_frame(cube, add_aux_coords=True).reset_index()
-            merge_columns = [
-                col for col in possible_columns if col in temporary_df.columns
-            ]
-            df = df.merge(
-                temporary_df[merge_columns + [cube.name()]],
-                on=merge_columns,
-                how="left",
+            df = add_static_feature_from_cube_to_df(
+                df,
+                cube,
+                cube.name(),
+                possible_columns,
             )
 
         for column in ["forecast_reference_time", "time"]:
