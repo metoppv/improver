@@ -230,23 +230,24 @@ class LoadForTrainQRF(PostProcessingPlugin):
                     f"forecast parquet file: {parquet_diagnostic_name}."
                 )
                 raise ValueError(msg)
+
+            merge_on = [
+                *self.unique_site_id_keys,
+                "forecast_reference_time",
+                "forecast_period",
+                representation,
+            ]
+
+            # If e.g. percentile is all NaN as this is a deterministic diagnostic, remove this column.
+            if additional_df[representation].isna().all():
+                merge_on.remove(representation)
+
             forecast_df = pd.merge(
                 forecast_df,
-                additional_df[
-                    [
-                        *self.unique_site_id_keys,
-                        "forecast_reference_time",
-                        "forecast_period",
-                        representation,
-                        "forecast",
-                    ]
-                ].rename(columns={"forecast": cf_name}),
-                on=[
-                    *self.unique_site_id_keys,
-                    "forecast_reference_time",
-                    "forecast_period",
-                    representation,
-                ],
+                additional_df[merge_on + ["forecast"]].rename(
+                    columns={"forecast": cf_name}
+                ),
+                on=merge_on,
                 how="left",
             )
 
