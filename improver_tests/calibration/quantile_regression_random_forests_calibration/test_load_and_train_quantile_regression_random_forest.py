@@ -43,7 +43,9 @@ def write_to_parquet(df, tmp_path, dirname, filename):
     return output_dir
 
 
-def add_wind_data_to_forecasts(data_dict, wind_speed_values, wind_dir_values):
+def add_wind_data_to_forecasts(
+    data_dict, wind_speed_values, wind_dir_values, representation=None
+):
     """Add wind speed and direction data to a data dictionary. Set experiment to
     "recentblend". Note that this experiment is different to the default experiment
     in the data dictionary which is "latestblend".
@@ -52,6 +54,8 @@ def add_wind_data_to_forecasts(data_dict, wind_speed_values, wind_dir_values):
         data_dict: Dictionary containing the data.
         wind_speed_values: List of wind speed values to add.
         wind_dir_values: List of wind direction values to add.
+        representation: The type of ensemble representation to use. Options are:
+            "percentile", "realization" or "kittens. "kittens" is just used for testing.
     Returns:
         A DataFrame containing the original data along with wind speed and
         direction data.
@@ -69,6 +73,7 @@ def add_wind_data_to_forecasts(data_dict, wind_speed_values, wind_dir_values):
     wind_dir_dict["units"] = "degrees"
     wind_dir_dict["diagnostic"] = "wind_direction_at_10m"
     wind_dir_dict["experiment"] = "recentblend"
+    wind_dir_dict[representation] = np.nan
     data_df = pd.DataFrame(data_dict)
     wind_speed_df = pd.DataFrame(wind_speed_dict)
     wind_dir_df = pd.DataFrame(wind_dir_dict)
@@ -149,7 +154,10 @@ def _create_multi_site_forecast_parquet_file(tmp_path, representation=None):
         data_dict, representation, list(range(len(data_dict["percentile"])))
     )
     joined_df = add_wind_data_to_forecasts(
-        data_dict, [8, 19, 16, 12, 10], [90, 100, 110, 120, 130]
+        data_dict,
+        [8, 19, 16, 12, 10],
+        [90, 100, 110, 120, 130],
+        representation=representation,
     )
     output_dir = write_to_parquet(
         joined_df, tmp_path, "forecast_parquet_files", "forecast.parquet"
@@ -191,7 +199,10 @@ def _create_multi_percentile_forecast_parquet_file(tmp_path, representation=None
         data_dict, representation, list(range(len(data_dict["percentile"])))
     )
     joined_df = add_wind_data_to_forecasts(
-        data_dict, [6, 10, 11, 12, 15], [90, 100, 110, 120, 130]
+        data_dict,
+        [6, 10, 11, 12, 15],
+        [90, 100, 110, 120, 130],
+        representation=representation,
     )
     output_dir = write_to_parquet(
         joined_df, tmp_path, "forecast_parquet_files", "forecast.parquet"
@@ -239,7 +250,7 @@ def _create_multi_forecast_period_forecast_parquet_file(tmp_path, representation
     }
     data_dict = modify_representation(data_dict, representation, [0, 1, 0, 1])
     joined_df = add_wind_data_to_forecasts(
-        data_dict, [6, 16, 12, 15], [180, 190, 200, 210]
+        data_dict, [6, 16, 12, 15], [180, 190, 200, 210], representation=representation
     )
     output_dir = write_to_parquet(
         joined_df, tmp_path, "forecast_parquet_files", "forecast.parquet"
@@ -386,23 +397,20 @@ def amend_expected_forecast_df(
         additional_df = forecast_df[
             forecast_df["diagnostic"] == parquet_diagnostic_name
         ]
+        merge_on = [
+            *site_id,
+            "forecast_reference_time",
+            "forecast_period",
+            representation,
+        ]
+        if additional_df[representation].isna().all():
+            merge_on.remove(representation)
         base_df = pd.merge(
             base_df,
-            additional_df[
-                [
-                    *site_id,
-                    "forecast_reference_time",
-                    "forecast_period",
-                    representation,
-                    "forecast",
-                ]
-            ].rename(columns={"forecast": cf_name}),
-            on=[
-                *site_id,
-                "forecast_reference_time",
-                "forecast_period",
-                representation,
-            ],
+            additional_df[merge_on + ["forecast"]].rename(
+                columns={"forecast": cf_name}
+            ),
+            on=merge_on,
             how="left",
         )
     forecast_df = base_df
