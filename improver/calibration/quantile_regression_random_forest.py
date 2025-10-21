@@ -232,6 +232,36 @@ def sanitise_forecast_dataframe(
     return df
 
 
+def _drop_nans_from_forecast_df(
+    forecast_df: pd.DataFrame,
+    merge_columns: list[str],
+    feature_column_names: list[str],
+    valid_forecast_proportion: float = 0.5,
+) -> None:
+    """Drops any NaNs from the forecast DataFrame. Extraneous columns are excluded
+    e.g. period, so we can drop nans across all columns without removing data due
+    to nans in unused columns.
+    Args:
+        forecast_df: Input forecast DataFrame.
+        merge_columns: Columns used for merging forecast and truth DataFrames.
+        feature_column_names: Names of the feature columns.
+    Raises:
+        ValueError: If more than the specific proportion of the forecast data has been
+        removed after dropping NaNs.
+    """
+    forecast_df = forecast_df[merge_columns + feature_column_names]
+    forecast_df_length = len(forecast_df)
+    forecast_df.dropna(inplace=True)
+    if (
+        forecast_df_length - len(forecast_df)
+    ) / forecast_df_length > valid_forecast_proportion:
+        raise ValueError(
+            f"More than {valid_forecast_proportion * 100}% of the "
+            "forecast data has been removed after dropping NaNs. Please check "
+            "the input data and feature configuration."
+        )
+
+
 def prep_features_from_config(
     df: pd.DataFrame,
     feature_config: dict[str, list[str]],
@@ -407,35 +437,6 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
         # Exceeding this proportion will raise a ValueError.
         self.valid_forecast_proportion = 0.5
 
-    def _drop_nans_from_forecast_df(
-        self,
-        forecast_df: pd.DataFrame,
-        merge_columns: list[str],
-        feature_column_names: list[str],
-    ) -> None:
-        """Drops any NaNs from the forecast DataFrame. Extraneous columns are excluded
-        e.g. period, so we can drop nans across all columns without removing data due
-        to nans in unused columns.
-        Args:
-            forecast_df: Input forecast DataFrame.
-            merge_columns: Columns used for merging forecast and truth DataFrames.
-            feature_column_names: Names of the feature columns.
-        Raises:
-            ValueError: If more than 50% of the forecast data has been removed after
-            dropping NaNs.
-        """
-        forecast_df = forecast_df[merge_columns + feature_column_names]
-        forecast_df_length = len(forecast_df)
-        forecast_df.dropna(inplace=True)
-        if (
-            forecast_df_length - len(forecast_df)
-        ) / forecast_df_length > self.valid_forecast_proportion:
-            raise ValueError(
-                f"More than {self.valid_forecast_proportion * 100}% of the "
-                "forecast data has been removed after dropping NaNs. Please check "
-                "the input data and feature configuration."
-            )
-
     def fit_qrf(
         self, forecast_features: np.ndarray, target: np.ndarray
     ) -> RandomForestQuantileRegressor:
@@ -509,11 +510,14 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
             pre_transform_addition=self.pre_transform_addition,
             unique_site_id_keys=self.unique_site_id_keys,
         )
-        forecast_df = sanitise_forecast_dataframe(forecast_df, self.feature_config)
         merge_columns = [*self.unique_site_id_keys, "time"]
-        self._drop_nans_from_forecast_df(
-            forecast_df, merge_columns, feature_column_names
+        _drop_nans_from_forecast_df(
+            forecast_df,
+            merge_columns,
+            feature_column_names,
+            self.valid_forecast_proportion,
         )
+        forecast_df = sanitise_forecast_dataframe(forecast_df, self.feature_config)
 
         combined_df = forecast_df.merge(
             truth_df[merge_columns + ["ob_value"]], on=merge_columns, how="inner"

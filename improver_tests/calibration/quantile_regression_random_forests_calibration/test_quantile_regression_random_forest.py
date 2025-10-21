@@ -362,6 +362,22 @@ def test_prep_feature_invalid_percentiles(scenario):
         prep_feature(forecast_df, variable_name, "mean")
 
 
+def test_prep_feature_std_exception():
+    """Test that an error is raised if invalid percentiles are provided."""
+    variable_name = "wind_speed_at_10m"
+
+    forecast_reference_time = "20170101T0000Z"
+    validity_time = "20170101T1200Z"
+    data = np.array([6])
+    forecast_df = _create_forecasts(
+        forecast_reference_time, validity_time, data, representation="percentile"
+    )
+    forecast_df = _add_day_of_training_period(forecast_df)
+
+    with pytest.raises(ValueError, match="All computed values for feature"):
+        prep_feature(forecast_df, variable_name, "std")
+
+
 @pytest.mark.parametrize(
     "feature_name,expected,expected_dtype",
     [
@@ -836,12 +852,12 @@ def test_alternative_feature_configs(
 def test_train_qrf_many_nans():
     """Test the TrainQuantileRegressionRandomForests plugin when the forecast cube
     for training contains more than 50% undefined data. This raises an exception
-    as such a large volumn of missing forecast data suggests an issue."""
+    as such a large volume of missing forecast data suggests an issue."""
 
-    feature_config = {"wind_speed_at_10m": ["mean", "std", "latitude", "longitude"]}
+    feature_config = {"wind_speed_at_10m": ["static", "latitude", "longitude"]}
 
     with pytest.raises(
-        ValueError, match="More than 50% of the forecast data has been removed"
+        ValueError, match="More than 50.0% of the forecast data has been removed"
     ):
         _run_train_qrf(
             feature_config,
@@ -860,7 +876,7 @@ def test_train_qrf_many_nans():
                 "20170101T1200Z",
                 "20170102T1200Z",
             ],
-            realization_data=[2, np.nan, np.nan],
+            realization_data=[np.nan],
             truth_data=[4.2, 4.1, 4.2, 4.1],
         )
 
@@ -903,7 +919,10 @@ def test_apply_qrf(
     expected,
 ):
     """Test the ApplyQuantileRegressionRandomForests plugin."""
-    feature_config = {"wind_speed_at_10m": ["mean", "std", "latitude", "longitude"]}
+    if len(quantiles) == 1:
+        feature_config = {"wind_speed_at_10m": ["mean", "latitude", "longitude"]}
+    else:
+        feature_config = {"wind_speed_at_10m": ["mean", "std", "latitude", "longitude"]}
     n_estimators = 2
     max_depth = 2
     random_state = 55
@@ -955,8 +974,8 @@ def test_apply_qrf(
     "quantiles,transformation,pre_transform_addition,feature,expected",
     [
         ([0.5], None, 0, None, [5, 4.9]),  # No additional feature
-        ([0.5], "log", 10, "members_below_7", [8.02, 4.86]),  # members below
-        ([0.5], "log", 10, "members_above_7", [5.54, 4.77]),  # members above
+        ([0.5], "log", 10, "members_below_7", [7.37, 4.86]),  # members below
+        ([0.5], "log", 10, "members_above_7", [4.98, 4.77]),  # members above
     ],
 )
 def test_apply_qrf_alternative_configs(
@@ -975,7 +994,7 @@ def test_apply_qrf_alternative_configs(
     if feature is not None:
         feature_list = [feature]
     feature_config = {
-        "wind_speed_at_10m": ["mean", "std", "latitude", "longitude", *feature_list]
+        "wind_speed_at_10m": ["mean", "latitude", "longitude", *feature_list]
     }
 
     n_estimators = 2
