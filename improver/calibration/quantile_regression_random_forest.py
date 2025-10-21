@@ -245,6 +245,7 @@ def _drop_nans_from_forecast_df(
         forecast_df: Input forecast DataFrame.
         merge_columns: Columns used for merging forecast and truth DataFrames.
         feature_column_names: Names of the feature columns.
+        valid_forecast_proportion: Proportion of forecast data that can be removed.
     Raises:
         ValueError: If more than the specific proportion of the forecast data has been
         removed after dropping NaNs.

@@ -611,6 +611,11 @@ def add_static_feature_from_cube_to_df(
         forecast_df: DataFrame containing the forecast data.
         cube_inputs: List of cubes containing additional features.
         feature_name: Name of the feature to be added.
+        possible_merge_columns: List of column names that can be used to merge
+            the feature DataFrame to the forecast DataFrame.
+        float_decimals: Number of decimal places to round float columns to
+            before merging. Default is 4, which corresponds to rounding to
+            0.0001.
     Returns:
         DataFrame with additional feature added from the input cubes.
     """

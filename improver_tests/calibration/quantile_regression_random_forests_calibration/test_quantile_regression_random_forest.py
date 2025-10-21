@@ -256,8 +256,8 @@ def test_quantile_forest_package_available():
         ("percentile_50", np.tile([6, 8], 3).astype(np.float32), np.float32),
         ("members_below_5", np.repeat(1, 6).astype(np.float32), np.float32),
         ("members_above_5", np.repeat(2, 6).astype(np.float32), np.float32),
-        ("latitude", np.tile([50, 60], 3).astype(np.float32), np.float32),
-        ("longitude", np.tile([0, 10], 3).astype(np.float32), np.float32),
+        ("latitude", np.tile([50.1, 60.9], 3).astype(np.float32), np.float32),
+        ("longitude", np.tile([0.1, 10.9], 3).astype(np.float32), np.float32),
         ("altitude", np.tile([10, 20], 3).astype(np.float32), np.float32),
         (
             "day_of_year",
@@ -388,8 +388,8 @@ def test_prep_feature_std_exception():
         ("percentile_50", np.tile(np.array([6, 8], dtype=np.float32), 18), np.float32),
         ("members_below_5", np.repeat(1, 36).astype(np.float32), np.float32),
         ("members_above_5", np.repeat(2, 36).astype(np.float32), np.float32),
-        ("latitude", np.tile([50, 60], 18).astype(np.float32), np.float32),
-        ("longitude", np.tile([0, 10], 18).astype(np.float32), np.float32),
+        ("latitude", np.tile([50.1, 60.9], 18).astype(np.float32), np.float32),
+        ("longitude", np.tile([0.1, 10.9], 18).astype(np.float32), np.float32),
         ("altitude", np.tile([10, 20], 18).astype(np.float32), np.float32),
         (
             "day_of_year",
