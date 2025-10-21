@@ -69,6 +69,8 @@ def prep_feature(
             each site, e.g. "wmo_id" or ["latitude", "longitude"].
     Returns:
         df: DataFrame with the computed feature added.
+    Raises:
+        ValueError: If all computed values for the feature are NaN.
     """
     if (
         feature_name in ["mean", "std", "min", "max"]
@@ -136,6 +138,13 @@ def prep_feature(
             subset_df[variable_name] = subset_df[variable_name].astype(orig_dtype)
 
         subset_df = subset_df.reset_index()
+
+        if subset_df[variable_name].isnull().all():
+            msg = (
+                f"All computed values for feature '{feature_name}' "
+                f"and variable '{variable_name}' are NaN."
+            )
+            raise ValueError(msg)
         # Rename the column to distinguish the computed feature from the original.
         subset_df.rename(
             columns={variable_name: f"{variable_name}_{feature_name}"}, inplace=True

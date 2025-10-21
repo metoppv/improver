@@ -419,6 +419,7 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
         self.unique_site_id_keys = unique_site_id_keys
         self.kwargs = kwargs
         self.quantile_forest_installed = quantile_forest_package_available()
+        self.float_decimals = 4
 
     @staticmethod
     def _check_matching_times(
@@ -441,6 +442,46 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
             )
         )
 
+    def _add_static_feature_from_cube_to_df(
+        self, forecast_df: pd.DataFrame, feature_cube: iris.cube.Cube, feature_name: str
+    ) -> pd.DataFrame:
+        """Add a static feature to the forecast DataFrame from a cube based on the
+        feature configuration. Other features are expected to already be present in the
+        forecast DataFrame. Columns that are float, after converting from a Cube to a
+        DataFrame, are rounded to a specified number of decimal places before merging
+        to avoid precision issues.
+
+        Args:
+            forecast_df: DataFrame containing the forecast data.
+            cube_inputs: List of cubes containing additional features.
+            feature_name: Name of the feature to be added.
+        Returns:
+            DataFrame with additional feature added from the input cubes.
+        """
+        feature_df = as_data_frame(feature_cube, add_aux_coords=True)
+        multiplier = 10**self.float_decimals
+        float_subset = feature_df.select_dtypes(include=[np.float32])
+        float_cols = list(
+            set(float_subset.columns).intersection(set(forecast_df.columns))
+        )
+        feature_df[float_cols] = np.round(feature_df[float_cols] * multiplier).astype(
+            int
+        )
+
+        original_dtypes = forecast_df[float_cols].dtypes
+        forecast_df[float_cols] = np.round(forecast_df[float_cols] * multiplier).astype(
+            int
+        )
+
+        forecast_df = forecast_df.merge(
+            feature_df[[*self.unique_site_id_keys, feature_name]],
+            on=[*self.unique_site_id_keys],
+            how="left",
+        )
+        for col, dtype in zip(float_cols, original_dtypes):
+            forecast_df[col] = forecast_df[col].astype(dtype) / multiplier
+        return forecast_df
+
     def _add_static_features_from_cubes_to_df(
         self, forecast_df: pd.DataFrame, cube_inputs: iris.cube.CubeList
     ) -> pd.DataFrame:
@@ -457,6 +498,7 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
         """
         if cube_inputs is None or len(cube_inputs) == 0:
             return forecast_df
+
         for feature_name, feature_list in self.feature_config.items():
             for feature in feature_list:
                 if feature == "static":
@@ -470,11 +512,8 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
                         feature_cube = None
                     if not feature_cube:
                         continue
-                    feature_df = as_data_frame(feature_cube, add_aux_coords=True)
-                    forecast_df = forecast_df.merge(
-                        feature_df[[*self.unique_site_id_keys, feature_name]],
-                        on=[*self.unique_site_id_keys],
-                        how="left",
+                    forecast_df = self._add_static_feature_from_cube_to_df(
+                        forecast_df, feature_cube, feature_name
                     )
         return forecast_df
 
