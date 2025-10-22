@@ -886,7 +886,7 @@ def test_prepare_and_train_qrf(
     forecast_periods,
 ):
     """Test the PrepareAndTrainQRF plugin."""
-    feature_config = {"air_temperature": ["mean", "altitude"]}
+    feature_config = {"air_temperature": ["mean", "std", "altitude"]}
     n_estimators = 2
     max_depth = 5
     random_state = 46
@@ -910,7 +910,7 @@ def test_prepare_and_train_qrf(
 
     if include_dynamic:
         forecast_df["wind_speed"] = [10.0, 20.0, 15.0, 12.0, 11.0][: len(forecast_df)]
-        feature_config["wind_speed"] = ["mean"]
+        feature_config["wind_speed"] = ["mean", "std"]
 
     if include_static:
         _, ancil_cube = _create_ancil_file(
@@ -978,13 +978,13 @@ def test_prepare_and_train_qrf(
     assert transformation == "log"
     assert pre_transform_addition == 1
 
-    current_forecast = [5.64, 55]
+    current_forecast = [5.64, 3, 55]
 
     if remove_target:
         current_forecast = []
 
     if include_dynamic:
-        current_forecast.extend([7])
+        current_forecast.extend([7, 1])
 
     if include_noncube_static:
         current_forecast.append(100)

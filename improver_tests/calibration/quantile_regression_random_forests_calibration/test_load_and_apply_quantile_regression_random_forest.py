@@ -230,19 +230,19 @@ def set_up_for_expected(
 @pytest.mark.parametrize(
     "n_estimators,max_depth,random_state,transformation,pre_transform_addition,extra_kwargs,include_dynamic,include_static,include_nans,include_latlon_nans,quantiles,expected",
     [
-        (2, 2, 55, None, 0, {}, False, False, False, False, [0.5], [4.1, 5.15]),  # Basic test case
+        (2, 2, 55, None, 0, {}, False, False, False, False, [0.5], [4.1, 5.65]),  # Basic test case
         (100, 2, 55, None, 0, {}, False, False, False, False, [1 / 3, 2 / 3], [[4.1, 5.1], [5.1, 5.1]]),  # Multiple quantiles
         (1, 1, 55, None, 0, {}, False, False, False, False, [0.5], [4.1, 6.2]),  # Fewer estimators and reduced depth
         (1, 1, 73, None, 0, {}, False, False, False, False, [0.5], [4.2, 6.2]),  # Different random state
-        (2, 2, 55, "log", 10, {}, False, False, False, False, [0.5], [4.1, 5.64]),  # Log transformation
-        (2, 2, 55, "log10", 10, {}, False, False, False, False, [0.5], [4.1, 5.64]),  # Log10 transformation
-        (2, 2, 55, "sqrt", 10, {}, False, False, False, False, [0.5], [4.1, 5.64]),  # Square root transformation
-        (2, 2, 55, "cbrt", 10, {}, False, False, False, False, [0.5], [4.1, 5.64]),  # Cube root transformation
-        (2, 2, 55, None, 0, {"max_samples_leaf": 0.5}, False, False, False, False, [0.5], [4.1, 5.15]),  # Different criterion
-        (2, 5, 55, None, 0, {}, True, False, False, False, [0.5], [4.1, 5.15]),  # Include an additional dynamic feature
+        (2, 2, 55, "log", 10, {}, False, False, False, False, [0.5], [4.1, 5.1]),  # Log transformation
+        (2, 2, 55, "log10", 10, {}, False, False, False, False, [0.5], [4.1, 5.1]),  # Log10 transformation
+        (2, 2, 55, "sqrt", 10, {}, False, False, False, False, [0.5], [4.1, 5.1]),  # Square root transformation
+        (2, 2, 55, "cbrt", 10, {}, False, False, False, False, [0.5], [4.1, 5.1]),  # Cube root transformation
+        (2, 2, 55, None, 0, {"max_samples_leaf": 0.5}, False, False, False, False, [0.5], [4.1, 6.2]),  # Different criterion
+        (2, 5, 55, None, 0, {}, True, False, False, False, [0.5], [4.1, 4.6]),  # Include an additional dynamic feature
         (2, 5, 55, None, 0, {}, False, True, False, False, [0.5], [4.1, 5.65]),  # Include an additional static feature
-        (2, 5, 55, None, 0, {}, True, True, False, False, [0.5], [4.1, 5.65]),  # Include an additional dynamic and static feature
-        (2, 2, 55, None, 0, {}, False, False, True, False, [0.5], [4.6, 5.15]),  # NaNs in input data
+        (2, 5, 55, None, 0, {}, True, True, False, False, [0.5], [4.1, 4.6]),  # Include an additional dynamic and static feature
+        (2, 2, 55, None, 0, {}, False, False, True, False, [0.5], [4.1, 5.65]),  # NaNs in input data
         (2, 2, 55, None, 0, {}, False, False, False, True, [0.5], [4.1]),  # NaNs in lat/lon
         (2, 2, 55, None, 0, {}, True, False, False, True, [0.5], [4.1]),  # NaNs in lat/lon and dynamic feature
         (2, 2, 55, None, 0, {}, False, True, False, True, [0.5], [4.1]),  # NaNs in lat/lon and static feature
@@ -268,10 +268,10 @@ def test_prepare_and_apply_qrf(
     expected
 ):
     """Test the PrepareAndApplyQRF plugin."""
-    feature_config = {"wind_speed_at_10m": ["mean", "latitude", "longitude"]}
+    feature_config = {"wind_speed_at_10m": ["mean", "std", "latitude", "longitude"]}
 
     if include_dynamic:
-        feature_config["air_temperature"] = ["mean"]
+        feature_config["air_temperature"] = ["mean", "std"]
     if include_static:
         feature_config["distance_to_water"] = ["static"]
 
@@ -325,12 +325,12 @@ def test_prepare_and_apply_qrf(
 @pytest.mark.parametrize(
     "n_estimators,max_depth,random_state,cycletime,include_dynamic,include_static,add_fp_bounds,expected",
     [
-        (2, 2, 55, None, False, False, False, [4.1, 5.15]),  # Basic test case
-        (2, 2, 55, "20170103T0000Z", False, False, False, [4.1, 5.15]),  # Specify cycletime
-        (2, 2, 55, "20170102T2300Z", True, False, False, [4.1, 5.15]),  # Cycletime with dynamic feature
+        (2, 2, 55, None, False, False, False, [4.1, 5.65]),  # Basic test case
+        (2, 2, 55, "20170103T0000Z", False, False, False, [4.1, 5.65]),  # Specify cycletime
+        (2, 2, 55, "20170102T2300Z", True, False, False, [4.1, 4.6]),  # Cycletime with dynamic feature
         (2, 2, 55, "20170102T2300Z", False, True, False, [4.1, 5.65]),  # Cycletime with static feature
-        (2, 2, 55, "20170102T2300Z", True, True, False, [4.1, 5.65]),  # Cycletime with dynamic and static feature
-        (2, 2, 55, "20170102T2300Z", True, False, True, [4.1, 5.15]),  # Cycletime with dynamic feature and forecast period bounds
+        (2, 2, 55, "20170102T2300Z", True, True, False, [4.1, 4.6]),  # Cycletime with dynamic and static feature
+        (2, 2, 55, "20170102T2300Z", True, False, True, [4.1, 4.6]),  # Cycletime with dynamic feature and forecast period bounds
     ],
 )
 def test_mismatching_temporal_coordinates(
@@ -353,7 +353,7 @@ def test_mismatching_temporal_coordinates(
     The forecast reference time and forecast period on the resulting cube,
     are however, unchanged, because these are taken from the input target feature cube
     without modification."""
-    feature_config = {"wind_speed_at_10m": ["mean", "latitude", "longitude"]}
+    feature_config = {"wind_speed_at_10m": ["mean", "std", "latitude", "longitude"]}
     transformation = None
     pre_transform_addition = 0
     extra_kwargs = {}
@@ -368,7 +368,7 @@ def test_mismatching_temporal_coordinates(
         forecast_period = forecast_period * 3600
 
     if include_dynamic:
-        feature_config["air_temperature"] = ["mean"]
+        feature_config["air_temperature"] = ["mean", "std"]
     if include_static:
         feature_config["distance_to_water"] = ["static"]
 
@@ -499,7 +499,7 @@ def test_unused_static_feature():
     site_id = ["wmo_id"]
     quantiles = [0.5]
     feature_config = {
-        "wind_speed_at_10m": ["mean", "latitude", "longitude"],
+        "wind_speed_at_10m": ["mean", "std", "latitude", "longitude"],
     }
     qrf_model, cube_inputs = set_up_for_expected(
         feature_config, n_estimators, max_depth, random_state,

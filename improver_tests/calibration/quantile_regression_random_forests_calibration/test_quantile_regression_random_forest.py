@@ -362,20 +362,20 @@ def test_prep_feature_invalid_percentiles(scenario):
         prep_feature(forecast_df, variable_name, "mean")
 
 
-def test_prep_feature_std_exception():
-    """Test that an error is raised if invalid percentiles are provided."""
+def test_prep_feature_nan_exception():
+    """Test that an error is raised if the computed features are NaN."""
     variable_name = "wind_speed_at_10m"
 
     forecast_reference_time = "20170101T0000Z"
     validity_time = "20170101T1200Z"
-    data = np.array([6])
+    data = np.array([np.nan])
     forecast_df = _create_forecasts(
         forecast_reference_time, validity_time, data, representation="percentile"
     )
     forecast_df = _add_day_of_training_period(forecast_df)
 
     with pytest.raises(ValueError, match="All computed values for feature"):
-        prep_feature(forecast_df, variable_name, "std")
+        prep_feature(forecast_df, variable_name, "mean")
 
 
 @pytest.mark.parametrize(
