@@ -25,6 +25,8 @@ from improver.utilities.cube_manipulation import MergeCubes
 from improver.utilities.flatten import flatten
 from improver.utilities.load import load_cubelist
 
+iris.FUTURE.pandas_ndim = True
+
 
 class CalibrationSchemas:
     def __init__(self):

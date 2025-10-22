@@ -35,9 +35,6 @@ except ModuleNotFoundError:
         pass
 
 
-iris.FUTURE.pandas_ndim = True
-
-
 class LoadForTrainQRF(PostProcessingPlugin):
     """Plugin to load input files for training a Quantile Regression Random Forest
     (QRF) model."""
