@@ -605,9 +605,9 @@ def add_static_feature_from_cube_to_df(
 ) -> pd.DataFrame:
     """Add a static feature to the forecast DataFrame from a cube based on the
     feature configuration. Other features are expected to already be present in the
-    forecast DataFrame. Columns that are float, after converting from a Cube to a
-    DataFrame, and within the list of column names provided for merging, are rounded
-    to a specified number of decimal places before merging to avoid precision issues.
+    forecast DataFrame. Columns within possible_merge_columns that are float after
+    converting from a Cube to a DataFrame, are rounded to a specified number of
+    decimal places before merging to avoid precision issues.
 
     Args:
         forecast_df: DataFrame containing the forecast data.
@@ -637,9 +637,9 @@ def add_feature_from_df_to_df(
     float_decimals: int = 4,
 ):
     """Add a feature to the forecast DataFrame from a second DataFrame based on the
-    feature configuration. Columns that are float and within the list of column names
-    provided for merging are rounded to a specified number of decimal places before
-    merging to avoid precision issues.
+    feature configuration. Columns within possible_merge_columns that are float are
+    rounded to a specified number of decimal places before merging to avoid
+    precision issues.
 
     Args:
         forecast_df: DataFrame containing the forecast data.
