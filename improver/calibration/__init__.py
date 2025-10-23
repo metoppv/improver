@@ -651,7 +651,7 @@ def add_feature_from_df_to_df(
             before merging. Default is 4, which corresponds to rounding to
             0.0001.
     Returns:
-        DataFrame with additional feature added..
+        DataFrame with additional feature added.
     """
     merge_columns = [col for col in possible_merge_columns if col in feature_df.columns]
 
