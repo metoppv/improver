@@ -5,6 +5,7 @@
 """Module containing feels like temperature calculation plugins"""
 
 from typing import Optional
+from unittest import result
 
 import numpy as np
 from iris.cube import Cube
@@ -232,3 +233,45 @@ def calculate_feels_like_temperature(
     feels_like_temperature_cube.convert_units(temperature.units)
 
     return feels_like_temperature_cube
+
+
+
+def calculate_wind_chill_temperature(
+    temperature: Cube,
+    wind_speed: Cube,
+    model_id_attr: Optional[str] = None,
+) -> Cube:
+    """
+    Wrapper around _calculate_wind_chill to allow calculation using Iris cubes.
+
+    Args:
+        temperature:
+            Cube of air temperature.
+        wind_speed:
+            Cube of 10m wind speed.
+        model_id_attr:
+            Optional model ID attribute for blending provenance.
+
+    Returns:
+        Cube of wind chill temperature (same shape and grid as inputs).
+    """
+    t_cube = temperature.copy()
+    t_cube.convert_units("degC")
+
+    w_cube = wind_speed.copy()
+    w_cube.convert_units("km h-1")
+
+    wind_chill_data = _calculate_wind_chill(t_cube.data, w_cube.data)
+
+    attributes = generate_mandatory_attributes([temperature, wind_speed], model_id_attr)
+    wind_chill_cube = create_new_diagnostic_cube(
+        "wind_chill_temperature",
+        "degC",
+        temperature,
+        attributes,
+        data=wind_chill_data,
+    )
+
+    # # Match input temperature units (e.g., Kelvin if that was the original)
+    wind_chill_cube.convert_units(temperature.units)
+    return wind_chill_cube
