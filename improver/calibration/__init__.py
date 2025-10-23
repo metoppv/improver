@@ -658,7 +658,9 @@ def add_feature_from_df_to_df(
     # Select the required DataFrame subset using the merge_columns and dtypes.
     # Columns with any NaNs can not be converted to integers, and therefore are left
     # unmodified.
-    float_subset = feature_df[merge_columns].select_dtypes(include=[np.float32])
+    float_subset = feature_df[merge_columns].select_dtypes(
+        include=[np.float32, np.float64]
+    )
     float_subset = float_subset[float_subset.columns[~float_subset.isnull().any()]]
 
     float_cols = list(set(float_subset.columns).intersection(set(forecast_df.columns)))

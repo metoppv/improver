@@ -1454,9 +1454,6 @@ def test_add_feature_from_df_to_df(
 ):
     """Test that a feature from one dataframe is correctly added to another
     dataframe."""
-    latitudes = [5.0, 6.0, 7.0]
-    longitudes = [1.0, 2.0, 3.0]
-
     feature_dict = {
         "wmo_id": ["01001", "01002", "01003"],
         "latitude": latitudes,
