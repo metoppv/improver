@@ -606,8 +606,8 @@ def add_static_feature_from_cube_to_df(
     """Add a static feature to the forecast DataFrame from a cube based on the
     feature configuration. Other features are expected to already be present in the
     forecast DataFrame. Columns that are float, after converting from a Cube to a
-    DataFrame, are rounded to a specified number of decimal places before merging
-    to avoid precision issues.
+    DataFrame, and within the list of column names provided for merging, are rounded
+    to a specified number of decimal places before merging to avoid precision issues.
 
     Args:
         forecast_df: DataFrame containing the forecast data.
@@ -623,6 +623,36 @@ def add_static_feature_from_cube_to_df(
     """
     feature_df = as_data_frame(feature_cube, add_aux_coords=True).reset_index()
 
+    forecast_df = add_feature_from_df_to_df(
+        forecast_df, feature_df, feature_name, possible_merge_columns, float_decimals
+    )
+    return forecast_df
+
+
+def add_feature_from_df_to_df(
+    forecast_df: pd.DataFrame,
+    feature_df: pd.DataFrame,
+    feature_name: str,
+    possible_merge_columns: list[str],
+    float_decimals: int = 4,
+):
+    """Add a feature to the forecast DataFrame from a second DataFrame based on the
+    feature configuration. Columns that are float and within the list of column names
+    provided for merging are rounded to a specified number of decimal places before
+    merging to avoid precision issues.
+
+    Args:
+        forecast_df: DataFrame containing the forecast data.
+        feature_df: DataFrame containing the feature data.
+        feature_name: Name of the feature to be added.
+        possible_merge_columns: List of column names that can be used to merge
+            the feature DataFrame to the forecast DataFrame.
+        float_decimals: Number of decimal places to round float columns to
+            before merging. Default is 4, which corresponds to rounding to
+            0.0001.
+    Returns:
+        DataFrame with additional feature added..
+    """
     merge_columns = [col for col in possible_merge_columns if col in feature_df.columns]
 
     # Select the required DataFrame subset using the merge_columns and dtypes.

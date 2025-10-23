@@ -139,7 +139,7 @@ def prep_feature(
 
         subset_df = subset_df.reset_index()
 
-        if feature_name == "std" and subset_df[variable_name].isnull().any():
+        if feature_name == "std":
             # If all values are identical for a group, std will be NaN.
             # Replace these NaNs with 0.
             subset_df[variable_name] = subset_df[variable_name].fillna(value=0)

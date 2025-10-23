@@ -17,6 +17,7 @@ import pandas as pd
 from improver import PostProcessingPlugin
 from improver.calibration import (
     CalibrationSchemas,
+    add_feature_from_df_to_df,
     add_static_feature_from_cube_to_df,
     get_training_period_cycles,
     identify_parquet_type,
@@ -239,13 +240,11 @@ class LoadForTrainQRF(PostProcessingPlugin):
             if additional_df[representation].isna().all():
                 merge_on.remove(representation)
 
-            forecast_df = pd.merge(
+            forecast_df = add_feature_from_df_to_df(
                 forecast_df,
-                additional_df[merge_on + ["forecast"]].rename(
-                    columns={"forecast": cf_name}
-                ),
-                on=merge_on,
-                how="left",
+                additional_df.rename(columns={"forecast": cf_name}),
+                cf_name,
+                merge_on,
             )
 
         seconds_to_ns = 1e9
