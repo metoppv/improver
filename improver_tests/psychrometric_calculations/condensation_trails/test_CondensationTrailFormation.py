@@ -184,6 +184,7 @@ def test_engine_mixing_ratio(
             calculate_svp_in_air(
                 np.array([250.0, 260.0, 270.0], dtype=np.float32),
                 np.array([100000, 90000, 80000], dtype=np.float32),
+                phase="water",
             )
             * np.array([0.5, 0.6, 0.7], dtype=np.float32),
         ),
@@ -195,6 +196,7 @@ def test_engine_mixing_ratio(
             calculate_svp_in_air(
                 np.array([280.0], dtype=np.float32),
                 np.array([95000], dtype=np.float32),
+                phase="water",
             )
             * np.array([0.8], dtype=np.float32),
         ),

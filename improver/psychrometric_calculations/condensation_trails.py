@@ -85,7 +85,8 @@ class CondensationTrailFormation(BasePlugin):
 
     def _find_local_vapour_pressure(self, pressure_levels: np.ndarray) -> np.ndarray:
         """
-        Calculate the local vapour pressure (svp) at the given pressure levels using the temperature and pressure data.
+        Calculate the local vapour pressure with respect to water at the given
+        pressure levels using the temperature and pressure data.
 
         Args:
             pressure_levels (np.ndarray): Pressure levels (Pa).
@@ -99,7 +100,9 @@ class CondensationTrailFormation(BasePlugin):
             (len(pressure_levels),) + (1,) * (self.temperature.ndim - 1),
         )
         svp = calculate_svp_in_air(
-            temperature=self.temperature, pressure=pressure_levels_reshaped
+            temperature=self.temperature,
+            pressure=pressure_levels_reshaped,
+            phase="water",
         )
         return self.relative_humidity * svp
 
