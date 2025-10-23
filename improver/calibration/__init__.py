@@ -13,8 +13,10 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import iris
 import joblib
+import numpy as np
 import pandas as pd
 from iris.cube import Cube, CubeList
+from iris.pandas import as_data_frame
 
 from improver.metadata.probabilistic import (
     get_diagnostic_cube_name_from_probability_name,
@@ -22,6 +24,8 @@ from improver.metadata.probabilistic import (
 from improver.utilities.cube_manipulation import MergeCubes
 from improver.utilities.flatten import flatten
 from improver.utilities.load import load_cubelist
+
+iris.FUTURE.pandas_ndim = True
 
 
 class CalibrationSchemas:
@@ -590,3 +594,57 @@ def get_training_period_cycles(
         periods=int(training_length),
         freq="D",
     )
+
+
+def add_static_feature_from_cube_to_df(
+    forecast_df: pd.DataFrame,
+    feature_cube: iris.cube.Cube,
+    feature_name: str,
+    possible_merge_columns: list[str],
+    float_decimals: int = 4,
+) -> pd.DataFrame:
+    """Add a static feature to the forecast DataFrame from a cube based on the
+    feature configuration. Other features are expected to already be present in the
+    forecast DataFrame. Columns that are float, after converting from a Cube to a
+    DataFrame, are rounded to a specified number of decimal places before merging
+    to avoid precision issues.
+
+    Args:
+        forecast_df: DataFrame containing the forecast data.
+        cube_inputs: List of cubes containing additional features.
+        feature_name: Name of the feature to be added.
+        possible_merge_columns: List of column names that can be used to merge
+            the feature DataFrame to the forecast DataFrame.
+        float_decimals: Number of decimal places to round float columns to
+            before merging. Default is 4, which corresponds to rounding to
+            0.0001.
+    Returns:
+        DataFrame with additional feature added from the input cubes.
+    """
+    feature_df = as_data_frame(feature_cube, add_aux_coords=True).reset_index()
+
+    merge_columns = [col for col in possible_merge_columns if col in feature_df.columns]
+
+    # Select the required DataFrame subset using the merge_columns and dtypes.
+    # Columns with any NaNs can not be converted to integers, and therefore are left
+    # unmodified.
+    float_subset = feature_df[merge_columns].select_dtypes(include=[np.float32])
+    float_subset = float_subset[float_subset.columns[~float_subset.isnull().any()]]
+
+    float_cols = list(set(float_subset.columns).intersection(set(forecast_df.columns)))
+    original_dtypes = forecast_df[float_cols].dtypes
+
+    # Scale float columns to integers for both DataFrames to avoid precision issues
+    multiplier = 10**float_decimals
+    feature_df[float_cols] = np.round(feature_df[float_cols] * multiplier).astype(int)
+    forecast_df[float_cols] = np.round(forecast_df[float_cols] * multiplier).astype(int)
+
+    forecast_df = forecast_df.merge(
+        feature_df[merge_columns + [feature_name]],
+        on=merge_columns,
+        how="left",
+    )
+    # Revert float columns to original dtypes and scale back to original values.
+    for col, dtype in zip(float_cols, original_dtypes):
+        forecast_df[col] = forecast_df[col].astype(dtype) / multiplier
+    return forecast_df
