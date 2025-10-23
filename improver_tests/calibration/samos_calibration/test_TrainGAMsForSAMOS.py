@@ -444,12 +444,16 @@ def test_missing_required_coordinates_exception(exception, model_specification):
             "coordinate in order to allow the calculation of means and standard "
             "deviations."
         )
+        with pytest.raises(ValueError, match=msg):
+            TrainGAMsForSAMOS(model_specification).process(input_cube, features)
     elif exception == "single_point_time_coord":
         msg = (
             "The input cube does not contain a realization coordinate. In order to "
             "calculate means and standard deviations the time coordinate must "
             "contain more than one point."
         )
-
-    with pytest.raises(ValueError, match=msg):
-        TrainGAMsForSAMOS(model_specification).process(input_cube, features)
+        with pytest.warns(UserWarning, match=msg):
+            result = TrainGAMsForSAMOS(model_specification).process(
+                input_cube, features
+            )
+            assert result is None
