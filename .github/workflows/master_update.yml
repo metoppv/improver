@@ -1,0 +1,43 @@
+name: Master Update
+
+on:
+  push:
+    branches:
+      - master  # Triggers when commits are pushed or merged into master
+
+jobs:
+  Test-Coverage:
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v5
+      with:
+        fetch-depth: 0
+
+    - name: Environment creation
+      uses: mamba-org/setup-micromamba@v2
+      with:
+        environment-file: envs/latest.yml
+        init-shell: bash
+        cache-environment: true
+
+    - name: Environment info
+      run: |
+        micromamba info
+        micromamba list
+      shell: bash -el {0}
+
+    - name: pytest
+      run: |
+          pytest --cov=improver --cov-report=term --cov-report=html | tee coverage_output.txt; test ${PIPESTATUS[0]} -eq 0
+      shell: micromamba-shell {0}
+
+    - name: Upload coverage report
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report-master
+        overwrite: true
+        path: |
+          coverage_output.txt
+          htmlcov/
