@@ -113,6 +113,9 @@ def process(
     # Split the input paths into cubes and pickles
     cubes, _, gams = split_netcdf_parquet_pickle(file_paths)
 
+    if gams is None:
+        return
+
     # Split the cubes into forecast and truth cubes, along with any additional fields
     # provided for the GAMs and EMOS.
     (

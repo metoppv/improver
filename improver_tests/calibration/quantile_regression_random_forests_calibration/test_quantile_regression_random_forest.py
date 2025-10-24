@@ -31,9 +31,9 @@ from improver.synthetic_data.set_up_test_cubes import set_up_spot_variable_cube
 
 pytest.importorskip("quantile_forest")
 
-ALTITUDE = [10, 20]
-LATITUDE = [50, 60]
-LONGITUDE = [0, 10]
+ALTITUDE = [10.0, 20.0]
+LATITUDE = [50.1, 60.9]
+LONGITUDE = [0.1, 10.9]
 WMO_ID = ["00001", "00002"]
 
 iris.FUTURE.pandas_ndim = True
@@ -71,9 +71,9 @@ def _create_forecasts(
         wmo_ids=WMO_ID,
         unique_site_id=WMO_ID,
         unique_site_id_key="station_id",
-        latitudes=np.array([50, 60], np.float32),
-        longitudes=np.array([0, 10], np.float32),
-        altitudes=np.array([10, 20], np.float32),
+        latitudes=np.array(LATITUDE, np.float32),
+        longitudes=np.array(LONGITUDE, np.float32),
+        altitudes=np.array(ALTITUDE, np.float32),
         time=dt.strptime(validity_time, DT_FORMAT),
         frt=dt.strptime(forecast_reference_time, DT_FORMAT),
     )
@@ -133,9 +133,9 @@ def _create_ancil_file(return_cube: bool = False) -> Cube | pd.DataFrame:
         wmo_ids=WMO_ID,
         unique_site_id=WMO_ID,
         unique_site_id_key="station_id",
-        latitudes=np.array([50, 60], np.float32),
-        longitudes=np.array([0, 10], np.float32),
-        altitudes=np.array([10, 20], np.float32),
+        latitudes=np.array(LATITUDE, np.float32),
+        longitudes=np.array(LONGITUDE, np.float32),
+        altitudes=np.array(ALTITUDE, np.float32),
         name="distance_to_water",
         units="m",
     )
@@ -256,8 +256,8 @@ def test_quantile_forest_package_available():
         ("percentile_50", np.tile([6, 8], 3).astype(np.float32), np.float32),
         ("members_below_5", np.repeat(1, 6).astype(np.float32), np.float32),
         ("members_above_5", np.repeat(2, 6).astype(np.float32), np.float32),
-        ("latitude", np.tile([50, 60], 3).astype(np.float32), np.float32),
-        ("longitude", np.tile([0, 10], 3).astype(np.float32), np.float32),
+        ("latitude", np.tile(LATITUDE, 3).astype(np.float32), np.float32),
+        ("longitude", np.tile(LONGITUDE, 3).astype(np.float32), np.float32),
         ("altitude", np.tile([10, 20], 3).astype(np.float32), np.float32),
         (
             "day_of_year",
@@ -362,6 +362,22 @@ def test_prep_feature_invalid_percentiles(scenario):
         prep_feature(forecast_df, variable_name, "mean")
 
 
+def test_prep_feature_nan_exception():
+    """Test that an error is raised if the computed features are NaN."""
+    variable_name = "wind_speed_at_10m"
+
+    forecast_reference_time = "20170101T0000Z"
+    validity_time = "20170101T1200Z"
+    data = np.array([np.nan])
+    forecast_df = _create_forecasts(
+        forecast_reference_time, validity_time, data, representation="percentile"
+    )
+    forecast_df = _add_day_of_training_period(forecast_df)
+
+    with pytest.raises(ValueError, match="All computed values for feature"):
+        prep_feature(forecast_df, variable_name, "mean")
+
+
 @pytest.mark.parametrize(
     "feature_name,expected,expected_dtype",
     [
@@ -372,8 +388,8 @@ def test_prep_feature_invalid_percentiles(scenario):
         ("percentile_50", np.tile(np.array([6, 8], dtype=np.float32), 18), np.float32),
         ("members_below_5", np.repeat(1, 36).astype(np.float32), np.float32),
         ("members_above_5", np.repeat(2, 36).astype(np.float32), np.float32),
-        ("latitude", np.tile([50, 60], 18).astype(np.float32), np.float32),
-        ("longitude", np.tile([0, 10], 18).astype(np.float32), np.float32),
+        ("latitude", np.tile(LATITUDE, 18).astype(np.float32), np.float32),
+        ("longitude", np.tile(LONGITUDE, 18).astype(np.float32), np.float32),
         ("altitude", np.tile([10, 20], 18).astype(np.float32), np.float32),
         (
             "day_of_year",
@@ -833,6 +849,38 @@ def test_alternative_feature_configs(
     np.testing.assert_almost_equal(result, expected, decimal=2)
 
 
+def test_train_qrf_many_nans():
+    """Test the TrainQuantileRegressionRandomForests plugin when the forecast cube
+    for training contains more than 50% undefined data. This raises an exception
+    as such a large volume of missing forecast data suggests an issue."""
+
+    feature_config = {"wind_speed_at_10m": ["static", "latitude", "longitude"]}
+
+    with pytest.raises(
+        ValueError, match="More than 50.0% of the forecast data has been removed"
+    ):
+        _run_train_qrf(
+            feature_config,
+            2,
+            3,
+            55,
+            "log10",
+            0,
+            {},
+            True,
+            forecast_reference_times=[
+                "20170101T0000Z",
+                "20170102T0000Z",
+            ],
+            validity_times=[
+                "20170101T1200Z",
+                "20170102T1200Z",
+            ],
+            realization_data=[np.nan],
+            truth_data=[4.2, 4.1, 4.2, 4.1],
+        )
+
+
 @pytest.mark.parametrize(
     "quantiles,transformation,pre_transform_addition,include_static,expected",
     [
@@ -871,7 +919,10 @@ def test_apply_qrf(
     expected,
 ):
     """Test the ApplyQuantileRegressionRandomForests plugin."""
-    feature_config = {"wind_speed_at_10m": ["mean", "std", "latitude", "longitude"]}
+    if len(quantiles) == 1:
+        feature_config = {"wind_speed_at_10m": ["mean", "latitude", "longitude"]}
+    else:
+        feature_config = {"wind_speed_at_10m": ["mean", "std", "latitude", "longitude"]}
     n_estimators = 2
     max_depth = 2
     random_state = 55
@@ -923,8 +974,8 @@ def test_apply_qrf(
     "quantiles,transformation,pre_transform_addition,feature,expected",
     [
         ([0.5], None, 0, None, [5, 4.9]),  # No additional feature
-        ([0.5], "log", 10, "members_below_7", [8.02, 4.86]),  # members below
-        ([0.5], "log", 10, "members_above_7", [5.54, 4.77]),  # members above
+        ([0.5], "log", 10, "members_below_7", [7.37, 4.86]),  # members below
+        ([0.5], "log", 10, "members_above_7", [4.98, 4.77]),  # members above
     ],
 )
 def test_apply_qrf_alternative_configs(
@@ -943,7 +994,7 @@ def test_apply_qrf_alternative_configs(
     if feature is not None:
         feature_list = [feature]
     feature_config = {
-        "wind_speed_at_10m": ["mean", "std", "latitude", "longitude", *feature_list]
+        "wind_speed_at_10m": ["mean", "latitude", "longitude", *feature_list]
     }
 
     n_estimators = 2

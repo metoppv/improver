@@ -69,6 +69,8 @@ def prep_feature(
             each site, e.g. "wmo_id" or ["latitude", "longitude"].
     Returns:
         df: DataFrame with the computed feature added.
+    Raises:
+        ValueError: If all computed values for the feature are NaN.
     """
     if (
         feature_name in ["mean", "std", "min", "max"]
@@ -136,6 +138,18 @@ def prep_feature(
             subset_df[variable_name] = subset_df[variable_name].astype(orig_dtype)
 
         subset_df = subset_df.reset_index()
+
+        if feature_name == "std":
+            # If all values are identical for a group, std will be NaN.
+            # Replace these NaNs with 0.
+            subset_df[variable_name] = subset_df[variable_name].fillna(value=0)
+
+        if subset_df[variable_name].isnull().all():
+            msg = (
+                f"All computed values for feature '{feature_name}' "
+                f"and variable '{variable_name}' are NaN."
+            )
+            raise ValueError(msg)
         # Rename the column to distinguish the computed feature from the original.
         subset_df.rename(
             columns={variable_name: f"{variable_name}_{feature_name}"}, inplace=True
@@ -221,6 +235,37 @@ def sanitise_forecast_dataframe(
     df = df[df[representation_name] == df[representation_name].iloc[0]]
     df = df.drop(columns=[representation_name, *collapsed_features])
     return df
+
+
+def _drop_nans_from_forecast_df(
+    forecast_df: pd.DataFrame,
+    merge_columns: list[str],
+    feature_column_names: list[str],
+    valid_forecast_proportion: float = 0.5,
+) -> None:
+    """Drops any NaNs from the forecast DataFrame. Extraneous columns are excluded
+    e.g. period, so we can drop nans across all columns without removing data due
+    to nans in unused columns.
+    Args:
+        forecast_df: Input forecast DataFrame.
+        merge_columns: Columns used for merging forecast and truth DataFrames.
+        feature_column_names: Names of the feature columns.
+        valid_forecast_proportion: Proportion of forecast data that can be removed.
+    Raises:
+        ValueError: If more than the specific proportion of the forecast data has been
+        removed after dropping NaNs.
+    """
+    forecast_df = forecast_df[merge_columns + feature_column_names]
+    forecast_df_length = len(forecast_df)
+    forecast_df.dropna(inplace=True)
+    if (
+        forecast_df_length - len(forecast_df)
+    ) / forecast_df_length > valid_forecast_proportion:
+        raise ValueError(
+            f"More than {valid_forecast_proportion * 100}% of the "
+            "forecast data has been removed after dropping NaNs. Please check "
+            "the input data and feature configuration."
+        )
 
 
 def prep_features_from_config(
@@ -378,7 +423,6 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
                 each site, e.g. "wmo_id" or ["latitude", "longitude"].
             kwargs:
                 Additional keyword arguments for the quantile regression model.
-
         """
 
         self.target_name = target_name
@@ -395,6 +439,9 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
         self.unique_site_id_keys = unique_site_id_keys
         self.kwargs = kwargs
         self.expected_coordinate_order = ["forecast_reference_time", "forecast_period"]
+        # Proportion of forecast data that can be removed when dropping NaNs.
+        # Exceeding this proportion will raise a ValueError.
+        self.valid_forecast_proportion = 0.5
 
     def fit_qrf(
         self, forecast_features: np.ndarray, target: np.ndarray
@@ -469,9 +516,15 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
             pre_transform_addition=self.pre_transform_addition,
             unique_site_id_keys=self.unique_site_id_keys,
         )
+        merge_columns = [*self.unique_site_id_keys, "time"]
+        _drop_nans_from_forecast_df(
+            forecast_df,
+            merge_columns,
+            feature_column_names,
+            self.valid_forecast_proportion,
+        )
         forecast_df = sanitise_forecast_dataframe(forecast_df, self.feature_config)
 
-        merge_columns = [*self.unique_site_id_keys, "time"]
         combined_df = forecast_df.merge(
             truth_df[merge_columns + ["ob_value"]], on=merge_columns, how="inner"
         )

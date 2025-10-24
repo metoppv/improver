@@ -13,8 +13,10 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import iris
 import joblib
+import numpy as np
 import pandas as pd
 from iris.cube import Cube, CubeList
+from iris.pandas import as_data_frame
 
 from improver.metadata.probabilistic import (
     get_diagnostic_cube_name_from_probability_name,
@@ -22,6 +24,8 @@ from improver.metadata.probabilistic import (
 from improver.utilities.cube_manipulation import MergeCubes
 from improver.utilities.flatten import flatten
 from improver.utilities.load import load_cubelist
+
+iris.FUTURE.pandas_ndim = True
 
 
 class CalibrationSchemas:
@@ -533,6 +537,43 @@ def add_warning_comment(forecast: Cube) -> Cube:
     return forecast
 
 
+def get_common_wmo_ids(
+    forecast_cube: Cube,
+    truth_cube: Cube,
+    additional_predictors: Optional[CubeList] = None,
+) -> Tuple[Cube, Cube, CubeList]:
+    """Extracts the common WMO IDs from the forecast, truth and any additional
+    predictor cubes.
+
+    Args:
+        forecast_cube: Cube containing the forecast data.
+        truth_cube: Cube containing the truth data.
+        additional_predictors: CubeList containing any additional predictors.
+
+    Raises:
+        IOError: If no common WMO IDs are found in the input cubes.
+
+    Returns:
+        The forecast, truth and additional predictor cubes with only the common
+        WMO IDs retained.
+    """
+    wmo_ids = []
+    wmo_ids.append(forecast_cube.coord("wmo_id").points)
+    wmo_ids.append(truth_cube.coord("wmo_id").points)
+    if additional_predictors is not None:
+        for ap in additional_predictors:
+            wmo_ids.append(ap.coord("wmo_id").points)
+    common_wmo_ids = list(set.intersection(*map(set, wmo_ids)))
+    if not common_wmo_ids:
+        raise IOError("No common WMO IDs found in the input cubes.")
+    constr = iris.Constraint(wmo_id=common_wmo_ids)
+    truth_cube = truth_cube.extract(constr)
+    forecast_cube = forecast_cube.extract(constr)
+    if additional_predictors is not None:
+        additional_predictors = additional_predictors.extract(constr)
+    return forecast_cube, truth_cube, additional_predictors
+
+
 def get_training_period_cycles(
     cycletime: str, forecast_period: Union[int, str], training_length: int
 ):
@@ -553,3 +594,89 @@ def get_training_period_cycles(
         periods=int(training_length),
         freq="D",
     )
+
+
+def add_static_feature_from_cube_to_df(
+    forecast_df: pd.DataFrame,
+    feature_cube: iris.cube.Cube,
+    feature_name: str,
+    possible_merge_columns: list[str],
+    float_decimals: int = 4,
+) -> pd.DataFrame:
+    """Add a static feature to the forecast DataFrame from a cube based on the
+    feature configuration. Other features are expected to already be present in the
+    forecast DataFrame. Columns within possible_merge_columns that are float after
+    converting from a Cube to a DataFrame, are rounded to a specified number of
+    decimal places before merging to avoid precision issues.
+
+    Args:
+        forecast_df: DataFrame containing the forecast data.
+        cube_inputs: List of cubes containing additional features.
+        feature_name: Name of the feature to be added.
+        possible_merge_columns: List of column names that can be used to merge
+            the feature DataFrame to the forecast DataFrame.
+        float_decimals: Number of decimal places to round float columns to
+            before merging. Default is 4, which corresponds to rounding to
+            0.0001.
+    Returns:
+        DataFrame with additional feature added from the input cubes.
+    """
+    feature_df = as_data_frame(feature_cube, add_aux_coords=True).reset_index()
+
+    forecast_df = add_feature_from_df_to_df(
+        forecast_df, feature_df, feature_name, possible_merge_columns, float_decimals
+    )
+    return forecast_df
+
+
+def add_feature_from_df_to_df(
+    forecast_df: pd.DataFrame,
+    feature_df: pd.DataFrame,
+    feature_name: str,
+    possible_merge_columns: list[str],
+    float_decimals: int = 4,
+):
+    """Add a feature to the forecast DataFrame from a second DataFrame based on the
+    feature configuration. Columns within possible_merge_columns that are float are
+    rounded to a specified number of decimal places before merging to avoid
+    precision issues.
+
+    Args:
+        forecast_df: DataFrame containing the forecast data.
+        feature_df: DataFrame containing the feature data.
+        feature_name: Name of the feature to be added.
+        possible_merge_columns: List of column names that can be used to merge
+            the feature DataFrame to the forecast DataFrame.
+        float_decimals: Number of decimal places to round float columns to
+            before merging. Default is 4, which corresponds to rounding to
+            0.0001.
+    Returns:
+        DataFrame with additional feature added.
+    """
+    merge_columns = [col for col in possible_merge_columns if col in feature_df.columns]
+
+    # Select the required DataFrame subset using the merge_columns and dtypes.
+    # Columns with any NaNs can not be converted to integers, and therefore are left
+    # unmodified.
+    float_subset = feature_df[merge_columns].select_dtypes(
+        include=[np.float32, np.float64]
+    )
+    float_subset = float_subset[float_subset.columns[~float_subset.isnull().any()]]
+
+    float_cols = list(set(float_subset.columns).intersection(set(forecast_df.columns)))
+    original_dtypes = forecast_df[float_cols].dtypes
+
+    # Scale float columns to integers for both DataFrames to avoid precision issues
+    multiplier = 10**float_decimals
+    feature_df[float_cols] = np.round(feature_df[float_cols] * multiplier).astype(int)
+    forecast_df[float_cols] = np.round(forecast_df[float_cols] * multiplier).astype(int)
+
+    forecast_df = forecast_df.merge(
+        feature_df[merge_columns + [feature_name]],
+        on=merge_columns,
+        how="left",
+    )
+    # Revert float columns to original dtypes and scale back to original values.
+    for col, dtype in zip(float_cols, original_dtypes):
+        forecast_df[col] = forecast_df[col].astype(dtype) / multiplier
+    return forecast_df

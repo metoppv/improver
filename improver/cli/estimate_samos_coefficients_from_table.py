@@ -136,6 +136,10 @@ def process(
     samos_additional_predictors, parquets, gams = split_netcdf_parquet_pickle(
         file_paths
     )
+
+    if gams is None:
+        return
+
     # Determine which parquet path provides truths and which historic forecasts.
     forecast, truth = identify_parquet_type(parquets)
 

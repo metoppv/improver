@@ -166,4 +166,7 @@ def process(
         additional_fields=additional_predictors,
     )
 
+    if forecast_gams is None or truth_gams is None:
+        return
+
     return [forecast_gams, truth_gams]

@@ -17,7 +17,10 @@ import pytest
 from iris.cube import CubeList
 
 from improver.calibration import (
+    add_feature_from_df_to_df,
+    add_static_feature_from_cube_to_df,
     add_warning_comment,
+    get_common_wmo_ids,
     get_training_period_cycles,
     identify_parquet_type,
     split_cubes_for_samos,
@@ -30,6 +33,7 @@ from improver.calibration import (
 from improver.synthetic_data.set_up_test_cubes import (
     set_up_percentile_cube,
     set_up_probability_cube,
+    set_up_spot_variable_cube,
     set_up_variable_cube,
 )
 from improver.utilities.save import save_netcdf
@@ -872,6 +876,90 @@ def test_split_cubes_for_samos_basic(
 
 
 @pytest.mark.parametrize(
+    "situation",
+    [
+        "all_matching",
+        "all_matching_with_multiple_additional_predictors",
+        "fewer_in_forecast",
+        "fewer_in_truth",
+        "fewer_in_additional_predictors",
+        "no_additional_predictors",
+        "mixture",
+        "no_overlapping_sites",
+    ],
+)
+def test_get_common_wmo_ids(situation):
+    """Test the get_common_wmo_ids function."""
+    forecast_wmo_ids = [1, 2, 3, 4, 5]
+    truth_wmo_ids = [1, 2, 3, 4, 5]
+    additional_wmo_ids = [1, 2, 3, 4, 5]
+
+    if situation == "all_matching_with_multiple_additional_predictors":
+        additional_wmo_ids = [1, 2, 3, 4, 5, 6]
+        # A second 'additional predictor' cube will be added later
+    elif situation == "fewer_in_forecast":
+        forecast_wmo_ids = [1, 2, 3]
+    elif situation == "fewer_in_truth":
+        truth_wmo_ids = [1, 2, 3]
+    elif situation == "fewer_in_additional_predictors":
+        additional_wmo_ids = [1, 2, 3]
+    elif situation == "no_additional_predictors":
+        additional_wmo_ids = []
+    elif situation == "mixture":
+        forecast_wmo_ids = [1, 2, 3, 4]
+        truth_wmo_ids = [1, 2, 3, 5]
+        additional_wmo_ids = [1, 2, 3, 6]
+    elif situation == "no_overlapping_sites":
+        forecast_wmo_ids = [1, 2]
+        truth_wmo_ids = [3, 4]
+        additional_wmo_ids = [5, 6]
+
+    data = np.ones(len(forecast_wmo_ids), dtype=np.float32)
+    forecast_cube = set_up_spot_variable_cube(data, wmo_ids=forecast_wmo_ids)
+    data = np.ones(len(truth_wmo_ids), dtype=np.float32)
+    truth_cube = set_up_spot_variable_cube(data, wmo_ids=truth_wmo_ids)
+
+    additional_predictors = None
+    if additional_wmo_ids:
+        data = np.ones(len(additional_wmo_ids), dtype=np.float32)
+        additional_predictors = CubeList(
+            [set_up_spot_variable_cube(data, wmo_ids=additional_wmo_ids)]
+        )
+        # Add a second additional predictor cube to the 'additional_predictors' list
+        if situation == "all_matching_with_multiple_additional_predictors":
+            additional_predictors.append(
+                set_up_spot_variable_cube(data, wmo_ids=additional_wmo_ids)
+            )
+
+    if situation == "no_overlapping_sites":
+        with pytest.raises(
+            IOError, match="No common WMO IDs found in the input cubes."
+        ):
+            get_common_wmo_ids(forecast_cube, truth_cube, additional_predictors)
+        return
+
+    forecast_result, truth_result, additional_predictor_result = get_common_wmo_ids(
+        forecast_cube, truth_cube, additional_predictors
+    )
+
+    if situation in [
+        "all_matching",
+        "all_matching_with_multiple_additional_predictors",
+        "no_additional_predictors",
+    ]:
+        expected = [f"{x:05}" for x in [1, 2, 3, 4, 5]]
+    else:
+        expected = [f"{x:05}" for x in [1, 2, 3]]
+    assert forecast_result.coord("wmo_id").points.tolist() == expected
+    assert truth_result.coord("wmo_id").points.tolist() == expected
+    if additional_predictors is None:
+        assert additional_predictor_result is None
+    else:
+        for cube in additional_predictor_result:
+            assert cube.coord("wmo_id").points.tolist() == expected
+
+
+@pytest.mark.parametrize(
     "provide_emos_coefficients,expect_emos_coefficients,provide_emos_additional_fields,expect_emos_additional_fields",
     [
         [True, True, False, False],
@@ -1285,6 +1373,131 @@ def test_get_training_period_cycles(
     """Test that get_training_period_cycles returns the expected cycletimes."""
     result = get_training_period_cycles(cycletime, forecast_period, training_length)
     assert list(result) == expected
+
+
+@pytest.mark.parametrize(
+    "latitudes,longitudes,float_decimals",
+    (
+        ([5.0, 6.0, 7.0], [1.0, 2.0, 3.0], 4),
+        ([5.00001, 6.0, 7.0], [1.0, 2.0, 3.0], 4),
+        ([5.0001, 6.0, 7.0], [1.0, 2.0, 3.0], 4),
+    ),
+)
+@pytest.mark.parametrize("data", [[10, 20, 30], [1e-6, 2e-7, 3e-8]])
+@pytest.mark.parametrize("merge_columns", [["wmo_id"], ["latitude", "longitude"]])
+def test_add_static_feature_from_cube_to_df(
+    latitudes, longitudes, float_decimals, data, merge_columns
+):
+    """Test that a static feature from a cube is correctly added to a dataframe."""
+    data = np.array(data, dtype=np.float32)
+    static_cube = set_up_spot_variable_cube(
+        data,
+        wmo_ids=[1001, 1002, 1003],
+        latitudes=np.array(latitudes, dtype=np.float32),
+        longitudes=np.array(longitudes, dtype=np.float32),
+        name="distance_to_water",
+        units="m",
+    )
+    for coord in ["time", "forecast_reference_time", "forecast_period"]:
+        static_cube.remove_coord(coord)
+
+    data_dict = {
+        "wmo_id": ["01001", "01002", "01003"],
+        "latitude": static_cube.coord("latitude").points,
+        "longitude": static_cube.coord("longitude").points,
+        "forecast": [281, 272, 287],
+    }
+    data_df = pd.DataFrame(data_dict)
+
+    expected_distances = data
+    result_df = add_static_feature_from_cube_to_df(
+        data_df.copy(),
+        static_cube,
+        "distance_to_water",
+        possible_merge_columns=merge_columns,
+        float_decimals=float_decimals,
+    )
+
+    assert "distance_to_water" in result_df.columns
+    np.testing.assert_allclose(result_df["distance_to_water"], expected_distances)
+    for merge_column in merge_columns:
+        if merge_column == "latitude":
+            adjusted_latitudes = data_df[merge_column]
+            if latitudes[0] == 5.00001:
+                # Rounding means that 5.00001 becomes 5.0 when float_decimals=4
+                adjusted_latitudes = [5.0, 6.0, 7.0]
+            np.testing.assert_allclose(
+                result_df[merge_column],
+                adjusted_latitudes,
+            )
+        elif merge_column == "longitude":
+            np.testing.assert_allclose(
+                result_df[merge_column],
+                data_df[merge_column],
+            )
+        else:
+            np.array_equal(result_df[merge_column], data_df[merge_column])
+
+
+@pytest.mark.parametrize(
+    "latitudes,longitudes,float_decimals",
+    (
+        ([5.0, 6.0, 7.0], [1.0, 2.0, 3.0], 4),
+        ([5.00001, 6.0, 7.0], [1.0, 2.0, 3.0], 4),
+        ([5.0001, 6.0, 7.0], [1.0, 2.0, 3.0], 4),
+    ),
+)
+@pytest.mark.parametrize("data", [[10, 20, 30], [1e-6, 2e-7, 3e-8]])
+@pytest.mark.parametrize("merge_columns", [["wmo_id"], ["latitude", "longitude"]])
+def test_add_feature_from_df_to_df(
+    latitudes, longitudes, float_decimals, data, merge_columns
+):
+    """Test that a feature from one dataframe is correctly added to another
+    dataframe."""
+    feature_dict = {
+        "wmo_id": ["01001", "01002", "01003"],
+        "latitude": latitudes,
+        "longitude": longitudes,
+        "wind_speed_at_10m": data,
+    }
+    feature_df = pd.DataFrame(feature_dict)
+
+    data_dict = {
+        "wmo_id": ["01001", "01002", "01003"],
+        "latitude": latitudes,
+        "longitude": longitudes,
+        "forecast": [281, 272, 287],
+    }
+    data_df = pd.DataFrame(data_dict)
+
+    expected_distances = data
+    result_df = add_feature_from_df_to_df(
+        data_df.copy(),
+        feature_df,
+        "wind_speed_at_10m",
+        possible_merge_columns=merge_columns,
+        float_decimals=float_decimals,
+    )
+
+    assert "wind_speed_at_10m" in result_df.columns
+    np.testing.assert_allclose(result_df["wind_speed_at_10m"], expected_distances)
+    for merge_column in merge_columns:
+        if merge_column == "latitude":
+            adjusted_latitudes = data_df[merge_column]
+            if latitudes[0] == 5.00001:
+                # Rounding means that 5.00001 becomes 5.0 when float_decimals=4
+                adjusted_latitudes = [5.0, 6.0, 7.0]
+            np.testing.assert_allclose(
+                result_df[merge_column],
+                adjusted_latitudes,
+            )
+        elif merge_column == "longitude":
+            np.testing.assert_allclose(
+                result_df[merge_column],
+                data_df[merge_column],
+            )
+        else:
+            np.array_equal(result_df[merge_column], data_df[merge_column])
 
 
 if __name__ == "__main__":
