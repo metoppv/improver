@@ -168,3 +168,21 @@ def test_process():
             assert result.statistics_[key] == expected.statistics_[key]
         else:
             assert np.array_equal(result.statistics_[key], expected.statistics_[key])
+
+
+def test_process_no_valid_data():
+    """Test that None is returned and a warning raised when there is no valid data to
+    fit the model."""
+    # Skip test if pyGAM not available.
+    pytest.importorskip("pygam")
+
+    X = np.array([[np.nan, np.nan], [np.nan, np.nan], [np.nan, np.nan]])
+    y = np.array([np.nan, np.nan, np.nan])
+
+    msg = (
+        "After removing NaN values from the input data, there are no "
+        "remaining data points to fit the GAM model. No model has been fitted."
+    )
+    with pytest.warns(UserWarning, match=msg):
+        result = GAMFit([["linear", [0], {}]]).process(X, y)
+    assert result is None

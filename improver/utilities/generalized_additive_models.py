@@ -5,6 +5,7 @@
 """Module to contain methods for fitting and predicting using generalized additive
 models."""
 
+import warnings
 from copy import deepcopy
 from typing import List
 
@@ -134,6 +135,15 @@ class GAMFit(BasePlugin):
         # Remove nans from arrays.
         predictors = predictors[~np.isnan(targets)]
         targets = targets[~np.isnan(targets)]
+
+        # Check that there is data to fit after removing nans.
+        if (len(predictors) == 0) or (len(targets) == 0):
+            msg = (
+                "After removing NaN values from the input data, there are no "
+                "remaining data points to fit the GAM model. No model has been fitted."
+            )
+            warnings.warn(msg)
+            return None
 
         eqn = self.create_pygam_model()
         gam = GAM(

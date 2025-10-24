@@ -572,6 +572,9 @@ class TrainGAMsForSAMOS(BasePlugin):
             targets = df[input_cube.name()].values
             output.append(plugin.process(feature_values, targets))
 
+        if None in output:
+            return None
+
         return output
 
 
