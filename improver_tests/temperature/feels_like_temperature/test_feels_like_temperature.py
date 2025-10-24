@@ -14,7 +14,7 @@ from improver.temperature.feels_like_temperature import (
     _calculate_apparent_temperature,
     _calculate_wind_chill,
     calculate_feels_like_temperature,
-    calculate_wind_chill_temperature,
+    calculate_wind_chill_cube,
 )
 
 
@@ -259,7 +259,7 @@ class Test_calculate_feels_like_temperature(IrisTest):
 
 
 
-class Test_calculate_wind_chill_temperature(IrisTest):
+class Test_calculate_wind_chill_cube(IrisTest):
     """Test the cube-based wind chill wrapper function."""
 
     def setUp(self):
@@ -290,7 +290,7 @@ class Test_calculate_wind_chill_temperature(IrisTest):
 
     def test_basic_functionality(self):
         """Test that the function runs and returns a valid cube."""
-        result = calculate_wind_chill_temperature(
+        result = calculate_wind_chill_cube(
             self.temperature_cube, self.wind_speed_cube
         )
 
@@ -341,7 +341,7 @@ class Test_calculate_wind_chill_temperature(IrisTest):
         expected_kelvin = expected_celsius + 273.15
 
         #  Run the cube-based wrapper
-        result = calculate_wind_chill_temperature(temperature, wind_speed)
+        result = calculate_wind_chill_cube(temperature, wind_speed)
 
         #  Assertions
         self.assertEqual(str(result.units), "K")                # converted back to Kelvin
@@ -376,7 +376,7 @@ class Test_calculate_wind_chill_temperature(IrisTest):
             attributes=mandatory_attributes,
         )
 
-        result = calculate_wind_chill_temperature(temperature, wind_speed)
+        result = calculate_wind_chill_cube(temperature, wind_speed)
 
 
         # Attributes propagated correctly
