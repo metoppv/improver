@@ -5,7 +5,7 @@
 """Module containing feels like temperature calculation plugins"""
 
 from typing import Optional
-from unittest import result
+
 
 import numpy as np
 from iris.cube import Cube
