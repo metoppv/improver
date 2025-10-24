@@ -236,7 +236,7 @@ def calculate_feels_like_temperature(
 
 
 
-def calculate_wind_chill_temperature(
+def calculate_wind_chill_cube(
     temperature: Cube,
     wind_speed: Cube,
     model_id_attr: Optional[str] = None,
