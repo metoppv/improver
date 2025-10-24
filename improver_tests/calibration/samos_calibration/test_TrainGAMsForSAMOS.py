@@ -237,6 +237,59 @@ def test_calculate_cube_statistics_missing_data(model_specification):
     assert expected == result
 
 
+def test_calculate_cube_statistics_insufficient_data(model_specification):
+    """Test that this method returns nan for all means and standard deviation where
+    there is insufficient data in the time period covered by the input_cube.
+    """
+    create_cube_kwargs = {
+        "forecast_type": "spot",
+        "n_spatial_points": 2,
+        "n_realizations": 1,
+        "n_times": 5,
+        "fill_value": 305.0,
+    }
+
+    expected_cube_kwargs = {
+        "forecast_type": "spot",
+        "n_spatial_points": 2,
+        "n_realizations": 1,
+        "n_times": 5,
+    }
+    shape = [5, 1]
+
+    # Set up input cube. Time coordinate is modified so that the time points are not
+    # evenly spaced, but a single artificial time point can be added during processing
+    # to allow rolling window calculations.
+    input_cube = create_simple_cube(**create_cube_kwargs)
+    add_values = np.array([-1.0, 0.0, 0.0, 0.0, 1.0]).reshape(shape)
+    input_cube.data = input_cube.data + np.broadcast_to(
+        add_values, input_cube.data.shape
+    )
+
+    input_cube.coord("time").points = input_cube.coord("time").points + np.array(
+        [0, 86400, 86400, 86400, 86400], dtype=np.int64
+    )
+
+    # Set up expected output cubes.
+    expected_mean = create_simple_cube(fill_value=np.nan, **expected_cube_kwargs)
+    expected_mean.coord("time").points = expected_mean.coord("time").points + np.array(
+        [0, 86400, 86400, 86400, 86400], dtype=np.int64
+    )
+
+    expected_sd = create_simple_cube(fill_value=np.nan, **expected_cube_kwargs)
+    expected_sd.coord("time").points = expected_sd.coord("time").points + np.array(
+        [0, 86400, 86400, 86400, 86400], dtype=np.int64
+    )
+
+    expected = CubeList([expected_mean, expected_sd])
+
+    result = TrainGAMsForSAMOS(
+        model_specification=model_specification, window_length=11
+    ).calculate_cube_statistics(input_cube=input_cube)
+
+    assert expected == result
+
+
 def test_calculate_cube_statistics_period_diagnostic(model_specification):
     """Test that this method correctly calculates the mean and standard deviation when
     the input cube contains a period diagnostic.
@@ -421,6 +474,47 @@ def test_process(
 
     np.testing.assert_almost_equal(mean_prediction[0], expected[0])
     np.testing.assert_almost_equal(sd_prediction[0], expected[1])
+
+
+def test_process_insufficient_data():
+    """Test that this method returns None when there is insufficient data to fit the
+    GAMs.
+    """
+    # Skip test if pyGAM not available.
+    pytest.importorskip("pygam")
+
+    full_model_specification = [["linear", [0], {}], ["linear", [1], {}]]
+    n_realizations = 1
+
+    features = ["latitude", "longitude"]
+    gam_kwargs = {
+        "max_iter": 250,
+        "tol": 0.01,
+        "distribution": "normal",
+        "link": "identity",
+        "fit_intercept": True,
+        "window_length": 11,
+        "valid_rolling_window_fraction": 0.5,
+    }
+    n_spatial_points = 5
+    n_times = 5
+
+    input_cube, additional_cubes = create_cubes_for_gam_fitting(
+        n_spatial_points,
+        n_realizations,
+        n_times,
+        False,
+    )
+
+    msg = (
+        "After removing NaN values from the input data, there are no "
+        "remaining data points to fit the GAM model. No model has been fitted."
+    )
+    with pytest.warns(UserWarning, match=msg):
+        result_gams = TrainGAMsForSAMOS(full_model_specification, **gam_kwargs).process(
+            input_cube, features, additional_cubes
+        )
+        assert result_gams is None
 
 
 @pytest.mark.parametrize("exception", ["no_time_coord", "single_point_time_coord"])
