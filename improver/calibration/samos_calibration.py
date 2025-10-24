@@ -7,6 +7,7 @@ This module defines all the "plugins" specific to Standardised Anomaly Model Out
 Statistics (SAMOS).
 """
 
+import warnings
 from typing import Dict, List, Optional, Sequence, Tuple
 
 import iris
@@ -544,7 +545,8 @@ class TrainGAMsForSAMOS(BasePlugin):
                     "coordinate must contain more than one point. The following time "
                     f"coordinate was found: {input_cube.coord('time')}."
                 )
-                raise ValueError(msg)
+                warnings.warn(msg)
+                return None
 
         # Calculate mean and standard deviation from input cube.
         stat_cubes = self.calculate_cube_statistics(input_cube)
