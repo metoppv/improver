@@ -479,6 +479,11 @@ def test_process(
 def test_process_insufficient_data():
     """Test that this method returns None when there is insufficient data to fit the
     GAMs.
+
+    In this test we provide 5 days of training data but specify a window_length of 11
+    days meaning that our training data does not fulfil the 50%
+    valid_rolling_window_fraction. The values are set to nan as an indicator of
+    incompleteness, which results in GAMFit raising a warning and returning None.
     """
     # Skip test if pyGAM not available.
     pytest.importorskip("pygam")
