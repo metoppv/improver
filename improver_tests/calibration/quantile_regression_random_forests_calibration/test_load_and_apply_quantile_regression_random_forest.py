@@ -234,20 +234,20 @@ def set_up_for_expected(
         (100, 2, 55, None, 0, {}, False, False, False, False, [1 / 3, 2 / 3], [[4.1, 5.1], [5.1, 5.1]]),  # Multiple quantiles
         (1, 1, 55, None, 0, {}, False, False, False, False, [0.5], [4.1, 6.2]),  # Fewer estimators and reduced depth
         (1, 1, 73, None, 0, {}, False, False, False, False, [0.5], [4.2, 6.2]),  # Different random state
-        (2, 2, 55, "log", 10, {}, False, False, False, False, [0.5], [4.1, 5.64]),  # Log transformation
-        (2, 2, 55, "log10", 10, {}, False, False, False, False, [0.5], [4.1, 5.64]),  # Log10 transformation
-        (2, 2, 55, "sqrt", 10, {}, False, False, False, False, [0.5], [4.1, 5.64]),  # Square root transformation
-        (2, 2, 55, "cbrt", 10, {}, False, False, False, False, [0.5], [4.1, 5.64]),  # Cube root transformation
+        (2, 2, 55, "log", 10, {}, False, False, False, False, [0.5], [4.1, 5.1]),  # Log transformation
+        (2, 2, 55, "log10", 10, {}, False, False, False, False, [0.5], [4.1, 5.1]),  # Log10 transformation
+        (2, 2, 55, "sqrt", 10, {}, False, False, False, False, [0.5], [4.1, 5.1]),  # Square root transformation
+        (2, 2, 55, "cbrt", 10, {}, False, False, False, False, [0.5], [4.1, 5.1]),  # Cube root transformation
         (2, 2, 55, None, 0, {"max_samples_leaf": 0.5}, False, False, False, False, [0.5], [4.1, 6.2]),  # Different criterion
         (2, 5, 55, None, 0, {}, True, False, False, False, [0.5], [4.1, 4.6]),  # Include an additional dynamic feature
         (2, 5, 55, None, 0, {}, False, True, False, False, [0.5], [4.1, 5.65]),  # Include an additional static feature
         (2, 5, 55, None, 0, {}, True, True, False, False, [0.5], [4.1, 4.6]),  # Include an additional dynamic and static feature
         (2, 2, 55, None, 0, {}, False, False, True, False, [0.5], [4.1, 5.65]),  # NaNs in input data
-        (2, 2, 55, None, 0, {}, False, False, False, True, [0.5], [4.1, 5.65]),  # NaNs in lat/lon
-        (2, 2, 55, None, 0, {}, True, False, False, True, [0.5], [4.1, 4.6]),  # NaNs in lat/lon and dynamic feature
-        (2, 2, 55, None, 0, {}, False, True, False, True, [0.5], [4.1, 5.65]),  # NaNs in lat/lon and static feature
-        (2, 2, 55, None, 0, {}, True, True, False, True, [0.5], [4.1, 4.6]),  # NaNs in lat/lon, dynamic and static feature
-        (2, 2, 55, None, 0, {}, True, True, True, True, [0.5], [4.6, 4.6]),  # NaNs in lat/lon, dynamic and static feature and input data
+        (2, 2, 55, None, 0, {}, False, False, False, True, [0.5], [4.1]),  # NaNs in lat/lon
+        (2, 2, 55, None, 0, {}, True, False, False, True, [0.5], [4.1]),  # NaNs in lat/lon and dynamic feature
+        (2, 2, 55, None, 0, {}, False, True, False, True, [0.5], [4.1]),  # NaNs in lat/lon and static feature
+        (2, 2, 55, None, 0, {}, True, True, False, True, [0.5], [4.1]),  # NaNs in lat/lon, dynamic and static feature
+        (2, 2, 55, None, 0, {}, True, True, True, True, [0.5], []),  # NaNs in lat/lon, dynamic and static feature and input data
     ],
 )
 # fmt: on
@@ -281,6 +281,24 @@ def test_prepare_and_apply_qrf(
         include_dynamic, include_static, include_nans, include_latlon_nans,
         percentile_input, site_id, quantiles)
 
+    if include_nans and include_latlon_nans and site_id == ["latitude", "longitude", "altitude"]:
+        # An exception is raised where there are NaNs in the input data (first site)
+        # and there are NaNs in the latitude and longitude (second site), and the
+        # site_id is based on lat/lon/altitude. In this case, the second site
+        # (the second row in the DataFrame) will be ignored when computing the mean
+        # feature when lat/lon/alt are used as the site_id. This means that only the
+        # first row remains (which has a NaN in the input data), and therefore all
+        # values available to compute the mean are NaN. The result is computing the
+        # mean is therefore NaN and an exception being raised.
+        with pytest.raises(
+            ValueError, match="All computed values for feature"):
+            PrepareAndApplyQRF(
+                feature_config,
+                "wind_speed_at_10m",
+                unique_site_id_keys=site_id,
+            )(cube_inputs, (qrf_model, transformation, pre_transform_addition))
+        return
+
     result = PrepareAndApplyQRF(
         feature_config,
         "wind_speed_at_10m",
@@ -290,8 +308,10 @@ def test_prepare_and_apply_qrf(
     assert isinstance(result, Cube)
     assert result.data.shape == (len(quantiles), 2)
 
-    if include_latlon_nans and site_id == ["latitude", "longitude", "altitude"]:
-        assert np.allclose(result.data, expected, rtol=1)
+    if include_latlon_nans:
+        # Only consider the first point which does not have a NaN in the
+        # latitude and longitude.
+        assert np.allclose(result.data[0, 0], expected, rtol=1e-2)
     else:
         assert np.allclose(result.data, expected, rtol=1e-2)
 
@@ -469,6 +489,7 @@ def test_missing_static_feature(set_up_for_unexpected):
     with pytest.raises(ValueError, match="The number of cubes loaded."):
         plugin(CubeList([forecast_cube]), qrf_descriptors=qrf_descriptors)
 
+
 def test_unused_static_feature(set_up_for_unexpected):
     """Test PrepareAndApplyQRF plugin behaviour when a static feature is unused.
     This test is to show that the plugin will ignore features that are provided
@@ -493,6 +514,7 @@ def test_unused_static_feature(set_up_for_unexpected):
     assert result.name() == "wind_speed_at_10m"
     assert result.units == "m s-1"
     assert result.data.shape == forecast_cube.data.shape
+
 
 def test_missing_dynamic_feature(set_up_for_unexpected):
     """Test PrepareAndApplyQRF plugin behaviour when a dynamic feature is missing."""

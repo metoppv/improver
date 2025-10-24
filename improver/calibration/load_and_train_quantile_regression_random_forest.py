@@ -13,11 +13,12 @@ from typing import Optional, Union
 import iris
 import numpy as np
 import pandas as pd
-from iris.pandas import as_data_frame
 
 from improver import PostProcessingPlugin
 from improver.calibration import (
     CalibrationSchemas,
+    add_feature_from_df_to_df,
+    add_static_feature_from_cube_to_df,
     get_training_period_cycles,
     identify_parquet_type,
     split_netcdf_parquet_pickle,
@@ -33,9 +34,6 @@ except ModuleNotFoundError:
     # Define empty class to avoid type hint errors.
     class RandomForestQuantileRegressor:
         pass
-
-
-iris.FUTURE.pandas_ndim = True
 
 
 class LoadForTrainQRF(PostProcessingPlugin):
@@ -230,24 +228,23 @@ class LoadForTrainQRF(PostProcessingPlugin):
                     f"forecast parquet file: {parquet_diagnostic_name}."
                 )
                 raise ValueError(msg)
-            forecast_df = pd.merge(
+
+            merge_on = [
+                *self.unique_site_id_keys,
+                "forecast_reference_time",
+                "forecast_period",
+                representation,
+            ]
+
+            # If e.g. percentile is all NaN as this is a deterministic diagnostic, remove this column.
+            if additional_df[representation].isna().all():
+                merge_on.remove(representation)
+
+            forecast_df = add_feature_from_df_to_df(
                 forecast_df,
-                additional_df[
-                    [
-                        *self.unique_site_id_keys,
-                        "forecast_reference_time",
-                        "forecast_period",
-                        representation,
-                        "forecast",
-                    ]
-                ].rename(columns={"forecast": cf_name}),
-                on=[
-                    *self.unique_site_id_keys,
-                    "forecast_reference_time",
-                    "forecast_period",
-                    representation,
-                ],
-                how="left",
+                additional_df.rename(columns={"forecast": cf_name}),
+                cf_name,
+                merge_on,
             )
 
         seconds_to_ns = 1e9
@@ -418,6 +415,7 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
         self.unique_site_id_keys = unique_site_id_keys
         self.kwargs = kwargs
         self.quantile_forest_installed = quantile_forest_package_available()
+        self.float_decimals = 4
 
     @staticmethod
     def _check_matching_times(
@@ -456,6 +454,7 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
         """
         if cube_inputs is None or len(cube_inputs) == 0:
             return forecast_df
+
         for feature_name, feature_list in self.feature_config.items():
             for feature in feature_list:
                 if feature == "static":
@@ -469,11 +468,12 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
                         feature_cube = None
                     if not feature_cube:
                         continue
-                    feature_df = as_data_frame(feature_cube, add_aux_coords=True)
-                    forecast_df = forecast_df.merge(
-                        feature_df[[*self.unique_site_id_keys, feature_name]],
-                        on=[*self.unique_site_id_keys],
-                        how="left",
+                    forecast_df = add_static_feature_from_cube_to_df(
+                        forecast_df,
+                        feature_cube,
+                        feature_name,
+                        [*self.unique_site_id_keys],
+                        float_decimals=self.float_decimals,
                     )
         return forecast_df
 

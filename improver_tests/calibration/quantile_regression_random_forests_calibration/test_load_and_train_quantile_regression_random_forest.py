@@ -22,6 +22,27 @@ ALTITUDE = [10, 20]
 LATITUDE = [50, 60]
 LONGITUDE = [0, 10]
 SITE_ID = ["03001", "03002", "03003", "03004", "03005"]
+LATITUDE_LOOKUP = {
+    "03001": 60.1,
+    "03002": 59.9,
+    "03003": 59.7,
+    "03004": 58.0,
+    "03005": 57.0,
+}
+LONGITUDE_LOOKUP = {
+    "03001": 1.0,
+    "03002": 2.0,
+    "03003": -1.0,
+    "03004": -2.0,
+    "03005": -3.0,
+}
+ALTITUDE_LOOKUP = {
+    "03001": 10.0,
+    "03002": 83.0,
+    "03003": 56.0,
+    "03004": 23.0,
+    "03005": 2.0,
+}
 
 
 def write_to_parquet(df, tmp_path, dirname, filename):
@@ -43,7 +64,9 @@ def write_to_parquet(df, tmp_path, dirname, filename):
     return output_dir
 
 
-def add_wind_data_to_forecasts(data_dict, wind_speed_values, wind_dir_values):
+def add_wind_data_to_forecasts(
+    data_dict, wind_speed_values, wind_dir_values, representation=None
+):
     """Add wind speed and direction data to a data dictionary. Set experiment to
     "recentblend". Note that this experiment is different to the default experiment
     in the data dictionary which is "latestblend".
@@ -52,6 +75,8 @@ def add_wind_data_to_forecasts(data_dict, wind_speed_values, wind_dir_values):
         data_dict: Dictionary containing the data.
         wind_speed_values: List of wind speed values to add.
         wind_dir_values: List of wind direction values to add.
+        representation: The type of ensemble representation to use. Options are:
+            "percentile", "realization" or "kittens. "kittens" is just used for testing.
     Returns:
         A DataFrame containing the original data along with wind speed and
         direction data.
@@ -69,6 +94,7 @@ def add_wind_data_to_forecasts(data_dict, wind_speed_values, wind_dir_values):
     wind_dir_dict["units"] = "degrees"
     wind_dir_dict["diagnostic"] = "wind_direction_at_10m"
     wind_dir_dict["experiment"] = "recentblend"
+    wind_dir_dict[representation] = np.nan
     data_df = pd.DataFrame(data_dict)
     wind_speed_df = pd.DataFrame(wind_speed_dict)
     wind_dir_df = pd.DataFrame(wind_dir_dict)
@@ -124,19 +150,19 @@ def _create_multi_site_forecast_parquet_file(tmp_path, representation=None):
             "percentile", "realization" or "kittens". "kittens" is just
             used for testing that the code works with a non-standard name.
     """
-
+    wmo_ids = ["03001", "03002", "03003", "03004", "03005"]
     data_dict = {
         "percentile": np.repeat(50.0, 5),
         "forecast": [281.0, 272.0, 287.0, 280.0, 290.0],
-        "altitude": [10.0, 83.0, 56.0, 23.0, 2.0],
+        "altitude": [ALTITUDE_LOOKUP[_id] for _id in wmo_ids],
         "blend_time": [pd.Timestamp("2017-01-02 00:00:00", tz="utc")] * 5,
         "forecast_period": [6 * 3.6e12] * 5,
         "forecast_reference_time": [pd.Timestamp("2017-01-02 00:00:00", tz="utc")] * 5,
-        "latitude": [60.1, 59.9, 59.7, 58, 57],
-        "longitude": [1.0, 2.0, -1.0, -2.0, -3.0],
+        "latitude": [LATITUDE_LOOKUP[_id] for _id in wmo_ids],
+        "longitude": [LONGITUDE_LOOKUP[_id] for _id in wmo_ids],
         "time": [pd.Timestamp("2017-01-02 06:00:00", tz="utc")] * 5,
-        "wmo_id": ["03001", "03002", "03003", "03004", "03005"],
-        "station_id": ["03001", "03002", "03003", "03004", "03005"],
+        "wmo_id": wmo_ids,
+        "station_id": [f"{int(_id):08}" for _id in wmo_ids],
         "cf_name": ["air_temperature"] * 5,
         "units": ["K"] * 5,
         "experiment": ["latestblend"] * 5,
@@ -149,7 +175,10 @@ def _create_multi_site_forecast_parquet_file(tmp_path, representation=None):
         data_dict, representation, list(range(len(data_dict["percentile"])))
     )
     joined_df = add_wind_data_to_forecasts(
-        data_dict, [8, 19, 16, 12, 10], [90, 100, 110, 120, 130]
+        data_dict,
+        [8, 19, 16, 12, 10],
+        [90, 100, 110, 120, 130],
+        representation=representation,
     )
     output_dir = write_to_parquet(
         joined_df, tmp_path, "forecast_parquet_files", "forecast.parquet"
@@ -166,19 +195,19 @@ def _create_multi_percentile_forecast_parquet_file(tmp_path, representation=None
             "percentile" (default), "realization" or "kittens". "kittens" is just
             used for testing that the code works with a non-standard name.
     """
-
+    wmo_ids = ["03001"] * 5
     data_dict = {
         "percentile": [16 + 2 / 3, 33 + 1 / 3, 50, 66 + 2 / 3, 83 + 1 / 3],
         "forecast": [272.0, 274.0, 275.0, 277.0, 280.0],
-        "altitude": [10.0, 10.0, 10.0, 10.0, 10.0],
+        "altitude": [ALTITUDE_LOOKUP[_id] for _id in wmo_ids],
         "blend_time": [pd.Timestamp("2017-01-02 00:00:00", tz="utc")] * 5,
         "forecast_period": [6 * 3.6e12] * 5,
         "forecast_reference_time": [pd.Timestamp("2017-01-02 00:00:00", tz="utc")] * 5,
-        "latitude": [60.1, 60.1, 60.1, 60.1, 60.1],
-        "longitude": [1, 1, 1, 1, 1],
+        "latitude": [LATITUDE_LOOKUP[_id] for _id in wmo_ids],
+        "longitude": [LONGITUDE_LOOKUP[_id] for _id in wmo_ids],
         "time": [pd.Timestamp("2017-01-02 06:00:00", tz="utc")] * 5,
-        "wmo_id": ["03001", "03001", "03001", "03001", "03001"],
-        "station_id": ["03001", "03001", "03001", "03001", "03001"],
+        "wmo_id": wmo_ids,
+        "station_id": [f"{int(_id):08}" for _id in wmo_ids],
         "cf_name": ["air_temperature"] * 5,
         "units": ["K"] * 5,
         "experiment": ["latestblend"] * 5,
@@ -191,7 +220,10 @@ def _create_multi_percentile_forecast_parquet_file(tmp_path, representation=None
         data_dict, representation, list(range(len(data_dict["percentile"])))
     )
     joined_df = add_wind_data_to_forecasts(
-        data_dict, [6, 10, 11, 12, 15], [90, 100, 110, 120, 130]
+        data_dict,
+        [6, 10, 11, 12, 15],
+        [90, 100, 110, 120, 130],
+        representation=representation,
     )
     output_dir = write_to_parquet(
         joined_df, tmp_path, "forecast_parquet_files", "forecast.parquet"
@@ -208,11 +240,11 @@ def _create_multi_forecast_period_forecast_parquet_file(tmp_path, representation
             "percentile", "realization" or "kittens". "kittens" is just
             used for testing that the code works with a non-standard name.
     """
-
+    wmo_ids = ["03001", "03002", "03001", "03002"]
     data_dict = {
         "percentile": [50.0, 50.0, 50.0, 50.0],
         "forecast": [277.0, 270.0, 280.0, 269.0],
-        "altitude": [10.0, 83.0, 10.0, 83.0],
+        "altitude": [ALTITUDE_LOOKUP[_id] for _id in wmo_ids],
         "blend_time": [pd.Timestamp("2017-01-02 00:00:00")] * 4,
         "forecast_period": np.repeat(
             [
@@ -222,14 +254,14 @@ def _create_multi_forecast_period_forecast_parquet_file(tmp_path, representation
             2,
         ),
         "forecast_reference_time": [pd.Timestamp("2017-01-02 00:00:00")] * 4,
-        "latitude": [60.1, 59.9, 60.1, 59.9],
-        "longitude": [1, 2, 1, 2],
+        "latitude": [LATITUDE_LOOKUP[_id] for _id in wmo_ids],
+        "longitude": [LONGITUDE_LOOKUP[_id] for _id in wmo_ids],
         "time": np.repeat(
             [pd.Timestamp("2017-01-02 06:00:00"), pd.Timestamp("2017-01-02 12:00:00")],
             2,
         ),
-        "wmo_id": ["03001", "03002", "03001", "03002"],
-        "station_id": ["03001", "03002", "03001", "03002"],
+        "wmo_id": wmo_ids,
+        "station_id": [f"{int(_id):08}" for _id in wmo_ids],
         "cf_name": ["air_temperature"] * 4,
         "units": ["K"] * 4,
         "experiment": ["latestblend"] * 4,
@@ -239,7 +271,7 @@ def _create_multi_forecast_period_forecast_parquet_file(tmp_path, representation
     }
     data_dict = modify_representation(data_dict, representation, [0, 1, 0, 1])
     joined_df = add_wind_data_to_forecasts(
-        data_dict, [6, 16, 12, 15], [180, 190, 200, 210]
+        data_dict, [6, 16, 12, 15], [180, 190, 200, 210], representation=representation
     )
     output_dir = write_to_parquet(
         joined_df, tmp_path, "forecast_parquet_files", "forecast.parquet"
@@ -249,14 +281,15 @@ def _create_multi_forecast_period_forecast_parquet_file(tmp_path, representation
 
 def _create_multi_site_truth_parquet_file(tmp_path):
     """Create a parquet file with multi-site truth data."""
+    wmo_ids = ["03001", "03002", "03003", "03004", "03005"]
     data_dict = {
         "diagnostic": ["temperature_at_screen_level"] * 5,
-        "latitude": [60.1, 59.9, 59.7, 58, 57],
-        "longitude": [1.0, 2.0, -1.0, -2.0, -3.0],
-        "altitude": [10.0, 83.0, 56.0, 23.0, 2.0],
+        "latitude": [LATITUDE_LOOKUP[_id] for _id in wmo_ids],
+        "longitude": [LONGITUDE_LOOKUP[_id] for _id in wmo_ids],
+        "altitude": [ALTITUDE_LOOKUP[_id] for _id in wmo_ids],
         "time": [pd.Timestamp("2017-01-02 06:00:00")] * 5,
-        "wmo_id": ["03001", "03002", "03003", "03004", "03005"],
-        "station_id": ["03001", "03002", "03003", "03004", "03005"],
+        "wmo_id": wmo_ids,
+        "station_id": [f"{int(_id):08}" for _id in wmo_ids],
         "ob_value": [276.0, 270.0, 289.0, 290.0, 301.0],
     }
     joined_df = add_wind_data_to_truth(data_dict, [3, 22, 24, 11, 9])
@@ -275,7 +308,7 @@ def _create_multi_percentile_truth_parquet_file(tmp_path):
         "altitude": [10.0],
         "time": [pd.Timestamp("2017-01-02 06:00:00")],
         "wmo_id": ["03001"],
-        "station_id": ["03001"],
+        "station_id": ["00003001"],
         "ob_value": [276.0],
     }
     joined_df = add_wind_data_to_truth(data_dict, [9])
@@ -287,17 +320,18 @@ def _create_multi_percentile_truth_parquet_file(tmp_path):
 
 def _create_multi_forecast_period_truth_parquet_file(tmp_path):
     """Create a parquet file with multi-forecast period truth data."""
+    wmo_ids = ["03001", "03002", "03001", "03002"]
     data_dict = {
         "diagnostic": ["temperature_at_screen_level"] * 4,
-        "latitude": [60.1, 59.9, 60.1, 59.9],
-        "longitude": [1.0, 2.0, 1.0, 2.0],
-        "altitude": [10.0, 83.0, 10.0, 83.0],
+        "latitude": [LATITUDE_LOOKUP[_id] for _id in wmo_ids],
+        "longitude": [LONGITUDE_LOOKUP[_id] for _id in wmo_ids],
+        "altitude": [ALTITUDE_LOOKUP[_id] for _id in wmo_ids],
         "time": np.repeat(
             [pd.Timestamp("2017-01-02 06:00:00"), pd.Timestamp("2017-01-02 12:00:00")],
             2,
         ),
-        "wmo_id": ["03001", "03002", "03001", "03002"],
-        "station_id": ["03001", "03002", "03001", "03002"],
+        "wmo_id": wmo_ids,
+        "station_id": [f"{int(_id):08}" for _id in wmo_ids],
         "ob_value": [280, 273, 284, 275],
     }
     joined_df = add_wind_data_to_truth(data_dict, [2.0, 11.0, 10.0, 14.0])
@@ -309,14 +343,15 @@ def _create_multi_forecast_period_truth_parquet_file(tmp_path):
 
 def _create_multi_site_truth_parquet_file_alt(tmp_path, site_id="wmo_id"):
     """Create a parquet file with multi-site truth data for wind speed."""
+    wmo_ids = ["03001", "03002", "03003", "03004", "03005"]
     data_dict = {
         "diagnostic": ["wind_speed_at_10m"] * 5,
-        "latitude": [60.1, 59.9, 59.7, 58, 57],
-        "longitude": [1.0, 2.0, -1.0, -2.0, -3.0],
-        "altitude": [10.0, 83.0, 56.0, 23.0, 2.0],
+        "latitude": [LATITUDE_LOOKUP[_id] for _id in wmo_ids],
+        "longitude": [LONGITUDE_LOOKUP[_id] for _id in wmo_ids],
+        "altitude": [ALTITUDE_LOOKUP[_id] for _id in wmo_ids],
         "time": [pd.Timestamp("2017-01-02 06:00:00")] * 5,
-        "wmo_id": ["03001", "03002", "03003", "03004", "03005"],
-        "station_id": ["03001", "03002", "03003", "03004", "03005"],
+        "wmo_id": wmo_ids,
+        "station_id": [f"{int(_id):08}" for _id in wmo_ids],
         "ob_value": [10.0, 25.0, 4.0, 3.0, 11.0],
     }
     joined_df = add_wind_data_to_truth(data_dict, [3.0, 22.0, 24.0, 11.0, 9.0])
@@ -333,14 +368,21 @@ def _create_ancil_file(tmp_path, site_ids):
         An ancillary cube with a single value.
     """
     data = np.array(range(len(site_ids)), dtype=np.float32)
+    latitudes = np.array([LATITUDE_LOOKUP[_id] for _id in site_ids], dtype=np.float32)
+    longitudes = np.array([LONGITUDE_LOOKUP[_id] for _id in site_ids], dtype=np.float32)
+    altitudes = np.array([ALTITUDE_LOOKUP[_id] for _id in site_ids], dtype=np.float32)
     template_cube = set_up_spot_variable_cube(
         data,
+        latitudes=latitudes,
+        longitudes=longitudes,
+        altitudes=altitudes,
         wmo_ids=site_ids,
         unique_site_id=site_ids,
         unique_site_id_key="station_id",
         name="distance_to_water",
         units="m",
     )
+
     cube = template_cube.copy()
     for coord in ["time", "forecast_reference_time", "forecast_period"]:
         cube.remove_coord(coord)
@@ -386,23 +428,20 @@ def amend_expected_forecast_df(
         additional_df = forecast_df[
             forecast_df["diagnostic"] == parquet_diagnostic_name
         ]
+        merge_on = [
+            *site_id,
+            "forecast_reference_time",
+            "forecast_period",
+            representation,
+        ]
+        if additional_df[representation].isna().all():
+            merge_on.remove(representation)
         base_df = pd.merge(
             base_df,
-            additional_df[
-                [
-                    *site_id,
-                    "forecast_reference_time",
-                    "forecast_period",
-                    representation,
-                    "forecast",
-                ]
-            ].rename(columns={"forecast": cf_name}),
-            on=[
-                *site_id,
-                "forecast_reference_time",
-                "forecast_period",
-                representation,
-            ],
+            additional_df[merge_on + ["forecast"]].rename(
+                columns={"forecast": cf_name}
+            ),
+            on=merge_on,
             how="left",
         )
     forecast_df = base_df
@@ -874,7 +913,10 @@ def test_prepare_and_train_qrf(
         feature_config["wind_speed"] = ["mean", "std"]
 
     if include_static:
-        _, ancil_cube = _create_ancil_file(tmp_path, sorted(list(set(site_ids))))
+        _, ancil_cube = _create_ancil_file(
+            tmp_path,
+            sorted(list(set(site_ids))),
+        )
         feature_config["distance_to_water"] = ["static"]
 
     if include_noncube_static:
