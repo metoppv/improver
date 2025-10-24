@@ -17,6 +17,7 @@ import pytest
 from iris.cube import CubeList
 
 from improver.calibration import (
+    add_feature_from_df_to_df,
     add_static_feature_from_cube_to_df,
     add_warning_comment,
     get_common_wmo_ids,
@@ -1419,6 +1420,67 @@ def test_add_static_feature_from_cube_to_df(
 
     assert "distance_to_water" in result_df.columns
     np.testing.assert_allclose(result_df["distance_to_water"], expected_distances)
+    for merge_column in merge_columns:
+        if merge_column == "latitude":
+            adjusted_latitudes = data_df[merge_column]
+            if latitudes[0] == 5.00001:
+                # Rounding means that 5.00001 becomes 5.0 when float_decimals=4
+                adjusted_latitudes = [5.0, 6.0, 7.0]
+            np.testing.assert_allclose(
+                result_df[merge_column],
+                adjusted_latitudes,
+            )
+        elif merge_column == "longitude":
+            np.testing.assert_allclose(
+                result_df[merge_column],
+                data_df[merge_column],
+            )
+        else:
+            np.array_equal(result_df[merge_column], data_df[merge_column])
+
+
+@pytest.mark.parametrize(
+    "latitudes,longitudes,float_decimals",
+    (
+        ([5.0, 6.0, 7.0], [1.0, 2.0, 3.0], 4),
+        ([5.00001, 6.0, 7.0], [1.0, 2.0, 3.0], 4),
+        ([5.0001, 6.0, 7.0], [1.0, 2.0, 3.0], 4),
+    ),
+)
+@pytest.mark.parametrize("data", [[10, 20, 30], [1e-6, 2e-7, 3e-8]])
+@pytest.mark.parametrize("merge_columns", [["wmo_id"], ["latitude", "longitude"]])
+def test_add_feature_from_df_to_df(
+    latitudes, longitudes, float_decimals, data, merge_columns
+):
+    """Test that a feature from one dataframe is correctly added to another
+    dataframe."""
+    feature_dict = {
+        "wmo_id": ["01001", "01002", "01003"],
+        "latitude": latitudes,
+        "longitude": longitudes,
+        "wind_speed_at_10m": data,
+    }
+    feature_df = pd.DataFrame(feature_dict)
+
+    data_dict = {
+        "wmo_id": ["01001", "01002", "01003"],
+        "latitude": latitudes,
+        "longitude": longitudes,
+        "forecast": [281, 272, 287],
+    }
+    data_df = pd.DataFrame(data_dict)
+
+    expected_distances = data
+    result_df = add_feature_from_df_to_df(
+        data_df.copy(),
+        feature_df,
+        "wind_speed_at_10m",
+        possible_merge_columns=merge_columns,
+        float_decimals=float_decimals,
+    )
+
+    assert "wind_speed_at_10m" in result_df.columns
+    np.testing.assert_allclose(result_df["wind_speed_at_10m"], expected_distances)
     for merge_column in merge_columns:
         if merge_column == "latitude":
             adjusted_latitudes = data_df[merge_column]
