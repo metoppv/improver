@@ -173,3 +173,95 @@ def test_additional_features_cubes(
     # pickled objects are the same, not the actual objects as
     # there is no function to compare the GAM class objects.
     acc.compare(output_path, kgo_path, file_type="generic_pickle")
+
+
+@pytest.mark.slow
+def test_no_forecast(
+    tmp_path,
+):
+    """
+    Test estimate-samos-gams-from-table does not return a result when no forecast data
+    is available for the given leadtime in the given table.
+    """
+    source_dir = acc.kgo_root() / "estimate-emos-coefficients-from-table/"
+    history_path = source_dir / "forecast_table"
+    truth_path = source_dir / "truth_table"
+
+    kgo_dir = acc.kgo_root() / "estimate-samos-gams-from-table/"
+
+    output_path = tmp_path / "output.pkl"
+    compulsory_args = [history_path, truth_path]
+    named_args = [
+        "--diagnostic",
+        "temperature_at_screen_level",
+        "--cycletime",
+        "20210805T2100Z",
+        "--forecast-period",
+        "3600000",
+        "--training-length",
+        "5",
+        "--distribution",
+        "normal",
+        "--tolerance",
+        "1e-4",
+        "--gam-features",
+        "latitude,longitude,altitude",
+        "--model-specification",
+        kgo_dir / "samos_model_spec_simple.json",
+        "--percentiles",
+        "10,20,30,40,50,60,70,80,90",
+        "--window-length",
+        "3",
+        "--output",
+        output_path,
+    ]
+
+    assert run_cli(compulsory_args + named_args) is None
+
+
+@pytest.mark.slow
+def test_insufficient_data(
+    tmp_path,
+):
+    """
+    Test estimate-samos-gams-from-table does not return a result when insufficient
+    data is available at all sites.
+
+    This test provides 3 days of input data but uses a window length of 11 days. This
+    will cause the training data at all sites to be insufficient to fit the GAMs, and so
+    no output should be produced.
+    """
+    source_dir = acc.kgo_root() / "estimate-emos-coefficients-from-table/"
+    history_path = source_dir / "forecast_table"
+    truth_path = source_dir / "truth_table"
+
+    kgo_dir = acc.kgo_root() / "estimate-samos-gams-from-table/"
+
+    output_path = tmp_path / "output.pkl"
+    compulsory_args = [history_path, truth_path]
+    named_args = [
+        "--diagnostic",
+        "temperature_at_screen_level",
+        "--cycletime",
+        "20210805T2100Z",
+        "--forecast-period",
+        "86400",
+        "--training-length",
+        "5",
+        "--distribution",
+        "normal",
+        "--tolerance",
+        "1e-4",
+        "--gam-features",
+        "latitude,longitude,altitude",
+        "--model-specification",
+        kgo_dir / "samos_model_spec_simple.json",
+        "--percentiles",
+        "10,20,30,40,50,60,70,80,90",
+        "--window-length",
+        "11",
+        "--output",
+        output_path,
+    ]
+
+    assert run_cli(compulsory_args + named_args) is None
