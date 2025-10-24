@@ -146,3 +146,42 @@ def test_gam_at_sites(tmp_path):
     # pickled objects are the same, not the actual objects as
     # there is no function to compare the GAM class objects.
     acc.compare(output_path, kgo_path, file_type="generic_pickle")
+
+
+def test_insufficient_data(tmp_path):
+    """
+    Test estimate-samos-gams- does not return a result when insufficient
+    data is available at all sites.
+
+    This test provides 3 days of input data but uses a window length of 11 days. This
+    will cause the training data at all sites to be insufficient to fit the GAMs, and so
+    no output should be produced.
+    """
+    source_emos_dir = acc.kgo_root() / "estimate-emos-coefficients/normal/sites"
+    history_path = source_emos_dir / "history/*.nc"
+    truth_path = source_emos_dir / "truth/*.nc"
+
+    kgo_dir = acc.kgo_root() / "estimate-samos-gam"
+    model_specification_path = kgo_dir / "samos_model_spec_simple.json"
+    output_path = tmp_path / "output.pkl"
+
+    gam_features = "latitude,longitude,height"
+    args = [
+        history_path,
+        truth_path,
+        "--distribution",
+        "normal",
+        "--truth-attribute",
+        "mosg__model_configuration=uk_det",
+        "--tolerance",
+        TOLERANCE,
+        "--gam-features",
+        gam_features,
+        "--model-specification",
+        model_specification_path,
+        "--window-length",
+        "11",
+        "--output",
+        output_path,
+    ]
+    assert run_cli(args) is None
