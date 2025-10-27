@@ -389,12 +389,11 @@ class ContrailHeightExtractor(BasePlugin):
             Each cube has dimensions (contrail_factor, lat (optional), lon (optional)).
         """
 
-        height_data = height_cube.data
         try:
-            broadcast_height = np.broadcast_to(height_data, formation_cube.shape)
+            broadcast_height = np.broadcast_to(height_cube.data, formation_cube.shape)
         except ValueError as broadcast_error:
             raise ValueError(
-                f"Cannot broadcast height data of shape {height_data.shape} to formation_cube shape {formation_cube.shape}"
+                f"Cannot broadcast height data of shape {height_cube.shape} to formation_cube shape {formation_cube.shape}"
             ) from broadcast_error
 
         if "contrail_type_meaning" not in formation_cube.attributes:
