@@ -31,8 +31,6 @@ height_data = np.array(
 )
 
 
-# Parameterize tests to use the above data
-@pytest.mark.parametrize("formation, height", [(formation_data, height_data)])
 def make_cube(
     data: np.ndarray,
     name: str,
@@ -88,6 +86,7 @@ def make_cube(
     return cube
 
 
+@pytest.mark.parametrize("formation, height", [(formation_data, height_data)])
 def test_max_extraction(formation: np.ndarray, height: np.ndarray):
     """
     Test maximum extraction of contrail formation using ContrailHeightExtractor.
@@ -96,6 +95,9 @@ def test_max_extraction(formation: np.ndarray, height: np.ndarray):
         formation: Test input formation data.
         height: Test input height data.
     """
+
+    print(formation)
+    print(height)
 
     # 1. Turn test data into test cubes ready for passing into ContrailHeightExtractor
     formation_cube = make_cube(
@@ -131,6 +133,7 @@ def test_max_extraction(formation: np.ndarray, height: np.ndarray):
     assert np.allclose(persistent.data, expected_persistent_max_height, equal_nan=True)
 
 
+@pytest.mark.parametrize("formation, height", [(formation_data, height_data)])
 def test_min_extraction(formation: np.ndarray, height: np.ndarray):
     """
     Test minimum extraction of contrail formation using ContrailHeightExtractor.
@@ -173,6 +176,7 @@ def test_min_extraction(formation: np.ndarray, height: np.ndarray):
     assert np.allclose(persistent.data, expected_persistent_min_height, equal_nan=True)
 
 
+@pytest.mark.parametrize("formation, height", [(formation_data, height_data)])
 def test_output_names_and_units(formation: np.ndarray, height: np.ndarray):
     """
     Test that output cubes have correct names and units using ContrailHeightExtractor.
@@ -205,6 +209,7 @@ def test_output_names_and_units(formation: np.ndarray, height: np.ndarray):
     assert persistent.units == height_cube.units
 
 
+@pytest.mark.parametrize("formation", [(formation_data)])
 def test_cube_shape_error_handling(formation: np.ndarray):
     """
     Test that an error is raised when input cubes have incompatible shapes using ContrailHeightExtractor.
@@ -237,6 +242,7 @@ def test_cube_shape_error_handling(formation: np.ndarray):
         extractor.process(formation_cube, height_cube)
 
 
+@pytest.mark.parametrize("formation, height", [(formation_data, height_data)])
 def test_attribute_availability_error_handling(
     formation: np.ndarray, height: np.ndarray
 ):
@@ -264,6 +270,7 @@ def test_attribute_availability_error_handling(
         extractor.process(formation_cube, height_cube)
 
 
+@pytest.mark.parametrize("formation, height", [(formation_data, height_data)])
 def test_attribute_length_error_handling(formation: np.ndarray, height: np.ndarray):
     """
     Test that an error is raised when input cubes have mismatched attribute lengths using ContrailHeightExtractor.
