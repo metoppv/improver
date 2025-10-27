@@ -13,11 +13,12 @@ from typing import Optional, Union
 import iris
 import numpy as np
 import pandas as pd
-from iris.pandas import as_data_frame
 
 from improver import PostProcessingPlugin
 from improver.calibration import (
     CalibrationSchemas,
+    add_feature_from_df_to_df,
+    add_static_feature_from_cube_to_df,
     get_training_period_cycles,
     identify_parquet_type,
     split_netcdf_parquet_pickle,
@@ -35,9 +36,6 @@ except ModuleNotFoundError:
         pass
 
 
-iris.FUTURE.pandas_ndim = True
-
-
 class LoadForTrainQRF(PostProcessingPlugin):
     """Plugin to load input files for training a Quantile Regression Random Forest
     (QRF) model."""
@@ -46,11 +44,11 @@ class LoadForTrainQRF(PostProcessingPlugin):
         self,
         feature_config: dict[str, list[str]],
         parquet_diagnostic_names: Union[list[str], str],
-        target_cf_name: str,
+        cf_names: Union[list[str], str],
         forecast_periods: str,
         cycletime: str,
         training_length: int,
-        experiment: Optional[str] = None,
+        experiments: list[str],
         unique_site_id_keys: Union[list[str], str] = "wmo_id",
     ):
         """Initialise the LoadForTrainQRF plugin.
@@ -58,14 +56,20 @@ class LoadForTrainQRF(PostProcessingPlugin):
         Args:
             feature_config: Feature configuration defining the features to be used for
                 Quantile Regression Random Forests.
-            parquet_diagnostic_names:
-                A list containing the diagnostic names that will be used for filtering
-                the forecast and truth DataFrames read in from the parquet files. The
-                target diagnostic name is expected to be the first item in the list.
-                These names could be different from the CF name e.g.
-                'temperature_at_screen_level'.
-            target_cf_name: A string containing the CF name of the forecast to be
-                calibrated e.g. air_temperature.
+            parquet_diagnostic_names: A list containing the diagnostic names that will
+                be used for filtering the forecast and truth DataFrames read in from
+                the parquet files. The target diagnostic name is expected to be the
+                first item in the list. These names could be different from the
+                CF name e.g. 'temperature_at_screen_level'. This is expected to be the
+                same length as the cf_names and experiments lists.
+            cf_names: A list containing the CF names of the diagnostics. The CF names should
+                match the order of the parquet_diagnostic_names. The target diagnostic to be
+                calibrated is expected to be the first item in the list. These names
+                could be different from the diagnostic name used to identify in the
+                parquet files. For example, the diagnostic name could be
+                'temperature_at_screen_level' and the corresponding CF name could be
+                'air_temperature'. This is expected to be the same length as the
+                parquet_diagnostic_names and experiments lists.
             forecast_periods: Range of forecast periods to be calibrated in hours in
                 the form: "start:end:interval" e.g. "6:18:6" or a single forecast period
                 e.g. "6".
@@ -73,22 +77,37 @@ class LoadForTrainQRF(PostProcessingPlugin):
                 YYYYMMDDTHHMMZ.
             training_length: The number of days of training data to use.
                 experiment: The name of the experiment (step) that calibration is applied to.
-            experiment: The name of the experiment (step) that calibration is
+            experiments: The names of the experiment (step) that calibration is
                 applied to. This is used to filter the forecast DataFrame on load.
+                This is expected to be the same length as the parquet_diagnostic_names
+                and cf_names lists.
             unique_site_id_key: The names of the coordinates that uniquely identify
                 each site, e.g. "wmo_id" or "latitude,longitude".
         """
         self.quantile_forest_installed = quantile_forest_package_available()
         self.feature_config = feature_config
         self.parquet_diagnostic_names = parquet_diagnostic_names
-        self.target_cf_name = target_cf_name
+        self.cf_names = cf_names
         self.forecast_periods = forecast_periods
         self.cycletime = cycletime
         self.training_length = training_length
-        self.experiment = experiment
+        self.experiments = experiments
         if isinstance(unique_site_id_keys, str):
             unique_site_id_keys = [unique_site_id_keys]
         self.unique_site_id_keys = unique_site_id_keys
+
+        if (
+            len(set([len(parquet_diagnostic_names), len(cf_names), len(experiments)]))
+            > 1
+        ):
+            msg = (
+                "The length of the parquet_diagnostic_names list must match the length "
+                "of the cf_names list and the length of the experiments list. "
+                "The lengths provided are "
+                f"{len(parquet_diagnostic_names)}, {len(cf_names)} and "
+                f"{len(experiments)}, respectively."
+            )
+            raise ValueError(msg)
 
     def _parse_forecast_periods(self) -> list[int]:
         """Parse the forecast periods argument to produce a list of forecast periods
@@ -136,7 +155,9 @@ class LoadForTrainQRF(PostProcessingPlugin):
 
         Raises:
             ValueError: If the forecast parquet file does not contain the expected
-                fields.
+                fields. Either "percentile" or "realization".
+            ValueError: If the forecast parquet file does not contain the expected
+                features.
             ValueError: If the truth parquet file does not contain the expected
                 fields.
         """
@@ -153,14 +174,6 @@ class LoadForTrainQRF(PostProcessingPlugin):
             )
         cycletimes = list(set(cycletimes))
 
-        filters = [
-            [
-                ("diagnostic", "in", self.parquet_diagnostic_names),
-                ("blend_time", "in", cycletimes),
-                ("experiment", "==", self.experiment),
-            ]
-        ]
-
         example_file_path = next(Path(forecast_table_path).glob("**/*.parquet"))
         if pq.read_schema(example_file_path).get_all_field_indices("percentile"):
             altered_schema = CalibrationSchemas().FORECAST_SCHEMA
@@ -176,12 +189,64 @@ class LoadForTrainQRF(PostProcessingPlugin):
             )
             raise ValueError(msg)
 
-        forecast_df = pd.read_parquet(
-            forecast_table_path,
-            filters=filters,
-            schema=altered_schema,
-            engine="pyarrow",
-        )
+        forecast_df = None
+        for parquet_diagnostic_name, cf_name, experiment in zip(
+            self.parquet_diagnostic_names, self.cf_names, self.experiments
+        ):
+            filters = [
+                [
+                    ("diagnostic", "==", parquet_diagnostic_name),
+                    ("blend_time", "in", cycletimes),
+                    ("experiment", "==", experiment),
+                ]
+            ]
+
+            additional_df = pd.read_parquet(
+                forecast_table_path,
+                filters=filters,
+                schema=altered_schema,
+                engine="pyarrow",
+            )
+
+            if forecast_df is None:
+                # If processing the first diagnostic, use it to create the base
+                # DataFrame.
+                if additional_df.empty:
+                    return None, None
+                additional_df.rename(columns={"forecast": cf_name}, inplace=True)
+                forecast_df = additional_df
+                continue
+
+            # Convert additional features from rows to columns.
+            representation = (
+                "percentile" if "percentile" in additional_df.columns else "realization"
+            )
+
+            if additional_df.empty:
+                msg = (
+                    "The requested parquet diagnostic name is not present in the "
+                    f"forecast parquet file: {parquet_diagnostic_name}."
+                )
+                raise ValueError(msg)
+
+            merge_on = [
+                *self.unique_site_id_keys,
+                "forecast_reference_time",
+                "forecast_period",
+                representation,
+            ]
+
+            # If e.g. percentile is all NaN as this is a deterministic diagnostic, remove this column.
+            if additional_df[representation].isna().all():
+                merge_on.remove(representation)
+
+            forecast_df = add_feature_from_df_to_df(
+                forecast_df,
+                additional_df.rename(columns={"forecast": cf_name}),
+                cf_name,
+                merge_on,
+            )
+
         seconds_to_ns = 1e9
         forecast_df = forecast_df[
             forecast_df["forecast_period"].isin(
@@ -198,39 +263,6 @@ class LoadForTrainQRF(PostProcessingPlugin):
         for column in ["forecast_period", "period"]:
             forecast_df[column] = pd.to_timedelta(forecast_df[column], unit="ns")
             forecast_df[column] = forecast_df[column].astype("timedelta64[ns]")
-
-        # Convert additional features from rows to columns.
-        representation = (
-            "percentile" if "percentile" in forecast_df.columns else "realization"
-        )
-        base_df = forecast_df[
-            forecast_df["diagnostic"] == self.parquet_diagnostic_names[0]
-        ]
-        for parquet_diagnostic_name in self.parquet_diagnostic_names[1:]:
-            additional_df = forecast_df[
-                forecast_df["diagnostic"] == parquet_diagnostic_name
-            ]
-            base_df = pd.merge(
-                base_df,
-                additional_df[
-                    [
-                        *self.unique_site_id_keys,
-                        "forecast_reference_time",
-                        "forecast_period",
-                        representation,
-                        "forecast",
-                    ]
-                ].rename(columns={"forecast": parquet_diagnostic_name}),
-                on=[
-                    *self.unique_site_id_keys,
-                    "forecast_reference_time",
-                    "forecast_period",
-                    representation,
-                ],
-                how="left",
-            )
-        forecast_df = base_df
-        forecast_df.rename(columns={"forecast": self.target_cf_name}, inplace=True)
 
         # Load truths from parquet file filtering by diagnostic.
         filters = [[("diagnostic", "==", self.parquet_diagnostic_names[0])]]
@@ -310,6 +342,13 @@ class LoadForTrainQRF(PostProcessingPlugin):
         forecast_df, truth_df = self._read_parquet_files(
             forecast_table_path, truth_table_path, forecast_periods
         )
+        if forecast_df is None:
+            msg = (
+                "The forecast parquet files are empty after filtering. "
+                "Unable to train the Quantile Regression Random Forest model."
+            )
+            warnings.warn(msg)
+            return None, None, None
 
         if cube_inputs is None:
             cube_inputs = iris.cube.CubeList()
@@ -376,6 +415,7 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
         self.unique_site_id_keys = unique_site_id_keys
         self.kwargs = kwargs
         self.quantile_forest_installed = quantile_forest_package_available()
+        self.float_decimals = 4
 
     @staticmethod
     def _check_matching_times(
@@ -414,6 +454,7 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
         """
         if cube_inputs is None or len(cube_inputs) == 0:
             return forecast_df
+
         for feature_name, feature_list in self.feature_config.items():
             for feature in feature_list:
                 if feature == "static":
@@ -427,11 +468,12 @@ class PrepareAndTrainQRF(PostProcessingPlugin):
                         feature_cube = None
                     if not feature_cube:
                         continue
-                    feature_df = as_data_frame(feature_cube, add_aux_coords=True)
-                    forecast_df = forecast_df.merge(
-                        feature_df[[*self.unique_site_id_keys, feature_name]],
-                        on=[*self.unique_site_id_keys],
-                        how="left",
+                    forecast_df = add_static_feature_from_cube_to_df(
+                        forecast_df,
+                        feature_cube,
+                        feature_name,
+                        [*self.unique_site_id_keys],
+                        float_decimals=self.float_decimals,
                     )
         return forecast_df
 

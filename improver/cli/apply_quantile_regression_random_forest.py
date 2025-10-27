@@ -15,6 +15,8 @@ def process(
     feature_config: cli.inputjson,
     target_cf_name: str,
     unique_site_id_keys: cli.comma_separated_list = "wmo_id",
+    cycletime: str = None,
+    forecast_period: int = None,
 ):
     """Applying the Quantile Regression Random Forest model.
 
@@ -56,6 +58,14 @@ def process(
         unique_site_id_keys (str):
             The names of the coordinates that uniquely identify each site,
             e.g. "wmo_id" or "latitude,longitude".
+        cycletime (str):
+            The cycle time of the forecast to be calibrated in the format
+            YYYYMMDDTHHMMZ. If not provided, the first cycle time found in
+            the forecast cube will be used.
+        forecast_period (int):
+            The forecast period of the forecast to be calibrated in seconds. If not
+            provided, the first forecast period found in the forecast cube
+            will be used.
     Returns:
         iris.cube.Cube:
             The calibrated forecast cube.
@@ -71,5 +81,7 @@ def process(
         feature_config=feature_config,
         target_cf_name=target_cf_name,
         unique_site_id_keys=unique_site_id_keys,
+        cycletime=cycletime,
+        forecast_period=forecast_period,
     )(cubes, qrf_descriptors=qrf_descriptors)
     return result

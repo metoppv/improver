@@ -7,6 +7,7 @@ This module defines all the "plugins" specific to Standardised Anomaly Model Out
 Statistics (SAMOS).
 """
 
+import warnings
 from typing import Dict, List, Optional, Sequence, Tuple
 
 import iris
@@ -27,9 +28,9 @@ from iris.cube import Cube, CubeList
 from iris.util import new_axis
 from numpy import array, clip, float32, int64, isnan, nan
 from numpy.ma import masked_all_like
-from pandas import merge
 
 from improver import BasePlugin, PostProcessingPlugin
+from improver.calibration import add_static_feature_from_cube_to_df
 from improver.calibration.emos_calibration import (
     ApplyEMOS,
     EstimateCoefficientsForEnsembleCalibration,
@@ -111,14 +112,13 @@ def prepare_data_for_gam(
                 input_cube.coord(axis="Y").name(),
             ]
         for cube in additional_fields:
-            new_df = iris.pandas.as_data_frame(
+            df = add_static_feature_from_cube_to_df(
+                df,
                 cube,
-                add_aux_coords=True,
-                add_cell_measures=True,
-                add_ancillary_variables=True,
+                feature_name=cube.name(),
+                possible_merge_columns=match_coords,
+                float_decimals=4,
             )
-            new_df.reset_index(inplace=True)
-            df = merge(left=df, right=new_df[match_coords + [cube.name()]], how="left")
 
     return df
 
@@ -545,7 +545,8 @@ class TrainGAMsForSAMOS(BasePlugin):
                     "coordinate must contain more than one point. The following time "
                     f"coordinate was found: {input_cube.coord('time')}."
                 )
-                raise ValueError(msg)
+                warnings.warn(msg)
+                return None
 
         # Calculate mean and standard deviation from input cube.
         stat_cubes = self.calculate_cube_statistics(input_cube)
@@ -570,6 +571,9 @@ class TrainGAMsForSAMOS(BasePlugin):
             feature_values = df[features].values
             targets = df[input_cube.name()].values
             output.append(plugin.process(feature_values, targets))
+
+        if None in output:
+            return None
 
         return output
 
