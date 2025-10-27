@@ -312,7 +312,7 @@ class ContrailHeightExtractor(BasePlugin):
     height where contrail formation is Non-persistent or Persistent.
     """
 
-    def __init__(self, use_max: bool=True):
+    def __init__(self, use_max: bool = True):
         """
         Initialize the Class
 
@@ -378,15 +378,15 @@ class ContrailHeightExtractor(BasePlugin):
 
         Args:
             formation_cube:
-                Categorical cube of shape (contrail_factor, pressure_level, lat (optional), lon (optional))
+                Categorical cube of shape (engine_contrail_factor, pressure_level, lat (optional), lon (optional))
             height_cube:
                 Height cube of shape (pressure_level, lat (optional), lon (optional))
 
         Returns:
             - Cube of extracted height values for non-persistent contrails
             - Cube of extracted height values for persistent contrails
-            
-            Each cube has dimensions (contrail_factor, lat (optional), lon (optional)).
+
+            Each cube has dimensions (engine_contrail_factor, lat (optional), lon (optional)).
         """
 
         try:
