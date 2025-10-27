@@ -383,9 +383,10 @@ class ContrailHeightExtractor(BasePlugin):
                 Height cube of shape (pressure_level, lat (optional), lon (optional))
 
         Returns:
-            non_persistent_height_cube, persistent_height_cube (tuple of iris.cube.Cube):
-                Each cube has dimensions (engine_factor, lat (optional), lon (optional))
-                and contains the extracted height values for the respective contrail category.
+            - Cube of extracted height values for non-persistent contrails
+            - Cube of extracted height values for persistent contrails
+            
+            Each cube has dimensions (contrail_factor, lat (optional), lon (optional)).
         """
 
         height_data = height_cube.data
