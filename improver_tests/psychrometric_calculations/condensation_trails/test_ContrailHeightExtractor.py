@@ -37,8 +37,8 @@ def make_cube(
     """
     shape = data.shape
     coords = []
-    if "engine_factor" in dims:
-        coords.append(("engine_factor", np.arange(shape[0])))
+    if "engine_contrail_factor" in dims:
+        coords.append(("engine_contrail_factor", np.arange(shape[0])))
         if "pressure" in dims:
             coords.append(("pressure", np.arange(shape[1])))
         if "latitude" in dims:
@@ -54,9 +54,9 @@ def make_cube(
             coords.append(("longitude", np.arange(shape[2])))
     cube = iris.cube.Cube(data, long_name=name, units=units)
     for dim, (coord_name, points) in enumerate(coords):
-        if coord_name == "engine_factor":
+        if coord_name == "engine_contrail_factor":
             cube.add_dim_coord(
-                iris.coords.DimCoord(points, long_name="engine_factor"), dim
+                iris.coords.DimCoord(points, long_name="engine_contrail_factor"), dim
             )
         elif coord_name == "pressure":
             cube.add_dim_coord(iris.coords.DimCoord(points, long_name="pressure"), dim)
