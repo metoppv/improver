@@ -377,9 +377,9 @@ class ContrailHeightExtractor(BasePlugin):
         formation is categorized as Non-persistent or Persistent.
 
         Args:
-            formation_cube (iris.cube.Cube):
-                Categorical cube of shape (engine_factor, pressure_level, lat (optional), lon (optional))
-            height_cube (iris.cube.Cube):
+            formation_cube:
+                Categorical cube of shape (contrail_factor, pressure_level, lat (optional), lon (optional))
+            height_cube:
                 Height cube of shape (pressure_level, lat (optional), lon (optional))
 
         Returns:
