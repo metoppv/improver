@@ -312,12 +312,12 @@ class ContrailHeightExtractor(BasePlugin):
     height where contrail formation is Non-persistent or Persistent.
     """
 
-    def __init__(self, use_max=True):
+    def __init__(self, use_max: bool=True):
         """
         Initialize the Class
 
         Args:
-            use_max (bool, optional):
+            use_max:
                 If True, extract maximum heights; if False, extract minimum heights.
         """
 
