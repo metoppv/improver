@@ -46,6 +46,7 @@ class FineFuelMoistureContent(BasePlugin):
                 f"Expected {len(names_to_extract)} cubes, found {len(cubes)}"
             )
 
+        # Load the cubes into class attributes
         (
             self.temperature,
             self.precipitation,
@@ -53,6 +54,13 @@ class FineFuelMoistureContent(BasePlugin):
             self.wind_speed,
             self.input_ffmc,
         ) = tuple(CubeList(cubes).extract_cube(n) for n in names_to_extract)
+
+        # Ensure the cubes are set to the correct units
+        self.temperature.convert_units("degC")
+        self.precipitation.convert_units("mm")
+        self.relative_humidity.convert_units(1)
+        self.wind_speed.convert_units("km/h")
+        self.input_ffmc.convert_units(1)
 
     def _calculate_moisture_content(self):
         """Calculates the moisture content for a given input value of the Fine
@@ -80,6 +88,42 @@ class FineFuelMoistureContent(BasePlugin):
         )
         # Cap at 250.0
         self.moisture_content = np.minimum(self.moisture_content, 250.0)
+
+    def _perform_rainfall_adjustment(self):
+        """
+        Updates the moisture content value based on available precipitation
+        accumulation data for the previous 24 hours. This is done element-wise
+        for each grid point, matching the logic in the linear version.
+        """
+        precip_mask = self.precipitation > 0.5
+        r_f = self.precipitation - 0.5
+
+        # Calculate both adjustment terms
+        adjustment1 = (
+            42.5
+            * r_f
+            * np.exp(-100.0 / (251.0 - self.moisture_content))
+            * (1 - np.exp(-6.93 / r_f))
+        )
+        adjustment2 = 0.0015 * (self.moisture_content - 150.0) ** 2 * np.sqrt(r_f)
+
+        # Where moisture_content <= 150, use adjustment1
+        mask_lte_150 = precip_mask & self.moisture_content <= 150.0
+        self.moisture_content = np.where(
+            mask_lte_150,
+            self.moisture_content + adjustment1[mask_lte_150],
+            self.moisture_content,
+        )
+        # Where moisture_content > 150, use adjustment1 + adjustment2
+        mask_gt_150 = precip_mask & self.moisture_content > 150.0
+        self.moisture_content = np.where(
+            mask_gt_150,
+            self.moisture_content + adjustment1[mask_gt_150] + adjustment2[mask_gt_150],
+            self.moisture_content,
+        )
+        # Where moisture_content > 250, cap at 250
+        mask_gt_250 = precip_mask & self.moisture_content > 250.0
+        self.moisture_content = np.where(mask_gt_250, 250.0, self.moisture_content)
 
     def _calculate_drying_phase(self) -> Cube:
         """Calculates the drying phase for the current environmental conditions
