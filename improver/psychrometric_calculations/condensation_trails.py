@@ -348,8 +348,8 @@ class ContrailHeightExtractor(BasePlugin):
                 Either "max" or "min" indicating the type of extraction performed.
 
         Returns:
-            non_persistent_height_cube, persistent_height_cube (tuple of iris.cube.Cube):
-                Cubes containing the extracted heights for non-persistent and persistent contrails.
+            - Cube of extracted heights for non-persistent contrails
+            - Cube of extracted heights for persistent contrails
         """
 
         template_cube = formation_cube.slices_over("pressure").next()
