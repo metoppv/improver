@@ -355,7 +355,7 @@ class HumidityMixingRatio(BasePlugin):
         )
 
         try:
-            # Test is there is a cube with air_temperature in the name
+            # Test if there is a cube with air_temperature in the name
             def test_temperature(cube):
                 return True if "air_temperature" in cube.name() else False
 
