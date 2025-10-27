@@ -118,7 +118,7 @@ def test_additional_gam_features_cube(tmp_path):
 def test_no_gam(tmp_path):
     """
     Test estimate-samos-coefficients-from-table when no GAM is provided. The CLI should
-    return nothing in this instance
+    return None in this instance.
     """
     source_dir = acc.kgo_root() / "estimate-emos-coefficients-from-table/"
     history_path = source_dir / "forecast_table"

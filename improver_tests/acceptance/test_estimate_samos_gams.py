@@ -150,12 +150,13 @@ def test_gam_at_sites(tmp_path):
 
 def test_insufficient_data(tmp_path):
     """
-    Test estimate-samos-gams- does not return a result when insufficient
-    data is available at all sites.
+    Test estimate-samos-gams returns None when insufficient data is available at all
+    sites.
 
     This test provides 3 days of input data but uses a window length of 11 days. This
-    will cause the training data at all sites to be insufficient to fit the GAMs, and so
-    no output should be produced.
+    will cause the training data at all sites to be considered insufficient to fit the
+    GAMs (at least 50% of the possible data points are required). Hence, None should be
+    returned.
     """
     source_emos_dir = acc.kgo_root() / "estimate-emos-coefficients/normal/sites"
     history_path = source_emos_dir / "history/*.nc"

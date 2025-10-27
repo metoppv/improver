@@ -143,7 +143,7 @@ def test_estimate_samos_coefficients_sites(tmp_path):
 def test_estimate_samos_coefficients_no_gam(tmp_path):
     """
     Test estimate-samos-coefficients when no GAM is provided. The CLI should return
-    nothing in this instance.
+    None in this instance.
     """
     # The source data is from the estimate-emos-coefficients acceptance tests
     source_emos_dir = acc.kgo_root() / "estimate-emos-coefficients/normal/sites"
