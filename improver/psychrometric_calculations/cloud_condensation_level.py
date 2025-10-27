@@ -157,29 +157,18 @@ class CloudCondensationLevel(PostProcessingPlugin):
         """
         cubes = as_cubelist(cubes)
 
+        names_to_extract = ("air_temperature", "air_pressure", "humidity_mixing_ratio")
+        extracted_cubes = []
         try:
-            # Test is there is a cube with air_temperature in the name
-            def test_temperature(cube):
-                return True if "air_temperature" in cube.name() else False
-
-            self.temperature = cubes.extract_cube(
-                iris.Constraint(cube_func=test_temperature)
-            )
+            for name in names_to_extract:
+                name_in_cube = lambda cube: True if name in cube.name() else False
+                extracted_cubes.append(
+                    cubes.extract_cube(Constraint(cube_func=name_in_cube))
+                )
         except ConstraintMismatchError as err:
-            raise ValueError("No cube with name 'air_temperature' found") from err
-
-        try:
-            # Test is there is a cube with air_pressure in the name
-            def test_pressure(cube):
-                return True if "air_pressure" in cube.name() else False
-
-            self.pressure = cubes.extract_cube(iris.Constraint(cube_func=test_pressure))
-        except ConstraintMismatchError as err:
-            raise ValueError("No cube with name 'air_pressure' found") from err
-
-        self.humidity = cubes.extract_cube(
-            iris.Constraint(name="humidity_mixing_ratio")
-        )
+            raise ValueError(f"No cube with name {name} found") from err
+        
+        self.temperature, self.pressure, self.humidity = extracted_cubes
 
         ccl_pressure, ccl_temperature = self._iterate_to_ccl()
         # Limit values so they are no greater than the original pressure.
