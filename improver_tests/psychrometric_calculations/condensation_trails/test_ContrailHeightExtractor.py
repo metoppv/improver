@@ -7,6 +7,7 @@
 import iris
 import numpy as np
 import pytest
+from typing import List, Optional, Tuple
 
 from improver.psychrometric_calculations.condensation_trails import (
     ContrailHeightExtractor,
