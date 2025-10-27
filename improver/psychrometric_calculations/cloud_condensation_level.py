@@ -6,7 +6,7 @@
 
 from typing import Tuple, Union
 
-import iris._constraints
+from iris import Constraint
 import numpy as np
 from iris.cube import Cube, CubeList
 from iris.exceptions import ConstraintMismatchError, CoordinateNotFoundError
