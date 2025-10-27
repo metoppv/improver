@@ -14,13 +14,13 @@ from improver.psychrometric_calculations.condensation_trails import (
 
 
 def make_cube(
-    data,
-    name,
-    units,
-    dims=("pressure", "latitude", "longitude"),
-    contrail_type_values=None,
-    contrail_type_meaning_values=None,
-):
+    data: np.ndarray,
+    name: str,
+    units: str,
+    dims: Tuple[str]=("pressure", "latitude", "longitude"),
+    contrail_type_values: Optional[List[integer]]=None,
+    contrail_type_meaning_values: Optional[str]=None,
+) -> iris.cube.Cube:
     """
     Simple cube factory for ContrailsHeightExtractor tests.
 
