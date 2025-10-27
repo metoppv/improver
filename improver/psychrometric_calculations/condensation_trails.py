@@ -410,7 +410,7 @@ class ContrailHeightExtractor(BasePlugin):
             )
 
         contrail_types = [
-            ct.casefold()
+            ct.lower()
             for ct in formation_cube.attributes["contrail_type_meaning"].split()
         ]
         non_persistent_index = contrail_types.index("non-persistent")
