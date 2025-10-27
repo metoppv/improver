@@ -258,7 +258,6 @@ class Test_calculate_feels_like_temperature(IrisTest):
         self.assertDictEqual(result.attributes, expected_attrs)
 
 
-
 class Test_calculate_wind_chill_cube(IrisTest):
     """Test the cube-based wind chill wrapper function."""
 
@@ -290,9 +289,7 @@ class Test_calculate_wind_chill_cube(IrisTest):
 
     def test_basic_functionality(self):
         """Test that the function runs and returns a valid cube."""
-        result = calculate_wind_chill_cube(
-            self.temperature_cube, self.wind_speed_cube
-        )
+        result = calculate_wind_chill_cube(self.temperature_cube, self.wind_speed_cube)
 
         # Check type and name
         self.assertIsInstance(result, type(self.temperature_cube))
@@ -305,15 +302,11 @@ class Test_calculate_wind_chill_cube(IrisTest):
         # Data validity
         self.assertTrue(np.isfinite(result.data).all())
 
-    
-
-    
-
     def test_unit_conversion_correctness(self):
         """Check that unit conversions (K↔°C, m/s↔km/h) are handled correctly."""
         #  Simple one-point cubes
         temperature_data = np.array([[273.15]], dtype=np.float32)  # 0°C
-        wind_speed_data = np.array([[10.0]], dtype=np.float32)     # 10 m/s = 36 km/h
+        wind_speed_data = np.array([[10.0]], dtype=np.float32)  # 10 m/s = 36 km/h
 
         mandatory_attributes = {
             "source": "Met Office Unified Model",
@@ -344,16 +337,15 @@ class Test_calculate_wind_chill_cube(IrisTest):
         result = calculate_wind_chill_cube(temperature, wind_speed)
 
         #  Assertions
-        self.assertEqual(str(result.units), "K")                # converted back to Kelvin
+        self.assertEqual(str(result.units), "K")  # converted back to Kelvin
         self.assertArrayAlmostEqual(result.data, expected_kelvin, decimal=3)
         # sanity: wind chill cooler than actual air temp
         self.assertLess(result.data, temperature.data)
 
-        
     def test_metadata_attributes(self):
         """Ensure the output cube preserves metadata attributes."""
         temperature_data = np.ones((3, 4), dtype=np.float32) * 280.0  # ~7°C
-        wind_speed_data = np.ones((3, 4), dtype=np.float32) * 8.0     # 8 m/s
+        wind_speed_data = np.ones((3, 4), dtype=np.float32) * 8.0  # 8 m/s
 
         mandatory_attributes = {
             "source": "Met Office Unified Model",
@@ -378,14 +370,10 @@ class Test_calculate_wind_chill_cube(IrisTest):
 
         result = calculate_wind_chill_cube(temperature, wind_speed)
 
-
         # Attributes propagated correctly
         for key, value in mandatory_attributes.items():
             self.assertIn(key, result.attributes)
             self.assertEqual(result.attributes[key], value)
-
-        
-
 
 
 if __name__ == "__main__":

@@ -6,7 +6,6 @@
 
 from typing import Optional
 
-
 import numpy as np
 from iris.cube import Cube
 from numpy import ndarray
@@ -233,7 +232,6 @@ def calculate_feels_like_temperature(
     feels_like_temperature_cube.convert_units(temperature.units)
 
     return feels_like_temperature_cube
-
 
 
 def calculate_wind_chill_cube(
