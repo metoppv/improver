@@ -6,8 +6,8 @@
 
 from typing import Tuple, Union
 
-from iris import Constraint
 import numpy as np
+from iris import Constraint
 from iris.cube import Cube, CubeList
 from iris.exceptions import ConstraintMismatchError, CoordinateNotFoundError
 from scipy.optimize import newton
@@ -167,7 +167,7 @@ class CloudCondensationLevel(PostProcessingPlugin):
                 )
         except ConstraintMismatchError as err:
             raise ValueError(f"No cube with name {name} found") from err
-        
+
         self.temperature, self.pressure, self.humidity = extracted_cubes
 
         ccl_pressure, ccl_temperature = self._iterate_to_ccl()
