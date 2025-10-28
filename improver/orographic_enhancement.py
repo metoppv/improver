@@ -24,7 +24,9 @@ from improver.nbhood.nbhood import NeighbourhoodProcessing
 from improver.psychrometric_calculations.psychrometric_calculations import (
     calculate_svp_in_air,
 )
+from improver.utilities.common_input_handle import as_cube
 from improver.utilities.cube_checker import check_for_x_and_y_axes
+from improver.utilities.cube_extraction import extract_subcube
 from improver.utilities.cube_manipulation import (
     compare_coords,
     enforce_coordinate_ordering,
@@ -34,6 +36,104 @@ from improver.utilities.spatial import (
     GradientBetweenAdjacentGridSquares,
     number_of_grid_cells_to_distance,
 )
+
+
+class MetaOrographicEnhancement(BasePlugin):
+    """Calculate orographic enhancement"""
+
+    def __init__(self, boundary_height: float = 1000.0, boundary_height_units="m"):
+        """
+        Initialise the orographic enhancement plugin.
+        Args:
+            boundary_height (float):
+                Model height level to extract variables for calculating orographic
+                enhancement, as proxy for the boundary layer.
+            boundary_height_units (str):
+                Units of the boundary height specified for extracting model levels.
+        """
+        self._constraint_info = (boundary_height, boundary_height_units)
+
+    @staticmethod
+    def extract_and_check(cube, height_value, units):
+        """
+        Function to attempt to extract a height level.
+        If no matching level is available an error is raised.
+        Args:
+            cube (cube):
+                Cube to be extracted from and checked it worked.
+            height_value (float):
+                The boundary height to be extracted with the input units.
+            units (str):
+                The units of the height level to be extracted.
+        Returns:
+            iris.cube.Cube:
+                A cube containing the extracted height level.
+        Raises:
+            ValueError: If height level is not found in the input cube.
+        """
+        # Write constraint in this format so a constraint is constructed that
+        # is suitable for floating point comparison
+        height_constraint = [
+            "height=[{}:{}]".format(height_value - 0.1, height_value + 0.1)
+        ]
+        cube = extract_subcube(cube, height_constraint, units=[units])
+
+        if cube is not None:
+            return cube
+
+        raise ValueError("No data available at height {}{}".format(height_value, units))
+
+    def process(
+        self,
+        temperature: Cube,
+        humidity: Cube,
+        pressure: Cube,
+        wind_speed: Cube,
+        wind_direction: Cube,
+        orography: Cube,
+    ) -> Cube:
+        """
+        Uses the ResolveWindComponents() and OrographicEnhancement() plugins.
+        Outputs data on the high resolution orography grid.
+        Args:
+            temperature:
+                Cube containing temperature at top of boundary layer.
+            humidity:
+                Cube containing relative humidity at top of boundary layer.
+            pressure:
+                Cube containing pressure at top of boundary layer.
+            wind_speed:
+                Cube containing wind speed values.
+            wind_direction:
+                Cube containing wind direction values relative to true north.
+            orography:
+                Cube containing height of orography above sea level on high
+                resolution (1 km) UKPP domain grid.
+        Returns:
+            iris.cube.Cube:
+                Precipitation enhancement due to orography on the high resolution
+                input orography grid.
+        """
+        from improver.wind_calculations.wind_components import ResolveWindComponents
+
+        temperature = as_cube(temperature)
+        humidity = as_cube(humidity)
+        pressure = as_cube(pressure)
+        wind_speed = as_cube(wind_speed)
+        wind_direction = as_cube(wind_direction)
+        orography = as_cube(orography)
+        temperature = self.extract_and_check(temperature, *self._constraint_info)
+        humidity = self.extract_and_check(humidity, *self._constraint_info)
+        pressure = self.extract_and_check(pressure, *self._constraint_info)
+        wind_speed = self.extract_and_check(wind_speed, *self._constraint_info)
+        wind_direction = self.extract_and_check(wind_direction, *self._constraint_info)
+
+        # resolve u and v wind components
+        u_wind, v_wind = ResolveWindComponents()(wind_speed, wind_direction)
+        # calculate orographic enhancement
+        return OrographicEnhancement()(
+            temperature, humidity, pressure, u_wind, v_wind, orography
+        )
 
 
 class OrographicEnhancement(BasePlugin):
