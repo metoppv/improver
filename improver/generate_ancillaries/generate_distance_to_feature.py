@@ -9,6 +9,7 @@ from typing import List, Optional, Tuple
 import pyproj
 from geopandas import GeoDataFrame, GeoSeries, clip
 from iris.cube import Cube
+from joblib import Parallel, delayed
 from numpy import array, min, round
 from shapely.geometry import Point
 
@@ -43,6 +44,8 @@ class DistanceTo(BasePlugin):
         new_name: Optional[str] = None,
         buffer: float = 30000,
         clip_geometry_flag: bool = False,
+        parallel: bool = False,
+        n_parallel_jobs: Optional[int] = 1,
     ) -> None:
         """
         Initialise the DistanceTo plugin.
@@ -65,11 +68,19 @@ class DistanceTo(BasePlugin):
                 the site locations with a buffer distance added to the bounds. If set to
                 False, the full geometry will be used to calculate the distance to the
                 nearest feature.
+            parallel:
+                A flag to indicate whether to use parallel processing when calculating
+                distances.
+            n_parallel_jobs:
+                The number of parallel jobs to use when calculating distances.
+                By default, 1 job is used.
         """
         self.epsg_projection = epsg_projection
         self.new_name = new_name
         self.buffer = buffer
         self.clip_geometry_flag = clip_geometry_flag
+        self.parallel = parallel
+        self.n_parallel_jobs = n_parallel_jobs
 
     @staticmethod
     def get_clip_values(points: List[float], buffer: float) -> List[float]:
@@ -200,10 +211,31 @@ class DistanceTo(BasePlugin):
         Returns:
             A list of distances from each site point to the nearest feature in the
             geometry rounded to the nearest metre."""
-        distance_results = []
-        for point in site_points:
-            distance_to_nearest = min(point.distance(geometry.geometry))
-            distance_results.append(round(distance_to_nearest))
+
+        def _distance_to_nearest(point: Point, geometry: GeoDataFrame) -> float:
+            """Calculate the distance from a point to the nearest feature in the
+            geometry.
+            Args:
+                point:
+                    A shapely Point object representing the site location.
+                geometry:
+                    A GeoDataFrame containing the geometry in the target projection.
+            Returns:
+                The distance from the point to the nearest feature in the geometry
+                rounded to the nearest metre.
+            """
+            return round(min(point.distance(geometry.geometry)))
+
+        if self.parallel:
+            parallel = Parallel(n_jobs=self.n_parallel_jobs, prefer="threads")
+            output_generator = parallel(
+                delayed(_distance_to_nearest)(point, geometry) for point in site_points
+            )
+            distance_results = list(output_generator)
+        else:
+            distance_results = []
+            for point in site_points:
+                distance_results.append(_distance_to_nearest(point, geometry))
 
         return distance_results
 
