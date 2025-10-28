@@ -7,12 +7,10 @@ This module contains a plugin to calculate the enhancement of precipitation
 over orography.
 """
 
-from typing import Tuple
-
 import iris
 import numpy as np
 from iris.analysis.cartography import rotate_winds
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 from numpy import ndarray
 from scipy.ndimage import uniform_filter1d
 
@@ -24,7 +22,7 @@ from improver.nbhood.nbhood import NeighbourhoodProcessing
 from improver.psychrometric_calculations.psychrometric_calculations import (
     calculate_svp_in_air,
 )
-from improver.utilities.common_input_handle import as_cube
+from improver.utilities.common_input_handle import as_cubelist
 from improver.utilities.cube_checker import check_for_x_and_y_axes
 from improver.utilities.cube_extraction import extract_subcube
 from improver.utilities.cube_manipulation import (
@@ -44,12 +42,14 @@ class MetaOrographicEnhancement(BasePlugin):
     def __init__(self, boundary_height: float = 1000.0, boundary_height_units="m"):
         """
         Initialise the orographic enhancement plugin.
+
         Args:
             boundary_height (float):
                 Model height level to extract variables for calculating orographic
                 enhancement, as proxy for the boundary layer.
             boundary_height_units (str):
                 Units of the boundary height specified for extracting model levels.
+
         """
         self._constraint_info = (boundary_height, boundary_height_units)
 
@@ -58,6 +58,7 @@ class MetaOrographicEnhancement(BasePlugin):
         """
         Function to attempt to extract a height level.
         If no matching level is available an error is raised.
+
         Args:
             cube (cube):
                 Cube to be extracted from and checked it worked.
@@ -65,11 +66,14 @@ class MetaOrographicEnhancement(BasePlugin):
                 The boundary height to be extracted with the input units.
             units (str):
                 The units of the height level to be extracted.
+
         Returns:
             iris.cube.Cube:
                 A cube containing the extracted height level.
+
         Raises:
             ValueError: If height level is not found in the input cube.
+
         """
         # Write constraint in this format so a constraint is constructed that
         # is suitable for floating point comparison
@@ -83,50 +87,46 @@ class MetaOrographicEnhancement(BasePlugin):
 
         raise ValueError("No data available at height {}{}".format(height_value, units))
 
-    def process(
-        self,
-        temperature: Cube,
-        humidity: Cube,
-        pressure: Cube,
-        wind_speed: Cube,
-        wind_direction: Cube,
-        orography: Cube,
-    ) -> Cube:
+    def process(self, *cubes: Cube | CubeList) -> Cube:
         """
         Uses the ResolveWindComponents() and OrographicEnhancement() plugins.
         Outputs data on the high resolution orography grid.
+
         Args:
-            temperature:
-                Cube containing temperature at top of boundary layer.
-            humidity:
-                Cube containing relative humidity at top of boundary layer.
-            pressure:
-                Cube containing pressure at top of boundary layer.
-            wind_speed:
-                Cube containing wind speed values.
-            wind_direction:
-                Cube containing wind direction values relative to true north.
-            orography:
-                Cube containing height of orography above sea level on high
-                resolution (1 km) UKPP domain grid.
+            cubes:
+                temperature:
+                    Cube containing temperature at top of boundary layer.
+                humidity:
+                    Cube containing relative humidity at top of boundary layer.
+                pressure:
+                    Cube containing pressure at top of boundary layer.
+                wind_speed:
+                    Cube containing wind speed values.
+                wind_direction:
+                    Cube containing wind direction values relative to true north.
+                orography:
+                    Cube containing height of orography above sea level on high
+                    resolution (1 km) UKPP domain grid.
         Returns:
             iris.cube.Cube:
                 Precipitation enhancement due to orography on the high resolution
                 input orography grid.
+
         """
         from improver.wind_calculations.wind_components import ResolveWindComponents
 
-        temperature = as_cube(temperature)
-        humidity = as_cube(humidity)
-        pressure = as_cube(pressure)
-        wind_speed = as_cube(wind_speed)
-        wind_direction = as_cube(wind_direction)
-        orography = as_cube(orography)
-        temperature = self.extract_and_check(temperature, *self._constraint_info)
-        humidity = self.extract_and_check(humidity, *self._constraint_info)
-        pressure = self.extract_and_check(pressure, *self._constraint_info)
-        wind_speed = self.extract_and_check(wind_speed, *self._constraint_info)
-        wind_direction = self.extract_and_check(wind_direction, *self._constraint_info)
+        cubes = as_cubelist(*cubes)
+        for ind in range(len(cubes)):
+            if "surface_altitude" in cubes[ind].name():
+                continue
+            cubes[ind] = self.extract_and_check(cubes[ind], *self._constraint_info)
+
+        temperature = cubes.extract_cube("air_temperature")
+        humidity = cubes.extract_cube("relative_humidity")
+        pressure = cubes.extract_cube("air_pressure")
+        wind_speed = cubes.extract_cube("wind_speed")
+        wind_direction = cubes.extract_cube("wind_from_direction")
+        orography = cubes.extract_cube("surface_altitude")
 
         # resolve u and v wind components
         u_wind, v_wind = ResolveWindComponents()(wind_speed, wind_direction)
@@ -202,7 +202,7 @@ class OrographicEnhancement(BasePlugin):
         """Represent the plugin instance as a string"""
         return "<OrographicEnhancement()>"
 
-    def _orography_gradients(self) -> Tuple[Cube, Cube]:
+    def _orography_gradients(self) -> tuple[Cube, Cube]:
         """
         Calculates the dimensionless gradient of self.topography along both
         spatial axes, smoothed along the perpendicular axis.  If spatial
@@ -420,7 +420,7 @@ class OrographicEnhancement(BasePlugin):
         distance: ndarray,
         sin_wind_dir: ndarray,
         cos_wind_dir: ndarray,
-    ) -> Tuple[ndarray, ndarray]:
+    ) -> tuple[ndarray, ndarray]:
         """
         Generate 3D arrays of source points from which to add upstream
         orographic enhancement contribution.  Assumes spatial coordinate
@@ -466,7 +466,7 @@ class OrographicEnhancement(BasePlugin):
         y_source: ndarray,
         distance: ndarray,
         wind_speed: ndarray,
-    ) -> Tuple[ndarray, ndarray]:
+    ) -> tuple[ndarray, ndarray]:
         """
         Extract orographic enhancement values from source points and weight
         according to source-destination distance.
