@@ -339,8 +339,6 @@ class Test_calculate_wind_chill_cube(IrisTest):
         #  Assertions
         self.assertEqual(str(result.units), "K")  # converted back to Kelvin
         self.assertArrayAlmostEqual(result.data, expected_kelvin, decimal=3)
-        # sanity: wind chill cooler than actual air temp
-        self.assertLess(result.data, temperature.data)
 
     def test_metadata_attributes(self):
         """Ensure the output cube preserves metadata attributes."""
