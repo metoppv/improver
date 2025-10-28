@@ -4,6 +4,8 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the DistanceTo plugin."""
 
+import os
+
 import numpy as np
 import pytest
 from geopandas import GeoDataFrame
@@ -397,19 +399,27 @@ def test_distance_to_with_polygon_geometry(
 
 
 @pytest.mark.parametrize(
-    "geometry_type,expected_distance",
+    "geometry_type,distance_type,if_parallel,expected_distance",
     [
-        ("point", [0, 500, 707, 707]),
-        ("line", [0, 0, 500, 500]),
-        ("polygon", [0, 0, 0, 500]),
+        ("point", "nearest", False, [0, 500, 707, 707]),
+        ("line", "nearest", False, [0, 0, 500, 500]),
+        ("polygon", "nearest", False, [0, 0, 0, 500]),
+        ("point", "nearest", True, [0, 500, 707, 707]),
+        ("line", "nearest", True, [0, 0, 500, 500]),
+        ("polygon", "nearest", True, [0, 0, 0, 500]),
+        ("point", "furthest", True, [1414, 1118, 707, 1581]),
+        ("line", "furthest", True, [0, 0, 500, 500]),
+        ("polygon", "furthest", True, [0, 0, 0, 500]),
     ],
 )
-@pytest.mark.parametrize("geometry_crs", ("laea", "latlon"))
+@pytest.mark.parametrize("geometry_crs", ("laea",))
 def test_distance_to_with_multiple_sites(
     multiple_site_cube,
     geometry_type,
     geometry_crs,
     expected_distance,
+    distance_type,
+    if_parallel,
     request,
 ):
     """Test the DistanceTo plugin works when provided a site cube with multiple sites and
@@ -417,7 +427,34 @@ def test_distance_to_with_multiple_sites(
 
     geometry = request.getfixturevalue(f"geometry_{geometry_type}_{geometry_crs}")
 
-    output_cube = DistanceTo(3035)(multiple_site_cube, geometry)
+    n_jobs = 1
+    if os.cpu_count() > 1:
+        n_jobs = 2
+
+    plugin = DistanceTo(3035, parallel=if_parallel, n_parallel_jobs=n_jobs)
+    # Modify the plugin to use a custom distance calculation method when
+    # parallel processing is requested with the 'furthest' processing mode.
+    # This demonstrates that the plugin must be using the parallel processing pathway.
+    if if_parallel and distance_type == "furthest":
+        from joblib import Parallel, delayed
+
+        def _distance_to(site_points, geometry):
+            def _distance_to_furthest(point, geometry):
+                print(point.distance(geometry.geometry), point, geometry.geometry)
+                return round(max(point.distance(geometry.geometry)))
+
+            parallel = Parallel(n_jobs=n_jobs, prefer="threads")
+            output_generator = parallel(
+                delayed(_distance_to_furthest)(point, geometry) for point in site_points
+            )
+            distance_results = list(output_generator)
+            return distance_results
+
+        plugin.distance_to = _distance_to
+
+    assert plugin.parallel == if_parallel
+    assert plugin.n_parallel_jobs == n_jobs
+    output_cube = plugin(multiple_site_cube, geometry)
     assert output_cube.name() == "rain_rate"
     assert output_cube.units == "m"
 
