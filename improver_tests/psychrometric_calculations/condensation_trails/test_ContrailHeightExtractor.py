@@ -86,61 +86,43 @@ def make_cube(
     return cube
 
 
-@pytest.mark.parametrize("formation, height", [(formation_data, height_data)])
-def test_max_extraction(formation: np.ndarray, height: np.ndarray):
+@pytest.mark.parametrize(
+    "formation, height, use_max, expected_non_persistent_height, expected_persistent_height",
+    [
+        # Input data for max extraction test
+        (
+            formation_data,
+            height_data,
+            True,
+            np.array([[[200, 300], [np.nan, np.nan]], [[np.nan, 300], [300, 500]]]),
+            np.array([[[np.nan, np.nan], [400, 400]], [[100, np.nan], [400, np.nan]]]),
+        ),
+        # Input data for min extraction test
+        (
+            formation_data,
+            height_data,
+            False,
+            np.array([[[100, 200], [np.nan, np.nan]], [[np.nan, 300], [300, 400]]]),
+            np.array([[[np.nan, np.nan], [300, 400]], [[100, np.nan], [400, np.nan]]]),
+        ),
+    ],
+)
+def test_max_min_extraction(
+    formation: np.ndarray,
+    height: np.ndarray,
+    use_max: bool,
+    expected_non_persistent_height: np.ndarray,
+    expected_persistent_height: np.ndarray,
+):
     """
-    Test maximum extraction of contrail formation using ContrailHeightExtractor.
+    Test maximum and minimum extraction of contrail formation using ContrailHeightExtractor.
 
     Args:
         formation: Test input formation data.
         height: Test input height data.
-    """
-
-    print(formation)
-    print(height)
-
-    # 1. Turn test data into test cubes ready for passing into ContrailHeightExtractor
-    formation_cube = make_cube(
-        formation,
-        "formation",
-        "1",
-        dims=("engine_contrail_factor", "pressure", "latitude", "longitude"),
-        contrail_type_values=[0, 1, 2],
-        contrail_type_meaning_values="None Non-persistent Persistent",
-    )
-    height_cube = make_cube(
-        height, "height", "m", dims=("pressure", "latitude", "longitude")
-    )
-
-    # 2. Create expected results which we would expect from the ContrailHeightExtractor if it uses the test data above.
-    # Expected results for *max* heights of contrail formation associated with formation and height data above.
-    # Result data arrays have the same dimentions (engine_contrail_factor (x2), latitude (x2), longitude (x2))
-    expected_non_persistent_max_height = np.array(
-        [[[200, 300], [np.nan, np.nan]], [[np.nan, 300], [300, 500]]]
-    )
-    expected_persistent_max_height = np.array(
-        [[[np.nan, np.nan], [400, 400]], [[100, np.nan], [400, np.nan]]]
-    )
-
-    # 3. Run ContrailHeightExtractor using the test cubes
-    extractor = ContrailHeightExtractor(use_max=True)
-    non_persistent, persistent = extractor.process(formation_cube, height_cube)
-
-    # 4. Assert that the results from the extractor match the expected results
-    assert np.allclose(
-        non_persistent.data, expected_non_persistent_max_height, equal_nan=True
-    )
-    assert np.allclose(persistent.data, expected_persistent_max_height, equal_nan=True)
-
-
-@pytest.mark.parametrize("formation, height", [(formation_data, height_data)])
-def test_min_extraction(formation: np.ndarray, height: np.ndarray):
-    """
-    Test minimum extraction of contrail formation using ContrailHeightExtractor.
-
-    Args:
-        formation: Test input formation data.
-        height: Test input height data.
+        use_max: Boolean indicating whether to use maximum or minimum extraction.
+        expected_non_persistent_height: Expected output for non-persistent contrails.
+        expected_persistent_height: Expected output for persistent contrails.
     """
     # 1. Turn test data into test cubes ready for passing into ContrailHeightExtractor
     formation_cube = make_cube(
@@ -155,25 +137,15 @@ def test_min_extraction(formation: np.ndarray, height: np.ndarray):
         height, "height", "m", dims=("pressure", "latitude", "longitude")
     )
 
-    # 2. Create expected results which we would expect from the ContrailHeightExtractor if it uses the test data above.
-    # Expected results for *max* heights of contrail formation associated with formation and height data above.
-    # Result data arrays have the same dimentions (engine_contrail_factor (x2), latitude (x2), longitude (x2))
-    expected_non_persistent_min_height = np.array(
-        [[[100, 200], [np.nan, np.nan]], [[np.nan, 300], [300, 400]]]
-    )
-    expected_persistent_min_height = np.array(
-        [[[np.nan, np.nan], [300, 400]], [[100, np.nan], [400, np.nan]]]
-    )
-
-    # 3. Run ContrailHeightExtractor using the test cubes
-    extractor = ContrailHeightExtractor(use_max=False)
+    # 2. Run ContrailHeightExtractor using the test cubes
+    extractor = ContrailHeightExtractor(use_max=use_max)
     non_persistent, persistent = extractor.process(formation_cube, height_cube)
 
-    # 4. Assert that the results from the extractor match the expected results
+    # 3. Assert that the results from the extractor match the expected results
     assert np.allclose(
-        non_persistent.data, expected_non_persistent_min_height, equal_nan=True
+        non_persistent.data, expected_non_persistent_height, equal_nan=True
     )
-    assert np.allclose(persistent.data, expected_persistent_min_height, equal_nan=True)
+    assert np.allclose(persistent.data, expected_persistent_height, equal_nan=True)
 
 
 @pytest.mark.parametrize("formation, height", [(formation_data, height_data)])
