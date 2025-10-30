@@ -10,6 +10,7 @@ import numpy as np
 from iris.cube import Cube
 from numpy import ndarray
 
+from improver import BasePlugin
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
@@ -19,70 +20,119 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
 )
 
 
-def _calculate_wind_chill(temperature: ndarray, wind_speed: ndarray) -> ndarray:
+class CalculateWindChill(BasePlugin):
     """
-    Calculates the wind chill from 10 m wind speed and temperature based on
-    the wind chill temperature index from a linear regression equation detailed
-    in THE NEW WIND CHILL EQUIVALENT TEMPERATURE CHART, Osczevski and
-    Bluestein, 2005, table 2.
-
-    Args:
-        temperature:
-            Air temperature in degrees celsius
-        wind_speed:
-            Wind speed in kilometres per hour
-
-    Returns:
-        Wind chill temperatures in degrees celsius
-
-    References:
-        Osczevski, R. and Bluestein, M. (2005). THE NEW WIND CHILL EQUIVALENT
-        TEMPERATURE CHART. Bulletin of the American Meteorological Society,
-        86(10), pp.1453-1458.
-
-        Osczevski, R. and Bluestein, M. (2008). Comments on Inconsistencies in
-        the New Windchill Chart at Low Wind Speeds. Journal of Applied
-        Meteorology and Climatology, 47(10), pp.2737-2738.
-
-    Science background:
-    The 2005 Osczevski and Bluestein paper outlines the research and the
-    assumptions made, and the 2008 paper clarifies poorly explained sections
-    of the first paper.
-
-    A brief summary of their assumptions are given below:
-    The model aims to determine a worst-case scenario of wind chill. The wind
-    speed "threshold" of 4.8 kph (1.34 m/s) stated in the 2005 papers does not
-    refer to a threshold placed on the input windspeed data, which has no upper
-    limit, but is the walking speed of an average person. This is therefore
-    used as the minimum wind speed in their wind chill computer model, because
-    even where wind speed is zero, a person would still experience wind chill
-    from the act of walking (the model assumes that the person is walking into
-    the wind). Furthermore, the equation is not valid for very low wind speeds
-    and will return wind chill values higher than the air temperature if this
-    lower wind speed limit is not imposed. Even with this limit, the calculated
-    wind chill will be higher than the air temperature when the temperature is
-    above about 11.5C and the wind is 4.8 kph.
-    The model introduces a compensation factor where it assumes that
-    the wind speed at 1.5 m (face level) is 2/3 that measured at 10 m. It also
-    takes into account the thermal resistance of the skin on the human cheek
-    with the assumption that the face is the most exposed area of skin
-    during winter.
-
-    The equation outlined in their paper is also not the equation used in their
-    model (which was computationally expensive) but rather it is a linear
-    regression equation which mimics the output of their model where wind
-    speeds are greater than 3kph (0.8m/s) (clarified in the 2008 paper). The
-    assumption being that lower wind speeds are usually not measured or
-    reported accurately anyway.
+    Plugin to calculate wind chill temperature from air temperature and wind speed.
+    Based on Osczevski and Bluestein (2005).
     """
-    eqn_component = np.clip(wind_speed, 4.824, None) ** 0.16
-    wind_chill = (
-        13.12
-        + 0.6215 * temperature
-        - 11.37 * eqn_component
-        + 0.3965 * temperature * eqn_component
-    ).astype(np.float32)
-    return wind_chill
+
+    def __init__(self, model_id_attr: Optional[str] = None):
+        """Set up the plugin."""
+        self.model_id_attr = model_id_attr
+
+    def _calculate_wind_chill(
+        self, temperature: ndarray, wind_speed: ndarray
+    ) -> ndarray:
+        """
+        Calculates the wind chill from 10 m wind speed and temperature based on
+        the wind chill temperature index from a linear regression equation detailed
+        in THE NEW WIND CHILL EQUIVALENT TEMPERATURE CHART, Osczevski and
+        Bluestein, 2005, table 2.
+
+        Args:
+            temperature:
+                Air temperature in degrees celsius
+            wind_speed:
+                Wind speed in kilometres per hour
+
+        Returns:
+            Wind chill temperatures in degrees celsius
+
+        References:
+            Osczevski, R. and Bluestein, M. (2005). THE NEW WIND CHILL EQUIVALENT
+            TEMPERATURE CHART. Bulletin of the American Meteorological Society,
+            86(10), pp.1453-1458.
+
+            Osczevski, R. and Bluestein, M. (2008). Comments on Inconsistencies in
+            the New Windchill Chart at Low Wind Speeds. Journal of Applied
+            Meteorology and Climatology, 47(10), pp.2737-2738.
+
+        Science background:
+        The 2005 Osczevski and Bluestein paper outlines the research and the
+        assumptions made, and the 2008 paper clarifies poorly explained sections
+        of the first paper.
+
+        A brief summary of their assumptions are given below:
+        The model aims to determine a worst-case scenario of wind chill. The wind
+        speed "threshold" of 4.8 kph (1.34 m/s) stated in the 2005 papers does not
+        refer to a threshold placed on the input windspeed data, which has no upper
+        limit, but is the walking speed of an average person. This is therefore
+        used as the minimum wind speed in their wind chill computer model, because
+        even where wind speed is zero, a person would still experience wind chill
+        from the act of walking (the model assumes that the person is walking into
+        the wind). Furthermore, the equation is not valid for very low wind speeds
+        and will return wind chill values higher than the air temperature if this
+        lower wind speed limit is not imposed. Even with this limit, the calculated
+        wind chill will be higher than the air temperature when the temperature is
+        above about 11.5C and the wind is 4.8 kph.
+        The model introduces a compensation factor where it assumes that
+        the wind speed at 1.5 m (face level) is 2/3 that measured at 10 m. It also
+        takes into account the thermal resistance of the skin on the human cheek
+        with the assumption that the face is the most exposed area of skin
+        during winter.
+
+        The equation outlined in their paper is also not the equation used in their
+        model (which was computationally expensive) but rather it is a linear
+        regression equation which mimics the output of their model where wind
+        speeds are greater than 3kph (0.8m/s) (clarified in the 2008 paper). The
+        assumption being that lower wind speeds are usually not measured or
+        reported accurately anyway.
+        """
+        eqn_component = np.clip(wind_speed, 4.824, None) ** 0.16
+        wind_chill = (
+            13.12
+            + 0.6215 * temperature
+            - 11.37 * eqn_component
+            + 0.3965 * temperature * eqn_component
+        ).astype(np.float32)
+        return wind_chill
+
+    def process(self, temperature: Cube, wind_speed: Cube) -> Cube:
+        """
+        Calculate the wind chill temperature using Iris cubes.
+
+        Args:
+            temperature:
+                Cube of air temperature.
+            wind_speed:
+                Cube of 10m wind speed.
+
+        Returns:
+            Cube of wind chill temperature (same shape and grid as inputs).
+        """
+        orig_temp_units = temperature.units
+        t_cube = temperature.copy()
+        t_cube.convert_units("degC")
+        w_cube = wind_speed.copy()
+        w_cube.convert_units("km h-1")
+
+        wind_chill_data = self._calculate_wind_chill(t_cube.data, w_cube.data)
+
+        attributes = generate_mandatory_attributes(
+            [temperature, wind_speed],
+            model_id_attr=self.model_id_attr,
+        )
+        wind_chill_cube = create_new_diagnostic_cube(
+            "wind_chill_temperature",
+            "degC",
+            temperature,
+            attributes,
+            data=wind_chill_data,
+        )
+        # Match input temperature units
+        wind_chill_cube.convert_units(orig_temp_units)
+
+        return wind_chill_cube
 
 
 def _calculate_apparent_temperature(
@@ -211,8 +261,9 @@ def calculate_feels_like_temperature(
         t_celsius, w_cube.data, rh_cube.data, p_cube.data
     )
 
-    w_cube.convert_units("km h-1")
-    wind_chill = _calculate_wind_chill(t_celsius, w_cube.data)
+    wind_chill_plugin = CalculateWindChill(model_id_attr=model_id_attr)
+    wind_chill_cube = wind_chill_plugin.process(temperature, wind_speed)
+    wind_chill = wind_chill_cube.data
 
     feels_like_temperature = _feels_like_temperature(
         t_celsius, apparent_temperature, wind_chill
@@ -232,44 +283,3 @@ def calculate_feels_like_temperature(
     feels_like_temperature_cube.convert_units(temperature.units)
 
     return feels_like_temperature_cube
-
-
-def calculate_wind_chill_cube(
-    temperature: Cube,
-    wind_speed: Cube,
-    model_id_attr: Optional[str] = None,
-) -> Cube:
-    """
-    Wrapper around _calculate_wind_chill to allow calculation using Iris cubes.
-
-    Args:
-        temperature:
-            Cube of air temperature.
-        wind_speed:
-            Cube of 10m wind speed.
-        model_id_attr:
-            Optional model ID attribute for blending provenance.
-
-    Returns:
-        Cube of wind chill temperature (same shape and grid as inputs).
-    """
-    t_cube = temperature.copy()
-    t_cube.convert_units("degC")
-
-    w_cube = wind_speed.copy()
-    w_cube.convert_units("km h-1")
-
-    wind_chill_data = _calculate_wind_chill(t_cube.data, w_cube.data)
-
-    attributes = generate_mandatory_attributes([temperature, wind_speed], model_id_attr)
-    wind_chill_cube = create_new_diagnostic_cube(
-        "wind_chill_temperature",
-        "degC",
-        temperature,
-        attributes,
-        data=wind_chill_data,
-    )
-
-    # # Match input temperature units (e.g., Kelvin if that was the original)
-    wind_chill_cube.convert_units(temperature.units)
-    return wind_chill_cube
