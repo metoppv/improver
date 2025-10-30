@@ -12,9 +12,7 @@ from iris.tests import IrisTest
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.temperature.feels_like_temperature import (
     _calculate_apparent_temperature,
-    _calculate_wind_chill,
     calculate_feels_like_temperature,
-    calculate_wind_chill_cube,
 )
 
 
@@ -31,18 +29,6 @@ class Test__calculate_apparent_temperature(IrisTest):
         result = _calculate_apparent_temperature(
             temperature, wind_speed, relh, pressure
         )
-        self.assertArrayAlmostEqual(result, expected_result, decimal=4)
-
-
-class Test__calculate_wind_chill(IrisTest):
-    """Test the wind chill function."""
-
-    def test_values(self):
-        """Test output values when from the wind chill equation."""
-        temperature = np.full((1, 3), 1.7)
-        wind_speed = np.full((1, 3), 3) * 60 * 60 / 1000.0
-        expected_result = np.full((1, 3), -1.4754, dtype=np.float32)
-        result = _calculate_wind_chill(temperature, wind_speed)
         self.assertArrayAlmostEqual(result, expected_result, decimal=4)
 
 
@@ -256,122 +242,6 @@ class Test_calculate_feels_like_temperature(IrisTest):
             model_id_attr=model_id_attr,
         )
         self.assertDictEqual(result.attributes, expected_attrs)
-
-
-class Test_calculate_wind_chill_cube(IrisTest):
-    """Test the cube-based wind chill wrapper function."""
-
-    def setUp(self):
-        """Create simple test cubes for temperature and wind speed."""
-        mandatory_attributes = {
-            "source": "Met Office Unified Model",
-            "institution": "Met Office",
-            "title": "UKV Model Forecast on UK 2 km Standard Grid",
-        }
-
-        temperature = np.full((3, 3), 273.15, dtype=np.float32)  # 0°C
-        self.temperature_cube = set_up_variable_cube(
-            temperature,
-            name="air_temperature",
-            units="K",
-            standard_grid_metadata="uk_det",
-            attributes=mandatory_attributes,
-        )
-
-        wind_speed = np.full((3, 3), 10.0, dtype=np.float32)  # 10 m/s
-        self.wind_speed_cube = set_up_variable_cube(
-            wind_speed,
-            name="wind_speed",
-            units="m s-1",
-            standard_grid_metadata="uk_det",
-            attributes=mandatory_attributes,
-        )
-
-    def test_basic_functionality(self):
-        """Test that the function runs and returns a valid cube."""
-        result = calculate_wind_chill_cube(self.temperature_cube, self.wind_speed_cube)
-
-        # Check type and name
-        self.assertIsInstance(result, type(self.temperature_cube))
-        self.assertEqual(result.name(), "wind_chill_temperature")
-
-        # Check shape and units
-        self.assertEqual(result.data.shape, self.temperature_cube.data.shape)
-        self.assertEqual(str(result.units), str(self.temperature_cube.units))
-
-        # Data validity
-        self.assertTrue(np.isfinite(result.data).all())
-
-    def test_unit_conversion_correctness(self):
-        """Check that unit conversions (K↔°C, m/s↔km/h) are handled correctly."""
-        #  Simple one-point cubes
-        temperature_data = np.array([[273.15]], dtype=np.float32)  # 0°C
-        wind_speed_data = np.array([[10.0]], dtype=np.float32)  # 10 m/s = 36 km/h
-
-        mandatory_attributes = {
-            "source": "Met Office Unified Model",
-            "institution": "Met Office",
-            "title": "UKV Model Forecast on UK 2 km Standard Grid",
-        }
-
-        temperature = set_up_variable_cube(
-            temperature_data,
-            name="air_temperature",
-            units="K",
-            standard_grid_metadata="uk_det",
-            attributes=mandatory_attributes,
-        )
-        wind_speed = set_up_variable_cube(
-            wind_speed_data,
-            name="wind_speed",
-            units="m s-1",
-            standard_grid_metadata="uk_det",
-            attributes=mandatory_attributes,
-        )
-
-        # Expected value: run the internal NumPy function directly
-        expected_celsius = _calculate_wind_chill(np.array([[0.0]]), np.array([[36.0]]))
-        expected_kelvin = expected_celsius + 273.15
-
-        #  Run the cube-based wrapper
-        result = calculate_wind_chill_cube(temperature, wind_speed)
-
-        #  Assertions
-        self.assertEqual(str(result.units), "K")  # converted back to Kelvin
-        self.assertArrayAlmostEqual(result.data, expected_kelvin, decimal=3)
-
-    def test_metadata_attributes(self):
-        """Ensure the output cube preserves metadata attributes."""
-        temperature_data = np.ones((3, 4), dtype=np.float32) * 280.0  # ~7°C
-        wind_speed_data = np.ones((3, 4), dtype=np.float32) * 8.0  # 8 m/s
-
-        mandatory_attributes = {
-            "source": "Met Office Unified Model",
-            "institution": "Met Office",
-            "title": "UKV Model Forecast on UK 2 km Standard Grid",
-        }
-
-        temperature = set_up_variable_cube(
-            temperature_data,
-            name="air_temperature",
-            units="K",
-            standard_grid_metadata="uk_det",
-            attributes=mandatory_attributes,
-        )
-        wind_speed = set_up_variable_cube(
-            wind_speed_data,
-            name="wind_speed",
-            units="m s-1",
-            standard_grid_metadata="uk_det",
-            attributes=mandatory_attributes,
-        )
-
-        result = calculate_wind_chill_cube(temperature, wind_speed)
-
-        # Attributes propagated correctly
-        for key, value in mandatory_attributes.items():
-            self.assertIn(key, result.attributes)
-            self.assertEqual(result.attributes[key], value)
 
 
 if __name__ == "__main__":

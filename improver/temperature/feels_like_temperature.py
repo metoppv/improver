@@ -262,7 +262,7 @@ def calculate_feels_like_temperature(
     )
 
     wind_chill_plugin = CalculateWindChill(model_id_attr=model_id_attr)
-    wind_chill_cube = wind_chill_plugin.process(temperature, wind_speed)
+    wind_chill_cube = wind_chill_plugin.process(t_cube, w_cube)
     wind_chill = wind_chill_cube.data
 
     feels_like_temperature = _feels_like_temperature(
