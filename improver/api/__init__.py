@@ -39,6 +39,7 @@ PROCESSING_MODULES = {
     "Combine": "improver.cube_combiner",
     "ConstructReliabilityCalibrationTables": "improver.calibration.reliability_calibration",
     "ContinuousRankedProbabilityScoreMinimisers": "improver.calibration.emos_calibration",
+    "ContrailHeightExtractor": "improver.psychrometric_calculations.condensation_trails",
     "ConvectionRatioFromComponents": "improver.precipitation.convection",
     "ConvertProbabilitiesToPercentiles": "improver.ensemble_copula_coupling.ensemble_copula_coupling",
     "CopyMetadata": "improver.utilities.copy_metadata",
