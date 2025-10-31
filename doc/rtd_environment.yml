@@ -13,6 +13,8 @@ dependencies:
   - pip
   - pip:
     - cf_units
+    - nbsphinx   
     - sphinx
     - sphinx-autodoc-typehints
-    - sphinx_rtd_theme
+    - sphinx-book-theme    
+    - sphinx-gallery

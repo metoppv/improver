@@ -92,6 +92,13 @@ The current list of CLIs can be `found here`_.
 
 .. _found here: improver.cli.html
 
+Gallery of IMPROVER examples
+----------------------------
+
+Further examples of using IMPROVER can be found in the `Examples`_ section of the documentation.
+
+.. _Examples: examples/index.html
+
 Sample data for testing CLIs
 ============================
 The test data used for the acceptance tests within IMPROVER is available in an open-source `repository <https://github.com/metoppv/improver_test_data>`_ on GitHub.
