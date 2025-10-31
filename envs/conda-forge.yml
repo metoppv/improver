@@ -20,8 +20,10 @@ dependencies:
   - pandas
   # Additional libraries to run tests, not included in improver-feedstock
   - filelock
+  - nbsphinx 
   - pytest
   - setuptools
   - sphinx-autodoc-typehints
-  - sphinx_rtd_theme
+  - sphinx-book-theme  
+  - sphinx-gallery
   - threadpoolctl
