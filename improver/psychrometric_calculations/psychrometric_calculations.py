@@ -5,7 +5,7 @@
 """Module to contain Psychrometric Calculations."""
 
 import functools
-from typing import List, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import iris._constraints
 import numpy as np
@@ -41,7 +41,7 @@ SVP_T_INCREMENT = 0.1
 
 
 @functools.lru_cache()
-def _svp_table() -> ndarray:
+def _svp_table(phase: Optional[str] = None) -> ndarray:
     """
     Calculate a saturated vapour pressure (SVP) lookup table.
     The lru_cache decorator caches this table on first call to this function,
@@ -51,13 +51,30 @@ def _svp_table() -> ndarray:
     obtained by interpolating through the table, as is done in the _svp_from_lookup
     function.
 
+    Args:
+        phase:
+            If set to 'water' or 'ice', will create a table with respect to that
+            phase only.
+
     Returns:
         Array of saturated vapour pressures (Pa).
     """
-    svp_data = SaturatedVapourPressureTable(
-        t_min=SVP_T_MIN, t_max=SVP_T_MAX, t_increment=SVP_T_INCREMENT
-    ).process()
-    return svp_data.data
+    if str(phase).lower() == "water":
+        svp = SaturatedVapourPressureTable(
+            t_min=SVP_T_MIN,
+            t_max=SVP_T_MAX,
+            t_increment=SVP_T_INCREMENT,
+            water_only=True,
+        )
+    elif str(phase).lower() == "ice":
+        svp = SaturatedVapourPressureTable(
+            t_min=SVP_T_MIN, t_max=SVP_T_MAX, t_increment=SVP_T_INCREMENT, ice_only=True
+        )
+    else:
+        svp = SaturatedVapourPressureTable(
+            t_min=SVP_T_MIN, t_max=SVP_T_MAX, t_increment=SVP_T_INCREMENT
+        )
+    return svp.process().data
 
 
 @functools.lru_cache()
@@ -80,7 +97,7 @@ def _svp_derivative_table() -> ndarray:
     return svp_derivative_data.data
 
 
-def _svp_from_lookup(temperature: ndarray) -> ndarray:
+def _svp_from_lookup(temperature: ndarray, phase: Optional[str] = None) -> ndarray:
     """
     Gets value for saturation vapour pressure in a pure water vapour system
     from a pre-calculated lookup table. Interpolates linearly between points in
@@ -89,6 +106,9 @@ def _svp_from_lookup(temperature: ndarray) -> ndarray:
     Args:
         temperature:
             Array of air temperatures (K).
+        phase:
+            If set to 'water' or 'ice', will use a lookup table containing
+            values with respect to that phase only.
 
     Returns:
         Array of saturated vapour pressures (Pa).
@@ -101,7 +121,7 @@ def _svp_from_lookup(temperature: ndarray) -> ndarray:
     table_position = (t_clipped - SVP_T_MIN) / SVP_T_INCREMENT
     table_index = table_position.astype(int)
     interpolation_factor = table_position - table_index
-    svp_table_data = _svp_table()
+    svp_table_data = _svp_table(phase)
     return (1.0 - interpolation_factor) * svp_table_data[
         table_index
     ] + interpolation_factor * svp_table_data[table_index + 1]
@@ -134,17 +154,22 @@ def _svp_derivative_from_lookup(temperature: ndarray) -> ndarray:
     ] + interpolation_factor * svp_derivative_table_data[table_index + 1]
 
 
-def calculate_svp_in_air(temperature: ndarray, pressure: ndarray) -> ndarray:
+def calculate_svp_in_air(
+    temperature: ndarray, pressure: ndarray, phase: Optional[str] = None
+) -> ndarray:
     """
     Calculates the saturation vapour pressure in air.  Looks up the saturation
-    vapour pressure in a pure water vapour system, and pressure-corrects the
-    result to obtain the saturation vapour pressure in air.
+    vapour pressure (SVP) in a pure water vapour system, and pressure-corrects
+    the result to obtain the saturation vapour pressure in air.
 
     Args:
         temperature:
             Array of air temperatures (K).
         pressure:
             Array of pressure (Pa).
+        phase:
+            If set to 'water' or 'ice', will use a SVP lookup table containing
+            values with respect to that phase only.
 
     Returns:
         Saturation vapour pressure in air (Pa).
@@ -153,7 +178,7 @@ def calculate_svp_in_air(temperature: ndarray, pressure: ndarray) -> ndarray:
         Atmosphere-Ocean Dynamics, Adrian E. Gill, International Geophysics
         Series, Vol. 30; Equation A4.7.
     """
-    svp = _svp_from_lookup(temperature)
+    svp = _svp_from_lookup(temperature, phase)
     temp_C = temperature + consts.ABSOLUTE_ZERO
     correction = 1.0 + 1.0e-8 * pressure * (4.5 + 6.0e-4 * temp_C * temp_C)
     return svp * correction.astype(np.float32)
