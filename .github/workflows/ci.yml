@@ -35,7 +35,7 @@ jobs:
       shell: micromamba-shell {0}
 
     - name: Fetch reference coverage report from artifact
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v6
       with:
         name: coverage-report-master
         path: covref
