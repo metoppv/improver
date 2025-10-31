@@ -360,7 +360,7 @@ class CondensationTrailFormation(BasePlugin):
             template_cube=template_cube,
             mandatory_attributes=mandatory_attributes,
             optional_attributes=optional_attributes,
-            data=categorical_data.astype(np.uint8),
+            data=categorical_data.astype(np.int32),
         )
 
     def process_from_arrays(

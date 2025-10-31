@@ -653,7 +653,7 @@ def test_categorical_cube_output(
     # generate input categorical data
     plugin = CondensationTrailFormation()
     output_shape = plugin._engine_contrail_factors.shape + temperature_cube.shape
-    categorical_data = np.zeros(output_shape, dtype=np.uint8)
+    categorical_data = np.zeros(output_shape, dtype=np.int32)
     categorical_data[np.random.randint(0, 3, output_shape)] = 1
     categorical_data[np.random.randint(0, 3, output_shape)] = 2
 
