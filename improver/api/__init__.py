@@ -37,6 +37,7 @@ PROCESSING_MODULES = {
     "CloudCondensationLevel": "improver.psychrometric_calculations.cloud_condensation_level",
     "CloudTopTemperature": "improver.psychrometric_calculations.cloud_top_temperature",
     "Combine": "improver.cube_combiner",
+    "CondensationTrailFormation": "improver.psychrometric_calculations.condensation_trails",
     "ConstructReliabilityCalibrationTables": "improver.calibration.reliability_calibration",
     "ContinuousRankedProbabilityScoreMinimisers": "improver.calibration.emos_calibration",
     "ConvectionRatioFromComponents": "improver.precipitation.convection",
