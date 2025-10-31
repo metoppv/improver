@@ -852,41 +852,57 @@ def test_process_raises(
 
 
 @pytest.mark.parametrize(
-    "contrail_factor, pressure, temperature, relative_humidity, forms_contrail",
+    "engine_contrail_factor, pressure, temperature, relative_humidity, expected_contrail_type",
     [
         # always form
-        (3e-5, 5e3, 198, 0, True),  # -75 C
-        (3e-5, 5e3, 203, 0, True),  # -70
-        (3e-5, 1e4, 198, 0, True),
-        (3e-5, 1e4, 208, 0, True),  # -65
-        (3e-5, 2e4, 198, 0, True),
-        (3e-5, 2e4, 213, 0, True),  # -60
-        (3e-5, 4e4, 198, 0, True),
-        (3e-5, 4e4, 218, 0, True),  # -55
+        (3e-5, 5e3, 198, 0, 1),  # -75 C
+        (3e-5, 1e4, 208, 0, 1),  # -65 C
+        (3e-5, 4e4, 218, 0, 1),  # -55 C
+        # might form (increasing relative humidity)
+        # -75 C
+        (3e-5, 5e3, 198, 0.5, 1),
+        (3e-5, 5e3, 198, 0.55, 2),
+        (3e-5, 5e3, 198, 0.6, 2),
+        # -65 C
+        (3e-5, 5e3, 208, 0.65, 0),
+        (3e-5, 5e3, 208, 0.7, 2),
+        (3e-5, 5e3, 208, 0.75, 2),
+        # -45 C
+        (3e-5, 4e4, 228, 0.9, 0),
+        (3e-5, 4e4, 228, 0.95, 2),
+        (3e-5, 4e4, 228, 1, 2),
         # never form
-        (3e-5, 5e3, 238, 1, False),  # -35 C
-        (3e-5, 5e3, 218, 1, False),  # -55
-        (3e-5, 1e4, 238, 1, False),
-        (3e-5, 1e4, 223, 1, False),  # -50
-        (3e-5, 2e4, 238, 1, False),
-        (3e-5, 2e4, 228, 1, False),  # -45
-        (3e-5, 4e4, 238, 1, False),
-        (3e-5, 4e4, 235, 1, False),  # -38
+        (3e-5, 5e3, 218, 1, 0),  # -55 C
+        (3e-5, 2e4, 228, 1, 0),  # -45 C
+        (3e-5, 5e3, 238, 1, 0),  # -35 C
     ],
 )
 def test_process_values(
-    contrail_factor: float,
+    engine_contrail_factor: float,
     pressure: float,
     temperature: float,
     relative_humidity: float,
-    forms_contrail: bool,
+    expected_contrail_type: int,
 ) -> None:
     """
-    Check that 'process' returns the expected values.
+    Check that 'process' returns the expected contrail types from temperature
+    and relative humidity cube inputs.
 
-    TODO:
-    - Add 'may form' inputs with known outputs
-    - Improve inputs after persistency fix
+    This test covers the entire contrail formation class, from the user entry
+    point to the output categorical cube.
+
+    An Appleman diagram has three regions of interest for this test. Contrails
+    'always' form (below 0% line of constant relative humidity), 'never' form
+    (above 100% line), or 'might' form (between 0% and 100% lines).
+
+    Args:
+        engine_contrail_factor (float): Engine contrail factor (kg/kg/K).
+        pressure (float): Ambient air pressure (Pa).
+        temperature (float): Ambient air temperature (K).
+        relative_humidity (float): Relative humidity (kg/kg).
+        expected_contrail_type (int): Denotes the type of contrail that may form,
+            where 0 = no contrails, 1 = non-persistent contrails and 2 = persistent
+            contrails.
     """
 
     pressure_levels = np.array([pressure])
@@ -909,31 +925,13 @@ def test_process_values(
         units="kg kg-1",
     )
 
-    plugin = CondensationTrailFormation([contrail_factor])
+    plugin = CondensationTrailFormation([engine_contrail_factor])
     result = plugin.process([temperature_cube, humidity_cube])
 
-    if forms_contrail:
-        assert result.data[0, 0] == 1 or 2
-    else:
-        assert result.data[0, 0] == 0
-
-    # TODO: remove once test is complete
-    # svp_ice_table = SaturatedVapourPressureTable(ice_only = True, t_min = temperature, t_max = temperature + 0.15).process()
-    # svp_ice = svp_ice_table.data[0]
-
-    # condition_1 = plugin.local_vapour_pressure[0] - plugin.engine_mixing_ratios[0, 0] * temperature > plugin.critical_intercepts[0, 0]
-    # condition_2 = temperature < plugin.critical_temperatures[0, 0]
-    # condition_3 = plugin.local_vapour_pressure[0] > svp_ice
-    # condition_4 = temperature < 273.15
-
-    # c1c2 = condition_1 and condition_2
-    # c3c4 = condition_3 and condition_4
-
-    # if c1c2 and not c3c4:
-    #     expected_category = 1
-    # elif c1c2 and c3c4:
-    #     expected_category = 2
-    # else:
-    #     expected_category = 0
-
-    # assert result.data[0, 0] == expected_category
+    assert isinstance(result, Cube)
+    np.testing.assert_array_equal(
+        result.data,
+        np.array([[expected_contrail_type]], dtype=np.int32),
+        strict=True,
+        verbose=True,
+    )
