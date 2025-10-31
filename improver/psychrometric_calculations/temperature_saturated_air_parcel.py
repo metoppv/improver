@@ -144,8 +144,13 @@ class TemperatureSaturatedAirParcel(BasePlugin):
         """
         cubes = as_cubelist(cubes)
         (self.temperature, self.pressure) = CubeList(cubes).extract(
-            ["air_temperature", "surface_air_pressure"]
+            [
+                "air_temperature_at_condensation_level",
+                "air_pressure_at_condensation_level",
+            ]
         )
+        self.temperature.convert_units("K")
+        self.pressure.convert_units("Pa")
         parcel_temp_at_pressure_level = self.parcel_temp_after_ascent()
         temp_cube = self.make_temperature_cube(parcel_temp_at_pressure_level)
         return temp_cube

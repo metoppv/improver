@@ -2,7 +2,7 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""Tests for the CloudCondensationLevel plugin"""
+"""Tests for the TemperatureSaturatedAirParcel plugin"""
 
 import iris.util
 import numpy as np
@@ -28,7 +28,10 @@ def temperature_fixture() -> Cube:
     data = np.full((2, 2), fill_value=293.0, dtype=np.float32)
     data[0, 1] = 295.0
     temperature = set_up_variable_cube(
-        data, name="air_temperature", units="K", attributes=LOCAL_MANDATORY_ATTRIBUTES
+        data,
+        name="air_temperature_at_condensation_level",
+        units="K",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
     )
     return temperature
 
@@ -40,8 +43,38 @@ def pressure_fixture() -> Cube:
     data[0, 0] = 100200.0
     pressure = set_up_variable_cube(
         data,
-        name="surface_air_pressure",
+        name="air_pressure_at_condensation_level",
         units="Pa",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+    )
+    return pressure
+
+
+@pytest.fixture(name="pressure_bad_units")
+def pressure_bad_units_fixture() -> Cube:
+    """Set up a cube of something that could be pressure data
+    according to its name but has 'm' as units"""
+    data = np.full((2, 2), fill_value=100000.0, dtype=np.float32)
+    data[0, 0] = 100200.0
+    pressure = set_up_variable_cube(
+        data,
+        name="air_pressure_at_condensation_level",
+        units="m",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+    )
+    return pressure
+
+
+@pytest.fixture(name="temperature_bad_units")
+def temperature_bad_units_fixture() -> Cube:
+    """Set up a cube of something that could be temperature data
+    according to its name but has 'm' as units"""
+    data = np.full((2, 2), fill_value=100000.0, dtype=np.float32)
+    data[0, 0] = 100200.0
+    pressure = set_up_variable_cube(
+        data,
+        name="air_temperature_at_condensation_level",
+        units="m",
         attributes=LOCAL_MANDATORY_ATTRIBUTES,
     )
     return pressure
@@ -129,3 +162,17 @@ def test_different_pressure(temperature, pressure, air_parcel_diff_pressure):
     )
     metadata_ok(result, air_parcel_diff_pressure)
     assert np.isclose(result.data, air_parcel_diff_pressure.data, atol=1e-2).all()
+
+
+def test_bad_temperature_units(temperature_bad_units, pressure):
+    """Check that if the temperature cube doesn't have the correct units
+    then it cannot be used."""
+    with pytest.raises(ValueError):
+        TemperatureSaturatedAirParcel()([temperature_bad_units, pressure])
+
+
+def test_bad_pressure_units(temperature, pressure_bad_units):
+    """Check that if the pressure cube doesn't have the correct units
+    then it cannot be used."""
+    with pytest.raises(ValueError):
+        TemperatureSaturatedAirParcel()([temperature, pressure_bad_units])
