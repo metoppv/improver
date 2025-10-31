@@ -34,11 +34,26 @@ jobs:
           pytest --cov=improver --cov-report=term --cov-report=html | tee coverage_output.txt; test ${PIPESTATUS[0]} -eq 0
       shell: micromamba-shell {0}
 
-    - name: Upload coverage report
-      uses: actions/upload-artifact@v5
-      with:
-        name: coverage-report-master
-        overwrite: true
-        path: |
-          coverage_output.txt
-          htmlcov/
+    - name: Commit and push documentation changes
+      run: |
+        git config user.name github-actions[bot]
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+        mkdir -p /tmp/coverage
+        cp coverage_output.txt /tmp/coverage/
+        cp -r htmlcov /tmp/coverage/htmlcov
+
+        git fetch origin coverage-reference || true
+        git checkout -B coverage-reference
+
+        # Remove old coverage files and copy new ones in
+        rm -rf coverage_output.txt htmlcov/
+        cp /tmp/coverage/coverage_output.txt .
+        cp -r /tmp/coverage/htmlcov ./htmlcov
+
+        # Commit and push if there are changes
+        git add coverage_output.txt htmlcov/
+        git commit --amend --no-edit || echo "No changes to commit"
+        git push origin -f coverage-reference
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

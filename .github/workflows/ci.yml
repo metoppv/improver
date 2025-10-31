@@ -11,6 +11,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
+    - name: Checkout reference coverage report
+      uses: actions/checkout@v5
+      with:
+        fetch-depth: 0
+        path: covref
+        ref: coverage-reference
+
     - name: Checkout
       uses: actions/checkout@v5
       with:
@@ -33,12 +40,6 @@ jobs:
       run: |
           pytest --cov=improver --cov-report=term --cov-report=html | tee coverage_output.txt; test ${PIPESTATUS[0]} -eq 0
       shell: micromamba-shell {0}
-
-    - name: Fetch reference coverage report from artifact
-      uses: actions/download-artifact@v6
-      with:
-        name: coverage-report-master
-        path: covref
 
     - name: Compare coverage
       id: comp-coverage

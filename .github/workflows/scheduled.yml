@@ -43,7 +43,7 @@ jobs:
         pytest
       shell: micromamba-shell {0}
 
-  Safety-Bandit:
+  Safety:
     runs-on: ubuntu-22.04
     strategy:
       fail-fast: false

@@ -38,3 +38,4 @@ dependencies:
   - sphinx-autodoc-typehints
   - sphinx_rtd_theme
   - threadpoolctl
+  - pytest-xdist
