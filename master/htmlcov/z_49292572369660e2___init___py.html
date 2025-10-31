@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Coverage for improver/api/__init__.py: 100%</title>
+    <link rel="icon" sizes="32x32" href="favicon_32_cb_c827f16f.png">
+    <link rel="stylesheet" href="style_cb_9ff733b0.css" type="text/css">
+    <script src="coverage_html_cb_dd2e7eb5.js" defer></script>
+</head>
+<body class="pyfile">
+<header>
+    <div class="content">
+        <h1>
+            <span class="text">Coverage for </span><b>improver&#8201;/&#8201;api&#8201;/&#8201;__init__.py</b>:
+            <span class="pc_cov">100%</span>
+        </h1>
+        <aside id="help_panel_wrapper">
+            <input id="help_panel_state" type="checkbox">
+            <label for="help_panel_state">
+                <img id="keyboard_icon" src="keybd_closed_cb_900cfef5.png" alt="Show/hide keyboard shortcuts">
+            </label>
+            <div id="help_panel">
+                <p class="legend">Shortcuts on this page</p>
+                <div class="keyhelp">
+                    <p>
+                        <kbd>r</kbd>
+                        <kbd>m</kbd>
+                        <kbd>x</kbd>
+                        &nbsp; toggle line displays
+                    </p>
+                    <p>
+                        <kbd>j</kbd>
+                        <kbd>k</kbd>
+                        &nbsp; next/prev highlighted chunk
+                    </p>
+                    <p>
+                        <kbd>0</kbd> &nbsp; (zero) top of page
+                    </p>
+                    <p>
+                        <kbd>1</kbd> &nbsp; (one) first highlighted chunk
+                    </p>
+                    <p>
+                        <kbd>[</kbd>
+                        <kbd>]</kbd>
+                        &nbsp; prev/next file
+                    </p>
+                    <p>
+                        <kbd>u</kbd> &nbsp; up to the index
+                    </p>
+                    <p>
+                        <kbd>?</kbd> &nbsp; show/hide this help
+                    </p>
+                </div>
+            </div>
+        </aside>
+        <h2>
+            <span class="text">7 statements &nbsp;</span>
+            <button type="button" class="run button_toggle_run" value="run" data-shortcut="r" title="Toggle lines run">7<span class="text"> run</span></button>
+            <button type="button" class="mis show_mis button_toggle_mis" value="mis" data-shortcut="m" title="Toggle lines missing">0<span class="text"> missing</span></button>
+            <button type="button" class="exc show_exc button_toggle_exc" value="exc" data-shortcut="x" title="Toggle lines excluded">0<span class="text"> excluded</span></button>
+        </h2>
+        <p class="text">
+            <a id="prevFileLink" class="nav" href="z_1c1edfe5b3ca73f7___init___py.html">&#xab; prev</a> &nbsp; &nbsp;
+            <a id="indexLink" class="nav" href="index.html">&Hat; index</a> &nbsp; &nbsp;
+            <a id="nextFileLink" class="nav" href="z_1c1edfe5b3ca73f7_between_thresholds_py.html">&#xbb; next</a>
+            &nbsp; &nbsp; &nbsp;
+            <a class="nav" href="https://coverage.readthedocs.io/en/7.13.4">coverage.py v7.13.4</a>,
+            created at 2026-02-27 01:38 -0800
+        </p>
+        <aside class="hidden">
+            <button type="button" class="button_next_chunk" data-shortcut="j"></button>
+            <button type="button" class="button_prev_chunk" data-shortcut="k"></button>
+            <button type="button" class="button_top_of_page" data-shortcut="0"></button>
+            <button type="button" class="button_first_chunk" data-shortcut="1"></button>
+            <button type="button" class="button_prev_file" data-shortcut="["></button>
+            <button type="button" class="button_next_file" data-shortcut="]"></button>
+            <button type="button" class="button_to_index" data-shortcut="u"></button>
+            <button type="button" class="button_show_hide_help" data-shortcut="?"></button>
+        </aside>
+    </div>
+</header>
+<main id="source">
+    <p class="pln"><span class="n"><a id="t1" href="#t1">1</a></span><span class="t"><span class="com"># (C) Crown Copyright, Met Office. All rights reserved.</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t2" href="#t2">2</a></span><span class="t"><span class="com">#</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t3" href="#t3">3</a></span><span class="t"><span class="com"># This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t4" href="#t4">4</a></span><span class="t"><span class="com"># See LICENSE in the root of the repository for full licensing details.</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t5" href="#t5">5</a></span><span class="t"><span class="com"># flake8: noqa</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t6" href="#t6">6</a></span><span class="t"><span class="str">"""</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t7" href="#t7">7</a></span><span class="t"><span class="str">This module contains the plugins for the IMPROVER project.  This aids in discoverability</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t8" href="#t8">8</a></span><span class="t"><span class="str">by making them available to a single flat namespace.  This also protects end-users from</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t9" href="#t9">9</a></span><span class="t"><span class="str">changes in structure to IMPROVER impacting their use of the plugins.</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t10" href="#t10">10</a></span><span class="t"><span class="str">"""</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t11" href="#t11">11</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t12" href="#t12">12</a></span><span class="t"><span class="key">from</span> <span class="nam">importlib</span> <span class="key">import</span> <span class="nam">import_module</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t13" href="#t13">13</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t14" href="#t14">14</a></span><span class="t"><span class="com"># alphabetically sorted IMPROVER plugin lookup</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t15" href="#t15">15</a></span><span class="t"><span class="nam">PROCESSING_MODULES</span> <span class="op">=</span> <span class="op">{</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t16" href="#t16">16</a></span><span class="t">    <span class="str">"Accumulation"</span><span class="op">:</span> <span class="str">"improver.nowcasting.accumulation"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t17" href="#t17">17</a></span><span class="t">    <span class="str">"AdjustLandSeaPoints"</span><span class="op">:</span> <span class="str">"improver.regrid.landsea"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t18" href="#t18">18</a></span><span class="t">    <span class="str">"AdvectField"</span><span class="op">:</span> <span class="str">"improver.nowcasting.forecasting"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t19" href="#t19">19</a></span><span class="t">    <span class="str">"AggregateReliabilityCalibrationTables"</span><span class="op">:</span> <span class="str">"improver.calibration.reliability_calibration"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t20" href="#t20">20</a></span><span class="t">    <span class="str">"apply_mask"</span><span class="op">:</span> <span class="str">"improver.utilities.mask"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t21" href="#t21">21</a></span><span class="t">    <span class="str">"ApplyBiasCorrection"</span><span class="op">:</span> <span class="str">"improver.calibration.simple_bias_correction"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t22" href="#t22">22</a></span><span class="t">    <span class="str">"ApplyDecisionTree"</span><span class="op">:</span> <span class="str">"improver.categorical.decision_tree"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t23" href="#t23">23</a></span><span class="t">    <span class="str">"ApplyDzRescaling"</span><span class="op">:</span> <span class="str">"improver.calibration.dz_rescaling"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t24" href="#t24">24</a></span><span class="t">    <span class="str">"ApplyEMOS"</span><span class="op">:</span> <span class="str">"improver.calibration.emos_calibration"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t25" href="#t25">25</a></span><span class="t">    <span class="str">"ApplyGriddedLapseRate"</span><span class="op">:</span> <span class="str">"improver.temperature.lapse_rate"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t26" href="#t26">26</a></span><span class="t">    <span class="str">"ApplyNeighbourhoodProcessingWithAMask"</span><span class="op">:</span> <span class="str">"improver.nbhood.use_nbhood"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t27" href="#t27">27</a></span><span class="t">    <span class="str">"ApplyOrographicEnhancement"</span><span class="op">:</span> <span class="str">"improver.nowcasting.utilities"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t28" href="#t28">28</a></span><span class="t">    <span class="str">"ApplyRainForestsCalibration"</span><span class="op">:</span> <span class="str">"improver.calibration.rainforest_calibration"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t29" href="#t29">29</a></span><span class="t">    <span class="str">"ApplyReliabilityCalibration"</span><span class="op">:</span> <span class="str">"improver.calibration.reliability_calibration"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t30" href="#t30">30</a></span><span class="t">    <span class="str">"BaseNeighbourhoodProcessing"</span><span class="op">:</span> <span class="str">"improver.nbhood.nbhood"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t31" href="#t31">31</a></span><span class="t">    <span class="str">"BuildUpIndex"</span><span class="op">:</span> <span class="str">"improver.fire_weather.build_up_index"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t32" href="#t32">32</a></span><span class="t">    <span class="str">"CalculateForecastBias"</span><span class="op">:</span> <span class="str">"improver.calibration.simple_bias_correction"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t33" href="#t33">33</a></span><span class="t">    <span class="str">"CalculateWindChill"</span><span class="op">:</span> <span class="str">"improver.temperature.feels_like_temperature"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t34" href="#t34">34</a></span><span class="t">    <span class="str">"CalibratedForecastDistributionParameters"</span><span class="op">:</span> <span class="str">"improver.calibration.emos_calibration"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t35" href="#t35">35</a></span><span class="t">    <span class="str">"CanadianForestFireWeatherIndex"</span><span class="op">:</span> <span class="str">"improver.fire_weather.canadian_forest_fire_weather_index"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t36" href="#t36">36</a></span><span class="t">    <span class="str">"ChooseDefaultWeightsLinear"</span><span class="op">:</span> <span class="str">"improver.blending.weights"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t37" href="#t37">37</a></span><span class="t">    <span class="str">"ChooseDefaultWeightsNonLinear"</span><span class="op">:</span> <span class="str">"improver.blending.weights"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t38" href="#t38">38</a></span><span class="t">    <span class="str">"ChooseDefaultWeightsTriangular"</span><span class="op">:</span> <span class="str">"improver.blending.weights"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t39" href="#t39">39</a></span><span class="t">    <span class="str">"ChooseWeightsLinear"</span><span class="op">:</span> <span class="str">"improver.blending.weights"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t40" href="#t40">40</a></span><span class="t">    <span class="str">"CloudCondensationLevel"</span><span class="op">:</span> <span class="str">"improver.psychrometric_calculations.cloud_condensation_level"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t41" href="#t41">41</a></span><span class="t">    <span class="str">"CloudTopTemperature"</span><span class="op">:</span> <span class="str">"improver.psychrometric_calculations.cloud_top_temperature"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t42" href="#t42">42</a></span><span class="t">    <span class="str">"Combine"</span><span class="op">:</span> <span class="str">"improver.cube_combiner"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t43" href="#t43">43</a></span><span class="t">    <span class="str">"CondensationTrailFormation"</span><span class="op">:</span> <span class="str">"improver.psychrometric_calculations.condensation_trails"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t44" href="#t44">44</a></span><span class="t">    <span class="str">"ConstructReliabilityCalibrationTables"</span><span class="op">:</span> <span class="str">"improver.calibration.reliability_calibration"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t45" href="#t45">45</a></span><span class="t">    <span class="str">"ContinuousRankedProbabilityScoreMinimisers"</span><span class="op">:</span> <span class="str">"improver.calibration.emos_calibration"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t46" href="#t46">46</a></span><span class="t">    <span class="str">"ContrailHeightExtractor"</span><span class="op">:</span> <span class="str">"improver.psychrometric_calculations.condensation_trails"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t47" href="#t47">47</a></span><span class="t">    <span class="str">"ConvectionRatioFromComponents"</span><span class="op">:</span> <span class="str">"improver.precipitation.convection"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t48" href="#t48">48</a></span><span class="t">    <span class="str">"ConvertProbabilitiesToPercentiles"</span><span class="op">:</span> <span class="str">"improver.ensemble_copula_coupling.ensemble_copula_coupling"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t49" href="#t49">49</a></span><span class="t">    <span class="str">"CopyMetadata"</span><span class="op">:</span> <span class="str">"improver.utilities.copy_metadata"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t50" href="#t50">50</a></span><span class="t">    <span class="str">"CorrectLandSeaMask"</span><span class="op">:</span> <span class="str">"improver.generate_ancillaries.generate_ancillary"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t51" href="#t51">51</a></span><span class="t">    <span class="str">"CreateExtrapolationForecast"</span><span class="op">:</span> <span class="str">"improver.nowcasting.forecasting"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t52" href="#t52">52</a></span><span class="t">    <span class="str">"CubeCombiner"</span><span class="op">:</span> <span class="str">"improver.cube_combiner"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t53" href="#t53">53</a></span><span class="t">    <span class="str">"DayNightMask"</span><span class="op">:</span> <span class="str">"improver.utilities.solar"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t54" href="#t54">54</a></span><span class="t">    <span class="str">"DifferenceBetweenAdjacentGridSquares"</span><span class="op">:</span> <span class="str">"improver.utilities.spatial"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t55" href="#t55">55</a></span><span class="t">    <span class="str">"DroughtCode"</span><span class="op">:</span> <span class="str">"improver.fire_weather.drought_code"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t56" href="#t56">56</a></span><span class="t">    <span class="str">"DuffMoistureCode"</span><span class="op">:</span> <span class="str">"improver.fire_weather.duff_moisture_code"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t57" href="#t57">57</a></span><span class="t">    <span class="str">"EnforceConsistentForecasts"</span><span class="op">:</span> <span class="str">"improver.utilities.forecast_reference_enforcement"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t58" href="#t58">58</a></span><span class="t">    <span class="str">"EnsembleReordering"</span><span class="op">:</span> <span class="str">"improver.ensemble_copula_coupling.ensemble_copula_coupling"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t59" href="#t59">59</a></span><span class="t">    <span class="str">"EstimateCoefficientsForEnsembleCalibration"</span><span class="op">:</span> <span class="str">"improver.calibration.emos_calibration"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t60" href="#t60">60</a></span><span class="t">    <span class="str">"EstimateDzRescaling"</span><span class="op">:</span> <span class="str">"improver.calibration.dz_rescaling"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t61" href="#t61">61</a></span><span class="t">    <span class="str">"ExpectedValue"</span><span class="op">:</span> <span class="str">"improver.expected_value"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t62" href="#t62">62</a></span><span class="t">    <span class="str">"ExtendRadarMask"</span><span class="op">:</span> <span class="str">"improver.nowcasting.utilities"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t63" href="#t63">63</a></span><span class="t">    <span class="str">"ExtractLevel"</span><span class="op">:</span> <span class="str">"improver.utilities.cube_extraction"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t64" href="#t64">64</a></span><span class="t">    <span class="str">"ExtractSubCube"</span><span class="op">:</span> <span class="str">"improver.utilities.cube_extraction"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t65" href="#t65">65</a></span><span class="t">    <span class="str">"ExtractValueFromTable"</span><span class="op">:</span> <span class="str">"improver.utilities.extract_from_table"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t66" href="#t66">66</a></span><span class="t">    <span class="str">"FieldTexture"</span><span class="op">:</span> <span class="str">"improver.utilities.textural"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t67" href="#t67">67</a></span><span class="t">    <span class="str">"FillRadarHoles"</span><span class="op">:</span> <span class="str">"improver.nowcasting.utilities"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t68" href="#t68">68</a></span><span class="t">    <span class="str">"FineFuelMoistureContent"</span><span class="op">:</span> <span class="str">"improver.fire_weather.fine_fuel_moisture_content"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t69" href="#t69">69</a></span><span class="t">    <span class="str">"FireSeverityIndex"</span><span class="op">:</span> <span class="str">"improver.fire_weather.fire_severity_index"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t70" href="#t70">70</a></span><span class="t">    <span class="str">"FreezingRain"</span><span class="op">:</span> <span class="str">"improver.precipitation.freezing_rain"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t71" href="#t71">71</a></span><span class="t">    <span class="str">"FrictionVelocity"</span><span class="op">:</span> <span class="str">"improver.wind_calculations.wind_downscaling"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t72" href="#t72">72</a></span><span class="t">    <span class="str">"GenerateClearskySolarRadiation"</span><span class="op">:</span> <span class="str">"improver.generate_ancillaries.generate_derived_solar_fields"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t73" href="#t73">73</a></span><span class="t">    <span class="str">"GenerateOrographyBandAncils"</span><span class="op">:</span> <span class="str">"improver.generate_ancillaries.generate_ancillary"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t74" href="#t74">74</a></span><span class="t">    <span class="str">"GenerateSolarTime"</span><span class="op">:</span> <span class="str">"improver.generate_ancillaries.generate_derived_solar_fields"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t75" href="#t75">75</a></span><span class="t">    <span class="str">"GenerateTimeLaggedEnsemble"</span><span class="op">:</span> <span class="str">"improver.utilities.time_lagging"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t76" href="#t76">76</a></span><span class="t">    <span class="str">"GenerateTopographicZoneWeights"</span><span class="op">:</span> <span class="str">"improver.generate_ancillaries.generate_topographic_zone_weights"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t77" href="#t77">77</a></span><span class="t">    <span class="str">"GradientBetweenAdjacentGridSquares"</span><span class="op">:</span> <span class="str">"improver.utilities.spatial"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t78" href="#t78">78</a></span><span class="t">    <span class="str">"GradientBetweenVerticalLevels"</span><span class="op">:</span> <span class="str">"improver.utilities.gradient_between_vertical_levels"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t79" href="#t79">79</a></span><span class="t">    <span class="str">"HailFraction"</span><span class="op">:</span> <span class="str">"improver.precipitation.hail_fraction"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t80" href="#t80">80</a></span><span class="t">    <span class="str">"HailSize"</span><span class="op">:</span> <span class="str">"improver.psychrometric_calculations.hail_size"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t81" href="#t81">81</a></span><span class="t">    <span class="str">"height_of_maximum"</span><span class="op">:</span> <span class="str">"improver.utilities.cube_manipulation"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t82" href="#t82">82</a></span><span class="t">    <span class="str">"HumidityMixingRatio"</span><span class="op">:</span> <span class="str">"improver.psychrometric_calculations.psychrometric_calculations"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t83" href="#t83">83</a></span><span class="t">    <span class="str">"InitialSpreadIndex"</span><span class="op">:</span> <span class="str">"improver.fire_weather.initial_spread_index"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t84" href="#t84">84</a></span><span class="t">    <span class="str">"Integration"</span><span class="op">:</span> <span class="str">"improver.utilities.mathematical_operations"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t85" href="#t85">85</a></span><span class="t">    <span class="str">"InterpolateUsingDifference"</span><span class="op">:</span> <span class="str">"improver.utilities.interpolation"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t86" href="#t86">86</a></span><span class="t">    <span class="str">"LapseRate"</span><span class="op">:</span> <span class="str">"improver.temperature.lapse_rate"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t87" href="#t87">87</a></span><span class="t">    <span class="str">"LightningFromCapePrecip"</span><span class="op">:</span> <span class="str">"improver.lightning"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t88" href="#t88">88</a></span><span class="t">    <span class="str">"LightningMultivariateProbability_USAF2024"</span><span class="op">:</span> <span class="str">"improver.lightning"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t89" href="#t89">89</a></span><span class="t">    <span class="str">"ManipulateReliabilityTable"</span><span class="op">:</span> <span class="str">"improver.calibration.reliability_calibration"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t90" href="#t90">90</a></span><span class="t">    <span class="str">"maximum_in_height"</span><span class="op">:</span> <span class="str">"improver.utilities.cube_manipulation"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t91" href="#t91">91</a></span><span class="t">    <span class="str">"MaxInTimeWindow"</span><span class="op">:</span> <span class="str">"improver.cube_combiner"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t92" href="#t92">92</a></span><span class="t">    <span class="str">"MergeCubes"</span><span class="op">:</span> <span class="str">"improver.utilities.cube_manipulation"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t93" href="#t93">93</a></span><span class="t">    <span class="str">"MergeCubesForWeightedBlending"</span><span class="op">:</span> <span class="str">"improver.blending.weighted_blend"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t94" href="#t94">94</a></span><span class="t">    <span class="str">"MetaCloudCondensationLevel"</span><span class="op">:</span> <span class="str">"improver.psychrometric_calculations.cloud_condensation_level"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t95" href="#t95">95</a></span><span class="t">    <span class="str">"MetaNeighbourhood"</span><span class="op">:</span> <span class="str">"improver.nbhood.nbhood"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t96" href="#t96">96</a></span><span class="t">    <span class="str">"MetaWetBulbFreezingLevel"</span><span class="op">:</span> <span class="str">"improver.psychrometric_calculations.wet_bulb_temperature"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t97" href="#t97">97</a></span><span class="t">    <span class="str">"ModalCategory"</span><span class="op">:</span> <span class="str">"improver.categorical.modal_code"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t98" href="#t98">98</a></span><span class="t">    <span class="str">"NeighbourSelection"</span><span class="op">:</span> <span class="str">"improver.spotdata.neighbour_finding"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t99" href="#t99">99</a></span><span class="t">    <span class="str">"NowcastLightning"</span><span class="op">:</span> <span class="str">"improver.nowcasting.lightning"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t100" href="#t100">100</a></span><span class="t">    <span class="str">"OccurrenceBetweenThresholds"</span><span class="op">:</span> <span class="str">"improver.between_thresholds"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t101" href="#t101">101</a></span><span class="t">    <span class="str">"OccurrenceWithinVicinity"</span><span class="op">:</span> <span class="str">"improver.utilities.spatial"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t102" href="#t102">102</a></span><span class="t">    <span class="str">"OpticalFlow"</span><span class="op">:</span> <span class="str">"improver.nowcasting.optical_flow"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t103" href="#t103">103</a></span><span class="t">    <span class="str">"MetaOrographicEnhancement"</span><span class="op">:</span> <span class="str">"improver.orographic_enhancement"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t104" href="#t104">104</a></span><span class="t">    <span class="str">"OrographicSmoothingCoefficients"</span><span class="op">:</span> <span class="str">"improver.generate_ancillaries.generate_orographic_smoothing_coefficients"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t105" href="#t105">105</a></span><span class="t">    <span class="str">"PercentileConverter"</span><span class="op">:</span> <span class="str">"improver.percentile"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t106" href="#t106">106</a></span><span class="t">    <span class="str">"PhaseChangeLevel"</span><span class="op">:</span> <span class="str">"improver.psychrometric_calculations.psychrometric_calculations"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t107" href="#t107">107</a></span><span class="t">    <span class="str">"PostProcessingPlugin"</span><span class="op">:</span> <span class="str">"improver.__init__"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t108" href="#t108">108</a></span><span class="t">    <span class="str">"PrecipitableWater"</span><span class="op">:</span> <span class="str">"improver.psychrometric_calculations.precipitable_water"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t109" href="#t109">109</a></span><span class="t">    <span class="str">"PrecipPhaseProbability"</span><span class="op">:</span> <span class="str">"improver.psychrometric_calculations.precip_phase_probability"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t110" href="#t110">110</a></span><span class="t">    <span class="str">"PystepsExtrapolate"</span><span class="op">:</span> <span class="str">"improver.nowcasting.pysteps_advection"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t111" href="#t111">111</a></span><span class="t">    <span class="str">"RebadgePercentilesAsRealizations"</span><span class="op">:</span> <span class="str">"improver.ensemble_copula_coupling.ensemble_copula_coupling"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t112" href="#t112">112</a></span><span class="t">    <span class="str">"RebadgeRealizationsAsPercentiles"</span><span class="op">:</span> <span class="str">"improver.ensemble_copula_coupling.ensemble_copula_coupling"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t113" href="#t113">113</a></span><span class="t">    <span class="str">"RecursiveFilter"</span><span class="op">:</span> <span class="str">"improver.nbhood.recursive_filter"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t114" href="#t114">114</a></span><span class="t">    <span class="str">"RegridLandSea"</span><span class="op">:</span> <span class="str">"improver.regrid.landsea"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t115" href="#t115">115</a></span><span class="t">    <span class="str">"RegridWithLandSeaMask"</span><span class="op">:</span> <span class="str">"improver.regrid.landsea2"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t116" href="#t116">116</a></span><span class="t">    <span class="str">"ResamplePercentiles"</span><span class="op">:</span> <span class="str">"improver.ensemble_copula_coupling.ensemble_copula_coupling"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t117" href="#t117">117</a></span><span class="t">    <span class="str">"ResolveWindComponents"</span><span class="op">:</span> <span class="str">"improver.wind_calculations.wind_components"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t118" href="#t118">118</a></span><span class="t">    <span class="str">"RoughnessCorrection"</span><span class="op">:</span> <span class="str">"improver.wind_calculations.wind_downscaling"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t119" href="#t119">119</a></span><span class="t">    <span class="str">"SaturatedVapourPressureTable"</span><span class="op">:</span> <span class="str">"improver.generate_ancillaries.generate_svp_table"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t120" href="#t120">120</a></span><span class="t">    <span class="str">"ShowerConditionProbability"</span><span class="op">:</span> <span class="str">"improver.precipitation.shower_condition_probability"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t121" href="#t121">121</a></span><span class="t">    <span class="str">"SignificantPhaseMask"</span><span class="op">:</span> <span class="str">"improver.psychrometric_calculations.significant_phase_mask"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t122" href="#t122">122</a></span><span class="t">    <span class="str">"SnowFraction"</span><span class="op">:</span> <span class="str">"improver.precipitation.snow_fraction"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t123" href="#t123">123</a></span><span class="t">    <span class="str">"SnowProbabilityAtSurface"</span><span class="op">:</span> <span class="str">"improver.precipitation.snow_probability_at_surface"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t124" href="#t124">124</a></span><span class="t">    <span class="str">"SnowSplitter"</span><span class="op">:</span> <span class="str">"improver.precipitation.snow_splitter"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t125" href="#t125">125</a></span><span class="t">    <span class="str">"SpatiallyVaryingWeightsFromMask"</span><span class="op">:</span> <span class="str">"improver.blending.spatial_weights"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t126" href="#t126">126</a></span><span class="t">    <span class="str">"SpotExtraction"</span><span class="op">:</span> <span class="str">"improver.spotdata.spot_extraction"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t127" href="#t127">127</a></span><span class="t">    <span class="str">"SpotHeightAdjustment"</span><span class="op">:</span> <span class="str">"improver.spotdata.height_adjustment"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t128" href="#t128">128</a></span><span class="t">    <span class="str">"SpotLapseRateAdjust"</span><span class="op">:</span> <span class="str">"improver.spotdata.apply_lapse_rate"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t129" href="#t129">129</a></span><span class="t">    <span class="str">"SpotManipulation"</span><span class="op">:</span> <span class="str">"improver.spotdata.spot_manipulation"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t130" href="#t130">130</a></span><span class="t">    <span class="str">"StandardiseMetadata"</span><span class="op">:</span> <span class="str">"improver.standardise"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t131" href="#t131">131</a></span><span class="t">    <span class="str">"TemperatureSaturatedAirParcel"</span><span class="op">:</span> <span class="str">"improver.psychrometric_calculations.temperature_saturated_air_parcel"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t132" href="#t132">132</a></span><span class="t">    <span class="str">"TemporalInterpolation"</span><span class="op">:</span> <span class="str">"improver.utilities.temporal_interpolation"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t133" href="#t133">133</a></span><span class="t">    <span class="str">"Threshold"</span><span class="op">:</span> <span class="str">"improver.threshold"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t134" href="#t134">134</a></span><span class="t">    <span class="str">"TriangularWeightedBlendAcrossAdjacentPoints"</span><span class="op">:</span> <span class="str">"improver.blending.blend_across_adjacent_points"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t135" href="#t135">135</a></span><span class="t">    <span class="str">"VerticalUpdraught"</span><span class="op">:</span> <span class="str">"improver.wind_calculations.vertical_updraught"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t136" href="#t136">136</a></span><span class="t">    <span class="str">"VirtualTemperature"</span><span class="op">:</span> <span class="str">"improver.temperature.virtual_temperature"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t137" href="#t137">137</a></span><span class="t">    <span class="str">"VisibilityCombineCloudBase"</span><span class="op">:</span> <span class="str">"improver.visibility.visibility_combine_cloud_base"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t138" href="#t138">138</a></span><span class="t">    <span class="str">"WeightAndBlend"</span><span class="op">:</span> <span class="str">"improver.blending.calculate_weights_and_blend"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t139" href="#t139">139</a></span><span class="t">    <span class="str">"WeightedBlendAcrossWholeDimension"</span><span class="op">:</span> <span class="str">"improver.blending.weighted_blend"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t140" href="#t140">140</a></span><span class="t">    <span class="str">"WetBulbTemperature"</span><span class="op">:</span> <span class="str">"improver.psychrometric_calculations.wet_bulb_temperature"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t141" href="#t141">141</a></span><span class="t">    <span class="str">"WetBulbTemperatureIntegral"</span><span class="op">:</span> <span class="str">"improver.psychrometric_calculations.wet_bulb_temperature"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t142" href="#t142">142</a></span><span class="t">    <span class="str">"WindDirection"</span><span class="op">:</span> <span class="str">"improver.wind_calculations.wind_direction"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t143" href="#t143">143</a></span><span class="t">    <span class="str">"WindGustDiagnostic"</span><span class="op">:</span> <span class="str">"improver.wind_calculations.wind_gust_diagnostic"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t144" href="#t144">144</a></span><span class="t"><span class="op">}</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t145" href="#t145">145</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t146" href="#t146">146</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t147" href="#t147">147</a></span><span class="t"><span class="key">def</span> <span class="nam">__getattr__</span><span class="op">(</span><span class="nam">name</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t148" href="#t148">148</a></span><span class="t">    <span class="key">if</span> <span class="nam">name</span><span class="op">.</span><span class="nam">startswith</span><span class="op">(</span><span class="str">"__"</span><span class="op">)</span> <span class="key">and</span> <span class="nam">name</span><span class="op">.</span><span class="nam">endswith</span><span class="op">(</span><span class="str">"__"</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t149" href="#t149">149</a></span><span class="t">        <span class="key">raise</span> <span class="nam">AttributeError</span><span class="op">(</span><span class="fst">f"</span><span class="op">{</span><span class="nam">name</span><span class="op">}</span><span class="fst"> is not a valid attribute</span><span class="fst">"</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t150" href="#t150">150</a></span><span class="t">    <span class="nam">mod</span> <span class="op">=</span> <span class="nam">import_module</span><span class="op">(</span><span class="nam">PROCESSING_MODULES</span><span class="op">[</span><span class="nam">name</span><span class="op">]</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t151" href="#t151">151</a></span><span class="t">    <span class="key">return</span> <span class="nam">getattr</span><span class="op">(</span><span class="nam">mod</span><span class="op">,</span> <span class="nam">name</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+</main>
+<footer>
+    <div class="content">
+        <p>
+            <a class="nav" href="z_1c1edfe5b3ca73f7___init___py.html">&#xab; prev</a> &nbsp; &nbsp;
+            <a class="nav" href="index.html">&Hat; index</a> &nbsp; &nbsp;
+            <a class="nav" href="z_1c1edfe5b3ca73f7_between_thresholds_py.html">&#xbb; next</a>
+            &nbsp; &nbsp; &nbsp;
+            <a class="nav" href="https://coverage.readthedocs.io/en/7.13.4">coverage.py v7.13.4</a>,
+            created at 2026-02-27 01:38 -0800
+        </p>
+    </div>
+</footer>
+</body>
+</html>

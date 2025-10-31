@@ -1,0 +1,772 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.12, pytest-9.0.2, pluggy-1.6.0
+rootdir: /home/runner/work/improver/improver
+configfile: pytest.ini
+testpaths: improver_tests
+plugins: cov-7.0.0, xdist-3.8.0
+collected 8392 items / 8 skipped
+
+improver_tests/acceptance/test_aggregate_reliability_tables.py ss        [  0%]
+improver_tests/acceptance/test_apply_beta_recalibration.py s             [  0%]
+improver_tests/acceptance/test_apply_bias_correction.py sssss            [  0%]
+improver_tests/acceptance/test_apply_dz_rescaling.py s                   [  0%]
+improver_tests/acceptance/test_apply_emos_coefficients.py ssssssssssssss [  0%]
+ssssssssssss                                                             [  0%]
+improver_tests/acceptance/test_apply_height_adjustment.py ss             [  0%]
+improver_tests/acceptance/test_apply_lapse_rate.py ss                    [  0%]
+improver_tests/acceptance/test_apply_mask.py ss                          [  0%]
+improver_tests/acceptance/test_apply_night_mask.py ssss                  [  0%]
+improver_tests/acceptance/test_apply_quantile_regression_random_forest.py s [  0%]
+ss                                                                       [  0%]
+improver_tests/acceptance/test_apply_rainforests_calibration.py ssssssss [  0%]
+                                                                         [  0%]
+improver_tests/acceptance/test_apply_reliability_calibration.py ssss     [  0%]
+improver_tests/acceptance/test_apply_samos_coefficients.py ssss          [  0%]
+improver_tests/acceptance/test_between_thresholds.py ss                  [  0%]
+improver_tests/acceptance/test_blend_adjacent_points.py sssss            [  0%]
+improver_tests/acceptance/test_blend_cycles_and_realizations.py s        [  0%]
+improver_tests/acceptance/test_blend_with_vicinity_and_rename.py ss      [  0%]
+improver_tests/acceptance/test_calculate_forecast_bias.py ssss           [  0%]
+improver_tests/acceptance/test_categorical.py sssssssss                  [  1%]
+improver_tests/acceptance/test_categorical_modes.py sssssss              [  1%]
+improver_tests/acceptance/test_checksums.py s.                           [  1%]
+improver_tests/acceptance/test_clip.py ssssss                            [  1%]
+improver_tests/acceptance/test_cloud_condensation_level.py ss            [  1%]
+improver_tests/acceptance/test_cloud_top_temperature.py ss               [  1%]
+improver_tests/acceptance/test_collapse_realizations.py sss              [  1%]
+improver_tests/acceptance/test_combine.py ssssssssssss                   [  1%]
+improver_tests/acceptance/test_compare.py sss                            [  1%]
+improver_tests/acceptance/test_construct_reliability_tables.py sss       [  1%]
+improver_tests/acceptance/test_convection_ratio.py ss                    [  1%]
+improver_tests/acceptance/test_copy_metadata.py s                        [  1%]
+improver_tests/acceptance/test_create_grid_with_halo.py ss               [  1%]
+improver_tests/acceptance/test_cubelist_extract.py s                     [  1%]
+improver_tests/acceptance/test_duration_subdivision.py sss               [  1%]
+improver_tests/acceptance/test_enforce_consistent_forecasts.py ssssssss  [  1%]
+improver_tests/acceptance/test_estimate_dz_rescaling.py ss               [  1%]
+improver_tests/acceptance/test_estimate_emos_coefficients.py sssssssss   [  1%]
+improver_tests/acceptance/test_estimate_samos_coefficients.py ssss       [  1%]
+improver_tests/acceptance/test_estimate_samos_gams.py ssss               [  1%]
+improver_tests/acceptance/test_expected_value.py ssss                    [  1%]
+improver_tests/acceptance/test_extend_radar_mask.py s                    [  2%]
+improver_tests/acceptance/test_extract.py ssssssssss                     [  2%]
+improver_tests/acceptance/test_extract_from_table.py ss                  [  2%]
+improver_tests/acceptance/test_feels_like_temp.py s                      [  2%]
+improver_tests/acceptance/test_field_texture.py ss                       [  2%]
+improver_tests/acceptance/test_fill_radar_holes.py s                     [  2%]
+improver_tests/acceptance/test_forecast_trajectory_gap_filler.py ss      [  2%]
+improver_tests/acceptance/test_freezing_rain.py ss                       [  2%]
+improver_tests/acceptance/test_generate_clearsky_solar_radiation.py ssss [  2%]
+                                                                         [  2%]
+improver_tests/acceptance/test_generate_landmask_ancillary.py s          [  2%]
+improver_tests/acceptance/test_generate_metadata_cube.py sssssssss       [  2%]
+improver_tests/acceptance/test_generate_orographic_smoothing_coefficients.py s [  2%]
+sssss                                                                    [  2%]
+improver_tests/acceptance/test_generate_percentiles.py ssssssssss        [  2%]
+improver_tests/acceptance/test_generate_realizations.py sssssssssssss    [  2%]
+improver_tests/acceptance/test_generate_solar_time.py ss                 [  2%]
+improver_tests/acceptance/test_generate_topography_bands.py ssssssss     [  2%]
+improver_tests/acceptance/test_gradient_between_adjacent_grid_squares.py s [  2%]
+s                                                                        [  2%]
+improver_tests/acceptance/test_gradient_between_vertical_levels.py s     [  2%]
+improver_tests/acceptance/test_hail_fraction.py ss                       [  2%]
+improver_tests/acceptance/test_hail_size.py ss                           [  2%]
+improver_tests/acceptance/test_height_of_max_vertical_velocity.py s      [  2%]
+improver_tests/acceptance/test_integrate_time_bounds.py ss               [  2%]
+improver_tests/acceptance/test_interpolate_using_difference.py ssss      [  3%]
+improver_tests/acceptance/test_interpret_metadata.py sssss               [  3%]
+improver_tests/acceptance/test_lightning_from_cape_and_precip.py ss      [  3%]
+improver_tests/acceptance/test_lightning_multivariate_probability_usaf2024.py s [  3%]
+s                                                                        [  3%]
+improver_tests/acceptance/test_manipulate_reliability_table.py sss       [  3%]
+improver_tests/acceptance/test_max_in_height.py sss                      [  3%]
+improver_tests/acceptance/test_max_in_time_window.py sss                 [  3%]
+improver_tests/acceptance/test_merge.py ss                               [  3%]
+improver_tests/acceptance/test_nbhood.py sssssss                         [  3%]
+improver_tests/acceptance/test_nbhood_iterate_with_mask.py sss           [  3%]
+improver_tests/acceptance/test_nbhood_land_and_sea.py ssssssssssss       [  3%]
+improver_tests/acceptance/test_neighbour_finding.py sssssssssssssss      [  3%]
+improver_tests/acceptance/test_normalise_to_reference.py ssss            [  3%]
+improver_tests/acceptance/test_nowcast_accumulate.py ss                  [  3%]
+improver_tests/acceptance/test_nowcast_extrapolate.py sss                [  3%]
+improver_tests/acceptance/test_nowcast_optical_flow.py ss                [  3%]
+improver_tests/acceptance/test_nowcast_optical_flow_from_winds.py sss    [  3%]
+improver_tests/acceptance/test_orographic_enhancement.py ssss            [  3%]
+improver_tests/acceptance/test_phase_change_level.py ssssssss            [  4%]
+improver_tests/acceptance/test_phase_mask.py ssss                        [  4%]
+improver_tests/acceptance/test_phase_probability.py ssssssssssssssssss   [  4%]
+improver_tests/acceptance/test_precipitation_duration.py ssssss          [  4%]
+improver_tests/acceptance/test_quantile_mapping.py ssss                  [  4%]
+improver_tests/acceptance/test_recursive_filter.py ssss                  [  4%]
+improver_tests/acceptance/test_regrid.py sssssssssssss                   [  4%]
+improver_tests/acceptance/test_relabel_to_period.py s                    [  4%]
+improver_tests/acceptance/test_remake_as_shower_condition.py s           [  4%]
+improver_tests/acceptance/test_resolve_wind_components.py s              [  4%]
+improver_tests/acceptance/test_shower_condition_probability.py s         [  4%]
+improver_tests/acceptance/test_sleet_probability.py s                    [  4%]
+improver_tests/acceptance/test_snow_fraction.py ss                       [  4%]
+improver_tests/acceptance/test_snow_splitter.py ss                       [  4%]
+improver_tests/acceptance/test_spot_extract.py sssssssssssssssssssssssss [  5%]
+sss                                                                      [  5%]
+improver_tests/acceptance/test_standardise.py sssss                      [  5%]
+improver_tests/acceptance/test_temp_lapse_rate.py ssssssss               [  5%]
+improver_tests/acceptance/test_temporal_interpolate.py sssssss           [  5%]
+improver_tests/acceptance/test_threshold.py ssssssssssssssssssss         [  5%]
+improver_tests/acceptance/test_threshold_interpolation.py sss            [  5%]
+improver_tests/acceptance/test_time_lagged_ensembles.py ssss             [  5%]
+improver_tests/acceptance/test_uv_index.py s                             [  5%]
+improver_tests/acceptance/test_vertical_updraught.py ss                  [  5%]
+improver_tests/acceptance/test_vicinity.py sssssssssss                   [  5%]
+improver_tests/acceptance/test_visibility_combine_cloud_base.py ss       [  5%]
+improver_tests/acceptance/test_weather_symbol_modes.py ssssssss          [  5%]
+improver_tests/acceptance/test_weighted_blending.py ssssssssssssssssssss [  6%]
+s                                                                        [  6%]
+improver_tests/acceptance/test_wet_bulb_freezing_level.py s              [  6%]
+improver_tests/acceptance/test_wet_bulb_temperature.py ssss              [  6%]
+improver_tests/acceptance/test_wet_bulb_temperature_integral.py sss      [  6%]
+improver_tests/acceptance/test_wind_direction.py ss                      [  6%]
+improver_tests/acceptance/test_wind_downscaling.py ssssss                [  6%]
+improver_tests/acceptance/test_wind_gust_diagnostic.py ss                [  6%]
+improver_tests/between_thresholds/test_between_thresholds.py ..........  [  6%]
+improver_tests/blending/blend_across_adjacent_points/test_TriangularWeightedBlendAcrossAdjacentPoints.py . [  6%]
+..........                                                               [  6%]
+improver_tests/blending/calculate_weights_and_blend/test_WeightAndBlend.py . [  6%]
+...........................                                              [  6%]
+improver_tests/blending/spatial_weights/test_SpatiallyVaryingWeightsFromMask.py . [  6%]
+..............                                                           [  7%]
+improver_tests/blending/test_utilities.py ..........................     [  7%]
+improver_tests/blending/weighted_blend/test_MergeCubesForWeightedBlending.py . [  7%]
+.......................                                                  [  7%]
+improver_tests/blending/weighted_blend/test_PercentileBlendingAggregator.py . [  7%]
+........                                                                 [  7%]
+improver_tests/blending/weighted_blend/test_WeightedBlendAcrossWholeDimension.py . [  7%]
+.....................................                                    [  8%]
+improver_tests/blending/weights/test_ChooseDefaultWeightsLinear.py ..... [  8%]
+.........                                                                [  8%]
+improver_tests/blending/weights/test_ChooseDefaultWeightsNonLinear.py .. [  8%]
+...........                                                              [  8%]
+improver_tests/blending/weights/test_ChooseDefaultWeightsTriangular.py . [  8%]
+.............                                                            [  8%]
+improver_tests/blending/weights/test_ChooseWeightsLinear.py ............ [  8%]
+.................                                                        [  9%]
+improver_tests/blending/weights/test_WeightsUtilities.py .............   [  9%]
+improver_tests/calibration/beta_recalibration/test_BetaRecalibrate.py .. [  9%]
+...                                                                      [  9%]
+improver_tests/calibration/dataframe_utilities/test_dataframe_utilities.py . [  9%]
+........................................................                 [ 10%]
+improver_tests/calibration/dz_rescaling/test_apply_dz_rescaling.py ..... [ 10%]
+........................................................................ [ 10%]
+........................................................................ [ 11%]
+......................................................................   [ 12%]
+improver_tests/calibration/dz_rescaling/test_estimate_dz_rescaling.py .. [ 12%]
+..................................                                       [ 13%]
+improver_tests/calibration/emos_calibration/test_ApplyEMOS.py .......... [ 13%]
+............                                                             [ 13%]
+improver_tests/calibration/emos_calibration/test_CalibratedForecastDistributionParameters.py . [ 13%]
+......................                                                   [ 13%]
+improver_tests/calibration/emos_calibration/test_ContinuousRankedProbabilityScoreMinimisers.py . [ 13%]
+..........................                                               [ 13%]
+improver_tests/calibration/emos_calibration/test_EstimateCoefficientsForEnsembleCalibration.py . [ 13%]
+................................................                         [ 14%]
+improver_tests/calibration/quantile_mapping/test_QuantileMapping.py .... [ 14%]
+.................................                                        [ 14%]
+improver_tests/calibration/rainforests_calibration/test_ApplyRainForestsCalibration.py . [ 14%]
+.................                                                        [ 15%]
+improver_tests/calibration/rainforests_calibration/test_ApplyRainForestsCalibrationLightGBM.py . [ 15%]
+....................................                                     [ 15%]
+improver_tests/calibration/rainforests_calibration/test_ApplyRainForestsCalibrationTreelite.py . [ 15%]
+............                                                             [ 15%]
+improver_tests/calibration/reliability_calibration/test_AggregateReliabilityCalibrationTables.py . [ 15%]
+........                                                                 [ 15%]
+improver_tests/calibration/reliability_calibration/test_ApplyReliabilityCalibration.py . [ 15%]
+......................                                                   [ 16%]
+improver_tests/calibration/reliability_calibration/test_ConstructReliabilityCalibrationTables.py . [ 16%]
+.........................                                                [ 16%]
+improver_tests/calibration/reliability_calibration/test_ManipulateReliabilityTable.py . [ 16%]
+............................                                             [ 16%]
+improver_tests/calibration/samos_calibration/test_ApplySAMOS.py ........ [ 16%]
+........                                                                 [ 16%]
+improver_tests/calibration/samos_calibration/test_TrainEMOSForSAMOS.py . [ 16%]
+........                                                                 [ 17%]
+improver_tests/calibration/samos_calibration/test_TrainGAMsForSAMOS.py . [ 17%]
+........................................................................ [ 17%]
+...                                                                      [ 17%]
+improver_tests/calibration/samos_calibration/test_samos_utilities.py ... [ 18%]
+................                                                         [ 18%]
+improver_tests/calibration/simple_bias_correction/test_ApplyBiasCorrection.py . [ 18%]
+........................................................................ [ 19%]
+........................................................................ [ 19%]
+..                                                                       [ 19%]
+improver_tests/calibration/simple_bias_correction/test_CalculateForecastBias.py . [ 19%]
+.......................................                                  [ 20%]
+improver_tests/calibration/test_init.py ................................ [ 20%]
+.................sssssssssssssss............................             [ 21%]
+improver_tests/calibration/utilities/test_utilities.py ................. [ 21%]
+..............................................sssssss                    [ 22%]
+improver_tests/categorical/decision_tree/test_ApplyDecisionTree.py ..... [ 22%]
+............................................................             [ 23%]
+improver_tests/categorical/decision_tree/test_ModalFromGroupings.py .... [ 23%]
+........................................................................ [ 24%]
+........................................................................ [ 24%]
+........................................................................ [ 25%]
+........................................................................ [ 26%]
+........................................................................ [ 27%]
+........................................................................ [ 28%]
+........................                                                 [ 28%]
+improver_tests/categorical/modal_code/test_ModalCategory.py ............ [ 28%]
+........................................................................ [ 29%]
+................................................                         [ 30%]
+improver_tests/categorical/test_utilities.py ........................... [ 30%]
+................................                                         [ 30%]
+improver_tests/cli/nowcast_accumulate/test_name_constraint.py .          [ 30%]
+improver_tests/cli/test_init.py .............................            [ 31%]
+improver_tests/clustering/test_clustering.py .....s.....                 [ 31%]
+improver_tests/clustering/test_realization_clustering.py ............s.. [ 31%]
+...........................ssss.ssssssssssssssssss..                     [ 32%]
+improver_tests/cube_combiner/test_Combine.py ...................         [ 32%]
+improver_tests/cube_combiner/test_CubeCombiner.py ...................... [ 32%]
+.....................                                                    [ 32%]
+improver_tests/cube_combiner/test_MaxInTimeWindow.py ..........          [ 33%]
+improver_tests/developer_tools/test_MOMetadataInterpreter.py ........... [ 33%]
+............................................                             [ 33%]
+improver_tests/developer_tools/test_display_interpretation.py .......... [ 33%]
+.....                                                                    [ 33%]
+improver_tests/ensemble_copula_coupling/test_ConvertLocationAndScaleParameters.py . [ 33%]
+......                                                                   [ 33%]
+improver_tests/ensemble_copula_coupling/test_ConvertLocationAndScaleParametersToPercentiles.py . [ 33%]
+................                                                         [ 34%]
+improver_tests/ensemble_copula_coupling/test_ConvertLocationAndScaleParametersToProbabilities.py . [ 34%]
+...............                                                          [ 34%]
+improver_tests/ensemble_copula_coupling/test_ConvertProbabilitiesToPercentiles.py . [ 34%]
+...............................                                          [ 34%]
+improver_tests/ensemble_copula_coupling/test_EnsembleReordering.py ..... [ 34%]
+.....................                                                    [ 35%]
+improver_tests/ensemble_copula_coupling/test_RebadgePercentilesAsRealizations.py . [ 35%]
+......                                                                   [ 35%]
+improver_tests/ensemble_copula_coupling/test_RebadgeRealizationsAsPercentiles.py . [ 35%]
+........                                                                 [ 35%]
+improver_tests/ensemble_copula_coupling/test_ResamplePercentiles.py .... [ 35%]
+.....................                                                    [ 35%]
+improver_tests/ensemble_copula_coupling/test__scipy_continuous_distns.py . [ 35%]
+....                                                                     [ 35%]
+improver_tests/ensemble_copula_coupling/test_utilities.py .............. [ 35%]
+............................                                             [ 36%]
+improver_tests/expected_value/test_expected_value.py ...............     [ 36%]
+improver_tests/fire_weather/test_build_up_index.py ................      [ 36%]
+improver_tests/fire_weather/test_canadian_forest_fire_weather_index.py . [ 36%]
+.................................................................        [ 37%]
+improver_tests/fire_weather/test_drought_code.py ....................... [ 37%]
+....................                                                     [ 37%]
+improver_tests/fire_weather/test_duff_moisture_code.py ................. [ 37%]
+..................                                                       [ 38%]
+improver_tests/fire_weather/test_fine_fuel_moisture_content.py ......... [ 38%]
+.....................................                                    [ 38%]
+improver_tests/fire_weather/test_fire_severity_index.py ................ [ 38%]
+....                                                                     [ 38%]
+improver_tests/fire_weather/test_fire_weather_index_base.py ............ [ 39%]
+.............................................................            [ 39%]
+improver_tests/fire_weather/test_initial_spread_index.py ............... [ 40%]
+.....................                                                    [ 40%]
+improver_tests/fire_weather/test_iterative_fire_weather_index_base.py .. [ 40%]
+.....                                                                    [ 40%]
+improver_tests/generate_ancillaries/test_CorrectLandSeaMask.py .         [ 40%]
+improver_tests/generate_ancillaries/test_DistanceTo.py ................. [ 40%]
+...................................                                      [ 40%]
+improver_tests/generate_ancillaries/test_GenerateClearskySolarRadiation.py . [ 40%]
+.........................                                                [ 41%]
+improver_tests/generate_ancillaries/test_GenerateOrographyBandAncils.py . [ 41%]
+..............                                                           [ 41%]
+improver_tests/generate_ancillaries/test_GenerateSolarTime.py ....       [ 41%]
+improver_tests/generate_ancillaries/test_GenerateTopographicZoneWeights.py . [ 41%]
+......................                                                   [ 41%]
+improver_tests/generate_ancillaries/test_OrographicSmoothingCoefficients.py . [ 41%]
+..............                                                           [ 41%]
+improver_tests/generate_ancillaries/test_SaturatedVapourPressureTable.py . [ 41%]
+..........                                                               [ 42%]
+improver_tests/generate_ancillaries/test_SaturatedVapourPressureTableDerivative.py . [ 42%]
+......                                                                   [ 42%]
+improver_tests/generate_ancillaries/test_generate_ancillary.py .....     [ 42%]
+improver_tests/generate_ancillaries/test_miscellaneous_ancillaries.py .. [ 42%]
+....                                                                     [ 42%]
+improver_tests/lightning/test_LightningFromCapePrecip.py ...........     [ 42%]
+improver_tests/lightning/test_LightningMultivariateProbability_USAF2024.py . [ 42%]
+..........                                                               [ 42%]
+improver_tests/metadata/test_amend.py ....................               [ 42%]
+improver_tests/metadata/test_check_datatypes.py ..............           [ 42%]
+improver_tests/metadata/test_forecast_times.py ......................... [ 43%]
+......                                                                   [ 43%]
+improver_tests/metadata/test_probabilistic.py .......................... [ 43%]
+..............                                                           [ 43%]
+improver_tests/metadata/test_utilities.py .............................. [ 44%]
+............                                                             [ 44%]
+improver_tests/nbhood/nbhood/test_BaseNeighbourhoodProcessing.py .....   [ 44%]
+improver_tests/nbhood/nbhood/test_GeneratePercentilesFromANeighbourhood.py . [ 44%]
+.....................                                                    [ 44%]
+improver_tests/nbhood/nbhood/test_MetaNeighbourhood.py ....              [ 44%]
+improver_tests/nbhood/nbhood/test_NeighbourhoodProcessing.py ........... [ 44%]
+........                                                                 [ 44%]
+improver_tests/nbhood/nbhood/test_check_radius_against_distance.py ..    [ 44%]
+improver_tests/nbhood/nbhood/test_circular_kernel.py .....               [ 45%]
+improver_tests/nbhood/recursive_filter/test_RecursiveFilter.py ......... [ 45%]
+..................                                                       [ 45%]
+improver_tests/nbhood/test_init.py ....                                  [ 45%]
+improver_tests/nbhood/use_nbhood/test_ApplyNeighbourhoodProcessingWithAMask.py . [ 45%]
+...........                                                              [ 45%]
+improver_tests/nowcasting/accumulation/test_Accumulation.py ............ [ 45%]
+................                                                         [ 45%]
+improver_tests/nowcasting/forecasting/test_AdvectField.py .............. [ 46%]
+...........                                                              [ 46%]
+improver_tests/nowcasting/forecasting/test_CreateExtrapolationForecast.py . [ 46%]
+........                                                                 [ 46%]
+improver_tests/nowcasting/lightning/test_NowcastLightning.py ........... [ 46%]
+.....................................                                    [ 46%]
+improver_tests/nowcasting/optical_flow/test_OpticalFlow.py ............. [ 46%]
+..............................................                           [ 47%]
+improver_tests/nowcasting/optical_flow/test_generate_advection_velocities_from_winds.py . [ 47%]
+..                                                                       [ 47%]
+improver_tests/nowcasting/optical_flow/test_generate_optical_flow_components.py . [ 47%]
+..                                                                       [ 47%]
+improver_tests/nowcasting/optical_flow/test_utilities.py ........        [ 47%]
+improver_tests/nowcasting/pysteps_advection/test_PystepsExtrapolate.py . [ 47%]
+.......                                                                  [ 47%]
+improver_tests/nowcasting/utilities/test_ApplyOrographicEnhancement.py . [ 47%]
+.......................                                                  [ 48%]
+improver_tests/nowcasting/utilities/test_ExtendRadarMask.py .....        [ 48%]
+improver_tests/nowcasting/utilities/test_FillRadarHoles.py ...           [ 48%]
+improver_tests/orographic_enhancement/test_OrographicEnhancement.py .... [ 48%]
+...........................                                              [ 48%]
+improver_tests/percentile/test_PercentileConverter.py ..........         [ 48%]
+improver_tests/precipitation/calculate_sleet_prob/test_calculate_sleet_probability.py . [ 48%]
+....                                                                     [ 48%]
+improver_tests/precipitation/convection/test_ConvectionRatioFromComponents.py . [ 48%]
+...............                                                          [ 48%]
+improver_tests/precipitation/freezing_rain/test_FreezingRain.py ........ [ 49%]
+......................                                                   [ 49%]
+improver_tests/precipitation/hail_fraction/test_HailFraction.py ........ [ 49%]
+........................................................................ [ 50%]
+.................................                                        [ 50%]
+improver_tests/precipitation/precipitation_duration/test_PrecipitationDuration.py . [ 50%]
+.................................................                        [ 51%]
+improver_tests/precipitation/shower_condition_probability/test_ShowerConditionProbability.py . [ 51%]
+........                                                                 [ 51%]
+improver_tests/precipitation/snow_fraction/test_SnowFraction.py ........ [ 51%]
+..................                                                       [ 51%]
+improver_tests/precipitation/snow_probability_at_surface/test_snow_probability_at_surface.py . [ 51%]
+.......                                                                  [ 51%]
+improver_tests/precipitation/snow_splitter/test_snow_splitter.py ....... [ 51%]
+.......                                                                  [ 51%]
+improver_tests/precipitation/test_utilities.py ...                       [ 51%]
+improver_tests/psychrometric_calculations/air_parcel_temperature_at_pressure_level/test_TemperatureSaturatedAirParcel.py . [ 51%]
+....                                                                     [ 51%]
+improver_tests/psychrometric_calculations/cloud_condensation_level/test_CloudCondensationLevel.py . [ 52%]
+..........                                                               [ 52%]
+improver_tests/psychrometric_calculations/cloud_condensation_level/test_MetaCloudCondensationLevel.py . [ 52%]
+                                                                         [ 52%]
+improver_tests/psychrometric_calculations/cloud_top_temperature/test_CloudTopTemperature.py . [ 52%]
+................                                                         [ 52%]
+improver_tests/psychrometric_calculations/condensation_trails/test_CondensationTrailFormation.py . [ 52%]
+........................................................................ [ 53%]
+.......                                                                  [ 53%]
+improver_tests/psychrometric_calculations/condensation_trails/test_ContrailHeightExtractor.py . [ 53%]
+.................                                                        [ 53%]
+improver_tests/psychrometric_calculations/hail_size/test_HailSize.py ... [ 53%]
+.....................                                                    [ 53%]
+improver_tests/psychrometric_calculations/precip_phase_probability/test_PrecipPhaseProbability.py . [ 53%]
+..............................................                           [ 54%]
+improver_tests/psychrometric_calculations/precipitable_water/test_precipitable_water.py . [ 54%]
+.........                                                                [ 54%]
+improver_tests/psychrometric_calculations/test_HumidityMixingRatio.py .. [ 54%]
+..............                                                           [ 54%]
+improver_tests/psychrometric_calculations/test_PhaseChangeLevel.py ..... [ 54%]
+...............................                                          [ 55%]
+improver_tests/psychrometric_calculations/test_calculate_svp_derivative_in_air.py . [ 55%]
+..                                                                       [ 55%]
+improver_tests/psychrometric_calculations/test_calculate_svp_in_air.py . [ 55%]
+....                                                                     [ 55%]
+improver_tests/psychrometric_calculations/test_psychrometric_calculations.py . [ 55%]
+.....................................................................    [ 56%]
+improver_tests/psychrometric_calculations/test_significant_phase_mask/test_SignificantPhaseMask.py . [ 56%]
+.....................                                                    [ 56%]
+improver_tests/psychrometric_calculations/wet_bulb_temperature/test_MetaWetBulbFreezingLevel.py . [ 56%]
+                                                                         [ 56%]
+improver_tests/psychrometric_calculations/wet_bulb_temperature/test_WetBulbTemperature.py . [ 56%]
+..............                                                           [ 56%]
+improver_tests/psychrometric_calculations/wet_bulb_temperature/test_WetBulbTemperatureIntegral.py . [ 56%]
+..                                                                       [ 56%]
+improver_tests/regrid/test_AdjustLandSeaPoints.py .................      [ 56%]
+improver_tests/regrid/test_RegridLandSea.py ...s........                 [ 56%]
+improver_tests/regrid/test_RegridWithLandSeaMask.py .............        [ 57%]
+improver_tests/regrid/test_grid.py ......................                [ 57%]
+improver_tests/regrid/test_grid_contains_cutout.py ........              [ 57%]
+improver_tests/spotdata/test_HeightAdjustment.py ..........              [ 57%]
+improver_tests/spotdata/test_NeighbourSelection.py ..................... [ 57%]
+.......................                                                  [ 58%]
+improver_tests/spotdata/test_SpotExtraction.py ......................    [ 58%]
+improver_tests/spotdata/test_SpotLapseRateAdjust.py .............        [ 58%]
+improver_tests/spotdata/test_SpotManipulation.py ....................... [ 58%]
+........                                                                 [ 58%]
+improver_tests/spotdata/test_build_spotdata_cube.py ............         [ 58%]
+improver_tests/spotdata/test_utilities.py .......                        [ 59%]
+improver_tests/standardise/test_StandardiseMetadata.py ................. [ 59%]
+.                                                                        [ 59%]
+improver_tests/synthetic_data/test_generate_metadata.py ................ [ 59%]
+......................                                                   [ 59%]
+improver_tests/synthetic_data/test_set_up_test_cubes.py ................ [ 59%]
+......................................................................   [ 60%]
+improver_tests/synthetic_data/test_utilities.py .......                  [ 60%]
+improver_tests/temperature/feels_like_temperature/test_feels_like_temperature.py . [ 60%]
+.........                                                                [ 60%]
+improver_tests/temperature/lapse_rate/test_ApplyGriddedLapseRate.py .... [ 60%]
+....                                                                     [ 61%]
+improver_tests/temperature/lapse_rate/test_LapseRate.py ................ [ 61%]
+...............                                                          [ 61%]
+improver_tests/temperature/lapse_rate/test_compute_lapse_rate_adjustment.py . [ 61%]
+.....                                                                    [ 61%]
+improver_tests/temperature/virtual_temperature/test_VirtualTemperature.py . [ 61%]
+.                                                                        [ 61%]
+improver_tests/test_PostProcessingPlugin.py ...........                  [ 61%]
+improver_tests/test_api.py ............................................. [ 62%]
+........................................................................ [ 63%]
+...........                                                              [ 63%]
+improver_tests/test_example_data_path.py .....                           [ 63%]
+improver_tests/threshold/test_LatitudeDependentThreshold.py ............ [ 63%]
+.....                                                                    [ 63%]
+improver_tests/threshold/test_Threshold.py ............................. [ 63%]
+........................................................................ [ 64%]
+........................................................................ [ 65%]
+........................................................................ [ 66%]
+........................................................................ [ 67%]
+........................................................................ [ 68%]
+........................................................................ [ 68%]
+........................................................................ [ 69%]
+........................................................................ [ 70%]
+........................................................................ [ 71%]
+........................................................................ [ 72%]
+........................................................................ [ 73%]
+........................................................................ [ 74%]
+........ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.s [ 74%]
+s.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.s [ 75%]
+s.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.s [ 76%]
+s.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss.ss..s..s..s..s..s.. [ 77%]
+s..s..s..s..s..s..s..s..s..s..s..s..s..s..s..s..s..s..s..s..s..s..s..s.. [ 78%]
+s..s..s..s..s..s..s..s..s..s..s..s..s..s..s............................. [ 79%]
+........................................................................ [ 80%]
+.....................................................................    [ 80%]
+improver_tests/utilities/common_input_handle/test_as_cube.py ....        [ 80%]
+improver_tests/utilities/common_input_handle/test_as_cubelist.py ......  [ 80%]
+improver_tests/utilities/common_input_handle/test_as_iterable.py .....   [ 81%]
+improver_tests/utilities/complex_conversion/test_complex_to_deg.py ...   [ 81%]
+improver_tests/utilities/complex_conversion/test_deg_to_complex.py ...   [ 81%]
+improver_tests/utilities/complex_conversion/test_integration.py ..       [ 81%]
+improver_tests/utilities/copy_metadata/test_CopyMetadata.py ............ [ 81%]
+....                                                                     [ 81%]
+improver_tests/utilities/cube_extraction/test_ExtractLevel.py .......... [ 81%]
+........................................................................ [ 82%]
+........................................................................ [ 83%]
+........................................................................ [ 84%]
+........................................................................ [ 84%]
+...............................................                          [ 85%]
+improver_tests/utilities/cube_extraction/test_ExtractSubCube.py ...      [ 85%]
+improver_tests/utilities/cube_extraction/test_cube_extraction.py ....... [ 85%]
+...........................                                              [ 85%]
+improver_tests/utilities/cube_manipulation/test_MergeCubes.py .......... [ 85%]
+.......                                                                  [ 86%]
+improver_tests/utilities/cube_manipulation/test_add_coordinate_to_cube.py . [ 86%]
+.......                                                                  [ 86%]
+improver_tests/utilities/cube_manipulation/test_clip_cube_data.py ..     [ 86%]
+improver_tests/utilities/cube_manipulation/test_collapse_realizations.py . [ 86%]
+....                                                                     [ 86%]
+improver_tests/utilities/cube_manipulation/test_collapse_time.py ....... [ 86%]
+                                                                         [ 86%]
+improver_tests/utilities/cube_manipulation/test_collapsed.py ...         [ 86%]
+improver_tests/utilities/cube_manipulation/test_compare_ancillary_variables.py . [ 86%]
+...                                                                      [ 86%]
+improver_tests/utilities/cube_manipulation/test_compare_attributes.py .. [ 86%]
+.......                                                                  [ 86%]
+improver_tests/utilities/cube_manipulation/test_compare_coords.py ...... [ 86%]
+.                                                                        [ 86%]
+improver_tests/utilities/cube_manipulation/test_convert_aux_coord_to_ancillary_variable.py . [ 86%]
+..                                                                       [ 86%]
+improver_tests/utilities/cube_manipulation/test_enforce_coordinate_ordering.py . [ 86%]
+..........                                                               [ 86%]
+improver_tests/utilities/cube_manipulation/test_expand_bounds.py .....   [ 86%]
+improver_tests/utilities/cube_manipulation/test_filter_realizations.py . [ 86%]
+....                                                                     [ 86%]
+improver_tests/utilities/cube_manipulation/test_get_ancillary_variable_names.py . [ 86%]
+..                                                                       [ 86%]
+improver_tests/utilities/cube_manipulation/test_get_filtered_attributes.py . [ 86%]
+...                                                                      [ 86%]
+improver_tests/utilities/cube_manipulation/test_height_of_maximum.py ... [ 87%]
+..                                                                       [ 87%]
+improver_tests/utilities/cube_manipulation/test_manipulate_n_realizations.py . [ 87%]
+....                                                                     [ 87%]
+improver_tests/utilities/cube_manipulation/test_maximum_in_height.py ... [ 87%]
+......                                                                   [ 87%]
+improver_tests/utilities/cube_manipulation/test_sort_coord_in_cube.py .. [ 87%]
+.....                                                                    [ 87%]
+improver_tests/utilities/cube_manipulation/test_strip_var_names.py ....  [ 87%]
+improver_tests/utilities/solar/test_DayNightMask.py .............        [ 87%]
+improver_tests/utilities/solar/test_solar.py .........................   [ 87%]
+improver_tests/utilities/spatial/test_DifferenceBetweenAdjacentGridSquares.py . [ 87%]
+...............                                                          [ 87%]
+improver_tests/utilities/spatial/test_DistanceBetweenGridSquares.py .... [ 88%]
+.................                                                        [ 88%]
+improver_tests/utilities/spatial/test_GradientBetweenAdjacentGridSquares.py . [ 88%]
+.............                                                            [ 88%]
+improver_tests/utilities/spatial/test_spatial.py ....................... [ 88%]
+......X.....................................................             [ 89%]
+improver_tests/utilities/temporal/test_temporal.py ..................... [ 89%]
+................                                                         [ 89%]
+improver_tests/utilities/test_CalculateClimateAnomalies.py ..........    [ 89%]
+improver_tests/utilities/test_CalculateForecastValueFromClimateAnomaly.py . [ 89%]
+...........                                                              [ 90%]
+improver_tests/utilities/test_DistributionalParameters.py .............. [ 90%]
+                                                                         [ 90%]
+improver_tests/utilities/test_DurationSubdivision.py ................... [ 90%]
+.................                                                        [ 90%]
+improver_tests/utilities/test_ExtractValueFromTable.py ................. [ 90%]
+..................                                                       [ 91%]
+improver_tests/utilities/test_FieldTexture.py ...............            [ 91%]
+improver_tests/utilities/test_ForecastTrajectoryGapFiller.py ........... [ 91%]
+........................                                                 [ 91%]
+improver_tests/utilities/test_GAMFit.py .........                        [ 91%]
+improver_tests/utilities/test_GAMPredict.py ........                     [ 91%]
+improver_tests/utilities/test_GenerateTimeLaggedEnsemble.py ........     [ 92%]
+improver_tests/utilities/test_GoogleFilmInterpolation.py ............... [ 92%]
+..........                                                               [ 92%]
+improver_tests/utilities/test_GradientBetweenVerticalLevels.py ......    [ 92%]
+improver_tests/utilities/test_InterpolateUsingDifference.py ............ [ 92%]
+...                                                                      [ 92%]
+improver_tests/utilities/test_OccurrenceWithinVicinity.py .............. [ 92%]
+.......................                                                  [ 92%]
+improver_tests/utilities/test_TemporalInterpolation.py ................. [ 93%]
+........................................................................ [ 94%]
+..                                                                       [ 94%]
+improver_tests/utilities/test_ThresholdInterpolation.py .........        [ 94%]
+improver_tests/utilities/test_cli_utilities.py ..                        [ 94%]
+improver_tests/utilities/test_compare.py ..............                  [ 94%]
+improver_tests/utilities/test_cube_checker.py .......................... [ 94%]
+...................                                                      [ 94%]
+improver_tests/utilities/test_cube_constraints.py ...                    [ 94%]
+improver_tests/utilities/test_enforce_consistency.py ................... [ 95%]
+.......s...s...s                                                         [ 95%]
+improver_tests/utilities/test_flatten.py ...............                 [ 95%]
+improver_tests/utilities/test_indexing_operations.py .......             [ 95%]
+improver_tests/utilities/test_interpolate.py ..............              [ 95%]
+improver_tests/utilities/test_load.py .............................      [ 96%]
+improver_tests/utilities/test_mask.py ......                             [ 96%]
+improver_tests/utilities/test_masking.py ..............                  [ 96%]
+improver_tests/utilities/test_mathematical_operations.py ............... [ 96%]
+...............                                                          [ 96%]
+improver_tests/utilities/test_neighbourhood_tools.py ..............      [ 96%]
+improver_tests/utilities/test_normalise_to_reference.py .........        [ 97%]
+improver_tests/utilities/test_pad_spatial.py ......................      [ 97%]
+improver_tests/utilities/test_probability_manipulation.py .............. [ 97%]
+                                                                         [ 97%]
+improver_tests/utilities/test_rescale.py ...........                     [ 97%]
+improver_tests/utilities/test_round.py ....                              [ 97%]
+improver_tests/utilities/test_save.py ...............................    [ 97%]
+improver_tests/utilities/test_split_cubes_by_name.py .........           [ 98%]
+improver_tests/uv_index/test_uv_index.py .......                         [ 98%]
+improver_tests/visibility/test_visibility_combine_cloud_base.py ........ [ 98%]
+....                                                                     [ 98%]
+improver_tests/wind_calculations/vertical_updraught/test_VerticalUpdraught.py . [ 98%]
+................................................................         [ 99%]
+improver_tests/wind_calculations/wind_components/test_ResolveWindComponents.py . [ 99%]
+..........                                                               [ 99%]
+improver_tests/wind_calculations/wind_direction/test_WindDirection.py .. [ 99%]
+..............                                                           [ 99%]
+improver_tests/wind_calculations/wind_downscaling/test_FrictionVelocity.py . [ 99%]
+....                                                                     [ 99%]
+improver_tests/wind_calculations/wind_downscaling/test_RoughnessCorrection.py . [ 99%]
+...........................                                              [ 99%]
+improver_tests/wind_calculations/wind_gust_diagnostic/test_WindGustDiagnostic.py . [ 99%]
+...............                                                          [100%]
+
+================================ tests coverage ================================
+_______________ coverage: platform linux, python 3.12.12-final-0 _______________
+
+Name                                                                          Stmts   Miss  Cover
+-------------------------------------------------------------------------------------------------
+improver/__init__.py                                                             41      3    93%
+improver/api/__init__.py                                                          7      0   100%
+improver/between_thresholds.py                                                   73      0   100%
+improver/blending/__init__.py                                                     4      0   100%
+improver/blending/blend_across_adjacent_points.py                                32      0   100%
+improver/blending/calculate_weights_and_blend.py                                 84      1    99%
+improver/blending/spatial_weights.py                                             82      0   100%
+improver/blending/utilities.py                                                  131      0   100%
+improver/blending/weighted_blend.py                                             215      0   100%
+improver/blending/weights.py                                                    230      7    97%
+improver/calibration/__init__.py                                                232     45    81%
+improver/calibration/beta_recalibration.py                                       30      0   100%
+improver/calibration/dataframe_utilities.py                                     223      0   100%
+improver/calibration/dz_rescaling.py                                            115      0   100%
+improver/calibration/emos_calibration.py                                        466      0   100%
+improver/calibration/load_and_apply_quantile_regression_random_forest.py        108     81    25%
+improver/calibration/load_and_train_quantile_regression_random_forest.py        175    148    15%
+improver/calibration/quantile_mapping.py                                         83      1    99%
+improver/calibration/quantile_regression_random_forest.py                       185    159    14%
+improver/calibration/rainforest_calibration.py                                  278      7    97%
+improver/calibration/reliability_calibration.py                                 388      4    99%
+improver/calibration/samos_calibration.py                                       188      5    97%
+improver/calibration/simple_bias_correction.py                                  123      0   100%
+improver/calibration/utilities.py                                               177     18    90%
+improver/categorical/__init__.py                                                  0      0   100%
+improver/categorical/decision_tree.py                                           329      3    99%
+improver/categorical/modal_code.py                                              244      0   100%
+improver/categorical/utilities.py                                               213      0   100%
+improver/clustering/__init__.py                                                   0      0   100%
+improver/clustering/clustering.py                                                21      6    71%
+improver/clustering/realization_clustering.py                                   299    160    46%
+improver/constants.py                                                            25      0   100%
+improver/cube_combiner.py                                                       213      0   100%
+improver/developer_tools/__init__.py                                              0      0   100%
+improver/developer_tools/metadata_interpreter.py                                317      3    99%
+improver/ensemble_copula_coupling/__init__.py                                     0      0   100%
+improver/ensemble_copula_coupling/_scipy_continuous_distns.py                    48      0   100%
+improver/ensemble_copula_coupling/constants.py                                    4      0   100%
+improver/ensemble_copula_coupling/ensemble_copula_coupling.py                   392      6    98%
+improver/ensemble_copula_coupling/numba_utilities.py                             69     60    13%
+improver/ensemble_copula_coupling/utilities.py                                   86      0   100%
+improver/expected_value.py                                                       47      1    98%
+improver/fire_weather/__init__.py                                               145      0   100%
+improver/fire_weather/build_up_index.py                                          21      0   100%
+improver/fire_weather/canadian_forest_fire_weather_index.py                      27      0   100%
+improver/fire_weather/drought_code.py                                            45      0   100%
+improver/fire_weather/duff_moisture_code.py                                      48      0   100%
+improver/fire_weather/fine_fuel_moisture_content.py                              68      0   100%
+improver/fire_weather/fire_severity_index.py                                     12      0   100%
+improver/fire_weather/initial_spread_index.py                                    28      0   100%
+improver/generate_ancillaries/__init__.py                                         0      0   100%
+improver/generate_ancillaries/generate_ancillary.py                              86      8    91%
+improver/generate_ancillaries/generate_derived_solar_fields.py                  115      0   100%
+improver/generate_ancillaries/generate_distance_to_feature.py                    71      0   100%
+improver/generate_ancillaries/generate_miscellaneous_ancillaries.py              62      0   100%
+improver/generate_ancillaries/generate_orographic_smoothing_coefficients.py      77      0   100%
+improver/generate_ancillaries/generate_svp_derivative_table.py                   31      0   100%
+improver/generate_ancillaries/generate_svp_table.py                              68      0   100%
+improver/generate_ancillaries/generate_topographic_zone_weights.py               80      0   100%
+improver/grids.py                                                                 5      0   100%
+improver/lightning.py                                                           110      0   100%
+improver/memprofile.py                                                           45     45     0%
+improver/metadata/__init__.py                                                     0      0   100%
+improver/metadata/amend.py                                                       59      0   100%
+improver/metadata/check_datatypes.py                                             64      0   100%
+improver/metadata/constants/__init__.py                                           4      0   100%
+improver/metadata/constants/attributes.py                                         2      0   100%
+improver/metadata/constants/mo_attributes.py                                      4      0   100%
+improver/metadata/constants/time_types.py                                         7      0   100%
+improver/metadata/forecast_times.py                                             112      0   100%
+improver/metadata/probabilistic.py                                               94      0   100%
+improver/metadata/utilities.py                                                   90      0   100%
+improver/nbhood/__init__.py                                                      16      0   100%
+improver/nbhood/nbhood.py                                                       242     12    95%
+improver/nbhood/recursive_filter.py                                             109      0   100%
+improver/nbhood/use_nbhood.py                                                    55      0   100%
+improver/nowcasting/__init__.py                                                   0      0   100%
+improver/nowcasting/accumulation.py                                              87      0   100%
+improver/nowcasting/forecasting.py                                              159      6    96%
+improver/nowcasting/lightning.py                                                118      1    99%
+improver/nowcasting/optical_flow.py                                             286      2    99%
+improver/nowcasting/pysteps_advection.py                                         83      0   100%
+improver/nowcasting/utilities.py                                                 95      1    99%
+improver/orographic_enhancement.py                                              207     28    86%
+improver/percentile.py                                                           45      2    96%
+improver/precipitation/__init__.py                                                0      0   100%
+improver/precipitation/calculate_sleet_prob.py                                   14      0   100%
+improver/precipitation/convection.py                                             39      1    97%
+improver/precipitation/freezing_rain.py                                         113      2    98%
+improver/precipitation/hail_fraction.py                                          35      0   100%
+improver/precipitation/precipitation_duration.py                                150      0   100%
+improver/precipitation/shower_condition_probability.py                           49      0   100%
+improver/precipitation/snow_fraction.py                                          51      0   100%
+improver/precipitation/snow_probability_at_surface.py                            14      0   100%
+improver/precipitation/snow_splitter.py                                          37      0   100%
+improver/precipitation/utilities.py                                              24      0   100%
+improver/profile.py                                                              19     19     0%
+improver/psychrometric_calculations/__init__.py                                   0      0   100%
+improver/psychrometric_calculations/cloud_condensation_level.py                  61      2    97%
+improver/psychrometric_calculations/cloud_top_temperature.py                     53      0   100%
+improver/psychrometric_calculations/condensation_trails.py                      173      2    99%
+improver/psychrometric_calculations/hail_size.py                                108      0   100%
+improver/psychrometric_calculations/precip_phase_probability.py                  53      1    98%
+improver/psychrometric_calculations/precipitable_water.py                        46      0   100%
+improver/psychrometric_calculations/psychrometric_calculations.py               289      6    98%
+improver/psychrometric_calculations/significant_phase_mask.py                    36      0   100%
+improver/psychrometric_calculations/temperature_saturated_air_parcel.py          40      0   100%
+improver/psychrometric_calculations/wet_bulb_temperature.py                     120      3    98%
+improver/regrid/__init__.py                                                       0      0   100%
+improver/regrid/bilinear.py                                                     186      0   100%
+improver/regrid/grid.py                                                         133      0   100%
+improver/regrid/idw.py                                                           46      2    96%
+improver/regrid/landsea2.py                                                      65      1    98%
+improver/regrid/landsea.py                                                      131      4    97%
+improver/regrid/nearest.py                                                       56      0   100%
+improver/spotdata/__init__.py                                                     1      0   100%
+improver/spotdata/apply_lapse_rate.py                                            62      1    98%
+improver/spotdata/build_spotdata_cube.py                                         55      0   100%
+improver/spotdata/height_adjustment.py                                           63      0   100%
+improver/spotdata/neighbour_finding.py                                          159      0   100%
+improver/spotdata/spot_extraction.py                                             87      0   100%
+improver/spotdata/spot_manipulation.py                                           76      0   100%
+improver/spotdata/utilities.py                                                   20      0   100%
+improver/standardise.py                                                         108      2    98%
+improver/synthetic_data/__init__.py                                               0      0   100%
+improver/synthetic_data/generate_metadata.py                                     74      0   100%
+improver/synthetic_data/set_up_test_cubes.py                                    248      0   100%
+improver/synthetic_data/utilities.py                                             30      1    97%
+improver/temperature/__init__.py                                                  0      0   100%
+improver/temperature/feels_like_temperature.py                                   59      0   100%
+improver/temperature/lapse_rate.py                                              138      0   100%
+improver/temperature/virtual_temperature.py                                      16      0   100%
+improver/threshold.py                                                           256      0   100%
+improver/utilities/__init__.py                                                    0      0   100%
+improver/utilities/cli_utilities.py                                              14      4    71%
+improver/utilities/common_input_handle.py                                        23      0   100%
+improver/utilities/compare.py                                                   170     53    69%
+improver/utilities/complex_conversion.py                                         16      0   100%
+improver/utilities/copy_metadata.py                                              57      0   100%
+improver/utilities/cube_checker.py                                               74      0   100%
+improver/utilities/cube_constraints.py                                           10      0   100%
+improver/utilities/cube_extraction.py                                           190      0   100%
+improver/utilities/cube_manipulation.py                                         336      1    99%
+improver/utilities/extract_from_table.py                                         61      0   100%
+improver/utilities/flatten.py                                                     9      0   100%
+improver/utilities/forecast_reference_enforcement.py                            137      0   100%
+improver/utilities/generalized_additive_models.py                                60      0   100%
+improver/utilities/gradient_between_vertical_levels.py                           57      0   100%
+improver/utilities/indexing_operations.py                                        11      0   100%
+improver/utilities/interpolation.py                                              79      0   100%
+improver/utilities/load.py                                                       38      0   100%
+improver/utilities/mask.py                                                       23      0   100%
+improver/utilities/masking.py                                                    10      0   100%
+improver/utilities/mathematical_operations.py                                   240      0   100%
+improver/utilities/neighbourhood_tools.py                                        39      0   100%
+improver/utilities/pad_spatial.py                                                94      1    99%
+improver/utilities/probability_manipulation.py                                   39      2    95%
+improver/utilities/redirect_stdout.py                                             8      0   100%
+improver/utilities/rescale.py                                                    20      0   100%
+improver/utilities/round.py                                                       9      0   100%
+improver/utilities/save.py                                                       47      2    96%
+improver/utilities/solar.py                                                     136      0   100%
+improver/utilities/spatial.py                                                   395      7    98%
+improver/utilities/statistical.py                                                47      0   100%
+improver/utilities/temporal.py                                                   91      0   100%
+improver/utilities/temporal_interpolation.py                                    672     53    92%
+improver/utilities/textural.py                                                   63      0   100%
+improver/utilities/threshold_interpolation.py                                    58      0   100%
+improver/utilities/time_lagging.py                                               30      1    97%
+improver/uv_index.py                                                             16      0   100%
+improver/visibility/__init__.py                                                   0      0   100%
+improver/visibility/visibility_combine_cloud_base.py                             51      0   100%
+improver/wind_calculations/__init__.py                                            0      0   100%
+improver/wind_calculations/vertical_updraught.py                                 62      0   100%
+improver/wind_calculations/wind_components.py                                    64      4    94%
+improver/wind_calculations/wind_direction.py                                     74      0   100%
+improver/wind_calculations/wind_downscaling.py                                  327     40    88%
+improver/wind_calculations/wind_gust_diagnostic.py                               55      0   100%
+-------------------------------------------------------------------------------------------------
+TOTAL                                                                         16664   1038    94%
+Coverage HTML written to dir htmlcov
+=== 7588 passed, 811 skipped, 1 xpassed, 3491 warnings in 414.48s (0:06:54) ====
