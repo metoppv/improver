@@ -448,33 +448,3 @@ sphinx_gallery_conf = {
 nbsphinx_execute = "always"
 nbsphinx_timeout = 600  # seconds per cell
 nbsphinx_allow_errors = False  # Set True to allow build to continue on notebook error
-
-# nbsphinx_epilog = """
-# .. only:: html
-
-#     .. note::
-#         This page was generated from a Jupyter notebook.
-#         :download:`Download this notebook <{{ env.doc2path(env.docname, base=None) }}>`
-# """
-
-# myst_enable_extensions = [
-#     "dollarmath",
-#     "amsmath",
-#     "colon_fence",
-#     "deflist",
-#     "html_admonition",
-#     "html_image",
-#     # "linkify",
-#     "substitution",
-#     "tasklist",
-# ]
-# nb_execution_mode = "auto"
-# nb_execution_exclude_patterns = ["auto_examples"]
-# mystnb_prolog = """
-# ```{admonition} Notebook
-# :class: note
-
-# This page was generated from a Jupyter notebook.
-# :download:`Download this notebook <{{ env.doc2path(env.docname, base=None) }}>`
-# ```
-# """
