@@ -61,6 +61,13 @@ class FineFuelMoistureContent(BasePlugin):
         self.wind_speed.convert_units("km/h")
         self.input_ffmc.convert_units(1)
 
+        # Convert all inputted cubes to their data values for processing
+        self.temperature = self.temperature.data
+        self.precipitation = self.precipitation.data
+        self.relative_humidity = self.relative_humidity.data
+        self.wind_speed = self.wind_speed.data
+        self.input_ffmc = self.input_ffmc.data
+
     def _calculate_moisture_content(self):
         """Calculates the previous day's moisture content for a given input value
         of the Fine Fuel Moisture Content, and initialises the moisture_content
@@ -73,7 +80,7 @@ class FineFuelMoistureContent(BasePlugin):
             147.2 * (101.0 - self.input_ffmc) / (59.5 + self.input_ffmc)
         )
         # Initialise today's moisture content to the previous day's value
-        self.moisture_content = self.initial_moisture_content.copy().data
+        self.moisture_content = self.initial_moisture_content.copy()
 
     def _perform_rainfall_adjustment(self):
         """Updates the moisture content value based on available precipitaion
@@ -83,9 +90,9 @@ class FineFuelMoistureContent(BasePlugin):
         From Van Wagner and Pickett (1985), Page 5: Equations 2, 3a, 3b, and Steps 3a, 3b, 3c.
         """
         # Step 3a: Check where precipitation > 0.5
-        precip_mask = self.precipitation.data > 0.5
+        precip_mask = self.precipitation > 0.5
         # Set the rainfall value, adjusted for the threshold but bounded to >= 0.0
-        r_f = self.precipitation.data.copy() - 0.5
+        r_f = self.precipitation.copy() - 0.5
         # Bound to zero to avoid negative values where the measurement is close
         r_f = np.maximum(r_f, 0.0)
         # Set values to np.nan where precipitation <= 0.5 to avoid unnecessary calculations
@@ -136,11 +143,11 @@ class FineFuelMoistureContent(BasePlugin):
             Cube: The drying phase value.
         """
         E_d = (
-            0.942 * self.relative_humidity.data**0.679
-            + 11 * np.exp((self.relative_humidity.data - 100) / 10)
+            0.942 * self.relative_humidity**0.679
+            + 11 * np.exp((self.relative_humidity - 100) / 10)
             + 0.18
-            * (21.1 - self.temperature.data)
-            * (1 - np.exp(-0.115 * self.relative_humidity.data))
+            * (21.1 - self.temperature)
+            * (1 - np.exp(-0.115 * self.relative_humidity))
         )
         return E_d
 
@@ -156,14 +163,12 @@ class FineFuelMoistureContent(BasePlugin):
             E_d (Cube): The current drying phase value.
         """
         # Equation 6a:
-        k_o = 0.424 * (
-            1 - (self.relative_humidity.data / 100.0) ** 1.7
-        ) + 0.0694 * np.sqrt(self.wind_speed.data) * (
-            1 - (self.relative_humidity.data / 100.0) ** 8
-        )
+        k_o = 0.424 * (1 - (self.relative_humidity / 100.0) ** 1.7) + 0.0694 * np.sqrt(
+            self.wind_speed
+        ) * (1 - (self.relative_humidity / 100.0) ** 8)
 
         # Equation 6b:
-        k_d = k_o * 0.581 * np.exp(0.0365 * self.temperature.data)
+        k_d = k_o * 0.581 * np.exp(0.0365 * self.temperature)
 
         # Equation 8:
         new_moisture_content = E_d + (self.moisture_content - E_d) * 10 ** (-k_d)
