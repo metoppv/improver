@@ -7,10 +7,7 @@
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from importlib.metadata import PackageNotFoundError, version
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    from iris.cube import Cube
+from typing import Any
 
 try:
     __version__ = version("improver")
@@ -48,7 +45,7 @@ class PostProcessingPlugin(BasePlugin):
     Makes generalised changes to metadata relating to post-processing.
     """
 
-    def __call__(self, *args, **kwargs) -> "Cube":
+    def __call__(self, *args, **kwargs) -> Any:
         """Makes subclasses callable to use process
         Args:
             *args:
