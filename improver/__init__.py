@@ -7,6 +7,7 @@
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from importlib.metadata import PackageNotFoundError, version
+from typing import Any
 
 try:
     __version__ = version("improver")
@@ -34,7 +35,7 @@ class BasePlugin(ABC):
         return self.process(*args, **kwargs)
 
     @abstractmethod
-    def process(self, *args, **kwargs):
+    def process(self, *args, **kwargs) -> Any:
         """Abstract class for rest to implement."""
         pass
 
