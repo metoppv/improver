@@ -6,7 +6,6 @@
 from pathlib import Path
 
 import pytest
-from lightgbm import Booster
 
 from improver.calibration.rainforest_training import (
     CompileRainForestsCalibration,
@@ -33,7 +32,7 @@ def test_process(dummy_lightgbm_models, tmp_path):
 
     compiler = CompileRainForestsCalibration()
 
-    model: Booster = tree_models[lead_times[0], thresholds[0]]
+    model = tree_models[lead_times[0], thresholds[0]]
     model_path = tmp_path / f"model{lead_times[0]}{thresholds[0]}.txt"
     model.save_model(model_path)
 
