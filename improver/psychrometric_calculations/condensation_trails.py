@@ -12,7 +12,7 @@ from iris.cube import Cube, CubeList
 
 from improver import BasePlugin
 from improver.categorical.utilities import categorical_attributes
-from improver.constants import EARTH_REPSILON
+from improver.constants import ABSOLUTE_ZERO, EARTH_REPSILON
 from improver.generate_ancillaries.generate_svp_derivative_table import (
     SaturatedVapourPressureDerivativeTable,
     SaturatedVapourPressureTable,
@@ -289,7 +289,7 @@ class CondensationTrailFormation(BasePlugin):
         # Condition 3
         air_is_saturated = self.local_vapour_pressure > saturated_vapour_pressure_ice
         # Condition 4
-        temperature_below_freezing = self.temperature < 273.15
+        temperature_below_freezing = self.temperature < abs(ABSOLUTE_ZERO)
 
         # Boolean arrays that are true when the specific contrail type will form.
         # Array axes are [contrail factor, pressure level, latitude, longitude].
