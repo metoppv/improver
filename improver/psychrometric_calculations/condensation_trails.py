@@ -595,14 +595,16 @@ class ContrailHeightExtractor(BasePlugin):
             )
         if height.shape[0] != contrail_formation.shape[1]:
             raise ValueError(
-                f"Axis 0 of 'height' and axis 1 of 'contrail_formation' must be the same size, got {height.shape[0]} and {contrail_formation.shape[1]}."
+                f"Axis 0 of 'height' and axis 1 of 'contrail_formation' must be the "
+                f"same size, got {height.shape[0]} and {contrail_formation.shape[1]}."
             )
 
         try:
             broadcast_height = np.broadcast_to(height, contrail_formation.shape)
         except ValueError as broadcast_error:
             raise ValueError(
-                f"Cannot broadcast 'height' of shape {height.shape} to 'contrail_formation' of shape {contrail_formation.shape}."
+                f"Cannot broadcast 'height' of shape {height.shape} to 'contrail_formation' "
+                f"of shape {contrail_formation.shape}."
             ) from broadcast_error
 
         if not isinstance(non_persistent_value, int):
