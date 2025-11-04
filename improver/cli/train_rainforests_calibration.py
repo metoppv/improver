@@ -2,7 +2,7 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""CLI to apply rainforests calibration."""
+"""CLI to train Rainforests calibration models."""
 
 from pathlib import Path
 
@@ -19,7 +19,7 @@ def process(
     output_dir: cli.inputpath,
 ):
     """
-    Train a set of Rainforests models.
+    Train Rainforests models for a particular leadtime, for a set of thresholds.
 
     """
     import pandas as pd

@@ -30,7 +30,7 @@ def test__init__(deterministic_training_data):
     training_data, fcst_column, observation_column, training_columns = (
         deterministic_training_data
     )
-    # This data contains several lead times and thresholds. Choose one of each to train on.
+    # This data contains several lead times. Filter the data to one leadtime.
     lead_time = 24
     curr_training_data = training_data.loc[
         training_data["lead_time_hours"] == lead_time
@@ -46,12 +46,13 @@ def test_process(thresholds, deterministic_training_data):
         deterministic_training_data
     )
 
-    # This data contains several lead times and thresholds. Choose one of each to train on.
-    threshold = thresholds[0]
+    # This data contains several lead times. Filter the data to one leadtime.
     lead_time = 24
     curr_training_data = training_data.loc[
         training_data["lead_time_hours"] == lead_time
     ]
+
+    threshold = thresholds[0]
 
     trainer = TrainRainForestsCalibration(curr_training_data)
     result = trainer.process(threshold, observation_column, training_columns)
@@ -65,8 +66,7 @@ def test_process_with_path(thresholds, deterministic_training_data, tmp_path):
         deterministic_training_data
     )
 
-    # This data contains several lead times and thresholds. Choose one of each to train on.
-    threshold = thresholds[0]
+    # This data contains several lead times. Filter the data to one leadtime.
     lead_time = 24
     curr_training_data = training_data.loc[
         training_data["lead_time_hours"] == lead_time
@@ -76,6 +76,7 @@ def test_process_with_path(thresholds, deterministic_training_data, tmp_path):
 
     result_path = tmp_path / "output.txt"
 
+    threshold = thresholds[0]
     trainer.process(threshold, observation_column, training_columns, result_path)
 
     assert Path.exists(result_path)
