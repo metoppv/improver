@@ -562,7 +562,7 @@ class ContrailHeightExtractor(BasePlugin):
         contrail_formation: np.ndarray,
         height: np.ndarray,
         non_persistent_value: int = 1,
-        persistent_value=2,
+        persistent_value: int = 2,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Main entry point of this class for data as Numpy arrays.
