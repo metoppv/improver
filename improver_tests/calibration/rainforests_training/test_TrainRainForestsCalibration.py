@@ -11,6 +11,8 @@ from improver.calibration.rainforest_training import (
     TrainRainForestsCalibration,
 )
 
+lightgbm = pytest.importorskip("lightgbm")
+
 
 def test__init__lightgmb_available(lightgbm_available):
     """Test class is created if lightgbm library is available.

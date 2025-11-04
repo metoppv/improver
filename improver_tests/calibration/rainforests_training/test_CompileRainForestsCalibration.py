@@ -11,6 +11,10 @@ from improver.calibration.rainforest_training import (
     CompileRainForestsCalibration,
 )
 
+lightgbm = pytest.importorskip("lightgbm")
+tl2cgen = pytest.importorskip("tl2cgen")
+treelite = pytest.importorskip("treelite")
+
 
 def test__init__(lightgbm_available, treelite_available, tmp_path):
     """Test class is created if treelight libraries are available.
