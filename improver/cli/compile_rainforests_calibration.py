@@ -10,9 +10,7 @@ from improver import cli
 
 
 @cli.clizefy
-def process(
-    lightgbm_model: cli.inputpath
-):
+def process(lightgbm_model: cli.inputpath):
     """
     Train a set of Rainforests models.
 

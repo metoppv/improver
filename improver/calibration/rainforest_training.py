@@ -34,9 +34,9 @@ class TrainRainForestsCalibration(BasePlugin):
         """Train a model for one threshold."""
         import lightgbm
 
-        threshold_met = (
-            self.training_data[observation_column] >= threshold
-        ).astype(int)
+        threshold_met = (self.training_data[observation_column] >= threshold).astype(
+            int
+        )
         training_data = self.training_data[training_columns]
         dataset = lightgbm.Dataset(training_data, label=threshold_met)
 
