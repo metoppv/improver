@@ -555,6 +555,30 @@ class ContrailHeightExtractor(BasePlugin):
 
         return non_persistent_cube, persistent_cube
 
+    def process_from_arrays(
+        self, contrail_formation: np.ndarray, height: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Main entry point of this class for data as Numpy arrays.
+
+        Extract the maximum or minimum height where contrail formation is
+        categorized as Non-persistent or Persistent.
+
+        Args:
+            contrail_formation: Integer array of contrail category on pressure levels
+                with shape (engine_contrail_factor, pressure_level, lat (optional),
+                lon (optional)).
+            height: Float array of height above sea level with shape (pressure_level,
+                lat (optional), lon (optional)) (m).
+
+        Returns:
+            - Array of extracted height values for non-persistent contrails
+            - Array of extracted height values for persistent contrails
+
+            Array dimensions are (engine_contrail_factor, lat (optional), lon (optional)).
+        """
+        pass
+
     def process(self, formation_cube: Cube, height_cube: Cube) -> Tuple[Cube, Cube]:
         """
         Main entry point for this class to extract the maximum or minimum height where contrail
