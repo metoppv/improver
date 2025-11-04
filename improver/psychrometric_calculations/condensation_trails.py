@@ -507,13 +507,12 @@ class ContrailHeightExtractor(BasePlugin):
 
         self.use_max = use_max
 
-    def _define_max_min_height_contrail_cubes(
+    def _create_max_min_height_cubes(
         self,
         formation_cube: Cube,
         height_cube: Cube,
         non_persistent_result: np.ndarray,
         persistent_result: np.ndarray,
-        operation: str,
     ) -> Tuple[Cube, Cube]:
         """
         Create new cubes containing the max or min heights
@@ -528,8 +527,6 @@ class ContrailHeightExtractor(BasePlugin):
                 Extracted height data for non-persistent contrails.
             persistent_result:
                 Extracted height data for persistent contrails.
-            operation:
-                Either "max" or "min" indicating the type of extraction performed.
 
         Returns:
             - Cube of extracted heights for non-persistent contrails
@@ -540,6 +537,11 @@ class ContrailHeightExtractor(BasePlugin):
         template_cube.remove_coord("pressure")
         template_cube.attributes.pop("contrail_type", None)
         template_cube.attributes.pop("contrail_type_meaning", None)
+
+        if self.use_max:
+            operation = "max"
+        else:
+            operation = "min"
 
         non_persistent_cube = template_cube.copy(
             data=non_persistent_result,
@@ -556,7 +558,11 @@ class ContrailHeightExtractor(BasePlugin):
         return non_persistent_cube, persistent_cube
 
     def process_from_arrays(
-        self, contrail_formation: np.ndarray, height: np.ndarray
+        self,
+        contrail_formation: np.ndarray,
+        height: np.ndarray,
+        non_persistent_value: int = 1,
+        persistent_value=2,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Main entry point of this class for data as Numpy arrays.
@@ -570,6 +576,8 @@ class ContrailHeightExtractor(BasePlugin):
                 lon (optional)).
             height: Float array of height above sea level with shape (pressure_level,
                 lat (optional), lon (optional)) (m).
+            non_persistent_value: Integer corresponding to non-persistent contrail data.
+            persistent_value: Integer corresponding to the persistent contrail data.
 
         Returns:
             - Array of extracted height values for non-persistent contrails
@@ -577,7 +585,54 @@ class ContrailHeightExtractor(BasePlugin):
 
             Array dimensions are (engine_contrail_factor, lat (optional), lon (optional)).
         """
-        pass
+        if height.ndim < 1:
+            raise ValueError(
+                f"'height' must have at least 1 dimension, got {height.ndim}."
+            )
+        if contrail_formation.ndim < 2:
+            raise ValueError(
+                f"'contrail_formation' must have at least 2 dimensions, got {contrail_formation.ndim}."
+            )
+        if height.shape[0] != contrail_formation.shape[1]:
+            raise ValueError(
+                f"Axis 0 of 'height' and axis 1 of 'contrail_formation' must be the same size, got {height.shape[0]} and {contrail_formation.shape[1]}."
+            )
+
+        try:
+            broadcast_height = np.broadcast_to(height, contrail_formation.shape)
+        except ValueError as broadcast_error:
+            raise ValueError(
+                f"Cannot broadcast 'height' of shape {height.shape} to 'contrail_formation' of shape {contrail_formation.shape}."
+            ) from broadcast_error
+
+        if not isinstance(non_persistent_value, int):
+            raise TypeError(
+                f"non_persistent_value: expected 'int', got '{type(non_persistent_value)}'."
+            )
+        if not isinstance(persistent_value, int):
+            raise TypeError(
+                f"persistent_value: expected 'int', got '{type(persistent_value)}'."
+            )
+
+        non_persistent_mask = contrail_formation == non_persistent_value
+        persistent_mask = contrail_formation == persistent_value
+
+        if self.use_max:
+            non_persistent_result = np.nanmax(
+                np.where(non_persistent_mask, broadcast_height, np.nan), axis=1
+            )
+            persistent_result = np.nanmax(
+                np.where(persistent_mask, broadcast_height, np.nan), axis=1
+            )
+        else:
+            non_persistent_result = np.nanmin(
+                np.where(non_persistent_mask, broadcast_height, np.nan), axis=1
+            )
+            persistent_result = np.nanmin(
+                np.where(persistent_mask, broadcast_height, np.nan), axis=1
+            )
+
+        return non_persistent_result, persistent_result
 
     def process(self, formation_cube: Cube, height_cube: Cube) -> Tuple[Cube, Cube]:
         """
@@ -596,14 +651,6 @@ class ContrailHeightExtractor(BasePlugin):
 
             Each cube has dimensions (engine_contrail_factor, lat (optional), lon (optional)).
         """
-
-        try:
-            broadcast_height = np.broadcast_to(height_cube.data, formation_cube.shape)
-        except ValueError as broadcast_error:
-            raise ValueError(
-                f"Cannot broadcast height data of shape {height_cube.shape} to formation_cube shape {formation_cube.shape}"
-            ) from broadcast_error
-
         if "contrail_type_meaning" not in formation_cube.attributes:
             raise ValueError(
                 "formation_cube is missing the 'contrail_type_meaning' attribute."
@@ -621,43 +668,19 @@ class ContrailHeightExtractor(BasePlugin):
             ct.lower()
             for ct in formation_cube.attributes["contrail_type_meaning"].split()
         ]
+
         non_persistent_index = contrail_types.index("non-persistent")
         persistent_index = contrail_types.index("persistent")
 
-        non_persistent_mask = (
-            formation_cube.data
-            == formation_cube.attributes["contrail_type"][non_persistent_index]
-        )
-        persistent_mask = (
-            formation_cube.data
-            == formation_cube.attributes["contrail_type"][persistent_index]
+        non_persistent_data, persistent_data = self.process_from_arrays(
+            formation_cube.data,
+            height_cube.data,
+            formation_cube.attributes["contrail_type"][non_persistent_index],
+            formation_cube.attributes["contrail_type"][persistent_index],
         )
 
-        if self.use_max:
-            non_persistent_result = np.nanmax(
-                np.where(non_persistent_mask, broadcast_height, np.nan), axis=1
-            )
-            persistent_result = np.nanmax(
-                np.where(persistent_mask, broadcast_height, np.nan), axis=1
-            )
-            operation = "max"
-        else:
-            non_persistent_result = np.nanmin(
-                np.where(non_persistent_mask, broadcast_height, np.nan), axis=1
-            )
-            persistent_result = np.nanmin(
-                np.where(persistent_mask, broadcast_height, np.nan), axis=1
-            )
-            operation = "min"
-
-        non_persistent_cube, persistent_cube = (
-            self._define_max_min_height_contrail_cubes(
-                formation_cube,
-                height_cube,
-                non_persistent_result,
-                persistent_result,
-                operation,
-            )
+        non_persistent_cube, persistent_cube = self._create_max_min_height_cubes(
+            formation_cube, height_cube, non_persistent_data, persistent_data
         )
 
         return non_persistent_cube, persistent_cube
