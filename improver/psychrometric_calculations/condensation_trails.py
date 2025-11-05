@@ -7,18 +7,28 @@
 from typing import Tuple, Union
 
 import numpy as np
+from iris.coords import DimCoord
 from iris.cube import Cube, CubeList
 
 from improver import BasePlugin
-from improver.constants import EARTH_REPSILON
+from improver.categorical.utilities import categorical_attributes
+from improver.constants import ABSOLUTE_ZERO, EARTH_REPSILON
 from improver.generate_ancillaries.generate_svp_derivative_table import (
     SaturatedVapourPressureDerivativeTable,
     SaturatedVapourPressureTable,
+)
+from improver.metadata.utilities import (
+    create_new_diagnostic_cube,
+    generate_mandatory_attributes,
 )
 from improver.psychrometric_calculations.psychrometric_calculations import (
     calculate_svp_in_air,
 )
 from improver.utilities.common_input_handle import as_cubelist
+from improver.utilities.cube_manipulation import (
+    add_coordinate_to_cube,
+    get_dim_coord_names,
+)
 
 
 class CondensationTrailFormation(BasePlugin):
@@ -48,6 +58,8 @@ class CondensationTrailFormation(BasePlugin):
     engine_mixing_ratios = None
     critical_temperatures = None
     critical_intercepts = None
+    nonpersistent_contrails = None
+    persistent_contrails = None
 
     def __init__(self, engine_contrail_factors: list = [3e-5, 3.4e-5, 3.9e-5]):
         """Initialises the Class
@@ -208,7 +220,7 @@ class CondensationTrailFormation(BasePlugin):
         )
         return critical_temperature, critical_intercept
 
-    def _calculate_critical_temperatures_and_intercepts(self):
+    def _calculate_critical_temperatures_and_intercepts(self) -> None:
         """Calculate the critical temperatures and intercepts on pressure levels for all engine contrail factors."""
         self.critical_temperatures = np.zeros(
             self.engine_mixing_ratios.shape[:2] + self.relative_humidity.shape[1:],
@@ -218,11 +230,9 @@ class CondensationTrailFormation(BasePlugin):
             self.engine_mixing_ratios.shape[:2], dtype=np.float32
         )
 
-        svp_table = SaturatedVapourPressureTable(
-            183.15, 253.15, water_only=True
-        ).process()
+        svp_table = SaturatedVapourPressureTable(water_only=True).process()
         svp_derivative_table = SaturatedVapourPressureDerivativeTable(
-            183.15, 253.15, water_only=True
+            water_only=True
         ).process()
 
         for i, engine_mixing_ratio_for_contrail_factor in enumerate(
@@ -236,22 +246,11 @@ class CondensationTrailFormation(BasePlugin):
                 )
             )
 
-    def _calculate_contrail_persistency(
-        self,
-        saturated_vapour_pressure_ice: np.ndarray,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    def _calculate_contrail_persistency(self) -> None:
         """
         Apply four conditions to determine whether non-persistent or persistent contrails will form.
 
         .. include:: extended_documentation/psychrometric_calculations/condensation_trails/formation_conditions.rst
-
-        Args:
-            saturated_vapour_pressure_ice: The saturated vapour pressure with respect to ice, on pressure
-                levels. Pressure is the leading axis (Pa).
-
-        Returns:
-            Two boolean arrays that state whether 'non-persistent' or 'persistent' contrails will form, respectively.
-            Array axes are [contrail factor, pressure level, latitude, longitude].
         """
 
         def reshape_and_broadcast(arr, target_shape):
@@ -271,6 +270,12 @@ class CondensationTrailFormation(BasePlugin):
             self.critical_intercepts, self.critical_temperatures.shape
         )
 
+        # saturated vapour pressure with respect to ice, on pressure levels
+        svp_table = SaturatedVapourPressureTable(ice_only=True).process()
+        saturated_vapour_pressure_ice = np.interp(
+            self.temperature, svp_table.coord("air_temperature").points, svp_table.data
+        )
+
         # Condition 1
         vapour_pressure_above_threshold = (
             self.local_vapour_pressure[np.newaxis]
@@ -284,20 +289,79 @@ class CondensationTrailFormation(BasePlugin):
         # Condition 3
         air_is_saturated = self.local_vapour_pressure > saturated_vapour_pressure_ice
         # Condition 4
-        temperature_below_freezing = self.temperature < 273.15
+        temperature_below_freezing = self.temperature < abs(ABSOLUTE_ZERO)
 
-        nonpersistent_contrails = (
+        # Boolean arrays that are true when the specific contrail type will form.
+        # Array axes are [contrail factor, pressure level, latitude, longitude].
+        self.nonpersistent_contrails = (
             vapour_pressure_above_threshold
             & temperature_below_threshold
             & ~(air_is_saturated & temperature_below_freezing)
         )
-        persistent_contrails = (
+        self.persistent_contrails = (
             vapour_pressure_above_threshold
             & temperature_below_threshold
             & air_is_saturated
             & temperature_below_freezing
         )
-        return nonpersistent_contrails, persistent_contrails
+
+    def _boolean_to_categorical(self) -> np.ndarray:
+        """
+        Combine two boolean arrays of contrail persistency into a single categorical array of contrail formation.
+
+        Returns:
+            Array of categorical (integer) data, where 0 = no contrails, 1 = non-persistent contrails and 2 = persistent
+            contrails.
+        """
+        categorical = np.where(
+            self.nonpersistent_contrails & ~self.persistent_contrails, 1, 0
+        )
+        categorical = np.where(
+            ~self.nonpersistent_contrails & self.persistent_contrails, 2, categorical
+        )
+        return categorical
+
+    def _create_contrail_formation_cube(
+        self, categorical_data: np.ndarray, template_cube: Cube
+    ) -> Cube:
+        """
+        Create a contrail formation cube, populated with categorical data.
+
+        Args:
+            categorical_data: Categorical (integer) data of contrail formation. Leading axes are [contrail factor,
+                pressure level].
+            template_cube: Cube from which to derive dimensions, coordinates and mandatory attributes.
+
+        Returns:
+            Categorical cube of contrail formation, where 0 = no contrails, 1 = non-persistent contrails and
+            2 = persistent contrails. Has the same shape as categorical_data.
+        """
+        contrail_factor_coord = DimCoord(
+            points=self._engine_contrail_factors,
+            var_name="engine_contrail_factor",
+            units="kg kg-1 K-1",
+        )
+        template_cube = add_coordinate_to_cube(
+            template_cube, new_coord=contrail_factor_coord
+        )
+        mandatory_attributes = generate_mandatory_attributes([template_cube])
+
+        decision_tree = {
+            "meta": {"name": "contrail_type"},
+            "None": {"leaf": 0},
+            "Non-persistent": {"leaf": 1},
+            "Persistent": {"leaf": 2},
+        }
+        optional_attributes = categorical_attributes(decision_tree, "contrail_type")
+
+        return create_new_diagnostic_cube(
+            name="contrail_type",
+            units="1",
+            template_cube=template_cube,
+            mandatory_attributes=mandatory_attributes,
+            optional_attributes=optional_attributes,
+            data=categorical_data.astype(np.int32),
+        )
 
     def process_from_arrays(
         self,
@@ -306,7 +370,7 @@ class CondensationTrailFormation(BasePlugin):
         pressure_levels: np.ndarray,
     ) -> np.ndarray:
         """
-        Main entry point of this class for data as Numpy arrays
+        Main entry point of this class for data as Numpy arrays.
 
         Process the temperature, humidity and pressure data to calculate the
         contrails data.
@@ -317,9 +381,29 @@ class CondensationTrailFormation(BasePlugin):
             pressure_levels (np.ndarray): Pressure levels (Pa).
 
         Returns:
-            np.ndarray: The calculated engine mixing ratios on pressure levels (Pa/K).
-            This is a placeholder until the full contrail formation logic is implemented.
+            Categorical (integer) array of contrail formation
+
+            - 0 = no contrails
+            - 1 = non-persistent contrails
+            - 2 = persistent contrails
+
+            Array axes are [contrail factor, pressure level, latitude, longitude], where latitude and longitude are
+            only included if present in the temperature and relative humidity input arrays.
         """
+        arrays = (temperature, relative_humidity, pressure_levels)
+        if arrays[2].ndim != 1:
+            raise ValueError(f"Expected 1D pressure array, got {arrays[2].ndim}D.")
+        if arrays[0].shape != arrays[1].shape:
+            raise ValueError(
+                f"Temperature and relative humidity arrays must have same shape:"
+                f"  {arrays[0].shape}\n  {arrays[1].shape}"
+            )
+        if arrays[0].shape[0] != arrays[2].size or arrays[1].shape[0] != arrays[2].size:
+            raise ValueError(
+                f"Leading axes of arrays must match:"
+                f"  {arrays[0].shape}\n  {arrays[1].shape}\n  {arrays[2].shape}"
+            )
+
         self.temperature = temperature
         self.relative_humidity = relative_humidity
         self.pressure_levels = pressure_levels
@@ -330,7 +414,8 @@ class CondensationTrailFormation(BasePlugin):
             self.pressure_levels
         )
         self._calculate_critical_temperatures_and_intercepts()
-        return self.engine_mixing_ratios
+        self._calculate_contrail_persistency()
+        return self._boolean_to_categorical()
 
     def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
         """
@@ -344,32 +429,65 @@ class CondensationTrailFormation(BasePlugin):
                     Cube of the relative humidity on pressure levels.
 
         Returns:
-            Cube of heights above sea level at which contrails will form.
+            Categorical (integer) cube of contrail formation
+
+            - 0 = no contrails
+            - 1 = non-persistent contrails
+            - 2 = persistent contrails
+
+            Cube dimensions are [contrail factor, pressure level, latitude, longitude], where latitude and longitude are
+            only included if present in the input cubes.
         """
+        # Extract input cubes
         cubes = as_cubelist(*cubes)
-        (temperature_cube, humidity_cube) = CubeList(cubes).extract(
-            ["air_temperature", "relative_humidity"]
-        )
+        names_to_extract = ["air_temperature", "relative_humidity"]
+        if len(cubes) != len(names_to_extract):
+            raise ValueError(
+                f"Expected {len(names_to_extract)} cubes, got {len(cubes)}."
+            )
+        try:
+            (temperature_cube, humidity_cube) = CubeList(cubes).extract(
+                names_to_extract
+            )
+        except Exception as e:
+            raise ValueError(
+                f"Could not extract names '{names_to_extract}' from cubelist."
+            ) from e
+
+        # Check cube dimensions are equal
+        if (
+            get_dim_coord_names(temperature_cube) != get_dim_coord_names(humidity_cube)
+            or temperature_cube.shape != humidity_cube.shape
+        ):
+            raise ValueError(
+                f"Cube dimensional coordinates must match:"
+                f"  {temperature_cube.summary(True, 25)}"
+                f"  {humidity_cube.summary(True, 25)}"
+            )
+
         temperature_cube.convert_units("K")
         humidity_cube.convert_units("kg kg-1")
 
-        # Get the pressure levels from the first cube
+        # Get pressure levels
         pressure_coord = temperature_cube.coord("pressure")
         pressure_coord.convert_units("Pa")
 
+        if "pressure".casefold() != get_dim_coord_names(temperature_cube)[0].casefold():
+            raise ValueError(
+                f"Pressure must be the leading axis (got '{get_dim_coord_names(temperature_cube)}')."
+            )
+
         # Calculate contrail formation using numpy arrays
-        _ = self.process_from_arrays(
+        contrail_formation_data = self.process_from_arrays(
             temperature_cube.data, humidity_cube.data, pressure_coord.points
         )
 
-        # Placeholder return to silence my type checker
-        return_cube = Cube(
-            self.engine_mixing_ratios,
-            long_name="engine_mixing_ratios",
-            units="Pa K-1",
+        # Create output cube using contrail formation data
+        contrail_formation_cube = self._create_contrail_formation_cube(
+            contrail_formation_data, temperature_cube
         )
 
-        return return_cube
+        return contrail_formation_cube
 
 
 class ContrailHeightExtractor(BasePlugin):
