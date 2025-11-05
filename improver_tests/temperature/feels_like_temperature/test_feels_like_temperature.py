@@ -74,6 +74,25 @@ def test_metadata_attributes_preserved(temperature_cube, wind_speed_cube):
         assert key in result.attributes
         assert result.attributes[key] == val
 
+    temperature_celsius = temperature_cube.copy()
+    temperature_celsius.convert_units("celsius")
+    wind_speed_kmh = wind_speed_cube.copy()
+    wind_speed_kmh.convert_units("km/h")
+
+    expected_data = plugin._calculate_wind_chill(
+        temperature_celsius.data, wind_speed_kmh.data
+    )
+
+    expected_cube = temperature_cube.copy(data=expected_data)
+    expected_cube.units = "celsius"
+    expected_cube.convert_units(result.units)
+    np.testing.assert_allclose(result.data, expected_cube.data, rtol=1e-6)
+
+    assert result.data.shape == temperature_cube.data.shape
+    input_coords = [coord.name() for coord in temperature_cube.coords(dim_coords=True)]
+    output_coords = [coord.name() for coord in result.coords(dim_coords=True)]
+    assert input_coords == output_coords
+
 
 class Test__calculate_apparent_temperature(IrisTest):
     """Test the apparent temperature function."""
