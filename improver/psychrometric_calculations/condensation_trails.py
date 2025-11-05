@@ -571,8 +571,8 @@ class ContrailHeightExtractor(BasePlugin):
         categorized as Non-persistent or Persistent.
 
         Args:
-            contrail_formation: Integer array of contrail category on pressure levels
-                with shape (engine_contrail_factor, pressure_level, lat (optional),
+            contrail_formation: Integer array of contrail category with shape
+                (engine_contrail_factor, pressure_level, lat (optional),
                 lon (optional)).
             height: Float array of height above sea level with shape (pressure_level,
                 lat (optional), lon (optional)) (m).
