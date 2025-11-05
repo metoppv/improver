@@ -57,7 +57,15 @@ def test_different_vicinity_operators(tmp_path, operator):
     kgo_path = kgo_dir / "operator" / f"kgo_{operator}.nc"
     input_path = kgo_dir / "lightning.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, "20000", "--operator", operator, "--output", f"{output_path}"]
+    args = [
+        input_path,
+        "--vicinity",
+        "20000",
+        "--operator",
+        operator,
+        "--output",
+        f"{output_path}",
+    ]
 
     run_cli(args)
     acc.compare(output_path, kgo_path)
@@ -68,19 +76,28 @@ def test_invalid_vicinity_operator(tmp_path):
     kgo_dir = acc.kgo_root() / "vicinity"
     input_path = kgo_dir / "lightning.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, "20000", "--operator", "mode", "--output", f"{output_path}"]
+    args = [
+        input_path,
+        "--vicinity",
+        "20000",
+        "--operator",
+        "mode",
+        "--output",
+        f"{output_path}",
+    ]
 
     with pytest.raises(ValueError, match="Unsupported operator.*"):
         run_cli(args)
 
 
-def test_vicinity_cube(tmp_path):
+def test_vicinity_cube_rename(tmp_path):
     kgo_dir = acc.kgo_root() / "vicinity"
     kgo_path = kgo_dir / "kgo_new_name.nc"
     input_path = kgo_dir / "lightning.nc"
     output_path = tmp_path / "output.nc"
     args = [
         input_path,
+        "--vicinity",
         "20000",
         "--operator",
         "mean",
