@@ -303,3 +303,70 @@ def test_attribute_length_error_handling(formation: np.ndarray, height: np.ndarr
     extractor = ContrailHeightExtractor(use_max=True)
     with pytest.raises(ValueError):
         extractor.process(formation_cube, height_cube)
+
+
+@pytest.mark.parametrize(
+    "formation, height, nonpersistent_value, persistent_value, expected_exception, expected_message",
+    [
+        (formation_data, height_data, 1, 2, None, None),
+        (
+            np.array([1, 2]),
+            height_data,
+            1,
+            2,
+            ValueError,
+            "must have at least 2 dimensions",
+        ),
+        (
+            formation_data,
+            np.array(100),
+            1,
+            2,
+            ValueError,
+            "must have at least 1 dimension",
+        ),
+        (
+            np.zeros((2, 3)),
+            np.zeros(4),
+            1,
+            2,
+            ValueError,
+            "Axis 0 of 'height' and axis 1 of 'contrail_formation' must be the same size",
+        ),
+        (np.zeros((2, 3, 4)), np.zeros((3, 5)), 1, 2, ValueError, "Cannot broadcast"),
+        (formation_data, height_data, 1.0, 2, TypeError, "expected 'int'"),
+        (formation_data, height_data, 1, 2.0, TypeError, "expected 'int'"),
+    ],
+)
+def test_process_from_arrays_raises(
+    formation: np.ndarray,
+    height: np.ndarray,
+    nonpersistent_value: int | float,
+    persistent_value: int | float,
+    expected_exception: Optional[Exception],
+    expected_message: Optional[str],
+) -> None:
+    """
+    Check that 'process_from_arrays' returns the expected exceptions when given invalid inputs.
+
+    Args:
+        formation: Integer array of contrail formation on pressure levels.
+        height: Float array of height above sea level on pressure levels.
+        nonpersistent_value: Integer corresponding to non-persistent contrail formation.
+        persistent_value: Integer corresponding to persistent contrail formation.
+        expected_exception: The exception returned by 'process_from_arrays'.
+        expected_message: The message associated with the exception.
+    """
+    extractor = ContrailHeightExtractor(use_max=True)
+    if expected_exception:
+        with pytest.raises(expected_exception) as e:
+            extractor.process_from_arrays(
+                formation, height, nonpersistent_value, persistent_value
+            )
+        assert expected_message in str(e.value)
+    else:
+        result = extractor.process_from_arrays(
+            formation, height, nonpersistent_value, persistent_value
+        )
+        assert isinstance(result[0], np.ndarray)
+        assert isinstance(result[1], np.ndarray)
