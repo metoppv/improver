@@ -585,15 +585,15 @@ class ContrailHeightExtractor(BasePlugin):
 
             Array dimensions are (engine_contrail_factor, lat (optional), lon (optional)).
         """
-        if height.ndim < 1:
-            raise ValueError(
-                f"'height' must have at least 1 dimension, got {height.ndim}."
-            )
         if contrail_formation.ndim < 2:
             raise ValueError(
                 f"'contrail_formation' must have at least 2 dimensions, got {contrail_formation.ndim}."
             )
-        if height.shape[0] != contrail_formation.shape[1]:
+        if height.ndim < 1:
+            raise ValueError(
+                f"'height' must have at least 1 dimension, got {height.ndim}."
+            )
+        if contrail_formation.shape[1] != height.shape[0]:
             raise ValueError(
                 f"Axis 0 of 'height' and axis 1 of 'contrail_formation' must be the "
                 f"same size, got {height.shape[0]} and {contrail_formation.shape[1]}."
