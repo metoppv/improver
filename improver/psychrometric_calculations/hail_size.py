@@ -309,32 +309,43 @@ class HailSize(BasePlugin):
 
         lookup_table = self.nomogram_values()
 
-        # Rounds the calculated horizontal value to the nearest 5 which is
-        # then turned into a relevant index for accessing the appropriate column.
-        # Rounds the calculated vertical values to the nearest 0.5 which is then
-        # turned into a relevant index for accessing the appropriate row.
-        horizontal_rounded = np.around(horizontal / 5, decimals=0) - 1
-        vertical_rounded = np.around(vertical * 2, decimals=0)
+        # Round horizontal to nearest 0.5 and vertical to nearest 5
+        horizontal_rounded = np.around(horizontal * 2, decimals=0) / 2
+        vertical_rounded = np.around(vertical / 5, decimals=0) * 5
 
-        # clips index values to not be longer than the table
-        vertical_clipped = np.clip(vertical_rounded, None, len(lookup_table) - 1)
-        horizontal_clipped = np.clip(horizontal_rounded, None, len(lookup_table[0]) - 1)
+        # Mask unrealistic values
+        mask = (
+            np.ma.getmaskarray(vertical)
+            | np.ma.getmaskarray(horizontal)
+            | (vertical <= 0)
+            | (horizontal <= 0)
+        )
 
-        vertical_clipped = np.ma.where(
-            (vertical_rounded >= 0) & (horizontal_rounded >= 0), vertical_clipped, 0
-        ).filled(0)
-        horizontal_clipped = np.ma.where(
-            (vertical_rounded >= 0) & (horizontal_rounded >= 0), horizontal_clipped, 0
-        ).filled(0)
+        # Convert to index positions
+        horizontal_index = np.clip(
+            np.around(horizontal_rounded / 5).astype(int), 0, lookup_table.shape[1] - 1
+        )
+        vertical_index = np.clip(
+            np.around(vertical_rounded / 5).astype(int), 0, lookup_table.shape[0] - 1
+        )
 
-        hail_size = lookup_table[
-            vertical_clipped.astype(int), horizontal_clipped.astype(int)
-        ]
+        # Apply mask
+        horizontal_index = np.ma.array(horizontal_index, mask=mask).filled(0)
+        vertical_index = np.ma.array(vertical_index, mask=mask).filled(0)
+
+        hail_size = lookup_table[vertical_index, horizontal_index]
+
+        # Apply wet bulb logic
+        hail_size = np.where(wet_bulb_zero > 4400, 0, hail_size)
         hail_size = np.where(
-            wet_bulb_zero >= 3300,
+            wet_bulb_zero >= 3350,
             self.updated_hail_size(hail_size, wet_bulb_zero),
             hail_size,
         )
+
+        # Ensure masked points remain zero
+        hail_size = np.where(mask, 0, hail_size)
+
         return hail_size
 
     def updated_hail_size(

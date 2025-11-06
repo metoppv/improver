@@ -152,14 +152,14 @@ https://doi.org/10.1175/1520-0477-34.6.235
 @pytest.mark.parametrize(
     "ccl_p,ccl_t,wbz,orog,expected",
     (
-        (75000, 290, 2200, 0, 0.035),  # values approx from tephigram in literature
+        (75000, 290, 2200, 0, 0.002),  # values approx from tephigram in literature
         (75000, 290, 5000, 0, 0),  # wet bulb zero (wbz) height greater than 4400m
-        (75000, 290, 5000, 2800, 0.035),  # orography reduces wbz height to 2200m
-        (75000, 290, 3400, 0, 0.025),  # wbz height above 3350m but less than 4400m
+        (75000, 290, 5000, 2800, 0.002),  # orography reduces wbz height to 2200m
+        (75000, 290, 3400, 0, 0.00),  # wbz height above 3350m but less than 4400m
         (94000, 273, 2200, 0, 0),  # vertical value negative
         (1000, 270, 2200, 0, 0),  # horizontal value negative
-        (95000, 330, 2200, 0, 0.08),  # vertical greater than length of table
-        (150000, 350, 2200, 0, 0.12),  # horizontal greater than length of table
+        (95000, 330, 2200, 0, 0.04),  # vertical greater than length of table
+        (150000, 350, 2200, 0, 0.05),  # horizontal greater than length of table
         (75000, 265, 2200, 0, 0),  # ccl temperature below 268.15
     ),
 )
@@ -182,7 +182,7 @@ def test_basic_hail_size(
     ccl_temperature.data[..., 0, 0] = ccl_t
     wet_bulb_freezing.data[..., 0, 0] = wbz
     orography.data[0, 0] = orog
-    expected_data = np.full_like(ccl_temperature.data, 0.1)
+    expected_data = np.full_like(ccl_temperature.data, 0.02)
     expected_data[..., 0, 0] = expected
 
     result = HailSize()(
@@ -210,7 +210,10 @@ def test_temperature_too_high(
     data = temperature_on_pressure_levels.data.copy()
     data[:, :, 1] = 300
     temperature_on_pressure_levels.data = data
-    expected = [[[0.1, 0.1], [0, 0], [0.1, 0.1]], [[0.1, 0.1], [0, 0], [0.1, 0.1]]]
+    expected = [
+        [[0.02, 0.02], [0, 0], [0.02, 0.02]],
+        [[0.02, 0.02], [0, 0], [0.02, 0.02]],
+    ]
 
     result = HailSize()(
         ccl_temperature,
@@ -291,7 +294,7 @@ def test_model_id_attr(
         orography,
     )
 
-    np.testing.assert_array_almost_equal(result.data, 0.1)
+    np.testing.assert_array_almost_equal(result.data, 0.02)
     metadata_check(result)
     cube_shape_check(result)
 
@@ -326,7 +329,7 @@ def test_re_ordered_cubes(
         wet_bulb_freezing,
         orography,
     )
-    np.testing.assert_array_almost_equal(result.data, 0.1)
+    np.testing.assert_array_almost_equal(result.data, 0.02)
     metadata_check(result)
     coord_names = [coord.name() for coord in result.coords()]
     assert coord_names == [
@@ -362,7 +365,7 @@ def test_no_realization_coordinate(
     wet_bulb_zero.remove_coord("realization")
 
     result = HailSize()(cloud_temp, cloud_pressure, temp, wet_bulb_zero, orography)
-    np.testing.assert_array_almost_equal(result.data, 0.1)
+    np.testing.assert_array_almost_equal(result.data, 0.02)
     metadata_check(result)
     coord_names = [coord.name() for coord in result.coords()]
     assert coord_names == [
