@@ -29,6 +29,7 @@ PROCESSING_MODULES = {
     "ApplyReliabilityCalibration": "improver.calibration.reliability_calibration",
     "BaseNeighbourhoodProcessing": "improver.nbhood.nbhood",
     "CalculateForecastBias": "improver.calibration.simple_bias_correction",
+    "CalculateWindChill": "improver.temperature.feels_like_temperature",
     "CalibratedForecastDistributionParameters": "improver.calibration.emos_calibration",
     "ChooseDefaultWeightsLinear": "improver.blending.weights",
     "ChooseDefaultWeightsNonLinear": "improver.blending.weights",

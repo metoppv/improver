@@ -59,6 +59,7 @@ below:
  - Simon Jackson (Met Office, UK)
  - Caroline Jones (Met Office, UK)
  - Peter Jordan (Met Office, UK)
+ - Anzer Khan (Met Office, UK)
  - Bruno P. Kinoshita (NIWA, NZ)
  - Phoebe Lambert (Met Office, UK)
  - Lucy Liu (Bureau of Meteorology, Australia)
