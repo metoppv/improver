@@ -13,6 +13,7 @@ dependencies:
   - pip
   - pip:
     - cf_units
+    - ipykernel
     - nbsphinx   
     - sphinx
     - sphinx-autodoc-typehints
