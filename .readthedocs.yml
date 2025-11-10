@@ -4,9 +4,19 @@ build:
   os: "ubuntu-24.04"
   tools:
     python: "mambaforge-22.9"
+  jobs:
+    pre_create_environment:
+      - echo "Command run at 'pre_create_environment' step"
+      - ls -lrt
+
 
 conda:
   environment: doc/rtd_environment.yml
+
+python:
+  install:
+  - method: pip
+    path: .
 
 sphinx:
   configuration: doc/source/conf.py
