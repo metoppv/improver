@@ -350,10 +350,20 @@ class HumidityMixingRatio(BasePlugin):
 
         """
         cubes = as_cubelist(*cubes)
-
-        (self.temperature, self.rel_humidity) = cubes.extract_cubes(
-            ["air_temperature", "relative_humidity"]
+        self.rel_humidity = cubes.extract_cube(
+            iris.Constraint(name="relative_humidity")
         )
+
+        try:
+            # Test if there is a cube with air_temperature in the name
+            def test_temperature(cube):
+                return True if "air_temperature" in cube.name() else False
+
+            self.temperature = cubes.extract_cube(
+                iris.Constraint(cube_func=test_temperature)
+            )
+        except ConstraintMismatchError as err:
+            raise ValueError("No cube with name 'air_temperature' found") from err
 
         try:
             # Test if there is one, and only one, cube with pressure in the name
