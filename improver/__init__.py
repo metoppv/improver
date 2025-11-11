@@ -14,6 +14,11 @@ except PackageNotFoundError:
     # package is not installed
     pass
 
+try:
+    import improver_test_data
+except ImportError:
+    improver_test_data = None
+
 
 class BasePlugin(ABC):
     """An abstract class for IMPROVER plugins.
@@ -81,3 +86,22 @@ class PostProcessingPlugin(BasePlugin):
         ):
             title = cube.attributes["title"]
             cube.attributes["title"] = f"Post-Processed {title}"
+
+
+def test_data_path(*path_to_join):
+    """Function to generate the path to the data within the improver_test_data repo
+    from the relative path provided.
+
+    Raises:
+        ImportError: The improver_tests_data package is not available
+
+    Returns:
+        An absolute path to the sample data.
+    """
+    if improver_test_data is not None:
+        target = improver_test_data.path.joinpath(*path_to_join)
+    else:
+        raise ImportError(
+            "Please install the 'improver_test_data' package to access sample data. "
+        )
+    return target
