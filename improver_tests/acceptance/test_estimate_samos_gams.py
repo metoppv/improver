@@ -185,4 +185,6 @@ def test_insufficient_data(tmp_path):
         "--output",
         output_path,
     ]
-    assert run_cli(args) is None
+    run_cli(args)
+    # Check no file has been written to disk.
+    assert not output_path.exists()

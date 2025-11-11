@@ -143,7 +143,9 @@ def test_no_gam(tmp_path):
         "--output",
         output_path,
     ]
-    assert run_cli(compulsory_args + named_args) is None
+    run_cli(compulsory_args + named_args)
+    # Check no file has been written to disk.
+    assert not output_path.exists()
 
 
 @pytest.mark.slow
@@ -176,4 +178,6 @@ def test_return_none(tmp_path):
         "--output",
         output_path,
     ]
-    assert run_cli(compulsory_args + named_args) is None
+    run_cli(compulsory_args + named_args)
+    # Check no file has been written to disk.
+    assert not output_path.exists()

@@ -163,4 +163,6 @@ def test_estimate_samos_coefficients_no_gam(tmp_path):
         "--output",
         output_path,
     ]
-    assert run_cli(args) is None
+    run_cli(args)
+    # Check no file has been written to disk.
+    assert not output_path.exists()
