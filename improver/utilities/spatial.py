@@ -727,12 +727,16 @@ def operator_within_vicinity(
 ) -> Union[MaskedArray, ndarray]:
     """
     Evaluate the specified operator over grid points within a defined radius.
-    Where operator applied is evaluates area maxima or minima, all grid points
-    within the vicinity of the maxima/minima are recorded as having the same
-    occurrence. If a land-mask has been supplied, process land and sea points
-    separately.
+    Where the operator applied is either an area maxima or minima, all grid
+    points within the vicinity of the maxima/minima are recorded as having the
+    same occurrence. If a land-mask has been supplied, process land and sea
+    points separately.
 
     Args:
+        opertaor:
+            The mathematical operation to apply within the vicinity of each point.
+        fill_value:
+            The fill-value to use when masking out points within the grid.
         grid:
             An array of values to which the process is applied.
         grid_point_radius:
@@ -901,8 +905,8 @@ def std_within_vicinity(
     landmask: Optional[ndarray] = None,
 ) -> Union[MaskedArray, ndarray]:
     """
-    Find mean values over grid points within a defined radius.
-    If a land-mask has been supplied, process land and sea points
+    Find the standard-deviation values over grid points within a defined
+    radius. If a land-mask has been supplied, process land and sea points
     separately.
 
     Args:

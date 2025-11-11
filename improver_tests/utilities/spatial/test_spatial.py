@@ -1098,7 +1098,7 @@ def test_mean_within_vicinity(grid, radius, landmask, expected_result):
     ],
 )
 def test_std_within_vicinity(grid, radius, landmask, expected_result):
-    """Test that mean_within_vicinity function returns the expected
+    """Test that std_within_vicinity function returns the expected
     values and masking for various inputs. Variations tried here are:
 
       - vicinity processing of a simple array that affects the whole array
