@@ -8,6 +8,8 @@ build:
 conda:
   environment: doc/rtd_environment.yml
 
+# Add the current directory to the PYTHONPATH. This directory contains the 
+# latest version of the IMPROVER code available when triggering the ReadTheDocs build.
 python:
   install:
   - method: pip

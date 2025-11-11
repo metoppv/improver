@@ -62,10 +62,7 @@ templates_path = ["_templates"]
 # You can specify multiple suffix as a list of string:
 #
 # source_suffix = [".rst", ".md"]
-# source_suffix = {
-#     ".rst": "restructuredtext",
-#     ".ipynb": "nbsphinx",
-# }
+source_suffix = ".rst"
 
 # The encoding of source files.
 #
