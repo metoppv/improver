@@ -39,6 +39,7 @@ jobs:
     - name: sphinx documentation
       run: |
         micromamba install ipykernel
+        pip install .
         make -C doc html SPHINXOPTS="-W --keep-going"
       shell: micromamba-shell {0}
 
