@@ -51,6 +51,7 @@ below:
  - Ben Fitzpatrick (Met Office, UK)
  - Tom Gale (Bureau of Meteorology, Australia)
  - Sam Griffiths (Met Office, UK)
+ - Luke Hoffmann (Bureau of Meteorology, Australia)
  - Ben Hooper (Met Office, UK)
  - Aaron Hopkinson (Met Office, UK)
  - Kathryn Howard (Met Office, UK)
