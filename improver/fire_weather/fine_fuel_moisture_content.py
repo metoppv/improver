@@ -239,8 +239,8 @@ class FineFuelMoistureContent(BasePlugin):
             Cube: The calculated FFMC value.
         """
         # Step 8: Replace previous day's moisture content where the moisture content has changed by a significant amount
-        condition_mask = (self.moisture_content <= E_d) and (
-            self.moisture_content >= E_w
+        condition_mask = np.logical_and(
+            self.moisture_content <= E_d, self.moisture_content >= E_w
         )
         self.moisture_content = np.where(
             condition_mask,
