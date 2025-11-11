@@ -719,8 +719,8 @@ class GradientBetweenAdjacentGridSquares(PostProcessingPlugin):
 
 
 def operator_within_vicinity(
-    operator,
-    fill_value,
+    operator: callable,
+    fill_value: Union[float, int],
     grid: Union[MaskedArray, ndarray],
     grid_point_radius: int,
     landmask: Optional[ndarray] = None,
