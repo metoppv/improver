@@ -733,7 +733,7 @@ def operator_within_vicinity(
     points separately.
 
     Args:
-        opertaor:
+        operator:
             The mathematical operation to apply within the vicinity of each point.
         fill_value:
             The fill-value to use when masking out points within the grid.
