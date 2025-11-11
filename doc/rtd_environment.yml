@@ -10,12 +10,12 @@ dependencies:
   - iris>=3.12.2
   - python-stratify
   - clize
+  - ipykernel
   - geopandas
   - pandas
   - pip
   - pip:
     - cf_units
-    - ipykernel
     - joblib
     - nbsphinx
     - sphinx
