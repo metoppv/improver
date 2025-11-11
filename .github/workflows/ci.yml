@@ -38,7 +38,6 @@ jobs:
 
     - name: sphinx documentation
       run: |
-        jupyter kernelspec list
         make -C doc html SPHINXOPTS="-W --keep-going"
       shell: micromamba-shell {0}
 

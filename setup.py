@@ -5,4 +5,4 @@
 from setuptools import setup
 
 if __name__ == "__main__":
-    setup(name="improver", use_scm_version={"version_scheme": "post-release"})
+    setup(use_scm_version={"version_scheme": "post-release"})

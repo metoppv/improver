@@ -107,6 +107,8 @@ language = "en"
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This patterns also effect to html_static_path and html_extra_path
+# The auto_examples directory is created by Sphinx Gallery. Only the .rst files
+# from this directory are needed for the build, so the rest are excluded.
 exclude_patterns = [
     "modules.rst",
     "extended_documentation",
@@ -154,7 +156,7 @@ todo_include_todos = False
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-#
+# The sphinx book theme is used as it supports a secondary sidebar.
 html_theme = "sphinx_book_theme"
 
 # Theme options are theme-specific and customize the look and feel of a theme
