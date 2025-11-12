@@ -111,8 +111,12 @@ class FineFuelMoistureContent(BasePlugin):
             self.moisture_content - 150.0
         ) ** 2 * np.sqrt(r_f)
 
-        # Step 3bi: Where moisture_content <= 150, use adjustment1
+        # Set the mask conditions for moisture content
+        # Note these modify in-place so must be found before application
         mask_lte_150 = np.logical_and(precip_mask, self.moisture_content <= 150.0)
+        mask_gt_150 = np.logical_and(precip_mask, self.moisture_content > 150.0)
+
+        # Step 3bi: Where moisture_content <= 150, use adjustment1
         self.moisture_content = np.where(
             mask_lte_150,
             self.moisture_content + adjustment1,
@@ -120,7 +124,6 @@ class FineFuelMoistureContent(BasePlugin):
         )
 
         # Step 3bii: Where moisture_content > 150, use adjustment1 + adjustment2
-        mask_gt_150 = np.logical_and(precip_mask, self.moisture_content > 150.0)
         self.moisture_content = np.where(
             mask_gt_150,
             self.moisture_content + adjustment2,
@@ -174,6 +177,7 @@ class FineFuelMoistureContent(BasePlugin):
         new_moisture_content = E_d + (self.moisture_content - E_d) * 10 ** (-k_d)
 
         # Steps 5a & 5b: Update moisture content where drying occurs
+        # ! Do I need to do these as masks again?
         self.moisture_content = np.where(
             self.moisture_content < E_d, new_moisture_content, self.moisture_content
         )
@@ -271,13 +275,13 @@ class FineFuelMoistureContent(BasePlugin):
         self.load_input_cubes(cubes)
 
         self._calculate_moisture_content()
-
         self._perform_rainfall_adjustment()
 
         E_d = self._calculate_drying_phase()
         E_w = self._calculate_wetting_phase()
 
         self._calculate_moisture_content_through_drying_rate(E_d)
+
         self._calculate_moisture_content_through_wetting_equilibrium(E_w)
 
         output_ffmc = self._calculate_ffmc_from_moisture_content(E_d, E_w)
