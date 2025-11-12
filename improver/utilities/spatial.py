@@ -20,7 +20,10 @@ from iris.cube import Cube, CubeList
 from numpy import ndarray
 from numpy.ma import MaskedArray
 from scipy.ndimage.filters import (
-    generic_filter, maximum_filter, minimum_filter, uniform_filter
+    generic_filter,
+    maximum_filter,
+    minimum_filter,
+    uniform_filter,
 )
 
 from improver import BasePlugin, PostProcessingPlugin
@@ -813,8 +816,10 @@ def maximum_within_vicinity(
         spatially spread, so that they're equally likely to have occurred
         anywhere within the vicinity defined using the specified radius.
     """
+
     def _apply_max_filter(data, width):
-        return  maximum_filter(data, size=width, mode="nearest")
+        return maximum_filter(data, size=width, mode="nearest")
+
     # Value, the negative of which is used to fill masked points, ensuring
     # that when we take a maximum the masked points do not contribute.
     fill_value = -1 * netCDF4.default_fillvals.get(grid.dtype.str[1:], np.inf)
@@ -854,8 +859,10 @@ def minimum_within_vicinity(
         spatially spread, so that they're equally likely to have occurred
         anywhere within the vicinity defined using the specified radius.
     """
+
     def _apply_min_filter(data, width):
-        return  minimum_filter(data, size=width, mode="nearest")
+        return minimum_filter(data, size=width, mode="nearest")
+
     # Value, which is used to fill masked points, ensuring that when we
     # take a minimum the masked points do not contribute.
     fill_value = netCDF4.default_fillvals.get(grid.dtype.str[1:], np.inf)
@@ -892,6 +899,7 @@ def mean_within_vicinity(
         centred on each grid looking within the vicinity defined by
         the specified radius.
     """
+
     def _apply_mean_filter(data, width):
         if np.any(np.isnan(data)):
             # Fix-me: from scipy version 1.6.0, vectorized_filter method exists
@@ -899,6 +907,7 @@ def mean_within_vicinity(
             return generic_filter(data, np.nanmean, size=width, mode="nearest")
         else:
             return uniform_filter(data, size=width, mode="nearest")
+
     fill_value = np.nan
     processed_grid = operator_within_vicinity(
         _apply_mean_filter, fill_value, grid, grid_point_radius, landmask
@@ -933,6 +942,7 @@ def std_within_vicinity(
         values are centred on each grid looking within the vicinity defined
         by the specified radius.
     """
+
     def _apply_std_filter(data, width):
         if np.any(np.isnan(data)):
             # Fix-me: from scipy version 1.6.0, vectorized_filter method exists
@@ -942,6 +952,7 @@ def std_within_vicinity(
             # Fix-me: from scipy version 1.6.0, vectorized_filter method exists
             # which can significantly speed up generic_filter methods.
             return generic_filter(data, np.std, size=width, mode="nearest")
+
     fill_value = np.nan
     processed_grid = operator_within_vicinity(
         _apply_std_filter, fill_value, grid, grid_point_radius, landmask
