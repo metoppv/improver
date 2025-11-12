@@ -255,9 +255,8 @@ def _drop_nans_from_forecast_df(
         ValueError: If more than the specific proportion of the forecast data has been
         removed after dropping NaNs.
     """
-    forecast_df = forecast_df[merge_columns + feature_column_names]
     forecast_df_length = len(forecast_df)
-    forecast_df.dropna(inplace=True)
+    forecast_df.dropna(inplace=True, subset=merge_columns + feature_column_names)
     if (
         forecast_df_length - len(forecast_df)
     ) / forecast_df_length > valid_forecast_proportion:
