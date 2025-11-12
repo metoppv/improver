@@ -280,7 +280,7 @@ def compile_models(lightgbm_models, lead_times, thresholds, tmp_path):
     for lead_time in lead_times:
         for threshold in thresholds:
             model = lightgbm_models[lead_time, threshold]
-            treelite_model = treelite.Model.from_lightgbm(model)
+            treelite_model = treelite.frontend.from_lightgbm(model)
             tl2cgen.export_lib(
                 treelite_model,
                 toolchain="gcc",
