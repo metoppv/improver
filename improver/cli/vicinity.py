@@ -60,11 +60,6 @@ def process(
     """
     from improver.utilities.spatial import OccurrenceWithinVicinity
 
-    vicinity_cube = OccurrenceWithinVicinity(
+    return OccurrenceWithinVicinity(
         radii=vicinity, land_mask_cube=land_mask, operator=operator
-    ).process(cube)
-
-    if new_name is not None:
-        vicinity_cube.rename(new_name)
-
-    return vicinity_cube
+    ).process(cube, new_name=new_name)

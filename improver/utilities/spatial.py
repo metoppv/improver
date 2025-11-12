@@ -1032,12 +1032,19 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
         "mean": mean_within_vicinity,
         "std": std_within_vicinity,
     }
+    SUPPORTED_VICINITY_CELL_METHODS = {
+        "max": "maximum",
+        "min": "minimum",
+        "mean": "mean",
+        "std": "standard_deviation",
+    }
 
     def __init__(
         self,
         radii: Optional[List[Union[float, int]]] = None,
         grid_point_radii: Optional[List[Union[float, int]]] = None,
         land_mask_cube: Cube = None,
+        new_name: str = None,
         operator: str = "max",
     ) -> None:
         """
@@ -1053,6 +1060,8 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
                 Binary land-sea mask data. True for land-points, False for sea.
                 Restricts in-vicinity processing to only include points of a
                 like mask value.
+            new_name:
+                New name to give to the resultant cube
             Operator:
                 Operator to evaluate over the vicinities. Defaults to max.
 
@@ -1103,8 +1112,11 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
             self.vicinity_operator = (
                 OccurrenceWithinVicinity.SUPPORTED_VICINITY_OPERATORS[operator]
             )
+            self.cell_method = OccurrenceWithinVicinity.SUPPORTED_VICINITY_CELL_METHODS[
+                operator
+            ]
 
-    def process(self, cube: Cube) -> Cube:
+    def process(self, cube: Cube, new_name: str = None) -> Cube:
         """
         Produces the vicinity processed data. The input data is sliced to
         yield y-x slices to which the <operator>_within_vicinity method is applied.
@@ -1119,6 +1131,10 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
         Args:
             cube:
                 Thresholded cube.
+            new_name:
+                Name to assign to the resultant cube after calculating the vicinity
+                values for the specified operator. Where no value is provided, the
+                cube will retain the same name as the input cube.
 
         Returns:
             Cube containing the occurrences within a vicinity for each radius,
@@ -1170,10 +1186,15 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
 
         # Merge cubes produced for each vicinity radius.
         result_cube = radii_cubes.merge_cube()
+        # Rename the variable if a new_name argument has been set.
+        if new_name is not None:
+            result_cube.rename(new_name)
         # Set cube name to reflect vicinity processing.
         rename_vicinity_cube(result_cube)
         # Enforce order of leading dimensions on the output to match the input.
         enforce_coordinate_ordering(result_cube, leading_dimensions)
+        # Add cell method to describe the vicinity operation applied.
+        result_cube.add_cell_method(CellMethod(method=self.cell_method, coords="area"))
 
         return result_cube
 
