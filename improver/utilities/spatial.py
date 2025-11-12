@@ -20,7 +20,7 @@ from iris.cube import Cube, CubeList
 from numpy import ndarray
 from numpy.ma import MaskedArray
 from scipy.ndimage.filters import (
-    generic_filter,
+    generic_filter, maximum_filter, minimum_filter, uniform_filter
 )
 
 from improver import BasePlugin, PostProcessingPlugin
@@ -719,22 +719,22 @@ class GradientBetweenAdjacentGridSquares(PostProcessingPlugin):
 
 
 def operator_within_vicinity(
-    operator: callable,
+    apply_filter: callable,
     fill_value: Union[float, int],
     grid: Union[MaskedArray, ndarray],
     grid_point_radius: int,
     landmask: Optional[ndarray] = None,
 ) -> Union[MaskedArray, ndarray]:
     """
-    Evaluate the specified operator over grid points within a defined radius.
+    Evaluate the specified filter over grid points within a defined radius.
     Where the operator applied is either an area maxima or minima, all grid
     points within the vicinity of the maxima/minima are recorded as having the
     same occurrence. If a land-mask has been supplied, process land and sea
     points separately.
 
     Args:
-        operator:
-            The mathematical operation to apply within the vicinity of each point.
+        apply_filter:
+            The filter to apply within the vicinity of each point.
         fill_value:
             The fill-value to use when masking out points within the grid.
         grid:
@@ -748,9 +748,10 @@ def operator_within_vicinity(
             types to be processed independently.
 
     Returns:
-        Array where the occurrences have been spatially spread, so that
-        they're equally likely to have occurred anywhere within the
-        vicinity defined using the specified radius.
+        Array where the occurrences have been spatially spread as per
+        the filter method applied. For maxima/minima, they're equally
+        likely to have occurred anywhere within the vicinity defined
+        using the specified radius.
     """
 
     # Convert the grid_point_radius into a number of points along an edge
@@ -764,29 +765,21 @@ def operator_within_vicinity(
     else:
         unmasked_grid = grid.copy()
     if landmask is not None:
-        max_data = np.empty_like(grid)
+        patch_data = np.empty_like(grid)
         for match in (True, False):
             matched_data = unmasked_grid.copy()
             matched_data[landmask != match] = fill_value
-            # Fix-me: from scipy version 1.6.0, vectorized_filter method exists
-            # which can significantly speed up generice filter methods.
-            matched_max_data = generic_filter(
-                matched_data, operator, size=grid_points, mode="nearest"
-            )
-            max_data = np.where(landmask == match, matched_max_data, max_data)
+            matched_patch_data = apply_filter(matched_data, grid_points)
+            patch_data = np.where(landmask == match, matched_patch_data, patch_data)
     else:
         # The following command finds the value for the specified operation for
         # each grid point from within a square of length "size"
-        # Fix-me: from scipy version 1.6.0, vectorized_filter method exists
-        # which can significantly speed up generice filter methods.
-        max_data = generic_filter(
-            unmasked_grid, operator, size=grid_points, mode="nearest"
-        )
+        patch_data = apply_filter(unmasked_grid, grid_points)
     if np.ma.is_masked(grid):
         # Update only the unmasked values
-        processed_grid.data[~grid.mask] = max_data[~grid.mask]
+        processed_grid.data[~grid.mask] = patch_data[~grid.mask]
     else:
-        processed_grid = max_data
+        processed_grid = patch_data
     return processed_grid
 
 
@@ -820,11 +813,13 @@ def maximum_within_vicinity(
         spatially spread, so that they're equally likely to have occurred
         anywhere within the vicinity defined using the specified radius.
     """
+    def _apply_max_filter(data, width):
+        return  maximum_filter(data, size=width, mode="nearest")
     # Value, the negative of which is used to fill masked points, ensuring
     # that when we take a maximum the masked points do not contribute.
     fill_value = -1 * netCDF4.default_fillvals.get(grid.dtype.str[1:], np.inf)
     processed_grid = operator_within_vicinity(
-        max, fill_value, grid, grid_point_radius, landmask
+        _apply_max_filter, fill_value, grid, grid_point_radius, landmask
     )
     return processed_grid
 
@@ -859,11 +854,13 @@ def minimum_within_vicinity(
         spatially spread, so that they're equally likely to have occurred
         anywhere within the vicinity defined using the specified radius.
     """
+    def _apply_min_filter(data, width):
+        return  minimum_filter(data, size=width, mode="nearest")
     # Value, which is used to fill masked points, ensuring that when we
     # take a minimum the masked points do not contribute.
     fill_value = netCDF4.default_fillvals.get(grid.dtype.str[1:], np.inf)
     processed_grid = operator_within_vicinity(
-        min, fill_value, grid, grid_point_radius, landmask
+        _apply_min_filter, fill_value, grid, grid_point_radius, landmask
     )
 
     return processed_grid
@@ -895,9 +892,16 @@ def mean_within_vicinity(
         centred on each grid looking within the vicinity defined by
         the specified radius.
     """
+    def _apply_mean_filter(data, width):
+        if np.any(np.isnan(data)):
+            # Fix-me: from scipy version 1.6.0, vectorized_filter method exists
+            # which can significantly speed up generic_filter methods.
+            return generic_filter(data, np.nanmean, size=width, mode="nearest")
+        else:
+            return uniform_filter(data, size=width, mode="nearest")
     fill_value = np.nan
     processed_grid = operator_within_vicinity(
-        np.nanmean, fill_value, grid, grid_point_radius, landmask
+        _apply_mean_filter, fill_value, grid, grid_point_radius, landmask
     )
 
     return processed_grid
@@ -929,9 +933,18 @@ def std_within_vicinity(
         values are centred on each grid looking within the vicinity defined
         by the specified radius.
     """
+    def _apply_std_filter(data, width):
+        if np.any(np.isnan(data)):
+            # Fix-me: from scipy version 1.6.0, vectorized_filter method exists
+            # which can significantly speed up generic_filter methods.
+            return generic_filter(data, np.nanstd, size=width, mode="nearest")
+        else:
+            # Fix-me: from scipy version 1.6.0, vectorized_filter method exists
+            # which can significantly speed up generic_filter methods.
+            return generic_filter(data, np.std, size=width, mode="nearest")
     fill_value = np.nan
     processed_grid = operator_within_vicinity(
-        np.nanstd, fill_value, grid, grid_point_radius, landmask
+        _apply_std_filter, fill_value, grid, grid_point_radius, landmask
     )
     return processed_grid
 
