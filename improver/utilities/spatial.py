@@ -768,13 +768,17 @@ def operator_within_vicinity(
         for match in (True, False):
             matched_data = unmasked_grid.copy()
             matched_data[landmask != match] = fill_value
+            # Fix-me: from scipy version 1.6.0, vectorized_filter method exists
+            # which can significantly speed up generice filter methods.
             matched_max_data = generic_filter(
                 matched_data, operator, size=grid_points, mode="nearest"
             )
             max_data = np.where(landmask == match, matched_max_data, max_data)
     else:
-        # The following command finds the maximum value for each grid point
-        # from within a square of length "size"
+        # The following command finds the value for the specified operation for
+        # each grid point from within a square of length "size"
+        # Fix-me: from scipy version 1.6.0, vectorized_filter method exists
+        # which can significantly speed up generice filter methods.
         max_data = generic_filter(
             unmasked_grid, operator, size=grid_points, mode="nearest"
         )
@@ -832,11 +836,11 @@ def minimum_within_vicinity(
 ) -> Union[MaskedArray, ndarray]:
     """
     Find grid points where a phenomenon occurs within a defined radius.
-    The occurrences within this vicinity are minimised, such that all
-    grid points within the vicinity are recorded as having an occurrence.
-    For non-binary fields, if the vicinity of two occurrences overlap,
-    the minimum value within the vicinity is chosen.
-    If a land-mask has been supplied, process land and sea points
+    The occurrences within this vicinity are minimised. For binary fields,
+    grid points within the vicinity of a non-occurrence are all recorded
+    as being a non-occurence. For non-binary fields, if the vicinity of
+    two occurrences overlap, the minimum value within the vicinity is
+    chosen. If a land-mask has been supplied, process land and sea points
     separately.
 
     Args:
@@ -844,7 +848,7 @@ def minimum_within_vicinity(
             An array of values to which the process is applied.
         grid_point_radius:
             The radius in grid points about each point within which to
-            determine the maximum value.
+            determine the minimum value.
         landmask:
             A binary grid of the same size as grid that differentiates
             between land and sea points to allow the different surface
@@ -880,7 +884,7 @@ def mean_within_vicinity(
             An array of values to which the process is applied.
         grid_point_radius:
             The radius in grid points about each point within which to
-            determine the maximum value.
+            determine the mean value.
         landmask:
             A binary grid of the same size as grid that differentiates
             between land and sea points to allow the different surface
@@ -905,7 +909,7 @@ def std_within_vicinity(
     landmask: Optional[ndarray] = None,
 ) -> Union[MaskedArray, ndarray]:
     """
-    Find the standard-deviation values over grid points within a defined
+    Find the standard deviation values over grid points within a defined
     radius. If a land-mask has been supplied, process land and sea points
     separately.
 
@@ -914,16 +918,16 @@ def std_within_vicinity(
             An array of values to which the process is applied.
         grid_point_radius:
             The radius in grid points about each point within which to
-            determine the maximum value.
+            determine the standard deviation.
         landmask:
             A binary grid of the same size as grid that differentiates
             between land and sea points to allow the different surface
             types to be processed independently.
 
     Returns:
-        Array where std is evaluated over spatial area; values are
-        centred on each grid looking within the vicinity defined by
-        the specified radius.
+        Array where standard deviation is evaluated over spatial area;
+        values are centred on each grid looking within the vicinity defined
+        by the specified radius.
     """
     fill_value = np.nan
     processed_grid = operator_within_vicinity(
