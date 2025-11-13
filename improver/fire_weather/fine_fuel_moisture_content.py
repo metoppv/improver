@@ -181,7 +181,7 @@ class FineFuelMoistureContent(BasePlugin):
         new_moisture_content = E_d + (self.moisture_content - E_d) * 10 ** (-k_d)
 
         # Steps 5a & 5b: Produce a mask for moisture content where drying occurs
-        moisture_content_drying_mask = self.moisture_content < E_d
+        moisture_content_drying_mask = self.initial_moisture_content > E_d
 
         return moisture_content_drying_mask, new_moisture_content
 
@@ -232,7 +232,7 @@ class FineFuelMoistureContent(BasePlugin):
         new_moisture_content = E_w - (E_w - self.moisture_content) * 10 ** (-k_w)
 
         # Steps 7a & 7b: Produce a mask for moisture content where wetting occurs
-        moisture_content_wetting_mask = self.moisture_content > E_w
+        moisture_content_wetting_mask = self.initial_moisture_content < E_w
 
         return moisture_content_wetting_mask, new_moisture_content
 
@@ -286,8 +286,6 @@ class FineFuelMoistureContent(BasePlugin):
 
         E_d = self._calculate_drying_phase()
         E_w = self._calculate_wetting_phase()
-
-        # ! Currently working up to here
 
         moisture_content_drying_mask, moisture_content_from_drying = (
             self._calculate_moisture_content_through_drying_rate(E_d)
