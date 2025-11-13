@@ -676,6 +676,20 @@ def test_rename_vicinity_cube(test_cube):
     assert "air_temperature_in_vicinity" in final_name
 
 
+def test_rename_with_new_name_vicinity_cube(test_cube):
+    """Test that the rename_vicinity_cube function modifies variable
+    names as expected to indicate they have been vicinity processed."""
+
+    new_name = "max_air_temperature_in_vicinity"
+
+    initial_name = test_cube.name()
+    rename_vicinity_cube(test_cube, new_name=new_name)
+    final_name = test_cube.name()
+
+    assert initial_name != final_name
+    assert final_name == new_name
+
+
 @pytest.mark.parametrize(
     "grid,radius,landmask,expected_result",
     [

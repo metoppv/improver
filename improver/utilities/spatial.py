@@ -7,6 +7,7 @@
 import copy
 from abc import ABC, abstractmethod
 from typing import List, Optional, Tuple, Union
+import warnings
 
 import cartopy.crs as ccrs
 import iris
@@ -36,7 +37,6 @@ from improver.metadata.utilities import (
 )
 from improver.utilities.cube_checker import check_cube_coordinates, spatial_coords_match
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
-
 
 def check_if_grid_is_equal_area(
     cube: Cube, require_equal_xy_spacing: bool = True
@@ -821,6 +821,11 @@ def maximum_within_vicinity(
         if np.any(np.isnan(data)):
             # Fix-me: from scipy version 1.6.0, vectorized_filter method exists
             # which can significantly speed up generic_filter methods.
+            msg = (
+                "This method utilises the scipy generic_filter which is inefficient"
+                "for large grids."
+            )
+            warnings.warn(msg)
             return generic_filter(data, np.nanmax, size=width, mode="nearest")
         else:
             return maximum_filter(data, size=width, mode="nearest")
@@ -869,6 +874,11 @@ def minimum_within_vicinity(
         if np.any(np.isnan(data)):
             # Fix-me: from scipy version 1.6.0, vectorized_filter method exists
             # which can significantly speed up generic_filter methods.
+            msg = (
+                "This method utilises the scipy generic_filter which is inefficient"
+                "for large grids."
+            )
+            warnings.warn(msg)
             return generic_filter(data, np.nanmin, size=width, mode="nearest")
         else:
             return minimum_filter(data, size=width, mode="nearest")
@@ -914,6 +924,11 @@ def mean_within_vicinity(
         if np.any(np.isnan(data)):
             # Fix-me: from scipy version 1.6.0, vectorized_filter method exists
             # which can significantly speed up generic_filter methods.
+            msg = (
+                "This method utilises the scipy generic_filter which is inefficient"
+                "for large grids."
+            )
+            warnings.warn(msg)
             return generic_filter(data, np.nanmean, size=width, mode="nearest")
         else:
             return uniform_filter(data, size=width, mode="nearest")
@@ -957,6 +972,11 @@ def std_within_vicinity(
         if np.any(np.isnan(data)):
             # Fix-me: from scipy version 1.6.0, vectorized_filter method exists
             # which can significantly speed up generic_filter methods.
+            msg = (
+                "This method utilises the scipy generic_filter which is inefficient"
+                "for large grids."
+            )
+            warnings.warn(msg)
             return generic_filter(data, np.nanstd, size=width, mode="nearest")
         else:
             # Fix-me: from scipy version 1.6.0, vectorized_filter method exists
@@ -970,7 +990,7 @@ def std_within_vicinity(
     return processed_grid
 
 
-def rename_vicinity_cube(cube: Cube):
+def rename_vicinity_cube(cube: Cube, new_name: str = None):
     """
     Rename a cube in place to indicate the cube has been vicinity processed.
 
@@ -978,10 +998,13 @@ def rename_vicinity_cube(cube: Cube):
         cube:
             Cube to be renamed.
     """
-    if is_probability(cube):
-        cube.rename(in_vicinity_name_format(cube.name()))
+    if new_name is not None:
+        cube.rename(new_name)
     else:
-        cube.rename(f"{cube.name()}_in_vicinity")
+        if is_probability(cube):
+            cube.rename(in_vicinity_name_format(cube.name()))
+        else:
+            cube.rename(f"{cube.name()}_in_vicinity")
 
 
 def create_vicinity_coord(
@@ -1203,10 +1226,8 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
         # Merge cubes produced for each vicinity radius.
         result_cube = radii_cubes.merge_cube()
         # Rename the variable if a new_name argument has been set.
-        if new_name is not None:
-            result_cube.rename(new_name)
         # Set cube name to reflect vicinity processing.
-        rename_vicinity_cube(result_cube)
+        rename_vicinity_cube(result_cube, new_name)
         # Enforce order of leading dimensions on the output to match the input.
         enforce_coordinate_ordering(result_cube, leading_dimensions)
         # Add cell method to describe the vicinity operation applied.
