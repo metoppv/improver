@@ -5,9 +5,9 @@
 """Provides support utilities."""
 
 import copy
+import warnings
 from abc import ABC, abstractmethod
 from typing import List, Optional, Tuple, Union
-import warnings
 
 import cartopy.crs as ccrs
 import iris
@@ -37,6 +37,7 @@ from improver.metadata.utilities import (
 )
 from improver.utilities.cube_checker import check_cube_coordinates, spatial_coords_match
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
+
 
 def check_if_grid_is_equal_area(
     cube: Cube, require_equal_xy_spacing: bool = True
