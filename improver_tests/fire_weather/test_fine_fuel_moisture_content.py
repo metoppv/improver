@@ -284,191 +284,261 @@ def test__perform_rainfall_adjustment(
 
 
 @pytest.mark.parametrize(
-    "temp_val, precip_val, rh_val, wind_val, ffmc_val",
+    "temp_val, rh_val, expected_E_d",
     [
         # Case 0: Typical mid-range values
-        (20.0, 1.0, 50.0, 10.0, 85.0),
+        (20.0, 50.0, 13.69),
         # Case 1: All zeros (edge case)
-        (0.0, 0.0, 0.0, 0.0, 0.0),
-        # Case 2: All maximums/extremes
-        (100.0, 100.0, 100.0, 100.0, 100.0),
-        # Case 3: Low temperature, low precip, low RH, low wind, low FFMC
-        (-10.0, 0.5, 10.0, 2.0, 60.0),
-        # Case 4: High temp, high precip, high RH, high wind, high FFMC
-        (30.0, 10.0, 90.0, 20.0, 120.0),
+        (0.0, 0.0, 0.0005),
+        # Case 2: High temp, high RH
+        (30.0, 90.0, 22.44),
+        # Case 3: Low temp, low RH
+        (-10.0, 10.0, 8.33),
     ],
 )
 def test_calculate_drying_phase(
     temp_val: float,
-    precip_val: float,
     rh_val: float,
-    wind_val: float,
-    ffmc_val: float,
+    expected_E_d: float,
 ) -> None:
-    """Test _calculate_drying_phase for various input scenarios.
+    """
+    Test _calculate_drying_phase for given temperature and relative humidity, comparing to expected E_d value.
 
     Args:
         temp_val (float): Temperature value for all grid points.
-        precip_val (float): Precipitation value for all grid points.
         rh_val (float): Relative humidity value for all grid points.
-        wind_val (float): Wind speed value for all grid points.
-        ffmc_val (float): FFMC value for all grid points.
+        expected_E_d (float): Expected drying phase value.
 
     Raises:
         AssertionError: If the drying phase calculation does not match expectations.
     """
-    cubes = input_cubes(temp_val, precip_val, rh_val, wind_val, ffmc_val)
+    cubes = input_cubes(temp_val=temp_val, rh_val=rh_val)
     plugin = FineFuelMoistureContent()
     plugin.load_input_cubes(CubeList(cubes))
     E_d = plugin._calculate_drying_phase()
     # Check output type and shape
     assert isinstance(E_d, np.ndarray)
     assert E_d.shape == cubes[0].data.shape
-    # Check that drying phase is non-negative
-    assert np.all(E_d >= 0)
+    # Check that drying phase matches expected value
+    assert np.allclose(E_d, expected_E_d, atol=0.01)
 
 
 @pytest.mark.parametrize(
-    "temp_val, precip_val, rh_val, wind_val, ffmc_val",
+    "moisture_content, relative_humidity, wind_speed, temperature, E_d, expected_output",
     [
-        # Case 0: Typical mid-range values
-        (20.0, 1.0, 50.0, 10.0, 85.0),
-        # Case 1: All zeros (edge case)
-        (0.0, 0.0, 0.0, 0.0, 0.0),
-        # Case 2: All maximums/extremes
-        (100.0, 100.0, 100.0, 100.0, 100.0),
-        # Case 3: Low temperature, low precip, low RH, low wind, low FFMC
-        (-10.0, 0.5, 10.0, 2.0, 60.0),
-        # Case 4: High temp, high precip, high RH, high wind, high FFMC
-        (30.0, 10.0, 90.0, 20.0, 120.0),
+        # Case 1: Some points above, some below E_d
+        (
+            np.array([10, 20, 10, 20, 10]),
+            50,
+            10,
+            20,
+            np.array([15, 15, 15, 15, 15]),
+            np.array([13.80, 16.21, 13.80, 16.21, 13.80]),
+        ),
+        # Case 2: All points below E_d (mask all False)
+        (
+            np.array([5, 5, 5, 5, 5]),
+            50,
+            10,
+            20,
+            np.array([10, 10, 10, 10, 10]),
+            np.array([8.80, 8.80, 8.80, 8.80, 8.80]),
+        ),
+        # Case 3: All points above E_d (mask all True)
+        (
+            np.array([20, 20, 20, 20, 20]),
+            50,
+            10,
+            20,
+            np.array([10, 10, 10, 10, 10]),
+            np.array([12.41, 12.41, 12.41, 12.41, 12.41]),
+        ),
+        # Case 4: Mixed values, different RH and wind
+        (
+            np.array([10, 30, 50, 70, 90]),
+            80,
+            5,
+            15,
+            np.array([20, 40, 60, 80, 100]),
+            np.array([14.56, 34.56, 54.56, 74.56, 94.56]),
+        ),
+        # Case 5: Edge case, moisture_content == E_d (mask all False)
+        (
+            np.array([10, 20, 30, 40, 50]),
+            60,
+            8,
+            25,
+            np.array([10, 20, 30, 40, 50]),
+            np.array([10.01, 20.01, 30.01, 40.01, 50.01]),
+        ),
     ],
 )
 def test_calculate_moisture_content_through_drying_rate(
-    temp_val: float,
-    precip_val: float,
-    rh_val: float,
-    wind_val: float,
-    ffmc_val: float,
+    moisture_content: np.ndarray,
+    relative_humidity: float,
+    wind_speed: float,
+    temperature: float,
+    E_d: np.ndarray,
+    expected_output: np.ndarray,
 ) -> None:
-    """Test _calculate_moisture_content_through_drying_rate for various input scenarios.
+    """
+    Test _calculate_moisture_content_through_drying_rate for given relative humidity, wind speed, temperature, moisture content, and E_d.
+    Compares the output mask and moisture content to expected values.
 
     Args:
-        temp_val (float): Temperature value for all grid points.
-        precip_val (float): Precipitation value for all grid points.
-        rh_val (float): Relative humidity value for all grid points.
-        wind_val (float): Wind speed value for all grid points.
-        ffmc_val (float): FFMC value for all grid points.
+        moisture_content (np.ndarray): Moisture content values for all grid points.
+        relative_humidity (float): Relative humidity value for all grid points.
+        wind_speed (float): Wind speed value for all grid points.
+        temperature (float): Temperature value for all grid points.
+        E_d (np.ndarray): Drying phase values for all grid points.
+        expected_output (np.ndarray): Expected output moisture content values.
 
     Raises:
         AssertionError: If the drying rate calculation does not match expectations.
     """
-    cubes = input_cubes(temp_val, precip_val, rh_val, wind_val, ffmc_val)
     plugin = FineFuelMoistureContent()
-    plugin.load_input_cubes(CubeList(cubes))
-    E_d = plugin._calculate_drying_phase()
-    plugin._calculate_moisture_content()
+    plugin.initial_moisture_content = moisture_content.copy()
+    plugin.moisture_content = moisture_content.copy()
+    plugin.relative_humidity = np.full(moisture_content.shape, relative_humidity)
+    plugin.wind_speed = np.full(moisture_content.shape, wind_speed)
+    plugin.temperature = np.full(moisture_content.shape, temperature)
+
+    expected_mask = moisture_content > E_d
+
     mask, new_mc = plugin._calculate_moisture_content_through_drying_rate(E_d)
-    # Check output types and shapes
-    assert isinstance(mask, np.ndarray)
-    assert isinstance(new_mc, np.ndarray)
-    assert mask.shape == cubes[0].data.shape
-    assert new_mc.shape == cubes[0].data.shape
-    # Check that new moisture content is non-negative
-    assert np.all(new_mc >= 0)
+
+    assert np.all(mask == expected_mask)
+    assert np.allclose(new_mc, expected_output, atol=0.01)
 
 
 @pytest.mark.parametrize(
-    "temp_val, precip_val, rh_val, wind_val, ffmc_val",
+    "temp_val, rh_val, expected_E_w",
     [
         # Case 0: Typical mid-range values
-        (20.0, 1.0, 50.0, 10.0, 85.0),
+        (20.0, 50.0, 12.0222),
         # Case 1: All zeros (edge case)
-        (0.0, 0.0, 0.0, 0.0, 0.0),
-        # Case 2: All maximums/extremes
-        (100.0, 100.0, 100.0, 100.0, 100.0),
-        # Case 3: Low temperature, low precip, low RH, low wind, low FFMC
-        (-10.0, 0.5, 10.0, 2.0, 60.0),
-        # Case 4: High temp, high precip, high RH, high wind, high FFMC
-        (30.0, 10.0, 90.0, 20.0, 120.0),
+        (0.0, 0.0, 0.0004540),
+        # Case 2: High temp, high RH
+        (30.0, 90.0, 20.3803),
+        # Case 3: Low temp, low RH
+        (-10.0, 10.0, 7.3261),
     ],
 )
 def test_calculate_wetting_phase(
     temp_val: float,
-    precip_val: float,
     rh_val: float,
-    wind_val: float,
-    ffmc_val: float,
+    expected_E_w: float,
 ) -> None:
-    """Test _calculate_wetting_phase for various input scenarios.
+    """
+    Test _calculate_wetting_phase for given temperature and relative humidity, comparing to expected E_w value.
 
     Args:
         temp_val (float): Temperature value for all grid points.
-        precip_val (float): Precipitation value for all grid points.
         rh_val (float): Relative humidity value for all grid points.
-        wind_val (float): Wind speed value for all grid points.
-        ffmc_val (float): FFMC value for all grid points.
+        expected_E_w (float): Expected wetting phase value.
 
     Raises:
         AssertionError: If the wetting phase calculation does not match expectations.
     """
-    cubes = input_cubes(temp_val, precip_val, rh_val, wind_val, ffmc_val)
+    cubes = input_cubes(temp_val=temp_val, rh_val=rh_val)
     plugin = FineFuelMoistureContent()
     plugin.load_input_cubes(CubeList(cubes))
     E_w = plugin._calculate_wetting_phase()
+    with open("debug_E_w.txt", "a") as f:
+        f.write(f"E_w: {E_w[0,0]}\n")
     # Check output type and shape
     assert isinstance(E_w, np.ndarray)
     assert E_w.shape == cubes[0].data.shape
-    # Check that wetting phase is non-negative
-    assert np.all(E_w >= 0)
+    # Check that wetting phase matches expected value
+    assert np.allclose(E_w, expected_E_w, atol=0.01)
 
 
 @pytest.mark.parametrize(
-    "temp_val, precip_val, rh_val, wind_val, ffmc_val",
+    "moisture_content, relative_humidity, wind_speed, temperature, E_w, expected_output",
     [
-        # Case 0: Typical mid-range values
-        (20.0, 1.0, 50.0, 10.0, 85.0),
-        # Case 1: All zeros (edge case)
-        (0.0, 0.0, 0.0, 0.0, 0.0),
-        # Case 2: All maximums/extremes
-        (100.0, 100.0, 100.0, 100.0, 100.0),
-        # Case 3: Low temperature, low precip, low RH, low wind, low FFMC
-        (-10.0, 0.5, 10.0, 2.0, 60.0),
-        # Case 4: High temp, high precip, high RH, high wind, high FFMC
-        (30.0, 10.0, 90.0, 20.0, 120.0),
+        # Case 1: Some points below, some above E_w
+        (
+            np.array([10, 20, 10, 20, 10]),
+            50,
+            10,
+            20,
+            np.array([15, 15, 15, 15, 15]),
+            np.array([13.79, 16.21, 13.79, 16.21, 13.79]),
+        ),
+        # Case 2: All points above E_w (mask all False)
+        (
+            np.array([20, 20, 20, 20, 20]),
+            50,
+            10,
+            20,
+            np.array([10, 10, 10, 10, 10]),
+            np.array([12.41, 12.41, 12.41, 12.41, 12.41]),
+        ),
+        # Case 3: All points below E_w (mask all True)
+        (
+            np.array([5, 5, 5, 5, 5]),
+            50,
+            10,
+            20,
+            np.array([10, 10, 10, 10, 10]),
+            np.array([8.79, 8.79, 8.79, 8.79, 8.79]),
+        ),
+        # Case 4: Mixed values, different RH and wind
+        (
+            np.array([10, 30, 50, 70, 90]),
+            80,
+            5,
+            15,
+            np.array([20, 40, 60, 80, 100]),
+            np.array([17.21, 37.21, 57.21, 77.21, 97.21]),
+        ),
+        # Case 5: Edge case, moisture_content == E_w (mask all False)
+        (
+            np.array([10, 20, 30, 40, 50]),
+            60,
+            8,
+            25,
+            np.array([10, 20, 30, 40, 50]),
+            np.array([10, 20, 30, 40, 50]),
+        ),
     ],
 )
 def test_calculate_moisture_content_through_wetting_equilibrium(
-    temp_val: float,
-    precip_val: float,
-    rh_val: float,
-    wind_val: float,
-    ffmc_val: float,
+    moisture_content: np.ndarray,
+    relative_humidity: float,
+    wind_speed: float,
+    temperature: float,
+    E_w: np.ndarray,
+    expected_output: np.ndarray,
 ) -> None:
-    """Test _calculate_moisture_content_through_wetting_equilibrium for various input scenarios.
+    """
+    Test _calculate_moisture_content_through_wetting_equilibrium for given relative humidity, wind speed, temperature, moisture content, and E_w.
+    Compares the output mask and moisture content to expected values.
 
     Args:
-        temp_val (float): Temperature value for all grid points.
-        precip_val (float): Precipitation value for all grid points.
-        rh_val (float): Relative humidity value for all grid points.
-        wind_val (float): Wind speed value for all grid points.
-        ffmc_val (float): FFMC value for all grid points.
+        moisture_content (np.ndarray): Moisture content values for all grid points.
+        relative_humidity (float): Relative humidity value for all grid points.
+        wind_speed (float): Wind speed value for all grid points.
+        temperature (float): Temperature value for all grid points.
+        E_w (np.ndarray): Wetting phase values for all grid points.
+        expected_output (np.ndarray): Expected output moisture content values.
 
     Raises:
         AssertionError: If the wetting equilibrium calculation does not match expectations.
     """
-    cubes = input_cubes(temp_val, precip_val, rh_val, wind_val, ffmc_val)
     plugin = FineFuelMoistureContent()
-    plugin.load_input_cubes(CubeList(cubes))
-    plugin._calculate_moisture_content()
-    E_w = plugin._calculate_wetting_phase()
+    plugin.initial_moisture_content = moisture_content.copy()
+    plugin.moisture_content = moisture_content.copy()
+    plugin.relative_humidity = np.full(moisture_content.shape, relative_humidity)
+    plugin.wind_speed = np.full(moisture_content.shape, wind_speed)
+    plugin.temperature = np.full(moisture_content.shape, temperature)
+
+    expected_mask = moisture_content < E_w
+
     mask, new_mc = plugin._calculate_moisture_content_through_wetting_equilibrium(E_w)
-    # Check output types and shapes
-    assert isinstance(mask, np.ndarray)
-    assert isinstance(new_mc, np.ndarray)
-    assert mask.shape == cubes[0].data.shape
-    assert new_mc.shape == cubes[0].data.shape
-    # Check that new moisture content is non-negative
-    assert np.all(new_mc >= 0)
+
+    assert np.all(mask == expected_mask)
+    assert np.allclose(new_mc, expected_output, atol=0.01)
 
 
 @pytest.mark.parametrize(
