@@ -36,6 +36,12 @@ def process(
     Users should ensure they do not inadvertently apply vicinity processing
     twice, once within the threshold CLI and then again using this CLI.
 
+    As a further note, when applying the mean operator to thresholded data,
+    the vicinity CLI will produce output equivalent to the nhbood CLI
+    (disregarding the boundary), but less efficiently (particularly when
+    applied to masked or datasets containing NaNs). For such cases, it is
+    recommended that one use the nbhood CLI instead.
+
     Args:
         cube (iris.cube.Cube):
             A cube containing data to which a vicinity is to be applied.

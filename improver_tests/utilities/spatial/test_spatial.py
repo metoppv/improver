@@ -691,6 +691,10 @@ def test_rename_vicinity_cube(test_cube):
             None,
             np.array([[1.0, 1.0, 0], [1.0, 1.0, 0], [0, 0, 0]]),
         ),
+        # Vicinity processing, with one non-zero central value and a nan in the
+        # corner; result returns 1 everywhere with the nan ignored in the
+        # vicinity calculation.
+        (np.array([[np.nan, 0, 0], [0, 1.0, 0], [0, 0, 0]]), 1, None, np.ones((3, 3))),
         # Vicinity processing, with one non-zero masked value. This masked
         # point is not considered, and so zeros are returned at neighbouring
         # points within the vicinity radius. The masking is preserved in the
@@ -800,6 +804,15 @@ def test_maximum_within_vicinity(grid, radius, landmask, expected_result):
             None,
             np.array([[0, 0, 2.0], [0, 0, 1.0], [2.0, 1.0, 1.0]]),
         ),
+        # Vicinity processing, with one zero central value and a nan in the
+        # corner; result returns 0 everywhere with the nan ignored in the
+        # vicinity calculation.
+        (
+            np.array([[np.nan, 1, 1], [1, 0.0, 0], [1, 1, 1]]),
+            1,
+            None,
+            np.zeros((3, 3)),
+        ),
         # Vicinity processing, with one zero masked value. This masked
         # point is not considered, and so ones are returned at neighbouring
         # points within the vicinity radius. The masking is preserved in the
@@ -902,6 +915,17 @@ def test_minimum_within_vicinity(grid, radius, landmask, expected_result):
             1,
             None,
             1 / 9 * np.ones((3, 3)),
+        ),
+        # Vicinity processing, with one non-zero central value and a nan in
+        # the corner. The resultant grid evaluates the mean, neglecting any
+        # nan values within the vicinity.
+        (
+            np.array([[np.nan, 0, 0], [0, 1.0, 0], [0, 0, 0]]),
+            1,
+            None,
+            np.array(
+                [[1 / 5, 1 / 7, 1 / 9], [1 / 7, 1 / 8, 1 / 9], [1 / 9, 1 / 9, 1 / 9]]
+            ),
         ),
         # Vicinity processing, with one non-zero corner value resulting
         # in neighbouring cells values of 1 within the limit of the
@@ -1007,12 +1031,27 @@ def test_mean_within_vicinity(grid, radius, landmask, expected_result):
     "grid,radius,landmask,expected_result",
     [
         # Vicinity processing, with one non-zero central value resulting
-        # in the whole domain returning values of 1/9
+        # in the whole domain returning values of 2 * sqrt(2) * 1 / 9
         (
             np.array([[0, 0, 0], [0, 1.0, 0], [0, 0, 0]]),
             1,
             None,
             2 * np.sqrt(2) / 9 * np.ones((3, 3)),
+        ),
+        # Vicinity processing, with one non-zero central value and a nan in
+        # the corner. The resultant grid evaluates the mean, neglecting any
+        # nan values within the vicinity.
+        (
+            np.array([[np.nan, 0, 0], [0, 1.0, 0], [0, 0, 0]]),
+            1,
+            None,
+            np.array(
+                [
+                    [2 / 5, np.sqrt(6) / 7, 2 * np.sqrt(2) / 9],
+                    [np.sqrt(6) / 7, np.sqrt(7) / 8, 2 * np.sqrt(2) / 9],
+                    [2 * np.sqrt(2) / 9, 2 * np.sqrt(2) / 9, 2 * np.sqrt(2) / 9],
+                ]
+            ),
         ),
         # Vicinity processing, with one non-zero corner value resulting
         # in neighbouring cells values of 1 within the limit of the

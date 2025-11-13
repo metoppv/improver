@@ -818,7 +818,12 @@ def maximum_within_vicinity(
     """
 
     def _apply_max_filter(data, width):
-        return maximum_filter(data, size=width, mode="nearest")
+        if np.any(np.isnan(data)):
+            # Fix-me: from scipy version 1.6.0, vectorized_filter method exists
+            # which can significantly speed up generic_filter methods.
+            return generic_filter(data, np.nanmax, size=width, mode="nearest")
+        else:
+            return maximum_filter(data, size=width, mode="nearest")
 
     # Value, the negative of which is used to fill masked points, ensuring
     # that when we take a maximum the masked points do not contribute.
@@ -861,7 +866,12 @@ def minimum_within_vicinity(
     """
 
     def _apply_min_filter(data, width):
-        return minimum_filter(data, size=width, mode="nearest")
+        if np.any(np.isnan(data)):
+            # Fix-me: from scipy version 1.6.0, vectorized_filter method exists
+            # which can significantly speed up generic_filter methods.
+            return generic_filter(data, np.nanmin, size=width, mode="nearest")
+        else:
+            return minimum_filter(data, size=width, mode="nearest")
 
     # Value, which is used to fill masked points, ensuring that when we
     # take a minimum the masked points do not contribute.
