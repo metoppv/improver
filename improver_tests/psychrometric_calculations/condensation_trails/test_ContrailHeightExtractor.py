@@ -6,9 +6,10 @@
 
 from typing import List, Optional, Tuple
 
-import iris
 import numpy as np
 import pytest
+from iris.coords import DimCoord
+from iris.cube import Cube
 
 from improver.psychrometric_calculations.condensation_trails import (
     ContrailHeightExtractor,
@@ -38,7 +39,7 @@ def make_cube(
     dims: Tuple[str] = ("pressure", "latitude", "longitude"),
     contrail_type_values: Optional[List[int]] = None,
     contrail_type_meaning_values: Optional[str] = None,
-) -> iris.cube.Cube:
+) -> Cube:
     """
     Simple cube factory for ContrailsHeightExtractor tests.
 
@@ -70,16 +71,16 @@ def make_cube(
             coords.append(("latitude", np.arange(shape[1])))
         if "longitude" in dims:
             coords.append(("longitude", np.arange(shape[2])))
-    cube = iris.cube.Cube(data, long_name=name, units=units)
+    cube = Cube(data, long_name=name, units=units)
     for dim, (coord_name, points) in enumerate(coords):
         if coord_name == "engine_contrail_factor":
             cube.add_dim_coord(
-                iris.coords.DimCoord(points, long_name="engine_contrail_factor"), dim
+                DimCoord(points, long_name="engine_contrail_factor"), dim
             )
         elif coord_name == "pressure":
-            cube.add_dim_coord(iris.coords.DimCoord(points, long_name="pressure"), dim)
+            cube.add_dim_coord(DimCoord(points, long_name="pressure"), dim)
         else:
-            cube.add_dim_coord(iris.coords.DimCoord(points, coord_name), dim)
+            cube.add_dim_coord(DimCoord(points, coord_name), dim)
     if contrail_type_values and contrail_type_meaning_values:
         cube.attributes["contrail_type"] = contrail_type_values
         cube.attributes["contrail_type_meaning"] = contrail_type_meaning_values
@@ -87,23 +88,43 @@ def make_cube(
 
 
 @pytest.mark.parametrize(
-    "formation, height, use_max, expected_non_persistent_height, expected_persistent_height",
+    "formation, height, use_max, expected_non_persistent_height, expected_persistent_height, from_arrays",
     [
-        # Input data for max extraction test
+        # Input cubes for max extraction test
         (
             formation_data,
             height_data,
             True,
             np.array([[[200, 300], [np.nan, np.nan]], [[np.nan, 300], [300, 500]]]),
             np.array([[[np.nan, np.nan], [400, 400]], [[100, np.nan], [400, np.nan]]]),
+            False,
         ),
-        # Input data for min extraction test
+        # Input cubes for min extraction test
         (
             formation_data,
             height_data,
             False,
             np.array([[[100, 200], [np.nan, np.nan]], [[np.nan, 300], [300, 400]]]),
             np.array([[[np.nan, np.nan], [300, 400]], [[100, np.nan], [400, np.nan]]]),
+            False,
+        ),
+        # Input arrays for max extraction test
+        (
+            formation_data,
+            height_data,
+            True,
+            np.array([[[200, 300], [np.nan, np.nan]], [[np.nan, 300], [300, 500]]]),
+            np.array([[[np.nan, np.nan], [400, 400]], [[100, np.nan], [400, np.nan]]]),
+            True,
+        ),
+        # Input arrays for min extraction test
+        (
+            formation_data,
+            height_data,
+            False,
+            np.array([[[100, 200], [np.nan, np.nan]], [[np.nan, 300], [300, 400]]]),
+            np.array([[[np.nan, np.nan], [300, 400]], [[100, np.nan], [400, np.nan]]]),
+            True,
         ),
     ],
 )
@@ -113,6 +134,7 @@ def test_max_min_extraction(
     use_max: bool,
     expected_non_persistent_height: np.ndarray,
     expected_persistent_height: np.ndarray,
+    from_arrays: bool,
 ):
     """
     Test maximum and minimum extraction of contrail formation using ContrailHeightExtractor.
@@ -123,6 +145,7 @@ def test_max_min_extraction(
         use_max: Boolean indicating whether to use maximum or minimum extraction.
         expected_non_persistent_height: Expected output for non-persistent contrails.
         expected_persistent_height: Expected output for persistent contrails.
+        from_arrays: If true, return arrays from the height extractor. If false, return cubes.
     """
     # 1. Turn test data into test cubes ready for passing into ContrailHeightExtractor
     formation_cube = make_cube(
@@ -139,13 +162,23 @@ def test_max_min_extraction(
 
     # 2. Run ContrailHeightExtractor using the test cubes
     extractor = ContrailHeightExtractor(use_max=use_max)
-    non_persistent, persistent = extractor.process(formation_cube, height_cube)
+
+    if from_arrays:
+        non_persistent_data, persistent_data = extractor.process_from_arrays(
+            formation_cube.data, height_cube.data, 1, 2
+        )
+    else:
+        non_persistent, persistent = extractor.process(formation_cube, height_cube)
+        non_persistent_data = non_persistent.data
+        persistent_data = persistent.data
 
     # 3. Assert that the results from the extractor match the expected results
+    assert isinstance(non_persistent_data, np.ndarray)
+    assert isinstance(persistent_data, np.ndarray)
     assert np.allclose(
-        non_persistent.data, expected_non_persistent_height, equal_nan=True
+        non_persistent_data, expected_non_persistent_height, equal_nan=True
     )
-    assert np.allclose(persistent.data, expected_persistent_height, equal_nan=True)
+    assert np.allclose(persistent_data, expected_persistent_height, equal_nan=True)
 
 
 @pytest.mark.parametrize("formation, height", [(formation_data, height_data)])
@@ -175,6 +208,8 @@ def test_output_names_and_units(formation: np.ndarray, height: np.ndarray):
     non_persistent, persistent = extractor.process(formation_cube, height_cube)
 
     # 3. Check names and units of output cubes
+    assert isinstance(non_persistent, Cube)
+    assert isinstance(persistent, Cube)
     assert "max_height_non_persistent_contrail" in non_persistent.name()
     assert "max_height_persistent_contrail" in persistent.name()
     assert non_persistent.units == height_cube.units
@@ -268,3 +303,70 @@ def test_attribute_length_error_handling(formation: np.ndarray, height: np.ndarr
     extractor = ContrailHeightExtractor(use_max=True)
     with pytest.raises(ValueError):
         extractor.process(formation_cube, height_cube)
+
+
+@pytest.mark.parametrize(
+    "formation, height, nonpersistent_value, persistent_value, expected_exception, expected_message",
+    [
+        (formation_data, height_data, 1, 2, None, None),
+        (
+            np.array([1, 2]),
+            height_data,
+            1,
+            2,
+            ValueError,
+            "must have at least 2 dimensions",
+        ),
+        (
+            formation_data,
+            np.array(100),
+            1,
+            2,
+            ValueError,
+            "must have at least 1 dimension",
+        ),
+        (
+            np.zeros((2, 3)),
+            np.zeros(4),
+            1,
+            2,
+            ValueError,
+            "Axis 0 of 'height' and axis 1 of 'contrail_formation' must be the same size",
+        ),
+        (np.zeros((2, 3, 4)), np.zeros((3, 5)), 1, 2, ValueError, "Cannot broadcast"),
+        (formation_data, height_data, 1.0, 2, TypeError, "expected 'int'"),
+        (formation_data, height_data, 1, 2.0, TypeError, "expected 'int'"),
+    ],
+)
+def test_process_from_arrays_raises(
+    formation: np.ndarray,
+    height: np.ndarray,
+    nonpersistent_value: int | float,
+    persistent_value: int | float,
+    expected_exception: Optional[Exception],
+    expected_message: Optional[str],
+) -> None:
+    """
+    Check that 'process_from_arrays' returns the expected exceptions when given invalid inputs.
+
+    Args:
+        formation: Integer array of contrail formation on pressure levels.
+        height: Float array of height above sea level on pressure levels.
+        nonpersistent_value: Integer corresponding to non-persistent contrail formation.
+        persistent_value: Integer corresponding to persistent contrail formation.
+        expected_exception: The exception returned by 'process_from_arrays'.
+        expected_message: The message associated with the exception.
+    """
+    extractor = ContrailHeightExtractor(use_max=True)
+    if expected_exception:
+        with pytest.raises(expected_exception) as e:
+            extractor.process_from_arrays(
+                formation, height, nonpersistent_value, persistent_value
+            )
+        assert expected_message in str(e.value)
+    else:
+        result = extractor.process_from_arrays(
+            formation, height, nonpersistent_value, persistent_value
+        )
+        assert isinstance(result[0], np.ndarray)
+        assert isinstance(result[1], np.ndarray)
