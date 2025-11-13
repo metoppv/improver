@@ -85,7 +85,7 @@ def input_cubes(
         (30.0, 10.0, 90.0, 20.0, 120.0),
     ],
 )
-def test_load_input_cubes_cases(
+def test_load_input_cubes(
     temp_val: float,
     precip_val: float,
     rh_val: float,
@@ -123,7 +123,57 @@ def test_load_input_cubes_cases(
         assert np.allclose(attr, val)
 
 
-#! add a test here for checking the unit conversions of load_input_cubes
+@pytest.mark.parametrize(
+    "param, input_val, input_unit, expected_val",
+    [
+        # 0: Temperature: Kelvin -> degC
+        ("temperature", 293.15, "K", 20.0),
+        # 1: Precipitation: m -> mm
+        ("precipitation", 0.001, "m", 1.0),
+        # 2: Relative humidity: percentage -> fraction
+        ("relative_humidity", 10.0, "%", 0.1),
+        # 3: Wind speed: m/s -> km/h
+        ("wind_speed", 2.7777777777777777, "m/s", 10.0),
+        # 4: Input FFMC: percentage -> fraction
+        ("input_ffmc", 85.0, "%", 0.85),
+    ],
+)
+def test_load_input_cubes_unit_conversion(
+    param: str,
+    input_val: float,
+    input_unit: str,
+    expected_val: float,
+) -> None:
+    """
+    Test that load_input_cubes correctly converts a single alternative unit for each input cube.
+
+    Args:
+        param (str): Name of the parameter to test (e.g., 'temperature', 'precipitation', etc.).
+        input_val (float): Value to use for the tested parameter.
+        input_unit (str): Unit to use for the tested parameter.
+        expected_val (float): Expected value after conversion.
+
+    Raises:
+        AssertionError: If the converted value does not match the expected value.
+    """
+
+    # Override the value and unit for the parameter being tested
+    if param == "temperature":
+        cubes = input_cubes(temp_val=input_val, temp_units=input_unit)
+    elif param == "precipitation":
+        cubes = input_cubes(precip_val=input_val, precip_units=input_unit)
+    elif param == "relative_humidity":
+        cubes = input_cubes(rh_val=input_val, rh_units=input_unit)
+    elif param == "wind_speed":
+        cubes = input_cubes(wind_val=input_val, wind_units=input_unit)
+    elif param == "input_ffmc":
+        cubes = input_cubes(ffmc_val=input_val, ffmc_units=input_unit)
+
+    plugin = FineFuelMoistureContent()
+    plugin.load_input_cubes(CubeList(cubes))
+    # Check only the parameter being tested
+    result = getattr(plugin, param)
+    assert np.allclose(result, expected_val)
 
 
 @pytest.mark.parametrize(
@@ -141,7 +191,7 @@ def test_load_input_cubes_cases(
         (30.0, 10.0, 90.0, 20.0, 120.0),
     ],
 )
-def test_calculate_moisture_content(
+def test__calculate_moisture_content(
     temp_val: float,
     precip_val: float,
     rh_val: float,
@@ -164,65 +214,73 @@ def test_calculate_moisture_content(
     plugin = FineFuelMoistureContent()
     plugin.load_input_cubes(CubeList(cubes))
     plugin._calculate_moisture_content()
+
+    # Check that both initial and regular moisture content are set
+    assert hasattr(plugin, "initial_moisture_content")
+    assert hasattr(plugin, "moisture_content")
+
     # Check moisture_content shape and type
     assert plugin.moisture_content.shape == cubes[0].data.shape
     assert isinstance(plugin.moisture_content, np.ndarray)
+
     # Check initial moisture content calculation
     expected_mc = 147.2 * (101.0 - ffmc_val) / (59.5 + ffmc_val)
     assert np.allclose(plugin.moisture_content, expected_mc)
 
 
 @pytest.mark.parametrize(
-    "temp_val, precip_val, rh_val, wind_val, ffmc_val",
+    "precip_val, initial_mc_val, expected_mc",
     [
-        # Case 0: No rainfall, FFMC mid-range (no adjustment expected)
-        (20.0, 0.0, 50.0, 10.0, 85.0),
-        # Case 1: Rainfall above threshold, FFMC mid-range (adjustment expected)
-        (20.0, 1.0, 50.0, 10.0, 85.0),
-        # Case 2: Rainfall at threshold, FFMC mid-range (no adjustment expected)
-        (20.0, 0.5, 50.0, 10.0, 85.0),
-        # Case 3: Heavy rainfall, low FFMC (large adjustment expected)
-        (20.0, 10.0, 50.0, 10.0, 40.0),
-        # Case 4: No rainfall, high FFMC (no adjustment expected)
-        (20.0, 0.0, 50.0, 10.0, 120.0),
+        # Case 0: precip is zero, (no adjustment)
+        (0.0, 100.0, 100.0),
+        # Case 1: precip below threshold, (no adjustment)
+        (0.1, 100.0, 100.0),
+        # Case 2: precip on threshold limit, (no adjustment)
+        (0.5, 100.0, 100.0),
+        # Case 3: precip below threshold, moisture_content > 150 (no adjustment)
+        (0.3, 200.0, 200.0),
+        # Case 4: precip below threshold, moisture_content > 250 (no adjustment)
+        (0.3, 260.0, 260.0),
+        # Case 5: precip > 0.5, moisture_content <= 150 (adjustment1)
+        (1.0, 100.0, 110.9584),
+        # Case 6: precip > 0.5, moisture_content = 150 (adjustment1)
+        (1.0, 150.0, 157.8952),
+        # Case 7: precip > 0.5, moisture_content > 150 (adjustment1 + adjustment2)
+        (1.0, 200.0, 205.6425),
+        # Case 8: precip > 0.5, moisture_content > 250 (cap at 250)
+        (10.0, 260.0, 250.0),
     ],
 )
-def test_perform_rainfall_adjustment(
-    temp_val: float,
+def test__perform_rainfall_adjustment(
     precip_val: float,
-    rh_val: float,
-    wind_val: float,
-    ffmc_val: float,
+    initial_mc_val: float,
+    expected_mc: float,
 ) -> None:
-    """Test _perform_rainfall_adjustment for various rainfall and FFMC scenarios.
+    """
+    Test _perform_rainfall_adjustment for all logical branches: no adjustment, adjustment1, adjustment2, cap at 250.
 
     Args:
-        temp_val (float): Temperature value for all grid points.
         precip_val (float): Precipitation value for all grid points.
-        rh_val (float): Relative humidity value for all grid points.
-        wind_val (float): Wind speed value for all grid points.
-        ffmc_val (float): FFMC value for all grid points.
+        initial_mc_val (float): Initial moisture content value for all grid points.
+        expected_mc (float): Expected moisture content after adjustment.
 
     Raises:
         AssertionError: If the moisture content adjustment does not match expectations.
     """
-    shape = (5, 5)
-    cubes = input_cubes(temp_val, precip_val, rh_val, wind_val, ffmc_val, shape)
+    cubes = input_cubes(
+        precip_val=precip_val,
+    )
     plugin = FineFuelMoistureContent()
     plugin.load_input_cubes(CubeList(cubes))
-    plugin._calculate_moisture_content()
-    initial_mc = plugin.moisture_content.copy()
+    # Overwrite moisture_content and initial_moisture_content for explicit test control
+    plugin.moisture_content = np.full(plugin.precipitation.shape, initial_mc_val)
+    plugin.initial_moisture_content = np.full(
+        plugin.precipitation.shape, initial_mc_val
+    )
     plugin._perform_rainfall_adjustment()
     adjusted_mc = plugin.moisture_content
-    if precip_val <= 0.5:
-        # No adjustment expected: moisture content unchanged
-        assert np.allclose(adjusted_mc, initial_mc)
-    else:
-        # Adjustment expected: moisture content should increase
-        assert np.all(adjusted_mc >= initial_mc)
-        # For heavy rainfall, check for significant increase
-        if precip_val > 5.0:
-            assert np.all(adjusted_mc - initial_mc > 1.0)
+    # Check that all points are modified by the correct amount
+    assert np.allclose(adjusted_mc, expected_mc, atol=0.01)
 
 
 @pytest.mark.parametrize(
