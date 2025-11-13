@@ -776,7 +776,7 @@ def operator_within_vicinity(
             patch_data = np.where(landmask == match, matched_patch_data, patch_data)
     else:
         # The following command finds the value for the specified operation for
-        # each grid point from within a square of length "size"
+        # each grid point from within a square of length "grid_points"
         patch_data = apply_filter(unmasked_grid, grid_points)
     if np.ma.is_masked(grid):
         # Update only the unmasked values
@@ -1137,6 +1137,12 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
         radius_of_vicinity coordinate will be found on the returned cube. If
         multiple radii are provided, this coordinate will be a dimension
         coordinate following any probabilistic / realization coordinates.
+
+        Note that when applying the mean operator to thresholded data, this plugin
+        will produce output equivalent to the NeighbourhoodProcessing plugin
+        (disregarding the boundary), but less efficiently (particularly when
+        applied to masked or datasets containing NaNs). For such cases, it is
+        recommended that one use the NeighbourhoodProcessing plugin instead.
 
         Args:
             cube:
