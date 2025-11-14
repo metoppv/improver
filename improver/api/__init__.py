@@ -17,7 +17,6 @@ PROCESSING_MODULES = {
     "AdjustLandSeaPoints": "improver.regrid.landsea",
     "AdvectField": "improver.nowcasting.forecasting",
     "AggregateReliabilityCalibrationTables": "improver.calibration.reliability_calibration",
-    "apply_mask": "improver.utilities.mask",
     "ApplyBiasCorrection": "improver.calibration.simple_bias_correction",
     "ApplyDecisionTree": "improver.categorical.decision_tree",
     "ApplyDzRescaling": "improver.calibration.dz_rescaling",
