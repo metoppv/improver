@@ -115,6 +115,40 @@ def test_additional_gam_features_cube(tmp_path):
 
 
 @pytest.mark.slow
+def test_no_gam(tmp_path):
+    """
+    Test estimate-samos-coefficients-from-table when no GAM is provided. The CLI should
+    return None in this instance.
+    """
+    source_dir = acc.kgo_root() / "estimate-emos-coefficients-from-table/"
+    history_path = source_dir / "forecast_table"
+    truth_path = source_dir / "truth_table"
+
+    output_path = tmp_path / "output.nc"
+
+    compulsory_args = [history_path, truth_path]
+    named_args = [
+        "--gam-features",
+        "latitude,longitude,altitude",
+        "--percentiles",
+        "10,20,30,40,50,60,70,80,90",
+        "--forecast-period",
+        "86400",
+        "--training-length",
+        "5",
+        "--diagnostic",
+        "temperature_at_screen_level",
+        "--cycletime",
+        "20210805T2100Z",
+        "--output",
+        output_path,
+    ]
+    run_cli(compulsory_args + named_args)
+    # Check no file has been written to disk.
+    assert not output_path.exists()
+
+
+@pytest.mark.slow
 def test_return_none(tmp_path):
     """
     Test that None is returned if cube cannot be created from table.
@@ -144,4 +178,6 @@ def test_return_none(tmp_path):
         "--output",
         output_path,
     ]
-    assert run_cli(compulsory_args + named_args) is None
+    run_cli(compulsory_args + named_args)
+    # Check no file has been written to disk.
+    assert not output_path.exists()

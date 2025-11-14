@@ -7,14 +7,82 @@
 import unittest
 
 import numpy as np
+import pytest
 from iris.tests import IrisTest
 
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.temperature.feels_like_temperature import (
+    CalculateWindChill,
     _calculate_apparent_temperature,
-    _calculate_wind_chill,
     calculate_feels_like_temperature,
 )
+
+MANDATORY_ATTRIBUTES = {
+    "source": "Met Office Unified Model",
+    "institution": "Met Office",
+    "title": "UKV Model Forecast on UK 2 km Standard Grid",
+}
+
+
+@pytest.fixture
+def temperature_cube():
+    """Simple temperature cube (273.15 K = 0°C)."""
+    data = np.full((3, 3), 273.15, dtype=np.float32)
+    return set_up_variable_cube(
+        data,
+        name="air_temperature",
+        units="K",
+        standard_grid_metadata="uk_det",
+        attributes=MANDATORY_ATTRIBUTES,
+    )
+
+
+@pytest.fixture
+def wind_speed_cube():
+    """Simple wind-speed cube (10 m/s)."""
+    data = np.full((3, 3), 10.0, dtype=np.float32)
+    return set_up_variable_cube(
+        data,
+        name="wind_speed",
+        units="m s-1",
+        standard_grid_metadata="uk_det",
+        attributes=MANDATORY_ATTRIBUTES,
+    )
+
+
+def test__calculate_wind_chill_values():
+    """Direct test of the internal wind chill equation method."""
+    temperature = np.full((1, 3), 1.7)
+    wind_speed = np.full((1, 3), 3) * 60 * 60 / 1000.0
+    expected = np.full((1, 3), -1.4754, dtype=np.float32)
+
+    plugin = CalculateWindChill()
+    result = plugin._calculate_wind_chill(temperature, wind_speed)
+
+    np.testing.assert_almost_equal(result, expected, decimal=4)
+
+
+def test_process_outputs_expected_cube(temperature_cube, wind_speed_cube):
+    """Test that process() returns correct data, preserves metadata, and
+    keeps coordinates identical to the input cube."""
+    plugin = CalculateWindChill()
+    result = plugin.process(temperature_cube, wind_speed_cube)
+
+    assert result.name() == "wind_chill_temperature"
+    assert str(result.units) == str(temperature_cube.units)
+
+    for key, val in MANDATORY_ATTRIBUTES.items():
+        assert key in result.attributes
+        assert result.attributes[key] == val
+
+    input_coords = [coord.name() for coord in temperature_cube.coords(dim_coords=True)]
+    output_coords = [coord.name() for coord in result.coords(dim_coords=True)]
+    all_coords = set(input_coords + output_coords)
+    for coord_name in all_coords:
+        assert temperature_cube.coord(coord_name) == result.coord(coord_name)
+    expected_data = np.full((3, 3), 266.09708, dtype=np.float32)
+    assert result.data.shape == temperature_cube.data.shape
+    np.testing.assert_allclose(result.data, expected_data, rtol=1e-6)
 
 
 class Test__calculate_apparent_temperature(IrisTest):
@@ -30,18 +98,6 @@ class Test__calculate_apparent_temperature(IrisTest):
         result = _calculate_apparent_temperature(
             temperature, wind_speed, relh, pressure
         )
-        self.assertArrayAlmostEqual(result, expected_result, decimal=4)
-
-
-class Test__calculate_wind_chill(IrisTest):
-    """Test the wind chill function."""
-
-    def test_values(self):
-        """Test output values when from the wind chill equation."""
-        temperature = np.full((1, 3), 1.7)
-        wind_speed = np.full((1, 3), 3) * 60 * 60 / 1000.0
-        expected_result = np.full((1, 3), -1.4754, dtype=np.float32)
-        result = _calculate_wind_chill(temperature, wind_speed)
         self.assertArrayAlmostEqual(result, expected_result, decimal=4)
 
 
