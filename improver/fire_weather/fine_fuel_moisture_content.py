@@ -309,4 +309,6 @@ class FineFuelMoistureContent(BasePlugin):
 
         output_ffmc = self._calculate_ffmc_from_moisture_content(E_d, E_w)
 
+        # ! Need to set up the return cube with metadata
+
         return output_ffmc
