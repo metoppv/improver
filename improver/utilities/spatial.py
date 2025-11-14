@@ -1045,6 +1045,20 @@ def create_vicinity_coord(
     return coord
 
 
+def set_vicinity_cell_method(cube: Cube, operation: str) -> None:
+    """
+    Add cell method to the cube to describe the vicinity operation applied.
+
+    Args:
+        cube:
+            Cube to which to add the cell method.
+        operation:
+            The operation type that has been applied to the spatial dimensions
+            of the cube through the in-vicinity calculations.
+    """
+    cube.add_cell_method(CellMethod(method=operation, coords="area"))
+
+
 class OccurrenceWithinVicinity(PostProcessingPlugin):
     """Calculate whether a phenomenon occurs within the specified radii about
     a point. These radii can be given in metres, or as numbers of grid points.
@@ -1232,7 +1246,8 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
         # Enforce order of leading dimensions on the output to match the input.
         enforce_coordinate_ordering(result_cube, leading_dimensions)
         # Add cell method to describe the vicinity operation applied.
-        result_cube.add_cell_method(CellMethod(method=self.cell_method, coords="area"))
+        set_vicinity_cell_method(result_cube, operation=self.cell_method)
+        # result_cube.add_cell_method(CellMethod(method=self.cell_method, coords="area"))
 
         return result_cube
 

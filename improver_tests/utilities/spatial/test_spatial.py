@@ -36,6 +36,7 @@ from improver.utilities.spatial import (
     minimum_within_vicinity,
     number_of_grid_cells_to_distance,
     rename_vicinity_cube,
+    set_vicinity_cell_method,
     std_within_vicinity,
     transform_grid_to_lat_lon,
     update_name_and_vicinity_coord,
@@ -690,6 +691,18 @@ def test_rename_with_new_name_vicinity_cube(test_cube):
     assert final_name == new_name
 
 
+def test_vicinity_cell_method(test_cube):
+    """Test that the cell-method is appropriately set to reflect
+    the vicinity operation that has been applied to the cube."""
+
+    initial_cell_methods = test_cube.cell_methods
+    set_vicinity_cell_method(test_cube, operation="maximum")
+    final_cell_methods = test_cube.cell_methods
+    expected_cell_method = CellMethod(method="maximum", coords="area")
+
+    assert final_cell_methods == initial_cell_methods + (expected_cell_method,)
+
+
 @pytest.mark.parametrize(
     "grid,radius,landmask,expected_result",
     [
@@ -763,7 +776,7 @@ def test_rename_with_new_name_vicinity_cube(test_cube):
             1,
             np.array([[0, 0, 0], [1, 1, 1], [1, 1, 1]]),
             np.ma.masked_array(
-                [[0, 0, 0], [0, 0, 0], [0, 0, 0]],
+                [[0, 2.0, 0], [0, 0, 0], [0, 0, 0]],
                 mask=[[0, 1, 0], [0, 0, 0], [0, 0, 0]],
             ),
         ),
@@ -794,6 +807,8 @@ def test_maximum_within_vicinity(grid, radius, landmask, expected_result):
 
     assert result.data.shape == expected_result.shape
     assert np.allclose(result, expected_result)
+    if np.ma.is_masked(result):
+        assert_array_equal(result.data, expected_result.data)
     assert isinstance(result, type(expected_result))
     assert result.dtype == np.float64
     if np.ma.is_masked(reference):
@@ -882,7 +897,7 @@ def test_maximum_within_vicinity(grid, radius, landmask, expected_result):
             1,
             np.array([[0, 0, 0], [1, 1, 1], [1, 1, 1]]),
             np.ma.masked_array(
-                [[1, 1, 1], [1, 1, 1], [1, 1, 1]],
+                [[1, 0, 1], [1, 1, 1], [1, 1, 1]],
                 mask=[[0, 1, 0], [0, 0, 0], [0, 0, 0]],
             ),
         ),
@@ -913,6 +928,8 @@ def test_minimum_within_vicinity(grid, radius, landmask, expected_result):
 
     assert result.data.shape == expected_result.shape
     assert np.allclose(result, expected_result)
+    if np.ma.is_masked(result):
+        assert_array_equal(result.data, expected_result.data)
     assert isinstance(result, type(expected_result))
     assert result.dtype == np.float64
     if np.ma.is_masked(reference):
@@ -941,9 +958,9 @@ def test_minimum_within_vicinity(grid, radius, landmask, expected_result):
                 [[1 / 5, 1 / 7, 1 / 9], [1 / 7, 1 / 8, 1 / 9], [1 / 9, 1 / 9, 1 / 9]]
             ),
         ),
-        # Vicinity processing, with one non-zero corner value resulting
-        # in neighbouring cells values of 1 within the limit of the
-        # defined vicinity radius
+        # Vicinity processing, with one non-zero corner value. The non-zero
+        # value is spread out to adjacent points, with the peak value preserved
+        # in the corner owing to the use of nearst boundary condition.
         (
             np.array([[1.0, 0, 0], [0, 0, 0], [0, 0, 0]]),
             1,
@@ -1035,6 +1052,8 @@ def test_mean_within_vicinity(grid, radius, landmask, expected_result):
 
     assert result.data.shape == expected_result.shape
     assert np.allclose(result, expected_result)
+    if np.ma.is_masked(result):
+        assert_array_equal(result.data, expected_result.data)
     assert isinstance(result, type(expected_result))
     assert result.dtype == np.float64
     if np.ma.is_masked(reference):
@@ -1067,9 +1086,9 @@ def test_mean_within_vicinity(grid, radius, landmask, expected_result):
                 ]
             ),
         ),
-        # Vicinity processing, with one non-zero corner value resulting
-        # in neighbouring cells values of 1 within the limit of the
-        # defined vicinity radius
+        # Vicinity processing, with one non-zero corner value. The standard
+        # deviation is non-zero at adjacent points which sample the non-zero
+        # value in the corner.
         (
             np.array([[1.0, 0, 0], [0, 0, 0], [0, 0, 0]]),
             1,
@@ -1175,6 +1194,8 @@ def test_std_within_vicinity(grid, radius, landmask, expected_result):
 
     assert result.data.shape == expected_result.shape
     assert np.allclose(result, expected_result)
+    if np.ma.is_masked(result):
+        assert_array_equal(result.data, expected_result.data)
     assert isinstance(result, type(expected_result))
     assert result.dtype == np.float64
     if np.ma.is_masked(reference):
