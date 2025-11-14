@@ -32,8 +32,12 @@ from improver.utilities.spatial import (
     get_grid_y_x_values,
     lat_lon_determine,
     maximum_within_vicinity,
+    mean_within_vicinity,
+    minimum_within_vicinity,
     number_of_grid_cells_to_distance,
     rename_vicinity_cube,
+    set_vicinity_cell_method,
+    std_within_vicinity,
     transform_grid_to_lat_lon,
     update_name_and_vicinity_coord,
 )
@@ -673,6 +677,32 @@ def test_rename_vicinity_cube(test_cube):
     assert "air_temperature_in_vicinity" in final_name
 
 
+def test_rename_with_new_name_vicinity_cube(test_cube):
+    """Test that the rename_vicinity_cube function modifies variable
+    names as expected to indicate they have been vicinity processed."""
+
+    new_name = "max_air_temperature_in_vicinity"
+
+    initial_name = test_cube.name()
+    rename_vicinity_cube(test_cube, new_name=new_name)
+    final_name = test_cube.name()
+
+    assert initial_name != final_name
+    assert final_name == new_name
+
+
+def test_vicinity_cell_method(test_cube):
+    """Test that the cell-method is appropriately set to reflect
+    the vicinity operation that has been applied to the cube."""
+
+    initial_cell_methods = test_cube.cell_methods
+    set_vicinity_cell_method(test_cube, operation="maximum")
+    final_cell_methods = test_cube.cell_methods
+    expected_cell_method = CellMethod(method="maximum", coords="area")
+
+    assert final_cell_methods == initial_cell_methods + (expected_cell_method,)
+
+
 @pytest.mark.parametrize(
     "grid,radius,landmask,expected_result",
     [
@@ -688,6 +718,10 @@ def test_rename_vicinity_cube(test_cube):
             None,
             np.array([[1.0, 1.0, 0], [1.0, 1.0, 0], [0, 0, 0]]),
         ),
+        # Vicinity processing, with one non-zero central value and a nan in the
+        # corner; result returns 1 everywhere with the nan ignored in the
+        # vicinity calculation.
+        (np.array([[np.nan, 0, 0], [0, 1.0, 0], [0, 0, 0]]), 1, None, np.ones((3, 3))),
         # Vicinity processing, with one non-zero masked value. This masked
         # point is not considered, and so zeros are returned at neighbouring
         # points within the vicinity radius. The masking is preserved in the
@@ -700,7 +734,7 @@ def test_rename_vicinity_cube(test_cube):
             1,
             None,
             np.ma.masked_array(
-                [[0, 0, 0], [0, 0, 0], [0, 0, 0]],
+                [[0, 2.0, 0], [0, 0, 0], [0, 0, 0]],
                 mask=[[0, 1, 0], [0, 0, 0], [0, 0, 0]],
             ),
         ),
@@ -742,7 +776,7 @@ def test_rename_vicinity_cube(test_cube):
             1,
             np.array([[0, 0, 0], [1, 1, 1], [1, 1, 1]]),
             np.ma.masked_array(
-                [[0, 0, 0], [0, 0, 0], [0, 0, 0]],
+                [[0, 2.0, 0], [0, 0, 0], [0, 0, 0]],
                 mask=[[0, 1, 0], [0, 0, 0], [0, 0, 0]],
             ),
         ),
@@ -773,7 +807,396 @@ def test_maximum_within_vicinity(grid, radius, landmask, expected_result):
 
     assert result.data.shape == expected_result.shape
     assert np.allclose(result, expected_result)
-    assert type(result) == type(expected_result)
+    if np.ma.is_masked(result):
+        assert_array_equal(result.data, expected_result.data)
+    assert isinstance(result, type(expected_result))
+    assert result.dtype == np.float64
+    if np.ma.is_masked(reference):
+        assert_array_equal(reference.mask, result.mask)
+
+
+@pytest.mark.parametrize(
+    "grid,radius,landmask,expected_result",
+    [
+        # Vicinity processing, with one zero central value resulting
+        # in the whole domain returning values of zero
+        (np.array([[1, 1, 1], [1, 0.0, 1], [1, 1, 1]]), 1, None, np.zeros((3, 3))),
+        # Vicinity processing, with one zero corner value resulting
+        # in neighbouring cells values of 0 within the limit of the
+        # defined vicinity radius; similar diagonally opposite corner
+        # has local minimum value of 1, leading to neighbouring cell
+        # values of 1, with exception of central point which has overlap
+        # with both minima.
+        (
+            np.array([[0.0, 2, 2], [2, 2, 2], [2, 2, 1]]),
+            1,
+            None,
+            np.array([[0, 0, 2.0], [0, 0, 1.0], [2.0, 1.0, 1.0]]),
+        ),
+        # Vicinity processing, with one zero central value and a nan in the
+        # corner; result returns 0 everywhere with the nan ignored in the
+        # vicinity calculation.
+        (
+            np.array([[np.nan, 1, 1], [1, 0.0, 0], [1, 1, 1]]),
+            1,
+            None,
+            np.zeros((3, 3)),
+        ),
+        # Vicinity processing, with one zero masked value. This masked
+        # point is not considered, and so ones are returned at neighbouring
+        # points within the vicinity radius. The masking is preserved in the
+        # returned data.
+        (
+            np.ma.masked_array(
+                [[1, 0.0, 1], [1, 1, 1], [1, 1, 1]],
+                mask=[[0, 1, 0], [0, 0, 0], [0, 0, 0]],
+            ),
+            1,
+            None,
+            np.ma.masked_array(
+                [[1, 0.0, 1], [1, 1, 1], [1, 1, 1]],
+                mask=[[0, 1, 0], [0, 0, 0], [0, 0, 0]],
+            ),
+        ),
+        # the land corner has a value of 0, this is not spread across the
+        # other points within the vicinity as these are sea points. There is
+        # also a local minima over the water in opposite corner.
+        (
+            np.array([[2, 2, 0.0], [2, 2, 2], [1, 2, 2]]),
+            1,
+            np.array([[0, 0, 1], [0, 0, 0], [0, 0, 0]]),
+            np.array([[2, 2, 0.0], [1, 1, 2], [1, 1, 2]]),
+        ),
+        # a sea corner has a value of 0, this is spread across the
+        # other sea points within the vicinity, but not the central
+        # point as this is land.
+        (
+            np.array([[1, 1, 1], [1, 1, 1], [0.0, 1, 1]]),
+            1,
+            np.array([[0, 0, 0], [0, 1, 0], [0, 0, 0]]),
+            np.array([[1, 1, 1], [0.0, 1, 1], [0.0, 0.0, 1]]),
+        ),
+        # a vicinity that is large enough to affect all points and a
+        # complex mask to check land points are unaffected by the
+        # spread of values from a sea point.
+        (
+            np.array([[1, 1, 1], [1, 1, 1], [0.0, 1, 1]]),
+            2,
+            np.array([[1, 0, 1], [0, 1, 0], [0, 1, 0]]),
+            np.array([[1, 0.0, 1], [0.0, 1, 0.0], [0.0, 1, 0.0]]),
+        ),
+        # one zero masked value and a land mask set as well that separates
+        # out the top row. The masked point is not considered, and so non-zero
+        # values are returned at all points. The land-sea mask does not affect
+        # the retention of the original mask.
+        (
+            np.ma.masked_array(
+                [[1, 0.0, 1], [1, 1, 1], [1, 1, 1]],
+                mask=[[0, 1, 0], [0, 0, 0], [0, 0, 0]],
+            ),
+            1,
+            np.array([[0, 0, 0], [1, 1, 1], [1, 1, 1]]),
+            np.ma.masked_array(
+                [[1, 0, 1], [1, 1, 1], [1, 1, 1]],
+                mask=[[0, 1, 0], [0, 0, 0], [0, 0, 0]],
+            ),
+        ),
+    ],
+)
+def test_minimum_within_vicinity(grid, radius, landmask, expected_result):
+    """Test that minimum_within_vicinity function returns the expected
+    values and masking for various inputs. Variations tried here are:
+
+      - vicinity processing of a simple array that affects the whole array
+      - vicinity processing of a simple array that affects the corners of the
+        array
+      - vicinity processing of a masked array that returns an identically
+        masked array with no values changed.
+      - vicinity processing with a landmask that prevents any spread of
+        values to the rest of the domain.
+      - vicinity processing with a landmask that isolates the central
+        grid point from the effects of value spreading.
+      - vicinity processing with a complex landmask that leads to a dappled
+        value spread.
+      - vicinity processing with a masked array and a landmask that
+        demonstrates that the original masking is retained and not
+        modified by the landmask.
+    """
+    reference = grid.copy()
+
+    result = minimum_within_vicinity(grid, radius, landmask)
+
+    assert result.data.shape == expected_result.shape
+    assert np.allclose(result, expected_result)
+    if np.ma.is_masked(result):
+        assert_array_equal(result.data, expected_result.data)
+    assert isinstance(result, type(expected_result))
+    assert result.dtype == np.float64
+    if np.ma.is_masked(reference):
+        assert_array_equal(reference.mask, result.mask)
+
+
+@pytest.mark.parametrize(
+    "grid,radius,landmask,expected_result",
+    [
+        # Vicinity processing, with one non-zero central value resulting
+        # in the whole domain returning values of 1/9
+        (
+            np.array([[0, 0, 0], [0, 1.0, 0], [0, 0, 0]]),
+            1,
+            None,
+            1 / 9 * np.ones((3, 3)),
+        ),
+        # Vicinity processing, with one non-zero central value and a nan in
+        # the corner. The resultant grid evaluates the mean, neglecting any
+        # nan values within the vicinity.
+        (
+            np.array([[np.nan, 0, 0], [0, 1.0, 0], [0, 0, 0]]),
+            1,
+            None,
+            np.array(
+                [[1 / 5, 1 / 7, 1 / 9], [1 / 7, 1 / 8, 1 / 9], [1 / 9, 1 / 9, 1 / 9]]
+            ),
+        ),
+        # Vicinity processing, with one non-zero corner value. The non-zero
+        # value is spread out to adjacent points, with the peak value preserved
+        # in the corner owing to the use of nearst boundary condition.
+        (
+            np.array([[1.0, 0, 0], [0, 0, 0], [0, 0, 0]]),
+            1,
+            None,
+            1 / 9 * np.array([[4, 2, 0], [2, 1, 0], [0, 0, 0]]),
+        ),
+        # Vicinity processing, with one non-zero masked value. This masked
+        # point is not considered, and so zeros are returned at neighbouring
+        # points within the vicinity radius. The masking is preserved in the
+        # returned data.
+        (
+            np.ma.masked_array(
+                [[0, 1.0, 0], [0, 0, 0], [0, 0, 0]],
+                mask=[[0, 1, 0], [0, 0, 0], [0, 0, 0]],
+            ),
+            1,
+            None,
+            np.ma.masked_array(
+                [[0, 1.0, 0], [0, 0, 0], [0, 0, 0]],
+                mask=[[0, 1, 0], [0, 0, 0], [0, 0, 0]],
+            ),
+        ),
+        # the land corner has a value of 1, this is not spread across the
+        # other points within the vicinity as these are sea points.
+        (
+            np.array([[0, 1.0, 1.0], [0, 0, 1.0], [0, 0, 0]]),
+            1,
+            np.array([[0, 1, 1], [0, 0, 1], [0, 0, 0]]),
+            np.array([[0, 1.0, 1.0], [0, 0, 1.0], [0, 0, 0]]),
+        ),
+        # a sea corner has a value of 1, this is spread across the
+        # other sea points within the vicinity, but not the central
+        # point as this is land.
+        (
+            np.array([[0, 0, 0], [0, 2, 0], [1.0, 0, 0]]),
+            1,
+            np.array([[0, 0, 0], [0, 1, 0], [0, 0, 0]]),
+            1 / 4 * np.array([[0, 0, 0], [1.0, 8, 0], [2.0, 1.0, 0]]),
+        ),
+        # a vicinity that is large enough to affect all points and a
+        # complex mask to check land points are unaffected by the
+        # spread of values from a sea point.
+        (
+            np.array([[1, 1, 1], [1, 1, 1], [0.0, 1, 1]]),
+            2,
+            np.array([[1, 0, 1], [0, 1, 0], [0, 1, 0]]),
+            np.array([[1, 9 / 11, 1], [8 / 14, 1, 12 / 14], [8 / 17, 1, 14 / 17]]),
+        ),
+        # one zero masked value and a land mask set as well that separates
+        # out the top row. The masked point is not considered, and so non-zero
+        # values are returned at all points. The land-sea mask does not affect
+        # the retention of the original mask.
+        (
+            np.ma.masked_array(
+                [[1, 0.0, 1], [1, 1, 1], [1, 1, 1]],
+                mask=[[0, 1, 0], [0, 0, 0], [0, 0, 0]],
+            ),
+            1,
+            np.array([[0, 0, 0], [1, 1, 1], [1, 1, 1]]),
+            np.ma.masked_array(
+                [[1, 0.0, 1], [1, 1, 1], [1, 1, 1]],
+                mask=[[0, 1, 0], [0, 0, 0], [0, 0, 0]],
+            ),
+        ),
+    ],
+)
+def test_mean_within_vicinity(grid, radius, landmask, expected_result):
+    """Test that mean_within_vicinity function returns the expected
+    values and masking for various inputs. Variations tried here are:
+
+      - vicinity processing of a simple array that affects the whole array
+      - vicinity processing of a simple array that affects the corners of the
+        array
+      - vicinity processing of a masked array that returns an identically
+        masked array with no values changed.
+      - vicinity processing with a landmask that prevents any spread of
+        values to the rest of the domain.
+      - vicinity processing with a landmask that isolates the central
+        grid point from the effects of value spreading.
+      - vicinity processing with a complex landmask that leads to a dappled
+        value spread.
+      - vicinity processing with a masked array and a landmask that
+        demonstrates that the original masking is retained and not
+        modified by the landmask.
+    """
+    reference = grid.copy()
+
+    result = mean_within_vicinity(grid, radius, landmask)
+
+    assert result.data.shape == expected_result.shape
+    assert np.allclose(result, expected_result)
+    if np.ma.is_masked(result):
+        assert_array_equal(result.data, expected_result.data)
+    assert isinstance(result, type(expected_result))
+    assert result.dtype == np.float64
+    if np.ma.is_masked(reference):
+        assert_array_equal(reference.mask, result.mask)
+
+
+@pytest.mark.parametrize(
+    "grid,radius,landmask,expected_result",
+    [
+        # Vicinity processing, with one non-zero central value resulting
+        # in the whole domain returning values of 2 * sqrt(2) * 1 / 9
+        (
+            np.array([[0, 0, 0], [0, 1.0, 0], [0, 0, 0]]),
+            1,
+            None,
+            2 * np.sqrt(2) / 9 * np.ones((3, 3)),
+        ),
+        # Vicinity processing, with one non-zero central value and a nan in
+        # the corner. The resultant grid evaluates the mean, neglecting any
+        # nan values within the vicinity.
+        (
+            np.array([[np.nan, 0, 0], [0, 1.0, 0], [0, 0, 0]]),
+            1,
+            None,
+            np.array(
+                [
+                    [2 / 5, np.sqrt(6) / 7, 2 * np.sqrt(2) / 9],
+                    [np.sqrt(6) / 7, np.sqrt(7) / 8, 2 * np.sqrt(2) / 9],
+                    [2 * np.sqrt(2) / 9, 2 * np.sqrt(2) / 9, 2 * np.sqrt(2) / 9],
+                ]
+            ),
+        ),
+        # Vicinity processing, with one non-zero corner value. The standard
+        # deviation is non-zero at adjacent points which sample the non-zero
+        # value in the corner.
+        (
+            np.array([[1.0, 0, 0], [0, 0, 0], [0, 0, 0]]),
+            1,
+            None,
+            1
+            / 9
+            * np.array(
+                [
+                    [2 * np.sqrt(5), np.sqrt(14), 0],
+                    [np.sqrt(14), 2 * np.sqrt(2), 0],
+                    [0, 0, 0],
+                ]
+            ),
+        ),
+        # Vicinity processing, with one non-zero masked value. This masked
+        # point is not considered, and so zeros are returned at neighbouring
+        # points within the vicinity radius. The masking is preserved in the
+        # returned data.
+        (
+            np.ma.masked_array(
+                [[0, 1.0, 0], [0, 0, 0], [0, 0, 0]],
+                mask=[[0, 1, 0], [0, 0, 0], [0, 0, 0]],
+            ),
+            1,
+            None,
+            np.ma.masked_array(
+                [[0, 1.0, 0], [0, 0, 0], [0, 0, 0]],
+                mask=[[0, 1, 0], [0, 0, 0], [0, 0, 0]],
+            ),
+        ),
+        # the land corner has a value of 1, this is not spread across the
+        # other points within the vicinity as these are sea points.
+        (
+            np.array([[0, 1.0, 1.0], [0, 0, 1.0], [0, 0, 0]]),
+            1,
+            np.array([[0, 1, 1], [0, 0, 1], [0, 0, 0]]),
+            np.array([[0, 0.0, 0.0], [0, 0, 0.0], [0, 0, 0]]),
+        ),
+        # a sea corner has a value of 1, this is spread across the
+        # other sea points within the vicinity, but not the central
+        # point as this is land.
+        (
+            np.array([[0, 0, 0], [0, 2, 0], [1.0, 0, 0]]),
+            1,
+            np.array([[0, 0, 0], [0, 1, 0], [0, 0, 0]]),
+            1 / 4 * np.array([[0, 0, 0], [np.sqrt(3), 0, 0], [2.0, np.sqrt(3), 0]]),
+        ),
+        # a vicinity that is large enough to affect all points and a
+        # complex mask to check land points are unaffected by the
+        # spread of values from a sea point.
+        (
+            np.array([[1, 1, 1], [1, 1, 1], [0.0, 1, 1]]),
+            2,
+            np.array([[1, 0, 1], [0, 1, 0], [0, 1, 0]]),
+            np.array(
+                [
+                    [0, 3 * np.sqrt(2) / 11, 0],
+                    [2 * np.sqrt(3) / 7, 0, np.sqrt(6) / 7],
+                    [6 * np.sqrt(2) / 17, 0, np.sqrt(42) / 17],
+                ]
+            ),
+        ),
+        # one zero masked value and a land mask set as well that separates
+        # out the top row. The masked point is not considered, and so non-zero
+        # values are returned at all points. The land-sea mask does not affect
+        # the retention of the original mask.
+        (
+            np.ma.masked_array(
+                [[1, 0.0, 1], [1, 1, 1], [1, 1, 1]],
+                mask=[[0, 1, 0], [0, 0, 0], [0, 0, 0]],
+            ),
+            1,
+            np.array([[0, 0, 0], [1, 1, 1], [1, 1, 1]]),
+            np.ma.masked_array(
+                [[0, 0, 0], [0, 0, 0], [0, 0, 0]],
+                mask=[[0, 1, 0], [0, 0, 0], [0, 0, 0]],
+            ),
+        ),
+    ],
+)
+def test_std_within_vicinity(grid, radius, landmask, expected_result):
+    """Test that std_within_vicinity function returns the expected
+    values and masking for various inputs. Variations tried here are:
+
+      - vicinity processing of a simple array that affects the whole array
+      - vicinity processing of a simple array that affects the corners of the
+        array
+      - vicinity processing of a masked array that returns an identically
+        masked array with no values changed.
+      - vicinity processing with a landmask that prevents any spread of
+        values to the rest of the domain.
+      - vicinity processing with a landmask that isolates the central
+        grid point from the effects of value spreading.
+      - vicinity processing with a complex landmask that leads to a dappled
+        value spread.
+      - vicinity processing with a masked array and a landmask that
+        demonstrates that the original masking is retained and not
+        modified by the landmask.
+    """
+    reference = grid.copy()
+
+    result = std_within_vicinity(grid, radius, landmask)
+
+    assert result.data.shape == expected_result.shape
+    assert np.allclose(result, expected_result)
+    if np.ma.is_masked(result):
+        assert_array_equal(result.data, expected_result.data)
+    assert isinstance(result, type(expected_result))
     assert result.dtype == np.float64
     if np.ma.is_masked(reference):
         assert_array_equal(reference.mask, result.mask)
