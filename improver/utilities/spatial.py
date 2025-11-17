@@ -1247,7 +1247,6 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
         enforce_coordinate_ordering(result_cube, leading_dimensions)
         # Add cell method to describe the vicinity operation applied.
         set_vicinity_cell_method(result_cube, operation=self.cell_method)
-        # result_cube.add_cell_method(CellMethod(method=self.cell_method, coords="area"))
 
         return result_cube
 
