@@ -20,6 +20,7 @@ dependencies:
   - pandas
   # Additional libraries to run tests, not included in improver-feedstock
   - filelock
+  - nbstripout
   - nbsphinx 
   - pytest
   - setuptools
