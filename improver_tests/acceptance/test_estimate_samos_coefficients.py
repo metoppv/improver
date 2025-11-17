@@ -138,3 +138,31 @@ def test_estimate_samos_coefficients_sites(tmp_path):
     acc.compare(
         output_path, kgo_path, atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE
     )
+
+
+def test_estimate_samos_coefficients_no_gam(tmp_path):
+    """
+    Test estimate-samos-coefficients when no GAM is provided. The CLI should return
+    None in this instance.
+    """
+    # The source data is from the estimate-emos-coefficients acceptance tests
+    source_emos_dir = acc.kgo_root() / "estimate-emos-coefficients/normal/sites"
+    history_path = source_emos_dir / "history/*.nc"
+    truth_path = source_emos_dir / "truth/*.nc"
+
+    output_path = tmp_path / "output.nc"
+    gam_features = "latitude,longitude,height"
+
+    args = [
+        history_path,
+        truth_path,
+        "--truth-attribute",
+        "mosg__model_configuration=uk_det",
+        "--gam-features",
+        gam_features,
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    # Check no file has been written to disk.
+    assert not output_path.exists()

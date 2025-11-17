@@ -29,6 +29,18 @@ class Test_calculate_svp_in_air(IrisTest):
         result = calculate_svp_in_air(self.temperature, self.pressure)
         np.testing.assert_allclose(result, expected, rtol=1e-5, atol=1e-5)
 
+    def test_calculate_svp_in_air_water_only(self):
+        """Test pressure-corrected SVP values calculated with respect to water"""
+        expected = np.array([[0.026579, 235.47540, 25187.76424]])
+        result = calculate_svp_in_air(self.temperature, self.pressure, phase="water")
+        np.testing.assert_allclose(result, expected, rtol=1e-5, atol=1e-5)
+
+    def test_calculate_svp_in_air_ice_only(self):
+        """Test pressure-corrected SVP values calculated with respect to ice"""
+        expected = np.array([[0.013629, 208.47170, 45651.13000]])
+        result = calculate_svp_in_air(self.temperature, self.pressure, phase="ice")
+        np.testing.assert_allclose(result, expected, rtol=1e-5, atol=1e-5)
+
     def test_values(self):
         """Basic extraction of SVP values from lookup table"""
         self.temperature[0, 1] = 260.56833
