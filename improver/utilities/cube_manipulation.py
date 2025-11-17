@@ -924,3 +924,54 @@ def manipulate_n_realizations(cube: Cube, n_realizations: int) -> Cube:
         )
 
     return output
+
+
+def convert_aux_coord_to_ancillary_variable(cube: Cube) -> Cube:
+    """
+    Given a Cube containing an auxiliary coordinate with status_flag in its name,
+    e.g. "relative_humidity status_flag", create a new Cube with the same data,
+    but with the status_flag stored as an ancillary variable named "status_flag".
+
+    Args:
+        cube: A cube with an auxiliary coordinate with status_flag in its name, e.g. "relative_humidity status_flag".
+
+    Returns:
+        A cube with the auxiliary coordinate converted to an ancillary variable named status_flag.
+
+    Raises:
+        ValueError: If the cube does not contain exactly one auxiliary coordinate.
+    """
+    all_aux_coords = cube.aux_coords
+    # Find the first auxiliary coordinate with status_flag in its name.
+    status_flag_aux_coords = [c for c in all_aux_coords if "status_flag" in c.name()]
+    # If there are none then raise an error.
+    if not status_flag_aux_coords:
+        msg = "Input cube does not contain an auxiliary coordinate with 'status_flag' in its name."
+        raise ValueError(msg)
+    elif len(status_flag_aux_coords) > 1:
+        # If there are multiple, warn the user
+        msg = (
+            "Input cube contains multiple auxiliary coordinates with 'status_flag' in their names. "
+            f"Found: {', '.join(c.name() for c in status_flag_aux_coords)}"
+        )
+        warnings.warn(msg, UserWarning)
+
+    # Use the first auxiliary coordinate with status_flag in its name.
+    aux_coord = status_flag_aux_coords[0]
+    aux_coord_name = aux_coord.name()
+    ancillary_var_name = "status_flag"
+
+    # Create an AncillaryVariable from the auxiliary coordinate.
+    ancillary_var = iris.coords.AncillaryVariable(
+        aux_coord.points,
+        standard_name="status_flag",
+        long_name=aux_coord.long_name,
+        var_name=aux_coord.var_name,
+        units=aux_coord.units,
+        attributes=aux_coord.attributes,
+    )    
+    # Create a new Cube with the same data, but with the status_flag stored as an ancillary variable.
+    new_cube = cube.copy()
+    new_cube.remove_coord(aux_coord)
+    new_cube.add_ancillary_variable(ancillary_var, data_dims=(0, 1, 2))
+    return new_cube
