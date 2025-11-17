@@ -21,7 +21,7 @@ class FineFuelMoistureContent(BasePlugin):
         Page 5, Equations 1-10.
     """
 
-    def load_input_cubes(self, cubes: Cube | CubeList):
+    def load_input_cubes(self, cubes: tuple[Cube] | CubeList):
         """Loads the required input cubes for the FFMC calculation. These
         are stored internally as numpy arrays for processing.
 
@@ -63,6 +63,7 @@ class FineFuelMoistureContent(BasePlugin):
         self.wind_speed.convert_units("km/h")
         self.input_ffmc.convert_units(1)
 
+        # ! Remove this, change references elsewhere to .data
         # Convert all inputted cubes to their data values for processing
         self.temperature = self.temperature.data
         self.precipitation = self.precipitation.data
@@ -273,7 +274,7 @@ class FineFuelMoistureContent(BasePlugin):
 
     def process(
         self,
-        *cubes: Cube | CubeList,
+        cubes: tuple[Cube] | CubeList,
     ) -> Cube:
         """
         Calculate the Fine Fuel Moisture Code (FFMC).
@@ -287,7 +288,7 @@ class FineFuelMoistureContent(BasePlugin):
                 - Previous day's FFMC value.
 
         Returns:
-            float: Calculated FFMC value.
+            Cube: A Cube of calculated FFMC values.
         """
         self.load_input_cubes(cubes)
 
@@ -322,6 +323,7 @@ class FineFuelMoistureContent(BasePlugin):
         # Calculate the new FFMC from the updated moisture content
         output_ffmc = self._calculate_ffmc_from_moisture_content(E_d, E_w)
 
-        # ! Need to set up the return cube with metadata
+        # ! Is this right?
+        ffmc_cube = self.input_ffmc.copy(output_ffmc.astype(np.float32))
 
-        return output_ffmc
+        return ffmc_cube
