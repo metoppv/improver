@@ -2,20 +2,6 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-# ---
-# jupyter:
-#   jupytext:
-#     text_representation:
-#       extension: .py
-#       format_name: percent
-#       format_version: '1.3'
-#       jupytext_version: 1.18.1
-#   kernelspec:
-#     display_name: environment_py39_jupyterlab
-#     language: python
-#     name: python3
-# ---
-
 # %% [markdown]
 # # Threshold realizations to get probabilities
 
