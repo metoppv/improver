@@ -4,12 +4,12 @@
 # See LICENSE in the root of the repository for full licensing details.
 """A module for generating a distance to feature ancillary cube."""
 
+import os
 from typing import List, Optional, Tuple
 
 import pyproj
 from geopandas import GeoDataFrame, GeoSeries, clip
 from iris.cube import Cube
-from joblib import Parallel, delayed
 from numpy import array, min, round
 from shapely.geometry import Point
 
@@ -45,7 +45,7 @@ class DistanceTo(BasePlugin):
         buffer: float = 30000,
         clip_geometry_flag: bool = False,
         parallel: bool = False,
-        n_parallel_jobs: Optional[int] = 1,
+        n_parallel_jobs: Optional[int] = len(os.sched_getaffinity(0)),
     ) -> None:
         """
         Initialise the DistanceTo plugin.
@@ -73,7 +73,8 @@ class DistanceTo(BasePlugin):
                 distances.
             n_parallel_jobs:
                 The number of parallel jobs to use when calculating distances.
-                By default, 1 job is used.
+                By default, os.sched_getaffinity(0) is used to give the number of cores
+                that the process is eligible to use.
         """
         self.epsg_projection = epsg_projection
         self.new_name = new_name
@@ -227,6 +228,8 @@ class DistanceTo(BasePlugin):
             return round(min(point.distance(geometry.geometry)))
 
         if self.parallel:
+            from joblib import Parallel, delayed
+
             parallel = Parallel(n_jobs=self.n_parallel_jobs, prefer="threads")
             output_generator = parallel(
                 delayed(_distance_to_nearest)(point, geometry) for point in site_points
