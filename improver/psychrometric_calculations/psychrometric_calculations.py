@@ -5,6 +5,7 @@
 """Module to contain Psychrometric Calculations."""
 
 import functools
+import warnings
 from typing import List, Optional, Tuple, Union
 
 import iris._constraints
@@ -437,6 +438,23 @@ class HumidityMixingRatio(BasePlugin):
         self.pressure.rename("surface_air_pressure")
         self.pressure.units = "Pa"
 
+    def _handle_zero_humidity(self):
+        """Sets the minimum humidity value to half the least significant value
+        to avoid issues with zero humidity inputs that can result in unphysical values."""
+        try:
+            least_significant_digit = self.rel_humidity.attributes[
+                "least_significant_digit"
+            ]
+        except KeyError:
+            warnings.warn(
+                "No 'least_significant_digit' attribute found in relative humidity cube. Assuming minimum humidity of 0.0005."
+            )
+            least_significant_digit = 3
+        min_humidity = 0.5 * 10 ** (-least_significant_digit)
+        self.rel_humidity.data = np.where(
+            self.rel_humidity.data < min_humidity, min_humidity, self.rel_humidity.data
+        )
+
     def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
         """
         Calculates the humidity mixing ratio from the inputs. The inputs can be on height levels
@@ -457,6 +475,7 @@ class HumidityMixingRatio(BasePlugin):
         self.rel_humidity = cubes.extract_cube(
             iris.Constraint(name="relative_humidity")
         )
+        self._handle_zero_humidity()
 
         try:
             # Test if there is a cube with air_temperature in the name

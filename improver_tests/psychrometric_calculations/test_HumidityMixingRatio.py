@@ -136,6 +136,38 @@ def test_basic(
     assert np.isclose(result.data, expected, atol=1e-7).all()
 
 
+@pytest.mark.parametrize(
+    "temperature_value, pressure_value, rel_humidity_value, lsd, expected",
+    (
+        (293, 100000, 0.1, 3, 1.459832e-3),
+        (300, 100000, 0.0, 3, 1.11927e-5),
+        (300, 100000, 0.00001, 3, 1.11927e-5),
+        (300, 100000, 0.0, None, 1.11927e-5),
+        (300, 100000, 0.00001, None, 1.11927e-5),
+        (300, 100000, 0.0, 4, 1.11927e-6),
+    ),
+)
+def test_zero_humidity(
+    temperature,
+    pressure,
+    rel_humidity,
+    lsd,
+    temperature_value,
+    pressure_value,
+    rel_humidity_value,
+    expected,
+):
+    """Check that zero and tiny humidity values are handled correctly."""
+    if lsd:
+        rel_humidity.attributes["least_significant_digit"] = lsd
+    temperature.data = np.full_like(temperature.data, temperature_value)
+    pressure.data = np.full_like(pressure.data, pressure_value)
+    rel_humidity.data = np.full_like(rel_humidity.data, rel_humidity_value)
+    result = HumidityMixingRatio()([temperature, pressure, rel_humidity])
+    metadata_ok(result, temperature)
+    assert np.isclose(result.data, expected, atol=1e-7).all()
+
+
 def test_height_levels():
     """Check that the plugin works with height level data"""
 
