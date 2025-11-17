@@ -566,7 +566,7 @@ class ContrailHeightExtractor(BasePlugin):
         contrail formation cube.
 
         Args:
-            Categorical cube of shape (engine_contrail_factor, pressure_level, lat (optional), lon (optional))
+            formation_cube: Categorical cube of shape (engine_contrail_factor, pressure_level, lat (optional), lon (optional))
 
         Returns:
             - Integer corresponding to non-persistent contrail category
