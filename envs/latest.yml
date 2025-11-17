@@ -32,7 +32,6 @@ dependencies:
   - filelock
   - mock
   - mypy
-  - nbstripout
   - nbsphinx  
   - pytest
   - pytest-cov
