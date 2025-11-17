@@ -296,13 +296,13 @@ def test__perform_rainfall_adjustment(
         (-10.0, 10.0, 8.33),
     ],
 )
-def test_calculate_drying_phase(
+def test__calculate_EMC_for_drying_phase(
     temp_val: float,
     rh_val: float,
     expected_E_d: float,
 ) -> None:
     """
-    Test _calculate_drying_phase for given temperature and relative humidity, comparing to expected E_d value.
+    Test _calculate_EMC_for_drying_phase for given temperature and relative humidity, comparing to expected E_d value.
 
     Args:
         temp_val (float): Temperature value for all grid points.
@@ -315,7 +315,7 @@ def test_calculate_drying_phase(
     cubes = input_cubes(temp_val=temp_val, rh_val=rh_val)
     plugin = FineFuelMoistureContent()
     plugin.load_input_cubes(CubeList(cubes))
-    E_d = plugin._calculate_drying_phase()
+    E_d = plugin._calculate_EMC_for_drying_phase()
     # Check output type and shape
     assert isinstance(E_d, np.ndarray)
     assert E_d.shape == cubes[0].data.shape
@@ -373,7 +373,7 @@ def test_calculate_drying_phase(
         ),
     ],
 )
-def test_calculate_moisture_content_through_drying_rate(
+def test__calculate_moisture_content_through_drying_rate(
     moisture_content: np.ndarray,
     relative_humidity: float,
     wind_speed: float,
@@ -424,13 +424,13 @@ def test_calculate_moisture_content_through_drying_rate(
         (-10.0, 10.0, 7.3261),
     ],
 )
-def test_calculate_wetting_phase(
+def test__calculate_EMC_for_wetting_phase(
     temp_val: float,
     rh_val: float,
     expected_E_w: float,
 ) -> None:
     """
-    Test _calculate_wetting_phase for given temperature and relative humidity, comparing to expected E_w value.
+    Test _calculate_EMC_for_wetting_phase for given temperature and relative humidity, comparing to expected E_w value.
 
     Args:
         temp_val (float): Temperature value for all grid points.
@@ -443,9 +443,7 @@ def test_calculate_wetting_phase(
     cubes = input_cubes(temp_val=temp_val, rh_val=rh_val)
     plugin = FineFuelMoistureContent()
     plugin.load_input_cubes(CubeList(cubes))
-    E_w = plugin._calculate_wetting_phase()
-    with open("debug_E_w.txt", "a") as f:
-        f.write(f"E_w: {E_w[0,0]}\n")
+    E_w = plugin._calculate_EMC_for_wetting_phase()
     # Check output type and shape
     assert isinstance(E_w, np.ndarray)
     assert E_w.shape == cubes[0].data.shape
@@ -503,7 +501,7 @@ def test_calculate_wetting_phase(
         ),
     ],
 )
-def test_calculate_moisture_content_through_wetting_equilibrium(
+def test__calculate_moisture_content_through_wetting_equilibrium(
     moisture_content: np.ndarray,
     relative_humidity: float,
     wind_speed: float,
@@ -574,7 +572,7 @@ def test_calculate_moisture_content_through_wetting_equilibrium(
         ),
     ],
 )
-def test_calculate_ffmc_from_moisture_content(
+def test__calculate_ffmc_from_moisture_content(
     moisture_content: np.ndarray,
     E_d: np.ndarray,
     E_w: np.ndarray,
@@ -597,8 +595,6 @@ def test_calculate_ffmc_from_moisture_content(
     plugin.initial_moisture_content = moisture_content.copy()
     plugin.moisture_content = moisture_content.copy()
     ffmc = plugin._calculate_ffmc_from_moisture_content(E_d, E_w)
-    with open("debug_ffmc.txt", "a") as f:
-        f.write(f"FFMC: {ffmc}\n")
     # Check output type and shape
     assert isinstance(ffmc, np.ndarray)
     assert ffmc.shape == moisture_content.shape
@@ -651,6 +647,4 @@ def test_process(
     assert result.data.shape == cubes[0].data.shape
     # Check that FFMC matches expected output within tolerance
     data = np.array(result.data)
-    with open("debug_process_ffmc.txt", "a") as f:
-        f.write(f"Process FFMC: {data[0]}\n")
     assert np.allclose(data, expected_output, atol=0.05)
