@@ -272,6 +272,28 @@ class FineFuelMoistureContent(BasePlugin):
         ffmc = 59.5 * (250.0 - self.moisture_content) / (147.2 + self.moisture_content)
         return ffmc
 
+    def make_ffmc_cube(self, ffmc_data: np.ndarray) -> Cube:
+        """Converts an FFMC data array into an iris.cube.Cube object
+        with relevant metadata copied from the input FFMC cube, and updated
+        time attributes.
+
+        Args:
+            ffmc_data (np.ndarray): The FFMC data
+
+        Returns:
+            Cube: An iris.cube.Cube containing the FFMC data.
+        """
+        ffmc_cube = self.input_ffmc.copy(ffmc_data.astype(np.float32))
+
+        ffmc_cube.update_coord(self.precipitation.coord("forecast_reference_time"))
+
+        # Sort time coords
+        time_coord = self.precipitation.coord("time").copy()
+        time_coord.bounds = None
+        ffmc_cube.replace_coord(time_coord)
+
+        return ffmc_cube
+
     def process(
         self,
         cubes: tuple[Cube] | CubeList,
@@ -323,7 +345,7 @@ class FineFuelMoistureContent(BasePlugin):
         # Calculate the new FFMC from the updated moisture content
         output_ffmc = self._calculate_ffmc_from_moisture_content(E_d, E_w)
 
-        # ! Is this right?
-        ffmc_cube = self.input_ffmc.copy(output_ffmc.astype(np.float32))
+        # Convert FFMC data to a cube and return
+        ffmc_cube = self.make_ffmc_cube(output_ffmc)
 
         return ffmc_cube
