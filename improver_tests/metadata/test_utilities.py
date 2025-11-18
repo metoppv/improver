@@ -590,6 +590,7 @@ def test_minimum_increment(cube, lsd, default, expected):
     else:
         cube.attributes["least_significant_digit"] = lsd
         with warnings.catch_warnings():
+            # Convert any warning messages to errors, so we can be sure we haven't raised one in this case.
             warnings.simplefilter("error")
             result = minimum_increment(cube, **kwargs)
     assert isinstance(result, (float, int))
