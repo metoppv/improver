@@ -73,7 +73,10 @@ def humidity_cube_fixture() -> Cube:
     """Set up a r, y, x cube of relative humidity data"""
     data = np.full((2, 2, 2), fill_value=1e-1, dtype=np.float32)
     humidity_cube = set_up_variable_cube(
-        data, name="relative_humidity", units="1", attributes=LOCAL_MANDATORY_ATTRIBUTES
+        data,
+        name="relative_humidity",
+        units="1",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES | {"least_significant_digit": 3},
     )
     return humidity_cube
 
@@ -137,29 +140,23 @@ def test_basic(
 
 
 @pytest.mark.parametrize(
-    "temperature_value, pressure_value, rel_humidity_value, lsd, expected",
+    "temperature_value, pressure_value, rel_humidity_value, expected",
     (
-        (293, 100000, 0.1, 3, 1.459832e-3),
-        (300, 100000, 0.0, 3, 1.11927e-5),
-        (300, 100000, 0.00001, 3, 1.11927e-5),
-        (300, 100000, 0.0, None, 1.11927e-5),
-        (300, 100000, 0.00001, None, 1.11927e-5),
-        (300, 100000, 0.0, 4, 1.11927e-6),
+        (293, 100000, 0.1, 1.459832e-3),
+        (300, 100000, 0.0, 1.11927e-5),
+        (300, 100000, 0.00001, 1.11927e-5),
     ),
 )
 def test_zero_humidity(
     temperature,
     pressure,
     rel_humidity,
-    lsd,
     temperature_value,
     pressure_value,
     rel_humidity_value,
     expected,
 ):
     """Check that zero and tiny humidity values are handled correctly."""
-    if lsd:
-        rel_humidity.attributes["least_significant_digit"] = lsd
     temperature.data = np.full_like(temperature.data, temperature_value)
     pressure.data = np.full_like(pressure.data, pressure_value)
     rel_humidity.data = np.full_like(rel_humidity.data, rel_humidity_value)

@@ -5,7 +5,6 @@
 """Module to contain Psychrometric Calculations."""
 
 import functools
-import warnings
 from typing import List, Optional, Tuple, Union
 
 import iris._constraints
@@ -26,6 +25,7 @@ from improver.generate_ancillaries.generate_svp_table import (
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
+    minimum_increment,
 )
 from improver.utilities.common_input_handle import as_cubelist
 from improver.utilities.cube_manipulation import (
@@ -441,16 +441,7 @@ class HumidityMixingRatio(BasePlugin):
     def _handle_zero_humidity(self):
         """Sets the minimum humidity value to half the least significant value
         to avoid issues with zero humidity inputs that can result in unphysical values."""
-        try:
-            least_significant_digit = self.rel_humidity.attributes[
-                "least_significant_digit"
-            ]
-        except KeyError:
-            warnings.warn(
-                "No 'least_significant_digit' attribute found in relative humidity cube. Assuming minimum humidity of 0.0005."
-            )
-            least_significant_digit = 3
-        min_humidity = 0.5 * 10 ** (-least_significant_digit)
+        min_humidity = 0.5 * minimum_increment(self.rel_humidity, default=0.001)
         self.rel_humidity.data = np.where(
             self.rel_humidity.data < min_humidity, min_humidity, self.rel_humidity.data
         )

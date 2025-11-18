@@ -5,6 +5,7 @@
 """Tests for the improver.metadata.utilities module"""
 
 import unittest
+import warnings
 from datetime import datetime, timedelta
 from typing import Callable, List
 
@@ -24,6 +25,7 @@ from improver.metadata.utilities import (
     generate_hash,
     generate_mandatory_attributes,
     get_model_id_attr,
+    minimum_increment,
 )
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
@@ -556,6 +558,42 @@ def test_enforce_time_point_standard_no_time_coords(multi_time_cube, data_times)
     # Demonstrate that coordinates are unchanged by the enforcement step.
     for crd in targets:
         assert multi_time_cube.coord(crd) == reference.coord(crd)
+
+
+@pytest.fixture(name="cube")
+def make_cube() -> Cube:
+    """Generates one cube"""
+    return set_up_variable_cube(np.zeros((2, 2), dtype=np.float32))
+
+
+@pytest.mark.parametrize(
+    "lsd, default, expected",
+    (
+        (2, None, 0.01),
+        (0, None, 1.0),
+        (None, 0.1, 0.1),
+        (None, None, 0.01),
+    ),
+)
+def test_minimum_increment(cube, lsd, default, expected):
+    """Test that minimum_increment returns the correct minimum increment
+    for a given array of values and that warnings are raised only when the default is used."""
+    if default is not None:
+        kwargs = {"default": default}
+    else:
+        kwargs = {}
+    if lsd is None:
+        with pytest.warns(
+            UserWarning, match="No 'least_significant_digit' attribute found "
+        ):
+            result = minimum_increment(cube, **kwargs)
+    else:
+        cube.attributes["least_significant_digit"] = lsd
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            result = minimum_increment(cube, **kwargs)
+    assert isinstance(result, (float, int))
+    assert result == expected
 
 
 if __name__ == "__main__":
