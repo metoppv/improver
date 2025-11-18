@@ -930,12 +930,12 @@ def convert_aux_coord_to_ancillary_variable(
     cube: Cube, auxiliary_coord_name: str, ancillary_var_name: str
 ) -> Cube:
     """
-    Given a Cube containing an auxiliary coordinate with "status_flag" in its name,
-    e.g. "relative_humidity status_flag", create a new Cube with the same data,
-    but with the status_flag stored as an ancillary variable named "status_flag".
+    Given a Cube containing an auxiliary coordinate named in auxiliary_coord_name,
+    create a new Cube with the same data, but with the values from the auxiliary coordinate
+    stored as an ancillary variable as named in the ancillary_var_name.
 
     Args:
-        cube: A cube with an auxiliary coordinate e.g. "relative_humidity status_flag".
+        cube: A cube with an auxiliary coordinate to convert.
         auxiliary_coord_name: The name of the auxiliary coordinate to convert.
         ancillary_var_name: The name of the ancillary variable to create.
 
@@ -949,11 +949,11 @@ def convert_aux_coord_to_ancillary_variable(
     """
     all_aux_coords = cube.aux_coords
     # Check if the auxiliary coordinate with the specified name exists.
-    status_flag_aux_coords = [
+    relevant_aux_coords = [
         c for c in all_aux_coords if auxiliary_coord_name == c.name()
     ]
     # If no such auxiliary coordinate exists then raise an error.
-    if not status_flag_aux_coords:
+    if not relevant_aux_coords:
         msg = f"Input cube does not contain an auxiliary coordinate with name '{auxiliary_coord_name}'."
         raise ValueError(msg)
 
@@ -969,7 +969,7 @@ def convert_aux_coord_to_ancillary_variable(
         units=aux_coord.units,
         attributes=aux_coord.attributes,
     )
-    # Create a new Cube with the same data, but with the status_flag stored as an ancillary variable.
+    # Create a new Cube with the same data.
     new_cube = cube.copy()
     new_cube.remove_coord(aux_coord)
     new_cube.add_ancillary_variable(ancillary_var, data_dims=relevant_dimensions)
