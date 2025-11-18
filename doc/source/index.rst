@@ -7,6 +7,12 @@
    about
 
 .. toctree::
+   :caption: Examples
+   :maxdepth: 1
+
+   auto_examples/index
+
+.. toctree::
    :caption: Developer Guide
    :maxdepth: 1
 

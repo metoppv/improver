@@ -40,6 +40,7 @@ sys.path.insert(0, SOURCE_DIR)
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    "nbsphinx",
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
     "sphinx.ext.doctest",
@@ -47,8 +48,9 @@ extensions = [
     "sphinx.ext.coverage",
     "sphinx.ext.viewcode",
     "sphinx.ext.mathjax",
+    "sphinx_gallery.gen_gallery",
     "sphinx_autodoc_typehints",
-    "sphinx_rtd_theme",
+    "sphinx_book_theme",
 ]
 
 autodoc_default_flags = ["members", "private-members"]
@@ -102,7 +104,16 @@ language = "en"
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This patterns also effect to html_static_path and html_extra_path
-exclude_patterns = ["modules.rst", "extended_documentation"]
+# The auto_examples directory is created by Sphinx Gallery. Only the .rst files
+# from this directory are needed for the build, so the rest are excluded.
+exclude_patterns = [
+    "modules.rst",
+    "extended_documentation",
+    "auto_examples/*.json",
+    "auto_examples/*.py",
+    "auto_examples/*.ipynb",
+    "auto_examples/*.zip",
+]
 
 autodoc_mock_imports = ["numba"]
 
@@ -142,14 +153,35 @@ todo_include_todos = False
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-#
-html_theme = "sphinx_rtd_theme"
+# The sphinx book theme is used as it supports a secondary sidebar.
+html_theme = "sphinx_book_theme"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
-html_theme_options = {}
+html_theme_options = {
+    "repository_url": "https://github.com/metoppv/improver",
+    # Taken from https://github.com/scikit-learn/scikit-learn/blob/main/doc/conf.py
+    # When specified as a dictionary, the keys should follow glob-style patterns, as in
+    # https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-exclude_patterns
+    # In particular, "**" specifies the default for all pages
+    # Use :html_theme.sidebar_secondary.remove: for file-wide removal
+    "secondary_sidebar_items": {
+        "**": [
+            "page-toc",
+            "sourcelink",
+            # Sphinx-Gallery-specific sidebar components
+            # https://sphinx-gallery.github.io/stable/advanced.html#using-sphinx-gallery-sidebar-components
+            "sg_download_links",
+            "sg_launcher_links",
+        ],
+    },
+    "use_edit_page_button": True,
+    "use_fullscreen_button": True,
+    "use_repository_button": True,
+    "use_issues_button": True,
+}
 
 # Add any paths that contain custom themes here, relative to this directory.
 # html_theme_path = []
@@ -396,3 +428,14 @@ def run_apidoc(_):
 def setup(app):
     """setup sphinx"""
     app.connect("builder-inited", run_apidoc)
+
+
+# -- Options for Sphinx-Gallery -------------------------------------------
+
+# The configuration dictionary for Sphinx-Gallery
+
+sphinx_gallery_conf = {
+    "examples_dirs": "examples",  # path to your example scripts
+    "gallery_dirs": "auto_examples",  # path where to save gallery generated examples
+    "filename_pattern": r"/*\.py",  # Include all the files in the examples dir
+}
