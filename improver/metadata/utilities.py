@@ -6,6 +6,7 @@
 
 import hashlib
 import pprint
+import warnings
 from typing import Any, Dict, List, Optional, Type, Union
 
 import dask.array as da
@@ -271,3 +272,36 @@ def enforce_time_point_standard(cube: Cube):
             cube.coord(crd).points = [bound[-1] for bound in cube.coord(crd).bounds]
         except (iris.exceptions.CoordinateNotFoundError, TypeError):
             pass
+
+
+def minimum_increment(cube: Cube, default: float = None) -> Union[float, int]:
+    """
+    Determine the minimum increment for the cube data based on the
+    'least_significant_digit' attribute. If the attribute is not present,
+    the default value is used and a warning issued.
+
+    Args:
+        cube:
+            The cube for which to determine the minimum increment.
+        default:
+            The default minimum increment to use if the 'least_significant_digit' attribute is not present.
+    Returns:
+        The minimum increment data value as a float.
+    Raises:
+        ValueError:
+            If the 'least_significant_digit' attribute is not present and no default is provided.
+    """
+    try:
+        least_significant_digit = int(cube.attributes["least_significant_digit"])
+    except KeyError:
+        if default is None:
+            raise ValueError(
+                f"No 'least_significant_digit' attribute found in {cube.name()} cube and no default provided."
+            )
+        result = default
+        warnings.warn(
+            f"No 'least_significant_digit' attribute found in {cube.name()} cube. Assuming increment of {result}."
+        )
+    else:
+        result = 10 ** (-least_significant_digit)
+    return result
