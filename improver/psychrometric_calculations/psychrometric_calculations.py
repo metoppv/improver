@@ -25,6 +25,7 @@ from improver.generate_ancillaries.generate_svp_table import (
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
+    minimum_increment,
 )
 from improver.utilities.common_input_handle import as_cubelist
 from improver.utilities.cube_manipulation import (
@@ -437,6 +438,14 @@ class HumidityMixingRatio(BasePlugin):
         self.pressure.rename("surface_air_pressure")
         self.pressure.units = "Pa"
 
+    def _handle_zero_humidity(self):
+        """Sets the minimum humidity value to half the least significant value
+        to avoid issues with zero humidity inputs that can result in unphysical values."""
+        min_humidity = 0.5 * minimum_increment(self.rel_humidity, default=0.001)
+        self.rel_humidity.data = np.where(
+            self.rel_humidity.data < min_humidity, min_humidity, self.rel_humidity.data
+        )
+
     def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
         """
         Calculates the humidity mixing ratio from the inputs. The inputs can be on height levels
@@ -457,6 +466,7 @@ class HumidityMixingRatio(BasePlugin):
         self.rel_humidity = cubes.extract_cube(
             iris.Constraint(name="relative_humidity")
         )
+        self._handle_zero_humidity()
 
         try:
             # Test if there is a cube with air_temperature in the name
