@@ -33,7 +33,7 @@ def process(
             An iris CubeList to be combined.
         operation (str):
             An operation to use in combining input cubes. One of:
-            +, -, \*, add, subtract, multiply, min, max, mean, masked_add
+            +, -, \*, add, subtract, multiply, min, max, mean
         new_name (str):
             New name for the resulting dataset.
         broadcast (str):
