@@ -62,7 +62,7 @@ def make_test_cube(
     example_data = np.ones(shape, dtype=np.float32)
     cube = set_up_variable_cube(
         example_data,
-        spatial_grid="latlon" if type(coordinate_system) == GeogCS else "equalarea",
+        spatial_grid="latlon" if isinstance(coordinate_system, GeogCS) else "equalarea",
     )
     cube.replace_coord(cube.coord(axis="x").copy(x_axis_values))
     cube.replace_coord(cube.coord(axis="y").copy(y_axis_values))
