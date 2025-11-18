@@ -30,6 +30,25 @@ SOURCE_DIR = os.path.abspath(
 
 sys.path.insert(0, SOURCE_DIR)
 
+
+# -- ReadTheDocs output ------------------------------------------------
+# function to write  useful output to stdout, prefixing the source.
+def autolog(message):
+    print("[{}] {}".format(os.path.basename(__file__), message))
+
+
+on_rtd = os.environ.get("READTHEDOCS") == "True"
+
+if on_rtd:
+    autolog("Build running on READTHEDOCS server")
+
+    # list all the READTHEDOCS environment variables that may be of use
+    autolog("Listing all environment variables on the READTHEDOCS server...")
+
+    for item, value in os.environ.items():
+        autolog("[READTHEDOCS] {} = {}".format(item, value))
+
+
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
@@ -40,7 +59,6 @@ sys.path.insert(0, SOURCE_DIR)
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    "nbsphinx",
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
     "sphinx.ext.doctest",
@@ -428,6 +446,7 @@ def run_apidoc(_):
 def setup(app):
     """setup sphinx"""
     app.connect("builder-inited", run_apidoc)
+    app.add_css_file("hide_links.css")
 
 
 # -- Options for Sphinx-Gallery -------------------------------------------
@@ -435,7 +454,10 @@ def setup(app):
 # The configuration dictionary for Sphinx-Gallery
 
 sphinx_gallery_conf = {
-    "examples_dirs": "examples",  # path to your example scripts
-    "gallery_dirs": "auto_examples",  # path where to save gallery generated examples
-    "filename_pattern": r"/*\.py",  # Include all the files in the examples dir
+    "examples_dirs": "examples",  # Path to your example scripts
+    "gallery_dirs": "auto_examples",  # Path where to save gallery generated examples
+    "filename_pattern": r"/*\.py",  # Pattern to match example files (all .py files)
+    "doc_module": "improver",  # Module name for cross-referencing
+    "backreferences_dir": None,  # Disable automatic backreferences generation
+    "matplotlib_animations": False,  # Disable matplotlib animation support
 }

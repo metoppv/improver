@@ -13,11 +13,12 @@ dependencies:
   - ipykernel
   - geopandas
   - pandas
+  - cf-units
+  - joblib
+  - sphinx
+  - sphinx-autodoc-typehints
+  - sphinx-book-theme    
+  - sphinx-gallery  
   - pip
   - pip:
-    - cf_units
-    - joblib
-    - sphinx
-    - sphinx-autodoc-typehints
-    - sphinx-book-theme    
-    - sphinx-gallery
+    - git+https://github.com/metoppv/improver_example_data.git@BRANCH_NAME

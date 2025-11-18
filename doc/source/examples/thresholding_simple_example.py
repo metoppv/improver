@@ -3,9 +3,9 @@
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """
-===========================================
-Threshold realizations to get probabilities
-===========================================
+===========================================================
+Simple example: Threshold realizations to get probabilities
+===========================================================
 This is an example of thresholding a input containing realizations or ensemble members.
 The thresholding will be applied to each ensemble member/realization independently.
 The realization dimension can then be collapsed.

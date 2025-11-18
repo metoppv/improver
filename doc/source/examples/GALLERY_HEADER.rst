@@ -1,4 +1,4 @@
-.. _general_examples:
+.. _gallery_examples:
 
 Examples
 ========
@@ -15,7 +15,7 @@ descriptive name.
 
 2. Follow the format of existing examples like ``thresholding_simple_example.py``:
    
-   - Start with a docstring (triple quotes) containing a title with equals signs 
+   - Start with a docstring (triple quotes) containing a titl.. _gallery_examples:e with equals signs 
    above and below
    - Add a description of what the example demonstrates
    - Include author and license information

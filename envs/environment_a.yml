@@ -31,5 +31,6 @@ dependencies:
   - pytest-cov
   - pytest-xdist
   - sphinx-autodoc-typehints
-  - sphinx_rtd_theme
+  - sphinx-book-theme  
+  - sphinx-gallery
   - threadpoolctl

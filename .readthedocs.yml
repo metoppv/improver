@@ -1,12 +1,22 @@
 version: 2
 
-build:
-  os: "ubuntu-24.04"
-  tools:
-    python: "mambaforge-22.9"
+sphinx:
+  configuration: doc/source/conf.py
 
 conda:
   environment: doc/rtd_environment.yml
 
-sphinx:
-  configuration: doc/source/conf.py
+# Add the current directory to the PYTHONPATH. This directory contains the 
+# latest version of the IMPROVER code available when triggering the ReadTheDocs build.
+python:
+  install:
+    - method: pip
+      path: .
+
+build:
+  os: "ubuntu-24.04"
+  tools:
+    python: "mambaforge-latest"
+  jobs:
+    pre_create_environment:
+      - sed -i "s/BRANCH_NAME/${READTHEDOCS_VERSION}/g" doc/rtd_environment.yml
