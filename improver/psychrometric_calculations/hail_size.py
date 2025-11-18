@@ -309,6 +309,9 @@ class HailSize(BasePlugin):
 
         lookup_table = self.nomogram_values()
 
+        # Identify valid points where both indices are non-negative
+        valid_mask = (vertical >= 0) & (horizontal >= 0)
+
         # Rounds the calculated horizontal value to the nearest 5 which is
         # then turned into a relevant index for accessing the appropriate column.
         # Rounds the calculated vertical values to the nearest 0.5 which is then
@@ -317,21 +320,18 @@ class HailSize(BasePlugin):
         vertical_rounded = np.around(vertical * 2, decimals=0)
 
         # clips index values to not be longer than the table
-        vertical_clipped = np.clip(vertical_rounded, None, len(lookup_table) - 1)
-        horizontal_clipped = np.clip(horizontal_rounded, None, len(lookup_table[0]) - 1)
+        vertical_clipped = np.clip(vertical_rounded, 0, len(lookup_table) - 1)
+        horizontal_clipped = np.clip(horizontal_rounded, 0, len(lookup_table[0]) - 1)
 
-        vertical_clipped = np.ma.where(
-            (vertical_rounded >= 0) & (horizontal_rounded >= 0), vertical_clipped, 0
-        ).filled(0)
-        horizontal_clipped = np.ma.where(
-            (vertical_rounded >= 0) & (horizontal_rounded >= 0), horizontal_clipped, 0
-        ).filled(0)
+        vertical_clipped = np.where(valid_mask, vertical_clipped, 0).astype(int)
+        horizontal_clipped = np.where(valid_mask, horizontal_clipped, 0).astype(int)
 
-        hail_size = lookup_table[
-            vertical_clipped.astype(int), horizontal_clipped.astype(int)
-        ]
+        # Lookup hail size from nomogram
+        hail_size = lookup_table[vertical_clipped, horizontal_clipped]
+
+        # Apply updated hail size logic for wet bulb freezing altitude
         hail_size = np.where(
-            wet_bulb_zero >= 3300,
+            wet_bulb_zero >= 3350,
             self.updated_hail_size(hail_size, wet_bulb_zero),
             hail_size,
         )
@@ -411,15 +411,20 @@ class HailSize(BasePlugin):
         # vertical is b - B in Hand (2011).
         vertical = temp_saturated_ascent.data - temperature_at_268.data
 
+        # Apply masking: exclude points with low CCL temperature or high wet bulb altitude
         temperature_mask = np.ma.masked_less(ccl_temperature.data, 268.15)
-        vertical_masked = np.ma.masked_where(np.ma.getmask(temperature_mask), vertical)
-        horizontal_masked = np.ma.masked_where(
-            np.ma.getmask(temperature_mask), horizontal
-        )
+        wet_bulb_mask = wet_bulb_zero.data > 4400
+        invalid_mask = np.ma.getmaskarray(temperature_mask) | wet_bulb_mask
 
+        vertical_masked = np.ma.masked_where(invalid_mask, vertical)
+        horizontal_masked = np.ma.masked_where(invalid_mask, horizontal)
+
+        # Calculate hail size
         hail_size = self.get_hail_size(
             vertical_masked, horizontal_masked, wet_bulb_zero.data
         )
+
+        # Convert to metres and float32
         hail_size = hail_size / 1000
         hail_size = hail_size.astype("float32")
 
