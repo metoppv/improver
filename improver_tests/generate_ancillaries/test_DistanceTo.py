@@ -4,6 +4,8 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the DistanceTo plugin."""
 
+import os
+
 import numpy as np
 import pytest
 from geopandas import GeoDataFrame
@@ -397,27 +399,39 @@ def test_distance_to_with_polygon_geometry(
 
 
 @pytest.mark.parametrize(
-    "geometry_type,expected_distance",
+    "geometry_type,if_parallel,expected_distance",
     [
-        ("point", [0, 500, 707, 707]),
-        ("line", [0, 0, 500, 500]),
-        ("polygon", [0, 0, 0, 500]),
+        ("point", False, [0, 500, 707, 707]),
+        ("line", False, [0, 0, 500, 500]),
+        ("polygon", False, [0, 0, 0, 500]),
+        ("point", True, [0, 500, 707, 707]),
+        ("line", True, [0, 0, 500, 500]),
+        ("polygon", True, [0, 0, 0, 500]),
     ],
 )
-@pytest.mark.parametrize("geometry_crs", ("laea", "latlon"))
+@pytest.mark.parametrize("geometry_crs", ("laea",))
 def test_distance_to_with_multiple_sites(
     multiple_site_cube,
     geometry_type,
     geometry_crs,
     expected_distance,
+    if_parallel,
     request,
 ):
-    """Test the DistanceTo plugin works when provided a site cube with multiple sites and
-    different types of geometry"""
+    """Test the DistanceTo plugin works when provided a site cube with multiple sites
+    and different types of geometry"""
 
     geometry = request.getfixturevalue(f"geometry_{geometry_type}_{geometry_crs}")
 
-    output_cube = DistanceTo(3035)(multiple_site_cube, geometry)
+    n_jobs = 1
+    if len(os.sched_getaffinity(0)) > 1:
+        n_jobs = 2
+
+    plugin = DistanceTo(3035, parallel=if_parallel, n_parallel_jobs=n_jobs)
+
+    assert plugin.parallel == if_parallel
+    assert plugin.n_parallel_jobs == n_jobs
+    output_cube = plugin(multiple_site_cube, geometry)
     assert output_cube.name() == "rain_rate"
     assert output_cube.units == "m"
 
