@@ -926,43 +926,35 @@ def manipulate_n_realizations(cube: Cube, n_realizations: int) -> Cube:
     return output
 
 
-def convert_aux_coord_to_ancillary_variable(cube: Cube) -> Cube:
+def convert_aux_coord_to_ancillary_variable(cube: Cube, auxiliary_coord_name: str, ancillary_var_name: str) -> Cube:
     """
     Given a Cube containing an auxiliary coordinate with "status_flag" in its name,
     e.g. "relative_humidity status_flag", create a new Cube with the same data,
     but with the status_flag stored as an ancillary variable named "status_flag".
 
     Args:
-        cube: A cube with an auxiliary coordinate with "status_flag" in its name,
-        e.g. "relative_humidity status_flag".
+        cube: A cube with an auxiliary coordinate e.g. "relative_humidity status_flag".
+        auxiliary_coord_name: The name of the auxiliary coordinate to convert.
+        ancillary_var_name: The name of the ancillary variable to create.
 
     Returns:
-        A cube with the auxiliary coordinate converted to an ancillary variable
-        named "status_flag".
+        A cube with the named auxiliary coordinate converted to an ancillary variable
+        with the name specified in ancillary_var_name.
 
     Raises:
-        ValueError: If the cube does not contain an auxiliary coordinate with
-        "status_flag" in its name.
+        ValueError: If the cube does not contain an auxiliary coordinate with the
+        name specified in auxiliary_coord_name.
     """
     all_aux_coords = cube.aux_coords
-    # Find the first auxiliary coordinate with status_flag in its name.
-    status_flag_aux_coords = [c for c in all_aux_coords if "status_flag" in c.name()]
-    # If there are none then raise an error.
+    # Check if the auxiliary coordinate with the specified name exists.
+    status_flag_aux_coords = [c for c in all_aux_coords if auxiliary_coord_name == c.name()]
+    # If no such auxiliary coordinate exists then raise an error.
     if not status_flag_aux_coords:
-        msg = "Input cube does not contain an auxiliary coordinate with 'status_flag' in its name."
+        msg = f"Input cube does not contain an auxiliary coordinate with name '{auxiliary_coord_name}'."
         raise ValueError(msg)
-    elif len(status_flag_aux_coords) > 1:
-        # If there are multiple, warn the user
-        msg = (
-            "Input cube contains multiple auxiliary coordinates with 'status_flag' in their names. "
-            f"Found: {', '.join(c.name() for c in status_flag_aux_coords)}"
-        )
-        warnings.warn(msg, UserWarning)
 
-    # Use the first auxiliary coordinate with status_flag in its name.
-    aux_coord = status_flag_aux_coords[0]
+    aux_coord = cube.coord(auxiliary_coord_name)
     relevant_dimensions = cube.coord_dims(aux_coord)
-    ancillary_var_name = "status_flag"
 
     # Create an AncillaryVariable from the auxiliary coordinate.
     ancillary_var = iris.coords.AncillaryVariable(
