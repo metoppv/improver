@@ -274,7 +274,7 @@ def enforce_time_point_standard(cube: Cube):
             pass
 
 
-def minimum_increment(cube: Cube, default: float = 0.01) -> Union[float, int]:
+def minimum_increment(cube: Cube, default: float = None) -> Union[float, int]:
     """
     Determine the minimum increment for the cube data based on the
     'least_significant_digit' attribute. If the attribute is not present,
@@ -287,10 +287,17 @@ def minimum_increment(cube: Cube, default: float = 0.01) -> Union[float, int]:
             The default minimum increment to use if the 'least_significant_digit' attribute is not present.
     Returns:
         The minimum increment data value as a float.
+    Raises:
+        ValueError:
+            If the 'least_significant_digit' attribute is not present and no default is provided.
     """
     try:
         least_significant_digit = int(cube.attributes["least_significant_digit"])
     except KeyError:
+        if default is None:
+            raise ValueError(
+                f"No 'least_significant_digit' attribute found in {cube.name()} cube and no default provided."
+            )
         result = default
         warnings.warn(
             f"No 'least_significant_digit' attribute found in {cube.name()} cube. Assuming increment of {result}."

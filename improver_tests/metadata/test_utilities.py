@@ -572,7 +572,6 @@ def make_cube() -> Cube:
         (2, None, 0.01),
         (0, None, 1.0),
         (None, 0.1, 0.1),
-        (None, None, 0.01),
     ),
 )
 def test_minimum_increment(cube, lsd, default, expected):
@@ -595,6 +594,14 @@ def test_minimum_increment(cube, lsd, default, expected):
             result = minimum_increment(cube, **kwargs)
     assert isinstance(result, (float, int))
     assert result == expected
+
+
+def test_minimum_increment_error(cube):
+    """Test that minimum_increment raises the appropriate exception when no valid option is available."""
+    with pytest.raises(
+        ValueError, match="No 'least_significant_digit' attribute found "
+    ):
+        minimum_increment(cube)
 
 
 if __name__ == "__main__":
