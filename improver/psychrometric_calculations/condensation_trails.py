@@ -557,6 +557,40 @@ class ContrailHeightExtractor(BasePlugin):
 
         return non_persistent_cube, persistent_cube
 
+    def _contrail_values_from_meaning_attribute(
+        self, formation_cube: Cube
+    ) -> Tuple[int, int]:
+        """
+        Extract the integer values corresponding to non-persistent or persistent
+        contrails from the 'contrail_type_meaning' attribute of the categorical
+        contrail formation cube.
+
+        Args:
+            formation_cube: Categorical cube of shape (engine_contrail_factor, pressure_level, lat (optional), lon (optional))
+
+        Returns:
+            - Integer corresponding to non-persistent contrail category
+            - Integer corresponding to persistent contrail category
+        """
+        # extract contrail types as a list of lowercase strings
+        contrail_types = [
+            ct.lower()
+            for ct in formation_cube.attributes["contrail_type_meaning"].split()
+        ]
+
+        # get integers corresponding to contrail types
+        non_persistent_index = contrail_types.index("non-persistent")
+        persistent_index = contrail_types.index("persistent")
+
+        non_persistent_value = int(
+            formation_cube.attributes["contrail_type"][non_persistent_index]
+        )
+        persistent_value = int(
+            formation_cube.attributes["contrail_type"][persistent_index]
+        )
+
+        return non_persistent_value, persistent_value
+
     def process_from_arrays(
         self,
         contrail_formation: np.ndarray,
@@ -666,19 +700,15 @@ class ContrailHeightExtractor(BasePlugin):
                 "The length of the 'contrail_type' and 'contrail_type_meaning' attributes do not match."
             )
 
-        contrail_types = [
-            ct.lower()
-            for ct in formation_cube.attributes["contrail_type_meaning"].split()
-        ]
-
-        non_persistent_index = contrail_types.index("non-persistent")
-        persistent_index = contrail_types.index("persistent")
+        non_persistent_value, persistent_value = (
+            self._contrail_values_from_meaning_attribute(formation_cube)
+        )
 
         non_persistent_data, persistent_data = self.process_from_arrays(
             formation_cube.data,
             height_cube.data,
-            formation_cube.attributes["contrail_type"][non_persistent_index],
-            formation_cube.attributes["contrail_type"][persistent_index],
+            non_persistent_value,
+            persistent_value,
         )
 
         non_persistent_cube, persistent_cube = self._create_max_min_height_cubes(
