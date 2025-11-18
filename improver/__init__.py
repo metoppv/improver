@@ -7,6 +7,7 @@
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from importlib.metadata import PackageNotFoundError, version
+from typing import Any
 
 try:
     __version__ = version("improver")
@@ -21,7 +22,7 @@ class BasePlugin(ABC):
     method by redirecting to __call__.
     """
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs) -> Any:
         """Makes subclasses callable to use process
         Args:
             *args:
@@ -34,7 +35,7 @@ class BasePlugin(ABC):
         return self.process(*args, **kwargs)
 
     @abstractmethod
-    def process(self, *args, **kwargs):
+    def process(self, *args, **kwargs) -> Any:
         """Abstract class for rest to implement."""
         pass
 
@@ -44,7 +45,7 @@ class PostProcessingPlugin(BasePlugin):
     Makes generalised changes to metadata relating to post-processing.
     """
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs) -> Any:
         """Makes subclasses callable to use process
         Args:
             *args:

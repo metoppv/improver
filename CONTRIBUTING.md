@@ -43,6 +43,7 @@ below:
  - Prajwal Borkar
  - James Canvin (Bureau of Meteorology, Australia)
  - Shubhendra Singh Chauhan (DeepSource, India)
+ - Ryan Cocking (Met Office, UK)
  - Andrew Creswick (Met Office, UK)
  - Neil Crosswaite (Met Office, UK)
  - Shafiat Dewan (Met Office, UK)
@@ -59,6 +60,7 @@ below:
  - Simon Jackson (Met Office, UK)
  - Caroline Jones (Met Office, UK)
  - Peter Jordan (Met Office, UK)
+ - Anzer Khan (Met Office, UK)
  - Bruno P. Kinoshita (NIWA, NZ)
  - Phoebe Lambert (Met Office, UK)
  - Lucy Liu (Bureau of Meteorology, Australia)
@@ -69,6 +71,7 @@ below:
  - Benjamin Owen (Bureau of Meteorology, Australia)
  - Carwyn Pelley (Met Office, UK)
  - Tim Pillinger (Met Office, UK)
+ - Rob Purvis (Met Office, UK)
  - Phil Relton (Met Office, UK)
  - Fiona Rust (Met Office, UK)
  - Chris Sampson (Met Office, UK)
