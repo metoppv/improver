@@ -11,7 +11,7 @@ from typing import Optional, Union
 import cf_units
 import iris
 import iris.fileformats
-from iris.cube import Cube, CubeList
+from iris.cube import Cube, CubeAttrsDict, CubeList
 
 from improver.metadata.check_datatypes import check_mandatory_standards
 
@@ -103,6 +103,7 @@ def save_netcdf(
         # different precision.  Therefore we remove the "least_significant_digit"
         # attribute if present.
         cube.attributes.pop("least_significant_digit", None)
+        _cube_attributes_for_save(cube)
 
     # If all xy slices are the same shape, use this to determine
     # the chunksize for the netCDF (eg. 1, 1, 970, 1042)
@@ -116,6 +117,36 @@ def save_netcdf(
         msg = "Chunksize not set as cubelist contains cubes of varying dimensions"
         warnings.warn(msg)
 
+    if compression_level not in range(10):
+        raise ValueError(
+            "Compression level must be an integer value between 0 and 9 (0 to disable compression)"
+        )
+
+    # save atomically by writing to a temporary file and then renaming
+    ftmp = str(filename) + ".tmp"
+    with iris.FUTURE.context(save_split_attrs=True):
+        iris.fileformats.netcdf.save(
+            cubelist,
+            ftmp,
+            complevel=compression_level,
+            shuffle=True,
+            zlib=compression_level > 0,
+            chunksizes=chunksizes,
+            least_significant_digit=least_significant_digit,
+            fill_value=fill_value,
+        )
+    os.rename(ftmp, filename)
+
+
+def _cube_attributes_for_save(cube: Cube):
+    """
+    Separate global and local attributes for saving with iris by ensuring a CubeAttrsDict
+    represents all attributes.
+
+    Args:
+        cube:
+            The cube for which the attributes are to be separated.
+    """
     global_keys = [
         "title",
         "um_version",
@@ -126,30 +157,9 @@ def save_netcdf(
         "history",
     ]
     global_keys.extend([key for key in cube.attributes.keys() if "mosg__" in key])
-
-    local_keys = {
-        key
-        for cube in cubelist
-        for key in cube.attributes.keys()
-        if key not in global_keys
+    global_attributes = {k: v for k, v in cube.attributes.items() if k in global_keys}
+    local_attributes = {
+        k: v for k, v in cube.attributes.items() if k not in global_keys
     }
-
-    if compression_level not in range(10):
-        raise ValueError(
-            "Compression level must be an integer value between 0 and 9 (0 to disable compression)"
-        )
-
-    # save atomically by writing to a temporary file and then renaming
-    ftmp = str(filename) + ".tmp"
-    iris.fileformats.netcdf.save(
-        cubelist,
-        ftmp,
-        local_keys=local_keys,
-        complevel=compression_level,
-        shuffle=True,
-        zlib=compression_level > 0,
-        chunksizes=chunksizes,
-        least_significant_digit=least_significant_digit,
-        fill_value=fill_value,
-    )
-    os.rename(ftmp, filename)
+    attributes = CubeAttrsDict(locals=local_attributes, globals=global_attributes)
+    cube.attributes = attributes
