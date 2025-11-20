@@ -924,3 +924,53 @@ def manipulate_n_realizations(cube: Cube, n_realizations: int) -> Cube:
         )
 
     return output
+
+
+def convert_aux_coord_to_ancillary_variable(
+    cube: Cube, auxiliary_coord_name: str, ancillary_var_name: str
+) -> Cube:
+    """
+    Given a Cube containing an auxiliary coordinate named in auxiliary_coord_name,
+    create a new Cube with the same data, but with the values from the auxiliary coordinate
+    stored as an ancillary variable as named in the ancillary_var_name.
+
+    Args:
+        cube: A cube with an auxiliary coordinate to convert.
+        auxiliary_coord_name: The name of the auxiliary coordinate to convert.
+        ancillary_var_name: The name of the ancillary variable to create.
+
+    Returns:
+        A cube with the named auxiliary coordinate converted to an ancillary variable
+        with the name specified in ancillary_var_name.
+
+    Raises:
+        ValueError: If the cube does not contain an auxiliary coordinate with the
+        name specified in auxiliary_coord_name.
+    """
+    all_aux_coords = cube.aux_coords
+    # Check if the auxiliary coordinate with the specified name exists.
+    relevant_aux_coords = [
+        c for c in all_aux_coords if auxiliary_coord_name == c.name()
+    ]
+    # If no such auxiliary coordinate exists then raise an error.
+    if not relevant_aux_coords:
+        msg = f"Input cube does not contain an auxiliary coordinate with name '{auxiliary_coord_name}'."
+        raise ValueError(msg)
+
+    aux_coord = cube.coord(auxiliary_coord_name)
+    relevant_dimensions = cube.coord_dims(aux_coord)
+
+    # Create an AncillaryVariable from the auxiliary coordinate.
+    ancillary_var = iris.coords.AncillaryVariable(
+        aux_coord.points,
+        standard_name=ancillary_var_name,
+        long_name=aux_coord.long_name,
+        var_name=aux_coord.var_name,
+        units=aux_coord.units,
+        attributes=aux_coord.attributes,
+    )
+    # Create a new Cube with the same data.
+    new_cube = cube.copy()
+    new_cube.remove_coord(aux_coord)
+    new_cube.add_ancillary_variable(ancillary_var, data_dims=relevant_dimensions)
+    return new_cube
