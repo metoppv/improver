@@ -21,6 +21,6 @@ build:
     post_create_environment:
       # Extract the actual branch name from git
       - export BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)
-      - echo "Detected branch name: $BRANCH_NAME"
+      - echo "Detected branch name - $BRANCH_NAME"
       # Try to install improver_example_data from matching branch, fall back to main
       - pip install git+https://github.com/metoppv/improver_example_data.git@${BRANCH_NAME} || pip install git+https://github.com/metoppv/improver_example_data.git@master
