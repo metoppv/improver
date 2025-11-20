@@ -18,8 +18,15 @@ build:
   tools:
     python: "mambaforge-latest"
   jobs:
-    post_create_environment:
+    pre_create_environment:
       # READTHEDOCS_GIT_IDENTIFIER contains the branch name for regular branch builds and tags,
-      # but contains the PR number for pull request builds. Try to install improver_example_data
-      # from matching branch/PR, fall back to master if not found.
-      - pip install git+https://github.com/metoppv/improver_example_data.git@${READTHEDOCS_GIT_IDENTIFIER} || pip install git+https://github.com/metoppv/improver_example_data.git@master
+      # but contains the PR number for pull request builds. Substitute BRANCH_NAME in the
+      # conda environment file, trying the matching branch/PR first, falling back to master.
+      - |
+        if git ls-remote --heads https://github.com/metoppv/improver_example_data.git ${READTHEDOCS_GIT_IDENTIFIER} | grep -q ${READTHEDOCS_GIT_IDENTIFIER}; then
+          BRANCH_NAME=${READTHEDOCS_GIT_IDENTIFIER}
+        else
+          BRANCH_NAME=master
+        fi
+        echo "Using improver_example_data branch: $BRANCH_NAME"
+        sed -i "s/\${BRANCH_NAME}/${BRANCH_NAME}/g" doc/rtd_environment.yml

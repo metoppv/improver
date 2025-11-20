@@ -19,3 +19,6 @@ dependencies:
   - sphinx-autodoc-typehints
   - sphinx-book-theme    
   - sphinx-gallery
+  - pip
+  - pip:
+    - git+https://github.com/metoppv/improver_example_data.git@${BRANCH_NAME}
