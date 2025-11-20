@@ -124,6 +124,8 @@ language = "en"
 # This patterns also effect to html_static_path and html_extra_path
 # The auto_examples directory is created by Sphinx Gallery. Only the .rst files
 # from this directory are needed for the build, so the rest are excluded.
+# GALLERY_HEADER.rst is excluded as it's processed by Sphinx-Gallery into
+# auto_examples/index.rst
 exclude_patterns = [
     "modules.rst",
     "extended_documentation",
@@ -131,12 +133,8 @@ exclude_patterns = [
     "auto_examples/*.py",
     "auto_examples/*.ipynb",
     "auto_examples/*.zip",
+    "examples/GALLERY_HEADER.rst",
 ]
-
-# Suppress warnings for duplicate labels between GALLERY_HEADER.rst and auto_examples/index.rst
-# Sphinx-Gallery copies the label from GALLERY_HEADER.rst to auto_examples/index.rst
-# Also suppress toctree warnings for GALLERY_HEADER.rst as it's used by Sphinx-Gallery
-suppress_warnings = ["ref.duplicate", "toc.not_included"]
 
 autodoc_mock_imports = ["numba"]
 
