@@ -133,6 +133,11 @@ exclude_patterns = [
     "auto_examples/*.zip",
 ]
 
+# Suppress warnings for duplicate labels between GALLERY_HEADER.rst and auto_examples/index.rst
+# Sphinx-Gallery copies the label from GALLERY_HEADER.rst to auto_examples/index.rst
+# Also suppress toctree warnings for GALLERY_HEADER.rst as it's used by Sphinx-Gallery
+suppress_warnings = ["ref.duplicate", "toc.not_included"]
+
 autodoc_mock_imports = ["numba"]
 
 # The reST default role (used for this markup: `text`) to use for all
