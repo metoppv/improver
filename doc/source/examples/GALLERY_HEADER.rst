@@ -1,4 +1,4 @@
-.. _gallery_examples:
+.. _improver_examples:
 
 Examples
 ========
@@ -15,13 +15,13 @@ descriptive name.
 
 2. Follow the format of existing examples like ``thresholding_simple_example.py``:
    
-   - Start with a docstring (triple quotes) containing a titl.. _gallery_examples:e with equals signs 
-   above and below
+   - Start with a docstring (triple quotes) containing a title with equals signs 
+     above and below
    - Add a description of what the example demonstrates
    - Include author and license information
    - Use ``# %%`` to separate code cells
    - Add comments or section headers (using ``# %%`` followed by description lines) 
-   to explain each step
+     to explain each step
 
 3. Alternatively, you can create a Jupyter notebook and convert it to a Sphinx-Gallery 
 compatible Python file using ``jupytext``::
@@ -35,7 +35,29 @@ compatible Python file using ``jupytext``::
    - Add it to this gallery
    - Create a downloadable Jupyter notebook version
 
-5. Build the documentation to see your example in the gallery. 
+5. Build the documentation to see your example in the gallery.
 
+Using Real Data in Examples
+----------------------------
 
+If you want to create examples that use real data files:
+
+1. Add the data files to the `improver_example_data repository <https://github.com/metoppv/improver_example_data>`_.
+
+2. Create a branch in the ``improver_example_data`` repository with your data files.
+
+3. Create a branch in this repository (``improver``) with the **same name** as the 
+   branch you created in ``improver_example_data``. This ensures that the documentation 
+   build process (including pull request previews) can access the correct version of the 
+   example data.
+
+4. In your example script, use the ``example_data_path()`` function to reference the 
+   data files::
+
+     from improver import example_data_path
+     
+     data_file = example_data_path("subdirectory", "filename.nc")
+
+5. When both pull requests are merged, the documentation will automatically use the 
+   example data from the ``master`` branch of ``improver_example_data``.
 

@@ -18,5 +18,9 @@ build:
   tools:
     python: "mambaforge-latest"
   jobs:
-    pre_create_environment:
-      - sed -i "s/BRANCH_NAME/${READTHEDOCS_VERSION}/g" doc/rtd_environment.yml
+    post_create_environment:
+      # Extract the actual branch name from git
+      - export BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)
+      - echo "Detected branch name: $BRANCH_NAME"
+      # Try to install improver_example_data from matching branch, fall back to main
+      - pip install git+https://github.com/metoppv/improver_example_data.git@${BRANCH_NAME} || pip install git+https://github.com/metoppv/improver_example_data.git@master
