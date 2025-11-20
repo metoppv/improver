@@ -11,6 +11,7 @@
    :maxdepth: 1
 
    auto_examples/index
+   adding_examples
 
 .. toctree::
    :caption: Developer Guide
