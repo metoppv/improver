@@ -19,8 +19,7 @@ build:
     python: "mambaforge-latest"
   jobs:
     post_create_environment:
-      # Extract the actual branch name from git
-      - export BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)
-      - echo "Detected branch name - $BRANCH_NAME"
-      # Try to install improver_example_data from matching branch, fall back to main
-      - pip install git+https://github.com/metoppv/improver_example_data.git@${BRANCH_NAME} || pip install git+https://github.com/metoppv/improver_example_data.git@master
+      # READTHEDOCS_GIT_IDENTIFIER contains the branch name for regular branch builds and tags,
+      # but contains the PR number for pull request builds. Try to install improver_example_data
+      # from matching branch/PR, fall back to master if not found.
+      - pip install git+https://github.com/metoppv/improver_example_data.git@${READTHEDOCS_GIT_IDENTIFIER} || pip install git+https://github.com/metoppv/improver_example_data.git@master

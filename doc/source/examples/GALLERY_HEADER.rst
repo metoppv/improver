@@ -46,10 +46,13 @@ If you want to create examples that use real data files:
 
 2. Create a branch in the ``improver_example_data`` repository with your data files.
 
-3. Create a branch in this repository (``improver``) with the **same name** as the 
-   branch you created in ``improver_example_data``. This ensures that the documentation 
-   build process (including pull request previews) can access the correct version of the 
-   example data.
+3. When creating a pull request in this repository (``improver``), note the PR number 
+   (e.g., ``123``). Create a branch in ``improver_example_data`` with the **same number** 
+   as the PR number (e.g., branch named ``123``). This ensures that the documentation 
+   build for the pull request preview can access the correct version of the example data.
+   
+   Alternatively, for local development, you can create matching branch names in both 
+   repositories instead of using PR numbers.
 
 4. In your example script, use the ``example_data_path()`` function to reference the 
    data files::
