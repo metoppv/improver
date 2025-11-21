@@ -87,8 +87,12 @@ def save_netcdf(
             the default fill value for the data type will be used. If the data is not masked then
             the numpy array's fill value will retain the default value while the _FillValue attribute
             in the NetCDF file will be updated.
+
     Raises:
-        warning if cubelist contains cubes of varying dimensions.
+        ValueError:
+            If compression_level is not between 0 and 9.
+        Warns:
+            If cubelist contains cubes of varying dimensions.
     """
     if isinstance(cubelist, iris.cube.Cube):
         cubelist = iris.cube.CubeList([cubelist])
@@ -100,7 +104,7 @@ def save_netcdf(
         _check_metadata(cube)
         # iris.fileformats.netcdf.save will add a new "least_significant_digit"
         # attribute, but will not update an existing attribute when saving with
-        # different precision.  Therefore we remove the "least_significant_digit"
+        # different precision. Therefore, we remove the "least_significant_digit"
         # attribute if present.
         cube.attributes.pop("least_significant_digit", None)
         _cube_attributes_for_save(cube)
