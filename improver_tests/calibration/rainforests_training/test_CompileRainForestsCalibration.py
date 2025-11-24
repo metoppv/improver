@@ -33,7 +33,7 @@ def test_process(rainforests_model_files, tmp_path):
 
     compiler = RainforestsCompiler(parallel_comp=8)
 
-    output_dir = Path(tmp_path) / 'compiled'
+    output_dir = Path(tmp_path) / "compiled"
     output_dir.mkdir(exist_ok=True)
 
     for model_file in rainforests_model_files:

@@ -25,9 +25,9 @@ class TrainRainForestsCalibration(BasePlugin):
 
         Args:
             training_data (pandas.DataFrame):
-                Combined data set used to train models
+                Combined data set used to train models.
             observation_column (str):
-                The column in the data set to be used
+                The column in the data set to be used.
             training_columns (List(str)):
                 Set of columns from the data set to be used as training data.
         """
@@ -35,19 +35,26 @@ class TrainRainForestsCalibration(BasePlugin):
         if not self.lightgbm_available:
             raise ModuleNotFoundError("Could not find LightGBM module")
 
+        expected_columns = training_columns + [observation_column]
+
+        # Check all specified columns exist in the data.
+        for col in expected_columns:
+            if col not in training_data:
+                raise KeyError(f"Column '{col}' not found in training data.")
+
+        # Check the observation column is not also a training column.
+        if observation_column in training_columns:
+            raise KeyError(
+                f"Observation column '{observation_column}' appears in training columns."
+            )
+
         self.observation_column = observation_column
         self.training_columns = training_columns
 
-        expected_columns = training_columns + [observation_column]
-        for col in expected_columns:
-            if col not in training_data:
-                raise KeyError(f"Column {col} not found in training data")
-
+        # Keep only the columns relevant for training.
         self.training_data = training_data[expected_columns]
 
-    def process(
-        self, threshold, output_path=None
-    ):
+    def process(self, threshold, output_path=None):
         """Train a model for a particular threshold.
 
         Args:
@@ -58,9 +65,9 @@ class TrainRainForestsCalibration(BasePlugin):
         """
         import lightgbm
 
-        threshold_met = (self.training_data[self.observation_column] >= threshold).astype(
-            int
-        )
+        threshold_met = (
+            self.training_data[self.observation_column] >= threshold
+        ).astype(int)
         dataset = lightgbm.Dataset(self.training_data, label=threshold_met)
 
         model = lightgbm.train(self.lightgbm_params, dataset)
