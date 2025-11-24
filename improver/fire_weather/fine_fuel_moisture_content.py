@@ -2,11 +2,12 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
+from typing import cast
+
 import numpy as np
 from iris.cube import Cube, CubeList
 
 from improver import BasePlugin
-from improver.utilities.common_input_handle import as_cubelist
 
 
 class FineFuelMoistureContent(BasePlugin):
@@ -34,13 +35,12 @@ class FineFuelMoistureContent(BasePlugin):
         are stored internally as Cube objects.
 
         Args:
-            cubes (Cube | CubeList): Input cubes containing the necessary data.
+            cubes (tuple[Cube] | CubeList): Input cubes containing the necessary data.
 
         Raises:
             ValueError: If the number of cubes does not match the expected
                 number.
         """
-        cubes = as_cubelist(*cubes)
         names_to_extract = [
             "air_temperature",
             "lwe_thickness_of_precipitation_amount",
@@ -60,7 +60,7 @@ class FineFuelMoistureContent(BasePlugin):
             self.relative_humidity,
             self.wind_speed,
             self.input_ffmc,
-        ) = tuple(CubeList(cubes).extract_cube(n) for n in names_to_extract)
+        ) = tuple(cast(Cube, CubeList(cubes).extract_cube(n)) for n in names_to_extract)
 
         # Ensure the cubes are set to the correct units
         self.temperature.convert_units("degC")
