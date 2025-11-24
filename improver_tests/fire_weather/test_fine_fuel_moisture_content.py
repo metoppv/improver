@@ -20,7 +20,10 @@ def make_cube(
     units: str,
     add_time_coord: bool = False,
 ) -> Cube:
-    """Create a dummy Iris Cube with specified data, name, units, and time coordinates.
+    """Create a dummy Iris Cube with specified data, name, units, and optional
+    time coordinates.
+
+    All cubes include a forecast_reference_time coordinate by default.
 
     Args:
         data (np.ndarray): The data array for the cube.
@@ -312,8 +315,10 @@ def test__perform_rainfall_adjustment(
     initial_mc_val: float,
     expected_mc: float,
 ) -> None:
-    """
-    Test _perform_rainfall_adjustment for all logical branches: no adjustment, adjustment1, adjustment2, cap at 250.
+    """Test _perform_rainfall_adjustment for various rainfall and moisture scenarios.
+
+    Tests include: no adjustment (precip <= 0.5), adjustment1 only (mc <= 150),
+    adjustment1 + adjustment2 (mc > 150), and capping at 250.
 
     Args:
         precip_val (float): Precipitation value for all grid points.
@@ -438,9 +443,10 @@ def test__calculate_moisture_content_through_drying_rate(
     E_d: np.ndarray,
     expected_output: np.ndarray,
 ) -> None:
-    """
-    Test _calculate_moisture_content_through_drying_rate for given relative humidity, wind speed, temperature, moisture content, and E_d.
-    Compares the output mask and moisture content to expected values.
+    """Test _calculate_moisture_content_through_drying_rate with various moisture scenarios.
+
+    Tests both the drying mask (where initial_moisture_content > E_d) and the calculated
+    moisture content values.
 
     Args:
         moisture_content (np.ndarray): Moisture content values for all grid points.
@@ -647,9 +653,11 @@ def test__calculate_ffmc_from_moisture_content(
     E_w: np.ndarray,
     expected_output: np.ndarray,
 ) -> None:
-    """
-    Test _calculate_ffmc_from_moisture_content for given arrays of moisture_content, E_d, and E_w.
-    Checks that the output matches the FFMC equation and has the correct structure.
+    """Test _calculate_ffmc_from_moisture_content with various moisture scenarios.
+
+    Tests the conditional replacement of moisture_content with initial_moisture_content
+    when values fall outside the range [E_w, E_d], and the subsequent FFMC calculation.
+
 
     Args:
         moisture_content (np.ndarray): Moisture content values for all grid points.
@@ -763,8 +771,10 @@ def test_process(
     ffmc_val: float,
     expected_output: float,
 ) -> None:
-    """
-    Test process for various input scenarios, providing explicit expected FFMC output values.
+    """Integration test for the complete FFMC calculation process.
+
+    Tests end-to-end functionality with various environmental conditions and
+    verifies the final FFMC output matches expected values.
 
     Args:
         temp_val (float): Temperature value for all grid points.

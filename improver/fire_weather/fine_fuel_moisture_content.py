@@ -15,11 +15,22 @@ class FineFuelMoistureContent(BasePlugin):
     Plugin to calculate the Fine Fuel Moisture Code (FFMC) following
     the Canadian Forest Fire Weather Index System.
 
+    The FFMC is a numerical rating of the moisture content of litter and other
+    fine fuels, representing the relative ease of ignition and flammability of fine fuel.
+    Values range from 0-101, with higher values indicating drier conditions.
+
     This process is adapted directly from:
         Equations and FORTRAN Program for the
         Canadian Forest Fire Weather Index System
         (C.E. Van Wagner and T.L. Pickett, 1985).
         Page 5, Equations 1-10.
+
+    Expected input units:
+        - Temperature: degrees Celsius
+        - Precipitation: mm (24-hour accumulation)
+        - Relative humidity: fraction (0-1)
+        - Wind speed: km/h
+        - Previous FFMC: dimensionless (0-101)
     """
 
     temperature: Cube
@@ -39,7 +50,7 @@ class FineFuelMoistureContent(BasePlugin):
 
         Raises:
             ValueError: If the number of cubes does not match the expected
-                number.
+                number (5).
         """
         names_to_extract = [
             "air_temperature",
@@ -84,7 +95,7 @@ class FineFuelMoistureContent(BasePlugin):
         self.moisture_content = self.initial_moisture_content.copy()
 
     def _perform_rainfall_adjustment(self):
-        """Updates the moisture content value based on available precipitaion
+        """Updates the moisture content value based on available precipitation
         accumulation data for the previous 24 hours. This is done element-wise
         for each grid point.
 
@@ -171,8 +182,11 @@ class FineFuelMoistureContent(BasePlugin):
             E_d (np.ndarray): The Equilibrium Moisture Content for the drying phase.
 
         Returns:
-            tuple[np.ndarray, np.ndarray]: The drying phase mask indicating where drying occurs, and
-                a moisture content array with drying applied everywhere.
+            tuple[np.ndarray, np.ndarray]:
+                - moisture_content_drying_mask: Boolean array indicating where drying occurs
+                    (where initial_moisture_content > E_d).
+                - new_moisture_content: Array of moisture content with drying applied at all
+                    grid points.
         """
         # Equation 6a: Calculate the log drying rate intermediate step
         k_o = 0.424 * (
@@ -225,8 +239,11 @@ class FineFuelMoistureContent(BasePlugin):
             E_w (np.ndarray): The Equilibrium Moisture Content for the wetting phase.
 
         Returns:
-            tuple[np.ndarray, np.ndarray]: The wetting phase mask indicating where wetting occurs, and
-                a moisture content array with wetting applied everywhere.
+            tuple[np.ndarray, np.ndarray]:
+                - moisture_content_wetting_mask: Boolean array indicating where wetting occurs
+                    (where initial_moisture_content < E_w).
+                - new_moisture_content: Array of moisture content with wetting applied at all
+                    grid points.
         """
         # Equation 7a: Calculate the log wetting rate intermediate step
         k_l = 0.424 * (
@@ -248,7 +265,8 @@ class FineFuelMoistureContent(BasePlugin):
 
     def _calculate_ffmc_from_moisture_content(self, E_d, E_w) -> np.ndarray:
         """Calculates the Fine Fuel Moisture Content (FFMC) from the moisture
-        content.
+        content. Replaces moisture_content with initial_moisture_content where
+        the current moisture content is outside the range [E_w, E_d].
 
         From Van Wagner and Pickett (1985), Page 5: Equation 10, Steps 8 and 9.
 
@@ -275,13 +293,15 @@ class FineFuelMoistureContent(BasePlugin):
     def _make_ffmc_cube(self, ffmc_data: np.ndarray) -> Cube:
         """Converts an FFMC data array into an iris.cube.Cube object
         with relevant metadata copied from the input FFMC cube, and updated
-        time attributes.
+        time coordinates from the precipitation cube. Time bounds are
+        removed from the output.
 
         Args:
             ffmc_data (np.ndarray): The FFMC data
 
         Returns:
-            Cube: An iris.cube.Cube containing the FFMC data.
+            Cube: An iris.cube.Cube containing the FFMC data with updated
+                metadata and coordinates.
         """
         ffmc_cube = self.input_ffmc.copy(data=ffmc_data.astype(np.float32))
 
@@ -305,14 +325,17 @@ class FineFuelMoistureContent(BasePlugin):
 
         Args:
             cubes (Cube | CubeList): Input cubes containing:
-                - Temperature
-                - Precipitation accumulation over the previous 24 hours.
-                - Relative humidity
-                - Wind speed
-                - Previous day's FFMC value.
+                - air_temperature: Temperature in degrees Celsius
+                - lwe_thickness_of_precipitation_amount: 24-hour
+                    precipitation in mm
+                - relative_humidity: Relative humidity as fraction
+                    (0-1)
+                - wind_speed: Wind speed in km/h
+                - fine_fuel_moisture_content: Previous day's FFMC
+                    value
 
         Returns:
-            Cube: A Cube of calculated FFMC values.
+            Cube: The calculated FFMC values for the current day.
         """
         self.load_input_cubes(cubes)
 
