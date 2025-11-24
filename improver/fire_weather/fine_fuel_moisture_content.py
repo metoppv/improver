@@ -21,9 +21,17 @@ class FineFuelMoistureContent(BasePlugin):
         Page 5, Equations 1-10.
     """
 
+    temperature: Cube
+    precipitation: Cube
+    relative_humidity: Cube
+    wind_speed: Cube
+    input_ffmc: Cube
+    initial_moisture_content: np.ndarray
+    moisture_content: np.ndarray
+
     def load_input_cubes(self, cubes: tuple[Cube] | CubeList):
         """Loads the required input cubes for the FFMC calculation. These
-        are stored internally as numpy arrays for processing.
+        are stored internally as Cube objects.
 
         Args:
             cubes (Cube | CubeList): Input cubes containing the necessary data.
@@ -32,8 +40,6 @@ class FineFuelMoistureContent(BasePlugin):
             ValueError: If the number of cubes does not match the expected
                 number.
         """
-        # ! Can we allow anything other than a cube here?
-        # ? Should we?
         cubes = as_cubelist(*cubes)
         names_to_extract = [
             "air_temperature",
@@ -59,17 +65,9 @@ class FineFuelMoistureContent(BasePlugin):
         # Ensure the cubes are set to the correct units
         self.temperature.convert_units("degC")
         self.precipitation.convert_units("mm")
-        self.relative_humidity.convert_units(1)
+        self.relative_humidity.convert_units("1")
         self.wind_speed.convert_units("km/h")
-        self.input_ffmc.convert_units(1)
-
-        # ! Remove this, change references elsewhere to .data
-        # Convert all inputted cubes to their data values for processing
-        self.temperature = self.temperature.data
-        self.precipitation = self.precipitation.data
-        self.relative_humidity = self.relative_humidity.data
-        self.wind_speed = self.wind_speed.data
-        self.input_ffmc = self.input_ffmc.data
+        self.input_ffmc.convert_units("1")
 
     def _calculate_moisture_content(self):
         """Calculates the previous day's moisture content for a given input value
@@ -80,7 +78,7 @@ class FineFuelMoistureContent(BasePlugin):
         """
         # Steps 1 & 2: Calculate the previous day's moisture content
         self.initial_moisture_content = (
-            147.2 * (101.0 - self.input_ffmc) / (59.5 + self.input_ffmc)
+            147.2 * (101.0 - self.input_ffmc.data) / (59.5 + self.input_ffmc.data)
         )
         # Initialise today's moisture content to the previous day's value
         self.moisture_content = self.initial_moisture_content.copy()
@@ -94,10 +92,10 @@ class FineFuelMoistureContent(BasePlugin):
         and Steps 3a, 3b, 3c.
         """
         # Step 3a: Check where precipitation > 0.5
-        precip_mask = self.precipitation > 0.5
+        precip_mask = self.precipitation.data > 0.5
         # Equation 2: Set the rainfall value, adjusted for the threshold but
         # bounded to >= 0.0 to avoid negative values where the measurement is close
-        r_f = self.precipitation.copy() - 0.5
+        r_f = self.precipitation.data.copy() - 0.5
         r_f = np.maximum(r_f, 0.0)
         # Set values to np.nan where precipitation <= 0.5 to avoid unnecessary calculations
         r_f = np.where(precip_mask, r_f, np.nan)
@@ -140,29 +138,29 @@ class FineFuelMoistureContent(BasePlugin):
         mask_gt_250 = np.logical_and(precip_mask, self.moisture_content > 250.0)
         self.moisture_content = np.where(mask_gt_250, 250.0, self.moisture_content)
 
-    def _calculate_EMC_for_drying_phase(self) -> Cube:
+    def _calculate_EMC_for_drying_phase(self) -> np.ndarray:
         """Calculates the Equilibrium Moisture Content (EMC) for the drying phase
         under current environmental conditions (relative humidity, and temperature)
 
         From Van Wagner and Pickett (1985), Page 5: Equation 4, and Step 4.
 
         Returns:
-            Cube: The drying phase value.
+            np.ndarray: The drying phase value.
         """
         # Equation 4: Calculate EMC for drying phase (E_d)
         E_d = (
-            0.942 * self.relative_humidity**0.679
-            + 11 * np.exp((self.relative_humidity - 100) / 10)
+            0.942 * self.relative_humidity.data**0.679
+            + 11 * np.exp((self.relative_humidity.data - 100) / 10)
             + 0.18
-            * (21.1 - self.temperature)
-            * (1 - np.exp(-0.115 * self.relative_humidity))
+            * (21.1 - self.temperature.data)
+            * (1 - np.exp(-0.115 * self.relative_humidity.data))
         )
         return E_d
 
     def _calculate_moisture_content_through_drying_rate(
         self,
-        E_d: Cube,
-    ) -> tuple[Cube, Cube]:
+        E_d: np.ndarray,
+    ) -> tuple[np.ndarray, np.ndarray]:
         """Calculates the moisture content through the drying rate. The returned values
         the updated moisture content, applied across the whole data set, and a mask showing
         where these values should be applied.
@@ -170,19 +168,21 @@ class FineFuelMoistureContent(BasePlugin):
         From Van Wagner and Pickett (1985), Page 5: Equations 6a, 6b, 8, and Steps 5a, 5b.
 
         Args:
-            E_d (Cube): The Equilibrium Moisture Content for the drying phase.
+            E_d (np.ndarray): The Equilibrium Moisture Content for the drying phase.
 
         Returns:
-            tuple[Cube, Cube]: The drying phase mask indicating where drying occurs, and
-                a moisture content cube with drying applied everywhere.
+            tuple[np.ndarray, np.ndarray]: The drying phase mask indicating where drying occurs, and
+                a moisture content array with drying applied everywhere.
         """
         # Equation 6a: Calculate the log drying rate intermediate step
-        k_o = 0.424 * (1 - (self.relative_humidity / 100.0) ** 1.7) + 0.0694 * np.sqrt(
-            self.wind_speed
-        ) * (1 - (self.relative_humidity / 100.0) ** 8)
+        k_o = 0.424 * (
+            1 - (self.relative_humidity.data / 100.0) ** 1.7
+        ) + 0.0694 * np.sqrt(self.wind_speed.data) * (
+            1 - (self.relative_humidity.data / 100.0) ** 8
+        )
 
         # Equation 6b: Calculate the log drying rate
-        k_d = k_o * 0.581 * np.exp(0.0365 * self.temperature)
+        k_d = k_o * 0.581 * np.exp(0.0365 * self.temperature.data)
 
         # Equation 8: Calculate the new moisture content via drying
         new_moisture_content = E_d + (self.moisture_content - E_d) * 10 ** (-k_d)
@@ -192,29 +192,29 @@ class FineFuelMoistureContent(BasePlugin):
 
         return moisture_content_drying_mask, new_moisture_content
 
-    def _calculate_EMC_for_wetting_phase(self) -> Cube:
+    def _calculate_EMC_for_wetting_phase(self) -> np.ndarray:
         """Calculates the Equilibrium Moisture Content (EMC) for the wetting phase
         under current environmental conditions (relative humidity, and temperature)
 
         From Van Wagner and Pickett (1985), Page 5: Equation 5, and Step 6.
 
         Returns:
-            Cube: The Equilibrium Moisture Content for the wetting phase.
+            np.ndarray: The Equilibrium Moisture Content for the wetting phase.
         """
         # Equation 5: Calculate the EMC for the wetting phase (E_w)
         E_w = (
-            0.618 * self.relative_humidity**0.753
-            + 10.0 * np.exp((self.relative_humidity - 100.0) / 10.0)
+            0.618 * self.relative_humidity.data**0.753
+            + 10.0 * np.exp((self.relative_humidity.data - 100.0) / 10.0)
             + 0.18
-            * (21.1 - self.temperature)
-            * (1 - np.exp(-0.115 * self.relative_humidity))
+            * (21.1 - self.temperature.data)
+            * (1 - np.exp(-0.115 * self.relative_humidity.data))
         )
         return E_w
 
     def _calculate_moisture_content_through_wetting_equilibrium(
         self,
-        E_w: Cube,
-    ) -> tuple[Cube, Cube]:
+        E_w: np.ndarray,
+    ) -> tuple[np.ndarray, np.ndarray]:
         """Calculates the moisture content through the wetting equilibrium. The returned
         values the updated moisture content, applied across the whole data set, and a mask
         showing where these values should be applied.
@@ -222,21 +222,21 @@ class FineFuelMoistureContent(BasePlugin):
         From Van Wagner and Pickett (1985), Page 5: Equations 7a, 7b, 9, and Steps 7a, 7b.
 
         Args:
-            E_w (Cube): The Equilibrium Moisture Content for the wetting phase.
+            E_w (np.ndarray): The Equilibrium Moisture Content for the wetting phase.
 
         Returns:
-            tuple[Cube, Cube]: The wetting phase mask indicating where wetting occurs, and
-                a moisture content cube with wetting applied everywhere.
+            tuple[np.ndarray, np.ndarray]: The wetting phase mask indicating where wetting occurs, and
+                a moisture content array with wetting applied everywhere.
         """
         # Equation 7a: Calculate the log wetting rate intermediate step
         k_l = 0.424 * (
-            1 - ((100.0 - self.relative_humidity) / 100.0) ** 1.7
-        ) + 0.0694 * np.sqrt(self.wind_speed) * (
-            1 - ((100.0 - self.relative_humidity) / 100.0) ** 8
+            1 - ((100.0 - self.relative_humidity.data) / 100.0) ** 1.7
+        ) + 0.0694 * np.sqrt(self.wind_speed.data) * (
+            1 - ((100.0 - self.relative_humidity.data) / 100.0) ** 8
         )
 
         # Equation 7b: Calculate the log wetting rate intermediate step
-        k_w = k_l * 0.581 * np.exp(0.0365 * self.temperature)
+        k_w = k_l * 0.581 * np.exp(0.0365 * self.temperature.data)
 
         # Equation 9: Calculate the new moisture content via wetting
         new_moisture_content = E_w - (E_w - self.moisture_content) * 10 ** (-k_w)
@@ -246,18 +246,18 @@ class FineFuelMoistureContent(BasePlugin):
 
         return moisture_content_wetting_mask, new_moisture_content
 
-    def _calculate_ffmc_from_moisture_content(self, E_d, E_w) -> Cube:
+    def _calculate_ffmc_from_moisture_content(self, E_d, E_w) -> np.ndarray:
         """Calculates the Fine Fuel Moisture Content (FFMC) from the moisture
         content.
 
         From Van Wagner and Pickett (1985), Page 5: Equation 10, Steps 8 and 9.
 
         Args:
-            E_d (Cube): The current drying phase values.
-            E_w (Cube): The current wetting phase values.
+            E_d (np.ndarray): The current drying phase values.
+            E_w (np.ndarray): The current wetting phase values.
 
         Returns:
-            Cube: The calculated FFMC value.
+            np.ndarray: The calculated FFMC value.
         """
         # Step 8: Replace previous day's moisture content where the moisture content has changed by a significant amount
         condition_mask = np.logical_and(
@@ -272,7 +272,7 @@ class FineFuelMoistureContent(BasePlugin):
         ffmc = 59.5 * (250.0 - self.moisture_content) / (147.2 + self.moisture_content)
         return ffmc
 
-    def make_ffmc_cube(self, ffmc_data: np.ndarray) -> Cube:
+    def _make_ffmc_cube(self, ffmc_data: np.ndarray) -> Cube:
         """Converts an FFMC data array into an iris.cube.Cube object
         with relevant metadata copied from the input FFMC cube, and updated
         time attributes.
@@ -283,11 +283,13 @@ class FineFuelMoistureContent(BasePlugin):
         Returns:
             Cube: An iris.cube.Cube containing the FFMC data.
         """
-        ffmc_cube = self.input_ffmc.copy(ffmc_data.astype(np.float32))
+        ffmc_cube = self.input_ffmc.copy(data=ffmc_data.astype(np.float32))
 
-        ffmc_cube.update_coord(self.precipitation.coord("forecast_reference_time"))
+        # Update forecast_reference_time from precipitation cube
+        frt_coord = self.precipitation.coord("forecast_reference_time").copy()
+        ffmc_cube.replace_coord(frt_coord)
 
-        # Sort time coords
+        # Update time coordinate from precipitation cube (without bounds)
         time_coord = self.precipitation.coord("time").copy()
         time_coord.bounds = None
         ffmc_cube.replace_coord(time_coord)
@@ -346,6 +348,6 @@ class FineFuelMoistureContent(BasePlugin):
         output_ffmc = self._calculate_ffmc_from_moisture_content(E_d, E_w)
 
         # Convert FFMC data to a cube and return
-        ffmc_cube = self.make_ffmc_cube(output_ffmc)
+        ffmc_cube = self._make_ffmc_cube(output_ffmc)
 
         return ffmc_cube

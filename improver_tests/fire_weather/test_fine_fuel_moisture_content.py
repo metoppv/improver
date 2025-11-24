@@ -118,9 +118,9 @@ def test_load_input_cubes(
     input_values = [temp_val, precip_val, rh_val, wind_val, ffmc_val]
 
     for attr, val in zip(attributes, input_values):
-        assert isinstance(attr, np.ndarray)
-        assert attr.shape == (5, 5)
-        assert np.allclose(attr, val)
+        assert isinstance(attr, Cube)
+        assert attr.data.shape == (5, 5)
+        assert np.allclose(attr.data, val)
 
 
 @pytest.mark.parametrize(
@@ -173,7 +173,7 @@ def test_load_input_cubes_unit_conversion(
     plugin.load_input_cubes(CubeList(cubes))
     # Check only the parameter being tested
     result = getattr(plugin, param)
-    assert np.allclose(result, expected_val)
+    assert np.allclose(result.data, expected_val)
 
 
 @pytest.mark.parametrize(
@@ -273,9 +273,9 @@ def test__perform_rainfall_adjustment(
     plugin = FineFuelMoistureContent()
     plugin.load_input_cubes(CubeList(cubes))
     # Overwrite moisture_content and initial_moisture_content for explicit test control
-    plugin.moisture_content = np.full(plugin.precipitation.shape, initial_mc_val)
+    plugin.moisture_content = np.full(plugin.precipitation.data.shape, initial_mc_val)
     plugin.initial_moisture_content = np.full(
-        plugin.precipitation.shape, initial_mc_val
+        plugin.precipitation.data.shape, initial_mc_val
     )
     plugin._perform_rainfall_adjustment()
     adjusted_mc = plugin.moisture_content
@@ -302,7 +302,8 @@ def test__calculate_EMC_for_drying_phase(
     expected_E_d: float,
 ) -> None:
     """
-    Test _calculate_EMC_for_drying_phase for given temperature and relative humidity, comparing to expected E_d value.
+    Test _calculate_EMC_for_drying_phase for given temperature and relative humidity,
+    comparing to expected E_d value.
 
     Args:
         temp_val (float): Temperature value for all grid points.
@@ -399,9 +400,15 @@ def test__calculate_moisture_content_through_drying_rate(
     plugin = FineFuelMoistureContent()
     plugin.initial_moisture_content = moisture_content.copy()
     plugin.moisture_content = moisture_content.copy()
-    plugin.relative_humidity = np.full(moisture_content.shape, relative_humidity)
-    plugin.wind_speed = np.full(moisture_content.shape, wind_speed)
-    plugin.temperature = np.full(moisture_content.shape, temperature)
+    plugin.relative_humidity = make_cube(
+        np.full(moisture_content.shape, relative_humidity), "relative_humidity", "1"
+    )
+    plugin.wind_speed = make_cube(
+        np.full(moisture_content.shape, wind_speed), "wind_speed", "km/h"
+    )
+    plugin.temperature = make_cube(
+        np.full(moisture_content.shape, temperature), "air_temperature", "degC"
+    )
 
     expected_mask = moisture_content > E_d
 
@@ -527,9 +534,15 @@ def test__calculate_moisture_content_through_wetting_equilibrium(
     plugin = FineFuelMoistureContent()
     plugin.initial_moisture_content = moisture_content.copy()
     plugin.moisture_content = moisture_content.copy()
-    plugin.relative_humidity = np.full(moisture_content.shape, relative_humidity)
-    plugin.wind_speed = np.full(moisture_content.shape, wind_speed)
-    plugin.temperature = np.full(moisture_content.shape, temperature)
+    plugin.relative_humidity = make_cube(
+        np.full(moisture_content.shape, relative_humidity), "relative_humidity", "1"
+    )
+    plugin.wind_speed = make_cube(
+        np.full(moisture_content.shape, wind_speed), "wind_speed", "km/h"
+    )
+    plugin.temperature = make_cube(
+        np.full(moisture_content.shape, temperature), "air_temperature", "degC"
+    )
 
     expected_mask = moisture_content < E_w
 
@@ -603,6 +616,133 @@ def test__calculate_ffmc_from_moisture_content(
 
 
 @pytest.mark.parametrize(
+    "ffmc_value, shape, frt_datetime, valid_datetime, has_time_bounds",
+    [
+        # Case 0: Typical mid-range FFMC value with standard grid and time bounds
+        (87.5, (5, 5), (2023, 11, 18, 0, 0), (2023, 11, 19, 12, 0), True),
+        # Case 1: Low FFMC value with different grid size
+        (60.0, (3, 4), (2024, 1, 1, 0, 0), (2024, 1, 2, 0, 0), True),
+        # Case 2: High FFMC value with larger grid
+        (95.0, (10, 10), (2023, 6, 15, 12, 0), (2023, 6, 16, 12, 0), True),
+        # Case 3: Zero FFMC (edge case) with no time bounds
+        (0.0, (2, 2), (2023, 12, 1, 0, 0), (2023, 12, 2, 6, 0), False),
+        # Case 4: Maximum typical FFMC value
+        (101.0, (5, 5), (2023, 3, 10, 6, 0), (2023, 3, 11, 18, 0), True),
+    ],
+)
+def test__make_ffmc_cube(
+    ffmc_value: float,
+    shape: tuple[int, int],
+    frt_datetime: tuple[int, int, int, int, int],
+    valid_datetime: tuple[int, int, int, int, int],
+    has_time_bounds: bool,
+) -> None:
+    """
+    Test _make_ffmc_cube to ensure it creates an Iris Cube with correct properties
+    for various input scenarios.
+
+    Args:
+        ffmc_value (float): FFMC data value to use for all grid points.
+        shape (tuple[int, int]): Shape of the grid.
+        frt_datetime (tuple): Forecast reference time as (year, month, day, hour, minute).
+        valid_datetime (tuple): Valid time as (year, month, day, hour, minute).
+        has_time_bounds (bool): Whether the time coordinate should have bounds.
+
+    Raises:
+        AssertionError: If the created cube does not have expected properties.
+    """
+    from datetime import datetime
+
+    from cf_units import Unit
+    from iris.coords import AuxCoord, DimCoord
+
+    # Create input cubes with specified shape
+    cubes = input_cubes(shape=shape)
+
+    # Add time coordinates to the precipitation cube (used as reference in _make_ffmc_cube)
+    time_origin = "hours since 1970-01-01 00:00:00"
+    calendar = "gregorian"
+
+    # Set up forecast_reference_time
+    frt = datetime(*frt_datetime)
+    frt_coord = AuxCoord(
+        np.array([frt.timestamp() / 3600], dtype=np.float64),
+        standard_name="forecast_reference_time",
+        units=Unit(time_origin, calendar=calendar),
+    )
+
+    # Set up time coordinate
+    valid_time = datetime(*valid_datetime)
+    time_bounds = None
+    if has_time_bounds:
+        time_bounds = np.array(
+            [
+                [
+                    (valid_time.timestamp() - 43200) / 3600,  # 12 hours earlier
+                    valid_time.timestamp() / 3600,
+                ]
+            ],
+            dtype=np.float64,
+        )
+
+    time_coord = DimCoord(
+        np.array([valid_time.timestamp() / 3600], dtype=np.float64),
+        standard_name="time",
+        bounds=time_bounds,
+        units=Unit(time_origin, calendar=calendar),
+    )
+
+    # Add coordinates to precipitation cube
+    for cube in cubes:
+        if cube.long_name == "lwe_thickness_of_precipitation_amount":
+            cube.add_aux_coord(frt_coord)
+            cube.add_aux_coord(time_coord)
+
+    # Initialize the plugin and load cubes
+    plugin = FineFuelMoistureContent()
+    plugin.load_input_cubes(CubeList(cubes))
+
+    # Create test FFMC data
+    ffmc_data = np.full(shape, ffmc_value, dtype=np.float64)
+
+    # Call the method under test
+    result_cube = plugin._make_ffmc_cube(ffmc_data)
+
+    # Test 1: Check that result is an Iris Cube
+    assert isinstance(result_cube, Cube)
+
+    # Test 2: Check data type and values
+    assert result_cube.data.dtype == np.float32
+    assert result_cube.data.shape == shape
+    assert np.allclose(result_cube.data, ffmc_value, atol=0.001)
+
+    # Test 3: Check that the cube has the correct name and units
+    assert result_cube.long_name == "fine_fuel_moisture_content"
+    assert result_cube.units == "1"
+
+    # Test 4: Check that forecast_reference_time is updated from precipitation cube
+    assert result_cube.coords("forecast_reference_time")
+    result_frt = result_cube.coord("forecast_reference_time")
+    expected_frt = plugin.precipitation.coord("forecast_reference_time")
+    assert result_frt.points[0] == expected_frt.points[0]
+    assert result_frt.units == expected_frt.units
+
+    # Test 5: Check that time coordinate is updated from precipitation cube
+    assert result_cube.coords("time")
+    result_time = result_cube.coord("time")
+    expected_time = plugin.precipitation.coord("time")
+    assert result_time.points[0] == expected_time.points[0]
+    assert result_time.units == expected_time.units
+
+    # Test 6: Check that time coordinate has no bounds (set to None in the method)
+    assert result_time.bounds is None
+
+    # Test 7: Verify metadata is copied from input_ffmc
+    assert result_cube.long_name == plugin.input_ffmc.long_name
+    assert result_cube.units == plugin.input_ffmc.units
+
+
+@pytest.mark.parametrize(
     "temp_val, precip_val, rh_val, wind_val, ffmc_val, expected_output",
     [
         # Case 0: Typical mid-range values
@@ -641,7 +781,7 @@ def test_process(
     """
     cubes = input_cubes(temp_val, precip_val, rh_val, wind_val, ffmc_val)
     plugin = FineFuelMoistureContent()
-    result = plugin.process(*cubes)
+    result = plugin.process(CubeList(cubes))
     # Check output type and shape
     assert hasattr(result, "data")
     assert result.data.shape == cubes[0].data.shape
