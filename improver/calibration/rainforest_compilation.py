@@ -14,8 +14,8 @@ LIGHTGBM_EXTENSION = ".txt"
 TREELITE_EXTENSION = ".so"
 
 
-class RainforestsCompiler(BasePlugin):
-    """Class to compile Rainforests tree models"""
+class CompileRainForestsModel(BasePlugin):
+    """Class to compile RainForests tree models"""
 
     def __init__(self, toolchain="gcc", verbose=False, parallel_comp=0):
         """Initialise the options used when compiling models.

@@ -8,30 +8,30 @@ from pathlib import Path
 import pytest
 
 from improver.calibration.rainforest_compiler import (
-    RainforestsCompiler,
+    CompileRainForestsModel,
 )
 
 tl2cgen = pytest.importorskip("tl2cgen")
 treelite = pytest.importorskip("treelite")
 
 
-def test__init__(treelite_available, tmp_path):
+def test__init__(treelite_available):
     """Test class is created if treelight libraries are available.
     Test class is not created if treelight libraries not available."""
 
     if treelite_available:
-        expected_class = "RainforestsCompiler"
-        result = RainforestsCompiler()
+        expected_class = "CompileRainForestsModel"
+        result = CompileRainForestsModel()
         assert type(result).__name__ == expected_class
     else:
         with pytest.raises(ModuleNotFoundError):
-            result = RainforestsCompiler()
+            result = CompileRainForestsModel()
 
 
 def test_process(rainforests_model_files, tmp_path):
     """Test models are compiled."""
 
-    compiler = RainforestsCompiler(parallel_comp=8)
+    compiler = CompileRainForestsModel(parallel_comp=8)
 
     output_dir = Path(tmp_path) / "compiled"
     output_dir.mkdir(exist_ok=True)

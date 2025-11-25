@@ -11,7 +11,7 @@ from improver.calibration import (
 )
 
 
-class TrainRainForestsCalibration(BasePlugin):
+class TrainRainForestsModel(BasePlugin):
     lightgbm_params = {
         "objective": "binary",
         "num_leaves": 5,
@@ -27,9 +27,9 @@ class TrainRainForestsCalibration(BasePlugin):
             training_data (pandas.DataFrame):
                 Combined data set used to train models.
             observation_column (str):
-                The column in the data set to be used.
+                The column in the data set to be trained for.
             training_columns (List(str)):
-                Set of columns from the data set to be used as training data.
+                Set of columns from the data set to be trained from.
         """
         self.lightgbm_available = lightgbm_package_available()
         if not self.lightgbm_available:
@@ -45,7 +45,7 @@ class TrainRainForestsCalibration(BasePlugin):
         # Check the observation column is not also a training column.
         if observation_column in training_columns:
             raise KeyError(
-                f"Observation column '{observation_column}' appears in training columns."
+                f"Observation column '{observation_column}' appears in training data."
             )
 
         self.observation_column = observation_column
@@ -54,14 +54,14 @@ class TrainRainForestsCalibration(BasePlugin):
         # Keep only the columns relevant for training.
         self.training_data = training_data[expected_columns]
 
-    def process(self, threshold, output_path=None):
+    def process(self, threshold, output_path):
         """Train a model for a particular threshold.
 
         Args:
             threshold (float):
                 Threshold for which the observation column is trained.
             output_path (str or Path):
-                If provided, the model will be exported to this file path.
+                The model will be exported to this file path.
         """
         import lightgbm
 
@@ -71,7 +71,5 @@ class TrainRainForestsCalibration(BasePlugin):
         dataset = lightgbm.Dataset(self.training_data, label=threshold_met)
 
         model = lightgbm.train(self.lightgbm_params, dataset)
-        if output_path:
-            model.save_model(output_path)
 
-        return model.model_to_string()
+        model.save_model(output_path)

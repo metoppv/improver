@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from improver.calibration.rainforest_training import (
-    TrainRainForestsCalibration,
+    TrainRainForestsModel,
 )
 
 lightgbm = pytest.importorskip("lightgbm")
@@ -21,14 +21,14 @@ def test__init__lightgmb_available(lightgbm_available, deterministic_training_da
     training_data, observation_column, training_columns = deterministic_training_data
 
     if lightgbm_available:
-        expected_class = "TrainRainForestsCalibration"
-        result = TrainRainForestsCalibration(
+        expected_class = "TrainRainForestsModel"
+        result = TrainRainForestsModel(
             training_data, observation_column, training_columns
         )
         assert type(result).__name__ == expected_class
     else:
         with pytest.raises(ModuleNotFoundError):
-            result = TrainRainForestsCalibration(
+            result = TrainRainForestsModel(
                 training_data, observation_column, training_columns
             )
 
@@ -37,7 +37,7 @@ def test__init__(deterministic_training_data):
     """Test class is created with training data."""
     training_data, observation_column, training_columns = deterministic_training_data
 
-    result = TrainRainForestsCalibration(
+    result = TrainRainForestsModel(
         training_data, observation_column, training_columns
     )
     assert result.training_columns == training_columns
@@ -51,7 +51,7 @@ def test__init__missing_obs_column(deterministic_training_data):
     dummy_obs_column = "dummy_obs_column"
 
     with pytest.raises(KeyError) as e:
-        TrainRainForestsCalibration(training_data, dummy_obs_column, training_columns)
+        TrainRainForestsModel(training_data, dummy_obs_column, training_columns)
     assert dummy_obs_column in str(e)
 
 
@@ -63,7 +63,7 @@ def test__init__missing_train_column(deterministic_training_data):
     training_columns.append(dummy_train_column)
 
     with pytest.raises(KeyError) as e:
-        TrainRainForestsCalibration(training_data, observation_column, training_columns)
+        TrainRainForestsModel(training_data, observation_column, training_columns)
     assert dummy_train_column in str(e)
 
 
@@ -74,30 +74,16 @@ def test__init__obs_column_is_train_column(deterministic_training_data):
     dummy_obs_column = training_columns[2]
 
     with pytest.raises(KeyError) as e:
-        TrainRainForestsCalibration(training_data, dummy_obs_column, training_columns)
+        TrainRainForestsModel(training_data, dummy_obs_column, training_columns)
         assert dummy_obs_column not in str(e)
 
 
-def test_process(thresholds, deterministic_training_data):
-    """Test lightgbm models are created."""
-
-    training_data, observation_column, training_columns = deterministic_training_data
-
-    threshold = thresholds[0]
-
-    trainer = TrainRainForestsCalibration(
-        training_data, observation_column, training_columns
-    )
-    result = trainer.process(threshold)
-    assert isinstance(result, str)
-
-
-def test_process_with_path(thresholds, deterministic_training_data, tmp_path):
+def test_process(thresholds, deterministic_training_data, tmp_path):
     """Test lightgbm models are created at specified path."""
 
     training_data, observation_column, training_columns = deterministic_training_data
 
-    trainer = TrainRainForestsCalibration(
+    trainer = TrainRainForestsModel(
         training_data, observation_column, training_columns
     )
 
