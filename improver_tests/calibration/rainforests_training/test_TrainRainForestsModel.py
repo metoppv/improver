@@ -37,9 +37,7 @@ def test__init__(deterministic_training_data):
     """Test class is created with training data."""
     training_data, observation_column, training_columns = deterministic_training_data
 
-    result = TrainRainForestsModel(
-        training_data, observation_column, training_columns
-    )
+    result = TrainRainForestsModel(training_data, observation_column, training_columns)
     assert result.training_columns == training_columns
     assert result.observation_column == observation_column
 
@@ -83,9 +81,7 @@ def test_process(thresholds, deterministic_training_data, tmp_path):
 
     training_data, observation_column, training_columns = deterministic_training_data
 
-    trainer = TrainRainForestsModel(
-        training_data, observation_column, training_columns
-    )
+    trainer = TrainRainForestsModel(training_data, observation_column, training_columns)
 
     result_path = tmp_path / "output.txt"
 

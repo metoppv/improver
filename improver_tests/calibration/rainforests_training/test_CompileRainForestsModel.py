@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from improver.calibration.rainforest_compiler import (
+from improver.calibration.rainforest_compilation import (
     CompileRainForestsModel,
 )
 
