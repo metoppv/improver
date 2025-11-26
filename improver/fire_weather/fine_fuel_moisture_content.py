@@ -28,7 +28,7 @@ class FineFuelMoistureContent(BasePlugin):
     Expected input units:
         - Temperature: degrees Celsius
         - Precipitation: mm (24-hour accumulation)
-        - Relative humidity: fraction (0-1)
+        - Relative humidity: percentage (0-100)
         - Wind speed: km/h
         - Previous FFMC: dimensionless (0-101)
     """
@@ -171,22 +171,16 @@ class FineFuelMoistureContent(BasePlugin):
     def _calculate_moisture_content_through_drying_rate(
         self,
         E_d: np.ndarray,
-    ) -> tuple[np.ndarray, np.ndarray]:
-        """Calculates the moisture content through the drying rate. The returned values
-        the updated moisture content, applied across the whole data set, and a mask showing
-        where these values should be applied.
+    ) -> np.ndarray:
+        """Calculates the moisture content through the drying rate.
 
-        From Van Wagner and Pickett (1985), Page 5: Equations 6a, 6b, 8, and Steps 5a, 5b.
+        From Van Wagner and Pickett (1985), Page 5: Equations 6a, 6b, 8, and Step 5.
 
         Args:
             E_d (np.ndarray): The Equilibrium Moisture Content for the drying phase.
 
         Returns:
-            tuple[np.ndarray, np.ndarray]:
-                - moisture_content_drying_mask: Boolean array indicating where drying occurs
-                    (where initial_moisture_content > E_d).
-                - new_moisture_content: Array of moisture content with drying applied at all
-                    grid points.
+            np.ndarray: Array of moisture content with drying applied at all grid points.
         """
         # Equation 6a: Calculate the log drying rate intermediate step
         k_o = 0.424 * (
@@ -201,10 +195,7 @@ class FineFuelMoistureContent(BasePlugin):
         # Equation 8: Calculate the new moisture content via drying
         new_moisture_content = E_d + (self.moisture_content - E_d) * 10 ** (-k_d)
 
-        # Steps 5a & 5b: Produce a mask for moisture content where drying occurs
-        moisture_content_drying_mask = self.initial_moisture_content > E_d
-
-        return moisture_content_drying_mask, new_moisture_content
+        return new_moisture_content
 
     def _calculate_EMC_for_wetting_phase(self) -> np.ndarray:
         """Calculates the Equilibrium Moisture Content (EMC) for the wetting phase
@@ -228,22 +219,16 @@ class FineFuelMoistureContent(BasePlugin):
     def _calculate_moisture_content_through_wetting_equilibrium(
         self,
         E_w: np.ndarray,
-    ) -> tuple[np.ndarray, np.ndarray]:
-        """Calculates the moisture content through the wetting equilibrium. The returned
-        values the updated moisture content, applied across the whole data set, and a mask
-        showing where these values should be applied.
+    ) -> np.ndarray:
+        """Calculates the moisture content through the wetting equilibrium.
 
-        From Van Wagner and Pickett (1985), Page 5: Equations 7a, 7b, 9, and Steps 7a, 7b.
+        From Van Wagner and Pickett (1985), Page 5: Equations 7a, 7b, 9, and Step 7.
 
         Args:
             E_w (np.ndarray): The Equilibrium Moisture Content for the wetting phase.
 
         Returns:
-            tuple[np.ndarray, np.ndarray]:
-                - moisture_content_wetting_mask: Boolean array indicating where wetting occurs
-                    (where initial_moisture_content < E_w).
-                - new_moisture_content: Array of moisture content with wetting applied at all
-                    grid points.
+            np.ndarray: Array of moisture content with wetting applied at all grid points.
         """
         # Equation 7a: Calculate the log wetting rate intermediate step
         k_l = 0.424 * (
@@ -258,34 +243,17 @@ class FineFuelMoistureContent(BasePlugin):
         # Equation 9: Calculate the new moisture content via wetting
         new_moisture_content = E_w - (E_w - self.moisture_content) * 10 ** (-k_w)
 
-        # Steps 7a & 7b: Produce a mask for moisture content where wetting occurs
-        moisture_content_wetting_mask = self.initial_moisture_content < E_w
+        return new_moisture_content
 
-        return moisture_content_wetting_mask, new_moisture_content
-
-    def _calculate_ffmc_from_moisture_content(self, E_d, E_w) -> np.ndarray:
+    def _calculate_ffmc_from_moisture_content(self) -> np.ndarray:
         """Calculates the Fine Fuel Moisture Content (FFMC) from the moisture
-        content. Replaces moisture_content with initial_moisture_content where
-        the current moisture content is outside the range [E_w, E_d].
+        content.
 
-        From Van Wagner and Pickett (1985), Page 5: Equation 10, Steps 8 and 9.
-
-        Args:
-            E_d (np.ndarray): The current drying phase values.
-            E_w (np.ndarray): The current wetting phase values.
+        From Van Wagner and Pickett (1985), Page 5: Equation 10, and Step 9.
 
         Returns:
             np.ndarray: The calculated FFMC value.
         """
-        # Step 8: Replace previous day's moisture content where the moisture content has changed by a significant amount
-        condition_mask = np.logical_and(
-            self.moisture_content <= E_d, self.moisture_content >= E_w
-        )
-        self.moisture_content = np.where(
-            condition_mask,
-            self.moisture_content,
-            self.initial_moisture_content,
-        )
         # Equation 10: Calculate FFMC from moisture content
         ffmc = 59.5 * (250.0 - self.moisture_content) / (147.2 + self.moisture_content)
         return ffmc
@@ -328,8 +296,8 @@ class FineFuelMoistureContent(BasePlugin):
                 - air_temperature: Temperature in degrees Celsius
                 - lwe_thickness_of_precipitation_amount: 24-hour
                     precipitation in mm
-                - relative_humidity: Relative humidity as fraction
-                    (0-1)
+                - relative_humidity: Relative humidity as a
+                    percentage (0-100)
                 - wind_speed: Wind speed in km/h
                 - fine_fuel_moisture_content: Previous day's FFMC
                     value
@@ -339,36 +307,63 @@ class FineFuelMoistureContent(BasePlugin):
         """
         self.load_input_cubes(cubes)
 
+        # Step 1 & 2: Calculate the previous day's moisture content
         self._calculate_moisture_content()
+
+        # Step 3: Perform rainfall adjustment
         self._perform_rainfall_adjustment()
 
-        # Calculate the Equilibrium Moisture Content for drying and wetting phases
+        # Step 4: Calculate Equilibrium Moisture Content for the drying phase
         E_d = self._calculate_EMC_for_drying_phase()
-        E_w = self._calculate_EMC_for_wetting_phase()
 
-        # Calculate the moisture content through drying and wetting rates
-        moisture_content_drying_mask, moisture_content_from_drying = (
+        # VECTORIZATION NOTE: The original algorithm in Van Wagner and Pickett (1985)
+        # is applied to each point linearly. We are applying this to Cubes. This means
+        # that the order of Steps 5-7 is not identical to the original algorithm.
+
+        # Step 5a & 5b: Calculate moisture content through drying rate
+        # VECTORIZATION NOTE: We calculate drying for all points, then apply selectively.
+        # This differs from the scalar algorithm which only calculates when moisture content > E_d.
+        moisture_content_from_drying = (
             self._calculate_moisture_content_through_drying_rate(E_d)
         )
+        mask_wetting = self.moisture_content > E_d
 
-        moisture_content_wetting_mask, moisture_content_from_wetting = (
+        # Step 6: Calculate Equilibrium Moisture Content for the wetting phase
+        # VECTORIZATION NOTE: We calculate E_w for all points for efficiency,
+        # though it's only needed where the moisture content < E_d
+        E_w = self._calculate_EMC_for_wetting_phase()
+
+        # Step 7a & 7b: Calculate moisture content through wetting equilibrium
+        # VECTORIZATION NOTE: We calculate wetting for all points, then apply selectively.
+        # This differs from the scalar algorithm which only calculates when moisture content < E_d
+        # AND moisture content < E_w.
+        moisture_content_from_wetting = (
             self._calculate_moisture_content_through_wetting_equilibrium(E_w)
         )
+        mask_drying = (
+            self.moisture_content < E_d
+        )  # Identifies where wetting might apply
+        mask_apply_wetting = np.logical_and(mask_drying, self.moisture_content < E_w)
 
-        # Update moisture content based on drying and wetting masks
+        # Step 5b, 7b, 8: Apply the appropriate transformation using mutually exclusive logic.
+        # VECTORIZATION NOTE: We use nested np.where to implement the three-way
+        # if-elseif-else structure from the scalar algorithm, ensuring only one
+        # transformation is applied per grid point.
         self.moisture_content = np.where(
-            moisture_content_drying_mask,
+            mask_wetting,
+            # If moisture content > E_d: apply drying (Step 5b, Equation 8)
             moisture_content_from_drying,
-            self.moisture_content,
-        )
-        self.moisture_content = np.where(
-            moisture_content_wetting_mask,
-            moisture_content_from_wetting,
-            self.moisture_content,
+            np.where(
+                mask_apply_wetting,
+                # Else if (moisture_content < E_d) AND (moisture_content < E_w): apply wetting (Step 7b, Equation 9)
+                moisture_content_from_wetting,
+                # Else: no change, (Step 8: E_d >= moisture_content >= E_w)
+                self.moisture_content,
+            ),
         )
 
-        # Calculate the new FFMC from the updated moisture content
-        output_ffmc = self._calculate_ffmc_from_moisture_content(E_d, E_w)
+        # Step 9: Calculate Fine Fuel Moisture Content (FFMC) from moisture content
+        output_ffmc = self._calculate_ffmc_from_moisture_content()
 
         # Convert FFMC data to a cube and return
         ffmc_cube = self._make_ffmc_cube(output_ffmc)
