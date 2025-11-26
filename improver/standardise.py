@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 from iris.coords import CellMethod
 from iris.cube import Cube, CubeList
-from iris.exceptions import CoordinateNotFoundError
+from iris.exceptions import CoordinateNotFoundError, AncillaryVariableNotFoundError
 from numpy import dtype, ndarray
 
 from improver import BasePlugin
@@ -35,6 +35,7 @@ class StandardiseMetadata(BasePlugin):
         coords_to_remove: Optional[List[str]] = None,
         coord_modification: Optional[Dict[str, float]] = None,
         attributes_dict: Optional[Dict[str, Any]] = None,
+        ancillary_variables_to_remove: Optional[List[str]] = None,
     ):
         """
         Instantiate our class for standardising cube metadata.
@@ -61,12 +62,16 @@ class StandardiseMetadata(BasePlugin):
                 Optional dictionary of required attribute updates. Keys are
                 attribute names, and values are the required changes.
                 See improver.metadata.amend.amend_attributes for details.
+            ancillary_variables_to_remove:
+                Optional list of ancillary variable names to remove from the
+                output cube.
         """
         self._new_name = new_name
         self._new_units = new_units
         self._coords_to_remove = coords_to_remove
         self._coord_modification = coord_modification
         self._attributes_dict = attributes_dict
+        self._ancillary_variables_to_remove = ancillary_variables_to_remove
 
     @staticmethod
     def _remove_air_temperature_status_flag(cube: Cube) -> Cube:
@@ -136,6 +141,15 @@ class StandardiseMetadata(BasePlugin):
             try:
                 cube.remove_coord(coord)
             except CoordinateNotFoundError:
+                continue
+
+    @staticmethod
+    def _remove_ancillary_variables(cube: Cube, ancillary_variables_to_remove: List[str]) -> None:
+        """Removes named ancillary variables from the input cube."""
+        for var in ancillary_variables_to_remove:
+            try:
+                cube.remove_ancillary_variable(var)
+            except AncillaryVariableNotFoundError:
                 continue
 
     @staticmethod
@@ -277,6 +291,8 @@ class StandardiseMetadata(BasePlugin):
         # the flag is not removed.
         if self._coords_to_remove:
             self._remove_scalar_coords(cube, self._coords_to_remove)
+        if self._ancillary_variables_to_remove:
+            self._remove_ancillary_variables(cube, self._ancillary_variables_to_remove)
         cube = self._remove_air_temperature_status_flag(cube)
         cube = self._collapse_scalar_dimensions(cube)
         if self._new_name:
