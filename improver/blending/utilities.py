@@ -4,7 +4,7 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Utilities to support weighted blending"""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional, Union
 
 import numpy as np
@@ -305,8 +305,8 @@ def store_record_run_as_coord(
                 f"Cube attributes: {cube.attributes}"
             )
 
-        cycle = datetime.utcfromtimestamp(
-            cube.coord("forecast_reference_time").points[0]
+        cycle = datetime.fromtimestamp(
+            cube.coord("forecast_reference_time").points[0], tz=timezone.utc
         )
         cycle_str = cycle.strftime(DT_FORMAT)
 
