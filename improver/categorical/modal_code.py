@@ -6,7 +6,6 @@
 
 from typing import Dict, Optional
 
-from improver.metadata.amend import update_model_id_attr_attribute
 import iris
 import numpy as np
 from iris.analysis import Aggregator
@@ -21,6 +20,7 @@ from improver.blending.utilities import (
     store_record_run_as_coord,
 )
 from improver.constants import HOURS_IN_DAY
+from improver.metadata.amend import update_model_id_attr_attribute
 from improver.utilities.cube_manipulation import MergeCubes
 
 from ..metadata.forecast_times import forecast_period_coord
@@ -82,7 +82,9 @@ class BaseModalCategory(BasePlugin):
             # present on all cubes. This precludes the store_record function
             # from creating the record_run_attr attribute from the model_id_attr
             # but that is not expected behaviour for this use case.
-            superset = update_model_id_attr_attribute(cubes, record_run_attr, separator="\n")
+            superset = update_model_id_attr_attribute(
+                cubes, record_run_attr, separator="\n"
+            )
             for cube in cubes:
                 cube.attributes[record_run_attr] = superset[record_run_attr]
             store_record_run_as_coord(cubes, record_run_attr, model_id_attr)

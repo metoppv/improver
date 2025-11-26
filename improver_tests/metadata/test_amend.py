@@ -204,7 +204,9 @@ class Test_update_model_id_attr_attribute(IrisTest):
         result = update_model_id_attr_attribute(
             [self.cube1, self.cube2], self.model_id_attr, separator="\n"
         )
-        self.assertArrayEqual(result["mosg__model_configuration"], "nc_det\npuppies\nuk_ens")
+        self.assertArrayEqual(
+            result["mosg__model_configuration"], "nc_det\npuppies\nuk_ens"
+        )
 
 
 @pytest.mark.parametrize("cell_method", (True, False))
