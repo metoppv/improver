@@ -66,7 +66,7 @@ collapsed_cube = Threshold(
 
 # %%
 # Plot the probabilities of exceeding 5 m/s after collapsing the realization dimension.
-# Note that these are probabilities are now non-binary. The centre-left grid square
+# Note that these probabilities are now non-binary. The centre-left grid square
 # has a probability of 1/3 as only one out of the three realizations exceeded 5 m/s.
 # The centre grid square has a probability of 2/3 as two out of the three realizations
 # exceeded 5 m/s.

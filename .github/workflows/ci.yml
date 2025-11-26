@@ -23,6 +23,8 @@ jobs:
         if [ "${{ github.event_name }}" = "pull_request" ]; then
           BRANCH_NAME=${{ github.event.pull_request.number }}
         else
+          # Extract branch name from GITHUB_REF (e.g. for situation
+          # where a PR is merged into master, so refs/heads/master -> master)
           BRANCH_NAME=${GITHUB_REF#refs/heads/}
         fi
         echo "Using BRANCH_NAME: $BRANCH_NAME"
