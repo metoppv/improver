@@ -164,8 +164,11 @@ def test_max_min_extraction(
     extractor = ContrailHeightExtractor(use_max=use_max)
 
     if from_arrays:
+        nonpersistent_value, persistent_value = (
+            extractor._contrail_values_from_meaning_attribute(formation_cube)
+        )
         non_persistent_data, persistent_data = extractor.process_from_arrays(
-            formation_cube.data, height_cube.data, 1, 2
+            formation_cube.data, height_cube.data, nonpersistent_value, persistent_value
         )
     else:
         non_persistent, persistent = extractor.process(formation_cube, height_cube)
@@ -336,13 +339,15 @@ def test_attribute_length_error_handling(formation: np.ndarray, height: np.ndarr
         (np.zeros((2, 3, 4)), np.zeros((3, 5)), 1, 2, ValueError, "Cannot broadcast"),
         (formation_data, height_data, 1.0, 2, TypeError, "expected 'int'"),
         (formation_data, height_data, 1, 2.0, TypeError, "expected 'int'"),
+        (formation_data, height_data, np.int64(1), 2, TypeError, "expected 'int'"),
+        (formation_data, height_data, 1, np.int64(2), TypeError, "expected 'int'"),
     ],
 )
 def test_process_from_arrays_raises(
     formation: np.ndarray,
     height: np.ndarray,
-    nonpersistent_value: int | float,
-    persistent_value: int | float,
+    nonpersistent_value: int | np.int64 | float,
+    persistent_value: int | np.int64 | float,
     expected_exception: Optional[Exception],
     expected_message: Optional[str],
 ) -> None:
@@ -370,3 +375,32 @@ def test_process_from_arrays_raises(
         )
         assert isinstance(result[0], np.ndarray)
         assert isinstance(result[1], np.ndarray)
+
+
+@pytest.mark.parametrize("formation", [(formation_data)])
+def test_contrail_values_from_meaning_attribute(formation: np.ndarray) -> None:
+    """
+    Check that integer contrail values can be successfully extracted from a
+    contrails formation cube.
+
+    Args:
+        formation: Integer array of contrail formation on pressure levels.
+    """
+    formation_cube = make_cube(
+        formation,
+        "formation",
+        "1",
+        dims=("engine_contrail_factor", "pressure", "latitude", "longitude"),
+        contrail_type_values=[0, 1, 2],
+        contrail_type_meaning_values="None Non-persistent Persistent",
+    )
+
+    extractor = ContrailHeightExtractor()
+    nonpersistent_value, persistent_value = (
+        extractor._contrail_values_from_meaning_attribute(formation_cube)
+    )
+
+    assert isinstance(nonpersistent_value, int)
+    assert isinstance(persistent_value, int)
+    assert nonpersistent_value == 1
+    assert persistent_value == 2

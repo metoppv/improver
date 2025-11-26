@@ -22,6 +22,7 @@ run_cli = acc.run_cli(CLI)
         "spot_ties",
         "blend_mismatch_inputs",
         "single_input",
+        "attribute_mismatch",
     ],
 )
 @pytest.mark.slow
@@ -38,7 +39,7 @@ def test_expected(tmp_path, test_path):
     """
     kgo_dir = acc.kgo_root() / "weather-symbol-modes" / test_path
     kgo_path = kgo_dir / "kgo.nc"
-    input_paths = (kgo_dir).glob("202012*.nc")
+    input_paths = (kgo_dir).glob("202*.nc")
     broad_categories = acc.kgo_root() / "weather-symbol-modes" / "broad_categories.json"
     wet_categories = acc.kgo_root() / "weather-symbol-modes" / "wet_categories.json"
     intensity_categories = (
