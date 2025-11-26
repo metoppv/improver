@@ -61,7 +61,7 @@ PROCESSING_MODULES = {
     "ExtractValueFromTable": "improver.utilities.extract_from_table",
     "FieldTexture": "improver.utilities.textural",
     "FillRadarHoles": "improver.nowcasting.utilities",
-    "FineFuelMoistureContent": "improver.fwi.fine_fuel_moisture_content",
+    "FineFuelMoistureContent": "improver.fire_weather.fine_fuel_moisture_content",
     "FreezingRain": "improver.precipitation.freezing_rain",
     "FrictionVelocity": "improver.wind_calculations.wind_downscaling",
     "GenerateClearskySolarRadiation": "improver.generate_ancillaries.generate_derived_solar_fields",
