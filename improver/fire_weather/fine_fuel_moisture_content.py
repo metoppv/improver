@@ -288,19 +288,15 @@ class FineFuelMoistureContent(BasePlugin):
         self,
         cubes: tuple[Cube] | CubeList,
     ) -> Cube:
-        """
-        Calculate the Fine Fuel Moisture Code (FFMC).
+        """Calculate the Fine Fuel Moisture Code (FFMC).
 
         Args:
             cubes (Cube | CubeList): Input cubes containing:
-                - air_temperature: Temperature in degrees Celsius
-                - lwe_thickness_of_precipitation_amount: 24-hour
-                    precipitation in mm
-                - relative_humidity: Relative humidity as a
-                    percentage (0-100)
-                - wind_speed: Wind speed in km/h
-                - fine_fuel_moisture_content: Previous day's FFMC
-                    value
+                air_temperature: Temperature in degrees Celsius
+                lwe_thickness_of_precipitation_amount: 24-hour precipitation in mm
+                relative_humidity: Relative humidity as a percentage (0-100)
+                wind_speed: Wind speed in km/h
+                fine_fuel_moisture_content: Previous day's FFMC value
 
         Returns:
             Cube: The calculated FFMC values for the current day.
