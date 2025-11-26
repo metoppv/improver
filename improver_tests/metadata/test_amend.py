@@ -193,6 +193,19 @@ class Test_update_model_id_attr_attribute(IrisTest):
         with self.assertRaisesRegex(AttributeError, msg):
             update_model_id_attr_attribute([self.cube1, self.cube2], self.model_id_attr)
 
+    def test_different_separator(self):
+        """Test a different separator can be provided and used in splitting
+        the attributes on the input cubes. Common elements between the two
+        should be retained, returned separated by the provided separator."""
+        self.cube1 = self.cube.copy()
+        self.cube2 = self.cube.copy()
+        self.cube1.attributes["mosg__model_configuration"] = "uk_ens\npuppies"
+        self.cube2.attributes["mosg__model_configuration"] = "nc_det\npuppies"
+        result = update_model_id_attr_attribute(
+            [self.cube1, self.cube2], self.model_id_attr, separator="\n"
+        )
+        self.assertArrayEqual(result["mosg__model_configuration"], "nc_det\npuppies\nuk_ens")
+
 
 @pytest.mark.parametrize("cell_method", (True, False))
 @pytest.mark.parametrize("probability_data", (True, False))

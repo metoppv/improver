@@ -83,7 +83,7 @@ def set_history_attribute(cube: Cube, value: str, append: bool = False) -> None:
 
 
 def update_model_id_attr_attribute(
-    cubes: Union[List[Cube], CubeList], model_id_attr: str
+    cubes: Union[List[Cube], CubeList], model_id_attr: str, separator: str = " "
 ) -> Dict:
     """Update the dictionary with the unique values of the model_id_attr
     attribute from within the input cubes. The model_id_attr attribute is
@@ -95,6 +95,9 @@ def update_model_id_attr_attribute(
         model_id_attr:
             Name of attribute expected on the input cubes. This attribute is
             expected on the cubes as a space-separated string.
+        separator:
+            The character on which to split the model_id_attr attribute values.
+            Default is a space.
 
     Returns:
         Dictionary containing a model_id_attr key, if available.
@@ -108,8 +111,8 @@ def update_model_id_attr_attribute(
         msg = f"Expected to find {model_id_attr} attribute on all cubes"
         raise AttributeError(msg)
 
-    attr_list = [a for c in cubes for a in c.attributes[model_id_attr].split(" ")]
-    return {model_id_attr: " ".join(sorted(set(attr_list)))}
+    attr_list = [a for c in cubes for a in c.attributes[model_id_attr].split(separator)]
+    return {model_id_attr: separator.join(sorted(set(attr_list)))}
 
 
 def update_diagnostic_name(source_cube: Cube, new_diagnostic_name: str, result: Cube):
