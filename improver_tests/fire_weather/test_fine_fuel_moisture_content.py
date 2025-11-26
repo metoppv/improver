@@ -236,6 +236,54 @@ def test_load_input_cubes_unit_conversion(
 
 
 @pytest.mark.parametrize(
+    "num_cubes, should_raise, expected_message",
+    [
+        # Case 0: Correct number of cubes (5)
+        (5, False, None),
+        # Case 1: Too few cubes (4 instead of 5)
+        (4, True, "Expected 5 cubes, found 4"),
+        # Case 2: No cubes (0 instead of 5)
+        (0, True, "Expected 5 cubes, found 0"),
+        # Case 3: Too many cubes (6 instead of 5)
+        (6, True, "Expected 5 cubes, found 6"),
+    ],
+)
+def test_load_input_cubes_wrong_number_raises_error(
+    num_cubes: int,
+    should_raise: bool,
+    expected_message: str,
+) -> None:
+    """Test that load_input_cubes raises ValueError when given wrong number of cubes.
+
+    Args:
+        num_cubes (int): Number of cubes to provide to load_input_cubes.
+        should_raise (bool): Whether a ValueError should be raised.
+        expected_message (str): Expected error message (or None if no error expected).
+
+    Raises:
+        AssertionError: If ValueError behavior does not match expectations.
+    """
+    # Create a list with the specified number of cubes
+    cubes = input_cubes()
+    if num_cubes < len(cubes):
+        cubes = cubes[:num_cubes]
+    elif num_cubes > len(cubes):
+        # Add extra dummy cube(s) to test "too many cubes" case
+        for _ in range(num_cubes - len(cubes)):
+            cubes.append(make_cube(np.full((5, 5), 0.0), "extra_cube", "1"))
+
+    plugin = FineFuelMoistureContent()
+
+    if should_raise:
+        with pytest.raises(ValueError, match=expected_message):
+            plugin.load_input_cubes(CubeList(cubes))
+    else:
+        # Should not raise - verify it loads successfully
+        plugin.load_input_cubes(CubeList(cubes))
+        assert isinstance(plugin.temperature, Cube)
+
+
+@pytest.mark.parametrize(
     "temp_val, precip_val, rh_val, wind_val, ffmc_val",
     [
         # Case 0: Typical mid-range values
