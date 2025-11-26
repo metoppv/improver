@@ -709,7 +709,7 @@ def test_categorical_cube_output(
         (np.zeros((2, 3, 1)), np.zeros((2, 3, 4)), np.zeros(2), ValueError),
         (np.zeros((2, 1, 4)), np.zeros((2, 3, 4)), np.zeros(2), ValueError),
         (np.zeros(2), np.zeros(2), np.zeros((2, 3)), ValueError),
-        (np.zeros(2), np.zeros(2), np.zeros(None), ValueError),
+        (np.zeros(2), np.zeros(2), np.zeros(()), ValueError),
     ],
 )
 def test_process_from_arrays_raises(

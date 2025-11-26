@@ -22,7 +22,7 @@ dependencies:
   - statsmodels
   - lightgbm
   - numba
-  - pygam
+  - pygam<0.11
   - pysteps
   - treelite
   - tl2cgen
