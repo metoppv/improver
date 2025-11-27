@@ -362,7 +362,7 @@ def test__perform_rainfall_adjustment(
     cubes = input_cubes(precip_val=precip_val, dmc_val=prev_dmc)
     plugin = DuffMoistureCode()
     plugin.load_input_cubes(CubeList(cubes), month=7)
-    # previous_dmc is set in load_input_cubes, but we overwrite for explicit test control
+    # previous_dmc is set in load_input_cubes, overwriting for explicit test control
     plugin.previous_dmc = np.full(plugin.precipitation.data.shape, prev_dmc)
     plugin._perform_rainfall_adjustment()
     adjusted_dmc = plugin.previous_dmc
@@ -599,60 +599,6 @@ def test__make_dmc_cube(
     assert result_time.bounds is None
 
 
-def test_process_default_month() -> None:
-    """Test that process method works with default month parameter."""
-    cubes = input_cubes()
-    plugin = DuffMoistureCode()
-
-    # Should not raise - uses current month by default
-    result = plugin.process(CubeList(cubes))
-
-    # Check that the month is set to current month
-    from datetime import datetime
-
-    current_month = datetime.utcnow().month
-    assert plugin.month == current_month
-
-    # Check that result is valid
-    assert hasattr(result, "data")
-    assert result.data.shape == cubes[0].data.shape
-    assert isinstance(result.data[0][0], (float, np.floating))
-
-
-def test_process_spatially_varying() -> None:
-    """Integration test with spatially varying data (vectorization check)."""
-    temp_data = np.array([[10.0, 15.0, 20.0], [15.0, 20.0, 25.0], [20.0, 25.0, 30.0]])
-    precip_data = np.array([[0.0, 2.0, 5.0], [0.0, 0.0, 10.0], [0.0, 0.0, 0.0]])
-    rh_data = np.array([[40.0, 50.0, 60.0], [50.0, 60.0, 70.0], [60.0, 70.0, 80.0]])
-    dmc_data = np.array([[5.0, 15.0, 30.0], [10.0, 50.0, 70.0], [20.0, 40.0, 90.0]])
-
-    cubes = [
-        make_cube(temp_data, "air_temperature", "degC"),
-        make_cube(
-            precip_data,
-            "lwe_thickness_of_precipitation_amount",
-            "mm",
-            add_time_coord=True,
-        ),
-        make_cube(rh_data, "relative_humidity", "1"),
-        make_cube(dmc_data, "duff_moisture_code", "1", add_time_coord=True),
-    ]
-
-    result = DuffMoistureCode().process(CubeList(cubes), month=7)
-
-    # Verify shape, type, and all non-negative
-    assert (
-        result.data.shape == (3, 3)
-        and result.data.dtype == np.float32
-        and np.all(result.data >= 0.0)
-    )
-    # Hot/dry/no-rain increases DMC; heavy rain decreases; unique values (no broadcast errors)
-    assert (
-        result.data[2, 0] > dmc_data[2, 0] and result.data[0, 2] <= dmc_data[0, 2] + 2.0
-    )
-    assert len(np.unique(result.data)) > 1
-
-
 @pytest.mark.parametrize(
     "temp_val, precip_val, rh_val, dmc_val, month, expected_output",
     [
@@ -703,3 +649,57 @@ def test_process(
     # Check that DMC matches expected output within tolerance
     data = np.array(result.data)
     assert np.allclose(data, expected_output, atol=0.05)
+
+
+def test_process_default_month() -> None:
+    """Test that process method works with default month parameter."""
+    cubes = input_cubes()
+    plugin = DuffMoistureCode()
+
+    # Should not raise - uses current month by default
+    result = plugin.process(CubeList(cubes))
+
+    # Check that the month is set to current month
+    from datetime import datetime
+
+    current_month = datetime.now().month
+    assert plugin.month == current_month
+
+    # Check that result is valid
+    assert hasattr(result, "data")
+    assert result.data.shape == cubes[0].data.shape
+    assert isinstance(result.data[0][0], (float, np.floating))
+
+
+def test_process_spatially_varying() -> None:
+    """Integration test with spatially varying data (vectorization check)."""
+    temp_data = np.array([[10.0, 15.0, 20.0], [15.0, 20.0, 25.0], [20.0, 25.0, 30.0]])
+    precip_data = np.array([[0.0, 2.0, 5.0], [0.0, 0.0, 10.0], [0.0, 0.0, 0.0]])
+    rh_data = np.array([[40.0, 50.0, 60.0], [50.0, 60.0, 70.0], [60.0, 70.0, 80.0]])
+    dmc_data = np.array([[5.0, 15.0, 30.0], [10.0, 50.0, 70.0], [20.0, 40.0, 90.0]])
+
+    cubes = [
+        make_cube(temp_data, "air_temperature", "degC"),
+        make_cube(
+            precip_data,
+            "lwe_thickness_of_precipitation_amount",
+            "mm",
+            add_time_coord=True,
+        ),
+        make_cube(rh_data, "relative_humidity", "1"),
+        make_cube(dmc_data, "duff_moisture_code", "1", add_time_coord=True),
+    ]
+
+    result = DuffMoistureCode().process(CubeList(cubes), month=7)
+
+    # Verify shape, type, and all non-negative
+    assert (
+        result.data.shape == (3, 3)
+        and result.data.dtype == np.float32
+        and np.all(result.data >= 0.0)
+    )
+    # Hot/dry/no-rain increases DMC; heavy rain decreases; unique values (no broadcast errors)
+    assert (
+        result.data[2, 0] > dmc_data[2, 0] and result.data[0, 2] <= dmc_data[0, 2] + 2.0
+    )
+    assert len(np.unique(result.data)) > 1
