@@ -254,7 +254,7 @@ class Test_process(IrisTest):
         data = 275 * np.ones((3, 3, 3), dtype=np.float32)
         cube1 = set_up_variable_cube(data, realizations=np.array([1, 2, 3]))
         cube2 = set_up_variable_cube(data, realizations=np.array([0, 4, 5]))
-        result = MergeCubes(slice_over_realization=True)([cube1, cube2])
+        result = MergeCubes(slice_over_realization=True).process([cube1, cube2])
         self.assertArrayEqual(result.coord("realization").points, np.arange(6))
 
     def test_slice_over_realization_scalar(self):
@@ -268,7 +268,7 @@ class Test_process(IrisTest):
             data, time=dt(2015, 11, 23, 8), frt=dt(2015, 11, 23, 6)
         )
         expected_dims = ["time", "latitude", "longitude"]
-        result = MergeCubes(slice_over_realization=True)([cube1, cube2])
+        result = MergeCubes(slice_over_realization=True).process([cube1, cube2])
         result_coords = [coord.name() for coord in result.coords()]
         result_dims = [coord.name() for coord in result.coords(dim_coords=True)]
         self.assertIn("realization", result_coords)
