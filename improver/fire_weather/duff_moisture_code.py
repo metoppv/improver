@@ -122,6 +122,8 @@ class DuffMoistureCode(BasePlugin):
         # Step 2c: Calculate the slope variable based on previous DMC via Equations 13a, 13b, 13c
         # In the original algorithm, the slope variable is referred to as 'b'
         # VECTORIZATION NOTE: This structure matches the original algorithm while being vectorized
+        # Clip previous_dmc to avoid log(0) warnings in equations 13b and 13c
+        dmc_clipped = np.maximum(self.previous_dmc, 1e-10)
         slope_variable = np.where(
             self.previous_dmc <= 33.0,
             # Equation 13a: DMC <= 33
@@ -129,20 +131,22 @@ class DuffMoistureCode(BasePlugin):
             np.where(
                 self.previous_dmc <= 65.0,
                 # Equation 13b: 33 < DMC <= 65
-                14.0 - 1.3 * np.log(self.previous_dmc),
+                14.0 - 1.3 * np.log(dmc_clipped),
                 # Equation 13c: DMC > 65
-                6.2 * np.log(self.previous_dmc) - 17.2,
+                6.2 * np.log(dmc_clipped) - 17.2,
             ),
         )
 
         # Step 2d: Calculate moisture content after rain via Equation 14
+        # Protect against division by zero (though mathematically unlikely)
+        denominator = 48.77 + slope_variable * effective_rain
         moisture_content_after_rain = moisture_content_initial + (
             1000.0 * effective_rain
-        ) / (48.77 + slope_variable * effective_rain)
+        ) / np.maximum(denominator, 1e-10)
 
         # Step 2e: Calculate DMC after rain via Equation 15
         # This is modified to avoid log of zero or negative values
-        log_arg = np.clip(moisture_content_after_rain - 20.0, 1e-6, None)
+        log_arg = np.clip(moisture_content_after_rain - 20.0, 1e-10, None)
         dmc_after_rain = 244.72 - 43.43 * np.log(log_arg)
 
         # Apply lower bound of 0
