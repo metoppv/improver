@@ -14,6 +14,7 @@ dependencies:
   - scipy=1.15
   - sphinx<9.0.0  # https://github.com/tox-dev/sphinx-autodoc-typehints/issues/586
   # Optional
+  - esmf-regrid
   - fastparquet
   - statsmodels
   - geopandas
@@ -21,6 +22,8 @@ dependencies:
   - pygam<0.11
   - pysteps
   - python-stratify
+  - scikit-learn
+  - kmedoids
   # Development
   - astroid
   - codacy-coverage
