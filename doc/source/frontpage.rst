@@ -5,7 +5,7 @@ IMPROVER: Probabilistic meteorological post-processing
 .. image:: https://img.shields.io/badge/License-BSD%203--Clause-blue.svg
    :target: https://opensource.org/licenses/BSD-3-Clause)
    :alt: License
-.. image:: https://img.shields.io/badge/python-3.6-blue.svg
+.. image:: https://img.shields.io/badge/python-3.12-blue.svg
    :target: https://www.python.org/downloads/release/python-360/
    :alt: Python Version
 .. image:: https://github.com/metoppv/improver/workflows/Tests/badge.svg

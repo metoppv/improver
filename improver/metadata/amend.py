@@ -82,34 +82,37 @@ def set_history_attribute(cube: Cube, value: str, append: bool = False) -> None:
         cube.attributes["history"] = new_history
 
 
-def update_model_id_attr_attribute(
-    cubes: Union[List[Cube], CubeList], model_id_attr: str
+def get_unique_attributes(
+    cubes: Union[List[Cube], CubeList], attribute: str, separator: str = " "
 ) -> Dict:
-    """Update the dictionary with the unique values of the model_id_attr
-    attribute from within the input cubes. The model_id_attr attribute is
+    """Return a dictionary with the unique values of the specified
+    attribute from within the input cubes. The specified attribute is
     expected on all cubes.
 
     Args:
         cubes:
-            List of input cubes that might have a model_id_attr attribute.
-        model_id_attr:
+            List of input cubes that should have the specified attribute.
+        attribute:
             Name of attribute expected on the input cubes. This attribute is
-            expected on the cubes as a space-separated string.
+            expected on the cubes as a string, with values within the
+            attribute separated by the specified separator character.
+        separator:
+            The character on which to split the attribute values.
+            Default is a space.
 
     Returns:
-        Dictionary containing a model_id_attr key, if available.
+        Dictionary containing an attribute key, if available.
 
     Raises:
-        AttributeError: Expected to find the model_id_attr attribute on all
-            cubes.
+        AttributeError: Expected to find the attribute on all cubes.
     """
-    attr_in_cubes = [model_id_attr in c.attributes for c in cubes]
+    attr_in_cubes = [attribute in c.attributes for c in cubes]
     if not all(attr_in_cubes):
-        msg = f"Expected to find {model_id_attr} attribute on all cubes"
+        msg = f"Expected to find {attribute} attribute on all cubes"
         raise AttributeError(msg)
 
-    attr_list = [a for c in cubes for a in c.attributes[model_id_attr].split(" ")]
-    return {model_id_attr: " ".join(sorted(set(attr_list)))}
+    attr_list = [a for c in cubes for a in c.attributes[attribute].split(separator)]
+    return {attribute: separator.join(sorted(set(attr_list)))}
 
 
 def update_diagnostic_name(source_cube: Cube, new_diagnostic_name: str, result: Cube):

@@ -31,7 +31,7 @@ from improver.categorical.utilities import (
     update_daynight,
     update_tree_thresholds,
 )
-from improver.metadata.amend import update_model_id_attr_attribute
+from improver.metadata.amend import get_unique_attributes
 from improver.metadata.forecast_times import forecast_period_coord
 from improver.metadata.probabilistic import (
     find_threshold_coordinate,
@@ -590,9 +590,7 @@ class ApplyDecisionTree(BasePlugin):
             mandatory_attributes.update({"title": self.title})
         optional_attributes = categorical_attributes(self.queries, self.meta["name"])
         if self.model_id_attr:
-            optional_attributes.update(
-                update_model_id_attr_attribute(cubes, self.model_id_attr)
-            )
+            optional_attributes.update(get_unique_attributes(cubes, self.model_id_attr))
         if self.record_run_attr and self.model_id_attr:
             store_record_run_as_coord(
                 set(cubes), self.record_run_attr, self.model_id_attr
