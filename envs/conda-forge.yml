@@ -23,5 +23,9 @@ dependencies:
   - pytest
   - setuptools
   - sphinx-autodoc-typehints
-  - sphinx_rtd_theme
+  - sphinx-book-theme  
+  - sphinx-gallery
   - threadpoolctl
+  - pip
+  - pip:
+    - git+https://github.com/metoppv/improver_example_data.git@${BRANCH_NAME}

@@ -20,6 +20,15 @@ jobs:
 
     - uses: actions/checkout@v6
 
+    - name: Substitute branch name in environment files
+      run: |
+        # For scheduled runs, use the branch name (typically master)
+        BRANCH_NAME=${GITHUB_REF#refs/heads/}
+        echo "Using BRANCH_NAME: $BRANCH_NAME"
+        # Replace BRANCH_NAME placeholder in all environment files
+        sed -i "s/\${BRANCH_NAME}/$BRANCH_NAME/g" envs/latest.yml
+      shell: bash
+
     - name: Environment creation
       uses: mamba-org/setup-micromamba@v2
       with:
@@ -55,6 +64,15 @@ jobs:
 
     - uses: actions/checkout@v6
 
+    - name: Substitute branch name in environment files
+      run: |
+        # For scheduled runs, use the branch name (typically master)
+        BRANCH_NAME=${GITHUB_REF#refs/heads/}
+        echo "Using BRANCH_NAME: $BRANCH_NAME"
+        # Replace BRANCH_NAME placeholder in all environment files
+        sed -i "s/\${BRANCH_NAME}/$BRANCH_NAME/g" envs/latest.yml
+      shell: bash
+
     - name: Environment creation
       uses: mamba-org/setup-micromamba@v2
       with:
@@ -85,6 +103,15 @@ jobs:
     steps:
 
     - uses: actions/checkout@v6
+
+    - name: Substitute branch name in environment files
+      run: |
+        # For scheduled runs, use the branch name (typically master)
+        BRANCH_NAME=${GITHUB_REF#refs/heads/}
+        echo "Using BRANCH_NAME: $BRANCH_NAME"
+        # Replace BRANCH_NAME placeholder in all environment files
+        sed -i "s/\${BRANCH_NAME}/$BRANCH_NAME/g" envs/latest.yml
+      shell: bash
 
     - name: Environment creation
       uses: mamba-org/setup-micromamba@v2
