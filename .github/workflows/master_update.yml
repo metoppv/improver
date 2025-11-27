@@ -41,7 +41,7 @@ jobs:
 
         mkdir -p /tmp/coverage
         cp coverage_output.txt /tmp/coverage/
-        cp -r htmlcov /tmp/coverage/htmlcov
+        cp -r htmlcov /tmp/coverage/.
 
         git fetch origin coverage-reference || true
         git checkout -B coverage-reference
