@@ -134,7 +134,7 @@ class RegridLandSea(PostProcessingPlugin):
             else:
                 from esmf_regrid.schemes import ESMFAreaWeighted
 
-                regridder = ESMFAreaWeighted(extrapolation_mode=self.extrapolation_mode)
+                regridder = ESMFAreaWeighted()
 
             cube = cube.regrid(target_grid, regridder)
 
