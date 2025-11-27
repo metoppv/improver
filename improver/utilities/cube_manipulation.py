@@ -17,7 +17,7 @@ from improver import BasePlugin
 from improver.metadata.constants import FLOAT_DTYPE, FLOAT_TYPES
 from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.metadata.utilities import enforce_time_point_standard
-from improver.utilities.common_input_handle import as_cube
+from improver.utilities.common_input_handle import as_cube, as_cubelist
 from improver.utilities.cube_checker import check_cube_coordinates
 
 
@@ -187,8 +187,37 @@ class MergeCubes(BasePlugin):
     avoid merge failures and anonymous dimensions.
     """
 
-    def __init__(self) -> None:
-        """Initialise constants"""
+    def __init__(
+        self,
+        check_time_bounds_ranges: bool = False,
+        slice_over_realization: bool = False,
+        copy: bool = True,
+    ) -> None:
+        """
+        Initialise constants
+
+        Args:
+            *cubes:
+                Cubes to be merged.
+            check_time_bounds_ranges:
+                Flag to check whether scalar time bounds ranges match.
+                This is for when we are expecting to create a new "time" axis
+                through merging for eg precipitation accumulations, where we
+                want to make sure that the bounds match so that we are not eg
+                combining 1 hour with 3 hour accumulations.
+            slice_over_realization:
+                Options to combine cubes with different realization dimensions.
+                These cannot always be concatenated directly as this can create a
+                non-monotonic realization coordinate.
+            copy:
+                If True, this will copy the cubes, thus not having any impact on
+                the original objects.
+
+        """
+        self._run_check_time_bounds_ranges = check_time_bounds_ranges
+        self._slice_over_realization = slice_over_realization
+        self._copy = copy
+
         # List of attributes to remove silently if unmatched
         self.silent_attributes = ["history", "title", "mosg__grid_version"]
 
@@ -240,13 +269,7 @@ class MergeCubes(BasePlugin):
                 )
                 raise ValueError(msg)
 
-    def process(
-        self,
-        cubes_in: Union[List[Cube], CubeList],
-        check_time_bounds_ranges: bool = False,
-        slice_over_realization: bool = False,
-        copy: bool = True,
-    ) -> Cube:
+    def process(self, *cubes: Cube | CubeList) -> Cube:
         """
         Function to merge cubes, accounting for differences in attributes,
         coordinates and cell methods.  Note that cubes with different sets
@@ -259,45 +282,30 @@ class MergeCubes(BasePlugin):
         result of premature iris merging on load).
 
         Args:
-            cubes_in:
+            *cubes:
                 Cubes to be merged.
-            check_time_bounds_ranges:
-                Flag to check whether scalar time bounds ranges match.
-                This is for when we are expecting to create a new "time" axis
-                through merging for eg precipitation accumulations, where we
-                want to make sure that the bounds match so that we are not eg
-                combining 1 hour with 3 hour accumulations.
-            slice_over_realization:
-                Options to combine cubes with different realization dimensions.
-                These cannot always be concatenated directly as this can create a
-                non-monotonic realization coordinate.
-            copy:
-                If True, this will copy the cubes, thus not having any impact on
-                the original objects.
 
         Returns:
             Merged cube.
         """
-        # if input is already a single cube, return unchanged
-        if isinstance(cubes_in, iris.cube.Cube):
-            return cubes_in
+        cubes = as_cubelist(*cubes)
 
-        if len(cubes_in) == 1:
+        if len(cubes) == 1:
             # iris merges cubelist into shortest list possible on load
             # - may already have collapsed across invalid time bounds
-            if check_time_bounds_ranges:
-                self._check_time_bounds_ranges(cubes_in[0])
-            return cubes_in[0]
+            if self._run_check_time_bounds_ranges:
+                self._check_time_bounds_ranges(cubes[0])
+            return cubes[0]
 
-        if copy:
+        if self._copy:
             # create copies of input cubes so as not to modify in place
             cube_return = lambda cube: cube.copy()
         else:
             cube_return = lambda cube: cube
 
         cubelist = iris.cube.CubeList([])
-        for cube in cubes_in:
-            if slice_over_realization:
+        for cube in cubes:
+            if self._slice_over_realization:
                 for real_slice in cube.slices_over("realization"):
                     cubelist.append(cube_return(real_slice))
             else:
@@ -312,7 +320,7 @@ class MergeCubes(BasePlugin):
         result = cubelist.merge_cube()
 
         # check time bounds if required
-        if check_time_bounds_ranges:
+        if self._run_check_time_bounds_ranges:
             self._check_time_bounds_ranges(result)
 
         return result
@@ -919,8 +927,8 @@ def manipulate_n_realizations(cube: Cube, n_realizations: int) -> Cube:
             raw_forecast_realization.coord("realization").points = index
             raw_forecast_realizations_extended.append(raw_forecast_realization)
 
-        output = MergeCubes()(
-            raw_forecast_realizations_extended, slice_over_realization=True
+        output = MergeCubes(slice_over_realization=True)(
+            raw_forecast_realizations_extended,
         )
 
     return output
