@@ -11,6 +11,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
+    - name: Checkout
+      uses: actions/checkout@v5
+      with:
+        fetch-depth: 0
+
     - name: Checkout reference coverage report
       uses: actions/checkout@v5
       with:
@@ -18,10 +23,10 @@ jobs:
         path: covref
         ref: coverage-reference
 
-    - name: Checkout
-      uses: actions/checkout@v5
-      with:
-        fetch-depth: 0
+    - name: Check coverage
+      run: |
+        echo "Contents of reference coverage directory:"
+        ls covref/
 
     - name: Environment creation
       uses: mamba-org/setup-micromamba@v2
