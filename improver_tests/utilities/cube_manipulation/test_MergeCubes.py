@@ -282,8 +282,7 @@ class Test_process(IrisTest):
         self.plugin.process(cubes)
         self.assertTrue(cubes[0] == cube_orig)
 
-        plugin = MergeCubes(copy=False)
-        plugin.process(cubes)
+        MergeCubes(copy=False).process(cubes)
         self.assertFalse(cubes[0] == cube_orig)
 
 
