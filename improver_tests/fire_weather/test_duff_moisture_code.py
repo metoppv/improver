@@ -703,3 +703,24 @@ def test_process_spatially_varying() -> None:
         result.data[2, 0] > dmc_data[2, 0] and result.data[0, 2] <= dmc_data[0, 2] + 2.0
     )
     assert len(np.unique(result.data)) > 1
+
+
+def test_day_length_factors_table() -> None:
+    """Test that DMC_DAY_LENGTH_FACTORS match the expected values from Van Wagner and Pickett Table 1."""
+    expected_factors = [
+        0.0,  # Placeholder for index 0
+        6.5,  # January
+        7.5,  # February
+        9.0,  # March
+        12.8,  # April
+        13.9,  # May
+        13.9,  # June
+        12.4,  # July
+        10.9,  # August
+        9.4,  # September
+        8.0,  # October
+        7.0,  # November
+        6.0,  # December
+    ]
+
+    assert DuffMoistureCode.DMC_DAY_LENGTH_FACTORS == expected_factors
