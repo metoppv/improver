@@ -392,6 +392,53 @@ def test__perform_rainfall_adjustment(
     assert np.allclose(adjusted_mc, expected_mc, atol=0.01)
 
 
+def test__perform_rainfall_adjustment_spatially_varying() -> None:
+    """Test rainfall adjustment with spatially varying data (vectorization check)."""
+    shape = (4, 4)
+    # Produce a checkerboard precipitation pattern (5mm and 0mm alternating)
+    precip_data = np.zeros(shape)
+    precip_data[::2, ::2] = precip_data[1::2, 1::2] = 5.0
+
+    # Varying initial moisture content
+    mc_data = np.array(
+        [
+            [50.0, 100.0, 150.0, 200.0],
+            [75.0, 125.0, 175.0, 225.0],
+            [60.0, 110.0, 160.0, 210.0],
+            [80.0, 130.0, 180.0, 230.0],
+        ]
+    )
+
+    cubes = [
+        make_cube(np.full(shape, 20.0), "air_temperature", "degC"),
+        make_cube(
+            precip_data,
+            "lwe_thickness_of_precipitation_amount",
+            "mm",
+            add_time_coord=True,
+        ),
+        make_cube(np.full(shape, 50.0), "relative_humidity", "1"),
+        make_cube(np.full(shape, 10.0), "wind_speed", "km/h"),
+        make_cube(
+            np.full(shape, 85.0), "fine_fuel_moisture_content", "1", add_time_coord=True
+        ),
+    ]
+
+    plugin = FineFuelMoistureContent()
+    plugin.load_input_cubes(CubeList(cubes))
+    plugin.moisture_content = mc_data.copy()
+    plugin.initial_moisture_content = mc_data.copy()
+    plugin._perform_rainfall_adjustment()
+
+    # No-rain cells unchanged, rain cells increased
+    assert np.allclose(plugin.moisture_content[0, 1], 100.0)
+    assert np.allclose(plugin.moisture_content[0, 3], 200.0)
+    assert np.all(plugin.moisture_content[::2, ::2] >= mc_data[::2, ::2])
+    assert np.all(plugin.moisture_content[1::2, 1::2] >= mc_data[1::2, 1::2])
+    # Verify unique values (no broadcast errors)
+    assert len(np.unique(plugin.moisture_content)) > 1
+
+
 @pytest.mark.parametrize(
     "temp_val, rh_val, expected_E_d",
     [
@@ -827,3 +874,41 @@ def test_process(
     # Check that FFMC matches expected output within tolerance
     data = np.array(result.data)
     assert np.allclose(data, expected_output, atol=0.05)
+
+
+def test_process_spatially_varying() -> None:
+    """Integration test with spatially varying data (vectorization check)."""
+    temp_data = np.array([[10.0, 15.0, 20.0], [15.0, 20.0, 25.0], [20.0, 25.0, 30.0]])
+    precip_data = np.array([[0.0, 1.0, 5.0], [0.0, 0.0, 10.0], [0.0, 0.0, 0.0]])
+    rh_data = np.array([[40.0, 50.0, 60.0], [50.0, 60.0, 70.0], [60.0, 70.0, 80.0]])
+    wind_data = np.array([[5.0, 10.0, 15.0], [10.0, 15.0, 20.0], [15.0, 20.0, 25.0]])
+    ffmc_data = np.array([[70.0, 80.0, 85.0], [75.0, 85.0, 90.0], [80.0, 88.0, 92.0]])
+
+    cubes = [
+        make_cube(temp_data, "air_temperature", "degC"),
+        make_cube(
+            precip_data,
+            "lwe_thickness_of_precipitation_amount",
+            "mm",
+            add_time_coord=True,
+        ),
+        make_cube(rh_data, "relative_humidity", "1"),
+        make_cube(wind_data, "wind_speed", "km/h"),
+        make_cube(ffmc_data, "fine_fuel_moisture_content", "1", add_time_coord=True),
+    ]
+
+    result = FineFuelMoistureContent().process(CubeList(cubes))
+
+    # Verify shape, type, and all values in valid range (0-101)
+    assert (
+        result.data.shape == (3, 3)
+        and result.data.dtype == np.float32
+        and np.all(result.data >= 0.0)
+        and np.all(result.data <= 101.0)
+    )
+    # Hot/dry/no-rain increases FFMC; heavy rain decreases; unique values (no broadcast errors)
+    assert result.data[2, 0] > ffmc_data[2, 0]
+    assert result.data[0, 2] < ffmc_data[0, 2]
+    assert len(np.unique(result.data)) > 1
+    # Check that different environmental conditions produce different outputs
+    assert not np.allclose(result.data[0, 0], result.data[2, 2], atol=0.1)
