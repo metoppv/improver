@@ -157,35 +157,24 @@ def _create_uniform_cube(
 
 
 def _assert_realization_matching(
-    result, expected_indices, candidate_data, n_expected=None, atol=0.1
+    result, expected_cluster_indices, expected_realization_indices
 ):
-    """Assert that result matches expected candidate indices.
+    """Assert that result matches expected indices.
 
     Helper function to standardize verification logic in matcher tests.
 
     Args:
-        result: Result cube from matcher.
-        expected_indices: List of candidate indices that should appear in result.
-        candidate_data: Original candidate data array.
-        n_expected: Expected number of realizations (defaults to len(expected_indices)).
-        atol: Absolute tolerance for value comparison.
+        result: Tuple of (cluster_indices, realization_indices) from matcher.
+        expected_cluster_indices: Expected list of cluster indices.
+        expected_realization_indices: Expected list of realization indices.
     """
-    if n_expected is None:
-        n_expected = len(expected_indices)
+    cluster_indices, realization_indices = result
 
-    # Check number of realizations
-    assert result.coord("realization").shape[0] == n_expected
+    # Check cluster indices
+    np.testing.assert_array_equal(cluster_indices, expected_cluster_indices)
 
-    # Check realization numbering
-    np.testing.assert_array_equal(
-        result.coord("realization").points, np.arange(n_expected)
-    )
-
-    # Check data matching
-    for i, candidate_idx in enumerate(expected_indices):
-        np.testing.assert_allclose(
-            result.data[i], candidate_data[candidate_idx], atol=atol
-        )
+    # Check realization indices
+    np.testing.assert_array_equal(realization_indices, expected_realization_indices)
 
 
 @pytest.mark.parametrize(
@@ -316,7 +305,7 @@ def test_process_invalid_clustering_method():
     plugin = RealizationClustering("NonExistentMethod", n_clusters=3)
 
     with pytest.raises(
-        ValueError, match="The clustering method provided is not supported"
+        ValueError, match="The clustering method 'NonExistentMethod' is not supported"
     ):
         plugin.process(cube)
 
@@ -392,10 +381,9 @@ def test_matcher_process_basic():
     plugin = RealizationToClusterMatcher()
     result = plugin.process(clustered_cube, candidate_cube)
 
-    # Shape should match input
-    assert result.shape == candidate_cube.shape
-    # Expected: candidate[1] -> cluster[0], candidate[0] -> cluster[1]
-    _assert_realization_matching(result, [1, 0], candidate_cube.data, atol=0.01)
+    # Result should be (cluster_indices, realization_indices)
+    # Expected: cluster 0 matches candidate 1, cluster 1 matches candidate 0
+    _assert_realization_matching(result, [0, 1], [1, 0])
 
 
 def test_matcher_process_multiple_realizations():
@@ -406,17 +394,14 @@ def test_matcher_process_multiple_realizations():
     plugin = RealizationToClusterMatcher()
     result = plugin.process(clustered_cube, candidate_cube)
 
-    # Verify the specific data matching:
-    # Based on the actual algorithm behaviour:
-    # The algorithm processes candidates in cost order [2, 1, 3, 0] and assigns:
+    # Verify the specific matching based on the greedy algorithm:
+    # The algorithm processes candidates in cost order and assigns:
     # - Candidate 2 (1.0) to cluster 0 with MSE=1.0
     # - Candidate 1 (99.0) to cluster 2 with MSE=1.0
-    # - Candidate 3 (2.0) tries cluster 0 but has MSE=4.0 > 1.0, so rejected
     # - Candidate 0 (75.0) to cluster 1 with MSE=625.0
-    # Result[0] should be candidate[2] (1.0) - matched to cluster 0
-    # Result[1] should be candidate[0] (75.0) - matched to cluster 1
-    # Result[2] should be candidate[1] (99.0) - matched to cluster 2
-    _assert_realization_matching(result, [2, 0, 1], candidate_cube.data, n_expected=3)
+    # - Candidate 3 (2.0) tries cluster 0 but has MSE=4.0 > 1.0, so rejected
+    # Result: cluster 0 -> candidate 2, cluster 1 -> candidate 0, cluster 2 -> candidate 1
+    _assert_realization_matching(result, [0, 1, 2], [2, 0, 1])
 
 
 def test_matcher_process_with_nan_values():
@@ -447,15 +432,12 @@ def test_matcher_process_with_nan_values():
     plugin = RealizationToClusterMatcher()
     result = plugin.process(clustered_cube, candidate_cube)
 
-    # Should complete without error
-    assert result.coord("realization").shape[0] == 2
-    # Verify each result matches one candidate (with NaN handling)
-    for i in range(2):
-        matched = any(
-            np.allclose(result.data[i], candidate_data[j], equal_nan=True)
-            for j in range(2)
-        )
-        assert matched, f"Result realization {i} doesn't match any candidate"
+    # Should return indices matching each cluster to its best candidate
+    cluster_indices, realization_indices = result
+    assert len(cluster_indices) == 2
+    assert len(realization_indices) == 2
+    # Both clusters should be matched
+    np.testing.assert_array_equal(cluster_indices, [0, 1])
 
 
 def test_matcher_process_identical_patterns():
@@ -470,16 +452,11 @@ def test_matcher_process_identical_patterns():
     plugin = RealizationToClusterMatcher()
     result = plugin.process(clustered_cube, candidate_cube)
 
-    # With identical patterns, each candidate should match to a cluster
-    assert result.coord("realization").shape[0] == 2
-    np.testing.assert_array_equal(result.coord("realization").points, [0, 1])
-    # Each realization in the result should be one of the candidate patterns
-    assert np.allclose(result.data[0], candidate_cube.data[0]) or np.allclose(
-        result.data[0], candidate_cube.data[1]
-    )
-    assert np.allclose(result.data[1], candidate_cube.data[0]) or np.allclose(
-        result.data[1], candidate_cube.data[1]
-    )
+    # With identical patterns, each candidate should match its corresponding cluster
+    cluster_indices, realization_indices = result
+    assert len(cluster_indices) == 2
+    assert len(realization_indices) == 2
+    np.testing.assert_array_equal(cluster_indices, [0, 1])
 
 
 def test_matcher_process_greedy_assignment():
@@ -494,8 +471,8 @@ def test_matcher_process_greedy_assignment():
     plugin = RealizationToClusterMatcher()
     result = plugin.process(clustered_cube, candidate_cube)
 
-    # Expected: candidate[0] -> cluster[0], candidate[1] -> cluster[1]
-    _assert_realization_matching(result, [0, 1], candidate_cube.data, atol=0.1)
+    # Expected: cluster 0 matches candidate 0, cluster 1 matches candidate 1
+    _assert_realization_matching(result, [0, 1], [0, 1])
 
 
 def test_matcher_process_all_clusters_matched():
@@ -511,20 +488,15 @@ def test_matcher_process_all_clusters_matched():
     plugin = RealizationToClusterMatcher()
     result = plugin.process(clustered_cube, candidate_cube)
 
-    # All clusters should be used - result should have 3 realizations
-    assert result.coord("realization").shape[0] == 3
-    np.testing.assert_array_equal(result.coord("realization").points, [0, 1, 2])
-    # Verify each result matches exactly one candidate uniquely
-    matched_indices = set()
-    for i in range(3):
-        for j in range(3):
-            if (
-                np.allclose(result.data[i], candidate_cube.data[j])
-                and j not in matched_indices
-            ):
-                matched_indices.add(j)
-                break
-    assert len(matched_indices) == 3, "Not all candidates were matched uniquely"
+    # All clusters should be matched: cluster 0->candidate 1, cluster 1->candidate 2, cluster 2->candidate 0
+    cluster_indices, realization_indices = result
+    assert len(cluster_indices) == 3
+    assert len(realization_indices) == 3
+    np.testing.assert_array_equal(cluster_indices, [0, 1, 2])
+    # Verify unique assignments
+    assert (
+        len(set(realization_indices)) == 3
+    ), "All realization indices should be unique"
 
 
 def test_matcher_choose_clusters_consistent_results():
@@ -537,10 +509,7 @@ def test_matcher_choose_clusters_consistent_results():
     result2 = plugin.process(clustered_cube, candidate_cube)
 
     # Results should be identical for same input
-    np.testing.assert_array_equal(result1.data, result2.data)
-    np.testing.assert_array_equal(
-        result1.coord("realization").points, result2.coord("realization").points
-    )
+    _assert_realization_matching(result1, result2[0], result2[1])
 
 
 def test_matcher_process_single_cluster_multiple_candidates():
@@ -555,8 +524,8 @@ def test_matcher_process_single_cluster_multiple_candidates():
     plugin = RealizationToClusterMatcher()
     result = plugin.process(clustered_cube, candidate_cube)
 
-    # Should select candidate 0 (closest to cluster)
-    _assert_realization_matching(result, [0], candidate_cube.data, n_expected=1)
+    # Should select candidate 0 (closest to cluster) for cluster 0
+    _assert_realization_matching(result, [0], [0])
 
 
 def test_matcher_process_identical_mse_tie_breaking():
@@ -572,65 +541,49 @@ def test_matcher_process_identical_mse_tie_breaking():
     result = plugin.process(clustered_cube, candidate_cube)
 
     # All candidates are identical, so any assignment is valid
-    assert result.coord("realization").shape[0] == 2
-    assert np.allclose(result.data[0], 50.0)
-    assert np.allclose(result.data[1], 50.0)
+    cluster_indices, realization_indices = result
+    assert len(cluster_indices) == 2
+    assert len(realization_indices) == 2
 
     # Verify determinism - running again should give same result
     result2 = plugin.process(clustered_cube, candidate_cube)
-    np.testing.assert_array_equal(result.data, result2.data)
+    _assert_realization_matching(result, result2[0], result2[1])
 
 
 def test_matcher_process_metadata_and_datatype_preservation():
-    """Test that metadata and data type are preserved in the output.
+    """Test that the process method returns valid index arrays.
 
-    This test verifies that the process method preserves the cube's metadata
-    (name, units, coordinates) and data type from the candidate cube.
+    This test verifies that the process method returns tuple of indices
+    with correct types and values.
     """
     clustered_cube = _create_uniform_cube([10.0, 20.0])
     candidate_cube = _create_uniform_cube([20.1, 10.1])
 
-    # Store original metadata for comparison
-    original_name = candidate_cube.name()
-    original_units = candidate_cube.units
-    original_dtype = candidate_cube.data.dtype
-    original_spatial_coords = [
-        coord.name()
-        for coord in candidate_cube.coords()
-        if coord.name() != "realization"
-    ]
-
     plugin = RealizationToClusterMatcher()
     result = plugin.process(clustered_cube, candidate_cube)
 
-    # Verify metadata preservation
-    assert result.name() == original_name, "Cube name should be preserved"
-    assert result.units == original_units, "Cube units should be preserved"
+    # Verify result is a tuple
+    assert isinstance(result, tuple), "Result should be a tuple"
+    assert len(result) == 2, "Result should have 2 elements"
 
-    # Verify data type preservation
-    assert (
-        result.data.dtype == original_dtype
-    ), f"Data type should be preserved: expected {original_dtype}, got {result.data.dtype}"
+    cluster_indices, realization_indices = result
 
-    # Verify spatial coordinates are preserved
-    result_spatial_coords = [
-        coord.name() for coord in result.coords() if coord.name() != "realization"
-    ]
-    assert set(result_spatial_coords) == set(
-        original_spatial_coords
-    ), "Spatial coordinates should be preserved"
+    # Verify indices are lists
+    assert isinstance(cluster_indices, list), "cluster_indices should be a list"
+    assert isinstance(realization_indices, list), "realization_indices should be a list"
 
-    # Verify realization coordinate exists and is correctly numbered
-    assert (
-        result.coord("realization") is not None
-    ), "Realization coordinate should exist"
-    (
-        np.testing.assert_array_equal(result.coord("realization").points, [0, 1]),
-        "Realization points should be renumbered sequentially",
-    )
+    # Verify same length
+    assert len(cluster_indices) == len(
+        realization_indices
+    ), "cluster_indices and realization_indices should have same length"
 
-    # Verify shape is correct
-    assert result.shape == candidate_cube.shape, "Output shape should match input shape"
+    # Verify all indices are integers
+    for idx in cluster_indices:
+        assert isinstance(idx, (int, np.integer)), "Cluster indices should be integers"
+    for idx in realization_indices:
+        assert isinstance(
+            idx, (int, np.integer)
+        ), "Realization indices should be integers"
 
 
 # Tests for RealizationToClusterMatcher with 4D cubes
@@ -649,18 +602,12 @@ def test_matcher_process_4d_basic():
     plugin = RealizationToClusterMatcher()
     result = plugin.process(clustered_cube, candidate_cube)
 
-    # Verify output shape
-    assert result.ndim == 4, "Result should be 4D"
-    assert result.shape == candidate_cube.shape, "Shape should match input"
-
-    # Verify coordinates
-    assert result.coord("realization").shape[0] == 2
-    np.testing.assert_array_equal(result.coord("realization").points, [0, 1])
-    assert result.coord("forecast_period") is not None
-    np.testing.assert_array_equal(
-        result.coord("forecast_period").points,
-        candidate_cube.coord("forecast_period").points,
-    )
+    # Verify result is indices tuple
+    cluster_indices, realization_indices = result
+    assert len(cluster_indices) == 2
+    assert len(realization_indices) == 2
+    # Both clusters should be matched
+    np.testing.assert_array_equal(cluster_indices, [0, 1])
 
 
 def test_matcher_process_4d_multiple_candidates():
@@ -732,45 +679,17 @@ def test_matcher_process_4d_multiple_candidates():
     plugin = RealizationToClusterMatcher()
     result = plugin.process(clustered_cube, candidate_cube)
 
-    # Expected MSE calculations (mean over spatial, sum over forecast_period):
-    # For each candidate to each cluster, MSE = sum_over_fp(mean_over_spatial((cluster - candidate)^2))
-    # Candidate 0 (11.0) to cluster 0 (10.0): sum_fp(mean((10-11)^2)) = 2 * 1.0 = 2.0
-    # Candidate 0 (11.0) to cluster 1 (100.0): sum_fp(mean((100-11)^2)) = 2 * 7921.0 = 15842.0
-    # Candidate 1 (99.0) to cluster 0 (10.0): sum_fp(mean((10-99)^2)) = 2 * 7921.0 = 15842.0
-    # Candidate 1 (99.0) to cluster 1 (100.0): sum_fp(mean((100-99)^2)) = 2 * 1.0 = 2.0
-    # Candidate 2 (55.0) to cluster 0 (10.0): sum_fp(mean((10-55)^2)) = 2 * 2025.0 = 4050.0
-    # Candidate 2 (55.0) to cluster 1 (100.0): sum_fp(mean((100-55)^2)) = 2 * 2025.0 = 4050.0
-    # Candidate 3 (200.0) to cluster 0 (10.0): sum_fp(mean((10-200)^2)) = 2 * 36100.0 = 72200.0
-    # Candidate 3 (200.0) to cluster 1 (100.0): sum_fp(mean((100-200)^2)) = 2 * 10000.0 = 20000.0
+    # Expected: cluster 0 -> candidate 0, cluster 1 -> candidate 1
+    # (based on MSE calculations described above)
+    cluster_indices, realization_indices = result
 
-    # Greedy algorithm assigns based on MSE cost (sum of differences from minimum):
-    # Candidate 0: cost = (15842.0 - 2.0) = 15840.0 (prefers cluster 0)
-    # Candidate 1: cost = (15842.0 - 2.0) = 15840.0 (prefers cluster 1)
-    # Candidate 2: cost = (4050.0 - 4050.0) = 0.0 (no preference)
-    # Candidate 3: cost = (72200.0 - 20000.0) = 52200.0 (prefers cluster 1 but much worse)
+    # Verify result has 2 clusters matched
+    assert len(cluster_indices) == 2
+    assert len(realization_indices) == 2
+    np.testing.assert_array_equal(cluster_indices, [0, 1])
 
-    # Processing order (descending cost): [3, 0, 1, 2]
-    # Step 1: Candidate 3 assigns to cluster 1 (best match, MSE=20000.0)
-    # Step 2: Candidate 0 assigns to cluster 0 (best match, MSE=2.0)
-    # Step 3: Candidate 1 wants cluster 1 but it's taken by candidate 3 with MSE=20000.0
-    #         Candidate 1 has MSE=2.0 < 20000.0, so it overwrites: cluster 1 gets candidate 1
-    # Result: cluster 0 -> candidate 0, cluster 1 -> candidate 1
-
-    # Verify result has 2 realizations (matching 2 clusters)
-    assert result.coord("realization").shape[0] == 2
-    np.testing.assert_array_equal(result.coord("realization").points, [0, 1])
-
-    # Verify the specific assignments:
-    # Result[0] should be candidate[0] (11.0) - matched to cluster 0
-    # Result[1] should be candidate[1] (99.0) - matched to cluster 1
-    np.testing.assert_allclose(result.data[0], candidate_cube.data[0], rtol=1e-5)
-    np.testing.assert_allclose(result.data[1], candidate_cube.data[1], rtol=1e-5)
-
-    # Verify forecast_period coordinate is preserved
-    np.testing.assert_array_equal(
-        result.coord("forecast_period").points,
-        candidate_cube.coord("forecast_period").points,
-    )
+    # Expected: cluster 0 matches candidate 0 (11.0 vs 10.0), cluster 1 matches candidate 1 (99.0 vs 100.0)
+    np.testing.assert_array_equal(realization_indices, [0, 1])
 
 
 def test_matcher_process_4d_mismatched_forecast_periods():
@@ -819,14 +738,11 @@ def test_matcher_process_4d_consistent_results():
     result2 = plugin.process(clustered_cube, candidate_cube)
 
     # Results should be identical
-    np.testing.assert_array_equal(result1.data, result2.data)
-    np.testing.assert_array_equal(
-        result1.coord("realization").points, result2.coord("realization").points
-    )
+    _assert_realization_matching(result1, result2[0], result2[1])
 
 
 def test_matcher_process_4d_metadata_preservation():
-    """Test that metadata is preserved for 4D cubes."""
+    """Test that the process method returns valid indices for 4D cubes."""
     clustered_cube = _create_4d_realization_cube(
         n_realizations=2, n_forecast_periods=2, y_dim=3, x_dim=3, seed=99
     )
@@ -834,140 +750,82 @@ def test_matcher_process_4d_metadata_preservation():
         n_realizations=2, n_forecast_periods=2, y_dim=3, x_dim=3, seed=88
     )
 
-    # Store original metadata
-    original_name = candidate_cube.name()
-    original_units = candidate_cube.units
-    original_dtype = candidate_cube.data.dtype
-    original_fp_points = candidate_cube.coord("forecast_period").points.copy()
-
     plugin = RealizationToClusterMatcher()
     result = plugin.process(clustered_cube, candidate_cube)
 
-    # Verify metadata preservation
-    assert result.name() == original_name
-    assert result.units == original_units
-    assert result.data.dtype == original_dtype
-    np.testing.assert_array_equal(
-        result.coord("forecast_period").points, original_fp_points
-    )
+    # Verify result is a tuple with indices
+    assert isinstance(result, tuple), "Result should be a tuple"
+    cluster_indices, realization_indices = result
 
-    # Verify all necessary coordinates exist
-    assert result.coord("realization") is not None
-    assert result.coord("forecast_period") is not None
-    assert result.coord("projection_y_coordinate") is not None
-    assert result.coord("projection_x_coordinate") is not None
+    # Verify indices are lists of integers
+    assert isinstance(cluster_indices, list)
+    assert isinstance(realization_indices, list)
+    assert len(cluster_indices) == len(realization_indices)
+
+    # Both clusters should be matched for 2-cluster case
+    assert len(cluster_indices) == 2
+    np.testing.assert_array_equal(cluster_indices, [0, 1])
 
 
 # Tests for ClusterAndMatch
 
 
-def _create_test_cubes_for_cluster_and_match(
-    n_realizations_primary=6,
-    n_realizations_secondary1=6,
-    n_realizations_secondary2=4,
-    forecast_periods_primary=None,
-    forecast_periods_secondary1=None,
-    forecast_periods_secondary2=None,
+def _create_cube_with_forecast_periods(
+    forecast_periods,
+    n_realizations,
+    model_id,
     spatial_shape=(5, 5),
-    seed=42,
+    base_value=100.0,
 ):
-    """Create test cubes for ClusterAndMatch tests.
+    """Create cubes with specific forecast periods and model_id.
 
     Args:
-        n_realizations_primary: Number of realizations for primary input.
-        n_realizations_secondary1: Number of realizations for first secondary input.
-        n_realizations_secondary2: Number of realizations for second secondary input.
-        forecast_periods_primary: Forecast periods (hours) for primary input.
-        forecast_periods_secondary1: Forecast periods for first secondary input.
-        forecast_periods_secondary2: Forecast periods for second secondary input.
+        forecast_periods: List of forecast period hours.
+        n_realizations: Number of realizations.
+        model_id: Model ID attribute value.
         spatial_shape: Shape of spatial dimensions (y, x).
-        seed: Random seed for reproducibility.
+        base_value: Base value for data (forecast period will be added).
 
     Returns:
-        CubeList containing primary, secondary, and target grid cubes.
+        CubeList containing cubes for each forecast period.
     """
-    if forecast_periods_primary is None:
-        forecast_periods_primary = [0, 6, 12, 18]
-    if forecast_periods_secondary1 is None:
-        forecast_periods_secondary1 = [0, 6]
-    if forecast_periods_secondary2 is None:
-        forecast_periods_secondary2 = [12, 18]
-
-    np.random.seed(seed)
     cubes = iris.cube.CubeList()
-
-    # Create primary input cubes
-    for fp_hours in forecast_periods_primary:
-        data = np.random.randn(n_realizations_primary, *spatial_shape).astype(
-            np.float32
+    for fp_hours in forecast_periods:
+        data = np.full(
+            (n_realizations, *spatial_shape), base_value + fp_hours, dtype=np.float32
         )
         cube = set_up_variable_cube(
             data,
             name="air_temperature",
             units="K",
             spatial_grid="equalarea",
-            realizations=np.arange(n_realizations_primary),
+            realizations=np.arange(n_realizations),
             time=datetime(2024, 1, 1, 0),
             frt=datetime(2024, 1, 1, 0),
         )
-        # Add forecast_period coordinate
+        # Remove existing forecast_period and replace with desired value
+        cube.remove_coord("forecast_period")
         forecast_period = iris.coords.DimCoord(
             np.array([fp_hours], dtype=np.int32),
             standard_name="forecast_period",
             units="hours",
         )
         cube.add_aux_coord(forecast_period)
-        cube.attributes["model_id"] = "primary_model"
+        cube.attributes["model_id"] = model_id
         cubes.append(cube)
+    return cubes
 
-    # Create first secondary input cubes
-    for fp_hours in forecast_periods_secondary1:
-        data = np.random.randn(n_realizations_secondary1, *spatial_shape).astype(
-            np.float32
-        )
-        cube = set_up_variable_cube(
-            data,
-            name="air_temperature",
-            units="K",
-            spatial_grid="equalarea",
-            realizations=np.arange(n_realizations_secondary1),
-            time=datetime(2024, 1, 1, 0),
-            frt=datetime(2024, 1, 1, 0),
-        )
-        forecast_period = iris.coords.DimCoord(
-            np.array([fp_hours], dtype=np.int32),
-            standard_name="forecast_period",
-            units="hours",
-        )
-        cube.add_aux_coord(forecast_period)
-        cube.attributes["model_id"] = "secondary_model_1"
-        cubes.append(cube)
 
-    # Create second secondary input cubes
-    for fp_hours in forecast_periods_secondary2:
-        data = np.random.randn(n_realizations_secondary2, *spatial_shape).astype(
-            np.float32
-        )
-        cube = set_up_variable_cube(
-            data,
-            name="air_temperature",
-            units="K",
-            spatial_grid="equalarea",
-            realizations=np.arange(n_realizations_secondary2),
-            time=datetime(2024, 1, 1, 0),
-            frt=datetime(2024, 1, 1, 0),
-        )
-        forecast_period = iris.coords.DimCoord(
-            np.array([fp_hours], dtype=np.int32),
-            standard_name="forecast_period",
-            units="hours",
-        )
-        cube.add_aux_coord(forecast_period)
-        cube.attributes["model_id"] = "secondary_model_2"
-        cubes.append(cube)
+def _create_target_grid_cube(spatial_shape=(3, 3)):
+    """Create a target grid cube for ClusterAndMatch tests.
 
-    # Create target grid cube (smaller spatial dimensions for faster clustering)
-    target_data = np.zeros((3, 3), dtype=np.float32)
+    Args:
+        spatial_shape: Shape of spatial dimensions (y, x).
+
+    Returns:
+        Target grid cube.
+    """
+    target_data = np.zeros(spatial_shape, dtype=np.float32)
     target_cube = set_up_variable_cube(
         target_data,
         name="target_grid",
@@ -975,9 +833,7 @@ def _create_test_cubes_for_cluster_and_match(
         spatial_grid="equalarea",
     )
     target_cube.rename("target_grid")
-    cubes.append(target_cube)
-
-    return cubes
+    return target_cube
 
 
 def test_clusterandmatch_init_basic():
@@ -1034,79 +890,29 @@ def test_clusterandmatch_process_basic():
     cubes = iris.cube.CubeList()
     spatial_shape = (5, 5)
 
-    # Primary input with 6 realizations
-    for fp_hours in [0, 6, 12, 18]:
-        data_primary = np.full((6, *spatial_shape), 100.0 + fp_hours, dtype=np.float32)
-        cube = set_up_variable_cube(
-            data_primary,
-            name="air_temperature",
-            units="K",
-            spatial_grid="equalarea",
-            realizations=np.arange(6),
-            time=datetime(2024, 1, 1, 0),
-            frt=datetime(2024, 1, 1, 0),
+    # Primary input with 6 realizations, value 100
+    cubes.extend(
+        _create_cube_with_forecast_periods(
+            [0, 6, 12, 18], 6, "primary_model", spatial_shape, 100.0
         )
-        forecast_period = iris.coords.DimCoord(
-            np.array([fp_hours], dtype=np.int32),
-            standard_name="forecast_period",
-            units="hours",
-        )
-        cube.add_aux_coord(forecast_period)
-        cube.attributes["model_id"] = "primary_model"
-        cubes.append(cube)
+    )
 
     # Secondary input 1 for fp=[0, 6] with value 200
-    for fp_hours in [0, 6]:
-        data = np.full((6, *spatial_shape), 200.0 + fp_hours, dtype=np.float32)
-        cube = set_up_variable_cube(
-            data,
-            name="air_temperature",
-            units="K",
-            spatial_grid="equalarea",
-            realizations=np.arange(6),
-            time=datetime(2024, 1, 1, 0),
-            frt=datetime(2024, 1, 1, 0),
+    cubes.extend(
+        _create_cube_with_forecast_periods(
+            [0, 6], 6, "secondary_model_1", spatial_shape, 200.0
         )
-        forecast_period = iris.coords.DimCoord(
-            np.array([fp_hours], dtype=np.int32),
-            standard_name="forecast_period",
-            units="hours",
-        )
-        cube.add_aux_coord(forecast_period)
-        cube.attributes["model_id"] = "secondary_model_1"
-        cubes.append(cube)
+    )
 
     # Secondary input 2 for fp=[12, 18] with value 300
-    for fp_hours in [12, 18]:
-        data = np.full((4, *spatial_shape), 300.0 + fp_hours, dtype=np.float32)
-        cube = set_up_variable_cube(
-            data,
-            name="air_temperature",
-            units="K",
-            spatial_grid="equalarea",
-            realizations=np.arange(4),
-            time=datetime(2024, 1, 1, 0),
-            frt=datetime(2024, 1, 1, 0),
+    cubes.extend(
+        _create_cube_with_forecast_periods(
+            [12, 18], 4, "secondary_model_2", spatial_shape, 300.0
         )
-        forecast_period = iris.coords.DimCoord(
-            np.array([fp_hours], dtype=np.int32),
-            standard_name="forecast_period",
-            units="hours",
-        )
-        cube.add_aux_coord(forecast_period)
-        cube.attributes["model_id"] = "secondary_model_2"
-        cubes.append(cube)
+    )
 
     # Target grid
-    target_data = np.zeros((3, 3), dtype=np.float32)
-    target_cube = set_up_variable_cube(
-        target_data,
-        name="target_grid",
-        units="1",
-        spatial_grid="equalarea",
-    )
-    target_cube.rename("target_grid")
-    cubes.append(target_cube)
+    cubes.append(_create_target_grid_cube())
 
     hierarchy = {
         "primary_input": "primary_model",
@@ -1178,57 +984,21 @@ def test_clusterandmatch_cluster_primary_input():
     spatial_shape = (5, 5)
 
     # Primary input with 6 realizations, value 100
-    for fp_hours in [0, 6, 12]:
-        data = np.full((6, *spatial_shape), 100.0 + fp_hours, dtype=np.float32)
-        cube = set_up_variable_cube(
-            data,
-            name="air_temperature",
-            units="K",
-            spatial_grid="equalarea",
-            realizations=np.arange(6),
-            time=datetime(2024, 1, 1, 0),
-            frt=datetime(2024, 1, 1, 0),
+    cubes.extend(
+        _create_cube_with_forecast_periods(
+            [0, 6, 12], 6, "primary_model", spatial_shape, 100.0
         )
-        forecast_period = iris.coords.DimCoord(
-            np.array([fp_hours], dtype=np.int32),
-            standard_name="forecast_period",
-            units="hours",
-        )
-        cube.add_aux_coord(forecast_period)
-        cube.attributes["model_id"] = "primary_model"
-        cubes.append(cube)
+    )
 
     # Secondary input only for fp=[0, 6], value 200
-    for fp_hours in [0, 6]:
-        data = np.full((6, *spatial_shape), 200.0 + fp_hours, dtype=np.float32)
-        cube = set_up_variable_cube(
-            data,
-            name="air_temperature",
-            units="K",
-            spatial_grid="equalarea",
-            realizations=np.arange(6),
-            time=datetime(2024, 1, 1, 0),
-            frt=datetime(2024, 1, 1, 0),
+    cubes.extend(
+        _create_cube_with_forecast_periods(
+            [0, 6], 6, "secondary_model_1", spatial_shape, 200.0
         )
-        forecast_period = iris.coords.DimCoord(
-            np.array([fp_hours], dtype=np.int32),
-            standard_name="forecast_period",
-            units="hours",
-        )
-        cube.add_aux_coord(forecast_period)
-        cube.attributes["model_id"] = "secondary_model_1"
-        cubes.append(cube)
+    )
 
     # Target grid
-    target_data = np.zeros((3, 3), dtype=np.float32)
-    target_cube = set_up_variable_cube(
-        target_data,
-        name="target_grid",
-        units="1",
-        spatial_grid="equalarea",
-    )
-    target_cube.rename("target_grid")
-    cubes.append(target_cube)
+    cubes.append(_create_target_grid_cube())
 
     hierarchy = {
         "primary_input": "primary_model",
@@ -1282,65 +1052,28 @@ def test_clusterandmatch_precedence_order():
     spatial_shape = (5, 5)
 
     # Primary input with 6 realizations at fp=0
-    data_primary = np.full((6, *spatial_shape), 100.0, dtype=np.float32)
-    cube_primary = set_up_variable_cube(
-        data_primary,
-        name="air_temperature",
-        units="K",
-        spatial_grid="equalarea",
-        realizations=np.arange(6),
-        time=datetime(2024, 1, 1, 0),
-        frt=datetime(2024, 1, 1, 0),
+    cubes.extend(
+        _create_cube_with_forecast_periods(
+            [0], 6, "primary_model", spatial_shape, 100.0
+        )
     )
-    forecast_period = iris.coords.DimCoord(
-        np.array([0], dtype=np.int32),
-        standard_name="forecast_period",
-        units="hours",
-    )
-    cube_primary.add_aux_coord(forecast_period)
-    cube_primary.attributes["model_id"] = "primary_model"
-    cubes.append(cube_primary)
 
     # Secondary input 1 (lower precedence) with 6 realizations, distinct value
-    data_secondary1 = np.full((6, *spatial_shape), 200.0, dtype=np.float32)
-    cube_secondary1 = set_up_variable_cube(
-        data_secondary1,
-        name="air_temperature",
-        units="K",
-        spatial_grid="equalarea",
-        realizations=np.arange(6),
-        time=datetime(2024, 1, 1, 0),
-        frt=datetime(2024, 1, 1, 0),
+    cubes.extend(
+        _create_cube_with_forecast_periods(
+            [0], 6, "secondary_model_1", spatial_shape, 200.0
+        )
     )
-    cube_secondary1.add_aux_coord(forecast_period.copy())
-    cube_secondary1.attributes["model_id"] = "secondary_model_1"
-    cubes.append(cube_secondary1)
 
     # Secondary input 2 (higher precedence) with 6 realizations, distinct value
-    data_secondary2 = np.full((6, *spatial_shape), 300.0, dtype=np.float32)
-    cube_secondary2 = set_up_variable_cube(
-        data_secondary2,
-        name="air_temperature",
-        units="K",
-        spatial_grid="equalarea",
-        realizations=np.arange(6),
-        time=datetime(2024, 1, 1, 0),
-        frt=datetime(2024, 1, 1, 0),
+    cubes.extend(
+        _create_cube_with_forecast_periods(
+            [0], 6, "secondary_model_2", spatial_shape, 300.0
+        )
     )
-    cube_secondary2.add_aux_coord(forecast_period.copy())
-    cube_secondary2.attributes["model_id"] = "secondary_model_2"
-    cubes.append(cube_secondary2)
 
     # Target grid
-    target_data = np.zeros((3, 3), dtype=np.float32)
-    target_cube = set_up_variable_cube(
-        target_data,
-        name="target_grid",
-        units="1",
-        spatial_grid="equalarea",
-    )
-    target_cube.rename("target_grid")
-    cubes.append(target_cube)
+    cubes.append(_create_target_grid_cube())
 
     # Hierarchy: secondary_model_1 listed first (higher precedence),
     # secondary_model_2 listed second (lower precedence)
@@ -1378,78 +1111,28 @@ def test_clusterandmatch_overlapping_forecast_periods():
     spatial_shape = (5, 5)
 
     # Primary input with 6 realizations, value 100
-    for fp_hours in [0, 6, 12]:
-        data = np.full((6, *spatial_shape), 100.0 + fp_hours, dtype=np.float32)
-        cube = set_up_variable_cube(
-            data,
-            name="air_temperature",
-            units="K",
-            spatial_grid="equalarea",
-            realizations=np.arange(6),
-            time=datetime(2024, 1, 1, 0),
-            frt=datetime(2024, 1, 1, 0),
+    cubes.extend(
+        _create_cube_with_forecast_periods(
+            [0, 6, 12], 6, "primary_model", spatial_shape, 100.0
         )
-        forecast_period = iris.coords.DimCoord(
-            np.array([fp_hours], dtype=np.int32),
-            standard_name="forecast_period",
-            units="hours",
-        )
-        cube.add_aux_coord(forecast_period)
-        cube.attributes["model_id"] = "primary_model"
-        cubes.append(cube)
+    )
 
     # Secondary input 1 for fp=[0, 6], value 200 (higher precedence - listed first)
-    for fp_hours in [0, 6]:
-        data = np.full((6, *spatial_shape), 200.0 + fp_hours, dtype=np.float32)
-        cube = set_up_variable_cube(
-            data,
-            name="air_temperature",
-            units="K",
-            spatial_grid="equalarea",
-            realizations=np.arange(6),
-            time=datetime(2024, 1, 1, 0),
-            frt=datetime(2024, 1, 1, 0),
+    cubes.extend(
+        _create_cube_with_forecast_periods(
+            [0, 6], 6, "secondary_model_1", spatial_shape, 200.0
         )
-        forecast_period = iris.coords.DimCoord(
-            np.array([fp_hours], dtype=np.int32),
-            standard_name="forecast_period",
-            units="hours",
-        )
-        cube.add_aux_coord(forecast_period)
-        cube.attributes["model_id"] = "secondary_model_1"
-        cubes.append(cube)
+    )
 
     # Secondary input 2 for fp=[6, 12], value 300 (lower precedence, overlaps at fp=6)
-    for fp_hours in [6, 12]:
-        data = np.full((6, *spatial_shape), 300.0 + fp_hours, dtype=np.float32)
-        cube = set_up_variable_cube(
-            data,
-            name="air_temperature",
-            units="K",
-            spatial_grid="equalarea",
-            realizations=np.arange(6),
-            time=datetime(2024, 1, 1, 0),
-            frt=datetime(2024, 1, 1, 0),
+    cubes.extend(
+        _create_cube_with_forecast_periods(
+            [6, 12], 6, "secondary_model_2", spatial_shape, 300.0
         )
-        forecast_period = iris.coords.DimCoord(
-            np.array([fp_hours], dtype=np.int32),
-            standard_name="forecast_period",
-            units="hours",
-        )
-        cube.add_aux_coord(forecast_period)
-        cube.attributes["model_id"] = "secondary_model_2"
-        cubes.append(cube)
+    )
 
     # Target grid
-    target_data = np.zeros((3, 3), dtype=np.float32)
-    target_cube = set_up_variable_cube(
-        target_data,
-        name="target_grid",
-        units="1",
-        spatial_grid="equalarea",
-    )
-    target_cube.rename("target_grid")
-    cubes.append(target_cube)
+    cubes.append(_create_target_grid_cube())
 
     hierarchy = {
         "primary_input": "primary_model",
@@ -1502,57 +1185,21 @@ def test_clusterandmatch_single_secondary_input():
     spatial_shape = (5, 5)
 
     # Primary input with value 100
-    for fp_hours in [0, 6, 12]:
-        data = np.full((6, *spatial_shape), 100.0 + fp_hours, dtype=np.float32)
-        cube = set_up_variable_cube(
-            data,
-            name="air_temperature",
-            units="K",
-            spatial_grid="equalarea",
-            realizations=np.arange(6),
-            time=datetime(2024, 1, 1, 0),
-            frt=datetime(2024, 1, 1, 0),
+    cubes.extend(
+        _create_cube_with_forecast_periods(
+            [0, 6, 12], 6, "primary_model", spatial_shape, 100.0
         )
-        forecast_period = iris.coords.DimCoord(
-            np.array([fp_hours], dtype=np.int32),
-            standard_name="forecast_period",
-            units="hours",
-        )
-        cube.add_aux_coord(forecast_period)
-        cube.attributes["model_id"] = "primary_model"
-        cubes.append(cube)
+    )
 
     # Secondary input only for fp=[0, 6], value 200
-    for fp_hours in [0, 6]:
-        data = np.full((6, *spatial_shape), 200.0 + fp_hours, dtype=np.float32)
-        cube = set_up_variable_cube(
-            data,
-            name="air_temperature",
-            units="K",
-            spatial_grid="equalarea",
-            realizations=np.arange(6),
-            time=datetime(2024, 1, 1, 0),
-            frt=datetime(2024, 1, 1, 0),
+    cubes.extend(
+        _create_cube_with_forecast_periods(
+            [0, 6], 6, "secondary_model_1", spatial_shape, 200.0
         )
-        forecast_period = iris.coords.DimCoord(
-            np.array([fp_hours], dtype=np.int32),
-            standard_name="forecast_period",
-            units="hours",
-        )
-        cube.add_aux_coord(forecast_period)
-        cube.attributes["model_id"] = "secondary_model_1"
-        cubes.append(cube)
+    )
 
     # Target grid
-    target_data = np.zeros((3, 3), dtype=np.float32)
-    target_cube = set_up_variable_cube(
-        target_data,
-        name="target_grid",
-        units="1",
-        spatial_grid="equalarea",
-    )
-    target_cube.rename("target_grid")
-    cubes.append(target_cube)
+    cubes.append(_create_target_grid_cube())
 
     hierarchy = {
         "primary_input": "primary_model",
@@ -1604,76 +1251,29 @@ def test_clusterandmatch_categorise_full_realizations():
     spatial_shape = (5, 5)
 
     # Primary input with value 100
-    for fp_hours in [0, 6]:
-        data = np.full((6, *spatial_shape), 100.0 + fp_hours, dtype=np.float32)
-        cube = set_up_variable_cube(
-            data,
-            name="air_temperature",
-            units="K",
-            spatial_grid="equalarea",
-            realizations=np.arange(6),
-            time=datetime(2024, 1, 1, 0),
-            frt=datetime(2024, 1, 1, 0),
+    cubes.extend(
+        _create_cube_with_forecast_periods(
+            [0, 6], 6, "primary_model", spatial_shape, 100.0
         )
-        forecast_period = iris.coords.DimCoord(
-            np.array([fp_hours], dtype=np.int32),
-            standard_name="forecast_period",
-            units="hours",
-        )
-        cube.add_aux_coord(forecast_period)
-        cube.attributes["model_id"] = "primary_model"
-        cubes.append(cube)
+    )
 
     # Secondary input 1 for fp=0, value 200 (6 realizations >= 3 clusters)
-    data = np.full((6, *spatial_shape), 200.0, dtype=np.float32)
-    cube = set_up_variable_cube(
-        data,
-        name="air_temperature",
-        units="K",
-        spatial_grid="equalarea",
-        realizations=np.arange(6),
-        time=datetime(2024, 1, 1, 0),
-        frt=datetime(2024, 1, 1, 0),
+    cubes.extend(
+        _create_cube_with_forecast_periods(
+            [0], 6, "secondary_model_1", spatial_shape, 200.0
+        )
     )
-    forecast_period = iris.coords.DimCoord(
-        np.array([0], dtype=np.int32),
-        standard_name="forecast_period",
-        units="hours",
-    )
-    cube.add_aux_coord(forecast_period)
-    cube.attributes["model_id"] = "secondary_model_1"
-    cubes.append(cube)
 
     # Secondary input 2 for fp=6, value 300 (4 realizations >= 3 clusters)
-    data = np.full((4, *spatial_shape), 300.0, dtype=np.float32)
-    cube = set_up_variable_cube(
-        data,
-        name="air_temperature",
-        units="K",
-        spatial_grid="equalarea",
-        realizations=np.arange(4),
-        time=datetime(2024, 1, 1, 0),
-        frt=datetime(2024, 1, 1, 0),
+    # Note: Using 294.0 as base so that 294.0 + 6 (fp_hours) = 300.0
+    cubes.extend(
+        _create_cube_with_forecast_periods(
+            [6], 4, "secondary_model_2", spatial_shape, 294.0
+        )
     )
-    forecast_period = iris.coords.DimCoord(
-        np.array([6], dtype=np.int32),
-        standard_name="forecast_period",
-        units="hours",
-    )
-    cube.add_aux_coord(forecast_period)
-    cube.attributes["model_id"] = "secondary_model_2"
-    cubes.append(cube)
 
     # Target grid
-    target_data = np.zeros((3, 3), dtype=np.float32)
-    target_cube = set_up_variable_cube(
-        target_data,
-        name="target_grid",
-        units="1",
-        spatial_grid="equalarea",
-    )
-    target_cube.rename("target_grid")
-    cubes.append(target_cube)
+    cubes.append(_create_target_grid_cube())
 
     hierarchy = {
         "primary_input": "primary_model",
@@ -1727,76 +1327,29 @@ def test_clusterandmatch_categorise_partial_realizations():
     spatial_shape = (5, 5)
 
     # Primary input with value 100
-    for fp_hours in [0, 6, 12]:
-        data = np.full((6, *spatial_shape), 100.0 + fp_hours, dtype=np.float32)
-        cube = set_up_variable_cube(
-            data,
-            name="air_temperature",
-            units="K",
-            spatial_grid="equalarea",
-            realizations=np.arange(6),
-            time=datetime(2024, 1, 1, 0),
-            frt=datetime(2024, 1, 1, 0),
+    cubes.extend(
+        _create_cube_with_forecast_periods(
+            [0, 6, 12], 6, "primary_model", spatial_shape, 100.0
         )
-        forecast_period = iris.coords.DimCoord(
-            np.array([fp_hours], dtype=np.int32),
-            standard_name="forecast_period",
-            units="hours",
-        )
-        cube.add_aux_coord(forecast_period)
-        cube.attributes["model_id"] = "primary_model"
-        cubes.append(cube)
+    )
 
     # Secondary input 1 for fp=0, value 200 (2 realizations < 3 clusters)
-    data = np.full((2, *spatial_shape), 200.0, dtype=np.float32)
-    cube = set_up_variable_cube(
-        data,
-        name="air_temperature",
-        units="K",
-        spatial_grid="equalarea",
-        realizations=np.arange(2),
-        time=datetime(2024, 1, 1, 0),
-        frt=datetime(2024, 1, 1, 0),
+    cubes.extend(
+        _create_cube_with_forecast_periods(
+            [0], 2, "secondary_model_1", spatial_shape, 200.0
+        )
     )
-    forecast_period = iris.coords.DimCoord(
-        np.array([0], dtype=np.int32),
-        standard_name="forecast_period",
-        units="hours",
-    )
-    cube.add_aux_coord(forecast_period)
-    cube.attributes["model_id"] = "secondary_model_1"
-    cubes.append(cube)
 
     # Secondary input 2 for fp=6, value 300 (2 realizations < 3 clusters)
-    data = np.full((2, *spatial_shape), 300.0, dtype=np.float32)
-    cube = set_up_variable_cube(
-        data,
-        name="air_temperature",
-        units="K",
-        spatial_grid="equalarea",
-        realizations=np.arange(2),
-        time=datetime(2024, 1, 1, 0),
-        frt=datetime(2024, 1, 1, 0),
+    # Note: Using 294.0 as base so that 294.0 + 6 (fp_hours) = 300.0
+    cubes.extend(
+        _create_cube_with_forecast_periods(
+            [6], 2, "secondary_model_2", spatial_shape, 294.0
+        )
     )
-    forecast_period = iris.coords.DimCoord(
-        np.array([6], dtype=np.int32),
-        standard_name="forecast_period",
-        units="hours",
-    )
-    cube.add_aux_coord(forecast_period)
-    cube.attributes["model_id"] = "secondary_model_2"
-    cubes.append(cube)
 
     # Target grid
-    target_data = np.zeros((3, 3), dtype=np.float32)
-    target_cube = set_up_variable_cube(
-        target_data,
-        name="target_grid",
-        units="1",
-        spatial_grid="equalarea",
-    )
-    target_cube.rename("target_grid")
-    cubes.append(target_cube)
+    cubes.append(_create_target_grid_cube())
 
     hierarchy = {
         "primary_input": "primary_model",
@@ -1875,76 +1428,29 @@ def test_clusterandmatch_categorise_mixed_realizations():
     spatial_shape = (5, 5)
 
     # Primary input with value 100
-    for fp_hours in [0, 6, 12]:
-        data = np.full((6, *spatial_shape), 100.0 + fp_hours, dtype=np.float32)
-        cube = set_up_variable_cube(
-            data,
-            name="air_temperature",
-            units="K",
-            spatial_grid="equalarea",
-            realizations=np.arange(6),
-            time=datetime(2024, 1, 1, 0),
-            frt=datetime(2024, 1, 1, 0),
+    cubes.extend(
+        _create_cube_with_forecast_periods(
+            [0, 6, 12], 6, "primary_model", spatial_shape, 100.0
         )
-        forecast_period = iris.coords.DimCoord(
-            np.array([fp_hours], dtype=np.int32),
-            standard_name="forecast_period",
-            units="hours",
-        )
-        cube.add_aux_coord(forecast_period)
-        cube.attributes["model_id"] = "primary_model"
-        cubes.append(cube)
+    )
 
     # Secondary input 1 for fp=0, value 200 (6 realizations >= 3 clusters, full)
-    data = np.full((6, *spatial_shape), 200.0, dtype=np.float32)
-    cube = set_up_variable_cube(
-        data,
-        name="air_temperature",
-        units="K",
-        spatial_grid="equalarea",
-        realizations=np.arange(6),
-        time=datetime(2024, 1, 1, 0),
-        frt=datetime(2024, 1, 1, 0),
+    cubes.extend(
+        _create_cube_with_forecast_periods(
+            [0], 6, "secondary_model_1", spatial_shape, 200.0
+        )
     )
-    forecast_period = iris.coords.DimCoord(
-        np.array([0], dtype=np.int32),
-        standard_name="forecast_period",
-        units="hours",
-    )
-    cube.add_aux_coord(forecast_period)
-    cube.attributes["model_id"] = "secondary_model_1"
-    cubes.append(cube)
 
     # Secondary input 2 for fp=6, value 300 (2 realizations < 3 clusters, partial)
-    data = np.full((2, *spatial_shape), 300.0, dtype=np.float32)
-    cube = set_up_variable_cube(
-        data,
-        name="air_temperature",
-        units="K",
-        spatial_grid="equalarea",
-        realizations=np.arange(2),
-        time=datetime(2024, 1, 1, 0),
-        frt=datetime(2024, 1, 1, 0),
+    # Note: Using 294.0 as base so that 294.0 + 6 (fp_hours) = 300.0
+    cubes.extend(
+        _create_cube_with_forecast_periods(
+            [6], 2, "secondary_model_2", spatial_shape, 294.0
+        )
     )
-    forecast_period = iris.coords.DimCoord(
-        np.array([6], dtype=np.int32),
-        standard_name="forecast_period",
-        units="hours",
-    )
-    cube.add_aux_coord(forecast_period)
-    cube.attributes["model_id"] = "secondary_model_2"
-    cubes.append(cube)
 
     # Target grid
-    target_data = np.zeros((3, 3), dtype=np.float32)
-    target_cube = set_up_variable_cube(
-        target_data,
-        name="target_grid",
-        units="1",
-        spatial_grid="equalarea",
-    )
-    target_cube.rename("target_grid")
-    cubes.append(target_cube)
+    cubes.append(_create_target_grid_cube())
 
     hierarchy = {
         "primary_input": "primary_model",
