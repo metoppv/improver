@@ -50,6 +50,7 @@ PROCESSING_MODULES = {
     "CubeCombiner": "improver.cube_combiner",
     "DayNightMask": "improver.utilities.solar",
     "DifferenceBetweenAdjacentGridSquares": "improver.utilities.spatial",
+    "DroughtCode": "improver.fire_weather.drought_code",
     "EnforceConsistentForecasts": "improver.utilities.forecast_reference_enforcement",
     "EnsembleReordering": "improver.ensemble_copula_coupling.ensemble_copula_coupling",
     "EstimateCoefficientsForEnsembleCalibration": "improver.calibration.emos_calibration",
