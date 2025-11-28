@@ -2,7 +2,7 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-""""""
+"""Plugins to perform clustering on DataFrames using scikit-learn or kmedoids."""
 
 from typing import Any
 
@@ -29,7 +29,7 @@ class FitClustering(BasePlugin):
         """Initialise the clustering plugin.
 
         Args:
-            clustering_method (str): The name of the clustering method to use.
+            clustering_method: The name of the clustering method to use.
                 Must be either "KMedoids" (from kmedoids package) or a valid
                 clustering class name from sklearn.cluster (e.g., "KMeans",
                 "DBSCAN", "AgglomerativeClustering").
@@ -54,7 +54,7 @@ class FitClustering(BasePlugin):
         the fitted clustering model.
 
         Args:
-            df (pd.DataFrame): The input DataFrame to cluster. Each row represents
+            df: The input DataFrame to cluster. Each row represents
                 a sample and each column represents a feature. The DataFrame should
                 contain numeric data suitable for the chosen clustering algorithm.
 
@@ -74,8 +74,13 @@ class FitClustering(BasePlugin):
         if self.clustering_method == "KMedoids":
             import kmedoids
 
+            # Set default metric to euclidean if not specified
+            kwargs = self.kwargs.copy()
+            if "metric" not in kwargs:
+                kwargs["metric"] = "euclidean"
+
             clustering_class = getattr(kmedoids, self.clustering_method)
-            return clustering_class(**self.kwargs).fit(df)
+            return clustering_class(**kwargs).fit(df)
 
         # Otherwise, use sklearn
         from sklearn import cluster
