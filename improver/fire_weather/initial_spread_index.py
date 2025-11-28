@@ -79,6 +79,9 @@ class InitialSpreadIndex(BasePlugin):
         """Calculates the wind function component of ISI.
 
         From Van Wagner and Pickett (1985), Page 7: Equation 24.
+
+        Returns:
+            np.ndarray: The wind function values.
         """
         # Equation 26: Calculate wind function
         wind_function = np.exp(0.05039 * self.wind_speed.data)
@@ -88,15 +91,13 @@ class InitialSpreadIndex(BasePlugin):
         """Calculates the spread factor component for ISI.
 
         From Van Wagner and Pickett (1985), Page 7: Equation 25.
-        Note: The Fortran implementation pre-multiplies the 0.208 coefficient
-        from equation 26 into this calculation (91.9 * 0.208 = 19.115).
 
+        Returns:
+            np.ndarray: The spread factor values.
         """
         # Equation 25: Calculate the spread factor (SF)
-        # Using 19.115 instead of 91.9 to match Fortran implementation
-        # which pre-incorporates the 0.208 coefficient from eq 26
         spread_factor = (
-            19.115
+            91.9
             * np.exp(self.moisture_content * -0.1386)
             * (1.0 + (self.moisture_content**5.31) / 4.93e7)
         )
@@ -108,9 +109,6 @@ class InitialSpreadIndex(BasePlugin):
         """Calculates the Initial Spread Index (ISI).
 
         From Van Wagner and Pickett (1985), Page 7: Equation 26.
-        Note: The 0.208 coefficient has been pre-incorporated into the
-        spread_factor calculation (19.115 instead of 91.9) to match
-        the Fortran reference implementation.
 
         Args:
             spread_factor (np.ndarray): The spread factor values.
@@ -119,8 +117,8 @@ class InitialSpreadIndex(BasePlugin):
         Returns:
             np.ndarray: The calculated ISI values.
         """
-        # Equation 26: Calculate ISI (0.208 pre-incorporated in spread_factor)
-        initial_spread_index = spread_factor * wind_function
+        # Equation 26: Calculate the Initial Spread Index (ISI)
+        initial_spread_index = 0.208 * spread_factor * wind_function
         return initial_spread_index
 
     def _make_isi_cube(self, isi_data: np.ndarray) -> Cube:
