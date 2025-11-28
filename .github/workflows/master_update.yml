@@ -34,26 +34,29 @@ jobs:
           pytest --cov=improver --cov-report=term --cov-report=html | tee coverage_output.txt; test ${PIPESTATUS[0]} -eq 0
       shell: micromamba-shell {0}
 
-    - name: Commit and push documentation changes
+    - name: Commit and push coverage report
       run: |
         git config user.name github-actions[bot]
         git config user.email "github-actions[bot]@users.noreply.github.com"
 
-        mkdir -p /tmp/coverage
-        cp coverage_output.txt /tmp/coverage/
-        cp -r htmlcov /tmp/coverage/.
+        git worktree add /tmp/coverage-ref coverage-reference
 
-        git fetch origin coverage-reference || true
-        git checkout -B coverage-reference
+        rm -rf /tmp/coverage-ref/master/
+        mkdir /tmp/coverage-ref/master/
 
-        # Remove old coverage files and copy new ones in
-        rm -rf coverage_output.txt htmlcov/
-        cp /tmp/coverage/coverage_output.txt .
-        cp -r /tmp/coverage/htmlcov ./htmlcov
+        cp coverage_output.txt /tmp/coverage-ref/master/.
+        cp -r htmlcov/ /tmp/coverage-ref/master/.
 
-        # Commit and push if there are changes
-        git add coverage_output.txt htmlcov/
-        git commit --amend --no-edit || echo "No changes to commit"
+        cd /tmp/coverage-ref
+        git add -f master/
+
+        # identify directories who's creation date is older than 14 days (excluding master/) and remove them
+        find . -maxdepth 1 -type d ! -name 'master' ! -name '.' -mtime +14 -exec git rm -rf {} +
+
+        echo "=== git status after add ==="
+        git status -s
+
+        git commit -a --amend --no-edit || echo "No changes to commit"
         git push origin -f coverage-reference
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

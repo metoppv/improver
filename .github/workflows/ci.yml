@@ -1,17 +1,18 @@
 name: CI Tests
 
-on:
-  pull_request:
-  push:
-    branches:
-      - master  # Run tests only when changes are pushed to 'default' branch
+
+on: [pull_request]
+# on:
+#   push:
+#     branches:
+#       - master  # Run tests only when changes are pushed to 'default' branch
 
 jobs:
   Test-Coverage:
     runs-on: ubuntu-latest
     steps:
 
-    - name: Checkout
+    - name: Checkout dev branch
       uses: actions/checkout@v5
       with:
         fetch-depth: 0
@@ -21,6 +22,7 @@ jobs:
       with:
         fetch-depth: 0
         path: covref
+        sparse-checkout: master/coverage_output.txt
         ref: coverage-reference
 
     - name: Environment creation
@@ -44,15 +46,17 @@ jobs:
     - name: Compare coverage
       id: comp-coverage
       run: |
+        ls -R covref/
+
         pr_cov=$(grep TOTAL coverage_output.txt | awk '{print $NF}' | awk '{print substr($0, 1, length($0)-1)}')
         echo "pr_cov=$pr_cov" | tee -a $GITHUB_OUTPUT
-        if [ ! -f covref/coverage_output.txt ]; then
-            echo "Warning: covref/coverage_output.txt does not exist, reporting coverage."
+        if [ ! -f covref/master/coverage_output.txt ]; then
+            echo "Warning: covref/master/coverage_output.txt does not exist, reporting coverage."
             echo "ref_cov=--" | tee -a $GITHUB_OUTPUT
             echo "coverage_decreased=true" | tee -a $GITHUB_OUTPUT
             exit 0
         else
-            ref_cov=$(grep TOTAL covref/coverage_output.txt | awk '{print $NF}' | awk '{print substr($0, 1, length($0)-1)}')
+            ref_cov=$(grep TOTAL covref/master/coverage_output.txt | awk '{print $NF}' | awk '{print substr($0, 1, length($0)-1)}')
             echo "ref_cov=$ref_cov" | tee -a $GITHUB_OUTPUT
             if (( (( ref_cov - pr_cov )) > 1 )); then
                 echo "coverage_decreased=true" | tee -a $GITHUB_OUTPUT
@@ -61,14 +65,41 @@ jobs:
             fi
         fi
 
-    - name: Upload coverage report
-      if: steps.comp-coverage.outputs.coverage_decreased == 'true'
-      uses: actions/upload-artifact@v4
-      with:
-        name: coverage-report-pr
-        path: |
-          coverage_output.txt
-          htmlcov/
+    - name: Coverage report on coverage-reference branch
+      run: |
+        BRANCH=${GITHUB_HEAD_REF#refs/heads/}
+
+        git config user.name github-actions[bot]
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+        git worktree add /tmp/coverage-ref coverage-reference
+
+        echo "=== clear out old reports for this branch ==="
+        cd /tmp/coverage-ref
+        find . -path "./${BRANCH}_*" ! -name "index.html" -type f -delete
+        find . -path "./${BRANCH}_*" -type d -empty -delete
+        # replace contents of ./${BRANCH}_*/index.html with a message: "Outdated coverage report.  Repository has been updated since."
+        for dir in $(find . -path "./${BRANCH}_*" -type d); do
+          if [ -f "${dir}/index.html" ]; then
+            echo "<html><body><h1>Outdated coverage report. Repository has been updated since.</h1></body></html>" > "${dir}/index.html"
+          fi
+        done
+
+        if [ "${{ steps.comp-coverage.outputs.coverage_decreased }}" == "true" ]; then
+          cd -
+          mkdir /tmp/coverage-ref/${BRANCH}_${{ github.event.pull_request.head.sha }}/
+          cp -r coverage_output.txt htmlcov/ /tmp/coverage-ref/${BRANCH}_${{ github.event.pull_request.head.sha }}/.
+
+          cd /tmp/coverage-ref
+          git add -f ${BRANCH}_${{ github.event.pull_request.head.sha }}/
+        fi
+
+        echo "=== git status after add ==="
+        cd /tmp/coverage-ref
+        git status -s
+
+        git commit -a --amend --no-edit || echo "No changes to commit"
+        git push origin -f coverage-reference
 
     - name: Coverage report PR comment
       if: steps.comp-coverage.outputs.coverage_decreased == 'true'
@@ -76,9 +107,9 @@ jobs:
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
+          BRANCH=${GITHUB_HEAD_REF#refs/heads/}
           comment = "The test coverage has decreased from ${{ steps.comp-coverage.outputs.ref_cov }}% to ${{ steps.comp-coverage.outputs.pr_cov }}% (commit SHA: ${{ github.event.pull_request.head.sha }})."
-          comment += "\nPlease review test coverage.  Report uploaded as artifact.";
-          comment += `\nCoverage report: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts`;
+          comment += `\nPlease review test coverage [here](https://metoppv.github.io/improver/${BRANCH}_${{ github.event.pull_request.head.sha }}/htmlcov/index.html)`;
           console.log(comment)
           github.rest.issues.createComment({
             issue_number: context.issue.number,
