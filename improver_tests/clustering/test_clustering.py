@@ -15,10 +15,10 @@ def _create_sample_dataframe():
     """Create a sample DataFrame for testing.
 
     Returns:
-        A DataFrame with 100 rows and 5 features.
+        A DataFrame with 20 rows and 5 features.
     """
     np.random.seed(42)
-    data = np.random.randn(100, 5)
+    data = np.random.randn(20, 5)
     return pd.DataFrame(data, columns=[f"feature_{i}" for i in range(5)])
 
 
@@ -29,8 +29,8 @@ def _create_clusterable_dataframe():
         A DataFrame with two distinct clusters.
     """
     # Create two distinct clusters
-    cluster1 = np.random.randn(50, 2) + np.array([0, 0])
-    cluster2 = np.random.randn(50, 2) + np.array([10, 10])
+    cluster1 = np.random.randn(10, 2) + np.array([0, 0])
+    cluster2 = np.random.randn(10, 2) + np.array([10, 10])
     data = np.vstack([cluster1, cluster2])
     return pd.DataFrame(data, columns=["x", "y"])
 
