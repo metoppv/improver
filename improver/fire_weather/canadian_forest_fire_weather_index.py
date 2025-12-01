@@ -135,7 +135,7 @@ class CanadianForestFireWeatherIndex(BasePlugin):
     ) -> Cube:
         """Calculate the Fire Weather Index (FWI).
 
-        From Van Wagner and Pickett (1985), Page 8: Steps 4-5
+        From Van Wagner and Pickett (1985), Page 8: Steps 4-6
 
         Args:
             cubes (Cube | CubeList): Input cubes containing:
@@ -150,7 +150,7 @@ class CanadianForestFireWeatherIndex(BasePlugin):
         # Step 4: Calculate extrapolated Duff Moisture Function
         extrapolated_DMF = self._calculate_extrapolated_duff_moisture_function()
 
-        # Step 5: Calculate FWI
+        # Steps 5 & 6: Calculate FWI
         output_fwi = self._calculate_fwi(extrapolated_DMF)
 
         # Convert FWI data to a cube and return
