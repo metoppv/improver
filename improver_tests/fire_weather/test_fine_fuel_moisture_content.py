@@ -53,7 +53,7 @@ def input_cubes(
     wind_val: float = 10.0,
     ffmc_val: float = 85.0,
     shape: tuple[int, int] = (5, 5),
-    temp_units: str = "celsius",
+    temp_units: str = "Celsius",
     precip_units: str = "mm",
     rh_units: str = "1",
     wind_units: str = "km/h",
@@ -154,7 +154,7 @@ def test_load_input_cubes(
 @pytest.mark.parametrize(
     "param, input_val, input_unit, expected_val",
     [
-        # 0: Temperature: Kelvin -> celsius
+        # 0: Temperature: Kelvin -> Celsius
         ("temperature", 293.15, "K", 20.0),
         # 1: Precipitation: m -> mm
         ("precipitation", 0.001, "m", 1.0),
@@ -379,7 +379,7 @@ def test__perform_rainfall_adjustment_spatially_varying() -> None:
     )
 
     cubes = [
-        make_cube(np.full(shape, 20.0), "air_temperature", "celsius"),
+        make_cube(np.full(shape, 20.0), "air_temperature", "Celsius"),
         make_cube(
             precip_data,
             "lwe_thickness_of_precipitation_amount",
@@ -539,7 +539,7 @@ def test__calculate_moisture_content_through_drying_rate(
     plugin.temperature = Cube(
         np.full(moisture_content.shape, temperature, dtype=np.float32),
         long_name="air_temperature",
-        units="celsius",
+        units="Celsius",
     )
 
     new_mc = plugin._calculate_moisture_content_through_drying_rate(E_d)
@@ -677,7 +677,7 @@ def test__calculate_moisture_content_through_wetting_equilibrium(
     plugin.temperature = Cube(
         np.full(moisture_content.shape, temperature, dtype=np.float32),
         long_name="air_temperature",
-        units="celsius",
+        units="Celsius",
     )
 
     new_mc = plugin._calculate_moisture_content_through_wetting_equilibrium(E_w)
