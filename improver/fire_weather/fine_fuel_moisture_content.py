@@ -74,7 +74,7 @@ class FineFuelMoistureContent(BasePlugin):
         ) = tuple(cast(Cube, CubeList(cubes).extract_cube(n)) for n in names_to_extract)
 
         # Ensure the cubes are set to the correct units
-        self.temperature.convert_units("degC")
+        self.temperature.convert_units("Celsius")
         self.precipitation.convert_units("mm")
         self.relative_humidity.convert_units("1")
         self.wind_speed.convert_units("km/h")

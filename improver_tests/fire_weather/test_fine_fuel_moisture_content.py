@@ -7,11 +7,15 @@ from datetime import datetime
 
 import numpy as np
 import pytest
-from cf_units import Unit
-from iris.coords import AuxCoord
 from iris.cube import Cube, CubeList
 
 from improver.fire_weather.fine_fuel_moisture_content import FineFuelMoistureContent
+from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
+
+# Default times for test cubes
+DEFAULT_FRT = datetime(2017, 11, 10, 0, 0)
+DEFAULT_TIME = datetime(2017, 11, 10, 12, 0)
+DEFAULT_TIME_BOUNDS = (datetime(2017, 11, 10, 0, 0), datetime(2017, 11, 10, 12, 0))
 
 
 def make_cube(
@@ -20,59 +24,26 @@ def make_cube(
     units: str,
     add_time_coord: bool = False,
 ) -> Cube:
-    """Create a dummy Iris Cube with specified data, name, units, and optional
-    time coordinates.
-
-    All cubes include a forecast_reference_time coordinate by default.
+    """Wrapper around set_up_variable_cube for concise cube creation.
 
     Args:
-        data (np.ndarray): The data array for the cube.
-        name (str): The long name for the cube.
-        units (str): The units for the cube.
-        add_time_coord (bool): Whether to add a time coordinate with bounds.
+        data: The data array for the cube.
+        name: The variable name for the cube.
+        units: The units for the cube.
+        add_time_coord: Whether to add time bounds (for accumulation periods).
 
     Returns:
-        Cube: The constructed Iris Cube with the given properties.
+        Iris Cube with the given properties.
     """
-    arr = np.array(data, dtype=np.float64)
-    cube = Cube(arr, long_name=name)
-    cube.units = units
-
-    # Always add forecast_reference_time
-    time_origin = "hours since 1970-01-01 00:00:00"
-    calendar = "gregorian"
-
-    # Default forecast reference time: 2025-10-20 00:00:00
-    frt = datetime(2025, 10, 20, 0, 0)
-    frt_coord = AuxCoord(
-        np.array([frt.timestamp() / 3600], dtype=np.float64),
-        standard_name="forecast_reference_time",
-        units=Unit(time_origin, calendar=calendar),
+    time_bounds = DEFAULT_TIME_BOUNDS if add_time_coord else None
+    return set_up_variable_cube(
+        data.astype(np.float32),
+        name=name,
+        units=units,
+        frt=DEFAULT_FRT,
+        time=DEFAULT_TIME,
+        time_bounds=time_bounds,
     )
-    cube.add_aux_coord(frt_coord)
-
-    # Optionally add time coordinate with bounds
-    if add_time_coord:
-        # Default valid time: 2025-10-20 12:00:00 with 12-hour bounds
-        valid_time = datetime(2025, 10, 20, 12, 0)
-        time_bounds = np.array(
-            [
-                [
-                    (valid_time.timestamp() - 43200) / 3600,  # 12 hours earlier
-                    valid_time.timestamp() / 3600,
-                ]
-            ],
-            dtype=np.float64,
-        )
-        time_coord = AuxCoord(
-            np.array([valid_time.timestamp() / 3600], dtype=np.float64),
-            standard_name="time",
-            bounds=time_bounds,
-            units=Unit(time_origin, calendar=calendar),
-        )
-        cube.add_aux_coord(time_coord)
-
-    return cube
 
 
 def input_cubes(
@@ -82,7 +53,7 @@ def input_cubes(
     wind_val: float = 10.0,
     ffmc_val: float = 85.0,
     shape: tuple[int, int] = (5, 5),
-    temp_units: str = "degC",
+    temp_units: str = "celsius",
     precip_units: str = "mm",
     rh_units: str = "1",
     wind_units: str = "km/h",
@@ -110,7 +81,6 @@ def input_cubes(
         list[Cube]: List of Iris Cubes for temperature, precipitation, relative humidity, wind speed, and FFMC.
     """
     temp = make_cube(np.full(shape, temp_val), "air_temperature", temp_units)
-    # Precipitation cube needs time coordinates for _make_ffmc_cube
     precip = make_cube(
         np.full(shape, precip_val),
         "lwe_thickness_of_precipitation_amount",
@@ -119,7 +89,6 @@ def input_cubes(
     )
     rh = make_cube(np.full(shape, rh_val), "relative_humidity", rh_units)
     wind = make_cube(np.full(shape, wind_val), "wind_speed", wind_units)
-    # FFMC cube needs time coordinates for _make_ffmc_cube to copy metadata
     ffmc = make_cube(
         np.full(shape, ffmc_val),
         "fine_fuel_moisture_content",
@@ -185,7 +154,7 @@ def test_load_input_cubes(
 @pytest.mark.parametrize(
     "param, input_val, input_unit, expected_val",
     [
-        # 0: Temperature: Kelvin -> degC
+        # 0: Temperature: Kelvin -> celsius
         ("temperature", 293.15, "K", 20.0),
         # 1: Precipitation: m -> mm
         ("precipitation", 0.001, "m", 1.0),
@@ -410,7 +379,7 @@ def test__perform_rainfall_adjustment_spatially_varying() -> None:
     )
 
     cubes = [
-        make_cube(np.full(shape, 20.0), "air_temperature", "degC"),
+        make_cube(np.full(shape, 20.0), "air_temperature", "celsius"),
         make_cube(
             precip_data,
             "lwe_thickness_of_precipitation_amount",
@@ -556,14 +525,21 @@ def test__calculate_moisture_content_through_drying_rate(
     plugin = FineFuelMoistureContent()
     plugin.initial_moisture_content = moisture_content.copy()
     plugin.moisture_content = moisture_content.copy()
-    plugin.relative_humidity = make_cube(
-        np.full(moisture_content.shape, relative_humidity), "relative_humidity", "1"
+    # For these unit tests, create simple cubes without spatial coordinates
+    plugin.relative_humidity = Cube(
+        np.full(moisture_content.shape, relative_humidity, dtype=np.float32),
+        long_name="relative_humidity",
+        units="1",
     )
-    plugin.wind_speed = make_cube(
-        np.full(moisture_content.shape, wind_speed), "wind_speed", "km/h"
+    plugin.wind_speed = Cube(
+        np.full(moisture_content.shape, wind_speed, dtype=np.float32),
+        long_name="wind_speed",
+        units="km/h",
     )
-    plugin.temperature = make_cube(
-        np.full(moisture_content.shape, temperature), "air_temperature", "degC"
+    plugin.temperature = Cube(
+        np.full(moisture_content.shape, temperature, dtype=np.float32),
+        long_name="air_temperature",
+        units="celsius",
     )
 
     new_mc = plugin._calculate_moisture_content_through_drying_rate(E_d)
@@ -687,14 +663,21 @@ def test__calculate_moisture_content_through_wetting_equilibrium(
     plugin = FineFuelMoistureContent()
     plugin.initial_moisture_content = moisture_content.copy()
     plugin.moisture_content = moisture_content.copy()
-    plugin.relative_humidity = make_cube(
-        np.full(moisture_content.shape, relative_humidity), "relative_humidity", "1"
+    # For these unit tests, create simple cubes without spatial coordinates
+    plugin.relative_humidity = Cube(
+        np.full(moisture_content.shape, relative_humidity, dtype=np.float32),
+        long_name="relative_humidity",
+        units="1",
     )
-    plugin.wind_speed = make_cube(
-        np.full(moisture_content.shape, wind_speed), "wind_speed", "km/h"
+    plugin.wind_speed = Cube(
+        np.full(moisture_content.shape, wind_speed, dtype=np.float32),
+        long_name="wind_speed",
+        units="km/h",
     )
-    plugin.temperature = make_cube(
-        np.full(moisture_content.shape, temperature), "air_temperature", "degC"
+    plugin.temperature = Cube(
+        np.full(moisture_content.shape, temperature, dtype=np.float32),
+        long_name="air_temperature",
+        units="celsius",
     )
 
     new_mc = plugin._calculate_moisture_content_through_wetting_equilibrium(E_w)
@@ -885,7 +868,7 @@ def test_process_spatially_varying() -> None:
     ffmc_data = np.array([[70.0, 80.0, 85.0], [75.0, 85.0, 90.0], [80.0, 88.0, 92.0]])
 
     cubes = [
-        make_cube(temp_data, "air_temperature", "degC"),
+        make_cube(temp_data, "air_temperature", "Celsius"),
         make_cube(
             precip_data,
             "lwe_thickness_of_precipitation_amount",
