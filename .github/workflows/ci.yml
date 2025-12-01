@@ -38,6 +38,11 @@ jobs:
         micromamba list
       shell: bash -el {0}
 
+    - name: Branch name
+      run: |
+        branch=$(echo "${GITHUB_HEAD_REF#refs/heads/}")
+        echo "BRANCH=$branch" | tee -a $GITHUB_ENV
+
     - name: pytest
       run: |
           pytest --cov=improver --cov-report=term --cov-report=html | tee coverage_output.txt; test ${PIPESTATUS[0]} -eq 0
@@ -67,7 +72,7 @@ jobs:
 
     - name: Coverage report on coverage-reference branch
       run: |
-        BRANCH=${GITHUB_HEAD_REF#refs/heads/}
+        BRANCH=${{ env.BRANCH }}
 
         git config user.name github-actions[bot]
         git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -107,9 +112,8 @@ jobs:
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
-          BRANCH=${GITHUB_HEAD_REF#refs/heads/}
           comment = "The test coverage has decreased from ${{ steps.comp-coverage.outputs.ref_cov }}% to ${{ steps.comp-coverage.outputs.pr_cov }}% (commit SHA: ${{ github.event.pull_request.head.sha }})."
-          comment += `\nPlease review test coverage [here](https://metoppv.github.io/improver/${BRANCH}_${{ github.event.pull_request.head.sha }}/htmlcov/index.html)`;
+          comment += `\nPlease review test coverage [here](https://metoppv.github.io/improver/${{ env.BRANCH }}_${{ github.event.pull_request.head.sha }}/htmlcov/index.html)`;
           console.log(comment)
           github.rest.issues.createComment({
             issue_number: context.issue.number,
