@@ -9,13 +9,12 @@ import unittest
 import numpy as np
 from iris.coords import CellMethod
 from iris.cube import Cube
-from iris.tests import IrisTest
 
 from improver.nbhood.nbhood import NeighbourhoodProcessing
 from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
 
 
-class Test__init__(IrisTest):
+class Test__init__(unittest.TestCase):
     """Test the __init__ method of NeighbourhoodProcessing."""
 
     def test_neighbourhood_method_does_not_exist(self):
@@ -36,7 +35,7 @@ class Test__init__(IrisTest):
             NeighbourhoodProcessing("square", radii, weighted_mode=True)
 
 
-class Test__calculate_neighbourhood(IrisTest):
+class Test__calculate_neighbourhood(unittest.TestCase):
     """Test the _calculate_neighbourhood method."""
 
     RADIUS = 2500
@@ -104,7 +103,7 @@ class Test__calculate_neighbourhood(IrisTest):
         plugin = NeighbourhoodProcessing("square", self.RADIUS)
         plugin.nb_size = self.nbhood_size
         result = plugin._calculate_neighbourhood(self.data)
-        self.assertArrayAlmostEqual(result, expected_array)
+        np.testing.assert_array_almost_equal(result, expected_array)
 
     def test_basic_circular(self):
         """Test the _calculate_neighbourhood method with a circular neighbourhood."""
@@ -121,7 +120,7 @@ class Test__calculate_neighbourhood(IrisTest):
         plugin.kernel = self.circular_kernel
         plugin.nb_size = self.nbhood_size
         result = plugin._calculate_neighbourhood(self.data)
-        self.assertArrayAlmostEqual(result.data, expected_array)
+        np.testing.assert_array_almost_equal(result.data, expected_array)
 
     def test_edge_circular(self):
         """Test the _calculate_neighbourhood method with a circular neighbourhood that crosses the
@@ -142,7 +141,7 @@ class Test__calculate_neighbourhood(IrisTest):
         plugin.kernel = self.circular_kernel
         plugin.nb_size = max(plugin.kernel.shape)
         result = plugin._calculate_neighbourhood(data)
-        self.assertArrayAlmostEqual(result.data, expected_array)
+        np.testing.assert_array_almost_equal(result.data, expected_array)
 
     def test_basic_weighted_circular(self):
         """Test the _calculate_neighbourhood method with a
@@ -160,7 +159,7 @@ class Test__calculate_neighbourhood(IrisTest):
         plugin.kernel = self.weighted_circular_kernel
         plugin.nb_size = self.nbhood_size
         result = plugin._calculate_neighbourhood(self.data)
-        self.assertArrayAlmostEqual(result.data, expected_array)
+        np.testing.assert_array_almost_equal(result.data, expected_array)
 
     def test_basic_square_sum(self):
         """Test the _calculate_neighbourhood method calculating a sum in
@@ -177,7 +176,7 @@ class Test__calculate_neighbourhood(IrisTest):
         plugin = NeighbourhoodProcessing("square", self.RADIUS, sum_only=True)
         plugin.nb_size = self.nbhood_size
         result = plugin._calculate_neighbourhood(self.data)
-        self.assertArrayAlmostEqual(result, expected_array)
+        np.testing.assert_array_almost_equal(result, expected_array)
 
     def test_basic_circular_sum(self):
         """Test the _calculate_neighbourhood method calculating a sum in
@@ -195,7 +194,7 @@ class Test__calculate_neighbourhood(IrisTest):
         plugin.kernel = self.circular_kernel
         plugin.nb_size = self.nbhood_size
         result = plugin._calculate_neighbourhood(self.data)
-        self.assertArrayAlmostEqual(result.data, expected_array)
+        np.testing.assert_array_almost_equal(result.data, expected_array)
 
     def test_annulus_square(self):
         """Test the _calculate_neighbourhood method with a square neighbourhood where the data
@@ -211,7 +210,7 @@ class Test__calculate_neighbourhood(IrisTest):
         plugin = NeighbourhoodProcessing("square", self.RADIUS)
         plugin.nb_size = self.nbhood_size
         result = plugin._calculate_neighbourhood(data)
-        self.assertArrayAlmostEqual(result, expected_array)
+        np.testing.assert_array_almost_equal(result, expected_array)
 
     def test_annulus_circular(self):
         """Test the _calculate_neighbourhood method with a circular neighbourhood where the data
@@ -227,7 +226,7 @@ class Test__calculate_neighbourhood(IrisTest):
         plugin.kernel = self.circular_kernel
         plugin.nb_size = self.nbhood_size
         result = plugin._calculate_neighbourhood(data)
-        self.assertArrayAlmostEqual(result, expected_array)
+        np.testing.assert_array_almost_equal(result, expected_array)
 
     def test_masked_array_re_mask_true_square(self):
         """Test the _calculate_neighbourhood method when masked data is
@@ -237,8 +236,8 @@ class Test__calculate_neighbourhood(IrisTest):
         plugin = NeighbourhoodProcessing("square", self.RADIUS)
         plugin.nb_size = self.nbhood_size
         result = plugin._calculate_neighbourhood(input_data)
-        self.assertArrayAlmostEqual(result.data, self.expected_array)
-        self.assertArrayAlmostEqual(result.mask, self.expected_mask)
+        np.testing.assert_array_almost_equal(result.data, self.expected_array)
+        np.testing.assert_array_almost_equal(result.mask, self.expected_mask)
 
     def test_masked_array_re_mask_true_circular(self):
         """Test the _calculate_neighbourhood method when masked data is
@@ -259,8 +258,8 @@ class Test__calculate_neighbourhood(IrisTest):
         plugin.nb_size = self.nbhood_size
         result = plugin._calculate_neighbourhood(input_data)
 
-        self.assertArrayAlmostEqual(result.data, expected_array)
-        self.assertArrayAlmostEqual(result.mask, self.expected_mask)
+        np.testing.assert_array_almost_equal(result.data, expected_array)
+        np.testing.assert_array_almost_equal(result.mask, self.expected_mask)
 
     def test_masked_array_re_mask_false(self):
         """Test the _calculate_neighbourhood method when masked data is
@@ -270,7 +269,7 @@ class Test__calculate_neighbourhood(IrisTest):
         plugin = NeighbourhoodProcessing("square", self.RADIUS, re_mask=False)
         plugin.nb_size = self.nbhood_size
         result = plugin._calculate_neighbourhood(input_data)
-        self.assertArrayAlmostEqual(result, self.expected_array)
+        np.testing.assert_array_almost_equal(result, self.expected_array)
         with self.assertRaises(AttributeError):
             result.mask
 
@@ -283,8 +282,8 @@ class Test__calculate_neighbourhood(IrisTest):
         plugin = NeighbourhoodProcessing("square", self.RADIUS)
         plugin.nb_size = self.nbhood_size
         result = plugin._calculate_neighbourhood(input_data)
-        self.assertArrayAlmostEqual(result, self.expected_array)
-        self.assertArrayAlmostEqual(result.mask, self.expected_mask)
+        np.testing.assert_array_almost_equal(result, self.expected_array)
+        np.testing.assert_array_almost_equal(result.mask, self.expected_mask)
 
     def test_complex(self):
         """Test that data containing complex numbers is sensibly processed"""
@@ -327,7 +326,7 @@ class Test__calculate_neighbourhood(IrisTest):
         plugin = NeighbourhoodProcessing("square", self.RADIUS)
         plugin.nb_size = self.nbhood_size
         result = plugin._calculate_neighbourhood(self.data)
-        self.assertArrayAlmostEqual(result, expected_array)
+        np.testing.assert_array_almost_equal(result, expected_array)
 
     def test_external_mask_square(self):
         """Test the _calculate_neighbourhood method when an external mask is
@@ -337,8 +336,8 @@ class Test__calculate_neighbourhood(IrisTest):
         result = plugin._calculate_neighbourhood(
             self.data_for_masked_tests, mask=self.mask
         )
-        self.assertArrayAlmostEqual(result.data, self.expected_array)
-        self.assertArrayAlmostEqual(result.mask, self.expected_mask)
+        np.testing.assert_array_almost_equal(result.data, self.expected_array)
+        np.testing.assert_array_almost_equal(result.mask, self.expected_mask)
 
     def test_external_mask_with_masked_data_square(self):
         """Test the _calculate_neighbourhood method when masked data is
@@ -366,11 +365,11 @@ class Test__calculate_neighbourhood(IrisTest):
         plugin = NeighbourhoodProcessing("square", self.RADIUS)
         plugin.nb_size = self.nbhood_size
         result = plugin._calculate_neighbourhood(self.data, external_mask)
-        self.assertArrayAlmostEqual(result.data, self.expected_array)
-        self.assertArrayAlmostEqual(result.mask, self.expected_mask)
+        np.testing.assert_array_almost_equal(result.data, self.expected_array)
+        np.testing.assert_array_almost_equal(result.mask, self.expected_mask)
 
 
-class Test_process(IrisTest):
+class Test_process(unittest.TestCase):
     """Test the process method."""
 
     def setUp(self):
@@ -400,9 +399,17 @@ class Test_process(IrisTest):
         radii = 2000
         result = NeighbourhoodProcessing(neighbourhood_method, radii)(self.cube)
         self.assertIsInstance(result, Cube)
-        self.assertArrayAlmostEqual(result.data, expected)
+        np.testing.assert_array_almost_equal(result.data, expected)
         self.assertTupleEqual(result.cell_methods, self.cube.cell_methods)
-        self.assertDictEqual(result.attributes, self.cube.attributes)
+
+        assert set(self.cube.attributes.keys()) == set(result.attributes.keys())
+        for key in self.cube.attributes.keys():
+            try:
+                assert self.cube.attributes[key] == result.attributes[key]
+            except ValueError:
+                np.testing.assert_array_equal(
+                    self.cube.attributes[key], result.attributes[key]
+                )
 
     def test_cube_metadata(self):
         """Test the result has the correct attributes and cell methods"""
@@ -413,7 +420,15 @@ class Test_process(IrisTest):
         result = NeighbourhoodProcessing(neighbourhood_method, radii)(self.cube)
         self.assertIsInstance(result, Cube)
         self.assertTupleEqual(result.cell_methods, self.cube.cell_methods)
-        self.assertDictEqual(result.attributes, self.cube.attributes)
+
+        assert set(self.cube.attributes.keys()) == set(result.attributes.keys())
+        for key in self.cube.attributes.keys():
+            try:
+                assert self.cube.attributes[key] == result.attributes[key]
+            except ValueError:
+                np.testing.assert_array_equal(
+                    self.cube.attributes[key], result.attributes[key]
+                )
 
 
 if __name__ == "__main__":

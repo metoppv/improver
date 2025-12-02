@@ -14,7 +14,6 @@ import iris
 import numpy as np
 import pytest
 from iris.exceptions import CoordinateNotFoundError
-from iris.tests import IrisTest
 
 from improver.categorical.utilities import (
     categorical_attributes,
@@ -79,7 +78,7 @@ def test_update_tree_thresholds_exception():
         update_tree_thresholds(tree, target_period=None)
 
 
-class Test_categorical_attributes(IrisTest):
+class Test_categorical_attributes(unittest.TestCase):
     """Test categorical_attributes is working correctly"""
 
     def setUp(self):
@@ -153,7 +152,7 @@ class Test_categorical_attributes(IrisTest):
         result = categorical_attributes(
             self.decision_tree, self.decision_tree["meta"]["name"]
         )
-        self.assertArrayEqual(result["weather_code"], self.wxcode)
+        np.testing.assert_array_equal(result["weather_code"], self.wxcode)
         self.assertEqual(result["weather_code_meaning"], self.wxmeaning)
 
     def test_metadata_saves(self):
@@ -165,11 +164,11 @@ class Test_categorical_attributes(IrisTest):
         )
         save_netcdf(self.cube, self.nc_file)
         result = load_cube(self.nc_file)
-        self.assertArrayEqual(result.attributes["weather_code"], self.wxcode)
+        np.testing.assert_array_equal(result.attributes["weather_code"], self.wxcode)
         self.assertEqual(result.attributes["weather_code_meaning"], self.wxmeaning)
 
 
-class Test_expand_nested_lists(IrisTest):
+class Test_expand_nested_lists(unittest.TestCase):
     """Test expand_nested_lists is working correctly"""
 
     def setUp(self):
@@ -197,7 +196,7 @@ class Test_expand_nested_lists(IrisTest):
             self.assertEqual(val, "a")
 
 
-class Test_update_daynight(IrisTest):
+class Test_update_daynight(unittest.TestCase):
     """Test updating weather cube depending on whether it is day or night"""
 
     def setUp(self):
@@ -241,7 +240,15 @@ class Test_update_daynight(IrisTest):
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(result.name(), cube.name())
         self.assertEqual(result.units, cube.units)
-        self.assertDictEqual(result.attributes, cube.attributes)
+
+        assert set(cube.attributes.keys()) == set(result.attributes.keys())
+        for key in cube.attributes.keys():
+            try:
+                assert cube.attributes[key] == result.attributes[key]
+            except ValueError:
+                np.testing.assert_array_equal(
+                    cube.attributes[key], result.attributes[key]
+                )
 
     def test_raise_error_no_time_coordinate(self):
         """Test that the function raises an error if no time coordinate."""
@@ -277,7 +284,7 @@ class Test_update_daynight(IrisTest):
             ]
         )
         result = update_daynight(cube, self.day_night)
-        self.assertArrayEqual(result.data, expected_result)
+        np.testing.assert_array_equal(result.data, expected_result)
         self.assertEqual(result.shape, (16, 16))
 
     def test_wxcode_time_different_seconds(self):
@@ -308,7 +315,7 @@ class Test_update_daynight(IrisTest):
         )
         result = update_daynight(cube, self.day_night)
 
-        self.assertArrayEqual(result.data, expected_result)
+        np.testing.assert_array_equal(result.data, expected_result)
         self.assertEqual(result.data.shape, (16, 16))
 
     def test_wxcode_time_as_array(self):
@@ -326,7 +333,7 @@ class Test_update_daynight(IrisTest):
         expected_result = np.ones((3, 16, 16))
         expected_result[0, :, :] = 0
         result = update_daynight(cube, self.day_night)
-        self.assertArrayEqual(result.data, expected_result)
+        np.testing.assert_array_equal(result.data, expected_result)
 
     def test_basic_lat_lon(self):
         """Test that the function returns a weather code lat lon cube.."""
@@ -335,7 +342,15 @@ class Test_update_daynight(IrisTest):
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(result.name(), cube.name())
         self.assertEqual(result.units, cube.units)
-        self.assertDictEqual(result.attributes, cube.attributes)
+
+        assert set(cube.attributes.keys()) == set(result.attributes.keys())
+        for key in cube.attributes.keys():
+            try:
+                assert cube.attributes[key] == result.attributes[key]
+            except ValueError:
+                np.testing.assert_array_equal(
+                    cube.attributes[key], result.attributes[key]
+                )
 
     def test_wxcode_updated_on_latlon(self):
         """Test Correct wxcodes returned for lat lon cube."""
@@ -363,7 +378,7 @@ class Test_update_daynight(IrisTest):
             ]
         )
         result = update_daynight(cube, self.day_night)
-        self.assertArrayEqual(result.data, expected_result)
+        np.testing.assert_array_equal(result.data, expected_result)
 
 
 def test_interrogate_decision_tree():
@@ -444,7 +459,7 @@ def test_interrogate_decision_tree_deterministic():
     assert result == expected
 
 
-class Test_get_parameter_names(IrisTest):
+class Test_get_parameter_names(unittest.TestCase):
     """Test the get_parameter_names method."""
 
     def test_basic(self):

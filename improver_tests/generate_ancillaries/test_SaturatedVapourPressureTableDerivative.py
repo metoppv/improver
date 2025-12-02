@@ -10,7 +10,6 @@ import unittest
 
 import numpy as np
 from cf_units import Unit
-from iris.tests import IrisTest
 
 from improver.generate_ancillaries.generate_svp_derivative_table import (
     SaturatedVapourPressureDerivativeTable,
@@ -26,7 +25,7 @@ class Test__init__(unittest.TestCase):
             SaturatedVapourPressureDerivativeTable(water_only=True, ice_only=True)
 
 
-class Test__repr__(IrisTest):
+class Test__repr__(unittest.TestCase):
     """Test the repr method."""
 
     def test_basic(self):
@@ -39,7 +38,7 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, msg)
 
 
-class Test_process(IrisTest):
+class Test_process(unittest.TestCase):
     """Test that the plugin functions as expected."""
 
     def test_cube_attributes(self):
@@ -84,7 +83,7 @@ class Test_process(IrisTest):
             t_min=t_min, t_max=t_max, t_increment=t_increment
         ).process()
 
-        self.assertArrayAlmostEqual(result.data, expected, decimal=5)
+        np.testing.assert_array_almost_equal(result.data, expected, decimal=5)
 
     def test_cube_values_water_only(self):
         """
@@ -116,7 +115,7 @@ class Test_process(IrisTest):
             t_min=t_min, t_max=t_max, t_increment=t_increment, water_only=True
         ).process()
 
-        self.assertArrayAlmostEqual(result.data, expected, decimal=5)
+        np.testing.assert_array_almost_equal(result.data, expected, decimal=5)
 
     def test_cube_values_ice_only(self):
         """
@@ -148,7 +147,7 @@ class Test_process(IrisTest):
             t_min=t_min, t_max=t_max, t_increment=t_increment, ice_only=True
         ).process()
 
-        self.assertArrayAlmostEqual(result.data, expected, decimal=5)
+        np.testing.assert_array_almost_equal(result.data, expected, decimal=5)
 
     def test_coordinate_values(self):
         """Test that returned cube temperature coordinate has expected
@@ -159,7 +158,9 @@ class Test_process(IrisTest):
             t_min=t_min, t_max=t_max, t_increment=t_increment
         ).process()
 
-        self.assertArrayAlmostEqual(result.coord("air_temperature").points, expected)
+        np.testing.assert_array_almost_equal(
+            result.coord("air_temperature").points, expected
+        )
 
 
 if __name__ == "__main__":

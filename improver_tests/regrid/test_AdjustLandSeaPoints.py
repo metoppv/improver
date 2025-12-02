@@ -10,7 +10,6 @@ import iris
 import numpy as np
 from iris.coords import DimCoord
 from iris.cube import Cube
-from iris.tests import IrisTest
 
 from improver.grids import ELLIPSOID
 from improver.regrid.landsea import AdjustLandSeaPoints
@@ -21,7 +20,7 @@ from improver.synthetic_data.set_up_test_cubes import (
 from improver.utilities.spatial import OccurrenceWithinVicinity
 
 
-class Test__init__(IrisTest):
+class Test__init__(unittest.TestCase):
     """Tests for the initiation of the AdjustLandSeaPoints class."""
 
     def test_basic(self):
@@ -72,7 +71,7 @@ class Test__init__(IrisTest):
         pass
 
 
-class Test_correct_where_input_true(IrisTest):
+class Test_correct_where_input_true(unittest.TestCase):
     """Tests the correct_where_input_true method of the AdjustLandSeaPoints
     class."""
 
@@ -106,9 +105,9 @@ class Test_correct_where_input_true(IrisTest):
         output_land = self.plugin.output_land.copy()
         output_cube = self.plugin.output_cube.copy()
         self.plugin.correct_where_input_true(0)
-        self.assertArrayEqual(input_land.data, self.plugin.input_land.data)
-        self.assertArrayEqual(output_land.data, self.plugin.output_land.data)
-        self.assertArrayEqual(output_cube.data, self.plugin.output_cube.data)
+        np.testing.assert_array_equal(input_land.data, self.plugin.input_land.data)
+        np.testing.assert_array_equal(output_land.data, self.plugin.output_land.data)
+        np.testing.assert_array_equal(output_cube.data, self.plugin.output_cube.data)
 
     def test_basic_land(self):
         """Test that nothing changes with argument one (land)."""
@@ -116,9 +115,9 @@ class Test_correct_where_input_true(IrisTest):
         output_land = self.plugin.output_land.copy()
         output_cube = self.plugin.output_cube.copy()
         self.plugin.correct_where_input_true(1)
-        self.assertArrayEqual(input_land.data, self.plugin.input_land.data)
-        self.assertArrayEqual(output_land.data, self.plugin.output_land.data)
-        self.assertArrayEqual(output_cube.data, self.plugin.output_cube.data)
+        np.testing.assert_array_equal(input_land.data, self.plugin.input_land.data)
+        np.testing.assert_array_equal(output_land.data, self.plugin.output_land.data)
+        np.testing.assert_array_equal(output_cube.data, self.plugin.output_cube.data)
 
     def test_work_sea(self):
         """Test for expected change with argument zero (sea)."""
@@ -128,7 +127,7 @@ class Test_correct_where_input_true(IrisTest):
         # input sea point in the same grid.
         output_cube.data[1, 1] = 0.5
         self.plugin.correct_where_input_true(0)
-        self.assertArrayEqual(output_cube.data, self.plugin.output_cube.data)
+        np.testing.assert_array_equal(output_cube.data, self.plugin.output_cube.data)
 
     def test_work_land(self):
         """Test for expected change with argument one (land)."""
@@ -138,7 +137,7 @@ class Test_correct_where_input_true(IrisTest):
         # input land point in the same grid.
         output_cube.data[0, 1] = 1.0
         self.plugin.correct_where_input_true(1)
-        self.assertArrayEqual(output_cube.data, self.plugin.output_cube.data)
+        np.testing.assert_array_equal(output_cube.data, self.plugin.output_cube.data)
 
     def test_work_sealand_eq_landsea(self):
         """Test result is independent of order of sea/land handling."""
@@ -153,7 +152,7 @@ class Test_correct_where_input_true(IrisTest):
         self.plugin.correct_where_input_true(0)
         attempt_10 = self.plugin.output_cube.data.copy()
 
-        self.assertArrayEqual(attempt_01, attempt_10)
+        np.testing.assert_array_equal(attempt_01, attempt_10)
 
     def test_not_in_vicinity(self):
         """Test for no change if the matching point is too far away."""
@@ -177,7 +176,7 @@ class Test_correct_where_input_true(IrisTest):
 
         output_cube = self.plugin.output_cube.copy()
         self.plugin.correct_where_input_true(0)
-        self.assertArrayEqual(output_cube.data, self.plugin.output_cube.data)
+        np.testing.assert_array_equal(output_cube.data, self.plugin.output_cube.data)
 
     def test_no_matching_points(self):
         """Test code runs and makes no changes if no sea points are present."""
@@ -185,7 +184,7 @@ class Test_correct_where_input_true(IrisTest):
         self.plugin.output_land.data = np.ones_like(self.plugin.output_land.data)
         output_cube = self.plugin.output_cube.copy()
         self.plugin.correct_where_input_true(0)
-        self.assertArrayEqual(output_cube.data, self.plugin.output_cube.data)
+        np.testing.assert_array_equal(output_cube.data, self.plugin.output_cube.data)
 
     def test_all_matching_points(self):
         """Test code runs and makes no changes if all land points are
@@ -194,10 +193,10 @@ class Test_correct_where_input_true(IrisTest):
         self.plugin.output_land.data = np.ones_like(self.plugin.output_land.data)
         output_cube = self.plugin.output_cube.copy()
         self.plugin.correct_where_input_true(1)
-        self.assertArrayEqual(output_cube.data, self.plugin.output_cube.data)
+        np.testing.assert_array_equal(output_cube.data, self.plugin.output_cube.data)
 
 
-class Test_process(IrisTest):
+class Test_process(unittest.TestCase):
     """Tests the process method of the AdjustLandSeaPoints class."""
 
     def setUp(self):
@@ -272,9 +271,17 @@ class Test_process(IrisTest):
         expected[4, 4] = 1.0
         result = self.plugin.process(self.cube, self.input_land, self.output_land)
         self.assertIsInstance(result, Cube)
-        self.assertArrayEqual(result.data, expected)
-        self.assertDictEqual(result.attributes, self.cube.attributes)
+        np.testing.assert_array_equal(result.data, expected)
         self.assertEqual(result.name(), self.cube.name())
+
+        assert set(self.cube.attributes.keys()) == set(result.attributes.keys())
+        for key in self.cube.attributes.keys():
+            try:
+                assert self.cube.attributes[key] == result.attributes[key]
+            except ValueError:
+                np.testing.assert_array_equal(
+                    self.cube.attributes[key], result.attributes[key]
+                )
 
     def test_with_regridding(self):
         """Test when input grid is on a different projection."""
@@ -291,9 +298,17 @@ class Test_process(IrisTest):
         expected[4, 4] = 1.0
         result = self.plugin.process(self.cube, input_land, self.output_land)
         self.assertIsInstance(result, Cube)
-        self.assertArrayEqual(result.data, expected)
-        self.assertDictEqual(result.attributes, self.cube.attributes)
+        np.testing.assert_array_equal(result.data, expected)
         self.assertEqual(result.name(), self.cube.name())
+
+        assert set(self.cube.attributes.keys()) == set(result.attributes.keys())
+        for key in self.cube.attributes.keys():
+            try:
+                assert self.cube.attributes[key] == result.attributes[key]
+            except ValueError:
+                np.testing.assert_array_equal(
+                    self.cube.attributes[key], result.attributes[key]
+                )
 
     def test_multi_realization(self):
         """Test that the expected changes occur and meta-data are unchanged
@@ -312,9 +327,17 @@ class Test_process(IrisTest):
         expected[:, 4, 4] = 1.0
         result = self.plugin.process(cube, self.input_land, self.output_land)
         self.assertIsInstance(result, Cube)
-        self.assertArrayEqual(result.data, expected)
-        self.assertDictEqual(result.attributes, self.cube.attributes)
+        np.testing.assert_array_equal(result.data, expected)
         self.assertEqual(result.name(), self.cube.name())
+
+        assert set(self.cube.attributes.keys()) == set(result.attributes.keys())
+        for key in self.cube.attributes.keys():
+            try:
+                assert self.cube.attributes[key] == result.attributes[key]
+            except ValueError:
+                np.testing.assert_array_equal(
+                    self.cube.attributes[key], result.attributes[key]
+                )
 
     def test_raises_gridding_error(self):
         """Test error raised when cube and output grids don't match."""

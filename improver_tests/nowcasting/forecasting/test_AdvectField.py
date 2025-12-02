@@ -12,7 +12,6 @@ import numpy as np
 import pytest
 from iris.coords import DimCoord
 from iris.exceptions import InvalidCubeError
-from iris.tests import IrisTest
 
 from improver.nowcasting.forecasting import AdvectField
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
@@ -35,7 +34,7 @@ def set_up_xy_velocity_cube(name, coord_points_y=None, units="m s-1"):
     return cube
 
 
-class Test__init__(IrisTest):
+class Test__init__(unittest.TestCase):
     """Test class initialisation"""
 
     def test_basic(self):
@@ -51,7 +50,7 @@ class Test__init__(IrisTest):
         vel_x = set_up_xy_velocity_cube("advection_velocity_x", units="km h-1")
         expected_vel_x = vel_x.data / 3.6
         plugin = AdvectField(vel_x, vel_x)
-        self.assertArrayAlmostEqual(plugin.vel_x.data, expected_vel_x)
+        np.testing.assert_array_almost_equal(plugin.vel_x.data, expected_vel_x)
 
     def test_raises_grid_mismatch_error(self):
         """Test error is raised if x- and y- velocity grids are mismatched"""
@@ -64,7 +63,7 @@ class Test__init__(IrisTest):
             _ = AdvectField(vel_x, vel_y)
 
 
-class Test__repr__(IrisTest):
+class Test__repr__(unittest.TestCase):
     """Test class representation"""
 
     def test_basic(self):
@@ -82,7 +81,7 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, expected_result)
 
 
-class Test__increment_output_array(IrisTest):
+class Test__increment_output_array(unittest.TestCase):
     """Tests for the _increment_output_array method"""
 
     def setUp(self):
@@ -127,10 +126,10 @@ class Test__increment_output_array(IrisTest):
         )
 
         self.assertIsInstance(outdata, np.ndarray)
-        self.assertArrayAlmostEqual(outdata, expected_output)
+        np.testing.assert_array_almost_equal(outdata, expected_output)
 
 
-class Test__advect_field(IrisTest):
+class Test__advect_field(unittest.TestCase):
     """Tests for the _advect_field method"""
 
     def setUp(self):
@@ -167,7 +166,9 @@ class Test__advect_field(IrisTest):
         result = self.dummy_plugin._advect_field(
             self.data, self.grid_vel_x, self.grid_vel_y, self.timestep
         )
-        self.assertArrayAlmostEqual(result[~result.mask], expected_output[~result.mask])
+        np.testing.assert_array_almost_equal(
+            result[~result.mask], expected_output[~result.mask]
+        )
 
     def test_advect_partial_grid_point(self):
         """Test advection by a quarter of a grid point in the x direction and
@@ -183,7 +184,9 @@ class Test__advect_field(IrisTest):
         result = self.dummy_plugin._advect_field(
             self.data, self.grid_vel_x, 2.0 * self.grid_vel_y, 0.5
         )
-        self.assertArrayAlmostEqual(result[~result.mask], expected_output[~result.mask])
+        np.testing.assert_array_almost_equal(
+            result[~result.mask], expected_output[~result.mask]
+        )
 
     def test_negative_advection_velocities(self):
         """Test data is advected correctly in the negative x direction"""
@@ -199,7 +202,9 @@ class Test__advect_field(IrisTest):
         result = self.dummy_plugin._advect_field(
             self.data, self.grid_vel_x, self.grid_vel_y, self.timestep
         )
-        self.assertArrayAlmostEqual(result[~result.mask], expected_output[~result.mask])
+        np.testing.assert_array_almost_equal(
+            result[~result.mask], expected_output[~result.mask]
+        )
 
     def test_masked_input(self):
         """Test masked data is correctly advected and remasked"""
@@ -225,11 +230,13 @@ class Test__advect_field(IrisTest):
             masked_data, self.grid_vel_x, 2 * self.grid_vel_y, 0.5
         )
         self.assertIsInstance(result, np.ma.MaskedArray)
-        self.assertArrayAlmostEqual(result[~result.mask], expected_data[~result.mask])
-        self.assertArrayEqual(result.mask, expected_mask)
+        np.testing.assert_array_almost_equal(
+            result[~result.mask], expected_data[~result.mask]
+        )
+        np.testing.assert_array_equal(result.mask, expected_mask)
 
 
-class Test_process(IrisTest):
+class Test_process(unittest.TestCase):
     """Test dimensioned cube data is correctly advected"""
 
     def setUp(self):
@@ -276,7 +283,7 @@ class Test_process(IrisTest):
         plugin = AdvectField(self.vel_x, self.vel_y, attributes_dict=input_attributes)
         result = plugin.process(self.cube, self.timestep)
         result.attributes.pop("history")
-        self.assertDictEqual(result.attributes, expected_attributes)
+        self.assertDictEqual(dict(result.attributes), expected_attributes)
 
     def test_check_source_metadata_no_institution(self):
         """Test plugin returns a cube with the desired source attribute
@@ -306,7 +313,7 @@ class Test_process(IrisTest):
             ]
         )
         result = self.plugin.process(self.cube, self.timestep)
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.data[~result.data.mask], expected_data[~result.data.mask]
         )
 
@@ -329,10 +336,10 @@ class Test_process(IrisTest):
 
         result = self.plugin.process(masked_cube, self.timestep)
         self.assertIsInstance(result.data, np.ma.MaskedArray)
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.data[~result.data.mask], expected_data[~result.data.mask]
         )
-        self.assertArrayEqual(result.data.mask, expected_mask)
+        np.testing.assert_array_equal(result.data.mask, expected_mask)
 
     def test_mask_creation(self):
         """Test a mask is added if the fill value is NaN"""
@@ -346,7 +353,7 @@ class Test_process(IrisTest):
         )
         result = self.plugin.process(self.cube, self.timestep)
         self.assertIsInstance(result.data, np.ma.MaskedArray)
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.data[~result.data.mask], expected_output[~result.data.mask]
         )
 
@@ -362,7 +369,7 @@ class Test_process(IrisTest):
         with pytest.warns(UserWarning, match=warning_msg):
             result = self.plugin.process(cube, self.timestep)
 
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.data[~result.data.mask], expected_data[~result.data.mask]
         )
 
@@ -379,7 +386,7 @@ class Test_process(IrisTest):
             ]
         )
         result = self.plugin.process(self.cube, datetime.timedelta(hours=1))
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.data[~result.data.mask], expected_data[~result.data.mask]
         )
 

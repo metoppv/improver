@@ -11,7 +11,6 @@ import cf_units as unit
 import iris
 import numpy as np
 import pytz
-from iris.tests import IrisTest
 
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.synthetic_data.set_up_test_cubes import (
@@ -47,7 +46,7 @@ def create_spot_cube(xrange=175, yrange=85):
     return spot_cube
 
 
-class Test__init__(IrisTest):
+class Test__init__(unittest.TestCase):
     """Test initialisation of the DayNightMask class"""
 
     def test_basic_init(self):
@@ -58,7 +57,7 @@ class Test__init__(IrisTest):
         self.assertEqual(plugin.irregular, False)
 
 
-class Test__repr__(IrisTest):
+class Test__repr__(unittest.TestCase):
     """Test string representation"""
 
     def test_basic_repr(self):
@@ -68,7 +67,7 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, expected)
 
 
-class Test__create_daynight_mask(IrisTest):
+class Test__create_daynight_mask(unittest.TestCase):
     """Test string representation"""
 
     def setUp(self):
@@ -116,7 +115,7 @@ class Test__create_daynight_mask(IrisTest):
         self.assertEqual(plugin.irregular, True)
 
 
-class Test__daynight_lat_lon_cube(IrisTest):
+class Test__daynight_lat_lon_cube(unittest.TestCase):
     """Test string representation"""
 
     def setUp(self):
@@ -150,7 +149,7 @@ class Test__daynight_lat_lon_cube(IrisTest):
 
         result = plugin._daynight_lat_lon_cube(mask_cube, day_of_year, utc_hour)
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayEqual(result.data, expected_result)
+        np.testing.assert_array_equal(result.data, expected_result)
 
     def test_basic_lat_lon_cube_360(self):
         """Test this still works with 360 data"""
@@ -162,7 +161,7 @@ class Test__daynight_lat_lon_cube(IrisTest):
 
         result = plugin._daynight_lat_lon_cube(mask_cube_360, day_of_year, utc_hour)
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayEqual(result.data, expected_result)
+        np.testing.assert_array_equal(result.data, expected_result)
 
     def test_basic_lat_lon_cube_spot(self):
         """Test this create a blank spot mask cube"""
@@ -174,10 +173,10 @@ class Test__daynight_lat_lon_cube(IrisTest):
 
         result = plugin._daynight_lat_lon_cube(spot_mask_cube, day_of_year, utc_hour)
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayEqual(result.data, expected_result)
+        np.testing.assert_array_equal(result.data, expected_result)
 
 
-class Test_process(IrisTest):
+class Test_process(unittest.TestCase):
     """Test DayNight Mask."""
 
     def setUp(self):
@@ -259,7 +258,7 @@ class Test_process(IrisTest):
                 [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             ]
         )
-        self.assertArrayEqual(result.data, expected_result)
+        np.testing.assert_array_equal(result.data, expected_result)
 
     def test_time_as_dimension(self):
         """Test day_night mask for a cube with multiple times."""
@@ -290,7 +289,7 @@ class Test_process(IrisTest):
                 np.ones((16, 16)),
             ]
         )
-        self.assertArrayEqual(result.data, expected_result)
+        np.testing.assert_array_equal(result.data, expected_result)
         self.assertEqual(result.shape, cube.shape)
 
     def test_basic_lat_lon(self):
@@ -316,7 +315,7 @@ class Test_process(IrisTest):
                 [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             ]
         )
-        self.assertArrayEqual(result.data, expected_result)
+        np.testing.assert_array_equal(result.data, expected_result)
 
     def test_basic_lat_lon_360(self):
         """Test day_night mask with lat lon data 360 data."""
@@ -341,7 +340,7 @@ class Test_process(IrisTest):
                 [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             ]
         )
-        self.assertArrayEqual(result.data, expected_result)
+        np.testing.assert_array_equal(result.data, expected_result)
 
     def test_time_bounds_standard_grid_ccrs(self):
         """Test day_night mask with standard_grid_ccrs projection for a cube
@@ -379,8 +378,8 @@ class Test_process(IrisTest):
                 [0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
             ]
         )
-        self.assertArrayEqual(result.data, expected_result)
-        self.assertArrayEqual(result.data, ref_result.data)
+        np.testing.assert_array_equal(result.data, expected_result)
+        np.testing.assert_array_equal(result.data, ref_result.data)
 
     def test_spot_mask(self):
         """Test day_night mask with lat lon spot data. Note that the
@@ -400,7 +399,7 @@ class Test_process(IrisTest):
                 [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1],
             ]
         )
-        self.assertArrayEqual(result.data, expected_result.flatten())
+        np.testing.assert_array_equal(result.data, expected_result.flatten())
 
 
 if __name__ == "__main__":
