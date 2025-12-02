@@ -19,9 +19,14 @@ jobs:
 
     - name: Substitute branch name in environment files
       run: |
-        # For PRs, use PR number; for branches, use branch name
+        # For PRs, use PR number if matching branch exists in improver_example_data; otherwise use master
         if [ "${{ github.event_name }}" = "pull_request" ]; then
-          BRANCH_NAME=${{ github.event.pull_request.number }}
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          if git ls-remote --heads https://github.com/metoppv/improver_example_data.git ${PR_NUMBER} | grep -q ${PR_NUMBER}; then
+            BRANCH_NAME=$PR_NUMBER
+          else
+            BRANCH_NAME=master
+          fi
         else
           # Extract branch name from GITHUB_REF (e.g. for situation
           # where a PR is merged into master, so refs/heads/master -> master)
