@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 from iris.coords import CellMethod
 from iris.cube import Cube, CubeList
-from iris.exceptions import CoordinateNotFoundError, AncillaryVariableNotFoundError
+from iris.exceptions import AncillaryVariableNotFoundError, CoordinateNotFoundError
 from numpy import dtype, ndarray
 
 from improver import BasePlugin
@@ -144,7 +144,9 @@ class StandardiseMetadata(BasePlugin):
                 continue
 
     @staticmethod
-    def _remove_ancillary_variables(cube: Cube, ancillary_variables_to_remove: List[str]) -> None:
+    def _remove_ancillary_variables(
+        cube: Cube, ancillary_variables_to_remove: List[str]
+    ) -> None:
         """Removes named ancillary variables from the input cube."""
         for var in ancillary_variables_to_remove:
             try:

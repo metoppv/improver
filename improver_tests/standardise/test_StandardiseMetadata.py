@@ -10,7 +10,7 @@ from unittest.mock import patch, sentinel
 
 import iris
 import numpy as np
-from iris.coords import AuxCoord, DimCoord, AncillaryVariable
+from iris.coords import AncillaryVariable, AuxCoord, DimCoord
 from iris.tests import IrisTest
 
 from improver.standardise import StandardiseMetadata
@@ -143,7 +143,9 @@ class Test_process(IrisTest):
         self.assertEqual(result.coord("height").points, 2.0)
         self.assertDictEqual(result.attributes, expected_attributes)
         self.assertNotIn("forecast_period", [coord.name() for coord in result.coords()])
-        self.assertNotIn("status_flag", [var.name() for var in result.ancillary_variables()])
+        self.assertNotIn(
+            "status_flag", [var.name() for var in result.ancillary_variables()]
+        )
 
     def test_attempt_modify_dimension_coord(self):
         """Test that an exception is raised if the coord_modification targets
@@ -307,12 +309,15 @@ class Test_process(IrisTest):
         """Test ancillary variable removal works as expected."""
         cube = self.cube.copy()
         status_flag_values = np.array(
-            [[1, 1, 1, 0, 1],
-             [1, 1, 0, 0, 1],
-             [1, 1, 1, 1, 1],
-             [0, 0, 0, 0, 0],
-             [1, 0, 1, 1, 1]],
-            dtype=np.int32)
+            [
+                [1, 1, 1, 0, 1],
+                [1, 1, 0, 0, 1],
+                [1, 1, 1, 1, 1],
+                [0, 0, 0, 0, 0],
+                [1, 0, 1, 1, 1],
+            ],
+            dtype=np.int32,
+        )
         ancillary_var = AncillaryVariable(
             status_flag_values,
             standard_name="status_flag",
@@ -330,6 +335,7 @@ class Test_process(IrisTest):
             "status_flag",
             [var.name() for var in result.ancillary_variables()],
         )
+
 
 if __name__ == "__main__":
     unittest.main()
