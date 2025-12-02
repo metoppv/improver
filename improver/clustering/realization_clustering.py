@@ -306,8 +306,14 @@ class RealizationToClusterMatcher(BasePlugin):
         return cluster_indices, realization_indices
 
 
-class ClusterAndMatch(BasePlugin):
-    """Class to cluster and match data."""
+class RealizationClusterAndMatch(BasePlugin):
+    """Cluster primary input realizations and match secondary inputs to clusters.
+
+    This plugin performs KMedoids clustering on a primary input, then matches
+    secondary input realizations to the resulting clusters based on mean squared
+    error, respecting a configurable precedence hierarchy for multiple secondary
+    inputs.
+    """
 
     def __init__(
         self,
@@ -315,6 +321,8 @@ class ClusterAndMatch(BasePlugin):
         model_id_attr: str,
         clustering_method: str,
         target_grid_name: str,
+        regrid_mode: str = "esmf-area-weighted",
+        regrid_kwargs: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> None:
         """Initialise the clustering and matching class.
@@ -322,13 +330,32 @@ class ClusterAndMatch(BasePlugin):
         Args:
             hierarchy: The hierarchy of inputs defining the primary input, which is
                 clustered, and secondary inputs, which are matched to each cluster.
-                The order of the secondary_inputs is used as the priority for matching:
+                The order of the secondary_inputs is used as the priority for matching.
+                The list values for secondary inputs specify forecast periods in hours.
+                A two-element list [start, end] will be expanded to include all hours
+                in that range. Lists with other lengths are treated as explicit lists
+                of forecast period hours. All values will be automatically converted
+                to seconds to match the forecast_period coordinate units in the input cubes:
                 {"primary_input": "input1",
                  "secondary_inputs": {"input2": [0, 6], "input3": [0, 24]}}
+                In this example, input2 will use forecast periods in the range 0 to 6 hours
+                inclusive (i.e., any forecast periods between 0 and 21600 seconds),
+                and input3 will use the range 0 to 24 hours (0 to 86400 seconds).
+                Only forecast periods that actually exist in the input cubes within these
+                ranges will be processed.
             model_id_attr: The model ID attribute used to identify different models
                 within the input cubes.
             target_grid_name: The name of the target grid cube for regridding.
             clustering_method: The clustering method to use.
+            regrid_mode: The regridding mode to use. Default is
+                "esmf-area-weighted".
+            regrid_kwargs: Additional keyword arguments to pass to RegridLandSea.
+                Common options include:
+                - mdtol (float): Tolerance of missing data for esmf-area-weighted
+                  regridding (default 1)
+                - extrapolation_mode (str): Mode to fill regions outside domain
+                - landmask (Cube): Land-sea mask for mask-aware regridding
+                - landmask_vicinity (float): Radius for coastline search
             **kwargs: Additional arguments for the clustering method.
         Raises:
             NotImplementedError: If the clustering method is not supported.
@@ -337,6 +364,8 @@ class ClusterAndMatch(BasePlugin):
         self.model_id_attr = model_id_attr
         self.target_grid_name = target_grid_name
         self.clustering_method = clustering_method
+        self.regrid_mode = regrid_mode
+        self.regrid_kwargs = regrid_kwargs if regrid_kwargs is not None else {}
         self.kwargs = kwargs
         if clustering_method != "KMedoids":
             msg = (
@@ -345,11 +374,49 @@ class ClusterAndMatch(BasePlugin):
             )
             raise NotImplementedError(msg)
 
+    @staticmethod
+    def _expand_forecast_period_range(fp_range: list[int]) -> list[int]:
+        """Expand a forecast period range [start, end] to a list of integers.
+
+        Args:
+            fp_range: A list containing either [start, end] values defining a range
+                in hours, or a list of specific forecast period hours.
+
+        Returns:
+            If fp_range has 2 elements, returns integers from start to end inclusive
+            in steps of 1 hour. Otherwise, returns the list as-is.
+
+        Raises:
+            ValueError: If start > end (when 2 elements provided).
+        """
+        if len(fp_range) == 2:
+            start, end = fp_range
+            if start > end:
+                msg = f"Forecast period range start ({start}) must be <= end ({end})"
+                raise ValueError(msg)
+            return list(range(start, end + 1, 1))
+        else:
+            # Return as-is for lists with != 2 elements
+            return fp_range
+
+    @staticmethod
+    def _convert_hours_to_seconds(hours: list[int]) -> list[int]:
+        """Convert a list of hours to seconds.
+
+        Args:
+            hours: List of forecast period values in hours.
+
+        Returns:
+            List of forecast period values in seconds.
+        """
+        return [h * 3600 for h in hours]
+
     def cluster_primary_input(
         self, cube: iris.cube.Cube, target_grid_cube: iris.cube.Cube
     ) -> tuple[iris.cube.Cube, iris.cube.Cube]:
         """Cluster the primary input cube. The primary input cube is regridded
-        to the target grid before clustering using area-weighted regridding.
+        to the target grid before clustering using esmf-area-weighted
+        regridding.
 
         Args:
             primary_cube: The primary input cube to cluster.
@@ -361,9 +428,9 @@ class ClusterAndMatch(BasePlugin):
         # Regrid the primary cube prior to clustering to speed up clustering and
         # emphasise key features of relevance for clustering.
         regridded_cube = RegridLandSea(
-            regrid_mode="area-weighted",
+            regrid_mode=self.regrid_mode,
+            **self.regrid_kwargs,
         )(cube, target_grid_cube)
-
         clustering_result = RealizationClustering(
             self.clustering_method, **self.kwargs
         )(regridded_cube)
@@ -416,29 +483,55 @@ class ClusterAndMatch(BasePlugin):
         Returns:
             Tuple of (full_realization_inputs, partial_realization_inputs):
                 full_realization_inputs: List of (name, forecast_periods) tuples
-                    for inputs with >= n_clusters realizations.
+                    for inputs with >= n_clusters realizations. The forecast_periods
+                    are the actual forecast periods (in seconds) that exist in the cubes
+                    within the specified hour range.
                 partial_realization_inputs: List of (name, forecast_periods) tuples
-                    for inputs with < n_clusters realizations.
+                    for inputs with < n_clusters realizations. The forecast_periods
+                    are the actual forecast periods (in seconds) that exist in the cubes
+                    within the specified hour range.
         """
         full_realization_inputs = []
         partial_realization_inputs = []
 
-        for candidate_name, forecast_periods in self.hierarchy[
-            "secondary_inputs"
-        ].items():
+        for candidate_name, fp_range in self.hierarchy["secondary_inputs"].items():
+            # Expand the forecast period range and convert from hours to seconds
+            fp_hours = self._expand_forecast_period_range(fp_range)
+            fp_seconds_range = self._convert_hours_to_seconds(fp_hours)
+
+            # Create constraint to get all cubes for this model
             model_id_constr = iris.AttributeConstraint(
                 **{self.model_id_attr: candidate_name}
             )
+
+            # Extract all cubes for this model
+            model_cubes = cubes.extract(model_id_constr)
+
+            # Filter to only those within the forecast period range
+            forecast_periods_in_range = []
+            for cube in model_cubes:
+                if cube.coords("forecast_period"):
+                    fp_value = cube.coord("forecast_period").points[0]
+                    if fp_value in fp_seconds_range:
+                        forecast_periods_in_range.append(int(fp_value))
+
+            if not forecast_periods_in_range:
+                continue  # No cubes found in this range for this model
+
             # Check first forecast period to determine realization count
-            test_fp = forecast_periods[0]
+            test_fp = forecast_periods_in_range[0]
             test_constr = iris.Constraint(forecast_period=test_fp)
             test_cube = cubes.extract_cube(model_id_constr & test_constr)
             n_realizations = len(test_cube.coord("realization").points)
 
             if n_realizations >= n_clusters:
-                full_realization_inputs.append((candidate_name, forecast_periods))
+                full_realization_inputs.append(
+                    (candidate_name, forecast_periods_in_range)
+                )
             else:
-                partial_realization_inputs.append((candidate_name, forecast_periods))
+                partial_realization_inputs.append(
+                    (candidate_name, forecast_periods_in_range)
+                )
 
         return full_realization_inputs, partial_realization_inputs
 
@@ -466,18 +559,32 @@ class ClusterAndMatch(BasePlugin):
 
         If forecast_period exists but is not a dimension coordinate (i.e., it's scalar
         or auxiliary), promote it to a dimension coordinate using new_axis. Then ensure
-        realization is the leading dimension.
+        realization is the leading dimension. Also ensures that the time coordinate is
+        associated with the forecast_period dimension to avoid it being scalar.
 
         Args:
             cube: The cube to check and potentially modify.
 
         Returns:
-            The cube with forecast_period as a dimension coordinate (if it exists)
-            and realization as the first dimension.
+            The cube with forecast_period as a dimension coordinate (if it exists),
+            time associated with the forecast_period dimension, and realization as
+            the first dimension.
         """
         if cube.coords("forecast_period") and not cube.coord_dims("forecast_period"):
             cube = new_axis(cube, "forecast_period")
             cube = self._ensure_realization_is_first_dimension(cube)
+
+        # Ensure time coordinate is associated with forecast_period dimension
+        if cube.coords("time") and cube.coords("forecast_period"):
+            fp_dim = cube.coord_dims("forecast_period")
+            time_dims = cube.coord_dims("time")
+            # If time is scalar or not associated with forecast_period dimension
+            if not time_dims or time_dims != fp_dim:
+                # Remove time as a coordinate and re-add it associated with forecast_period
+                time_coord = cube.coord("time")
+                cube.remove_coord("time")
+                cube.add_aux_coord(time_coord, fp_dim)
+
         return cube
 
     def _initialise_matched_cubes_with_primary(
@@ -567,7 +674,8 @@ class ClusterAndMatch(BasePlugin):
                 continue  # No matching cubes for this forecast period
 
             regridded_candidate_cube = RegridLandSea(
-                regrid_mode="area-weighted",
+                regrid_mode=self.regrid_mode,
+                **self.regrid_kwargs,
             )(candidate_cube, target_grid_cube)
             cluster_indices, realization_indices = RealizationToClusterMatcher()(
                 regridded_clustered_primary_cube.extract(fp_constr),
@@ -655,7 +763,8 @@ class ClusterAndMatch(BasePlugin):
                 candidate_cube = cubes.extract_cube(model_id_constr & fp_constr)
 
                 regridded_candidate_cube = RegridLandSea(
-                    regrid_mode="area-weighted",
+                    regrid_mode=self.regrid_mode,
+                    **self.regrid_kwargs,
                 )(candidate_cube, target_grid_cube)
 
                 # Get the matching cluster indices from the matcher
@@ -726,6 +835,7 @@ class ClusterAndMatch(BasePlugin):
         )
         primary_cubes = cubes.extract(constr)
         if len(primary_cubes) > 1:
+            equalise_attributes(primary_cubes)
             primary_cube = primary_cubes.merge_cube()
             # Ensure realization is the leading dimension after merge
             primary_cube = self._ensure_realization_is_first_dimension(primary_cube)
