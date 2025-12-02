@@ -54,6 +54,17 @@ def test_dry_adiabatic_methods(shape, method, t1, p1, n2, expected):
     assert result.shape == shape
 
 
+@pytest.mark.parametrize("p1, p2", ((50000, -40000), (-50000, 40000)))
+def test_dry_adiabatic_errors(p1, p2):
+    """Test with some unphysical pressure values (of opposite signs) where we get NaN."""
+    result = dry_adiabatic_temperature(
+        np.array([100], dtype=np.float32),
+        np.array([p1], dtype=np.float32),
+        np.array([p2], dtype=np.float32),
+    )
+    assert np.isnan(result).all()
+
+
 @pytest.mark.parametrize("shape", ((1,), (2, 2)))
 @pytest.mark.parametrize(
     "t, p, expected",
@@ -76,6 +87,17 @@ def test_saturated_humidity(shape, t, p, expected):
     )
     assert np.isclose(result, expected).all()
     assert result.shape == shape
+    assert result.dtype == np.float32
+
+
+def test_saturated_humidity_nan():
+    """Test the saturated_humidity method with NaN input"""
+    t = np.array([[290.0, np.nan], [273.15, 270.0]], dtype=np.float32)
+    p = np.array([[100000.0, 90000.0], [90000.0, np.nan]], dtype=np.float32)
+    expected = np.array([[1.20745e-2, np.nan], [4.2481e-3, np.nan]], dtype=np.float32)
+    result = saturated_humidity(t, p)
+    assert np.isclose(result, expected, equal_nan=True).all()
+    assert result.shape == t.shape
     assert result.dtype == np.float32
 
 

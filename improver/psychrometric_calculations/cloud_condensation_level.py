@@ -83,6 +83,7 @@ class CloudCondensationLevel(PostProcessingPlugin):
         """
         self.model_id_attr = model_id_attr
         self.temperature, self.pressure, self.humidity = None, None, None
+        self.minimum_ccl_pressure = 1000.0  # Pa
 
     def _make_ccl_cube(self, data: np.ndarray, is_temperature: bool) -> Cube:
         """Puts the data array into a CF-compliant cube"""
@@ -134,6 +135,12 @@ class CloudCondensationLevel(PostProcessingPlugin):
             maxiter=20,
             disp=False,
         ).astype(np.float32)
+        ## Limit ccl_pressure to a minimum value to avoid issues with very low pressures
+        # ccl_pressure = np.where(
+        #    ccl_pressure < self.minimum_ccl_pressure,
+        #    self.minimum_ccl_pressure,
+        #    ccl_pressure,
+        # )
         ccl_temperature = dry_adiabatic_temperature(
             self.temperature.data, self.pressure.data, ccl_pressure
         ).astype(np.float32)
@@ -144,6 +151,8 @@ class CloudCondensationLevel(PostProcessingPlugin):
         Calculates the cloud condensation level from the near-surface inputs.
         Values will be limited to the surface values where the calculated pressure is greater than
         the original pressure, which can occur in super-saturated conditions.
+        Invalid values resulting from failure to find a saturation point will be NaN.
+        ## Values will also be limited to a minimum pressure of 1000 Pa.
 
         Args:
             cubes:

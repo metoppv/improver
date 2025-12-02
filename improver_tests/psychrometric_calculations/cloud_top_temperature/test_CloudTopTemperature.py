@@ -151,6 +151,16 @@ def test_basic(t_at_ccl, p_at_ccl, temperature, ccl_t, ccl_p, expected):
 
 
 @pytest.mark.parametrize("profile_shift", (0,))
+def test_mask(t_at_ccl, p_at_ccl, temperature):
+    """Test that masks are correctly propagated from input cubes to output cube."""
+    t_at_ccl.data = np.ma.masked_array(t_at_ccl.data, mask=True)
+    p_at_ccl.data = np.ma.masked_array(p_at_ccl.data, mask=True)
+    result = CloudTopTemperature()(t_at_ccl, p_at_ccl, temperature)
+    metadata_ok(result, t_at_ccl)
+    assert result.data.mask.all()
+
+
+@pytest.mark.parametrize("profile_shift", (0,))
 @pytest.mark.parametrize("model_id_attr", ("mosg__model_configuration", None))
 def test_model_id_attr(t_at_ccl, p_at_ccl, temperature, model_id_attr):
     """Check that tests pass if model_id_attr is set on inputs and is applied or not"""

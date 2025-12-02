@@ -279,7 +279,8 @@ def saturated_humidity(temperature: ndarray, pressure: ndarray) -> ndarray:
             Air pressure (Pa)
 
     Returns:
-        Array of specific humidity values (kg kg-1) representing saturated air
+        Array of specific humidity values (kg kg-1) representing saturated air. NaN is returned
+        if either input is NaN.
 
     Method from referenced documentation. Note that EARTH_REPSILON is
     simply given as an unnamed constant in the reference (0.62198).
@@ -287,10 +288,16 @@ def saturated_humidity(temperature: ndarray, pressure: ndarray) -> ndarray:
     References:
         ASHRAE Fundamentals handbook (2005) Equation 22, 24, p6.8
     """
+    mask = np.isnan(temperature) | np.isnan(pressure)
+    # Replace NaNs with a dummy value for calculation purposes
+    temperature = np.where(mask, 273.15, temperature)
+    pressure = np.where(mask, 100000.0, pressure)
     svp = calculate_svp_in_air(temperature, pressure)
     numerator = consts.EARTH_REPSILON * svp
     denominator = np.maximum(svp, pressure) - ((1.0 - consts.EARTH_REPSILON) * svp)
-    return (numerator / denominator).astype(temperature.dtype)
+    result = (numerator / denominator).astype(temperature.dtype)
+    result[mask] = np.nan
+    return result
 
 
 def _calculate_latent_heat(temperature: ndarray) -> ndarray:

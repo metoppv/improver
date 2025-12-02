@@ -157,6 +157,29 @@ def test_for_limited_values(
     assert np.isclose(result[1].data, pressure_value, atol=1e-0).all()
 
 
+@pytest.mark.parametrize(
+    "temperature_value, pressure_value, humidity_value",
+    ((243, 94749, 1.2331e-7),),
+)
+def test_for_masked_values(
+    temperature,
+    pressure,
+    humidity,
+    temperature_value,
+    pressure_value,
+    humidity_value,
+):
+    """Check that for each set of unphysical values, we get a masked result."""
+    temperature.data = np.full_like(temperature.data, temperature_value)
+    pressure.data = np.full_like(pressure.data, pressure_value)
+    humidity.data = np.full_like(humidity.data, humidity_value)
+    expected = np.ma.masked_all(temperature.data.shape, dtype=np.float32)
+    result = CloudCondensationLevel()([temperature, pressure, humidity])
+    metadata_ok(result, temperature)
+    assert np.ma.allequal(result[0].data, expected)
+    assert np.ma.allequal(result[1].data, expected)
+
+
 @pytest.mark.parametrize("model_id_attr", ("mosg__model_configuration", None))
 def test_model_id_attr(temperature, pressure, humidity, model_id_attr):
     """Check that tests pass if model_id_attr is set on inputs and is applied or not"""

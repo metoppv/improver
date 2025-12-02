@@ -154,6 +154,23 @@ def test_basic(temperature, pressure, air_parcel):
     assert np.isclose(result.data, air_parcel.data, atol=1e-2).all()
 
 
+def test_masked(temperature, pressure, air_parcel):
+    """Check that masked inputs result in masked outputs."""
+    temperature_mask = np.full_like(temperature.data, False)
+    pressure_mask = np.full_like(pressure.data, False)
+    temperature_mask[0, 0] = True
+    pressure_mask[1, 1] = True
+    air_parcel_mask = np.full_like(air_parcel.data, False)
+    air_parcel_mask[0, 0] = True
+    air_parcel_mask[1, 1] = True
+    temperature.data = np.ma.masked_array(temperature.data, mask=temperature_mask)
+    pressure.data = np.ma.masked_array(pressure.data, mask=pressure_mask)
+    air_parcel.data = np.ma.masked_array(air_parcel.data, mask=air_parcel_mask)
+    result = TemperatureSaturatedAirParcel()([temperature, pressure])
+    metadata_ok(result, air_parcel)
+    assert np.isclose(result.data, air_parcel.data, atol=1e-2).all()
+
+
 def test_different_pressure(temperature, pressure, air_parcel_diff_pressure):
     """Check that we get the expected result from the plugin when we use
     a different pressure (600hPa)."""

@@ -62,9 +62,15 @@ class CloudTopTemperature(PostProcessingPlugin):
         """
         cct = np.ma.masked_array(self.t_at_ccl.data.copy())
         q_at_ccl = saturated_humidity(self.t_at_ccl.data, self.p_at_ccl.data)
-        ccl_with_mask = np.ma.masked_array(self.t_at_ccl.data, False)
+        # t_at_ccl.data can be either a normal array or a masked array. We want to
+        # keep the mask if it exists, or create a mask=False array if it doesn't.
+        ccl_with_mask = self.t_at_ccl.data
+        if not isinstance(ccl_with_mask, np.ma.MaskedArray):
+            ccl_with_mask = np.ma.masked_array(self.t_at_ccl.data, False)
         mask = ~ccl_with_mask.mask
         for t in self.temperature.slices_over("pressure"):
+            if mask.sum() == 0:
+                break
             t_environment = np.full_like(t.data, np.nan)
             t_environment[mask] = t.data[mask]
 
@@ -90,8 +96,7 @@ class CloudTopTemperature(PostProcessingPlugin):
 
             cct[mask] = t_parcel[mask]
             del t
-            if mask.sum() == 0:
-                break
+
         cct = np.ma.masked_where(self.t_at_ccl.data - cct < self.minimum_t_diff, cct)
 
         return cct
