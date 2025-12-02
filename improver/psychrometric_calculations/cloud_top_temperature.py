@@ -64,9 +64,9 @@ class CloudTopTemperature(PostProcessingPlugin):
         q_at_ccl = saturated_humidity(self.t_at_ccl.data, self.p_at_ccl.data)
         # t_at_ccl.data can be either a normal array or a masked array. We want to
         # keep the mask if it exists, or create a mask=False array if it doesn't.
-        ccl_with_mask = self.t_at_ccl.data
+        ccl_with_mask = q_at_ccl.copy()
         if not isinstance(ccl_with_mask, np.ma.MaskedArray):
-            ccl_with_mask = np.ma.masked_array(self.t_at_ccl.data, False)
+            ccl_with_mask = np.ma.masked_array(q_at_ccl, False)
         mask = ~ccl_with_mask.mask
         for t in self.temperature.slices_over("pressure"):
             if mask.sum() == 0:
