@@ -13,21 +13,17 @@ from improver import BasePlugin
 
 class FitClustering(BasePlugin):
     """Class to perform clustering on DataFrames using scikit-learn or kmedoids.
-
     This plugin provides a unified interface for applying various clustering algorithms
     to pandas DataFrames. It supports clustering methods from scikit-learn's cluster
     module as well as the KMedoids algorithm from the kmedoids package.
-
     The plugin automatically selects the appropriate package based on the specified
     clustering method:
     - "KMedoids": Uses the kmedoids package
     - All other methods: Uses sklearn.cluster
-
     """
 
     def __init__(self, clustering_method: str, **kwargs: Any) -> None:
         """Initialise the clustering plugin.
-
         Args:
             clustering_method: The name of the clustering method to use.
                 Must be either "KMedoids" (from kmedoids package) or a valid
@@ -39,7 +35,6 @@ class FitClustering(BasePlugin):
                 - random_state (int): Random seed for reproducibility
                 Refer to the scikit-learn or kmedoids documentation for the complete
                 list of parameters for each clustering method.
-
         Raises:
             ValueError: If the specified clustering method is not found in
                 sklearn.cluster or kmedoids packages.
@@ -49,26 +44,21 @@ class FitClustering(BasePlugin):
 
     def process(self, df: pd.DataFrame) -> Any:
         """Apply the clustering method to the DataFrame.
-
         Fits the specified clustering algorithm to the input DataFrame and returns
         the fitted clustering model.
-
         Args:
             df: The input DataFrame to cluster. Each row represents
                 a sample and each column represents a feature. The DataFrame should
                 contain numeric data suitable for the chosen clustering algorithm.
-
         Returns:
             A fitted clustering model object from either sklearn.cluster or kmedoids.
             The returned object will have at minimum a `labels_` attribute containing
             the cluster assignment for each sample. Additional attributes depend on
             the specific clustering method used (e.g., `cluster_centers_` for KMeans,
             `core_sample_indices_` for DBSCAN).
-
         Raises:
             ValueError: If the specified clustering method is not found in
                 sklearn.cluster or is not "KMedoids".
-
         """
         # Use kmedoids directly if requested
         if self.clustering_method == "KMedoids":

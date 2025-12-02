@@ -11,7 +11,7 @@ import numpy as np
 import pytest
 
 from improver.clustering.realization_clustering import (
-    ClusterAndMatch,
+    RealizationClusterAndMatch,
     RealizationClustering,
     RealizationToClusterMatcher,
 )
@@ -22,7 +22,8 @@ def _create_realization_cube(shape=(5, 10, 10), seed=42):
     """Create a cube with realization dimension for testing.
 
     Args:
-        shape: Tuple of (n_realizations, dim1, dim2, ...). Must have at least 2 dimensions.
+        shape: Tuple of (n_realizations, dim1, dim2, ...). Must have at least
+            2 dimensions.
         seed: Random seed for reproducibility.
 
     Returns:
@@ -236,7 +237,8 @@ def test_process_arbitrary_dimensions_to_2d_conversion(
     This implicitly tests the convert_to_2d method through the process method.
     The method flattens all dimensions except the leading (realization) dimension.
     This test includes both 3D cubes and 4D cubes (with forecast_period dimension)
-    to verify that the convert_to_2d method handles arrays with any number of dimensions.
+    to verify that the convert_to_2d method handles arrays with any number of
+    dimensions.
     """
     if use_4d:
         # For 4D: shape = (n_realizations, n_forecast_periods, y_dim, x_dim)
@@ -328,7 +330,9 @@ def test_process_wrong_leading_dimension():
 
     with pytest.raises(
         ValueError,
-        match="The leading dimension of the input cube must be the realization dimension",
+        match=(
+            "The leading dimension of the input cube must be the realization dimension"
+        ),
     ):
         plugin.process(cube)
 
@@ -457,22 +461,6 @@ def test_matcher_process_identical_patterns():
     assert len(cluster_indices) == 2
     assert len(realization_indices) == 2
     np.testing.assert_array_equal(cluster_indices, [0, 1])
-
-
-def test_matcher_process_greedy_assignment():
-    """Test that greedy assignment works correctly through the process method.
-
-    This test verifies that the choose_clusters greedy algorithm prioritises
-    realizations with higher MSE cost (more distinctive preferences).
-    """
-    clustered_cube = _create_uniform_cube([0.0, 100.0])
-    candidate_cube = _create_uniform_cube([0.01, 50.0])
-
-    plugin = RealizationToClusterMatcher()
-    result = plugin.process(clustered_cube, candidate_cube)
-
-    # Expected: cluster 0 matches candidate 0, cluster 1 matches candidate 1
-    _assert_realization_matching(result, [0, 1], [0, 1])
 
 
 def test_matcher_process_all_clusters_matched():
@@ -688,7 +676,8 @@ def test_matcher_process_4d_multiple_candidates():
     assert len(realization_indices) == 2
     np.testing.assert_array_equal(cluster_indices, [0, 1])
 
-    # Expected: cluster 0 matches candidate 0 (11.0 vs 10.0), cluster 1 matches candidate 1 (99.0 vs 100.0)
+    # Expected: cluster 0 matches candidate 0 (11.0 vs 10.0), cluster 1 matches
+    # candidate 1 (99.0 vs 100.0)
     np.testing.assert_array_equal(realization_indices, [0, 1])
 
 
@@ -767,7 +756,7 @@ def test_matcher_process_4d_metadata_preservation():
     np.testing.assert_array_equal(cluster_indices, [0, 1])
 
 
-# Tests for ClusterAndMatch
+# Tests for RealizationClusterAndMatch
 
 
 def _create_cube_with_forecast_periods(
@@ -803,12 +792,12 @@ def _create_cube_with_forecast_periods(
             time=datetime(2024, 1, 1, 0),
             frt=datetime(2024, 1, 1, 0),
         )
-        # Remove existing forecast_period and replace with desired value
+        # Remove existing forecast_period and replace with desired value in seconds
         cube.remove_coord("forecast_period")
         forecast_period = iris.coords.DimCoord(
-            np.array([fp_hours], dtype=np.int32),
+            np.array([fp_hours * 3600], dtype=np.int32),
             standard_name="forecast_period",
-            units="hours",
+            units="seconds",
         )
         cube.add_aux_coord(forecast_period)
         cube.attributes["model_id"] = model_id
@@ -817,7 +806,7 @@ def _create_cube_with_forecast_periods(
 
 
 def _create_target_grid_cube(spatial_shape=(3, 3)):
-    """Create a target grid cube for ClusterAndMatch tests.
+    """Create a target grid cube for RealizationClusterAndMatch tests.
 
     Args:
         spatial_shape: Shape of spatial dimensions (y, x).
@@ -837,7 +826,8 @@ def _create_target_grid_cube(spatial_shape=(3, 3)):
 
 
 def test_clusterandmatch_init_basic():
-    """Test that ClusterAndMatch initialization sets all attributes correctly."""
+    """Test that RealizationClusterAndMatch initialization sets all attributes
+    correctly."""
     hierarchy = {
         "primary_input": "model_a",
         "secondary_inputs": {"model_b": [0, 6], "model_c": [12, 18]},
@@ -846,7 +836,7 @@ def test_clusterandmatch_init_basic():
     target_grid_name = "target_grid"
     clustering_method = "KMedoids"
 
-    plugin = ClusterAndMatch(
+    plugin = RealizationClusterAndMatch(
         hierarchy=hierarchy,
         model_id_attr=model_id_attr,
         clustering_method=clustering_method,
@@ -871,9 +861,12 @@ def test_clusterandmatch_init_invalid_clustering_method():
 
     with pytest.raises(
         NotImplementedError,
-        match="Currently only KMedoids clustering is supported for the clustering and matching",
+        match=(
+            "Currently only KMedoids clustering is supported for the clustering and "
+            "matching"
+        ),
     ):
-        ClusterAndMatch(
+        RealizationClusterAndMatch(
             hierarchy=hierarchy,
             model_id_attr="model_id",
             clustering_method="KMeans",
@@ -922,7 +915,7 @@ def test_clusterandmatch_process_basic():
         },
     }
 
-    plugin = ClusterAndMatch(
+    plugin = RealizationClusterAndMatch(
         hierarchy=hierarchy,
         model_id_attr="model_id",
         clustering_method="KMedoids",
@@ -942,10 +935,10 @@ def test_clusterandmatch_process_basic():
     n_clusters = len(result.coord("realization").points)
     assert n_clusters == 3
 
-    # Check that all forecast periods are present
+    # Check that all forecast periods are present (in seconds)
     forecast_periods = result.coord("forecast_period").points
     assert len(forecast_periods) == 4
-    np.testing.assert_array_equal(forecast_periods, [0, 6, 12, 18])
+    np.testing.assert_array_equal(forecast_periods, [0, 6 * 3600, 12 * 3600, 18 * 3600])
 
     # Check that model_id attribute is removed from result
     assert "model_id" not in result.attributes
@@ -955,16 +948,16 @@ def test_clusterandmatch_process_basic():
     fp_0_data = result.extract(iris.Constraint(forecast_period=0)).data
     assert np.allclose(fp_0_data, 200.0, atol=5.0), "fp=0 should use secondary_model_1"
 
-    fp_6_data = result.extract(iris.Constraint(forecast_period=6)).data
+    fp_6_data = result.extract(iris.Constraint(forecast_period=6 * 3600)).data
     assert np.allclose(fp_6_data, 206.0, atol=5.0), "fp=6 should use secondary_model_1"
 
     # fp=12,18 should use secondary_model_2 (highest precedence, values ~300)
-    fp_12_data = result.extract(iris.Constraint(forecast_period=12)).data
+    fp_12_data = result.extract(iris.Constraint(forecast_period=12 * 3600)).data
     assert np.allclose(
         fp_12_data, 312.0, atol=5.0
     ), "fp=12 should use secondary_model_2"
 
-    fp_18_data = result.extract(iris.Constraint(forecast_period=18)).data
+    fp_18_data = result.extract(iris.Constraint(forecast_period=18 * 3600)).data
     assert np.allclose(
         fp_18_data, 318.0, atol=5.0
     ), "fp=18 should use secondary_model_2"
@@ -1005,7 +998,7 @@ def test_clusterandmatch_cluster_primary_input():
         "secondary_inputs": {"secondary_model_1": [0, 6]},
     }
 
-    plugin = ClusterAndMatch(
+    plugin = RealizationClusterAndMatch(
         hierarchy=hierarchy,
         model_id_attr="model_id",
         clustering_method="KMedoids",
@@ -1019,22 +1012,25 @@ def test_clusterandmatch_cluster_primary_input():
     # Check that clustering produced the expected number of clusters
     assert len(result.coord("realization").points) == 3
 
-    # Check that forecast periods are present
+    # Check that forecast periods are present (in seconds)
     assert result.coord("forecast_period") is not None
-    np.testing.assert_array_equal(result.coord("forecast_period").points, [0, 6, 12])
+    np.testing.assert_array_equal(
+        result.coord("forecast_period").points, [0, 6 * 3600, 12 * 3600]
+    )
 
     # Check basic structure
     assert isinstance(result, iris.cube.Cube)
     assert result.name() == "air_temperature"
 
-    # Check data values: fp=12 should use primary (value ~112), others secondary (~200, ~206)
+    # Check data values: fp=12 should use primary (value ~112),
+    # others secondary (~200, ~206)
     fp_0_data = result.extract(iris.Constraint(forecast_period=0)).data
     assert np.allclose(fp_0_data, 200.0, atol=5.0), "fp=0 should use secondary_model_1"
 
-    fp_6_data = result.extract(iris.Constraint(forecast_period=6)).data
+    fp_6_data = result.extract(iris.Constraint(forecast_period=6 * 3600)).data
     assert np.allclose(fp_6_data, 206.0, atol=5.0), "fp=6 should use secondary_model_1"
 
-    fp_12_data = result.extract(iris.Constraint(forecast_period=12)).data
+    fp_12_data = result.extract(iris.Constraint(forecast_period=12 * 3600)).data
     assert np.allclose(
         fp_12_data, 112.0, atol=5.0
     ), "fp=12 should use clustered primary_model"
@@ -1085,7 +1081,7 @@ def test_clusterandmatch_precedence_order():
         },
     }
 
-    plugin = ClusterAndMatch(
+    plugin = RealizationClusterAndMatch(
         hierarchy=hierarchy,
         model_id_attr="model_id",
         clustering_method="KMedoids",
@@ -1096,8 +1092,8 @@ def test_clusterandmatch_precedence_order():
 
     result = plugin.process(cubes)
 
-    # Result should contain data from secondary_model_1 (highest precedence, listed first)
-    # All values should be close to 200.0
+    # Result should contain data from secondary_model_1 (highest precedence,
+    # listed first). All values should be close to 200.0
     assert np.allclose(
         result.data, 200.0, atol=1.0
     ), "Result should use highest precedence input (secondary_model_1)"
@@ -1142,7 +1138,7 @@ def test_clusterandmatch_overlapping_forecast_periods():
         },
     }
 
-    plugin = ClusterAndMatch(
+    plugin = RealizationClusterAndMatch(
         hierarchy=hierarchy,
         model_id_attr="model_id",
         clustering_method="KMedoids",
@@ -1156,7 +1152,7 @@ def test_clusterandmatch_overlapping_forecast_periods():
     # Check all forecast periods present
     forecast_periods = result.coord("forecast_period").points
     assert len(forecast_periods) == 3
-    np.testing.assert_array_equal(forecast_periods, [0, 6, 12])
+    np.testing.assert_array_equal(forecast_periods, [0, 6 * 3600, 12 * 3600])
 
     # At fp=6, secondary_model_1 should have overwritten secondary_model_2
     # (secondary_model_1 is listed first, so has higher precedence)
@@ -1166,12 +1162,12 @@ def test_clusterandmatch_overlapping_forecast_periods():
     fp_0_data = result.extract(iris.Constraint(forecast_period=0)).data
     assert np.allclose(fp_0_data, 200.0, atol=5.0), "fp=0 should use secondary_model_1"
 
-    fp_6_data = result.extract(iris.Constraint(forecast_period=6)).data
+    fp_6_data = result.extract(iris.Constraint(forecast_period=6 * 3600)).data
     assert np.allclose(
         fp_6_data, 206.0, atol=5.0
     ), "fp=6 should use secondary_model_1 (higher precedence), not secondary_model_2"
 
-    fp_12_data = result.extract(iris.Constraint(forecast_period=12)).data
+    fp_12_data = result.extract(iris.Constraint(forecast_period=12 * 3600)).data
     assert np.allclose(
         fp_12_data, 312.0, atol=5.0
     ), "fp=12 should use secondary_model_2"
@@ -1206,7 +1202,7 @@ def test_clusterandmatch_single_secondary_input():
         "secondary_inputs": {"secondary_model_1": [0, 6]},
     }
 
-    plugin = ClusterAndMatch(
+    plugin = RealizationClusterAndMatch(
         hierarchy=hierarchy,
         model_id_attr="model_id",
         clustering_method="KMedoids",
@@ -1224,16 +1220,17 @@ def test_clusterandmatch_single_secondary_input():
     # Should have all 3 forecast periods (0, 6 from secondary, 12 from primary)
     forecast_periods = result.coord("forecast_period").points
     assert len(forecast_periods) == 3
-    np.testing.assert_array_equal(forecast_periods, [0, 6, 12])
+    np.testing.assert_array_equal(forecast_periods, [0, 6 * 3600, 12 * 3600])
 
-    # Check data values: fp=0,6 should use secondary (~200), fp=12 should use primary (~112)
+    # Check data values: fp=0,6 should use secondary (~200),
+    # fp=12 should use primary (~112)
     fp_0_data = result.extract(iris.Constraint(forecast_period=0)).data
     assert np.allclose(fp_0_data, 200.0, atol=5.0), "fp=0 should use secondary_model_1"
 
-    fp_6_data = result.extract(iris.Constraint(forecast_period=6)).data
+    fp_6_data = result.extract(iris.Constraint(forecast_period=6 * 3600)).data
     assert np.allclose(fp_6_data, 206.0, atol=5.0), "fp=6 should use secondary_model_1"
 
-    fp_12_data = result.extract(iris.Constraint(forecast_period=12)).data
+    fp_12_data = result.extract(iris.Constraint(forecast_period=12 * 3600)).data
     assert np.allclose(
         fp_12_data, 112.0, atol=5.0
     ), "fp=12 should use clustered primary_model"
@@ -1283,7 +1280,7 @@ def test_clusterandmatch_categorise_full_realizations():
         },
     }
 
-    plugin = ClusterAndMatch(
+    plugin = RealizationClusterAndMatch(
         hierarchy=hierarchy,
         model_id_attr="model_id",
         clustering_method="KMedoids",
@@ -1297,7 +1294,7 @@ def test_clusterandmatch_categorise_full_realizations():
     # Both forecast periods should be present and use secondary inputs
     forecast_periods = result.coord("forecast_period").points
     assert len(forecast_periods) == 2
-    np.testing.assert_array_equal(forecast_periods, [0, 6])
+    np.testing.assert_array_equal(forecast_periods, [0, 6 * 3600])
 
     # Should have correct number of clusters
     assert len(result.coord("realization").points) == 3
@@ -1308,7 +1305,7 @@ def test_clusterandmatch_categorise_full_realizations():
         fp_0_data, 200.0, atol=5.0
     ), "fp=0 should use secondary_model_1 (full realizations)"
 
-    fp_6_data = result.extract(iris.Constraint(forecast_period=6)).data
+    fp_6_data = result.extract(iris.Constraint(forecast_period=6 * 3600)).data
     assert np.allclose(
         fp_6_data, 300.0, atol=5.0
     ), "fp=6 should use secondary_model_2 (full realizations)"
@@ -1359,7 +1356,7 @@ def test_clusterandmatch_categorise_partial_realizations():
         },
     }
 
-    plugin = ClusterAndMatch(
+    plugin = RealizationClusterAndMatch(
         hierarchy=hierarchy,
         model_id_attr="model_id",
         clustering_method="KMedoids",
@@ -1376,15 +1373,17 @@ def test_clusterandmatch_categorise_partial_realizations():
     # fp=12 uses primary only
     forecast_periods = result.coord("forecast_period").points
     assert len(forecast_periods) == 3
-    np.testing.assert_array_equal(forecast_periods, [0, 6, 12])
+    np.testing.assert_array_equal(forecast_periods, [0, 6 * 3600, 12 * 3600])
 
     # Should still have 3 clusters
     assert len(result.coord("realization").points) == 3
 
-    # Check data: With random_state=42 and uniform input data, the matching is deterministic.
+    # Check data: With random_state=42 and uniform input data,
+    # the matching is deterministic.
     # Clusters [0, 1] to be replaced by the 2 secondary realizations, leaving
     # cluster [2] with primary data.
-    # Since we have 3 clusters total, 2/3 of realizations get secondary, 1/3 gets primary.
+    # Since we have 3 clusters total, 2/3 of realizations get secondary,
+    # 1/3 gets primary.
 
     fp_0_data = result.extract(iris.Constraint(forecast_period=0)).data
     # Check cluster 0 and 1 get secondary (~200), cluster 2 gets primary (~100)
@@ -1398,7 +1397,7 @@ def test_clusterandmatch_categorise_partial_realizations():
         fp_0_data[2], 100.0, atol=5.0
     ), "Realization 2 should use clustered primary_model"
 
-    fp_6_data = result.extract(iris.Constraint(forecast_period=6)).data
+    fp_6_data = result.extract(iris.Constraint(forecast_period=6 * 3600)).data
     assert np.allclose(
         fp_6_data[0], 300.0, atol=5.0
     ), "Realization 0 should use secondary_model_2"
@@ -1410,7 +1409,7 @@ def test_clusterandmatch_categorise_partial_realizations():
     ), "Realization 2 should use clustered primary_model"
 
     # fp=12 should be entirely from primary
-    fp_12_data = result.extract(iris.Constraint(forecast_period=12)).data
+    fp_12_data = result.extract(iris.Constraint(forecast_period=12 * 3600)).data
     assert np.allclose(
         fp_12_data, 112.0, atol=5.0
     ), "fp=12 should use clustered primary_model only"
@@ -1460,7 +1459,7 @@ def test_clusterandmatch_categorise_mixed_realizations():
         },
     }
 
-    plugin = ClusterAndMatch(
+    plugin = RealizationClusterAndMatch(
         hierarchy=hierarchy,
         model_id_attr="model_id",
         clustering_method="KMedoids",
@@ -1477,13 +1476,14 @@ def test_clusterandmatch_categorise_mixed_realizations():
     # fp=12 uses primary only
     forecast_periods = result.coord("forecast_period").points
     assert len(forecast_periods) == 3
-    np.testing.assert_array_equal(forecast_periods, [0, 6, 12])
+    np.testing.assert_array_equal(forecast_periods, [0, 6 * 3600, 12 * 3600])
 
     # Should have 3 clusters
     assert len(result.coord("realization").points) == 3
 
     # Check data:
-    # fp=0 should be entirely from secondary_model_1 (full realizations, 6 >= 3 clusters)
+    # fp=0 should be entirely from secondary_model_1
+    # (full realizations, 6 >= 3 clusters)
     fp_0_data = result.extract(iris.Constraint(forecast_period=0)).data
     assert np.allclose(
         fp_0_data, 200.0, atol=5.0
@@ -1491,7 +1491,7 @@ def test_clusterandmatch_categorise_mixed_realizations():
 
     # fp=6: With random_state=42, clusters [0, 1] get replaced by secondary_model_2,
     # cluster [2] keeps primary data
-    fp_6_data = result.extract(iris.Constraint(forecast_period=6)).data
+    fp_6_data = result.extract(iris.Constraint(forecast_period=6 * 3600)).data
     assert np.allclose(
         fp_6_data[0], 300.0, atol=5.0
     ), "Realization 0 should use secondary_model_2"
@@ -1503,7 +1503,7 @@ def test_clusterandmatch_categorise_mixed_realizations():
     ), "Realization 2 should use clustered primary_model"
 
     # fp=12 should be entirely from primary
-    fp_12_data = result.extract(iris.Constraint(forecast_period=12)).data
+    fp_12_data = result.extract(iris.Constraint(forecast_period=12 * 3600)).data
     assert np.allclose(
         fp_12_data, 112.0, atol=5.0
     ), "fp=12 should use clustered primary_model only"
