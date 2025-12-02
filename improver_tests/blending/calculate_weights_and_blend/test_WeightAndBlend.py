@@ -7,7 +7,6 @@
 import unittest
 from datetime import datetime as dt
 
-from improver_tests import ImproverTest
 import iris
 import numpy as np
 import pytest
@@ -19,6 +18,7 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_probability_cube,
     set_up_variable_cube,
 )
+from improver_tests import ImproverTest
 
 MODEL_WEIGHTS = {
     "nc_det": {"forecast_period": [0, 4, 8], "weights": [1, 0, 0], "units": "hours"},
