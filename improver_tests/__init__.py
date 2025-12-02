@@ -6,6 +6,7 @@
 
 import unittest
 
+import numpy as np
 from iris.cube import Cube, CubeList
 
 
@@ -27,3 +28,13 @@ class ImproverTest(unittest.TestCase):
             cubelist_a.xml(checksum=True, order=False, byteorder=False),
             cubelist_b.xml(checksum=True, order=False, byteorder=False),
         )
+
+    def assertDictEqual(self, dict_a, dict_b):
+        """Asserts that two dictionaries are equal. Improves on the default unittest
+        assertDictEqual method to allow handling of numpy arrays / lists as values."""
+        assert set(dict_a.keys()) == set(dict_b.keys())
+        for key in dict_a.keys():
+            try:
+                assert dict_a[key] == dict_b[key]
+            except ValueError:
+                np.testing.assert_array_equal(dict_a[key], dict_b[key])

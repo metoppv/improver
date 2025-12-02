@@ -12,6 +12,7 @@ import pytest
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.regrid.landsea import RegridLandSea
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
+from improver_tests import ImproverTest
 
 
 class Test__init__(unittest.TestCase):
@@ -30,7 +31,7 @@ class Test__init__(unittest.TestCase):
             RegridLandSea(regrid_mode="nearest-with-mask")
 
 
-class Test_process(unittest.TestCase):
+class Test_process(ImproverTest):
     """Test the process method for the RegridLandSea plugin. Regridded values
     are not tested here as this is covered by unit tests for the regridding
     routines (iris.cube.Cube.regrid and improver.standardise.AdjustLandSeaPoints).
@@ -84,7 +85,7 @@ class Test_process(unittest.TestCase):
         np.testing.assert_array_almost_equal(result.data, expected_data)
         for axis in ["x", "y"]:
             self.assertEqual(result.coord(axis=axis), self.target_grid.coord(axis=axis))
-        self.assertDictEqual(dict(result.attributes), expected_attributes)
+        self.assertDictEqual(result.attributes, expected_attributes)
 
     def test_access_regrid_with_landmask(self):
         """Test the AdjustLandSeaPoints module is correctly called when using
@@ -115,7 +116,7 @@ class Test_process(unittest.TestCase):
         np.testing.assert_array_almost_equal(result.data, expected_data)
         for axis in ["x", "y"]:
             self.assertEqual(result.coord(axis=axis), self.target_grid.coord(axis=axis))
-        self.assertDictEqual(dict(result.attributes), expected_attributes)
+        self.assertDictEqual(result.attributes, expected_attributes)
 
     def test_error_regrid_with_incorrect_landmask(self):
         """Test an error is thrown if a landmask is provided that does not
@@ -164,15 +165,7 @@ class Test_process(unittest.TestCase):
         for attr in ["mosg__grid_domain", "mosg__grid_type", "mosg__grid_version"]:
             expected_attributes[attr] = self.target_grid.attributes[attr]
         result = RegridLandSea()(self.cube, self.target_grid)
-
-        assert set(expected_attributes.keys()) == set(result.attributes.keys())
-        for key in expected_attributes.keys():
-            try:
-                assert expected_attributes[key] == result.attributes[key]
-            except ValueError:
-                np.testing.assert_array_equal(
-                    expected_attributes[key], result.attributes[key]
-                )
+        self.assertDictEqual(expected_attributes, result.attributes)
 
     def test_new_title(self):
         """Test new title can be set on regridding"""
@@ -182,15 +175,7 @@ class Test_process(unittest.TestCase):
         for attr in ["mosg__grid_domain", "mosg__grid_type", "mosg__grid_version"]:
             expected_attributes[attr] = self.target_grid.attributes[attr]
         result = RegridLandSea()(self.cube, self.target_grid, regridded_title=new_title)
-
-        assert set(expected_attributes.keys()) == set(result.attributes.keys())
-        for key in expected_attributes.keys():
-            try:
-                assert expected_attributes[key] == result.attributes[key]
-            except ValueError:
-                np.testing.assert_array_equal(
-                    expected_attributes[key], result.attributes[key]
-                )
+        self.assertDictEqual(expected_attributes, result.attributes)
 
     def test_incorrect_grid_attributes_removed(self):
         """Test grid attributes not present on the target cube are removed

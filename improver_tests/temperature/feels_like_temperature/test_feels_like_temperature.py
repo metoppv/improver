@@ -15,6 +15,7 @@ from improver.temperature.feels_like_temperature import (
     _calculate_apparent_temperature,
     calculate_feels_like_temperature,
 )
+from improver_tests import ImproverTest
 
 MANDATORY_ATTRIBUTES = {
     "source": "Met Office Unified Model",
@@ -100,7 +101,7 @@ class Test__calculate_apparent_temperature(unittest.TestCase):
         np.testing.assert_array_almost_equal(result, expected_result, decimal=4)
 
 
-class Test_calculate_feels_like_temperature(unittest.TestCase):
+class Test_calculate_feels_like_temperature(ImproverTest):
     """Test the feels like temperature function."""
 
     def setUp(self):
@@ -309,7 +310,7 @@ class Test_calculate_feels_like_temperature(unittest.TestCase):
             self.pressure_cube,
             model_id_attr=model_id_attr,
         )
-        self.assertDictEqual(dict(result.attributes), expected_attrs)
+        self.assertDictEqual(result.attributes, expected_attrs)
 
 
 if __name__ == "__main__":

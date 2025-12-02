@@ -18,6 +18,7 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_variable_cube,
 )
 from improver.utilities.spatial import OccurrenceWithinVicinity
+from improver_tests import ImproverTest
 
 
 class Test__init__(unittest.TestCase):
@@ -196,7 +197,7 @@ class Test_correct_where_input_true(unittest.TestCase):
         np.testing.assert_array_equal(output_cube.data, self.plugin.output_cube.data)
 
 
-class Test_process(unittest.TestCase):
+class Test_process(ImproverTest):
     """Tests the process method of the AdjustLandSeaPoints class."""
 
     def setUp(self):
@@ -273,15 +274,7 @@ class Test_process(unittest.TestCase):
         self.assertIsInstance(result, Cube)
         np.testing.assert_array_equal(result.data, expected)
         self.assertEqual(result.name(), self.cube.name())
-
-        assert set(self.cube.attributes.keys()) == set(result.attributes.keys())
-        for key in self.cube.attributes.keys():
-            try:
-                assert self.cube.attributes[key] == result.attributes[key]
-            except ValueError:
-                np.testing.assert_array_equal(
-                    self.cube.attributes[key], result.attributes[key]
-                )
+        self.assertDictEqual(self.cube.attributes, result.attributes)
 
     def test_with_regridding(self):
         """Test when input grid is on a different projection."""
@@ -300,15 +293,7 @@ class Test_process(unittest.TestCase):
         self.assertIsInstance(result, Cube)
         np.testing.assert_array_equal(result.data, expected)
         self.assertEqual(result.name(), self.cube.name())
-
-        assert set(self.cube.attributes.keys()) == set(result.attributes.keys())
-        for key in self.cube.attributes.keys():
-            try:
-                assert self.cube.attributes[key] == result.attributes[key]
-            except ValueError:
-                np.testing.assert_array_equal(
-                    self.cube.attributes[key], result.attributes[key]
-                )
+        self.assertDictEqual(self.cube.attributes, result.attributes)
 
     def test_multi_realization(self):
         """Test that the expected changes occur and meta-data are unchanged
@@ -329,15 +314,7 @@ class Test_process(unittest.TestCase):
         self.assertIsInstance(result, Cube)
         np.testing.assert_array_equal(result.data, expected)
         self.assertEqual(result.name(), self.cube.name())
-
-        assert set(self.cube.attributes.keys()) == set(result.attributes.keys())
-        for key in self.cube.attributes.keys():
-            try:
-                assert self.cube.attributes[key] == result.attributes[key]
-            except ValueError:
-                np.testing.assert_array_equal(
-                    self.cube.attributes[key], result.attributes[key]
-                )
+        self.assertDictEqual(self.cube.attributes, result.attributes)
 
     def test_raises_gridding_error(self):
         """Test error raised when cube and output grids don't match."""

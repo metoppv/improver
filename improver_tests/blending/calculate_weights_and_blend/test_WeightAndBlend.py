@@ -7,6 +7,7 @@
 import unittest
 from datetime import datetime as dt
 
+from improver_tests import ImproverTest
 import iris
 import numpy as np
 import pytest
@@ -270,7 +271,7 @@ class Test__update_spatial_weights(unittest.TestCase):
         np.testing.assert_array_almost_equal(result.data, expected_data)
 
 
-class Test_process(unittest.TestCase):
+class Test_process(ImproverTest):
     """Test the process method"""
 
     def setUp(self):
@@ -435,7 +436,7 @@ class Test_process(unittest.TestCase):
             attributes_dict=attribute_changes,
             cycletime=self.cycletime,
         )
-        self.assertDictEqual(dict(result.attributes), expected_attributes)
+        self.assertDictEqual(result.attributes, expected_attributes)
 
     def test_blend_three_models(self):
         """Test plugin produces correct output for 3-model blend when all

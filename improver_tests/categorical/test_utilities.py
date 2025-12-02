@@ -33,6 +33,7 @@ from improver.synthetic_data.set_up_test_cubes import (
 )
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
+from improver_tests import ImproverTest
 from improver_tests.categorical.decision_tree import (
     deterministic_diagnostic_tree,
     set_up_wxcube,
@@ -196,7 +197,7 @@ class Test_expand_nested_lists(unittest.TestCase):
             self.assertEqual(val, "a")
 
 
-class Test_update_daynight(unittest.TestCase):
+class Test_update_daynight(ImproverTest):
     """Test updating weather cube depending on whether it is day or night"""
 
     def setUp(self):
@@ -240,15 +241,7 @@ class Test_update_daynight(unittest.TestCase):
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(result.name(), cube.name())
         self.assertEqual(result.units, cube.units)
-
-        assert set(cube.attributes.keys()) == set(result.attributes.keys())
-        for key in cube.attributes.keys():
-            try:
-                assert cube.attributes[key] == result.attributes[key]
-            except ValueError:
-                np.testing.assert_array_equal(
-                    cube.attributes[key], result.attributes[key]
-                )
+        self.assertDictEqual(cube.attributes, result.attributes)
 
     def test_raise_error_no_time_coordinate(self):
         """Test that the function raises an error if no time coordinate."""
@@ -342,15 +335,7 @@ class Test_update_daynight(unittest.TestCase):
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(result.name(), cube.name())
         self.assertEqual(result.units, cube.units)
-
-        assert set(cube.attributes.keys()) == set(result.attributes.keys())
-        for key in cube.attributes.keys():
-            try:
-                assert cube.attributes[key] == result.attributes[key]
-            except ValueError:
-                np.testing.assert_array_equal(
-                    cube.attributes[key], result.attributes[key]
-                )
+        self.assertDictEqual(cube.attributes, result.attributes)
 
     def test_wxcode_updated_on_latlon(self):
         """Test Correct wxcodes returned for lat lon cube."""

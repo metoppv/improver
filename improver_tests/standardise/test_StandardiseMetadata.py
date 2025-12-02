@@ -14,6 +14,7 @@ from iris.coords import AuxCoord, DimCoord
 
 from improver.standardise import StandardiseMetadata
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
+from improver_tests import ImproverTest
 
 
 class HaltExecution(Exception):
@@ -36,7 +37,7 @@ def test_as_cubelist_called(mock_as_cube):
     mock_as_cube.assert_called_once_with(sentinel.cube)
 
 
-class Test_process(unittest.TestCase):
+class Test_process(ImproverTest):
     """Test the process method"""
 
     def setUp(self):
@@ -138,7 +139,7 @@ class Test_process(unittest.TestCase):
         self.assertEqual(result.units, "degC")
         np.testing.assert_array_almost_equal(result.data, expected_data, decimal=5)
         self.assertEqual(result.coord("height").points, 2.0)
-        self.assertDictEqual(dict(result.attributes), expected_attributes)
+        self.assertDictEqual(result.attributes, expected_attributes)
         self.assertNotIn("forecast_period", [coord.name() for coord in result.coords()])
 
     def test_attempt_modify_dimension_coord(self):

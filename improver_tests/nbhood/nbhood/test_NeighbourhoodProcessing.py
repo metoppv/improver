@@ -12,6 +12,7 @@ from iris.cube import Cube
 
 from improver.nbhood.nbhood import NeighbourhoodProcessing
 from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
+from improver_tests import ImproverTest
 
 
 class Test__init__(unittest.TestCase):
@@ -369,7 +370,7 @@ class Test__calculate_neighbourhood(unittest.TestCase):
         np.testing.assert_array_almost_equal(result.mask, self.expected_mask)
 
 
-class Test_process(unittest.TestCase):
+class Test_process(ImproverTest):
     """Test the process method."""
 
     def setUp(self):
@@ -401,15 +402,7 @@ class Test_process(unittest.TestCase):
         self.assertIsInstance(result, Cube)
         np.testing.assert_array_almost_equal(result.data, expected)
         self.assertTupleEqual(result.cell_methods, self.cube.cell_methods)
-
-        assert set(self.cube.attributes.keys()) == set(result.attributes.keys())
-        for key in self.cube.attributes.keys():
-            try:
-                assert self.cube.attributes[key] == result.attributes[key]
-            except ValueError:
-                np.testing.assert_array_equal(
-                    self.cube.attributes[key], result.attributes[key]
-                )
+        self.assertDictEqual(self.cube.attributes, result.attributes)
 
     def test_cube_metadata(self):
         """Test the result has the correct attributes and cell methods"""
@@ -420,15 +413,7 @@ class Test_process(unittest.TestCase):
         result = NeighbourhoodProcessing(neighbourhood_method, radii)(self.cube)
         self.assertIsInstance(result, Cube)
         self.assertTupleEqual(result.cell_methods, self.cube.cell_methods)
-
-        assert set(self.cube.attributes.keys()) == set(result.attributes.keys())
-        for key in self.cube.attributes.keys():
-            try:
-                assert self.cube.attributes[key] == result.attributes[key]
-            except ValueError:
-                np.testing.assert_array_equal(
-                    self.cube.attributes[key], result.attributes[key]
-                )
+        self.assertDictEqual(self.cube.attributes, result.attributes)
 
 
 if __name__ == "__main__":

@@ -18,9 +18,10 @@ from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.spotdata.spot_extraction import SpotExtraction
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
+from improver_tests import ImproverTest
 
 
-class Test_SpotExtraction(unittest.TestCase):
+class Test_SpotExtraction(ImproverTest):
     """Test class for the SpotExtraction tests, setting up inputs."""
 
     def setUp(self):
@@ -371,15 +372,7 @@ class Test_process(Test_SpotExtraction):
         self.assertEqual(result.units, self.diagnostic_cube_xy.units)
         np.testing.assert_array_equal(result.coord("latitude").points, self.latitudes)
         np.testing.assert_array_equal(result.coord("longitude").points, self.longitudes)
-
-        assert set(self.expected_attributes.keys()) == set(result.attributes.keys())
-        for key in self.expected_attributes.keys():
-            try:
-                assert self.expected_attributes[key] == result.attributes[key]
-            except ValueError:
-                np.testing.assert_array_equal(
-                    self.expected_attributes[key], result.attributes[key]
-                )
+        self.assertDictEqual(self.expected_attributes, result.attributes)
 
     def test_returned_cube_nearest_land(self):
         """Test that data within the returned cube is as expected for the
@@ -392,15 +385,7 @@ class Test_process(Test_SpotExtraction):
         self.assertEqual(result.units, self.diagnostic_cube_xy.units)
         np.testing.assert_array_equal(result.coord("latitude").points, self.latitudes)
         np.testing.assert_array_equal(result.coord("longitude").points, self.longitudes)
-
-        assert set(self.expected_attributes.keys()) == set(result.attributes.keys())
-        for key in self.expected_attributes.keys():
-            try:
-                assert self.expected_attributes[key] == result.attributes[key]
-            except ValueError:
-                np.testing.assert_array_equal(
-                    self.expected_attributes[key], result.attributes[key]
-                )
+        self.assertDictEqual(self.expected_attributes, result.attributes)
 
     def test_new_title(self):
         """Test title is updated as expected"""
@@ -412,15 +397,7 @@ class Test_process(Test_SpotExtraction):
             self.diagnostic_cube_xy,
             new_title="IMPROVER Spot Forecast",
         )
-
-        assert set(self.expected_attributes.keys()) == set(result.attributes.keys())
-        for key in self.expected_attributes.keys():
-            try:
-                assert self.expected_attributes[key] == result.attributes[key]
-            except ValueError:
-                np.testing.assert_array_equal(
-                    self.expected_attributes[key], result.attributes[key]
-                )
+        self.assertDictEqual(self.expected_attributes, result.attributes)
 
     def test_cube_with_leading_dimensions(self):
         """Test that a cube with a leading dimension such as realization or
@@ -448,15 +425,7 @@ class Test_process(Test_SpotExtraction):
         np.testing.assert_array_equal(result.coord("latitude").points, self.latitudes)
         np.testing.assert_array_equal(result.coord("longitude").points, self.longitudes)
         self.assertEqual(result.coord("realization"), expected_coord)
-
-        assert set(self.expected_attributes.keys()) == set(result.attributes.keys())
-        for key in self.expected_attributes.keys():
-            try:
-                assert self.expected_attributes[key] == result.attributes[key]
-            except ValueError:
-                np.testing.assert_array_equal(
-                    self.expected_attributes[key], result.attributes[key]
-                )
+        self.assertDictEqual(self.expected_attributes, result.attributes)
 
     def test_cell_methods(self):
         """Test cell methods from the gridded input cube are retained on the

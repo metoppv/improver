@@ -17,6 +17,7 @@ from improver.metadata.constants.mo_attributes import MOSG_GRID_ATTRIBUTES
 from improver.orographic_enhancement import OrographicEnhancement
 from improver.synthetic_data.set_up_test_cubes import construct_scalar_time_coords
 from improver.utilities.cube_manipulation import sort_coord_in_cube
+from improver_tests import ImproverTest
 
 # UKPP projection
 TMercCS = TransverseMercator(
@@ -737,7 +738,7 @@ class Test__add_upstream_component(unittest.TestCase):
         np.testing.assert_array_almost_equal(result, expected_values)
 
 
-class Test__create_output_cube(unittest.TestCase):
+class Test__create_output_cube(ImproverTest):
     """Test the _create_output_cube method"""
 
     def setUp(self):
@@ -802,15 +803,7 @@ class Test__create_output_cube(unittest.TestCase):
         self.assertEqual(output.units, "m s-1")
         for t_coord in ["time", "forecast_period", "forecast_reference_time"]:
             self.assertEqual(output.coord(t_coord), self.temperature.coord(t_coord))
-
-        assert set(output.attributes.keys()) == set(expected_attributes.keys())
-        for key in output.attributes.keys():
-            try:
-                assert expected_attributes[key] == output.attributes[key]
-            except ValueError:
-                np.testing.assert_array_equal(
-                    expected_attributes[key], output.attributes[key]
-                )
+        self.assertDictEqual(output.attributes, expected_attributes)
 
 
 class Test_process(DataCubeTest):

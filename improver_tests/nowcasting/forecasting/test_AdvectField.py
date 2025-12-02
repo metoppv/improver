@@ -15,6 +15,7 @@ from iris.exceptions import InvalidCubeError
 
 from improver.nowcasting.forecasting import AdvectField
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
+from improver_tests import ImproverTest
 
 
 def set_up_xy_velocity_cube(name, coord_points_y=None, units="m s-1"):
@@ -236,7 +237,7 @@ class Test__advect_field(unittest.TestCase):
         np.testing.assert_array_equal(result.mask, expected_mask)
 
 
-class Test_process(unittest.TestCase):
+class Test_process(ImproverTest):
     """Test dimensioned cube data is correctly advected"""
 
     def setUp(self):
@@ -283,7 +284,7 @@ class Test_process(unittest.TestCase):
         plugin = AdvectField(self.vel_x, self.vel_y, attributes_dict=input_attributes)
         result = plugin.process(self.cube, self.timestep)
         result.attributes.pop("history")
-        self.assertDictEqual(dict(result.attributes), expected_attributes)
+        self.assertDictEqual(result.attributes, expected_attributes)
 
     def test_check_source_metadata_no_institution(self):
         """Test plugin returns a cube with the desired source attribute

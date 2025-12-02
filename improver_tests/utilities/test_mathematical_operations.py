@@ -24,6 +24,7 @@ from improver.utilities.mathematical_operations import (
     fast_linear_fit,
     verify_time_coords_match,
 )
+from improver_tests import ImproverTest
 
 
 def _set_up_height_cube(height_points, ascending=True):
@@ -419,7 +420,7 @@ class Test_perform_integration(unittest.TestCase):
             )
 
 
-class Test_process(unittest.TestCase):
+class Test_process(ImproverTest):
     """Test the process method."""
 
     def setUp(self):
@@ -453,7 +454,7 @@ class Test_process(unittest.TestCase):
         result = self.plugin.process(self.cube)
         self.assertEqual(result.name(), self.cube.name() + "_integral")
         self.assertEqual(result.units, "{} m".format(self.cube.units))
-        self.assertDictEqual(dict(result.attributes), expected_attributes)
+        self.assertDictEqual(result.attributes, expected_attributes)
 
     def test_data(self):
         """Test that the resulting cube contains the expected data following
