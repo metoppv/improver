@@ -42,7 +42,7 @@ jobs:
       with:
         environment-file: envs/${{ matrix.env }}.yml
         init-shell: bash
-        cache-environment: true
+        cache-environment: false
 
     - name: Environment info
       run: |
