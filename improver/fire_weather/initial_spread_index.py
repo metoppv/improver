@@ -2,15 +2,13 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-from typing import cast
-
 import numpy as np
-from iris.cube import Cube, CubeList
+from iris.cube import Cube
 
-from improver import BasePlugin
+from improver.fire_weather import FireWeatherIndexBase
 
 
-class InitialSpreadIndex(BasePlugin):
+class InitialSpreadIndex(FireWeatherIndexBase):
     """
     Plugin to calculate the Initial Spread Index (ISI) following
     the Canadian Forest Fire Weather Index System.
@@ -30,40 +28,34 @@ class InitialSpreadIndex(BasePlugin):
         - Fine Fuel Moisture Code (FFMC): dimensionless (0-101)
     """
 
+    INPUT_CUBE_NAMES = ["wind_speed", "fine_fuel_moisture_content"]
+    OUTPUT_CUBE_NAME = "initial_spread_index"
+    # Disambiguate input FFMC from the output (ISI doesn't output FFMC, but uses naming consistency)
+    INPUT_ATTRIBUTE_MAPPINGS = {"fine_fuel_moisture_content": "input_ffmc"}
+
     wind_speed: Cube
     input_ffmc: Cube
-    fine_fuel_moisture: np.ndarray
-    wind_function: np.ndarray
+    moisture_content: np.ndarray
 
-    def load_input_cubes(self, cubes: tuple[Cube] | CubeList):
-        """Loads the required input cubes for the ISI calculation. These
-        are stored internally as Cube objects.
+    def _calculate(self) -> np.ndarray:
+        """Calculates the Initial Spread Index (ISI) from wind and FFMC.
 
-        Args:
-            cubes (tuple[Cube] | CubeList): Input cubes containing the necessary data.
+        This uses Steps 1 & 2 from Van Wagner and Pickett (1985), page 8.
 
-        Raises:
-            ValueError: If the number of cubes does not match the expected
-                number (2).
+        Returns:
+            np.ndarray: The calculated ISI values.
         """
-        names_to_extract = [
-            "wind_speed",
-            "fine_fuel_moisture_content",
-        ]
-        if len(cubes) != len(names_to_extract):
-            raise ValueError(
-                f"Expected {len(names_to_extract)} cubes, found {len(cubes)}"
-            )
+        # Calculate fine fuel moisture content from FFMC
+        self._calculate_fine_fuel_moisture()
 
-        # Load the cubes into class attributes
-        (
-            self.wind_speed,
-            self.input_ffmc,
-        ) = tuple(cast(Cube, CubeList(cubes).extract_cube(n)) for n in names_to_extract)
+        # Step 1: Calculate wind function and spread factor
+        wind_function = self._calculate_wind_function()
+        spread_factor = self._calculate_spread_factor()
 
-        # Ensure the cubes are set to the correct units
-        self.wind_speed.convert_units("km/h")
-        self.input_ffmc.convert_units("1")
+        # Step 3: Calculate ISI
+        initial_spread_index = self._calculate_isi(spread_factor, wind_function)
+
+        return initial_spread_index
 
     def _calculate_fine_fuel_moisture(self):
         """Calculates the moisture content from the FFMC value.
@@ -120,55 +112,3 @@ class InitialSpreadIndex(BasePlugin):
         # Equation 26: Calculate the Initial Spread Index (ISI)
         initial_spread_index = 0.208 * spread_factor * wind_function
         return initial_spread_index
-
-    def _make_isi_cube(self, isi_data: np.ndarray) -> Cube:
-        """Converts an ISI data array into an iris.cube.Cube object
-        with relevant metadata copied from the input FFMC cube.
-
-        Args:
-            isi_data (np.ndarray): The ISI data
-
-        Returns:
-            Cube: An iris.cube.Cube containing the ISI data with updated
-                metadata and coordinates.
-        """
-        isi_cube = self.input_ffmc.copy(data=isi_data.astype(np.float32))
-
-        # Update the cube name and metadata
-        isi_cube.rename("initial_spread_index")
-        isi_cube.units = "1"
-
-        return isi_cube
-
-    def process(
-        self,
-        cubes: tuple[Cube] | CubeList,
-    ) -> Cube:
-        """Calculate the Initial Spread Index (ISI).
-
-        This uses Steps 1 & 2 from Van Wagner and Pickett (1985), page 8.
-
-        Args:
-            cubes (Cube | CubeList): Input cubes containing:
-                wind_speed: Wind speed in km/h
-                fine_fuel_moisture_content: FFMC value (0-101)
-
-        Returns:
-            Cube: The calculated ISI values.
-        """
-        self.load_input_cubes(cubes)
-
-        # Calculate fine fuel moisture content from FFMC
-        self._calculate_fine_fuel_moisture()
-
-        # Step 1: Calculate wind function and spread factor
-        wind_function = self._calculate_wind_function()
-        spread_factor = self._calculate_spread_factor()
-
-        # Step 3: Calculate ISI
-        output_isi = self._calculate_isi(spread_factor, wind_function)
-
-        # Convert ISI data to a cube and return
-        isi_cube = self._make_isi_cube(output_isi)
-
-        return isi_cube

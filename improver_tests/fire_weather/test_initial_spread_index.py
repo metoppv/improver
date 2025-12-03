@@ -3,76 +3,12 @@
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 
-from datetime import datetime
-
 import numpy as np
 import pytest
-from cf_units import Unit
-from iris.coords import AuxCoord
 from iris.cube import Cube, CubeList
 
 from improver.fire_weather.initial_spread_index import InitialSpreadIndex
-
-
-def make_cube(
-    data: np.ndarray,
-    name: str,
-    units: str,
-    add_time_coord: bool = False,
-) -> Cube:
-    """Create a dummy Iris Cube with specified data, name, units, and optional
-    time coordinates.
-
-    All cubes include a forecast_reference_time coordinate by default.
-
-    Args:
-        data (np.ndarray): The data array for the cube.
-        name (str): The long name for the cube.
-        units (str): The units for the cube.
-        add_time_coord (bool): Whether to add a time coordinate with bounds.
-
-    Returns:
-        Cube: The constructed Iris Cube with the given properties.
-    """
-    arr = np.array(data, dtype=np.float64)
-    cube = Cube(arr, long_name=name)
-    cube.units = units
-
-    # Always add forecast_reference_time
-    time_origin = "hours since 1970-01-01 00:00:00"
-    calendar = "gregorian"
-
-    # Default forecast reference time: 2025-10-20 00:00:00
-    frt = datetime(2025, 10, 20, 0, 0)
-    frt_coord = AuxCoord(
-        np.array([frt.timestamp() / 3600], dtype=np.float64),
-        standard_name="forecast_reference_time",
-        units=Unit(time_origin, calendar=calendar),
-    )
-    cube.add_aux_coord(frt_coord)
-
-    # Optionally add time coordinate with bounds
-    if add_time_coord:
-        # Default valid time: 2025-10-20 12:00:00 with 12-hour bounds
-        valid_time = datetime(2025, 10, 20, 12, 0)
-        time_bounds = np.array(
-            [
-                [
-                    (valid_time.timestamp() - 43200) / 3600,
-                    valid_time.timestamp() / 3600,
-                ]
-            ],
-            dtype=np.float64,
-        )
-        time_coord = AuxCoord(
-            np.array([valid_time.timestamp() / 3600], dtype=np.float64),
-            standard_name="time",
-            bounds=time_bounds,
-            units=Unit(time_origin, calendar=calendar),
-        )
-        cube.add_aux_coord(time_coord)
-
-    return cube
+from improver_tests.fire_weather import make_cube, make_input_cubes
 
 
 def input_cubes(
@@ -96,146 +32,26 @@ def input_cubes(
     Returns:
         list[Cube]: List of Iris Cubes for wind speed and FFMC.
     """
-    wind = make_cube(np.full(shape, wind_val), "wind_speed", wind_units)
-    # FFMC cube needs time coordinates for _make_isi_cube to copy metadata
-    ffmc = make_cube(
-        np.full(shape, ffmc_val),
-        "fine_fuel_moisture_content",
-        ffmc_units,
-        add_time_coord=True,
+    return make_input_cubes(
+        [
+            ("wind_speed", wind_val, wind_units, False),
+            ("fine_fuel_moisture_content", ffmc_val, ffmc_units, True),
+        ],
+        shape=shape,
     )
-    return [wind, ffmc]
 
 
-@pytest.mark.parametrize(
-    "wind_val, ffmc_val",
-    [
-        # Case 0: Typical mid-range values
-        (10.0, 85.0),
-        # Case 1: Low values
-        (0.0, 0.0),
-        # Case 2: High values
-        (100.0, 101.0),
-        # Case 3: Low wind, high FFMC
-        (2.0, 95.0),
-        # Case 4: High wind, low FFMC
-        (50.0, 60.0),
-    ],
-)
-def test_load_input_cubes(
-    wind_val: float,
-    ffmc_val: float,
-) -> None:
-    """Test InitialSpreadIndex.load_input_cubes with various input conditions.
-
-    Args:
-        wind_val (float): Wind speed value for all grid points.
-        ffmc_val (float): FFMC value for all grid points.
-
-    Raises:
-        AssertionError: If the loaded cubes do not match expected shapes and types.
-    """
-    cubes = input_cubes(wind_val, ffmc_val)
-    plugin = InitialSpreadIndex()
-    plugin.load_input_cubes(CubeList(cubes))
-
-    attributes = [
-        plugin.wind_speed,
-        plugin.input_ffmc,
-    ]
-    input_values = [wind_val, ffmc_val]
-
-    for attr, val in zip(attributes, input_values):
-        assert isinstance(attr, Cube)
-        assert attr.shape == (5, 5)
-        assert np.allclose(attr.data, val)
-
-
-@pytest.mark.parametrize(
-    "param, input_val, input_unit, expected_val",
-    [
-        # 0: Wind speed: m/s -> km/h
-        ("wind_speed", 2.7778, "m/s", 10.0),
-        # 1: FFMC: percentage -> fraction
-        ("input_ffmc", 85.0, "%", 0.85),
-    ],
-)
-def test_load_input_cubes_unit_conversion(
-    param: str,
-    input_val: float,
-    input_unit: str,
-    expected_val: float,
-) -> None:
-    """
-    Test that load_input_cubes correctly converts a single alternative unit for each input cube.
-
-    Args:
-        param (str): Name of the parameter to test (e.g., 'wind_speed', 'input_ffmc').
-        input_val (float): Value to use for the tested parameter.
-        input_unit (str): Unit to use for the tested parameter.
-        expected_val (float): Expected value after conversion.
-
-    Raises:
-        AssertionError: If the converted value does not match the expected value.
-    """
-
-    # Override the value and unit for the parameter being tested
-    if param == "wind_speed":
-        cubes = input_cubes(wind_val=input_val, wind_units=input_unit)
-    elif param == "input_ffmc":
-        cubes = input_cubes(ffmc_val=input_val, ffmc_units=input_unit)
-
-    plugin = InitialSpreadIndex()
-    plugin.load_input_cubes(CubeList(cubes))
-    # Check only the parameter being tested
-    result = getattr(plugin, param)
-    assert np.allclose(result.data, expected_val)
-
-
-@pytest.mark.parametrize(
-    "num_cubes, should_raise, expected_message",
-    [
-        # Case 0: Correct number of cubes (2)
-        (2, False, None),
-        # Case 1: Too few cubes (1 instead of 2)
-        (1, True, "Expected 2 cubes, found 1"),
-        # Case 2: No cubes (0 instead of 2)
-        (0, True, "Expected 2 cubes, found 0"),
-        # Case 3: Too many cubes (3 instead of 2)
-        (3, True, "Expected 2 cubes, found 3"),
-    ],
-)
-def test_load_input_cubes_wrong_number_raises_error(
-    num_cubes: int,
-    should_raise: bool,
-    expected_message: str,
-) -> None:
-    """Test that load_input_cubes raises ValueError when given wrong number of cubes.
-
-    Args:
-        num_cubes (int): Number of cubes to provide to load_input_cubes.
-        should_raise (bool): Whether a ValueError should be raised.
-        expected_message (str): Expected error message (or None if no error expected).
-
-    Raises:
-        AssertionError: If ValueError behavior does not match expectations.
-    """
-    # Create a list with the specified number of cubes
+def test_input_attribute_mapping() -> None:
+    """Test that INPUT_ATTRIBUTE_MAPPINGS correctly disambiguates input FFMC."""
     cubes = input_cubes()
-    if num_cubes < len(cubes):
-        cubes = cubes[:num_cubes]
-    elif num_cubes > len(cubes):
-        # Add dummy cubes
-        for _ in range(num_cubes - len(cubes)):
-            cubes.append(make_cube(np.full((5, 5), 0.0), "dummy", "1"))
-
     plugin = InitialSpreadIndex()
+    plugin.load_input_cubes(CubeList(cubes))
 
-    if should_raise:
-        with pytest.raises(ValueError, match=expected_message):
-            plugin.load_input_cubes(CubeList(cubes))
-    else:
-        plugin.load_input_cubes(CubeList(cubes))
+    # Check that the mapping was applied correctly
+    assert hasattr(plugin, "input_ffmc")
+    assert isinstance(plugin.input_ffmc, Cube)
+    assert plugin.input_ffmc.long_name == "fine_fuel_moisture_content"
+    assert np.allclose(plugin.input_ffmc.data, 85.0)
 
 
 @pytest.mark.parametrize(
@@ -266,9 +82,6 @@ def test__calculate_fine_fuel_moisture(
     Args:
         ffmc_val (float): FFMC value to test.
         expected_fm (float): Expected fine fuel moisture content.
-
-    Raises:
-        AssertionError: If the calculated fine fuel moisture does not match expected value.
     """
     cubes = input_cubes(wind_val=10.0, ffmc_val=ffmc_val)
     plugin = InitialSpreadIndex()
@@ -305,9 +118,6 @@ def test__calculate_wind_function(
     Args:
         wind_val (float): Wind speed value to test.
         expected_wf (float): Expected wind function value.
-
-    Raises:
-        AssertionError: If the calculated wind function does not match expected value.
     """
     cubes = input_cubes(wind_val=wind_val, ffmc_val=85.0)
     plugin = InitialSpreadIndex()
@@ -339,12 +149,11 @@ def test__calculate_spread_factor(
 ) -> None:
     """Test calculation of spread factor component of ISI.
 
+    Verifies spread factor calculation from FFMC with zero wind.
+
     Args:
         ffmc_val (float): FFMC value to test.
         expected_isi (float): Expected ISI value with zero wind.
-
-    Raises:
-        AssertionError: If the calculated ISI does not match expected value.
     """
     cubes = input_cubes(wind_val=0.0, ffmc_val=ffmc_val)
     plugin = InitialSpreadIndex()
@@ -383,9 +192,6 @@ def test__calculate_isi(
         wind_val (float): Wind speed value to test.
         ffmc_val (float): FFMC value to test.
         expected_isi (float): Expected ISI value.
-
-    Raises:
-        AssertionError: If the calculated ISI does not match expected value.
     """
     cubes = input_cubes(wind_val=wind_val, ffmc_val=ffmc_val)
     plugin = InitialSpreadIndex()
@@ -395,51 +201,6 @@ def test__calculate_isi(
     spread_factor = plugin._calculate_spread_factor()
     isi = plugin._calculate_isi(spread_factor, wind_function)
     assert np.allclose(isi, expected_isi, rtol=1e-4)
-
-
-@pytest.mark.parametrize(
-    "isi_value, shape",
-    [
-        # Case 0: Typical ISI value with standard grid
-        (13.67, (5, 5)),
-        # Case 1: Low ISI value with different grid size
-        (2.5, (3, 4)),
-        # Case 2: High ISI value with larger grid
-        (79.15, (10, 10)),
-        # Case 3: Zero ISI with small grid
-        (0.0, (2, 2)),
-        # Case 4: Another typical ISI value
-        (8.26, (5, 5)),
-    ],
-)
-def test__make_isi_cube(
-    isi_value: float,
-    shape: tuple[int, int],
-) -> None:
-    """Test creation of ISI cube from ISI data.
-
-    Args:
-        isi_value (float): ISI value to use.
-        shape (tuple[int, int]): Shape of the grid.
-
-    Raises:
-        AssertionError: If the created cube does not have expected properties.
-    """
-    cubes = input_cubes(wind_val=10.0, ffmc_val=85.0, shape=shape)
-    plugin = InitialSpreadIndex()
-    plugin.load_input_cubes(CubeList(cubes))
-
-    isi_data = np.full(shape, isi_value)
-    isi_cube = plugin._make_isi_cube(isi_data)
-
-    assert isinstance(isi_cube, Cube)
-    assert isi_cube.shape == shape
-    assert isi_cube.long_name == "initial_spread_index"
-    assert isi_cube.units == "1"
-    assert np.allclose(isi_cube.data, isi_value)
-    assert isi_cube.dtype == np.float32
-    assert isi_cube.coord("forecast_reference_time")
-    assert isi_cube.coord("time")
 
 
 @pytest.mark.parametrize(
@@ -468,15 +229,14 @@ def test_process(
     ffmc_val: float,
     expected_isi: float,
 ) -> None:
-    """Integration test for process method with various input conditions.
+    """Integration test for the complete ISI calculation process.
+
+    Verifies end-to-end ISI calculation with various environmental conditions.
 
     Args:
         wind_val (float): Wind speed value to test.
         ffmc_val (float): FFMC value to test.
         expected_isi (float): Expected ISI output value.
-
-    Raises:
-        AssertionError: If the calculated ISI does not match expected value.
     """
     cubes = input_cubes(wind_val=wind_val, ffmc_val=ffmc_val)
     result = InitialSpreadIndex().process(CubeList(cubes))
@@ -490,7 +250,10 @@ def test_process(
 
 
 def test_process_spatially_varying() -> None:
-    """Integration test with spatially varying data (vectorization check)."""
+    """Integration test with spatially varying input data.
+
+    Verifies vectorized ISI implementation with varying values across the grid.
+    """
     wind_data = np.array([[5.0, 10.0, 15.0], [10.0, 15.0, 20.0], [15.0, 20.0, 25.0]])
     ffmc_data = np.array([[70.0, 80.0, 85.0], [75.0, 85.0, 90.0], [80.0, 88.0, 92.0]])
 
@@ -522,7 +285,10 @@ def test_process_spatially_varying() -> None:
 
 
 def test_process_with_varying_wind() -> None:
-    """Test that ISI increases with increasing wind speed at constant FFMC."""
+    """Test ISI increases with increasing wind speed at constant FFMC.
+
+    Verifies wind speed relationship in ISI calculation.
+    """
     wind_data = np.array([[0.0, 10.0, 20.0], [5.0, 15.0, 25.0], [10.0, 20.0, 30.0]])
     ffmc_data = np.full((3, 3), 85.0)
 
@@ -541,7 +307,10 @@ def test_process_with_varying_wind() -> None:
 
 
 def test_process_with_varying_ffmc() -> None:
-    """Test that ISI increases with increasing FFMC at constant wind speed."""
+    """Test ISI increases with increasing FFMC at constant wind speed.
+
+    Verifies FFMC relationship in ISI calculation.
+    """
     wind_data = np.full((3, 3), 10.0)
     ffmc_data = np.array([[60.0, 70.0, 80.0], [65.0, 75.0, 85.0], [70.0, 80.0, 90.0]])
 
