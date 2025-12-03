@@ -3,76 +3,12 @@
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 
-from datetime import datetime
-
 import numpy as np
 import pytest
-from cf_units import Unit
-from iris.coords import AuxCoord
 from iris.cube import Cube, CubeList
 
 from improver.fire_weather.build_up_index import BuildUpIndex
-
-
-def make_cube(
-    data: np.ndarray,
-    name: str,
-    units: str,
-    add_time_coord: bool = False,
-) -> Cube:
-    """Create a dummy Iris Cube with specified data, name, units, and optional
-    time coordinates.
-
-    All cubes include a forecast_reference_time coordinate by default.
-
-    Args:
-        data (np.ndarray): The data array for the cube.
-        name (str): The long name for the cube.
-        units (str): The units for the cube.
-        add_time_coord (bool): Whether to add a time coordinate with bounds.
-
-    Returns:
-        Cube: The constructed Iris Cube with the given properties.
-    """
-    arr = np.array(data, dtype=np.float64)
-    cube = Cube(arr, long_name=name)
-    cube.units = units
-
-    # Always add forecast_reference_time
-    time_origin = "hours since 1970-01-01 00:00:00"
-    calendar = "gregorian"
-
-    # Default forecast reference time: 2025-10-20 00:00:00
-    frt = datetime(2025, 10, 20, 0, 0)
-    frt_coord = AuxCoord(
-        np.array([frt.timestamp() / 3600], dtype=np.float64),
-        standard_name="forecast_reference_time",
-        units=Unit(time_origin, calendar=calendar),
-    )
-    cube.add_aux_coord(frt_coord)
-
-    # Optionally add time coordinate with bounds
-    if add_time_coord:
-        # Default valid time: 2025-10-20 12:00:00 with 12-hour bounds
-        valid_time = datetime(2025, 10, 20, 12, 0)
-        time_bounds = np.array(
-            [
-                [
-                    (valid_time.timestamp() - 43200) / 3600,
-                    valid_time.timestamp() / 3600,
-                ]
-            ],
-            dtype=np.float64,
-        )
-        time_coord = AuxCoord(
-            np.array([valid_time.timestamp() / 3600], dtype=np.float64),
-            standard_name="time",
-            bounds=time_bounds,
-            units=Unit(time_origin, calendar=calendar),
-        )
-        cube.add_aux_coord(time_coord)
-
-    return cube
+from improver_tests.fire_weather import make_cube, make_input_cubes
 
 
 def input_cubes(
@@ -96,105 +32,13 @@ def input_cubes(
     Returns:
         list[Cube]: List of Iris Cubes for DMC and DC.
     """
-    # DMC cube needs time coordinates for _make_bui_cube to copy metadata
-    dmc = make_cube(
-        np.full(shape, dmc_val),
-        "duff_moisture_code",
-        dmc_units,
-        add_time_coord=True,
+    return make_input_cubes(
+        [
+            ("duff_moisture_code", dmc_val, dmc_units, True),
+            ("drought_code", dc_val, dc_units, False),
+        ],
+        shape=shape,
     )
-    dc = make_cube(np.full(shape, dc_val), "drought_code", dc_units)
-    return [dmc, dc]
-
-
-@pytest.mark.parametrize(
-    "dmc_val, dc_val",
-    [
-        # Case 0: Typical mid-range values
-        (10.0, 15.0),
-        # Case 1: Low values
-        (0.0, 0.0),
-        # Case 2: High values
-        (100.0, 500.0),
-        # Case 3: Low DMC, high DC
-        (5.0, 400.0),
-        # Case 4: High DMC, low DC
-        (80.0, 20.0),
-    ],
-)
-def test_load_input_cubes(
-    dmc_val: float,
-    dc_val: float,
-) -> None:
-    """Test BuildUpIndex.load_input_cubes with various input conditions.
-
-    Args:
-        dmc_val (float): DMC value for all grid points.
-        dc_val (float): DC value for all grid points.
-
-    Raises:
-        AssertionError: If the loaded cubes do not match expected shapes and types.
-    """
-    cubes = input_cubes(dmc_val, dc_val)
-    plugin = BuildUpIndex()
-    plugin.load_input_cubes(CubeList(cubes))
-
-    attributes = [
-        plugin.duff_moisture_code,
-        plugin.drought_code,
-    ]
-    input_values = [dmc_val, dc_val]
-
-    for attr, val in zip(attributes, input_values):
-        assert isinstance(attr, Cube)
-        assert attr.shape == (5, 5)
-        assert np.allclose(attr.data, val)
-
-
-@pytest.mark.parametrize(
-    "num_cubes, should_raise, expected_message",
-    [
-        # Case 0: Correct number of cubes (2)
-        (2, False, None),
-        # Case 1: Too few cubes (1 instead of 2)
-        (1, True, "Expected 2 cubes, found 1"),
-        # Case 2: No cubes (0 instead of 2)
-        (0, True, "Expected 2 cubes, found 0"),
-        # Case 3: Too many cubes (3 instead of 2)
-        (3, True, "Expected 2 cubes, found 3"),
-    ],
-)
-def test_load_input_cubes_wrong_number_raises_error(
-    num_cubes: int,
-    should_raise: bool,
-    expected_message: str,
-) -> None:
-    """Test that load_input_cubes raises ValueError when given wrong number of cubes.
-
-    Args:
-        num_cubes (int): Number of cubes to provide to load_input_cubes.
-        should_raise (bool): Whether a ValueError should be raised.
-        expected_message (str): Expected error message (or None if no error expected).
-
-    Raises:
-        AssertionError: If ValueError behavior does not match expectations.
-    """
-    # Create a list with the specified number of cubes
-    cubes = input_cubes()
-    if num_cubes < len(cubes):
-        cubes = cubes[:num_cubes]
-    elif num_cubes > len(cubes):
-        # Add dummy cubes
-        for _ in range(num_cubes - len(cubes)):
-            cubes.append(make_cube(np.full((5, 5), 0.0), "dummy", "1"))
-
-    plugin = BuildUpIndex()
-
-    if should_raise:
-        with pytest.raises(ValueError, match=expected_message):
-            plugin.load_input_cubes(CubeList(cubes))
-    else:
-        plugin.load_input_cubes(CubeList(cubes))
 
 
 @pytest.mark.parametrize(
@@ -220,30 +64,29 @@ def test_load_input_cubes_wrong_number_raises_error(
         (100.0, 150.0, 99.46),
     ],
 )
-def test__calculate_bui(
+def test__calculate(
     dmc_val: float,
     dc_val: float,
     expected_bui: float,
 ) -> None:
     """Test calculation of BUI from DMC and DC.
 
+    Verifies BUI calculation from DMC and DC values.
+
     Args:
         dmc_val (float): DMC value to test.
         dc_val (float): DC value to test.
         expected_bui (float): Expected BUI value.
-
-    Raises:
-        AssertionError: If the calculated BUI does not match expected value.
     """
     cubes = input_cubes(dmc_val=dmc_val, dc_val=dc_val)
     plugin = BuildUpIndex()
     plugin.load_input_cubes(CubeList(cubes))
-    bui = plugin._calculate_bui()
+    bui = plugin._calculate()
 
     assert np.allclose(bui, expected_bui, rtol=1e-2, atol=0.1)
 
 
-def test__calculate_bui_no_negative_values() -> None:
+def test__calculate_no_negative_values() -> None:
     """Test that BUI calculation never produces negative values."""
     # Test a range of DMC and DC values
     dmc_values = np.array([0.0, 5.0, 10.0, 20.0, 50.0, 100.0])
@@ -254,12 +97,15 @@ def test__calculate_bui_no_negative_values() -> None:
             cubes = input_cubes(dmc_val=dmc, dc_val=dc)
             plugin = BuildUpIndex()
             plugin.load_input_cubes(CubeList(cubes))
-            bui = plugin._calculate_bui()
+            bui = plugin._calculate()
             assert np.all(bui >= 0.0), f"Negative BUI for DMC={dmc}, DC={dc}"
 
 
-def test__calculate_bui_spatially_varying() -> None:
-    """Test BUI calculation with spatially varying DMC and DC (vectorization check)."""
+def test__calculate_spatially_varying() -> None:
+    """Test BUI calculation with spatially varying DMC and DC.
+
+    Verifies vectorized BUI calculation with varying values across the grid.
+    """
     dmc_data = np.array([[5.0, 10.0, 20.0], [15.0, 25.0, 35.0], [30.0, 45.0, 60.0]])
     dc_data = np.array([[10.0, 20.0, 40.0], [30.0, 50.0, 70.0], [60.0, 90.0, 120.0]])
 
@@ -270,7 +116,7 @@ def test__calculate_bui_spatially_varying() -> None:
 
     plugin = BuildUpIndex()
     plugin.load_input_cubes(CubeList(cubes))
-    bui = plugin._calculate_bui()
+    bui = plugin._calculate()
 
     # Verify shape and all values are non-negative
     assert bui.shape == (3, 3)
@@ -285,51 +131,6 @@ def test__calculate_bui_spatially_varying() -> None:
 
     # Position [2,2]: DMC=60, DC=120, use eq 27b
     assert np.allclose(bui[2, 2], 59.84, rtol=0.02)
-
-
-@pytest.mark.parametrize(
-    "bui_value, shape",
-    [
-        # Case 0: Typical BUI value with standard grid
-        (15.3, (5, 5)),
-        # Case 1: Low BUI value with different grid size
-        (2.5, (3, 4)),
-        # Case 2: High BUI value with larger grid
-        (80.0, (10, 10)),
-        # Case 3: Zero BUI with small grid
-        (0.0, (2, 2)),
-        # Case 4: Another typical BUI value
-        (27.0, (5, 5)),
-    ],
-)
-def test__make_bui_cube(
-    bui_value: float,
-    shape: tuple[int, int],
-) -> None:
-    """Test creation of BUI cube from BUI data.
-
-    Args:
-        bui_value (float): BUI value to use.
-        shape (tuple[int, int]): Shape of the grid.
-
-    Raises:
-        AssertionError: If the created cube does not have expected properties.
-    """
-    cubes = input_cubes(dmc_val=10.0, dc_val=15.0, shape=shape)
-    plugin = BuildUpIndex()
-    plugin.load_input_cubes(CubeList(cubes))
-
-    bui_data = np.full(shape, bui_value)
-    bui_cube = plugin._make_bui_cube(bui_data)
-
-    assert isinstance(bui_cube, Cube)
-    assert bui_cube.shape == shape
-    assert bui_cube.long_name == "build_up_index"
-    assert bui_cube.units == "1"
-    assert np.allclose(bui_cube.data, bui_value)
-    assert bui_cube.dtype == np.float32
-    assert bui_cube.coord("forecast_reference_time")
-    assert bui_cube.coord("time")
 
 
 @pytest.mark.parametrize(
@@ -350,18 +151,15 @@ def test_process(
     dc_val: float,
     expected_bui: float,
 ) -> None:
-    """Integration test for process method with typical input conditions.
+    """Integration test for the complete BUI calculation process.
 
-    Tests both equation branches with representative values.
-    Edge cases (DMC=0, DC=0, both zero) are covered by dedicated tests.
+    Verifies end-to-end BUI calculation with various input conditions. Tests both
+    equation branches. Edge cases (DMC=0, DC=0, both zero) are covered by dedicated tests.
 
     Args:
         dmc_val (float): DMC value to test.
         dc_val (float): DC value to test.
         expected_bui (float): Expected BUI output value.
-
-    Raises:
-        AssertionError: If the calculated BUI does not match expected value.
     """
     cubes = input_cubes(dmc_val=dmc_val, dc_val=dc_val)
     result = BuildUpIndex().process(CubeList(cubes))
@@ -375,7 +173,10 @@ def test_process(
 
 
 def test_process_spatially_varying() -> None:
-    """Integration test with spatially varying data (vectorization check)."""
+    """Integration test with spatially varying input data.
+
+    Verifies vectorized BUI calculation with varying values across the grid.
+    """
     dmc_data = np.array([[5.0, 15.0, 30.0], [10.0, 25.0, 45.0], [20.0, 35.0, 60.0]])
     dc_data = np.array([[10.0, 30.0, 60.0], [20.0, 50.0, 90.0], [40.0, 70.0, 120.0]])
 
@@ -403,7 +204,7 @@ def test_process_spatially_varying() -> None:
 
 
 def test_process_dmc_only() -> None:
-    """Test that when DC=0, equation 27a gives BUI close to DMC."""
+    """Test that when DC=0, BUI calculation gives result close to DMC."""
     dmc_values = np.array([[10.0, 20.0, 30.0], [15.0, 25.0, 35.0], [5.0, 40.0, 50.0]])
     dc_values = np.zeros((3, 3))
 
