@@ -31,6 +31,7 @@ PROCESSING_MODULES = {
     "CalculateForecastBias": "improver.calibration.simple_bias_correction",
     "CalculateWindChill": "improver.temperature.feels_like_temperature",
     "CalibratedForecastDistributionParameters": "improver.calibration.emos_calibration",
+    "CanadianForestFireWeatherIndex": "improver.fire_weather.canadian_forest_fire_weather_index",
     "ChooseDefaultWeightsLinear": "improver.blending.weights",
     "ChooseDefaultWeightsNonLinear": "improver.blending.weights",
     "ChooseDefaultWeightsTriangular": "improver.blending.weights",
