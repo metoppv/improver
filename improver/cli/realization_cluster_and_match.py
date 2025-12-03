@@ -3,8 +3,7 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-
-"""Script to run clustering and matching of realizations."""
+"""CLI to run clustering and matching of realizations."""
 
 from improver import cli
 
@@ -38,9 +37,13 @@ def process(
             Dictionary defining the hierarchy of inputs. Specifies the primary
             input (which is clustered) and secondary inputs (which are matched
             to clusters). The order of secondary_inputs defines precedence,
-            with earlier entries having higher priority. Format:
-            {"primary_input": "model_name",
-             "secondary_inputs": {"model2": [0, 6], "model3": [0, 24]}}
+            with earlier entries having higher priority. Format::
+
+                {
+                    "primary_input": "model_name",
+                    "secondary_inputs": {"model2": [0, 6], "model3": [0, 24]},
+                }
+
             The lists specify forecast period hours. A two-element list [start, end]
             will be expanded to the range start to end inclusive (e.g., [0, 6]
             includes 0, 1, 2, 3, 4, 5, 6). Lists with other lengths are treated as
@@ -71,19 +74,29 @@ def process(
             Additional keyword arguments to pass to the clustering method.
             Can be provided as a JSON file path or a JSON string. Common
             options for KMedoids include:
+
             - random_state (int): Random seed for reproducibility
             - max_iter (int): Maximum number of iterations
-            Example: {"random_state": 42, "max_iter": 300}
+
+            Example::
+
+                {"random_state": 42, "max_iter": 300}
+
             Default: None (no additional kwargs)
         regrid_kwargs (dict):
             Additional keyword arguments to pass to RegridLandSea for
             regridding. Can be provided as a JSON file path or a JSON string.
             Common options include:
+
             - mdtol (float): Tolerance of missing data for esmf-area-weighted
               regridding (0 to 1, default 1)
             - extrapolation_mode (str): Mode to fill regions outside domain
             - landmask (Cube): Land-sea mask for mask-aware regridding
-            Example: {"mdtol": 0.5}
+
+            Example::
+
+                {"mdtol": 0.5}
+
             Default: None (no additional kwargs)
 
     Returns:
