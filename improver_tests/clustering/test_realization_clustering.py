@@ -768,6 +768,7 @@ def _create_cube_with_forecast_periods(
     model_id,
     spatial_shape=(5, 5),
     base_value=100.0,
+    realization_values=None,
 ):
     """Create cubes with specific forecast periods and model_id.
 
@@ -777,15 +778,32 @@ def _create_cube_with_forecast_periods(
         model_id: Model ID attribute value.
         spatial_shape: Shape of spatial dimensions (y, x).
         base_value: Base value for data (forecast period will be added).
+            Ignored if realization_values is provided.
+        realization_values: Optional list/array of values for each realization.
+            If provided, should have length n_realizations. Each realization
+            will be filled with its corresponding value (no forecast period
+            offset added).
 
     Returns:
         CubeList containing cubes for each forecast period.
     """
     cubes = iris.cube.CubeList()
     for fp_hours in forecast_periods:
-        data = np.full(
-            (n_realizations, *spatial_shape), base_value + fp_hours, dtype=np.float32
-        )
+        if realization_values is not None:
+            # Use per-realization values without forecast period offset
+            data = np.array(
+                [
+                    np.full(spatial_shape, val, dtype=np.float32)
+                    for val in realization_values
+                ]
+            )
+        else:
+            # Use uniform base_value with forecast period offset
+            data = np.full(
+                (n_realizations, *spatial_shape),
+                base_value + fp_hours,
+                dtype=np.float32,
+            )
         cube = set_up_variable_cube(
             data,
             name="air_temperature",
@@ -1441,34 +1459,15 @@ def test_clusterandmatch_multiple_partial_secondary_same_forecast_period():
     # Group 1 (realizations 0, 1): ~90
     # Group 2 (realizations 2, 3): ~100
     # Group 3 (realizations 4, 5): ~110
-    primary_data = np.array(
-        [
-            np.full(spatial_shape, 90.0, dtype=np.float32),
-            np.full(spatial_shape, 91.0, dtype=np.float32),
-            np.full(spatial_shape, 100.0, dtype=np.float32),
-            np.full(spatial_shape, 101.0, dtype=np.float32),
-            np.full(spatial_shape, 110.0, dtype=np.float32),
-            np.full(spatial_shape, 111.0, dtype=np.float32),
-        ]
+    cubes.extend(
+        _create_cube_with_forecast_periods(
+            [0],
+            6,
+            "primary_model",
+            spatial_shape,
+            realization_values=[90.0, 91.0, 100.0, 101.0, 110.0, 111.0],
+        )
     )
-    primary_cube = set_up_variable_cube(
-        primary_data,
-        name="air_temperature",
-        units="K",
-        spatial_grid="equalarea",
-        realizations=np.arange(6),
-        time=datetime(2024, 1, 1, 0),
-        frt=datetime(2024, 1, 1, 0),
-    )
-    primary_cube.remove_coord("forecast_period")
-    forecast_period = iris.coords.DimCoord(
-        np.array([0], dtype=np.int32),
-        standard_name="forecast_period",
-        units="seconds",
-    )
-    primary_cube.add_aux_coord(forecast_period)
-    primary_cube.attributes["model_id"] = "primary_model"
-    cubes.append(primary_cube)
 
     # Secondary input 1 for fp=0, value 90 (2 realizations < 3 clusters)
     # This has highest precedence (listed first)
