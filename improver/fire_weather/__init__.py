@@ -20,26 +20,26 @@ class FireWeatherIndexBase(BasePlugin):
 
     This class provides common functionality for all fire weather index
     components, including:
-        - Standardised cube loading and validation
-        - Fixed unit conversions for all cube types (non-configurable)
-        - Output cube creation
-        - Process orchestration
+        Standardised cube loading and validation
+        Fixed unit conversions for all cube types (non-configurable)
+        Output cube creation
+        Process orchestration
 
     The Canadian Forest Fire Weather Index System requires specific units
     for all calculations. These are fixed and cannot be overridden:
-        - Temperature: degrees Celsius (degC)
-        - Precipitation: millimeters (mm)
-        - Relative humidity: dimensionless fraction (1)
-        - Wind speed: kilometers per hour (km/h)
-        - All fire weather indices: dimensionless (1)
+        Temperature: degrees Celsius (degC)
+        Precipitation: millimeters (mm)
+        Relative humidity: dimensionless fraction (1)
+        Wind speed: kilometers per hour (km/h)
+        All fire weather indices: dimensionless (1)
 
     Subclasses must define class attributes:
-        - INPUT_CUBE_NAMES: List of standard names for required input cubes
-        - OUTPUT_CUBE_NAME: Standard name for the output cube
-        - REQUIRES_MONTH: Boolean indicating if month parameter is required
+        INPUT_CUBE_NAMES: List of standard names for required input cubes
+        OUTPUT_CUBE_NAME: Standard name for the output cube
+        REQUIRES_MONTH: Boolean indicating if month parameter is required
 
     Subclasses must implement:
-        - _calculate(): Method that performs the actual calculation
+        _calculate(): Method that performs the actual calculation
     """
 
     # Fixed unit conversions for all cube types used in fire weather calculations
