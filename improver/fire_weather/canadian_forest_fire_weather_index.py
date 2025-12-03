@@ -4,15 +4,13 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Plugin to calculate the Canadian Forest Fire Weather Index (FWI)."""
 
-from typing import cast
-
 import numpy as np
-from iris.cube import Cube, CubeList
+from iris.cube import Cube
 
-from improver import BasePlugin
+from improver.fire_weather import FireWeatherIndexBase
 
 
-class CanadianForestFireWeatherIndex(BasePlugin):
+class CanadianForestFireWeatherIndex(FireWeatherIndexBase):
     """
     Plugin to calculate the Canadian Forest Fire Weather Index (FWI).
 
@@ -31,38 +29,27 @@ class CanadianForestFireWeatherIndex(BasePlugin):
         - Build Up Index (BUI): dimensionless
     """
 
+    INPUT_CUBE_NAMES = ["initial_spread_index", "build_up_index"]
+    OUTPUT_CUBE_NAME = "canadian_forest_fire_weather_index"
+
     initial_spread_index: Cube
     build_up_index: Cube
 
-    def load_input_cubes(self, cubes: tuple[Cube] | CubeList):
-        """Loads the required input cubes for the FWI calculation. These
-        are stored internally as Cube objects.
+    def _calculate(self) -> np.ndarray:
+        """Calculate the Fire Weather Index (FWI).
 
-        Args:
-            cubes (tuple[Cube] | CubeList): Input cubes containing the necessary data.
+        From Van Wagner and Pickett (1985), Page 8: Steps 4-6
 
-        Raises:
-            ValueError: If the number of cubes does not match the expected
-                number (2).
+        Returns:
+            np.ndarray: The calculated FWI values.
         """
-        names_to_extract = [
-            "initial_spread_index",
-            "build_up_index",
-        ]
-        if len(cubes) != len(names_to_extract):
-            raise ValueError(
-                f"Expected {len(names_to_extract)} cubes, found {len(cubes)}"
-            )
+        # Step 4: Calculate extrapolated Duff Moisture Function
+        extrapolated_DMF = self._calculate_extrapolated_duff_moisture_function()
 
-        # Load the cubes into class attributes
-        (
-            self.initial_spread_index,
-            self.build_up_index,
-        ) = tuple(cast(Cube, CubeList(cubes).extract_cube(n)) for n in names_to_extract)
+        # Steps 5 & 6: Calculate FWI
+        fwi = self._calculate_fwi(extrapolated_DMF)
 
-        # Ensure the cubes are set to the correct units
-        self.initial_spread_index.convert_units("1")
-        self.build_up_index.convert_units("1")
+        return fwi
 
     def _calculate_fwi(self, extrapolated_DMF) -> np.ndarray:
         """Calculates the Fire Weather Index (FWI) from the Initial Spread Index (ISI)
@@ -109,51 +96,3 @@ class CanadianForestFireWeatherIndex(BasePlugin):
         )
 
         return extrapolated_DMF
-
-    def _make_fwi_cube(self, fwi_data: np.ndarray) -> Cube:
-        """Converts an FWI data array into an iris.cube.Cube object
-        with relevant metadata copied from the input ISI cube.
-
-        Args:
-            fwi_data (np.ndarray): The FWI data
-
-        Returns:
-            Cube: An iris.cube.Cube containing the FWI data with updated
-                metadata and coordinates.
-        """
-        fwi_cube = self.initial_spread_index.copy(data=fwi_data.astype(np.float32))
-
-        # Update the cube name and metadata
-        fwi_cube.rename("canadian_forest_fire_weather_index")
-        fwi_cube.units = "1"
-
-        return fwi_cube
-
-    def process(
-        self,
-        cubes: tuple[Cube] | CubeList,
-    ) -> Cube:
-        """Calculate the Fire Weather Index (FWI).
-
-        From Van Wagner and Pickett (1985), Page 8: Steps 4-6
-
-        Args:
-            cubes (Cube | CubeList): Input cubes containing:
-                initial_spread_index: ISI value (dimensionless)
-                build_up_index: BUI value (dimensionless)
-
-        Returns:
-            Cube: The calculated FWI values.
-        """
-        self.load_input_cubes(cubes)
-
-        # Step 4: Calculate extrapolated Duff Moisture Function
-        extrapolated_DMF = self._calculate_extrapolated_duff_moisture_function()
-
-        # Steps 5 & 6: Calculate FWI
-        output_fwi = self._calculate_fwi(extrapolated_DMF)
-
-        # Convert FWI data to a cube and return
-        fwi_cube = self._make_fwi_cube(output_fwi)
-
-        return fwi_cube
