@@ -7,12 +7,11 @@
 import unittest
 
 import numpy as np
-from iris.tests import IrisTest
 
 from improver.utilities.indexing_operations import choose
 
 
-class Test_choose(IrisTest):
+class Test_choose(unittest.TestCase):
     """Test the choose function behaves as expected, giving the same results
     as the numpy choose method, but without the 32 leading dimensions limit."""
 
@@ -29,7 +28,7 @@ class Test_choose(IrisTest):
         index_array = np.array([[[0, 1], [1, 0]], [[0, 2], [0, 1]], [[1, 1], [2, 0]]])
         expected = np.array([[[1, 6], [7, 4]], [[1, 10], [3, 8]], [[5, 6], [11, 4]]])
         result = choose(index_array, self.small_data)
-        self.assertArrayEqual(result, expected)
+        np.testing.assert_array_equal(result, expected)
         self.assertEqual(result.shape, expected.shape)
 
     def test_3D_index_array_test2(self):
@@ -41,7 +40,7 @@ class Test_choose(IrisTest):
             [self.small_data[1], self.small_data[2], self.small_data[0]]
         )
         result = choose(index_array, self.small_data)
-        self.assertArrayEqual(result, expected)
+        np.testing.assert_array_equal(result, expected)
         self.assertEqual(result.shape, expected.shape)
 
     def test_3D_index_array_utilising_indices_beyond_32(self):
@@ -52,7 +51,7 @@ class Test_choose(IrisTest):
         index_array = np.ones(self.data.shape).astype(int)
         expected = np.array([self.data[1]] * 33)
         result = choose(index_array, self.data)
-        self.assertArrayEqual(result, expected)
+        np.testing.assert_array_equal(result, expected)
         self.assertEqual(result.shape, expected.shape)
 
     def test_numpy_choose_comparison_3D_index_array_test1(self):
@@ -62,7 +61,7 @@ class Test_choose(IrisTest):
         index_array = np.array([[[0, 1], [1, 0]], [[0, 2], [0, 1]], [[1, 1], [2, 0]]])
         choose_result = choose(index_array, self.small_data)
         npchoose_result = np.choose(index_array, self.small_data)
-        self.assertArrayEqual(choose_result, npchoose_result)
+        np.testing.assert_array_equal(choose_result, npchoose_result)
         self.assertEqual(choose_result.shape, npchoose_result.shape)
 
     def test_numpy_choose_comparison_3D_index_array_test2(self):
@@ -72,7 +71,7 @@ class Test_choose(IrisTest):
         index_array = np.array([[[1, 1], [1, 1]], [[2, 2], [2, 2]], [[0, 0], [0, 0]]])
         choose_result = choose(index_array, self.small_data)
         npchoose_result = np.choose(index_array, self.small_data)
-        self.assertArrayEqual(choose_result, npchoose_result)
+        np.testing.assert_array_equal(choose_result, npchoose_result)
         self.assertEqual(choose_result.shape, npchoose_result.shape)
 
     def test_invalid_array_indices(self):

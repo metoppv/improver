@@ -9,7 +9,6 @@ import unittest
 import iris
 import numpy as np
 from iris.coords import DimCoord
-from iris.tests import IrisTest
 
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.pad_spatial import (
@@ -22,7 +21,7 @@ from improver.utilities.pad_spatial import (
 )
 
 
-class Test_pad_coord(IrisTest):
+class Test_pad_coord(unittest.TestCase):
     """Test the padding of a coordinate."""
 
     def setUp(self):
@@ -61,8 +60,8 @@ class Test_pad_coord(IrisTest):
         method = "add"
         new_coord = pad_coord(coord, width, method)
         self.assertIsInstance(new_coord, DimCoord)
-        self.assertArrayAlmostEqual(new_coord.points, expected)
-        self.assertArrayEqual(new_coord.bounds, expected_bounds)
+        np.testing.assert_array_almost_equal(new_coord.points, expected)
+        np.testing.assert_array_equal(new_coord.bounds, expected_bounds)
 
     def test_add_y_reorder(self):
         """Test the functionality to add still works if y is negative."""
@@ -73,8 +72,8 @@ class Test_pad_coord(IrisTest):
         method = "add"
         new_coord = pad_coord(y_coord, width, method)
         self.assertIsInstance(new_coord, DimCoord)
-        self.assertArrayAlmostEqual(new_coord.points, expected)
-        self.assertArrayEqual(new_coord.bounds, expected_bounds)
+        np.testing.assert_array_almost_equal(new_coord.points, expected)
+        np.testing.assert_array_equal(new_coord.bounds, expected_bounds)
 
     def test_exception(self):
         """Test an exception is raised if the chosen coordinate is
@@ -100,11 +99,11 @@ class Test_pad_coord(IrisTest):
         method = "remove"
         new_coord = pad_coord(coord, width, method)
         self.assertIsInstance(new_coord, DimCoord)
-        self.assertArrayAlmostEqual(new_coord.points, expected)
-        self.assertArrayEqual(new_coord.bounds, expected_bounds)
+        np.testing.assert_array_almost_equal(new_coord.points, expected)
+        np.testing.assert_array_equal(new_coord.bounds, expected_bounds)
 
 
-class Test_create_cube_with_halo(IrisTest):
+class Test_create_cube_with_halo(unittest.TestCase):
     """Tests for the create_cube_with_halo function"""
 
     def setUp(self):
@@ -144,20 +143,24 @@ class Test_create_cube_with_halo(IrisTest):
 
         result = create_cube_with_halo(self.cube, self.halo_size_m)
         self.assertSequenceEqual(result.data.shape, (13, 13))
-        self.assertArrayAlmostEqual(result.coord(axis="x").points, expected_x_points)
-        self.assertArrayAlmostEqual(result.coord(axis="y").points, expected_y_points)
+        np.testing.assert_array_almost_equal(
+            result.coord(axis="x").points, expected_x_points
+        )
+        np.testing.assert_array_almost_equal(
+            result.coord(axis="y").points, expected_y_points
+        )
 
         # check explicitly that the original grid remains an exact subset of
         # the output cube (ie that padding hasn't shifted the existing grid)
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.coord(axis="x").points[1:-1], self.cube.coord(axis="x").points
         )
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.coord(axis="y").points[1:-1], self.cube.coord(axis="y").points
         )
 
 
-class Test__create_cube_with_padded_data(IrisTest):
+class Test__create_cube_with_padded_data(unittest.TestCase):
     """Test creating a new cube using a template cube."""
 
     def setUp(self):
@@ -180,7 +183,7 @@ class Test__create_cube_with_padded_data(IrisTest):
 
         new_cube = _create_cube_with_padded_data(sliced_cube, data, coord_x, coord_y)
         self.assertIsInstance(new_cube, iris.cube.Cube)
-        self.assertArrayAlmostEqual(new_cube.data, data)
+        np.testing.assert_array_almost_equal(new_cube.data, data)
         self.assertEqual(new_cube.coord_dims("projection_y_coordinate")[0], 0)
         self.assertEqual(new_cube.coord_dims("projection_x_coordinate")[0], 1)
 
@@ -197,7 +200,7 @@ class Test__create_cube_with_padded_data(IrisTest):
 
         new_cube = _create_cube_with_padded_data(sliced_cube, data, coord_x, coord_y)
         self.assertIsInstance(new_cube, iris.cube.Cube)
-        self.assertArrayAlmostEqual(new_cube.data, data)
+        np.testing.assert_array_almost_equal(new_cube.data, data)
         self.assertEqual(new_cube.coord_dims("projection_y_coordinate")[0], 1)
         self.assertEqual(new_cube.coord_dims("projection_x_coordinate")[0], 0)
 
@@ -216,7 +219,7 @@ class Test__create_cube_with_padded_data(IrisTest):
 
         new_cube = _create_cube_with_padded_data(sliced_cube, data, coord_x, coord_y)
         self.assertIsInstance(new_cube, iris.cube.Cube)
-        self.assertArrayAlmostEqual(new_cube.data, data)
+        np.testing.assert_array_almost_equal(new_cube.data, data)
         self.assertEqual(new_cube.coord_dims("realization")[0], 0)
         self.assertEqual(new_cube.coord_dims("projection_y_coordinate")[0], 1)
         self.assertEqual(new_cube.coord_dims("projection_x_coordinate")[0], 2)
@@ -231,12 +234,12 @@ class Test__create_cube_with_padded_data(IrisTest):
         coord_y = sliced_cube.coord("projection_y_coordinate")
         new_cube = _create_cube_with_padded_data(sliced_cube, data, coord_x, coord_y)
         self.assertIsInstance(new_cube, iris.cube.Cube)
-        self.assertArrayAlmostEqual(new_cube.data, data)
+        np.testing.assert_array_almost_equal(new_cube.data, data)
         self.assertEqual(new_cube.coord_dims("projection_x_coordinate")[0], 0)
         self.assertTrue(new_cube.coords("projection_y_coordinate", dim_coords=False))
 
 
-class Test_pad_cube_with_halo(IrisTest):
+class Test_pad_cube_with_halo(unittest.TestCase):
     """Test for padding a cube with a halo."""
 
     def setUp(self):
@@ -270,7 +273,7 @@ class Test_pad_cube_with_halo(IrisTest):
         width_x = width_y = 2
         padded_cube = pad_cube_with_halo(self.cube, width_x, width_y)
         self.assertIsInstance(padded_cube, iris.cube.Cube)
-        self.assertArrayAlmostEqual(padded_cube.data, expected)
+        np.testing.assert_array_almost_equal(padded_cube.data, expected)
 
     def test_different_widths(self):
         """Test that padding the data in a cube with different widths has
@@ -296,7 +299,7 @@ class Test_pad_cube_with_halo(IrisTest):
         width_y = 4
         padded_cube = pad_cube_with_halo(self.cube, width_x, width_y)
         self.assertIsInstance(padded_cube, iris.cube.Cube)
-        self.assertArrayAlmostEqual(padded_cube.data, expected)
+        np.testing.assert_array_almost_equal(padded_cube.data, expected)
 
     def test_zero_width(self):
         """Test that padding the data in a cube with a width of zero has
@@ -322,7 +325,7 @@ class Test_pad_cube_with_halo(IrisTest):
         width_y = 4
         padded_cube = pad_cube_with_halo(self.cube, width_x, width_y)
         self.assertIsInstance(padded_cube, iris.cube.Cube)
-        self.assertArrayAlmostEqual(padded_cube.data, expected)
+        np.testing.assert_array_almost_equal(padded_cube.data, expected)
 
     def test_halo_using_mean_method(self):
         """Test values in halo are correctly smoothed when using pad_method='mean'.
@@ -356,7 +359,7 @@ class Test_pad_cube_with_halo(IrisTest):
         )
 
         padded_cube = pad_cube_with_halo(self.cube, 2, 2, pad_method="mean")
-        self.assertArrayAlmostEqual(padded_cube.data, expected_data)
+        np.testing.assert_array_almost_equal(padded_cube.data, expected_data)
 
     def test_halo_using_symmetric_method(self):
         """Test values in halo are correct when using pad_method='symmetric'."""
@@ -377,7 +380,7 @@ class Test_pad_cube_with_halo(IrisTest):
         padded_cube = pad_cube_with_halo(
             self.alternative_cube, 2, 2, pad_method="symmetric"
         )
-        self.assertArrayAlmostEqual(padded_cube.data, expected_data)
+        np.testing.assert_array_almost_equal(padded_cube.data, expected_data)
 
     def test_halo_using_minimum_method(self):
         """Test values in halo are correct when using pad_method='minimum'.
@@ -405,7 +408,7 @@ class Test_pad_cube_with_halo(IrisTest):
         padded_cube = pad_cube_with_halo(
             self.alternative_cube, 4, 4, pad_method="minimum"
         )
-        self.assertArrayAlmostEqual(padded_cube.data, expected_data)
+        np.testing.assert_array_almost_equal(padded_cube.data, expected_data)
 
     def test_halo_using_maximum_method(self):
         """Test values in halo are correct when using pad_method='maximum'.
@@ -433,10 +436,10 @@ class Test_pad_cube_with_halo(IrisTest):
         padded_cube = pad_cube_with_halo(
             self.alternative_cube, 4, 4, pad_method="maximum"
         )
-        self.assertArrayAlmostEqual(padded_cube.data, expected_data)
+        np.testing.assert_array_almost_equal(padded_cube.data, expected_data)
 
 
-class Test_remove_cube_halo(IrisTest):
+class Test_remove_cube_halo(unittest.TestCase):
     """Tests for the  remove_cube_halo function"""
 
     def setUp(self):
@@ -479,11 +482,11 @@ class Test_remove_cube_halo(IrisTest):
         result = remove_cube_halo(self.cube_1d, self.halo_size_m)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertSequenceEqual(result.data.shape, (1, 9, 9))
-        self.assertArrayEqual(result.data[0, 1, :], np.arange(1, 10))
-        self.assertArrayEqual(result.data[0, :, 1], np.arange(1, 10))
+        np.testing.assert_array_equal(result.data[0, 1, :], np.arange(1, 10))
+        np.testing.assert_array_equal(result.data[0, :, 1], np.arange(1, 10))
 
 
-class Test_remove_halo_from_cube(IrisTest):
+class Test_remove_halo_from_cube(unittest.TestCase):
     """Test a halo is removed from the cube data."""
 
     def setUp(self):
@@ -511,7 +514,7 @@ class Test_remove_halo_from_cube(IrisTest):
         width_x = width_y = 2
         padded_cube = remove_halo_from_cube(self.cube, width_x, width_y)
         self.assertIsInstance(padded_cube, iris.cube.Cube)
-        self.assertArrayAlmostEqual(padded_cube.data, expected)
+        np.testing.assert_array_almost_equal(padded_cube.data, expected)
 
     def test_different_widths(self):
         """Test that removing a halo of points from the data on a cube
@@ -523,7 +526,7 @@ class Test_remove_halo_from_cube(IrisTest):
         width_y = 4
         padded_cube = remove_halo_from_cube(self.large_cube, width_x, width_y)
         self.assertIsInstance(padded_cube, iris.cube.Cube)
-        self.assertArrayAlmostEqual(padded_cube.data, expected)
+        np.testing.assert_array_almost_equal(padded_cube.data, expected)
 
     def test_zero_width(self):
         """Test that removing a halo of points from the data on a cube
@@ -538,7 +541,7 @@ class Test_remove_halo_from_cube(IrisTest):
         width_y = 4
         padded_cube = remove_halo_from_cube(self.large_cube, width_x, width_y)
         self.assertIsInstance(padded_cube, iris.cube.Cube)
-        self.assertArrayAlmostEqual(padded_cube.data, expected)
+        np.testing.assert_array_almost_equal(padded_cube.data, expected)
 
 
 if __name__ == "__main__":

@@ -7,7 +7,6 @@
 import unittest
 
 import numpy as np
-from iris.tests import IrisTest
 
 from improver.nowcasting.forecasting import AdvectField, CreateExtrapolationForecast
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
@@ -33,7 +32,7 @@ def setup_precipitation_cube():
     return precipitation_cube
 
 
-class SetUpCubes(IrisTest):
+class SetUpCubes(unittest.TestCase):
     """
     Set up a base class with a setUp method that can be inherited by all
     the other unit test classes. This means they can all share the same
@@ -120,7 +119,7 @@ class Test__init__(SetUpCubes):
         )
 
         self.assertEqual(self.precip_cube.metadata, plugin.input_cube.metadata)
-        self.assertArrayAlmostEqual(plugin.input_cube.data, expected_data)
+        np.testing.assert_array_almost_equal(plugin.input_cube.data, expected_data)
         self.assertEqual(plugin.orographic_enhancement_cube, self.oe_cube)
         self.assertIsInstance(plugin.advection_plugin, AdvectField)
 
@@ -179,11 +178,11 @@ class Test_extrapolate(SetUpCubes):
         expected_result = np.ma.masked_invalid(expected_result)
         expected_forecast_period = np.array([600], dtype=np.int64)
         # Check we get the expected result, and the correct time coordinates.
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             np.ma.getmask(expected_result), np.ma.getmask(result.data)
         )
-        self.assertArrayAlmostEqual(expected_result.data, result.data.data)
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(expected_result.data, result.data.data)
+        np.testing.assert_array_almost_equal(
             result.coord("forecast_period").points, expected_forecast_period
         )
         self.assertEqual(result.coord("forecast_period").units, "seconds")
@@ -223,11 +222,11 @@ class Test_extrapolate(SetUpCubes):
         expected_result = np.ma.masked_invalid(expected_result)
         expected_forecast_period = np.array([600], dtype=np.int64)
         # Check we get the expected result, and the correct time coordinates.
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             np.ma.getmask(expected_result), np.ma.getmask(result.data)
         )
-        self.assertArrayAlmostEqual(expected_result.data, result.data.data)
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(expected_result.data, result.data.data)
+        np.testing.assert_array_almost_equal(
             result.coord("forecast_period").points, expected_forecast_period
         )
         self.assertEqual(result.coord("forecast_period").units, "seconds")

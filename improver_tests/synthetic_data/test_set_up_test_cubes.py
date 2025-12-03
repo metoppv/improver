@@ -11,7 +11,6 @@ from datetime import datetime
 
 import iris
 import numpy as np
-from iris.tests import IrisTest
 
 from improver.grids import GLOBAL_GRID_CCRS, STANDARD_GRID_CCRS
 from improver.metadata.check_datatypes import check_mandatory_standards
@@ -32,7 +31,7 @@ from improver.utilities.cube_manipulation import get_dim_coord_names
 from improver.utilities.temporal import iris_time_to_datetime
 
 
-class Test_construct_yx_coords(IrisTest):
+class Test_construct_yx_coords(unittest.TestCase):
     """Test the construct_yx_coords method"""
 
     def test_lat_lon(self):
@@ -50,8 +49,8 @@ class Test_construct_yx_coords(IrisTest):
     def test_lat_lon_values(self):
         """Test latitude and longitude point values are as expected"""
         y_coord, x_coord = construct_yx_coords(3, 3, "latlon")
-        self.assertArrayAlmostEqual(x_coord.points, [-10.0, 0.0, 10.0])
-        self.assertArrayAlmostEqual(y_coord.points, [-10.0, 0.0, 10.0])
+        np.testing.assert_array_almost_equal(x_coord.points, [-10.0, 0.0, 10.0])
+        np.testing.assert_array_almost_equal(y_coord.points, [-10.0, 0.0, 10.0])
 
     def test_lat_lon_grid_spacing(self):
         """Test latitude and longitude point values created around 0,0 with
@@ -59,20 +58,20 @@ class Test_construct_yx_coords(IrisTest):
         y_coord, x_coord = construct_yx_coords(
             3, 3, "latlon", x_grid_spacing=10, y_grid_spacing=10
         )
-        self.assertArrayEqual(x_coord.points, [-10.0, 0.0, 10.0])
-        self.assertArrayEqual(y_coord.points, [-10.0, 0.0, 10.0])
+        np.testing.assert_array_equal(x_coord.points, [-10.0, 0.0, 10.0])
+        np.testing.assert_array_equal(y_coord.points, [-10.0, 0.0, 10.0])
 
         y_coord, x_coord = construct_yx_coords(
             3, 3, "latlon", x_grid_spacing=1, y_grid_spacing=2
         )
-        self.assertArrayEqual(x_coord.points, [-1.0, 0.0, 1.0])
-        self.assertArrayEqual(y_coord.points, [-2.0, 0.0, 2.0])
+        np.testing.assert_array_equal(x_coord.points, [-1.0, 0.0, 1.0])
+        np.testing.assert_array_equal(y_coord.points, [-2.0, 0.0, 2.0])
 
         y_coord, x_coord = construct_yx_coords(
             4, 4, "latlon", x_grid_spacing=1, y_grid_spacing=3
         )
-        self.assertArrayEqual(x_coord.points, [-1.5, -0.5, 0.5, 1.5])
-        self.assertArrayEqual(y_coord.points, [-4.5, -1.5, 1.5, 4.5])
+        np.testing.assert_array_equal(x_coord.points, [-1.5, -0.5, 0.5, 1.5])
+        np.testing.assert_array_equal(y_coord.points, [-4.5, -1.5, 1.5, 4.5])
 
     def test_lat_lon_grid_spacing_domain_corner(self):
         """Test latitude and longitude point values start at domain corner
@@ -80,15 +79,15 @@ class Test_construct_yx_coords(IrisTest):
         y_coord, x_coord = construct_yx_coords(
             3, 3, "latlon", x_grid_spacing=2, y_grid_spacing=3, domain_corner=(15, 12)
         )
-        self.assertArrayEqual(x_coord.points, [12.0, 14.0, 16.0])
-        self.assertArrayEqual(y_coord.points, [15.0, 18.0, 21.0])
+        np.testing.assert_array_equal(x_coord.points, [12.0, 14.0, 16.0])
+        np.testing.assert_array_equal(y_coord.points, [15.0, 18.0, 21.0])
 
     def test_lat_lon_domain_corner(self):
         """Test grid points generated with default grid spacing if domain corner
         provided and grid spacing not provided"""
         y_coord, x_coord = construct_yx_coords(3, 3, "latlon", domain_corner=(0, 0))
-        self.assertArrayEqual(x_coord.points, [0.0, 10.0, 20.0])
-        self.assertArrayEqual(y_coord.points, [0.0, 10.0, 20.0])
+        np.testing.assert_array_equal(x_coord.points, [0.0, 10.0, 20.0])
+        np.testing.assert_array_equal(y_coord.points, [0.0, 10.0, 20.0])
 
     def test_proj_xy(self):
         """Test coordinates created for an equal area grid"""
@@ -108,20 +107,20 @@ class Test_construct_yx_coords(IrisTest):
         y_coord, x_coord = construct_yx_coords(
             3, 3, "equalarea", x_grid_spacing=10, y_grid_spacing=10
         )
-        self.assertArrayEqual(x_coord.points, [-10.0, 0.0, 10.0])
-        self.assertArrayEqual(y_coord.points, [-10.0, 0.0, 10.0])
+        np.testing.assert_array_equal(x_coord.points, [-10.0, 0.0, 10.0])
+        np.testing.assert_array_equal(y_coord.points, [-10.0, 0.0, 10.0])
 
         y_coord, x_coord = construct_yx_coords(
             3, 3, "equalarea", x_grid_spacing=1, y_grid_spacing=2
         )
-        self.assertArrayEqual(x_coord.points, [-1.0, 0.0, 1.0])
-        self.assertArrayEqual(y_coord.points, [-2.0, 0.0, 2.0])
+        np.testing.assert_array_equal(x_coord.points, [-1.0, 0.0, 1.0])
+        np.testing.assert_array_equal(y_coord.points, [-2.0, 0.0, 2.0])
 
         y_coord, x_coord = construct_yx_coords(
             4, 4, "equalarea", x_grid_spacing=1, y_grid_spacing=3
         )
-        self.assertArrayEqual(x_coord.points, [-1.5, -0.5, 0.5, 1.5])
-        self.assertArrayEqual(y_coord.points, [-4.5, -1.5, 1.5, 4.5])
+        np.testing.assert_array_equal(x_coord.points, [-1.5, -0.5, 0.5, 1.5])
+        np.testing.assert_array_equal(y_coord.points, [-4.5, -1.5, 1.5, 4.5])
 
     def test_equal_area_grid_spacing_domain_corner(self):
         """Test projection_y_coordinate and projection_x_coordinate point values
@@ -134,15 +133,15 @@ class Test_construct_yx_coords(IrisTest):
             y_grid_spacing=3,
             domain_corner=(15, 12),
         )
-        self.assertArrayEqual(x_coord.points, [12.0, 14.0, 16.0])
-        self.assertArrayEqual(y_coord.points, [15.0, 18.0, 21.0])
+        np.testing.assert_array_equal(x_coord.points, [12.0, 14.0, 16.0])
+        np.testing.assert_array_equal(y_coord.points, [15.0, 18.0, 21.0])
 
     def test_equal_area_domain_corner(self):
         """Test grid points generated with default grid spacing if domain
         corner provided and grid spacing not provided"""
         y_coord, x_coord = construct_yx_coords(3, 3, "equalarea", domain_corner=(0, 0))
-        self.assertArrayEqual(x_coord.points, [0.0, 2000.0, 4000.0])
-        self.assertArrayEqual(y_coord.points, [0.0, 2000.0, 4000.0])
+        np.testing.assert_array_equal(x_coord.points, [0.0, 2000.0, 4000.0])
+        np.testing.assert_array_equal(y_coord.points, [0.0, 2000.0, 4000.0])
 
     def test_unknown_spatial_grid(self):
         """Test error raised if spatial_grid unknown"""
@@ -152,7 +151,7 @@ class Test_construct_yx_coords(IrisTest):
             construct_yx_coords(3, 3, spatial_grid, domain_corner=(0, 0))
 
 
-class Test_construct_scalar_time_coords(IrisTest):
+class Test_construct_scalar_time_coords(unittest.TestCase):
     """Test the construct_scalar_time_coords method"""
 
     def basic_test(
@@ -275,7 +274,7 @@ class Test_construct_scalar_time_coords(IrisTest):
             )
 
 
-class Test_set_up_variable_cube(IrisTest):
+class Test_set_up_variable_cube(unittest.TestCase):
     """Test the set_up_variable_cube base function"""
 
     def setUp(self):
@@ -293,7 +292,7 @@ class Test_set_up_variable_cube(IrisTest):
         self.assertEqual(result.standard_name, "air_temperature")
         self.assertEqual(result.name(), "air_temperature")
         self.assertEqual(result.units, "K")
-        self.assertArrayAlmostEqual(result.data, self.data)
+        np.testing.assert_array_almost_equal(result.data, self.data)
         self.assertEqual(result.attributes, {})
 
         # check dimension coordinates
@@ -328,7 +327,7 @@ class Test_set_up_variable_cube(IrisTest):
         result = set_up_variable_cube(
             self.data - 273.15, name="wet_bulb_temperature", units="degC"
         )
-        self.assertArrayAlmostEqual(result.data, self.data - 273.15)
+        np.testing.assert_array_almost_equal(result.data, self.data - 273.15)
         self.assertEqual(result.name(), "wet_bulb_temperature")
         self.assertEqual(result.units, "degC")
 
@@ -380,9 +379,11 @@ class Test_set_up_variable_cube(IrisTest):
             vertical_levels=vertical_levels,
             height=True,
         )
-        self.assertArrayAlmostEqual(result.data, self.data_3d)
+        np.testing.assert_array_almost_equal(result.data, self.data_3d)
         self.assertEqual(result.coord_dims("height"), (0,))
-        self.assertArrayEqual(result.coord("height").points, np.array(vertical_levels))
+        np.testing.assert_array_equal(
+            result.coord("height").points, np.array(vertical_levels)
+        )
         self.assertEqual(result.coord("height").units, expected_units)
         self.assertEqual(result.coord("height").attributes, expected_attributes)
         self.assertEqual(result.coord_dims("latitude"), (1,))
@@ -398,9 +399,9 @@ class Test_set_up_variable_cube(IrisTest):
             vertical_levels=vertical_levels,
             pressure=True,
         )
-        self.assertArrayAlmostEqual(result.data, self.data_3d)
+        np.testing.assert_array_almost_equal(result.data, self.data_3d)
         self.assertEqual(result.coord_dims("pressure"), (0,))
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             result.coord("pressure").points, np.array(vertical_levels)
         )
         self.assertEqual(result.coord("pressure").units, expected_units)
@@ -435,16 +436,20 @@ class Test_set_up_variable_cube(IrisTest):
     def test_realizations_from_data(self):
         """Test realization coordinate is added for 3D data"""
         result = set_up_variable_cube(self.data_3d)
-        self.assertArrayAlmostEqual(result.data, self.data_3d)
+        np.testing.assert_array_almost_equal(result.data, self.data_3d)
         self.assertEqual(result.coord_dims("realization"), (0,))
-        self.assertArrayEqual(result.coord("realization").points, np.array([0, 1, 2]))
+        np.testing.assert_array_equal(
+            result.coord("realization").points, np.array([0, 1, 2])
+        )
         self.assertEqual(result.coord_dims("latitude"), (1,))
         self.assertEqual(result.coord_dims("longitude"), (2,))
 
     def test_realizations(self):
         """Test specific realization values"""
         result = set_up_variable_cube(self.data_3d, realizations=np.array([0, 3, 4]))
-        self.assertArrayEqual(result.coord("realization").points, np.array([0, 3, 4]))
+        np.testing.assert_array_equal(
+            result.coord("realization").points, np.array([0, 3, 4])
+        )
 
     def test_error_unmatched_realizations(self):
         """Test error is raised if the realizations provided do not match the
@@ -496,11 +501,15 @@ class Test_set_up_variable_cube(IrisTest):
         result = set_up_variable_cube(
             data_4d, vertical_levels=vertical_levels, height=True
         )
-        self.assertArrayAlmostEqual(result.data, data_4d)
+        np.testing.assert_array_almost_equal(result.data, data_4d)
         self.assertEqual(result.coord_dims("realization"), (0,))
-        self.assertArrayEqual(result.coord("realization").points, np.array([0, 1]))
+        np.testing.assert_array_equal(
+            result.coord("realization").points, np.array([0, 1])
+        )
         self.assertEqual(result.coord_dims("height"), (1,))
-        self.assertArrayEqual(result.coord("height").points, np.array(vertical_levels))
+        np.testing.assert_array_equal(
+            result.coord("height").points, np.array(vertical_levels)
+        )
         self.assertEqual(result.coord_dims("latitude"), (2,))
         self.assertEqual(result.coord_dims("longitude"), (3,))
 
@@ -515,13 +524,15 @@ class Test_set_up_variable_cube(IrisTest):
             vertical_levels=vertical_levels,
             height=True,
         )
-        self.assertArrayAlmostEqual(result.data, data_4d)
+        np.testing.assert_array_almost_equal(result.data, data_4d)
         self.assertEqual(result.coord_dims("realization"), (0,))
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             result.coord("realization").points, np.array(realizations)
         )
         self.assertEqual(result.coord_dims("height"), (1,))
-        self.assertArrayEqual(result.coord("height").points, np.array(vertical_levels))
+        np.testing.assert_array_equal(
+            result.coord("height").points, np.array(vertical_levels)
+        )
         self.assertEqual(result.coord_dims("latitude"), (2,))
         self.assertEqual(result.coord_dims("longitude"), (3,))
 
@@ -701,8 +712,10 @@ class Test_set_up_variable_cube(IrisTest):
         result = set_up_variable_cube(
             self.data, spatial_grid="latlon", domain_corner=domain_corner
         )
-        self.assertArrayEqual(result.coord("latitude").points, [-17.0, -7.0, 3.0])
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
+            result.coord("latitude").points, [-17.0, -7.0, 3.0]
+        )
+        np.testing.assert_array_equal(
             result.coord("longitude").points, [-10.0, 0.0, 10.0, 20.0]
         )
 
@@ -713,16 +726,16 @@ class Test_set_up_variable_cube(IrisTest):
         result = set_up_variable_cube(
             self.data, spatial_grid="equalarea", domain_corner=domain_corner
         )
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             result.coord("projection_y_coordinate").points, [1100.0, 3100.0, 5100.0]
         )
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             result.coord("projection_x_coordinate").points,
             [300.0, 2300.0, 4300.0, 6300.0],
         )
 
 
-class Test_set_up_spot_variable_cube(IrisTest):
+class Test_set_up_spot_variable_cube(unittest.TestCase):
     """Test the set_up_spot_variable_cube base function. Much of this
     functionality overlaps with the gridded case, so these tests primarily
     cover the spot specific elements."""
@@ -743,7 +756,7 @@ class Test_set_up_spot_variable_cube(IrisTest):
         self.assertEqual(result.standard_name, "air_temperature")
         self.assertEqual(result.name(), "air_temperature")
         self.assertEqual(result.units, "K")
-        self.assertArrayAlmostEqual(result.data, self.data)
+        np.testing.assert_array_almost_equal(result.data, self.data)
         self.assertEqual(result.attributes, {})
 
         # check auxiliary coordinates associated with expected dimension
@@ -780,9 +793,11 @@ class Test_set_up_spot_variable_cube(IrisTest):
             vertical_levels=vertical_levels,
             height=True,
         )
-        self.assertArrayAlmostEqual(result.data, self.data_2d)
+        np.testing.assert_array_almost_equal(result.data, self.data_2d)
         self.assertEqual(result.coord_dims("height"), (0,))
-        self.assertArrayEqual(result.coord("height").points, np.array(vertical_levels))
+        np.testing.assert_array_equal(
+            result.coord("height").points, np.array(vertical_levels)
+        )
         self.assertEqual(result.coord("height").units, expected_units)
         self.assertEqual(result.coord("height").attributes, expected_attributes)
         for crd in self.site_crds:
@@ -799,9 +814,9 @@ class Test_set_up_spot_variable_cube(IrisTest):
             vertical_levels=vertical_levels,
             pressure=True,
         )
-        self.assertArrayAlmostEqual(result.data, self.data_2d)
+        np.testing.assert_array_almost_equal(result.data, self.data_2d)
         self.assertEqual(result.coord_dims("pressure"), (0,))
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             result.coord("pressure").points, np.array(vertical_levels)
         )
         self.assertEqual(result.coord("pressure").units, expected_units)
@@ -813,9 +828,11 @@ class Test_set_up_spot_variable_cube(IrisTest):
         """Test realization coordinate is added for 3D data"""
         expected_site_dim = 1
         result = set_up_spot_variable_cube(self.data_2d)
-        self.assertArrayAlmostEqual(result.data, self.data_2d)
+        np.testing.assert_array_almost_equal(result.data, self.data_2d)
         self.assertEqual(result.coord_dims("realization"), (0,))
-        self.assertArrayEqual(result.coord("realization").points, np.array([0, 1, 2]))
+        np.testing.assert_array_equal(
+            result.coord("realization").points, np.array([0, 1, 2])
+        )
         for crd in self.site_crds:
             self.assertEqual(result.coord_dims(crd)[0], expected_site_dim)
 
@@ -824,7 +841,9 @@ class Test_set_up_spot_variable_cube(IrisTest):
         result = set_up_spot_variable_cube(
             self.data_2d, realizations=np.array([0, 3, 4])
         )
-        self.assertArrayEqual(result.coord("realization").points, np.array([0, 3, 4]))
+        np.testing.assert_array_equal(
+            result.coord("realization").points, np.array([0, 3, 4])
+        )
 
     def test_error_unmatched_realizations(self):
         """Test error is raised if the realizations provided do not match the
@@ -877,11 +896,15 @@ class Test_set_up_spot_variable_cube(IrisTest):
         result = set_up_spot_variable_cube(
             data_3d, vertical_levels=vertical_levels, height=True
         )
-        self.assertArrayAlmostEqual(result.data, data_3d)
+        np.testing.assert_array_almost_equal(result.data, data_3d)
         self.assertEqual(result.coord_dims("realization"), (0,))
-        self.assertArrayEqual(result.coord("realization").points, np.array([0, 1]))
+        np.testing.assert_array_equal(
+            result.coord("realization").points, np.array([0, 1])
+        )
         self.assertEqual(result.coord_dims("height"), (1,))
-        self.assertArrayEqual(result.coord("height").points, np.array(vertical_levels))
+        np.testing.assert_array_equal(
+            result.coord("height").points, np.array(vertical_levels)
+        )
         for crd in self.site_crds:
             self.assertEqual(result.coord_dims(crd)[0], expected_site_dim)
 
@@ -897,13 +920,15 @@ class Test_set_up_spot_variable_cube(IrisTest):
             vertical_levels=vertical_levels,
             height=True,
         )
-        self.assertArrayAlmostEqual(result.data, data_3d)
+        np.testing.assert_array_almost_equal(result.data, data_3d)
         self.assertEqual(result.coord_dims("realization"), (0,))
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             result.coord("realization").points, np.array(realizations)
         )
         self.assertEqual(result.coord_dims("height"), (1,))
-        self.assertArrayEqual(result.coord("height").points, np.array(vertical_levels))
+        np.testing.assert_array_equal(
+            result.coord("height").points, np.array(vertical_levels)
+        )
         for crd in self.site_crds:
             self.assertEqual(result.coord_dims(crd)[0], expected_site_dim)
 
@@ -957,13 +982,13 @@ class Test_set_up_spot_variable_cube(IrisTest):
             unique_site_id=unique_ids,
             unique_site_id_key=unique_site_id_key,
         )
-        self.assertArrayEqual(result.coord("latitude").points, latitudes)
-        self.assertArrayEqual(result.coord("longitude").points, longitudes)
-        self.assertArrayEqual(result.coord("altitude").points, altitudes)
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(result.coord("latitude").points, latitudes)
+        np.testing.assert_array_equal(result.coord("longitude").points, longitudes)
+        np.testing.assert_array_equal(result.coord("altitude").points, altitudes)
+        np.testing.assert_array_equal(
             result.coord("wmo_id").points, [f"{item:05d}" for item in wmo_ids]
         )
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             result.coord(unique_site_id_key).points,
             [f"{item:08d}" for item in unique_ids],
         )
@@ -982,8 +1007,10 @@ class Test_set_up_spot_variable_cube(IrisTest):
             unique_site_id=unique_ids,
             unique_site_id_key=unique_site_id_key,
         )
-        self.assertArrayEqual(result.coord("wmo_id").points, wmo_ids)
-        self.assertArrayEqual(result.coord(unique_site_id_key).points, unique_ids)
+        np.testing.assert_array_equal(result.coord("wmo_id").points, wmo_ids)
+        np.testing.assert_array_equal(
+            result.coord(unique_site_id_key).points, unique_ids
+        )
 
     def test_no_unique_id_key_exception(self):
         """Test an exception is raised if unique_site_ids are provided but no
@@ -999,7 +1026,7 @@ class Test_set_up_spot_variable_cube(IrisTest):
             )
 
 
-class Test_set_up_percentile_cube(IrisTest):
+class Test_set_up_percentile_cube(unittest.TestCase):
     """Test the set_up_percentile_cube function"""
 
     def setUp(self):
@@ -1019,7 +1046,7 @@ class Test_set_up_percentile_cube(IrisTest):
         and metadata"""
         result = set_up_percentile_cube(self.data, self.percentiles)
         perc_coord = result.coord("percentile")
-        self.assertArrayEqual(perc_coord.points, self.percentiles)
+        np.testing.assert_array_equal(perc_coord.points, self.percentiles)
         self.assertEqual(perc_coord.units, "%")
         check_mandatory_standards(result)
 
@@ -1041,7 +1068,7 @@ class Test_set_up_percentile_cube(IrisTest):
         self.assertNotIn("percentile", dim_coords)
 
 
-class Test_set_up_spot_percentile_cube(IrisTest):
+class Test_set_up_spot_percentile_cube(unittest.TestCase):
     """Test the set_up_spot_percentile_cube function. These tests are largely
     the same as for the gridded case, omitting the grid metadata check."""
 
@@ -1062,7 +1089,7 @@ class Test_set_up_spot_percentile_cube(IrisTest):
         and metadata"""
         result = set_up_spot_percentile_cube(self.data, self.percentiles)
         perc_coord = result.coord("percentile")
-        self.assertArrayEqual(perc_coord.points, self.percentiles)
+        np.testing.assert_array_equal(perc_coord.points, self.percentiles)
         self.assertEqual(perc_coord.units, "%")
         check_mandatory_standards(result)
 
@@ -1074,7 +1101,7 @@ class Test_set_up_spot_percentile_cube(IrisTest):
         self.assertNotIn("percentile", dim_coords)
 
 
-class Test_set_up_probability_cube(IrisTest):
+class Test_set_up_probability_cube(unittest.TestCase):
     """Test the set_up_probability_cube function"""
 
     def setUp(self):
@@ -1099,7 +1126,7 @@ class Test_set_up_probability_cube(IrisTest):
             result.name(), "probability_of_air_temperature_above_threshold"
         )
         self.assertEqual(result.units, "1")
-        self.assertArrayEqual(thresh_coord.points, self.thresholds)
+        np.testing.assert_array_equal(thresh_coord.points, self.thresholds)
         self.assertEqual(thresh_coord.name(), "air_temperature")
         self.assertEqual(thresh_coord.var_name, "threshold")
         self.assertEqual(thresh_coord.units, "K")
@@ -1160,7 +1187,7 @@ class Test_set_up_probability_cube(IrisTest):
         self.assertEqual(thresh_coord.var_name, "threshold")
 
 
-class Test_set_up_spot_probability_cube(IrisTest):
+class Test_set_up_spot_probability_cube(unittest.TestCase):
     """Test the set_up_spot_probability_cube function. These tests are largely
     the same as for the gridded case, omitting the grid metadata check."""
 
@@ -1181,7 +1208,7 @@ class Test_set_up_spot_probability_cube(IrisTest):
             result.name(), "probability_of_air_temperature_above_threshold"
         )
         self.assertEqual(result.units, "1")
-        self.assertArrayEqual(thresh_coord.points, self.thresholds)
+        np.testing.assert_array_equal(thresh_coord.points, self.thresholds)
         self.assertEqual(thresh_coord.name(), "air_temperature")
         self.assertEqual(thresh_coord.var_name, "threshold")
         self.assertEqual(thresh_coord.units, "K")
@@ -1220,7 +1247,7 @@ class Test_set_up_spot_probability_cube(IrisTest):
         self.assertNotIn("air_temperature", dim_coords)
 
 
-class Test_add_coordinate(IrisTest):
+class Test_add_coordinate(unittest.TestCase):
     """Test the add_coordinate utility"""
 
     def setUp(self):
@@ -1241,7 +1268,9 @@ class Test_add_coordinate(IrisTest):
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertSequenceEqual(result.shape, (10, 3, 4))
         self.assertEqual(result.coord_dims("height"), (0,))
-        self.assertArrayAlmostEqual(result.coord("height").points, self.height_points)
+        np.testing.assert_array_almost_equal(
+            result.coord("height").points, self.height_points
+        )
         self.assertEqual(result.coord("height").dtype, np.float32)
         self.assertEqual(result.coord("height").units, self.height_unit)
         check_mandatory_standards(result)
@@ -1296,7 +1325,7 @@ class Test_add_coordinate(IrisTest):
         self.assertEqual(len(result.coord("time").points), 2)
         # check forecast period has been updated
         expected_fp_points = 3600 * np.array([6, 7], dtype=np.int64)
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.coord("forecast_period").points, expected_fp_points
         )
 
@@ -1310,7 +1339,7 @@ class Test_add_coordinate(IrisTest):
         )
         # check a forecast period coordinate has been added
         expected_fp_points = 3600 * np.array([6, 7], dtype=np.int64)
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.coord("forecast_period").points, expected_fp_points
         )
 
@@ -1328,8 +1357,8 @@ class Test_add_coordinate(IrisTest):
             coord_units=TIME_COORDS["time"].units,
             dtype=TIME_COORDS["time"].dtype,
         )
-        self.assertArrayEqual(result.coord("time").points, time_points)
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(result.coord("time").points, time_points)
+        np.testing.assert_array_equal(
             result.coord("forecast_period").points, expected_fp_points
         )
 

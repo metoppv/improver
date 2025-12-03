@@ -13,7 +13,6 @@ import iris
 import numpy as np
 import pytest
 from iris.coords import CellMethod
-from iris.tests import IrisTest
 from netCDF4 import Dataset
 
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
@@ -40,7 +39,7 @@ def set_up_test_cube():
     return cube
 
 
-class Test_save_netcdf(IrisTest):
+class Test_save_netcdf(unittest.TestCase):
     """Test function to save iris cubes as NetCDF files."""
 
     def setUp(self):
@@ -145,7 +144,7 @@ class Test_save_netcdf(IrisTest):
         save_netcdf(self.cube, self.filepath)
         cube = load_cube(self.filepath)
         self.assertTrue(isinstance(cube, iris.cube.Cube))
-        self.assertArrayEqual(cube.data, self.cube.data)
+        np.testing.assert_array_equal(cube.data, self.cube.data)
 
     def test_cube_dimensions(self):
         """Test cube dimension coordinates are preserved"""
@@ -185,7 +184,7 @@ class Test_save_netcdf(IrisTest):
         # OrderedDict as subscriptable
         cf_data_dict = dict(Dataset(self.filepath, mode="r").variables)
         self.assertTrue("test_attribute" in cf_data_dict["air_temperature"].ncattrs())
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             cf_data_dict["air_temperature"].getncattr("test_attribute"), np.arange(12)
         )
 
@@ -306,7 +305,7 @@ def test_least_significant_digit(bitshaving_cube, tmp_path, lsd, compress):
     assert np.max(abs_diff) < 10 ** (-1.0 * lsd)
 
 
-class Test__order_cell_methods(IrisTest):
+class Test__order_cell_methods(unittest.TestCase):
     """Test function that sorts cube cell_methods before saving."""
 
     def setUp(self):

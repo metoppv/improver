@@ -11,13 +11,12 @@ import iris
 import numpy as np
 import pytest
 import scipy
-from iris.tests import IrisTest
 
 from improver.metadata.utilities import create_coordinate_hash
 from improver.spotdata.neighbour_finding import NeighbourSelection
 
 
-class Test_NeighbourSelection(IrisTest):
+class Test_NeighbourSelection(unittest.TestCase):
     """Test class for the NeighbourSelection tests, setting up inputs."""
 
     def setUp(self):
@@ -116,7 +115,7 @@ class Test_NeighbourSelection(IrisTest):
         self.region_projection = projection
 
 
-class Test__repr__(IrisTest):
+class Test__repr__(unittest.TestCase):
     """Tests the class __repr__ function."""
 
     def test_basic(self):
@@ -171,7 +170,7 @@ class Test__transform_sites_coordinate_system(Test_NeighbourSelection):
         result = plugin._transform_sites_coordinate_system(
             x_points, y_points, self.region_orography.coord_system().as_cartopy_crs()
         )
-        self.assertArrayAlmostEqual(result, expected)
+        np.testing.assert_array_almost_equal(result, expected)
 
     def test_region_to_global(self):
         """Test coordinates generated when transforming from a regional to
@@ -186,7 +185,7 @@ class Test__transform_sites_coordinate_system(Test_NeighbourSelection):
         result = plugin._transform_sites_coordinate_system(
             x_points, y_points, self.global_orography.coord_system().as_cartopy_crs()
         )
-        self.assertArrayAlmostEqual(result, expected)
+        np.testing.assert_array_almost_equal(result, expected)
 
     def test_global_to_global(self):
         """Test coordinates generated when the input and output coordinate
@@ -199,7 +198,7 @@ class Test__transform_sites_coordinate_system(Test_NeighbourSelection):
             x_points, y_points, self.global_orography.coord_system().as_cartopy_crs()
         )
 
-        self.assertArrayAlmostEqual(result, expected)
+        np.testing.assert_array_almost_equal(result, expected)
 
     def test_region_to_region(self):
         """Test coordinates generated when the input and output coordinate
@@ -214,7 +213,7 @@ class Test__transform_sites_coordinate_system(Test_NeighbourSelection):
             x_points, y_points, self.region_orography.coord_system().as_cartopy_crs()
         )
 
-        self.assertArrayAlmostEqual(result, expected)
+        np.testing.assert_array_almost_equal(result, expected)
 
 
 class Test_check_sites_are_within_domain(Test_NeighbourSelection):
@@ -236,10 +235,10 @@ class Test_check_sites_are_within_domain(Test_NeighbourSelection):
             sites, site_coords, x_points, y_points, self.region_orography
         )
 
-        self.assertArrayEqual(sites_out, sites)
-        self.assertArrayEqual(site_coords_out, site_coords)
-        self.assertArrayEqual(out_x, x_points)
-        self.assertArrayEqual(out_y, y_points)
+        np.testing.assert_array_equal(sites_out, sites)
+        np.testing.assert_array_equal(site_coords_out, site_coords)
+        np.testing.assert_array_equal(out_x, x_points)
+        np.testing.assert_array_equal(out_y, y_points)
 
     def test_some_invalid(self):
         """Test case with some sites falling outside the regional domain."""
@@ -262,10 +261,10 @@ class Test_check_sites_are_within_domain(Test_NeighbourSelection):
                 )
             )
 
-        self.assertArrayEqual(sites_out, sites[0:2])
-        self.assertArrayEqual(site_coords_out[0:2], site_coords[0:2])
-        self.assertArrayEqual(out_x, x_points[0:2])
-        self.assertArrayEqual(out_y, y_points[0:2])
+        np.testing.assert_array_equal(sites_out, sites[0:2])
+        np.testing.assert_array_equal(site_coords_out[0:2], site_coords[0:2])
+        np.testing.assert_array_equal(out_x, x_points[0:2])
+        np.testing.assert_array_equal(out_y, y_points[0:2])
 
     def test_global_invalid(self):
         """Test case with some sites falling outside the global domain."""
@@ -290,10 +289,10 @@ class Test_check_sites_are_within_domain(Test_NeighbourSelection):
                 )
             )
 
-        self.assertArrayEqual(sites_out, sites[0:2])
-        self.assertArrayEqual(site_coords_out[0:2], site_coords[0:2])
-        self.assertArrayEqual(out_x, x_points[0:2])
-        self.assertArrayEqual(out_y, y_points[0:2])
+        np.testing.assert_array_equal(sites_out, sites[0:2])
+        np.testing.assert_array_equal(site_coords_out[0:2], site_coords[0:2])
+        np.testing.assert_array_equal(out_x, x_points[0:2])
+        np.testing.assert_array_equal(out_y, y_points[0:2])
 
     def test_global_circular_valid(self):
         """Test case with a site defined using a longitide exceeding 180
@@ -316,10 +315,10 @@ class Test_check_sites_are_within_domain(Test_NeighbourSelection):
             sites, site_coords, x_points, y_points, self.global_orography
         )
 
-        self.assertArrayEqual(sites_out, sites)
-        self.assertArrayEqual(site_coords_out, site_coords)
-        self.assertArrayEqual(out_x, x_points)
-        self.assertArrayEqual(out_y, y_points)
+        np.testing.assert_array_equal(sites_out, sites)
+        np.testing.assert_array_equal(site_coords_out, site_coords)
+        np.testing.assert_array_equal(out_x, x_points)
+        np.testing.assert_array_equal(out_y, y_points)
 
     def test_bounds_guessing(self):
         """Test case in which all sites are valid but region_orography has no
@@ -341,10 +340,10 @@ class Test_check_sites_are_within_domain(Test_NeighbourSelection):
             sites, site_coords, x_points, y_points, region_orography
         )
 
-        self.assertArrayEqual(sites_out, sites)
-        self.assertArrayEqual(site_coords_out, site_coords)
-        self.assertArrayEqual(out_x, x_points)
-        self.assertArrayEqual(out_y, y_points)
+        np.testing.assert_array_equal(sites_out, sites)
+        np.testing.assert_array_equal(site_coords_out, site_coords)
+        np.testing.assert_array_equal(out_x, x_points)
+        np.testing.assert_array_equal(out_y, y_points)
 
 
 class Test_get_nearest_indices(Test_NeighbourSelection):
@@ -366,7 +365,7 @@ class Test_get_nearest_indices(Test_NeighbourSelection):
 
         expected = [[2, 4]]
         result = plugin.get_nearest_indices(site_coords, self.region_orography)
-        self.assertArrayEqual(result, expected)
+        np.testing.assert_array_equal(result, expected)
 
 
 class Test_geocentric_cartesian(Test_NeighbourSelection):
@@ -385,7 +384,7 @@ class Test_geocentric_cartesian(Test_NeighbourSelection):
         result = plugin.geocentric_cartesian(self.global_orography, x_points, y_points)
         radius = self.global_orography.coord_system().semi_major_axis
         expected = [[radius, 0, 0]]
-        self.assertArrayAlmostEqual(result, expected)
+        np.testing.assert_array_almost_equal(result, expected)
 
     def test_north_pole(self):
         """Test a (0, 90) coordinate conversion to geocentric cartesian, this
@@ -399,7 +398,7 @@ class Test_geocentric_cartesian(Test_NeighbourSelection):
         result = plugin.geocentric_cartesian(self.global_orography, x_points, y_points)
         radius = self.global_orography.coord_system().semi_major_axis
         expected = [[0, 0, radius]]
-        self.assertArrayAlmostEqual(result, expected)
+        np.testing.assert_array_almost_equal(result, expected)
 
     def test_45_degrees_latitude(self):
         """Test a (0, 45) coordinate conversion to geocentric cartesian. In
@@ -415,7 +414,7 @@ class Test_geocentric_cartesian(Test_NeighbourSelection):
         component = radius / np.sqrt(2.0)
         expected = [[component, 0, component]]
 
-        self.assertArrayAlmostEqual(result, expected)
+        np.testing.assert_array_almost_equal(result, expected)
 
     def test_45_degrees_longitude(self):
         """Test a (45, 0) coordinate conversion to geocentric cartesian. In
@@ -431,7 +430,7 @@ class Test_geocentric_cartesian(Test_NeighbourSelection):
         component = radius / np.sqrt(2.0)
         expected = [[component, component, 0]]
 
-        self.assertArrayAlmostEqual(result, expected)
+        np.testing.assert_array_almost_equal(result, expected)
 
     def test_45_degrees_latitude_and_longitude(self):
         """Test a (45, 45) coordinate conversion to geocentric cartesian. In
@@ -449,7 +448,7 @@ class Test_geocentric_cartesian(Test_NeighbourSelection):
         sub_component = component / np.sqrt(2.0)
         expected = [[sub_component, sub_component, component]]
 
-        self.assertArrayAlmostEqual(result, expected)
+        np.testing.assert_array_almost_equal(result, expected)
 
     def test_negative_45_degrees_latitude_and_longitude(self):
         """Test a (-45, -45) coordinate conversion to geocentric cartesian.
@@ -465,7 +464,7 @@ class Test_geocentric_cartesian(Test_NeighbourSelection):
         sub_component = component / np.sqrt(2.0)
         expected = [[sub_component, -sub_component, -component]]
 
-        self.assertArrayAlmostEqual(result, expected)
+        np.testing.assert_array_almost_equal(result, expected)
 
 
 class Test_build_KDTree(Test_NeighbourSelection):
@@ -518,7 +517,7 @@ class Test_select_minimum_dz(Test_NeighbourSelection):
         result = plugin.select_minimum_dz(
             self.region_orography, site_altitude, nodes, distance, indices
         )
-        self.assertArrayEqual(result, nodes[0])
+        np.testing.assert_array_equal(result, nodes[0])
 
     def test_some_invalid_points(self):
         """Test a case where some nodes are beyond the imposed search_radius,
@@ -535,7 +534,7 @@ class Test_select_minimum_dz(Test_NeighbourSelection):
         result = plugin.select_minimum_dz(
             self.region_orography, site_altitude, nodes, distance, indices
         )
-        self.assertArrayEqual(result, nodes[1])
+        np.testing.assert_array_equal(result, nodes[1])
 
     def test_all_invalid_points(self):
         """Test a case where all nodes are beyond the imposed search_radius,
@@ -625,7 +624,7 @@ class Test_process(Test_NeighbourSelection):
         expected = ["00001", "None", "None"]
         result = plugin.process(sites, self.global_orography, self.global_land_mask)
 
-        self.assertArrayEqual(result.coord("wmo_id").points, expected)
+        np.testing.assert_array_equal(result.coord("wmo_id").points, expected)
 
     def test_use_of_unique_ids(self):
         """Test that the returned cube has the unique_id present when they are
@@ -640,7 +639,9 @@ class Test_process(Test_NeighbourSelection):
         expected = ["00000001", "00000353"]
         result = plugin.process(sites, self.global_orography, self.global_land_mask)
 
-        self.assertArrayEqual(result.coord("met_office_site_id").points, expected)
+        np.testing.assert_array_equal(
+            result.coord("met_office_site_id").points, expected
+        )
 
     def test_error_for_incomplete_unique_ids(self):
         """Test that an error is raised if the list of unique IDs is incomplete,
@@ -686,7 +687,7 @@ class Test_process(Test_NeighbourSelection):
         expected = [[[2], [4], [2]]]
 
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayEqual(result.data, expected)
+        np.testing.assert_array_equal(result.data, expected)
 
     def test_global_returned_site_coordinates(self):
         """Test that the site coordinates in the returned neighbour cube are
@@ -707,8 +708,10 @@ class Test_process(Test_NeighbourSelection):
 
         self.assertIsNotNone(result.coord("latitude"))
         self.assertIsNotNone(result.coord("longitude"))
-        self.assertArrayAlmostEqual(result.coord("latitude").points, latitude_expected)
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
+            result.coord("latitude").points, latitude_expected
+        )
+        np.testing.assert_array_almost_equal(
             result.coord("longitude").points, longitude_expected
         )
 
@@ -723,7 +726,7 @@ class Test_process(Test_NeighbourSelection):
         )
         expected = [[[1], [4], [-3]]]
 
-        self.assertArrayEqual(result.data, expected)
+        np.testing.assert_array_equal(result.data, expected)
 
     def test_global_land_minimum_dz(self):
         """Test how the neighbour index changes when a land constraint is
@@ -739,7 +742,7 @@ class Test_process(Test_NeighbourSelection):
         )
         expected = [[[0], [4], [1]]]
 
-        self.assertArrayEqual(result.data, expected)
+        np.testing.assert_array_equal(result.data, expected)
 
     def test_global_dateline(self):
         """Test that for a global grid with a circular longitude coordinate,
@@ -764,7 +767,7 @@ class Test_process(Test_NeighbourSelection):
         )
         expected = [[[0], [4], [2]]]
 
-        self.assertArrayEqual(result.data, expected)
+        np.testing.assert_array_equal(result.data, expected)
 
     def test_region_attribute(self):
         """Test that a cube is returned with a model_grid_hash that matches
@@ -800,7 +803,7 @@ class Test_process(Test_NeighbourSelection):
         expected = [[[2], [4], [2]]]
 
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayEqual(result.data, expected)
+        np.testing.assert_array_equal(result.data, expected)
 
     def test_region_returned_site_coordinates(self):
         """Test that the site coordinates in the returned neighbour cube are
@@ -820,8 +823,10 @@ class Test_process(Test_NeighbourSelection):
 
         self.assertIsNotNone(result.coord("latitude"))
         self.assertIsNotNone(result.coord("longitude"))
-        self.assertArrayAlmostEqual(result.coord("latitude").points, latitude_expected)
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
+            result.coord("latitude").points, latitude_expected
+        )
+        np.testing.assert_array_almost_equal(
             result.coord("longitude").points, longitude_expected
         )
 
@@ -842,7 +847,7 @@ class Test_process(Test_NeighbourSelection):
         )
         expected = [[[1], [4], [-3]]]
 
-        self.assertArrayEqual(result.data, expected)
+        np.testing.assert_array_equal(result.data, expected)
 
     def test_region_land_minimum_dz(self):
         """Test how the neighbour index changes when a land constraint is
@@ -863,7 +868,7 @@ class Test_process(Test_NeighbourSelection):
         )
         expected = [[[0], [4], [1]]]
 
-        self.assertArrayEqual(result.data, expected)
+        np.testing.assert_array_equal(result.data, expected)
 
     def test_global_tied_case_nearest(self):
         """Test which neighbour is returned in an artificial case in which two
@@ -881,7 +886,7 @@ class Test_process(Test_NeighbourSelection):
         )
         expected = [[[2], [4], [2]]]
 
-        self.assertArrayEqual(result.data, expected)
+        np.testing.assert_array_equal(result.data, expected)
 
     def test_global_tied_case_nearest_land(self):
         """Test which neighbour is returned in an artificial case in which two
@@ -898,7 +903,7 @@ class Test_process(Test_NeighbourSelection):
         )
         expected = [[[1], [4], [-3]]]
 
-        self.assertArrayEqual(result.data, expected)
+        np.testing.assert_array_equal(result.data, expected)
 
     def test_global_tied_case_nearest_land_min_dz(self):
         """Test which neighbour is returned in an artificial case in which two
@@ -921,7 +926,7 @@ class Test_process(Test_NeighbourSelection):
         )
         expected = [[[1], [4], [0]]]
 
-        self.assertArrayEqual(result.data, expected)
+        np.testing.assert_array_equal(result.data, expected)
 
 
 if __name__ == "__main__":

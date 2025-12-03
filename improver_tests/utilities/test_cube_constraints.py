@@ -7,7 +7,7 @@
 import unittest
 
 import iris
-from iris.tests import IrisTest
+import numpy as np
 
 from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.utilities.cube_constraints import create_sorted_lambda_constraint
@@ -15,7 +15,7 @@ from improver.utilities.cube_constraints import create_sorted_lambda_constraint
 from .cube_extraction.test_cube_extraction import set_up_precip_probability_cube
 
 
-class Test_create_sorted_lambda_constraint(IrisTest):
+class Test_create_sorted_lambda_constraint(unittest.TestCase):
     """Test that a lambda constraint is created."""
 
     def setUp(self):
@@ -33,7 +33,7 @@ class Test_create_sorted_lambda_constraint(IrisTest):
         self.assertIsInstance(result, iris.Constraint)
         self.assertEqual(list(result._coord_values.keys()), [self.coord_name])
         result_cube = self.precip_cube.extract(result)
-        self.assertArrayAlmostEqual(result_cube.data, self.expected_data)
+        np.testing.assert_array_almost_equal(result_cube.data, self.expected_data)
 
     def test_basic_descending(self):
         """Test that a constraint is created, if the input coordinates are
@@ -43,7 +43,7 @@ class Test_create_sorted_lambda_constraint(IrisTest):
         self.assertIsInstance(result, iris.Constraint)
         self.assertEqual(list(result._coord_values.keys()), [self.coord_name])
         result_cube = self.precip_cube.extract(result)
-        self.assertArrayAlmostEqual(result_cube.data, self.expected_data)
+        np.testing.assert_array_almost_equal(result_cube.data, self.expected_data)
 
     def test_non_default_tolerance(self):
         """Test that a constraint is created, if the input coordinates are
@@ -56,7 +56,7 @@ class Test_create_sorted_lambda_constraint(IrisTest):
         self.assertIsInstance(result, iris.Constraint)
         self.assertEqual(list(result._coord_values.keys()), [self.coord_name])
         result_cube = self.precip_cube.extract(result)
-        self.assertArrayAlmostEqual(result_cube.data, self.precip_cube.data)
+        np.testing.assert_array_almost_equal(result_cube.data, self.precip_cube.data)
 
 
 if __name__ == "__main__":

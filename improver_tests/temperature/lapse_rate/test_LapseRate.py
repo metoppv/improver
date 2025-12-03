@@ -10,7 +10,6 @@ import cf_units
 import numpy as np
 from iris.coords import AuxCoord
 from iris.cube import Cube
-from iris.tests import IrisTest
 
 from improver.constants import DALR
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
@@ -18,7 +17,7 @@ from improver.temperature.lapse_rate import LapseRate
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 
-class Test__repr__(IrisTest):
+class Test__repr__(unittest.TestCase):
     """Test the repr method."""
 
     def test_basic(self):
@@ -31,7 +30,7 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, msg)
 
 
-class Test__calc_lapse_rate(IrisTest):
+class Test__calc_lapse_rate(unittest.TestCase):
     """Test the _calc_lapse_rate function."""
 
     def setUp(self):
@@ -60,7 +59,7 @@ class Test__calc_lapse_rate(IrisTest):
         result = LapseRate(nbhood_radius=1)._generate_lapse_rate_array(
             self.temperature, self.orography, self.land_sea_mask
         )[1, 1]
-        self.assertArrayAlmostEqual(result, expected_out)
+        np.testing.assert_array_almost_equal(result, expected_out)
 
     def test_handles_nan(self):
         """Test that the function returns DALR value when central point
@@ -71,7 +70,7 @@ class Test__calc_lapse_rate(IrisTest):
         result = LapseRate(nbhood_radius=1)._generate_lapse_rate_array(
             self.temperature, self.orography, self.land_sea_mask
         )[1, 1]
-        self.assertArrayAlmostEqual(result, expected_out)
+        np.testing.assert_array_almost_equal(result, expected_out)
 
     def test_handles_height_difference(self):
         """Test that the function calculates the correct value when a large height
@@ -89,10 +88,10 @@ class Test__calc_lapse_rate(IrisTest):
         result = LapseRate(nbhood_radius=1)._generate_lapse_rate_array(
             self.temperature, self.orography, self.land_sea_mask
         )
-        self.assertArrayAlmostEqual(result, expected_out)
+        np.testing.assert_array_almost_equal(result, expected_out)
 
 
-class Test_process(IrisTest):
+class Test_process(unittest.TestCase):
     """Test the LapseRate processing works"""
 
     def setUp(self):
@@ -261,7 +260,7 @@ class Test_process(IrisTest):
         result = LapseRate(nbhood_radius=1).process(
             self.temperature, self.orography, self.land_sea_mask
         )
-        self.assertArrayAlmostEqual(result.data, expected_out, decimal=4)
+        np.testing.assert_array_almost_equal(result.data, expected_out, decimal=4)
 
     def test_fails_if_max_less_min_lapse_rate(self):
         """Test code raises a Value Error if input maximum lapse rate is
@@ -321,7 +320,7 @@ class Test_process(IrisTest):
         result = LapseRate(nbhood_radius=1).process(
             self.temperature, self.orography, self.land_sea_mask
         )
-        self.assertArrayAlmostEqual(result.data, expected_out)
+        np.testing.assert_array_almost_equal(result.data, expected_out)
 
     def test_specified_max_lapse_rate(self):
         """Test that the function correctly applies a specified, non default
@@ -351,7 +350,7 @@ class Test_process(IrisTest):
             self.temperature, self.orography, self.land_sea_mask
         )
 
-        self.assertArrayAlmostEqual(result.data, expected_out)
+        np.testing.assert_array_almost_equal(result.data, expected_out)
 
     def test_specified_min_lapse_rate(self):
         """Test that the function correctly applies a specified, non default
@@ -382,7 +381,7 @@ class Test_process(IrisTest):
             self.temperature, self.orography, self.land_sea_mask
         )
 
-        self.assertArrayAlmostEqual(result.data, expected_out)
+        np.testing.assert_array_almost_equal(result.data, expected_out)
 
     def test_specified_max_and_min_lapse_rate(self):
         """Test that the function correctly applies a specified, non default
@@ -413,7 +412,7 @@ class Test_process(IrisTest):
             nbhood_radius=1, max_lapse_rate=-4 * DALR, min_lapse_rate=2 * DALR
         ).process(self.temperature, self.orography, self.land_sea_mask)
 
-        self.assertArrayAlmostEqual(result.data, expected_out)
+        np.testing.assert_array_almost_equal(result.data, expected_out)
 
     def test_handles_nan_value(self):
         """Test that the function handles a NaN temperature value by replacing
@@ -446,7 +445,7 @@ class Test_process(IrisTest):
         result = LapseRate(nbhood_radius=1).process(
             self.temperature, self.orography, self.land_sea_mask
         )
-        self.assertArrayAlmostEqual(result.data, expected_out)
+        np.testing.assert_array_almost_equal(result.data, expected_out)
 
     def test_landsea_mask(self):
         """Test that the function returns DALR values wherever a land/sea
@@ -478,7 +477,7 @@ class Test_process(IrisTest):
         result = LapseRate(nbhood_radius=1).process(
             self.temperature, self.orography, self.land_sea_mask
         )
-        self.assertArrayAlmostEqual(result.data, expected_out)
+        np.testing.assert_array_almost_equal(result.data, expected_out)
 
     def test_mask_max_height_diff(self):
         """Test that the function removes neighbours where their height
@@ -509,7 +508,7 @@ class Test_process(IrisTest):
         result = LapseRate(nbhood_radius=1).process(
             self.temperature, self.orography, self.land_sea_mask
         )
-        self.assertArrayAlmostEqual(result.data, expected_out)
+        np.testing.assert_array_almost_equal(result.data, expected_out)
 
     def test_mask_max_height_diff_arg(self):
         """Test that the function removes or leaves neighbours where their
@@ -540,7 +539,7 @@ class Test_process(IrisTest):
         result = LapseRate(max_height_diff=50, nbhood_radius=1).process(
             self.temperature, self.orography, self.land_sea_mask
         )
-        self.assertArrayAlmostEqual(result.data, expected_out)
+        np.testing.assert_array_almost_equal(result.data, expected_out)
 
     def test_decr_temp_incr_orog(self):
         """Test code where temperature is decreasing with height. This is the
@@ -570,7 +569,7 @@ class Test_process(IrisTest):
         result = LapseRate(nbhood_radius=1).process(
             self.temperature, self.orography, self.land_sea_mask
         )
-        self.assertArrayAlmostEqual(result.data, expected_out)
+        np.testing.assert_array_almost_equal(result.data, expected_out)
 
     def test_decr_temp_decr_orog(self):
         """Test code where the temperature increases with height."""
@@ -598,7 +597,7 @@ class Test_process(IrisTest):
         result = LapseRate(nbhood_radius=1).process(
             self.temperature, self.orography, self.land_sea_mask
         )
-        self.assertArrayAlmostEqual(result.data, expected_out)
+        np.testing.assert_array_almost_equal(result.data, expected_out)
 
 
 if __name__ == "__main__":

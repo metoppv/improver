@@ -10,7 +10,6 @@ import unittest
 import iris
 import numpy as np
 from iris.exceptions import CoordinateNotFoundError
-from iris.tests import IrisTest
 
 from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.synthetic_data.set_up_test_cubes import (
@@ -114,7 +113,7 @@ def test_cubelist_extract():
     assert result == cube1
 
 
-class Test_create_constraint(IrisTest):
+class Test_create_constraint(unittest.TestCase):
     """Test the creation of constraints that allow for floating point
     comparisons."""
 
@@ -183,7 +182,7 @@ class Test_create_constraint(IrisTest):
         self.assertFalse(result(crd.cell(0)))
 
 
-class Test_parse_constraint_list(IrisTest):
+class Test_parse_constraint_list(unittest.TestCase):
     """Test function to parse constraints and units into dictionaries"""
 
     def setUp(self):
@@ -268,7 +267,7 @@ class Test_parse_constraint_list(IrisTest):
         self.assertEqual(list(cdict.keys()), [threshold_coord])
         # extract from input cube
         result_cube = precip_cube.extract(result)
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result_cube.coord(threshold_coord).points, np.array([0.03, 0.1])
         )
 
@@ -287,7 +286,7 @@ class Test_parse_constraint_list(IrisTest):
         self.assertEqual(thinning_dict, {"longitude": 2})
 
 
-class Test_apply_extraction(IrisTest):
+class Test_apply_extraction(unittest.TestCase):
     """Test function to extract subcube according to constraints"""
 
     def setUp(self):
@@ -305,7 +304,7 @@ class Test_apply_extraction(IrisTest):
         cube = apply_extraction(self.precip_cube, constr)
         self.assertIsInstance(cube, iris.cube.Cube)
         reference_data = self.precip_cube.data
-        self.assertArrayEqual(cube.data, reference_data)
+        np.testing.assert_array_equal(cube.data, reference_data)
 
     def test_basic_with_units(self):
         """Test cube extraction for single constraint with units"""
@@ -317,7 +316,7 @@ class Test_apply_extraction(IrisTest):
         self.assertIsInstance(cube, iris.cube.Cube)
         self.assertEqual(cube.coord(self.threshold_coord).units, "m s-1")
         reference_data = self.precip_cube.data[1, :, :]
-        self.assertArrayEqual(cube.data, reference_data)
+        np.testing.assert_array_equal(cube.data, reference_data)
 
     def test_basic_without_reconverting_units(self):
         """Test cube extraction for single constraint with units,
@@ -332,7 +331,7 @@ class Test_apply_extraction(IrisTest):
         self.assertIsInstance(cube, iris.cube.Cube)
         self.assertEqual(cube.coord(self.threshold_coord).units, "mm h-1")
         reference_data = self.precip_cube.data[1, :, :]
-        self.assertArrayEqual(cube.data, reference_data)
+        np.testing.assert_array_equal(cube.data, reference_data)
 
     def test_multiple_constraints_with_units(self):
         """Test behaviour with a list of constraints and units"""
@@ -344,7 +343,7 @@ class Test_apply_extraction(IrisTest):
         cube = apply_extraction(self.precip_cube, constr, self.units_dict)
         self.assertIsInstance(cube, iris.cube.Cube)
         reference_data = self.precip_cube.data[0, :, :]
-        self.assertArrayEqual(cube.data, reference_data)
+        np.testing.assert_array_equal(cube.data, reference_data)
 
     def test_error_non_coord_units(self):
         """Test error raised if units are provided for a non-coordinate
@@ -374,7 +373,7 @@ class Test_apply_extraction(IrisTest):
         constr = iris.Constraint(**constraint_dict)
         cube = apply_extraction(self.precip_cube, constr, self.units_dict)
         reference_data = self.precip_cube.data[1:, :, :]
-        self.assertArrayEqual(cube.data, reference_data)
+        np.testing.assert_array_equal(cube.data, reference_data)
 
     def test_range_constraints(self):
         """Test that a list of constraints behaves correctly. This includes
@@ -388,7 +387,7 @@ class Test_apply_extraction(IrisTest):
         constr = iris.Constraint(coord_values=constraint_dict)
         cube = apply_extraction(self.precip_cube, constr, self.units_dict)
         reference_data = self.precip_cube.data[:2, :, :]
-        self.assertArrayEqual(cube.data, reference_data)
+        np.testing.assert_array_equal(cube.data, reference_data)
 
     def test_subset_uk_grid(self):
         """Test subsetting a gridded cube."""
@@ -413,10 +412,12 @@ class Test_apply_extraction(IrisTest):
         }
         constr = iris.Constraint(**constraint_dict)
         result = apply_extraction(self.uk_gridded_cube, constr)
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
         for axis in ["x", "y"]:
             coord = f"projection_{axis}_coordinate"
-            self.assertArrayAlmostEqual(result.coord(coord).points, expected_points)
+            np.testing.assert_array_almost_equal(
+                result.coord(coord).points, expected_points
+            )
 
     def test_subset_global_grid(self):
         """Extract subset of global lat-lon grid"""
@@ -437,11 +438,11 @@ class Test_apply_extraction(IrisTest):
                 [25.0, 26.0, 27.0, 28.0],
             ]
         )
-        self.assertArrayAlmostEqual(result.data, expected_data)
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(result.data, expected_data)
+        np.testing.assert_array_almost_equal(
             result.coord("longitude").points, np.array([0.0, 2.0, 4.0, 6.0])
         )
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.coord("latitude").points, np.array([45.0, 47.0, 49.0, 51.0])
         )
 
@@ -468,14 +469,16 @@ class Test_apply_extraction(IrisTest):
         result = apply_extraction(
             global_pacific_cube, constr, longitude_constraint=[179.0, 183.0]
         )
-        self.assertArrayAlmostEqual(result.data, expected_data)
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(result.data, expected_data)
+        np.testing.assert_array_almost_equal(
             result.coord("longitude").points, [179.0, 181.0, 183.0]
         )
-        self.assertArrayAlmostEqual(result.coord("latitude").points, [0.0, 2.0, 4.0])
+        np.testing.assert_array_almost_equal(
+            result.coord("latitude").points, [0.0, 2.0, 4.0]
+        )
 
 
-class Test_extract_subcube(IrisTest):
+class Test_extract_subcube(unittest.TestCase):
     """Test that a subcube is extracted when the required constraints are
     applied."""
 
@@ -491,7 +494,7 @@ class Test_extract_subcube(IrisTest):
         precip_units = ["mm h-1"]
         expected = self.precip_cube[0]
         result = extract_subcube(self.precip_cube, constraints, units=precip_units)
-        self.assertArrayAlmostEqual(result.data, expected.data)
+        np.testing.assert_array_almost_equal(result.data, expected.data)
 
     def test_multiple_thresholds(self):
         """Test that multiple thresholds are extracted correctly when using the
@@ -500,7 +503,7 @@ class Test_extract_subcube(IrisTest):
         precip_units = ["mm h-1"]
         expected = self.precip_cube[:2]
         result = extract_subcube(self.precip_cube, constraints, units=precip_units)
-        self.assertArrayAlmostEqual(result.data, expected.data)
+        np.testing.assert_array_almost_equal(result.data, expected.data)
 
     def test_range_constraint(self):
         """Test that multiple thresholds are extracted correctly when using the
@@ -508,7 +511,7 @@ class Test_extract_subcube(IrisTest):
         constraints = ["projection_y_coordinate=[1:2]"]
         expected = self.precip_cube[:, 1:, :]
         result = extract_subcube(self.precip_cube, constraints)
-        self.assertArrayAlmostEqual(result.data, expected.data)
+        np.testing.assert_array_almost_equal(result.data, expected.data)
 
     def test_multiple_equality_constraints(self):
         """Test that multiple thresholds are extracted correctly when using the
@@ -518,7 +521,7 @@ class Test_extract_subcube(IrisTest):
         precip_units = ["mm h-1", "m"]
         expected = self.precip_cube[0:2, 1:, :]
         result = extract_subcube(self.precip_cube, constraints, units=precip_units)
-        self.assertArrayAlmostEqual(result.data, expected.data)
+        np.testing.assert_array_almost_equal(result.data, expected.data)
 
     def test_multiple_range_constraints(self):
         """Test that multiple range constraints are extracted correctly when
@@ -528,7 +531,7 @@ class Test_extract_subcube(IrisTest):
         precip_units = ["mm h-1", "m"]
         expected = self.precip_cube[0:2, 1:, :]
         result = extract_subcube(self.precip_cube, constraints, units=precip_units)
-        self.assertArrayAlmostEqual(result.data, expected.data)
+        np.testing.assert_array_almost_equal(result.data, expected.data)
 
     def test_combination_of_equality_and_range_constraints(self):
         """Test that multiple constraints are extracted correctly when
@@ -538,7 +541,7 @@ class Test_extract_subcube(IrisTest):
         precip_units = ["mm h-1", "m"]
         expected = self.precip_cube[0:2, 1:, :]
         result = extract_subcube(self.precip_cube, constraints, units=precip_units)
-        self.assertArrayAlmostEqual(result.data, expected.data)
+        np.testing.assert_array_almost_equal(result.data, expected.data)
 
     def test_single_threshold_use_original_units(self):
         """Test that a single threshold is extracted correctly when using the
@@ -551,7 +554,7 @@ class Test_extract_subcube(IrisTest):
         result = extract_subcube(
             self.precip_cube, constraints, units=precip_units, use_original_units=False
         )
-        self.assertArrayAlmostEqual(result.data, expected.data)
+        np.testing.assert_array_almost_equal(result.data, expected.data)
         self.assertEqual(
             expected.coord("precipitation_rate"), result.coord("precipitation_rate")
         )
@@ -562,11 +565,11 @@ class Test_extract_subcube(IrisTest):
         result = extract_subcube(
             self.global_gridded_cube, ["latitude=[42:52:2]", "longitude=[0:7:3]"]
         )
-        self.assertArrayAlmostEqual(result.data, expected_result)
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(result.data, expected_result)
+        np.testing.assert_array_almost_equal(
             result.coord("longitude").points, np.array([0.0, 6.0])
         )
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.coord("latitude").points, np.array([45.0, 49.0])
         )
 
@@ -584,11 +587,11 @@ class Test_extract_subcube(IrisTest):
             ]
         )
         result = extract_subcube(self.global_gridded_cube, ["longitude=[0:7:3]"])
-        self.assertArrayAlmostEqual(result.data, expected_result)
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(result.data, expected_result)
+        np.testing.assert_array_almost_equal(
             result.coord("longitude").points, np.array([0.0, 6.0])
         )
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.coord("latitude").points,
             np.array([45.0, 47.0, 49.0, 51.0, 53.0, 55.0, 57.0]),
         )

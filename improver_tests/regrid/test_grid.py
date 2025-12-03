@@ -5,12 +5,12 @@
 """Unit tests for the functions from grid.py."""
 
 import itertools
+import unittest
 from collections import namedtuple
 from datetime import datetime
 
 import numpy as np
 import pytest
-from iris.tests import IrisTest
 
 from improver.regrid.grid import (
     calculate_input_grid_spacing,
@@ -139,7 +139,7 @@ def test_ensure_ascending_coord(flip):
     np.testing.assert_allclose(lat_lon_cube.coord("longitude").points, lon_coord)
 
 
-class Test_calculate_input_grid_spacing(IrisTest):
+class Test_calculate_input_grid_spacing(unittest.TestCase):
     """Test the calculate_input_grid_spacing function"""
 
     def setUp(self):

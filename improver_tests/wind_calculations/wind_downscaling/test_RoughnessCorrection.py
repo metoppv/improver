@@ -10,7 +10,6 @@ import unittest
 import iris
 import numpy as np
 from cf_units import Unit
-from iris.tests import IrisTest
 
 from improver.constants import RMDI
 from improver.synthetic_data.set_up_test_cubes import (
@@ -293,7 +292,7 @@ class TestSinglePoint:
         return plugin(self.w_cube)
 
 
-class Test1D(IrisTest):
+class Test1D(unittest.TestCase):
     """Class to test 1 x-y point cubes.
 
     This class tests the correct behaviour if np.nan or RMDI are
@@ -315,25 +314,25 @@ class Test1D(IrisTest):
         """Test AoS is RMDI, point should not do anything, uin = uout."""
         landpointtests_hc_rc = TestSinglePoint(AoS=RMDI, heightlevels=self.hls)
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
-        self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
+        np.testing.assert_array_equal(landpointtests_hc_rc.w_cube, land_hc_rc)
 
     def test_section0b(self):
         """Test AoS is np.nan, point should not do anything, uin = uout."""
         landpointtests_hc_rc = TestSinglePoint(AoS=np.nan, heightlevels=self.hls)
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
-        self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
+        np.testing.assert_array_equal(landpointtests_hc_rc.w_cube, land_hc_rc)
 
     def test_section0c(self):
         """Test Sigma is RMDI, point should not do anything, uin = uout."""
         landpointtests_hc_rc = TestSinglePoint(Sigma=RMDI, heightlevels=self.hls)
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
-        self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
+        np.testing.assert_array_equal(landpointtests_hc_rc.w_cube, land_hc_rc)
 
     def test_section0d(self):
         """Test Sigma is np.nan, point should not do anything, uin = uout."""
         landpointtests_hc_rc = TestSinglePoint(Sigma=np.nan, heightlevels=self.hls)
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
-        self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
+        np.testing.assert_array_equal(landpointtests_hc_rc.w_cube, land_hc_rc)
 
     def test_section0e(self):
         """Test z_0 is RMDI, point should not do RC.
@@ -345,7 +344,7 @@ class Test1D(IrisTest):
             z_0=RMDI, pporog=230.0, heightlevels=self.hls
         )
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
-        self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
+        np.testing.assert_array_equal(landpointtests_hc_rc.w_cube, land_hc_rc)
 
     def test_section0f(self):
         """Test z_0 is np.nan, point should not do RC.
@@ -357,7 +356,7 @@ class Test1D(IrisTest):
             z_0=np.nan, pporog=230.0, heightlevels=self.hls
         )
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
-        self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
+        np.testing.assert_array_equal(landpointtests_hc_rc.w_cube, land_hc_rc)
 
     def test_section0g(self):
         """Test z_0 is RMDI, point should not do RC.
@@ -475,7 +474,7 @@ class Test1D(IrisTest):
         """
         landpointtests_hc = TestSinglePoint(z_0=None, modelorog=250.0)
         land_hc_rc = landpointtests_hc.run_hc_rc(self.uin)
-        self.assertArrayEqual(landpointtests_hc.w_cube, land_hc_rc)
+        np.testing.assert_array_equal(landpointtests_hc.w_cube, land_hc_rc)
 
     def test_section1b(self):
         """Test HC only.
@@ -538,7 +537,7 @@ class Test1D(IrisTest):
         """
         landpointtests_hc_rc = TestSinglePoint(AoS=0.0)
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
-        self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
+        np.testing.assert_array_equal(landpointtests_hc_rc.w_cube, land_hc_rc)
 
     def test_section1f(self):
         """Test RC and HC, but sea point masked out (Sigma).
@@ -550,7 +549,7 @@ class Test1D(IrisTest):
         """
         landpointtests_hc_rc = TestSinglePoint(Sigma=0.0)
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
-        self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
+        np.testing.assert_array_equal(landpointtests_hc_rc.w_cube, land_hc_rc)
 
     def test_section1g(self):
         """Test that code returns float32 precision."""
@@ -559,7 +558,7 @@ class Test1D(IrisTest):
         self.assertEqual(land_hc_rc.dtype, np.float32)
 
 
-class Test2D(IrisTest):
+class Test2D(unittest.TestCase):
     """Test multi-point wind corrections.
 
     Section 2 are multiple point, multiple time tests
@@ -609,13 +608,13 @@ class Test2D(IrisTest):
         time1 = land_hc_rc.data.take(0, axis=tidx)
         time2 = land_hc_rc.data.take(1, axis=tidx)
         # Check on time.
-        self.assertArrayEqual(time1, time2)
+        np.testing.assert_array_equal(time1, time2)
         xidxnew = land_hc_rc.shape.index(3)
         xidxold = multip_hc_rc.w_cube.data.shape.index(3)
         landp1new = land_hc_rc.data.take(0, axis=xidxnew)
         landp1old = multip_hc_rc.w_cube.data.take(0, axis=xidxold)
         # Check on p1.
-        self.assertArrayEqual(landp1new, landp1old)
+        np.testing.assert_array_equal(landp1new, landp1old)
         landp2new = land_hc_rc.data.take(1, axis=xidxnew)
         landp2old = multip_hc_rc.w_cube.data.take(1, axis=xidxold)
         # Check on p2.

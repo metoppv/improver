@@ -16,7 +16,6 @@ import pytest
 from iris.coords import CellMethod, DimCoord
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
-from iris.tests import IrisTest
 
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     ConvertProbabilitiesToPercentiles as Plugin,
@@ -34,7 +33,7 @@ from .ecc_test_data import (
 )
 
 
-class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
+class Test__add_bounds_to_thresholds_and_probabilities(unittest.TestCase):
     """
     Test the _add_bounds_to_thresholds_and_probabilities method of the
     ConvertProbabilitiesToPercentiles.
@@ -63,8 +62,8 @@ class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
         result = Plugin()._add_bounds_to_thresholds_and_probabilities(
             self.threshold_points, self.probabilities_for_cdf, self.bounds_pairing
         )
-        self.assertArrayAlmostEqual(result[0][0], self.bounds_pairing[0])
-        self.assertArrayAlmostEqual(result[0][-1], self.bounds_pairing[1])
+        np.testing.assert_array_almost_equal(result[0][0], self.bounds_pairing[0])
+        np.testing.assert_array_almost_equal(result[0][-1], self.bounds_pairing[1])
 
     def test_probability_data(self):
         """
@@ -77,8 +76,8 @@ class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
         result = Plugin()._add_bounds_to_thresholds_and_probabilities(
             self.threshold_points, self.probabilities_for_cdf, self.bounds_pairing
         )
-        self.assertArrayAlmostEqual(result[1][:, 0], zero_array)
-        self.assertArrayAlmostEqual(result[1][:, -1], one_array)
+        np.testing.assert_array_almost_equal(result[1][:, 0], zero_array)
+        np.testing.assert_array_almost_equal(result[1][:, -1], one_array)
 
     def test_endpoints_of_distribution_exceeded(self):
         """
@@ -136,7 +135,7 @@ class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
         self.assertEqual(min(result[0]), min(threshold_points))
 
 
-class Test__probabilities_to_percentiles(IrisTest):
+class Test__probabilities_to_percentiles(unittest.TestCase):
     """Test the _probabilities_to_percentiles method of the
     ConvertProbabilitiesToPercentiles plugin."""
 
@@ -170,7 +169,9 @@ class Test__probabilities_to_percentiles(IrisTest):
         """
         result = Plugin()._probabilities_to_percentiles(self.cube, self.percentiles)
         self.assertIsInstance(result.coord("percentile"), DimCoord)
-        self.assertArrayEqual(result.coord("percentile").points, self.percentiles)
+        np.testing.assert_array_equal(
+            result.coord("percentile").points, self.percentiles
+        )
         self.assertEqual(result.coord("percentile").units, unit.Unit("%"))
 
     def test_transpose_cube_dimensions(self):
@@ -194,7 +195,9 @@ class Test__probabilities_to_percentiles(IrisTest):
         # Result cube will be [P, X, Y]
         # Transpose cube to be [P, Y, X]
         transposed_result.transpose([0, 2, 1])
-        self.assertArrayAlmostEqual(nontransposed_result.data, transposed_result.data)
+        np.testing.assert_array_almost_equal(
+            nontransposed_result.data, transposed_result.data
+        )
 
     def test_simple_check_data_above(self):
         """
@@ -215,7 +218,7 @@ class Test__probabilities_to_percentiles(IrisTest):
         )
 
         result = Plugin()._probabilities_to_percentiles(cube, self.percentiles)
-        self.assertArrayAlmostEqual(result.data, expected)
+        np.testing.assert_array_almost_equal(result.data, expected)
 
     def test_simple_check_data_below(self):
         """
@@ -239,7 +242,7 @@ class Test__probabilities_to_percentiles(IrisTest):
         )
 
         result = Plugin()._probabilities_to_percentiles(cube, self.percentiles)
-        self.assertArrayAlmostEqual(result.data, expected)
+        np.testing.assert_array_almost_equal(result.data, expected)
 
     def test_check_data_multiple_timesteps(self):
         """
@@ -281,7 +284,7 @@ class Test__probabilities_to_percentiles(IrisTest):
 
         percentiles = [20, 60, 80]
         result = Plugin()._probabilities_to_percentiles(cube, percentiles)
-        self.assertArrayAlmostEqual(result.data, expected, decimal=5)
+        np.testing.assert_array_almost_equal(result.data, expected, decimal=5)
 
     def test_probabilities_not_monotonically_increasing(self):
         """
@@ -326,7 +329,7 @@ class Test__probabilities_to_percentiles(IrisTest):
         )
 
         result = Plugin()._probabilities_to_percentiles(self.cube, self.percentiles)
-        self.assertArrayAlmostEqual(result.data, data, decimal=4)
+        np.testing.assert_array_almost_equal(result.data, data, decimal=4)
 
     def test_check_single_threshold(self):
         """
@@ -347,7 +350,7 @@ class Test__probabilities_to_percentiles(IrisTest):
         cube = next(self.cube.slices_over(threshold_coord))
 
         result = Plugin()._probabilities_to_percentiles(cube, self.percentiles)
-        self.assertArrayAlmostEqual(result.data, data, decimal=4)
+        np.testing.assert_array_almost_equal(result.data, data, decimal=4)
 
     def test_lots_of_probability_thresholds(self):
         """
@@ -376,7 +379,7 @@ class Test__probabilities_to_percentiles(IrisTest):
 
         result = Plugin()._probabilities_to_percentiles(cube, self.percentiles)
 
-        self.assertArrayAlmostEqual(result.data, data)
+        np.testing.assert_array_almost_equal(result.data, data)
 
     def test_lots_of_percentiles(self):
         """
@@ -410,7 +413,7 @@ class Test__probabilities_to_percentiles(IrisTest):
 
         percentiles = np.arange(5, 100, 10)
         result = Plugin()._probabilities_to_percentiles(self.cube, percentiles)
-        self.assertArrayAlmostEqual(result.data, data, decimal=5)
+        np.testing.assert_array_almost_equal(result.data, data, decimal=5)
 
     def test_check_data_spot_forecasts(self):
         """
@@ -428,7 +431,7 @@ class Test__probabilities_to_percentiles(IrisTest):
 
         cube = set_up_spot_test_cube(cube_type="probability")
         result = Plugin()._probabilities_to_percentiles(cube, self.percentiles)
-        self.assertArrayAlmostEqual(result.data, data, decimal=4)
+        np.testing.assert_array_almost_equal(result.data, data, decimal=4)
 
     def test_masked_data_below(self):
         """Test that if mask_percentiles is true, data is masked as
@@ -455,7 +458,7 @@ class Test__probabilities_to_percentiles(IrisTest):
         result = Plugin(mask_percentiles=True)._probabilities_to_percentiles(
             cube, self.percentiles
         )
-        self.assertArrayEqual(result.data.mask, expected_mask)
+        np.testing.assert_array_equal(result.data.mask, expected_mask)
 
     def test_masked_data_above(self):
         """Test that if mask_percentiles is true, data is masked as expected
@@ -483,10 +486,10 @@ class Test__probabilities_to_percentiles(IrisTest):
             cube, self.percentiles
         )
 
-        self.assertArrayEqual(result.data.mask, expected_mask)
+        np.testing.assert_array_equal(result.data.mask, expected_mask)
 
 
-class Test_process(IrisTest):
+class Test_process(unittest.TestCase):
     """
     Test the process method of the ConvertProbabilitiesToPercentiles plugin.
     """
@@ -525,7 +528,7 @@ class Test_process(IrisTest):
             [self.percentile_25, self.percentile_50, self.percentile_75]
         )
         result = Plugin().process(self.cube, no_of_percentiles=3)
-        self.assertArrayAlmostEqual(result.data, expected_data, decimal=5)
+        np.testing.assert_array_almost_equal(result.data, expected_data, decimal=5)
 
     def test_check_data_specifying_single_percentile(self):
         """
@@ -535,7 +538,7 @@ class Test_process(IrisTest):
         """
         expected_data = np.array(self.percentile_25)
         result = Plugin().process(self.cube, percentiles=[25])
-        self.assertArrayAlmostEqual(result.data, expected_data, decimal=5)
+        np.testing.assert_array_almost_equal(result.data, expected_data, decimal=5)
 
     def test_check_data_specifying_single_percentile_not_as_list(self):
         """
@@ -544,7 +547,7 @@ class Test_process(IrisTest):
         """
         expected_data = np.array(self.percentile_25)
         result = Plugin().process(self.cube, percentiles=25)
-        self.assertArrayAlmostEqual(result.data, expected_data, decimal=5)
+        np.testing.assert_array_almost_equal(result.data, expected_data, decimal=5)
 
     def test_check_data_specifying_percentiles(self):
         """
@@ -555,7 +558,7 @@ class Test_process(IrisTest):
             [self.percentile_25, self.percentile_50, self.percentile_75]
         )
         result = Plugin().process(self.cube, percentiles=[25, 50, 75])
-        self.assertArrayAlmostEqual(result.data, expected_data, decimal=5)
+        np.testing.assert_array_almost_equal(result.data, expected_data, decimal=5)
 
     def test_check_data_not_specifying_percentiles(self):
         """
@@ -566,7 +569,7 @@ class Test_process(IrisTest):
             [self.percentile_25, self.percentile_50, self.percentile_75]
         )
         result = Plugin().process(self.cube)
-        self.assertArrayAlmostEqual(result.data, expected_data, decimal=5)
+        np.testing.assert_array_almost_equal(result.data, expected_data, decimal=5)
 
     def test_check_data_masked_input_data(self):
         """
@@ -582,8 +585,10 @@ class Test_process(IrisTest):
         expected_data[:, 0, 0] = np.nan
         expected_data = np.ma.masked_invalid(expected_data)
         result = Plugin().process(cube)
-        self.assertArrayAlmostEqual(result.data.data, expected_data.data, decimal=5)
-        self.assertArrayEqual(result.data.mask, expected_data.mask)
+        np.testing.assert_array_almost_equal(
+            result.data.data, expected_data.data, decimal=5
+        )
+        np.testing.assert_array_equal(result.data.mask, expected_data.mask)
 
     def test_check_data_masked_input_data_non_nans(self):
         """
@@ -599,8 +604,10 @@ class Test_process(IrisTest):
         expected_data[:, 0, 0] = np.nan
         expected_data = np.ma.masked_invalid(expected_data)
         result = Plugin().process(cube)
-        self.assertArrayAlmostEqual(result.data.data, expected_data.data, decimal=5)
-        self.assertArrayEqual(result.data.mask, expected_data.mask)
+        np.testing.assert_array_almost_equal(
+            result.data.data, expected_data.data, decimal=5
+        )
+        np.testing.assert_array_equal(result.data.mask, expected_data.mask)
 
     def test_check_data_over_specifying_percentiles(self):
         """

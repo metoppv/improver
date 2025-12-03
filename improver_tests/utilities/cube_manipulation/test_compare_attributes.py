@@ -11,13 +11,12 @@ import unittest
 import iris
 import numpy as np
 import pytest
-from iris.tests import IrisTest
 
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cube_manipulation import compare_attributes
 
 
-class Test_compare_attributes(IrisTest):
+class Test_compare_attributes(unittest.TestCase):
     """Test the compare_attributes utility."""
 
     def setUp(self):
@@ -41,7 +40,7 @@ class Test_compare_attributes(IrisTest):
         cubelist = iris.cube.CubeList([cube1, cube2])
         result = compare_attributes(cubelist)
         self.assertIsInstance(result, list)
-        self.assertArrayEqual(result, [{}, {}])
+        np.testing.assert_array_equal(result, [{}, {}])
 
     def test_warning(self):
         """Test that the utility returns warning if only one cube supplied."""
@@ -49,7 +48,7 @@ class Test_compare_attributes(IrisTest):
         with pytest.warns(UserWarning, match=warning_msg):
             result = compare_attributes(iris.cube.CubeList([self.cube]))
 
-        self.assertArrayEqual(result, [])
+        np.testing.assert_array_equal(result, [])
 
     def test_history_attribute(self):
         """Test that the utility returns diff when history do not match"""
@@ -59,7 +58,7 @@ class Test_compare_attributes(IrisTest):
         cube2.attributes["history"] = "2017-01-19T08:59:53: StaGE Decoupler"
         cubelist = iris.cube.CubeList([cube1, cube2])
         result = compare_attributes(cubelist)
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             result,
             [
                 {"history": "2017-01-18T08:59:53: StaGE Decoupler"},
@@ -71,7 +70,7 @@ class Test_compare_attributes(IrisTest):
         """Test that the utility returns multiple differences"""
         cubelist = iris.cube.CubeList([self.cube, self.cube_ukv])
         result = compare_attributes(cubelist)
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             result,
             [
                 {"mosg__model_configuration": "uk_ens", "mosg__grid_version": "1.2.0"},
@@ -100,14 +99,14 @@ class Test_compare_attributes(IrisTest):
             {"mosg__model_configuration": "test", "mosg__grid_version": "1.2.0"},
             {"mosg__model_configuration": "uk_ens", "mosg__grid_version": "10"},
         ]
-        self.assertArrayEqual(result, expected)
+        np.testing.assert_array_equal(result, expected)
 
     def test_filtered_differences(self):
         """Test that the utility returns differences only between attributes
         that match the attribute filter."""
         cubelist = iris.cube.CubeList([self.cube, self.cube_ukv])
         result = compare_attributes(cubelist, attribute_filter="mosg__grid")
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             result, [{"mosg__grid_version": "1.2.0"}, {"mosg__grid_version": "1.1.0"}]
         )
 
@@ -130,7 +129,7 @@ class Test_compare_attributes(IrisTest):
             {"mosg__model_configuration": "test", "mosg__grid_version": "1.2.0"},
             {"mosg__model_configuration": "uk_ens", "mosg__grid_version": "10"},
         ]
-        self.assertArrayEqual(result, expected)
+        np.testing.assert_array_equal(result, expected)
 
     def test_unhashable_types_list(self):
         """Test that the utility returns differences when unhashable attributes
@@ -148,7 +147,7 @@ class Test_compare_attributes(IrisTest):
             {"mosg__model_configuration": "uk_det", "mosg__grid_version": "1.1.0"},
         ]
 
-        self.assertArrayEqual(result, expected)
+        np.testing.assert_array_equal(result, expected)
 
     def test_unhashable_types_array(self):
         """Test that the utility returns differences when unhashable attributes
@@ -176,7 +175,7 @@ class Test_compare_attributes(IrisTest):
         self.assertEqual(
             result[0]["mosg__grid_version"], expected[0]["mosg__grid_version"]
         )
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             result[0]["test_attribute"], expected[0]["test_attribute"]
         )
 

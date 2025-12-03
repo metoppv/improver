@@ -7,7 +7,6 @@
 import unittest
 
 import numpy as np
-from iris.tests import IrisTest
 
 from improver.psychrometric_calculations.psychrometric_calculations import (
     _svp_from_lookup,
@@ -15,7 +14,7 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
 )
 
 
-class Test_calculate_svp_in_air(IrisTest):
+class Test_calculate_svp_in_air(unittest.TestCase):
     """Test the calculate_svp_in_air function"""
 
     def setUp(self):

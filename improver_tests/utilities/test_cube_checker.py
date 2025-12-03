@@ -13,7 +13,6 @@ import numpy as np
 import pytest
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
-from iris.tests import IrisTest
 
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
@@ -29,7 +28,7 @@ from improver.utilities.cube_checker import (
 )
 
 
-class Test_check_for_x_and_y_axes(IrisTest):
+class Test_check_for_x_and_y_axes(unittest.TestCase):
     """Test whether the cube has an x and y axis."""
 
     def setUp(self):
@@ -73,7 +72,7 @@ class Test_check_for_x_and_y_axes(IrisTest):
             check_for_x_and_y_axes(cube, require_dim_coords=True)
 
 
-class Test_check_cube_coordinates(IrisTest):
+class Test_check_cube_coordinates(unittest.TestCase):
     """Test check_cube_coordinates successfully promotes scalar coordinates to
     dimension coordinates in a new cube if they were dimension coordinates in
     the progenitor cube."""
@@ -158,7 +157,7 @@ class Test_check_cube_coordinates(IrisTest):
             check_cube_coordinates(self.cube, self.squeezed_cube)
 
 
-class Test_find_dimension_coordinate_mismatch(IrisTest):
+class Test_find_dimension_coordinate_mismatch(unittest.TestCase):
     """Test if two cubes have the dimension coordinates."""
 
     def setUp(self):
@@ -211,7 +210,7 @@ class Test_find_dimension_coordinate_mismatch(IrisTest):
         self.assertListEqual(result, ["height", "realization"])
 
 
-class Test_spatial_coords_match(IrisTest):
+class Test_spatial_coords_match(unittest.TestCase):
     """Test for function testing cube spatial coords."""
 
     def setUp(self):

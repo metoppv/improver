@@ -12,7 +12,6 @@ import numpy as np
 import pytest
 from iris.coords import AuxCoord
 from iris.cube import CubeList
-from iris.tests import IrisTest
 from iris.util import squeeze
 
 from improver.blending.spatial_weights import SpatiallyVaryingWeightsFromMask
@@ -20,7 +19,7 @@ from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
 
 
-class Test__repr__(IrisTest):
+class Test__repr__(unittest.TestCase):
     """Test the repr method."""
 
     def test_basic(self):
@@ -30,7 +29,7 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, msg)
 
 
-class Test__create_template_slice(IrisTest):
+class Test__create_template_slice(unittest.TestCase):
     """Test create_template_slice method"""
 
     def setUp(self):
@@ -111,7 +110,7 @@ class Test__create_template_slice(IrisTest):
         expected = self.cube_to_collapse.copy()[:, 0, :, :]
         result = self.plugin._create_template_slice(self.cube_to_collapse)
         self.assertEqual(expected.metadata, result.metadata)
-        self.assertArrayAlmostEqual(expected.data, result.data)
+        np.testing.assert_array_almost_equal(expected.data, result.data)
 
     def test_basic_no_change(self):
         """Test a correct template slice is returned for a case where
@@ -120,7 +119,7 @@ class Test__create_template_slice(IrisTest):
         expected = input_cube.copy()
         result = self.plugin._create_template_slice(input_cube)
         self.assertEqual(expected.metadata, result.metadata)
-        self.assertArrayAlmostEqual(expected.data, result.data)
+        np.testing.assert_array_almost_equal(expected.data, result.data)
 
     def test_aux_blending_coord(self):
         """Test a correct template slice is returned when blending_coord is
@@ -129,10 +128,10 @@ class Test__create_template_slice(IrisTest):
         plugin = SpatiallyVaryingWeightsFromMask("forecast_period")
         result = plugin._create_template_slice(self.cube_to_collapse)
         self.assertEqual(expected.metadata, result.metadata)
-        self.assertArrayAlmostEqual(expected.data, result.data)
+        np.testing.assert_array_almost_equal(expected.data, result.data)
 
 
-class Test_process(IrisTest):
+class Test_process(unittest.TestCase):
     """Test process method"""
 
     def setUp(self):
@@ -213,7 +212,7 @@ class Test_process(IrisTest):
             result = self.plugin.process(
                 self.cube_to_collapse, self.one_dimensional_weights_cube
             )
-        self.assertArrayEqual(result.data, expected_data)
+        np.testing.assert_array_equal(result.data, expected_data)
         self.assertEqual(result.dtype, np.float32)
 
     def test_all_masked(self):
@@ -224,7 +223,7 @@ class Test_process(IrisTest):
             self.cube_to_collapse, self.one_dimensional_weights_cube
         )
         expected_data = np.zeros((3, 2, 3))
-        self.assertArrayAlmostEqual(expected_data, result.data)
+        np.testing.assert_array_almost_equal(expected_data, result.data)
         self.assertTrue(result.metadata, self.cube_to_collapse.data)
 
     def test_no_fuzziness_no_one_dimensional_weights(self):
@@ -242,7 +241,7 @@ class Test_process(IrisTest):
         result = self.plugin_no_fuzzy.process(
             self.cube_to_collapse, self.one_dimensional_weights_cube
         )
-        self.assertArrayAlmostEqual(result.data, expected_result)
+        np.testing.assert_array_almost_equal(result.data, expected_result)
         self.assertEqual(result.metadata, self.cube_to_collapse.metadata)
 
     def test_no_fuzziness_no_one_dimensional_weights_transpose(self):
@@ -262,7 +261,7 @@ class Test_process(IrisTest):
         result = self.plugin_no_fuzzy.process(
             self.cube_to_collapse, self.one_dimensional_weights_cube
         )
-        self.assertArrayAlmostEqual(result.data, expected_result)
+        np.testing.assert_array_almost_equal(result.data, expected_result)
         self.assertEqual(result.metadata, self.cube_to_collapse.metadata)
 
     def test_no_fuzziness_with_one_dimensional_weights(self):
@@ -279,7 +278,7 @@ class Test_process(IrisTest):
         result = self.plugin_no_fuzzy.process(
             self.cube_to_collapse, self.one_dimensional_weights_cube
         )
-        self.assertArrayAlmostEqual(result.data, expected_result)
+        np.testing.assert_array_almost_equal(result.data, expected_result)
         self.assertEqual(result.metadata, self.cube_to_collapse.metadata)
 
     def test_fuzziness_no_one_dimensional_weights(self):
@@ -297,7 +296,7 @@ class Test_process(IrisTest):
         result = self.plugin.process(
             self.cube_to_collapse, self.one_dimensional_weights_cube
         )
-        self.assertArrayAlmostEqual(result.data, expected_result)
+        np.testing.assert_array_almost_equal(result.data, expected_result)
         self.assertEqual(result.metadata, self.cube_to_collapse.metadata)
 
     def test_fuzziness_with_one_dimensional_weights(self):
@@ -314,7 +313,7 @@ class Test_process(IrisTest):
         result = self.plugin.process(
             self.cube_to_collapse, self.one_dimensional_weights_cube
         )
-        self.assertArrayAlmostEqual(result.data, expected_result)
+        np.testing.assert_array_almost_equal(result.data, expected_result)
         self.assertEqual(result.metadata, self.cube_to_collapse.metadata)
 
     def test_fuzziness_with_unequal_weightings(self):
@@ -337,7 +336,7 @@ class Test_process(IrisTest):
         result = self.plugin.process(
             self.cube_to_collapse, self.one_dimensional_weights_cube
         )
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
 
 
 if __name__ == "__main__":

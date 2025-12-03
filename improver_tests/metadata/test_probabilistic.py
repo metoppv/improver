@@ -10,7 +10,6 @@ import iris
 import numpy as np
 import pytest
 from iris.exceptions import CoordinateNotFoundError
-from iris.tests import IrisTest
 
 from improver.metadata.probabilistic import (
     find_percentile_coordinate,
@@ -227,7 +226,7 @@ class Test_get_diagnostic_cube_name_from_probability_name(unittest.TestCase):
             get_diagnostic_cube_name_from_probability_name("lwe_precipitation_rate")
 
 
-class Test_is_probability(IrisTest):
+class Test_is_probability(unittest.TestCase):
     """Test the is_probability function"""
 
     def setUp(self):
@@ -257,7 +256,7 @@ class Test_is_probability(IrisTest):
         self.assertFalse(result)
 
 
-class Test_find_threshold_coordinate(IrisTest):
+class Test_find_threshold_coordinate(unittest.TestCase):
     """Test the find_threshold_coordinate function"""
 
     def setUp(self):
@@ -280,7 +279,9 @@ class Test_find_threshold_coordinate(IrisTest):
         """Test function recognises threshold coordinate with name "threshold" """
         threshold_coord = find_threshold_coordinate(self.cube_old)
         self.assertEqual(threshold_coord.name(), "threshold")
-        self.assertArrayAlmostEqual(threshold_coord.points, self.threshold_points)
+        np.testing.assert_array_almost_equal(
+            threshold_coord.points, self.threshold_points
+        )
 
     def test_new_convention(self):
         """Test function recognises threshold coordinate with standard
@@ -288,7 +289,9 @@ class Test_find_threshold_coordinate(IrisTest):
         threshold_coord = find_threshold_coordinate(self.cube_new)
         self.assertEqual(threshold_coord.name(), "air_temperature")
         self.assertEqual(threshold_coord.var_name, "threshold")
-        self.assertArrayAlmostEqual(threshold_coord.points, self.threshold_points)
+        np.testing.assert_array_almost_equal(
+            threshold_coord.points, self.threshold_points
+        )
 
     def test_fails_if_not_cube(self):
         """Test error if given a non-cube argument"""
@@ -304,7 +307,7 @@ class Test_find_threshold_coordinate(IrisTest):
             find_threshold_coordinate(self.cube_new)
 
 
-class Test_find_percentile_coordinate(IrisTest):
+class Test_find_percentile_coordinate(unittest.TestCase):
     """Test whether the cube has a percentile coordinate."""
 
     def setUp(self):

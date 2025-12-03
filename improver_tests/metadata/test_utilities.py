@@ -29,9 +29,10 @@ from improver.metadata.utilities import (
 )
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
+from improver_tests import ImproverTest
 
 
-class Test_create_new_diagnostic_cube(unittest.TestCase):
+class Test_create_new_diagnostic_cube(ImproverTest):
     """Test utility to create new diagnostic cubes"""
 
     def setUp(self):
@@ -62,7 +63,7 @@ class Test_create_new_diagnostic_cube(unittest.TestCase):
             result.coords(dim_coords=False), self.template_cube.coords(dim_coords=False)
         )
         self.assertFalse(np.allclose(result.data, self.template_cube.data))
-        self.assertDictEqual(dict(result.attributes), self.mandatory_attributes)
+        self.assertDictEqual(result.attributes, self.mandatory_attributes)
         self.assertFalse(result.cell_methods)
         self.assertEqual(result.data.dtype, np.float32)
 
@@ -79,7 +80,7 @@ class Test_create_new_diagnostic_cube(unittest.TestCase):
             self.mandatory_attributes,
             optional_attributes=attributes,
         )
-        self.assertDictEqual(dict(result.attributes), expected_attributes)
+        self.assertDictEqual(result.attributes, expected_attributes)
 
     def test_missing_mandatory_attribute(self):
         """Test error is raised if any mandatory attribute is missing"""

@@ -7,11 +7,11 @@ Functions for use within unit tests for `ensemble_calibration` plugins.
 """
 
 import datetime
+import unittest
 
 import iris
 import numpy as np
 from cf_units import Unit
-from iris.tests import IrisTest
 
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
@@ -21,7 +21,7 @@ from improver.synthetic_data.set_up_test_cubes import (
 )
 
 
-class EnsembleCalibrationAssertions(IrisTest):
+class EnsembleCalibrationAssertions(unittest.TestCase):
     """Additional assertions, specifically for usage in the
     ensemble calibration unit tests."""
 
@@ -39,7 +39,7 @@ class EnsembleCalibrationAssertions(IrisTest):
             second (numpy.ndarray):
                 Second array to compare.
         """
-        self.assertArrayAlmostEqual(first, second, decimal=4)
+        np.testing.assert_array_almost_equal(first, second, decimal=4)
 
     def assertCalibratedVariablesAlmostEqual(self, first, second):
         """Overriding of the assertArrayAlmostEqual method to check whether
@@ -55,10 +55,10 @@ class EnsembleCalibrationAssertions(IrisTest):
             second (numpy.ndarray):
                 Second array to compare.
         """
-        self.assertArrayAlmostEqual(first, second, decimal=4)
+        np.testing.assert_array_almost_equal(first, second, decimal=4)
 
 
-class SetupCubes(IrisTest):
+class SetupCubes(unittest.TestCase):
     """Set up cubes for testing."""
 
     def setUp(self):

@@ -8,7 +8,6 @@ import unittest
 from datetime import datetime, timezone
 
 import numpy as np
-from iris.tests import IrisTest
 
 from improver.utilities.solar import (
     calc_solar_declination,
@@ -21,7 +20,7 @@ from improver.utilities.solar import (
 )
 
 
-class Test_get_day_of_year(IrisTest):
+class Test_get_day_of_year(unittest.TestCase):
     """Test day of year extraction."""
 
     def test_get_day_of_year(self):
@@ -36,10 +35,10 @@ class Test_get_day_of_year(IrisTest):
 
         expected_result = np.array([0, 59, 59, 60, 364, 365], dtype=int)
         result = [get_day_of_year(dt) for dt in datetimes]
-        self.assertArrayEqual(result, expected_result)
+        np.testing.assert_array_equal(result, expected_result)
 
 
-class Test_get_hour_of_day(IrisTest):
+class Test_get_hour_of_day(unittest.TestCase):
     """Test utc hour extraction."""
 
     def test_get_hour_of_day(self):
@@ -54,10 +53,10 @@ class Test_get_hour_of_day(IrisTest):
 
         expected_result = np.array([0.0, 1.0, 1.0 / 60.0, 0.0, 24.0 - 1.0 / 60.0, 24.0])
         result = [get_hour_of_day(dt) for dt in datetimes]
-        self.assertArrayEqual(result, expected_result)
+        np.testing.assert_array_equal(result, expected_result)
 
 
-class Test_calc_solar_declination(IrisTest):
+class Test_calc_solar_declination(unittest.TestCase):
     """Test Solar declination."""
 
     def test_basic_solar_declination(self):
@@ -82,7 +81,7 @@ class Test_calc_solar_declination(IrisTest):
             calc_solar_declination(day_of_year)
 
 
-class Test_calc_solar_time(IrisTest):
+class Test_calc_solar_time(unittest.TestCase):
     """Test Calculation of the Local Solar Time."""
 
     def setUp(self):
@@ -105,7 +104,7 @@ class Test_calc_solar_time(IrisTest):
             [11.8811151, 12.5477817, 11.2144484, 23.8811151, -0.0522183]
         )
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, expected_result)
+        np.testing.assert_array_almost_equal(result, expected_result)
 
     def test_basic_solar_time_normalised(self):
         """Test the calc of solar time for an array of longitudes with solar time values
@@ -116,7 +115,7 @@ class Test_calc_solar_time(IrisTest):
         expected_result = np.array(
             [11.8811151, 12.5477817, 11.2144484, 23.8811151, 23.9477817]
         )
-        self.assertArrayAlmostEqual(result, expected_result)
+        np.testing.assert_array_almost_equal(result, expected_result)
 
         result = calc_solar_time(
             self.longitudes, self.day_of_year, 14.0, normalise=True
@@ -124,7 +123,7 @@ class Test_calc_solar_time(IrisTest):
         expected_result = np.array(
             [13.8811151, 14.5477817, 13.2144484, 1.8811151, 1.9477817]
         )
-        self.assertArrayAlmostEqual(result, expected_result)
+        np.testing.assert_array_almost_equal(result, expected_result)
 
     def test_solar_time_raises_exception_day_of_year(self):
         """Test an exception is raised if day of year out of range"""
@@ -141,7 +140,7 @@ class Test_calc_solar_time(IrisTest):
             calc_solar_hour_angle(self.longitudes, self.day_of_year, utc_hour)
 
 
-class Test_calc_solar_hour_angle(IrisTest):
+class Test_calc_solar_hour_angle(unittest.TestCase):
     """Test Calculation of the Solar Hour angle."""
 
     def setUp(self):
@@ -164,7 +163,7 @@ class Test_calc_solar_hour_angle(IrisTest):
             [-1.7832741, 8.2167259, -11.7832741, 178.2167259, -180.7832741]
         )
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, expected_result)
+        np.testing.assert_array_almost_equal(result, expected_result)
 
     def test_basic_solar_hour_angle_array_360(self):
         """Test the calc of solar hour_angle for longitudes > 180"""
@@ -180,10 +179,10 @@ class Test_calc_solar_hour_angle(IrisTest):
             ]
         )
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, expected_result)
+        np.testing.assert_array_almost_equal(result, expected_result)
 
 
-class Test_calc_solar_elevation(IrisTest):
+class Test_calc_solar_elevation(unittest.TestCase):
     """Test Calculation of the Solar Elevation."""
 
     def setUp(self):
@@ -213,7 +212,7 @@ class Test_calc_solar_elevation(IrisTest):
             self.latitudes, self.longitudes, self.day_of_year, self.utc_hour
         )
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, expected_array)
+        np.testing.assert_array_almost_equal(result, expected_array)
 
     def test_basic_solar_elevation_array_360(self):
         """Test the solar elevation for lons > 180."""
@@ -223,7 +222,7 @@ class Test_calc_solar_elevation(IrisTest):
             self.latitudes, longitudes, self.day_of_year, self.utc_hour
         )
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, expected_array)
+        np.testing.assert_array_almost_equal(result, expected_array)
 
     def test_solar_elevation_raises_exception_lat(self):
         """Test an exception is raised if latitudes out of range"""
@@ -261,7 +260,7 @@ class Test_calc_solar_elevation(IrisTest):
             self.assertAlmostEqual(result, expected_results[i])
 
 
-class Test_daynight_terminator(IrisTest):
+class Test_daynight_terminator(unittest.TestCase):
     """Test DayNight terminator."""
 
     def setUp(self):
@@ -299,7 +298,7 @@ class Test_daynight_terminator(IrisTest):
             ]
         )
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, expected_lats)
+        np.testing.assert_array_almost_equal(result, expected_lats)
 
     def test_basic_spring(self):
         """Test we get the terminator in spring."""
@@ -329,7 +328,7 @@ class Test_daynight_terminator(IrisTest):
                 -82.7926115,
             ]
         )
-        self.assertArrayAlmostEqual(result, expected_lats)
+        np.testing.assert_array_almost_equal(result, expected_lats)
 
     def test_basic_winter_360(self):
         """Test we get the terminator in winter with lon > 180."""
@@ -361,7 +360,7 @@ class Test_daynight_terminator(IrisTest):
             ]
         )
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, expected_lats)
+        np.testing.assert_array_almost_equal(result, expected_lats)
 
     def test_basic_sprint_360(self):
         """Test we get the terminator in spring with lon > 180."""
@@ -392,7 +391,7 @@ class Test_daynight_terminator(IrisTest):
                 82.7926115,
             ]
         )
-        self.assertArrayAlmostEqual(result, expected_lats)
+        np.testing.assert_array_almost_equal(result, expected_lats)
 
     def test_daynight_terminator_raises_exception_day_of_year(self):
         """Test an exception is raised if day of year out of range"""

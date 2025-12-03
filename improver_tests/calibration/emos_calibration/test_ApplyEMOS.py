@@ -12,7 +12,6 @@ import iris
 import numpy as np
 from iris.coords import CellMethod
 from iris.cube import Cube, CubeList
-from iris.tests import IrisTest
 
 from improver.calibration.emos_calibration import ApplyEMOS
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
@@ -105,7 +104,7 @@ def build_coefficients_cubelist(
     return cubelist
 
 
-class Test_process(IrisTest):
+class Test_process(unittest.TestCase):
     """Tests for the ApplyEMOS callable plugin"""
 
     def setUp(self):
@@ -220,7 +219,9 @@ class Test_process(IrisTest):
         distribution)"""
         result = ApplyEMOS()(self.percentiles, self.coefficients, realizations_count=3)
         self.assertIn("percentile", get_dim_coord_names(result))
-        self.assertArrayAlmostEqual(result.data, self.null_percentiles_expected)
+        np.testing.assert_array_almost_equal(
+            result.data, self.null_percentiles_expected
+        )
         self.assertAlmostEqual(
             np.mean(result.data), self.null_percentiles_expected_mean
         )
@@ -237,7 +238,7 @@ class Test_process(IrisTest):
         )
         result = ApplyEMOS()(self.realizations, self.coefficients)
         self.assertIn("realization", get_dim_coord_names(result))
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
         self.assertAlmostEqual(np.mean(result.data), expected_mean)
 
     def test_null_probabilities(self):
@@ -254,7 +255,7 @@ class Test_process(IrisTest):
             self.probabilities, self.coefficients, realizations_count=3
         )
         self.assertIn("probability_of", result.name())
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
 
     def test_bias(self):
         """Test emos coefficients that correct a bias"""
@@ -269,7 +270,7 @@ class Test_process(IrisTest):
             ]
         )
         result = ApplyEMOS()(self.percentiles, self.coefficients, realizations_count=3)
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
         self.assertAlmostEqual(np.mean(result.data), expected_mean)
 
     def test_spread(self):
@@ -285,7 +286,7 @@ class Test_process(IrisTest):
             ]
         )
         result = ApplyEMOS()(self.percentiles, self.coefficients, realizations_count=3)
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
         self.assertAlmostEqual(np.mean(result.data), expected_mean)
 
     def test_error_realizations_count(self):
@@ -319,7 +320,7 @@ class Test_process(IrisTest):
             additional_fields=CubeList([altitude]),
             realizations_count=3,
         )
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
 
     def test_realizations_additional_predictor_at_sites(self):
         """Test providing an additional predictor for site forecasts."""
@@ -330,7 +331,7 @@ class Test_process(IrisTest):
             additional_fields=CubeList([self.spot_altitude_cube]),
             realizations_count=3,
         )
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
 
     def test_additional_predictor_site_mismatch(self):
         """Test for a mismatch in sites between the forecast and
@@ -363,7 +364,7 @@ class Test_process(IrisTest):
             land_sea_mask=self.land_sea_mask,
             realizations_count=3,
         )
-        self.assertArrayAlmostEqual(result.data[0], expected_data_slice)
+        np.testing.assert_array_almost_equal(result.data[0], expected_data_slice)
 
     def test_null_percentiles_truncnorm_standard_shape_parameters(self):
         """Test effect of "neutral" emos coefficients in percentile space
@@ -377,7 +378,9 @@ class Test_process(IrisTest):
 
         result = ApplyEMOS()(self.percentiles, coefficients, realizations_count=3)
         self.assertIn("percentile", get_dim_coord_names(result))
-        self.assertArrayAlmostEqual(result.data, self.null_percentiles_expected)
+        np.testing.assert_array_almost_equal(
+            result.data, self.null_percentiles_expected
+        )
         self.assertAlmostEqual(
             np.mean(result.data), self.null_percentiles_expected_mean
         )
@@ -403,7 +406,7 @@ class Test_process(IrisTest):
         )
         result = ApplyEMOS()(self.percentiles, coefficients, realizations_count=3)
         self.assertIn("percentile", get_dim_coord_names(result))
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
         self.assertNotAlmostEqual(np.mean(result.data), expected_mean)
 
     def test_null_percentiles_frt_fp_mismatch(self):
@@ -425,7 +428,9 @@ class Test_process(IrisTest):
             result.coord("forecast_reference_time").points, expected_frt
         )
         self.assertAlmostEqual(result.coord("forecast_period").points, expected_fp)
-        self.assertArrayAlmostEqual(result.data, self.null_percentiles_expected)
+        np.testing.assert_array_almost_equal(
+            result.data, self.null_percentiles_expected
+        )
         self.assertAlmostEqual(
             np.mean(result.data), self.null_percentiles_expected_mean
         )
@@ -444,7 +449,7 @@ class Test_process(IrisTest):
             prob_template=self.probabilities,
         )
         self.assertIn("probability_of", result.name())
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
 
     def test_alternative_percentiles(self):
         """Test that the calibrated forecast is at a specified set of
@@ -452,7 +457,7 @@ class Test_process(IrisTest):
         result = ApplyEMOS(percentiles=self.alternative_percentiles)(
             self.percentiles, self.coefficients, realizations_count=3
         )
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             result.coord("percentile").points, self.alternative_percentiles
         )
 
@@ -463,7 +468,7 @@ class Test_process(IrisTest):
         result = ApplyEMOS(percentiles=str_percentiles)(
             self.percentiles, self.coefficients, realizations_count=3
         )
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             result.coord("percentile").points, self.alternative_percentiles
         )
 
@@ -480,7 +485,9 @@ class Test_process(IrisTest):
 
         result = ApplyEMOS()(self.percentiles, self.coefficients, realizations_count=3)
         self.assertIn("percentile", get_dim_coord_names(result))
-        self.assertArrayAlmostEqual(result.data, self.null_percentiles_expected)
+        np.testing.assert_array_almost_equal(
+            result.data, self.null_percentiles_expected
+        )
         self.assertAlmostEqual(
             np.mean(result.data), self.null_percentiles_expected_mean
         )

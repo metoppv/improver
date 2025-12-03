@@ -11,7 +11,6 @@ import numpy as np
 from iris.coords import CellMethod
 from iris.cube import Cube, CubeList
 from iris.exceptions import ConstraintMismatchError, CoordinateNotFoundError
-from iris.tests import IrisTest
 from iris.util import squeeze
 
 from improver.metadata.probabilistic import find_threshold_coordinate
@@ -130,7 +129,7 @@ def set_up_lightning_test_cubes(
     )
 
 
-class Test__init__(IrisTest):
+class Test__init__(unittest.TestCase):
     """Test the __init__ method accepts keyword arguments."""
 
     def test_with_radius(self):
@@ -142,7 +141,7 @@ class Test__init__(IrisTest):
         self.assertEqual(plugin.radius, radius)
 
 
-class Test__repr__(IrisTest):
+class Test__repr__(unittest.TestCase):
     """Test the repr method."""
 
     def test_basic(self):
@@ -163,7 +162,7 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, msg)
 
 
-class Test__update_metadata(IrisTest):
+class Test__update_metadata(unittest.TestCase):
     """Test the _update_metadata method."""
 
     def setUp(self):
@@ -213,7 +212,7 @@ class Test__update_metadata(IrisTest):
         """Test that the method does not modify the input cube data."""
         incube = self.cube.copy()
         self.plugin._update_metadata(incube)
-        self.assertArrayAlmostEqual(incube.data, self.cube.data)
+        np.testing.assert_array_almost_equal(incube.data, self.cube.data)
         self.assertEqual(incube.metadata, self.cube.metadata)
 
     def test_missing_threshold_coord(self):
@@ -225,7 +224,7 @@ class Test__update_metadata(IrisTest):
             self.plugin._update_metadata(self.cube)
 
 
-class Test__modify_first_guess(IrisTest):
+class Test__modify_first_guess(unittest.TestCase):
     """Test the _modify_first_guess method."""
 
     def setUp(self):
@@ -273,11 +272,11 @@ class Test__modify_first_guess(IrisTest):
         cube_d = self.precip_cube.copy()
         cube_e = self.vii_cube.copy()
         self.plugin._modify_first_guess(cube_a, cube_b, cube_c, cube_d, cube_e)
-        self.assertArrayAlmostEqual(cube_a.data, self.cube.data)
-        self.assertArrayAlmostEqual(cube_b.data, self.fg_cube.data)
-        self.assertArrayAlmostEqual(cube_c.data, self.ltng_cube.data)
-        self.assertArrayAlmostEqual(cube_d.data, self.precip_cube.data)
-        self.assertArrayAlmostEqual(cube_e.data, self.vii_cube.data)
+        np.testing.assert_array_almost_equal(cube_a.data, self.cube.data)
+        np.testing.assert_array_almost_equal(cube_b.data, self.fg_cube.data)
+        np.testing.assert_array_almost_equal(cube_c.data, self.ltng_cube.data)
+        np.testing.assert_array_almost_equal(cube_d.data, self.precip_cube.data)
+        np.testing.assert_array_almost_equal(cube_e.data, self.vii_cube.data)
 
     def test_missing_lightning(self):
         """Test that the method raises an error if the lightning cube doesn't
@@ -320,7 +319,7 @@ class Test__modify_first_guess(IrisTest):
         result = self.plugin._modify_first_guess(
             self.cube, self.fg_cube, self.ltng_cube, self.precip_cube, None
         )
-        self.assertArrayAlmostEqual(result.data, expected.data)
+        np.testing.assert_array_almost_equal(result.data, expected.data)
 
     def test_vii_large(self):
         """Test that ApplyIce is being called"""
@@ -335,7 +334,7 @@ class Test__modify_first_guess(IrisTest):
         result = self.plugin._modify_first_guess(
             self.cube, self.fg_cube, self.ltng_cube, self.precip_cube, self.vii_cube
         )
-        self.assertArrayAlmostEqual(result.data, expected.data)
+        np.testing.assert_array_almost_equal(result.data, expected.data)
 
     def test_null(self):
         """Test that large precip probs and -1 lrates have no impact"""
@@ -350,7 +349,7 @@ class Test__modify_first_guess(IrisTest):
         result = self.plugin._modify_first_guess(
             self.cube, self.fg_cube, self.ltng_cube, self.precip_cube, None
         )
-        self.assertArrayAlmostEqual(result.data, expected.data)
+        np.testing.assert_array_almost_equal(result.data, expected.data)
 
     def test_lrate_large(self):
         """Test that large lightning rates increase zero lightning risk"""
@@ -365,7 +364,7 @@ class Test__modify_first_guess(IrisTest):
         result = self.plugin._modify_first_guess(
             self.cube, self.fg_cube, self.ltng_cube, self.precip_cube, None
         )
-        self.assertArrayAlmostEqual(result.data, expected.data)
+        np.testing.assert_array_almost_equal(result.data, expected.data)
 
     def test_lrate_large_shortfc(self):
         """Test that nearly-large lightning rates increases zero lightning risk
@@ -389,7 +388,7 @@ class Test__modify_first_guess(IrisTest):
         result = self.plugin._modify_first_guess(
             self.cube, self.fg_cube, self.ltng_cube, self.precip_cube, None
         )
-        self.assertArrayAlmostEqual(result.data, expected.data)
+        np.testing.assert_array_almost_equal(result.data, expected.data)
 
     def test_lrate_large_null(self):
         """Test that large lightning rates do not increase high lightning
@@ -406,7 +405,7 @@ class Test__modify_first_guess(IrisTest):
         result = self.plugin._modify_first_guess(
             self.cube, self.fg_cube, self.ltng_cube, self.precip_cube, None
         )
-        self.assertArrayAlmostEqual(result.data, expected.data)
+        np.testing.assert_array_almost_equal(result.data, expected.data)
 
     def test_lrate_small(self):
         """Test that lightning nearby (encoded as lightning rate zero)
@@ -425,10 +424,10 @@ class Test__modify_first_guess(IrisTest):
         result = self.plugin._modify_first_guess(
             self.cube, self.fg_cube, self.ltng_cube, self.precip_cube, None
         )
-        self.assertArrayAlmostEqual(result.data, expected.data)
+        np.testing.assert_array_almost_equal(result.data, expected.data)
 
 
-class Test_apply_precip(IrisTest):
+class Test_apply_precip(unittest.TestCase):
     """Test the apply_precip method."""
 
     def setUp(self):
@@ -462,8 +461,8 @@ class Test_apply_precip(IrisTest):
         cube_a = self.fg_cube.copy()
         cube_b = self.precip_cube.copy()
         self.plugin.apply_precip(cube_a, cube_b)
-        self.assertArrayAlmostEqual(cube_a.data, self.fg_cube.data)
-        self.assertArrayAlmostEqual(cube_b.data, self.precip_cube.data)
+        np.testing.assert_array_almost_equal(cube_a.data, self.fg_cube.data)
+        np.testing.assert_array_almost_equal(cube_b.data, self.precip_cube.data)
 
     def test_nearby_threshold_low(self):
         """Test that the method accepts a threshold point within machine
@@ -501,7 +500,7 @@ class Test_apply_precip(IrisTest):
         # expected.data contains all ones except:
         expected.data[1, 1] = 0.0067
         result = self.plugin.apply_precip(self.fg_cube, self.precip_cube)
-        self.assertArrayAlmostEqual(result.data, expected.data)
+        np.testing.assert_array_almost_equal(result.data, expected.data)
 
     def test_precip_small(self):
         """Test that small precip probs reduce high lightning risk a bit"""
@@ -511,7 +510,7 @@ class Test_apply_precip(IrisTest):
         # expected.data contains all ones except:
         expected.data[1, 1] = 0.625
         result = self.plugin.apply_precip(self.fg_cube, self.precip_cube)
-        self.assertArrayAlmostEqual(result.data, expected.data)
+        np.testing.assert_array_almost_equal(result.data, expected.data)
 
     def test_precip_light(self):
         """Test that high probs of light precip do not reduce high lightning
@@ -521,7 +520,7 @@ class Test_apply_precip(IrisTest):
         expected = self.fg_cube.copy()
         # expected.data contains all ones
         result = self.plugin.apply_precip(self.fg_cube, self.precip_cube)
-        self.assertArrayAlmostEqual(result.data, expected.data)
+        np.testing.assert_array_almost_equal(result.data, expected.data)
 
     def test_precip_heavy(self):
         """Test that prob of heavy precip increases zero lightning risk"""
@@ -533,7 +532,7 @@ class Test_apply_precip(IrisTest):
         # expected.data contains all ones except:
         expected.data[1, 1] = 0.25
         result = self.plugin.apply_precip(self.fg_cube, self.precip_cube)
-        self.assertArrayAlmostEqual(result.data, expected.data)
+        np.testing.assert_array_almost_equal(result.data, expected.data)
 
     def test_precip_heavy_null(self):
         """Test that low prob of heavy precip does not increase
@@ -546,7 +545,7 @@ class Test_apply_precip(IrisTest):
         # expected.data contains all ones except:
         expected.data[1, 1] = 0.1
         result = self.plugin.apply_precip(self.fg_cube, self.precip_cube)
-        self.assertArrayAlmostEqual(result.data, expected.data)
+        np.testing.assert_array_almost_equal(result.data, expected.data)
 
     def test_precip_intense(self):
         """Test that prob of intense precip increases zero lightning risk"""
@@ -558,7 +557,7 @@ class Test_apply_precip(IrisTest):
         # Set first-guess to zero
         self.fg_cube.data[1, 1] = 0.0
         result = self.plugin.apply_precip(self.fg_cube, self.precip_cube)
-        self.assertArrayAlmostEqual(result.data, expected.data)
+        np.testing.assert_array_almost_equal(result.data, expected.data)
 
     def test_precip_intense_null(self):
         """Test that low prob of intense precip does not increase
@@ -572,10 +571,10 @@ class Test_apply_precip(IrisTest):
         # expected.data contains all ones except:
         expected.data[1, 1] = 0.25  # Heavy-precip result only
         result = self.plugin.apply_precip(self.fg_cube, self.precip_cube)
-        self.assertArrayAlmostEqual(result.data, expected.data)
+        np.testing.assert_array_almost_equal(result.data, expected.data)
 
 
-class Test_apply_ice(IrisTest):
+class Test_apply_ice(unittest.TestCase):
     """Test the apply_ice method."""
 
     def setUp(self):
@@ -609,8 +608,8 @@ class Test_apply_ice(IrisTest):
         cube_a = self.fg_cube.copy()
         cube_b = self.ice_cube.copy()
         self.plugin.apply_ice(cube_a, cube_b)
-        self.assertArrayAlmostEqual(cube_a.data, self.fg_cube.data)
-        self.assertArrayAlmostEqual(cube_b.data, self.ice_cube.data)
+        np.testing.assert_array_almost_equal(cube_a.data, self.fg_cube.data)
+        np.testing.assert_array_almost_equal(cube_b.data, self.ice_cube.data)
 
     def test_missing_threshold_low(self):
         """Test that the method raises an error if the ice_cube doesn't
@@ -645,7 +644,7 @@ class Test_apply_ice(IrisTest):
         # expected.data contains all ones except:
         expected.data[1, 1] = 0.25
         result = self.plugin.apply_ice(self.fg_cube, self.ice_cube)
-        self.assertArrayAlmostEqual(result.data, expected.data)
+        np.testing.assert_array_almost_equal(result.data, expected.data)
 
     def test_ice_zero(self):
         """Test that zero VII probs do not increase zero lightning risk"""
@@ -655,7 +654,7 @@ class Test_apply_ice(IrisTest):
         # expected.data contains all ones except:
         expected.data[1, 1] = 0.0
         result = self.plugin.apply_ice(self.fg_cube, self.ice_cube)
-        self.assertArrayAlmostEqual(result.data, expected.data)
+        np.testing.assert_array_almost_equal(result.data, expected.data)
 
     def test_ice_small(self):
         """Test that small VII probs do increase zero lightning risk"""
@@ -666,7 +665,7 @@ class Test_apply_ice(IrisTest):
         # expected.data contains all ones except:
         expected.data[1, 1] = 0.05
         result = self.plugin.apply_ice(self.fg_cube, self.ice_cube)
-        self.assertArrayAlmostEqual(result.data, expected.data)
+        np.testing.assert_array_almost_equal(result.data, expected.data)
 
     def test_ice_large(self):
         """Test that large VII probs do increase zero lightning risk"""
@@ -676,7 +675,7 @@ class Test_apply_ice(IrisTest):
         # expected.data contains all ones except:
         expected.data[1, 1] = 0.9
         result = self.plugin.apply_ice(self.fg_cube, self.ice_cube)
-        self.assertArrayAlmostEqual(result.data, expected.data)
+        np.testing.assert_array_almost_equal(result.data, expected.data)
 
     def test_ice_large_with_fc(self):
         """Test that large VII probs do increase zero lightning risk when
@@ -697,10 +696,10 @@ class Test_apply_ice(IrisTest):
         expected.data[1, 1, 1] = 0.0
         expected.data[2, 1, 1] = 0.0
         result = self.plugin.apply_ice(fg_cube_input, self.ice_cube)
-        self.assertArrayAlmostEqual(result.data, expected.data)
+        np.testing.assert_array_almost_equal(result.data, expected.data)
 
 
-class Test_process(IrisTest):
+class Test_process(unittest.TestCase):
     """Test the nowcast lightning plugin."""
 
     def setUp(self):
@@ -874,7 +873,7 @@ class Test_process(IrisTest):
             CubeList([self.fg_cube, self.ltng_cube, self.precip_cube, self.vii_cube])
         )
         self.assertIsInstance(result, Cube)
-        self.assertArrayAlmostEqual(result.data, expected.data)
+        np.testing.assert_array_almost_equal(result.data, expected.data)
 
     def test_result_with_vii_longfc(self):
         """Test that the method returns the expected data when vii is
@@ -897,7 +896,7 @@ class Test_process(IrisTest):
             CubeList([self.fg_cube, self.ltng_cube, self.precip_cube, self.vii_cube])
         )
         self.assertIsInstance(result, Cube)
-        self.assertArrayAlmostEqual(result.data, expected.data)
+        np.testing.assert_array_almost_equal(result.data, expected.data)
 
 
 if __name__ == "__main__":

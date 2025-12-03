@@ -8,7 +8,6 @@ import unittest
 
 import iris
 import numpy as np
-from iris.tests import IrisTest
 
 from improver.constants import DALR
 from improver.synthetic_data.set_up_test_cubes import (
@@ -18,7 +17,7 @@ from improver.synthetic_data.set_up_test_cubes import (
 from improver.temperature.lapse_rate import ApplyGriddedLapseRate
 
 
-class Test_process(IrisTest):
+class Test_process(unittest.TestCase):
     """Test the ApplyGriddedLapseRate plugin"""
 
     def setUp(self):
@@ -117,12 +116,12 @@ class Test_process(IrisTest):
         source_eq_dest = np.where(
             np.isclose(self.source_orog.data, self.dest_orog.data)
         )
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.data[source_eq_dest], self.temperature.data[source_eq_dest]
         )
 
         # match specific values
-        self.assertArrayAlmostEqual(result.data, self.expected_data)
+        np.testing.assert_array_almost_equal(result.data, self.expected_data)
 
     def test_unit_adjustment(self):
         """Test correct values are retrieved if input cubes have incorrect
@@ -133,7 +132,7 @@ class Test_process(IrisTest):
             self.temperature, self.lapse_rate, self.source_orog, self.dest_orog
         )
         self.assertEqual(result.units, "K")
-        self.assertArrayAlmostEqual(result.data, self.expected_data)
+        np.testing.assert_array_almost_equal(result.data, self.expected_data)
 
     def test_realizations(self):
         """Test processing of a cube with multiple realizations"""
@@ -142,9 +141,11 @@ class Test_process(IrisTest):
         result = ApplyGriddedLapseRate()(
             temp_3d, lrt_3d, self.source_orog, self.dest_orog
         )
-        self.assertArrayEqual(result.coord("realization").points, np.array([0, 1, 2]))
+        np.testing.assert_array_equal(
+            result.coord("realization").points, np.array([0, 1, 2])
+        )
         for subcube in result.slices_over("realization"):
-            self.assertArrayAlmostEqual(subcube.data, self.expected_data)
+            np.testing.assert_array_almost_equal(subcube.data, self.expected_data)
 
     def test_unmatched_realizations(self):
         """Test error if realizations on temperature and lapse rate do not

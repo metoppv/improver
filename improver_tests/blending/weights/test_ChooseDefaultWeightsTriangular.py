@@ -9,7 +9,6 @@ from datetime import datetime as dt
 
 import numpy as np
 from cf_units import Unit
-from iris.tests import IrisTest
 
 from improver.blending.weights import ChooseDefaultWeightsTriangular
 from improver.synthetic_data.set_up_test_cubes import (
@@ -18,7 +17,7 @@ from improver.synthetic_data.set_up_test_cubes import (
 )
 
 
-class Test___repr__(IrisTest):
+class Test___repr__(unittest.TestCase):
     """Tests for the __repr__function"""
 
     def test_basic(self):
@@ -42,7 +41,7 @@ class Test___repr__(IrisTest):
         self.assertEqual(result, expected)
 
 
-class Test_triangular_weights(IrisTest):
+class Test_triangular_weights(unittest.TestCase):
     """Tests for the triangular_weights function"""
 
     def test_basic(self):
@@ -90,7 +89,7 @@ class Test_triangular_weights(IrisTest):
                 0.0,
             ]
         )
-        self.assertArrayAlmostEqual(weights, expected_weights)
+        np.testing.assert_array_almost_equal(weights, expected_weights)
 
     def test_midpoint_at_edge(self):
         """Test that the correct triangular weights are returned for a case
@@ -122,7 +121,7 @@ class Test_triangular_weights(IrisTest):
                 0.0,
             ]
         )
-        self.assertArrayAlmostEqual(weights, expected_weights)
+        np.testing.assert_array_almost_equal(weights, expected_weights)
 
     def test_large_width(self):
         """Test the case where the width of the triangle is larger than the
@@ -155,7 +154,7 @@ class Test_triangular_weights(IrisTest):
                 0.011111,
             ]
         )
-        self.assertArrayAlmostEqual(weights, expected_weights)
+        np.testing.assert_array_almost_equal(weights, expected_weights)
 
     def test_non_integer_midpoint(self):
         """Test the case where the midpoint of the triangle is not a point in
@@ -187,7 +186,7 @@ class Test_triangular_weights(IrisTest):
                 0.0,
             ]
         )
-        self.assertArrayAlmostEqual(weights, expected_weights)
+        np.testing.assert_array_almost_equal(weights, expected_weights)
 
     def test_non_integer_width(self):
         """Test when the width of the triangle does not fall on a grid point.
@@ -218,7 +217,7 @@ class Test_triangular_weights(IrisTest):
                 0.0,
             ]
         )
-        self.assertArrayAlmostEqual(weights, expected_weights)
+        np.testing.assert_array_almost_equal(weights, expected_weights)
 
     def test_unevenly_spaced_coord(self):
         """Test the case where the input coordinate is not equally spaced.
@@ -252,10 +251,10 @@ class Test_triangular_weights(IrisTest):
                 0.0,
             ]
         )
-        self.assertArrayAlmostEqual(weights, expected_weights)
+        np.testing.assert_array_almost_equal(weights, expected_weights)
 
 
-class Test___init__(IrisTest):
+class Test___init__(unittest.TestCase):
     """Tests for the __init__ method in ChooseDefaultWeightsTriangular class"""
 
     def test_cf_unit_input(self):
@@ -280,7 +279,7 @@ class Test___init__(IrisTest):
         self.assertEqual(weights_instance.parameters_units, expected_unit)
 
 
-class Test_process(IrisTest):
+class Test_process(unittest.TestCase):
     """Tests for the process method in ChooseDefaultWeightsTriangular."""
 
     def setUp(self):
@@ -313,7 +312,7 @@ class Test_process(IrisTest):
         midpoint = 3600
         weights = weights_instance.process(self.cube, self.coord_name, midpoint)
         expected_weights = np.array([0.33333333, 0.66666667])
-        self.assertArrayAlmostEqual(weights.data, expected_weights)
+        np.testing.assert_array_almost_equal(weights.data, expected_weights)
 
     def test_different_units(self):
         """ "Test plugin produces the correct weights when the parameters for
@@ -324,7 +323,7 @@ class Test_process(IrisTest):
         midpoint = 1
         weights = weights_instance.process(self.cube, self.coord_name, midpoint)
         expected_weights = np.array([0.33333333, 0.66666667])
-        self.assertArrayAlmostEqual(weights.data, expected_weights)
+        np.testing.assert_array_almost_equal(weights.data, expected_weights)
 
     def test_unconvertable_units(self):
         """ "Test plugin produces the correct weights when the parameters for

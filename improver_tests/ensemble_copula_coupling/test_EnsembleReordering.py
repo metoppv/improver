@@ -13,7 +13,6 @@ import unittest
 
 import numpy as np
 from iris.cube import Cube
-from iris.tests import IrisTest
 
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     EnsembleReordering as Plugin,
@@ -26,7 +25,7 @@ from improver.synthetic_data.set_up_test_cubes import (
 from .ecc_test_data import ECC_TEMPERATURE_REALIZATIONS
 
 
-class Test__recycle_raw_ensemble_realizations(IrisTest):
+class Test__recycle_raw_ensemble_realizations(unittest.TestCase):
     """
     Test the _recycle_raw_ensemble_realizations
     method in the EnsembleReordering plugin.
@@ -70,8 +69,8 @@ class Test__recycle_raw_ensemble_realizations(IrisTest):
             self.percentile_cube, self.realization_cube, self.perc_coord
         )
         self.assertIsInstance(result, Cube)
-        self.assertArrayEqual(result.coord("realization").points, [0, 1, 2])
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_equal(result.coord("realization").points, [0, 1, 2])
+        np.testing.assert_array_almost_equal(result.data, expected_data)
 
     def test_realization_for_greater_than(self):
         """
@@ -91,8 +90,8 @@ class Test__recycle_raw_ensemble_realizations(IrisTest):
             self.percentile_cube, raw_forecast_realizations, self.perc_coord
         )
         self.assertIsInstance(result, Cube)
-        self.assertArrayEqual(result.coord("realization").points, [12, 13, 14])
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_equal(result.coord("realization").points, [12, 13, 14])
+        np.testing.assert_array_almost_equal(result.data, expected_data)
 
     def test_realization_for_less_than(self):
         """
@@ -111,11 +110,11 @@ class Test__recycle_raw_ensemble_realizations(IrisTest):
             post_processed_forecast_percentiles, self.realization_cube, self.perc_coord
         )
         self.assertIsInstance(result, Cube)
-        self.assertArrayEqual(result.coord("realization").points, [0, 1])
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_equal(result.coord("realization").points, [0, 1])
+        np.testing.assert_array_almost_equal(result.data, expected_data)
 
 
-class Test_rank_ecc(IrisTest):
+class Test_rank_ecc(unittest.TestCase):
     """Test the rank_ecc method in the EnsembleReordering plugin."""
 
     def setUp(self):
@@ -175,7 +174,7 @@ class Test_rank_ecc(IrisTest):
         calibrated_cube = raw_cube.copy()
 
         result = Plugin().rank_ecc(calibrated_cube, raw_cube)
-        self.assertArrayAlmostEqual(result.data, calibrated_cube.data)
+        np.testing.assert_array_almost_equal(result.data, calibrated_cube.data)
 
     def test_unordered_data(self):
         """
@@ -216,7 +215,7 @@ class Test_rank_ecc(IrisTest):
         calibrated_cube = self.cube.copy(data=calibrated_data)
 
         result = Plugin().rank_ecc(calibrated_cube, raw_cube)
-        self.assertArrayAlmostEqual(result.data, result_data)
+        np.testing.assert_array_almost_equal(result.data, result_data)
 
     def test_2d_cube(self):
         """Test that the plugin returns the correct cube data for a
@@ -229,7 +228,7 @@ class Test_rank_ecc(IrisTest):
         calibrated_cube = self.cube_2d.copy(data=calibrated_data)
 
         result = Plugin().rank_ecc(calibrated_cube, raw_cube)
-        self.assertArrayAlmostEqual(result.data, result_data)
+        np.testing.assert_array_almost_equal(result.data, result_data)
 
     def test_2d_cube_masked(self):
         """Test that the plugin returns the correct cube data for a
@@ -247,8 +246,8 @@ class Test_rank_ecc(IrisTest):
         calibrated_cube = self.cube_2d.copy(data=calibrated_data)
 
         result = Plugin().rank_ecc(calibrated_cube, raw_cube)
-        self.assertArrayAlmostEqual(result.data.data, result_data)
-        self.assertArrayEqual(result.data.mask, mask)
+        np.testing.assert_array_almost_equal(result.data.data, result_data)
+        np.testing.assert_array_equal(result.data.mask, mask)
         self.assertEqual(result.data.dtype, np.float32)
 
     def test_2d_cube_masked_nans(self):
@@ -268,8 +267,8 @@ class Test_rank_ecc(IrisTest):
         calibrated_cube = self.cube_2d.copy(data=calibrated_data)
 
         result = Plugin().rank_ecc(calibrated_cube, raw_cube)
-        self.assertArrayAlmostEqual(result.data.data, result_data)
-        self.assertArrayEqual(result.data.mask, mask)
+        np.testing.assert_array_almost_equal(result.data.data, result_data)
+        np.testing.assert_array_equal(result.data.mask, mask)
         self.assertEqual(result.data.dtype, np.float32)
 
     def test_2d_cube_tied_values_random(self):
@@ -311,7 +310,7 @@ class Test_rank_ecc(IrisTest):
         calibrated_cube = self.cube_2d.copy(data=calibrated_data)
 
         result = Plugin().rank_ecc(calibrated_cube, raw_cube, random_seed=1)
-        self.assertArrayAlmostEqual(result.data, result_data)
+        np.testing.assert_array_almost_equal(result.data, result_data)
 
     def test_2d_cube_tied_values_realization(self):
         """
@@ -328,7 +327,7 @@ class Test_rank_ecc(IrisTest):
         calibrated_cube = self.cube_2d.copy(data=calibrated_data)
 
         result = Plugin().rank_ecc(calibrated_cube, raw_cube, tie_break="realization")
-        self.assertArrayAlmostEqual(result.data, result_data)
+        np.testing.assert_array_almost_equal(result.data, result_data)
 
     def test_1d_cube(self):
         """
@@ -344,7 +343,7 @@ class Test_rank_ecc(IrisTest):
         calibrated_cube = cube.copy(data=calibrated_data)
 
         result = Plugin().rank_ecc(calibrated_cube, raw_cube)
-        self.assertArrayAlmostEqual(result.data, result_data)
+        np.testing.assert_array_almost_equal(result.data, result_data)
 
     def test_1d_cube_random_ordering(self):
         """
@@ -388,7 +387,7 @@ class Test_rank_ecc(IrisTest):
             Plugin().rank_ecc(calibrated_cube, raw_cube, tie_break="kittens")
 
 
-class Test__check_input_cube_masks(IrisTest):
+class Test__check_input_cube_masks(unittest.TestCase):
     """Test the _check_input_cube_masks method in the EnsembleReordering plugin."""
 
     def setUp(self):
@@ -487,7 +486,7 @@ class Test__check_input_cube_masks(IrisTest):
         Plugin._check_input_cube_masks(self.post_processed_percentiles, self.raw_cube)
 
 
-class Test_process(IrisTest):
+class Test_process(unittest.TestCase):
     """Test the EnsembleReordering plugin."""
 
     def setUp(self):
@@ -516,7 +515,7 @@ class Test_process(IrisTest):
         self.assertEqual(
             result.coord("realization"), self.raw_cube.coord("realization")
         )
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
 
     def test_basic_masked_input_data(self):
         """
@@ -539,8 +538,8 @@ class Test_process(IrisTest):
         self.assertEqual(
             result.coord("realization"), self.raw_cube.coord("realization")
         )
-        self.assertArrayAlmostEqual(result.data, expected_data)
-        self.assertArrayEqual(result.data.mask, expected_data.mask)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
+        np.testing.assert_array_equal(result.data.mask, expected_data.mask)
 
     def test_basic_masked_input_data_not_nans(self):
         """
@@ -563,8 +562,8 @@ class Test_process(IrisTest):
         self.assertEqual(
             result.coord("realization"), self.raw_cube.coord("realization")
         )
-        self.assertArrayAlmostEqual(result.data, expected_data)
-        self.assertArrayEqual(result.data.mask, expected_data.mask)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
+        np.testing.assert_array_equal(result.data.mask, expected_data.mask)
 
     def test_1d_cube_random_ordering(self):
         """

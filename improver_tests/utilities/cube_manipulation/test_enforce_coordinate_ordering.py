@@ -9,7 +9,6 @@ Unit tests for the function "cube_manipulation.enforce_coordinate_ordering".
 import unittest
 
 import numpy as np
-from iris.tests import IrisTest
 
 from improver.metadata.constants.time_types import TIME_COORDS
 from improver.synthetic_data.set_up_test_cubes import (
@@ -20,7 +19,7 @@ from improver.synthetic_data.set_up_test_cubes import (
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 
-class Test_enforce_coordinate_ordering(IrisTest):
+class Test_enforce_coordinate_ordering(unittest.TestCase):
     """Test the enforce_coordinate_ordering utility."""
 
     def setUp(self):
@@ -46,7 +45,7 @@ class Test_enforce_coordinate_ordering(IrisTest):
         expected = self.cube.copy()
         enforce_coordinate_ordering(self.cube, "realization")
         self.assertEqual(self.cube.coord_dims("realization")[0], 0)
-        self.assertArrayAlmostEqual(self.cube.data, expected.data)
+        np.testing.assert_array_almost_equal(self.cube.data, expected.data)
 
     def test_move_coordinate_to_start(self):
         """Test that a cube with the expected data contents is returned when
@@ -58,7 +57,7 @@ class Test_enforce_coordinate_ordering(IrisTest):
         self.assertEqual(self.cube.coord_dims("time")[0], 0)
         # test associated aux coord is moved along with time dimension
         self.assertEqual(self.cube.coord_dims("forecast_period")[0], 0)
-        self.assertArrayAlmostEqual(self.cube.data, expected.data)
+        np.testing.assert_array_almost_equal(self.cube.data, expected.data)
 
     def test_move_coordinate_to_end(self):
         """Test that a cube with the expected data contents is returned when
@@ -68,7 +67,7 @@ class Test_enforce_coordinate_ordering(IrisTest):
         expected.transpose([1, 2, 3, 0])
         enforce_coordinate_ordering(self.cube, "realization", anchor_start=False)
         self.assertEqual(self.cube.coord_dims("realization")[0], 3)
-        self.assertArrayAlmostEqual(self.cube.data, expected.data)
+        np.testing.assert_array_almost_equal(self.cube.data, expected.data)
 
     def test_move_coordinate_to_start_with_list(self):
         """Test that a cube with the expected data contents is returned when
@@ -78,7 +77,7 @@ class Test_enforce_coordinate_ordering(IrisTest):
         expected.transpose([1, 0, 2, 3])
         enforce_coordinate_ordering(self.cube, ["time"])
         self.assertEqual(self.cube.coord_dims("time")[0], 0)
-        self.assertArrayAlmostEqual(self.cube.data, expected.data)
+        np.testing.assert_array_almost_equal(self.cube.data, expected.data)
 
     def test_move_multiple_coordinate_to_start_with_list(self):
         """Test that a cube with the expected data contents is returned when
@@ -89,7 +88,7 @@ class Test_enforce_coordinate_ordering(IrisTest):
         enforce_coordinate_ordering(self.cube, ["time", "realization"])
         self.assertEqual(self.cube.coord_dims("time")[0], 0)
         self.assertEqual(self.cube.coord_dims("realization")[0], 1)
-        self.assertArrayAlmostEqual(self.cube.data, expected.data)
+        np.testing.assert_array_almost_equal(self.cube.data, expected.data)
 
     def test_move_multiple_coordinate_to_end_with_list(self):
         """Test that a cube with the expected data contents is returned when
@@ -103,7 +102,7 @@ class Test_enforce_coordinate_ordering(IrisTest):
         )
         self.assertEqual(self.cube.coord_dims("time")[0], 2)
         self.assertEqual(self.cube.coord_dims("realization")[0], 3)
-        self.assertArrayAlmostEqual(self.cube.data, expected.data)
+        np.testing.assert_array_almost_equal(self.cube.data, expected.data)
 
     def test_full_reordering(self):
         """Test that a cube with the expected data contents is returned when
@@ -118,7 +117,7 @@ class Test_enforce_coordinate_ordering(IrisTest):
         self.assertEqual(self.cube.coord_dims("realization")[0], 1)
         self.assertEqual(self.cube.coord_dims("longitude")[0], 2)
         self.assertEqual(self.cube.coord_dims("time")[0], 3)
-        self.assertArrayAlmostEqual(self.cube.data, expected.data)
+        np.testing.assert_array_almost_equal(self.cube.data, expected.data)
 
     def test_include_extra_coordinates(self):
         """Test that a cube with the expected data contents is returned when
@@ -129,7 +128,7 @@ class Test_enforce_coordinate_ordering(IrisTest):
         enforce_coordinate_ordering(self.cube, ["time", "realization", "nonsense"])
         self.assertEqual(self.cube.coord_dims("time")[0], 0)
         self.assertEqual(self.cube.coord_dims("realization")[0], 1)
-        self.assertArrayAlmostEqual(self.cube.data, expected.data)
+        np.testing.assert_array_almost_equal(self.cube.data, expected.data)
 
     def test_no_impact_scalar(self):
         """Test that a cube with the expected data contents is returned when
@@ -138,7 +137,7 @@ class Test_enforce_coordinate_ordering(IrisTest):
         expected = cube.copy()
         enforce_coordinate_ordering(cube, "realization")
         self.assertFalse(cube.coord_dims("realization"))
-        self.assertArrayAlmostEqual(cube.data, expected.data)
+        np.testing.assert_array_almost_equal(cube.data, expected.data)
 
     def test_handles_threshold(self):
         """Test a probability cube is correctly handled"""

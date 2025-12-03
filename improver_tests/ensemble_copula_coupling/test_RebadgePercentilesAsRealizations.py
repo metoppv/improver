@@ -14,7 +14,6 @@ import numpy as np
 from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube
 from iris.exceptions import InvalidCubeError
-from iris.tests import IrisTest
 
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     RebadgePercentilesAsRealizations as Plugin,
@@ -24,7 +23,7 @@ from improver.synthetic_data.set_up_test_cubes import set_up_percentile_cube
 from .ecc_test_data import ECC_TEMPERATURE_REALIZATIONS
 
 
-class Test_process(IrisTest):
+class Test_process(unittest.TestCase):
     """Test the process method of the
     RebadgePercentilesAsRealizations plugin."""
 
@@ -47,7 +46,7 @@ class Test_process(IrisTest):
         particular values for the ensemble realization numbers."""
         ensemble_realization_numbers = [12, 13, 14]
         result = Plugin().process(self.cube, ensemble_realization_numbers)
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             result.coord("realization").points, ensemble_realization_numbers
         )
 
@@ -55,7 +54,7 @@ class Test_process(IrisTest):
         """Check the values for the realization coordinate generated without
         specifying the ensemble_realization_numbers argument."""
         result = Plugin().process(self.cube)
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.coord("realization").points, np.array([0, 1, 2])
         )
 

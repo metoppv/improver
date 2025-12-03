@@ -7,13 +7,12 @@
 import unittest
 
 import numpy as np
-from iris.tests import IrisTest
 
 from improver.precipitation.calculate_sleet_prob import calculate_sleet_probability
 from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
 
 
-class Test_calculate_sleet_probability(IrisTest):
+class Test_calculate_sleet_probability(unittest.TestCase):
     """Tests the calculate sleet probability function."""
 
     def setUp(self):
@@ -66,7 +65,7 @@ class Test_calculate_sleet_probability(IrisTest):
             dtype=np.float32,
         )
         result = calculate_sleet_probability(self.rain_prob_cube, self.snow_prob_cube)
-        self.assertArrayAlmostEqual(result.data, expected_result)
+        np.testing.assert_array_almost_equal(result.data, expected_result)
         self.assertTrue(result.dtype == np.float32)
 
     def test_with_ints(self):
@@ -88,7 +87,7 @@ class Test_calculate_sleet_probability(IrisTest):
             dtype=np.int8,
         )
         result = calculate_sleet_probability(rain_prob_cube, snow_prob_cube)
-        self.assertArrayAlmostEqual(result.data, expected_result)
+        np.testing.assert_array_almost_equal(result.data, expected_result)
         self.assertTrue(result.dtype == np.int8)
 
     def test_negative_values(self):

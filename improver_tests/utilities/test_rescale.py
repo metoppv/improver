@@ -8,13 +8,12 @@ import unittest
 from datetime import datetime
 
 import numpy as np
-from iris.tests import IrisTest
 
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.rescale import apply_double_scaling, rescale
 
 
-class Test_rescale(IrisTest):
+class Test_rescale(unittest.TestCase):
     """Test the utilities.rescale rescale function."""
 
     def setUp(self):
@@ -47,7 +46,7 @@ class Test_rescale(IrisTest):
         result = rescale(
             self.cube.data, data_range=(0.0, 1.0), scale_range=(100.0, 110.0)
         )
-        self.assertArrayAlmostEqual(result, expected)
+        np.testing.assert_array_almost_equal(result, expected)
 
     def test_rescaling_outrange(self):
         """Test that the method gives the expected values when out of range"""
@@ -57,7 +56,7 @@ class Test_rescale(IrisTest):
         result = rescale(
             self.cube.data, data_range=(0.2, 1.2), scale_range=(100.0, 110.0)
         )
-        self.assertArrayAlmostEqual(result, expected)
+        np.testing.assert_array_almost_equal(result, expected)
 
     def test_clip(self):
         """Test that the method clips values when out of range"""
@@ -67,7 +66,7 @@ class Test_rescale(IrisTest):
         result = rescale(
             self.cube.data, data_range=(0.2, 1.2), scale_range=(100.0, 110.0), clip=True
         )
-        self.assertArrayAlmostEqual(result, expected)
+        np.testing.assert_array_almost_equal(result, expected)
 
     def test_inverted_clip(self):
         """Test that the method clips values when the range minimum is not first"""
@@ -77,10 +76,10 @@ class Test_rescale(IrisTest):
         result = rescale(
             self.cube.data, data_range=(1.2, 0.2), scale_range=(110.0, 100.0), clip=True
         )
-        self.assertArrayAlmostEqual(result, expected)
+        np.testing.assert_array_almost_equal(result, expected)
 
 
-class Test_apply_double_scaling(IrisTest):
+class Test_apply_double_scaling(unittest.TestCase):
     """Test the apply_double_scaling method."""
 
     def setUp(self):
@@ -125,8 +124,8 @@ class Test_apply_double_scaling(IrisTest):
         cube_a = self.cube_a.copy()
         cube_b = self.cube_b.copy()
         apply_double_scaling(self.cube_a, self.cube_b, self.thr_a, self.thr_b)
-        self.assertArrayAlmostEqual(cube_a.data, self.cube_a.data)
-        self.assertArrayAlmostEqual(cube_b.data, self.cube_b.data)
+        np.testing.assert_array_almost_equal(cube_a.data, self.cube_a.data)
+        np.testing.assert_array_almost_equal(cube_b.data, self.cube_b.data)
 
     def test_values_default(self):
         """Test that the method returns the expected data values with default
@@ -146,7 +145,7 @@ class Test_apply_double_scaling(IrisTest):
         self.cube_b.data[1, :] = np.arange(0.0, 1.6, 0.4)
         self.cube_b.data[2, :] = np.arange(0.0, 1.6, 0.4)
         result = apply_double_scaling(self.cube_a, self.cube_b, self.thr_a, self.thr_b)
-        self.assertArrayAlmostEqual(result, expected)
+        np.testing.assert_array_almost_equal(result, expected)
 
     def test_values_max(self):
         """Test that the method returns the expected data values with max
@@ -171,7 +170,7 @@ class Test_apply_double_scaling(IrisTest):
             self.thr_b,
             combine_function=np.maximum,
         )
-        self.assertArrayAlmostEqual(result, expected)
+        np.testing.assert_array_almost_equal(result, expected)
 
 
 if __name__ == "__main__":
