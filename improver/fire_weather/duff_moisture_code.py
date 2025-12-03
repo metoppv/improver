@@ -2,16 +2,14 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-from datetime import datetime
-from typing import cast
 
 import numpy as np
-from iris.cube import Cube, CubeList
+from iris.cube import Cube
 
-from improver import BasePlugin
+from improver.fire_weather import FireWeatherIndexBase
 
 
-class DuffMoistureCode(BasePlugin):
+class DuffMoistureCode(FireWeatherIndexBase):
     """
     Plugin to calculate the Duff Moisture Code (DMC) following
     the Canadian Forest Fire Weather Index System.
@@ -34,6 +32,17 @@ class DuffMoistureCode(BasePlugin):
         - Previous DMC: dimensionless
         - Month: integer (1-12) for day length factor lookup
     """
+
+    INPUT_CUBE_NAMES = [
+        "air_temperature",
+        "lwe_thickness_of_precipitation_amount",
+        "relative_humidity",
+        "duff_moisture_code",
+    ]
+    OUTPUT_CUBE_NAME = "duff_moisture_code"
+    REQUIRES_MONTH = True
+    # Disambiguate input DMC (yesterday's value) from output DMC (today's calculated value)
+    INPUT_ATTRIBUTE_MAPPINGS = {"duff_moisture_code": "input_dmc"}
 
     temperature: Cube
     precipitation: Cube
@@ -60,47 +69,25 @@ class DuffMoistureCode(BasePlugin):
         6.0,  # December
     ]
 
-    def load_input_cubes(self, cubes: tuple[Cube] | CubeList, month: int):
-        """Loads the required input cubes for the DMC calculation. These
-        are stored internally as Cube objects.
+    def _calculate(self) -> np.ndarray:
+        """Calculate the Duff Moisture Code (DMC).
 
-        Args:
-            cubes (tuple[Cube] | CubeList): Input cubes containing the necessary data.
-            month (int): Month of the year (1-12) for day length factor lookup.
-
-        Raises:
-            ValueError: If the number of cubes does not match the expected
-                number (4), or if month is out of range.
+        Returns:
+            np.ndarray: The calculated DMC values for the current day.
         """
-        names_to_extract = [
-            "air_temperature",
-            "lwe_thickness_of_precipitation_amount",
-            "relative_humidity",
-            "duff_moisture_code",
-        ]
-        if len(cubes) != len(names_to_extract):
-            raise ValueError(
-                f"Expected {len(names_to_extract)} cubes, found {len(cubes)}"
-            )
+        # Step 1: Set today's DMC value to the previous day's DMC value
+        self.previous_dmc = self.input_dmc.data.copy()
 
-        if not (1 <= month <= 12):
-            raise ValueError(f"Month must be between 1 and 12, got {month}")
+        # Step 2: Perform rainfall adjustment, if precipitation > 1.5 mm
+        self._perform_rainfall_adjustment()
 
-        self.month = month
+        # Steps 3 & 4: Calculate drying rate
+        drying_rate = self._calculate_drying_rate()
 
-        # Load the cubes into class attributes
-        (
-            self.temperature,
-            self.precipitation,
-            self.relative_humidity,
-            self.input_dmc,
-        ) = tuple(cast(Cube, CubeList(cubes).extract_cube(n)) for n in names_to_extract)
+        # Step 5: Calculate DMC from adjusted previous DMC and drying rate
+        dmc = self._calculate_dmc(drying_rate)
 
-        # Ensure the cubes are set to the correct units
-        self.temperature.convert_units("degC")
-        self.precipitation.convert_units("mm")
-        self.relative_humidity.convert_units("1")
-        self.input_dmc.convert_units("1")
+        return dmc
 
     def _perform_rainfall_adjustment(self):
         """Updates the previous DMC value based on available precipitation
@@ -158,12 +145,16 @@ class DuffMoistureCode(BasePlugin):
     def _calculate_drying_rate(self) -> np.ndarray:
         """Calculates the drying rate for DMC. This is multiplied by 100 for
         computational efficiency in the final DMC calculation. The original
-        algorithm calculates K and then multilies it by 100 in the DMC equation.
+        algorithm calculates K and then multiplies it by 100 in the DMC equation.
+
+        Temperature is bounded to a minimum of -1.1°C. Uses the day length factor
+        for the current month from DMC_DAY_LENGTH_FACTORS.
 
         From Van Wagner and Pickett (1985), Page 6: Equation 16, Steps 3 & 4.
 
         Returns:
-            np.ndarray: The drying rate value.
+            np.ndarray: The drying rate (dimensionless). Shape matches input cube
+                data shape. This value is added to previous DMC to get today's DMC.
         """
         # Apply temperature lower bound of -1.1°C
         temp_adjusted = np.maximum(self.temperature.data, -1.1)
@@ -203,70 +194,3 @@ class DuffMoistureCode(BasePlugin):
         dmc = np.maximum(dmc, 0.0)
 
         return dmc
-
-    def _make_dmc_cube(self, dmc_data: np.ndarray) -> Cube:
-        """Converts a DMC data array into an iris.cube.Cube object
-        with relevant metadata copied from the input DMC cube, and updated
-        time coordinates from the precipitation cube. Time bounds are
-        removed from the output.
-
-        Args:
-            dmc_data (np.ndarray): The DMC data
-
-        Returns:
-            Cube: An iris.cube.Cube containing the DMC data with updated
-                metadata and coordinates.
-        """
-        dmc_cube = self.input_dmc.copy(data=dmc_data.astype(np.float32))
-
-        # Update forecast_reference_time from precipitation cube
-        frt_coord = self.precipitation.coord("forecast_reference_time").copy()
-        dmc_cube.replace_coord(frt_coord)
-
-        # Update time coordinate from precipitation cube (without bounds)
-        time_coord = self.precipitation.coord("time").copy()
-        time_coord.bounds = None
-        dmc_cube.replace_coord(time_coord)
-
-        return dmc_cube
-
-    def process(
-        self,
-        cubes: tuple[Cube] | CubeList,
-        month: int | None = None,
-    ) -> Cube:
-        """Calculate the Duff Moisture Code (DMC).
-
-        Args:
-            cubes (Cube | CubeList): Input cubes containing:
-                air_temperature: Temperature in degrees Celsius
-                lwe_thickness_of_precipitation_amount: 24-hour precipitation in mm
-                relative_humidity: Relative humidity as a percentage (0-100)
-                duff_moisture_code: Previous day's DMC value
-            month (int | None): Month of the year (1-12) for day length factor lookup.
-                If None, defaults to the current month.
-
-        Returns:
-            Cube: The calculated DMC values for the current day.
-        """
-        if month is None:
-            month = datetime.now().month
-
-        self.load_input_cubes(cubes, month)
-
-        # Step 1: Set today's DMC value to the previous day's DMC value
-        self.previous_dmc = self.input_dmc.data.copy()
-
-        # Step 2: Perform rainfall adjustment, if precipitation > 1.5 mm
-        self._perform_rainfall_adjustment()
-
-        # Steps 3 & 4: Calculate drying rate
-        drying_rate = self._calculate_drying_rate()
-
-        # Step 5: Calculate DMC from adjusted previous DMC and drying rate
-        output_dmc = self._calculate_dmc(drying_rate)
-
-        # Convert DMC data to a cube and return
-        dmc_cube = self._make_dmc_cube(output_dmc)
-
-        return dmc_cube
