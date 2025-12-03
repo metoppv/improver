@@ -336,6 +336,16 @@ class Test_process(IrisTest):
             [var.name() for var in result.ancillary_variables()],
         )
 
+    def test_ancillary_variable_removal_where_there_is_none(self):
+        """Test ancillary variable removal works as expected when there are no
+        ancillary variables to begin with."""
+        cube = self.cube.copy()
+        self.assertEqual(len(cube.ancillary_variables()), 0)
+        result = StandardiseMetadata(
+            ancillary_variables_to_remove=["status_flag"]
+        ).process(cube)
+        self.assertEqual(len(result.ancillary_variables()), 0)
+
 
 if __name__ == "__main__":
     unittest.main()

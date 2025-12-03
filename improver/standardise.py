@@ -4,6 +4,7 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Plugin to standardise metadata"""
 
+import warnings
 from typing import Any, Dict, List, Optional
 
 import numpy as np
@@ -152,6 +153,10 @@ class StandardiseMetadata(BasePlugin):
             try:
                 cube.remove_ancillary_variable(var)
             except AncillaryVariableNotFoundError:
+                warnings.warn(
+                    f"Ancillary variable '{var}' not found in cube '{cube.name()}'.",
+                    UserWarning
+                )
                 continue
 
     @staticmethod
