@@ -2,15 +2,13 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-from typing import cast
-
 import numpy as np
-from iris.cube import Cube, CubeList
+from iris.cube import Cube
 
-from improver import BasePlugin
+from improver.fire_weather import FireWeatherIndexBase
 
 
-class FineFuelMoistureContent(BasePlugin):
+class FineFuelMoistureContent(FireWeatherIndexBase):
     """
     Plugin to calculate the Fine Fuel Moisture Code (FFMC) following
     the Canadian Forest Fire Weather Index System.
@@ -33,6 +31,17 @@ class FineFuelMoistureContent(BasePlugin):
         - Previous FFMC: dimensionless (0-101)
     """
 
+    INPUT_CUBE_NAMES = [
+        "air_temperature",
+        "lwe_thickness_of_precipitation_amount",
+        "relative_humidity",
+        "wind_speed",
+        "fine_fuel_moisture_content",
+    ]
+    OUTPUT_CUBE_NAME = "fine_fuel_moisture_content"
+    # Disambiguate input FFMC (yesterday's value) from output FFMC (today's calculated value)
+    INPUT_ATTRIBUTE_MAPPINGS = {"fine_fuel_moisture_content": "input_ffmc"}
+
     temperature: Cube
     precipitation: Cube
     relative_humidity: Cube
@@ -41,44 +50,71 @@ class FineFuelMoistureContent(BasePlugin):
     initial_moisture_content: np.ndarray
     moisture_content: np.ndarray
 
-    def load_input_cubes(self, cubes: tuple[Cube] | CubeList):
-        """Loads the required input cubes for the FFMC calculation. These
-        are stored internally as Cube objects.
+    def _calculate(self) -> np.ndarray:
+        """Calculate the Fine Fuel Moisture Code (FFMC).
 
-        Args:
-            cubes (tuple[Cube] | CubeList): Input cubes containing the necessary data.
-
-        Raises:
-            ValueError: If the number of cubes does not match the expected
-                number (5).
+        Returns:
+            np.ndarray: The calculated FFMC values for the current day.
         """
-        names_to_extract = [
-            "air_temperature",
-            "lwe_thickness_of_precipitation_amount",
-            "relative_humidity",
-            "wind_speed",
-            "fine_fuel_moisture_content",
-        ]
-        if len(cubes) != len(names_to_extract):
-            raise ValueError(
-                f"Expected {len(names_to_extract)} cubes, found {len(cubes)}"
-            )
+        # Step 1 & 2: Calculate the previous day's moisture content
+        self._calculate_moisture_content()
 
-        # Load the cubes into class attributes
-        (
-            self.temperature,
-            self.precipitation,
-            self.relative_humidity,
-            self.wind_speed,
-            self.input_ffmc,
-        ) = tuple(cast(Cube, CubeList(cubes).extract_cube(n)) for n in names_to_extract)
+        # Step 3: Perform rainfall adjustment
+        self._perform_rainfall_adjustment()
 
-        # Ensure the cubes are set to the correct units
-        self.temperature.convert_units("Celsius")
-        self.precipitation.convert_units("mm")
-        self.relative_humidity.convert_units("1")
-        self.wind_speed.convert_units("km/h")
-        self.input_ffmc.convert_units("1")
+        # Step 4: Calculate Equilibrium Moisture Content for the drying phase
+        E_d = self._calculate_EMC_for_drying_phase()
+
+        # VECTORIZATION NOTE: The original algorithm in Van Wagner and Pickett (1985)
+        # is applied to each point linearly. We are applying this to Cubes. This means
+        # that the order of Steps 5-7 is not identical to the original algorithm.
+
+        # Step 5a & 5b: Calculate moisture content through drying rate
+        # VECTORIZATION NOTE: We calculate drying for all points, then apply selectively.
+        # This differs from the scalar algorithm which only calculates when moisture content > E_d.
+        moisture_content_from_drying = (
+            self._calculate_moisture_content_through_drying_rate(E_d)
+        )
+        mask_wetting = self.moisture_content > E_d
+
+        # Step 6: Calculate Equilibrium Moisture Content for the wetting phase
+        # VECTORIZATION NOTE: We calculate E_w for all points for efficiency,
+        # though it's only needed where the moisture content < E_d
+        E_w = self._calculate_EMC_for_wetting_phase()
+
+        # Step 7a & 7b: Calculate moisture content through wetting equilibrium
+        # VECTORIZATION NOTE: We calculate wetting for all points, then apply selectively.
+        # This differs from the scalar algorithm which only calculates when moisture content < E_d
+        # AND moisture content < E_w.
+        moisture_content_from_wetting = (
+            self._calculate_moisture_content_through_wetting_equilibrium(E_w)
+        )
+        mask_drying = (
+            self.moisture_content < E_d
+        )  # Identifies where wetting might apply
+        mask_apply_wetting = np.logical_and(mask_drying, self.moisture_content < E_w)
+
+        # Step 5b, 7b, 8: Apply the appropriate transformation using mutually exclusive logic.
+        # VECTORIZATION NOTE: We use nested np.where to implement the three-way
+        # if-elseif-else structure from the scalar algorithm, ensuring only one
+        # transformation is applied per grid point.
+        self.moisture_content = np.where(
+            mask_wetting,
+            # If moisture content > E_d: apply drying (Step 5b, Equation 8)
+            moisture_content_from_drying,
+            np.where(
+                mask_apply_wetting,
+                # Else if (moisture_content < E_d) AND (moisture_content < E_w): apply wetting (Step 7b, Equation 9)
+                moisture_content_from_wetting,
+                # Else: no change, (Step 8: E_d >= moisture_content >= E_w)
+                self.moisture_content,
+            ),
+        )
+
+        # Step 9: Calculate Fine Fuel Moisture Content (FFMC) from moisture content
+        ffmc = self._calculate_ffmc_from_moisture_content()
+
+        return ffmc
 
     def _calculate_moisture_content(self):
         """Calculates the previous day's moisture content for a given input value
@@ -257,111 +293,3 @@ class FineFuelMoistureContent(BasePlugin):
         # Equation 10: Calculate FFMC from moisture content
         ffmc = 59.5 * (250.0 - self.moisture_content) / (147.2 + self.moisture_content)
         return ffmc
-
-    def _make_ffmc_cube(self, ffmc_data: np.ndarray) -> Cube:
-        """Converts an FFMC data array into an iris.cube.Cube object
-        with relevant metadata copied from the input FFMC cube, and updated
-        time coordinates from the precipitation cube. Time bounds are
-        removed from the output.
-
-        Args:
-            ffmc_data (np.ndarray): The FFMC data
-
-        Returns:
-            Cube: An iris.cube.Cube containing the FFMC data with updated
-                metadata and coordinates.
-        """
-        ffmc_cube = self.input_ffmc.copy(data=ffmc_data.astype(np.float32))
-
-        # Update forecast_reference_time from precipitation cube
-        frt_coord = self.precipitation.coord("forecast_reference_time").copy()
-        ffmc_cube.replace_coord(frt_coord)
-
-        # Update time coordinate from precipitation cube (without bounds)
-        time_coord = self.precipitation.coord("time").copy()
-        time_coord.bounds = None
-        ffmc_cube.replace_coord(time_coord)
-
-        return ffmc_cube
-
-    def process(
-        self,
-        cubes: tuple[Cube] | CubeList,
-    ) -> Cube:
-        """Calculate the Fine Fuel Moisture Code (FFMC).
-
-        Args:
-            cubes (Cube | CubeList): Input cubes containing:
-                air_temperature: Temperature in degrees Celsius
-                lwe_thickness_of_precipitation_amount: 24-hour precipitation in mm
-                relative_humidity: Relative humidity as a percentage (0-100)
-                wind_speed: Wind speed in km/h
-                fine_fuel_moisture_content: Previous day's FFMC value
-
-        Returns:
-            Cube: The calculated FFMC values for the current day.
-        """
-        self.load_input_cubes(cubes)
-
-        # Step 1 & 2: Calculate the previous day's moisture content
-        self._calculate_moisture_content()
-
-        # Step 3: Perform rainfall adjustment
-        self._perform_rainfall_adjustment()
-
-        # Step 4: Calculate Equilibrium Moisture Content for the drying phase
-        E_d = self._calculate_EMC_for_drying_phase()
-
-        # VECTORIZATION NOTE: The original algorithm in Van Wagner and Pickett (1985)
-        # is applied to each point linearly. We are applying this to Cubes. This means
-        # that the order of Steps 5-7 is not identical to the original algorithm.
-
-        # Step 5a & 5b: Calculate moisture content through drying rate
-        # VECTORIZATION NOTE: We calculate drying for all points, then apply selectively.
-        # This differs from the scalar algorithm which only calculates when moisture content > E_d.
-        moisture_content_from_drying = (
-            self._calculate_moisture_content_through_drying_rate(E_d)
-        )
-        mask_wetting = self.moisture_content > E_d
-
-        # Step 6: Calculate Equilibrium Moisture Content for the wetting phase
-        # VECTORIZATION NOTE: We calculate E_w for all points for efficiency,
-        # though it's only needed where the moisture content < E_d
-        E_w = self._calculate_EMC_for_wetting_phase()
-
-        # Step 7a & 7b: Calculate moisture content through wetting equilibrium
-        # VECTORIZATION NOTE: We calculate wetting for all points, then apply selectively.
-        # This differs from the scalar algorithm which only calculates when moisture content < E_d
-        # AND moisture content < E_w.
-        moisture_content_from_wetting = (
-            self._calculate_moisture_content_through_wetting_equilibrium(E_w)
-        )
-        mask_drying = (
-            self.moisture_content < E_d
-        )  # Identifies where wetting might apply
-        mask_apply_wetting = np.logical_and(mask_drying, self.moisture_content < E_w)
-
-        # Step 5b, 7b, 8: Apply the appropriate transformation using mutually exclusive logic.
-        # VECTORIZATION NOTE: We use nested np.where to implement the three-way
-        # if-elseif-else structure from the scalar algorithm, ensuring only one
-        # transformation is applied per grid point.
-        self.moisture_content = np.where(
-            mask_wetting,
-            # If moisture content > E_d: apply drying (Step 5b, Equation 8)
-            moisture_content_from_drying,
-            np.where(
-                mask_apply_wetting,
-                # Else if (moisture_content < E_d) AND (moisture_content < E_w): apply wetting (Step 7b, Equation 9)
-                moisture_content_from_wetting,
-                # Else: no change, (Step 8: E_d >= moisture_content >= E_w)
-                self.moisture_content,
-            ),
-        )
-
-        # Step 9: Calculate Fine Fuel Moisture Content (FFMC) from moisture content
-        output_ffmc = self._calculate_ffmc_from_moisture_content()
-
-        # Convert FFMC data to a cube and return
-        ffmc_cube = self._make_ffmc_cube(output_ffmc)
-
-        return ffmc_cube
