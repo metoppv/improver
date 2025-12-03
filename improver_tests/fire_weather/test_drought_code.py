@@ -3,76 +3,12 @@
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 
-from datetime import datetime
-
 import numpy as np
 import pytest
-from cf_units import Unit
-from iris.coords import AuxCoord
 from iris.cube import Cube, CubeList
 
 from improver.fire_weather.drought_code import DroughtCode
-
-
-def make_cube(
-    data: np.ndarray,
-    name: str,
-    units: str,
-    add_time_coord: bool = False,
-) -> Cube:
-    """Create a dummy Iris Cube with specified data, name, units, and optional
-    time coordinates.
-
-    All cubes include a forecast_reference_time coordinate by default.
-
-    Args:
-        data (np.ndarray): The data array for the cube.
-        name (str): The long name for the cube.
-        units (str): The units for the cube.
-        add_time_coord (bool): Whether to add a time coordinate with bounds.
-
-    Returns:
-        Cube: The constructed Iris Cube with the given properties.
-    """
-    arr = np.array(data, dtype=np.float64)
-    cube = Cube(arr, long_name=name)
-    cube.units = units
-
-    # Always add forecast_reference_time
-    time_origin = "hours since 1970-01-01 00:00:00"
-    calendar = "gregorian"
-
-    # Default forecast reference time: 2025-10-20 00:00:00
-    frt = datetime(2025, 10, 20, 0, 0)
-    frt_coord = AuxCoord(
-        np.array([frt.timestamp() / 3600], dtype=np.float64),
-        standard_name="forecast_reference_time",
-        units=Unit(time_origin, calendar=calendar),
-    )
-    cube.add_aux_coord(frt_coord)
-
-    # Optionally add time coordinate with bounds
-    if add_time_coord:
-        # Default valid time: 2025-10-20 12:00:00 with 12-hour bounds
-        valid_time = datetime(2025, 10, 20, 12, 0)
-        time_bounds = np.array(
-            [
-                [
-                    (valid_time.timestamp() - 43200) / 3600,  # 12 hours earlier
-                    valid_time.timestamp() / 3600,
-                ]
-            ],
-            dtype=np.float64,
-        )
-        time_coord = AuxCoord(
-            np.array([valid_time.timestamp() / 3600], dtype=np.float64),
-            standard_name="time",
-            bounds=time_bounds,
-            units=Unit(time_origin, calendar=calendar),
-        )
-        cube.add_aux_coord(time_coord)
-
-    return cube
+from improver_tests.fire_weather import make_cube, make_input_cubes
 
 
 def input_cubes(
@@ -101,205 +37,27 @@ def input_cubes(
     Returns:
         list[Cube]: List of Iris Cubes for temperature, precipitation, and DC.
     """
-    temp = make_cube(np.full(shape, temp_val), "air_temperature", temp_units)
-    # Precipitation cube needs time coordinates for _make_dc_cube
-    precip = make_cube(
-        np.full(shape, precip_val),
-        "lwe_thickness_of_precipitation_amount",
-        precip_units,
-        add_time_coord=True,
+    return make_input_cubes(
+        [
+            ("air_temperature", temp_val, temp_units, False),
+            ("lwe_thickness_of_precipitation_amount", precip_val, precip_units, True),
+            ("drought_code", dc_val, dc_units, True),
+        ],
+        shape=shape,
     )
-    # DC cube needs time coordinates for _make_dc_cube to copy metadata
-    dc = make_cube(
-        np.full(shape, dc_val),
-        "drought_code",
-        dc_units,
-        add_time_coord=True,
-    )
-    return [temp, precip, dc]
 
 
-@pytest.mark.parametrize(
-    "temp_val, precip_val, dc_val",
-    [
-        # Case 0: Typical mid-range values
-        (20.0, 1.0, 15.0),
-        # Case 1: All zeros (edge case)
-        (0.0, 0.0, 0.0),
-        # Case 2: All maximums/extremes
-        (100.0, 100.0, 1000.0),
-        # Case 3: Low temperature, low precip, low DC
-        (-10.0, 0.5, 5.0),
-        # Case 4: High temp, high precip, high DC
-        (30.0, 10.0, 500.0),
-    ],
-)
-def test_load_input_cubes(
-    temp_val: float,
-    precip_val: float,
-    dc_val: float,
-) -> None:
-    """Test DroughtCode.load_input_cubes with various input conditions.
-
-    Args:
-        temp_val (float): Temperature value for all grid points.
-        precip_val (float): Precipitation value for all grid points.
-        dc_val (float): DC value for all grid points.
-
-    Raises:
-        AssertionError: If the loaded cubes do not match expected shapes and types.
-    """
-    cubes = input_cubes(temp_val, precip_val, dc_val)
+def test_input_attribute_mapping() -> None:
+    """Test that INPUT_ATTRIBUTE_MAPPINGS correctly disambiguates input DC."""
+    cubes = input_cubes()
     plugin = DroughtCode()
     plugin.load_input_cubes(CubeList(cubes), month=7)
 
-    attributes = [
-        plugin.temperature,
-        plugin.precipitation,
-        plugin.input_dc,
-    ]
-    input_values = [temp_val, precip_val, dc_val]
-
-    for attr, val in zip(attributes, input_values):
-        assert isinstance(attr, Cube)
-        assert attr.data.shape == (5, 5)
-        assert np.allclose(attr.data, val)
-
-    # Check that month is set correctly
-    assert plugin.month == 7
-
-
-@pytest.mark.parametrize(
-    "param, input_val, input_unit, expected_val",
-    [
-        # Case 0: Temperature: Kelvin -> degC
-        ("temperature", 293.15, "K", 20.0),
-        # Case 1: Precipitation: m -> mm
-        ("precipitation", 0.001, "m", 1.0),
-        # Case 2: Input DC: no conversion needed (dimensionless)
-        ("input_dc", 15.0, "1", 15.0),
-    ],
-)
-def test_load_input_cubes_unit_conversion(
-    param: str,
-    input_val: float,
-    input_unit: str,
-    expected_val: float,
-) -> None:
-    """
-    Test that load_input_cubes correctly converts a single alternative unit for each input cube.
-
-    Args:
-        param (str): Name of the parameter to test (e.g., 'temperature', 'precipitation', etc.).
-        input_val (float): Value to use for the tested parameter.
-        input_unit (str): Unit to use for the tested parameter.
-        expected_val (float): Expected value after conversion.
-
-    Raises:
-        AssertionError: If the converted value does not match the expected value.
-    """
-
-    # Override the value and unit for the parameter being tested
-    if param == "temperature":
-        cubes = input_cubes(temp_val=input_val, temp_units=input_unit)
-    elif param == "precipitation":
-        cubes = input_cubes(precip_val=input_val, precip_units=input_unit)
-    elif param == "input_dc":
-        cubes = input_cubes(dc_val=input_val, dc_units=input_unit)
-
-    plugin = DroughtCode()
-    plugin.load_input_cubes(CubeList(cubes), month=7)
-    # Check only the parameter being tested
-    result = getattr(plugin, param)
-    assert np.allclose(result.data, expected_val)
-
-
-@pytest.mark.parametrize(
-    "num_cubes, should_raise, expected_message",
-    [
-        # Case 0: Correct number of cubes (3)
-        (3, False, None),
-        # Case 1: Too few cubes (2 instead of 3)
-        (2, True, "Expected 3 cubes, found 2"),
-        # Case 2: No cubes (0 instead of 3)
-        (0, True, "Expected 3 cubes, found 0"),
-        # Case 3: Too many cubes (4 instead of 3)
-        (4, True, "Expected 3 cubes, found 4"),
-    ],
-)
-def test_load_input_cubes_wrong_number_raises_error(
-    num_cubes: int,
-    should_raise: bool,
-    expected_message: str,
-) -> None:
-    """Test that load_input_cubes raises ValueError when given wrong number of cubes.
-
-    Args:
-        num_cubes (int): Number of cubes to provide to load_input_cubes.
-        should_raise (bool): Whether a ValueError should be raised.
-        expected_message (str): Expected error message (or None if no error expected).
-
-    Raises:
-        AssertionError: If ValueError behavior does not match expectations.
-    """
-    # Create a list with the specified number of cubes
-    cubes = input_cubes()
-    if num_cubes < len(cubes):
-        cubes = cubes[:num_cubes]
-    elif num_cubes > len(cubes):
-        # Add extra dummy cube(s) to test "too many cubes" case
-        for _ in range(num_cubes - len(cubes)):
-            cubes.append(make_cube(np.full((5, 5), 0.0), "extra_cube", "1"))
-
-    plugin = DroughtCode()
-
-    if should_raise:
-        with pytest.raises(ValueError, match=expected_message):
-            plugin.load_input_cubes(CubeList(cubes), month=7)
-    else:
-        # Should not raise - verify it loads successfully
-        plugin.load_input_cubes(CubeList(cubes), month=7)
-        assert isinstance(plugin.temperature, Cube)
-
-
-@pytest.mark.parametrize(
-    "month, should_raise, expected_message",
-    [
-        # Valid months
-        (1, False, None),
-        (6, False, None),
-        (12, False, None),
-        # Invalid months
-        (0, True, "Month must be between 1 and 12, got 0"),
-        (13, True, "Month must be between 1 and 12, got 13"),
-        (-1, True, "Month must be between 1 and 12, got -1"),
-    ],
-)
-def test_load_input_cubes_month_validation(
-    month: int,
-    should_raise: bool,
-    expected_message: str,
-) -> None:
-    """Test that load_input_cubes validates month parameter correctly.
-
-    Args:
-        month (int): Month value to test.
-        should_raise (bool): Whether a ValueError should be raised.
-        expected_message (str): Expected error message (or None if no error expected).
-
-    Raises:
-        AssertionError: If month validation does not match expectations.
-    """
-    cubes = input_cubes()
-    plugin = DroughtCode()
-
-    if should_raise:
-        with pytest.raises(ValueError, match=expected_message):
-            plugin.load_input_cubes(CubeList(cubes), month=month)
-    else:
-        # Should not raise - verify it loads successfully
-        plugin.load_input_cubes(CubeList(cubes), month=month)
-        assert plugin.month == month
+    # Check that the mapping was applied correctly
+    assert hasattr(plugin, "input_dc")
+    assert isinstance(plugin.input_dc, Cube)
+    assert plugin.input_dc.long_name == "drought_code"
+    assert np.allclose(plugin.input_dc.data, 15.0)
 
 
 @pytest.mark.parametrize(
@@ -336,16 +94,13 @@ def test__perform_rainfall_adjustment(
 ) -> None:
     """Test _perform_rainfall_adjustment for various rainfall and DC scenarios.
 
-    Tests include: no adjustment (precip <= 2.8), and various rainfall amounts
-    with different previous DC values.
+    Tests include no adjustment (precip <= 2.8) and various rainfall amounts with
+    different previous DC values.
 
     Args:
         precip_val (float): Precipitation value for all grid points.
         prev_dc (float): Previous DC value for all grid points.
         expected_dc (float): Expected DC after adjustment.
-
-    Raises:
-        AssertionError: If the DC adjustment does not match expectations.
     """
     cubes = input_cubes(precip_val=precip_val, dc_val=prev_dc)
     plugin = DroughtCode()
@@ -359,7 +114,10 @@ def test__perform_rainfall_adjustment(
 
 
 def test__perform_rainfall_adjustment_spatially_varying() -> None:
-    """Test rainfall adjustment with spatially varying data (vectorization check)."""
+    """Test rainfall adjustment with spatially varying input data.
+
+    Verifies vectorized DC rainfall adjustment with varying values across the grid.
+    """
     shape = (4, 4)
     # Produce a checkerboard precipitation pattern (10mm and 0mm alternating)
     precip_data = np.zeros(shape)
@@ -429,16 +187,14 @@ def test__calculate_potential_evapotranspiration(
     month: int,
     expected_pe: float,
 ) -> None:
-    """
-    Test _calculate_potential_evapotranspiration for various temperature and month combinations.
+    """Test _calculate_potential_evapotranspiration with various temperature and month combinations.
+
+    Verifies potential evapotranspiration calculation for DC.
 
     Args:
         temp_val (float): Temperature value for all grid points.
         month (int): Month of the year (1-12).
         expected_pe (float): Expected potential evapotranspiration value.
-
-    Raises:
-        AssertionError: If the PE calculation does not match expectations.
     """
     cubes = input_cubes(temp_val=temp_val)
     plugin = DroughtCode()
@@ -452,7 +208,10 @@ def test__calculate_potential_evapotranspiration(
 
 
 def test__calculate_potential_evapotranspiration_spatially_varying() -> None:
-    """Test potential evapotranspiration with spatially varying temperature (vectorization check)."""
+    """Test potential evapotranspiration with spatially varying temperature.
+
+    Verifies vectorized potential evapotranspiration calculation with varying values across the grid.
+    """
     temp_data = np.array([[-10.0, -5.0, 0.0], [5.0, 10.0, 15.0], [20.0, 25.0, 30.0]])
 
     cubes = [
@@ -503,13 +262,12 @@ def test__calculate_dc(
 ) -> None:
     """Test _calculate_dc for various previous DC and potential evapotranspiration values.
 
+    Verifies DC calculation from previous DC and potential evapotranspiration.
+
     Args:
         prev_dc (float): Previous DC value.
         potential_evapotranspiration (float): Potential evapotranspiration value.
         expected_dc (float): Expected DC output value.
-
-    Raises:
-        AssertionError: If the DC calculation does not match expectations.
     """
     plugin = DroughtCode()
     plugin.previous_dc = np.array([prev_dc])
@@ -519,75 +277,6 @@ def test__calculate_dc(
     assert dc.shape == (1,)
     # Check that DC matches expected output
     assert np.allclose(dc, expected_dc, atol=0.01)
-
-
-@pytest.mark.parametrize(
-    "dc_value, shape",
-    [
-        # Case 0: Typical mid-range DC value with standard grid
-        (50.0, (5, 5)),
-        # Case 1: Low DC value with different grid size
-        (0.0, (3, 4)),
-        # Case 2: High DC value with larger grid
-        (500.0, (10, 10)),
-        # Case 3: Very high DC (edge case) with small grid
-        (1000.0, (2, 2)),
-        # Case 4: Standard DC value
-        (15.0, (5, 5)),
-    ],
-)
-def test__make_dc_cube(
-    dc_value: float,
-    shape: tuple[int, int],
-) -> None:
-    """
-    Test _make_dc_cube to ensure it creates an Iris Cube with correct properties
-    for various DC values and grid shapes.
-
-    Args:
-        dc_value (float): DC data value to use for all grid points.
-        shape (tuple[int, int]): Shape of the grid.
-
-    Raises:
-        AssertionError: If the created cube does not have expected properties.
-    """
-    # Create input cubes with specified shape
-    cubes = input_cubes(shape=shape)
-
-    # Initialize the plugin and load cubes
-    plugin = DroughtCode()
-    plugin.load_input_cubes(CubeList(cubes), month=7)
-
-    # Create test DC data
-    dc_data = np.full(shape, dc_value, dtype=np.float64)
-
-    # Call the method under test
-    result_cube = plugin._make_dc_cube(dc_data)
-
-    # Check that result is an Iris Cube with correct type and shape
-    assert isinstance(result_cube, Cube)
-    assert result_cube.data.dtype == np.float32
-    assert result_cube.data.shape == shape
-    assert np.allclose(result_cube.data, dc_value, atol=0.001)
-
-    # Check that the cube has the correct name and units
-    assert result_cube.long_name == "drought_code"
-    assert result_cube.units == "1"
-
-    # Check that forecast_reference_time is copied from precipitation cube
-    result_frt = result_cube.coord("forecast_reference_time")
-    expected_frt = plugin.precipitation.coord("forecast_reference_time")
-    assert result_frt.points[0] == expected_frt.points[0]
-    assert result_frt.units == expected_frt.units
-
-    # Check that time coordinate is copied from precipitation cube
-    result_time = result_cube.coord("time")
-    expected_time = plugin.precipitation.coord("time")
-    assert result_time.points[0] == expected_time.points[0]
-    assert result_time.units == expected_time.units
-
-    # Check that time coordinate has no bounds (removed by _make_dc_cube)
-    assert result_time.bounds is None
 
 
 @pytest.mark.parametrize(
@@ -620,8 +309,7 @@ def test_process(
 ) -> None:
     """Integration test for the complete DC calculation process.
 
-    Tests end-to-end functionality with various environmental conditions and
-    verifies the final DC output matches expected values.
+    Verifies end-to-end DC calculation with various environmental conditions.
 
     Args:
         temp_val (float): Temperature value for all grid points.
@@ -629,9 +317,6 @@ def test_process(
         dc_val (float): DC value for all grid points.
         month (int): Month of the year (1-12).
         expected_output (float): Expected DC output value for all grid points.
-
-    Raises:
-        AssertionError: If the process output does not match expectations.
     """
     cubes = input_cubes(temp_val, precip_val, dc_val)
     plugin = DroughtCode()
@@ -646,28 +331,11 @@ def test_process(
     assert np.allclose(data, expected_output, atol=0.05)
 
 
-def test_process_default_month() -> None:
-    """Test that process method works with default month parameter."""
-    cubes = input_cubes()
-    plugin = DroughtCode()
-
-    # Should not raise - uses current month by default
-    result = plugin.process(CubeList(cubes))
-
-    # Check that the month is set to current month
-    from datetime import datetime
-
-    current_month = datetime.now().month
-    assert plugin.month == current_month
-
-    # Check that result is valid
-    assert hasattr(result, "data")
-    assert result.data.shape == cubes[0].data.shape
-    assert isinstance(result.data[0][0], (float, np.floating))
-
-
 def test_process_spatially_varying() -> None:
-    """Integration test with spatially varying data (vectorization check)."""
+    """Integration test with spatially varying input data.
+
+    Verifies vectorized DC implementation with varying values across the grid.
+    """
     temp_data = np.array([[5.0, 10.0, 15.0], [10.0, 15.0, 20.0], [15.0, 20.0, 25.0]])
     precip_data = np.array([[0.0, 3.0, 10.0], [0.0, 0.0, 15.0], [0.0, 0.0, 0.0]])
     dc_data = np.array(
@@ -699,8 +367,8 @@ def test_process_spatially_varying() -> None:
     assert len(np.unique(result.data)) > 1
 
 
-def test_day_length_factors_table() -> None:
-    """Test that DC_DAY_LENGTH_FACTORS match the expected values from Van Wagner and Pickett Table 2."""
+def test_dc_day_length_factors_table() -> None:
+    """Test that DC_DAY_LENGTH_FACTORS match the expected values from lookup table."""
     expected_factors = [
         0.0,  # Placeholder
         -1.6,  # January

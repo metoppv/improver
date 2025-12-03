@@ -2,16 +2,14 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-from datetime import datetime
-from typing import cast
 
 import numpy as np
-from iris.cube import Cube, CubeList
+from iris.cube import Cube
 
-from improver import BasePlugin
+from improver.fire_weather import FireWeatherIndexBase
 
 
-class DroughtCode(BasePlugin):
+class DroughtCode(FireWeatherIndexBase):
     """
     Plugin to calculate the Drought Code (DC) following
     the Canadian Forest Fire Weather Index System.
@@ -33,6 +31,16 @@ class DroughtCode(BasePlugin):
         - Previous DC: dimensionless
         - Month: integer (1-12) for day length factor lookup
     """
+
+    INPUT_CUBE_NAMES = [
+        "air_temperature",
+        "lwe_thickness_of_precipitation_amount",
+        "drought_code",
+    ]
+    OUTPUT_CUBE_NAME = "drought_code"
+    REQUIRES_MONTH = True
+    # Disambiguate input DC (yesterday's value) from output DC (today's calculated value)
+    INPUT_ATTRIBUTE_MAPPINGS = {"drought_code": "input_dc"}
 
     temperature: Cube
     precipitation: Cube
@@ -58,44 +66,25 @@ class DroughtCode(BasePlugin):
         -1.6,  # December
     ]
 
-    def load_input_cubes(self, cubes: tuple[Cube] | CubeList, month: int):
-        """Loads the required input cubes for the DC calculation. These
-        are stored internally as Cube objects.
+    def _calculate(self) -> np.ndarray:
+        """Calculate the Drought Code (DC).
 
-        Args:
-            cubes (tuple[Cube] | CubeList): Input cubes containing the necessary data.
-            month (int): Month of the year (1-12) for day length factor lookup.
-
-        Raises:
-            ValueError: If the number of cubes does not match the expected
-                number (3), or if month is out of range.
+        Returns:
+            np.ndarray: The calculated DC values for the current day.
         """
-        names_to_extract = [
-            "air_temperature",
-            "lwe_thickness_of_precipitation_amount",
-            "drought_code",
-        ]
-        if len(cubes) != len(names_to_extract):
-            raise ValueError(
-                f"Expected {len(names_to_extract)} cubes, found {len(cubes)}"
-            )
+        # Step 1: Set today's DC value to the previous day's DC value
+        self.previous_dc = self.input_dc.data.copy()
 
-        if not (1 <= month <= 12):
-            raise ValueError(f"Month must be between 1 and 12, got {month}")
+        # Step 2: Perform rainfall adjustment, if precipitation > 2.8 mm
+        self._perform_rainfall_adjustment()
 
-        self.month = month
+        # Steps 3 & 4: Calculate potential evapotranspiration
+        potential_evapotranspiration = self._calculate_potential_evapotranspiration()
 
-        # Load the cubes into class attributes
-        (
-            self.temperature,
-            self.precipitation,
-            self.input_dc,
-        ) = tuple(cast(Cube, CubeList(cubes).extract_cube(n)) for n in names_to_extract)
+        # Step 5: Calculate DC from adjusted previous DC and potential evapotranspiration
+        dc = self._calculate_dc(potential_evapotranspiration)
 
-        # Ensure the cubes are set to the correct units
-        self.temperature.convert_units("degC")
-        self.precipitation.convert_units("mm")
-        self.input_dc.convert_units("1")
+        return dc
 
     def _perform_rainfall_adjustment(self):
         """Updates the previous DC value based on available precipitation
@@ -169,69 +158,3 @@ class DroughtCode(BasePlugin):
         dc = np.maximum(dc, 0.0)
 
         return dc
-
-    def _make_dc_cube(self, dc_data: np.ndarray) -> Cube:
-        """Converts a DC data array into an iris.cube.Cube object
-        with relevant metadata copied from the input DC cube, and updated
-        time coordinates from the precipitation cube. Time bounds are
-        removed from the output.
-
-        Args:
-            dc_data (np.ndarray): The DC data
-
-        Returns:
-            Cube: An iris.cube.Cube containing the DC data with updated
-                metadata and coordinates.
-        """
-        dc_cube = self.input_dc.copy(data=dc_data.astype(np.float32))
-
-        # Update forecast_reference_time from precipitation cube
-        frt_coord = self.precipitation.coord("forecast_reference_time").copy()
-        dc_cube.replace_coord(frt_coord)
-
-        # Update time coordinate from precipitation cube (without bounds)
-        time_coord = self.precipitation.coord("time").copy()
-        time_coord.bounds = None
-        dc_cube.replace_coord(time_coord)
-
-        return dc_cube
-
-    def process(
-        self,
-        cubes: tuple[Cube] | CubeList,
-        month: int | None = None,
-    ) -> Cube:
-        """Calculate the Drought Code (DC).
-
-        Args:
-            cubes (Cube | CubeList): Input cubes containing:
-                air_temperature: Temperature in degrees Celsius
-                lwe_thickness_of_precipitation_amount: 24-hour precipitation in mm
-                drought_code: Previous day's DC value
-            month (int | None): Month of the year (1-12) for day length factor lookup.
-                If None, defaults to the current month.
-
-        Returns:
-            Cube: The calculated DC values for the current day.
-        """
-        if month is None:
-            month = datetime.now().month
-
-        self.load_input_cubes(cubes, month)
-
-        # Step 1: Set today's DC value to the previous day's DC value
-        self.previous_dc = self.input_dc.data.copy()
-
-        # Step 2: Perform rainfall adjustment, if precipitation > 2.8 mm
-        self._perform_rainfall_adjustment()
-
-        # Steps 3 & 4: Calculate potential evapotranspiration
-        potential_evapotranspiration = self._calculate_potential_evapotranspiration()
-
-        # Step 5: Calculate DC from adjusted previous DC and potential evapotranspiration
-        output_dc = self._calculate_dc(potential_evapotranspiration)
-
-        # Convert DC data to a cube and return
-        dc_cube = self._make_dc_cube(output_dc)
-
-        return dc_cube
