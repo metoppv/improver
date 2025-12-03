@@ -84,9 +84,10 @@ class RealizationClustering(BasePlugin):
 class RealizationToClusterMatcher(BasePlugin):
     """Match candidate realizations to clusters based on mean squared error.
 
-    Each cluster is assigned to at most one candidate realization (the
-    best-matching one based on lowest MSE). Candidates that compete for
-    the same cluster but have higher MSE are not assigned.
+    Each cluster is assigned to the candidate realization with the lowest MSE
+    for that cluster. When multiple candidates compete for the same cluster,
+    only the candidate with the lowest MSE is assigned; other candidates are
+    not assigned to any cluster.
 
     Supports both 3D cubes (realization, y, x) and 4D cubes
     (realization, forecast_period, y, x).
@@ -195,15 +196,24 @@ class RealizationToClusterMatcher(BasePlugin):
         cluster, the cluster is assigned to the realization with the lowest
         MSE, and other competing realizations are not assigned to any cluster.
 
+        Note: This greedy algorithm is chosen for its relative simplicity and
+        computational efficiency. While optimal assignment algorithms (such as
+        the Hungarian algorithm) could guarantee globally optimal solutions,
+        this approach provides good results with O(n²) complexity and
+        deterministic behavior.
+
         The algorithm processes realizations in descending order of their
         "MSE cost" (the sum of differences between each cluster's MSE and the
-        minimum MSE for that realization). Realizations with higher costs are
-        processed first. If a realization's best-matching cluster has already
-        been assigned to another realization with a lower MSE, the current
-        realization is not assigned to any cluster (it is ignored).
+        minimum MSE for that realization). Realizations with higher costs
+        (those with more uniform MSE across clusters and without a cluster that they
+        are "well matched" to) are processed first.
+        This ordering ensures that when realizations must be forced into
+        clusters (when realizations_remaining <= clusters_remaining),
+        realizations with strong cluster preferences are processed last and
+        are more likely to get their preferred cluster.
 
-        Note: This ensures that each cluster is assigned to its best-matching
-        realization (lowest MSE). The number of assigned realizations may be
+        Each cluster is matched to the realization with the globally lowest
+        MSE for that cluster. The number of assigned realizations may be
         less than the total number of input realizations, and may also be less
         than the number of clusters.
 
@@ -213,10 +223,11 @@ class RealizationToClusterMatcher(BasePlugin):
 
         Returns:
             Tuple of (cluster_indices, realization_indices):
-                cluster_indices: List of cluster indices that were assigned.
-                realization_indices: List of realization indices, one per
-                    assigned cluster. Each element is the index of the
-                    candidate realization assigned to that cluster.
+
+            - cluster_indices: List of cluster indices that were assigned.
+            - realization_indices: List of realization indices, one per
+              assigned cluster. Each element is the index of the
+              candidate realization assigned to that cluster.
         """
         # Calculate cost for each realization (sum of differences from minimum MSE)
         min_mse_array = np.min(realization_cluster_mse, axis=1, keepdims=True)
@@ -225,8 +236,8 @@ class RealizationToClusterMatcher(BasePlugin):
         # Process realizations in descending order of cost (highest cost first)
         realization_order = np.argsort(mse_array_cost)[::-1]
 
-        n_clusters = realization_cluster_mse.shape[1]
         n_realizations = realization_cluster_mse.shape[0]
+        n_clusters = realization_cluster_mse.shape[1]
         cluster_to_realization = {}
         cluster_to_mse = {}
 
@@ -234,9 +245,13 @@ class RealizationToClusterMatcher(BasePlugin):
             realizations_remaining = n_realizations - loop_idx
             assigned_clusters = list(cluster_to_realization.keys())
             clusters_remaining = n_clusters - len(assigned_clusters)
-            mse_values = realization_cluster_mse[realization_idx]
+
+            mse_values = realization_cluster_mse[realization_idx].copy()
+            # If there are more clusters remaining than realizations,
+            # allow this realization to compete for already-assigned clusters
             if realizations_remaining <= clusters_remaining:
                 mse_values[assigned_clusters] = np.inf
+
             cluster_idx = np.nanargmin(mse_values)
             if mse_values[cluster_idx] < cluster_to_mse.get(cluster_idx, np.inf):
                 cluster_to_mse[cluster_idx] = mse_values[cluster_idx]
@@ -255,11 +270,10 @@ class RealizationToClusterMatcher(BasePlugin):
         """Assign candidate realizations to clusters by mean squared error.
 
         This method takes a cube of clustered realizations and candidate
-        realizations, then assigns each candidate to the cluster it best
-        matches. The assignment uses the greedy MSE-based algorithm from
-        choose_clusters. Each cluster is assigned to at most one candidate
-        realization (the best-matching one). Candidates that lose out to
-        better-matching candidates are ignored.
+        realizations, then assigns each cluster to the candidate realization
+        with the lowest MSE for that cluster. When multiple candidates compete
+        for the same cluster, only the one with the lowest MSE is assigned;
+        other candidates are not assigned to any cluster.
 
         Supports both 3D cubes (realization, y, x) and 4D cubes
         (realization, forecast_period, y, x). When using 4D cubes, both input
@@ -335,28 +349,35 @@ class RealizationClusterAndMatch(BasePlugin):
                 A two-element list [start, end] will be expanded to include all hours
                 in that range. Lists with other lengths are treated as explicit lists
                 of forecast period hours. All values will be automatically converted
-                to seconds to match the forecast_period coordinate units in the input cubes:
-                {"primary_input": "input1",
-                 "secondary_inputs": {"input2": [0, 6], "input3": [0, 24]}}
-                In this example, input2 will use forecast periods in the range 0 to 6 hours
-                inclusive (i.e., any forecast periods between 0 and 21600 seconds),
-                and input3 will use the range 0 to 24 hours (0 to 86400 seconds).
-                Only forecast periods that actually exist in the input cubes within these
-                ranges will be processed.
+                to seconds to match the forecast_period coordinate units in the input
+                cubes::
+
+                    {
+                        "primary_input": "input1",
+                        "secondary_inputs": {"input2": [0, 6], "input3": [0, 24]},
+                    }
+
+                In this example, input2 will use forecast periods in the range
+                0 to 6 hours inclusive (i.e., any forecast periods between 0 and
+                21600 seconds), and input3 will use the range 0 to 24 hours
+                (0 to 86400 seconds). Only forecast periods that actually exist in the
+                input cubes within these ranges will be processed.
             model_id_attr: The model ID attribute used to identify different models
                 within the input cubes.
             target_grid_name: The name of the target grid cube for regridding.
             clustering_method: The clustering method to use.
             regrid_mode: The regridding mode to use. Default is
-                "esmf-area-weighted".
+                "esmf-area-weighted". See RegridLandSea for available modes.
             regrid_kwargs: Additional keyword arguments to pass to RegridLandSea.
                 Common options include:
-                - mdtol (float): Tolerance of missing data for esmf-area-weighted
-                  regridding (default 1)
+
+                - mdtol (float): Tolerance of missing data (default 1)
                 - extrapolation_mode (str): Mode to fill regions outside domain
                 - landmask (Cube): Land-sea mask for mask-aware regridding
                 - landmask_vicinity (float): Radius for coastline search
+
             **kwargs: Additional arguments for the clustering method.
+
         Raises:
             NotImplementedError: If the clustering method is not supported.
         """
@@ -415,8 +436,7 @@ class RealizationClusterAndMatch(BasePlugin):
         self, cube: iris.cube.Cube, target_grid_cube: iris.cube.Cube
     ) -> tuple[iris.cube.Cube, iris.cube.Cube]:
         """Cluster the primary input cube. The primary input cube is regridded
-        to the target grid before clustering using esmf-area-weighted
-        regridding.
+        to the target grid before clustering using the specified regridding method.
 
         Args:
             primary_cube: The primary input cube to cluster.
@@ -580,10 +600,14 @@ class RealizationClusterAndMatch(BasePlugin):
             time_dims = cube.coord_dims("time")
             # If time is scalar or not associated with forecast_period dimension
             if not time_dims or time_dims != fp_dim:
-                # Remove time as a coordinate and re-add it associated with forecast_period
                 time_coord = cube.coord("time")
-                cube.remove_coord("time")
-                cube.add_aux_coord(time_coord, fp_dim)
+                fp_coord = cube.coord("forecast_period")
+                # Only reassociate if time coord shape matches forecast_period shape
+                if time_coord.shape == fp_coord.shape:
+                    # Remove time as a coordinate and re-add it associated with
+                    # forecast_period
+                    cube.remove_coord("time")
+                    cube.add_aux_coord(time_coord, fp_dim)
 
         return cube
 
@@ -746,19 +770,7 @@ class RealizationClusterAndMatch(BasePlugin):
                 **{self.model_id_attr: candidate_name}
             )
 
-            # Collect forecast periods from all higher-precedence inputs
-            # (those that come after this one in inputs_list, i.e., earlier in
-            # original list)
-            higher_precedence_fps = set()
-            for _, fps in inputs_list[idx + 1 :]:
-                higher_precedence_fps.update(fps)
-
             for fp in forecast_periods:
-                # Skip forecast periods that will be overwritten by
-                # higher-precedence inputs
-                if fp in higher_precedence_fps:
-                    continue
-
                 fp_constr = iris.Constraint(forecast_period=fp)
                 candidate_cube = cubes.extract_cube(model_id_constr & fp_constr)
 

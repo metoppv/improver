@@ -13,6 +13,7 @@ from improver import BasePlugin
 
 class FitClustering(BasePlugin):
     """Class to perform clustering on DataFrames using scikit-learn or kmedoids.
+
     This plugin provides a unified interface for applying various clustering algorithms
     to pandas DataFrames. It supports clustering methods from scikit-learn's cluster
     module as well as the KMedoids algorithm from the kmedoids package.
@@ -24,6 +25,7 @@ class FitClustering(BasePlugin):
 
     def __init__(self, clustering_method: str, **kwargs: Any) -> None:
         """Initialise the clustering plugin.
+
         Args:
             clustering_method: The name of the clustering method to use.
                 Must be either "KMedoids" (from kmedoids package) or a valid
@@ -43,9 +45,9 @@ class FitClustering(BasePlugin):
         self.kwargs = kwargs
 
     def process(self, df: pd.DataFrame) -> Any:
-        """Apply the clustering method to the DataFrame.
-        Fits the specified clustering algorithm to the input DataFrame and returns
-        the fitted clustering model.
+        """Apply the clustering method to the DataFrame. Fits the specified clustering
+        algorithm to the input DataFrame and returns the fitted clustering model.
+
         Args:
             df: The input DataFrame to cluster. Each row represents
                 a sample and each column represents a feature. The DataFrame should
@@ -70,7 +72,8 @@ class FitClustering(BasePlugin):
                 kwargs["metric"] = "euclidean"
 
             clustering_class = getattr(kmedoids, self.clustering_method)
-            return clustering_class(**kwargs).fit(df)
+            # Convert DataFrame to numpy array for kmedoids
+            return clustering_class(**kwargs).fit(df.values)
 
         # Otherwise, use sklearn
         from sklearn import cluster

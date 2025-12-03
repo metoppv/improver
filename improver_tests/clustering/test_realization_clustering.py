@@ -178,6 +178,9 @@ def _assert_realization_matching(
     np.testing.assert_array_equal(realization_indices, expected_realization_indices)
 
 
+# Tests for RealizationClustering
+
+
 @pytest.mark.parametrize(
     "clustering_method,n_clusters,random_state",
     [
@@ -186,7 +189,7 @@ def _assert_realization_matching(
         ("AgglomerativeClustering", 3, None),  # AgglomerativeClustering
     ],
 )
-def test_process_basic_clustering(clustering_method, n_clusters, random_state):
+def test_clustering_basic_clustering(clustering_method, n_clusters, random_state):
     """Test the RealizationClustering.process method with various clustering methods."""
     cube = _create_realization_cube(shape=(5, 10, 10))
 
@@ -202,7 +205,7 @@ def test_process_basic_clustering(clustering_method, n_clusters, random_state):
     assert np.all((result.labels_ >= 0) & (result.labels_ < n_clusters))
 
 
-def test_process_kmeans_cluster_centers():
+def test_clustering_kmeans_cluster_centers():
     """Test that KMeans clustering produces cluster centers."""
     cube = _create_realization_cube(shape=(6, 8, 8))
 
@@ -229,7 +232,7 @@ def test_process_kmeans_cluster_centers():
         ),  # 4D cube: 3x8x8 = 192 features (with forecast_period)
     ],
 )
-def test_process_arbitrary_dimensions_to_2d_conversion(
+def test_clustering_arbitrary_dimensions_to_2d_conversion(
     shape, expected_n_features, use_4d
 ):
     """Test that cubes with arbitrary dimensions are correctly converted to 2D.
@@ -262,7 +265,7 @@ def test_process_arbitrary_dimensions_to_2d_conversion(
     assert len(result.labels_) == shape[0]
 
 
-def test_process_distinct_clusters():
+def test_clustering_distinct_clusters():
     """Test clustering with clearly separable realizations."""
     cube = _create_clusterable_realization_cube()
 
@@ -275,7 +278,7 @@ def test_process_distinct_clusters():
     assert len(np.unique(result.labels_)) == 2
 
 
-def test_process_dbscan():
+def test_clustering_dbscan():
     """Test the RealizationClustering.process method with DBSCAN clustering."""
     cube = _create_realization_cube(shape=(8, 10, 10))
 
@@ -286,7 +289,7 @@ def test_process_dbscan():
     assert len(result.labels_) == 8
 
 
-def test_process_kmedoids():
+def test_clustering_kmedoids():
     """Test the RealizationClustering.process method with KMedoids."""
     pytest.importorskip("kmedoids")
     cube = _create_clusterable_realization_cube()
@@ -300,7 +303,7 @@ def test_process_kmedoids():
     assert len(result.medoid_indices_) == 2
 
 
-def test_process_invalid_clustering_method():
+def test_clustering_invalid_clustering_method():
     """Test that an error is raised for unsupported clustering methods."""
     cube = _create_realization_cube()
 
@@ -312,7 +315,7 @@ def test_process_invalid_clustering_method():
         plugin.process(cube)
 
 
-def test_process_wrong_leading_dimension():
+def test_clustering_wrong_leading_dimension():
     """Test that an error is raised if realization is not the leading dimension."""
     # Create a cube with time as leading dimension
     data = np.random.randn(3, 5, 10, 10).astype(np.float32)
@@ -337,7 +340,7 @@ def test_process_wrong_leading_dimension():
         plugin.process(cube)
 
 
-def test_process_different_n_clusters():
+def test_clustering_different_n_clusters():
     """Test that different n_clusters values produce different results."""
     cube = _create_realization_cube(shape=(8, 10, 10))
 
@@ -351,7 +354,7 @@ def test_process_different_n_clusters():
     assert len(np.unique(result4.labels_)) == 4
 
 
-def test_process_preserves_cube():
+def test_clustering_preserves_cube():
     """Test that process does not modify the input cube."""
     cube = _create_realization_cube(shape=(5, 10, 10))
     original_data = cube.data.copy()
@@ -362,7 +365,7 @@ def test_process_preserves_cube():
     np.testing.assert_array_equal(cube.data, original_data)
 
 
-def test_process_with_single_realization():
+def test_clustering_with_single_realization():
     """Test process method with a single realization."""
     cube = _create_realization_cube(shape=(1, 10, 10))
 
@@ -1237,7 +1240,7 @@ def test_clusterandmatch_single_secondary_input():
 
 
 def test_clusterandmatch_categorise_full_realizations():
-    """Test categorization with all inputs having >= n_clusters realizations.
+    """Test categorisation with all inputs having >= n_clusters realizations.
 
     This test verifies that when all secondary inputs have enough realizations
     to fill all clusters, they are correctly used in the output.
@@ -1312,7 +1315,7 @@ def test_clusterandmatch_categorise_full_realizations():
 
 
 def test_clusterandmatch_categorise_partial_realizations():
-    """Test categorization with all inputs having < n_clusters realizations.
+    """Test categorisation with all inputs having < n_clusters realizations.
 
     This test verifies that when all secondary inputs have fewer realizations
     than clusters, they selectively replace clusters rather than filling all.
@@ -1415,8 +1418,145 @@ def test_clusterandmatch_categorise_partial_realizations():
     ), "fp=12 should use clustered primary_model only"
 
 
+def test_clusterandmatch_multiple_partial_secondary_same_forecast_period():
+    """Test categorisation with multiple partial secondary inputs for same forecast period.
+
+    This test verifies that when multiple secondary inputs have partial realizations
+    (< n_clusters) for the same forecast period, they are both processed via MSE
+    matching. Since partial inputs don't know in advance which clusters they'll match
+    to, both are processed in reverse precedence order (lowest first).
+
+    With appropriate data values, the MSE matching will assign each partial input to
+    different clusters based on which clusters they match best. This demonstrates that
+    multiple partial inputs can successfully contribute different clusters to the same
+    forecast period.
+    """
+    pytest.importorskip("kmedoids")
+
+    cubes = iris.cube.CubeList()
+    spatial_shape = (5, 5)
+
+    # Primary input with 6 realizations at fp=0 with varying values
+    # Create distinct realizations that will cluster into 3 groups
+    # Group 1 (realizations 0, 1): ~90
+    # Group 2 (realizations 2, 3): ~100
+    # Group 3 (realizations 4, 5): ~110
+    primary_data = np.array(
+        [
+            np.full(spatial_shape, 90.0, dtype=np.float32),
+            np.full(spatial_shape, 91.0, dtype=np.float32),
+            np.full(spatial_shape, 100.0, dtype=np.float32),
+            np.full(spatial_shape, 101.0, dtype=np.float32),
+            np.full(spatial_shape, 110.0, dtype=np.float32),
+            np.full(spatial_shape, 111.0, dtype=np.float32),
+        ]
+    )
+    primary_cube = set_up_variable_cube(
+        primary_data,
+        name="air_temperature",
+        units="K",
+        spatial_grid="equalarea",
+        realizations=np.arange(6),
+        time=datetime(2024, 1, 1, 0),
+        frt=datetime(2024, 1, 1, 0),
+    )
+    primary_cube.remove_coord("forecast_period")
+    forecast_period = iris.coords.DimCoord(
+        np.array([0], dtype=np.int32),
+        standard_name="forecast_period",
+        units="seconds",
+    )
+    primary_cube.add_aux_coord(forecast_period)
+    primary_cube.attributes["model_id"] = "primary_model"
+    cubes.append(primary_cube)
+
+    # Secondary input 1 for fp=0, value 90 (2 realizations < 3 clusters)
+    # This has highest precedence (listed first)
+    # Value chosen to match the low cluster (~90)
+    cubes.extend(
+        _create_cube_with_forecast_periods(
+            [0], 2, "secondary_model_1", spatial_shape, 90.0
+        )
+    )
+
+    # Secondary input 2 for fp=0, value 110 (1 realization < 3 clusters)
+    # This has lower precedence (listed second) but will still be processed
+    # Value chosen to match the high cluster (~110)
+    cubes.extend(
+        _create_cube_with_forecast_periods(
+            [0], 1, "secondary_model_2", spatial_shape, 110.0
+        )
+    )
+
+    # Target grid
+    cubes.append(_create_target_grid_cube())
+
+    hierarchy = {
+        "primary_input": "primary_model",
+        "secondary_inputs": {
+            "secondary_model_1": [0],
+            "secondary_model_2": [0],
+        },
+    }
+
+    plugin = RealizationClusterAndMatch(
+        hierarchy=hierarchy,
+        model_id_attr="model_id",
+        clustering_method="KMedoids",
+        target_grid_name="target_grid",
+        n_clusters=3,
+        random_state=42,
+    )
+
+    result = plugin.process(cubes)
+
+    # Should have 1 forecast period
+    forecast_periods = result.coord("forecast_period").points
+    assert len(forecast_periods) == 1
+    np.testing.assert_array_equal(forecast_periods, [0])
+
+    # Should have 3 clusters
+    assert len(result.coord("realization").points) == 3
+
+    # Check data: Both secondary inputs are processed (lowest precedence first).
+    # With the chosen data values (primary clusters ~90, ~100, ~110;
+    # secondary_1=90, secondary_2=110), the MSE matching algorithm will match
+    # them to different clusters.
+    #
+    # Expected result with random_state=42:
+    # - Clustering creates 3 clusters with medoid values ~90, ~100, ~110
+    # - secondary_model_2 processes first, matches to cluster with value ~110
+    # - secondary_model_1 processes second, matches to clusters with values ~90 and ~100
+    # - Result: All 3 clusters filled by secondary inputs
+    fp_0_data = result.extract(iris.Constraint(forecast_period=0)).data
+
+    # Verify the final result after precedence resolution
+    unique_values = np.unique(fp_0_data.round())
+
+    # Should see values from both secondary inputs
+    assert any(
+        np.isclose(unique_values, 90.0, atol=5.0)
+    ), "Should contain values from secondary_model_1 (~90)"
+    assert any(
+        np.isclose(unique_values, 110.0, atol=5.0)
+    ), "Should contain values from secondary_model_2 (~110)"
+
+    # Count how many clusters got each value
+    n_from_secondary_1 = np.sum(np.isclose(fp_0_data, 90.0, atol=5.0))
+    n_from_secondary_2 = np.sum(np.isclose(fp_0_data, 110.0, atol=5.0))
+
+    # Should have 2 clusters from secondary_model_1 (its 2 realizations)
+    # and 1 cluster from secondary_model_2 (its 1 realization)
+    assert (
+        n_from_secondary_1 == 2 * spatial_shape[0] * spatial_shape[1]
+    ), "2 clusters should use secondary_model_1"
+    assert (
+        n_from_secondary_2 == 1 * spatial_shape[0] * spatial_shape[1]
+    ), "1 cluster should use secondary_model_2"
+
+
 def test_clusterandmatch_categorise_mixed_realizations():
-    """Test categorization with mix of full and partial realizations.
+    """Test categorisation with mix of full and partial realizations.
 
     This test verifies correct handling when some secondary inputs have enough
     realizations to fill all clusters while others have fewer.
