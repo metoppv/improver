@@ -155,7 +155,7 @@ class StandardiseMetadata(BasePlugin):
             except AncillaryVariableNotFoundError:
                 warnings.warn(
                     f"Ancillary variable '{var}' not found in cube '{cube.name()}'.",
-                    UserWarning
+                    UserWarning,
                 )
                 continue
 
