@@ -3,76 +3,12 @@
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 
-from datetime import datetime
-
 import numpy as np
 import pytest
-from cf_units import Unit
-from iris.coords import AuxCoord
 from iris.cube import Cube, CubeList
 
 from improver.fire_weather.duff_moisture_code import DuffMoistureCode
-
-
-def make_cube(
-    data: np.ndarray,
-    name: str,
-    units: str,
-    add_time_coord: bool = False,
-) -> Cube:
-    """Create a dummy Iris Cube with specified data, name, units, and optional
-    time coordinates.
-
-    All cubes include a forecast_reference_time coordinate by default.
-
-    Args:
-        data (np.ndarray): The data array for the cube.
-        name (str): The long name for the cube.
-        units (str): The units for the cube.
-        add_time_coord (bool): Whether to add a time coordinate with bounds.
-
-    Returns:
-        Cube: The constructed Iris Cube with the given properties.
-    """
-    arr = np.array(data, dtype=np.float64)
-    cube = Cube(arr, long_name=name)
-    cube.units = units
-
-    # Always add forecast_reference_time
-    time_origin = "hours since 1970-01-01 00:00:00"
-    calendar = "gregorian"
-
-    # Default forecast reference time: 2025-10-20 00:00:00
-    frt = datetime(2025, 10, 20, 0, 0)
-    frt_coord = AuxCoord(
-        np.array([frt.timestamp() / 3600], dtype=np.float64),
-        standard_name="forecast_reference_time",
-        units=Unit(time_origin, calendar=calendar),
-    )
-    cube.add_aux_coord(frt_coord)
-
-    # Optionally add time coordinate with bounds
-    if add_time_coord:
-        # Default valid time: 2025-10-20 12:00:00 with 12-hour bounds
-        valid_time = datetime(2025, 10, 20, 12, 0)
-        time_bounds = np.array(
-            [
-                [
-                    (valid_time.timestamp() - 43200) / 3600,  # 12 hours earlier
-                    valid_time.timestamp() / 3600,
-                ]
-            ],
-            dtype=np.float64,
-        )
-        time_coord = AuxCoord(
-            np.array([valid_time.timestamp() / 3600], dtype=np.float64),
-            standard_name="time",
-            bounds=time_bounds,
-            units=Unit(time_origin, calendar=calendar),
-        )
-        cube.add_aux_coord(time_coord)
-
-    return cube
+from improver_tests.fire_weather import make_cube, make_input_cubes
 
 
 def input_cubes(
@@ -105,213 +41,28 @@ def input_cubes(
     Returns:
         list[Cube]: List of Iris Cubes for temperature, precipitation, relative humidity, and DMC.
     """
-    temp = make_cube(np.full(shape, temp_val), "air_temperature", temp_units)
-    # Precipitation cube needs time coordinates for _make_dmc_cube
-    precip = make_cube(
-        np.full(shape, precip_val),
-        "lwe_thickness_of_precipitation_amount",
-        precip_units,
-        add_time_coord=True,
+    return make_input_cubes(
+        [
+            ("air_temperature", temp_val, temp_units, False),
+            ("lwe_thickness_of_precipitation_amount", precip_val, precip_units, True),
+            ("relative_humidity", rh_val, rh_units, False),
+            ("duff_moisture_code", dmc_val, dmc_units, True),
+        ],
+        shape=shape,
     )
-    rh = make_cube(np.full(shape, rh_val), "relative_humidity", rh_units)
-    # DMC cube needs time coordinates for _make_dmc_cube to copy metadata
-    dmc = make_cube(
-        np.full(shape, dmc_val),
-        "duff_moisture_code",
-        dmc_units,
-        add_time_coord=True,
-    )
-    return [temp, precip, rh, dmc]
 
 
-@pytest.mark.parametrize(
-    "temp_val, precip_val, rh_val, dmc_val",
-    [
-        # Case 0: Typical mid-range values
-        (20.0, 1.0, 50.0, 6.0),
-        # Case 1: All zeros (edge case)
-        (0.0, 0.0, 0.0, 0.0),
-        # Case 2: All maximums/extremes
-        (100.0, 100.0, 100.0, 100.0),
-        # Case 3: Low temperature, low precip, low relative humidity, low DMC
-        (-10.0, 0.5, 10.0, 2.0),
-        # Case 4: High temp, high precip, high relative humidity, high DMC
-        (30.0, 10.0, 90.0, 120.0),
-    ],
-)
-def test_load_input_cubes(
-    temp_val: float,
-    precip_val: float,
-    rh_val: float,
-    dmc_val: float,
-) -> None:
-    """Test DuffMoistureCode.load_input_cubes with various input conditions.
-
-    Args:
-        temp_val (float): Temperature value for all grid points.
-        precip_val (float): Precipitation value for all grid points.
-        rh_val (float): Relative humidity value for all grid points.
-        dmc_val (float): DMC value for all grid points.
-
-    Raises:
-        AssertionError: If the loaded cubes do not match expected shapes and types.
-    """
-    cubes = input_cubes(temp_val, precip_val, rh_val, dmc_val)
+def test_input_attribute_mapping() -> None:
+    """Test that INPUT_ATTRIBUTE_MAPPINGS correctly disambiguates input DMC."""
+    cubes = input_cubes()
     plugin = DuffMoistureCode()
     plugin.load_input_cubes(CubeList(cubes), month=7)
 
-    attributes = [
-        plugin.temperature,
-        plugin.precipitation,
-        plugin.relative_humidity,
-        plugin.input_dmc,
-    ]
-    input_values = [temp_val, precip_val, rh_val, dmc_val]
-
-    for attr, val in zip(attributes, input_values):
-        assert isinstance(attr, Cube)
-        assert attr.data.shape == (5, 5)
-        assert np.allclose(attr.data, val)
-
-    # Check that month is set correctly
-    assert plugin.month == 7
-
-
-@pytest.mark.parametrize(
-    "param, input_val, input_unit, expected_val",
-    [
-        # Case 0: Temperature: Kelvin -> degC
-        ("temperature", 293.15, "K", 20.0),
-        # Case 1: Precipitation: m -> mm
-        ("precipitation", 0.001, "m", 1.0),
-        # Case 2: Relative humidity: percentage -> fraction
-        ("relative_humidity", 10.0, "%", 0.1),
-        # Case 3: Input DMC: no conversion needed (dimensionless)
-        ("input_dmc", 6.0, "1", 6.0),
-    ],
-)
-def test_load_input_cubes_unit_conversion(
-    param: str,
-    input_val: float,
-    input_unit: str,
-    expected_val: float,
-) -> None:
-    """
-    Test that load_input_cubes correctly converts a single alternative unit for each input cube.
-
-    Args:
-        param (str): Name of the parameter to test (e.g., 'temperature', 'precipitation', etc.).
-        input_val (float): Value to use for the tested parameter.
-        input_unit (str): Unit to use for the tested parameter.
-        expected_val (float): Expected value after conversion.
-
-    Raises:
-        AssertionError: If the converted value does not match the expected value.
-    """
-
-    # Override the value and unit for the parameter being tested
-    if param == "temperature":
-        cubes = input_cubes(temp_val=input_val, temp_units=input_unit)
-    elif param == "precipitation":
-        cubes = input_cubes(precip_val=input_val, precip_units=input_unit)
-    elif param == "relative_humidity":
-        cubes = input_cubes(rh_val=input_val, rh_units=input_unit)
-    elif param == "input_dmc":
-        cubes = input_cubes(dmc_val=input_val, dmc_units=input_unit)
-
-    plugin = DuffMoistureCode()
-    plugin.load_input_cubes(CubeList(cubes), month=7)
-    # Check only the parameter being tested
-    result = getattr(plugin, param)
-    assert np.allclose(result.data, expected_val)
-
-
-@pytest.mark.parametrize(
-    "num_cubes, should_raise, expected_message",
-    [
-        # Case 0: Correct number of cubes (4)
-        (4, False, None),
-        # Case 1: Too few cubes (3 instead of 4)
-        (3, True, "Expected 4 cubes, found 3"),
-        # Case 2: No cubes (0 instead of 4)
-        (0, True, "Expected 4 cubes, found 0"),
-        # Case 3: Too many cubes (5 instead of 4)
-        (5, True, "Expected 4 cubes, found 5"),
-    ],
-)
-def test_load_input_cubes_wrong_number_raises_error(
-    num_cubes: int,
-    should_raise: bool,
-    expected_message: str,
-) -> None:
-    """Test that load_input_cubes raises ValueError when given wrong number of cubes.
-
-    Args:
-        num_cubes (int): Number of cubes to provide to load_input_cubes.
-        should_raise (bool): Whether a ValueError should be raised.
-        expected_message (str): Expected error message (or None if no error expected).
-
-    Raises:
-        AssertionError: If ValueError behavior does not match expectations.
-    """
-    # Create a list with the specified number of cubes
-    cubes = input_cubes()
-    if num_cubes < len(cubes):
-        cubes = cubes[:num_cubes]
-    elif num_cubes > len(cubes):
-        # Add extra dummy cube(s) to test "too many cubes" case
-        for _ in range(num_cubes - len(cubes)):
-            cubes.append(make_cube(np.full((5, 5), 0.0), "extra_cube", "1"))
-
-    plugin = DuffMoistureCode()
-
-    if should_raise:
-        with pytest.raises(ValueError, match=expected_message):
-            plugin.load_input_cubes(CubeList(cubes), month=7)
-    else:
-        # Should not raise - verify it loads successfully
-        plugin.load_input_cubes(CubeList(cubes), month=7)
-        assert isinstance(plugin.temperature, Cube)
-
-
-@pytest.mark.parametrize(
-    "month, should_raise, expected_message",
-    [
-        # Valid months
-        (1, False, None),
-        (6, False, None),
-        (12, False, None),
-        # Invalid months
-        (0, True, "Month must be between 1 and 12, got 0"),
-        (13, True, "Month must be between 1 and 12, got 13"),
-        (-1, True, "Month must be between 1 and 12, got -1"),
-    ],
-)
-def test_load_input_cubes_month_validation(
-    month: int,
-    should_raise: bool,
-    expected_message: str,
-) -> None:
-    """Test that load_input_cubes validates month parameter correctly.
-
-    Args:
-        month (int): Month value to test.
-        should_raise (bool): Whether a ValueError should be raised.
-        expected_message (str): Expected error message (or None if no error expected).
-
-    Raises:
-        AssertionError: If month validation does not match expectations.
-    """
-    cubes = input_cubes()
-    plugin = DuffMoistureCode()
-
-    if should_raise:
-        with pytest.raises(ValueError, match=expected_message):
-            plugin.load_input_cubes(CubeList(cubes), month=month)
-    else:
-        # Should not raise - verify it loads successfully
-        plugin.load_input_cubes(CubeList(cubes), month=month)
-        assert plugin.month == month
+    # Check that the mapping was applied correctly
+    assert hasattr(plugin, "input_dmc")
+    assert isinstance(plugin.input_dmc, Cube)
+    assert plugin.input_dmc.long_name == "duff_moisture_code"
+    assert np.allclose(plugin.input_dmc.data, 6.0)
 
 
 @pytest.mark.parametrize(
@@ -348,16 +99,13 @@ def test__perform_rainfall_adjustment(
 ) -> None:
     """Test _perform_rainfall_adjustment for various rainfall and DMC scenarios.
 
-    Tests include: no adjustment (precip <= 1.5), and various rainfall amounts
-    with different previous DMC values.
+    Tests include no adjustment (precip <= 1.5) and various rainfall amounts with
+    different previous DMC values.
 
     Args:
         precip_val (float): Precipitation value for all grid points.
         prev_dmc (float): Previous DMC value for all grid points.
         expected_dmc (float): Expected DMC after adjustment.
-
-    Raises:
-        AssertionError: If the DMC adjustment does not match expectations.
     """
     cubes = input_cubes(precip_val=precip_val, dmc_val=prev_dmc)
     plugin = DuffMoistureCode()
@@ -371,7 +119,10 @@ def test__perform_rainfall_adjustment(
 
 
 def test__perform_rainfall_adjustment_spatially_varying() -> None:
-    """Test rainfall adjustment with spatially varying data (vectorization check)."""
+    """Test rainfall adjustment with spatially varying input data.
+
+    Verifies vectorized DMC rainfall adjustment with varying values across the grid.
+    """
     shape = (4, 4)
     # Produce a checkerboard precipitation pattern (5mm and 0mm alternating)
     precip_data = np.zeros(shape)
@@ -436,17 +187,16 @@ def test__calculate_drying_rate(
     month: int,
     expected_rate: float,
 ) -> None:
-    """
-    Test _calculate_drying_rate for various temperature, relative humidity, and month combinations.
+    """Test _calculate_drying_rate with various temperature, relative humidity,
+    and month combinations.
+
+    Verifies drying rate calculation for DMC.
 
     Args:
         temp_val (float): Temperature value for all grid points.
         rh_val (float): Relative humidity value for all grid points.
         month (int): Month of the year (1-12).
         expected_rate (float): Expected drying rate value.
-
-    Raises:
-        AssertionError: If the drying rate calculation does not match expectations.
     """
     cubes = input_cubes(temp_val=temp_val, rh_val=rh_val)
     plugin = DuffMoistureCode()
@@ -460,7 +210,10 @@ def test__calculate_drying_rate(
 
 
 def test__calculate_drying_rate_spatially_varying() -> None:
-    """Test drying rate with spatially varying temperature/relative humidity (vectorization check)."""
+    """Test drying rate with spatially varying temperature and relative humidity.
+
+    Verifies vectorized drying rate calculation with varying values across the grid.
+    """
     temp_data = np.array([[-5.0, 0.0, 10.0], [15.0, 20.0, 25.0], [30.0, 35.0, 40.0]])
     rh_data = np.array([[20.0, 30.0, 40.0], [50.0, 60.0, 70.0], [80.0, 90.0, 95.0]])
 
@@ -512,13 +265,12 @@ def test__calculate_dmc(
 ) -> None:
     """Test _calculate_dmc for various previous DMC and drying rate values.
 
+    Verifies DMC calculation from previous DMC and drying rate.
+
     Args:
         prev_dmc (float): Previous DMC value.
         drying_rate (float): Drying rate value.
         expected_dmc (float): Expected DMC output value.
-
-    Raises:
-        AssertionError: If the DMC calculation does not match expectations.
     """
     plugin = DuffMoistureCode()
     plugin.previous_dmc = np.array([prev_dmc])
@@ -528,75 +280,6 @@ def test__calculate_dmc(
     assert dmc.shape == (1,)
     # Check that DMC matches expected output
     assert np.allclose(dmc, expected_dmc, atol=0.01)
-
-
-@pytest.mark.parametrize(
-    "dmc_value, shape",
-    [
-        # Case 0: Typical mid-range DMC value with standard grid
-        (10.0, (5, 5)),
-        # Case 1: Low DMC value with different grid size
-        (0.0, (3, 4)),
-        # Case 2: High DMC value with larger grid
-        (50.0, (10, 10)),
-        # Case 3: Very high DMC (edge case) with small grid
-        (200.0, (2, 2)),
-        # Case 4: Standard DMC value
-        (6.0, (5, 5)),
-    ],
-)
-def test__make_dmc_cube(
-    dmc_value: float,
-    shape: tuple[int, int],
-) -> None:
-    """
-    Test _make_dmc_cube to ensure it creates an Iris Cube with correct properties
-    for various DMC values and grid shapes.
-
-    Args:
-        dmc_value (float): DMC data value to use for all grid points.
-        shape (tuple[int, int]): Shape of the grid.
-
-    Raises:
-        AssertionError: If the created cube does not have expected properties.
-    """
-    # Create input cubes with specified shape
-    cubes = input_cubes(shape=shape)
-
-    # Initialize the plugin and load cubes
-    plugin = DuffMoistureCode()
-    plugin.load_input_cubes(CubeList(cubes), month=7)
-
-    # Create test DMC data
-    dmc_data = np.full(shape, dmc_value, dtype=np.float64)
-
-    # Call the method under test
-    result_cube = plugin._make_dmc_cube(dmc_data)
-
-    # Check that result is an Iris Cube with correct type and shape
-    assert isinstance(result_cube, Cube)
-    assert result_cube.data.dtype == np.float32
-    assert result_cube.data.shape == shape
-    assert np.allclose(result_cube.data, dmc_value, atol=0.001)
-
-    # Check that the cube has the correct name and units
-    assert result_cube.long_name == "duff_moisture_code"
-    assert result_cube.units == "1"
-
-    # Check that forecast_reference_time is copied from precipitation cube
-    result_frt = result_cube.coord("forecast_reference_time")
-    expected_frt = plugin.precipitation.coord("forecast_reference_time")
-    assert result_frt.points[0] == expected_frt.points[0]
-    assert result_frt.units == expected_frt.units
-
-    # Check that time coordinate is copied from precipitation cube
-    result_time = result_cube.coord("time")
-    expected_time = plugin.precipitation.coord("time")
-    assert result_time.points[0] == expected_time.points[0]
-    assert result_time.units == expected_time.units
-
-    # Check that time coordinate has no bounds (removed by _make_dmc_cube)
-    assert result_time.bounds is None
 
 
 @pytest.mark.parametrize(
@@ -624,8 +307,7 @@ def test_process(
 ) -> None:
     """Integration test for the complete DMC calculation process.
 
-    Tests end-to-end functionality with various environmental conditions and
-    verifies the final DMC output matches expected values.
+    Verifies end-to-end DMC calculation with various environmental conditions.
 
     Args:
         temp_val (float): Temperature value for all grid points.
@@ -634,9 +316,6 @@ def test_process(
         dmc_val (float): DMC value for all grid points.
         month (int): Month of the year (1-12).
         expected_output (float): Expected DMC output value for all grid points.
-
-    Raises:
-        AssertionError: If the process output does not match expectations.
     """
     cubes = input_cubes(temp_val, precip_val, rh_val, dmc_val)
     plugin = DuffMoistureCode()
@@ -651,28 +330,11 @@ def test_process(
     assert np.allclose(data, expected_output, atol=0.05)
 
 
-def test_process_default_month() -> None:
-    """Test that process method works with default month parameter."""
-    cubes = input_cubes()
-    plugin = DuffMoistureCode()
-
-    # Should not raise - uses current month by default
-    result = plugin.process(CubeList(cubes))
-
-    # Check that the month is set to current month
-    from datetime import datetime
-
-    current_month = datetime.now().month
-    assert plugin.month == current_month
-
-    # Check that result is valid
-    assert hasattr(result, "data")
-    assert result.data.shape == cubes[0].data.shape
-    assert isinstance(result.data[0][0], (float, np.floating))
-
-
 def test_process_spatially_varying() -> None:
-    """Integration test with spatially varying data (vectorization check)."""
+    """Integration test with spatially varying input data.
+
+    Verifies vectorized DMC implementation with varying values across the grid.
+    """
     temp_data = np.array([[10.0, 15.0, 20.0], [15.0, 20.0, 25.0], [20.0, 25.0, 30.0]])
     precip_data = np.array([[0.0, 2.0, 5.0], [0.0, 0.0, 10.0], [0.0, 0.0, 0.0]])
     rh_data = np.array([[40.0, 50.0, 60.0], [50.0, 60.0, 70.0], [60.0, 70.0, 80.0]])
@@ -705,8 +367,8 @@ def test_process_spatially_varying() -> None:
     assert len(np.unique(result.data)) > 1
 
 
-def test_day_length_factors_table() -> None:
-    """Test that DMC_DAY_LENGTH_FACTORS match the expected values from Van Wagner and Pickett Table 1."""
+def test_dmc_day_length_factors_table() -> None:
+    """Test that DMC_DAY_LENGTH_FACTORS match the expected values from lookup table."""
     expected_factors = [
         0.0,  # Placeholder for index 0
         6.5,  # January

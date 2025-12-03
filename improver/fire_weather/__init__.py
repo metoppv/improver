@@ -4,7 +4,10 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Fire Weather Index System components."""
 
+<<<<<<< HEAD
 import warnings
+=======
+>>>>>>> b9459900 (Changes from ABC refactor)
 from abc import abstractmethod
 from typing import cast
 
