@@ -14,7 +14,7 @@ dependencies:
   - scipy=1.15
   - sphinx<9.0.0  # https://github.com/tox-dev/sphinx-autodoc-typehints/issues/586
   # Optional
-  - esmf-regrid
+  - iris-esmf-regrid
   - fastparquet
   - statsmodels
   - geopandas
