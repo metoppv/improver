@@ -120,7 +120,7 @@ class FireWeatherIndexBase(BasePlugin):
         """Convert a cube standard name to an attribute name.
 
         Args:
-            str: The cube's standard_name
+            standard_name (str): The cube's standard name
 
         Returns:
             str: The attribute name to use for storing the cube
@@ -162,8 +162,6 @@ class FireWeatherIndexBase(BasePlugin):
             # Use first input cube as template
             first_attr = self._get_attribute_name(self.INPUT_CUBE_NAMES[0])
             template_cube = getattr(self, first_attr)
-            if not isinstance(template_cube, Cube):
-                raise TypeError("Please provide a valid template cube.")
 
         output_cube = template_cube.copy(data=data.astype(np.float32))
         output_cube.rename(self.OUTPUT_CUBE_NAME)

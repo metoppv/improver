@@ -3,79 +3,14 @@
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 
-from datetime import datetime
-
 import numpy as np
 import pytest
-from cf_units import Unit
-from iris.coords import AuxCoord
 from iris.cube import Cube, CubeList
 
 from improver.fire_weather import FireWeatherIndexBase
+from improver_tests.fire_weather import make_cube, make_input_cubes
 
 
-def make_cube(
-    data: np.ndarray,
-    name: str,
-    units: str,
-    add_time_coord: bool = False,
-) -> Cube:
-    """Create a dummy Iris Cube with specified data, name, units, and optional
-    time coordinates.
-
-    All cubes include a forecast_reference_time coordinate by default.
-
-    Args:
-        data (np.ndarray): The data array for the cube.
-        name (str): The long name for the cube.
-        units (str): The units for the cube.
-        add_time_coord (bool): Whether to add a time coordinate with bounds.
-
-    Returns:
-        Cube: The constructed Iris Cube with the given properties.
-    """
-    arr = np.array(data, dtype=np.float64)
-    cube = Cube(arr, long_name=name)
-    cube.units = units
-
-    # Always add forecast_reference_time
-    time_origin = "hours since 1970-01-01 00:00:00"
-    calendar = "gregorian"
-
-    # Default forecast reference time: 2025-10-20 00:00:00
-    frt = datetime(2025, 10, 20, 0, 0)
-    frt_coord = AuxCoord(
-        np.array([frt.timestamp() / 3600], dtype=np.float64),
-        standard_name="forecast_reference_time",
-        units=Unit(time_origin, calendar=calendar),
-    )
-    cube.add_aux_coord(frt_coord)
-
-    # Optionally add time coordinate with bounds
-    if add_time_coord:
-        # Default valid time: 2025-10-20 12:00:00 with 12-hour bounds
-        valid_time = datetime(2025, 10, 20, 12, 0)
-        time_bounds = np.array(
-            [
-                [
-                    (valid_time.timestamp() - 43200) / 3600,  # 12 hours earlier
-                    valid_time.timestamp() / 3600,
-                ]
-            ],
-            dtype=np.float64,
-        )
-        time_coord = AuxCoord(
-            np.array([valid_time.timestamp() / 3600], dtype=np.float64),
-            standard_name="time",
-            bounds=time_bounds,
-            units=Unit(time_origin, calendar=calendar),
-        )
-        cube.add_aux_coord(time_coord)
-
-    return cube
-
-
-# Concrete implementation of FireWeatherIndexBase for testing
 class ConcreteFireWeatherIndex(FireWeatherIndexBase):
     """Concrete implementation of FireWeatherIndexBase for testing purposes."""
 
@@ -148,9 +83,13 @@ def input_cubes_basic(
     Returns:
         list[Cube]: List of Iris Cubes for temperature and relative humidity.
     """
-    temp = make_cube(np.full(shape, temp_val), "air_temperature", "Celsius")
-    rh = make_cube(np.full(shape, rh_val), "relative_humidity", "1")
-    return [temp, rh]
+    return make_input_cubes(
+        [
+            ("air_temperature", temp_val, "Celsius", False),
+            ("relative_humidity", rh_val, "1", False),
+        ],
+        shape=shape,
+    )
 
 
 def input_cubes_with_precip(
@@ -170,15 +109,14 @@ def input_cubes_with_precip(
     Returns:
         list[Cube]: List of Iris Cubes for temperature, precipitation, and RH.
     """
-    temp = make_cube(np.full(shape, temp_val), "air_temperature", "Celsius")
-    precip = make_cube(
-        np.full(shape, precip_val),
-        "lwe_thickness_of_precipitation_amount",
-        "mm",
-        add_time_coord=True,
+    return make_input_cubes(
+        [
+            ("air_temperature", temp_val, "Celsius", False),
+            ("lwe_thickness_of_precipitation_amount", precip_val, "mm", True),
+            ("relative_humidity", rh_val, "1", False),
+        ],
+        shape=shape,
     )
-    rh = make_cube(np.full(shape, rh_val), "relative_humidity", "1")
-    return [temp, precip, rh]
 
 
 @pytest.mark.parametrize(

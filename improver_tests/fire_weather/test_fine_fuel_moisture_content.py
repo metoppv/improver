@@ -3,47 +3,12 @@
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 
-from datetime import datetime
-
 import numpy as np
 import pytest
 from iris.cube import Cube, CubeList
 
 from improver.fire_weather.fine_fuel_moisture_content import FineFuelMoistureContent
-from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
-
-# Default times for test cubes
-DEFAULT_FRT = datetime(2017, 11, 10, 0, 0)
-DEFAULT_TIME = datetime(2017, 11, 10, 12, 0)
-DEFAULT_TIME_BOUNDS = (datetime(2017, 11, 10, 0, 0), datetime(2017, 11, 10, 12, 0))
-
-
-def make_cube(
-    data: np.ndarray,
-    name: str,
-    units: str,
-    add_time_coord: bool = False,
-) -> Cube:
-    """Wrapper around set_up_variable_cube for concise cube creation.
-
-    Args:
-        data: The data array for the cube.
-        name: The variable name for the cube.
-        units: The units for the cube.
-        add_time_coord: Whether to add time bounds (for accumulation periods).
-
-    Returns:
-        Iris Cube with the given properties.
-    """
-    time_bounds = DEFAULT_TIME_BOUNDS if add_time_coord else None
-    return set_up_variable_cube(
-        data.astype(np.float32),
-        name=name,
-        units=units,
-        frt=DEFAULT_FRT,
-        time=DEFAULT_TIME,
-        time_bounds=time_bounds,
-    )
+from improver_tests.fire_weather import make_cube, make_input_cubes
 
 
 def input_cubes(
@@ -80,22 +45,16 @@ def input_cubes(
     Returns:
         list[Cube]: List of Iris Cubes for temperature, precipitation, relative humidity, wind speed, and FFMC.
     """
-    temp = make_cube(np.full(shape, temp_val), "air_temperature", temp_units)
-    precip = make_cube(
-        np.full(shape, precip_val),
-        "lwe_thickness_of_precipitation_amount",
-        precip_units,
-        add_time_coord=True,
+    return make_input_cubes(
+        [
+            ("air_temperature", temp_val, temp_units, False),
+            ("lwe_thickness_of_precipitation_amount", precip_val, precip_units, True),
+            ("relative_humidity", rh_val, rh_units, False),
+            ("wind_speed", wind_val, wind_units, False),
+            ("fine_fuel_moisture_content", ffmc_val, ffmc_units, True),
+        ],
+        shape=shape,
     )
-    rh = make_cube(np.full(shape, rh_val), "relative_humidity", rh_units)
-    wind = make_cube(np.full(shape, wind_val), "wind_speed", wind_units)
-    ffmc = make_cube(
-        np.full(shape, ffmc_val),
-        "fine_fuel_moisture_content",
-        ffmc_units,
-        add_time_coord=True,
-    )
-    return [temp, precip, rh, wind, ffmc]
 
 
 @pytest.mark.parametrize(
@@ -122,15 +81,14 @@ def test__calculate_moisture_content(
 ) -> None:
     """Test _calculate_moisture_content for various input scenarios.
 
+    Verifies that the initial moisture content is calculated correctly from FFMC.
+
     Args:
         temp_val (float): Temperature value for all grid points.
         precip_val (float): Precipitation value for all grid points.
         rh_val (float): Relative humidity value for all grid points.
         wind_val (float): Wind speed value for all grid points.
         ffmc_val (float): FFMC value for all grid points.
-
-    Raises:
-        AssertionError: If the calculated moisture content does not match expectations.
     """
     cubes = input_cubes(temp_val, precip_val, rh_val, wind_val, ffmc_val)
     plugin = FineFuelMoistureContent()
@@ -180,16 +138,13 @@ def test__perform_rainfall_adjustment(
 ) -> None:
     """Test _perform_rainfall_adjustment for various rainfall and moisture scenarios.
 
-    Tests include: no adjustment (precip <= 0.5), adjustment1 only (mc <= 150),
+    Verifies: no adjustment (precip <= 0.5), adjustment1 only (mc <= 150),
     adjustment1 + adjustment2 (mc > 150), and capping at 250.
 
     Args:
         precip_val (float): Precipitation value for all grid points.
         initial_mc_val (float): Initial moisture content value for all grid points.
         expected_mc (float): Expected moisture content after adjustment.
-
-    Raises:
-        AssertionError: If the moisture content adjustment does not match expectations.
     """
     cubes = input_cubes(
         precip_val=precip_val,
@@ -208,7 +163,11 @@ def test__perform_rainfall_adjustment(
 
 
 def test__perform_rainfall_adjustment_spatially_varying() -> None:
-    """Test rainfall adjustment with spatially varying data (vectorization check)."""
+    """Test rainfall adjustment with spatially varying data.
+
+    Verifies vectorized implementation with checkerboard precipitation pattern and
+    varying moisture content values across the grid.
+    """
     shape = (4, 4)
     # Produce a checkerboard precipitation pattern (5mm and 0mm alternating)
     precip_data = np.zeros(shape)
@@ -272,17 +231,15 @@ def test__calculate_EMC_for_drying_phase(
     rh_val: float,
     expected_E_d: float,
 ) -> None:
-    """
-    Test _calculate_EMC_for_drying_phase for given temperature and relative humidity,
-    comparing to expected E_d value.
+    """Test _calculate_EMC_for_drying_phase with various relative humidity, wind, and
+    temperature values.
+
+    Verifies Equilibrium Moisture Content calculation for the drying phase.
 
     Args:
         temp_val (float): Temperature value for all grid points.
         rh_val (float): Relative humidity value for all grid points.
         expected_E_d (float): Expected drying phase value.
-
-    Raises:
-        AssertionError: If the drying phase calculation does not match expectations.
     """
     cubes = input_cubes(temp_val=temp_val, rh_val=rh_val)
     plugin = FineFuelMoistureContent()
@@ -353,9 +310,9 @@ def test__calculate_moisture_content_through_drying_rate(
     E_d: np.ndarray,
     expected_output: np.ndarray,
 ) -> None:
-    """Test _calculate_moisture_content_through_drying_rate with various moisture scenarios.
+    """Test _calculate_moisture_content_through_drying_rate with various conditions.
 
-    Tests the calculated moisture content values after applying drying rate equations.
+    Verifies moisture content calculation through drying rate.
 
     Args:
         moisture_content (np.ndarray): Moisture content values for all grid points.
@@ -364,9 +321,6 @@ def test__calculate_moisture_content_through_drying_rate(
         temperature (float): Temperature value for all grid points.
         E_d (np.ndarray): Drying phase values for all grid points.
         expected_output (np.ndarray): Expected output moisture content values.
-
-    Raises:
-        AssertionError: If the drying rate calculation does not match expectations.
     """
     plugin = FineFuelMoistureContent()
     plugin.initial_moisture_content = moisture_content.copy()
@@ -411,16 +365,14 @@ def test__calculate_EMC_for_wetting_phase(
     rh_val: float,
     expected_E_w: float,
 ) -> None:
-    """
-    Test _calculate_EMC_for_wetting_phase for given temperature and relative humidity, comparing to expected E_w value.
+    """Test _calculate_EMC_for_wetting_phase for given temperature and relative humidity.
+
+    Verifies Equilibrium Moisture Content calculation for the wetting phase.
 
     Args:
         temp_val (float): Temperature value for all grid points.
         rh_val (float): Relative humidity value for all grid points.
         expected_E_w (float): Expected wetting phase value.
-
-    Raises:
-        AssertionError: If the wetting phase calculation does not match expectations.
     """
     cubes = input_cubes(temp_val=temp_val, rh_val=rh_val)
     plugin = FineFuelMoistureContent()
@@ -491,9 +443,9 @@ def test__calculate_moisture_content_through_wetting_equilibrium(
     E_w: np.ndarray,
     expected_output: np.ndarray,
 ) -> None:
-    """
-    Test _calculate_moisture_content_through_wetting_equilibrium for given relative humidity, wind speed, temperature, moisture content, and E_w.
-    Compares the calculated moisture content to expected values.
+    """Test _calculate_moisture_content_through_wetting_equilibrium with various moisture scenarios.
+
+    Verifies moisture content calculation through wetting equilibrium.
 
     Args:
         moisture_content (np.ndarray): Moisture content values for all grid points.
@@ -502,9 +454,6 @@ def test__calculate_moisture_content_through_wetting_equilibrium(
         temperature (float): Temperature value for all grid points.
         E_w (np.ndarray): Wetting phase values for all grid points.
         expected_output (np.ndarray): Expected output moisture content values.
-
-    Raises:
-        AssertionError: If the wetting equilibrium calculation does not match expectations.
     """
     plugin = FineFuelMoistureContent()
     plugin.initial_moisture_content = moisture_content.copy()
@@ -567,14 +516,11 @@ def test__calculate_ffmc_from_moisture_content(
 ) -> None:
     """Test _calculate_ffmc_from_moisture_content with various moisture scenarios.
 
-    Tests the FFMC calculation from moisture content using Van Wagner & Pickett Equation 10.
+    Verifies FFMC calculation from moisture content.
 
     Args:
         moisture_content (np.ndarray): Moisture content values for all grid points.
         expected_output (np.ndarray): Expected FFMC output values.
-
-    Raises:
-        AssertionError: If the FFMC calculation does not match expectations.
     """
     plugin = FineFuelMoistureContent()
     plugin.moisture_content = moisture_content.copy()
@@ -611,8 +557,7 @@ def test_process(
 ) -> None:
     """Integration test for the complete FFMC calculation process.
 
-    Tests end-to-end functionality with various environmental conditions and
-    verifies the final FFMC output matches expected values.
+    Verifies end-to-end FFMC calculation with various environmental conditions.
 
     Args:
         temp_val (float): Temperature value for all grid points.
@@ -621,9 +566,6 @@ def test_process(
         wind_val (float): Wind speed value for all grid points.
         ffmc_val (float): FFMC value for all grid points.
         expected_output (float): Expected FFMC output value for all grid points.
-
-    Raises:
-        AssertionError: If the process output does not match expectations.
     """
     cubes = input_cubes(temp_val, precip_val, rh_val, wind_val, ffmc_val)
     plugin = FineFuelMoistureContent()
@@ -637,7 +579,10 @@ def test_process(
 
 
 def test_process_spatially_varying() -> None:
-    """Integration test with spatially varying data (vectorization check)."""
+    """Integration test with spatially varying input data.
+
+    Verifies vectorized implementation with varying values across the grid.
+    """
     temp_data = np.array([[10.0, 15.0, 20.0], [15.0, 20.0, 25.0], [20.0, 25.0, 30.0]])
     precip_data = np.array([[0.0, 1.0, 5.0], [0.0, 0.0, 10.0], [0.0, 0.0, 0.0]])
     rh_data = np.array([[40.0, 50.0, 60.0], [50.0, 60.0, 70.0], [60.0, 70.0, 80.0]])

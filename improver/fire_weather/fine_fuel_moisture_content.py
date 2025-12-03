@@ -135,6 +135,10 @@ class FineFuelMoistureContent(FireWeatherIndexBase):
         accumulation data for the previous 24 hours. This is done element-wise
         for each grid point.
 
+        Modifies self.moisture_content in place. Where precipitation > 0.5 mm,
+        increases moisture content based on rainfall amount and current moisture
+        level. Caps moisture content at 250 (dimensionless).
+
         From Van Wagner and Pickett (1985), Page 5: Equations 2, 3a, 3b,
         and Steps 3a, 3b, 3c.
         """
@@ -192,7 +196,9 @@ class FineFuelMoistureContent(FireWeatherIndexBase):
         From Van Wagner and Pickett (1985), Page 5: Equation 4, and Step 4.
 
         Returns:
-            np.ndarray: The drying phase value.
+            np.ndarray: The Equilibrium Moisture Content for the drying phase (E_d).
+                Array shape matches the input cube data shape. Values are in moisture
+                content units (dimensionless).
         """
         # Equation 4: Calculate EMC for drying phase (E_d)
         E_d = (
@@ -216,7 +222,8 @@ class FineFuelMoistureContent(FireWeatherIndexBase):
             E_d (np.ndarray): The Equilibrium Moisture Content for the drying phase.
 
         Returns:
-            np.ndarray: Array of moisture content with drying applied at all grid points.
+            np.ndarray: Array of moisture content (dimensionless) with drying applied
+                at all grid points. Shape matches input cube data shape.
         """
         # Equation 6a: Calculate the log drying rate intermediate step
         k_o = 0.424 * (
@@ -240,7 +247,9 @@ class FineFuelMoistureContent(FireWeatherIndexBase):
         From Van Wagner and Pickett (1985), Page 5: Equation 5, and Step 6.
 
         Returns:
-            np.ndarray: The Equilibrium Moisture Content for the wetting phase.
+            np.ndarray: The Equilibrium Moisture Content for the wetting phase (E_w).
+                Array shape matches the input cube data shape. Values are in moisture
+                content units (dimensionless).
         """
         # Equation 5: Calculate the EMC for the wetting phase (E_w)
         E_w = (
@@ -264,7 +273,8 @@ class FineFuelMoistureContent(FireWeatherIndexBase):
             E_w (np.ndarray): The Equilibrium Moisture Content for the wetting phase.
 
         Returns:
-            np.ndarray: Array of moisture content with wetting applied at all grid points.
+            np.ndarray: Array of moisture content (dimensionless) with wetting applied
+                at all grid points. Shape matches input cube data shape.
         """
         # Equation 7a: Calculate the log wetting rate intermediate step
         k_l = 0.424 * (
@@ -288,7 +298,8 @@ class FineFuelMoistureContent(FireWeatherIndexBase):
         From Van Wagner and Pickett (1985), Page 5: Equation 10, and Step 9.
 
         Returns:
-            np.ndarray: The calculated FFMC value.
+            np.ndarray: The calculated FFMC values (dimensionless, range 0-101).
+                Shape matches input cube data shape.
         """
         # Equation 10: Calculate FFMC from moisture content
         ffmc = 59.5 * (250.0 - self.moisture_content) / (147.2 + self.moisture_content)
