@@ -9,6 +9,7 @@ Unit tests for the function "cube_manipulation.get_filtered_ancillary_variable_n
 import unittest
 
 import numpy as np
+from iris.coords import AncillaryVariable
 from iris.tests import IrisTest
 
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
@@ -30,12 +31,16 @@ class Test_get_ancillary_variable_names(IrisTest):
 
     def test_get_expected_ancillary_variable_names(self):
         """Test that the expected ancillary variable names are returned."""
-        data = np.arange(25).reshape(5, 5).astype(np.float32)
+        data1 = np.arange(25).reshape(5, 5).astype(np.float32)
         cube_with_ancillary = set_up_variable_cube(
-            data, attributes=self.attributes, spatial_grid="equalarea"
+            data1, attributes=self.attributes, spatial_grid="equalarea"
         )
-        # Use the same data for an ancillary variable
-        cube_with_ancillary.add_ancillary_variable("ancillary_var_to_test", data)
+        # data for an ancillary variable
+        data2 = np.arange(25).reshape(5, 5).astype(np.int32)
+        ancillary_variable = AncillaryVariable(
+            data2, long_name="ancillary_var_to_test", units="1"
+        )
+        cube_with_ancillary.add_ancillary_variable(ancillary_variable, data_dims=[0, 1])
         expected_names = ["ancillary_var_to_test"]
         result = get_ancillary_variable_names(cube_with_ancillary)
         self.assertEqual(result, expected_names)
@@ -52,14 +57,26 @@ class Test_get_ancillary_variable_names(IrisTest):
 
     def test_multiple_ancillary_variables(self):
         """Test that multiple ancillary variable names are returned."""
+        data1 = np.arange(25).reshape(5, 5).astype(np.float32)
         cube_with_ancillary = set_up_variable_cube(
-            np.arange(25).reshape(5, 5).astype(np.float32),
+            data1,
             attributes=self.attributes,
             spatial_grid="equalarea",
         )
-        data = np.arange(25).reshape(5, 5).astype(np.float32)
-        cube_with_ancillary.add_ancillary_variable("ancillary_var_to_test", data)
-        cube_with_ancillary.add_ancillary_variable("another_ancillary_var", data)
+        # data for an ancillary variable
+        data = np.arange(25).reshape(5, 5).astype(np.int32)
+        ancillary_variable_1 = AncillaryVariable(
+            data, long_name="ancillary_var_to_test", units="1"
+        )
+        ancillary_variable_2 = AncillaryVariable(
+            data, long_name="another_ancillary_var", units="1"
+        )
+        cube_with_ancillary.add_ancillary_variable(
+            ancillary_variable_1, data_dims=[0, 1]
+        )
+        cube_with_ancillary.add_ancillary_variable(
+            ancillary_variable_2, data_dims=[0, 1]
+        )
         expected_names = ["ancillary_var_to_test", "another_ancillary_var"]
         result = get_ancillary_variable_names(cube_with_ancillary)
         self.assertEqual(result, expected_names)
