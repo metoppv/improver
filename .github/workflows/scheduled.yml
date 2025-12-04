@@ -18,7 +18,16 @@ jobs:
     if: github.repository_owner == 'metoppv'
     steps:
 
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
+
+    - name: Substitute branch name in environment files
+      run: |
+        # For scheduled runs, use the branch name (typically master)
+        BRANCH_NAME=${GITHUB_REF#refs/heads/}
+        echo "Using BRANCH_NAME: $BRANCH_NAME"
+        # Replace BRANCH_NAME placeholder in all environment files
+        sed -i "s/\${BRANCH_NAME}/$BRANCH_NAME/g" envs/latest.yml
+      shell: bash
 
     - name: Environment creation
       uses: mamba-org/setup-micromamba@v2
@@ -53,7 +62,16 @@ jobs:
     if: github.repository_owner == 'metoppv'
     steps:
 
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
+
+    - name: Substitute branch name in environment files
+      run: |
+        # For scheduled runs, use the branch name (typically master)
+        BRANCH_NAME=${GITHUB_REF#refs/heads/}
+        echo "Using BRANCH_NAME: $BRANCH_NAME"
+        # Replace BRANCH_NAME placeholder in all environment files
+        sed -i "s/\${BRANCH_NAME}/$BRANCH_NAME/g" envs/latest.yml
+      shell: bash
 
     - name: Environment creation
       uses: mamba-org/setup-micromamba@v2
@@ -84,7 +102,16 @@ jobs:
     if: github.repository_owner == 'metoppv'
     steps:
 
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
+
+    - name: Substitute branch name in environment files
+      run: |
+        # For scheduled runs, use the branch name (typically master)
+        BRANCH_NAME=${GITHUB_REF#refs/heads/}
+        echo "Using BRANCH_NAME: $BRANCH_NAME"
+        # Replace BRANCH_NAME placeholder in all environment files
+        sed -i "s/\${BRANCH_NAME}/$BRANCH_NAME/g" envs/latest.yml
+      shell: bash
 
     - name: Environment creation
       uses: mamba-org/setup-micromamba@v2
@@ -111,7 +138,7 @@ jobs:
     steps:
 
     - name: improver checkout
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
       with:
         fetch-depth: 0
 
