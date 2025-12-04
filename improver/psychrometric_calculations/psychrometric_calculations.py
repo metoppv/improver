@@ -5,7 +5,7 @@
 """Module to contain Psychrometric Calculations."""
 
 import functools
-from typing import List, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import iris._constraints
 import numpy as np
@@ -16,12 +16,16 @@ from scipy.optimize import newton
 
 import improver.constants as consts
 from improver import BasePlugin
+from improver.generate_ancillaries.generate_svp_derivative_table import (
+    SaturatedVapourPressureDerivativeTable,
+)
 from improver.generate_ancillaries.generate_svp_table import (
     SaturatedVapourPressureTable,
 )
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
+    minimum_increment,
 )
 from improver.utilities.common_input_handle import as_cubelist
 from improver.utilities.cube_manipulation import (
@@ -38,7 +42,7 @@ SVP_T_INCREMENT = 0.1
 
 
 @functools.lru_cache()
-def _svp_table() -> ndarray:
+def _svp_table(phase: Optional[str] = None) -> ndarray:
     """
     Calculate a saturated vapour pressure (SVP) lookup table.
     The lru_cache decorator caches this table on first call to this function,
@@ -48,16 +52,53 @@ def _svp_table() -> ndarray:
     obtained by interpolating through the table, as is done in the _svp_from_lookup
     function.
 
+    Args:
+        phase:
+            If set to 'water' or 'ice', will create a table with respect to that
+            phase only.
+
     Returns:
         Array of saturated vapour pressures (Pa).
     """
-    svp_data = SaturatedVapourPressureTable(
+    if str(phase).lower() == "water":
+        svp = SaturatedVapourPressureTable(
+            t_min=SVP_T_MIN,
+            t_max=SVP_T_MAX,
+            t_increment=SVP_T_INCREMENT,
+            water_only=True,
+        )
+    elif str(phase).lower() == "ice":
+        svp = SaturatedVapourPressureTable(
+            t_min=SVP_T_MIN, t_max=SVP_T_MAX, t_increment=SVP_T_INCREMENT, ice_only=True
+        )
+    else:
+        svp = SaturatedVapourPressureTable(
+            t_min=SVP_T_MIN, t_max=SVP_T_MAX, t_increment=SVP_T_INCREMENT
+        )
+    return svp.process().data
+
+
+@functools.lru_cache()
+def _svp_derivative_table() -> ndarray:
+    """
+    Calculate a saturated vapour pressure (SVP) derivative lookup table.
+    The lru_cache decorator caches this table on first call to this function,
+    so that the table does not need to be re-calculated if used multiple times.
+
+    A value of SVP derivative for any temperature between T_MIN and T_MAX (inclusive) can be
+    obtained by interpolating through the table, as is done in the _svp_derivative_from_lookup
+    function.
+
+    Returns:
+        Array of first derivative saturated vapour pressures (Pa).
+    """
+    svp_derivative_data = SaturatedVapourPressureDerivativeTable(
         t_min=SVP_T_MIN, t_max=SVP_T_MAX, t_increment=SVP_T_INCREMENT
     ).process()
-    return svp_data.data
+    return svp_derivative_data.data
 
 
-def _svp_from_lookup(temperature: ndarray) -> ndarray:
+def _svp_from_lookup(temperature: ndarray, phase: Optional[str] = None) -> ndarray:
     """
     Gets value for saturation vapour pressure in a pure water vapour system
     from a pre-calculated lookup table. Interpolates linearly between points in
@@ -66,6 +107,9 @@ def _svp_from_lookup(temperature: ndarray) -> ndarray:
     Args:
         temperature:
             Array of air temperatures (K).
+        phase:
+            If set to 'water' or 'ice', will use a lookup table containing
+            values with respect to that phase only.
 
     Returns:
         Array of saturated vapour pressures (Pa).
@@ -78,23 +122,55 @@ def _svp_from_lookup(temperature: ndarray) -> ndarray:
     table_position = (t_clipped - SVP_T_MIN) / SVP_T_INCREMENT
     table_index = table_position.astype(int)
     interpolation_factor = table_position - table_index
-    svp_table_data = _svp_table()
+    svp_table_data = _svp_table(phase)
     return (1.0 - interpolation_factor) * svp_table_data[
         table_index
     ] + interpolation_factor * svp_table_data[table_index + 1]
 
 
-def calculate_svp_in_air(temperature: ndarray, pressure: ndarray) -> ndarray:
+def _svp_derivative_from_lookup(temperature: ndarray) -> ndarray:
+    """
+    Gets value for saturation vapour pressure derivative in a pure water vapour system
+    from a pre-calculated lookup table. Interpolates linearly between points in
+    the table to the temperatures required.
+
+    Args:
+        temperature:
+            Array of air temperatures (K).
+
+    Returns:
+        Array of first derivative saturated vapour pressures (Pa).
+    """
+    # where temperatures are outside the SVP derivative table range, clip data to
+    # within the available range
+    t_clipped = np.clip(temperature, SVP_T_MIN, SVP_T_MAX - SVP_T_INCREMENT)
+
+    # interpolate between bracketing values
+    table_position = (t_clipped - SVP_T_MIN) / SVP_T_INCREMENT
+    table_index = table_position.astype(int)
+    interpolation_factor = table_position - table_index
+    svp_derivative_table_data = _svp_derivative_table()
+    return (1.0 - interpolation_factor) * svp_derivative_table_data[
+        table_index
+    ] + interpolation_factor * svp_derivative_table_data[table_index + 1]
+
+
+def calculate_svp_in_air(
+    temperature: ndarray, pressure: ndarray, phase: Optional[str] = None
+) -> ndarray:
     """
     Calculates the saturation vapour pressure in air.  Looks up the saturation
-    vapour pressure in a pure water vapour system, and pressure-corrects the
-    result to obtain the saturation vapour pressure in air.
+    vapour pressure (SVP) in a pure water vapour system, and pressure-corrects
+    the result to obtain the saturation vapour pressure in air.
 
     Args:
         temperature:
             Array of air temperatures (K).
         pressure:
             Array of pressure (Pa).
+        phase:
+            If set to 'water' or 'ice', will use a SVP lookup table containing
+            values with respect to that phase only.
 
     Returns:
         Saturation vapour pressure in air (Pa).
@@ -103,10 +179,39 @@ def calculate_svp_in_air(temperature: ndarray, pressure: ndarray) -> ndarray:
         Atmosphere-Ocean Dynamics, Adrian E. Gill, International Geophysics
         Series, Vol. 30; Equation A4.7.
     """
-    svp = _svp_from_lookup(temperature)
+    svp = _svp_from_lookup(temperature, phase)
     temp_C = temperature + consts.ABSOLUTE_ZERO
     correction = 1.0 + 1.0e-8 * pressure * (4.5 + 6.0e-4 * temp_C * temp_C)
     return svp * correction.astype(np.float32)
+
+
+def calculate_svp_derivative_in_air(temperature: ndarray, pressure: ndarray) -> ndarray:
+    """
+    Calculates the saturation vapour pressure derivative in air. Looks up the saturation
+    vapour pressure derivative in a pure water vapour system, and pressure-corrects the
+    result to obtain the saturation vapour pressure derivative in air.
+
+    Args:
+        temperature:
+            Array of air temperatures (K).
+        pressure:
+            Array of pressure (Pa).
+
+    Returns:
+        Saturation vapour pressure derivative in air (Pa).
+
+    References:
+        Atmosphere-Ocean Dynamics, Adrian E. Gill, International Geophysics
+        Series, Vol. 30; Equation A4.7.
+    """
+    svp = _svp_from_lookup(temperature)
+    svp_derivative = _svp_derivative_from_lookup(temperature)
+    temp_C = temperature + consts.ABSOLUTE_ZERO
+    correction = 1.0 + 1.0e-8 * pressure * (4.5 + 6.0e-4 * temp_C * temp_C)
+    derivative_correction_term = correction * svp_derivative + (
+        2 * 1.0e-8 * 6.0e-4 * pressure * temp_C * svp
+    )
+    return svp_derivative * derivative_correction_term.astype(np.float32)
 
 
 def dry_adiabatic_temperature(
@@ -333,6 +438,14 @@ class HumidityMixingRatio(BasePlugin):
         self.pressure.rename("surface_air_pressure")
         self.pressure.units = "Pa"
 
+    def _handle_zero_humidity(self):
+        """Sets the minimum humidity value to half the least significant value
+        to avoid issues with zero humidity inputs that can result in unphysical values."""
+        min_humidity = 0.5 * minimum_increment(self.rel_humidity, default=0.001)
+        self.rel_humidity.data = np.where(
+            self.rel_humidity.data < min_humidity, min_humidity, self.rel_humidity.data
+        )
+
     def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
         """
         Calculates the humidity mixing ratio from the inputs. The inputs can be on height levels
@@ -353,6 +466,7 @@ class HumidityMixingRatio(BasePlugin):
         self.rel_humidity = cubes.extract_cube(
             iris.Constraint(name="relative_humidity")
         )
+        self._handle_zero_humidity()
 
         try:
             # Test if there is a cube with air_temperature in the name

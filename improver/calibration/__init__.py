@@ -392,6 +392,9 @@ def split_cubes_for_samos(
 
     Raises:
         IOError:
+            If no forecast cube is found and/or no truth cube is found when a
+            truth_attribute has been provided.
+        IOError:
             If EMOS coefficients cubes are found when they are not expected.
         IOError:
             If additional fields cubes are found which do not match the features in

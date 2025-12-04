@@ -7,12 +7,18 @@
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from importlib.metadata import PackageNotFoundError, version
+from typing import Any
 
 try:
     __version__ = version("improver")
 except PackageNotFoundError:
     # package is not installed
     pass
+
+try:
+    import improver_example_data
+except ImportError:
+    improver_example_data = None
 
 
 class BasePlugin(ABC):
@@ -21,7 +27,7 @@ class BasePlugin(ABC):
     method by redirecting to __call__.
     """
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs) -> Any:
         """Makes subclasses callable to use process
         Args:
             *args:
@@ -34,7 +40,7 @@ class BasePlugin(ABC):
         return self.process(*args, **kwargs)
 
     @abstractmethod
-    def process(self, *args, **kwargs):
+    def process(self, *args, **kwargs) -> Any:
         """Abstract class for rest to implement."""
         pass
 
@@ -44,7 +50,7 @@ class PostProcessingPlugin(BasePlugin):
     Makes generalised changes to metadata relating to post-processing.
     """
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs) -> Any:
         """Makes subclasses callable to use process
         Args:
             *args:
@@ -81,3 +87,24 @@ class PostProcessingPlugin(BasePlugin):
         ):
             title = cube.attributes["title"]
             cube.attributes["title"] = f"Post-Processed {title}"
+
+
+def example_data_path(*path_to_join):
+    """Function to generate the path to the data within the improver_example_data repo
+    from the relative path provided.
+
+    Args:
+        A variable length argument list representing parts of the path to be joined
+        to form the full path to the example data.
+    Raises:
+        ImportError: The improver_example_data package is not available
+    Returns:
+        An absolute path to the example data.
+    """
+    if improver_example_data is not None:
+        target = improver_example_data.path.joinpath(*path_to_join)
+    else:
+        raise ImportError(
+            "Please install the 'improver_example_data' package to access example data."
+        )
+    return target
