@@ -407,22 +407,27 @@ plt.show()
 # Summary of the process
 # ----------------------
 #
-# ## Clustering and Matching Summary
+# Clustering and Matching Summary
+# ================================
 #
 # **Input (coarse resolution):** 18 realizations
+#
 # **Output (clustered):** 2 clusters
+#
 # **Number of forecast periods:** 2
 #
-# ### Data source by forecast period:
+# Data source by forecast period:
+# --------------------------------
 #
 # - **T+ 6h:** HIGH RESOLUTION (uk_ens) - matched to clusters
 # - **T+12h:** COARSE RESOLUTION (gl_ens) - primary clustered input
 #
-# ### What happened:
+# What happened:
+# --------------
 #
 # 1. The coarse resolution (gl_ens) ensemble was clustered using KMedoids to reduce
-# 18 realizations to 2 representative clusters
+#    18 realizations to 2 representative clusters
 # 2. For T+6h: High resolution (uk_ens) realizations were matched to these clusters
-# based on mean squared error, providing higher resolution output
+#    based on mean squared error, providing higher resolution output
 # 3. For T+12h: The clustered coarse resolution data was used directly
-# (no high resolution data available for this period in the hierarchy)
+#    (no high resolution data available for this period in the hierarchy)
