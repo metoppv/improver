@@ -1646,3 +1646,144 @@ def test_clusterandmatch_categorise_mixed_realizations():
     assert np.allclose(
         fp_12_data, 112.0, atol=5.0
     ), "fp=12 should use clustered primary_model only"
+
+
+def test_clusterandmatch_regrid_for_clustering_false():
+    """Test that regrid_for_clustering=False works without requiring target grid.
+
+    This test verifies that when regrid_for_clustering is set to False:
+    1. No target_grid_name is required
+    2. Clustering and matching proceed without regridding
+    3. Results are produced successfully with original grid data
+    """
+    pytest.importorskip("kmedoids")
+
+    cubes = iris.cube.CubeList()
+    spatial_shape = (5, 5)
+
+    # Primary input with 6 realizations, value 100
+    cubes.extend(
+        _create_cube_with_forecast_periods(
+            [0, 6, 12], 6, "primary_model", spatial_shape, 100.0
+        )
+    )
+
+    # Secondary input 1 for fp=[0, 6], value 200
+    cubes.extend(
+        _create_cube_with_forecast_periods(
+            [0, 6], 6, "secondary_model_1", spatial_shape, 200.0
+        )
+    )
+
+    # Secondary input 2 for fp=[12], value 300
+    cubes.extend(
+        _create_cube_with_forecast_periods(
+            [12], 4, "secondary_model_2", spatial_shape, 300.0
+        )
+    )
+
+    # Note: No target grid cube added
+
+    hierarchy = {
+        "primary_input": "primary_model",
+        "secondary_inputs": {
+            "secondary_model_1": [0, 6],
+            "secondary_model_2": [12],
+        },
+    }
+
+    # Create plugin without target_grid_name and with regrid_for_clustering=False
+    plugin = RealizationClusterAndMatch(
+        hierarchy=hierarchy,
+        model_id_attr="model_id",
+        clustering_method="KMedoids",
+        regrid_for_clustering=False,
+        n_clusters=3,
+        random_state=42,
+    )
+
+    result = plugin.process(cubes)
+
+    # Check basic structure
+    assert isinstance(result, iris.cube.Cube)
+    assert result.name() == "air_temperature"
+    assert result.units == "K"
+
+    # Check that we have the expected number of clusters
+    n_clusters = len(result.coord("realization").points)
+    assert n_clusters == 3
+
+    # Check that all forecast periods are present (in seconds)
+    forecast_periods = result.coord("forecast_period").points
+    assert len(forecast_periods) == 3
+    np.testing.assert_array_equal(forecast_periods, [0, 6 * 3600, 12 * 3600])
+
+    # Check that model_id attribute is removed from result
+    assert "model_id" not in result.attributes
+
+    # Check data values to verify correct inputs were used
+    # fp=0,6 should use secondary_model_1 (highest precedence, values ~200)
+    fp_0_data = result.extract(iris.Constraint(forecast_period=0)).data
+    assert np.allclose(fp_0_data, 200.0, atol=5.0), "fp=0 should use secondary_model_1"
+
+    fp_6_data = result.extract(iris.Constraint(forecast_period=6 * 3600)).data
+    assert np.allclose(fp_6_data, 206.0, atol=5.0), "fp=6 should use secondary_model_1"
+
+    # fp=12 should use secondary_model_2 (highest precedence, values ~300)
+    fp_12_data = result.extract(iris.Constraint(forecast_period=12 * 3600)).data
+    assert np.allclose(
+        fp_12_data, 312.0, atol=5.0
+    ), "fp=12 should use secondary_model_2"
+
+
+def test_clusterandmatch_regrid_for_clustering_false_without_target_grid_name():
+    """Test that regrid_for_clustering=False allows omitting target_grid_name."""
+    pytest.importorskip("kmedoids")
+
+    hierarchy = {
+        "primary_input": "model_a",
+        "secondary_inputs": {"model_b": [0, 6]},
+    }
+
+    # Should not raise an error when regrid_for_clustering=False
+    # and target_grid_name is None
+    plugin = RealizationClusterAndMatch(
+        hierarchy=hierarchy,
+        model_id_attr="model_id",
+        clustering_method="KMedoids",
+        regrid_for_clustering=False,
+        n_clusters=3,
+        random_state=42,
+    )
+
+    assert plugin.regrid_for_clustering is False
+    assert plugin.target_grid_name is None
+
+
+def test_clusterandmatch_regrid_for_clustering_true_requires_target_grid_name():
+    """Test that regrid_for_clustering=True requires target_grid_name.
+
+    This test verifies that when regrid_for_clustering is True (the default),
+    target_grid_name must be provided, otherwise a ValueError is raised.
+    """
+    pytest.importorskip("kmedoids")
+
+    hierarchy = {
+        "primary_input": "model_a",
+        "secondary_inputs": {"model_b": [0, 6]},
+    }
+
+    # Should raise ValueError when regrid_for_clustering=True
+    # but target_grid_name is not provided
+    with pytest.raises(
+        ValueError,
+        match="target_grid_name must be provided when regrid_for_clustering is True",
+    ):
+        RealizationClusterAndMatch(
+            hierarchy=hierarchy,
+            model_id_attr="model_id",
+            clustering_method="KMedoids",
+            target_grid_name=None,
+            regrid_for_clustering=True,
+            n_clusters=3,
+        )
