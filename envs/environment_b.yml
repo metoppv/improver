@@ -16,7 +16,7 @@ dependencies:
   - pandas
   - pytz
   - scipy=1.15
-  - sphinx
+  - sphinx<9.0.0  # https://github.com/tox-dev/sphinx-autodoc-typehints/issues/586
   # Optional
   - geopandas
   - lightgbm>=4.0.0
