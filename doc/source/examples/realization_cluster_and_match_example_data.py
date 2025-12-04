@@ -19,6 +19,28 @@ based on mean squared error, respecting a configurable precedence hierarchy.
 # SPDX-License-Identifier: BSD-3-Clause
 
 # %%
+# Check for required packages
+# ---------------------------
+# This example requires the kmedoids package for clustering.
+# Skip the example if it's not available.
+import pytest
+
+pytest.importorskip("kmedoids")
+
+# %%
+# Check for esmf_regrid availability
+# -----------------------------------
+# Check if esmf_regrid is available to determine the regridding method to use.
+# If esmf_regrid is available, use area-weighted regridding for better accuracy.
+# Otherwise, fall back to bilinear interpolation which is always available.
+try:
+    import esmf_regrid  # noqa: F401
+
+    REGRID_MODE = "esmf-area-weighted"
+except ImportError:
+    REGRID_MODE = "bilinear"
+
+# %%
 # Load example data
 # -----------------
 # Load example coarse resolution data for clustering and visualization.
@@ -176,11 +198,14 @@ primary_cube = primary_cubes.merge_cube()
 primary_cube.transpose([1, 0, 2, 3])
 
 # Create the plugin instance
+# Use esmf-area-weighted regridding if esmf_regrid is available,
+# otherwise use bilinear interpolation
 plugin = RealizationClusterAndMatch(
     hierarchy={"primary_input": "gl_ens", "secondary_inputs": {"uk_ens": [0, 6]}},
     model_id_attr="mosg__model_configuration",
     clustering_method="KMedoids",
     target_grid_name="target_grid",
+    regrid_mode=REGRID_MODE,
     n_clusters=2,
 )
 
