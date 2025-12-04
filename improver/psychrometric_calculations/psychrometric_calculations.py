@@ -270,7 +270,9 @@ def dry_adiabatic_pressure(
 
 def saturated_humidity(temperature: ndarray, pressure: ndarray) -> ndarray:
     """
-    Calculate specific humidity mixing ratio of saturated air of given temperature and pressure
+    Calculate specific humidity mixing ratio of saturated air of given temperature and pressure.
+
+    Invalid values are filtered and result in NaN outputs.
 
     Args:
         temperature:
@@ -289,7 +291,7 @@ def saturated_humidity(temperature: ndarray, pressure: ndarray) -> ndarray:
         ASHRAE Fundamentals handbook (2005) Equation 22, 24, p6.8
     """
     mask = ~np.isfinite(temperature) | ~np.isfinite(pressure)
-    # Replace NaNs with a dummy value for calculation purposes
+    # Replace invalid values with a dummy value for calculation purposes
     temperature = np.where(mask, 273.15, temperature)
     pressure = np.where(mask, 100000.0, pressure)
     svp = calculate_svp_in_air(temperature, pressure)
