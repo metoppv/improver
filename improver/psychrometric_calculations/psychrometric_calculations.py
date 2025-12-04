@@ -288,7 +288,7 @@ def saturated_humidity(temperature: ndarray, pressure: ndarray) -> ndarray:
     References:
         ASHRAE Fundamentals handbook (2005) Equation 22, 24, p6.8
     """
-    mask = np.isnan(temperature) | np.isnan(pressure)
+    mask = ~np.isfinite(temperature) | ~np.isfinite(pressure)
     # Replace NaNs with a dummy value for calculation purposes
     temperature = np.where(mask, 273.15, temperature)
     pressure = np.where(mask, 100000.0, pressure)
