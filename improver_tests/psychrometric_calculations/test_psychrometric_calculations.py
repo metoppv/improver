@@ -90,10 +90,11 @@ def test_saturated_humidity(shape, t, p, expected):
     assert result.dtype == np.float32
 
 
-def test_saturated_humidity_nan():
-    """Test the saturated_humidity method with NaN input"""
-    t = np.array([[290.0, np.nan], [273.15, 270.0]], dtype=np.float32)
-    p = np.array([[100000.0, 90000.0], [90000.0, np.nan]], dtype=np.float32)
+@pytest.mark.parametrize("invalid_value", (np.nan, np.inf, -np.inf))
+def test_saturated_humidity_invalid(invalid_value):
+    """Test the saturated_humidity method with invalid inputs"""
+    t = np.array([[290.0, invalid_value], [273.15, 270.0]], dtype=np.float32)
+    p = np.array([[100000.0, 90000.0], [90000.0, invalid_value]], dtype=np.float32)
     expected = np.array([[1.20745e-2, np.nan], [4.2481e-3, np.nan]], dtype=np.float32)
     result = saturated_humidity(t, p)
     assert np.isclose(result, expected, equal_nan=True).all()
