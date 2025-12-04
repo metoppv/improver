@@ -23,9 +23,13 @@ based on mean squared error, respecting a configurable precedence hierarchy.
 # ---------------------------
 # This example requires the kmedoids package for clustering.
 # Skip the example if it's not available.
-import pytest
+try:
+    import kmedoids  # noqa: F401
+except ImportError:
+    import sys
 
-pytest.importorskip("kmedoids")
+    print("kmedoids package not available, skipping example", file=sys.stderr)
+    sys.exit(0)
 
 # %%
 # Check for esmf_regrid availability
