@@ -417,13 +417,13 @@ plt.show()
 # **Number of forecast periods:** 2
 #
 # Data source by forecast period:
-# --------------------------------
+# ===============================
 #
 # - **T+ 6h:** HIGH RESOLUTION (uk_ens) - matched to clusters
 # - **T+12h:** COARSE RESOLUTION (gl_ens) - primary clustered input
 #
 # What happened:
-# --------------
+# ==============
 #
 # 1. The coarse resolution (gl_ens) ensemble was clustered using KMedoids to reduce
 #    18 realizations to 2 representative clusters
