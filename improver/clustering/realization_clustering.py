@@ -765,7 +765,7 @@ class RealizationClusterAndMatch(BasePlugin):
         inputs_list = list(reversed(partial_realization_inputs))
 
         # Process in reverse order (lowest precedence first)
-        for idx, (candidate_name, forecast_periods) in enumerate(inputs_list):
+        for candidate_name, forecast_periods in inputs_list:
             model_id_constr = iris.AttributeConstraint(
                 **{self.model_id_attr: candidate_name}
             )

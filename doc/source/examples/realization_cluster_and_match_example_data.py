@@ -119,7 +119,6 @@ high_cube_12h = load_cube(
         )
     )
 )
-
 print("\nHigh resolution 6h:")
 print(high_cube_6h)
 
@@ -277,6 +276,7 @@ plt.show()
 # ---------------------------------------------
 # Now apply the full plugin to cluster the primary input and match
 # secondary inputs to the clusters. The hierarchy specifies that:
+#
 # - gl_ens (global/coarse ensemble) is the primary input to be clustered
 # - uk_ens (UK/high resolution ensemble) is a secondary input that will
 #   be matched to the clusters for forecast periods 0-6 hours
