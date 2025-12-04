@@ -334,8 +334,9 @@ class RealizationClusterAndMatch(BasePlugin):
         hierarchy: dict[str, str | dict[str, list[int]]],
         model_id_attr: str,
         clustering_method: str,
-        target_grid_name: str,
+        target_grid_name: str | None = None,
         regrid_mode: str = "esmf-area-weighted",
+        regrid_for_clustering: bool = True,
         regrid_kwargs: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> None:
@@ -364,10 +365,15 @@ class RealizationClusterAndMatch(BasePlugin):
                 input cubes within these ranges will be processed.
             model_id_attr: The model ID attribute used to identify different models
                 within the input cubes.
-            target_grid_name: The name of the target grid cube for regridding.
+            target_grid_name: The name of the target grid cube for regridding. Only
+                required if regrid_for_clustering is True.
             clustering_method: The clustering method to use.
             regrid_mode: The regridding mode to use. Default is
                 "esmf-area-weighted". See RegridLandSea for available modes.
+            regrid_for_clustering: If True, regrid all cubes (primary and secondary)
+                to the target grid before clustering and matching. If False, perform
+                clustering and matching on the original grids without regridding.
+                Default is True.
             regrid_kwargs: Additional keyword arguments to pass to RegridLandSea.
                 Common options include:
 
@@ -386,8 +392,16 @@ class RealizationClusterAndMatch(BasePlugin):
         self.target_grid_name = target_grid_name
         self.clustering_method = clustering_method
         self.regrid_mode = regrid_mode
+        self.regrid_for_clustering = regrid_for_clustering
         self.regrid_kwargs = regrid_kwargs if regrid_kwargs is not None else {}
         self.kwargs = kwargs
+
+        if regrid_for_clustering and target_grid_name is None:
+            msg = (
+                "target_grid_name must be provided when regrid_for_clustering is True."
+            )
+            raise ValueError(msg)
+
         if clustering_method != "KMedoids":
             msg = (
                 "Currently only KMedoids clustering is supported for the clustering "
@@ -433,33 +447,45 @@ class RealizationClusterAndMatch(BasePlugin):
         return [h * 3600 for h in hours]
 
     def cluster_primary_input(
-        self, cube: iris.cube.Cube, target_grid_cube: iris.cube.Cube
+        self, cube: iris.cube.Cube, target_grid_cube: iris.cube.Cube | None
     ) -> tuple[iris.cube.Cube, iris.cube.Cube]:
-        """Cluster the primary input cube. The primary input cube is regridded
-        to the target grid before clustering using the specified regridding method.
+        """Cluster the primary input cube. If regridding is enabled, the primary
+        input cube is regridded to the target grid before clustering using the
+        specified regridding method.
 
         Args:
             primary_cube: The primary input cube to cluster.
-            target_grid_cube: The target grid cube for regridding.
+            target_grid_cube: The target grid cube for regridding. Can be None if
+                regrid_for_clustering is False.
         Returns:
             Tuple of the clustered primary input cube and the regridded clustered
-            primary input cube.
+            primary input cube (or the same cube twice if regridding is disabled).
         """
         # Regrid the primary cube prior to clustering to speed up clustering and
-        # emphasise key features of relevance for clustering.
-        regridded_cube = RegridLandSea(
-            regrid_mode=self.regrid_mode,
-            **self.regrid_kwargs,
-        )(cube, target_grid_cube)
-        clustering_result = RealizationClustering(
-            self.clustering_method, **self.kwargs
-        )(regridded_cube)
-        clustered_cube = self._select_realizations_for_kmedoid_clusters(
-            cube, clustering_result
-        )
-        clustered_regridded_cube = self._select_realizations_for_kmedoid_clusters(
-            regridded_cube, clustering_result
-        )
+        # emphasise key features of relevance for clustering (if enabled).
+        if self.regrid_for_clustering:
+            regridded_cube = RegridLandSea(
+                regrid_mode=self.regrid_mode,
+                **self.regrid_kwargs,
+            )(cube, target_grid_cube)
+            clustering_result = RealizationClustering(
+                self.clustering_method, **self.kwargs
+            )(regridded_cube)
+            clustered_cube = self._select_realizations_for_kmedoid_clusters(
+                cube, clustering_result
+            )
+            clustered_regridded_cube = self._select_realizations_for_kmedoid_clusters(
+                regridded_cube, clustering_result
+            )
+        else:
+            clustering_result = RealizationClustering(
+                self.clustering_method, **self.kwargs
+            )(cube)
+            clustered_cube = self._select_realizations_for_kmedoid_clusters(
+                cube, clustering_result
+            )
+            clustered_regridded_cube = clustered_cube
+
         return clustered_cube, clustered_regridded_cube
 
     def _select_realizations_for_kmedoid_clusters(
@@ -697,10 +723,14 @@ class RealizationClusterAndMatch(BasePlugin):
             else:
                 continue  # No matching cubes for this forecast period
 
-            regridded_candidate_cube = RegridLandSea(
-                regrid_mode=self.regrid_mode,
-                **self.regrid_kwargs,
-            )(candidate_cube, target_grid_cube)
+            if self.regrid_for_clustering:
+                regridded_candidate_cube = RegridLandSea(
+                    regrid_mode=self.regrid_mode,
+                    **self.regrid_kwargs,
+                )(candidate_cube, target_grid_cube)
+            else:
+                regridded_candidate_cube = candidate_cube
+
             cluster_indices, realization_indices = RealizationToClusterMatcher()(
                 regridded_clustered_primary_cube.extract(fp_constr),
                 regridded_candidate_cube,
@@ -774,10 +804,13 @@ class RealizationClusterAndMatch(BasePlugin):
                 fp_constr = iris.Constraint(forecast_period=fp)
                 candidate_cube = cubes.extract_cube(model_id_constr & fp_constr)
 
-                regridded_candidate_cube = RegridLandSea(
-                    regrid_mode=self.regrid_mode,
-                    **self.regrid_kwargs,
-                )(candidate_cube, target_grid_cube)
+                if self.regrid_for_clustering:
+                    regridded_candidate_cube = RegridLandSea(
+                        regrid_mode=self.regrid_mode,
+                        **self.regrid_kwargs,
+                    )(candidate_cube, target_grid_cube)
+                else:
+                    regridded_candidate_cube = candidate_cube
 
                 # Get the matching cluster indices from the matcher
                 clustered_fp_cube = regridded_clustered_primary_cube.extract(fp_constr)
@@ -858,7 +891,11 @@ class RealizationClusterAndMatch(BasePlugin):
                 f"No primary cube found with {self.model_id_attr}="
                 f"{self.hierarchy['primary_input']}"
             )
-        target_grid_cube = cubes.extract_cube(self.target_grid_name)
+
+        target_grid_cube = None
+        if self.regrid_for_clustering:
+            target_grid_cube = cubes.extract_cube(self.target_grid_name)
+
         clustered_primary_cube, regridded_clustered_primary_cube = (
             self.cluster_primary_input(primary_cube, target_grid_cube)
         )
