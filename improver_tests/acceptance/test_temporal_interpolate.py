@@ -132,3 +132,28 @@ def test_accumulation(tmp_path):
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
+
+
+@pytest.mark.slow
+def test_google_film(tmp_path):
+    """Test interpolation using google_film method with deep learning model."""
+    kgo_dir = acc.kgo_root() / "temporal-interpolate/google_film"
+    kgo_path = kgo_dir / "kgo.nc"
+    input_paths = [
+        kgo_dir / "20251205T0600Z-PT0006H00M-precip_rate.nc",
+        kgo_dir / "20251205T0900Z-PT0009H00M-precip_rate.nc",
+    ]
+    output_path = tmp_path / "output.nc"
+    args = [
+        *input_paths,
+        "--interval-in-mins",
+        "60",
+        "--interpolation-method",
+        "google_film",
+        "--model-path",
+        "https://tfhub.dev/google/film/1",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)

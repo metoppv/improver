@@ -5,7 +5,7 @@
 """Class for Temporal Interpolation calculations."""
 
 from datetime import datetime, timedelta
-from typing import List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 import iris
 import numpy as np
@@ -91,6 +91,9 @@ class TemporalInterpolation(BasePlugin):
         accumulation: bool = False,
         max: bool = False,
         min: bool = False,
+        model_path: Optional[str] = None,
+        scaling: str = "log10",
+        clipping_bounds: Tuple[float, float] = (0.0, 1.0),
     ) -> None:
         """
         Initialise class.
@@ -126,6 +129,17 @@ class TemporalInterpolation(BasePlugin):
                 period minimum. Trends between adjacent input periods will be used
                 to provide variation across the interpolated periods where these
                 are consistent with the inputs.
+            model_path:
+                Path to the TensorFlow Hub module for the Google FILM model.
+                Required if interpolation_method is "google_film".
+            scaling:
+                Scaling method to apply to the data before interpolation when
+                using "google_film" method. Supported methods are "log10" and
+                "minmax". Default is "log10".
+            clipping_bounds:
+                A tuple specifying the (min, max) bounds to which to clip
+                the interpolated data when using "google_film" method.
+                Default is (0.0, 1.0).
 
         Raises:
             ValueError: If neither interval_in_minutes nor times are set.
@@ -134,6 +148,8 @@ class TemporalInterpolation(BasePlugin):
             ValueError: If multiple period diagnostic kwargs are set True.
             ValueError: A period diagnostic is being interpolated with a method
                         not found in the period_interpolation_methods list.
+            ValueError: If interpolation_method is "google_film" but model_path
+                        is not provided.
         """
         if interval_in_minutes is None and times is None:
             raise ValueError(
@@ -149,7 +165,7 @@ class TemporalInterpolation(BasePlugin):
             )
         self.interval_in_minutes = interval_in_minutes
         self.times = times
-        known_interpolation_methods = ["linear", "solar", "daynight"]
+        known_interpolation_methods = ["linear", "solar", "daynight", "google_film"]
         if interpolation_method not in known_interpolation_methods:
             raise ValueError(
                 "TemporalInterpolation: Unknown interpolation method {}. ".format(
@@ -157,6 +173,16 @@ class TemporalInterpolation(BasePlugin):
                 )
             )
         self.interpolation_method = interpolation_method
+
+        # GoogleFilm-specific parameters
+        if interpolation_method == "google_film":
+            if model_path is None:
+                raise ValueError(
+                    "model_path must be provided when using google_film interpolation method."
+                )
+        self.model_path = model_path
+        self.scaling = scaling
+        self.clipping_bounds = clipping_bounds
         self.period_inputs = False
         if np.sum([accumulation, max, min]) > 1:
             raise ValueError(
@@ -175,7 +201,8 @@ class TemporalInterpolation(BasePlugin):
                 raise ValueError(
                     "Period diagnostics can only be temporally interpolated "
                     f"using these methods: {period_interpolation_methods}.\n"
-                    f"Currently selected method is: {self.interpolation_method}."
+                    f"Currently selected method is: {self.interpolation_method}. "
+                    "Note: google_film method does not support period diagnostics."
                 )
 
     def construct_time_list(
@@ -681,6 +708,10 @@ class TemporalInterpolation(BasePlugin):
             interpolated_cubes = self.solar_interpolate(cube, interpolated_cube)
         elif self.interpolation_method == "daynight":
             interpolated_cubes = self.daynight_interpolate(interpolated_cube)
+        elif self.interpolation_method == "google_film":
+            interpolated_cubes = GoogleFilmInterpolation(
+                self.model_path, self.scaling, self.clipping_bounds
+            ).process(cube[0], cube[1], interpolated_cube)
         else:
             for single_time in interpolated_cube.slices_over("time"):
                 interpolated_cubes.append(single_time)
@@ -928,8 +959,7 @@ class DurationSubdivision:
             )
         if self.fidelity > self.target_period:
             raise ValueError(
-                "The fidelity period must be less than or equal to the "
-                "target period."
+                "The fidelity period must be less than or equal to the target period."
             )
         # Ensure that the cube is already self-consistent and does not include
         # any durations that exceed the period described. This is mostly to
@@ -946,3 +976,227 @@ class DurationSubdivision:
         )
 
         return self.construct_target_periods(fidelity_period_cube)
+
+
+class GoogleFilmInterpolation:
+    """Class to perform temporal interpolation using the Google FILM model.
+
+    The model is expected to be a TensorFlow Hub module that takes as input two
+    images and a time point between 0 and 1, and outputs an interpolated image.
+
+    The input cubes are expected to have the same spatial dimensions and
+    coordinate system. The output cube will have the same metadata as cube1.
+    """
+
+    def __init__(
+        self,
+        model_path: str,
+        scaling: str = "log10",
+        clipping_bounds: Tuple[float, float] = (0.0, 1.0),
+    ) -> None:
+        """
+        Args:
+            model_path:
+                Path to the TensorFlow Hub module for the Google FILM model.
+            scaling:
+                Scaling method to apply to the data before interpolation.
+                Supported methods are "log10" and "minmax".
+            clipping_bounds:
+                A tuple specifying the (min, max) bounds to which to clip
+                the interpolated data. Use None for no bound in that direction.
+        """
+        self.model_path = model_path
+        self.scaling = scaling
+        self.clipping_bounds = clipping_bounds
+
+    def load_model(self, model_path: str) -> Any:
+        """Load the TensorFlow Hub model.
+
+        Args:
+            model_path:
+                Path to the TensorFlow Hub module for the Google FILM model.
+        Returns:
+            The loaded TensorFlow Hub model.
+        """
+        # Apply monkey patch before importing anything TensorFlow-related
+        # We need to patch all possible import paths that tf_keras might use
+        try:
+            import tensorflow as tf
+
+            # Patch all the different ways tensorflow's __internal__ can be accessed
+            if hasattr(tf.__internal__, "register_call_context_function"):
+                func = tf.__internal__.register_call_context_function
+                tf.__internal__.register_load_context_function = func
+                # Also patch the compat.v2 path that tf_keras uses
+                if hasattr(tf.compat, "v2"):
+                    tf.compat.v2.__internal__.register_load_context_function = func
+                # And the _api.v2.compat.v2 path
+                import tensorflow._api.v2.compat.v2 as tf_api
+
+                tf_api.__internal__.register_load_context_function = func
+        except (ImportError, AttributeError):
+            pass
+
+        import tensorflow_hub as hub
+
+        return hub.load(model_path)
+
+    def apply_scaling(self, cube1: Cube, cube2: Cube, scaling: str) -> None:
+        """Apply scaling to the input cubes before interpolation.
+        Args:
+            cube1:
+                The first input cube.
+            cube2:
+                The second input cube.
+            scaling:
+                Scaling method to apply. Supported methods are "log10" and "minmax".
+        """
+        if scaling == "log10":
+            cube1.data = np.log10(cube1.data + 1)
+            cube2.data = np.log10(cube2.data + 1)
+        elif scaling == "minmax":
+            min_val = min(cube1.data.min(), cube2.data.min())
+            max_val = max(cube1.data.max(), cube2.data.max())
+            cube1.data = (cube1.data - min_val) / (max_val - min_val)
+            cube2.data = (cube2.data - min_val) / (max_val - min_val)
+        else:
+            raise ValueError(f"Unsupported scaling method: {scaling}")
+
+    def reverse_scaling(
+        self, cube: Cube, cube1: Cube, cube2: Cube, scaling: str
+    ) -> None:
+        """Reverse scaling on the interpolated cube after interpolation.
+
+        Args:
+            cube:
+                The interpolated cube.
+            cube1:
+                The first input cube.
+            cube2:
+                The second input cube.
+            scaling:
+                Scaling method to reverse. Supported methods are "log10" and "minmax".
+        """
+        if scaling == "log10":
+            cube.data = 10**cube.data - 1
+        elif scaling == "minmax":
+            min_val = min(cube1.data.min(), cube2.data.min())
+            max_val = max(cube1.data.max(), cube2.data.max())
+            cube.data = cube.data * (max_val - min_val) + min_val
+        else:
+            raise ValueError(f"Unsupported scaling method: {scaling}")
+
+    def apply_clipping(self, interpolated: Cube) -> None:
+        """Clip the interpolated cube data to be within the bounds of the
+        input cubes.
+
+        Args:
+            interpolated:
+                The interpolated cube.
+        """
+        interpolated.data = np.clip(
+            interpolated.data, self.clipping_bounds[0], self.clipping_bounds[1]
+        )
+
+    def run_google_film(
+        self, cube1: Cube, cube2: Cube, model: Any, time_point: float
+    ) -> Cube:
+        """Run the Google FILM model to interpolate between two cubes.
+
+        Args:
+            cube1:
+                The first input cube.
+            cube2:
+                The second input cube.
+            model:
+                The loaded TensorFlow Hub model.
+            time_point:
+                A float between 0 and 1 indicating the interpolation point.
+
+        Returns:
+            The interpolated cube.
+        """
+        # Stack the data 3 times to simulate the RGB data the model expects.
+        # Convert to float32 as required by the model
+        image1 = np.stack([cube1.data] * 3, axis=-1).astype(np.float32)
+        image2 = np.stack([cube2.data] * 3, axis=-1).astype(np.float32)
+
+        inputs = {
+            "time": np.array([[time_point]], dtype=np.float32),  # Shape (1, 1)
+            "x0": np.expand_dims(
+                image1, axis=0
+            ),  # adding the batch dimension to the image
+            "x1": np.expand_dims(
+                image2, axis=0
+            ),  # adding the batch dimension to the image
+        }
+
+        frame = model(inputs)
+        # Handle both TensorFlow tensors and numpy arrays (for testing)
+        result_data = frame["image"][0, ..., 0]
+        if hasattr(result_data, "numpy"):
+            result_data = result_data.numpy()
+        interpolated = cube1.copy(data=result_data)
+
+        return interpolated
+
+    def process(
+        self, cube1: Cube, cube2: Cube, template_interpolated_cube: Cube
+    ) -> CubeList:
+        """Perform temporal interpolation between two cubes using the Google FILM model.
+
+        Args:
+            cube1:
+                The first input cube (at time t=0).
+            cube2:
+                The second input cube (at time t=1).
+            template_interpolated_cube:
+                A cube containing the linearly interpolated data with the correct
+                metadata for the output times.
+
+        Returns:
+            A CubeList containing the interpolated cubes at the specified times.
+        """
+        model = self.load_model(self.model_path)
+
+        # Store original data for reverting scaling
+        cube1_orig = cube1.copy()
+        cube2_orig = cube2.copy()
+
+        self.apply_scaling(cube1, cube2, self.scaling)
+
+        # Calculate time fractions for each target time
+        t0 = cube1.coord("time").points[0]
+        t1 = cube2.coord("time").points[0]
+        time_range = t1 - t0
+
+        interpolated_cubes = CubeList()
+        for template_slice in template_interpolated_cube.slices_over("time"):
+            # Get the target time from the template
+            target_seconds = template_slice.coord("time").points[0]
+
+            # Calculate fraction (0 to 1) between the two input times
+            time_fraction = (target_seconds - t0) / time_range
+
+            realization_slices = CubeList([])
+            for cube1_slice, cube2_slice in zip(
+                cube1.slices_over("realization"), cube2.slices_over("realization")
+            ):
+                temporary_interpolated_cube = self.run_google_film(
+                    cube1_slice, cube2_slice, model, time_fraction
+                )
+                realization_slices.append(temporary_interpolated_cube)
+            temporary_interpolated_cube = realization_slices.merge_cube()
+
+            interpolated_cube = template_slice.copy()
+            interpolated_cube.data = temporary_interpolated_cube.data
+
+            # Apply clipping and reverse scaling
+            self.apply_clipping(interpolated_cube)
+            self.reverse_scaling(
+                interpolated_cube, cube1_orig, cube2_orig, self.scaling
+            )
+
+            interpolated_cubes.append(interpolated_cube)
+
+        return interpolated_cubes
