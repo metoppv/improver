@@ -4,6 +4,7 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Plugins to perform clustering on realizations within a cube."""
 
+import json
 from typing import Any
 
 import iris
@@ -977,8 +978,12 @@ class RealizationClusterAndMatch(BasePlugin):
                 attribute.
         Returns:
             The matched cube containing all secondary inputs matched to clusters.
-            The cube includes a 'cluster_sources' auxiliary coordinate that tracks
+            The cube includes a 'cluster_sources' attribute (JSON string) that tracks
             which input source was used for each cluster at each forecast period.
+            Format: {cluster_idx: {model_name: [fp1, fp2, ...]}}
+            where cluster_idx is the cluster index (int), model_name is the value
+            from model_id_attr (str), and the list contains forecast period values
+            in seconds (int). Use json.loads() to parse the attribute value.
         """
         constr = iris.AttributeConstraint(
             **{self.model_id_attr: self.hierarchy["primary_input"]}
@@ -1072,7 +1077,15 @@ class RealizationClusterAndMatch(BasePlugin):
         # Concatenate the cubes
         result_cube = matched_cubes.concatenate_cube()
 
-        # Add cluster_sources coordinate to track data provenance
-        self._add_cluster_sources_coord(result_cube, cluster_sources)
+        # Store cluster_sources as a cube attribute (as JSON string)
+        # Format: {cluster_idx: {model_name: [fp1, fp2, ...]}}
+        # Convert numpy int32 to native Python int for JSON serialization
+        cluster_sources_serialisable = {
+            int(k): {name: [int(fp) for fp in fps] for name, fps in v.items()}
+            for k, v in cluster_sources.items()
+        }
+        result_cube.attributes["cluster_sources"] = json.dumps(
+            cluster_sources_serialisable
+        )
 
         return result_cube
