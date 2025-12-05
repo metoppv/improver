@@ -65,6 +65,9 @@ class HailSize(BasePlugin):
     Both tables are taken from Hand and Cappelluti (2011) which are a tabular versions of the
     graphs from Fawbush and Miller(1953)
 
+    If the cloud condensation level is invalid, or masked, this indicates no convection and
+    the hail size will be zero.
+
 
     References
         - Hand, W., and G. Cappelluti. 2011. “A global hail climatology using the UK

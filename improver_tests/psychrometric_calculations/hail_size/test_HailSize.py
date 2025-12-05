@@ -224,17 +224,27 @@ def test_temperature_too_high(
     cube_shape_check(result)
 
 
+@pytest.mark.parametrize("mask_temperature", (True, False))
+@pytest.mark.parametrize("mask_pressure", (True, False))
 def test_ccl_masked(
     temperature_on_pressure_levels,
     ccl_pressure,
     ccl_temperature,
     wet_bulb_freezing,
     orography,
+    mask_temperature,
+    mask_pressure,
 ):
-    """Tests for the case where there are grid squares where the CCL temperature
-    is masked. At these points hail size should be masked"""
-    ccl_temperature.data = np.ma.masked_array(ccl_temperature.data)
-    expected = np.ma.masked_all(ccl_temperature.data.shape, dtype=np.float32)
+    """Tests for the case where there are grid squares where the CCL temperature or pressure
+    is masked. At these points hail size should be zero"""
+    if mask_temperature:
+        ccl_temperature.data = np.ma.masked_array(ccl_temperature.data, True)
+    if mask_pressure:
+        ccl_pressure.data = np.ma.masked_array(ccl_pressure.data, True)
+    if mask_temperature or mask_pressure:
+        expected = np.zeros_like(ccl_temperature.data)
+    else:
+        expected = np.full_like(ccl_temperature.data, 0.1)
 
     result = HailSize()(
         ccl_temperature,
@@ -244,6 +254,7 @@ def test_ccl_masked(
         orography,
     )
     np.testing.assert_array_almost_equal(result.data, expected)
+    assert not np.ma.is_masked(result.data)
     metadata_check(result)
     cube_shape_check(result)
 
