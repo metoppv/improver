@@ -78,7 +78,7 @@ class TemperatureSaturatedAirParcel(BasePlugin):
         )
         parcel_temperature_after_ascent = np.ma.masked_invalid(
             parcel_temperature_after_ascent
-        )
+        ).astype(np.float32)
         return parcel_temperature_after_ascent
 
     def make_saturated_relative_humidity_cube(self) -> Cube:
