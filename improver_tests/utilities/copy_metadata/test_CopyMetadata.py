@@ -5,7 +5,7 @@
 from unittest.mock import patch, sentinel
 
 import pytest
-from iris.coords import AuxCoord
+from iris.coords import AuxCoord, AncillaryVariable
 from iris.cube import Cube
 
 from improver.utilities.copy_metadata import CopyMetadata
@@ -159,6 +159,40 @@ def test_auxiliary_coord_modification(cubelist):
     result = plugin.process(cube, template_cubes)
     assert result.coord("dummy_0 status_flag") == dummy_aux_coord_0_temp
     assert result.coord("dummy_1 status_flag") == dummy_aux_coord_1_temp
+
+
+@pytest.mark.parametrize("cubelist", [True, False])
+def test_ancillary_variable_modification(cubelist):
+    """Test adding and altering ancillary variables. We test copying the
+    ancillary variable 'status_flag0' and 'status_flag1'.
+    'status_flag0' is present in the input cube(s) and template cube
+    so the ancillary variable on the input cube(s) is replaced. Whereas 'status_flag1'
+    is only present in the template cube so a new ancillary variable is
+    added to the input cube(s).
+    """
+    data = [[0, 1], [0, 1]]
+
+    ancillary_variable = ["status_flag0", "status_flag1"]
+
+    # Create ancillary variables with matching dimensions
+    dummy_anc_variable_0 = AncillaryVariable([0, 0], long_name="status_flag0")
+    dummy_anc_variable_0_temp = AncillaryVariable([1, 1], long_name="status_flag0")
+
+    dummy_anc_variable_1_temp = AncillaryVariable([1, 1], long_name="status_flag1")
+
+    cube = Cube(data, ancillary_variables_and_dims=[(dummy_anc_variable_0, 0)])
+    # Create the cube with the ancillary variables
+    template_cubes = Cube(
+        data,
+        ancillary_variables_and_dims=[(dummy_anc_variable_0_temp, 0), (dummy_anc_variable_1_temp, 0)],
+    )
+
+    if cubelist:
+        template_cubes = [template_cubes, template_cubes]
+    plugin = CopyMetadata(ancillary_variables=ancillary_variable)
+    result = plugin.process(cube, template_cubes)
+    assert result.ancillary_variable("status_flag0") == dummy_anc_variable_0_temp
+    assert result.ancillary_variable("status_flag1") == dummy_anc_variable_1_temp
 
 
 def test_copy_attributes_multi_input_mismatching_attributes():

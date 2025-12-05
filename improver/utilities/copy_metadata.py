@@ -16,7 +16,7 @@ class CopyMetadata(BasePlugin):
     """Copy attribute or auxilary coordinate values from template_cube to cube,
     overwriting any existing values."""
 
-    def __init__(self, attributes: List = [], aux_coord: List = []):
+    def __init__(self, attributes: List = [], aux_coord: List = [], ancillary_variables: List = []):
         """
         Initialise the plugin with a list of attributes to copy.
 
@@ -28,9 +28,14 @@ class CopyMetadata(BasePlugin):
                 List of names of auxilary coordinates to copy. If any are not
                 present on template_cube, a KeyError will be raised. If the
                 aux_coord is already present in the cube, it will be overwritten.
+            ancillary_variables:
+                List of names of ancillary variables to copy. If any are not
+                present on template_cube, a KeyError will be raised. If the
+                ancillary variable is already present in the cube, it will be overwritten.
         """
         self.attributes = attributes
         self.aux_coord = aux_coord
+        self.ancillary_variables = ancillary_variables
 
     @staticmethod
     def get_most_recent_history(datelist: list) -> list:
@@ -103,8 +108,9 @@ class CopyMetadata(BasePlugin):
         Copy attribute or auxilary coordinate values from template_cube to cube,
         overwriting any existing values. If the history attribute is present in
         the list of requested attributes, the most recent value will be used. If an
-        auxilary coordinate needs to be copied then all template cubes must have the
-        auxilary coordinate present.
+        auxilary coordinate or ancillary variable needs to be copied then all 
+        template cubes must have the auxilary coordinate or ancillary variable
+        present.
 
         Operation is performed in-place on provided inputs.
 
@@ -134,5 +140,14 @@ class CopyMetadata(BasePlugin):
             cube.add_aux_coord(
                 template_cubes[0].coord(coord),
                 data_dims=template_cubes[0].coord_dims(coord=coord),
+            )
+
+        for ancillary_var in self.ancillary_variables:
+            # If ancillary variable is already present in the cube, remove it
+            if cube.ancillary_variables(ancillary_var):
+                cube.remove_ancillary_variable(ancillary_var)
+            cube.add_ancillary_variable(
+                template_cubes[0].ancillary_variable(ancillary_var),
+                data_dims=template_cubes[0].ancillary_variable_dims(ancillary_var),
             )
         return cube
