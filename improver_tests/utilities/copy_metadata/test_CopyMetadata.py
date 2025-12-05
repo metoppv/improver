@@ -5,7 +5,7 @@
 from unittest.mock import patch, sentinel
 
 import pytest
-from iris.coords import AuxCoord, AncillaryVariable
+from iris.coords import AncillaryVariable, AuxCoord
 from iris.cube import Cube
 
 from improver.utilities.copy_metadata import CopyMetadata
@@ -184,7 +184,10 @@ def test_ancillary_variable_modification(cubelist):
     # Create the cube with the ancillary variables
     template_cubes = Cube(
         data,
-        ancillary_variables_and_dims=[(dummy_anc_variable_0_temp, 0), (dummy_anc_variable_1_temp, 0)],
+        ancillary_variables_and_dims=[
+            (dummy_anc_variable_0_temp, 0),
+            (dummy_anc_variable_1_temp, 0),
+        ],
     )
 
     if cubelist:

@@ -16,7 +16,12 @@ class CopyMetadata(BasePlugin):
     """Copy attribute or auxilary coordinate values from template_cube to cube,
     overwriting any existing values."""
 
-    def __init__(self, attributes: List = [], aux_coord: List = [], ancillary_variables: List = []):
+    def __init__(
+        self,
+        attributes: List = [],
+        aux_coord: List = [],
+        ancillary_variables: List = [],
+    ):
         """
         Initialise the plugin with a list of attributes to copy.
 
@@ -108,7 +113,7 @@ class CopyMetadata(BasePlugin):
         Copy attribute or auxilary coordinate values from template_cube to cube,
         overwriting any existing values. If the history attribute is present in
         the list of requested attributes, the most recent value will be used. If an
-        auxilary coordinate or ancillary variable needs to be copied then all 
+        auxilary coordinate or ancillary variable needs to be copied then all
         template cubes must have the auxilary coordinate or ancillary variable
         present.
 
