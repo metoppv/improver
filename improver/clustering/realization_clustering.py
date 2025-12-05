@@ -9,6 +9,7 @@ from typing import Any
 import iris
 import numpy as np
 import pandas as pd
+from iris.coords import AuxCoord
 from iris.util import equalise_attributes, new_axis, promote_aux_coord_to_dim_coord
 
 from improver import BasePlugin
@@ -661,6 +662,92 @@ class RealizationClusterAndMatch(BasePlugin):
             matched_cubes.append(fp_cube)
         return matched_cubes
 
+    def _update_cluster_sources(
+        self,
+        cluster_sources: dict[int, dict[str, list[int]]],
+        cluster_indices: list[int],
+        candidate_name: str,
+        fp: int,
+    ) -> None:
+        """Update cluster sources tracking when replacing data.
+
+        This method removes the forecast period from the primary input and adds
+        it to the secondary input for the specified clusters.
+
+        Args:
+            cluster_sources: Dictionary tracking which input was used for each
+                cluster at each forecast period. Modified in-place.
+            cluster_indices: List of cluster indices being updated.
+            candidate_name: Name of the secondary input being added.
+            fp: Forecast period value in seconds.
+        """
+        primary_name = self.hierarchy["primary_input"]
+        for cluster_idx in cluster_indices:
+            if cluster_idx not in cluster_sources:
+                cluster_sources[cluster_idx] = {}
+            # Remove this forecast period from primary input
+            if primary_name in cluster_sources[cluster_idx]:
+                if fp in cluster_sources[cluster_idx][primary_name]:
+                    cluster_sources[cluster_idx][primary_name].remove(fp)
+                # Clean up empty lists
+                if not cluster_sources[cluster_idx][primary_name]:
+                    del cluster_sources[cluster_idx][primary_name]
+            # Add to secondary input
+            if candidate_name not in cluster_sources[cluster_idx]:
+                cluster_sources[cluster_idx][candidate_name] = []
+            if fp not in cluster_sources[cluster_idx][candidate_name]:
+                cluster_sources[cluster_idx][candidate_name].append(fp)
+
+    def _add_cluster_sources_coord(
+        self,
+        result_cube: iris.cube.Cube,
+        cluster_sources: dict[int, dict[str, list[int]]],
+    ) -> None:
+        """Add cluster_sources coordinate to the result cube.
+
+        Creates a 2D auxiliary coordinate that maps each (cluster, forecast_period)
+        pair to the input name that was used for that cluster at that forecast period.
+
+        Args:
+            result_cube: The cube to add the coordinate to. Modified in-place.
+            cluster_sources: Dictionary tracking which input was used for each
+                cluster at each forecast period.
+        """
+        # Get dimensions
+        realization_points = result_cube.coord("realization").points
+        forecast_period_points = result_cube.coord("forecast_period").points
+
+        # Build 2D array of input names (cluster x forecast_period)
+        cluster_sources_array = np.empty(
+            (len(realization_points), len(forecast_period_points)), dtype=object
+        )
+
+        for cluster_idx, cluster_num in enumerate(realization_points):
+            for fp_idx, fp in enumerate(forecast_period_points):
+                # Find which input was used for this cluster at this forecast period
+                input_name = None
+                if cluster_num in cluster_sources:
+                    for name, fps in cluster_sources[cluster_num].items():
+                        if fp in fps:
+                            input_name = name
+                            break
+                # Fill with the input name or empty string if not found
+                cluster_sources_array[cluster_idx, fp_idx] = (
+                    input_name if input_name is not None else ""
+                )
+
+        # Create the auxiliary coordinate
+        cluster_sources_coord = AuxCoord(
+            cluster_sources_array,
+            long_name="cluster_sources",
+            units="no_unit",
+        )
+
+        # Add the coordinate associated with realization and forecast_period dimensions
+        real_dim = result_cube.coord_dims("realization")[0]
+        fp_dim = result_cube.coord_dims("forecast_period")[0]
+        result_cube.add_aux_coord(cluster_sources_coord, (real_dim, fp_dim))
+
     def _process_full_realization_inputs(
         self,
         full_realization_inputs: list[tuple[str, list[int]]],
@@ -669,6 +756,7 @@ class RealizationClusterAndMatch(BasePlugin):
         regridded_clustered_primary_cube: iris.cube.Cube,
         replaced_realizations: dict[int, set[int]],
         matched_cubes: iris.cube.CubeList,
+        cluster_sources: dict[int, dict[str, list[int]]],
     ) -> None:
         """Process full realization inputs in reverse precedence order.
 
@@ -685,6 +773,8 @@ class RealizationClusterAndMatch(BasePlugin):
             replaced_realizations: Dictionary tracking which (forecast_period, cluster)
                 pairs have been replaced. Modified in-place.
             matched_cubes: CubeList containing cubes to modify. Modified in-place.
+            cluster_sources: Dictionary tracking which input was used for each cluster
+                at each forecast period. Modified in-place.
         """
         inputs_list = list(reversed(full_realization_inputs))
 
@@ -766,6 +856,11 @@ class RealizationClusterAndMatch(BasePlugin):
                     replaced_realizations[fp] = set()
                 replaced_realizations[fp].update(cluster_indices)
 
+                # Track cluster sources: update which input was used for each cluster
+                self._update_cluster_sources(
+                    cluster_sources, cluster_indices, candidate_name, fp
+                )
+
     def _process_partial_realization_inputs(
         self,
         partial_realization_inputs: list[tuple[str, list[int]]],
@@ -774,6 +869,7 @@ class RealizationClusterAndMatch(BasePlugin):
         regridded_clustered_primary_cube: iris.cube.Cube,
         replaced_realizations: dict[int, set[int]],
         matched_cubes: iris.cube.CubeList,
+        cluster_sources: dict[int, dict[str, list[int]]],
     ) -> None:
         """Process partial realization inputs in reverse precedence order.
 
@@ -791,6 +887,8 @@ class RealizationClusterAndMatch(BasePlugin):
             replaced_realizations: Dictionary tracking which (forecast_period, cluster)
                 pairs have been replaced. Modified in-place.
             matched_cubes: CubeList to append/modify matched results. Modified in-place.
+            cluster_sources: Dictionary tracking which input was used for each cluster
+                at each forecast period. Modified in-place.
         """
         inputs_list = list(reversed(partial_realization_inputs))
 
@@ -865,6 +963,11 @@ class RealizationClusterAndMatch(BasePlugin):
                     replaced_realizations[fp] = set()
                 replaced_realizations[fp].update(cluster_indices)
 
+                # Track cluster sources: update which input was used for each cluster
+                self._update_cluster_sources(
+                    cluster_sources, cluster_indices, candidate_name, fp
+                )
+
     def process(self, cubes: iris.cube.CubeList) -> iris.cube.Cube:
         """Cluster and match the data.
 
@@ -874,6 +977,8 @@ class RealizationClusterAndMatch(BasePlugin):
                 attribute.
         Returns:
             The matched cube containing all secondary inputs matched to clusters.
+            The cube includes a 'cluster_sources' auxiliary coordinate that tracks
+            which input source was used for each cluster at each forecast period.
         """
         constr = iris.AttributeConstraint(
             **{self.model_id_attr: self.hierarchy["primary_input"]}
@@ -912,11 +1017,25 @@ class RealizationClusterAndMatch(BasePlugin):
         # been replaced
         replaced_realizations = {}
 
+        # Track cluster sources: which input was used for each cluster at each
+        # forecast period
+        # Format: {cluster_idx: {model_name: [fp1, fp2, ...]}}
+        cluster_sources = {}
+
         # Start with the clustered primary cube as the base for all forecast periods
         # This ensures we always have a full set of realizations to work with
         matched_cubes = self._initialise_matched_cubes_with_primary(
             clustered_primary_cube
         )
+
+        # Initialize cluster_sources with primary input for all clusters and
+        # forecast periods
+        primary_name = self.hierarchy["primary_input"]
+        for cluster_idx in range(n_clusters):
+            cluster_sources[cluster_idx] = {}
+            cluster_sources[cluster_idx][primary_name] = list(
+                clustered_primary_cube.coord("forecast_period").points
+            )
 
         # First pass: Process full realization inputs
         # These will replace entire forecast period cubes
@@ -927,6 +1046,7 @@ class RealizationClusterAndMatch(BasePlugin):
             regridded_clustered_primary_cube,
             replaced_realizations,
             matched_cubes,
+            cluster_sources,
         )
 
         # Second pass: Process partial realization inputs
@@ -938,6 +1058,7 @@ class RealizationClusterAndMatch(BasePlugin):
             regridded_clustered_primary_cube,
             replaced_realizations,
             matched_cubes,
+            cluster_sources,
         )
 
         # Final safety check: ensure all cubes have forecast_period as a
@@ -947,4 +1068,11 @@ class RealizationClusterAndMatch(BasePlugin):
 
         # Equalise attributes across all cubes to ensure they can be concatenated
         equalise_attributes(matched_cubes)
-        return matched_cubes.concatenate_cube()
+
+        # Concatenate the cubes
+        result_cube = matched_cubes.concatenate_cube()
+
+        # Add cluster_sources coordinate to track data provenance
+        self._add_cluster_sources_coord(result_cube, cluster_sources)
+
+        return result_cube
