@@ -177,6 +177,8 @@ class CloudCondensationLevel(PostProcessingPlugin):
         mask = ccl_pressure > self.pressure.data
         ccl_pressure = np.where(mask, self.pressure.data, ccl_pressure)
         ccl_temperature = np.where(mask, self.temperature.data, ccl_temperature)
+        ccl_pressure = np.ma.masked_invalid(ccl_pressure)
+        ccl_temperature = np.ma.masked_invalid(ccl_temperature)
         return CubeList(
             [
                 self._make_ccl_cube(ccl_temperature, is_temperature=True),

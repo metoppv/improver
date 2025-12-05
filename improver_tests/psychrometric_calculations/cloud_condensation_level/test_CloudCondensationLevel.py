@@ -128,6 +128,8 @@ def test_basic(
     assert isinstance(result, CubeList)
     assert np.isclose(result[0].data, expected_t, atol=1e-2).all()
     assert np.isclose(result[1].data, expected_p, atol=1e-0).all()
+    assert not np.ma.is_masked(result[0].data)
+    assert not np.ma.is_masked(result[1].data)
 
 
 @pytest.mark.parametrize(
@@ -178,6 +180,8 @@ def test_for_masked_values(
     metadata_ok(result, temperature)
     assert np.ma.allequal(result[0].data, expected)
     assert np.ma.allequal(result[1].data, expected)
+    np.testing.assert_equal(result[0].data.mask, expected.mask)
+    np.testing.assert_equal(result[1].data.mask, expected.mask)
 
 
 @pytest.mark.parametrize("model_id_attr", ("mosg__model_configuration", None))
