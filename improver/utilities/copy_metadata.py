@@ -148,11 +148,13 @@ class CopyMetadata(BasePlugin):
             )
 
         for ancillary_var in self.ancillary_variables:
-            # If ancillary variable is already present in the cube, remove it
-            if cube.ancillary_variables(ancillary_var):
-                cube.remove_ancillary_variable(ancillary_var)
-            cube.add_ancillary_variable(
-                template_cubes[0].ancillary_variable(ancillary_var),
-                data_dims=template_cubes[0].ancillary_variable_dims(ancillary_var),
-            )
+            # If the template cube has the ancillary variable, copy it
+            if template_cubes[0].ancillary_variables(ancillary_var):
+                # If ancillary variable is already present in the cube, remove it
+                if cube.ancillary_variables(ancillary_var):
+                    cube.remove_ancillary_variable(ancillary_var)
+                cube.add_ancillary_variable(
+                    template_cubes[0].ancillary_variable(ancillary_var),
+                    data_dims=template_cubes[0].ancillary_variable_dims(ancillary_var),
+                )
         return cube
