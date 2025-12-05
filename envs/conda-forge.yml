@@ -16,12 +16,16 @@ dependencies:
   - iris=3.12
   - numpy=2.2
   - scipy=1.15
-  - sphinx
+  - sphinx<9.0.0  # https://github.com/tox-dev/sphinx-autodoc-typehints/issues/586
   - pandas
   # Additional libraries to run tests, not included in improver-feedstock
   - filelock
   - pytest
   - setuptools
   - sphinx-autodoc-typehints
-  - sphinx_rtd_theme
+  - sphinx-book-theme  
+  - sphinx-gallery
   - threadpoolctl
+  - pip
+  - pip:
+    - git+https://github.com/metoppv/improver_example_data.git@${BRANCH_NAME}
