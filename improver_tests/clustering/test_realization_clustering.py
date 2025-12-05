@@ -178,6 +178,44 @@ def _assert_realization_matching(
     np.testing.assert_array_equal(realization_indices, expected_realization_indices)
 
 
+def _assert_cluster_sources_coord(
+    result_cube,
+    expected_n_clusters,
+    expected_n_forecast_periods,
+    expected_sources=None,
+):
+    """Assert that cluster_sources coordinate exists and has expected content.
+
+    Helper function to standardise cluster_sources coordinate validation.
+
+    Args:
+        result_cube: The output cube from RealizationClusterAndMatch.process().
+        expected_n_clusters: Expected number of clusters.
+        expected_n_forecast_periods: Expected number of forecast periods.
+        expected_sources: Optional dict mapping (cluster_idx, fp_idx) tuples to
+            expected source names. If provided, validates the actual sources match.
+            Example: {(0, 0): "secondary_model_1", (0, 1): "primary_model"}
+    """
+    assert result_cube.coords(
+        "cluster_sources"
+    ), "cluster_sources coordinate should exist"
+    cluster_sources_coord = result_cube.coord("cluster_sources")
+
+    expected_shape = (expected_n_clusters, expected_n_forecast_periods)
+    assert (
+        cluster_sources_coord.shape == expected_shape
+    ), f"cluster_sources should be {expected_shape}"
+
+    if expected_sources is not None:
+        cluster_sources_array = cluster_sources_coord.points
+        for (cluster_idx, fp_idx), expected_source in expected_sources.items():
+            actual_source = cluster_sources_array[cluster_idx, fp_idx]
+            assert actual_source == expected_source, (
+                f"Cluster {cluster_idx} at forecast period index {fp_idx} "
+                f"should use {expected_source}, got {actual_source}"
+            )
+
+
 # Tests for RealizationClustering
 
 
@@ -961,6 +999,19 @@ def test_clusterandmatch_process_basic():
     assert len(forecast_periods) == 4
     np.testing.assert_array_equal(forecast_periods, [0, 6 * 3600, 12 * 3600, 18 * 3600])
 
+    # Check cluster_sources coordinate exists even when regrid_for_clustering=False
+    assert result.coords("cluster_sources"), "cluster_sources coordinate should exist"
+    cluster_sources_coord = result.coord("cluster_sources")
+    assert cluster_sources_coord.shape == (
+        3,
+        4,
+    ), "cluster_sources should be (3 clusters, 4 forecast periods)"
+    # Verify that sources are tracked correctly
+    cluster_sources_array = cluster_sources_coord.points
+    for cluster_idx in range(3):
+        assert cluster_sources_array[cluster_idx, 0] == "secondary_model_1"
+        assert cluster_sources_array[cluster_idx, 1] == "secondary_model_1"
+
     # Check that model_id attribute is removed from result
     assert "model_id" not in result.attributes
 
@@ -982,6 +1033,21 @@ def test_clusterandmatch_process_basic():
     assert np.allclose(
         fp_18_data, 318.0, atol=5.0
     ), "fp=18 should use secondary_model_2"
+
+    # Check cluster_sources coordinate exists and has correct structure
+    expected_sources = {}
+    for cluster_idx in range(3):
+        # All clusters at fp=0,6 should use secondary_model_1
+        expected_sources[(cluster_idx, 0)] = "secondary_model_1"
+        expected_sources[(cluster_idx, 1)] = "secondary_model_1"
+        # fp=12,18 may use secondary_model_2 or fall back to primary_model
+        # (secondary_model_2 has only 4 realizations for 3 clusters)
+    _assert_cluster_sources_coord(result, 3, 4)
+    # Verify at least fp=0,6 use secondary_model_1
+    cluster_sources_array = result.coord("cluster_sources").points
+    for cluster_idx in range(3):
+        assert cluster_sources_array[cluster_idx, 0] == "secondary_model_1"
+        assert cluster_sources_array[cluster_idx, 1] == "secondary_model_1"
 
 
 def test_clusterandmatch_cluster_primary_input():
@@ -1119,6 +1185,12 @@ def test_clusterandmatch_precedence_order():
         result.data, 200.0, atol=1.0
     ), "Result should use highest precedence input (secondary_model_1)"
 
+    # Check cluster_sources coordinate reflects precedence order
+    expected_sources = {}
+    for cluster_idx in range(3):
+        expected_sources[(cluster_idx, 0)] = "secondary_model_1"
+    _assert_cluster_sources_coord(result, 3, 1, expected_sources)
+
 
 def test_clusterandmatch_overlapping_forecast_periods():
     """Test handling of overlapping forecast periods with different precedence."""
@@ -1255,6 +1327,14 @@ def test_clusterandmatch_single_secondary_input():
     assert np.allclose(
         fp_12_data, 112.0, atol=5.0
     ), "fp=12 should use clustered primary_model"
+
+    # Check cluster_sources coordinate
+    expected_sources = {}
+    for cluster_idx in range(3):
+        expected_sources[(cluster_idx, 0)] = "secondary_model_1"  # fp=0
+        expected_sources[(cluster_idx, 1)] = "secondary_model_1"  # fp=6
+        expected_sources[(cluster_idx, 2)] = "primary_model"  # fp=12
+    _assert_cluster_sources_coord(result, 3, 3, expected_sources)
 
 
 def test_clusterandmatch_categorise_full_realizations():
@@ -1717,6 +1797,13 @@ def test_clusterandmatch_regrid_for_clustering_false():
     forecast_periods = result.coord("forecast_period").points
     assert len(forecast_periods) == 3
     np.testing.assert_array_equal(forecast_periods, [0, 6 * 3600, 12 * 3600])
+
+    # Check cluster_sources coordinate exists even when regrid_for_clustering=False
+    expected_sources = {}
+    for cluster_idx in range(3):
+        expected_sources[(cluster_idx, 0)] = "secondary_model_1"
+        expected_sources[(cluster_idx, 1)] = "secondary_model_1"
+    _assert_cluster_sources_coord(result, 3, 3, expected_sources)
 
     # Check that model_id attribute is removed from result
     assert "model_id" not in result.attributes
