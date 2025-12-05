@@ -152,6 +152,7 @@ def test_basic(temperature, pressure, air_parcel):
     result = TemperatureSaturatedAirParcel()([temperature, pressure])
     metadata_ok(result, air_parcel)
     assert np.isclose(result.data, air_parcel.data, atol=1e-2).all()
+    assert not np.ma.is_masked(result.data)
 
 
 def test_masked(temperature, pressure, air_parcel):
@@ -166,6 +167,7 @@ def test_masked(temperature, pressure, air_parcel):
     result = TemperatureSaturatedAirParcel()([temperature, pressure])
     metadata_ok(result, air_parcel)
     assert np.isclose(result.data, air_parcel.data, atol=1e-2).all()
+    np.testing.assert_equal(result.data.mask, air_parcel.data.mask)
 
 
 def test_different_pressure(temperature, pressure, air_parcel_diff_pressure):
