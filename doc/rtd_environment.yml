@@ -6,13 +6,19 @@ name: improver
 channels:
   - conda-forge
 dependencies:
-  - python=3
+  - python=3.13  # https://github.com/SciTools/iris/issues/6762
   - iris>=3.12.2
   - python-stratify
   - clize
+  - ipykernel
+  - geopandas
+  - pandas
+  - cf-units
+  - joblib
+  - sphinx<9.0.0  # https://github.com/tox-dev/sphinx-autodoc-typehints/issues/586
+  - sphinx-autodoc-typehints
+  - sphinx-book-theme    
+  - sphinx-gallery
   - pip
   - pip:
-    - cf_units
-    - sphinx
-    - sphinx-autodoc-typehints
-    - sphinx_rtd_theme
+    - git+https://github.com/metoppv/improver_example_data.git@${BRANCH_NAME}

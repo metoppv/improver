@@ -17,6 +17,26 @@ jobs:
     steps:
     - uses: actions/checkout@v6
 
+    - name: Substitute branch name in environment files
+      run: |
+        # For PRs, use PR number if matching branch exists in improver_example_data; otherwise use master
+        if [ "${{ github.event_name }}" = "pull_request" ]; then
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          if git ls-remote --heads https://github.com/metoppv/improver_example_data.git ${PR_NUMBER} | grep -q ${PR_NUMBER}; then
+            BRANCH_NAME=$PR_NUMBER
+          else
+            BRANCH_NAME=master
+          fi
+        else
+          # Extract branch name from GITHUB_REF (e.g. for situation
+          # where a PR is merged into master, so refs/heads/master -> master)
+          BRANCH_NAME=${GITHUB_REF#refs/heads/}
+        fi
+        echo "Using BRANCH_NAME: $BRANCH_NAME"
+        # Replace BRANCH_NAME placeholder in all environment files
+        sed -i "s/\${BRANCH_NAME}/$BRANCH_NAME/g" envs/*.yml
+      shell: bash
+
     - name: Environment creation
       uses: mamba-org/setup-micromamba@v2
       with:
@@ -38,6 +58,8 @@ jobs:
 
     - name: sphinx documentation
       run: |
+        micromamba install ipykernel
+        pip install .
         make -C doc html SPHINXOPTS="-W --keep-going"
       shell: micromamba-shell {0}
 
