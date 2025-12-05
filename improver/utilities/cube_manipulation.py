@@ -157,6 +157,19 @@ def get_coord_names(cube: Cube) -> List[str]:
     return [coord.name() for coord in cube.coords()]
 
 
+def get_ancillary_variable_names(cube: Cube) -> List[str]:
+    """
+    Returns a list of all ancillary variable names on the cube
+
+    Args:
+        cube
+
+    Returns:
+        List of all ancillary variable names
+    """
+    return [anc_var.name() for anc_var in cube.ancillary_variables()]
+
+
 def strip_var_names(cubes: Union[Cube, CubeList]) -> CubeList:
     """
     Strips var_name from the cube and from all coordinates except where
@@ -460,6 +473,54 @@ def compare_coords(
                     )
 
     return unmatching_coords
+
+
+def compare_ancillary_variables(cubes: CubeList) -> List[Dict]:
+    """
+    Function to compare the ancillary variables of the cubes
+
+    Args:
+        cubes:
+            List of cubes to compare (must be more than 1)
+
+    Returns:
+        List of dictionaries of unmatching ancillary variables
+        Number of dictionaries equals number of cubes
+        unless cubes is a single cube in which case
+        unmatching_ancillary_variables returns an empty list.
+
+    Warns:
+        Warning: If only a single cube is supplied
+    """
+    unmatching_ancillary_variables = []
+    if len(cubes) == 1:
+        msg = "Only a single cube so no differences will be found "
+        warnings.warn(msg)
+    else:
+        common_ancillary_variables = cubes[0].ancillary_variables()
+        for cube in cubes[1:]:
+            cube_ancillary_variables = cube.ancillary_variables()
+            common_ancillary_variables = [
+                anc_var
+                for anc_var in common_ancillary_variables
+                if (
+                    anc_var in cube_ancillary_variables
+                    and np.all(
+                        cube.ancillary_variable(anc_var)
+                        == cubes[0].ancillary_variable(anc_var)
+                    )
+                )
+            ]
+
+        for i, cube in enumerate(cubes):
+            unmatching_ancillary_variables.append({})
+            for anc_var in cube.ancillary_variables():
+                if anc_var not in common_ancillary_variables:
+                    unmatching_ancillary_variables[i].update(
+                        {anc_var.name(): {"ancillary_variable": anc_var}}
+                    )
+
+    return unmatching_ancillary_variables
 
 
 def sort_coord_in_cube(cube: Cube, coord: str, descending: bool = False) -> Cube:
