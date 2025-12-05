@@ -272,7 +272,7 @@ def saturated_humidity(temperature: ndarray, pressure: ndarray) -> ndarray:
     """
     Calculate specific humidity mixing ratio of saturated air of given temperature and pressure.
 
-    Invalid values are filtered and result in NaN outputs.
+    Invalid and masked values are filtered and result in NaN outputs.
 
     Args:
         temperature:
@@ -290,15 +290,31 @@ def saturated_humidity(temperature: ndarray, pressure: ndarray) -> ndarray:
     References:
         ASHRAE Fundamentals handbook (2005) Equation 22, 24, p6.8
     """
-    mask = ~np.isfinite(temperature) | ~np.isfinite(pressure)
-    # Replace invalid values with a dummy value for calculation purposes
-    temperature = np.where(mask, 273.15, temperature)
-    pressure = np.where(mask, 100000.0, pressure)
-    svp = calculate_svp_in_air(temperature, pressure)
+    # Identify and replace any invalid values with a dummy value for calculation purposes
+    mask = np.full_like(temperature, False)
+    if isinstance(temperature, np.ma.MaskedArray):
+        mask = np.logical_or(mask, temperature.mask)
+    if isinstance(pressure, np.ma.MaskedArray):
+        mask = np.logical_or(mask, pressure.mask)
+    mask = np.logical_or(mask, np.logical_not(np.isfinite(temperature)))
+    mask = np.logical_or(mask, np.logical_not(np.isfinite(pressure)))
+    temperature_allvalid = np.where(mask, 273.15, temperature)
+    pressure_allvalid = np.where(mask, 100000.0, pressure)
+
+    # Calculate saturated humidity
+    svp = calculate_svp_in_air(temperature_allvalid, pressure_allvalid)
     numerator = consts.EARTH_REPSILON * svp
-    denominator = np.maximum(svp, pressure) - ((1.0 - consts.EARTH_REPSILON) * svp)
+    denominator = np.maximum(svp, pressure_allvalid) - (
+        (1.0 - consts.EARTH_REPSILON) * svp
+    )
     result = (numerator / denominator).astype(temperature.dtype)
+
+    # Reapply mask to result
     result[mask] = np.nan
+    if isinstance(temperature, np.ma.MaskedArray) or isinstance(
+        pressure, np.ma.MaskedArray
+    ):
+        result = np.ma.MaskedArray(data=result, mask=mask)
     return result
 
 

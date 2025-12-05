@@ -102,6 +102,30 @@ def test_saturated_humidity_invalid(invalid_value):
     assert result.dtype == np.float32
 
 
+def test_saturated_humidity_masked():
+    """Test the saturated_humidity method with masked inputs"""
+    t = np.ma.MaskedArray(
+        [[290.0, -99], [273.15, 270.0]],
+        [[False, True], [False, False]],
+        dtype=np.float32,
+    )
+    p = np.ma.MaskedArray(
+        [[100000.0, 90000.0], [90000.0, -99]],
+        [[False, False], [False, True]],
+        dtype=np.float32,
+    )
+    expected = np.ma.MaskedArray(
+        [[1.20745e-2, -99], [4.2481e-3, -99]],
+        [[False, True], [False, True]],
+        dtype=np.float32,
+    )
+    result = saturated_humidity(t, p)
+    assert np.isclose(result, expected, equal_nan=True).all()
+    np.testing.assert_equal(result.mask, expected.mask)
+    assert result.shape == t.shape
+    assert result.dtype == np.float32
+
+
 # Stephen checked these values on a Tephigram.
 # Start at point t, p. Move down dry adiabat until you reach q, then up saturated adiabat back to p
 # This should coincide with expected_t and expected_q.
