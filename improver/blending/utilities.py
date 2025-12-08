@@ -4,7 +4,7 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Utilities to support weighted blending"""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional, Union
 
 import numpy as np
@@ -20,7 +20,7 @@ from improver.blending import (
     RECORD_COORD,
     WEIGHT_FORMAT,
 )
-from improver.metadata.amend import amend_attributes
+from improver.metadata.amend import amend_attributes, get_unique_attributes
 from improver.metadata.constants.attributes import (
     MANDATORY_ATTRIBUTE_DEFAULTS,
     MANDATORY_ATTRIBUTES,
@@ -224,7 +224,10 @@ def _get_cycletime_point(cube: Cube, cycletime: str) -> int64:
 
 
 def store_record_run_as_coord(
-    cubelist: CubeList, record_run_attr: str, model_id_attr: Optional[str]
+    cubelist: CubeList,
+    record_run_attr: str,
+    model_id_attr: Optional[str],
+    unify_record_run_attr: bool = False,
 ) -> None:
     """Stores model identifiers and forecast_reference_times on the input
     cubes as auxiliary coordinates. These are used to construct record_run
@@ -275,6 +278,12 @@ def store_record_run_as_coord(
             The name of the record_run attribute that may exist on the input cubes.
         model_id_attr:
             The name of the model_id attribute that may exist on the input cubes.
+        unify_record_run_attr:
+            If True, unify the record_run attributes across all cubes before
+            constructing the RECORD_COORD. This ensures that all input cubes have
+            the same superset of record_run entries. This can be useful to avoid
+            issues with differing coordinate shapes when the cubes are merged, but
+            should only be used when the superset of entries is the desired outcome.
 
     Raises:
         ValueError: If model_id_attr is not set and is required to construct a
@@ -291,6 +300,13 @@ def store_record_run_as_coord(
             f"of a new {record_run_attr} attribute."
         )
 
+    # Note that this unification functionality will only work if the record_run_attr
+    # is present on all cubes.
+    if unify_record_run_attr:
+        superset = get_unique_attributes(cubelist, record_run_attr, separator="\n")
+        for cube in cubelist:
+            cube.attributes[record_run_attr] = superset[record_run_attr]
+
     for cube in cubelist:
         if record_run_attr in cube.attributes:
             run_attr = cube.attributes[record_run_attr]
@@ -305,8 +321,8 @@ def store_record_run_as_coord(
                 f"Cube attributes: {cube.attributes}"
             )
 
-        cycle = datetime.utcfromtimestamp(
-            cube.coord("forecast_reference_time").points[0]
+        cycle = datetime.fromtimestamp(
+            cube.coord("forecast_reference_time").points[0], tz=timezone.utc
         )
         cycle_str = cycle.strftime(DT_FORMAT)
 

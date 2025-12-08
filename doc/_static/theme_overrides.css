@@ -11,3 +11,14 @@
       overflow: visible !important;
    }
 }
+/* Force secondary sidebar to stack vertically (downwards) in Sphinx Book Theme */
+.bd-sidebar-secondary {
+   flex-direction: column !important;
+   display: flex !important;
+}
+
+.bd-sidebar-secondary .sidebar-secondary-items {
+   flex-direction: column !important;
+   display: flex !important;
+}
+   
