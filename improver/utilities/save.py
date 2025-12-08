@@ -91,8 +91,9 @@ def save_netcdf(
     Raises:
         ValueError:
             If compression_level is not between 0 and 9.
-        Warns:
-            If cubelist contains cubes of varying dimensions.
+
+    Warns:
+        If cubelist contains cubes of varying dimensions.
     """
     if isinstance(cubelist, iris.cube.Cube):
         cubelist = iris.cube.CubeList([cubelist])
