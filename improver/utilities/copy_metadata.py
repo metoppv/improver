@@ -139,13 +139,15 @@ class CopyMetadata(BasePlugin):
         amend_attributes(cube, new_attributes)
 
         for coord in self.aux_coord:
-            # If coordinate is already present in the cube, remove it
-            if cube.coords(coord):
-                cube.remove_coord(coord)
-            cube.add_aux_coord(
-                template_cubes[0].coord(coord),
-                data_dims=template_cubes[0].coord_dims(coord=coord),
-            )
+            # If the template cube has the auxiliary coordinate, copy it
+            if template_cubes[0].coords(coord): 
+                # If coordinate is already present in the cube, remove it
+                if cube.coords(coord):
+                    cube.remove_coord(coord)
+                cube.add_aux_coord(
+                    template_cubes[0].coord(coord),
+                    data_dims=template_cubes[0].coord_dims(coord=coord),
+                )
 
         for ancillary_var in self.ancillary_variables:
             # If the template cube has the ancillary variable, copy it
