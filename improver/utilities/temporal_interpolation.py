@@ -757,7 +757,8 @@ class ForecastPeriodGapFiller(BasePlugin):
                 The expected interval between forecast periods in minutes.
                 Used to identify gaps in the sequence.
             interpolation_method:
-                Method of interpolation to use (linear, solar, daynight, google_film).
+                Method of interpolation to use.
+                Options: linear, solar, daynight, google_film.
             cluster_sources_attribute:
                 Name of cube attribute containing cluster sources dictionary.
                 When provided with interpolation_window_in_hours, enables
@@ -765,7 +766,8 @@ class ForecastPeriodGapFiller(BasePlugin):
             interpolation_window_in_hours:
                 Time window (in hours) as +/- range around forecast source transitions.
             model_path:
-                Path to TensorFlow Hub module for Google FILM model (if using google_film).
+                Path to TensorFlow Hub module for Google FILM model
+                (if using google_film).
             scaling:
                 Scaling method for google_film interpolation (log10 or minmax).
             clipping_bounds:
@@ -857,14 +859,16 @@ class ForecastPeriodGapFiller(BasePlugin):
             cluster_sources = cube.attributes[self.cluster_sources_attribute]
         except KeyError:
             raise ValueError(
-                f"Attribute '{self.cluster_sources_attribute}' not found on cube. "
-                f"Available attributes: {list(cube.attributes.keys())}"
+                f"Attribute '{self.cluster_sources_attribute}' not found "
+                f"on cube. Available attributes: "
+                f"{list(cube.attributes.keys())}"
             )
 
         # Validate dictionary structure
         if not isinstance(cluster_sources, dict):
             raise ValueError(
-                f"Cluster sources attribute must be a dictionary, got {type(cluster_sources)}"
+                f"Cluster sources attribute must be a dictionary, "
+                f"got {type(cluster_sources)}"
             )
 
         for real_idx, sources in cluster_sources.items():
@@ -876,15 +880,15 @@ class ForecastPeriodGapFiller(BasePlugin):
             for source_name, periods in sources.items():
                 if not isinstance(periods, list):
                     raise ValueError(
-                        f"Periods for source {source_name} in realization {real_idx} "
-                        f"must be a list, got {type(periods)}"
+                        f"Periods for source {source_name} in realization "
+                        f"{real_idx} must be a list, got {type(periods)}"
                     )
 
         return cluster_sources
 
     def identify_source_transitions(
         self, cluster_sources: dict, realization_index: int
-    ) -> List[Tuple[str, int, str, int, int]]:
+    ) -> List[int]:
         """Identify forecast source transitions for a given realization.
 
         Args:
@@ -895,9 +899,7 @@ class ForecastPeriodGapFiller(BasePlugin):
                 The realization index to check for transitions.
 
         Returns:
-            List of tuples, each containing:
-            (source_before, period_before, source_after, period_after, transition_period)
-            where transition_period is the forecast period where the source changes.
+            List of forecast periods immediately before a source transition.
             Only includes transitions where the source actually changes.
         """
         real_key = str(realization_index)
@@ -918,7 +920,7 @@ class ForecastPeriodGapFiller(BasePlugin):
         transitions = []
         for i in range(len(source_period_list) - 1):
             period_before, source_before = source_period_list[i]
-            period_after, source_after = source_period_list[i + 1]
+            _, source_after = source_period_list[i + 1]
 
             # Only record if source changes
             if source_before != source_after:
@@ -937,8 +939,9 @@ class ForecastPeriodGapFiller(BasePlugin):
 
         Returns:
             List of tuples (transition_period, expected_t0, expected_t1) where
-            transition_period is the forecast period at the source transition,
-            expected_t0 is (transition - window), and expected_t1 is (transition + window).
+            transition_period is the forecast period at the source
+            transition, expected_t0 is (transition - window), and
+            expected_t1 is (transition + window).
         """
         if (
             self.cluster_sources_attribute is None
@@ -1003,6 +1006,180 @@ class ForecastPeriodGapFiller(BasePlugin):
                 return cube
         raise ValueError(f"No cube found for forecast period T+{period_hours}")
 
+    def _validate_input(self, cubelist: CubeList) -> None:
+        """Validate that the input cubelist meets requirements.
+
+        Args:
+            cubelist: List of cubes to validate.
+
+        Raises:
+            ValueError: If cubelist is empty or has fewer than 2 cubes.
+            ValueError: If cubes don't have forecast_period coordinate.
+        """
+        if not cubelist or len(cubelist) < 2:
+            raise ValueError(
+                "ForecastPeriodGapFiller requires at least 2 cubes in the "
+                "input CubeList."
+            )
+
+        # Verify all cubes have forecast_period
+        for cube in cubelist:
+            if not cube.coords("forecast_period"):
+                raise ValueError(
+                    "All cubes must have a forecast_period coordinate for gap filling."
+                )
+
+    def _create_gap_filling_tasks(
+        self, missing_periods: List[int], sorted_cubelist: CubeList
+    ) -> List[Tuple[str, int, int, int]]:
+        """Create interpolation tasks for missing forecast periods.
+
+        Args:
+            missing_periods: List of forecast periods (in hours) that are missing.
+            sorted_cubelist: Sorted list of cubes by forecast period.
+
+        Returns:
+            List of tuples (task_type, target_period, t0_period, t1_period)
+            for gap filling tasks.
+        """
+        interpolation_tasks = []
+        existing_periods = self._get_forecast_periods(sorted_cubelist)
+
+        for period in missing_periods:
+            # Find appropriate bounding cubes
+            lower_periods = [p for p in existing_periods if p < period]
+            upper_periods = [p for p in existing_periods if p > period]
+
+            if lower_periods and upper_periods:
+                t0_period = max(lower_periods)
+                t1_period = min(upper_periods)
+                interpolation_tasks.append(("gap", period, t0_period, t1_period))
+
+        return interpolation_tasks
+
+    def _create_regeneration_tasks(
+        self,
+        periods_to_regenerate: List[Tuple[int, int, int]],
+        sorted_cubelist: CubeList,
+    ) -> List[Tuple[str, int, int, int]]:
+        """Create interpolation tasks for periods to regenerate.
+
+        Args:
+            periods_to_regenerate:
+                List of tuples (transition_period, expected_t0, expected_t1).
+            sorted_cubelist: Sorted list of cubes by forecast period.
+
+        Returns:
+            List of tuples (task_type, target_period, t0_period, t1_period)
+            for regeneration tasks.
+        """
+        interpolation_tasks = []
+        existing_periods = self._get_forecast_periods(sorted_cubelist)
+
+        for trans_period, expected_t0, expected_t1 in periods_to_regenerate:
+            # Check if the required boundary cubes exist
+            if expected_t0 in existing_periods and expected_t1 in existing_periods:
+                interpolation_tasks.append(
+                    ("regenerate", trans_period, expected_t0, expected_t1)
+                )
+
+        return interpolation_tasks
+
+    def _calculate_target_time(
+        self, cube_t0: Cube, target_period: int, t0_period: int
+    ) -> datetime:
+        """Calculate the target time for interpolation.
+
+        Args:
+            cube_t0: The cube at the earlier forecast period.
+            target_period: The target forecast period in hours.
+            t0_period: The earlier forecast period in hours.
+
+        Returns:
+            The target time as a datetime object.
+        """
+        time_t0 = iris_time_to_datetime(cube_t0.coord("time"))[0]
+        target_offset = (target_period - t0_period) * 3600
+        target_time = time_t0 + timedelta(seconds=target_offset)
+        return target_time
+
+    def _interpolate_single_period(
+        self,
+        interpolator: TemporalInterpolation,
+        sorted_cubelist: CubeList,
+        task_type: str,
+        target_period: int,
+        t0_period: int,
+        t1_period: int,
+    ) -> CubeList:
+        """Interpolate a single forecast period.
+
+        Args:
+            interpolator: The TemporalInterpolation plugin to use.
+            sorted_cubelist: Sorted list of cubes by forecast period.
+            task_type: Type of task ("gap" or "regenerate").
+            target_period: The target forecast period in hours.
+            t0_period: The earlier forecast period in hours.
+            t1_period: The later forecast period in hours.
+
+        Returns:
+            CubeList containing the interpolated cube for the target period.
+        """
+        cube_t0 = self._get_cubes_for_period(sorted_cubelist, t0_period)
+        cube_t1 = self._get_cubes_for_period(sorted_cubelist, t1_period)
+
+        # Calculate target time
+        target_time = self._calculate_target_time(cube_t0, target_period, t0_period)
+
+        # Set interpolation times
+        interpolator.times = [target_time]
+
+        # Perform interpolation
+        interpolated = interpolator.process(cube_t0, cube_t1)
+
+        # Filter to only return the target period cube
+        result_cubes = CubeList()
+        for cube in interpolated:
+            # Check if this is the target period (not the t1 boundary)
+            cube_period = cube.coord("forecast_period").points[0] / 3600
+            if abs(cube_period - target_period) < 0.01:
+                result_cubes.append(cube)
+
+        return result_cubes
+
+    def _assemble_final_cubelist(
+        self,
+        sorted_cubelist: CubeList,
+        result_cubes: CubeList,
+        periods_to_exclude: set,
+    ) -> CubeList:
+        """Assemble the final cubelist by combining interpolated and original cubes.
+
+        Args:
+            sorted_cubelist: Original sorted list of cubes.
+            result_cubes: CubeList of interpolated cubes.
+            periods_to_exclude: Set of forecast periods to exclude from originals.
+
+        Returns:
+            Final sorted CubeList with all forecast periods.
+        """
+        # Add original cubes that aren't being regenerated
+        for cube in sorted_cubelist:
+            cube_period = cube.coord("forecast_period").points[0] / 3600
+            period_hours = int(round(cube_period))
+            if period_hours not in periods_to_exclude:
+                result_cubes.append(cube)
+
+        # Sort final result by forecast period
+        result_cubes = CubeList(
+            sorted(
+                result_cubes,
+                key=lambda c: c.coord("forecast_period").points[0],
+            )
+        )
+
+        return result_cubes
+
     def process(self, cubelist: CubeList) -> CubeList:
         """Fill gaps in forecast period sequence.
 
@@ -1019,52 +1196,25 @@ class ForecastPeriodGapFiller(BasePlugin):
             ValueError: If cubelist is empty or has fewer than 2 cubes.
             ValueError: If cubes don't have forecast_period coordinate.
         """
-        if not cubelist or len(cubelist) < 2:
-            raise ValueError(
-                "ForecastPeriodGapFiller requires at least 2 cubes in the input CubeList."
-            )
-
-        # Verify all cubes have forecast_period
-        for cube in cubelist:
-            if not cube.coords("forecast_period"):
-                raise ValueError(
-                    "All cubes must have a forecast_period coordinate for gap filling."
-                )
+        # Validate input
+        self._validate_input(cubelist)
 
         # Sort cubelist by forecast period
         sorted_cubelist = CubeList(
             sorted(cubelist, key=lambda c: c.coord("forecast_period").points[0])
         )
 
-        # Identify gaps
+        # Identify gaps and periods to regenerate
         missing_periods = self.identify_gaps(sorted_cubelist)
-
-        # Identify periods to regenerate (even if they exist)
         periods_to_regenerate = self.identify_periods_to_regenerate(sorted_cubelist)
 
-        # Collect all periods that need interpolation
-        interpolation_tasks = []
-
-        # Add missing periods
-        for period in missing_periods:
-            # Find appropriate bounding cubes
-            existing_periods = self._get_forecast_periods(sorted_cubelist)
-            lower_periods = [p for p in existing_periods if p < period]
-            upper_periods = [p for p in existing_periods if p > period]
-
-            if lower_periods and upper_periods:
-                t0_period = max(lower_periods)
-                t1_period = min(upper_periods)
-                interpolation_tasks.append(("gap", period, t0_period, t1_period))
-
-        # Add periods to regenerate based on cluster sources
-        for trans_period, expected_t0, expected_t1 in periods_to_regenerate:
-            # Check if the required boundary cubes exist
-            existing_periods = self._get_forecast_periods(sorted_cubelist)
-            if expected_t0 in existing_periods and expected_t1 in existing_periods:
-                interpolation_tasks.append(
-                    ("regenerate", trans_period, expected_t0, expected_t1)
-                )
+        # Create interpolation tasks
+        interpolation_tasks = self._create_gap_filling_tasks(
+            missing_periods, sorted_cubelist
+        )
+        interpolation_tasks.extend(
+            self._create_regeneration_tasks(periods_to_regenerate, sorted_cubelist)
+        )
 
         # If no interpolation needed, return original
         if not interpolation_tasks:
@@ -1085,46 +1235,24 @@ class ForecastPeriodGapFiller(BasePlugin):
         periods_to_exclude = set()
 
         for task_type, target_period, t0_period, t1_period in interpolation_tasks:
-            cube_t0 = self._get_cubes_for_period(sorted_cubelist, t0_period)
-            cube_t1 = self._get_cubes_for_period(sorted_cubelist, t1_period)
-
-            # Calculate target time
-            time_t0 = iris_time_to_datetime(cube_t0.coord("time"))[0]
-            target_offset = (target_period - t0_period) * 3600
-            target_time = time_t0 + timedelta(seconds=target_offset)
-
-            # Set interpolation times
-            interpolator.times = [target_time]
-
-            # Perform interpolation
-            interpolated = interpolator.process(cube_t0, cube_t1)
-
-            # Add interpolated cube(s)
-            for cube in interpolated:
-                # Check if this is the target period (not the t1 boundary)
-                cube_period = cube.coord("forecast_period").points[0] / 3600
-                if abs(cube_period - target_period) < 0.01:
-                    result_cubes.append(cube)
-                    if task_type == "regenerate":
-                        # Mark original for exclusion
-                        periods_to_exclude.add(target_period)
-
-        # Add original cubes that aren't being regenerated
-        for cube in sorted_cubelist:
-            cube_period = cube.coord("forecast_period").points[0] / 3600
-            period_hours = int(round(cube_period))
-            if period_hours not in periods_to_exclude:
-                result_cubes.append(cube)
-
-        # Sort final result by forecast period
-        result_cubes = CubeList(
-            sorted(
-                result_cubes,
-                key=lambda c: c.coord("forecast_period").points[0],
+            interpolated_cubes = self._interpolate_single_period(
+                interpolator,
+                sorted_cubelist,
+                task_type,
+                target_period,
+                t0_period,
+                t1_period,
             )
-        )
+            result_cubes.extend(interpolated_cubes)
 
-        return result_cubes
+            if task_type == "regenerate":
+                # Mark original for exclusion
+                periods_to_exclude.add(target_period)
+
+        # Assemble final cubelist
+        return self._assemble_final_cubelist(
+            sorted_cubelist, result_cubes, periods_to_exclude
+        )
 
 
 class GoogleFilmInterpolation:
