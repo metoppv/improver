@@ -10,7 +10,7 @@ from unittest.mock import patch, sentinel
 
 import iris
 import numpy as np
-from iris.coords import AuxCoord, DimCoord
+from iris.coords import AncillaryVariable, AuxCoord, DimCoord
 from iris.tests import IrisTest
 
 from improver.standardise import StandardiseMetadata
@@ -31,6 +31,7 @@ def test_as_cubelist_called(mock_as_cube):
             coords_to_remove=sentinel.coords_to_remove,
             coord_modification=sentinel.coord_modification,
             attributes_dict=sentinel.attributes_dict,
+            ancillary_variables_to_remove=sentinel.ancillary_variables_to_remove,
         )(sentinel.cube)
     except HaltExecution:
         pass
@@ -133,6 +134,7 @@ class Test_process(IrisTest):
             coords_to_remove=["forecast_period"],
             coord_modification=coord_modification,
             attributes_dict=attribute_changes,
+            ancillary_variables_to_remove=["status_flag"],
         )
         result = plugin.process(self.cube)
         self.assertEqual(result.name(), new_name)
@@ -141,6 +143,9 @@ class Test_process(IrisTest):
         self.assertEqual(result.coord("height").points, 2.0)
         self.assertDictEqual(result.attributes, expected_attributes)
         self.assertNotIn("forecast_period", [coord.name() for coord in result.coords()])
+        self.assertNotIn(
+            "status_flag", [var.name() for var in result.ancillary_variables()]
+        )
 
     def test_attempt_modify_dimension_coord(self):
         """Test that an exception is raised if the coord_modification targets
@@ -299,6 +304,47 @@ class Test_process(IrisTest):
         assert (
             result.long_name is None
         ), "long_name removal expected, but long_name is not None"
+
+    def test_ancillary_variable_removal(self):
+        """Test ancillary variable removal works as expected."""
+        cube = self.cube.copy()
+        status_flag_values = np.array(
+            [
+                [1, 1, 1, 0, 1],
+                [1, 1, 0, 0, 1],
+                [1, 1, 1, 1, 1],
+                [0, 0, 0, 0, 0],
+                [1, 0, 1, 1, 1],
+            ],
+            dtype=np.int32,
+        )
+        ancillary_var = AncillaryVariable(
+            status_flag_values,
+            standard_name="status_flag",
+            units="1",
+        )
+        cube.add_ancillary_variable(ancillary_var, data_dims=(0, 1))
+        self.assertIn(
+            "status_flag",
+            [var.name() for var in cube.ancillary_variables()],
+        )
+        result = StandardiseMetadata(
+            ancillary_variables_to_remove=["status_flag"]
+        ).process(cube)
+        self.assertNotIn(
+            "status_flag",
+            [var.name() for var in result.ancillary_variables()],
+        )
+
+    def test_ancillary_variable_removal_where_there_is_none(self):
+        """Test ancillary variable removal works as expected when there are no
+        ancillary variables to begin with."""
+        cube = self.cube.copy()
+        self.assertEqual(len(cube.ancillary_variables()), 0)
+        result = StandardiseMetadata(
+            ancillary_variables_to_remove=["status_flag"]
+        ).process(cube)
+        self.assertEqual(len(result.ancillary_variables()), 0)
 
 
 if __name__ == "__main__":
