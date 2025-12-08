@@ -1113,7 +1113,7 @@ def test_process_google_film_with_custom_parameters(monkeypatch):
         interval_in_minutes=360,
         interpolation_method="google_film",
         model_path="/mock/path",
-        scaling="minmax",
+        scaling="log10",
         clipping_bounds=(0.0, 10.0),
     ).process(cube[0], cube[1])
 

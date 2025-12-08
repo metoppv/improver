@@ -21,7 +21,7 @@ def process(
     max: bool = False,
     min: bool = False,
     model_path: str = None,
-    scaling: str = "log10",
+    scaling: str = "minmax",
     clipping_bounds: cli.comma_separated_list = None,
 ):
     """Interpolate data between validity times.
@@ -80,7 +80,7 @@ def process(
         scaling (str):
             Scaling method to apply to the data before interpolation when
             using google_film method. Options are "log10" or "minmax".
-            Default is "log10".
+            Default is "minmax".
         clipping_bounds (str):
             Comma-separated lower and upper bounds for clipping interpolated
             values when using google_film method. E.g. "0.0,1.0".
