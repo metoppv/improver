@@ -2,6 +2,7 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
+import warnings
 from typing import List, Union
 
 from dateutil import parser as dparser
@@ -140,13 +141,18 @@ class CopyMetadata(BasePlugin):
 
         for coord in self.aux_coord:
             # If the template cube has the auxiliary coordinate, copy it
-            if template_cubes[0].coords(coord): 
+            if template_cubes[0].coords(coord):
                 # If coordinate is already present in the cube, remove it
                 if cube.coords(coord):
                     cube.remove_coord(coord)
                 cube.add_aux_coord(
                     template_cubes[0].coord(coord),
                     data_dims=template_cubes[0].coord_dims(coord=coord),
+                )
+            else:
+                warnings.warn(
+                    f"Auxiliary Coordinate '{coord}' not found in cube '{template_cubes[0].name()}'.",
+                    UserWarning,
                 )
 
         for ancillary_var in self.ancillary_variables:
@@ -159,4 +165,10 @@ class CopyMetadata(BasePlugin):
                     template_cubes[0].ancillary_variable(ancillary_var),
                     data_dims=template_cubes[0].ancillary_variable_dims(ancillary_var),
                 )
+            else:
+                warnings.warn(
+                    f"Ancillary variable '{ancillary_var}' not found in cube '{template_cubes[0].name()}'.",
+                    UserWarning,
+                )
+
         return cube
