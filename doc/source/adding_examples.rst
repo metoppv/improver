@@ -63,3 +63,34 @@ If you want to create examples that use real data files:
 
 5. When both pull requests are merged, the documentation will automatically use the 
    example data from the ``master`` branch of ``improver_example_data``.
+
+Managing Dependencies for Examples
+-----------------------------------
+
+Examples require appropriate Python packages to be available in multiple environments. 
+If your example requires additional modules that are not part of the standard IMPROVER 
+dependencies:
+
+1. **For ReadTheDocs builds:** Check if the required module is listed in 
+   ``doc/rtd_environment.yml``. If missing, add it to the ``dependencies:`` section. 
+   This file specifies the conda environment used when building the documentation on 
+   ReadTheDocs.
+
+2. **For GitHub Actions CI checks:** Examples are also run as part of the continuous 
+   integration checks using the test environments defined in the ``envs/`` directory 
+   (e.g., ``envs/environment_a.yml``, ``envs/environment_b.yml``). Unless the required 
+   module is available in **all** of these test environments, some GitHub Actions 
+   checks will fail.
+
+3. If a required module is not available in all environments and cannot be added to 
+   them, you can make your example skip gracefully by checking for the module's 
+   availability at the start of the script::
+
+     try:
+         import required_module
+     except ImportError:
+         import sys
+         sys.exit(0)  # Exit cleanly for sphinx-gallery
+
+   This allows sphinx-gallery to skip the example without failing the documentation 
+   build or GitHub Actions checks.
