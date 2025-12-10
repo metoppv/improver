@@ -178,8 +178,6 @@ def test_for_masked_values(
     expected = np.ma.masked_all(temperature.data.shape, dtype=np.float32)
     result = CloudCondensationLevel()([temperature, pressure, humidity])
     metadata_ok(result, temperature)
-    assert np.ma.allequal(result[0].data, expected)
-    assert np.ma.allequal(result[1].data, expected)
     np.testing.assert_equal(result[0].data.mask, expected.mask)
     np.testing.assert_equal(result[1].data.mask, expected.mask)
 
