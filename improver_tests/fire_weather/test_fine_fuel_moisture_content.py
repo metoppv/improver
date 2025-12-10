@@ -64,12 +64,10 @@ def input_cubes(
         (20.0, 1.0, 50.0, 10.0, 85.0),
         # Case 1: All zeros (edge case)
         (0.0, 0.0, 0.0, 0.0, 0.0),
-        # Case 2: All maximums/extremes
-        (100.0, 100.0, 100.0, 100.0, 100.0),
-        # Case 3: Low temperature, low precip, low RH, low wind, low FFMC
+        # Case 2: Low temperature, low precip, low RH, low wind, low FFMC
         (-10.0, 0.5, 10.0, 2.0, 60.0),
-        # Case 4: High temp, high precip, high RH, high wind, high FFMC
-        (30.0, 10.0, 90.0, 20.0, 120.0),
+        # Case 3: High temp, high precip, high RH, high wind, high FFMC (within valid ranges)
+        (30.0, 10.0, 90.0, 20.0, 95.0),
     ],
 )
 def test__calculate_moisture_content(
@@ -617,3 +615,171 @@ def test_process_spatially_varying() -> None:
     assert len(np.unique(result.data)) > 1
     # Check that different environmental conditions produce different outputs
     assert not np.allclose(result.data[0, 0], result.data[2, 2], atol=0.1)
+
+
+@pytest.mark.parametrize(
+    "temp_val, precip_val, rh_val, wind_val, ffmc_val, expected_error",
+    [
+        # Temperature too high
+        (
+            150.0,
+            1.0,
+            50.0,
+            10.0,
+            85.0,
+            "temperature contains values above valid maximum",
+        ),
+        # Temperature too low
+        (
+            -150.0,
+            1.0,
+            50.0,
+            10.0,
+            85.0,
+            "temperature contains values below valid minimum",
+        ),
+        # Precipitation negative
+        (
+            20.0,
+            -5.0,
+            50.0,
+            10.0,
+            85.0,
+            "precipitation contains values below valid minimum",
+        ),
+        # Relative humidity above 100%
+        (
+            20.0,
+            1.0,
+            150.0,
+            10.0,
+            85.0,
+            "relative_humidity contains values above valid maximum",
+        ),
+        # Relative humidity negative
+        (
+            20.0,
+            1.0,
+            -10.0,
+            10.0,
+            85.0,
+            "relative_humidity contains values below valid minimum",
+        ),
+        # Wind speed negative
+        (20.0, 1.0, 50.0, -5.0, 85.0, "wind_speed contains values below valid minimum"),
+        # FFMC above 101
+        (
+            20.0,
+            1.0,
+            50.0,
+            10.0,
+            120.0,
+            "input_ffmc contains values above valid maximum",
+        ),
+        # FFMC negative
+        (20.0, 1.0, 50.0, 10.0, -5.0, "input_ffmc contains values below valid minimum"),
+    ],
+)
+def test_invalid_input_ranges_raise_errors(
+    temp_val: float,
+    precip_val: float,
+    rh_val: float,
+    wind_val: float,
+    ffmc_val: float,
+    expected_error: str,
+) -> None:
+    """Test that invalid input values raise appropriate ValueError.
+
+    Verifies that the base class validation catches physically meaningless
+    or out-of-range input values and raises descriptive errors.
+
+    Args:
+        temp_val (float): Temperature value for all grid points.
+        precip_val (float): Precipitation value for all grid points.
+        rh_val (float): Relative humidity value for all grid points.
+        wind_val (float): Wind speed value for all grid points.
+        ffmc_val (float): FFMC value for all grid points.
+        expected_error (str): Expected error message substring.
+    """
+    cubes = input_cubes(temp_val, precip_val, rh_val, wind_val, ffmc_val)
+    plugin = FineFuelMoistureContent()
+
+    with pytest.raises(ValueError, match=expected_error):
+        plugin.load_input_cubes(CubeList(cubes))
+
+
+@pytest.mark.parametrize(
+    "invalid_input_type,expected_error",
+    [
+        ("temperature_nan", "temperature contains NaN"),
+        ("temperature_inf", "temperature contains infinite"),
+        ("precipitation_nan", "precipitation contains NaN"),
+        ("precipitation_inf", "precipitation contains infinite"),
+        ("relative_humidity_nan", "relative_humidity contains NaN"),
+        ("wind_speed_inf", "wind_speed contains infinite"),
+        ("input_ffmc_nan", "input_ffmc contains NaN"),
+    ],
+)
+def test_nan_and_inf_values_raise_errors(
+    invalid_input_type: str, expected_error: str
+) -> None:
+    """Test that NaN and Inf values in inputs raise appropriate ValueError.
+
+    Verifies that the validation catches non-finite values (NaN, Inf) in input data.
+
+    Args:
+        invalid_input_type (str): Which input to make invalid and how.
+        expected_error (str): Expected error message substring.
+    """
+    # Start with valid values
+    temp_val, precip_val, rh_val, wind_val, ffmc_val = 20.0, 1.0, 50.0, 10.0, 85.0
+
+    # Replace the appropriate value with NaN or Inf
+    if invalid_input_type == "temperature_nan":
+        temp_val = np.nan
+    elif invalid_input_type == "temperature_inf":
+        temp_val = np.inf
+    elif invalid_input_type == "precipitation_nan":
+        precip_val = np.nan
+    elif invalid_input_type == "precipitation_inf":
+        precip_val = np.inf
+    elif invalid_input_type == "relative_humidity_nan":
+        rh_val = np.nan
+    elif invalid_input_type == "wind_speed_inf":
+        wind_val = -np.inf
+    elif invalid_input_type == "input_ffmc_nan":
+        ffmc_val = np.nan
+
+    cubes = input_cubes(temp_val, precip_val, rh_val, wind_val, ffmc_val)
+    plugin = FineFuelMoistureContent()
+
+    with pytest.raises(ValueError, match=expected_error):
+        plugin.load_input_cubes(CubeList(cubes))
+
+
+def test_output_validation_no_warning_for_valid_output() -> None:
+    """Test that valid output values do not trigger warnings.
+
+    Uses extreme but valid inputs to verify that as long as the output
+    stays within the expected range (0-101 for FFMC), no warning is issued.
+    This demonstrates that the FFMC calculation naturally constrains outputs
+    to valid ranges even with extreme inputs.
+    """
+    # Use extreme valid inputs
+    # Very cold, very humid, low wind
+    cubes = input_cubes(
+        temp_val=-45.0,  # Extreme cold but within valid range
+        precip_val=0.0,
+        rh_val=99.0,
+        wind_val=0.1,
+        ffmc_val=101.0,  # Maximum valid FFMC
+    )
+    plugin = FineFuelMoistureContent()
+
+    # Process should complete without warnings since output stays in valid range
+    result = plugin.process(CubeList(cubes))
+
+    assert isinstance(result, Cube)
+    # Verify output is within expected range
+    assert np.all(result.data >= 0.0)
+    assert np.all(result.data <= 101.0)

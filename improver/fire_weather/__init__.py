@@ -4,6 +4,7 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Fire Weather Index System components."""
 
+import warnings
 from abc import abstractmethod
 from typing import cast
 
@@ -74,6 +75,34 @@ class FireWeatherIndexBase(BasePlugin):
     # Optional: mapping of input cube names to attribute names (for disambiguation)
     INPUT_ATTRIBUTE_MAPPINGS: dict[str, str] = {}
 
+    # Valid ranges for input validation (attribute_name: (min, max))
+    # None means no validation for that bound
+    _VALID_RANGES: dict[str, tuple[float | None, float | None]] = {
+        "temperature": (-100.0, 100.0),  # Reasonable temperature range in Celsius
+        "precipitation": (0.0, None),  # Must be non-negative
+        "relative_humidity": (0.0, 101.0),  # Percentage
+        "wind_speed": (0.0, None),  # Must be non-negative
+        "input_ffmc": (0.0, 101.0),  # Valid FFMC range
+        "input_dmc": (0.0, None),  # DMC is non-negative
+        "input_dc": (0.0, None),  # DC is non-negative
+    }
+
+    # Valid output ranges for warning checks (output_name: (min, max))
+    # Minimum and maximum feasible values for each output index are drawn from
+    # values reported in:
+    # Wang, X., Oliver, J., Swystun, T., Hanes, C.C., Erni, S. and Flannigan,
+    # M.D., 2023. Critical fire weather conditions during active fire spread
+    # days in Canada. Science of the total environment, 869, p.161831.
+    _OUTPUT_RANGES: dict[str, tuple[float, float | None]] = {
+        "fine_fuel_moisture_content": (0.0, 101.0),
+        "duff_moisture_code": (0.0, 400),
+        "drought_code": (0.0, 1000),
+        "initial_spread_index": (0.0, 100),
+        "build_up_index": (0.0, 500),
+        "canadian_forest_fire_weather_index": (0.0, 100),
+        "fire_severity_index": (0.0, 100),
+    }
+
     def load_input_cubes(self, cubes: tuple[Cube] | CubeList, month: int | None = None):
         """Loads the required input cubes for the calculation. These
         are stored internally as Cube objects.
@@ -116,6 +145,9 @@ class FireWeatherIndexBase(BasePlugin):
             if attr_name in self._REQUIRED_UNITS:
                 cube.convert_units(self._REQUIRED_UNITS[attr_name])
 
+            # Validate input ranges
+            self._validate_input_range(cube, attr_name)
+
     def _get_attribute_name(self, standard_name: str) -> str:
         """Convert a cube standard name to an attribute name.
 
@@ -139,6 +171,47 @@ class FireWeatherIndexBase(BasePlugin):
         name = name.removesuffix("_amount")
 
         return name
+
+    def _validate_input_range(self, cube: Cube, attr_name: str) -> None:
+        """Validate that input data falls within expected physical ranges.
+
+        Args:
+            cube (iris.cube.Cube): The input cube to validate
+            attr_name (str): The attribute name for the cube
+
+        Raises:
+            ValueError: If any values fall outside the valid range for this input type,
+                or if data contains NaN or Inf values
+        """
+        if attr_name not in self._VALID_RANGES:
+            return  # No validation defined for this input type
+
+        min_val, max_val = self._VALID_RANGES[attr_name]
+        data = cube.data
+
+        # Check for NaN values
+        if np.any(np.isnan(data)):
+            raise ValueError(f"{attr_name} contains NaN (Not a Number) values")
+
+        # Check for infinite values
+        if np.any(np.isinf(data)):
+            raise ValueError(f"{attr_name} contains infinite values")
+
+        # Check minimum bound if defined
+        if min_val is not None and np.any(data < min_val):
+            actual_min = float(np.min(data))
+            raise ValueError(
+                f"{attr_name} contains values below valid minimum: "
+                f"found {actual_min}, expected >= {min_val}"
+            )
+
+        # Check maximum bound if defined
+        if max_val is not None and np.any(data > max_val):
+            actual_max = float(np.max(data))
+            raise ValueError(
+                f"{attr_name} contains values above valid maximum: "
+                f"found {actual_max}, expected <= {max_val}"
+            )
 
     def _make_output_cube(
         self, data: np.ndarray, template_cube: Cube | None = None
@@ -208,8 +281,64 @@ class FireWeatherIndexBase(BasePlugin):
 
         Returns:
             iris.cube.Cube: The calculated output cube.
+
+        Warns:
+            UserWarning: If output values fall outside typical expected ranges
         """
         self.load_input_cubes(cubes, month)
         output_data = self._calculate()
         output_cube = self._make_output_cube(output_data)
+
+        # Check if output values are within expected ranges
+        self._validate_output_range(output_cube)
+
         return output_cube
+
+    def _validate_output_range(self, output_cube: Cube) -> None:
+        """Check if output values fall within expected ranges and issue warnings if not.
+
+        Args:
+            output_cube (iris.cube.Cube): The output cube to validate
+
+        Warns:
+            UserWarning: If output contains NaN, Inf, or values outside expected ranges
+        """
+        output_name = output_cube.name()
+
+        if output_name not in self._OUTPUT_RANGES:
+            return  # No validation defined for this output type
+
+        min_val, max_val = self._OUTPUT_RANGES[output_name]
+        data = output_cube.data
+
+        # Check for NaN values
+        if np.any(np.isnan(data)):
+            warnings.warn(
+                f"{output_name} contains NaN (Not a Number) values. "
+                f"This indicates a calculation error or invalid input data.",
+                UserWarning,
+                stacklevel=3,
+            )
+            return
+
+        # Check for infinite values
+        if np.any(np.isinf(data)):
+            warnings.warn(
+                f"{output_name} contains infinite values. "
+                f"This indicates a calculation error or invalid input data.",
+                UserWarning,
+                stacklevel=3,
+            )
+            return
+
+        # Check for values outside expected range
+        if np.any(data < min_val) or np.any(data > max_val):
+            actual_min = float(np.min(data))
+            actual_max = float(np.max(data))
+            warnings.warn(
+                f"{output_name} contains values outside feasible range "
+                f"[{min_val}, {max_val}]: found range [{actual_min:.2f}, {actual_max:.2f}]. "
+                f"This may indicate unusual conditions or invalid input data.",
+                UserWarning,
+                stacklevel=3,
+            )
