@@ -26,7 +26,7 @@ class EnsembleCalibrationAssertions(unittest.TestCase):
     ensemble calibration unit tests."""
 
     def assertEMOSCoefficientsAlmostEqual(self, first, second):
-        """Overriding of the assertArrayAlmostEqual method to check whether
+        """Overriding of the assert_array_almost_equal method to check whether
         array are matching to 4 decimal places. This is specifically
         for use in assertions involving the EMOS coefficients. This is
         justified based on the default tolerance of the minimisation using the
@@ -42,7 +42,7 @@ class EnsembleCalibrationAssertions(unittest.TestCase):
         np.testing.assert_array_almost_equal(first, second, decimal=4)
 
     def assertCalibratedVariablesAlmostEqual(self, first, second):
-        """Overriding of the assertArrayAlmostEqual method to check whether
+        """Overriding of the assert_array_almost_equal method to check whether
         array are matching to 4 decimal places. This is specifically
         for use in assertions following applying the EMOS coefficients,
         in order to calibrate the chosen variables. This is justified
