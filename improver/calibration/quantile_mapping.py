@@ -12,7 +12,6 @@ from iris.cube import Cube
 from improver import PostProcessingPlugin
 
 
-# @njit
 def _build_empirical_cdf(data: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """Build empirical cumulative distribution function (CDF).
 
@@ -29,7 +28,6 @@ def _build_empirical_cdf(data: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     return sorted_values, quantiles
 
 
-# @njit
 def _inverted_cdf(data: np.ndarray, quantiles: np.ndarray) -> np.ndarray:
     """Calculate values using discrete quantile lookup (rounding down to nearest data
     point).
@@ -54,7 +52,6 @@ def _inverted_cdf(data: np.ndarray, quantiles: np.ndarray) -> np.ndarray:
     return sorted_values[floored_indices]
 
 
-# @njit
 def _interpolated_inverted_cdf(data: np.ndarray, quantiles: np.ndarray) -> np.ndarray:
     """Calculate values at provided quantiles using linear interpolation.
 
@@ -73,7 +70,6 @@ def _interpolated_inverted_cdf(data: np.ndarray, quantiles: np.ndarray) -> np.nd
     return np.interp(quantiles, empirical_quantiles, sorted_values)
 
 
-# @njit
 def quantile_mapping(
     reference_data: np.ndarray,
     forecast_data: np.ndarray,
