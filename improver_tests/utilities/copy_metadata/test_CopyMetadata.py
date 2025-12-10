@@ -198,6 +198,61 @@ def test_ancillary_variable_modification(cubelist):
     assert result.ancillary_variable("status_flag1") == dummy_anc_variable_1_temp
 
 
+@pytest.mark.parametrize("cubelist", [True, False])
+def test_named_auxiliary_coordinate_not_found(cubelist):
+    """Test that a warning is raised if an auxiliary coordinate to be copied
+    is not found in the template cube."""
+    data = [[0, 1], [0, 1]]
+
+    auxiliary_coord = ["dummy_0 status_flag", "dummy_1 status_flag"]
+
+    # Create auxiliary coordinate with matching dimensions
+    dummy_aux_coord_0_temp = AuxCoord([1, 1], long_name="dummy_0 status_flag")
+    # Create the cube with the auxiliary coordinate, use a valid cube name
+    template_cubes = Cube(
+        data,
+        aux_coords_and_dims=[(dummy_aux_coord_0_temp, 0)],
+        standard_name="wind_speed",
+    )
+    if cubelist:
+        template_cubes = [template_cubes, template_cubes]
+    plugin = CopyMetadata(aux_coord=auxiliary_coord)
+    with pytest.warns(
+        UserWarning,
+        match="Auxiliary Coordinate 'dummy_1 status_flag' not found in cube 'wind_speed'.",
+    ):
+        plugin.process(Cube(data), template_cubes)
+
+
+@pytest.mark.parametrize("cubelist", [True, False])
+def test_named_ancillary_variable_not_found(cubelist):
+    """Test that a warning is raised if an ancillary variable to be copied
+    is not found in the template cube."""
+    data = [[0, 1], [0, 1]]
+
+    ancillary_variable = ["status_flag0", "status_flag1"]
+
+    # Create ancillary variable with matching dimensions
+    dummy_anc_variable_0_temp = AncillaryVariable([1, 1], long_name="status_flag0")
+
+    # Create the cube with the ancillary variable, use a valid cube name
+    # to test its name is included in the warning message
+    template_cubes = Cube(
+        data,
+        ancillary_variables_and_dims=[(dummy_anc_variable_0_temp, 0)],
+        standard_name="wind_speed",
+    )
+
+    if cubelist:
+        template_cubes = [template_cubes, template_cubes]
+    plugin = CopyMetadata(ancillary_variables=ancillary_variable)
+    with pytest.warns(
+        UserWarning,
+        match="Ancillary Variable 'status_flag1' not found in cube 'wind_speed'.",
+    ):
+        plugin.process(Cube(data), template_cubes)
+
+
 def test_copy_attributes_multi_input_mismatching_attributes():
     """Test that an error is raised if the template cubes have mismatching attribute values."""
     attributes = ["attribA", "attribB"]

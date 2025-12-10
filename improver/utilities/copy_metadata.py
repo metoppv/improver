@@ -167,7 +167,7 @@ class CopyMetadata(BasePlugin):
                 )
             else:
                 warnings.warn(
-                    f"Ancillary variable '{ancillary_var}' not found in cube '{template_cubes[0].name()}'.",
+                    f"Ancillary Variable '{ancillary_var}' not found in cube '{template_cubes[0].name()}'.",
                     UserWarning,
                 )
 
