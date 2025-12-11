@@ -10,7 +10,6 @@ from datetime import datetime
 import iris
 import numpy as np
 import pytest
-from iris.tests import IrisTest
 
 from improver.nowcasting.optical_flow import generate_advection_velocities_from_winds
 from improver.synthetic_data.set_up_test_cubes import add_coordinate
@@ -18,7 +17,7 @@ from improver.synthetic_data.set_up_test_cubes import add_coordinate
 from . import set_up_test_cube
 
 
-class Test_generate_advection_velocities_from_winds(IrisTest):
+class Test_generate_advection_velocities_from_winds(unittest.TestCase):
     """Tests for the generate_advection_velocities_from_winds function.
     Optical flow velocity values are tested within the Test_optical_flow module;
     this class tests metadata only."""

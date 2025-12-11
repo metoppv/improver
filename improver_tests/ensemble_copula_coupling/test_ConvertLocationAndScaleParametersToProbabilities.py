@@ -10,7 +10,6 @@ import unittest
 
 import iris
 import numpy as np
-from iris.tests import IrisTest
 
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     ConvertLocationAndScaleParametersToProbabilities as Plugin,
@@ -21,7 +20,7 @@ from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from .ecc_test_data import ECC_TEMPERATURE_PROBABILITIES, ECC_TEMPERATURE_THRESHOLDS
 
 
-class Test__repr__(IrisTest):
+class Test__repr__(unittest.TestCase):
     """Test string representation of plugin."""
 
     def test_basic(self):
@@ -34,7 +33,7 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, expected_string)
 
 
-class Test__check_template_cube(IrisTest):
+class Test__check_template_cube(unittest.TestCase):
     """Test the _check_template_cube function."""
 
     def setUp(self):
@@ -78,7 +77,7 @@ class Test__check_template_cube(IrisTest):
             Plugin()._check_template_cube(cube)
 
 
-class Test__check_unit_compatibility(IrisTest):
+class Test__check_unit_compatibility(unittest.TestCase):
     """Test the _check_unit_compatibility function."""
 
     def setUp(self):
@@ -122,7 +121,7 @@ class Test__check_unit_compatibility(IrisTest):
             )
 
 
-class Test__location_and_scale_parameters_to_probabilities(IrisTest):
+class Test__location_and_scale_parameters_to_probabilities(unittest.TestCase):
     """Test the _location_and_scale_parameters_to_probabilities function."""
 
     def setUp(self):
@@ -239,7 +238,7 @@ class Test__location_and_scale_parameters_to_probabilities(IrisTest):
         np.testing.assert_allclose(result.data, expected, rtol=1.0e-4)
 
 
-class Test_process(IrisTest):
+class Test_process(unittest.TestCase):
     """Test the process function."""
 
     def setUp(self):
