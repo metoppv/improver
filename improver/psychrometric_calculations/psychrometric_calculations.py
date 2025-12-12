@@ -270,7 +270,9 @@ def dry_adiabatic_pressure(
 
 def saturated_humidity(temperature: ndarray, pressure: ndarray) -> ndarray:
     """
-    Calculate specific humidity mixing ratio of saturated air of given temperature and pressure
+    Calculate specific humidity mixing ratio of saturated air of given temperature and pressure.
+
+    Invalid and masked values are filtered and result in NaN outputs.
 
     Args:
         temperature:
@@ -279,7 +281,8 @@ def saturated_humidity(temperature: ndarray, pressure: ndarray) -> ndarray:
             Air pressure (Pa)
 
     Returns:
-        Array of specific humidity values (kg kg-1) representing saturated air
+        Array of specific humidity values (kg kg-1) representing saturated air. NaN is returned
+        if either input is NaN.
 
     Method from referenced documentation. Note that EARTH_REPSILON is
     simply given as an unnamed constant in the reference (0.62198).
@@ -287,10 +290,32 @@ def saturated_humidity(temperature: ndarray, pressure: ndarray) -> ndarray:
     References:
         ASHRAE Fundamentals handbook (2005) Equation 22, 24, p6.8
     """
-    svp = calculate_svp_in_air(temperature, pressure)
+    # Identify and replace any invalid values with a dummy value for calculation purposes
+    mask = np.full_like(temperature, False)
+    if isinstance(temperature, np.ma.MaskedArray):
+        mask = np.logical_or(mask, temperature.mask)
+    if isinstance(pressure, np.ma.MaskedArray):
+        mask = np.logical_or(mask, pressure.mask)
+    mask = np.logical_or(mask, np.logical_not(np.isfinite(temperature)))
+    mask = np.logical_or(mask, np.logical_not(np.isfinite(pressure)))
+    temperature_allvalid = np.where(mask, 273.15, temperature)
+    pressure_allvalid = np.where(mask, 100000.0, pressure)
+
+    # Calculate saturated humidity
+    svp = calculate_svp_in_air(temperature_allvalid, pressure_allvalid)
     numerator = consts.EARTH_REPSILON * svp
-    denominator = np.maximum(svp, pressure) - ((1.0 - consts.EARTH_REPSILON) * svp)
-    return (numerator / denominator).astype(temperature.dtype)
+    denominator = np.maximum(svp, pressure_allvalid) - (
+        (1.0 - consts.EARTH_REPSILON) * svp
+    )
+    result = (numerator / denominator).astype(temperature.dtype)
+
+    # Reapply mask to result
+    result[mask] = np.nan
+    if isinstance(temperature, np.ma.MaskedArray) or isinstance(
+        pressure, np.ma.MaskedArray
+    ):
+        result = np.ma.MaskedArray(data=result, mask=mask)
+    return result
 
 
 def _calculate_latent_heat(temperature: ndarray) -> ndarray:
