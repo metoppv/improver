@@ -15,7 +15,7 @@ dependencies:
   - numpy
   - pytz
   - scipy
-  - sphinx
+  - sphinx<9.0.0  # https://github.com/tox-dev/sphinx-autodoc-typehints/issues/586
   # Optional
   - python-stratify
   - geopandas

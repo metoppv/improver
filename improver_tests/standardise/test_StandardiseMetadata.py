@@ -10,11 +10,11 @@ from unittest.mock import patch, sentinel
 
 import iris
 import numpy as np
-from iris.coords import AuxCoord, DimCoord
-from iris.tests import IrisTest
+from iris.coords import AncillaryVariable, AuxCoord, DimCoord
 
 from improver.standardise import StandardiseMetadata
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
+from improver_tests import ImproverTest
 
 
 class HaltExecution(Exception):
@@ -31,13 +31,14 @@ def test_as_cubelist_called(mock_as_cube):
             coords_to_remove=sentinel.coords_to_remove,
             coord_modification=sentinel.coord_modification,
             attributes_dict=sentinel.attributes_dict,
+            ancillary_variables_to_remove=sentinel.ancillary_variables_to_remove,
         )(sentinel.cube)
     except HaltExecution:
         pass
     mock_as_cube.assert_called_once_with(sentinel.cube)
 
 
-class Test_process(IrisTest):
+class Test_process(ImproverTest):
     """Test the process method"""
 
     def setUp(self):
@@ -56,7 +57,7 @@ class Test_process(IrisTest):
         cube"""
         result = StandardiseMetadata().process(self.cube.copy())
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayAlmostEqual(result.data, self.cube.data)
+        np.testing.assert_array_almost_equal(result.data, self.cube.data)
         self.assertEqual(result.metadata, self.cube.metadata)
 
     def test_standardise_time_coords(self):
@@ -133,14 +134,18 @@ class Test_process(IrisTest):
             coords_to_remove=["forecast_period"],
             coord_modification=coord_modification,
             attributes_dict=attribute_changes,
+            ancillary_variables_to_remove=["status_flag"],
         )
         result = plugin.process(self.cube)
         self.assertEqual(result.name(), new_name)
         self.assertEqual(result.units, "degC")
-        self.assertArrayAlmostEqual(result.data, expected_data, decimal=5)
+        np.testing.assert_array_almost_equal(result.data, expected_data, decimal=5)
         self.assertEqual(result.coord("height").points, 2.0)
         self.assertDictEqual(result.attributes, expected_attributes)
         self.assertNotIn("forecast_period", [coord.name() for coord in result.coords()])
+        self.assertNotIn(
+            "status_flag", [var.name() for var in result.ancillary_variables()]
+        )
 
     def test_attempt_modify_dimension_coord(self):
         """Test that an exception is raised if the coord_modification targets
@@ -200,7 +205,7 @@ class Test_process(IrisTest):
         cube.data = cube.data.astype(np.float64)
         result = StandardiseMetadata().process(cube)
         self.assertEqual(result.data.dtype, np.float32)
-        self.assertArrayAlmostEqual(result.data, self.cube.data, decimal=4)
+        np.testing.assert_array_almost_equal(result.data, self.cube.data, decimal=4)
 
     def test_float_deescalation_with_unit_change(self):
         """Covers the bug where unit conversion from an integer input field causes
@@ -249,7 +254,7 @@ class Test_process(IrisTest):
         cube_with_flags.add_aux_coord(status_flag_coord, (0, 1, 2, 3))
 
         result = StandardiseMetadata().process(cube_with_flags)
-        self.assertArrayEqual(result.data, target.data)
+        np.testing.assert_array_equal(result.data, target.data)
         self.assertEqual(result.coords(), target.coords())
 
     def test_air_temperature_status_flag_coord_without_realization(self):
@@ -289,7 +294,7 @@ class Test_process(IrisTest):
         cube_with_flags.add_aux_coord(status_flag_coord, (0, 1, 2))
 
         result = StandardiseMetadata().process(cube_with_flags)
-        self.assertArrayEqual(result.data, target.data)
+        np.testing.assert_array_equal(result.data, target.data)
         self.assertEqual(result.coords(), target.coords())
 
     def test_long_name_removed(self):
@@ -299,6 +304,47 @@ class Test_process(IrisTest):
         assert (
             result.long_name is None
         ), "long_name removal expected, but long_name is not None"
+
+    def test_ancillary_variable_removal(self):
+        """Test ancillary variable removal works as expected."""
+        cube = self.cube.copy()
+        status_flag_values = np.array(
+            [
+                [1, 1, 1, 0, 1],
+                [1, 1, 0, 0, 1],
+                [1, 1, 1, 1, 1],
+                [0, 0, 0, 0, 0],
+                [1, 0, 1, 1, 1],
+            ],
+            dtype=np.int32,
+        )
+        ancillary_var = AncillaryVariable(
+            status_flag_values,
+            standard_name="status_flag",
+            units="1",
+        )
+        cube.add_ancillary_variable(ancillary_var, data_dims=(0, 1))
+        self.assertIn(
+            "status_flag",
+            [var.name() for var in cube.ancillary_variables()],
+        )
+        result = StandardiseMetadata(
+            ancillary_variables_to_remove=["status_flag"]
+        ).process(cube)
+        self.assertNotIn(
+            "status_flag",
+            [var.name() for var in result.ancillary_variables()],
+        )
+
+    def test_ancillary_variable_removal_where_there_is_none(self):
+        """Test ancillary variable removal works as expected when there are no
+        ancillary variables to begin with."""
+        cube = self.cube.copy()
+        self.assertEqual(len(cube.ancillary_variables()), 0)
+        result = StandardiseMetadata(
+            ancillary_variables_to_remove=["status_flag"]
+        ).process(cube)
+        self.assertEqual(len(result.ancillary_variables()), 0)
 
 
 if __name__ == "__main__":

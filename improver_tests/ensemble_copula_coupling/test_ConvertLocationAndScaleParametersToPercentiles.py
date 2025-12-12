@@ -12,7 +12,6 @@ import unittest
 import iris
 import numpy as np
 from iris.cube import Cube
-from iris.tests import IrisTest
 
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     ConvertLocationAndScaleParametersToPercentiles as Plugin,
@@ -22,7 +21,7 @@ from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from .ecc_test_data import ECC_TEMPERATURE_REALIZATIONS, set_up_spot_test_cube
 
 
-class Test__repr__(IrisTest):
+class Test__repr__(unittest.TestCase):
     """Test string representation of plugin."""
 
     def test_basic(self):
@@ -35,7 +34,7 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, expected_string)
 
 
-class Test__location_and_scale_parameters_to_percentiles(IrisTest):
+class Test__location_and_scale_parameters_to_percentiles(unittest.TestCase):
     """Test the _location_and_scale_parameters_to_percentiles plugin."""
 
     def setUp(self):
@@ -395,7 +394,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         self.assertIsInstance(result, Cube)
 
 
-class Test_process(IrisTest):
+class Test_process(unittest.TestCase):
     """Test the process plugin."""
 
     def setUp(self):
@@ -448,7 +447,7 @@ class Test_process(IrisTest):
         )
 
         self.assertEqual(len(result.coord("percentile").points), self.no_of_percentiles)
-        self.assertArrayAlmostEqual(expected, result.data, decimal=4)
+        np.testing.assert_array_almost_equal(expected, result.data, decimal=4)
 
     def test_list_of_percentiles(self):
         """
@@ -484,8 +483,10 @@ class Test_process(IrisTest):
         )
 
         self.assertEqual(len(percentiles), len(result.coord("percentile").points))
-        self.assertArrayAlmostEqual(percentiles, result.coord("percentile").points)
-        self.assertArrayAlmostEqual(expected, result.data, decimal=4)
+        np.testing.assert_array_almost_equal(
+            percentiles, result.coord("percentile").points
+        )
+        np.testing.assert_array_almost_equal(expected, result.data, decimal=4)
 
     def test_multiple_keyword_arguments_error(self):
         """

@@ -11,7 +11,6 @@ import iris
 import numpy as np
 import pytest
 from iris.exceptions import CoordinateNotFoundError
-from iris.tests import IrisTest
 
 from improver.metadata.constants.time_types import TimeSpec
 from improver.metadata.forecast_times import (
@@ -27,7 +26,7 @@ from improver.synthetic_data.set_up_test_cubes import (
 )
 
 
-class Test_forecast_period_coord(IrisTest):
+class Test_forecast_period_coord(unittest.TestCase):
     """Test the forecast_period_coord function"""
 
     def setUp(self):
@@ -57,7 +56,7 @@ class Test_forecast_period_coord(IrisTest):
         """
         fp_coord = self.cube.coord("forecast_period").copy()
         result = forecast_period_coord(self.cube)
-        self.assertArrayEqual(result.points, fp_coord.points)
+        np.testing.assert_array_equal(result.points, fp_coord.points)
         self.assertEqual(result.units, fp_coord.units)
         self.assertEqual(result.dtype, fp_coord.dtype)
 
@@ -77,7 +76,7 @@ class Test_forecast_period_coord(IrisTest):
             # correctly recalculated
             cube.coord("forecast_period").points = np.array([-3600], dtype=np.int32)
             result = forecast_period_coord(cube, force_lead_time_calculation=True)
-            self.assertArrayEqual(result.points, fp_coord.points)
+            np.testing.assert_array_equal(result.points, fp_coord.points)
             self.assertEqual(result.units, fp_coord.units)
             self.assertEqual(result.dtype, fp_coord.dtype)
             self.assertEqual(result.attributes, fp_coord.attributes)
@@ -104,7 +103,7 @@ class Test_forecast_period_coord(IrisTest):
             forecast_period_coord(self.cube)
 
 
-class Test__calculate_forecast_period(IrisTest):
+class Test__calculate_forecast_period(unittest.TestCase):
     """Test the _calculate_forecast_period function"""
 
     def setUp(self):
@@ -129,7 +128,7 @@ class Test__calculate_forecast_period(IrisTest):
     def test_values(self):
         """Test correct values are returned"""
         result = _calculate_forecast_period(self.time_coord, self.frt_coord)
-        self.assertArrayAlmostEqual(result.points, self.fp_coord.points)
+        np.testing.assert_array_almost_equal(result.points, self.fp_coord.points)
         self.assertEqual(result.units, self.fp_coord.units)
         self.assertEqual(result.dtype, self.fp_coord.dtype)
 
@@ -144,7 +143,9 @@ class Test__calculate_forecast_period(IrisTest):
             self.time_coord, self.frt_coord, coord_spec=local_spec
         )
         self.assertEqual(result.units, "hours")
-        self.assertArrayAlmostEqual(result.points * 3600.0, self.fp_coord.points)
+        np.testing.assert_array_almost_equal(
+            result.points * 3600.0, self.fp_coord.points
+        )
         self.assertEqual(result.dtype, np.float64)
 
     def test_bounds(self):
@@ -154,8 +155,8 @@ class Test__calculate_forecast_period(IrisTest):
         fp_point = self.fp_coord.points[0]
         expected_fp_bounds = [[fp_point - 3600, fp_point]]
         result = _calculate_forecast_period(self.time_coord, self.frt_coord)
-        self.assertArrayAlmostEqual(result.points, [fp_point])
-        self.assertArrayAlmostEqual(result.bounds, expected_fp_bounds)
+        np.testing.assert_array_almost_equal(result.points, [fp_point])
+        np.testing.assert_array_almost_equal(result.bounds, expected_fp_bounds)
 
     def test_multiple_time_points(self):
         """Test a multi-valued forecast period coordinate can be created"""
@@ -165,7 +166,7 @@ class Test__calculate_forecast_period(IrisTest):
         fp_point = self.fp_coord.points[0]
         expected_fp_points = [fp_point, fp_point + 3600, fp_point + 7200]
         result = _calculate_forecast_period(new_time_coord, self.frt_coord)
-        self.assertArrayAlmostEqual(result.points, expected_fp_points)
+        np.testing.assert_array_almost_equal(result.points, expected_fp_points)
 
     def test_check_time_unit_conversion(self):
         """Test correct values and units are returned when the input time and
@@ -187,7 +188,7 @@ class Test__calculate_forecast_period(IrisTest):
         self.assertEqual(result.points, [-3600])
 
 
-class Test_rebadge_forecasts_as_latest_cycle(IrisTest):
+class Test_rebadge_forecasts_as_latest_cycle(unittest.TestCase):
     """Test the rebadge_forecasts_as_latest_cycle function"""
 
     def setUp(self):
@@ -288,7 +289,7 @@ class Test_rebadge_forecasts_as_latest_cycle(IrisTest):
             rebadge_forecasts_as_latest_cycle([cube_early, self.cube_late])
 
 
-class Test_unify_cycletime(IrisTest):
+class Test_unify_cycletime(unittest.TestCase):
     """Test the unify_cycletime function."""
 
     def setUp(self):
@@ -418,7 +419,7 @@ class Test_unify_cycletime(IrisTest):
             )
 
 
-class Test__find_latest_cycletime(IrisTest):
+class Test__find_latest_cycletime(unittest.TestCase):
     """Test the _find_latest_cycletime function."""
 
     def setUp(self):
