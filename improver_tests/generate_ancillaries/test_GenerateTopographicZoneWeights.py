@@ -11,7 +11,6 @@ import numpy as np
 import pytest
 from cf_units import Unit
 from iris.exceptions import InvalidCubeError
-from iris.tests import IrisTest
 
 from improver.generate_ancillaries.generate_topographic_zone_weights import (
     GenerateTopographicZoneWeights,
@@ -36,7 +35,7 @@ def set_up_orography_cube(data):
     return orography
 
 
-class Test_add_weight_to_upper_adjacent_band(IrisTest):
+class Test_add_weight_to_upper_adjacent_band(unittest.TestCase):
     """Test for adding weights to the upper adjacent band."""
 
     def setUp(self):
@@ -61,7 +60,7 @@ class Test_add_weight_to_upper_adjacent_band(IrisTest):
             max_band_number,
         )
         self.assertIsInstance(topographic_zone_weights, np.ndarray)
-        self.assertArrayAlmostEqual(topographic_zone_weights, expected_weights)
+        np.testing.assert_array_almost_equal(topographic_zone_weights, expected_weights)
 
     def test_not_equal_to_max_band_number(self):
         """Test that the results are as expected when the band number is not
@@ -84,7 +83,7 @@ class Test_add_weight_to_upper_adjacent_band(IrisTest):
             max_band_number,
         )
         self.assertIsInstance(topographic_zone_weights, np.ndarray)
-        self.assertArrayAlmostEqual(topographic_zone_weights, expected_weights)
+        np.testing.assert_array_almost_equal(topographic_zone_weights, expected_weights)
 
     def test_none_above_midpoint(self):
         """Test that the results are as expected when none of the points
@@ -107,7 +106,7 @@ class Test_add_weight_to_upper_adjacent_band(IrisTest):
             max_band_number,
         )
         self.assertIsInstance(topographic_zone_weights, np.ndarray)
-        self.assertArrayAlmostEqual(topographic_zone_weights, expected_weights)
+        np.testing.assert_array_almost_equal(topographic_zone_weights, expected_weights)
 
     def test_all_above_midpoint(self):
         """Test that the results are as expected when all of the points
@@ -130,10 +129,10 @@ class Test_add_weight_to_upper_adjacent_band(IrisTest):
             max_band_number,
         )
         self.assertIsInstance(topographic_zone_weights, np.ndarray)
-        self.assertArrayAlmostEqual(topographic_zone_weights, expected_weights)
+        np.testing.assert_array_almost_equal(topographic_zone_weights, expected_weights)
 
 
-class Test_add_weight_to_lower_adjacent_band(IrisTest):
+class Test_add_weight_to_lower_adjacent_band(unittest.TestCase):
     """Test for adding weights to the lower adjacent band."""
 
     def setUp(self):
@@ -153,7 +152,7 @@ class Test_add_weight_to_lower_adjacent_band(IrisTest):
             topographic_zone_weights, orography_band, midpoint, band_number
         )
         self.assertIsInstance(topographic_zone_weights, np.ndarray)
-        self.assertArrayAlmostEqual(topographic_zone_weights, expected_weights)
+        np.testing.assert_array_almost_equal(topographic_zone_weights, expected_weights)
 
     def test_not_equal_to_zeroth_band_number(self):
         """Test that the results are as expected when the band number is not
@@ -171,7 +170,7 @@ class Test_add_weight_to_lower_adjacent_band(IrisTest):
             topographic_zone_weights, orography_band, midpoint, band_number
         )
         self.assertIsInstance(topographic_zone_weights, np.ndarray)
-        self.assertArrayAlmostEqual(topographic_zone_weights, expected_weights)
+        np.testing.assert_array_almost_equal(topographic_zone_weights, expected_weights)
 
     def test_none_below_midpoint(self):
         """Test that the results are as expected when none of the points
@@ -189,7 +188,7 @@ class Test_add_weight_to_lower_adjacent_band(IrisTest):
             topographic_zone_weights, orography_band, midpoint, band_number
         )
         self.assertIsInstance(topographic_zone_weights, np.ndarray)
-        self.assertArrayAlmostEqual(topographic_zone_weights, expected_weights)
+        np.testing.assert_array_almost_equal(topographic_zone_weights, expected_weights)
 
     def test_all_below_midpoint(self):
         """Test that the results are as expected when all of the points
@@ -207,10 +206,10 @@ class Test_add_weight_to_lower_adjacent_band(IrisTest):
             topographic_zone_weights, orography_band, midpoint, band_number
         )
         self.assertIsInstance(topographic_zone_weights, np.ndarray)
-        self.assertArrayAlmostEqual(topographic_zone_weights, expected_weights)
+        np.testing.assert_array_almost_equal(topographic_zone_weights, expected_weights)
 
 
-class Test_calculate_weights(IrisTest):
+class Test_calculate_weights(unittest.TestCase):
     """Test the calculation of weights."""
 
     def setUp(self):
@@ -224,7 +223,7 @@ class Test_calculate_weights(IrisTest):
         band = [100, 200]
         result = self.plugin.calculate_weights(points, band)
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, expected)
+        np.testing.assert_array_almost_equal(result, expected)
 
     def test_multiple_points_matching_points(self):
         """Test when the input array has multiple points, which match the
@@ -234,7 +233,7 @@ class Test_calculate_weights(IrisTest):
         band = [100, 200]
         result = self.plugin.calculate_weights(points, band)
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, expected)
+        np.testing.assert_array_almost_equal(result, expected)
 
     def test_multiple_points_with_points_not_matching(self):
         """Test when the input array has multiple points, which do not match
@@ -244,7 +243,7 @@ class Test_calculate_weights(IrisTest):
         band = [100, 200]
         result = self.plugin.calculate_weights(points, band)
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, expected)
+        np.testing.assert_array_almost_equal(result, expected)
 
     def test_point_beyond_bands(self):
         """Test when the input array has points beyond the band limits.
@@ -255,10 +254,10 @@ class Test_calculate_weights(IrisTest):
         band = [100, 200]
         result = self.plugin.calculate_weights(points, band)
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, expected)
+        np.testing.assert_array_almost_equal(result, expected)
 
 
-class Test_process(IrisTest):
+class Test_process(unittest.TestCase):
     """Test the process method."""
 
     def setUp(self):
@@ -306,8 +305,10 @@ class Test_process(IrisTest):
             self.orography, self.thresholds_dict, self.landmask
         )
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayAlmostEqual(result.data.data, expected_weights_data, decimal=2)
-        self.assertArrayAlmostEqual(result.data.mask, expected_weights_mask)
+        np.testing.assert_array_almost_equal(
+            result.data.data, expected_weights_data, decimal=2
+        )
+        np.testing.assert_array_almost_equal(result.data.mask, expected_weights_mask)
 
     def test_data_no_mask(self):
         """Test that the result data is as expected, when none of the points
@@ -319,7 +320,9 @@ class Test_process(IrisTest):
         landmask = self.landmask.copy(landmask_data)
         result = self.plugin.process(self.orography, self.thresholds_dict, landmask)
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayAlmostEqual(result.data, expected_weights_data, decimal=2)
+        np.testing.assert_array_almost_equal(
+            result.data, expected_weights_data, decimal=2
+        )
 
     def test_data_no_mask_input(self):
         """Test that the result data is as expected, when no landsea
@@ -329,7 +332,9 @@ class Test_process(IrisTest):
         )
         result = self.plugin.process(self.orography, self.thresholds_dict)
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayAlmostEqual(result.data, expected_weights_data, decimal=2)
+        np.testing.assert_array_almost_equal(
+            result.data, expected_weights_data, decimal=2
+        )
 
     def test_data_no_mask_input_metatdata(self):
         """Test that the result metadata is as expected, when no landsea
@@ -363,7 +368,9 @@ class Test_process(IrisTest):
         )
         result = self.plugin.process(orography, thresholds_dict, landmask)
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayAlmostEqual(result.data, expected_weights_data, decimal=2)
+        np.testing.assert_array_almost_equal(
+            result.data, expected_weights_data, decimal=2
+        )
 
     def test_different_band_units(self):
         """Test for if the thresholds are specified in a different unit to
@@ -379,8 +386,10 @@ class Test_process(IrisTest):
         thresholds_dict = {"bounds": [[0, 0.05], [0.05, 0.2]], "units": "km"}
         result = self.plugin.process(self.orography, thresholds_dict, self.landmask)
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayAlmostEqual(result.data.data, expected_weights_data, decimal=2)
-        self.assertArrayAlmostEqual(result.data.mask, expected_weights_mask)
+        np.testing.assert_array_almost_equal(
+            result.data.data, expected_weights_data, decimal=2
+        )
+        np.testing.assert_array_almost_equal(result.data.mask, expected_weights_mask)
 
     def test_one_band_with_orography_in_band(self):
         """Test that if only one band is specified, the results are as
@@ -392,8 +401,10 @@ class Test_process(IrisTest):
         thresholds_dict = {"bounds": [[0, 50]], "units": "m"}
         result = self.plugin.process(orography, thresholds_dict, self.landmask)
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayAlmostEqual(result.data.data, expected_weights_data, decimal=2)
-        self.assertArrayAlmostEqual(result.data.mask, expected_weights_mask)
+        np.testing.assert_array_almost_equal(
+            result.data.data, expected_weights_data, decimal=2
+        )
+        np.testing.assert_array_almost_equal(result.data.mask, expected_weights_mask)
 
     def test_warning_if_orography_above_bands(self):
         """Test that a warning is raised if the orography is greater than the

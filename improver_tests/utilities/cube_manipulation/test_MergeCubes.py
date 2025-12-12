@@ -12,7 +12,6 @@ from datetime import datetime as dt
 import iris
 import numpy as np
 from iris.exceptions import DuplicateDataError
-from iris.tests import IrisTest
 
 from improver.synthetic_data.set_up_test_cubes import (
     set_up_probability_cube,
@@ -21,7 +20,7 @@ from improver.synthetic_data.set_up_test_cubes import (
 from improver.utilities.cube_manipulation import MergeCubes
 
 
-class Test__init__(IrisTest):
+class Test__init__(unittest.TestCase):
     """Test the __init__ method"""
 
     def test_basic(self):
@@ -32,7 +31,7 @@ class Test__init__(IrisTest):
         )
 
 
-class Test__equalise_cell_methods(IrisTest):
+class Test__equalise_cell_methods(unittest.TestCase):
     """Test the _equalise_cell_methods method"""
 
     def setUp(self):
@@ -72,7 +71,7 @@ class Test__equalise_cell_methods(IrisTest):
         self.assertTrue(check)
 
 
-class Test__check_time_bounds_ranges(IrisTest):
+class Test__check_time_bounds_ranges(unittest.TestCase):
     """Test the _check_time_bounds_ranges method"""
 
     def setUp(self):
@@ -137,7 +136,7 @@ class Test__check_time_bounds_ranges(IrisTest):
         self.plugin._check_time_bounds_ranges(self.matched_cube)
 
 
-class Test_process(IrisTest):
+class Test_process(unittest.TestCase):
     """Test the process method (see also test_merge_cubes.py)"""
 
     def setUp(self):
@@ -186,14 +185,14 @@ class Test_process(IrisTest):
         """Test single cube is returned unmodified"""
         cube = self.cube_ukv.copy()
         result = self.plugin.process(cube)
-        self.assertArrayAlmostEqual(result.data, self.cube_ukv.data)
+        np.testing.assert_array_almost_equal(result.data, self.cube_ukv.data)
         self.assertEqual(result.metadata, self.cube_ukv.metadata)
 
     def test_single_item_list(self):
         """Test cube from single item list is returned unmodified"""
         cubelist = iris.cube.CubeList([self.cube_ukv.copy()])
         result = self.plugin.process(cubelist)
-        self.assertArrayAlmostEqual(result.data, self.cube_ukv.data)
+        np.testing.assert_array_almost_equal(result.data, self.cube_ukv.data)
         self.assertEqual(result.metadata, self.cube_ukv.metadata)
 
     def test_unmatched_attributes(self):
@@ -217,7 +216,7 @@ class Test_process(IrisTest):
         cubes = iris.cube.CubeList([self.cube_ukv, self.cube_ukv_t1, self.cube_ukv_t2])
         result = self.plugin.process(cubes)
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.coord("forecast_period").points, expected_fp_points
         )
 
@@ -255,7 +254,7 @@ class Test_process(IrisTest):
         cube1 = set_up_variable_cube(data, realizations=np.array([1, 2, 3]))
         cube2 = set_up_variable_cube(data, realizations=np.array([0, 4, 5]))
         result = self.plugin([cube1, cube2], slice_over_realization=True)
-        self.assertArrayEqual(result.coord("realization").points, np.arange(6))
+        np.testing.assert_array_equal(result.coord("realization").points, np.arange(6))
 
     def test_slice_over_realization_scalar(self):
         """Demonstrate behaviour with a single-valued realization coordinate

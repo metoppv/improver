@@ -12,13 +12,12 @@ import iris
 import numpy as np
 import pytest
 from iris.coords import AuxCoord
-from iris.tests import IrisTest
 
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cube_manipulation import sort_coord_in_cube
 
 
-class Test_sort_coord_in_cube(IrisTest):
+class Test_sort_coord_in_cube(unittest.TestCase):
     """Class to test the sort_coord_in_cube function."""
 
     def setUp(self):
@@ -49,10 +48,10 @@ class Test_sort_coord_in_cube(IrisTest):
         self.assertEqual(
             self.ascending_cube.coord_dims(coord_name), result.coord_dims(coord_name)
         )
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             self.ascending_height_points, result.coord(coord_name).points
         )
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
 
     def test_auxcoord(self):
         """Test that the above sorting is successful when an AuxCoord is
@@ -68,10 +67,10 @@ class Test_sort_coord_in_cube(IrisTest):
         self.assertEqual(
             self.ascending_cube.coord_dims(coord_name), result.coord_dims(coord_name)
         )
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             self.ascending_height_points, result.coord(coord_name).points
         )
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
 
     def test_ascending_then_descending(self):
         """Test that the sorting successfully sorts the cube based
@@ -84,10 +83,10 @@ class Test_sort_coord_in_cube(IrisTest):
         self.assertEqual(
             self.descending_cube.coord_dims(coord_name), result.coord_dims(coord_name)
         )
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             self.descending_height_points, result.coord(coord_name).points
         )
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
 
     def test_descending_then_ascending(self):
         """Test that the sorting successfully sorts the cube based
@@ -100,10 +99,10 @@ class Test_sort_coord_in_cube(IrisTest):
         self.assertEqual(
             self.ascending_cube.coord_dims(coord_name), result.coord_dims(coord_name)
         )
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             self.ascending_height_points, result.coord(coord_name).points
         )
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
 
     def test_descending_then_descending(self):
         """Test that the sorting successfully sorts the cube based
@@ -116,10 +115,10 @@ class Test_sort_coord_in_cube(IrisTest):
         self.assertEqual(
             self.descending_cube.coord_dims(coord_name), result.coord_dims(coord_name)
         )
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             self.descending_height_points, result.coord(coord_name).points
         )
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
 
     def test_latitude(self):
         """Test that the sorting successfully sorts the cube based
@@ -140,8 +139,10 @@ class Test_sort_coord_in_cube(IrisTest):
         self.assertEqual(
             self.ascending_cube.coord_dims(coord_name), result.coord_dims(coord_name)
         )
-        self.assertArrayAlmostEqual(expected_points, result.coord(coord_name).points)
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(
+            expected_points, result.coord(coord_name).points
+        )
+        np.testing.assert_array_almost_equal(result.data, expected_data)
 
     def test_warn_raised_for_circular_coordinate(self):
         """Test that a warning is successfully raised when circular

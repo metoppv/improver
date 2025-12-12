@@ -12,7 +12,6 @@ from iris.coord_systems import GeogCS
 from iris.coords import DimCoord
 from iris.cube import Cube
 from iris.fileformats.pp import EARTH_RADIUS
-from iris.tests import IrisTest
 
 from improver.generate_ancillaries.generate_ancillary import _make_mask_cube
 
@@ -33,7 +32,7 @@ def _make_test_cube(long_name):
     return cube
 
 
-class Test__make_mask_cube(IrisTest):
+class Test__make_mask_cube(unittest.TestCase):
     """Test private function to make cube from generated mask"""
 
     def setUp(self):

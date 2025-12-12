@@ -11,13 +11,13 @@ import iris
 import numpy as np
 from iris.coord_systems import GeogCS, TransverseMercator
 from iris.coords import DimCoord
-from iris.tests import IrisTest
 
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.metadata.constants.mo_attributes import MOSG_GRID_ATTRIBUTES
 from improver.orographic_enhancement import OrographicEnhancement
 from improver.synthetic_data.set_up_test_cubes import construct_scalar_time_coords
 from improver.utilities.cube_manipulation import sort_coord_in_cube
+from improver_tests import ImproverTest
 
 # UKPP projection
 TMercCS = TransverseMercator(
@@ -102,7 +102,7 @@ def set_up_orography_cube(data, xo=400000.0, yo=0.0):
     return cube
 
 
-class Test__init__(IrisTest):
+class Test__init__(unittest.TestCase):
     """Test the __init__ method"""
 
     def test_basic(self):
@@ -130,7 +130,7 @@ class Test__init__(IrisTest):
             self.assertIsNone(getattr(plugin, attr))
 
 
-class Test__repr__(IrisTest):
+class Test__repr__(unittest.TestCase):
     """Test the __repr__ method"""
 
     def test_basic(self):
@@ -139,7 +139,7 @@ class Test__repr__(IrisTest):
         self.assertEqual(str(plugin), "<OrographicEnhancement()>")
 
 
-class Test__orography_gradients(IrisTest):
+class Test__orography_gradients(unittest.TestCase):
     """Test the _orography_gradients method"""
 
     def setUp(self):
@@ -181,13 +181,13 @@ class Test__orography_gradients(IrisTest):
             ]
         )
         gradx, grady = self.plugin._orography_gradients()
-        self.assertArrayAlmostEqual(gradx.data, expected_gradx)
-        self.assertArrayAlmostEqual(grady.data, expected_grady)
+        np.testing.assert_array_almost_equal(gradx.data, expected_gradx)
+        np.testing.assert_array_almost_equal(grady.data, expected_grady)
         for cube in [gradx, grady]:
             self.assertEqual(cube.units, "1")
 
 
-class Test__regrid_variable(IrisTest):
+class Test__regrid_variable(unittest.TestCase):
     """Test the _regrid_variable method"""
 
     def setUp(self):
@@ -220,7 +220,7 @@ class Test__regrid_variable(IrisTest):
         )
         result = self.plugin._regrid_variable(self.temperature_cube, "degC")
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
         self.assertEqual(result.data.dtype, "float32")
 
     def test_axis_inversion(self):
@@ -244,24 +244,26 @@ class Test__regrid_variable(IrisTest):
         )
         result = self.plugin._regrid_variable(self.temperature_cube, "kelvin")
         self.assertEqual(result.units, "kelvin")
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
 
     def test_null(self):
         """Test cube is unchanged if axes and grid are already correct"""
         correct_cube = self.plugin.topography.copy()
         result = self.plugin._regrid_variable(correct_cube, "m")
-        self.assertArrayAlmostEqual(result.data, correct_cube.data)
+        np.testing.assert_array_almost_equal(result.data, correct_cube.data)
         self.assertEqual(result.metadata, correct_cube.metadata)
 
     def test_input_unchanged(self):
         """Test the input cube is not modified in place"""
         reference_cube = self.temperature_cube.copy()
         _ = self.plugin._regrid_variable(self.temperature_cube, "degC")
-        self.assertArrayAlmostEqual(self.temperature_cube.data, reference_cube.data)
+        np.testing.assert_array_almost_equal(
+            self.temperature_cube.data, reference_cube.data
+        )
         self.assertEqual(self.temperature_cube.metadata, reference_cube.metadata)
 
 
-class DataCubeTest(IrisTest):
+class DataCubeTest(unittest.TestCase):
     """Shared setUp function for tests requiring full input data cubes
     with an inverted y-axis"""
 
@@ -375,8 +377,8 @@ class Test__regrid_and_populate(DataCubeTest):
         ]
 
         for cube, array in zip(plugin_cubes, expected_data):
-            self.assertArrayAlmostEqual(cube.data, array)
-        self.assertArrayAlmostEqual(
+            np.testing.assert_array_almost_equal(cube.data, array)
+        np.testing.assert_array_almost_equal(
             self.plugin.topography.data, np.flipud(self.orography_cube.data)
         )
 
@@ -426,10 +428,10 @@ class Test__regrid_and_populate(DataCubeTest):
             self.vwind,
             self.orography_cube,
         )
-        self.assertArrayAlmostEqual(self.plugin.vgradz, expected_vgradz)
+        np.testing.assert_array_almost_equal(self.plugin.vgradz, expected_vgradz)
 
 
-class Test__generate_mask(IrisTest):
+class Test__generate_mask(unittest.TestCase):
     """Test the _generate_mask method"""
 
     def setUp(self):
@@ -479,10 +481,10 @@ class Test__generate_mask(IrisTest):
         expected_output[1, 3] = True  # humidity too low
         expected_output[3:, :] = True  # vgradz too low
         result = self.plugin._generate_mask()
-        self.assertArrayEqual(result, expected_output)
+        np.testing.assert_array_equal(result, expected_output)
 
 
-class Test__point_orogenh(IrisTest):
+class Test__point_orogenh(unittest.TestCase):
     """Test the _point_orogenh method"""
 
     def setUp(self):
@@ -541,10 +543,10 @@ class Test__point_orogenh(IrisTest):
             ]
         )
         result = self.plugin._point_orogenh()
-        self.assertArrayAlmostEqual(result, expected_values)
+        np.testing.assert_array_almost_equal(result, expected_values)
 
 
-class Test__get_point_distances(IrisTest):
+class Test__get_point_distances(unittest.TestCase):
     """Test the _get_point_distances function"""
 
     def setUp(self):
@@ -587,7 +589,7 @@ class Test__get_point_distances(IrisTest):
         np.testing.assert_allclose(distance, expected_data, equal_nan=True)
 
 
-class Test__locate_source_points(IrisTest):
+class Test__locate_source_points(unittest.TestCase):
     """Test the _locate_source_points method"""
 
     def setUp(self):
@@ -623,11 +625,11 @@ class Test__locate_source_points(IrisTest):
             ]
         )
 
-        self.assertArrayEqual(xsrc, expected_xsrc)
-        self.assertArrayEqual(ysrc, expected_ysrc)
+        np.testing.assert_array_equal(xsrc, expected_xsrc)
+        np.testing.assert_array_equal(ysrc, expected_ysrc)
 
 
-class Test__compute_weighted_values(IrisTest):
+class Test__compute_weighted_values(unittest.TestCase):
     """Test the _compute_weighted_values method"""
 
     def setUp(self):
@@ -676,11 +678,11 @@ class Test__compute_weighted_values(IrisTest):
         orogenh, weights = self.plugin._compute_weighted_values(
             self.point_orogenh, self.xsrc, self.ysrc, self.distance, self.wind_speed
         )
-        self.assertArrayAlmostEqual(orogenh, expected_orogenh)
-        self.assertArrayAlmostEqual(weights, expected_weights)
+        np.testing.assert_array_almost_equal(orogenh, expected_orogenh)
+        np.testing.assert_array_almost_equal(weights, expected_weights)
 
 
-class Test__add_upstream_component(IrisTest):
+class Test__add_upstream_component(unittest.TestCase):
     """Test the _add_upstream_component method"""
 
     def setUp(self):
@@ -733,10 +735,10 @@ class Test__add_upstream_component(IrisTest):
         )
 
         result = self.plugin._add_upstream_component(self.point_orogenh)
-        self.assertArrayAlmostEqual(result, expected_values)
+        np.testing.assert_array_almost_equal(result, expected_values)
 
 
-class Test__create_output_cube(IrisTest):
+class Test__create_output_cube(ImproverTest):
     """Test the _create_output_cube method"""
 
     def setUp(self):
@@ -779,7 +781,7 @@ class Test__create_output_cube(IrisTest):
         original_converted = 2.7777778e-07 * self.orogenh
 
         output = self.plugin._create_output_cube(self.orogenh, self.temperature)
-        self.assertArrayAlmostEqual(output.data, original_converted)
+        np.testing.assert_array_almost_equal(output.data, original_converted)
 
     def test_metadata(self):
         """Check output metadata on cube is as expected"""
@@ -879,7 +881,7 @@ class Test_process(DataCubeTest):
         )
 
         for cube, copy in zip(cube_list, copied_cubes):
-            self.assertArrayAlmostEqual(cube.data, copy.data)
+            np.testing.assert_array_almost_equal(cube.data, copy.data)
             self.assertEqual(cube.metadata, copy.metadata)
 
     def test_values(self):
@@ -931,7 +933,7 @@ class Test_process(DataCubeTest):
             self.orography_cube,
         )
 
-        self.assertArrayAlmostEqual(orogenh.data, expected_data)
+        np.testing.assert_array_almost_equal(orogenh.data, expected_data)
         self.assertAlmostEqual(self.plugin.grid_spacing_km, 1.0)
 
 
