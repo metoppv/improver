@@ -17,6 +17,13 @@ jobs:
       with:
         fetch-depth: 0
 
+    - name: Substitute branch name in environment file
+      run: |
+        BRANCH_NAME=${{ github.event.pull_request.number }}
+        echo "Using BRANCH_NAME: $BRANCH_NAME"
+        sed -i "s/\${BRANCH_NAME}/$BRANCH_NAME/g" envs/latest.yml
+      shell: bash
+
     - name: Checkout reference coverage report
       uses: actions/checkout@v5
       with:
