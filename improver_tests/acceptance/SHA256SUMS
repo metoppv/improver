@@ -500,6 +500,11 @@ ca3ccada335c76b991ba81abea92560e4d21682144db731fcd744a526be50903  ./feels_like_t
 1427bd40faf69eb83e7cde7571f0a2eb9bcb1e8e5d8a49263036de1da8c0cd23  ./field-texture/basic/kgo.nc
 b42c8be3fb43f720700ea0b991146d26141b7d82a90dade4e7989c9f0965950b  ./fill-radar-holes/basic/201811271330_remasked_rainrate_composite.nc
 3bf2ce0da91341c38f04b66478f5f1569f6cc577ea62c15928fa3e38b54612b4  ./fill-radar-holes/basic/kgo.nc
+db882ea62c966fffdd062e903cab81e29c4e740e528ad1abb4d21bdd153b8539  ./forecast-period-gap-filler/gap/20251209T0300Z-PT0003H00M-precip_rate.nc
+46451756ebaee6340fb5f82c80c0c1982a54c3a618bc80b4ebf59def3f7a061e  ./forecast-period-gap-filler/gap/20251209T0900Z-PT0009H00M-precip_rate.nc
+2f5a5bc23887c6b95e92763c1855e716244ce285241c6192dfd76784deb34e58  ./forecast-period-gap-filler/gap/kgo.nc
+6ac2cf86c168599c668aa7b53e7b3bf4417058fd86abd6693994b8de2697edf4  ./forecast-period-gap-filler/regenerate/20251209T0000Z-precip_rate.nc
+441d5d2d96f963c44a73ef8acdd52a23de2c14fc00235f01f5b1395d1d181eef  ./forecast-period-gap-filler/regenerate/kgo.nc
 f51de757c436c3e66fbea7c134becab787d4c7eacd5d31c059c96469277b9b38  ./freezing-rain/one_hour/kgo.nc
 85d998556342350f65b991e76ed10ec1c1b272bbe5548fed841dcb7cd1dd6510  ./freezing-rain/one_hour/rain_acc.nc
 51602571159257f173e355acbc06a1d5ddcf8ea534602152e308e8fb895adcc7  ./freezing-rain/one_hour/sleet_acc.nc

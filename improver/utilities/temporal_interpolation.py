@@ -5,7 +5,7 @@
 """Class for Temporal Interpolation calculations."""
 
 from datetime import datetime, timedelta
-from typing import Any, List, Optional, Tuple
+from typing import Any, List, Optional, Tuple, Union
 
 import iris
 import numpy as np
@@ -747,7 +747,7 @@ class ForecastPeriodGapFiller(BasePlugin):
         interpolation_window_in_hours: Optional[int] = None,
         model_path: Optional[str] = None,
         scaling: str = "minmax",
-        clipping_bounds: Tuple[float, float] = (0.0, 1.0),
+        clipping_bounds: Union[Tuple[float, float], List[float]] = (0.0, 1.0),
         **kwargs,
     ) -> None:
         """Initialize the ForecastPeriodGapFiller.
@@ -771,7 +771,8 @@ class ForecastPeriodGapFiller(BasePlugin):
             scaling:
                 Scaling method for google_film interpolation (log10 or minmax).
             clipping_bounds:
-                Bounds for clipping google_film interpolated data.
+                Bounds for clipping google_film interpolated data. Can be a tuple
+                or list of two floats.
             **kwargs:
                 Additional arguments passed to TemporalInterpolation.
         """
@@ -781,7 +782,12 @@ class ForecastPeriodGapFiller(BasePlugin):
         self.interpolation_window_in_hours = interpolation_window_in_hours
         self.model_path = model_path
         self.scaling = scaling
-        self.clipping_bounds = clipping_bounds
+        # Convert clipping_bounds to tuple if it's a list
+        self.clipping_bounds = (
+            tuple(clipping_bounds)
+            if isinstance(clipping_bounds, list)
+            else clipping_bounds
+        )
         self.kwargs = kwargs
 
     def _get_forecast_periods(self, cubelist: CubeList) -> List[int]:
@@ -863,6 +869,15 @@ class ForecastPeriodGapFiller(BasePlugin):
                 f"on cube. Available attributes: "
                 f"{list(cube.attributes.keys())}"
             )
+
+        # Parse JSON string if needed
+        if isinstance(cluster_sources, str):
+            import json
+
+            try:
+                cluster_sources = json.loads(cluster_sources)
+            except json.JSONDecodeError as e:
+                raise ValueError(f"Failed to parse cluster sources JSON: {e}")
 
         # Validate dictionary structure
         if not isinstance(cluster_sources, dict):
@@ -1107,7 +1122,6 @@ class ForecastPeriodGapFiller(BasePlugin):
         self,
         interpolator: TemporalInterpolation,
         sorted_cubelist: CubeList,
-        task_type: str,
         target_period: int,
         t0_period: int,
         t1_period: int,
@@ -1117,7 +1131,6 @@ class ForecastPeriodGapFiller(BasePlugin):
         Args:
             interpolator: The TemporalInterpolation plugin to use.
             sorted_cubelist: Sorted list of cubes by forecast period.
-            task_type: Type of task ("gap" or "regenerate").
             target_period: The target forecast period in hours.
             t0_period: The earlier forecast period in hours.
             t1_period: The later forecast period in hours.
@@ -1180,22 +1193,49 @@ class ForecastPeriodGapFiller(BasePlugin):
 
         return result_cubes
 
-    def process(self, cubelist: CubeList) -> CubeList:
+    def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
         """Fill gaps in forecast period sequence.
 
         Args:
-            cubelist:
-                List of cubes with potentially missing forecast periods.
+            cubes:
+                One or more cubes with potentially missing forecast periods.
+                Can be:
+                - A single Cube with a forecast_period dimension (will be sliced)
+                - Multiple Cube arguments representing different forecast periods
+                - A single CubeList containing multiple forecast periods
                 All cubes should have the same validity time coordinate structure
                 and dimensions (except for forecast_period and time).
 
         Returns:
-            Complete CubeList with gaps filled using temporal interpolation.
+            A single merged Cube with gaps filled using temporal interpolation.
+            The cube will have time as a dimension coordinate.
 
         Raises:
             ValueError: If cubelist is empty or has fewer than 2 cubes.
             ValueError: If cubes don't have forecast_period coordinate.
         """
+        # Handle variable arguments - convert to single CubeList
+        if len(cubes) == 1:
+            cubelist = cubes[0]
+            # Convert single Cube to CubeList if necessary
+            if isinstance(cubelist, Cube):
+                # Slice over the appropriate coordinate
+                if cubelist.coords("forecast_period", dim_coords=True):
+                    # Cube has forecast_period as a dimension - slice it
+                    cubelist = CubeList(cubelist.slices_over("forecast_period"))
+                elif (
+                    cubelist.coords("time", dim_coords=True)
+                    and cubelist.coord("time").shape[0] > 1
+                ):
+                    # Cube has time as a dimension - slice it
+                    cubelist = CubeList(cubelist.slices_over("time"))
+                else:
+                    # Single cube without sliceable dimension
+                    cubelist = CubeList([cubelist])
+        else:
+            # Multiple cubes passed as separate arguments
+            cubelist = CubeList(cubes)
+
         # Validate input
         self._validate_input(cubelist)
 
@@ -1216,9 +1256,9 @@ class ForecastPeriodGapFiller(BasePlugin):
             self._create_regeneration_tasks(periods_to_regenerate, sorted_cubelist)
         )
 
-        # If no interpolation needed, return original
+        # If no interpolation needed, merge and return original
         if not interpolation_tasks:
-            return sorted_cubelist
+            return MergeCubes()(sorted_cubelist)
 
         # Create TemporalInterpolation plugin
         interpolator = TemporalInterpolation(
@@ -1238,7 +1278,6 @@ class ForecastPeriodGapFiller(BasePlugin):
             interpolated_cubes = self._interpolate_single_period(
                 interpolator,
                 sorted_cubelist,
-                task_type,
                 target_period,
                 t0_period,
                 t1_period,
@@ -1250,9 +1289,12 @@ class ForecastPeriodGapFiller(BasePlugin):
                 periods_to_exclude.add(target_period)
 
         # Assemble final cubelist
-        return self._assemble_final_cubelist(
+        final_cubelist = self._assemble_final_cubelist(
             sorted_cubelist, result_cubes, periods_to_exclude
         )
+
+        # Merge cubes into a single cube with time as a coordinate
+        return MergeCubes()(final_cubelist)
 
 
 class GoogleFilmInterpolation:
