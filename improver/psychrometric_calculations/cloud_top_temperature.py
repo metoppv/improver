@@ -73,6 +73,7 @@ class CloudTopTemperature(PostProcessingPlugin):
                 # The mask tracks which columns still need to be processed, to keep down the
                 # computational expense. When all columns are done, we can exit the loop.
                 break
+
             t_environment = np.full_like(t.data, np.nan)
             t_environment[mask] = t.data[mask]
 

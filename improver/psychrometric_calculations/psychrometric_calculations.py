@@ -290,16 +290,9 @@ def saturated_humidity(temperature: ndarray, pressure: ndarray) -> ndarray:
     References:
         ASHRAE Fundamentals handbook (2005) Equation 22, 24, p6.8
     """
-    # Identify and replace any invalid values with a dummy value for calculation purposes
-    mask = np.full_like(temperature, False)
-    if isinstance(temperature, np.ma.MaskedArray):
-        mask = np.logical_or(mask, temperature.mask)
-    if isinstance(pressure, np.ma.MaskedArray):
-        mask = np.logical_or(mask, pressure.mask)
-    mask = np.logical_or(mask, np.logical_not(np.isfinite(temperature)))
-    mask = np.logical_or(mask, np.logical_not(np.isfinite(pressure)))
-    temperature_allvalid = np.where(mask, 273.15, temperature)
-    pressure_allvalid = np.where(mask, 100000.0, pressure)
+    mask, pressure_allvalid, temperature_allvalid = _to_valid_values(
+        pressure, temperature
+    )
 
     # Calculate saturated humidity
     svp = calculate_svp_in_air(temperature_allvalid, pressure_allvalid)
@@ -309,13 +302,66 @@ def saturated_humidity(temperature: ndarray, pressure: ndarray) -> ndarray:
     )
     result = (numerator / denominator).astype(temperature.dtype)
 
-    # Reapply mask to result
-    result[mask] = np.nan
-    if isinstance(temperature, np.ma.MaskedArray) or isinstance(
-        pressure, np.ma.MaskedArray
-    ):
-        result = np.ma.MaskedArray(data=result, mask=mask)
+    result = _reapply_mask(
+        mask,
+        result,
+        isinstance(temperature, np.ma.MaskedArray)
+        or isinstance(pressure, np.ma.MaskedArray),
+    ).astype(temperature.dtype)
     return result
+
+
+def _reapply_mask(
+    mask: np.ndarray, array_to_mask: np.ndarray, as_masked_array: bool
+) -> np.ndarray:
+    """Reapply mask to data array
+
+    Args:
+        mask:
+            Boolean array where True indicates invalid data points.
+        array_to_mask:
+            Data array to which the mask will be applied.
+        as_masked_array:
+            If True, return a numpy MaskedArray. If False, return a regular ndarray
+            with NaNs in place of masked values.
+    Returns:
+        Masked array or ndarray with NaNs where mask is True.
+    """
+    array_to_mask[mask] = np.nan
+    if as_masked_array:
+        array_to_mask = np.ma.MaskedArray(data=array_to_mask, mask=mask)
+    return array_to_mask
+
+
+def _to_valid_values(
+    pressure: np.ndarray, temperature: np.ndarray
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Identify and replace any invalid values with dummy values for calculation purposes.
+    Invalid data points are where either the temperature or the pressure array have masked
+    data points, or non-finite values (NaN or Inf).
+    The safe values are 1000 hPa and 0 degC (273.15 K).
+
+    Args:
+        pressure:
+            Array of air pressures (Pa).
+        temperature:
+            Array of air temperatures (K).
+    Returns:
+        Tuple of:
+            - mask: Boolean array where True indicates invalid data points.
+            - pressure: Array of air pressures (Pa) with invalid values replaced.
+            - temperature: Array of air temperatures (K) with invalid values replaced.
+    """
+    mask = np.full_like(temperature, False)
+    if isinstance(temperature, np.ma.MaskedArray):
+        mask = np.logical_or(mask, temperature.mask)
+    if isinstance(pressure, np.ma.MaskedArray):
+        mask = np.logical_or(mask, pressure.mask)
+    mask = np.logical_or(mask, np.logical_not(np.isfinite(temperature)))
+    mask = np.logical_or(mask, np.logical_not(np.isfinite(pressure)))
+    temperature_allvalid = np.where(mask, 273.15, temperature)
+    pressure_allvalid = np.where(mask, 100000.0, pressure)
+    return mask, pressure_allvalid, temperature_allvalid
 
 
 def _calculate_latent_heat(temperature: ndarray) -> ndarray:

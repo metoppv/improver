@@ -10,6 +10,8 @@ import pytest
 import improver.constants as consts
 from improver.psychrometric_calculations.psychrometric_calculations import (
     _calculate_latent_heat,
+    _reapply_mask,
+    _to_valid_values,
     adjust_for_latent_heat,
     dry_adiabatic_pressure,
     dry_adiabatic_temperature,
@@ -123,6 +125,44 @@ def test_saturated_humidity_masked():
     assert np.isclose(result, expected, equal_nan=True).all()
     np.testing.assert_equal(result.mask, expected.mask)
     assert result.shape == t.shape
+    assert result.dtype == np.float32
+
+
+@pytest.mark.parametrize("invalid_value", (np.nan, np.inf, -np.inf))
+def test__to_valid_values(invalid_value):
+    """Test the _to_valid_values method with invalid inputs"""
+    t = np.array([[290.0, invalid_value], [273.15, 270.0]], dtype=np.float32)
+    p = np.array([[100000.0, 90000.0], [90000.0, invalid_value]], dtype=np.float32)
+    expected_mask = np.array([[False, True], [False, True]])
+    expected_temperature = np.array(
+        [[290.0, 273.15], [273.15, 273.15]], dtype=np.float32
+    )
+    expected_pressure = np.array(
+        [[100000.0, 100000.0], [90000.0, 100000.0]], dtype=np.float32
+    )
+    mask, pressure, temperature = _to_valid_values(p, t)
+    assert np.array_equal(mask, expected_mask)
+    assert np.isclose(pressure, expected_pressure).all()
+    assert np.isclose(temperature, expected_temperature).all()
+
+
+@pytest.mark.parametrize("as_masked_array", (True, False))
+def test__reapply_mask(as_masked_array):
+    """Test that the _reapply_mask method returns the right type with the right values"""
+    mask = np.array([[False, True], [False, True]])
+    data = np.full(mask.shape, 2e-2, dtype=np.float32)
+    expected = np.ma.MaskedArray(
+        [[2e-2, np.nan], [2e-2, np.nan]],
+        [[False, True], [False, True]],
+        dtype=np.float32,
+    )
+    result = _reapply_mask(mask, data, as_masked_array)
+    assert np.isclose(result, expected.data, equal_nan=True).all()
+    if as_masked_array:
+        assert isinstance(result, np.ma.MaskedArray)
+        np.testing.assert_equal(result.mask, expected.mask)
+    else:
+        assert not isinstance(result, np.ma.MaskedArray)
     assert result.dtype == np.float32
 
 
