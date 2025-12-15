@@ -66,7 +66,7 @@ class CloudTopTemperature(PostProcessingPlugin):
         # keep the mask if it exists, or create a mask=False array if it doesn't.
         ccl_with_mask = q_at_ccl.copy()
         if not isinstance(ccl_with_mask, np.ma.MaskedArray):
-            ccl_with_mask = np.ma.masked_array(q_at_ccl, False)
+            ccl_with_mask = np.ma.masked_array(q_at_ccl.copy(), False)
         mask = ~ccl_with_mask.mask
         for t in self.temperature.slices_over("pressure"):
             if mask.sum() == 0:
