@@ -16,6 +16,7 @@ from improver.metadata.utilities import (
 )
 from improver.utilities.common_input_handle import as_cubelist
 from improver.utilities.cube_checker import assert_spatial_coords_match
+from improver.utilities.masking import as_masked_array
 
 
 class HailFraction(PostProcessingPlugin):
@@ -83,12 +84,8 @@ class HailFraction(PostProcessingPlugin):
         cct_limit = 258.15
 
         # Ensure convective cloud data are masked arrays.
-        cct_data = convective_cloud_top.data
-        if not isinstance(cct_data, np.ma.MaskedArray):
-            cct_data = np.ma.masked_invalid(cct_data)
-        ccl_data = cloud_condensation_level.data
-        if not isinstance(ccl_data, np.ma.MaskedArray):
-            ccl_data = np.ma.masked_invalid(ccl_data)
+        cct_data = as_masked_array(convective_cloud_top)
+        ccl_data = as_masked_array(cloud_condensation_level)
 
         hail_fraction = np.interp(vertical_updraught.data, [5, 50], [0, 0.25]).astype(
             np.float32
