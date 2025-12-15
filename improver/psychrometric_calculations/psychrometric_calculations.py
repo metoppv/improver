@@ -302,12 +302,10 @@ def saturated_humidity(temperature: ndarray, pressure: ndarray) -> ndarray:
     )
     result = (numerator / denominator).astype(temperature.dtype)
 
-    result = _reapply_mask(
-        mask,
-        result,
-        isinstance(temperature, np.ma.MaskedArray)
-        or isinstance(pressure, np.ma.MaskedArray),
-    ).astype(temperature.dtype)
+    result_is_masked = isinstance(temperature, np.ma.MaskedArray) or isinstance(
+        pressure, np.ma.MaskedArray
+    )
+    result = _reapply_mask(mask, result, result_is_masked).astype(temperature.dtype)
     return result
 
 
