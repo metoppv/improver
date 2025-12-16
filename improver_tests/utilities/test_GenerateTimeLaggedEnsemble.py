@@ -9,13 +9,12 @@ from datetime import datetime as dt
 
 import iris
 import numpy as np
-from iris.tests import IrisTest
 
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.time_lagging import GenerateTimeLaggedEnsemble
 
 
-class Test_process(IrisTest):
+class Test_process(unittest.TestCase):
     """Test interpolation of cubes to intermediate times using the plugin."""
 
     def setUp(self):
@@ -53,13 +52,13 @@ class Test_process(IrisTest):
         """Test that the expected metadata is correct after a simple test"""
         result = GenerateTimeLaggedEnsemble().process(self.input_cubelist)
         expected_realizations = [0, 1, 2, 3, 4, 5]
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.coord("forecast_period").points, self.expected_fp
         )
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.coord("forecast_reference_time").points, self.expected_frt
         )
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.coord("realization").points, expected_realizations
         )
         self.assertEqual(result.coord("realization").dtype, np.int32)
@@ -72,13 +71,13 @@ class Test_process(IrisTest):
         )
         result = GenerateTimeLaggedEnsemble().process(self.input_cubelist)
         expected_realizations = [0, 1, 2, 6, 7, 8]
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.coord("forecast_period").points, self.expected_fp
         )
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.coord("forecast_reference_time").points, self.expected_frt
         )
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.coord("realization").points, expected_realizations
         )
         self.assertEqual(result.coord("realization").dtype, np.int32)
@@ -90,13 +89,13 @@ class Test_process(IrisTest):
         self.input_cube2.coord("realization").points = np.array([0, 7, 8])
         result = GenerateTimeLaggedEnsemble().process(self.input_cubelist)
         expected_realizations = [0, 1, 2, 3, 4, 5]
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.coord("forecast_period").points, self.expected_fp
         )
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.coord("forecast_reference_time").points, self.expected_frt
         )
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.coord("realization").points, expected_realizations
         )
         self.assertEqual(result.coord("realization").dtype, np.int32)
@@ -121,13 +120,13 @@ class Test_process(IrisTest):
         expected_forecast_period = self.expected_fp - 3600
         expected_forecast_ref_time = self.expected_frt + 3600
         expected_realizations = [0, 1, 2, 3, 4, 5, 6, 7, 8]
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.coord("forecast_period").points, expected_forecast_period
         )
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.coord("forecast_reference_time").points, expected_forecast_ref_time
         )
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.coord("realization").points, expected_realizations
         )
         self.assertEqual(result.coord("realization").dtype, np.int32)

@@ -10,7 +10,6 @@ from datetime import datetime as dt
 
 import iris
 import numpy as np
-from iris.tests import IrisTest
 
 from improver.blending.blend_across_adjacent_points import (
     TriangularWeightedBlendAcrossAdjacentPoints,
@@ -44,7 +43,7 @@ def set_up_cubes_for_process_tests():
     return central_cube, cube
 
 
-class Test__repr__(IrisTest):
+class Test__repr__(unittest.TestCase):
     """Test the __repr__ method."""
 
     def test_basic(self):
@@ -64,7 +63,7 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, msg)
 
 
-class Test__init__(IrisTest):
+class Test__init__(unittest.TestCase):
     """Test the __init__ method."""
 
     def test_basic(self):
@@ -82,7 +81,7 @@ class Test__init__(IrisTest):
         self.assertEqual(plugin.parameter_units, expected_parameter_units)
 
 
-class Test__find_central_point(IrisTest):
+class Test__find_central_point(unittest.TestCase):
     """Test the _find_central_point."""
 
     def setUp(self):
@@ -102,7 +101,7 @@ class Test__find_central_point(IrisTest):
             central_cube.coord("forecast_period"),
         )
         self.assertEqual(self.central_cube.coord("time"), central_cube.coord("time"))
-        self.assertArrayEqual(self.central_cube.data, central_cube.data)
+        np.testing.assert_array_equal(self.central_cube.data, central_cube.data)
 
     def test_central_point_not_available(self):
         """Test that the central point is not available within the
@@ -116,7 +115,7 @@ class Test__find_central_point(IrisTest):
             plugin._find_central_point(self.cube)
 
 
-class Test_process(IrisTest):
+class Test_process(unittest.TestCase):
     """Test the process method."""
 
     def setUp(self):
@@ -136,7 +135,7 @@ class Test_process(IrisTest):
             self.central_cube.coord("forecast_period"), result.coord("forecast_period")
         )
         self.assertEqual(self.central_cube.coord("time"), result.coord("time"))
-        self.assertArrayEqual(self.central_cube.data, result.data)
+        np.testing.assert_array_equal(self.central_cube.data, result.data)
 
     def test_basic_triangle_width_2(self):
         """Test that the plugin produces sensible results when the width
@@ -151,7 +150,7 @@ class Test_process(IrisTest):
             self.central_cube.coord("forecast_period"), result.coord("forecast_period")
         )
         self.assertEqual(self.central_cube.coord("time"), result.coord("time"))
-        self.assertArrayAlmostEqual(expected_data, result.data)
+        np.testing.assert_array_almost_equal(expected_data, result.data)
 
     def test_central_point_not_in_allowed_range(self):
         """Test that an exception is generated when the central cube is not
@@ -179,7 +178,7 @@ class Test_process(IrisTest):
             self.central_cube.coord("forecast_period"), result.coord("forecast_period")
         )
         self.assertEqual(self.central_cube.coord("time"), result.coord("time"))
-        self.assertArrayAlmostEqual(expected_data, result.data)
+        np.testing.assert_array_almost_equal(expected_data, result.data)
 
     def test_input_cube_no_change(self):
         """Test that the plugin does not change the original input cube."""
@@ -222,7 +221,7 @@ class Test_process(IrisTest):
         # Test that the result cube retains height co-ordinates
         # from original cube.
         self.assertEqual(expected_cube.coord("height"), result.coord("height"))
-        self.assertArrayEqual(expected_cube.data, result.data)
+        np.testing.assert_array_equal(expected_cube.data, result.data)
         self.assertEqual(expected_cube, result)
 
     def test_works_two_thresh(self):

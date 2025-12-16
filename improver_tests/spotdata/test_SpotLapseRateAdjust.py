@@ -9,7 +9,6 @@ import unittest
 import iris
 import numpy as np
 from iris.exceptions import CoordinateNotFoundError
-from iris.tests import IrisTest
 
 from improver.constants import DALR
 from improver.metadata.utilities import create_coordinate_hash
@@ -26,7 +25,7 @@ from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.temporal import iris_time_to_datetime
 
 
-class Test_SpotLapseRateAdjust(IrisTest):
+class Test_SpotLapseRateAdjust(unittest.TestCase):
     """Test class for the SpotLapseRateAdjust tests, setting up inputs."""
 
     def setUp(self):
@@ -189,14 +188,14 @@ class Test_process(Test_SpotLapseRateAdjust):
         result = plugin(
             self.spot_temperature_nearest, self.neighbour_cube, self.lapse_rate_cube
         )
-        self.assertArrayEqual(result.data, expected)
+        np.testing.assert_array_equal(result.data, expected)
 
         # Feels like temperature cube
         self.spot_temperature_nearest.rename("feels_like_temperature")
         result = plugin(
             self.spot_temperature_nearest, self.neighbour_cube, self.lapse_rate_cube
         )
-        self.assertArrayEqual(result.data, expected)
+        np.testing.assert_array_equal(result.data, expected)
 
     def test_different_neighbour_method(self):
         """Test that the plugin uses the correct vertical displacements when
@@ -214,7 +213,7 @@ class Test_process(Test_SpotLapseRateAdjust):
         result = plugin(
             self.spot_temperature_mindz, self.neighbour_cube, self.lapse_rate_cube
         )
-        self.assertArrayEqual(result.data, expected)
+        np.testing.assert_array_equal(result.data, expected)
 
     def test_xy_ordered_lapse_rate_cube(self):
         """Ensure a lapse rate cube that does not have the expected y-x
@@ -243,7 +242,7 @@ class Test_process(Test_SpotLapseRateAdjust):
         result = plugin(
             self.spot_temperature_nearest, self.neighbour_cube, self.lapse_rate_cube
         )
-        self.assertArrayEqual(result.data, expected)
+        np.testing.assert_array_equal(result.data, expected)
 
     def test_probability_cube(self):
         """Ensure that the plugin exits with value error if the spot data cube
@@ -282,7 +281,7 @@ class Test_process(Test_SpotLapseRateAdjust):
         )
         expected = np.array([280 + (2 * DALR), 270, 280 - DALR]).astype(np.float32)
         for slice in result.data:
-            self.assertArrayEqual(slice, expected)
+            np.testing.assert_array_equal(slice, expected)
 
     def test_using_fixed_lapse_rates(self):
         """Test that the data is as expected when using fixed lapse rates.
@@ -292,7 +291,7 @@ class Test_process(Test_SpotLapseRateAdjust):
             expected = np.array([280 + (2 * lr), 270, 280 - lr]).astype(np.float32)
             plugin = SpotLapseRateAdjust(fixed_lapse_rate=lr)
             result = plugin(self.spot_temperature_nearest, self.neighbour_cube)
-            self.assertArrayEqual(result.data, expected)
+            np.testing.assert_array_equal(result.data, expected)
 
     def test_diagnostic_name(self):
         """Test that appropriate error is raised when the input cube has a

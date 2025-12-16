@@ -10,13 +10,12 @@ import unittest
 
 import numpy as np
 from iris.coords import AncillaryVariable
-from iris.tests import IrisTest
 
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cube_manipulation import get_ancillary_variable_names
 
 
-class Test_get_ancillary_variable_names(IrisTest):
+class Test_get_ancillary_variable_names(unittest.TestCase):
     """Test the get_ancillary_variable_names function."""
 
     def setUp(self):
