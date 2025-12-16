@@ -386,3 +386,109 @@ def test_dc_day_length_factors_table() -> None:
     ]
 
     assert DroughtCode.DC_DAY_LENGTH_FACTORS == expected_factors
+
+
+@pytest.mark.parametrize(
+    "temp_val, precip_val, dc_val, expected_error",
+    [
+        # Temperature too high
+        (150.0, 1.0, 15.0, "temperature contains values above valid maximum"),
+        # Temperature too low
+        (-150.0, 1.0, 15.0, "temperature contains values below valid minimum"),
+        # Precipitation negative
+        (20.0, -5.0, 15.0, "precipitation contains values below valid minimum"),
+        # DC negative
+        (20.0, 1.0, -5.0, "input_dc contains values below valid minimum"),
+    ],
+)
+def test_invalid_input_ranges_raise_errors(
+    temp_val: float,
+    precip_val: float,
+    dc_val: float,
+    expected_error: str,
+) -> None:
+    """Test that invalid input values raise appropriate ValueError.
+
+    Verifies that the base class validation catches physically meaningless
+    or out-of-range input values and raises descriptive errors.
+
+    Args:
+        temp_val (float): Temperature value for all grid points.
+        precip_val (float): Precipitation value for all grid points.
+        dc_val (float): DC value for all grid points.
+        expected_error (str): Expected error message substring.
+    """
+    cubes = input_cubes(temp_val, precip_val, dc_val)
+    plugin = DroughtCode()
+
+    with pytest.raises(ValueError, match=expected_error):
+        plugin.load_input_cubes(CubeList(cubes), month=7)
+
+
+@pytest.mark.parametrize(
+    "invalid_input_type,expected_error",
+    [
+        ("temperature_nan", "temperature contains NaN"),
+        ("temperature_inf", "temperature contains infinite"),
+        ("precipitation_nan", "precipitation contains NaN"),
+        ("precipitation_inf", "precipitation contains infinite"),
+        ("input_dc_nan", "input_dc contains NaN"),
+        ("input_dc_inf", "input_dc contains infinite"),
+    ],
+)
+def test_nan_and_inf_values_raise_errors(
+    invalid_input_type: str, expected_error: str
+) -> None:
+    """Test that NaN and Inf values in inputs raise appropriate ValueError.
+
+    Verifies that the validation catches non-finite values (NaN, Inf) in input data.
+
+    Args:
+        invalid_input_type (str): Which input to make invalid and how.
+        expected_error (str): Expected error message substring.
+    """
+    # Start with valid values
+    temp_val, precip_val, dc_val = 20.0, 1.0, 15.0
+
+    # Replace the appropriate value with NaN or Inf
+    if invalid_input_type == "temperature_nan":
+        temp_val = np.nan
+    elif invalid_input_type == "temperature_inf":
+        temp_val = np.inf
+    elif invalid_input_type == "precipitation_nan":
+        precip_val = np.nan
+    elif invalid_input_type == "precipitation_inf":
+        precip_val = np.inf
+    elif invalid_input_type == "input_dc_nan":
+        dc_val = np.nan
+    elif invalid_input_type == "input_dc_inf":
+        dc_val = np.inf
+
+    cubes = input_cubes(temp_val, precip_val, dc_val)
+    plugin = DroughtCode()
+
+    with pytest.raises(ValueError, match=expected_error):
+        plugin.load_input_cubes(CubeList(cubes), month=7)
+
+
+def test_output_validation_no_warning_for_valid_output() -> None:
+    """Test that valid output values do not trigger warnings.
+
+    Uses valid inputs to verify that as long as the output
+    stays within the expected range (0-1000 for DC), no warning is issued.
+    """
+    # Use normal valid inputs
+    cubes = input_cubes(temp_val=20.0, precip_val=0.0, dc_val=50.0)
+    plugin = DroughtCode()
+
+    # Process should complete without warnings since output stays in valid range
+    import warnings
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")  # Turn warnings into errors
+        result = plugin.process(CubeList(cubes), month=7)
+
+    assert isinstance(result, Cube)
+    # Verify output is within expected range
+    assert np.all(result.data >= 0.0)
+    assert np.all(result.data <= 1000.0)
