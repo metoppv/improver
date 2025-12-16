@@ -2,6 +2,7 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
+import warnings
 
 import numpy as np
 import pytest
@@ -326,3 +327,33 @@ def test_process_with_varying_ffmc() -> None:
     for row in range(3):
         assert result.data[row, 1] > result.data[row, 0]
         assert result.data[row, 2] > result.data[row, 1]
+
+
+def test_output_validation_no_warning_for_valid_output() -> None:
+    """Test that valid output values do not trigger warnings.
+
+    Uses moderate inputs to verify that as long as the output
+    stays within the expected range (0-100 for ISI), no warning is issued.
+    This demonstrates that the ISI calculation naturally constrains outputs
+    to valid ranges with typical inputs.
+    """
+    # Use moderate inputs that produce valid ISI
+    # Moderate wind and high FFMC produce moderate ISI within valid range
+    cubes = [
+        make_cube(np.array([[15.0]]), "wind_speed", "km/h"),
+        make_cube(
+            np.array([[85.0]]), "fine_fuel_moisture_content", "1", add_time_coord=True
+        ),
+    ]
+    plugin = InitialSpreadIndex()
+
+    # Process should complete without warnings since output stays in valid range
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")  # Turn warnings into errors
+        result = plugin.process(CubeList(cubes))
+
+    # No warnings should have been raised (if any were, they'd be errors)
+    assert isinstance(result, Cube)
+    # Verify output is within expected range (0-100 for ISI)
+    assert np.all(result.data >= 0.0)
+    assert np.all(result.data <= 100.0)
