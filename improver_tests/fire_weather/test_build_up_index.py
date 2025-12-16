@@ -2,6 +2,7 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
+import warnings
 
 import numpy as np
 import pytest
@@ -250,3 +251,31 @@ def test_process_both_zero() -> None:
     assert result.units == "1"
     assert np.allclose(result.data, 0.0, atol=1e-6)
     assert result.dtype == np.float32
+
+
+def test_output_validation_no_warning_for_valid_output() -> None:
+    """Test that valid output values do not trigger warnings.
+
+    Uses moderate inputs to verify that as long as the output
+    stays within the expected range (0-500 for BUI), no warning is issued.
+    This demonstrates that the BUI calculation naturally constrains outputs
+    to valid ranges with typical inputs.
+    """
+    # Use moderate inputs that produce valid BUI
+    # Moderate DMC and DC produce moderate BUI within valid range
+    cubes = [
+        make_cube(np.array([[45.9]]), "duff_moisture_code", "1", add_time_coord=True),
+        make_cube(np.array([[123.9]]), "drought_code", "1"),
+    ]
+    plugin = BuildUpIndex()
+
+    # Process should complete without warnings since output stays in valid range
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")  # Turn warnings into errors
+        result = plugin.process(CubeList(cubes))
+
+    # No warnings should have been raised (if any were, they'd be errors)
+    assert isinstance(result, Cube)
+    # Verify output is within expected range (0-500 for BUI)
+    assert np.all(result.data >= 0.0)
+    assert np.all(result.data <= 500.0)
