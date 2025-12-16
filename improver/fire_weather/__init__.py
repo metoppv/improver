@@ -4,10 +4,7 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Fire Weather Index System components."""
 
-<<<<<<< HEAD
 import warnings
-=======
->>>>>>> b9459900 (Changes from ABC refactor)
 from abc import abstractmethod
 from typing import cast
 
@@ -33,7 +30,7 @@ class FireWeatherIndexBase(BasePlugin):
     The Canadian Forest Fire Weather Index System requires specific units
     for all calculations. These are fixed and cannot be overridden:
 
-    - Temperature: degrees Celsius (degC)
+    - Temperature: degrees Celsius (Celsius)
     - Precipitation: millimeters (mm)
     - Relative humidity: dimensionless fraction (1)
     - Wind speed: kilometers per hour (km/h)
@@ -53,7 +50,7 @@ class FireWeatherIndexBase(BasePlugin):
     # Fixed unit conversions for all cube types used in fire weather calculations
     # These units are required by the Canadian FWI System and cannot be changed
     _REQUIRED_UNITS: dict[str, str] = {
-        "temperature": "degC",
+        "temperature": "Celsius",
         "precipitation": "mm",
         "relative_humidity": "1",
         "wind_speed": "km/h",

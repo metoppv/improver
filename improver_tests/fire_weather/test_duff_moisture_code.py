@@ -17,7 +17,7 @@ def input_cubes(
     rh_val: float = 50.0,
     dmc_val: float = 6.0,
     shape: tuple[int, int] = (5, 5),
-    temp_units: str = "degC",
+    temp_units: str = "Celsius",
     precip_units: str = "mm",
     rh_units: str = "1",
     dmc_units: str = "1",
@@ -138,7 +138,7 @@ def test__perform_rainfall_adjustment_spatially_varying() -> None:
     )
 
     cubes = [
-        make_cube(np.full(shape, 20.0), "air_temperature", "degC"),
+        make_cube(np.full(shape, 20.0), "air_temperature", "Celsius"),
         make_cube(
             precip_data,
             "lwe_thickness_of_precipitation_amount",
@@ -218,7 +218,7 @@ def test__calculate_drying_rate_spatially_varying() -> None:
     rh_data = np.array([[20.0, 30.0, 40.0], [50.0, 60.0, 70.0], [80.0, 90.0, 95.0]])
 
     cubes = [
-        make_cube(temp_data, "air_temperature", "degC"),
+        make_cube(temp_data, "air_temperature", "Celsius"),
         make_cube(
             np.zeros((3, 3)),
             "lwe_thickness_of_precipitation_amount",
@@ -341,7 +341,7 @@ def test_process_spatially_varying() -> None:
     dmc_data = np.array([[5.0, 15.0, 30.0], [10.0, 50.0, 70.0], [20.0, 40.0, 90.0]])
 
     cubes = [
-        make_cube(temp_data, "air_temperature", "degC"),
+        make_cube(temp_data, "air_temperature", "Celsius"),
         make_cube(
             precip_data,
             "lwe_thickness_of_precipitation_amount",
@@ -386,3 +386,130 @@ def test_dmc_day_length_factors_table() -> None:
     ]
 
     assert DuffMoistureCode.DMC_DAY_LENGTH_FACTORS == expected_factors
+
+
+@pytest.mark.parametrize(
+    "temp_val, precip_val, rh_val, dmc_val, expected_error",
+    [
+        # Temperature too high
+        (150.0, 1.0, 50.0, 6.0, "temperature contains values above valid maximum"),
+        # Temperature too low
+        (-150.0, 1.0, 50.0, 6.0, "temperature contains values below valid minimum"),
+        # Precipitation negative
+        (20.0, -5.0, 50.0, 6.0, "precipitation contains values below valid minimum"),
+        # Relative humidity above 100%
+        (
+            20.0,
+            1.0,
+            150.0,
+            6.0,
+            "relative_humidity contains values above valid maximum",
+        ),
+        # Relative humidity negative
+        (
+            20.0,
+            1.0,
+            -10.0,
+            6.0,
+            "relative_humidity contains values below valid minimum",
+        ),
+        # DMC negative
+        (20.0, 1.0, 50.0, -5.0, "input_dmc contains values below valid minimum"),
+    ],
+)
+def test_invalid_input_ranges_raise_errors(
+    temp_val: float,
+    precip_val: float,
+    rh_val: float,
+    dmc_val: float,
+    expected_error: str,
+) -> None:
+    """Test that invalid input values raise appropriate ValueError.
+
+    Verifies that the base class validation catches physically meaningless
+    or out-of-range input values and raises descriptive errors.
+
+    Args:
+        temp_val (float): Temperature value for all grid points.
+        precip_val (float): Precipitation value for all grid points.
+        rh_val (float): Relative humidity value for all grid points.
+        dmc_val (float): DMC value for all grid points.
+        expected_error (str): Expected error message substring.
+    """
+    cubes = input_cubes(temp_val, precip_val, rh_val, dmc_val)
+    plugin = DuffMoistureCode()
+
+    with pytest.raises(ValueError, match=expected_error):
+        plugin.load_input_cubes(CubeList(cubes), month=7)
+
+
+@pytest.mark.parametrize(
+    "invalid_input_type,expected_error",
+    [
+        ("temperature_nan", "temperature contains NaN"),
+        ("temperature_inf", "temperature contains infinite"),
+        ("precipitation_nan", "precipitation contains NaN"),
+        ("precipitation_inf", "precipitation contains infinite"),
+        ("relative_humidity_nan", "relative_humidity contains NaN"),
+        ("input_dmc_nan", "input_dmc contains NaN"),
+        ("input_dmc_inf", "input_dmc contains infinite"),
+    ],
+)
+def test_nan_and_inf_values_raise_errors(
+    invalid_input_type: str, expected_error: str
+) -> None:
+    """Test that NaN and Inf values in inputs raise appropriate ValueError.
+
+    Verifies that the validation catches non-finite values (NaN, Inf) in input data.
+
+    Args:
+        invalid_input_type (str): Which input to make invalid and how.
+        expected_error (str): Expected error message substring.
+    """
+    # Start with valid values
+    temp_val, precip_val, rh_val, dmc_val = 20.0, 1.0, 50.0, 6.0
+
+    # Replace the appropriate value with NaN or Inf
+    if invalid_input_type == "temperature_nan":
+        temp_val = np.nan
+    elif invalid_input_type == "temperature_inf":
+        temp_val = np.inf
+    elif invalid_input_type == "precipitation_nan":
+        precip_val = np.nan
+    elif invalid_input_type == "precipitation_inf":
+        precip_val = np.inf
+    elif invalid_input_type == "relative_humidity_nan":
+        rh_val = np.nan
+    elif invalid_input_type == "input_dmc_nan":
+        dmc_val = np.nan
+    elif invalid_input_type == "input_dmc_inf":
+        dmc_val = np.inf
+
+    cubes = input_cubes(temp_val, precip_val, rh_val, dmc_val)
+    plugin = DuffMoistureCode()
+
+    with pytest.raises(ValueError, match=expected_error):
+        plugin.load_input_cubes(CubeList(cubes), month=7)
+
+
+def test_output_validation_no_warning_for_valid_output() -> None:
+    """Test that valid output values do not trigger warnings.
+
+    Uses valid inputs to verify that as long as the output
+    stays within the expected range (0-400 for DMC), no warning is issued.
+    """
+    # Use normal valid inputs
+    cubes = input_cubes(temp_val=20.0, precip_val=0.0, rh_val=50.0, dmc_val=50.0)
+    plugin = DuffMoistureCode()
+
+    # Process should complete without warnings since output stays in valid range
+    import warnings
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")  # Turn warnings into errors
+        result = plugin.process(CubeList(cubes), month=7)
+
+    assert isinstance(result, Cube)
+    # Verify output is within expected range
+    assert np.all(result.data >= 0.0)
+    assert np.all(result.data <= 400.0)
