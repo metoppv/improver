@@ -11,7 +11,6 @@ import iris
 import numpy as np
 from cf_units import Unit
 from iris.cube import Cube, CubeList
-from iris.tests import IrisTest
 
 from improver.psychrometric_calculations.wet_bulb_temperature import WetBulbTemperature
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
@@ -36,7 +35,7 @@ def test_as_cubelist_called(mock_as_cubelist):
     )
 
 
-class Test_psychrometric_variables(IrisTest):
+class Test_psychrometric_variables(unittest.TestCase):
     """Test calculations of one-line variables: svp in air, latent heat,
     mixing ratios, etc"""
 
@@ -51,7 +50,7 @@ class Test_psychrometric_variables(IrisTest):
         """Test specific heat calculation"""
         expected = np.array([1089.5, 1174.0, 1258.5], dtype=np.float32)
         result = WetBulbTemperature()._calculate_specific_heat(self.mixing_ratio)
-        self.assertArrayAlmostEqual(result, expected, decimal=2)
+        np.testing.assert_array_almost_equal(result, expected, decimal=2)
 
     def test_calculate_enthalpy(self):
         """Basic calculation of some enthalpies. Comparison adjusted for
@@ -60,7 +59,7 @@ class Test_psychrometric_variables(IrisTest):
         result = WetBulbTemperature()._calculate_enthalpy(
             self.mixing_ratio, self.specific_heat, self.latent_heat, self.temperature
         )
-        self.assertArrayAlmostEqual(result, expected, decimal=1)
+        np.testing.assert_array_almost_equal(result, expected, decimal=1)
 
     def test_calculate_enthalpy_gradient(self):
         """Test calculation of enthalpy gradient with temperature. Comparison
@@ -69,10 +68,10 @@ class Test_psychrometric_variables(IrisTest):
         result = WetBulbTemperature()._calculate_enthalpy_gradient(
             self.mixing_ratio, self.specific_heat, self.latent_heat, self.temperature
         )
-        self.assertArrayAlmostEqual(result.data, expected, decimal=3)
+        np.testing.assert_array_almost_equal(result.data, expected, decimal=3)
 
 
-class Test_WetBulbTemperature(IrisTest):
+class Test_WetBulbTemperature(unittest.TestCase):
     """Class to set up inputs for WetBulbTemperature tests."""
 
     def setUp(self):
@@ -108,7 +107,9 @@ class Test_create_wet_bulb_temperature_cube(Test_WetBulbTemperature):
         result = WetBulbTemperature().create_wet_bulb_temperature_cube(
             self.temperature, self.relative_humidity, self.pressure
         )
-        self.assertArrayAlmostEqual(result.data, self.expected_wbt_data, decimal=3)
+        np.testing.assert_array_almost_equal(
+            result.data, self.expected_wbt_data, decimal=3
+        )
 
     def test_different_units(self):
         """Wet bulb temperature calculation with unit conversion."""
@@ -118,7 +119,9 @@ class Test_create_wet_bulb_temperature_cube(Test_WetBulbTemperature):
         result = WetBulbTemperature().create_wet_bulb_temperature_cube(
             self.temperature, self.relative_humidity, self.pressure
         )
-        self.assertArrayAlmostEqual(result.data, self.expected_wbt_data, decimal=3)
+        np.testing.assert_array_almost_equal(
+            result.data, self.expected_wbt_data, decimal=3
+        )
         self.assertEqual(result.units, Unit("K"))
 
 
@@ -158,7 +161,9 @@ class Test_process(Test_WetBulbTemperature):
         result = WetBulbTemperature().process(
             CubeList([self.temperature, self.relative_humidity, self.pressure])
         )
-        self.assertArrayAlmostEqual(result.data, self.expected_wbt_data, decimal=3)
+        np.testing.assert_array_almost_equal(
+            result.data, self.expected_wbt_data, decimal=3
+        )
         self.assertEqual(result.units, Unit("K"))
 
     def test_model_id_attr(self):
@@ -171,7 +176,9 @@ class Test_process(Test_WetBulbTemperature):
         result = WetBulbTemperature(model_id_attr="mosg__model_configuration").process(
             CubeList([self.temperature, self.relative_humidity, self.pressure])
         )
-        self.assertArrayAlmostEqual(result.data, self.expected_wbt_data, decimal=3)
+        np.testing.assert_array_almost_equal(
+            result.data, self.expected_wbt_data, decimal=3
+        )
         self.assertEqual(result.units, Unit("K"))
         self.assertEqual(result.attributes["mosg__model_configuration"], "uk_ens")
 
@@ -181,7 +188,9 @@ class Test_process(Test_WetBulbTemperature):
         result = WetBulbTemperature().process(
             CubeList([self.relative_humidity, self.temperature, self.pressure])
         )
-        self.assertArrayAlmostEqual(result.data, self.expected_wbt_data, decimal=3)
+        np.testing.assert_array_almost_equal(
+            result.data, self.expected_wbt_data, decimal=3
+        )
         self.assertEqual(result.units, Unit("K"))
 
     def test_values_multi_level(self):
@@ -193,10 +202,14 @@ class Test_process(Test_WetBulbTemperature):
         result = WetBulbTemperature().process(
             CubeList([temperature, relative_humidity, pressure])
         )
-        self.assertArrayAlmostEqual(result.data[0], self.expected_wbt_data, decimal=3)
-        self.assertArrayAlmostEqual(result.data[1], self.expected_wbt_data, decimal=3)
+        np.testing.assert_array_almost_equal(
+            result.data[0], self.expected_wbt_data, decimal=3
+        )
+        np.testing.assert_array_almost_equal(
+            result.data[1], self.expected_wbt_data, decimal=3
+        )
         self.assertEqual(result.units, Unit("K"))
-        self.assertArrayEqual(result.coord("height").points, [10, 20])
+        np.testing.assert_array_equal(result.coord("height").points, [10, 20])
 
     def test_different_level_types(self):
         """Check an exception is raised if trying to work with data on a mix of

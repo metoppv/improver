@@ -7,12 +7,11 @@
 import unittest
 
 import numpy as np
-from iris.tests import IrisTest
 
 from improver.utilities.interpolation import interpolate_missing_data
 
 
-class Test_interpolate_missing_data(IrisTest):
+class Test_interpolate_missing_data(unittest.TestCase):
     """Test the interpolate_missing_data method"""
 
     def setUp(self):
@@ -66,7 +65,7 @@ class Test_interpolate_missing_data(IrisTest):
 
         data_updated = interpolate_missing_data(data)
 
-        self.assertArrayAlmostEqual(data_updated, expected, decimal=21)
+        np.testing.assert_array_almost_equal(data_updated, expected, decimal=21)
 
     def test_basic_linear(self):
         """Test when all the points around the missing data are the same."""
@@ -76,7 +75,7 @@ class Test_interpolate_missing_data(IrisTest):
 
         data_updated = interpolate_missing_data(data)
 
-        self.assertArrayEqual(data_updated, expected)
+        np.testing.assert_array_equal(data_updated, expected)
 
     def test_basic_nearest(self):
         """Test when all the points around the missing data are the same."""
@@ -86,7 +85,7 @@ class Test_interpolate_missing_data(IrisTest):
 
         data_updated = interpolate_missing_data(data, method="nearest")
 
-        self.assertArrayEqual(data_updated, expected)
+        np.testing.assert_array_equal(data_updated, expected)
 
     def test_different_data_for_linear_interpolation(self):
         """Test result when linearly interpolating using points around the
@@ -95,7 +94,7 @@ class Test_interpolate_missing_data(IrisTest):
 
         data_updated = interpolate_missing_data(self.data)
 
-        self.assertArrayEqual(data_updated, expected)
+        np.testing.assert_array_equal(data_updated, expected)
 
     def test_different_data_for_nearest_neighbour(self):
         """Test result when using nearest neighbour using points around the
@@ -104,7 +103,7 @@ class Test_interpolate_missing_data(IrisTest):
 
         data_updated = interpolate_missing_data(self.data, method="nearest")
 
-        self.assertArrayEqual(data_updated, expected)
+        np.testing.assert_array_equal(data_updated, expected)
 
     def test_too_few_points_to_linearly_interpolate(self):
         """Test that when there are not enough points to fill the gaps using
@@ -116,7 +115,7 @@ class Test_interpolate_missing_data(IrisTest):
 
         data_updated = interpolate_missing_data(data.copy())
 
-        self.assertArrayEqual(data_updated, data)
+        np.testing.assert_array_equal(data_updated, data)
 
     def test_nearest_neighbour_with_few_points(self):
         """Test that when there are not enough points to fill the gaps using
@@ -129,7 +128,7 @@ class Test_interpolate_missing_data(IrisTest):
 
         data_updated = interpolate_missing_data(data, method="nearest")
 
-        self.assertArrayEqual(data_updated, expected)
+        np.testing.assert_array_equal(data_updated, expected)
 
     def test_badly_arranged_valid_data_for_linear_interpolation(self):
         """Test when there are enough points but they aren't arranged in a
@@ -140,7 +139,7 @@ class Test_interpolate_missing_data(IrisTest):
 
         data_updated = interpolate_missing_data(data.copy())
 
-        self.assertArrayEqual(data_updated, data)
+        np.testing.assert_array_equal(data_updated, data)
 
     def test_nearest_neighbour_with_badly_arranged_valid_data(self):
         """Test that when there are enough points but unsuitably arrange to
@@ -151,7 +150,7 @@ class Test_interpolate_missing_data(IrisTest):
 
         data_updated = interpolate_missing_data(data, method="nearest")
 
-        self.assertArrayEqual(data_updated, expected)
+        np.testing.assert_array_equal(data_updated, expected)
 
     def test_missing_corner_point_linear_interpolation(self):
         """Test when there's an extra missing value at the corner of the grid.
@@ -162,7 +161,7 @@ class Test_interpolate_missing_data(IrisTest):
 
         data_updated = interpolate_missing_data(self.data)
 
-        self.assertArrayEqual(data_updated, expected)
+        np.testing.assert_array_equal(data_updated, expected)
 
     def test_data_maked_as_invalid(self):
         """Test that marking some of the edge data as invalid with a mask
@@ -174,7 +173,7 @@ class Test_interpolate_missing_data(IrisTest):
         self.valid_data[1, 2] = False
         data_updated = interpolate_missing_data(self.data, valid_points=self.valid_data)
 
-        self.assertArrayAlmostEqual(data_updated, expected)
+        np.testing.assert_array_almost_equal(data_updated, expected)
 
     def test_all_data_marked_as_invalid(self):
         """Test that nothing is filled in if none of the data points are marked
@@ -185,7 +184,7 @@ class Test_interpolate_missing_data(IrisTest):
             self.data, valid_points=~self.valid_data
         )
 
-        self.assertArrayEqual(data_updated, expected)
+        np.testing.assert_array_equal(data_updated, expected)
 
     def test_set_to_limit_as_maximum(self):
         """Test that when the linear interpolation gives values that are higher
@@ -207,7 +206,7 @@ class Test_interpolate_missing_data(IrisTest):
             valid_points=self.valid_data_for_limit_test,
             limit=self.limit_for_limit_test,
         )
-        self.assertArrayEqual(data_updated, expected)
+        np.testing.assert_array_equal(data_updated, expected)
 
     def test_set_to_limit_as_minimum(self):
         """Test that when the linear interpolation gives values that are lower
@@ -230,7 +229,7 @@ class Test_interpolate_missing_data(IrisTest):
             limit=self.limit_for_limit_test,
             limit_as_maximum=False,
         )
-        self.assertArrayEqual(data_updated, expected)
+        np.testing.assert_array_equal(data_updated, expected)
 
 
 if __name__ == "__main__":

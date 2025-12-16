@@ -10,7 +10,6 @@ from datetime import datetime as dt
 import iris
 import numpy as np
 import pytest
-from iris.tests import IrisTest
 
 from improver.blending.calculate_weights_and_blend import WeightAndBlend
 from improver.blending.weighted_blend import MergeCubesForWeightedBlending
@@ -19,6 +18,7 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_probability_cube,
     set_up_variable_cube,
 )
+from improver_tests import ImproverTest
 
 MODEL_WEIGHTS = {
     "nc_det": {"forecast_period": [0, 4, 8], "weights": [1, 0, 0], "units": "hours"},
@@ -90,7 +90,7 @@ def set_up_masked_cubes():
     return iris.cube.CubeList([ukv_cube, nowcast_cube]), cycletime_string
 
 
-class Test__init__(IrisTest):
+class Test__init__(unittest.TestCase):
     """Test the __init__ method"""
 
     def test_cycle(self):
@@ -122,7 +122,7 @@ class Test__init__(IrisTest):
             WeightAndBlend("forecast_period", "kludge")
 
 
-class Test__calculate_blending_weights(IrisTest):
+class Test__calculate_blending_weights(unittest.TestCase):
     """Test the _calculate_blending_weights method"""
 
     def test_default_linear(self):
@@ -133,7 +133,7 @@ class Test__calculate_blending_weights(IrisTest):
         self.assertIsInstance(weights, iris.cube.Cube)
         weights_dims = [coord.name() for coord in weights.coords(dim_coords=True)]
         self.assertSequenceEqual(weights_dims, ["realization"])
-        self.assertArrayAlmostEqual(weights.data, 0.25 * np.ones((4,)))
+        np.testing.assert_array_almost_equal(weights.data, 0.25 * np.ones((4,)))
 
     def test_default_nonlinear(self):
         """Test non-linear weighting over forecast reference time, where the
@@ -150,7 +150,9 @@ class Test__calculate_blending_weights(IrisTest):
 
         plugin = WeightAndBlend("forecast_reference_time", "nonlinear", cval=0.85)
         weights = plugin._calculate_blending_weights(cube)
-        self.assertArrayAlmostEqual(weights.data, np.array([0.5405405, 0.45945945]))
+        np.testing.assert_array_almost_equal(
+            weights.data, np.array([0.5405405, 0.45945945])
+        )
 
     def test_default_nonlinear_inverse(self):
         """Test non-linear weighting over forecast reference time in reverse
@@ -169,7 +171,9 @@ class Test__calculate_blending_weights(IrisTest):
             "forecast_reference_time", "nonlinear", cval=0.85, inverse_ordering=True
         )
         weights = plugin._calculate_blending_weights(cube)
-        self.assertArrayAlmostEqual(weights.data, np.array([0.45945945, 0.5405405]))
+        np.testing.assert_array_almost_equal(
+            weights.data, np.array([0.45945945, 0.5405405])
+        )
 
     def test_dict(self):
         """Test dictionary option for model blending with non-equal weights"""
@@ -206,13 +210,15 @@ class Test__calculate_blending_weights(IrisTest):
         # at 6 hours lead time we should have 1/3 UKV and 2/3 MOGREPS-UK,
         # according to the dictionary weights specified above
         weights = plugin._calculate_blending_weights(cube)
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             weights.coord("model_configuration").points, ["uk_det", "uk_ens"]
         )
-        self.assertArrayAlmostEqual(weights.data, np.array([0.3333333, 0.6666667]))
+        np.testing.assert_array_almost_equal(
+            weights.data, np.array([0.3333333, 0.6666667])
+        )
 
 
-class Test__update_spatial_weights(IrisTest):
+class Test__update_spatial_weights(unittest.TestCase):
     """Test the _update_spatial_weights method"""
 
     def setUp(self):
@@ -259,13 +265,13 @@ class Test__update_spatial_weights(IrisTest):
         result = self.plugin._update_spatial_weights(
             self.cube, self.initial_weights, 400000
         )
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             result.coord("model_configuration").points, ["uk_det", "nc_det"]
         )
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
 
 
-class Test_process(IrisTest):
+class Test_process(ImproverTest):
     """Test the process method"""
 
     def setUp(self):
@@ -366,19 +372,19 @@ class Test_process(IrisTest):
             model_id_attr="mosg__model_configuration",
             record_run_attr="mosg__model_run",
         )
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
         self.assertEqual(result.attributes["mosg__model_configuration"], "uk_det")
         self.assertEqual(
             result.attributes["mosg__model_run"],
             "uk_det:20180910T0300Z:0.500\nuk_det:20180910T0400Z:0.500",
         )
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             result.coord("time").points, self.ukv_cube_latest.coord("time").points
         )
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             result.coord("forecast_reference_time").points, self.expected_frt.points
         )
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             result.coord("forecast_period").points, self.expected_fp.points
         )
         for coord in ["forecast_reference_time", "forecast_period"]:
@@ -395,7 +401,7 @@ class Test_process(IrisTest):
             record_run_attr="mosg__model_run",
             cycletime=self.cycletime,
         )
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
         self.assertEqual(
             result.attributes["mosg__model_configuration"], "uk_det uk_ens"
         )
@@ -449,7 +455,7 @@ class Test_process(IrisTest):
             record_run_attr="mosg__model_run",
             cycletime=self.cycletime,
         )
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
         self.assertEqual(
             result.attributes["mosg__model_configuration"], "nc_det uk_det uk_ens"
         )
@@ -460,7 +466,7 @@ class Test_process(IrisTest):
         # make sure output cube has the forecast reference time and period
         # from the most recent contributing model
         for coord in ["time", "forecast_period", "forecast_reference_time"]:
-            self.assertArrayEqual(
+            np.testing.assert_array_equal(
                 result.coord(coord).points, self.nowcast_cube.coord(coord).points
             )
 
@@ -480,7 +486,7 @@ class Test_process(IrisTest):
             record_run_attr="mosg__model_run",
             cycletime=self.cycletime,
         )
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
         self.assertEqual(
             result.attributes["mosg__model_configuration"], "nc_det uk_ens"
         )
@@ -504,7 +510,7 @@ class Test_process(IrisTest):
             record_run_attr="mosg__model_run",
             cycletime=self.cycletime,
         )
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
         self.assertEqual(result.attributes["mosg__model_configuration"], "nc_det")
         self.assertEqual(
             result.attributes["mosg__model_run"], "nc_det:20180910T0500Z:1.000"
@@ -526,7 +532,7 @@ class Test_process(IrisTest):
             record_run_attr="mosg__model_run",
             cycletime=self.cycletime,
         )
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
         self.assertEqual(result.attributes["mosg__model_configuration"], "uk_det")
         self.assertEqual(
             result.attributes["mosg__model_run"], "uk_det:20180910T0300Z:1.000"
@@ -561,7 +567,7 @@ class Test_process(IrisTest):
             cycletime=self.cycletime,
             attributes_dict={"source": "IMPROVER"},
         )
-        self.assertArrayAlmostEqual(result.data, self.enukx_cube.data)
+        np.testing.assert_array_almost_equal(result.data, self.enukx_cube.data)
         self.assertSetEqual(
             {coord.name() for coord in result.coords()}, expected_coords
         )
@@ -641,7 +647,7 @@ class Test_process(IrisTest):
             )
 
 
-class Test_process_spatial_weights(IrisTest):
+class Test_process_spatial_weights(unittest.TestCase):
     """Test the process method with spatial weights options"""
 
     def setUp(self):
@@ -673,7 +679,7 @@ class Test_process_spatial_weights(IrisTest):
             cycletime=self.cycletime,
         )
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
 
     def test_fuzzy_length(self):
         """Test values where fuzzy length is equal to 2 grid lengths"""
@@ -694,7 +700,7 @@ class Test_process_spatial_weights(IrisTest):
             fuzzy_length=400000,
             cycletime=self.cycletime,
         )
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
 
 
 if __name__ == "__main__":
