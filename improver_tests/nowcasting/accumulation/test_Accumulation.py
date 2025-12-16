@@ -10,13 +10,12 @@ import unittest
 import iris
 import numpy as np
 from cf_units import Unit
-from iris.tests import IrisTest
 
 from improver.nowcasting.accumulation import Accumulation
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 
-class rate_cube_set_up(IrisTest):
+class rate_cube_set_up(unittest.TestCase):
     """Set up a sequence of precipitation rates cubes for use in testing the
     accumulation plugin functionality."""
 
@@ -82,7 +81,7 @@ class rate_cube_set_up(IrisTest):
         return self.cubes
 
 
-class Test__init__(IrisTest):
+class Test__init__(unittest.TestCase):
     """Test class initialisation"""
 
     def test_default(self):
@@ -107,7 +106,7 @@ class Test__init__(IrisTest):
         self.assertListEqual(plugin.forecast_periods, [60, 120])
 
 
-class Test__repr__(IrisTest):
+class Test__repr__(unittest.TestCase):
     """Test class representation"""
 
     def test_basic(self):
@@ -168,7 +167,7 @@ class Test_sort_cubes_by_time(rate_cube_set_up):
         ]
         _, times = Accumulation.sort_cubes_by_time(self.cubes)
 
-        self.assertArrayEqual(times, expected)
+        np.testing.assert_array_equal(times, expected)
 
 
 class Test__check_inputs(rate_cube_set_up):
@@ -322,8 +321,8 @@ class Test__calculate_accumulation(rate_cube_set_up):
         )
         time_interval = 60
         result = Accumulation()._calculate_accumulation(self.cubes[:2], time_interval)
-        self.assertArrayAlmostEqual(result, expected_t0)
-        self.assertArrayAlmostEqual(result.mask, expected_mask_t0)
+        np.testing.assert_array_almost_equal(result, expected_t0)
+        np.testing.assert_array_almost_equal(result.mask, expected_mask_t0)
 
 
 class Test__set_metadata(rate_cube_set_up):
@@ -350,11 +349,11 @@ class Test__set_metadata(rate_cube_set_up):
         points = [value.point for value in result.coord("time").cells()]
         bounds = [value.bound for value in result.coord("time").cells()]
         self.assertEqual(points, expected_time_point)
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.coord("forecast_period").points, expected_fp_point
         )
         self.assertEqual(bounds, expected_time_bounds)
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.coord("forecast_period").bounds, expected_fp_bounds
         )
         self.assertEqual(result.cell_methods[0], expected_cell_method)
@@ -418,7 +417,7 @@ class Test_process(rate_cube_set_up):
         result = plugin.process(self.cubes)
 
         self.assertEqual(result[0].units, "m")
-        self.assertArrayAlmostEqual(result[0].data, expected.data)
+        np.testing.assert_array_almost_equal(result[0].data, expected.data)
 
     def test_default_altered_output_units(self):
         """Test the function returns accumulations in the specified units if
@@ -436,7 +435,7 @@ class Test_process(rate_cube_set_up):
         )
         result = plugin.process(self.cubes)
         self.assertEqual(result[0].units, "mm")
-        self.assertArrayAlmostEqual(result[0].data, expected.data)
+        np.testing.assert_array_almost_equal(result[0].data, expected.data)
 
     def test_does_not_use_incomplete_period_data(self):
         """Test function returns only 2 accumulation periods when a 4 minute
@@ -510,10 +509,10 @@ class Test_process(rate_cube_set_up):
         )
         result = plugin.process(self.cubes)
 
-        self.assertArrayAlmostEqual(result[0].data, expected_t0)
-        self.assertArrayAlmostEqual(result[1].data, expected_t1)
-        self.assertArrayAlmostEqual(result[0].data.mask, expected_mask_t0)
-        self.assertArrayAlmostEqual(result[1].data.mask, expected_mask_t1)
+        np.testing.assert_array_almost_equal(result[0].data, expected_t0)
+        np.testing.assert_array_almost_equal(result[1].data, expected_t1)
+        np.testing.assert_array_almost_equal(result[0].data.mask, expected_mask_t0)
+        np.testing.assert_array_almost_equal(result[1].data.mask, expected_mask_t1)
         self.assertEqual(len(result), 2)
 
     def test_returns_expected_values_10_minutes(self):
@@ -559,8 +558,8 @@ class Test_process(rate_cube_set_up):
         )
         result = plugin.process(self.cubes)
 
-        self.assertArrayAlmostEqual(result[0].data, expected_t0)
-        self.assertArrayAlmostEqual(result[0].data.mask, expected_mask_t0)
+        np.testing.assert_array_almost_equal(result[0].data, expected_t0)
+        np.testing.assert_array_almost_equal(result[0].data.mask, expected_mask_t0)
         self.assertEqual(len(result), 1)
 
     def test_returns_total_accumulation_if_no_period_specified(self):
@@ -602,8 +601,8 @@ class Test_process(rate_cube_set_up):
         plugin = Accumulation(accumulation_units="mm")
         result = plugin.process(self.cubes)
 
-        self.assertArrayAlmostEqual(result[0].data, expected_t0)
-        self.assertArrayAlmostEqual(result[0].data.mask, expected_mask_t0)
+        np.testing.assert_array_almost_equal(result[0].data, expected_t0)
+        np.testing.assert_array_almost_equal(result[0].data.mask, expected_mask_t0)
         self.assertEqual(len(result), 1)
 
     def test_returns_expected_values_1_minute(self):
@@ -654,10 +653,10 @@ class Test_process(rate_cube_set_up):
         )
         result = plugin.process(self.cubes)
 
-        self.assertArrayAlmostEqual(result[0].data, expected_t0)
-        self.assertArrayAlmostEqual(result[7].data, expected_t7)
-        self.assertArrayAlmostEqual(result[0].data.mask, expected_mask_t0)
-        self.assertArrayAlmostEqual(result[7].data.mask, expected_mask_t7)
+        np.testing.assert_array_almost_equal(result[0].data, expected_t0)
+        np.testing.assert_array_almost_equal(result[7].data, expected_t7)
+        np.testing.assert_array_almost_equal(result[0].data.mask, expected_mask_t0)
+        np.testing.assert_array_almost_equal(result[7].data.mask, expected_mask_t7)
         self.assertEqual(len(result), 10)
 
 
