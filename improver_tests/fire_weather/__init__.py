@@ -73,7 +73,7 @@ def make_input_cubes(
     Example:
         >>> cubes = make_input_cubes(
         ...     [
-        ...         ("air_temperature", 20.0, "degC", False),
+        ...         ("air_temperature", 20.0, "Celsius", False),
         ...         ("lwe_thickness_of_precipitation_amount", 1.0, "mm", True),
         ...     ]
         ... )

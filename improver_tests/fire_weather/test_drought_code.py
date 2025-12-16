@@ -16,7 +16,7 @@ def input_cubes(
     precip_val: float = 1.0,
     dc_val: float = 15.0,
     shape: tuple[int, int] = (5, 5),
-    temp_units: str = "degC",
+    temp_units: str = "Celsius",
     precip_units: str = "mm",
     dc_units: str = "1",
 ) -> list[Cube]:
@@ -133,7 +133,7 @@ def test__perform_rainfall_adjustment_spatially_varying() -> None:
     )
 
     cubes = [
-        make_cube(np.full(shape, 20.0), "air_temperature", "degC"),
+        make_cube(np.full(shape, 20.0), "air_temperature", "Celsius"),
         make_cube(
             precip_data,
             "lwe_thickness_of_precipitation_amount",
@@ -215,7 +215,7 @@ def test__calculate_potential_evapotranspiration_spatially_varying() -> None:
     temp_data = np.array([[-10.0, -5.0, 0.0], [5.0, 10.0, 15.0], [20.0, 25.0, 30.0]])
 
     cubes = [
-        make_cube(temp_data, "air_temperature", "degC"),
+        make_cube(temp_data, "air_temperature", "Celsius"),
         make_cube(
             np.zeros((3, 3)),
             "lwe_thickness_of_precipitation_amount",
@@ -343,7 +343,7 @@ def test_process_spatially_varying() -> None:
     )
 
     cubes = [
-        make_cube(temp_data, "air_temperature", "degC"),
+        make_cube(temp_data, "air_temperature", "Celsius"),
         make_cube(
             precip_data,
             "lwe_thickness_of_precipitation_amount",
