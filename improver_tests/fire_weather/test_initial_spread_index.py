@@ -329,6 +329,90 @@ def test_process_with_varying_ffmc() -> None:
         assert result.data[row, 2] > result.data[row, 1]
 
 
+@pytest.mark.parametrize(
+    "wind_val, ffmc_val, expected_error",
+    [
+        (-5.0, 85.0, "wind_speed contains values below valid minimum"),
+        (10.0, 120.0, "input_ffmc contains values above valid maximum"),
+        (10.0, -5.0, "input_ffmc contains values below valid minimum"),
+    ],
+)
+def test_invalid_input_ranges_raise_errors(
+    wind_val: float, ffmc_val: float, expected_error: str
+) -> None:
+    """Test that invalid input values raise appropriate ValueError.
+
+    Verifies that the base class validation catches physically meaningless
+    or out-of-range input values and raises descriptive errors.
+
+    Args:
+        wind_val (float): Wind speed value for all grid points.
+        ffmc_val (float): FFMC value for all grid points.
+        expected_error (str): Expected error message substring.
+    """
+    cubes = [
+        make_cube(np.array([[wind_val]]), "wind_speed", "km/h"),
+        make_cube(
+            np.array([[ffmc_val]]),
+            "fine_fuel_moisture_content",
+            "1",
+            add_time_coord=True,
+        ),
+    ]
+    plugin = InitialSpreadIndex()
+
+    with pytest.raises(ValueError, match=expected_error):
+        plugin.load_input_cubes(CubeList(cubes))
+
+
+@pytest.mark.parametrize(
+    "invalid_input_type,expected_error",
+    [
+        ("wind_speed_nan", "wind_speed contains NaN"),
+        ("wind_speed_inf", "wind_speed contains infinite"),
+        ("input_ffmc_nan", "input_ffmc contains NaN"),
+        ("input_ffmc_inf", "input_ffmc contains infinite"),
+    ],
+)
+def test_nan_and_inf_values_raise_errors(
+    invalid_input_type: str, expected_error: str
+) -> None:
+    """Test that NaN and Inf values in inputs raise appropriate ValueError.
+
+    Verifies that the validation catches non-finite values (NaN, Inf) in input data.
+
+    Args:
+        invalid_input_type (str): Which input to make invalid and how.
+        expected_error (str): Expected error message substring.
+    """
+    # Start with valid values
+    wind_val, ffmc_val = 10.0, 85.0
+
+    # Replace the appropriate value with NaN or Inf
+    if invalid_input_type == "wind_speed_nan":
+        wind_val = np.nan
+    elif invalid_input_type == "wind_speed_inf":
+        wind_val = np.inf
+    elif invalid_input_type == "input_ffmc_nan":
+        ffmc_val = np.nan
+    elif invalid_input_type == "input_ffmc_inf":
+        ffmc_val = -np.inf
+
+    cubes = [
+        make_cube(np.array([[wind_val]]), "wind_speed", "km/h"),
+        make_cube(
+            np.array([[ffmc_val]]),
+            "fine_fuel_moisture_content",
+            "1",
+            add_time_coord=True,
+        ),
+    ]
+    plugin = InitialSpreadIndex()
+
+    with pytest.raises(ValueError, match=expected_error):
+        plugin.load_input_cubes(CubeList(cubes))
+
+
 def test_output_validation_no_warning_for_valid_output() -> None:
     """Test that valid output values do not trigger warnings.
 
