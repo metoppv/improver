@@ -62,7 +62,7 @@ class CanadianForestFireWeatherIndex(FireWeatherIndexBase):
         """
         isi_data = self.initial_spread_index.data
 
-        # Equation 29: Calculate "B-Scale" FWI (intermmediate value)
+        # Equation 29: Calculate "B-Scale" FWI (intermediate value)
         fwi_Bscale = 0.1 * isi_data * extrapolated_DMF
 
         # Equations 30a and 30b: Calculate the final "S-Scale"
