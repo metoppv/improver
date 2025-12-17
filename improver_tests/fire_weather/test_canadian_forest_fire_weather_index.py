@@ -4,6 +4,8 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Tests for the CanadianForestFireWeatherIndex plugin."""
 
+import warnings
+
 import numpy as np
 import pytest
 from iris.cube import Cube, CubeList
@@ -296,3 +298,100 @@ def test_process_both_zero() -> None:
     assert result.units == "1"
     assert np.allclose(result.data, 0.0, atol=1e-6)
     assert result.dtype == np.float32
+
+
+@pytest.mark.parametrize(
+    "isi_val, bui_val, expected_error",
+    [
+        (-5.0, 50.0, "initial_spread_index contains values below valid minimum"),
+        (150.0, 50.0, "initial_spread_index contains values above valid maximum"),
+        (10.0, -5.0, "build_up_index contains values below valid minimum"),
+        (10.0, 600.0, "build_up_index contains values above valid maximum"),
+    ],
+)
+def test_invalid_input_ranges_raise_errors(
+    isi_val: float, bui_val: float, expected_error: str
+) -> None:
+    """Test that invalid input values raise appropriate ValueError.
+
+    Verifies that the base class validation catches physically meaningless
+    or out-of-range input values and raises descriptive errors.
+
+    Args:
+        isi_val (float): ISI value for all grid points.
+        bui_val (float): BUI value for all grid points.
+        expected_error (str): Expected error message substring.
+    """
+    cubes = input_cubes(isi_val, bui_val)
+    plugin = CanadianForestFireWeatherIndex()
+
+    with pytest.raises(ValueError, match=expected_error):
+        plugin.load_input_cubes(CubeList(cubes))
+
+
+@pytest.mark.parametrize(
+    "invalid_input_type,expected_error",
+    [
+        ("initial_spread_index_nan", "initial_spread_index contains NaN"),
+        ("initial_spread_index_inf", "initial_spread_index contains infinite"),
+        ("build_up_index_nan", "build_up_index contains NaN"),
+        ("build_up_index_inf", "build_up_index contains infinite"),
+    ],
+)
+def test_nan_and_inf_values_raise_errors(
+    invalid_input_type: str, expected_error: str
+) -> None:
+    """Test that NaN and Inf values in inputs raise appropriate ValueError.
+
+    Verifies that the validation catches non-finite values (NaN, Inf) in input data.
+
+    Args:
+        invalid_input_type (str): Which input to make invalid and how.
+        expected_error (str): Expected error message substring.
+    """
+    # Start with valid values
+    isi_val, bui_val = 10.0, 50.0
+
+    # Replace the appropriate value with NaN or Inf
+    if invalid_input_type == "initial_spread_index_nan":
+        isi_val = np.nan
+    elif invalid_input_type == "initial_spread_index_inf":
+        isi_val = np.inf
+    elif invalid_input_type == "build_up_index_nan":
+        bui_val = np.nan
+    elif invalid_input_type == "build_up_index_inf":
+        bui_val = -np.inf
+
+    cubes = input_cubes(isi_val, bui_val)
+    plugin = CanadianForestFireWeatherIndex()
+
+    with pytest.raises(ValueError, match=expected_error):
+        plugin.load_input_cubes(CubeList(cubes))
+
+
+def test_output_validation_no_warning_for_valid_output() -> None:
+    """Test that valid output values do not trigger warnings.
+
+    Uses moderate inputs to verify that as long as the output
+    stays within the expected range (0-100 for FWI), no warning is issued.
+    This demonstrates that the FWI calculation naturally constrains outputs
+    to valid ranges with typical inputs.
+    """
+    # Use moderate inputs that produce valid FWI
+    # Moderate ISI and BUI produce moderate FWI within valid range
+    cubes = [
+        make_cube(np.array([[10.0]]), "initial_spread_index", "1", add_time_coord=True),
+        make_cube(np.array([[50.0]]), "build_up_index", "1"),
+    ]
+    plugin = CanadianForestFireWeatherIndex()
+
+    # Process should complete without warnings since output stays in valid range
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")  # Turn warnings into errors
+        result = plugin.process(CubeList(cubes))
+
+    # No warnings should have been raised (if any were, they'd be errors)
+    assert isinstance(result, Cube)
+    # Verify output is within expected range (0-100 for FWI)
+    assert np.all(result.data >= 0.0)
+    assert np.all(result.data <= 100.0)
