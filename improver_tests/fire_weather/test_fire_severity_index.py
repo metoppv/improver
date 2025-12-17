@@ -4,6 +4,8 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Tests for the FireSeverityIndex plugin."""
 
+import warnings
+
 import numpy as np
 import pytest
 from iris.cube import Cube, CubeList
@@ -74,8 +76,8 @@ def test__calculate(
 
 def test__calculate_no_negative_values() -> None:
     """Test that DSR calculation never produces negative values."""
-    # Test a range of FWI values
-    fwi_values = np.array([0.0, 1.0, 5.0, 10.0, 25.0, 50.0, 100.0, 200.0])
+    # Test a range of FWI values within the valid range
+    fwi_values = np.array([0.0, 1.0, 5.0, 10.0, 25.0, 50.0, 100.0])
 
     for fwi in fwi_values:
         cubes = input_cubes(fwi_val=fwi)
@@ -237,3 +239,91 @@ def test_process_zero_fwi() -> None:
     assert result.units == "1"
     assert np.allclose(result.data, 0.0, atol=1e-6)
     assert result.dtype == np.float32
+
+
+@pytest.mark.parametrize(
+    "fwi_val, expected_error",
+    [
+        (
+            -5.0,
+            "canadian_forest_fire_weather_index contains values below valid minimum",
+        ),
+        (
+            150.0,
+            "canadian_forest_fire_weather_index contains values above valid maximum",
+        ),
+    ],
+)
+def test_invalid_input_ranges_raise_errors(fwi_val: float, expected_error: str) -> None:
+    """Test that invalid input values raise appropriate ValueError.
+
+    Verifies that the base class validation catches physically meaningless
+    or out-of-range input values and raises descriptive errors.
+
+    Args:
+        fwi_val (float): FWI value for all grid points.
+        expected_error (str): Expected error message substring.
+    """
+    cubes = input_cubes(fwi_val=fwi_val)
+    plugin = FireSeverityIndex()
+
+    with pytest.raises(ValueError, match=expected_error):
+        plugin.load_input_cubes(CubeList(cubes))
+
+
+@pytest.mark.parametrize(
+    "invalid_input_type,expected_error",
+    [
+        ("fwi_nan", "canadian_forest_fire_weather_index contains NaN"),
+        ("fwi_inf", "canadian_forest_fire_weather_index contains infinite"),
+    ],
+)
+def test_nan_and_inf_values_raise_errors(
+    invalid_input_type: str, expected_error: str
+) -> None:
+    """Test that NaN and Inf values in inputs raise appropriate ValueError.
+
+    Verifies that the validation catches non-finite values (NaN, Inf) in input data.
+
+    Args:
+        invalid_input_type (str): Which input to make invalid and how.
+        expected_error (str): Expected error message substring.
+    """
+    # Start with valid value
+    fwi_val = 25.0
+
+    # Replace with NaN or Inf
+    if invalid_input_type == "fwi_nan":
+        fwi_val = np.nan
+    elif invalid_input_type == "fwi_inf":
+        fwi_val = np.inf
+
+    cubes = input_cubes(fwi_val=fwi_val)
+    plugin = FireSeverityIndex()
+
+    with pytest.raises(ValueError, match=expected_error):
+        plugin.load_input_cubes(CubeList(cubes))
+
+
+def test_output_validation_no_warning_for_valid_output() -> None:
+    """Test that valid output values do not trigger warnings.
+
+    Uses valid inputs to verify that as long as the output stays within
+    the expected range (0-100 for FSI/DSR), no warning is issued. This
+    demonstrates that the FSI calculation naturally constrains outputs
+    to valid ranges with typical inputs.
+    """
+    # Use moderate input that produces valid FSI
+    cubes = input_cubes(fwi_val=50.0)
+    plugin = FireSeverityIndex()
+
+    # Process should complete without warnings since output stays in valid range
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")  # Turn warnings into errors
+        result = plugin.process(CubeList(cubes))
+
+    # No warnings should have been raised (if any were, they'd be errors)
+    assert isinstance(result, Cube)
+    # Verify output is within expected range (0-100 for FSI)
+    assert np.all(result.data >= 0.0)
+    assert np.all(result.data <= 100.0)
