@@ -2,10 +2,7 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-<<<<<<< HEAD
 import warnings
-=======
->>>>>>> 14a9476d (Changes from ABC refactor)
 
 import numpy as np
 import pytest
