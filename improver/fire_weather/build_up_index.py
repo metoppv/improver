@@ -30,9 +30,14 @@ class BuildUpIndex(FireWeatherIndexBase):
 
     INPUT_CUBE_NAMES = ["duff_moisture_code", "drought_code"]
     OUTPUT_CUBE_NAME = "build_up_index"
+    # Map input cube names to internal attribute names for consistency
+    INPUT_ATTRIBUTE_MAPPINGS = {
+        "duff_moisture_code": "input_dmc",
+        "drought_code": "input_dc",
+    }
 
-    duff_moisture_code: Cube
-    drought_code: Cube
+    input_dmc: Cube
+    input_dc: Cube
 
     def _calculate(self) -> np.ndarray:
         """Calculates the Build Up Index (BUI) from DMC and DC.
@@ -42,8 +47,8 @@ class BuildUpIndex(FireWeatherIndexBase):
         Returns:
             np.ndarray: The calculated BUI values.
         """
-        dmc_data = self.duff_moisture_code.data
-        dc_data = self.drought_code.data
+        dmc_data = self.input_dmc.data
+        dc_data = self.input_dc.data
 
         # Condition 1: If both DMC and DC are zero, set BUI = 0
         both_zero = (dmc_data == 0.0) & (dc_data == 0.0)
