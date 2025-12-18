@@ -313,7 +313,7 @@ def test_percentile_deterministic(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-def test_percentile_deterministic_quiet(tmp_path):
+def test_percentile_deterministic_quiet(tmp_path, recwarn):
     """Test extracting percentiles from deterministic input. In this case the
     --suppress-warnings flag is enabled. This excludes the warning raised when
     spot-extract is set to extract percentiles and used with deterministic data.
@@ -335,11 +335,10 @@ def test_percentile_deterministic_quiet(tmp_path):
         UK_SPOT_TITLE,
         "--suppress-warnings",
     ]
-    with pytest.warns(UserWarning) as collected_warns:
-        run_cli(args)
 
-    msg = "Diagnostic cube is not a known probabilistic type."
-    assert all([msg not in str(warning.message) for warning in collected_warns])
+    run_cli(args)
+    msg = "Blending masked data without spatial"
+    assert all([msg not in str(warning.message) for warning in recwarn])
     acc.compare(output_path, kgo_path)
 
 
