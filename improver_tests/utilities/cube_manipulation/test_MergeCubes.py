@@ -246,14 +246,14 @@ class Test_process(unittest.TestCase):
         ]
         msg = "Cube with mismatching time bounds ranges cannot be blended"
         with self.assertRaisesRegex(ValueError, msg):
-            self.plugin.process([cube1, cube2], check_time_bounds_ranges=True)
+            MergeCubes(check_time_bounds_ranges=True).process([cube1, cube2])
 
     def test_slice_over_realization(self):
         """Test merging of cubes with different realization coordinates"""
         data = 275 * np.ones((3, 3, 3), dtype=np.float32)
         cube1 = set_up_variable_cube(data, realizations=np.array([1, 2, 3]))
         cube2 = set_up_variable_cube(data, realizations=np.array([0, 4, 5]))
-        result = self.plugin([cube1, cube2], slice_over_realization=True)
+        result = MergeCubes(slice_over_realization=True).process([cube1, cube2])
         np.testing.assert_array_equal(result.coord("realization").points, np.arange(6))
 
     def test_slice_over_realization_scalar(self):
@@ -267,7 +267,7 @@ class Test_process(unittest.TestCase):
             data, time=dt(2015, 11, 23, 8), frt=dt(2015, 11, 23, 6)
         )
         expected_dims = ["time", "latitude", "longitude"]
-        result = self.plugin([cube1, cube2], slice_over_realization=True)
+        result = MergeCubes(slice_over_realization=True).process([cube1, cube2])
         result_coords = [coord.name() for coord in result.coords()]
         result_dims = [coord.name() for coord in result.coords(dim_coords=True)]
         self.assertIn("realization", result_coords)
@@ -281,7 +281,7 @@ class Test_process(unittest.TestCase):
         self.plugin.process(cubes)
         self.assertTrue(cubes[0] == cube_orig)
 
-        self.plugin.process(cubes, copy=False)
+        MergeCubes(copy=False).process(cubes)
         self.assertFalse(cubes[0] == cube_orig)
 
 
