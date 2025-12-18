@@ -1,13 +1,149 @@
 name: CI Tests
 
-on:
-  pull_request:
-  push:
-    branches:
-      - master  # Run tests only when changes are pushed to 'default'
-  workflow_dispatch:
+
+on: [pull_request]
+# on:
+#   push:
+#     branches:
+#       - master  # Run tests only when changes are pushed to 'default' branch
+
 jobs:
-  Sphinx-Pytest-Coverage:
+  Test-Coverage:
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Checkout dev branch
+      uses: actions/checkout@v5
+      with:
+        fetch-depth: 0
+
+    - name: Substitute branch name in environment file
+      run: |
+        # For PRs, use PR number if matching branch exists in improver_example_data; otherwise use master
+        if [ "${{ github.event_name }}" = "pull_request" ]; then
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          if git ls-remote --heads https://github.com/metoppv/improver_example_data.git ${PR_NUMBER} | grep -q ${PR_NUMBER}; then
+            BRANCH_NAME=$PR_NUMBER
+          else
+            BRANCH_NAME=master
+          fi
+        else
+          # Extract branch name from GITHUB_REF (e.g. for situation
+          # where a PR is merged into master, so refs/heads/master -> master)
+          BRANCH_NAME=${GITHUB_REF#refs/heads/}
+        fi
+        echo "Using BRANCH_NAME: $BRANCH_NAME"
+        # Replace BRANCH_NAME placeholder in all environment files
+        sed -i "s/\${BRANCH_NAME}/$BRANCH_NAME/g" envs/latest.yml
+      shell: bash
+
+    - name: Checkout reference coverage report
+      uses: actions/checkout@v5
+      with:
+        fetch-depth: 0
+        path: covref
+        sparse-checkout: master/coverage_output.txt
+        ref: coverage-reference
+
+    - name: Environment creation
+      uses: mamba-org/setup-micromamba@v2
+      with:
+        environment-file: envs/latest.yml
+        init-shell: bash
+        cache-environment: true
+
+    - name: Environment info
+      run: |
+        micromamba info
+        micromamba list
+      shell: bash -el {0}
+
+    - name: Branch name
+      run: |
+        branch=$(echo "${GITHUB_HEAD_REF#refs/heads/}")
+        echo "BRANCH=$branch" | tee -a $GITHUB_ENV
+
+    - name: pytest
+      run: |
+          pytest --cov=improver --cov-report=term --cov-report=html | tee coverage_output.txt; test ${PIPESTATUS[0]} -eq 0
+      shell: micromamba-shell {0}
+
+    - name: Compare coverage
+      id: comp-coverage
+      run: |
+        ls -R covref/
+
+        pr_cov=$(grep TOTAL coverage_output.txt | awk '{print $NF}' | awk '{print substr($0, 1, length($0)-1)}')
+        echo "pr_cov=$pr_cov" | tee -a $GITHUB_OUTPUT
+        if [ ! -f covref/master/coverage_output.txt ]; then
+            echo "Warning: covref/master/coverage_output.txt does not exist, reporting coverage."
+            echo "ref_cov=--" | tee -a $GITHUB_OUTPUT
+            echo "coverage_decreased=true" | tee -a $GITHUB_OUTPUT
+            exit 0
+        else
+            ref_cov=$(grep TOTAL covref/master/coverage_output.txt | awk '{print $NF}' | awk '{print substr($0, 1, length($0)-1)}')
+            echo "ref_cov=$ref_cov" | tee -a $GITHUB_OUTPUT
+            if (( (( ref_cov - pr_cov )) > 1 )); then
+                echo "coverage_decreased=true" | tee -a $GITHUB_OUTPUT
+            else
+                echo "coverage_decreased=false" | tee -a $GITHUB_OUTPUT
+            fi
+        fi
+
+    - name: Coverage report on coverage-reference branch
+      run: |
+        BRANCH=${{ env.BRANCH }}
+
+        git config user.name github-actions[bot]
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+        git worktree add /tmp/coverage-ref coverage-reference
+
+        echo "=== clear out old reports for this branch ==="
+        cd /tmp/coverage-ref
+        find . -path "./${BRANCH}_*" ! -name "index.html" -type f -delete
+        find . -path "./${BRANCH}_*" -type d -empty -delete
+        # replace contents of ./${BRANCH}_*/index.html with a message: "Outdated coverage report.  Repository has been updated since."
+        for dir in $(find . -path "./${BRANCH}_*" -type d); do
+          if [ -f "${dir}/index.html" ]; then
+            echo "<html><body><h1>Outdated coverage report. Repository has been updated since.</h1></body></html>" > "${dir}/index.html"
+          fi
+        done
+
+        if [ "${{ steps.comp-coverage.outputs.coverage_decreased }}" == "true" ]; then
+          cd -
+          mkdir /tmp/coverage-ref/${BRANCH}_${{ github.event.pull_request.head.sha }}/
+          cp -r coverage_output.txt htmlcov/ /tmp/coverage-ref/${BRANCH}_${{ github.event.pull_request.head.sha }}/.
+
+          cd /tmp/coverage-ref
+          git add -f ${BRANCH}_${{ github.event.pull_request.head.sha }}/
+        fi
+
+        echo "=== git status after add ==="
+        cd /tmp/coverage-ref
+        git status -s
+
+        git commit -a --amend --no-edit || echo "No changes to commit"
+        git push origin -f coverage-reference
+
+    - name: Coverage report PR comment
+      if: steps.comp-coverage.outputs.coverage_decreased == 'true'
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          comment = "The test coverage has decreased from ${{ steps.comp-coverage.outputs.ref_cov }}% to ${{ steps.comp-coverage.outputs.pr_cov }}% (commit SHA: ${{ github.event.pull_request.head.sha }})."
+          comment += `\nPlease review test coverage [here](https://metoppv.github.io/improver/${{ env.BRANCH }}_${{ github.event.pull_request.head.sha }}/htmlcov/index.html)`;
+          console.log(comment)
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });
+
+
+  Sphinx-Pytest:
     runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
@@ -63,31 +199,11 @@ jobs:
         make -C doc html SPHINXOPTS="-W --keep-going"
       shell: micromamba-shell {0}
 
-    - name: pytest without coverage
-      if: matrix.env == 'conda-forge'
+    - name: pytest
       run: |
         pytest
       shell: micromamba-shell {0}
 
-    - name: pytest with coverage
-      if: matrix.env != 'conda-forge'
-      run: |
-        pytest --cov=improver --cov-report xml:coverage.xml
-      shell: micromamba-shell {0}
-
-    - name: codacy upload
-      if: env.CODACY_PROJECT_TOKEN && matrix.env == 'environment_a'
-      run: |
-        python-codacy-coverage -v -r coverage.xml
-      env:
-        CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
-      shell: micromamba-shell {0}
-
-    - name: codecov upload
-      uses: codecov/codecov-action@v5
-      with:
-        name:  ${{ matrix.env }}
-      if: matrix.env != 'conda_forge'
 
   pre-commit-checks:
     runs-on: ubuntu-22.04
@@ -114,7 +230,7 @@ jobs:
       run: echo "PYSHA=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
 
     - name: Cache pre-commit
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       id: pre-commit-cache
       with:
         path: ~/.cache/pre-commit

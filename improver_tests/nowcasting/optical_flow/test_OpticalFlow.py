@@ -13,13 +13,12 @@ import numpy as np
 import pytest
 from iris.coords import DimCoord
 from iris.exceptions import InvalidCubeError
-from iris.tests import IrisTest
 
 from improver.nowcasting.optical_flow import OpticalFlow
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 
-class Test__init__(IrisTest):
+class Test__init__(unittest.TestCase):
     """Test OpticalFlow class initialisation"""
 
     def test_basic(self):
@@ -34,7 +33,7 @@ class Test__init__(IrisTest):
         self.assertIsNone(plugin.shape)
 
 
-class Test__repr__(IrisTest):
+class Test__repr__(unittest.TestCase):
     """Test string representation"""
 
     def test_basic(self):
@@ -48,7 +47,7 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, expected_string)
 
 
-class Test_makekernel(IrisTest):
+class Test_makekernel(unittest.TestCase):
     """Test makekernel function"""
 
     def test_basic(self):
@@ -68,10 +67,10 @@ class Test_makekernel(IrisTest):
             ]
         )
         result = OpticalFlow().makekernel(2)
-        self.assertArrayAlmostEqual(result, expected_output)
+        np.testing.assert_array_almost_equal(result, expected_output)
 
 
-class OpticalFlowUtilityTest(IrisTest):
+class OpticalFlowUtilityTest(unittest.TestCase):
     """Class with shared plugin definition for small utility tests"""
 
     def setUp(self):
@@ -109,7 +108,7 @@ class Test_interp_to_midpoint(OpticalFlowUtilityTest):
         """Test output values"""
         expected_output = np.array([[1.0, 2.0, 3.0, 4.0], [0.25, 1.0, 2.0, 3.0]])
         result = self.plugin.interp_to_midpoint(self.plugin.data1)
-        self.assertArrayAlmostEqual(result, expected_output)
+        np.testing.assert_array_almost_equal(result, expected_output)
 
     def test_first_axis(self):
         """Test averaging over first axis"""
@@ -117,7 +116,7 @@ class Test_interp_to_midpoint(OpticalFlowUtilityTest):
             [[0.5, 1.5, 2.5, 3.5, 4.5], [0.0, 0.5, 1.5, 2.5, 3.5]]
         )
         result = self.plugin.interp_to_midpoint(self.plugin.data1, axis=0)
-        self.assertArrayAlmostEqual(result, expected_output)
+        np.testing.assert_array_almost_equal(result, expected_output)
 
     def test_second_axis(self):
         """Test averaging over second axis"""
@@ -125,7 +124,7 @@ class Test_interp_to_midpoint(OpticalFlowUtilityTest):
             [[1.5, 2.5, 3.5, 4.5], [0.5, 1.5, 2.5, 3.5], [0.0, 0.5, 1.5, 2.5]]
         )
         result = self.plugin.interp_to_midpoint(self.plugin.data1, axis=1)
-        self.assertArrayAlmostEqual(result, expected_output)
+        np.testing.assert_array_almost_equal(result, expected_output)
 
     def test_array_too_small(self):
         """Test returns empty array if averaging over an axis of length 1"""
@@ -138,7 +137,7 @@ class Test_interp_to_midpoint(OpticalFlowUtilityTest):
         expected_output = np.array([[1.5, 2.5, 3.5, 4.5]])
         small_array = self.plugin.data1[0, :].reshape((1, 5))
         result = self.plugin.interp_to_midpoint(small_array, axis=1)
-        self.assertArrayAlmostEqual(result, expected_output)
+        np.testing.assert_array_almost_equal(result, expected_output)
 
 
 class Test__partial_derivative_spatial(OpticalFlowUtilityTest):
@@ -160,7 +159,7 @@ class Test__partial_derivative_spatial(OpticalFlowUtilityTest):
             ]
         )
         result = self.plugin._partial_derivative_spatial(axis=0)
-        self.assertArrayAlmostEqual(result, expected_output)
+        np.testing.assert_array_almost_equal(result, expected_output)
 
     def test_second_axis(self):
         """Test output values for axis=1"""
@@ -172,7 +171,7 @@ class Test__partial_derivative_spatial(OpticalFlowUtilityTest):
             ]
         )
         result = self.plugin._partial_derivative_spatial(axis=1)
-        self.assertArrayAlmostEqual(result, expected_output)
+        np.testing.assert_array_almost_equal(result, expected_output)
 
 
 class Test__partial_derivative_temporal(OpticalFlowUtilityTest):
@@ -196,7 +195,7 @@ class Test__partial_derivative_temporal(OpticalFlowUtilityTest):
             ]
         )
         result = self.plugin._partial_derivative_temporal()
-        self.assertArrayAlmostEqual(result, expected_output)
+        np.testing.assert_array_almost_equal(result, expected_output)
 
 
 class Test__make_subboxes(OpticalFlowUtilityTest):
@@ -223,7 +222,7 @@ class Test__make_subboxes(OpticalFlowUtilityTest):
         self.plugin.boxsize = 2
         boxes, _ = self.plugin._make_subboxes(self.plugin.data1)
         for box, ebox in zip(boxes, expected_boxes):
-            self.assertArrayAlmostEqual(box, ebox)
+            np.testing.assert_array_almost_equal(box, ebox)
 
     def test_weights_values(self):
         """Test output weights values"""
@@ -232,10 +231,10 @@ class Test__make_subboxes(OpticalFlowUtilityTest):
         )
         self.plugin.boxsize = 2
         _, weights = self.plugin._make_subboxes(self.plugin.data1)
-        self.assertArrayAlmostEqual(weights, expected_weights)
+        np.testing.assert_array_almost_equal(weights, expected_weights)
 
 
-class OpticalFlowDisplacementTest(IrisTest):
+class OpticalFlowDisplacementTest(unittest.TestCase):
     """Class with shared plugin definition for smoothing and regridding
     tests"""
 
@@ -296,7 +295,7 @@ class Test__box_to_grid(OpticalFlowDisplacementTest):
         )
 
         umat = self.plugin._box_to_grid(self.umat)
-        self.assertArrayAlmostEqual(umat, expected_umat)
+        np.testing.assert_array_almost_equal(umat, expected_umat)
 
 
 class Test_smooth(OpticalFlowDisplacementTest):
@@ -319,7 +318,7 @@ class Test_smooth(OpticalFlowDisplacementTest):
         )
 
         output = self.plugin.smooth(self.umat, 2)
-        self.assertArrayAlmostEqual(output, expected_output)
+        np.testing.assert_array_almost_equal(output, expected_output)
 
     def test_kernel_smooth(self):
         """Test smooth over circular kernel"""
@@ -333,12 +332,12 @@ class Test_smooth(OpticalFlowDisplacementTest):
         )
 
         output = self.plugin.smooth(self.umat, 2, method="kernel")
-        self.assertArrayAlmostEqual(output, expected_output)
+        np.testing.assert_array_almost_equal(output, expected_output)
 
     def test_null_behaviour(self):
         """Test smooth with a kernel radius of 1 has no effect"""
         output = self.plugin.smooth(self.umat, 1, method="kernel")
-        self.assertArrayAlmostEqual(output, self.umat)
+        np.testing.assert_array_almost_equal(output, self.umat)
 
 
 class Test__smart_smooth(OpticalFlowDisplacementTest):
@@ -361,7 +360,7 @@ class Test__smart_smooth(OpticalFlowDisplacementTest):
             ]
         )
         umat = self.plugin._smart_smooth(self.umat, self.umat, self.weights)
-        self.assertArrayAlmostEqual(umat, expected_umat)
+        np.testing.assert_array_almost_equal(umat, expected_umat)
 
 
 class Test__smooth_advection_fields(OpticalFlowDisplacementTest):
@@ -394,10 +393,10 @@ class Test__smooth_advection_fields(OpticalFlowDisplacementTest):
             ]
         )
         vmat = self.plugin._smooth_advection_fields(self.vmat, self.weights)
-        self.assertArrayAlmostEqual(vmat[0], first_row_v)
+        np.testing.assert_array_almost_equal(vmat[0], first_row_v)
 
 
-class Test_solve_for_uv(IrisTest):
+class Test_solve_for_uv(unittest.TestCase):
     """Test solve_for_uv function"""
 
     def setUp(self):
@@ -418,7 +417,7 @@ class Test_solve_for_uv(IrisTest):
         self.assertAlmostEqual(v, 2.0)
 
 
-class Test_extreme_value_check(IrisTest):
+class Test_extreme_value_check(unittest.TestCase):
     """Test extreme_value_check function"""
 
     def setUp(self):
@@ -446,9 +445,9 @@ class Test_extreme_value_check(IrisTest):
             [[0.5, 0.5, 0.5, 0.5], [0.5, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0]]
         )
         OpticalFlow().extreme_value_check(self.umat, self.vmat, self.weights)
-        self.assertArrayAlmostEqual(self.umat, expected_umat)
-        self.assertArrayAlmostEqual(self.vmat, expected_vmat)
-        self.assertArrayAlmostEqual(self.weights, expected_weights)
+        np.testing.assert_array_almost_equal(self.umat, expected_umat)
+        np.testing.assert_array_almost_equal(self.vmat, expected_vmat)
+        np.testing.assert_array_almost_equal(self.weights, expected_weights)
 
     def test_null_behaviour(self):
         """Test reasonable data values are preserved"""
@@ -457,12 +456,12 @@ class Test_extreme_value_check(IrisTest):
         expected_vmat = np.copy(self.vmat)
         expected_weights = np.copy(self.weights)
         OpticalFlow().extreme_value_check(umat, self.vmat, self.weights)
-        self.assertArrayAlmostEqual(umat, expected_umat)
-        self.assertArrayAlmostEqual(self.vmat, expected_vmat)
-        self.assertArrayAlmostEqual(self.weights, expected_weights)
+        np.testing.assert_array_almost_equal(umat, expected_umat)
+        np.testing.assert_array_almost_equal(self.vmat, expected_vmat)
+        np.testing.assert_array_almost_equal(self.weights, expected_weights)
 
 
-class Test_calculate_displacement_vectors(IrisTest):
+class Test_calculate_displacement_vectors(unittest.TestCase):
     """Test calculation of advection displacement vectors"""
 
     def setUp(self):
@@ -516,7 +515,7 @@ class Test_calculate_displacement_vectors(IrisTest):
         self.assertAlmostEqual(np.mean(vmat), np.float32(0.124607998))
 
 
-class Test__zero_advection_velocities_warning(IrisTest):
+class Test__zero_advection_velocities_warning(unittest.TestCase):
     """Test the _zero_advection_velocities_warning."""
 
     def setUp(self):
@@ -592,7 +591,7 @@ class Test__zero_advection_velocities_warning(IrisTest):
             self.plugin._zero_advection_velocities_warning(wind, np.where(rain > 0))
 
 
-class Test_process_dimensionless(IrisTest):
+class Test_process_dimensionless(unittest.TestCase):
     """Test the process_dimensionless method"""
 
     def setUp(self):
@@ -641,7 +640,7 @@ class Test_process_dimensionless(IrisTest):
         self.assertAlmostEqual(np.mean(vcomp), 0.97735876, places=6)
 
 
-class Test_process(IrisTest):
+class Test_process(unittest.TestCase):
     """Test the process method"""
 
     def setUp(self):
@@ -877,8 +876,8 @@ class Test_process(IrisTest):
         with pytest.warns(UserWarning, match=warning_msg):
             ucube, vcube = self.plugin.process(cube1, cube2)
 
-        self.assertArrayAlmostEqual(ucube.data, null_data)
-        self.assertArrayAlmostEqual(vcube.data, null_data)
+        np.testing.assert_array_almost_equal(ucube.data, null_data)
+        np.testing.assert_array_almost_equal(vcube.data, null_data)
 
     def test_error_nonmatching_inputs(self):
         """Test failure if cubes are of different data types"""

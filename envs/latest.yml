@@ -15,7 +15,7 @@ dependencies:
   - numpy
   - pytz
   - scipy
-  - sphinx
+  - sphinx<9.0.0  # https://github.com/tox-dev/sphinx-autodoc-typehints/issues/586
   # Optional
   - python-stratify
   - geopandas
@@ -39,6 +39,7 @@ dependencies:
   - sphinx-book-theme  
   - sphinx-gallery
   - threadpoolctl
+  - pytest-xdist
   - pip
   - pip:
     - git+https://github.com/metoppv/improver_example_data.git@${BRANCH_NAME}  

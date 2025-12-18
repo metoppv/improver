@@ -19,7 +19,6 @@ from cf_units import Unit
 from iris.coords import DimCoord
 from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
-from iris.tests import IrisTest
 
 from improver.ensemble_copula_coupling.utilities import (
     choose_set_of_percentiles,
@@ -41,7 +40,7 @@ from improver.synthetic_data.set_up_test_cubes import (
 from .ecc_test_data import ECC_TEMPERATURE_REALIZATIONS, set_up_spot_test_cube
 
 
-class Test_concatenate_2d_array_with_2d_array_endpoints(IrisTest):
+class Test_concatenate_2d_array_with_2d_array_endpoints(unittest.TestCase):
     """Test the concatenate_2d_array_with_2d_array_endpoints."""
 
     def test_basic(self):
@@ -50,7 +49,7 @@ class Test_concatenate_2d_array_with_2d_array_endpoints(IrisTest):
         input_array = np.array([[20, 50, 80]])
         result = concatenate_2d_array_with_2d_array_endpoints(input_array, 0, 100)
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, expected)
+        np.testing.assert_array_almost_equal(result, expected)
 
     def test_1d_input(self):
         """Test 1D input results in the expected error"""
@@ -67,7 +66,7 @@ class Test_concatenate_2d_array_with_2d_array_endpoints(IrisTest):
             concatenate_2d_array_with_2d_array_endpoints(input_array, -100, 10000)
 
 
-class Test_choose_set_of_percentiles(IrisTest):
+class Test_choose_set_of_percentiles(unittest.TestCase):
     """Test the choose_set_of_percentiles plugin."""
 
     def test_basic(self):
@@ -88,7 +87,7 @@ class Test_choose_set_of_percentiles(IrisTest):
         data = np.array([25, 50, 75])
         no_of_percentiles = 3
         result = choose_set_of_percentiles(no_of_percentiles)
-        self.assertArrayAlmostEqual(result, data)
+        np.testing.assert_array_almost_equal(result, data)
 
     def test_random(self):
         """
@@ -111,7 +110,7 @@ class Test_choose_set_of_percentiles(IrisTest):
             choose_set_of_percentiles(no_of_percentiles, sampling="unknown")
 
 
-class Test_create_cube_with_percentiles(IrisTest):
+class Test_create_cube_with_percentiles(unittest.TestCase):
     """Test the _create_cube_with_percentiles plugin."""
 
     def setUp(self):
@@ -175,7 +174,9 @@ class Test_create_cube_with_percentiles(IrisTest):
         percentiles = [10, 50, 90]
         result = create_cube_with_percentiles(percentiles, self.cube, cube_data)
         self.assertIsInstance(result.coord("percentile"), DimCoord)
-        self.assertArrayAlmostEqual(result.coord("percentile").points, percentiles)
+        np.testing.assert_array_almost_equal(
+            result.coord("percentile").points, percentiles
+        )
 
     def test_spot_forecasts_percentile_points(self):
         """
@@ -192,7 +193,9 @@ class Test_create_cube_with_percentiles(IrisTest):
         result = create_cube_with_percentiles(percentiles, spot_cube, spot_data)
         self.assertIsInstance(result, Cube)
         self.assertIsInstance(result.coord("percentile"), DimCoord)
-        self.assertArrayAlmostEqual(result.coord("percentile").points, percentiles)
+        np.testing.assert_array_almost_equal(
+            result.coord("percentile").points, percentiles
+        )
 
     def test_percentile_length_too_short(self):
         """
@@ -243,7 +246,7 @@ class Test_create_cube_with_percentiles(IrisTest):
                 raise CoordinateNotFoundError(msg)
 
 
-class Test_get_bounds_of_distribution(IrisTest):
+class Test_get_bounds_of_distribution(unittest.TestCase):
     """Test the get_bounds_of_distribution plugin."""
 
     def test_basic(self):
@@ -261,7 +264,7 @@ class Test_get_bounds_of_distribution(IrisTest):
         cube_units = Unit("degreesC")
         bounds_pairing = (-100, 60)
         result = get_bounds_of_distribution(cube_name, cube_units)
-        self.assertArrayAlmostEqual(result, bounds_pairing)
+        np.testing.assert_array_almost_equal(result, bounds_pairing)
 
     def test_check_unit_conversion(self):
         """
@@ -273,7 +276,7 @@ class Test_get_bounds_of_distribution(IrisTest):
         cube_units = Unit("fahrenheit")
         bounds_pairing = (-148, 140)  # In fahrenheit
         result = get_bounds_of_distribution(cube_name, cube_units)
-        self.assertArrayAlmostEqual(result, bounds_pairing)
+        np.testing.assert_array_almost_equal(result, bounds_pairing)
 
     def test_check_exception_is_raised(self):
         """
@@ -286,7 +289,7 @@ class Test_get_bounds_of_distribution(IrisTest):
             get_bounds_of_distribution(cube_name, cube_units)
 
 
-class Test_insert_lower_and_upper_endpoint_to_1d_array(IrisTest):
+class Test_insert_lower_and_upper_endpoint_to_1d_array(unittest.TestCase):
     """Test the insert_lower_and_upper_endpoint_to_1d_array."""
 
     def test_basic(self):
@@ -295,7 +298,7 @@ class Test_insert_lower_and_upper_endpoint_to_1d_array(IrisTest):
         percentiles = np.array([20, 50, 80])
         result = insert_lower_and_upper_endpoint_to_1d_array(percentiles, 0, 100)
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, expected)
+        np.testing.assert_array_almost_equal(result, expected)
 
     def test_2d_example(self):
         """Test 2D input results in expected error"""
@@ -305,7 +308,7 @@ class Test_insert_lower_and_upper_endpoint_to_1d_array(IrisTest):
             insert_lower_and_upper_endpoint_to_1d_array(percentiles, -100, 10000)
 
 
-class Test_restore_non_percentile_dimensions(IrisTest):
+class Test_restore_non_percentile_dimensions(unittest.TestCase):
     """Test the restore_non_percentile_dimensions."""
 
     def setUp(self):
@@ -325,7 +328,7 @@ class Test_restore_non_percentile_dimensions(IrisTest):
             self.input_data, self.cube, 3
         )
         self.assertIsInstance(reshaped_array, np.ndarray)
-        self.assertArrayAlmostEqual(reshaped_array, self.expected_data)
+        np.testing.assert_array_almost_equal(reshaped_array, self.expected_data)
 
     def test_single_percentile(self):
         """
@@ -338,7 +341,7 @@ class Test_restore_non_percentile_dimensions(IrisTest):
         reshaped_array = restore_non_percentile_dimensions(
             self.input_data[0], self.cube, 1
         )
-        self.assertArrayAlmostEqual(reshaped_array, expected)
+        np.testing.assert_array_almost_equal(reshaped_array, expected)
 
     def test_multiple_timesteps(self):
         """
@@ -371,7 +374,7 @@ class Test_restore_non_percentile_dimensions(IrisTest):
             next(percentile_cube.slices_over("percentile")),
             1,
         )
-        self.assertArrayAlmostEqual(reshaped_array, expected)
+        np.testing.assert_array_almost_equal(reshaped_array, expected)
 
 
 numba_installed = True
@@ -385,7 +388,7 @@ except ImportError:
     numba_installed = False
 
 
-class Test_interpolate_multiple_rows_same_y(IrisTest):
+class Test_interpolate_multiple_rows_same_y(unittest.TestCase):
     """Test interpolate_multiple_rows_same_y"""
 
     def setUp(self):
@@ -472,7 +475,7 @@ class Test_interpolate_multiple_rows_same_y(IrisTest):
         np.testing.assert_allclose(result_slow, result_multiple)
 
 
-class TestInterpolateMultipleRowsSameX(IrisTest):
+class TestInterpolateMultipleRowsSameX(unittest.TestCase):
     """Test interpolate_multiple_rows"""
 
     def setUp(self):
