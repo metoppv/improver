@@ -15,7 +15,7 @@ jobs:
     - name: Checkout dev branch
       uses: actions/checkout@v6
       with:
-        fetch-depth: 0
+        fetch-depth: 1
 
     - name: Substitute branch name in environment file
       run: |
@@ -40,9 +40,8 @@ jobs:
     - name: Checkout reference coverage report
       uses: actions/checkout@v6
       with:
-        fetch-depth: 0
+        fetch-depth: 1
         path: covref
-        sparse-checkout: master/coverage_output.txt
         ref: coverage-reference
 
     - name: Environment creation
@@ -71,7 +70,7 @@ jobs:
     - name: Compare coverage
       id: comp-coverage
       run: |
-        ls -R covref/
+        ls -R covref/master/
 
         pr_cov=$(grep TOTAL coverage_output.txt | awk '{print $NF}' | awk '{print substr($0, 1, length($0)-1)}')
         echo "pr_cov=$pr_cov" | tee -a $GITHUB_OUTPUT
@@ -97,10 +96,9 @@ jobs:
         git config user.name github-actions[bot]
         git config user.email "github-actions[bot]@users.noreply.github.com"
 
-        git worktree add /tmp/coverage-ref coverage-reference
+        cd covref
 
         echo "=== clear out old reports for this branch ==="
-        cd /tmp/coverage-ref
         find . -path "./${BRANCH}_*" ! -name "index.html" -type f -delete
         find . -path "./${BRANCH}_*" -type d -empty -delete
         # replace contents of ./${BRANCH}_*/index.html with a message: "Outdated coverage report.  Repository has been updated since."
@@ -111,18 +109,17 @@ jobs:
         done
 
         if [ "${{ steps.comp-coverage.outputs.coverage_decreased }}" == "true" ]; then
-          cd -
-          mkdir /tmp/coverage-ref/${BRANCH}_${{ github.event.pull_request.head.sha }}/
-          cp -r coverage_output.txt htmlcov/ /tmp/coverage-ref/${BRANCH}_${{ github.event.pull_request.head.sha }}/.
+          echo "=== adding new coverage report ==="
+          mkdir ${BRANCH}_${{ github.event.pull_request.head.sha }}/
+          cp -r ../coverage_output.txt ../htmlcov/ ${BRANCH}_${{ github.event.pull_request.head.sha }}/.
 
-          cd /tmp/coverage-ref
           git add -f ${BRANCH}_${{ github.event.pull_request.head.sha }}/
         fi
 
         echo "=== git status after add ==="
-        cd /tmp/coverage-ref
         git status -s
 
+        echo "=== git commit and push ==="
         git commit -a --amend --no-edit || echo "No changes to commit"
         git push origin -f coverage-reference
 
