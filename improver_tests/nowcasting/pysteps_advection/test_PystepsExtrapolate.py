@@ -10,7 +10,6 @@ import unittest
 import iris
 import numpy as np
 import pytest
-from iris.tests import IrisTest
 
 from improver.nowcasting.pysteps_advection import PystepsExtrapolate
 from improver.synthetic_data.set_up_test_cubes import (
@@ -73,7 +72,7 @@ def _make_orogenh_cube(analysis_time, interval, max_lead_time):
     return orogenh_cube
 
 
-class Test_process(IrisTest):
+class Test_process(unittest.TestCase):
     """Test wrapper for pysteps semi-Lagrangian extrapolation"""
 
     def setUp(self):
@@ -130,7 +129,7 @@ class Test_process(IrisTest):
         self.assertIsInstance(result[0], iris.cube.Cube)
         self.assertIsInstance(result[0].data, np.ma.MaskedArray)
         self.assertEqual(result[0].data.dtype, np.float32)
-        self.assertArrayAlmostEqual(result[0].data, expected_analysis)
+        np.testing.assert_array_almost_equal(result[0].data, expected_analysis)
         # check for expected attributes
         self.assertEqual(result[0].attributes["source"], "MONOW")
         self.assertEqual(

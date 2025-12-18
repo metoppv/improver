@@ -1,0 +1,67 @@
+name: Master Update
+
+on:
+  push:
+    branches:
+      - master  # Triggers when commits are pushed or merged into master
+# on: [pull_request]  # uncomment for testing purposes
+
+jobs:
+  Test-Coverage:
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v5
+      with:
+        fetch-depth: 0
+
+    - name: Substitute branch name in environment files
+      run: |
+        sed -i "s/\${BRANCH_NAME}/master/g" envs/latest.yml
+      shell: bash
+
+    - name: Environment creation
+      uses: mamba-org/setup-micromamba@v2
+      with:
+        environment-file: envs/latest.yml
+        init-shell: bash
+        cache-environment: true
+
+    - name: Environment info
+      run: |
+        micromamba info
+        micromamba list
+      shell: bash -el {0}
+
+    - name: pytest
+      run: |
+          pytest --cov=improver --cov-report=term --cov-report=html | tee coverage_output.txt; test ${PIPESTATUS[0]} -eq 0
+      shell: micromamba-shell {0}
+
+    - name: Commit and push coverage report
+      run: |
+        git config user.name github-actions[bot]
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+        git worktree add /tmp/coverage-ref coverage-reference
+
+        rm -rf /tmp/coverage-ref/master/
+        mkdir /tmp/coverage-ref/master/
+
+        cp coverage_output.txt /tmp/coverage-ref/master/.
+        cp -r htmlcov/ /tmp/coverage-ref/master/.
+
+        cd /tmp/coverage-ref
+        git add -f master/
+
+        # identify directories who's creation date is older than 14 days (excluding master/) and remove them
+        find . -maxdepth 1 -type d ! -name 'master' ! -name '.' -mtime +14 -exec git rm -rf {} +
+
+        echo "=== git status after add ==="
+        git status -s
+
+        git commit -a --amend --no-edit || echo "No changes to commit"
+        git push origin -f coverage-reference
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
