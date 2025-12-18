@@ -6,7 +6,6 @@
 Tests for the temporal-interpolate CLI
 """
 
-import urllib.parse
 import urllib.request
 
 import pytest
