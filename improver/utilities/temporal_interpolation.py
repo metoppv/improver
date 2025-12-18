@@ -4,6 +4,7 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Class for Temporal Interpolation calculations."""
 
+import json
 from datetime import datetime, timedelta
 from typing import Any, List, Optional, Tuple, Union
 
@@ -174,7 +175,7 @@ class TemporalInterpolation(BasePlugin):
             )
         self.interpolation_method = interpolation_method
 
-        # GoogleFilm-specific parameters
+        # Google Film-specific parameters
         if interpolation_method == "google_film":
             if model_path is None:
                 raise ValueError(
@@ -736,7 +737,7 @@ class ForecastPeriodGapFiller(BasePlugin):
     2. Identify missing forecast periods (gaps)
     3. Optionally identify periods to regenerate based on cluster sources
     4. Use TemporalInterpolation to fill gaps
-    5. Return a complete CubeList with all forecast periods
+    5. Return a Cube with all forecast periods
     """
 
     def __init__(
@@ -855,7 +856,10 @@ class ForecastPeriodGapFiller(BasePlugin):
 
         Raises:
             ValueError: If the cluster_sources_attribute is not found on the cube.
-            ValueError: If the cluster sources dictionary is not properly formatted.
+            ValueError: If the cluster sources attribute is not a dictionary.
+            ValueError: If the cluster sources JSON string cannot be parsed.
+            ValueError: If the sources for a realization are not a dictionary.
+            ValueError: If the periods for a source are not a list.
         """
         if self.cluster_sources_attribute is None:
             return {}
@@ -871,12 +875,10 @@ class ForecastPeriodGapFiller(BasePlugin):
 
         # Parse JSON string if needed
         if isinstance(cluster_sources, str):
-            import json
-
             try:
                 cluster_sources = json.loads(cluster_sources)
-            except json.JSONDecodeError as e:
-                raise ValueError(f"Failed to parse cluster sources JSON: {e}")
+            except json.JSONDecodeError as err:
+                raise ValueError(f"Failed to parse cluster sources JSON: {err}")
 
         # Validate dictionary structure
         if not isinstance(cluster_sources, dict):
@@ -965,10 +967,10 @@ class ForecastPeriodGapFiller(BasePlugin):
 
         periods_to_regenerate = []
 
-        # Check first cube for cluster sources
         if not cubelist:
             return []
 
+        # Check first cube for cluster sources
         first_cube = cubelist[0]
         if self.cluster_sources_attribute not in first_cube.attributes:
             return []
