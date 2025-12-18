@@ -6,6 +6,8 @@
 Tests for the threshold CLI
 """
 
+import warnings
+
 import pytest
 
 from . import acceptance as acc
@@ -98,10 +100,9 @@ def test_collapse_realization(tmp_path):
         "--collapse-coord",
         "realization",
     ]
-    with pytest.warns() as record:
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
         run_cli(args)
-    for msg in record:
-        assert "Blending masked data without spatial" not in str(msg.message)
     acc.compare(output_path, kgo_path)
 
 

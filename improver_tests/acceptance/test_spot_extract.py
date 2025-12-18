@@ -6,6 +6,8 @@
 Tests for the spot-extract CLI
 """
 
+import warnings
+
 import pytest
 from iris.exceptions import CoordinateNotFoundError
 
@@ -335,11 +337,9 @@ def test_percentile_deterministic_quiet(tmp_path):
         UK_SPOT_TITLE,
         "--suppress-warnings",
     ]
-    with pytest.warns(UserWarning) as collected_warns:
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
         run_cli(args)
-
-    msg = "Diagnostic cube is not a known probabilistic type."
-    assert all([msg not in str(warning.message) for warning in collected_warns])
     acc.compare(output_path, kgo_path)
 
 
