@@ -93,7 +93,7 @@ class TemporalInterpolation(BasePlugin):
         min: bool = False,
         model_path: Optional[str] = None,
         scaling: str = "minmax",
-        clipping_bounds: Tuple[float, float] = (0.0, 1.0),
+        clipping_bounds: Optional[Tuple[float, float]] = (0.0, 1.0),
     ) -> None:
         """
         Initialise class.
@@ -747,7 +747,7 @@ class ForecastPeriodGapFiller(BasePlugin):
         interpolation_window_in_hours: Optional[int] = None,
         model_path: Optional[str] = None,
         scaling: str = "minmax",
-        clipping_bounds: Union[Tuple[float, float], List[float]] = (0.0, 1.0),
+        clipping_bounds: Optional[Union[Tuple[float, float], List[float]]] = (0.0, 1.0),
         **kwargs,
     ) -> None:
         """Initialize the ForecastPeriodGapFiller.
@@ -783,11 +783,10 @@ class ForecastPeriodGapFiller(BasePlugin):
         self.model_path = model_path
         self.scaling = scaling
         # Convert clipping_bounds to tuple if it's a list
-        self.clipping_bounds = (
-            tuple(clipping_bounds)
-            if isinstance(clipping_bounds, list)
-            else clipping_bounds
-        )
+        if clipping_bounds is not None and isinstance(clipping_bounds, list):
+            self.clipping_bounds = tuple(clipping_bounds)
+        else:
+            self.clipping_bounds = clipping_bounds
         self.kwargs = kwargs
 
     def _get_forecast_periods(self, cubelist: CubeList) -> List[int]:
@@ -981,7 +980,7 @@ class ForecastPeriodGapFiller(BasePlugin):
 
         # Get all realization indices
         if first_cube.coords("realization"):
-            realization_indices = first_cube.coord("realization").points
+            realization_indices = range(first_cube.coord("realization").points.size)
         else:
             return []
 
@@ -1311,7 +1310,7 @@ class GoogleFilmInterpolation:
         self,
         model_path: str,
         scaling: str = "minmax",
-        clipping_bounds: Tuple[float, float] = (0.0, 1.0),
+        clipping_bounds: Optional[Tuple[float, float]] = (0.0, 1.0),
         cluster_sources_attribute: Optional[str] = None,
         interpolation_window_in_hours: Optional[int] = None,
     ) -> None:
@@ -1422,15 +1421,16 @@ class GoogleFilmInterpolation:
 
     def apply_clipping(self, interpolated: Cube) -> None:
         """Clip the interpolated cube data to be within the bounds of the
-        input cubes.
+        input cubes, if clipping_bounds is not None.
 
         Args:
             interpolated:
                 The interpolated cube.
         """
-        interpolated.data = np.clip(
-            interpolated.data, self.clipping_bounds[0], self.clipping_bounds[1]
-        )
+        if self.clipping_bounds is not None:
+            interpolated.data = np.clip(
+                interpolated.data, self.clipping_bounds[0], self.clipping_bounds[1]
+            )
 
     def run_google_film(
         self, cube1: Cube, cube2: Cube, model: Any, time_point: float
@@ -1495,25 +1495,34 @@ class GoogleFilmInterpolation:
             ValueError: If cube1 or cube2 do not have realization coordinates.
             ValueError: If cube1 and cube2 have different numbers of realizations.
         """
-        # Validate that both cubes have realization coordinates
-        if not cube1.coords("realization"):
-            raise ValueError(
-                "cube1 must have a realization coordinate for GoogleFilmInterpolation."
-            )
-        if not cube2.coords("realization"):
-            raise ValueError(
-                "cube2 must have a realization coordinate for GoogleFilmInterpolation."
-            )
 
-        # Validate that both cubes have the same number of realizations
-        n_realizations_1 = len(cube1.coord("realization").points)
-        n_realizations_2 = len(cube2.coord("realization").points)
-        if n_realizations_1 != n_realizations_2:
+        # Identify spatial dims
+        spatial_dims = [
+            "projection_x_coordinate",
+            "projection_y_coordinate",
+            "latitude",
+            "longitude",
+        ]
+        extra_dims = [
+            coord.name()
+            for coord in cube1.coords(dim_coords=True)
+            if coord.name() not in spatial_dims and coord.ndim == 1
+        ]
+
+        if len(extra_dims) > 1:
             raise ValueError(
-                f"Input cubes must have the same number of realizations. "
-                f"cube1 has {n_realizations_1} realizations, "
-                f"cube2 has {n_realizations_2} realizations."
+                "Only one additional dimension (apart from spatial) is supported."
             )
+        extra_dim = extra_dims[0] if extra_dims else None
+
+        if extra_dim:
+            # Ensure both cubes have the same extra dim points
+            points1 = cube1.coord(extra_dim).points
+            points2 = cube2.coord(extra_dim).points
+            if not np.array_equal(points1, points2):
+                raise ValueError(
+                    f"Coordinate '{extra_dim}' does not match between cubes."
+                )
 
         model = self.load_model(self.model_path)
 
@@ -1536,18 +1545,25 @@ class GoogleFilmInterpolation:
             # Calculate fraction (0 to 1) between the two input times
             time_fraction = (target_seconds - t0) / time_range
 
-            realization_slices = CubeList([])
-            for cube1_slice, cube2_slice in zip(
-                cube1.slices_over("realization"), cube2.slices_over("realization")
-            ):
-                temporary_interpolated_cube = self.run_google_film(
-                    cube1_slice, cube2_slice, model, time_fraction
+            if extra_dim:
+                slices = CubeList([])
+                for cube1_slice, cube2_slice in zip(
+                    cube1.slices_over(extra_dim), cube2.slices_over(extra_dim)
+                ):
+                    temporary_interpolated_cube = self.run_google_film(
+                        cube1_slice, cube2_slice, model, time_fraction
+                    )
+                    slices.append(temporary_interpolated_cube)
+                temporary_interpolated_cube = slices.merge_cube()
+                interpolated_cube = template_slice.copy()
+                interpolated_cube.data = temporary_interpolated_cube.data
+            else:
+                # No extra dim, just interpolate the 2D spatial slices
+                interpolated_cube = self.run_google_film(
+                    cube1, cube2, model, time_fraction
                 )
-                realization_slices.append(temporary_interpolated_cube)
-            temporary_interpolated_cube = realization_slices.merge_cube()
-
-            interpolated_cube = template_slice.copy()
-            interpolated_cube.data = temporary_interpolated_cube.data
+                # Copy metadata from template
+                interpolated_cube = template_slice.copy(data=interpolated_cube.data)
 
             # Apply clipping and reverse scaling
             self.apply_clipping(interpolated_cube)

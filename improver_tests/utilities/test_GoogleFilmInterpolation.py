@@ -80,7 +80,7 @@ def test_google_film_init_default_values():
     plugin = GoogleFilmInterpolation(model_path=model_path)
 
     assert plugin.model_path == model_path
-    assert plugin.scaling == "log10"
+    assert plugin.scaling == "minmax"
     assert plugin.clipping_bounds == (0.0, 1.0)
 
 

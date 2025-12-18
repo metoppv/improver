@@ -90,9 +90,9 @@ def test_process_no_gaps():
     plugin = ForecastPeriodGapFiller(interval_in_minutes=180)
     result = plugin.process(cubelist)
 
-    assert len(result) == 3
+    assert result.shape[0] == 3
     # Check that forecast periods match
-    for orig, res in zip(cubelist, result):
+    for orig, res in zip(cubelist, result.slices_over("time")):
         assert (
             orig.coord("forecast_period").points[0]
             == res.coord("forecast_period").points[0]
@@ -107,17 +107,18 @@ def test_process_fills_single_gap():
     plugin = ForecastPeriodGapFiller(interval_in_minutes=180)
     result = plugin.process(cubelist)
 
-    # Should now have 3 cubes: T+3, T+6 (filled), T+9
-    assert len(result) == 3
+    # Should now have 3 time points: T+3, T+6 (filled), T+9
+    assert result.shape[0] == 3
 
     # Check forecast periods are correct
     result_periods = [
-        int(round(cube.coord("forecast_period").points[0] / 3600)) for cube in result
+        int(round(cube.coord("forecast_period").points[0] / 3600))
+        for cube in result.slices_over("time")
     ]
     assert result_periods == [3, 6, 9]
 
     # Check interpolated data is the midpoint (linear interpolation)
-    assert np.allclose(result[1].data, 4.0)
+    assert np.allclose(list(result.slices_over("time"))[1].data, 4.0)
 
 
 def test_process_fills_multiple_gaps():
@@ -128,12 +129,13 @@ def test_process_fills_multiple_gaps():
     plugin = ForecastPeriodGapFiller(interval_in_minutes=180)
     result = plugin.process(cubelist)
 
-    # Should now have 5 cubes: T+3, T+6, T+9, T+12, T+15
-    assert len(result) == 5
+    # Should now have 5 time points: T+3, T+6, T+9, T+12, T+15
+    assert result.shape[0] == 5
 
     # Check forecast periods are correct
     result_periods = [
-        int(round(cube.coord("forecast_period").points[0] / 3600)) for cube in result
+        int(round(cube.coord("forecast_period").points[0] / 3600))
+        for cube in result.slices_over("time")
     ]
     assert result_periods == [3, 6, 9, 12, 15]
 
@@ -154,10 +156,11 @@ def test_process_with_realizations():
     plugin = ForecastPeriodGapFiller(interval_in_minutes=180)
     result = plugin.process(cubelist)
 
-    # Should have 3 cubes with 3 realizations each
-    assert len(result) == 3
-    assert all(cube.coords("realization") for cube in result)
-    assert all(len(cube.coord("realization").points) == 3 for cube in result)
+    # Should have 3 time points with 3 realizations each
+    assert result.shape[0] == 3
+    cubes = list(result.slices_over("time"))
+    assert all(cube.coords("realization") for cube in cubes)
+    assert all(len(cube.coord("realization").points) == 3 for cube in cubes)
 
 
 def test_process_unsorted_input():
@@ -170,7 +173,8 @@ def test_process_unsorted_input():
 
     # Result should be sorted by forecast period
     result_periods = [
-        int(round(cube.coord("forecast_period").points[0] / 3600)) for cube in result
+        int(round(cube.coord("forecast_period").points[0] / 3600))
+        for cube in result.slices_over("time")
     ]
     assert result_periods == [3, 6, 9]
 
@@ -233,17 +237,19 @@ def test_process_with_google_film_method(monkeypatch):
     result = plugin.process(cubelist)
 
     # Should have 3 cubes including the interpolated one
-    assert len(result) == 3
+    assert result.shape[0] == 3
 
     # Check forecast periods
     result_periods = [
-        int(round(cube.coord("forecast_period").points[0] / 3600)) for cube in result
+        int(round(cube.coord("forecast_period").points[0] / 3600))
+        for cube in result.slices_over("time")
     ]
     assert result_periods == [
         6,
         9,
         12,
-    ]  # Times 3h and 9h with 6h interval → periods T+6, T+9(gap), T+12
+    ]  # Times 3h and 9h with 6h interval results in forecast periods
+    # of T+6, T+9(gap), T+12
 
 
 def test_process_with_hourly_interval():
@@ -254,9 +260,10 @@ def test_process_with_hourly_interval():
     result = plugin.process(cubelist)
 
     # Should fill T+4 and T+5
-    assert len(result) == 4
+    assert result.shape[0] == 4
     result_periods = [
-        int(round(cube.coord("forecast_period").points[0] / 3600)) for cube in result
+        int(round(cube.coord("forecast_period").points[0] / 3600))
+        for cube in result.slices_over("time")
     ]
     assert result_periods == [3, 4, 5, 6]
 
@@ -273,4 +280,4 @@ def test_process_maintains_metadata():
     result = plugin.process(cubelist)
 
     # Interpolated cube should have the same attribute
-    assert "test_attribute" in result[1].attributes
+    assert "test_attribute" in list(result.slices_over("time"))[1].attributes

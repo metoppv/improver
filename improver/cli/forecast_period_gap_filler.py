@@ -18,7 +18,7 @@ def process(
     interpolation_window_in_hours: int = None,
     model_path: str = None,
     scaling: str = "minmax",
-    clipping_bounds: cli.comma_separated_list = None,
+    clipping_bounds: cli.comma_separated_list = (0.0, 1.0),
 ):
     """Fill gaps in forecast period sequences using temporal interpolation.
 

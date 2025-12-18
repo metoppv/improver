@@ -6,6 +6,9 @@
 Tests for the temporal-interpolate CLI
 """
 
+import urllib.parse
+import urllib.request
+
 import pytest
 
 from . import acceptance as acc
@@ -137,6 +140,15 @@ def test_accumulation(tmp_path):
 @pytest.mark.slow
 def test_google_film(tmp_path):
     """Test interpolation using google_film method with deep learning model."""
+    model_url = "https://tfhub.dev/google/film/1"
+
+    try:
+        with urllib.request.urlopen(model_url) as response:  # noqa: S310
+            if response.status != 200:
+                pytest.skip(f"Google FILM model not available at {model_url}")
+    except Exception:
+        pytest.skip(f"Google FILM model not available at {model_url}")
+
     kgo_dir = acc.kgo_root() / "temporal-interpolate/google_film"
     kgo_path = kgo_dir / "kgo.nc"
     input_paths = [
@@ -151,7 +163,7 @@ def test_google_film(tmp_path):
         "--interpolation-method",
         "google_film",
         "--model-path",
-        "https://tfhub.dev/google/film/1",
+        model_url,
         "--output",
         output_path,
     ]

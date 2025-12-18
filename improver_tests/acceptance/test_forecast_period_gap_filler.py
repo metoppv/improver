@@ -25,8 +25,8 @@ def test_fill_gaps(tmp_path):
 
     # Input files at T+3 and T+9 (T+6 is missing and should be filled)
     input_files = [
-        kgo_dir / "20251209T0300Z-PT0003H00M-precip_rate.nc",
-        kgo_dir / "20251209T0900Z-PT0009H00M-precip_rate.nc",
+        kgo_dir / "20251217T0300Z-PT0003H00M-precip_rate.nc",
+        kgo_dir / "20251217T0900Z-PT0009H00M-precip_rate.nc",
     ]
 
     output_path = tmp_path / "output.nc"
@@ -41,6 +41,7 @@ def test_fill_gaps(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
+@pytest.mark.slow
 def test_regenerate_at_source_transitions(tmp_path):
     """
     Test regenerating forecast periods at source transitions using cluster sources.
@@ -54,13 +55,15 @@ def test_regenerate_at_source_transitions(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
 
     # Input file containing cluster sources attribute
-    input_file = kgo_dir / "20251209T0000Z-precip_rate.nc"
+    input_file = kgo_dir / "20251217T0000Z-precip_rate.nc"
 
     output_path = tmp_path / "output.nc"
     args = [
         input_file,
         "--interval-in-mins",
         "180",
+        "--interpolation-method",
+        "linear",
         "--cluster-sources-attribute",
         "cluster_sources",
         "--interpolation-window-in-hours",
