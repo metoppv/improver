@@ -6,8 +6,6 @@
 Tests for the threshold CLI
 """
 
-import warnings
-
 import pytest
 
 from . import acceptance as acc
@@ -83,7 +81,7 @@ def test_args(tmp_path, extra_args, kgo_subdir):
     acc.compare(output_path, kgo_path)
 
 
-def test_collapse_realization(tmp_path):
+def test_collapse_realization(tmp_path, recwarn):
     """Test thresholding with collapsing realizations. Ensure that in this case,
     using unmasked data, that no warning is raised in relation to collapsing the
     coordinate."""
@@ -100,9 +98,10 @@ def test_collapse_realization(tmp_path):
         "--collapse-coord",
         "realization",
     ]
-    with warnings.catch_warnings():
-        warnings.simplefilter("error")
-        run_cli(args)
+
+    run_cli(args)
+    msg = "Diagnostic cube is not a known probabilistic type."
+    assert all([msg not in str(warning.message) for warning in recwarn])
     acc.compare(output_path, kgo_path)
 
 
