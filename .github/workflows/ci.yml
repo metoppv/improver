@@ -44,7 +44,22 @@ jobs:
         path: covref
         ref: coverage-reference
 
+    - name: Branch name
+      run: |
+        branch=$(echo "${GITHUB_HEAD_REF#refs/heads/}")
+        echo "BRANCH=$branch" | tee -a $GITHUB_ENV
+
+    - name: Restore cached coverage report
+      uses: actions/cache/restore@v5
+      id: report-cache-restore
+      with:
+        path: |
+          coverage_output.txt
+          htmlcov/
+        key: coverage_report_${{ hashFiles('envs/latest.yml', 'improver/**/*.py', 'improver_tests/**/*.py') }}
+
     - name: Environment creation
+      if: steps.report-cache-restore.outputs.cache-hit != 'true'
       uses: mamba-org/setup-micromamba@v2
       with:
         environment-file: envs/latest.yml
@@ -52,20 +67,26 @@ jobs:
         cache-environment: true
 
     - name: Environment info
+      if: steps.report-cache-restore.outputs.cache-hit != 'true'
       run: |
         micromamba info
         micromamba list
       shell: bash -el {0}
 
-    - name: Branch name
-      run: |
-        branch=$(echo "${GITHUB_HEAD_REF#refs/heads/}")
-        echo "BRANCH=$branch" | tee -a $GITHUB_ENV
-
     - name: pytest
+      if: steps.report-cache-restore.outputs.cache-hit != 'true'
       run: |
           pytest --cov=improver --cov-report=term --cov-report=html | tee coverage_output.txt; test ${PIPESTATUS[0]} -eq 0
       shell: micromamba-shell {0}
+
+    - name: Save cached coverage report
+      uses: actions/cache/restore@v5
+      id: report-cache-save
+      with:
+        path: |
+          coverage_output.txt
+          htmlcov/
+        key: ${{ steps.report-cache-restore.outputs.cache-primary-key }}
 
     - name: Compare coverage
       id: comp-coverage
