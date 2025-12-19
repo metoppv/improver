@@ -927,3 +927,32 @@ def test_validate_output_range_skips_undefined_outputs() -> None:
         result = plugin.process(CubeList(cubes))
 
     assert isinstance(result, Cube)
+
+
+def test_abstract_calculate_raises_not_implemented_error() -> None:
+    """Test that _calculate raises NotImplementedError if not overridden.
+
+    This verifies that the base class properly enforces implementation
+    of the abstract _calculate method.
+    """
+
+    class IncompleteFireWeatherIndex(FireWeatherIndexBase):
+        """Test class that calls base class _calculate."""
+
+        INPUT_CUBE_NAMES = ["air_temperature"]
+        OUTPUT_CUBE_NAME = "test_index"
+        REQUIRES_MONTH = False
+
+        def _calculate(self) -> np.ndarray:
+            """Call parent _calculate to trigger NotImplementedError."""
+            return super()._calculate()
+
+    cubes = [make_cube(np.full((5, 5), 20.0), "air_temperature", "Celsius")]
+    plugin = IncompleteFireWeatherIndex()
+
+    # Should raise NotImplementedError when trying to process
+    with pytest.raises(
+        NotImplementedError,
+        match="Subclasses must implement the _calculate method",
+    ):
+        plugin.process(CubeList(cubes))

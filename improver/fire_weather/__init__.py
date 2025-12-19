@@ -266,10 +266,10 @@ class FireWeatherIndexBase(BasePlugin):
         This method must be implemented by subclasses to perform
         the specific calculation logic for that component.
 
-        Returns:
-            np.ndarray: The calculated output data.
+        Raises:
+            NotImplementedError: This method must be implemented by subclasses.
         """
-        pass  # pragma: no cover
+        raise NotImplementedError("Subclasses must implement the _calculate method.")
 
     def process(self, cubes: tuple[Cube] | CubeList, month: int | None = None) -> Cube:
         """Calculate the fire weather index component.
