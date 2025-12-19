@@ -128,7 +128,7 @@ jobs:
 
     - name: Coverage report PR comment
       if: steps.comp-coverage.outputs.coverage_decreased == 'true'
-      uses: actions/github-script@v7
+      uses: actions/github-script@v8
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
