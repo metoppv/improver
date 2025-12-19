@@ -2,6 +2,7 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
+import warnings
 
 import numpy as np
 import pytest
@@ -48,7 +49,9 @@ def input_cubes(
 
 
 def test_input_attribute_mapping() -> None:
-    """Test that INPUT_ATTRIBUTE_MAPPINGS correctly disambiguates input DC."""
+    """Test that INPUT_ATTRIBUTE_MAPPINGS correctly stored inputted `drought_code`
+    cubes as `input_dc`, while not changing the cube's metadata.
+    """
     cubes = input_cubes()
     plugin = DroughtCode()
     plugin.load_input_cubes(CubeList(cubes), month=7)
@@ -425,45 +428,36 @@ def test_invalid_input_ranges_raise_errors(
         plugin.load_input_cubes(CubeList(cubes), month=7)
 
 
+TEMP_VAL, PRECIP_VAL, DC_VAL = 20.0, 1.0, 15.0
+
+
 @pytest.mark.parametrize(
-    "invalid_input_type,expected_error",
+    "temp_val, precip_val, dc_val, expected_error",
     [
-        ("temperature_nan", "temperature contains NaN"),
-        ("temperature_inf", "temperature contains infinite"),
-        ("precipitation_nan", "precipitation contains NaN"),
-        ("precipitation_inf", "precipitation contains infinite"),
-        ("input_dc_nan", "input_dc contains NaN"),
-        ("input_dc_inf", "input_dc contains infinite"),
+        (np.nan, PRECIP_VAL, DC_VAL, "temperature contains NaN"),
+        (np.inf, PRECIP_VAL, DC_VAL, "temperature contains infinite"),
+        (TEMP_VAL, np.nan, DC_VAL, "precipitation contains NaN"),
+        (TEMP_VAL, np.inf, DC_VAL, "precipitation contains infinite"),
+        (TEMP_VAL, PRECIP_VAL, np.nan, "input_dc contains NaN"),
+        (TEMP_VAL, PRECIP_VAL, np.inf, "input_dc contains infinite"),
     ],
 )
 def test_nan_and_inf_values_raise_errors(
-    invalid_input_type: str, expected_error: str
+    temp_val: float,
+    precip_val: float,
+    dc_val: float,
+    expected_error: str,
 ) -> None:
-    """Test that NaN and Inf values in inputs raise appropriate ValueError.
-
-    Verifies that the validation catches non-finite values (NaN, Inf) in input data.
+    """Test that NaN and infinite input values raise appropriate ValueError.
+    Verifies that the base class validation catches NaN and infinite input values
+    and raises descriptive errors.
 
     Args:
-        invalid_input_type (str): Which input to make invalid and how.
+        temp_val (float): Temperature value for all grid points.
+        precip_val (float): Precipitation value for all grid points.
+        dc_val (float): DC value for all grid points.
         expected_error (str): Expected error message substring.
     """
-    # Start with valid values
-    temp_val, precip_val, dc_val = 20.0, 1.0, 15.0
-
-    # Replace the appropriate value with NaN or Inf
-    if invalid_input_type == "temperature_nan":
-        temp_val = np.nan
-    elif invalid_input_type == "temperature_inf":
-        temp_val = np.inf
-    elif invalid_input_type == "precipitation_nan":
-        precip_val = np.nan
-    elif invalid_input_type == "precipitation_inf":
-        precip_val = np.inf
-    elif invalid_input_type == "input_dc_nan":
-        dc_val = np.nan
-    elif invalid_input_type == "input_dc_inf":
-        dc_val = np.inf
-
     cubes = input_cubes(temp_val, precip_val, dc_val)
     plugin = DroughtCode()
 
@@ -480,9 +474,6 @@ def test_output_validation_no_warning_for_valid_output() -> None:
     # Use normal valid inputs
     cubes = input_cubes(temp_val=20.0, precip_val=0.0, dc_val=50.0)
     plugin = DroughtCode()
-
-    # Process should complete without warnings since output stays in valid range
-    import warnings
 
     with warnings.catch_warnings():
         warnings.simplefilter("error")  # Turn warnings into errors

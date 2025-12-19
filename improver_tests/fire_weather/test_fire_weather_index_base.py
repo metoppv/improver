@@ -774,8 +774,6 @@ class ConcreteFireWeatherIndexForOutputValidation(FireWeatherIndexBase):
 
 def test_validate_output_range_no_warning_for_valid_output() -> None:
     """Test that _validate_output_range does not warn for valid output values."""
-    import warnings
-
     cubes = input_cubes_basic(temp_val=20.0, rh_val=50.0)
     plugin = ConcreteFireWeatherIndexForOutputValidation()
 
