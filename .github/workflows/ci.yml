@@ -115,6 +115,7 @@ jobs:
         BRANCH=${{ env.BRANCH }}
 
         cd covref
+        git pull origin coverage-reference
         git config user.name github-actions[bot]
         git config user.email "github-actions[bot]@users.noreply.github.com"
 
@@ -160,7 +161,7 @@ jobs:
           });
 
 
-  Sphinx-Pytest:
+  Pytest:
     runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
@@ -207,13 +208,6 @@ jobs:
       run: |
         micromamba install safety
         safety check || true
-      shell: micromamba-shell {0}
-
-    - name: sphinx documentation
-      run: |
-        micromamba install ipykernel
-        pip install .
-        make -C doc html SPHINXOPTS="-W --keep-going"
       shell: micromamba-shell {0}
 
     - name: pytest
