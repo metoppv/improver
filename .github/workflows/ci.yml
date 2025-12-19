@@ -80,7 +80,7 @@ jobs:
       shell: micromamba-shell {0}
 
     - name: Save cached coverage report
-      uses: actions/cache/restore@v5
+      uses: actions/cache/save@v5
       id: report-cache-save
       with:
         path: |
