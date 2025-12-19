@@ -30,7 +30,7 @@ class FireWeatherIndexBase(BasePlugin):
     The Canadian Forest Fire Weather Index System requires specific units
     for all calculations. These are fixed and cannot be overridden:
 
-    - Temperature: degrees Celsius (degC)
+    - Temperature: degrees Celsius (Celsius)
     - Precipitation: millimeters (mm)
     - Relative humidity: dimensionless fraction (1)
     - Wind speed: kilometers per hour (km/h)
@@ -50,7 +50,7 @@ class FireWeatherIndexBase(BasePlugin):
     # Fixed unit conversions for all cube types used in fire weather calculations
     # These units are required by the Canadian FWI System and cannot be changed
     _REQUIRED_UNITS: dict[str, str] = {
-        "temperature": "degC",
+        "temperature": "Celsius",
         "precipitation": "mm",
         "relative_humidity": "1",
         "wind_speed": "km/h",
@@ -266,10 +266,10 @@ class FireWeatherIndexBase(BasePlugin):
         This method must be implemented by subclasses to perform
         the specific calculation logic for that component.
 
-        Returns:
-            np.ndarray: The calculated output data.
+        Raises:
+            NotImplementedError: This method must be implemented by subclasses.
         """
-        pass  # pragma: no cover
+        raise NotImplementedError("Subclasses must implement the _calculate method.")
 
     def process(self, cubes: tuple[Cube] | CubeList, month: int | None = None) -> Cube:
         """Calculate the fire weather index component.
