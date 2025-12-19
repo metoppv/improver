@@ -52,7 +52,7 @@ class InitialSpreadIndex(FireWeatherIndexBase):
         wind_function = self._calculate_wind_function()
         spread_factor = self._calculate_spread_factor()
 
-        # Step 3: Calculate ISI
+        # Step 2: Calculate ISI
         initial_spread_index = self._calculate_isi(spread_factor, wind_function)
 
         return initial_spread_index
@@ -62,7 +62,6 @@ class InitialSpreadIndex(FireWeatherIndexBase):
 
         From Van Wagner and Pickett (1985), Page 5: Equation 1.
         """
-        # Equation 24: Calculate fine fuel moisture content from FFMC
         self.moisture_content = (
             147.2 * (101.0 - self.input_ffmc.data) / (59.5 + self.input_ffmc.data)
         )
