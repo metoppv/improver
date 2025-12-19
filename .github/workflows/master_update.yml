@@ -55,8 +55,8 @@ jobs:
         rm -rf master/
         mkdir master/
 
-        cp coverage_output.txt ../master/.
-        cp -r htmlcov/ ../master/.
+        cp ../coverage_output.txt master/.
+        cp -r ../htmlcov/ master/.
         git add -f master/
 
         # identify directories who's creation date is older than 14 days (excluding master/) and remove them
