@@ -74,17 +74,21 @@ def test__calculate(
     assert np.allclose(dsr, expected_dsr, rtol=1e-2, atol=0.1)
 
 
-def test__calculate_no_negative_values() -> None:
-    """Test that DSR calculation never produces negative values."""
-    # Test a range of FWI values within the valid range
-    fwi_values = np.array([0.0, 1.0, 5.0, 10.0, 25.0, 50.0, 100.0])
+@pytest.mark.parametrize(
+    "fwi_val",
+    [0.0, 1.0, 5.0, 10.0, 25.0, 50.0, 100.0],
+)
+def test__calculate_no_negative_values(fwi_val: float) -> None:
+    """Test that DSR calculation never produces negative values.
 
-    for fwi in fwi_values:
-        cubes = input_cubes(fwi_val=fwi)
-        plugin = FireSeverityIndex()
-        plugin.load_input_cubes(CubeList(cubes))
-        dsr = plugin._calculate()
-        assert np.all(dsr >= 0.0), f"Negative DSR for FWI={fwi}"
+    Args:
+        fwi_val (float): Fire Weather Index value to test.
+    """
+    cubes = input_cubes(fwi_val=fwi_val)
+    plugin = FireSeverityIndex()
+    plugin.load_input_cubes(CubeList(cubes))
+    dsr = plugin._calculate()
+    assert np.all(dsr >= 0.0), f"Negative DSR for FWI={fwi_val}"
 
 
 def test__calculate_spatially_varying() -> None:
@@ -272,32 +276,21 @@ def test_invalid_input_ranges_raise_errors(fwi_val: float, expected_error: str) 
 
 
 @pytest.mark.parametrize(
-    "invalid_input_type,expected_error",
+    "fwi_val, expected_error",
     [
-        ("fwi_nan", "canadian_forest_fire_weather_index contains NaN"),
-        ("fwi_inf", "canadian_forest_fire_weather_index contains infinite"),
+        (np.nan, "canadian_forest_fire_weather_index contains NaN"),
+        (np.inf, "canadian_forest_fire_weather_index contains infinite"),
     ],
 )
-def test_nan_and_inf_values_raise_errors(
-    invalid_input_type: str, expected_error: str
-) -> None:
+def test_nan_and_inf_values_raise_errors(fwi_val: float, expected_error: str) -> None:
     """Test that NaN and Inf values in inputs raise appropriate ValueError.
 
     Verifies that the validation catches non-finite values (NaN, Inf) in input data.
 
     Args:
-        invalid_input_type (str): Which input to make invalid and how.
+        fwi_val (float): Fire Weather Index value to use (NaN or Inf).
         expected_error (str): Expected error message substring.
     """
-    # Start with valid value
-    fwi_val = 25.0
-
-    # Replace with NaN or Inf
-    if invalid_input_type == "fwi_nan":
-        fwi_val = np.nan
-    elif invalid_input_type == "fwi_inf":
-        fwi_val = np.inf
-
     cubes = input_cubes(fwi_val=fwi_val)
     plugin = FireSeverityIndex()
 
