@@ -15,7 +15,7 @@ jobs:
     - name: Checkout dev branch
       uses: actions/checkout@v6
       with:
-        fetch-depth: 0
+        fetch-depth: 1
 
     - name: Substitute branch name in environment file
       run: |
@@ -40,12 +40,26 @@ jobs:
     - name: Checkout reference coverage report
       uses: actions/checkout@v6
       with:
-        fetch-depth: 0
+        fetch-depth: 1
         path: covref
-        sparse-checkout: master/coverage_output.txt
         ref: coverage-reference
 
+    - name: Branch name
+      run: |
+        branch=$(echo "${GITHUB_HEAD_REF#refs/heads/}")
+        echo "BRANCH=$branch" | tee -a $GITHUB_ENV
+
+    - name: Restore cached coverage report
+      uses: actions/cache/restore@v5
+      id: report-cache-restore
+      with:
+        path: |
+          coverage_output.txt
+          htmlcov/
+        key: coverage_report_${{ hashFiles('envs/latest.yml', 'improver/**/*.py', 'improver_tests/**/*.py') }}
+
     - name: Environment creation
+      if: steps.report-cache-restore.outputs.cache-hit != 'true'
       uses: mamba-org/setup-micromamba@v2
       with:
         environment-file: envs/latest.yml
@@ -53,25 +67,31 @@ jobs:
         cache-environment: true
 
     - name: Environment info
+      if: steps.report-cache-restore.outputs.cache-hit != 'true'
       run: |
         micromamba info
         micromamba list
       shell: bash -el {0}
 
-    - name: Branch name
-      run: |
-        branch=$(echo "${GITHUB_HEAD_REF#refs/heads/}")
-        echo "BRANCH=$branch" | tee -a $GITHUB_ENV
-
     - name: pytest
+      if: steps.report-cache-restore.outputs.cache-hit != 'true'
       run: |
           pytest --cov=improver --cov-report=term --cov-report=html | tee coverage_output.txt; test ${PIPESTATUS[0]} -eq 0
       shell: micromamba-shell {0}
 
+    - name: Save cached coverage report
+      uses: actions/cache/save@v5
+      id: report-cache-save
+      with:
+        path: |
+          coverage_output.txt
+          htmlcov/
+        key: ${{ steps.report-cache-restore.outputs.cache-primary-key }}
+
     - name: Compare coverage
       id: comp-coverage
       run: |
-        ls -R covref/
+        ls -R covref/master/
 
         pr_cov=$(grep TOTAL coverage_output.txt | awk '{print $NF}' | awk '{print substr($0, 1, length($0)-1)}')
         echo "pr_cov=$pr_cov" | tee -a $GITHUB_OUTPUT
@@ -94,13 +114,11 @@ jobs:
       run: |
         BRANCH=${{ env.BRANCH }}
 
+        cd covref
         git config user.name github-actions[bot]
         git config user.email "github-actions[bot]@users.noreply.github.com"
 
-        git worktree add /tmp/coverage-ref coverage-reference
-
         echo "=== clear out old reports for this branch ==="
-        cd /tmp/coverage-ref
         find . -path "./${BRANCH}_*" ! -name "index.html" -type f -delete
         find . -path "./${BRANCH}_*" -type d -empty -delete
         # replace contents of ./${BRANCH}_*/index.html with a message: "Outdated coverage report.  Repository has been updated since."
@@ -111,18 +129,17 @@ jobs:
         done
 
         if [ "${{ steps.comp-coverage.outputs.coverage_decreased }}" == "true" ]; then
-          cd -
-          mkdir /tmp/coverage-ref/${BRANCH}_${{ github.event.pull_request.head.sha }}/
-          cp -r coverage_output.txt htmlcov/ /tmp/coverage-ref/${BRANCH}_${{ github.event.pull_request.head.sha }}/.
+          echo "=== adding new coverage report ==="
+          mkdir ${BRANCH}_${{ github.event.pull_request.head.sha }}/
+          cp -r ../coverage_output.txt ../htmlcov/ ${BRANCH}_${{ github.event.pull_request.head.sha }}/.
 
-          cd /tmp/coverage-ref
           git add -f ${BRANCH}_${{ github.event.pull_request.head.sha }}/
         fi
 
         echo "=== git status after add ==="
-        cd /tmp/coverage-ref
         git status -s
 
+        echo "=== git commit and push ==="
         git commit -a --amend --no-edit || echo "No changes to commit"
         git push origin -f coverage-reference
 
