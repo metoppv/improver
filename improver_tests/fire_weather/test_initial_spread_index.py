@@ -43,7 +43,10 @@ def input_cubes(
 
 
 def test_input_attribute_mapping() -> None:
-    """Test that INPUT_ATTRIBUTE_MAPPINGS correctly disambiguates input FFMC."""
+    """Test that INPUT_ATTRIBUTE_MAPPINGS correctly disambiguates input
+    `fine_fuel_moisture_content` cubes as `input_ffmc`, while not
+    changing the cube's metadata.
+    """
     cubes = input_cubes()
     plugin = InitialSpreadIndex()
     plugin.load_input_cubes(CubeList(cubes))
@@ -365,38 +368,30 @@ def test_invalid_input_ranges_raise_errors(
         plugin.load_input_cubes(CubeList(cubes))
 
 
+VALID_WIND_VAL, VALID_FFMC_VAL = 10.0, 85.0
+
+
 @pytest.mark.parametrize(
-    "invalid_input_type,expected_error",
+    "wind_val, ffmc_val, expected_error",
     [
-        ("wind_speed_nan", "wind_speed contains NaN"),
-        ("wind_speed_inf", "wind_speed contains infinite"),
-        ("input_ffmc_nan", "input_ffmc contains NaN"),
-        ("input_ffmc_inf", "input_ffmc contains infinite"),
+        (np.nan, VALID_FFMC_VAL, "wind_speed contains NaN"),
+        (np.inf, VALID_FFMC_VAL, "wind_speed contains infinite"),
+        (VALID_WIND_VAL, np.nan, "input_ffmc contains NaN"),
+        (VALID_WIND_VAL, np.inf, "input_ffmc contains infinite"),
     ],
 )
 def test_nan_and_inf_values_raise_errors(
-    invalid_input_type: str, expected_error: str
+    wind_val: float, ffmc_val: float, expected_error: str
 ) -> None:
     """Test that NaN and Inf values in inputs raise appropriate ValueError.
 
     Verifies that the validation catches non-finite values (NaN, Inf) in input data.
 
     Args:
-        invalid_input_type (str): Which input to make invalid and how.
+        wind_val (float): Wind speed value for all grid points.
+        ffmc_val (float): FFMC value for all grid points.
         expected_error (str): Expected error message substring.
     """
-    # Start with valid values
-    wind_val, ffmc_val = 10.0, 85.0
-
-    # Replace the appropriate value with NaN or Inf
-    if invalid_input_type == "wind_speed_nan":
-        wind_val = np.nan
-    elif invalid_input_type == "wind_speed_inf":
-        wind_val = np.inf
-    elif invalid_input_type == "input_ffmc_nan":
-        ffmc_val = np.nan
-    elif invalid_input_type == "input_ffmc_inf":
-        ffmc_val = -np.inf
 
     cubes = [
         make_cube(np.array([[wind_val]]), "wind_speed", "km/h"),
