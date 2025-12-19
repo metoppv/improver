@@ -39,9 +39,6 @@ class FireSeverityIndex(FireWeatherIndexBase):
 
         From Van Wagner and Pickett (1985), Page 8: Equation 31.
 
-        Equation 31:
-            DSR = 0.0272 * FWI^1.77
-
         Returns:
             np.ndarray: The calculated DSR values.
         """
