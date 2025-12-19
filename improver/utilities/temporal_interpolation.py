@@ -4,8 +4,9 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Class for Temporal Interpolation calculations."""
 
+import json
 from datetime import datetime, timedelta
-from typing import List, Optional, Tuple
+from typing import Any, List, Optional, Tuple, Union
 
 import iris
 import numpy as np
@@ -91,6 +92,9 @@ class TemporalInterpolation(BasePlugin):
         accumulation: bool = False,
         max: bool = False,
         min: bool = False,
+        model_path: Optional[str] = None,
+        scaling: str = "minmax",
+        clipping_bounds: Optional[Tuple[float, float]] = (0.0, 1.0),
     ) -> None:
         """
         Initialise class.
@@ -126,6 +130,17 @@ class TemporalInterpolation(BasePlugin):
                 period minimum. Trends between adjacent input periods will be used
                 to provide variation across the interpolated periods where these
                 are consistent with the inputs.
+            model_path:
+                Path to the TensorFlow Hub module for the Google FILM model.
+                Required if interpolation_method is "google_film".
+            scaling:
+                Scaling method to apply to the data before interpolation when
+                using "google_film" method. Supported methods are "log10" and
+                "minmax". Default is "minmax".
+            clipping_bounds:
+                A tuple specifying the (min, max) bounds to which to clip
+                the interpolated data when using "google_film" method.
+                Default is (0.0, 1.0).
 
         Raises:
             ValueError: If neither interval_in_minutes nor times are set.
@@ -134,6 +149,8 @@ class TemporalInterpolation(BasePlugin):
             ValueError: If multiple period diagnostic kwargs are set True.
             ValueError: A period diagnostic is being interpolated with a method
                         not found in the period_interpolation_methods list.
+            ValueError: If interpolation_method is "google_film" but model_path
+                        is not provided.
         """
         if interval_in_minutes is None and times is None:
             raise ValueError(
@@ -149,7 +166,7 @@ class TemporalInterpolation(BasePlugin):
             )
         self.interval_in_minutes = interval_in_minutes
         self.times = times
-        known_interpolation_methods = ["linear", "solar", "daynight"]
+        known_interpolation_methods = ["linear", "solar", "daynight", "google_film"]
         if interpolation_method not in known_interpolation_methods:
             raise ValueError(
                 "TemporalInterpolation: Unknown interpolation method {}. ".format(
@@ -157,6 +174,17 @@ class TemporalInterpolation(BasePlugin):
                 )
             )
         self.interpolation_method = interpolation_method
+
+        # Google Film-specific parameters
+        if interpolation_method == "google_film":
+            if model_path is None:
+                raise ValueError(
+                    "model_path must be provided when using google_film interpolation method."
+                )
+        self.model_path = model_path
+        self.scaling = scaling
+        self.clipping_bounds = clipping_bounds
+
         self.period_inputs = False
         if np.sum([accumulation, max, min]) > 1:
             raise ValueError(
@@ -175,7 +203,8 @@ class TemporalInterpolation(BasePlugin):
                 raise ValueError(
                     "Period diagnostics can only be temporally interpolated "
                     f"using these methods: {period_interpolation_methods}.\n"
-                    f"Currently selected method is: {self.interpolation_method}."
+                    f"Currently selected method is: {self.interpolation_method}. "
+                    "Note: google_film method does not support period diagnostics."
                 )
 
     def construct_time_list(
@@ -681,9 +710,870 @@ class TemporalInterpolation(BasePlugin):
             interpolated_cubes = self.solar_interpolate(cube, interpolated_cube)
         elif self.interpolation_method == "daynight":
             interpolated_cubes = self.daynight_interpolate(interpolated_cube)
+        elif self.interpolation_method == "google_film":
+            interpolated_cubes = GoogleFilmInterpolation(
+                self.model_path,
+                self.scaling,
+                self.clipping_bounds,
+            ).process(cube[0], cube[1], interpolated_cube)
         else:
             for single_time in interpolated_cube.slices_over("time"):
                 interpolated_cubes.append(single_time)
+
+        return interpolated_cubes
+
+
+class ForecastPeriodGapFiller(BasePlugin):
+    """Fill gaps in forecast periods using temporal interpolation.
+
+    This plugin identifies gaps in a sequence of forecast periods and fills
+    them using temporal interpolation. When cluster_sources are configured,
+    it can also identify forecast periods that should be regenerated (e.g.,
+    when transitioning between forecast sources) even if they exist in the
+    input data.
+
+    The plugin will:
+    1. Sort input cubes by forecast period
+    2. Identify missing forecast periods (gaps)
+    3. Optionally identify periods to regenerate based on cluster sources
+    4. Use TemporalInterpolation to fill gaps
+    5. Return a Cube with all forecast periods
+    """
+
+    def __init__(
+        self,
+        interval_in_minutes: Optional[int] = None,
+        interpolation_method: str = "linear",
+        cluster_sources_attribute: Optional[str] = None,
+        interpolation_window_in_hours: Optional[int] = None,
+        model_path: Optional[str] = None,
+        scaling: str = "minmax",
+        clipping_bounds: Optional[Union[Tuple[float, float], List[float]]] = (0.0, 1.0),
+        **kwargs,
+    ) -> None:
+        """Initialize the ForecastPeriodGapFiller.
+
+        Args:
+            interval_in_minutes:
+                The expected interval between forecast periods in minutes.
+                Used to identify gaps in the sequence.
+            interpolation_method:
+                Method of interpolation to use.
+                Options: linear, solar, daynight, google_film.
+            cluster_sources_attribute:
+                Name of cube attribute containing cluster sources dictionary.
+                When provided with interpolation_window_in_hours, enables
+                identification of forecast periods to regenerate at source transitions.
+            interpolation_window_in_hours:
+                Time window (in hours) as +/- range around forecast source transitions.
+            model_path:
+                Path to TensorFlow Hub module for Google FILM model
+                (if using google_film).
+            scaling:
+                Scaling method for google_film interpolation (log10 or minmax).
+            clipping_bounds:
+                Bounds for clipping google_film interpolated data. Can be a tuple
+                or list of two floats.
+            **kwargs:
+                Additional arguments passed to TemporalInterpolation.
+        """
+        self.interval_in_minutes = interval_in_minutes
+        self.interpolation_method = interpolation_method
+        self.cluster_sources_attribute = cluster_sources_attribute
+        self.interpolation_window_in_hours = interpolation_window_in_hours
+        self.model_path = model_path
+        self.scaling = scaling
+        # Convert clipping_bounds to tuple if it's a list
+        if clipping_bounds is not None and isinstance(clipping_bounds, list):
+            self.clipping_bounds = tuple(clipping_bounds)
+        else:
+            self.clipping_bounds = clipping_bounds
+        self.kwargs = kwargs
+
+    def _get_forecast_periods(self, cubelist: CubeList) -> List[int]:
+        """Extract forecast periods from cubes in hours.
+
+        Args:
+            cubelist: List of cubes to extract forecast periods from.
+
+        Returns:
+            Sorted list of unique forecast periods in hours.
+        """
+        periods = set()
+        for cube in cubelist:
+            period_seconds = cube.coord("forecast_period").points[0]
+            period_hours = int(round(period_seconds / 3600))
+            periods.add(period_hours)
+        return sorted(periods)
+
+    def identify_gaps(self, cubelist: CubeList) -> List[int]:
+        """Identify missing forecast periods that need filling.
+
+        Args:
+            cubelist: List of input cubes.
+
+        Returns:
+            List of forecast periods (in hours) that are missing.
+
+        Raises:
+            ValueError: If interval_in_minutes is not set.
+        """
+        if self.interval_in_minutes is None:
+            raise ValueError(
+                "interval_in_minutes must be set to identify gaps in forecast periods."
+            )
+
+        existing_periods = self._get_forecast_periods(cubelist)
+        if len(existing_periods) < 2:
+            return []
+
+        # Calculate expected interval in hours
+        interval_hours = self.interval_in_minutes / 60
+
+        # Find all periods that should exist
+        min_period = existing_periods[0]
+        max_period = existing_periods[-1]
+        expected_periods = []
+        current = min_period
+        while current <= max_period:
+            expected_periods.append(int(round(current)))
+            current += interval_hours
+
+        # Find missing periods
+        missing = [p for p in expected_periods if p not in existing_periods]
+        return missing
+
+    def parse_cluster_sources(self, cube: Cube) -> dict:
+        """Parse the cluster sources dictionary from a cube attribute.
+
+        Args:
+            cube:
+                A cube containing the cluster sources attribute.
+
+        Returns:
+            Dictionary mapping realization indices to their forecast sources
+            and periods. Format: {realization_index: {source_name: [periods]}}
+
+        Raises:
+            ValueError: If the cluster_sources_attribute is not found on the cube.
+            ValueError: If the cluster sources attribute is not a dictionary.
+            ValueError: If the cluster sources JSON string cannot be parsed.
+            ValueError: If the sources for a realization are not a dictionary.
+            ValueError: If the periods for a source are not a list.
+        """
+        if self.cluster_sources_attribute is None:
+            return {}
+
+        try:
+            cluster_sources = cube.attributes[self.cluster_sources_attribute]
+        except KeyError:
+            raise ValueError(
+                f"Attribute '{self.cluster_sources_attribute}' not found "
+                f"on cube. Available attributes: "
+                f"{list(cube.attributes.keys())}"
+            )
+
+        # Parse JSON string if needed
+        if isinstance(cluster_sources, str):
+            try:
+                cluster_sources = json.loads(cluster_sources)
+            except json.JSONDecodeError as err:
+                raise ValueError(f"Failed to parse cluster sources JSON: {err}")
+
+        # Validate dictionary structure
+        if not isinstance(cluster_sources, dict):
+            raise ValueError(
+                f"Cluster sources attribute must be a dictionary, "
+                f"got {type(cluster_sources)}"
+            )
+
+        for real_idx, sources in cluster_sources.items():
+            if not isinstance(sources, dict):
+                raise ValueError(
+                    f"Sources for realization {real_idx} must be a dictionary, "
+                    f"got {type(sources)}"
+                )
+            for source_name, periods in sources.items():
+                if not isinstance(periods, list):
+                    raise ValueError(
+                        f"Periods for source {source_name} in realization "
+                        f"{real_idx} must be a list, got {type(periods)}"
+                    )
+
+        return cluster_sources
+
+    def identify_source_transitions(
+        self, cluster_sources: dict, realization_index: int
+    ) -> List[int]:
+        """Identify forecast source transitions for a given realization.
+
+        Args:
+            cluster_sources:
+                Dictionary mapping realization indices to their forecast sources
+                and periods.
+            realization_index:
+                The realization index to check for transitions.
+
+        Returns:
+            List of forecast periods immediately before a source transition.
+            Only includes transitions where the source actually changes.
+        """
+        real_key = str(realization_index)
+        if real_key not in cluster_sources:
+            return []
+
+        sources_dict = cluster_sources[real_key]
+
+        # Sort sources by their periods to find transitions
+        source_period_list = []
+        for source_name, periods in sources_dict.items():
+            for period in periods:
+                source_period_list.append((period, source_name))
+
+        source_period_list.sort()
+
+        # Find transitions
+        transitions = []
+        for i in range(len(source_period_list) - 1):
+            period_before, source_before = source_period_list[i]
+            _, source_after = source_period_list[i + 1]
+
+            # Only record if source changes
+            if source_before != source_after:
+                # Store the period_before as the transition point.
+                transitions.append(period_before)
+
+        return transitions
+
+    def identify_periods_to_regenerate(
+        self, cubelist: CubeList
+    ) -> List[Tuple[int, int, int]]:
+        """Identify periods to regenerate based on cluster source transitions.
+
+        Args:
+            cubelist: List of input cubes.
+
+        Returns:
+            List of tuples (transition_period, expected_t0, expected_t1) where
+            transition_period is the forecast period at the source
+            transition, expected_t0 is (transition - window), and
+            expected_t1 is (transition + window).
+        """
+        if (
+            self.cluster_sources_attribute is None
+            or self.interpolation_window_in_hours is None
+        ):
+            return []
+
+        periods_to_regenerate = []
+
+        if not cubelist:
+            return []
+
+        # Check first cube for cluster sources
+        first_cube = cubelist[0]
+        if self.cluster_sources_attribute not in first_cube.attributes:
+            return []
+
+        # Parse cluster sources using self method
+        cluster_sources = self.parse_cluster_sources(first_cube)
+        if not cluster_sources:
+            return []
+
+        # Get all realization indices
+        if first_cube.coords("realization"):
+            realization_indices = range(first_cube.coord("realization").points.size)
+        else:
+            return []
+
+        # Find transitions for each realization
+        seen_transitions = set()
+        for real_idx in realization_indices:
+            transitions = self.identify_source_transitions(
+                cluster_sources, int(real_idx)
+            )
+            for trans_period in transitions:
+                if trans_period not in seen_transitions:
+                    expected_t0 = trans_period - self.interpolation_window_in_hours
+                    expected_t1 = trans_period + self.interpolation_window_in_hours
+                    periods_to_regenerate.append(
+                        (trans_period, expected_t0, expected_t1)
+                    )
+                    seen_transitions.add(trans_period)
+
+        return periods_to_regenerate
+
+    def _get_cubes_for_period(self, cubelist: CubeList, period_hours: int) -> Cube:
+        """Get cube(s) for a specific forecast period.
+
+        Args:
+            cubelist: List of cubes to search.
+            period_hours: Forecast period in hours.
+
+        Returns:
+            Cube at the specified forecast period.
+
+        Raises:
+            ValueError: If no cube found at the specified period.
+        """
+        for cube in cubelist:
+            cube_period = cube.coord("forecast_period").points[0] / 3600
+            if abs(cube_period - period_hours) < 0.01:
+                return cube
+        raise ValueError(f"No cube found for forecast period T+{period_hours}")
+
+    def _validate_input(self, cubelist: CubeList) -> None:
+        """Validate that the input cubelist meets requirements.
+
+        Args:
+            cubelist: List of cubes to validate.
+
+        Raises:
+            ValueError: If cubelist is empty or has fewer than 2 cubes.
+            ValueError: If cubes don't have forecast_period coordinate.
+        """
+        if not cubelist or len(cubelist) < 2:
+            raise ValueError(
+                "ForecastPeriodGapFiller requires at least 2 cubes in the "
+                "input CubeList."
+            )
+
+        # Verify all cubes have forecast_period
+        for cube in cubelist:
+            if not cube.coords("forecast_period"):
+                raise ValueError(
+                    "All cubes must have a forecast_period coordinate for gap filling."
+                )
+
+    def _create_gap_filling_tasks(
+        self, missing_periods: List[int], sorted_cubelist: CubeList
+    ) -> List[Tuple[str, int, int, int]]:
+        """Create interpolation tasks for missing forecast periods.
+
+        Args:
+            missing_periods: List of forecast periods (in hours) that are missing.
+            sorted_cubelist: Sorted list of cubes by forecast period.
+
+        Returns:
+            List of tuples (task_type, target_period, t0_period, t1_period)
+            for gap filling tasks.
+        """
+        interpolation_tasks = []
+        existing_periods = self._get_forecast_periods(sorted_cubelist)
+
+        for period in missing_periods:
+            # Find appropriate bounding cubes
+            lower_periods = [p for p in existing_periods if p < period]
+            upper_periods = [p for p in existing_periods if p > period]
+
+            if lower_periods and upper_periods:
+                t0_period = max(lower_periods)
+                t1_period = min(upper_periods)
+                interpolation_tasks.append(("gap", period, t0_period, t1_period))
+
+        return interpolation_tasks
+
+    def _create_regeneration_tasks(
+        self,
+        periods_to_regenerate: List[Tuple[int, int, int]],
+        sorted_cubelist: CubeList,
+    ) -> List[Tuple[str, int, int, int]]:
+        """Create interpolation tasks for periods to regenerate.
+
+        Args:
+            periods_to_regenerate:
+                List of tuples (transition_period, expected_t0, expected_t1).
+            sorted_cubelist: Sorted list of cubes by forecast period.
+
+        Returns:
+            List of tuples (task_type, target_period, t0_period, t1_period)
+            for regeneration tasks.
+        """
+        interpolation_tasks = []
+        existing_periods = self._get_forecast_periods(sorted_cubelist)
+
+        for trans_period, expected_t0, expected_t1 in periods_to_regenerate:
+            # Check if the required boundary cubes exist
+            if expected_t0 in existing_periods and expected_t1 in existing_periods:
+                interpolation_tasks.append(
+                    ("regenerate", trans_period, expected_t0, expected_t1)
+                )
+
+        return interpolation_tasks
+
+    def _calculate_target_time(
+        self, cube_t0: Cube, target_period: int, t0_period: int
+    ) -> datetime:
+        """Calculate the target time for interpolation.
+
+        Args:
+            cube_t0: The cube at the earlier forecast period.
+            target_period: The target forecast period in hours.
+            t0_period: The earlier forecast period in hours.
+
+        Returns:
+            The target time as a datetime object.
+        """
+        time_t0 = iris_time_to_datetime(cube_t0.coord("time"))[0]
+        target_offset = (target_period - t0_period) * 3600
+        target_time = time_t0 + timedelta(seconds=target_offset)
+        return target_time
+
+    def _interpolate_single_period(
+        self,
+        interpolator: TemporalInterpolation,
+        sorted_cubelist: CubeList,
+        target_period: int,
+        t0_period: int,
+        t1_period: int,
+    ) -> CubeList:
+        """Interpolate a single forecast period.
+
+        Args:
+            interpolator: The TemporalInterpolation plugin to use.
+            sorted_cubelist: Sorted list of cubes by forecast period.
+            target_period: The target forecast period in hours.
+            t0_period: The earlier forecast period in hours.
+            t1_period: The later forecast period in hours.
+
+        Returns:
+            CubeList containing the interpolated cube for the target period.
+        """
+        cube_t0 = self._get_cubes_for_period(sorted_cubelist, t0_period)
+        cube_t1 = self._get_cubes_for_period(sorted_cubelist, t1_period)
+
+        # Calculate target time
+        target_time = self._calculate_target_time(cube_t0, target_period, t0_period)
+
+        # Set interpolation times
+        interpolator.times = [target_time]
+
+        # Perform interpolation
+        interpolated = interpolator.process(cube_t0, cube_t1)
+
+        # Filter to only return the target period cube
+        result_cubes = CubeList()
+        for cube in interpolated:
+            # Check if this is the target period (not the t1 boundary)
+            cube_period = cube.coord("forecast_period").points[0] / 3600
+            if abs(cube_period - target_period) < 0.01:
+                result_cubes.append(cube)
+
+        return result_cubes
+
+    def _assemble_final_cubelist(
+        self,
+        sorted_cubelist: CubeList,
+        result_cubes: CubeList,
+        periods_to_exclude: set,
+    ) -> CubeList:
+        """Assemble the final cubelist by combining interpolated and original cubes.
+
+        Args:
+            sorted_cubelist: Original sorted list of cubes.
+            result_cubes: CubeList of interpolated cubes.
+            periods_to_exclude: Set of forecast periods to exclude from originals.
+
+        Returns:
+            Final sorted CubeList with all forecast periods.
+        """
+        # Add original cubes that aren't being regenerated
+        for cube in sorted_cubelist:
+            cube_period = cube.coord("forecast_period").points[0] / 3600
+            period_hours = int(round(cube_period))
+            if period_hours not in periods_to_exclude:
+                result_cubes.append(cube)
+
+        # Sort final result by forecast period
+        result_cubes = CubeList(
+            sorted(
+                result_cubes,
+                key=lambda c: c.coord("forecast_period").points[0],
+            )
+        )
+
+        return result_cubes
+
+    def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
+        """Fill gaps in forecast period sequence.
+
+        Args:
+            cubes:
+                One or more cubes with potentially missing forecast periods.
+                Can be:
+                - A single Cube with a forecast_period dimension (will be sliced)
+                - Multiple Cube arguments representing different forecast periods
+                - A single CubeList containing multiple forecast periods
+                All cubes should have the same validity time coordinate structure
+                and dimensions (except for forecast_period and time).
+
+        Returns:
+            A single merged Cube with gaps filled using temporal interpolation.
+            The cube will have time as a dimension coordinate.
+
+        Raises:
+            ValueError: If cubelist is empty or has fewer than 2 cubes.
+            ValueError: If cubes don't have forecast_period coordinate.
+        """
+        # Handle variable arguments - convert to single CubeList
+        if len(cubes) == 1:
+            cubelist = cubes[0]
+            # Convert single Cube to CubeList if necessary
+            if isinstance(cubelist, Cube):
+                # Slice over the appropriate coordinate
+                if cubelist.coords("forecast_period", dim_coords=True):
+                    # Cube has forecast_period as a dimension - slice it
+                    cubelist = CubeList(cubelist.slices_over("forecast_period"))
+                elif (
+                    cubelist.coords("time", dim_coords=True)
+                    and cubelist.coord("time").shape[0] > 1
+                ):
+                    # Cube has time as a dimension - slice it
+                    cubelist = CubeList(cubelist.slices_over("time"))
+                else:
+                    # Single cube without sliceable dimension
+                    cubelist = CubeList([cubelist])
+        else:
+            # Multiple cubes passed as separate arguments
+            cubelist = CubeList(cubes)
+
+        # Validate input
+        self._validate_input(cubelist)
+
+        # Sort cubelist by forecast period
+        sorted_cubelist = CubeList(
+            sorted(cubelist, key=lambda c: c.coord("forecast_period").points[0])
+        )
+
+        # Identify gaps and periods to regenerate
+        missing_periods = self.identify_gaps(sorted_cubelist)
+        periods_to_regenerate = self.identify_periods_to_regenerate(sorted_cubelist)
+
+        # Create interpolation tasks
+        interpolation_tasks = self._create_gap_filling_tasks(
+            missing_periods, sorted_cubelist
+        )
+        interpolation_tasks.extend(
+            self._create_regeneration_tasks(periods_to_regenerate, sorted_cubelist)
+        )
+
+        # If no interpolation needed, merge and return original
+        if not interpolation_tasks:
+            return MergeCubes()(sorted_cubelist)
+
+        # Create TemporalInterpolation plugin
+        interpolator = TemporalInterpolation(
+            times=[],  # We'll provide explicit times
+            interpolation_method=self.interpolation_method,
+            model_path=self.model_path,
+            scaling=self.scaling,
+            clipping_bounds=self.clipping_bounds,
+            **self.kwargs,
+        )
+
+        # Perform interpolations
+        result_cubes = CubeList()
+        periods_to_exclude = set()
+
+        for task_type, target_period, t0_period, t1_period in interpolation_tasks:
+            interpolated_cubes = self._interpolate_single_period(
+                interpolator,
+                sorted_cubelist,
+                target_period,
+                t0_period,
+                t1_period,
+            )
+            result_cubes.extend(interpolated_cubes)
+
+            if task_type == "regenerate":
+                # Mark original for exclusion
+                periods_to_exclude.add(target_period)
+
+        # Assemble final cubelist
+        final_cubelist = self._assemble_final_cubelist(
+            sorted_cubelist, result_cubes, periods_to_exclude
+        )
+
+        # Merge cubes into a single cube with time as a coordinate
+        return MergeCubes()(final_cubelist)
+
+
+class GoogleFilmInterpolation:
+    """Class to perform temporal interpolation using the Google FILM model.
+
+    The model is expected to be a TensorFlow Hub module that takes as input two
+    images and a time point between 0 and 1, and outputs an interpolated image.
+
+    The input cubes are expected to have the same spatial dimensions and
+    coordinate system. The output cube will have the same metadata as cube1.
+    """
+
+    def __init__(
+        self,
+        model_path: str,
+        scaling: str = "minmax",
+        clipping_bounds: Optional[Tuple[float, float]] = (0.0, 1.0),
+        cluster_sources_attribute: Optional[str] = None,
+        interpolation_window_in_hours: Optional[int] = None,
+    ) -> None:
+        """
+        Args:
+            model_path:
+                Path to the TensorFlow Hub module for the Google FILM model.
+            scaling:
+                Scaling method to apply to the data before interpolation.
+                Supported methods are "log10" and "minmax".
+            clipping_bounds:
+                A tuple specifying the (min, max) bounds to which to clip
+                the interpolated data. Use None for no bound in that direction.
+            cluster_sources_attribute:
+                Name of a cube attribute containing a dictionary that maps
+                realization indices to their forecast sources and periods.
+                When provided with interpolation_window_in_hours, enables
+                interpolation across forecast source transitions.
+            interpolation_window_in_hours:
+                The time window (in hours) to use as a +/- range around forecast
+                source transition points. Used with cluster_sources_attribute.
+        """
+        self.model_path = model_path
+        self.scaling = scaling
+        self.clipping_bounds = clipping_bounds
+        self.cluster_sources_attribute = cluster_sources_attribute
+        self.interpolation_window_in_hours = interpolation_window_in_hours
+        self.cluster_sources_attribute = cluster_sources_attribute
+        self.interpolation_window_in_hours = interpolation_window_in_hours
+
+    def load_model(self, model_path: str) -> Any:
+        """Load the TensorFlow Hub model.
+
+        Args:
+            model_path:
+                Path to the TensorFlow Hub module for the Google FILM model.
+        Returns:
+            The loaded TensorFlow Hub model.
+        """
+        # Apply monkey patch before importing anything TensorFlow-related
+        # We need to patch all possible import paths that tf_keras might use
+        # Related to https://github.com/keras-team/tf-keras/issues/257
+        try:
+            import tensorflow as tf
+
+            # Patch all the different ways tensorflow's __internal__ can be accessed
+            if hasattr(tf.__internal__, "register_call_context_function"):
+                func = tf.__internal__.register_call_context_function
+                tf.__internal__.register_load_context_function = func
+                # Also patch the compat.v2 path that tf_keras uses
+                if hasattr(tf.compat, "v2"):
+                    tf.compat.v2.__internal__.register_load_context_function = func
+                # And the _api.v2.compat.v2 path
+                import tensorflow._api.v2.compat.v2 as tf_api
+
+                tf_api.__internal__.register_load_context_function = func
+        except (ImportError, AttributeError):
+            pass
+
+        import tensorflow_hub as hub
+
+        return hub.load(model_path)
+
+    def apply_scaling(self, cube1: Cube, cube2: Cube, scaling: str) -> None:
+        """Apply scaling to the input cubes before interpolation.
+        Args:
+            cube1:
+                The first input cube.
+            cube2:
+                The second input cube.
+            scaling:
+                Scaling method to apply. Supported methods are "log10" and "minmax".
+        """
+        if scaling == "log10":
+            cube1.data = np.log10(cube1.data + 1)
+            cube2.data = np.log10(cube2.data + 1)
+        elif scaling == "minmax":
+            min_val = min(cube1.data.min(), cube2.data.min())
+            max_val = max(cube1.data.max(), cube2.data.max())
+            cube1.data = (cube1.data - min_val) / (max_val - min_val)
+            cube2.data = (cube2.data - min_val) / (max_val - min_val)
+        else:
+            raise ValueError(f"Unsupported scaling method: {scaling}")
+
+    def reverse_scaling(
+        self, cube: Cube, cube1: Cube, cube2: Cube, scaling: str
+    ) -> None:
+        """Reverse scaling on the interpolated cube after interpolation.
+
+        Args:
+            cube:
+                The interpolated cube.
+            cube1:
+                The first input cube.
+            cube2:
+                The second input cube.
+            scaling:
+                Scaling method to reverse. Supported methods are "log10" and "minmax".
+        """
+        if scaling == "log10":
+            cube.data = 10**cube.data - 1
+        elif scaling == "minmax":
+            min_val = min(cube1.data.min(), cube2.data.min())
+            max_val = max(cube1.data.max(), cube2.data.max())
+            cube.data = cube.data * (max_val - min_val) + min_val
+        else:
+            raise ValueError(f"Unsupported scaling method: {scaling}")
+
+    def apply_clipping(self, interpolated: Cube) -> None:
+        """Clip the interpolated cube data to be within the bounds of the
+        input cubes, if clipping_bounds is not None.
+
+        Args:
+            interpolated:
+                The interpolated cube.
+        """
+        if self.clipping_bounds is not None:
+            interpolated.data = np.clip(
+                interpolated.data, self.clipping_bounds[0], self.clipping_bounds[1]
+            )
+
+    def run_google_film(
+        self, cube1: Cube, cube2: Cube, model: Any, time_point: float
+    ) -> Cube:
+        """Run the Google FILM model to interpolate between two cubes.
+
+        Args:
+            cube1:
+                The first input cube.
+            cube2:
+                The second input cube.
+            model:
+                The loaded TensorFlow Hub model.
+            time_point:
+                A float between 0 and 1 indicating the interpolation point.
+
+        Returns:
+            The interpolated cube.
+        """
+        # Stack the data 3 times to simulate the RGB data the model expects.
+        # Convert to float32 as required by the model
+        image1 = np.stack([cube1.data] * 3, axis=-1).astype(np.float32)
+        image2 = np.stack([cube2.data] * 3, axis=-1).astype(np.float32)
+
+        inputs = {
+            "time": np.array([[time_point]], dtype=np.float32),  # Shape (1, 1)
+            "x0": np.expand_dims(
+                image1, axis=0
+            ),  # adding the batch dimension to the image
+            "x1": np.expand_dims(
+                image2, axis=0
+            ),  # adding the batch dimension to the image
+        }
+
+        frame = model(inputs)
+        # Handle both TensorFlow tensors and numpy arrays (for testing)
+        result_data = frame["image"][0, ..., 0]
+        if hasattr(result_data, "numpy"):
+            result_data = result_data.numpy()
+        interpolated = cube1.copy(data=result_data)
+
+        return interpolated
+
+    def process(
+        self, cube1: Cube, cube2: Cube, template_interpolated_cube: Cube
+    ) -> CubeList:
+        """Perform temporal interpolation between two cubes using the Google FILM model.
+
+        Args:
+            cube1:
+                The first input cube (at time t=0).
+            cube2:
+                The second input cube (at time t=1).
+            template_interpolated_cube:
+                A cube containing the linearly interpolated data with the correct
+                metadata for the output times.
+
+        Returns:
+            A CubeList containing the interpolated cubes at the specified times.
+
+        Raises:
+            ValueError: If cube1 or cube2 do not have realization coordinates.
+            ValueError: If cube1 and cube2 have different numbers of realizations.
+        """
+
+        # Identify spatial dims
+        spatial_dims = [
+            "projection_x_coordinate",
+            "projection_y_coordinate",
+            "latitude",
+            "longitude",
+        ]
+        extra_dims = [
+            coord.name()
+            for coord in cube1.coords(dim_coords=True)
+            if coord.name() not in spatial_dims and coord.ndim == 1
+        ]
+
+        if len(extra_dims) > 1:
+            raise ValueError(
+                "Only one additional dimension (apart from spatial) is supported."
+            )
+        extra_dim = extra_dims[0] if extra_dims else None
+
+        if extra_dim:
+            # Ensure both cubes have the same extra dim points
+            points1 = cube1.coord(extra_dim).points
+            points2 = cube2.coord(extra_dim).points
+            if not np.array_equal(points1, points2):
+                raise ValueError(
+                    f"Coordinate '{extra_dim}' does not match between cubes."
+                )
+
+        model = self.load_model(self.model_path)
+
+        # Store original data for reverting scaling
+        cube1_orig = cube1.copy()
+        cube2_orig = cube2.copy()
+
+        self.apply_scaling(cube1, cube2, self.scaling)
+
+        # Calculate time fractions for each target time
+        t0 = cube1.coord("time").points[0]
+        t1 = cube2.coord("time").points[0]
+        time_range = t1 - t0
+
+        interpolated_cubes = CubeList()
+        for template_slice in template_interpolated_cube.slices_over("time"):
+            # Get the target time from the template
+            target_seconds = template_slice.coord("time").points[0]
+
+            # Calculate fraction (0 to 1) between the two input times
+            time_fraction = (target_seconds - t0) / time_range
+
+            if extra_dim:
+                slices = CubeList([])
+                for cube1_slice, cube2_slice in zip(
+                    cube1.slices_over(extra_dim), cube2.slices_over(extra_dim)
+                ):
+                    temporary_interpolated_cube = self.run_google_film(
+                        cube1_slice, cube2_slice, model, time_fraction
+                    )
+                    slices.append(temporary_interpolated_cube)
+                temporary_interpolated_cube = slices.merge_cube()
+                interpolated_cube = template_slice.copy()
+                interpolated_cube.data = temporary_interpolated_cube.data
+            else:
+                # No extra dim, just interpolate the 2D spatial slices
+                interpolated_cube = self.run_google_film(
+                    cube1, cube2, model, time_fraction
+                )
+                # Copy metadata from template
+                interpolated_cube = template_slice.copy(data=interpolated_cube.data)
+
+            # Apply clipping and reverse scaling
+            self.apply_clipping(interpolated_cube)
+            self.reverse_scaling(
+                interpolated_cube, cube1_orig, cube2_orig, self.scaling
+            )
+
+            interpolated_cubes.append(interpolated_cube)
 
         return interpolated_cubes
 
@@ -928,8 +1818,7 @@ class DurationSubdivision:
             )
         if self.fidelity > self.target_period:
             raise ValueError(
-                "The fidelity period must be less than or equal to the "
-                "target period."
+                "The fidelity period must be less than or equal to the target period."
             )
         # Ensure that the cube is already self-consistent and does not include
         # any durations that exceed the period described. This is mostly to
