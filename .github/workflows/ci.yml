@@ -109,8 +109,6 @@ jobs:
                 echo "coverage_decreased=false" | tee -a $GITHUB_OUTPUT
             fi
         fi
-        # TODO: remove once debugging complete
-        echo "coverage_decreased=true" | tee -a $GITHUB_OUTPUT
 
     - name: Coverage report on coverage-reference branch
       run: |
