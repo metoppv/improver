@@ -74,7 +74,6 @@ class InitialSpreadIndex(FireWeatherIndexBase):
         Returns:
             np.ndarray: The wind function values.
         """
-        # Equation 26: Calculate wind function
         wind_function = np.exp(0.05039 * self.wind_speed.data)
         return wind_function
 
