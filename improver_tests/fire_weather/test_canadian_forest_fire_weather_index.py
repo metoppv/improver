@@ -85,14 +85,18 @@ def test__calculate_extrapolated_duff_moisture_function(
     assert np.allclose(dmf, expected_dmf, rtol=1e-2, atol=0.1)
 
 
-def test__calculate_extrapolated_duff_moisture_function_no_negative() -> None:
-    """Test that extrapolated DMF calculation never produces negative values."""
-    for bui in [0.0, 10.0, 50.0, 80.0, 100.0, 150.0, 250.0]:
-        cubes = input_cubes(isi_val=10.0, bui_val=bui)
-        plugin = CanadianForestFireWeatherIndex()
-        plugin.load_input_cubes(CubeList(cubes))
-        dmf = plugin._calculate_extrapolated_duff_moisture_function()
-        assert np.all(dmf >= 0.0), f"Negative DMF for BUI={bui}"
+@pytest.mark.parametrize("bui", [0.0, 10.0, 50.0, 80.0, 100.0, 150.0, 250.0])
+def test__calculate_extrapolated_duff_moisture_function_no_negative(bui: float) -> None:
+    """Test that extrapolated DMF calculation never produces negative values.
+
+    Args:
+        bui (float): Build-Up Index value to test.
+    """
+    cubes = input_cubes(isi_val=10.0, bui_val=bui)
+    plugin = CanadianForestFireWeatherIndex()
+    plugin.load_input_cubes(CubeList(cubes))
+    dmf = plugin._calculate_extrapolated_duff_moisture_function()
+    assert np.all(dmf >= 0.0), f"Negative DMF for BUI={bui}"
 
 
 @pytest.mark.parametrize(
