@@ -4,6 +4,7 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Tests for the CanadianForestFireWeatherIndex plugin."""
 
+import itertools
 import warnings
 
 import numpy as np
@@ -25,7 +26,7 @@ def input_cubes(
 ) -> list[Cube]:
     """Create a list of dummy input cubes for FWI tests, with configurable units.
 
-    ISI cube has time coordinates; BUI cube does not (following the pattern).
+    ISI cube has time coordinates; BUI cube does not.
 
     Args:
         isi_val (float): ISI value for all grid points.
@@ -69,6 +70,9 @@ def test__calculate_extrapolated_duff_moisture_function(
 ) -> None:
     """Test calculation of extrapolated DMF from BUI.
 
+    Note: Different parameterized BUI values trigger different equations
+    in the tested method.
+
     Args:
         bui_val (float): BUI value to test.
         expected_dmf (float): Expected extrapolated DMF value.
@@ -83,9 +87,7 @@ def test__calculate_extrapolated_duff_moisture_function(
 
 def test__calculate_extrapolated_duff_moisture_function_no_negative() -> None:
     """Test that extrapolated DMF calculation never produces negative values."""
-    bui_values = np.array([0.0, 10.0, 50.0, 80.0, 100.0, 150.0, 250.0])
-
-    for bui in bui_values:
+    for bui in [0.0, 10.0, 50.0, 80.0, 100.0, 150.0, 250.0]:
         cubes = input_cubes(isi_val=10.0, bui_val=bui)
         plugin = CanadianForestFireWeatherIndex()
         plugin.load_input_cubes(CubeList(cubes))
@@ -135,20 +137,28 @@ def test__calculate_fwi(
     assert np.allclose(fwi, expected_fwi, rtol=1e-2, atol=0.2)
 
 
-def test__calculate_fwi_no_negative_values() -> None:
-    """Test that FWI calculation never produces negative values."""
-    # Test a range of ISI and BUI values
-    isi_values = np.array([0.0, 5.0, 10.0, 20.0, 50.0, 100.0])
-    bui_values = np.array([0.0, 10.0, 50.0, 80.0, 150.0, 250.0])
+@pytest.mark.parametrize(
+    "isi, bui",
+    list(
+        itertools.product(
+            [0.0, 5.0, 10.0, 20.0, 50.0, 100.0],
+            [0.0, 10.0, 50.0, 80.0, 150.0, 250.0],
+        )
+    ),
+)
+def test__calculate_fwi_no_negative_values(isi: float, bui: float) -> None:
+    """Test that FWI calculation never produces negative values.
 
-    for isi in isi_values:
-        for bui in bui_values:
-            cubes = input_cubes(isi_val=isi, bui_val=bui)
-            plugin = CanadianForestFireWeatherIndex()
-            plugin.load_input_cubes(CubeList(cubes))
-            extrapolated_DMF = plugin._calculate_extrapolated_duff_moisture_function()
-            fwi = plugin._calculate_fwi(extrapolated_DMF)
-            assert np.all(fwi >= 0.0), f"Negative FWI for ISI={isi}, BUI={bui}"
+    Args:
+        isi (float): Initial Spread Index value to test.
+        bui (float): Build-Up Index value to test.
+    """
+    cubes = input_cubes(isi_val=isi, bui_val=bui)
+    plugin = CanadianForestFireWeatherIndex()
+    plugin.load_input_cubes(CubeList(cubes))
+    extrapolated_DMF = plugin._calculate_extrapolated_duff_moisture_function()
+    fwi = plugin._calculate_fwi(extrapolated_DMF)
+    assert np.all(fwi >= 0.0), f"Negative FWI for ISI={isi}, BUI={bui}"
 
 
 def test__calculate_fwi_spatially_varying() -> None:
@@ -329,40 +339,33 @@ def test_invalid_input_ranges_raise_errors(
         plugin.load_input_cubes(CubeList(cubes))
 
 
+VALID_ISI, VALID_BUI = 10.0, 50.0
+
+
 @pytest.mark.parametrize(
-    "invalid_input_type,expected_error",
+    "isi_value, bui_value, expected_error",
     [
-        ("initial_spread_index_nan", "initial_spread_index contains NaN"),
-        ("initial_spread_index_inf", "initial_spread_index contains infinite"),
-        ("build_up_index_nan", "build_up_index contains NaN"),
-        ("build_up_index_inf", "build_up_index contains infinite"),
+        (np.nan, VALID_BUI, "initial_spread_index contains NaN"),
+        (np.inf, VALID_BUI, "initial_spread_index contains infinite"),
+        (VALID_ISI, np.nan, "build_up_index contains NaN"),
+        (VALID_ISI, -np.inf, "build_up_index contains infinite"),
     ],
 )
 def test_nan_and_inf_values_raise_errors(
-    invalid_input_type: str, expected_error: str
+    isi_value: float,
+    bui_value: float,
+    expected_error: str,
 ) -> None:
     """Test that NaN and Inf values in inputs raise appropriate ValueError.
 
     Verifies that the validation catches non-finite values (NaN, Inf) in input data.
 
     Args:
-        invalid_input_type (str): Which input to make invalid and how.
+        isi_value (float): ISI value for all grid points.
+        bui_value (float): BUI value for all grid points.
         expected_error (str): Expected error message substring.
     """
-    # Start with valid values
-    isi_val, bui_val = 10.0, 50.0
-
-    # Replace the appropriate value with NaN or Inf
-    if invalid_input_type == "initial_spread_index_nan":
-        isi_val = np.nan
-    elif invalid_input_type == "initial_spread_index_inf":
-        isi_val = np.inf
-    elif invalid_input_type == "build_up_index_nan":
-        bui_val = np.nan
-    elif invalid_input_type == "build_up_index_inf":
-        bui_val = -np.inf
-
-    cubes = input_cubes(isi_val, bui_val)
+    cubes = input_cubes(isi_value, bui_value)
     plugin = CanadianForestFireWeatherIndex()
 
     with pytest.raises(ValueError, match=expected_error):
