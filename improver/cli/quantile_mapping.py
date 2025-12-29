@@ -11,9 +11,8 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    reference_cube: cli.inputcube,
-    forecast_cube: cli.inputcube,
-    *,
+    *cubes: cli.inputcube,
+    truth_attribute: str,
     mapping_method: str = "floor",
     preservation_threshold: float = None,
     forecast_to_calibrate: cli.inputcube = None,
@@ -27,6 +26,13 @@ def process(
     realistic variation in the values while preserving the spatial patterns.
 
     Args:
+        cubes:
+            A list of cubes containing the forecasts and corresponding truth (reference)
+            used for calibration. They must have the same cube name and will be
+            separated based on the truth attribute.
+        truth_attribute:
+            An attribute and its value in the format of "attribute=value",
+            which must be present on historical truth cubes.
         reference_cube:
             The reference data that define what the "correct" distribution
             should look like.
@@ -52,8 +58,10 @@ def process(
     Raises:
         ValueError: If reference and forecast cubes have incompatible units.
     """
+    from improver.calibration import split_forecasts_and_truth
     from improver.calibration.quantile_mapping import QuantileMapping
 
+    forecast_cube, reference_cube = split_forecasts_and_truth(cubes, truth_attribute)
     plugin = QuantileMapping(preservation_threshold=preservation_threshold)
     return plugin.process(
         reference_cube,
