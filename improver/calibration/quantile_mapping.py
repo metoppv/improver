@@ -12,177 +12,6 @@ from iris.cube import Cube
 from improver import PostProcessingPlugin
 
 
-def _build_empirical_cdf(data: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    """Build empirical cumulative distribution function (CDF).
-
-    Args:
-        data: Input data values.
-
-    Returns:
-        Tuple of (sorted_values, quantiles) representing the empirical CDF.
-
-    """
-    sorted_values = np.sort(data)
-    num_points = len(sorted_values)
-    quantiles = np.arange(1, num_points + 1) / num_points
-    return sorted_values, quantiles
-
-
-def _inverted_cdf(data: np.ndarray, quantiles: np.ndarray) -> np.ndarray:
-    """Calculate values using discrete quantile lookup (rounding down to nearest data
-    point).
-
-    This method rounds each quantile down to the nearest available data point in the
-    dataset, creating a step-function mapping. Faster but less smooth than
-    interpolation. Always returns actual values from the data. Taken
-    from https://github.com/ecmwf-projects/ibicus/blob/main/ibicus/utils/_math_utils.py.
-
-    Args:
-        data:
-            Data values defining the distribution.
-        quantiles:
-            Quantiles to evaluate (between 0 and 1).
-
-    Returns:
-        Values corresponding to the requested quantiles.
-    """
-    sorted_values = np.sort(data)
-    num_points = sorted_values.shape[0]
-    floored_indices = np.array(np.floor((num_points - 1) * quantiles), dtype=np.int32)
-    return sorted_values[floored_indices]
-
-
-def _interpolated_inverted_cdf(data: np.ndarray, quantiles: np.ndarray) -> np.ndarray:
-    """Calculate values at provided quantiles using linear interpolation.
-
-    This method is slower but produces a continuous mapping.
-
-    Args:
-        data:
-            Data values defining the distribution.
-        quantiles:
-            Quantiles to evaluate (between 0 and 1).
-
-    Returns:
-        Values corresponding to the requested quantiles.
-    """
-    sorted_values, empirical_quantiles = _build_empirical_cdf(data)
-    return np.interp(quantiles, empirical_quantiles, sorted_values)
-
-
-def quantile_mapping(
-    reference_data: np.ndarray,
-    forecast_data: np.ndarray,
-    values_to_map: Optional[np.ndarray] = None,
-    mapping_method: Literal["floor", "interp"] = "floor",
-) -> np.ndarray:
-    """Apply quantile mapping to transform forecast values to match a reference
-    distribution.
-
-    Guidance on method choice
-    -------------------------
-    Consider the following example.
-    - reference_data: [10, 20, 30, 40, 50]
-    - forecast_data:  [5, 15, 25, 35, 45]
-    - values_to_map:  [7.5, 17.5, 27.5, 37.5, 47.5, 60]
-
-    The forecast data systematically underestimates the reference data by 5 units.
-    The following mapped values will be produced with each approach:
-    - floor:   [20, 20, 30, 40, 50, 50]
-    - interp:  [12.5, 22.5, 32.5, 42.5, 50.0, 50.0]
-
-    Args:
-        reference_data:
-            Target distribution (observed historical data).
-        forecast_data:
-            Source distribution (biased model forecasts).
-        values_to_map:
-            New forecast values to transform. If None, applies
-            quantile-mapped transformation to forecast_data.
-        mapping_method:
-            mapping_method for inverse CDF calculation:
-            - "floor": Use floored index lookup (discrete steps). Faster.
-            - "interp": Use linear interpolation (continuous). Slower.
-
-    Returns:
-        Bias-corrected values in the reference distribution.
-
-    Raises:
-        ValueError:
-            If an unknown method is provided.
-    """
-    if values_to_map is None:
-        values_to_map = forecast_data
-
-    if mapping_method not in ["floor", "interp"]:
-        raise ValueError(
-            f"Unknown mapping method: {mapping_method}. Choose 'floor' or 'interp'."
-        )
-
-    # Build empirical CDF for forecast distribution
-    sorted_forecast_values, forecast_empirical_quantiles = _build_empirical_cdf(
-        forecast_data
-    )
-
-    # Map values to quantiles in forecast distribution (clips to [0, 1])
-    target_quantiles = np.interp(
-        values_to_map, sorted_forecast_values, forecast_empirical_quantiles
-    )
-
-    # Invert CDF using chosen method
-    if mapping_method == "floor":
-        corrected_values = _inverted_cdf(reference_data, target_quantiles)
-    elif mapping_method == "interp":
-        corrected_values = _interpolated_inverted_cdf(reference_data, target_quantiles)
-
-    return corrected_values
-
-
-def _convert_cubes_to_common_units(
-    reference_cube: Cube,
-    forecast_cube: Cube,
-    forecast_to_calibrate: Optional[Cube] = None,
-) -> tuple[Cube, Cube, Optional[Cube]]:
-    """Convert all cubes to common units without modifying originals.
-
-    Args:
-        reference_cube:
-            The reference forecast cube.
-        forecast_cube:
-            The forecast cube to calibrate.
-        forecast_to_calibrate:
-            Optional different forecast cube to calibrate.
-
-    Returns:
-        Tuple of (reference_cube, forecast_cube, forecast_to_calibrate)
-        all converted to common units.
-
-    Raises:
-        ValueError: If cubes have incompatible units.
-    """
-    target_units = (
-        forecast_to_calibrate.units
-        if forecast_to_calibrate is not None
-        else forecast_cube.units
-    )
-
-    # Convert each cube to target_units if needed
-    converted_cubes = []
-    for cube in [reference_cube, forecast_cube, forecast_to_calibrate]:
-        if cube is not None and cube.units != target_units:
-            try:
-                cube = cube.copy()
-                cube.convert_units(target_units)
-            except ValueError:
-                raise ValueError(
-                    f"Cannot convert cube with units {cube.units} "
-                    f"to target units {target_units}"
-                )
-        converted_cubes.append(cube)
-
-    return tuple(converted_cubes)
-
-
 class QuantileMapping(PostProcessingPlugin):
     """Apply quantile mapping bias correction to forecast data."""
 
@@ -197,6 +26,182 @@ class QuantileMapping(PostProcessingPlugin):
                 precipitation values to non-zero values.
         """
         self.preservation_threshold = preservation_threshold
+
+    @staticmethod
+    def _build_empirical_cdf(data: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        """Build empirical cumulative distribution function (CDF).
+
+        Args:
+            data: Input data values.
+
+        Returns:
+            Tuple of (sorted_values, quantiles) representing the empirical CDF.
+
+        """
+        sorted_values = np.sort(data)
+        num_points = sorted_values.shape[0]
+        quantiles = np.arange(1, num_points + 1) / num_points
+        return sorted_values, quantiles
+
+    @staticmethod
+    def _inverted_cdf(data: np.ndarray, quantiles: np.ndarray) -> np.ndarray:
+        """Calculate values using discrete quantile lookup (rounding down to nearest data
+        point).
+
+        This method rounds each quantile down to the nearest available data point in the
+        dataset, creating a step-function mapping. Faster but less smooth than
+        interpolation. Always returns actual values from the data. Taken
+        from https://github.com/ecmwf-projects/ibicus/blob/main/ibicus/utils/_math_utils.py.
+
+        Args:
+            data:
+                Data values defining the distribution.
+            quantiles:
+                Quantiles to evaluate (between 0 and 1).
+
+        Returns:
+            Values corresponding to the requested quantiles.
+        """
+        sorted_values = np.sort(data)
+        num_points = sorted_values.shape[0]
+        floored_indices = np.array(
+            np.floor((num_points - 1) * quantiles), dtype=np.int32
+        )
+        return sorted_values[floored_indices]
+
+    def _interpolated_inverted_cdf(
+        self, data: np.ndarray, quantiles: np.ndarray
+    ) -> np.ndarray:
+        """Calculate values at provided quantiles using linear interpolation.
+
+        This method is slower but produces a continuous mapping.
+
+        Args:
+            data:
+                Data values defining the distribution.
+            quantiles:
+                Quantiles to evaluate (between 0 and 1).
+
+        Returns:
+            Values corresponding to the requested quantiles.
+        """
+        sorted_values, empirical_quantiles = self._build_empirical_cdf(data)
+        return np.interp(quantiles, empirical_quantiles, sorted_values)
+
+    def apply_quantile_mapping(
+        self,
+        reference_data: np.ndarray,
+        forecast_data: np.ndarray,
+        values_to_map: Optional[np.ndarray] = None,
+        mapping_method: Literal["floor", "interp"] = "floor",
+    ) -> np.ndarray:
+        """Apply quantile mapping to transform forecast values to match a reference
+        distribution.
+
+        Guidance on method choice
+        -------------------------
+        Consider the following example.
+        - reference_data: [10, 20, 30, 40, 50]
+        - forecast_data:  [5, 15, 25, 35, 45]
+        - values_to_map:  [7.5, 17.5, 27.5, 37.5, 47.5, 60]
+
+        The forecast data systematically underestimates the reference data by 5 units.
+        The following mapped values will be produced with each approach:
+        - floor:   [20, 20, 30, 40, 50, 50]
+        - interp:  [12.5, 22.5, 32.5, 42.5, 50.0, 50.0]
+
+        Args:
+            reference_data:
+                Target distribution (observed historical data).
+            forecast_data:
+                Source distribution (biased model forecasts).
+            values_to_map:
+                New forecast values to transform. If None, applies
+                quantile-mapped transformation to forecast_data.
+            mapping_method:
+                mapping_method for inverse CDF calculation:
+                - "floor": Use floored index lookup (discrete steps). Faster.
+                - "interp": Use linear interpolation (continuous). Slower.
+
+        Returns:
+            Bias-corrected values in the reference distribution.
+
+        Raises:
+            ValueError:
+                If an unknown method is provided.
+        """
+        if values_to_map is None:
+            values_to_map = forecast_data
+
+        if mapping_method not in ["floor", "interp"]:
+            raise ValueError(
+                f"Unknown mapping method: {mapping_method}. Choose 'floor' or 'interp'."
+            )
+
+        # Build empirical CDF for forecast distribution
+        sorted_forecast_values, forecast_empirical_quantiles = (
+            self._build_empirical_cdf(forecast_data)
+        )
+
+        # Map values to quantiles in forecast distribution (clips to [0, 1])
+        target_quantiles = np.interp(
+            values_to_map, sorted_forecast_values, forecast_empirical_quantiles
+        )
+
+        # Invert CDF using chosen method
+        if mapping_method == "floor":
+            corrected_values = self._inverted_cdf(reference_data, target_quantiles)
+        elif mapping_method == "interp":
+            corrected_values = self._interpolated_inverted_cdf(
+                reference_data, target_quantiles
+            )
+
+        return corrected_values
+
+    @staticmethod
+    def _convert_cubes_to_forecast_units(
+        reference_cube: Cube,
+        forecast_cube: Cube,
+        forecast_to_calibrate: Optional[Cube] = None,
+    ) -> tuple[Cube, Cube, Optional[Cube]]:
+        """Convert all cubes to common units without modifying originals.
+
+        Args:
+            reference_cube:
+                The reference forecast cube.
+            forecast_cube:
+                The forecast cube to calibrate.
+            forecast_to_calibrate:
+                Optional different forecast cube to calibrate.
+
+        Returns:
+            Tuple of (reference_cube, forecast_cube, forecast_to_calibrate)
+            all converted to common units.
+
+        Raises:
+            ValueError: If cubes have incompatible units.
+        """
+        target_units = (
+            forecast_to_calibrate.units
+            if forecast_to_calibrate is not None
+            else forecast_cube.units
+        )
+
+        # Convert each cube to target_units if needed
+        converted_cubes = []
+        for cube in [reference_cube, forecast_cube, forecast_to_calibrate]:
+            if cube is not None and cube.units != target_units:
+                try:
+                    cube = cube.copy()
+                    cube.convert_units(target_units)
+                except ValueError:
+                    raise ValueError(
+                        f"Cannot convert cube with units {cube.units} "
+                        f"to target units {target_units}"
+                    )
+            converted_cubes.append(cube)
+
+        return tuple(converted_cubes)
 
     def process(
         self,
@@ -232,14 +237,11 @@ class QuantileMapping(PostProcessingPlugin):
         Returns:
             Calibrated forecast cube with quantiles mapped to the reference distribution
             or forecast_to_calibrate data adjusted with the same learned mapping.
-
-        Raises:
-            ValueError: If reference and forecast cubes have incompatible units.
         """
 
         # Convert all cubes to common units
         reference_cube, forecast_cube, forecast_to_calibrate = (
-            _convert_cubes_to_common_units(
+            self._convert_cubes_to_forecast_units(
                 reference_cube, forecast_cube, forecast_to_calibrate
             )
         )
@@ -288,14 +290,14 @@ class QuantileMapping(PostProcessingPlugin):
                 else None
             )
 
-        corrected_values_flat = quantile_mapping(
+        corrected_values_flat = self.apply_quantile_mapping(
             reference_data_flat, forecast_data_flat, values_to_map_flat, mapping_method
         )
 
         # Reshape mapped data to original shape and ensure float32
-        corrected_data_reshaped = np.reshape(
-            corrected_values_flat, output_shape
-        ).astype(np.float32)
+        corrected_data_reshaped = np.reshape(corrected_values_flat, output_shape)
+        if corrected_data_reshaped.dtype != np.float32:
+            corrected_data_reshaped = corrected_data_reshaped.astype(np.float32)
 
         # Preserve mask if original data was masked
         if output_mask is not None:
