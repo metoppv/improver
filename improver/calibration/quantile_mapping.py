@@ -12,7 +12,7 @@ values to match the distribution of reference (observed) data. It works by:
 This corrects systematic biases while preserving spatial patterns.
 """
 
-from typing import Literal, Optional
+from typing import Optional
 
 import numpy as np
 from iris.cube import Cube
@@ -78,71 +78,34 @@ class QuantileMapping(PostProcessingPlugin):
         )
         return sorted_values[floored_indices]
 
-    def _interpolated_inverted_cdf(
-        self, data: np.ndarray, quantiles: np.ndarray
-    ) -> np.ndarray:
-        """Get distribution values at specified quantiles (interpolation method).
-
-        Uses linear interpolation between data points for smooth, continuous
-        mapping. Slower than the discrete method but produces more gradual
-        transitions.
-
-        Args:
-            data:
-                1D array of data values defining the distribution.
-            quantiles:
-                Quantiles to evaluate (values between 0 and 1).
-
-        Returns:
-            Interpolated values corresponding to the requested quantiles.
-        """
-        sorted_values, empirical_quantiles = self._build_empirical_cdf(data)
-        return np.interp(quantiles, empirical_quantiles, sorted_values)
-
     def _map_quantiles(
         self,
         reference_data: np.ndarray,
         forecast_data: np.ndarray,
-        mapping_method: Literal["floor", "interp"] = "floor",
     ) -> np.ndarray:
         """Transform forecast values to match the reference distribution.
 
         For each forecast value:
         1. Find its quantile position in the forecast distribution
         2. Map that quantile to the corresponding value in the reference distribution
+           using discrete (floor) method
 
-        Guidance on method choice
-        -------------------------
         Example:
         - reference_data: [10, 20, 30, 40, 50]
         - forecast_data:  [5, 15, 25, 35, 45]
 
         The forecast systematically underestimates by 5 units.
-        Corrected values produced:
-        - "floor":  [10, 20, 30, 40, 50]  (discrete steps)
-        - "interp": [12.5, 22.5, 32.5, 42.5, 50.0]  (smooth interpolation)
+        Corrected values: [10, 20, 30, 40, 50] (mapped to reference distribution)
 
         Args:
             reference_data:
                 Target distribution (observed/historical data).
             forecast_data:
                 Source distribution (biased forecasts to correct).
-            mapping_method:
-                Quantile lookup method:
-                - "floor": Discrete steps (faster, step-function).
-                - "interp": Linear interpolation (slower, continuous).
 
         Returns:
             Bias-corrected forecast values matching the reference distribution.
-
-        Raises:
-            ValueError: If mapping_method is not "floor" or "interp".
         """
-        if mapping_method not in ["floor", "interp"]:
-            raise ValueError(
-                f"Unknown mapping method: {mapping_method}. Choose 'floor' or 'interp'."
-            )
-
         # Build empirical CDF for the forecast distribution
         sorted_forecast_values, forecast_empirical_quantiles = (
             self._build_empirical_cdf(forecast_data)
@@ -154,13 +117,8 @@ class QuantileMapping(PostProcessingPlugin):
             forecast_data, sorted_forecast_values, forecast_empirical_quantiles
         )
 
-        # Map the chosen quantiles to values in the reference distribution
-        if mapping_method == "floor":
-            corrected_values = self._inverted_cdf(reference_data, forecast_quantiles)
-        else:  # "interp"
-            corrected_values = self._interpolated_inverted_cdf(
-                reference_data, forecast_quantiles
-            )
+        # Map the quantiles to values in the reference distribution
+        corrected_values = self._inverted_cdf(reference_data, forecast_quantiles)
 
         return corrected_values
 
@@ -186,7 +144,7 @@ class QuantileMapping(PostProcessingPlugin):
         target_units = forecast_cube.units
 
         # Convert reference_cube to target_units if needed
-        if reference_cube is not None and reference_cube.units != target_units:
+        if reference_cube.units != target_units:
             try:
                 reference_cube = reference_cube.copy()
                 reference_cube.convert_units(target_units)
@@ -202,7 +160,6 @@ class QuantileMapping(PostProcessingPlugin):
         self,
         reference_cube: Cube,
         forecast_cube: Cube,
-        mapping_method: Literal["floor", "interp"],
     ) -> tuple[np.ndarray, Optional[np.ndarray]]:
         """Apply quantile mapping while properly handling masked data.
 
@@ -215,8 +172,6 @@ class QuantileMapping(PostProcessingPlugin):
                 The reference cube (with units already converted).
             forecast_cube:
                 The forecast cube to calibrate.
-            mapping_method:
-                "floor" for discrete steps or "interp" for interpolation.
 
         Returns:
             Tuple of:
@@ -249,9 +204,7 @@ class QuantileMapping(PostProcessingPlugin):
             forecast_valid = forecast_data_flat[valid_mask]
 
             # Apply quantile mapping using only valid values
-            corrected_valid = self._map_quantiles(
-                reference_valid, forecast_valid, mapping_method
-            )
+            corrected_valid = self._map_quantiles(reference_valid, forecast_valid)
 
             # Reconstruct full array with corrected values at valid positions
             corrected_values_flat = forecast_data_flat.copy()
@@ -264,7 +217,6 @@ class QuantileMapping(PostProcessingPlugin):
             corrected_values_flat = self._map_quantiles(
                 reference_cube.data.flatten(),
                 forecast_cube.data.flatten(),
-                mapping_method,
             )
 
         return corrected_values_flat, output_mask
@@ -326,7 +278,6 @@ class QuantileMapping(PostProcessingPlugin):
         self,
         reference_cube: Cube,
         forecast_cube: Cube,
-        mapping_method: Literal["floor", "interp"] = "floor",
     ) -> Cube:
         """Adjust forecast values to match the statistical distribution of reference
         data.
@@ -339,15 +290,15 @@ class QuantileMapping(PostProcessingPlugin):
         This is particularly useful when forecasts have been smoothed and you want to
         restore realistic variation in the values while preserving the spatial patterns.
 
+        Uses the discrete (floor) method for quantile lookup, which maps each quantile
+        to the nearest available reference value, creating a step-function mapping.
+
         Args:
             reference_cube:
                 The reference data that define what the "correct" distribution
                 should look like.
             forecast_cube:
                 The forecast data you want to correct (e.g. smoothed model output).
-            mapping_method:
-                Method for inverse CDF calculation. Either "floor" (discrete steps,
-                faster) or "interp" (linear interpolation; slower, continuous).
 
         Returns:
             Calibrated forecast cube with quantiles mapped to the reference
@@ -364,7 +315,7 @@ class QuantileMapping(PostProcessingPlugin):
 
         # Apply quantile mapping (handles masked data automatically)
         corrected_values_flat, output_mask = self._process_masked_data(
-            reference_cube, forecast_cube, mapping_method
+            reference_cube, forecast_cube
         )
 
         self._finalise_output_cube(
