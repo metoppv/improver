@@ -13,9 +13,7 @@ from improver import cli
 def process(
     *cubes: cli.inputcube,
     truth_attribute: str,
-    mapping_method: str = "floor",
     preservation_threshold: float = None,
-    forecast_to_calibrate: cli.inputcube = None,
 ):
     """Adjust forecast values to match the statistical distribution of reference
     data.
@@ -38,13 +36,6 @@ def process(
             should look like.
         forecast_cube:
             The forecast data you want to correct (e.g. smoothed model output).
-        forecast_to_calibrate:
-            Optional different forecast values to transform using the learned
-            mapping. If not provided, the forecast_cube data itself will be
-            corrected.
-        mapping_method:
-            Method for inverse CDF calculation. Either "floor" (discrete steps,
-            faster) or "interp" (linear interpolation, slower but continuous).
         preservation_threshold:
             Optional threshold value below which (exclusive) the forecast values
             are not adjusted. Useful for variables like precipitation where you
@@ -52,8 +43,7 @@ def process(
 
     Returns:
         Calibrated forecast cube with quantiles mapped to the reference
-        distribution or forecast_to_calibrate data adjusted with the same learned
-        mapping.
+        distribution.
 
     Raises:
         ValueError: If reference and forecast cubes have incompatible units.
@@ -66,6 +56,4 @@ def process(
     return plugin.process(
         reference_cube,
         forecast_cube,
-        forecast_to_calibrate=forecast_to_calibrate,
-        mapping_method=mapping_method,
     )
