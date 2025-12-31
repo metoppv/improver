@@ -878,14 +878,10 @@ a89ba9668fd878ed5c5cc017e46a25ab1f9d205b1a6913457a8f3af770cc49e1  ./precipitatio
 f69103cececd76e27bbff5a96e9c74c0e708dcb7f18459ade3eb448639992b34  ./precipitation_duration/standard_names/kgo_acc_1.00_rate_4.0.nc
 39730b1c6f60d0ffc1a79629b29c84ee063e465f1110fd179338478277c69b03  ./precipitation_duration/standard_names/kgo_multi_threshold.nc
 6a6394f52409d218e7e8d87c95a71c1f844d904bc3cbef3421f03e8d3afe98ac  ./precipitation_duration/standard_names/kgo_short_period.nc
-fed0f3f6c71331854f96d3aa300be3dbe21e2226ca450f5873533eaac2dea13a  ./quantile-mapping/custom_values_to_map/kgo.nc
-a1356710ef2c19f540aa5780716a4598e016fd95259963beb50c3ab295969831  ./quantile-mapping/floor_no_threshold/kgo.nc
-dad0934e32040e9322e5e795d597b8b040bdf217b33bcadd9c39b5094ce7a3b4  ./quantile-mapping/floor_with_threshold/kgo.nc
-313098cedd7074b9cc7ec6966fe36626738ca46cf5b3ca688cf99c25e884d994  ./quantile-mapping/forecast.nc
-a1356710ef2c19f540aa5780716a4598e016fd95259963beb50c3ab295969831  ./quantile-mapping/interp_no_threshold/kgo.nc
-dad0934e32040e9322e5e795d597b8b040bdf217b33bcadd9c39b5094ce7a3b4  ./quantile-mapping/interp_with_threshold/kgo.nc
-48a383807699b501966a0736f7d1b0f3e6391865e5abadc53a7b03e431bf7df6  ./quantile-mapping/reference.nc
-6948b3235154d6b37b3eb3e6c227489a7c43bf5593890314fd40532681c34c90  ./quantile-mapping/values_to_map.nc
+61d60afd98d8cafd2f010565e967258aaae928380b72aaebda6d4b2632d08f0b  ./quantile-mapping/basic/kgo.nc
+31983e9237750163a0e717d323d36c54946be5fec1b6ba0e84a1a76c6aa26f25  ./quantile-mapping/forecast.nc
+5adad3bdb97e79d5a497a71c52998d641733871f86643e7703b0c7fa128e0f06  ./quantile-mapping/reference.nc
+30908114a1347e9bd321aac6321f99e08b0e4236f1e255ac4f1087afa10f3f6f  ./quantile-mapping/with_preservation_threshold/kgo.nc
 ae048c636992e80b79c6cbb44b36339b30ea8d0ef1db72cd3f4de8766346fa1d  ./recursive-filter/input.nc
 b6cdb8bf877bb0b3b78ad224b50b9272b65732bf9e39a88df704209e228bf4c0  ./recursive-filter/input_masked.nc
 11c428f6fb0202ab0f975e58e52d17342c50f607aee4fd0e387a2a62c188790e  ./recursive-filter/input_variable_masked.nc
@@ -971,25 +967,9 @@ d4404df3a8acdeed27f20ec621a0d3500bf4c849eaf7a7064c4e42f079b37a43  ./standardise/
 81aa5301c3115ca37b789e3ce46708bc27229c8e63131643d3d393f0a1da977f  ./standardise/modification/scalar_change.json
 d89a8587bc28b574b8b1e624bb3bf339aaeb9c8c2355db7fe518af8c9bce527c  ./standardise/radarnet/input_coverage.nimrod
 6335cba81be74577fe10d0a4f5cb75724abcef16499d76c263e80c16cf092a05  ./standardise/radarnet/input_preciprate.nimrod
-<<<<<<< HEAD
-<<<<<<< HEAD
 74d7216176c1e7feeded6f867cd69eb5ee960ab0b92472f2327eb1e5ae033329  ./standardise/radarnet/kgo_coverage.nc
 a7c196adab463ab48a5bf90934a9f53d5a41ce79a8e2a27ac78268c7e6702516  ./standardise/radarnet/kgo_preciprate.nc
 cf7166f2d915fcffaebbe5421a1e064f8d2f2ef6b8813f42142820076dbf98e8  ./temp-lapse-rate/basic/kgo.nc
-=======
-8a0cc7c53513fe11919da6ae39e431fde7f5b5831e255d8f30feda2a53eb3c71  ./standardise/radarnet/kgo_coverage.nc
-8e4ca14de258f9a511c9ff82ac7df5cc95659bc41c3e745083f5ed449f245d00  ./standardise/radarnet/kgo_preciprate.nc
-44cf0fd7d6a4d24546da814d08f87f58d2f83ef5ae3a94c4272a4d33659c3f24  ./standardise/stage-v110/input.nc
-add67f9b08aade71cac803044d650a966698820b8e889468b760edaf3bf89dcc  ./standardise/stage-v110/kgo.nc
-edb46d2e8717e1c554616fe60f4db52c42e69910aa9a21875d24d3899ce6ee13  ./temp-lapse-rate/basic/kgo.nc
->>>>>>> ba99d528 (Add quantile mapping and associated tests)
-=======
-74d7216176c1e7feeded6f867cd69eb5ee960ab0b92472f2327eb1e5ae033329  ./standardise/radarnet/kgo_coverage.nc
-a7c196adab463ab48a5bf90934a9f53d5a41ce79a8e2a27ac78268c7e6702516  ./standardise/radarnet/kgo_preciprate.nc
-44cf0fd7d6a4d24546da814d08f87f58d2f83ef5ae3a94c4272a4d33659c3f24  ./standardise/stage-v110/input.nc
-add67f9b08aade71cac803044d650a966698820b8e889468b760edaf3bf89dcc  ./standardise/stage-v110/kgo.nc
-cf7166f2d915fcffaebbe5421a1e064f8d2f2ef6b8813f42142820076dbf98e8  ./temp-lapse-rate/basic/kgo.nc
->>>>>>> 82c1459d (Recreate checksums)
 53e071816cc4fda21c5397777decf5752f4d8820d96bba0c2a04600e8e5df7ab  ./temp-lapse-rate/basic/temperature_at_screen_level.nc
 bd47eab38ae9099fe5db71b328ebc52225b47f0db97ed673fca30dd67e4655ff  ./temp-lapse-rate/basic/ukvx_landmask.nc
 6389e7a84d33387d6da32327eaec53e7b411e0e42e677dceb0321c067ff9496a  ./temp-lapse-rate/basic/ukvx_orography.nc

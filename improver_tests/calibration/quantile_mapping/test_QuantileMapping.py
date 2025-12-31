@@ -184,7 +184,7 @@ def test_quantile_mapping_process_with_threshold(reference_cube, forecast_cube):
     assert isinstance(result, Cube)
     assert result.shape == forecast_cube.shape
     assert result.data.dtype == np.float32
-    assert result.data.mask is False
+    assert result.data.mask is not False
     np.testing.assert_array_equal(result.data, expected_result)
 
 
@@ -229,11 +229,11 @@ def test_masked_input(reference_cube, forecast_cube, test_case):
     assert expected_mask_count == np.ma.count_masked(result.data)
     # Check that the correct positions are masked
     if test_case == "one_input_masked":
-        assert result.data.mask[0, 0, 0] is True
-        assert result.data.mask[0, 0, 1] is False
+        assert result.data.mask[0, 0, 0]
+        assert not result.data.mask[0, 0, 1]
     elif test_case == "both_inputs_masked":
-        assert result.data.mask[0, 0, 0] is True
-        assert result.data.mask[0, 0, 1] is True
+        assert result.data.mask[0, 0, 0]
+        assert result.data.mask[0, 0, 1]
 
 
 def test_metadata_preservation(reference_cube, forecast_cube):

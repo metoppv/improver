@@ -15,7 +15,7 @@ run_cli = acc.run_cli(CLI)
 
 def test_floor_no_threshold(tmp_path):
     """Test quantile mapping with floor method and no preservation threshold."""
-    kgo_dir = acc.kgo_root() / "quantile-mapping/floor_no_threshold/"
+    kgo_dir = acc.kgo_root() / "quantile-mapping/basic/"
     kgo_path = kgo_dir / "kgo.nc"
     reference_path = acc.kgo_root() / "quantile-mapping/reference.nc"
     forecast_path = acc.kgo_root() / "quantile-mapping/forecast.nc"
@@ -24,7 +24,8 @@ def test_floor_no_threshold(tmp_path):
     args = [
         reference_path,
         forecast_path,
-        "--mapping-method=floor",
+        "--truth-attribute",
+        "mosg__model_configuration=uk_det",
         "--output",
         output_path,
     ]
@@ -34,7 +35,7 @@ def test_floor_no_threshold(tmp_path):
 
 def test_floor_with_threshold(tmp_path):
     """Test quantile mapping with floor method and preservation threshold."""
-    kgo_dir = acc.kgo_root() / "quantile-mapping/floor_with_threshold/"
+    kgo_dir = acc.kgo_root() / "quantile-mapping/with_preservation_threshold/"
     kgo_path = kgo_dir / "kgo.nc"
     reference_path = acc.kgo_root() / "quantile-mapping/reference.nc"
     forecast_path = acc.kgo_root() / "quantile-mapping/forecast.nc"
@@ -43,69 +44,10 @@ def test_floor_with_threshold(tmp_path):
     args = [
         reference_path,
         forecast_path,
-        "--mapping-method=floor",
-        "--preservation-threshold=8.333333e-09",
-        "--output",
-        output_path,
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-def test_interp_no_threshold(tmp_path):
-    """Test quantile mapping with interp method and no preservation threshold."""
-    kgo_dir = acc.kgo_root() / "quantile-mapping/interp_no_threshold/"
-    kgo_path = kgo_dir / "kgo.nc"
-    reference_path = acc.kgo_root() / "quantile-mapping/reference.nc"
-    forecast_path = acc.kgo_root() / "quantile-mapping/forecast.nc"
-    output_path = tmp_path / "output.nc"
-
-    args = [
-        reference_path,
-        forecast_path,
-        "--mapping-method=interp",
-        "--output",
-        output_path,
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-def test_interp_with_threshold(tmp_path):
-    """Test quantile mapping with interp method and preservation threshold."""
-    kgo_dir = acc.kgo_root() / "quantile-mapping/interp_with_threshold/"
-    kgo_path = kgo_dir / "kgo.nc"
-    reference_path = acc.kgo_root() / "quantile-mapping/reference.nc"
-    forecast_path = acc.kgo_root() / "quantile-mapping/forecast.nc"
-    output_path = tmp_path / "output.nc"
-
-    args = [
-        reference_path,
-        forecast_path,
-        "--mapping-method=interp",
-        "--preservation-threshold=8.333333e-09",
-        "--output",
-        output_path,
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-def test_custom_forecast_to_calibrate(tmp_path):
-    """Test quantile mapping with custom forecast_to_calibrate cube."""
-    kgo_dir = acc.kgo_root() / "quantile-mapping/custom_values_to_map/"
-    kgo_path = kgo_dir / "kgo.nc"
-    reference_path = acc.kgo_root() / "quantile-mapping/reference.nc"
-    forecast_path = acc.kgo_root() / "quantile-mapping/forecast.nc"
-    forecast_to_calibrate_path = acc.kgo_root() / "quantile-mapping/values_to_map.nc"
-    output_path = tmp_path / "output.nc"
-
-    args = [
-        reference_path,
-        forecast_path,
-        "--mapping-method=interp",
-        "--forecast-to-calibrate",
-        forecast_to_calibrate_path,
+        "--preservation-threshold",
+        "2.0",
+        "--truth-attribute",
+        "mosg__model_configuration=uk_det",
         "--output",
         output_path,
     ]

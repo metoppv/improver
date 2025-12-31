@@ -51,7 +51,7 @@ def process(
     from improver.calibration import split_forecasts_and_truth
     from improver.calibration.quantile_mapping import QuantileMapping
 
-    forecast_cube, reference_cube = split_forecasts_and_truth(cubes, truth_attribute)
+    forecast_cube, reference_cube, _ = split_forecasts_and_truth(cubes, truth_attribute)
     plugin = QuantileMapping(preservation_threshold=preservation_threshold)
     return plugin.process(
         reference_cube,
