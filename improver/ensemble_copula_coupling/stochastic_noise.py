@@ -7,7 +7,6 @@ Plugin for adding stochastic noise to a dependence template using Short-Space Fo
 Transform (SSFT).
 """
 
-import copy
 import os
 import time
 
@@ -35,7 +34,6 @@ How the pluin is structured:
 - Generate function: to generate the stochastic noise using SSFT
 - Function to add the stochastic noise to the dependence template
 """
-UNITS_DICT = {}
 
 
 class StochasticNoise(BasePlugin):
@@ -120,8 +118,6 @@ class StochasticNoise(BasePlugin):
             cube.data[cube.data < threshold] = 0
             return cube
 
-        original_units = copy.deepcopy(dependence_template.units)
-        dependence_template.convert_units(UNITS_DICT[dependence_template.name()])
         stochastic_noise_dB = dependence_template.copy()
         stochastic_noise = dependence_template.copy()
         dependence_template_dB = dependence_template.copy()
@@ -166,7 +162,6 @@ class StochasticNoise(BasePlugin):
 
         dependence_template.data = dependence_template.data + stochastic_noise.data
 
-        dependence_template.convert_units(original_units)
         return dependence_template
 
     def process():
