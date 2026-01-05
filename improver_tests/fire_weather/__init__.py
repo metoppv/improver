@@ -54,8 +54,8 @@ def make_cube(
 
 
 def make_input_cubes(
-    cube_specs: list[tuple[str, float, str, bool]],
-    shape: tuple[int, int] = (5, 5),
+    cube_specs: list[tuple[str, float | np.ndarray, str, bool]],
+    shape: tuple[int, ...] = (5, 5),
 ) -> tuple[Cube, ...]:
     """Create a list of test cubes for fire weather index tests.
 
@@ -67,7 +67,7 @@ def make_input_cubes(
             List of tuples, each containing:
             (name, value, units, add_time_coord)
             - name: Variable name (standard_name or long_name)
-            - value: Scalar value to fill the cube
+            - value: Scalar value or ndarray to fill the cube
             - units: Units for the cube
             - add_time_coord: Whether to add time bounds
         shape:
@@ -85,6 +85,11 @@ def make_input_cubes(
         ... )
     """
     return tuple(
-        make_cube(np.full(shape, value), name, units, add_time_coord)
+        make_cube(
+            np.full(shape, value) if isinstance(value, (int, float)) else value,
+            name,
+            units,
+            add_time_coord,
+        )
         for name, value, units, add_time_coord in cube_specs
     )

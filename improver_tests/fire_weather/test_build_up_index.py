@@ -6,19 +6,19 @@ import warnings
 
 import numpy as np
 import pytest
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 
 from improver.fire_weather.build_up_index import BuildUpIndex
-from improver_tests.fire_weather import make_cube, make_input_cubes
+from improver_tests.fire_weather import make_input_cubes
 
 
 def input_cubes(
-    dmc_val: float = 10.0,
-    dc_val: float = 15.0,
-    shape: tuple[int, int] = (5, 5),
+    dmc_val: float | np.ndarray = 10.0,
+    dc_val: float | np.ndarray = 15.0,
+    shape: tuple[int, ...] = (5, 5),
     dmc_units: str = "1",
     dc_units: str = "1",
-) -> tuple[Cube, ...]:
+) -> CubeList:
     """Create a list of dummy input cubes for BUI tests, with configurable units.
 
     DMC cube has time coordinates; DC cube does not.
@@ -36,14 +36,16 @@ def input_cubes(
             Units for DC cube.
 
     Returns:
-        A tuple of Iris Cubes for DMC and DC.
+        A CubeList of Iris Cubes for DMC and DC.
     """
-    return make_input_cubes(
-        [
-            ("duff_moisture_code", dmc_val, dmc_units, True),
-            ("drought_code", dc_val, dc_units, False),
-        ],
-        shape=shape,
+    return CubeList(
+        make_input_cubes(
+            [
+                ("duff_moisture_code", dmc_val, dmc_units, True),
+                ("drought_code", dc_val, dc_units, False),
+            ],
+            shape=shape,
+        )
     )
 
 
@@ -74,7 +76,7 @@ def test__calculate(
     dmc_val: float,
     dc_val: float,
     expected_bui: float,
-) -> None:
+):
     """Test calculation of BUI from DMC and DC.
 
     Verifies BUI calculation from DMC and DC values.
@@ -118,10 +120,7 @@ def test__calculate_spatially_varying() -> None:
     dmc_data = np.array([[5.0, 10.0, 20.0], [15.0, 25.0, 35.0], [30.0, 45.0, 60.0]])
     dc_data = np.array([[10.0, 20.0, 40.0], [30.0, 50.0, 70.0], [60.0, 90.0, 120.0]])
 
-    cubes = [
-        make_cube(dmc_data, "duff_moisture_code", "1", add_time_coord=True),
-        make_cube(dc_data, "drought_code", "1"),
-    ]
+    cubes = input_cubes(dmc_val=dmc_data, dc_val=dc_data, shape=dmc_data.shape)
 
     plugin = BuildUpIndex()
     plugin.load_input_cubes(cubes)
@@ -192,10 +191,7 @@ def test_process_spatially_varying() -> None:
     dmc_data = np.array([[5.0, 15.0, 30.0], [10.0, 25.0, 45.0], [20.0, 35.0, 60.0]])
     dc_data = np.array([[10.0, 30.0, 60.0], [20.0, 50.0, 90.0], [40.0, 70.0, 120.0]])
 
-    cubes = [
-        make_cube(dmc_data, "duff_moisture_code", "1", add_time_coord=True),
-        make_cube(dc_data, "drought_code", "1"),
-    ]
+    cubes = input_cubes(dmc_val=dmc_data, dc_val=dc_data, shape=dmc_data.shape)
 
     result = BuildUpIndex().process(cubes)
 
@@ -223,12 +219,9 @@ def test_process_dmc_only() -> None:
     # Calculate expected BUI for each DMC value when DC=0
     expected_bui = dmc_values - (0.92 + (0.0114 * dmc_values) ** 1.7)
 
-    cubes = [
-        make_cube(dmc_values, "duff_moisture_code", "1", add_time_coord=True),
-        make_cube(dc_values, "drought_code", "1"),
-    ]
+    cubes = input_cubes(dmc_val=dmc_values, dc_val=dc_values, shape=dmc_values.shape)
 
-    result = BuildUpIndex().process(cubes)
+    result = BuildUpIndex().process(CubeList(cubes))
 
     # When DC=0, BUI = DMC - [0.92 + (0.0114*DMC)^1.7]
     assert np.allclose(result.data, expected_bui, rtol=1e-3)
@@ -241,12 +234,9 @@ def test_process_dc_only() -> None:
         [[10.0, 50.0, 100.0], [20.0, 75.0, 150.0], [30.0, 90.0, 200.0]]
     )
 
-    cubes = [
-        make_cube(dmc_values, "duff_moisture_code", "1", add_time_coord=True),
-        make_cube(dc_values, "drought_code", "1"),
-    ]
+    cubes = input_cubes(dmc_val=dmc_values, dc_val=dc_values, shape=dmc_values.shape)
 
-    result = BuildUpIndex().process(cubes)
+    result = BuildUpIndex().process(CubeList(cubes))
 
     # When DMC=0, BUI should be 0 (no fuel moisture contribution)
     assert np.allclose(result.data, 0.0, atol=1e-6)
@@ -364,10 +354,7 @@ def test_output_validation_no_warning_for_valid_output() -> None:
     """
     # Use moderate inputs that produce valid BUI
     # Moderate DMC and DC produce moderate BUI within valid range
-    cubes = [
-        make_cube(np.array([[45.9]]), "duff_moisture_code", "1", add_time_coord=True),
-        make_cube(np.array([[123.9]]), "drought_code", "1"),
-    ]
+    cubes = input_cubes(dmc_val=45.9, dc_val=123.9, shape=(1, 1))
     plugin = BuildUpIndex()
 
     # Process should complete without warnings since output stays in valid range
