@@ -51,7 +51,9 @@ class BuildUpIndex(FireWeatherIndexBase):
         dc_data = self.input_dc.data
 
         # Condition 1: If both DMC and DC are zero, set BUI = 0
-        both_zero = (dmc_data == 0.0) & (dc_data == 0.0)
+        both_zero = np.isclose(dmc_data, 0.0, atol=1e-7) & np.isclose(
+            dc_data, 0.0, atol=1e-7
+        )
 
         # Condition 2: If DMC <= 0.4 * DC use equation 27a
         use_27a = dmc_data <= 0.4 * dc_data

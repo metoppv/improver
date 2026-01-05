@@ -56,7 +56,7 @@ def make_cube(
 def make_input_cubes(
     cube_specs: list[tuple[str, float, str, bool]],
     shape: tuple[int, int] = (5, 5),
-) -> list[Cube]:
+) -> tuple[Cube, ...]:
     """Create a list of test cubes for fire weather index tests.
 
     This is a convenience function for creating multiple input cubes with
@@ -74,7 +74,7 @@ def make_input_cubes(
             Shape of the grid for each cube.
 
     Returns:
-        List of Iris Cubes with the specified properties.
+        Tuple of Iris Cubes with the specified properties.
 
     Example:
         >>> cubes = make_input_cubes(
@@ -84,7 +84,7 @@ def make_input_cubes(
         ...     ]
         ... )
     """
-    return [
+    return tuple(
         make_cube(np.full(shape, value), name, units, add_time_coord)
         for name, value, units, add_time_coord in cube_specs
-    ]
+    )

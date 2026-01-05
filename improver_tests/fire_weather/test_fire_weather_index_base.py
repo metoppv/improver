@@ -73,7 +73,7 @@ def input_cubes_basic(
     temp_val: float = 20.0,
     rh_val: float = 50.0,
     shape: tuple[int, int] = (5, 5),
-) -> list[Cube]:
+) -> tuple[Cube, ...]:
     """Create basic input cubes for testing.
 
     Args:
@@ -101,7 +101,7 @@ def input_cubes_with_precip(
     precip_val: float = 1.0,
     rh_val: float = 50.0,
     shape: tuple[int, int] = (5, 5),
-) -> list[Cube]:
+) -> tuple[Cube, ...]:
     """Create input cubes including precipitation with time coordinates.
 
     Args:
@@ -248,7 +248,7 @@ def test_load_input_cubes_wrong_number_raises_error(
     elif num_cubes > len(cubes):
         # Add extra dummy cube
         extra = make_cube(np.full((5, 5), 10.0), "extra_cube", "1")
-        cubes.append(extra)
+        cubes = cubes + (extra,)
 
     plugin = ConcreteFireWeatherIndex()
 

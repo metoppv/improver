@@ -6,7 +6,7 @@ import warnings
 
 import numpy as np
 import pytest
-from iris.cube import Cube, CubeList
+from iris.cube import Cube
 
 from improver.fire_weather.build_up_index import BuildUpIndex
 from improver_tests.fire_weather import make_cube, make_input_cubes
@@ -18,10 +18,10 @@ def input_cubes(
     shape: tuple[int, int] = (5, 5),
     dmc_units: str = "1",
     dc_units: str = "1",
-) -> list[Cube]:
+) -> tuple[Cube, ...]:
     """Create a list of dummy input cubes for BUI tests, with configurable units.
 
-    DMC cube has time coordinates; DC cube does not (following the pattern).
+    DMC cube has time coordinates; DC cube does not.
 
     Args:
         dmc_val:
@@ -36,7 +36,7 @@ def input_cubes(
             Units for DC cube.
 
     Returns:
-        List of Iris Cubes for DMC and DC.
+        A tuple of Iris Cubes for DMC and DC.
     """
     return make_input_cubes(
         [
@@ -89,7 +89,7 @@ def test__calculate(
     """
     cubes = input_cubes(dmc_val=dmc_val, dc_val=dc_val)
     plugin = BuildUpIndex()
-    plugin.load_input_cubes(CubeList(cubes))
+    plugin.load_input_cubes(cubes)
     bui = plugin._calculate()
 
     assert np.allclose(bui, expected_bui, rtol=1e-2, atol=0.1)
@@ -105,7 +105,7 @@ def test__calculate_no_negative_values() -> None:
         for dc in dc_values:
             cubes = input_cubes(dmc_val=dmc, dc_val=dc)
             plugin = BuildUpIndex()
-            plugin.load_input_cubes(CubeList(cubes))
+            plugin.load_input_cubes(cubes)
             bui = plugin._calculate()
             assert np.all(bui >= 0.0), f"Negative BUI for DMC={dmc}, DC={dc}"
 
@@ -124,7 +124,7 @@ def test__calculate_spatially_varying() -> None:
     ]
 
     plugin = BuildUpIndex()
-    plugin.load_input_cubes(CubeList(cubes))
+    plugin.load_input_cubes(cubes)
     bui = plugin._calculate()
 
     # Verify shape and all values are non-negative
@@ -174,7 +174,7 @@ def test_process(
             Expected BUI output value.
     """
     cubes = input_cubes(dmc_val=dmc_val, dc_val=dc_val)
-    result = BuildUpIndex().process(CubeList(cubes))
+    result = BuildUpIndex().process(cubes)
 
     assert isinstance(result, Cube)
     assert result.shape == (5, 5)
@@ -197,7 +197,7 @@ def test_process_spatially_varying() -> None:
         make_cube(dc_data, "drought_code", "1"),
     ]
 
-    result = BuildUpIndex().process(CubeList(cubes))
+    result = BuildUpIndex().process(cubes)
 
     # Verify shape, type, and all values are non-negative
     assert result.data.shape == (3, 3)
@@ -228,7 +228,7 @@ def test_process_dmc_only() -> None:
         make_cube(dc_values, "drought_code", "1"),
     ]
 
-    result = BuildUpIndex().process(CubeList(cubes))
+    result = BuildUpIndex().process(cubes)
 
     # When DC=0, BUI = DMC - [0.92 + (0.0114*DMC)^1.7]
     assert np.allclose(result.data, expected_bui, rtol=1e-3)
@@ -246,7 +246,7 @@ def test_process_dc_only() -> None:
         make_cube(dc_values, "drought_code", "1"),
     ]
 
-    result = BuildUpIndex().process(CubeList(cubes))
+    result = BuildUpIndex().process(cubes)
 
     # When DMC=0, BUI should be 0 (no fuel moisture contribution)
     assert np.allclose(result.data, 0.0, atol=1e-6)
@@ -255,7 +255,7 @@ def test_process_dc_only() -> None:
 def test_process_both_zero() -> None:
     """Test that when both DMC and DC are zero, BUI equals 0."""
     cubes = input_cubes(dmc_val=0.0, dc_val=0.0)
-    result = BuildUpIndex().process(CubeList(cubes))
+    result = BuildUpIndex().process(cubes)
 
     assert isinstance(result, Cube)
     assert result.long_name == "build_up_index"
@@ -273,7 +273,7 @@ def test_input_attribute_mapping() -> None:
     """
     cubes = input_cubes(dmc_val=10.0, dc_val=30.0)
     plugin = BuildUpIndex()
-    plugin.load_input_cubes(CubeList(cubes))
+    plugin.load_input_cubes(cubes)
 
     # Check that attributes exist and have correct values
     assert hasattr(plugin, "input_dmc")
@@ -309,7 +309,7 @@ def test_invalid_input_ranges_raise_errors(
     plugin = BuildUpIndex()
 
     with pytest.raises(ValueError, match=expected_error):
-        plugin.load_input_cubes(CubeList(cubes))
+        plugin.load_input_cubes(cubes)
 
 
 @pytest.mark.parametrize(
@@ -351,7 +351,7 @@ def test_nan_and_inf_values_raise_errors(
     plugin = BuildUpIndex()
 
     with pytest.raises(ValueError, match=expected_error):
-        plugin.load_input_cubes(CubeList(cubes))
+        plugin.load_input_cubes(cubes)
 
 
 def test_output_validation_no_warning_for_valid_output() -> None:
@@ -373,7 +373,7 @@ def test_output_validation_no_warning_for_valid_output() -> None:
     # Process should complete without warnings since output stays in valid range
     with warnings.catch_warnings():
         warnings.simplefilter("error")  # Turn warnings into errors
-        result = plugin.process(CubeList(cubes))
+        result = plugin.process(cubes)
 
     # No warnings should have been raised (if any were, they'd be errors)
     assert isinstance(result, Cube)
