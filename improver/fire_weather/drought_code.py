@@ -70,7 +70,7 @@ class DroughtCode(FireWeatherIndexBase):
         """Calculate the Drought Code (DC).
 
         Returns:
-            np.ndarray: The calculated DC values for the current day.
+            The calculated DC values for the current day.
         """
         # Step 1: Set today's DC value to the previous day's DC value
         self.previous_dc = self.input_dc.data.copy()
@@ -127,7 +127,7 @@ class DroughtCode(FireWeatherIndexBase):
         From Van Wagner and Pickett (1985), Pages 6-7: Equation 22, Steps 3 & 4.
 
         Returns:
-            np.ndarray: The potential evapotranspiration value.
+            The potential evapotranspiration value.
         """
         # Apply temperature lower bound of -2.8°C
         temp_adjusted = np.maximum(self.temperature.data, -2.8)
@@ -146,10 +146,11 @@ class DroughtCode(FireWeatherIndexBase):
         From Van Wagner and Pickett (1985), Page 7: Equation 23.
 
         Args:
-            potential_evapotranspiration (np.ndarray): The potential evapotranspiration.
+            potential_evapotranspiration:
+                The potential evapotranspiration.
 
         Returns:
-            np.ndarray: The calculated DC value.
+            The calculated DC value.
         """
         # Equation 23: Calculate DC
         dc = self.previous_dc + 0.5 * potential_evapotranspiration

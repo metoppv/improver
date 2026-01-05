@@ -27,16 +27,23 @@ def input_cubes(
     time coordinates with bounds.
 
     Args:
-        temp_val (float): Temperature value for all grid points.
-        precip_val (float): Precipitation value for all grid points.
-        dc_val (float): DC value for all grid points.
-        shape (tuple[int, int]): Shape of the grid for each cube.
-        temp_units (str): Units for temperature cube.
-        precip_units (str): Units for precipitation cube.
-        dc_units (str): Units for DC cube.
+        temp_val:
+            Temperature value for all grid points.
+        precip_val:
+            Precipitation value for all grid points.
+        dc_val:
+            DC value for all grid points.
+        shape:
+            Shape of the grid for each cube.
+        temp_units:
+            Units for temperature cube.
+        precip_units:
+            Units for precipitation cube.
+        dc_units:
+            Units for DC cube.
 
     Returns:
-        list[Cube]: List of Iris Cubes for temperature, precipitation, and DC.
+        List of Iris Cubes for temperature, precipitation, and DC.
     """
     return make_input_cubes(
         [
@@ -101,9 +108,12 @@ def test__perform_rainfall_adjustment(
     different previous DC values.
 
     Args:
-        precip_val (float): Precipitation value for all grid points.
-        prev_dc (float): Previous DC value for all grid points.
-        expected_dc (float): Expected DC after adjustment.
+        precip_val:
+            Precipitation value for all grid points.
+        prev_dc:
+            Previous DC value for all grid points.
+        expected_dc:
+            Expected DC after adjustment.
     """
     cubes = input_cubes(precip_val=precip_val, dc_val=prev_dc)
     plugin = DroughtCode()
@@ -195,9 +205,12 @@ def test__calculate_potential_evapotranspiration(
     Verifies potential evapotranspiration calculation for DC.
 
     Args:
-        temp_val (float): Temperature value for all grid points.
-        month (int): Month of the year (1-12).
-        expected_pe (float): Expected potential evapotranspiration value.
+        temp_val:
+            Temperature value for all grid points.
+        month:
+            Month of the year (1-12).
+        expected_pe:
+            Expected potential evapotranspiration value.
     """
     cubes = input_cubes(temp_val=temp_val)
     plugin = DroughtCode()
@@ -268,9 +281,12 @@ def test__calculate_dc(
     Verifies DC calculation from previous DC and potential evapotranspiration.
 
     Args:
-        prev_dc (float): Previous DC value.
-        potential_evapotranspiration (float): Potential evapotranspiration value.
-        expected_dc (float): Expected DC output value.
+        prev_dc:
+            Previous DC value.
+        potential_evapotranspiration:
+            Potential evapotranspiration value.
+        expected_dc:
+            Expected DC output value.
     """
     plugin = DroughtCode()
     plugin.previous_dc = np.array([prev_dc])
@@ -315,11 +331,16 @@ def test_process(
     Verifies end-to-end DC calculation with various environmental conditions.
 
     Args:
-        temp_val (float): Temperature value for all grid points.
-        precip_val (float): Precipitation value for all grid points.
-        dc_val (float): DC value for all grid points.
-        month (int): Month of the year (1-12).
-        expected_output (float): Expected DC output value for all grid points.
+        temp_val:
+            Temperature value for all grid points.
+        precip_val:
+            Precipitation value for all grid points.
+        dc_val:
+            DC value for all grid points.
+        month:
+            Month of the year (1-12).
+        expected_output:
+            Expected DC output value for all grid points.
     """
     cubes = input_cubes(temp_val, precip_val, dc_val)
     plugin = DroughtCode()
@@ -416,10 +437,14 @@ def test_invalid_input_ranges_raise_errors(
     or out-of-range input values and raises descriptive errors.
 
     Args:
-        temp_val (float): Temperature value for all grid points.
-        precip_val (float): Precipitation value for all grid points.
-        dc_val (float): DC value for all grid points.
-        expected_error (str): Expected error message substring.
+        temp_val:
+            Temperature value for all grid points.
+        precip_val:
+            Precipitation value for all grid points.
+        dc_val:
+            DC value for all grid points.
+        expected_error:
+            Expected error message substring.
     """
     cubes = input_cubes(temp_val, precip_val, dc_val)
     plugin = DroughtCode()
@@ -453,10 +478,14 @@ def test_nan_and_inf_values_raise_errors(
     and raises descriptive errors.
 
     Args:
-        temp_val (float): Temperature value for all grid points.
-        precip_val (float): Precipitation value for all grid points.
-        dc_val (float): DC value for all grid points.
-        expected_error (str): Expected error message substring.
+        temp_val:
+            Temperature value for all grid points.
+        precip_val:
+            Precipitation value for all grid points.
+        dc_val:
+            DC value for all grid points.
+        expected_error:
+            Expected error message substring.
     """
     cubes = input_cubes(temp_val, precip_val, dc_val)
     plugin = DroughtCode()
