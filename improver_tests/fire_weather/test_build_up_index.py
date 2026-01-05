@@ -24,14 +24,19 @@ def input_cubes(
     DMC cube has time coordinates; DC cube does not (following the pattern).
 
     Args:
-        dmc_val (float): DMC value for all grid points.
-        dc_val (float): DC value for all grid points.
-        shape (tuple[int, int]): Shape of the grid for each cube.
-        dmc_units (str): Units for DMC cube.
-        dc_units (str): Units for DC cube.
+        dmc_val:
+            DMC value for all grid points.
+        dc_val:
+            DC value for all grid points.
+        shape:
+            Shape of the grid for each cube.
+        dmc_units:
+            Units for DMC cube.
+        dc_units:
+            Units for DC cube.
 
     Returns:
-        list[Cube]: List of Iris Cubes for DMC and DC.
+        List of Iris Cubes for DMC and DC.
     """
     return make_input_cubes(
         [
@@ -75,9 +80,12 @@ def test__calculate(
     Verifies BUI calculation from DMC and DC values.
 
     Args:
-        dmc_val (float): DMC value to test.
-        dc_val (float): DC value to test.
-        expected_bui (float): Expected BUI value.
+        dmc_val:
+            DMC value to test.
+        dc_val:
+            DC value to test.
+        expected_bui:
+            Expected BUI value.
     """
     cubes = input_cubes(dmc_val=dmc_val, dc_val=dc_val)
     plugin = BuildUpIndex()
@@ -158,9 +166,12 @@ def test_process(
     equation branches. Edge cases (DMC=0, DC=0, both zero) are covered by dedicated tests.
 
     Args:
-        dmc_val (float): DMC value to test.
-        dc_val (float): DC value to test.
-        expected_bui (float): Expected BUI output value.
+        dmc_val:
+            DMC value to test.
+        dc_val:
+            DC value to test.
+        expected_bui:
+            Expected BUI output value.
     """
     cubes = input_cubes(dmc_val=dmc_val, dc_val=dc_val)
     result = BuildUpIndex().process(CubeList(cubes))
@@ -287,9 +298,12 @@ def test_invalid_input_ranges_raise_errors(
     or out-of-range input values and raises descriptive errors.
 
     Args:
-        dmc_val (float): DMC value for all grid points.
-        dc_val (float): DC value for all grid points.
-        expected_error (str): Expected error message substring.
+        dmc_val:
+            DMC value for all grid points.
+        dc_val:
+            DC value for all grid points.
+        expected_error:
+            Expected error message substring.
     """
     cubes = input_cubes(dmc_val, dc_val)
     plugin = BuildUpIndex()
@@ -315,8 +329,10 @@ def test_nan_and_inf_values_raise_errors(
     Verifies that the validation catches non-finite values (NaN, Inf) in input data.
 
     Args:
-        invalid_input_type (str): Which input to make invalid and how.
-        expected_error (str): Expected error message substring.
+        invalid_input_type:
+            Which input to make invalid and how.
+        expected_error:
+            Expected error message substring.
     """
     # Start with valid values
     dmc_val, dc_val = 10.0, 30.0

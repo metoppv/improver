@@ -45,7 +45,7 @@ class BuildUpIndex(FireWeatherIndexBase):
         From Van Wagner and Pickett (1985), Page 7: Equations 27a-27b.
 
         Returns:
-            np.ndarray: The calculated BUI values.
+            The calculated BUI values.
         """
         dmc_data = self.input_dmc.data
         dc_data = self.input_dc.data
