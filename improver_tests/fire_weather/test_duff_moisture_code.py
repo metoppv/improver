@@ -2,6 +2,7 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
+import warnings
 
 import numpy as np
 import pytest
@@ -413,33 +414,30 @@ def test_dmc_day_length_factors_table() -> None:
     assert DuffMoistureCode.DMC_DAY_LENGTH_FACTORS == expected_factors
 
 
+# Define input parameters for test_invalid_input_ranges_raise_errors cases
+TEMPERATURE_TOO_HIGH = 150.0, 1.0, 50.0, 6.0
+TEMPERATURE_TOO_LOW = -150.0, 1.0, 50.0, 6.0
+PRECIPITATION_NEGATIVE = 20.0, -5.0, 50.0, 6.0
+RELATIVE_HUMIDITY_TOO_HIGH = 20.0, 1.0, 150.0, 6.0
+NEGATIVE_RELATIVE_HUMIDITY = 20.0, 1.0, -10.0, 6.0
+DMC_NEGATIVE = 20.0, 1.0, 50.0, -5.0
+
+
 @pytest.mark.parametrize(
     "temp_val, precip_val, rh_val, dmc_val, expected_error",
     [
-        # Temperature too high
-        (150.0, 1.0, 50.0, 6.0, "temperature contains values above valid maximum"),
-        # Temperature too low
-        (-150.0, 1.0, 50.0, 6.0, "temperature contains values below valid minimum"),
-        # Precipitation negative
-        (20.0, -5.0, 50.0, 6.0, "precipitation contains values below valid minimum"),
-        # Relative humidity above 100%
+        (*TEMPERATURE_TOO_HIGH, "temperature contains values above valid maximum"),
+        (*TEMPERATURE_TOO_LOW, "temperature contains values below valid minimum"),
+        (*PRECIPITATION_NEGATIVE, "precipitation contains values below valid minimum"),
         (
-            20.0,
-            1.0,
-            150.0,
-            6.0,
+            *RELATIVE_HUMIDITY_TOO_HIGH,
             "relative_humidity contains values above valid maximum",
         ),
-        # Relative humidity negative
         (
-            20.0,
-            1.0,
-            -10.0,
-            6.0,
+            *NEGATIVE_RELATIVE_HUMIDITY,
             "relative_humidity contains values below valid minimum",
         ),
-        # DMC negative
-        (20.0, 1.0, 50.0, -5.0, "input_dmc contains values below valid minimum"),
+        (*DMC_NEGATIVE, "input_dmc contains values below valid minimum"),
     ],
 )
 def test_invalid_input_ranges_raise_errors(
@@ -473,50 +471,45 @@ def test_invalid_input_ranges_raise_errors(
         plugin.load_input_cubes(CubeList(cubes), month=7)
 
 
+TEMP_VAL, PRECIP_VAL, RH_VAL, DMC_VAL = 20.0, 1.0, 5.0, 6.0
+
+
 @pytest.mark.parametrize(
-    "invalid_input_type,expected_error",
+    "temp_val, precip_val, rh_val, dmc_val, expected_error",
     [
-        ("temperature_nan", "temperature contains NaN"),
-        ("temperature_inf", "temperature contains infinite"),
-        ("precipitation_nan", "precipitation contains NaN"),
-        ("precipitation_inf", "precipitation contains infinite"),
-        ("relative_humidity_nan", "relative_humidity contains NaN"),
-        ("input_dmc_nan", "input_dmc contains NaN"),
-        ("input_dmc_inf", "input_dmc contains infinite"),
+        (np.nan, PRECIP_VAL, RH_VAL, DMC_VAL, "temperature contains NaN"),
+        (np.inf, PRECIP_VAL, RH_VAL, DMC_VAL, "temperature contains infinite"),
+        (TEMP_VAL, np.nan, RH_VAL, DMC_VAL, "precipitation contains NaN"),
+        (TEMP_VAL, np.inf, RH_VAL, DMC_VAL, "precipitation contains infinite"),
+        (TEMP_VAL, PRECIP_VAL, np.nan, DMC_VAL, "relative_humidity contains NaN"),
+        (TEMP_VAL, PRECIP_VAL, np.inf, DMC_VAL, "relative_humidity contains infinite"),
+        (TEMP_VAL, PRECIP_VAL, RH_VAL, np.nan, "input_dmc contains NaN"),
+        (TEMP_VAL, PRECIP_VAL, RH_VAL, np.inf, "input_dmc contains infinite"),
     ],
 )
 def test_nan_and_inf_values_raise_errors(
-    invalid_input_type: str, expected_error: str
+    temp_val: float,
+    precip_val: float,
+    rh_val: float,
+    dmc_val: float,
+    expected_error: str,
 ) -> None:
     """Test that NaN and Inf values in inputs raise appropriate ValueError.
 
     Verifies that the validation catches non-finite values (NaN, Inf) in input data.
 
     Args:
-        invalid_input_type:
-            Which input to make invalid and how.
+        temp_val:
+            Temperature value for all grid points.
+        precip_val:
+            Precipitation value for all grid points.
+        rh_val:
+            Relative humidity value for all grid points.
+        dmc_val:
+            DMC value for all grid points.
         expected_error:
             Expected error message substring.
     """
-    # Start with valid values
-    temp_val, precip_val, rh_val, dmc_val = 20.0, 1.0, 50.0, 6.0
-
-    # Replace the appropriate value with NaN or Inf
-    if invalid_input_type == "temperature_nan":
-        temp_val = np.nan
-    elif invalid_input_type == "temperature_inf":
-        temp_val = np.inf
-    elif invalid_input_type == "precipitation_nan":
-        precip_val = np.nan
-    elif invalid_input_type == "precipitation_inf":
-        precip_val = np.inf
-    elif invalid_input_type == "relative_humidity_nan":
-        rh_val = np.nan
-    elif invalid_input_type == "input_dmc_nan":
-        dmc_val = np.nan
-    elif invalid_input_type == "input_dmc_inf":
-        dmc_val = np.inf
-
     cubes = input_cubes(temp_val, precip_val, rh_val, dmc_val)
     plugin = DuffMoistureCode()
 
@@ -533,9 +526,6 @@ def test_output_validation_no_warning_for_valid_output() -> None:
     # Use normal valid inputs
     cubes = input_cubes(temp_val=20.0, precip_val=0.0, rh_val=50.0, dmc_val=50.0)
     plugin = DuffMoistureCode()
-
-    # Process should complete without warnings since output stays in valid range
-    import warnings
 
     with warnings.catch_warnings():
         warnings.simplefilter("error")  # Turn warnings into errors
