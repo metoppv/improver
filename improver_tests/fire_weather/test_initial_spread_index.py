@@ -24,14 +24,18 @@ def input_cubes(
     All cubes have forecast_reference_time. FFMC cube also has time coordinates with bounds.
 
     Args:
-        wind_val (float): Wind speed value for all grid points.
-        ffmc_val (float): FFMC value for all grid points.
-        shape (tuple[int, int]): Shape of the grid for each cube.
-        wind_units (str): Units for wind speed cube.
-        ffmc_units (str): Units for FFMC cube.
-
+        wind_val:
+            Wind speed value for all grid points.
+        ffmc_val:
+            FFMC value for all grid points.
+        shape:
+            Shape of the grid for each cube.
+        wind_units:
+            Units for wind speed cube.
+        ffmc_units:
+            Units for FFMC cube.
     Returns:
-        list[Cube]: List of Iris Cubes for wind speed and FFMC.
+        List of Iris Cubes for wind speed and FFMC.
     """
     return make_input_cubes(
         [
@@ -84,8 +88,10 @@ def test__calculate_fine_fuel_moisture(
     """Test calculation of fine fuel moisture from FFMC.
 
     Args:
-        ffmc_val (float): FFMC value to test.
-        expected_fm (float): Expected fine fuel moisture content.
+        ffmc_val:
+            FFMC value to test.
+        expected_fm:
+            Expected fine fuel moisture content.
     """
     cubes = input_cubes(wind_val=10.0, ffmc_val=ffmc_val)
     plugin = InitialSpreadIndex()
@@ -120,8 +126,10 @@ def test__calculate_wind_function(
     """Test calculation of wind function.
 
     Args:
-        wind_val (float): Wind speed value to test.
-        expected_wf (float): Expected wind function value.
+        wind_val:
+            Wind speed value to test.
+        expected_wf:
+            Expected wind function value.
     """
     cubes = input_cubes(wind_val=wind_val, ffmc_val=85.0)
     plugin = InitialSpreadIndex()
@@ -156,8 +164,10 @@ def test__calculate_spread_factor(
     Verifies spread factor calculation from FFMC with zero wind.
 
     Args:
-        ffmc_val (float): FFMC value to test.
-        expected_isi (float): Expected ISI value with zero wind.
+        ffmc_val:
+            FFMC value to test.
+        expected_isi:
+            Expected ISI value with zero wind.
     """
     cubes = input_cubes(wind_val=0.0, ffmc_val=ffmc_val)
     plugin = InitialSpreadIndex()
@@ -193,9 +203,12 @@ def test__calculate_isi(
     """Test calculation of ISI from fine fuel moisture and wind.
 
     Args:
-        wind_val (float): Wind speed value to test.
-        ffmc_val (float): FFMC value to test.
-        expected_isi (float): Expected ISI value.
+        wind_val:
+            Wind speed value to test.
+        ffmc_val:
+            FFMC value to test.
+        expected_isi:
+            Expected ISI value.
     """
     cubes = input_cubes(wind_val=wind_val, ffmc_val=ffmc_val)
     plugin = InitialSpreadIndex()
@@ -238,9 +251,12 @@ def test_process(
     Verifies end-to-end ISI calculation with various environmental conditions.
 
     Args:
-        wind_val (float): Wind speed value to test.
-        ffmc_val (float): FFMC value to test.
-        expected_isi (float): Expected ISI output value.
+        wind_val:
+            Wind speed value to test.
+        ffmc_val:
+            FFMC value to test.
+        expected_isi:
+            Expected ISI output value.
     """
     cubes = input_cubes(wind_val=wind_val, ffmc_val=ffmc_val)
     result = InitialSpreadIndex().process(CubeList(cubes))
@@ -349,9 +365,12 @@ def test_invalid_input_ranges_raise_errors(
     or out-of-range input values and raises descriptive errors.
 
     Args:
-        wind_val (float): Wind speed value for all grid points.
-        ffmc_val (float): FFMC value for all grid points.
-        expected_error (str): Expected error message substring.
+        wind_val:
+            Wind speed value for all grid points.
+        ffmc_val:
+            FFMC value for all grid points.
+        expected_error:
+            Expected error message substring.
     """
     cubes = [
         make_cube(np.array([[wind_val]]), "wind_speed", "km/h"),
@@ -388,9 +407,12 @@ def test_nan_and_inf_values_raise_errors(
     Verifies that the validation catches non-finite values (NaN, Inf) in input data.
 
     Args:
-        wind_val (float): Wind speed value for all grid points.
-        ffmc_val (float): FFMC value for all grid points.
-        expected_error (str): Expected error message substring.
+        wind_val:
+            Wind speed value for all grid points.
+        ffmc_val:
+            FFMC value for all grid points.
+        expected_error:
+            Expected error message substring.
     """
 
     cubes = [

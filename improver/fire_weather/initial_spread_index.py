@@ -43,7 +43,7 @@ class InitialSpreadIndex(FireWeatherIndexBase):
         This uses Steps 1 & 2 from Van Wagner and Pickett (1985), page 8.
 
         Returns:
-            np.ndarray: The calculated ISI values.
+            The calculated ISI values.
         """
         # Calculate fine fuel moisture content from FFMC
         self._calculate_fine_fuel_moisture()
@@ -66,24 +66,24 @@ class InitialSpreadIndex(FireWeatherIndexBase):
             147.2 * (101.0 - self.input_ffmc.data) / (59.5 + self.input_ffmc.data)
         )
 
-    def _calculate_wind_function(self):
+    def _calculate_wind_function(self) -> np.ndarray:
         """Calculates the wind function component of ISI.
 
         From Van Wagner and Pickett (1985), Page 7: Equation 24.
 
         Returns:
-            np.ndarray: The wind function values.
+            The wind function values.
         """
         wind_function = np.exp(0.05039 * self.wind_speed.data)
         return wind_function
 
-    def _calculate_spread_factor(self):
+    def _calculate_spread_factor(self) -> np.ndarray:
         """Calculates the spread factor component for ISI.
 
         From Van Wagner and Pickett (1985), Page 7: Equation 25.
 
         Returns:
-            np.ndarray: The spread factor values.
+            The spread factor values.
         """
         # Equation 25: Calculate the spread factor (SF)
         spread_factor = (
@@ -101,11 +101,13 @@ class InitialSpreadIndex(FireWeatherIndexBase):
         From Van Wagner and Pickett (1985), Page 7: Equation 26.
 
         Args:
-            spread_factor (np.ndarray): The spread factor values.
-            wind_function (np.ndarray): The wind function values.
+            spread_factor:
+                The spread factor values.
+            wind_function:
+                The wind function values.
 
         Returns:
-            np.ndarray: The calculated ISI values.
+            The calculated ISI values.
         """
         # Equation 26: Calculate the Initial Spread Index (ISI)
         initial_spread_index = 0.208 * spread_factor * wind_function
