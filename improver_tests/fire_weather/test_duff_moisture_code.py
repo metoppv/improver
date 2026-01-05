@@ -28,18 +28,27 @@ def input_cubes(
     time coordinates with bounds.
 
     Args:
-        temp_val (float): Temperature value for all grid points.
-        precip_val (float): Precipitation value for all grid points.
-        rh_val (float): Relative humidity value for all grid points.
-        dmc_val (float): DMC value for all grid points.
-        shape (tuple[int, int]): Shape of the grid for each cube.
-        temp_units (str): Units for temperature cube.
-        precip_units (str): Units for precipitation cube.
-        rh_units (str): Units for relative humidity cube.
-        dmc_units (str): Units for DMC cube.
+        temp_val:
+            Temperature value for all grid points.
+        precip_val:
+            Precipitation value for all grid points.
+        rh_val:
+            Relative humidity value for all grid points.
+        dmc_val:
+            DMC value for all grid points.
+        shape:
+            Shape of the grid for each cube.
+        temp_units:
+            Units for temperature cube.
+        precip_units:
+            Units for precipitation cube.
+        rh_units:
+            Units for relative humidity cube.
+        dmc_units:
+            Units for DMC cube.
 
     Returns:
-        list[Cube]: List of Iris Cubes for temperature, precipitation, relative humidity, and DMC.
+        List of Iris Cubes for temperature, precipitation, relative humidity, and DMC.
     """
     return make_input_cubes(
         [
@@ -103,9 +112,12 @@ def test__perform_rainfall_adjustment(
     different previous DMC values.
 
     Args:
-        precip_val (float): Precipitation value for all grid points.
-        prev_dmc (float): Previous DMC value for all grid points.
-        expected_dmc (float): Expected DMC after adjustment.
+        precip_val:
+            Precipitation value for all grid points.
+        prev_dmc:
+            Previous DMC value for all grid points.
+        expected_dmc:
+            Expected DMC after adjustment.
     """
     cubes = input_cubes(precip_val=precip_val, dmc_val=prev_dmc)
     plugin = DuffMoistureCode()
@@ -193,10 +205,14 @@ def test__calculate_drying_rate(
     Verifies drying rate calculation for DMC.
 
     Args:
-        temp_val (float): Temperature value for all grid points.
-        rh_val (float): Relative humidity value for all grid points.
-        month (int): Month of the year (1-12).
-        expected_rate (float): Expected drying rate value.
+        temp_val:
+            Temperature value for all grid points.
+        rh_val:
+            Relative humidity value for all grid points.
+        month:
+            Month of the year (1-12).
+        expected_rate:
+            Expected drying rate value.
     """
     cubes = input_cubes(temp_val=temp_val, rh_val=rh_val)
     plugin = DuffMoistureCode()
@@ -268,9 +284,12 @@ def test__calculate_dmc(
     Verifies DMC calculation from previous DMC and drying rate.
 
     Args:
-        prev_dmc (float): Previous DMC value.
-        drying_rate (float): Drying rate value.
-        expected_dmc (float): Expected DMC output value.
+        prev_dmc:
+            Previous DMC value.
+        drying_rate:
+            Drying rate value.
+        expected_dmc:
+            Expected DMC output value.
     """
     plugin = DuffMoistureCode()
     plugin.previous_dmc = np.array([prev_dmc])
@@ -310,12 +329,18 @@ def test_process(
     Verifies end-to-end DMC calculation with various environmental conditions.
 
     Args:
-        temp_val (float): Temperature value for all grid points.
-        precip_val (float): Precipitation value for all grid points.
-        rh_val (float): Relative humidity value for all grid points.
-        dmc_val (float): DMC value for all grid points.
-        month (int): Month of the year (1-12).
-        expected_output (float): Expected DMC output value for all grid points.
+        temp_val:
+            Temperature value for all grid points.
+        precip_val:
+            Precipitation value for all grid points.
+        rh_val:
+            Relative humidity value for all grid points.
+        dmc_val:
+            DMC value for all grid points.
+        month:
+            Month of the year (1-12).
+        expected_output:
+            Expected DMC output value for all grid points.
     """
     cubes = input_cubes(temp_val, precip_val, rh_val, dmc_val)
     plugin = DuffMoistureCode()
@@ -430,11 +455,16 @@ def test_invalid_input_ranges_raise_errors(
     or out-of-range input values and raises descriptive errors.
 
     Args:
-        temp_val (float): Temperature value for all grid points.
-        precip_val (float): Precipitation value for all grid points.
-        rh_val (float): Relative humidity value for all grid points.
-        dmc_val (float): DMC value for all grid points.
-        expected_error (str): Expected error message substring.
+        temp_val:
+            Temperature value for all grid points.
+        precip_val:
+            Precipitation value for all grid points.
+        rh_val:
+            Relative humidity value for all grid points.
+        dmc_val:
+            DMC value for all grid points.
+        expected_error:
+            Expected error message substring.
     """
     cubes = input_cubes(temp_val, precip_val, rh_val, dmc_val)
     plugin = DuffMoistureCode()
@@ -463,8 +493,10 @@ def test_nan_and_inf_values_raise_errors(
     Verifies that the validation catches non-finite values (NaN, Inf) in input data.
 
     Args:
-        invalid_input_type (str): Which input to make invalid and how.
-        expected_error (str): Expected error message substring.
+        invalid_input_type:
+            Which input to make invalid and how.
+        expected_error:
+            Expected error message substring.
     """
     # Start with valid values
     temp_val, precip_val, rh_val, dmc_val = 20.0, 1.0, 50.0, 6.0

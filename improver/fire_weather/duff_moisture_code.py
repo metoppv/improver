@@ -153,8 +153,8 @@ class DuffMoistureCode(FireWeatherIndexBase):
         From Van Wagner and Pickett (1985), Page 6: Equation 16, Steps 3 & 4.
 
         Returns:
-            np.ndarray: The drying rate (dimensionless). Shape matches input cube
-                data shape. This value is added to previous DMC to get today's DMC.
+            The drying rate (dimensionless). Shape matches input cube data
+            shape. This value is added to previous DMC to get today's DMC.
         """
         # Apply temperature lower bound of -1.1°C
         temp_adjusted = np.maximum(self.temperature.data, -1.1)
@@ -182,10 +182,11 @@ class DuffMoistureCode(FireWeatherIndexBase):
         From Van Wagner and Pickett (1985), Page 6: Equation 16.
 
         Args:
-            drying_rate (np.ndarray): The drying rate (RK).
+            drying_rate:
+                The drying rate, represented by 'K' in the original equations.
 
         Returns:
-            np.ndarray: The calculated DMC value.
+            The calculated DMC value.
         """
         # Equation 16: Calculate DMC
         dmc = self.previous_dmc + drying_rate

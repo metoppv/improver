@@ -104,18 +104,20 @@ class FireWeatherIndexBase(BasePlugin):
     }
 
     def load_input_cubes(self, cubes: tuple[Cube] | CubeList, month: int | None = None):
-        """Loads the required input cubes for the calculation. These
-        are stored internally as Cube objects.
+        """Loads the required input cubes for the calculation. These are stored
+        internally as Cube objects.
 
         Args:
-            cubes (tuple[iris.cube.Cube] | iris.cube.CubeList): Input cubes containing the necessary data.
-            month (int | None): Month of the year (1-12), required only if REQUIRES_MONTH is True.
+            cubes:
+                Input cubes containing the necessary data.
+            month:
+                Month of the year (1-12), required only if REQUIRES_MONTH is True.
                 Defaults to None.
 
         Raises:
-            ValueError: If the number of cubes does not match the expected
-                number, if month is required but not provided, or if month
-                is out of range.
+            ValueError:
+                If the number of cubes does not match the expected number, if
+                month is required but not provided, or if month is out of range.
         """
         if len(cubes) != len(self.INPUT_CUBE_NAMES):
             raise ValueError(
@@ -152,10 +154,11 @@ class FireWeatherIndexBase(BasePlugin):
         """Convert a cube standard name to an attribute name.
 
         Args:
-            standard_name (str): The cube's standard name
+            standard_name:
+                The cube's standard name
 
         Returns:
-            str: The attribute name to use for storing the cube
+            The attribute name to use for storing the cube
 
         Examples:
             "air_temperature" -> "temperature"
@@ -176,11 +179,14 @@ class FireWeatherIndexBase(BasePlugin):
         """Validate that input data falls within expected physical ranges.
 
         Args:
-            cube (iris.cube.Cube): The input cube to validate
-            attr_name (str): The attribute name for the cube
+            cube:
+                The input cube to validate
+            attr_name:
+                The attribute name for the cube
 
         Raises:
-            ValueError: If any values fall outside the valid range for this input type,
+            ValueError:
+                If any values fall outside the valid range for this input type,
                 or if data contains NaN or Inf values
         """
         if attr_name not in self._VALID_RANGES:
@@ -223,13 +229,15 @@ class FireWeatherIndexBase(BasePlugin):
         24-hour accumulation period.
 
         Args:
-            data (np.ndarray): The output data array
-            template_cube (iris.cube.Cube | None): The cube to use as a template for metadata.
+            data:
+                The output data array
+            template_cube:
+                The cube to use as a template for metadata.
                 If None, uses the first input cube. Defaults to None
 
         Returns:
-            iris.cube.Cube: The output cube containing the output data with proper
-                metadata and coordinates.
+            The output cube containing the output data with proper metadata
+            and coordinates.
         """
         if template_cube is None:
             # Use first input cube as template
@@ -267,7 +275,8 @@ class FireWeatherIndexBase(BasePlugin):
         the specific calculation logic for that component.
 
         Raises:
-            NotImplementedError: This method must be implemented by subclasses.
+            NotImplementedError:
+                This method must be implemented by subclasses.
         """
         raise NotImplementedError("Subclasses must implement the _calculate method.")
 
@@ -275,15 +284,18 @@ class FireWeatherIndexBase(BasePlugin):
         """Calculate the fire weather index component.
 
         Args:
-            cubes (tuple[iris.cube.Cube] | iris.cube.CubeList): Input cubes as specified by INPUT_CUBE_NAMES
-            month (int | None): Month parameter (1-12), required only if REQUIRES_MONTH is True
+            cubes:
+                Input cubes as specified by INPUT_CUBE_NAMES
+            month:
+                Month parameter (1-12), required only if REQUIRES_MONTH is True
                 Defaults to None.
 
         Returns:
-            iris.cube.Cube: The calculated output cube.
+            The calculated output cube.
 
         Warns:
-            UserWarning: If output values fall outside typical expected ranges
+            UserWarning:
+                If output values fall outside typical expected ranges
         """
         self.load_input_cubes(cubes, month)
         output_data = self._calculate()
@@ -298,10 +310,12 @@ class FireWeatherIndexBase(BasePlugin):
         """Check if output values fall within expected ranges and issue warnings if not.
 
         Args:
-            output_cube (iris.cube.Cube): The output cube to validate
+            output_cube:
+                The output cube to validate
 
         Warns:
-            UserWarning: If output contains NaN, Inf, or values outside expected ranges
+            UserWarning:
+                If output contains NaN, Inf, or values outside expected ranges
         """
         output_name = output_cube.name()
 
