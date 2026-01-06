@@ -85,7 +85,10 @@ class StandardiseMetadata(BasePlugin):
         try:
             coord = cube.coord(coord_name)
         except CoordinateNotFoundError:
-            coord = None
+            try:
+                coord = cube.ancillary_variables("status_flag")
+            except CoordinateNotFoundError:
+                coord = None
 
         if coord:
             if coord.attributes != {

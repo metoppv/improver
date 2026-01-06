@@ -502,9 +502,6 @@ class HumidityMixingRatio(BasePlugin):
             pressure_list.append(temp_slice)
         return pressure_list
 
-    # def _remove_status_flags(self, pressure_list) -> CubeList:
-    #     return CubeList([item.remove_ancillary_variable("status_flag") for item in pressure_list])
-
     def generate_pressure_cube(self, temperature_cube) -> Cube:
         """Generate a pressure cube from the pressure coordinate on the temperature cube"""
         coord_list = [coord.name() for coord in temperature_cube.coords()]
