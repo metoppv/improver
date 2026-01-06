@@ -24,12 +24,16 @@ def input_cubes(
     FWI cube has time coordinates.
 
     Args:
-        fwi_val (float): FWI value for all grid points.
-        shape (tuple[int, int]): Shape of the grid for each cube.
-        fwi_units (str): Units for FWI cube.
+        fwi_val:
+            FWI value for all grid points.
+        shape:
+            Shape of the grid for each cube.
+        fwi_units:
+            Units for FWI cube.
 
     Returns:
-        list[Cube]: List containing FWI Cube.
+        list:
+            List containing FWI Cube.
     """
     return make_input_cubes(
         [("canadian_forest_fire_weather_index", fwi_val, fwi_units, True)],
@@ -63,8 +67,10 @@ def test__calculate(
     Verifies DSR calculation from FWI values.
 
     Args:
-        fwi_val (float): FWI value to test.
-        expected_dsr (float): Expected DSR value.
+        fwi_val:
+            FWI value to test.
+        expected_dsr:
+            Expected DSR value.
     """
     cubes = input_cubes(fwi_val=fwi_val)
     plugin = FireSeverityIndex()
@@ -82,7 +88,8 @@ def test__calculate_no_negative_values(fwi_val: float) -> None:
     """Test that DSR calculation never produces negative values.
 
     Args:
-        fwi_val (float): Fire Weather Index value to test.
+        fwi_val:
+            Fire Weather Index value to test.
     """
     cubes = input_cubes(fwi_val=fwi_val)
     plugin = FireSeverityIndex()
@@ -146,8 +153,10 @@ def test__make_dsr_cube(
     Verifies cube creation with proper metadata for DSR.
 
     Args:
-        dsr_value (float): DSR value to use.
-        shape (tuple[int, int]): Shape of the grid.
+        dsr_value:
+            DSR value to use.
+        shape:
+            Shape of the grid.
     """
     cubes = input_cubes(fwi_val=25.0, shape=shape)
     plugin = FireSeverityIndex()
@@ -188,8 +197,10 @@ def test_process(
     Verifies end-to-end DSR calculation with various FWI input values.
 
     Args:
-        fwi_val (float): FWI value to test.
-        expected_dsr (float): Expected DSR output value.
+        fwi_val:
+            FWI value to test.
+        expected_dsr:
+            Expected DSR output value.
     """
     cubes = input_cubes(fwi_val=fwi_val)
     result = FireSeverityIndex().process(CubeList(cubes))
@@ -265,8 +276,10 @@ def test_invalid_input_ranges_raise_errors(fwi_val: float, expected_error: str) 
     or out-of-range input values and raises descriptive errors.
 
     Args:
-        fwi_val (float): FWI value for all grid points.
-        expected_error (str): Expected error message substring.
+        fwi_val:
+            FWI value for all grid points.
+        expected_error:
+            Expected error message substring.
     """
     cubes = input_cubes(fwi_val=fwi_val)
     plugin = FireSeverityIndex()
@@ -288,8 +301,10 @@ def test_nan_and_inf_values_raise_errors(fwi_val: float, expected_error: str) ->
     Verifies that the validation catches non-finite values (NaN, Inf) in input data.
 
     Args:
-        fwi_val (float): Fire Weather Index value to use (NaN or Inf).
-        expected_error (str): Expected error message substring.
+        fwi_val:
+            Fire Weather Index value to use (NaN or Inf).
+        expected_error:
+            Expected error message substring.
     """
     cubes = input_cubes(fwi_val=fwi_val)
     plugin = FireSeverityIndex()

@@ -40,7 +40,7 @@ class FireSeverityIndex(FireWeatherIndexBase):
         From Van Wagner and Pickett (1985), Page 8: Equation 31.
 
         Returns:
-            np.ndarray: The calculated DSR values.
+            The calculated DSR values.
         """
         fwi_data = self.canadian_forest_fire_weather_index.data
 
