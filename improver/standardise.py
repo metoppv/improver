@@ -91,13 +91,14 @@ class StandardiseMetadata(BasePlugin):
                 coord = None
 
         if coord:
-            if coord.attributes != {
-                "flag_meanings": "above_surface_pressure below_surface_pressure",
-                "flag_values": np.array([0, 1], dtype="int8"),
-            }:
-                raise ValueError(
-                    f"'{coord_name}' coordinate is not of the expected form."
-                )
+            for coord_item in coord:
+                if coord_item.attributes != {
+                    "flag_meanings": "above_surface_pressure below_surface_pressure",
+                    "flag_values": np.array([0, 1], dtype="int8"),
+                }:
+                    raise ValueError(
+                        f"'{coord_name}' coordinate is not of the expected form."
+                    )
             ncube = CubeList()
 
             try:
