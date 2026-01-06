@@ -507,6 +507,11 @@ class HumidityMixingRatio(BasePlugin):
         coord_list = [coord.name() for coord in temperature_cube.coords()]
         pressure_list = self._make_pressure_list(temperature_cube)
         for cube in pressure_list:
+            anc_vars = cube.ancillary_variables()
+            flag_items = anc_vars[0].attributes
+            print(anc_vars)
+            print(flag_items)
+
             enforce_coordinate_ordering(cube, coord_list)
 
         try:
