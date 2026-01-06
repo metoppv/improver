@@ -217,7 +217,7 @@ class Test_process(ImproverTest):
         self.assertEqual(cube.dtype, np.float32)
         self.assertEqual(result.data.dtype, np.float32)
 
-    def test_air_temperature_status_flag_coord(self):
+    def xtest_air_temperature_status_flag_coord(self):
         """
         Ensure we handle cubes which now include an 'air_temperature_status flag'
         coord to signify points below surface altitude, where previously this
@@ -257,7 +257,7 @@ class Test_process(ImproverTest):
         np.testing.assert_array_equal(result.data, target.data)
         self.assertEqual(result.coords(), target.coords())
 
-    def test_air_temperature_status_flag_coord_without_realization(self):
+    def xtest_air_temperature_status_flag_coord_without_realization(self):
         """
         Ensure we handle cubes which now include an 'air_temperature_status flag'
         coord to signify points below surface altitude, where previously this

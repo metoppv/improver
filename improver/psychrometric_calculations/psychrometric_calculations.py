@@ -506,6 +506,8 @@ class HumidityMixingRatio(BasePlugin):
         """Generate a pressure cube from the pressure coordinate on the temperature cube"""
         coord_list = [coord.name() for coord in temperature_cube.coords()]
         pressure_list = self._make_pressure_list(temperature_cube)
+        for cube in pressure_list:
+            enforce_coordinate_ordering(cube, coord_list)
 
         try:
             pressure_cube = pressure_list.merge_cube()
