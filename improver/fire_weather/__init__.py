@@ -87,6 +87,7 @@ class FireWeatherIndexBase(BasePlugin):
         "input_dc": (0.0, None),  # DC is non-negative
         "initial_spread_index": (0.0, 100.0),  # ISI valid range
         "build_up_index": (0.0, 500.0),  # BUI valid range
+        "canadian_forest_fire_weather_index": (0.0, 100.0),  # FWI valid range
     }
 
     # Valid output ranges for warning checks (output_name: (min, max))
