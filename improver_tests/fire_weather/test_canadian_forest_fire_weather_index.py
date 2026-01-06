@@ -29,14 +29,19 @@ def input_cubes(
     ISI cube has time coordinates; BUI cube does not.
 
     Args:
-        isi_val (float): ISI value for all grid points.
-        bui_val (float): BUI value for all grid points.
-        shape (tuple[int, int]): Shape of the grid for each cube.
-        isi_units (str): Units for ISI cube.
-        bui_units (str): Units for BUI cube.
+        isi_val:
+            ISI value for all grid points.
+        bui_val:
+            BUI value for all grid points.
+        shape:
+            Shape of the grid for each cube.
+        isi_units:
+            Units for ISI cube.
+        bui_units:
+            Units for BUI cube.
 
     Returns:
-        list[Cube]: List of Iris Cubes for ISI and BUI.
+        List of Iris Cubes for ISI and BUI.
     """
     return make_input_cubes(
         [
@@ -74,8 +79,10 @@ def test__calculate_extrapolated_duff_moisture_function(
     in the tested method.
 
     Args:
-        bui_val (float): BUI value to test.
-        expected_dmf (float): Expected extrapolated DMF value.
+        bui_val:
+            BUI value to test.
+        expected_dmf:
+            Expected extrapolated DMF value.
     """
     cubes = input_cubes(isi_val=10.0, bui_val=bui_val)
     plugin = CanadianForestFireWeatherIndex()
@@ -90,7 +97,8 @@ def test__calculate_extrapolated_duff_moisture_function_no_negative(bui: float) 
     """Test that extrapolated DMF calculation never produces negative values.
 
     Args:
-        bui (float): Build-Up Index value to test.
+        bui:
+            Build-Up Index value to test.
     """
     cubes = input_cubes(isi_val=10.0, bui_val=bui)
     plugin = CanadianForestFireWeatherIndex()
@@ -128,9 +136,12 @@ def test__calculate_fwi(
     """Test calculation of FWI from ISI and BUI.
 
     Args:
-        isi_val (float): ISI value to test.
-        bui_val (float): BUI value to test.
-        expected_fwi (float): Expected FWI value.
+        isi_val:
+            ISI value to test.
+        bui_val:
+            BUI value to test.
+        expected_fwi:
+            Expected FWI value.
     """
     cubes = input_cubes(isi_val=isi_val, bui_val=bui_val)
     plugin = CanadianForestFireWeatherIndex()
@@ -154,8 +165,10 @@ def test__calculate_fwi_no_negative_values(isi: float, bui: float) -> None:
     """Test that FWI calculation never produces negative values.
 
     Args:
-        isi (float): Initial Spread Index value to test.
-        bui (float): Build-Up Index value to test.
+        isi:
+            Initial Spread Index value to test.
+        bui:
+            Build-Up Index value to test.
     """
     cubes = input_cubes(isi_val=isi, bui_val=bui)
     plugin = CanadianForestFireWeatherIndex()
@@ -220,9 +233,12 @@ def test_process(
     Verifies end-to-end FWI calculation with various input conditions.
 
     Args:
-        isi_val (float): ISI value to test.
-        bui_val (float): BUI value to test.
-        expected_fwi (float): Expected FWI output value.
+        isi_val:
+            ISI value to test.
+        bui_val:
+            BUI value to test.
+        expected_fwi:
+            Expected FWI output value.
     """
     cubes = input_cubes(isi_val=isi_val, bui_val=bui_val)
     result = CanadianForestFireWeatherIndex().process(CubeList(cubes))
@@ -332,9 +348,12 @@ def test_invalid_input_ranges_raise_errors(
     or out-of-range input values and raises descriptive errors.
 
     Args:
-        isi_val (float): ISI value for all grid points.
-        bui_val (float): BUI value for all grid points.
-        expected_error (str): Expected error message substring.
+        isi_val:
+            ISI value for all grid points.
+        bui_val:
+            BUI value for all grid points.
+        expected_error:
+            Expected error message substring.
     """
     cubes = input_cubes(isi_val, bui_val)
     plugin = CanadianForestFireWeatherIndex()
@@ -365,9 +384,12 @@ def test_nan_and_inf_values_raise_errors(
     Verifies that the validation catches non-finite values (NaN, Inf) in input data.
 
     Args:
-        isi_value (float): ISI value for all grid points.
-        bui_value (float): BUI value for all grid points.
-        expected_error (str): Expected error message substring.
+        isi_value:
+            ISI value for all grid points.
+        bui_value:
+            BUI value for all grid points.
+        expected_error:
+            Expected error message substring.
     """
     cubes = input_cubes(isi_value, bui_value)
     plugin = CanadianForestFireWeatherIndex()

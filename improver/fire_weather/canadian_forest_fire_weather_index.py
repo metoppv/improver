@@ -41,7 +41,7 @@ class CanadianForestFireWeatherIndex(FireWeatherIndexBase):
         From Van Wagner and Pickett (1985), Page 8: Steps 4-6
 
         Returns:
-            np.ndarray: The calculated FWI values.
+            The calculated FWI values.
         """
         # Step 4: Calculate extrapolated Duff Moisture Function
         extrapolated_DMF = self._calculate_extrapolated_duff_moisture_function()
@@ -58,7 +58,7 @@ class CanadianForestFireWeatherIndex(FireWeatherIndexBase):
         From Van Wagner and Pickett (1985), Page 7-8: Equations 29-30.
 
         Returns:
-            np.ndarray: The calculated FWI values.
+            The calculated FWI values.
         """
         isi_data = self.initial_spread_index.data
 
@@ -82,7 +82,7 @@ class CanadianForestFireWeatherIndex(FireWeatherIndexBase):
         From Van Wagner and Pickett (1985), Page 7-8: Equations 28a and 28b.
 
         Returns:
-            np.ndarray: The calculated extrapolated_DMF values.
+            The calculated extrapolated_DMF values.
         """
         bui_data = self.build_up_index.data
 
