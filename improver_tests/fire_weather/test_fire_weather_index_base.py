@@ -77,12 +77,15 @@ def input_cubes_basic(
     """Create basic input cubes for testing.
 
     Args:
-        temp_val (float): Temperature value for all grid points.
-        rh_val (float): Relative humidity value for all grid points.
-        shape (tuple[int, int]): Shape of the grid for each cube.
+        temp_val:
+            Temperature value for all grid points.
+        rh_val:
+            Relative humidity value for all grid points.
+        shape:
+            Shape of the grid for each cube.
 
     Returns:
-        list[Cube]: List of Iris Cubes for temperature and relative humidity.
+        List of Iris Cubes for temperature and relative humidity.
     """
     return make_input_cubes(
         [
@@ -102,13 +105,17 @@ def input_cubes_with_precip(
     """Create input cubes including precipitation with time coordinates.
 
     Args:
-        temp_val (float): Temperature value for all grid points.
-        precip_val (float): Precipitation value for all grid points.
-        rh_val (float): Relative humidity value for all grid points.
-        shape (tuple[int, int]): Shape of the grid for each cube.
+        temp_val:
+            Temperature value for all grid points.
+        precip_val:
+            Precipitation value for all grid points.
+        rh_val:
+            Relative humidity value for all grid points.
+        shape:
+            Shape of the grid for each cube.
 
     Returns:
-        list[Cube]: List of Iris Cubes for temperature, precipitation, and RH.
+        List of Iris Cubes for temperature, precipitation, and RH.
     """
     return make_input_cubes(
         [
@@ -139,11 +146,10 @@ def test_load_input_cubes_basic(temp_val: float, rh_val: float) -> None:
     """Test load_input_cubes with basic two-cube setup.
 
     Args:
-        temp_val (float): Temperature value for all grid points.
-        rh_val (float): Relative humidity value for all grid points.
-
-    Raises:
-        AssertionError: If the loaded cubes do not match expected properties.
+        temp_val:
+            Temperature value for all grid points.
+        rh_val:
+            Relative humidity value for all grid points.
     """
     cubes = input_cubes_basic(temp_val, rh_val)
     plugin = ConcreteFireWeatherIndex()
@@ -181,13 +187,14 @@ def test_load_input_cubes_unit_conversion(
     """Test that load_input_cubes correctly converts units.
 
     Args:
-        param (str): Name of the parameter to test.
-        input_val (float): Value to use for the tested parameter.
-        input_unit (str): Unit to use for the tested parameter.
-        expected_val (float): Expected value after conversion.
-
-    Raises:
-        AssertionError: If the converted value does not match expectations.
+        param:
+            Name of the parameter to test.
+        input_val:
+            Value to use for the tested parameter.
+        input_unit:
+            Unit to use for the tested parameter.
+        expected_val:
+            Expected value after conversion.
     """
     # Create cubes with custom units
     if param == "temperature":
@@ -226,12 +233,12 @@ def test_load_input_cubes_wrong_number_raises_error(
     """Test that load_input_cubes raises ValueError for wrong number of cubes.
 
     Args:
-        num_cubes (int): Number of cubes to provide.
-        should_raise (bool): Whether a ValueError should be raised.
-        expected_message (str): Expected error message.
-
-    Raises:
-        AssertionError: If ValueError behavior does not match expectations.
+        num_cubes:
+            Number of cubes to provide.
+        should_raise:
+            Whether a ValueError should be raised.
+        expected_message:
+            Expected error message.
     """
     cubes = input_cubes_basic()
 
@@ -314,12 +321,12 @@ def test_load_input_cubes_month_validation(
     """Test that month parameter is validated correctly.
 
     Args:
-        month (int): Month value to test.
-        should_raise (bool): Whether a ValueError should be raised.
-        expected_message (str): Expected error message.
-
-    Raises:
-        AssertionError: If validation behavior does not match expectations.
+        month:
+            Month value to test.
+        should_raise:
+            Whether a ValueError should be raised.
+        expected_message:
+            Expected error message.
     """
     temp = make_cube(np.full((5, 5), 20.0), "air_temperature", "Celsius")
     precip = make_cube(
@@ -358,11 +365,10 @@ def test_get_attribute_name_standard_conversion(
     """Test _get_attribute_name with standard name conversions.
 
     Args:
-        standard_name (str): Standard name to convert.
-        expected_attr_name (str): Expected attribute name.
-
-    Raises:
-        AssertionError: If attribute name does not match expectations.
+        standard_name:
+            Standard name to convert.
+        expected_attr_name:
+            Expected attribute name.
     """
     plugin = ConcreteFireWeatherIndex()
     result = plugin._get_attribute_name(standard_name)
@@ -418,11 +424,10 @@ def test_make_output_cube_basic(output_value: float, shape: tuple[int, int]) -> 
     """Test _make_output_cube creates cube with correct properties.
 
     Args:
-        output_value (float): Value for output data.
-        shape (tuple[int, int]): Shape of the grid.
-
-    Raises:
-        AssertionError: If output cube does not have expected properties.
+        output_value:
+            Value for output data.
+        shape:
+            Shape of the grid.
     """
     cubes = input_cubes_basic(shape=shape)
     plugin = ConcreteFireWeatherIndex()
@@ -646,12 +651,12 @@ def test_validate_input_range_raises_error(
     """Test that _validate_input_range raises ValueError for out-of-range values.
 
     Args:
-        param (str): Parameter name to test.
-        value (float): Invalid value to test.
-        expected_error (str): Expected error message substring.
-
-    Raises:
-        AssertionError: If validation does not raise the expected error.
+        param:
+            Parameter name to test.
+        value:
+            Invalid value to test.
+        expected_error:
+            Expected error message substring.
     """
     # Create cubes with invalid values
     if param == "temperature":
@@ -687,12 +692,12 @@ def test_validate_input_range_nan_inf_raises_error(
     """Test that _validate_input_range raises ValueError for NaN and Inf values.
 
     Args:
-        param (str): Parameter name to test.
-        value (float): NaN or Inf value to test.
-        expected_error (str): Expected error message substring.
-
-    Raises:
-        AssertionError: If validation does not raise the expected error.
+        param:
+            Parameter name to test.
+        value:
+            NaN or Inf value to test.
+        expected_error:
+            Expected error message substring.
     """
     # Create cubes with NaN or Inf values
     if param == "temperature":
@@ -727,11 +732,10 @@ def test_validate_input_range_accepts_valid_values(
     """Test that _validate_input_range accepts valid values without error.
 
     Args:
-        temp_val (float): Valid temperature value.
-        rh_val (float): Valid relative humidity value.
-
-    Raises:
-        AssertionError: If validation raises an error for valid values.
+        temp_val:
+            Valid temperature value.
+        rh_val:
+            Valid relative humidity value.
     """
     cubes = input_cubes_basic(temp_val, rh_val)
     plugin = ConcreteFireWeatherIndex()
@@ -873,8 +877,10 @@ def test_validate_output_range_warns_for_out_of_range_values(
     """Test that _validate_output_range warns when output is outside expected range.
 
     Args:
-        output_value (float): Value to use for output data (outside valid range).
-        description (str): Description of the test case.
+        output_value:
+            Value to use for output data (outside valid range).
+        description:
+            Description of the test case.
     """
     cubes = input_cubes_basic(temp_val=20.0, rh_val=50.0)
     plugin = ConcreteFireWeatherIndexForOutputValidation()
