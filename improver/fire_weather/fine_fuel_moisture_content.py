@@ -196,7 +196,7 @@ class FineFuelMoistureContent(FireWeatherIndexBase):
         From Van Wagner and Pickett (1985), Page 5: Equation 4, and Step 4.
 
         Returns:
-            The Equilibrium Moisture Content for the drying phase (E_d).Array
+            The Equilibrium Moisture Content for the drying phase (E_d). Array
             shape matches the input cube data shape. Values are in moisture
             content units (dimensionless).
         """
