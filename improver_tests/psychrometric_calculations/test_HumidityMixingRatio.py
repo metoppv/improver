@@ -8,6 +8,7 @@ from unittest.mock import patch, sentinel
 
 import numpy as np
 import pytest
+from iris.coords import AncillaryVariable
 from iris.cube import Cube
 
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTES
@@ -247,6 +248,49 @@ def test_pressure_levels():
         vertical_levels=[95000, 100000],
         pressure=True,
     )
+    result = HumidityMixingRatio()([temperature, rel_humidity])
+    metadata_ok(result, temperature)
+    assert np.isclose(result.data[:, 0], 1.537017e-2, atol=1e-7).all()
+    assert np.isclose(result.data[:, 1], 1.459832e-2, atol=1e-7).all()
+
+
+def test_pressure_levels_ancillary_variable_flags():
+    """Check that the plugin works with pressure level data when pressure cube is not provided
+    and the cubes have ancillary variable flags"""
+    ancillary_variable1 = AncillaryVariable(
+        data=None,
+        standard_name="status_flag",
+        attributes={
+            "flag_meanings": "above_surface_pressure below_surface_pressure",
+            "flag_values": np.array([0, 1], dtype=np.int8),
+        },
+    )
+    temperature = set_up_variable_cube(
+        np.full((1, 2, 2, 2), fill_value=293, dtype=np.float32),
+        name="air_temperature",
+        units="K",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        vertical_levels=[95000, 100000],
+        pressure=True,
+    )
+    temperature.add_ancillary_variable(ancillary_variable1)
+    ancillary_variable2 = AncillaryVariable(
+        data=None,
+        standard_name="status_flag",
+        attributes={
+            "flag_meanings": "above_surface_pressure below_surface_pressure",
+            "flag_values": np.array([0, 1], dtype=np.int8),
+        },
+    )
+    rel_humidity = set_up_variable_cube(
+        np.full((1, 2, 2, 2), fill_value=1.0, dtype=np.float32),
+        name="relative_humidity",
+        units="1",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        vertical_levels=[95000, 100000],
+        pressure=True,
+    )
+    rel_humidity.add_ancillary_variable(ancillary_variable2)
     result = HumidityMixingRatio()([temperature, rel_humidity])
     metadata_ok(result, temperature)
     assert np.isclose(result.data[:, 0], 1.537017e-2, atol=1e-7).all()
