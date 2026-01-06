@@ -29,10 +29,14 @@ def make_cube(
     with consistent time coordinates across all fire weather tests.
 
     Args:
-        data: The data array for the cube.
-        name: The variable name for the cube (can be standard_name or long_name).
-        units: The units for the cube.
-        add_time_coord: Whether to add time bounds (for accumulation periods).
+        data:
+            The data array for the cube.
+        name:
+            The variable name for the cube (can be standard_name or long_name).
+        units:
+            The units for the cube.
+        add_time_coord:
+            Whether to add time bounds (for accumulation periods).
 
     Returns:
         Iris Cube with the given properties, including forecast_reference_time
@@ -59,13 +63,15 @@ def make_input_cubes(
     a consistent shape and default values.
 
     Args:
-        cube_specs: List of tuples, each containing:
+        cube_specs:
+            List of tuples, each containing:
             (name, value, units, add_time_coord)
             - name: Variable name (standard_name or long_name)
             - value: Scalar value to fill the cube
             - units: Units for the cube
             - add_time_coord: Whether to add time bounds
-        shape: Shape of the grid for each cube.
+        shape:
+            Shape of the grid for each cube.
 
     Returns:
         List of Iris Cubes with the specified properties.

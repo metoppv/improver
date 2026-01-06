@@ -30,20 +30,31 @@ def input_cubes(
     time coordinates with bounds.
 
     Args:
-        temp_val (float): Temperature value for all grid points.
-        precip_val (float): Precipitation value for all grid points.
-        rh_val (float): Relative humidity value for all grid points.
-        wind_val (float): Wind speed value for all grid points.
-        ffmc_val (float): FFMC value for all grid points.
-        shape (tuple[int, int]): Shape of the grid for each cube.
-        temp_units (str): Units for temperature cube.
-        precip_units (str): Units for precipitation cube.
-        rh_units (str): Units for relative humidity cube.
-        wind_units (str): Units for wind speed cube.
-        ffmc_units (str): Units for FFMC cube.
+        temp_val:
+            Temperature value for all grid points.
+        precip_val:
+            Precipitation value for all grid points.
+        rh_val:
+            Relative humidity value for all grid points.
+        wind_val:
+            Wind speed value for all grid points.
+        ffmc_val:
+            FFMC value for all grid points.
+        shape:
+            Shape of the grid for each cube.
+        temp_units:
+            Units for temperature cube.
+        precip_units:
+            Units for precipitation cube.
+        rh_units:
+            Units for relative humidity cube.
+        wind_units:
+            Units for wind speed cube.
+        ffmc_units:
+            Units for FFMC cube.
 
     Returns:
-        list[Cube]: List of Iris Cubes for temperature, precipitation, relative humidity, wind speed, and FFMC.
+        List of Iris Cubes for temperature, precipitation, relative humidity, wind speed, and FFMC.
     """
     return make_input_cubes(
         [
@@ -82,11 +93,16 @@ def test__calculate_moisture_content(
     Verifies that the initial moisture content is calculated correctly from FFMC.
 
     Args:
-        temp_val (float): Temperature value for all grid points.
-        precip_val (float): Precipitation value for all grid points.
-        rh_val (float): Relative humidity value for all grid points.
-        wind_val (float): Wind speed value for all grid points.
-        ffmc_val (float): FFMC value for all grid points.
+        temp_val:
+            Temperature value for all grid points.
+        precip_val:
+            Precipitation value for all grid points.
+        rh_val:
+            Relative humidity value for all grid points.
+        wind_val:
+            Wind speed value for all grid points.
+        ffmc_val:
+            FFMC value for all grid points.
     """
     cubes = input_cubes(temp_val, precip_val, rh_val, wind_val, ffmc_val)
     plugin = FineFuelMoistureContent()
@@ -140,9 +156,12 @@ def test__perform_rainfall_adjustment(
     adjustment1 + adjustment2 (mc > 150), and capping at 250.
 
     Args:
-        precip_val (float): Precipitation value for all grid points.
-        initial_mc_val (float): Initial moisture content value for all grid points.
-        expected_mc (float): Expected moisture content after adjustment.
+        precip_val:
+            Precipitation value for all grid points.
+        initial_mc_val:
+            Initial moisture content value for all grid points.
+        expected_mc:
+            Expected moisture content after adjustment.
     """
     cubes = input_cubes(
         precip_val=precip_val,
@@ -235,9 +254,12 @@ def test__calculate_EMC_for_drying_phase(
     Verifies Equilibrium Moisture Content calculation for the drying phase.
 
     Args:
-        temp_val (float): Temperature value for all grid points.
-        rh_val (float): Relative humidity value for all grid points.
-        expected_E_d (float): Expected drying phase value.
+        temp_val:
+            Temperature value for all grid points.
+        rh_val:
+            Relative humidity value for all grid points.
+        expected_E_d:
+            Expected drying phase value.
     """
     cubes = input_cubes(temp_val=temp_val, rh_val=rh_val)
     plugin = FineFuelMoistureContent()
@@ -313,12 +335,18 @@ def test__calculate_moisture_content_through_drying_rate(
     Verifies moisture content calculation through drying rate.
 
     Args:
-        moisture_content (np.ndarray): Moisture content values for all grid points.
-        relative_humidity (float): Relative humidity value for all grid points.
-        wind_speed (float): Wind speed value for all grid points.
-        temperature (float): Temperature value for all grid points.
-        E_d (np.ndarray): Drying phase values for all grid points.
-        expected_output (np.ndarray): Expected output moisture content values.
+        moisture_content:
+            Moisture content values for all grid points.
+        relative_humidity:
+            Relative humidity value for all grid points.
+        wind_speed:
+            Wind speed value for all grid points.
+        temperature:
+            Temperature value for all grid points.
+        E_d:
+            Drying phase values for all grid points.
+        expected_output:
+            Expected output moisture content values.
     """
     plugin = FineFuelMoistureContent()
     plugin.initial_moisture_content = moisture_content.copy()
@@ -368,9 +396,12 @@ def test__calculate_EMC_for_wetting_phase(
     Verifies Equilibrium Moisture Content calculation for the wetting phase.
 
     Args:
-        temp_val (float): Temperature value for all grid points.
-        rh_val (float): Relative humidity value for all grid points.
-        expected_E_w (float): Expected wetting phase value.
+        temp_val:
+            Temperature value for all grid points.
+        rh_val:
+            Relative humidity value for all grid points.
+        expected_E_w:
+            Expected wetting phase value.
     """
     cubes = input_cubes(temp_val=temp_val, rh_val=rh_val)
     plugin = FineFuelMoistureContent()
@@ -446,12 +477,18 @@ def test__calculate_moisture_content_through_wetting_equilibrium(
     Verifies moisture content calculation through wetting equilibrium.
 
     Args:
-        moisture_content (np.ndarray): Moisture content values for all grid points.
-        relative_humidity (float): Relative humidity value for all grid points.
-        wind_speed (float): Wind speed value for all grid points.
-        temperature (float): Temperature value for all grid points.
-        E_w (np.ndarray): Wetting phase values for all grid points.
-        expected_output (np.ndarray): Expected output moisture content values.
+        moisture_content:
+            Moisture content values for all grid points.
+        relative_humidity:
+            Relative humidity value for all grid points.
+        wind_speed:
+            Wind speed value for all grid points.
+        temperature:
+            Temperature value for all grid points.
+        E_w:
+            Wetting phase values for all grid points.
+        expected_output:
+            Expected output moisture content values.
     """
     plugin = FineFuelMoistureContent()
     plugin.initial_moisture_content = moisture_content.copy()
@@ -517,8 +554,10 @@ def test__calculate_ffmc_from_moisture_content(
     Verifies FFMC calculation from moisture content.
 
     Args:
-        moisture_content (np.ndarray): Moisture content values for all grid points.
-        expected_output (np.ndarray): Expected FFMC output values.
+        moisture_content:
+            Moisture content values for all grid points.
+        expected_output:
+            Expected FFMC output values.
     """
     plugin = FineFuelMoistureContent()
     plugin.moisture_content = moisture_content.copy()
@@ -558,12 +597,18 @@ def test_process(
     Verifies end-to-end FFMC calculation with various environmental conditions.
 
     Args:
-        temp_val (float): Temperature value for all grid points.
-        precip_val (float): Precipitation value for all grid points.
-        rh_val (float): Relative humidity value for all grid points.
-        wind_val (float): Wind speed value for all grid points.
-        ffmc_val (float): FFMC value for all grid points.
-        expected_output (float): Expected FFMC output value for all grid points.
+        temp_val:
+            Temperature value for all grid points.
+        precip_val:
+            Precipitation value for all grid points.
+        rh_val:
+            Relative humidity value for all grid points.
+        wind_val:
+            Wind speed value for all grid points.
+        ffmc_val:
+            FFMC value for all grid points.
+        expected_output:
+            Expected FFMC output value for all grid points.
     """
     cubes = input_cubes(temp_val, precip_val, rh_val, wind_val, ffmc_val)
     plugin = FineFuelMoistureContent()
@@ -694,12 +739,18 @@ def test_invalid_input_ranges_raise_errors(
     or out-of-range input values and raises descriptive errors.
 
     Args:
-        temp_val (float): Temperature value for all grid points.
-        precip_val (float): Precipitation value for all grid points.
-        rh_val (float): Relative humidity value for all grid points.
-        wind_val (float): Wind speed value for all grid points.
-        ffmc_val (float): FFMC value for all grid points.
-        expected_error (str): Expected error message substring.
+        temp_val:
+            Temperature value for all grid points.
+        precip_val:
+            Precipitation value for all grid points.
+        rh_val:
+            Relative humidity value for all grid points.
+        wind_val:
+            Wind speed value for all grid points.
+        ffmc_val:
+            FFMC value for all grid points.
+        expected_error:
+            Expected error message substring.
     """
     cubes = input_cubes(temp_val, precip_val, rh_val, wind_val, ffmc_val)
     plugin = FineFuelMoistureContent()
@@ -728,8 +779,10 @@ def test_nan_and_inf_values_raise_errors(
     Verifies that the validation catches non-finite values (NaN, Inf) in input data.
 
     Args:
-        invalid_input_type (str): Which input to make invalid and how.
-        expected_error (str): Expected error message substring.
+        invalid_input_type:
+            Which input to make invalid and how.
+        expected_error:
+            Expected error message substring.
     """
     # Start with valid values
     temp_val, precip_val, rh_val, wind_val, ffmc_val = 20.0, 1.0, 50.0, 10.0, 85.0

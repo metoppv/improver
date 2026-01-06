@@ -51,6 +51,7 @@ PROCESSING_MODULES = {
     "DayNightMask": "improver.utilities.solar",
     "DifferenceBetweenAdjacentGridSquares": "improver.utilities.spatial",
     "DroughtCode": "improver.fire_weather.drought_code",
+    "DuffMoistureCode": "improver.fire_weather.duff_moisture_code",
     "EnforceConsistentForecasts": "improver.utilities.forecast_reference_enforcement",
     "EnsembleReordering": "improver.ensemble_copula_coupling.ensemble_copula_coupling",
     "EstimateCoefficientsForEnsembleCalibration": "improver.calibration.emos_calibration",
