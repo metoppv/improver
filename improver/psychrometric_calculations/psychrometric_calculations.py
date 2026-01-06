@@ -509,6 +509,7 @@ class HumidityMixingRatio(BasePlugin):
         for cube in pressure_list:
             anc_vars = cube.ancillary_variables()
             flag_items = anc_vars[0].attributes
+            print(cube.name())
             print(anc_vars)
             print(flag_items)
 
