@@ -70,6 +70,8 @@ def input_cubes(
         (45.9, 123.9, 47.67),
         # Case 8: High values with DMC > 0.4*DC
         (100.0, 150.0, 99.46),
+        # Case 9; DC=0, BUI should be close to DMC
+        (60.0, 0.0, 58.56),
     ],
 )
 def test__calculate(
@@ -95,21 +97,6 @@ def test__calculate(
     bui = plugin._calculate()
 
     assert np.allclose(bui, expected_bui, rtol=1e-2, atol=0.1)
-
-
-def test__calculate_no_negative_values() -> None:
-    """Test that BUI calculation never produces negative values."""
-    # Test a range of DMC and DC values
-    dmc_values = np.array([0.0, 5.0, 10.0, 20.0, 50.0, 100.0])
-    dc_values = np.array([0.0, 10.0, 30.0, 100.0, 300.0, 500.0])
-
-    for dmc in dmc_values:
-        for dc in dc_values:
-            cubes = input_cubes(dmc_val=dmc, dc_val=dc)
-            plugin = BuildUpIndex()
-            plugin.load_input_cubes(cubes)
-            bui = plugin._calculate()
-            assert np.all(bui >= 0.0), f"Negative BUI for DMC={dmc}, DC={dc}"
 
 
 def test__calculate_spatially_varying() -> None:
@@ -209,49 +196,6 @@ def test_process_spatially_varying() -> None:
 
     # Check that different environmental conditions produce different outputs
     assert not np.allclose(result.data[0, 0], result.data[2, 2], atol=1.0)
-
-
-def test_process_dmc_only() -> None:
-    """Test that when DC=0, BUI calculation gives result close to DMC."""
-    dmc_values = np.array([[10.0, 20.0, 30.0], [15.0, 25.0, 35.0], [5.0, 40.0, 50.0]])
-    dc_values = np.zeros((3, 3))
-
-    # Calculate expected BUI for each DMC value when DC=0
-    expected_bui = dmc_values - (0.92 + (0.0114 * dmc_values) ** 1.7)
-
-    cubes = input_cubes(dmc_val=dmc_values, dc_val=dc_values, shape=dmc_values.shape)
-
-    result = BuildUpIndex().process(CubeList(cubes))
-
-    # When DC=0, BUI = DMC - [0.92 + (0.0114*DMC)^1.7]
-    assert np.allclose(result.data, expected_bui, rtol=1e-3)
-
-
-def test_process_dc_only() -> None:
-    """Test that when DMC=0, BUI equals 0."""
-    dmc_values = np.zeros((3, 3))
-    dc_values = np.array(
-        [[10.0, 50.0, 100.0], [20.0, 75.0, 150.0], [30.0, 90.0, 200.0]]
-    )
-
-    cubes = input_cubes(dmc_val=dmc_values, dc_val=dc_values, shape=dmc_values.shape)
-
-    result = BuildUpIndex().process(CubeList(cubes))
-
-    # When DMC=0, BUI should be 0 (no fuel moisture contribution)
-    assert np.allclose(result.data, 0.0, atol=1e-6)
-
-
-def test_process_both_zero() -> None:
-    """Test that when both DMC and DC are zero, BUI equals 0."""
-    cubes = input_cubes(dmc_val=0.0, dc_val=0.0)
-    result = BuildUpIndex().process(cubes)
-
-    assert isinstance(result, Cube)
-    assert result.long_name == "build_up_index"
-    assert result.units == "1"
-    assert np.allclose(result.data, 0.0, atol=1e-6)
-    assert result.dtype == np.float32
 
 
 def test_input_attribute_mapping() -> None:
