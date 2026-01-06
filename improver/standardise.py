@@ -304,7 +304,7 @@ class StandardiseMetadata(BasePlugin):
             self._remove_scalar_coords(cube, self._coords_to_remove)
         if self._ancillary_variables_to_remove:
             self._remove_ancillary_variables(cube, self._ancillary_variables_to_remove)
-        cube = self._remove_air_temperature_status_flag(cube)
+        # cube = self._remove_air_temperature_status_flag(cube)
         cube = self._collapse_scalar_dimensions(cube)
         if self._new_name:
             cube.rename(self._new_name)
