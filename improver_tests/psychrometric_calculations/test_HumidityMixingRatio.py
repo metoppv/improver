@@ -257,8 +257,10 @@ def test_pressure_levels():
 def test_pressure_levels_ancillary_variable_flags():
     """Check that the plugin works with pressure level data when pressure cube is not provided
     and the cubes have ancillary variable flags"""
+    data = np.full([0, 1], fill_value=1, dtype=np.int8)
+    data_dims = (1, 2)
     ancillary_variable = AncillaryVariable(
-        data=None,
+        data=data,
         standard_name="status_flag",
         attributes={
             "flag_meanings": "above_surface_pressure below_surface_pressure",
@@ -266,16 +268,16 @@ def test_pressure_levels_ancillary_variable_flags():
         },
     )
     temperature = set_up_variable_cube(
-        np.full((1, 2, 2, 2), fill_value=293, dtype=np.float32),
+        np.full((1, 2), fill_value=1, dtype=np.int8),
         name="air_temperature",
         units="K",
         attributes=LOCAL_MANDATORY_ATTRIBUTES,
         vertical_levels=[95000, 100000],
         pressure=True,
     )
-    temperature.add_ancillary_variable(ancillary_variable)
+    temperature.add_ancillary_variable(ancillary_variable, data_dims)
     rel_humidity = set_up_variable_cube(
-        np.full((1, 2, 2, 2), fill_value=1.0, dtype=np.float32),
+        np.full((1, 2), fill_value=1, dtype=np.int8),
         name="relative_humidity",
         units="1",
         attributes=LOCAL_MANDATORY_ATTRIBUTES,
