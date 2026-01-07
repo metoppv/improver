@@ -509,7 +509,7 @@ class HumidityMixingRatio(BasePlugin):
         expanded_pressure_list = CubeList(
             iris.util.new_axis(
                 cube,
-                "pressure",  # , expand_extras=(cube.ancillary_variable("status_flag"))
+                "pressure",
             )
             for cube in pressure_list
         )
@@ -530,8 +530,15 @@ class HumidityMixingRatio(BasePlugin):
                 "Unable to generate pressure cube with input ", temperature_cube, error
             )
 
+        expanded_pressure_list2 = CubeList(
+            iris.util.new_axis(
+                cube, "pressure", expand_extras=(cube.ancillary_variable("status_flag"))
+            )
+            for cube in pressure_cube_list
+        )
+
         try:
-            pressure_cube = pressure_cube_list.concatenate_cube()
+            pressure_cube = expanded_pressure_list2.concatenate_cube()
         except iris.exceptions.ConcatenateError as error:
             raise RuntimeError(
                 "Unable to concatenate pressure cubelist with input ",
