@@ -29,6 +29,7 @@ from improver.metadata.utilities import (
 )
 from improver.utilities.common_input_handle import as_cubelist
 from improver.utilities.cube_manipulation import (
+    enforce_coordinate_ordering,
     sort_coord_in_cube,
 )
 from improver.utilities.interpolation import interpolate_missing_data
@@ -503,7 +504,7 @@ class HumidityMixingRatio(BasePlugin):
 
     def generate_pressure_cube(self, temperature_cube) -> Cube:
         """Generate a pressure cube from the pressure coordinate on the temperature cube"""
-        # coord_list = [coord.name() for coord in temperature_cube.coords()]
+        coord_list = [coord.name() for coord in temperature_cube.coords()]
         pressure_list = self._make_pressure_list(temperature_cube)
 
         expanded_pressure_list = CubeList(
@@ -520,30 +521,7 @@ class HumidityMixingRatio(BasePlugin):
                 error,
             )
 
-        # try:
-        #     pressure_cube_list = concatenated_cube_list.merge()
-        # except iris.exceptions.MergeError as error:
-        #     raise RuntimeError(
-        #         "Unable to generate pressure cube with input ", temperature_cube, error
-        #     )
-
-        # expanded_pressure_list2 = CubeList(
-        #     iris.util.new_axis(
-        #         cube, "pressure", expand_extras=(cube.ancillary_variable("status_flag"))
-        #     )
-        #     for cube in pressure_cube_list
-        # )
-
-        # try:
-        #     pressure_cube = expanded_pressure_list2.concatenate_cube()
-        # except iris.exceptions.ConcatenateError as error:
-        #     raise RuntimeError(
-        #         "Unable to concatenate pressure cubelist with input ",
-        #         expanded_pressure_list,
-        #         error,
-        #     )
-
-        # enforce_coordinate_ordering(pressure_cube, coord_list)
+        enforce_coordinate_ordering(pressure_cube, coord_list)
         pressure_cube.rename("surface_air_pressure")
         pressure_cube.units = "Pa"
         return pressure_cube
