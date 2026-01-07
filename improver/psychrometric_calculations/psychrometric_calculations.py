@@ -507,17 +507,10 @@ class HumidityMixingRatio(BasePlugin):
         coord_list = [coord.name() for coord in temperature_cube.coords()]
         pressure_list = self._make_pressure_list(temperature_cube)
         for cube in pressure_list:
-            anc_vars = cube.ancillary_variables()
-            flag_items = anc_vars[0].attributes
-            print(cube)
-            print(cube.name())
-            print(anc_vars)
-            print(flag_items)
-
             enforce_coordinate_ordering(cube, coord_list)
 
         try:
-            pressure_cube = pressure_list.merge_cube()
+            pressure_cube = pressure_list.concatenate_cube()
         except iris.exceptions.MergeError as error:
             raise RuntimeError(
                 "Unable to generate pressure cube with input ", temperature_cube, error
