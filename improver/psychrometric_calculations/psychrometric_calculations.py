@@ -510,7 +510,10 @@ class HumidityMixingRatio(BasePlugin):
             enforce_coordinate_ordering(cube, coord_list)
 
         expanded_pressure_list = CubeList(
-            iris.util.new_axis(cube, "pressure") for cube in pressure_list
+            iris.util.new_axis(
+                cube, "pressure", expand_extras=(cube.coord("status_flag"))
+            )
+            for cube in pressure_list
         )
 
         try:
