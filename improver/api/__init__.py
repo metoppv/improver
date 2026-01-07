@@ -28,6 +28,7 @@ PROCESSING_MODULES = {
     "ApplyRainForestsCalibration": "improver.calibration.rainforest_calibration",
     "ApplyReliabilityCalibration": "improver.calibration.reliability_calibration",
     "BaseNeighbourhoodProcessing": "improver.nbhood.nbhood",
+    "BuildUpIndex": "improver.fire_weather.build_up_index",
     "CalculateForecastBias": "improver.calibration.simple_bias_correction",
     "CalculateWindChill": "improver.temperature.feels_like_temperature",
     "CalibratedForecastDistributionParameters": "improver.calibration.emos_calibration",
