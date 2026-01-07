@@ -507,15 +507,12 @@ class HumidityMixingRatio(BasePlugin):
         pressure_list = self._make_pressure_list(temperature_cube)
 
         expanded_pressure_list = CubeList(
-            iris.util.new_axis(
-                cube,
-                "pressure",
-            )
+            iris.util.new_axis(cube, "pressure", expand_extras=["status_flag"])
             for cube in pressure_list
         )
 
         try:
-            concatenated_cube_list = expanded_pressure_list.concatenate()
+            pressure_cube = expanded_pressure_list.concatenate_cube()
         except iris.exceptions.ConcatenateError as error:
             raise RuntimeError(
                 "Unable to concatenate pressure cubelist with input ",
@@ -523,28 +520,28 @@ class HumidityMixingRatio(BasePlugin):
                 error,
             )
 
-        try:
-            pressure_cube_list = concatenated_cube_list.merge()
-        except iris.exceptions.MergeError as error:
-            raise RuntimeError(
-                "Unable to generate pressure cube with input ", temperature_cube, error
-            )
+        # try:
+        #     pressure_cube_list = concatenated_cube_list.merge()
+        # except iris.exceptions.MergeError as error:
+        #     raise RuntimeError(
+        #         "Unable to generate pressure cube with input ", temperature_cube, error
+        #     )
 
-        expanded_pressure_list2 = CubeList(
-            iris.util.new_axis(
-                cube, "pressure", expand_extras=(cube.ancillary_variable("status_flag"))
-            )
-            for cube in pressure_cube_list
-        )
+        # expanded_pressure_list2 = CubeList(
+        #     iris.util.new_axis(
+        #         cube, "pressure", expand_extras=(cube.ancillary_variable("status_flag"))
+        #     )
+        #     for cube in pressure_cube_list
+        # )
 
-        try:
-            pressure_cube = expanded_pressure_list2.concatenate_cube()
-        except iris.exceptions.ConcatenateError as error:
-            raise RuntimeError(
-                "Unable to concatenate pressure cubelist with input ",
-                expanded_pressure_list,
-                error,
-            )
+        # try:
+        #     pressure_cube = expanded_pressure_list2.concatenate_cube()
+        # except iris.exceptions.ConcatenateError as error:
+        #     raise RuntimeError(
+        #         "Unable to concatenate pressure cubelist with input ",
+        #         expanded_pressure_list,
+        #         error,
+        #     )
 
         # enforce_coordinate_ordering(pressure_cube, coord_list)
         pressure_cube.rename("surface_air_pressure")
