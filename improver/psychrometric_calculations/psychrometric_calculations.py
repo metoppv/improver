@@ -525,10 +525,18 @@ class HumidityMixingRatio(BasePlugin):
 
         try:
             pressure_cube_list = concatenated_cube_list.merge()
-            pressure_cube = pressure_cube_list.merge_cube()
         except iris.exceptions.MergeError as error:
             raise RuntimeError(
                 "Unable to generate pressure cube with input ", temperature_cube, error
+            )
+
+        try:
+            pressure_cube = pressure_cube_list.concatenate_cube()
+        except iris.exceptions.ConcatenateError as error:
+            raise RuntimeError(
+                "Unable to concatenate pressure cubelist with input ",
+                expanded_pressure_list,
+                error,
             )
 
         # enforce_coordinate_ordering(pressure_cube, coord_list)
