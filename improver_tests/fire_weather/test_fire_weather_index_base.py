@@ -73,7 +73,7 @@ def input_cubes_basic(
     temp_val: float = 20.0,
     rh_val: float = 50.0,
     shape: tuple[int, int] = (5, 5),
-) -> list[Cube]:
+) -> tuple[Cube, ...]:
     """Create basic input cubes for testing.
 
     Args:
@@ -101,7 +101,7 @@ def input_cubes_with_precip(
     precip_val: float = 1.0,
     rh_val: float = 50.0,
     shape: tuple[int, int] = (5, 5),
-) -> list[Cube]:
+) -> tuple[Cube, ...]:
     """Create input cubes including precipitation with time coordinates.
 
     Args:
@@ -248,7 +248,7 @@ def test_load_input_cubes_wrong_number_raises_error(
     elif num_cubes > len(cubes):
         # Add extra dummy cube
         extra = make_cube(np.full((5, 5), 10.0), "extra_cube", "1")
-        cubes.append(extra)
+        cubes = cubes + (extra,)
 
     plugin = ConcreteFireWeatherIndex()
 
@@ -962,3 +962,61 @@ def test_abstract_calculate_raises_not_implemented_error() -> None:
         match="Subclasses must implement the _calculate method",
     ):
         plugin.process(CubeList(cubes))
+
+
+@pytest.mark.parametrize(
+    "output_name, min_val, max_val, invalid_value, expected_match",
+    [
+        # Fine fuel moisture content (0-101)
+        (
+            "fine_fuel_moisture_content",
+            0.0,
+            101.0,
+            -10.0,
+            "contains values outside feasible range",
+        ),
+        (
+            "fine_fuel_moisture_content",
+            0.0,
+            101.0,
+            150.0,
+            "contains values outside feasible range",
+        ),
+    ],
+)
+def test_validate_output_range_warns_for_defined_outputs(
+    output_name: str,
+    min_val: float,
+    max_val: float,
+    invalid_value: float,
+    expected_match: str,
+) -> None:
+    """Test that _validate_output_range warns for various outputs with out-of-range values.
+
+    Args:
+        output_name:
+            Name of the output index.
+        min_val:
+            Minimum valid value (for documentation).
+        max_val:
+            Maximum valid value (for documentation).
+        invalid_value:
+            Invalid value to test.
+        expected_match:
+            Expected warning message substring.
+    """
+    # Create appropriate plugin and cubes based on output name
+    cubes = input_cubes_basic(temp_val=20.0, rh_val=50.0)
+    plugin = ConcreteFireWeatherIndexForOutputValidation()
+
+    # Override _calculate to return invalid values
+    def calculate_with_invalid():
+        return np.full((5, 5), invalid_value)
+
+    plugin._calculate = calculate_with_invalid
+
+    # Should issue a warning about values outside range
+    with pytest.warns(UserWarning, match=expected_match):
+        result = plugin.process(CubeList(cubes))
+
+    assert isinstance(result, Cube)
