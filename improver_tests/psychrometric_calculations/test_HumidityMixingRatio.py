@@ -273,7 +273,7 @@ def test_pressure_levels_ancillary_variable_flags():
         vertical_levels=[95000, 100000],
         pressure=True,
     )
-
+    temperature.add_ancillary_variable(ancillary_variable)
     rel_humidity = set_up_variable_cube(
         np.full((1, 2, 2, 2), fill_value=1.0, dtype=np.float32),
         name="relative_humidity",
