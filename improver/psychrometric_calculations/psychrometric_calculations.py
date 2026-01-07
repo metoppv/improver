@@ -29,7 +29,6 @@ from improver.metadata.utilities import (
 )
 from improver.utilities.common_input_handle import as_cubelist
 from improver.utilities.cube_manipulation import (
-    enforce_coordinate_ordering,
     sort_coord_in_cube,
 )
 from improver.utilities.interpolation import interpolate_missing_data
@@ -504,7 +503,7 @@ class HumidityMixingRatio(BasePlugin):
 
     def generate_pressure_cube(self, temperature_cube) -> Cube:
         """Generate a pressure cube from the pressure coordinate on the temperature cube"""
-        coord_list = [coord.name() for coord in temperature_cube.coords()]
+        # coord_list = [coord.name() for coord in temperature_cube.coords()]
         pressure_list = self._make_pressure_list(temperature_cube)
 
         expanded_pressure_list = CubeList(
@@ -531,7 +530,7 @@ class HumidityMixingRatio(BasePlugin):
                 "Unable to generate pressure cube with input ", temperature_cube, error
             )
 
-        enforce_coordinate_ordering(pressure_cube, coord_list)
+        # enforce_coordinate_ordering(pressure_cube, coord_list)
         pressure_cube.rename("surface_air_pressure")
         pressure_cube.units = "Pa"
         return pressure_cube
