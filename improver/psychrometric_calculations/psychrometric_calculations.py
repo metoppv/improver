@@ -511,7 +511,7 @@ class HumidityMixingRatio(BasePlugin):
 
         expanded_pressure_list = CubeList(
             iris.util.new_axis(
-                cube, "pressure", expand_extras=(cube.coord("status_flag"))
+                cube, "pressure", expand_extras=(cube.ancillary_variable("status_flag"))
             )
             for cube in pressure_list
         )
