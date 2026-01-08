@@ -86,16 +86,15 @@ class QuantileMapping(PostProcessingPlugin):
         """Transform forecast values to match the reference distribution.
 
         For each forecast value:
+
         1. Find its quantile position in the forecast distribution
         2. Map that quantile to the corresponding value in the reference distribution
            using discrete (floor) method
 
-        Example:
-        - reference_data: [10, 20, 30, 40, 50]
-        - forecast_data:  [5, 15, 25, 35, 45]
-
-        The forecast systematically underestimates by 5 units.
-        Corrected values: [10, 20, 30, 40, 50] (mapped to reference distribution)
+        For example, if reference_data is [10, 20, 30, 40, 50] and forecast_data
+        is [5, 15, 25, 35, 45], the forecast systematically underestimates by 5 units.
+        The corrected values will be [10, 20, 30, 40, 50], mapped to match the
+        reference distribution.
 
         Args:
             reference_data:
