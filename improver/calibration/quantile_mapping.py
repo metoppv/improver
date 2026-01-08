@@ -302,6 +302,12 @@ class QuantileMapping(PostProcessingPlugin):
         Returns:
             Calibrated forecast cube with quantiles mapped to the reference
             distribution.
+
+        Note:
+            The output mask is the union of the reference and forecast masks. Output
+            will be masked at any location where EITHER input is masked, as quantile
+            mapping requires valid data from both sources. This may result in the
+            output having more masked values than the forecast input.
         """
 
         # Ensure both cubes use the same units
