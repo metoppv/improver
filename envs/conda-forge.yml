@@ -17,8 +17,13 @@ dependencies:
   - numpy=2.2
   - scipy=1.15
   - sphinx<9.0.0  # https://github.com/tox-dev/sphinx-autodoc-typehints/issues/586
+<<<<<<< HEAD
   - pandas<3  # https://github.com/SciTools/iris/issues/6761
   - proj=9.7.1  # https://github.com/metoppv/improver/issues/2325
+=======
+  - pandas
+  - pysteps
+>>>>>>> 897e0cb9 (Add pytest to environments)
   # Additional libraries to run tests, not included in improver-feedstock
   - filelock
   - pytest
