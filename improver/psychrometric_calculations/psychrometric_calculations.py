@@ -507,10 +507,15 @@ class HumidityMixingRatio(BasePlugin):
         coord_list = [coord.name() for coord in temperature_cube.coords()]
         pressure_list = self._make_pressure_list(temperature_cube)
 
-        expanded_pressure_list = CubeList(
-            iris.util.new_axis(cube, "pressure", expand_extras=["status_flag"])
-            for cube in pressure_list
-        )
+        try:
+            expanded_pressure_list = CubeList(
+                iris.util.new_axis(cube, "pressure", expand_extras=["status_flag"])
+                for cube in pressure_list
+            )
+        except KeyError:
+            expanded_pressure_list = CubeList(
+                iris.util.new_axis(cube, "pressure") for cube in pressure_list
+            )
 
         try:
             pressure_cube = expanded_pressure_list.concatenate_cube()
