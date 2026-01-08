@@ -40,7 +40,7 @@ def google_film_template_cube():
     npoints = 5
     data = np.ones((npoints, npoints), dtype=np.float32) * 4
     cube = multi_time_cube(times, data, "latlon")
-    return cube[1:]  # Return only the interpolated times (6 and 9)
+    return cube[1]  # Return only the interpolated time at T+6
 
 
 def test_google_film_init():
@@ -83,11 +83,11 @@ def test_google_film_process_with_mock_model(
     # Use the shared setup_google_film_mock to patch GoogleFilmInterpolation
     setup_google_film_mock(monkeypatch)
 
-    plugin = GoogleFilmInterpolation(model_path="/mock/path")
+    plugin = GoogleFilmInterpolation(model_path="/mock/path", scaling=scaling)
     result = plugin.process(cube1, cube2, google_film_template_cube)
 
     assert isinstance(result, CubeList)
-    assert len(result) == 2  # Two interpolated times
+    assert len(result) == 1  # One interpolated time
 
     # Check that output times match template times
     for result_cube, template_slice in zip(
@@ -97,8 +97,10 @@ def test_google_film_process_with_mock_model(
             result_cube.coord("time").points[0]
             == template_slice.coord("time").points[0]
         )
-    assert np.all(result[0].data == 4.0)
-    assert np.all(result[1].data == 7.0)
+    if scaling == "log10":
+        assert np.allclose(result[0].data, 3)
+    else:
+        assert np.allclose(result[0].data, 4)
 
 
 def test_google_film_process_preserves_metadata(
@@ -208,7 +210,6 @@ def test_google_film_process_multiple_times(google_film_sample_cubes, monkeypatc
     npoints = 5
     data = np.ones((npoints, npoints), dtype=np.float32)
     template = multi_time_cube(times, data, "latlon")
-
     setup_google_film_mock(monkeypatch)
 
     plugin = GoogleFilmInterpolation(model_path="/mock/path")

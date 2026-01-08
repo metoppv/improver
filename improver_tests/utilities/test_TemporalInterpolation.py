@@ -234,11 +234,19 @@ def setup_google_film_mock(monkeypatch):
 
     class MockModel:
         def __call__(self, inputs):
-            time_frac = inputs["time"][0]
-            x0 = inputs["x0"][0]
-            x1 = inputs["x1"][0]
-            interpolated = x0 + time_frac * (x1 - x0)
-            return {"image": np.expand_dims(interpolated, axis=0)}
+            time_fracs = inputs["time"]
+            x0 = inputs["x0"]
+            x1 = inputs["x1"]
+            orig_shape = x0.shape  # Save original shape before any modification
+            # Ensure time_fracs is at least 1D (always shape (N,))
+            time_fracs = np.atleast_1d(time_fracs.squeeze())
+            # Expand time_fracs to match x0/x1 dims
+            time_fracs = time_fracs[(...,) + (np.newaxis,) * (x0.ndim - 1)]
+            interpolated = x0 + time_fracs * (x1 - x0)
+            # Always ensure output shape matches the original x0 shape
+            if interpolated.shape != orig_shape:
+                interpolated = np.broadcast_to(interpolated, orig_shape)
+            return {"image": interpolated}
 
     def mock_load_model(self, model_path):
         return MockModel()

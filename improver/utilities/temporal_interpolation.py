@@ -1289,10 +1289,10 @@ class ForecastTrajectoryGapFiller(BasePlugin):
             cubes:
                 One or more cubes with potentially missing validity times.
                 Can be:
-                        - A single Cube with a forecast_period or time dimension
-                            (will be sliced)
-                        - Multiple Cube arguments representing different validity times
-                        - A single CubeList containing multiple validity times
+                    - A single Cube with a forecast_period or time dimension
+                        (will be sliced)
+                    - Multiple Cube arguments representing different validity times
+                    - A single CubeList containing multiple validity times
                 All cubes should have the same validity time coordinate structure and
                 dimensions (except for forecast_period and time), and are expected to
                 all have the same forecast_reference_time.
@@ -1306,17 +1306,21 @@ class ForecastTrajectoryGapFiller(BasePlugin):
             ValueError: If cubes don't have forecast_period or time coordinate.
         """
         # Handle variable arguments - convert to single CubeList
+        # cubes is a tuple of arguments.
         if len(cubes) == 1:
-            cube = cubes[0]
+            cubelist = cubes[0]
             # Convert single Cube to CubeList if necessary
-            if isinstance(cube, Cube):
+            if isinstance(cubelist, Cube):
                 # Try slicing over forecast_period, then time, else wrap as CubeList
                 for coord in ("forecast_period", "time"):
-                    if cube.coords(coord, dim_coords=True):
-                        cubelist = CubeList(cube.slices_over(coord))
+                    if cubelist.coords(coord, dim_coords=True):
+                        cubelist = CubeList(cubelist.slices_over(coord))
                         break
                 else:
-                    cubelist = CubeList([cube])
+                    cubelist = CubeList([cubelist])
+            else:
+                # Assume that the only entry in the tuple is already a CubeList
+                cubelist = CubeList(cubelist)
         else:
             # Multiple cubes passed as separate arguments
             cubelist = CubeList(cubes)

@@ -56,7 +56,7 @@ def test_init_default_parameters():
     assert plugin.interpolation_window_in_hours is None
     assert plugin.model_path is None
     assert plugin.scaling == "minmax"
-    assert plugin.clipping_bounds == (0.0, 1.0)
+    assert plugin.clipping_bounds is None
 
 
 def test_init_custom_parameters():
@@ -158,7 +158,7 @@ def test_process_with_realizations():
 
     # Should have 3 time points with 3 realizations each
     assert result.shape[0] == 3
-    assert all(cube.data == 5)
+    assert np.allclose(result[1].data, 5)
     cubes = list(result.slices_over("time"))
     assert all(cube.coords("realization") for cube in cubes)
     assert all(len(cube.coord("realization").points) == 3 for cube in cubes)
@@ -212,7 +212,10 @@ def test_process_missing_forecast_period_raises_error():
 
     plugin = ForecastTrajectoryGapFiller(interval_in_minutes=60)
 
-    with pytest.raises(ValueError, match="must have a forecast_period coordinate"):
+    with pytest.raises(
+        ValueError,
+        match="All cubes must have forecast_period, time coordinates",
+    ):
         plugin.process(cubelist)
 
 
