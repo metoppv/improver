@@ -5,6 +5,7 @@
 """Class for Temporal Interpolation calculations."""
 
 import json
+from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any, List, Optional, Tuple, Union
 
@@ -25,6 +26,14 @@ from improver.utilities.round import round_close
 from improver.utilities.solar import DayNightMask, calc_solar_elevation
 from improver.utilities.spatial import lat_lon_determine, transform_grid_to_lat_lon
 from improver.utilities.temporal import iris_time_to_datetime
+
+
+# Utility function to ensure clipping_bounds is a tuple if not None
+def _as_tuple_if_list(bounds):
+    """Convert a list to a tuple, or return as is if already a tuple or None."""
+    if bounds is not None and isinstance(bounds, list):
+        return tuple(bounds)
+    return bounds
 
 
 class TemporalInterpolation(BasePlugin):
@@ -94,7 +103,9 @@ class TemporalInterpolation(BasePlugin):
         min: bool = False,
         model_path: Optional[str] = None,
         scaling: str = "minmax",
-        clipping_bounds: Optional[Tuple[float, float]] = (0.0, 1.0),
+        clipping_bounds: Optional[Tuple[float, float]] = None,
+        clip_in_scaled_space: bool = False,
+        clip_to_physical_bounds: bool = False,
     ) -> None:
         """
         Initialise class.
@@ -140,7 +151,14 @@ class TemporalInterpolation(BasePlugin):
             clipping_bounds:
                 A tuple specifying the (min, max) bounds to which to clip
                 the interpolated data when using "google_film" method.
-                Default is (0.0, 1.0).
+                Default is None.
+            clip_in_scaled_space:
+                Whether to apply clipping in the scaled data space
+                when using "google_film" method. Default is True.
+            clip_to_physical_bounds:
+                Whether to apply clipping to physical bounds after
+                interpolation when using "google_film" method.
+                Default is False.
 
         Raises:
             ValueError: If neither interval_in_minutes nor times are set.
@@ -183,7 +201,10 @@ class TemporalInterpolation(BasePlugin):
                 )
         self.model_path = model_path
         self.scaling = scaling
-        self.clipping_bounds = clipping_bounds
+        # Ensure clipping_bounds is a tuple if needed
+        self.clipping_bounds = _as_tuple_if_list(clipping_bounds)
+        self.clip_in_scaled_space = clip_in_scaled_space
+        self.clip_to_physical_bounds = clip_to_physical_bounds
 
         self.period_inputs = False
         if np.sum([accumulation, max, min]) > 1:
@@ -705,6 +726,7 @@ class TemporalInterpolation(BasePlugin):
                 )
 
         self.enforce_time_coords_dtype(interpolated_cube)
+
         interpolated_cubes = CubeList()
         if self.interpolation_method == "solar":
             interpolated_cubes = self.solar_interpolate(cube, interpolated_cube)
@@ -715,7 +737,10 @@ class TemporalInterpolation(BasePlugin):
                 self.model_path,
                 self.scaling,
                 self.clipping_bounds,
-            ).process(cube[0], cube[1], interpolated_cube)
+                self.clip_in_scaled_space,
+                self.clip_to_physical_bounds,
+            ).process(cube[0], cube[1], interpolated_cube[:-1])
+            interpolated_cubes.append(cube[1])
         else:
             for single_time in interpolated_cube.slices_over("time"):
                 interpolated_cubes.append(single_time)
@@ -723,21 +748,22 @@ class TemporalInterpolation(BasePlugin):
         return interpolated_cubes
 
 
-class ForecastPeriodGapFiller(BasePlugin):
-    """Fill gaps in forecast periods using temporal interpolation.
+class ForecastTrajectoryGapFiller(BasePlugin):
+    """Fill gaps in the forecast trajectory using temporal interpolation.
 
-    This plugin identifies gaps in a sequence of forecast periods and fills
-    them using temporal interpolation. When cluster_sources are configured,
-    it can also identify forecast periods that should be regenerated (e.g.,
-    when transitioning between forecast sources) even if they exist in the
-    input data.
+    This plugin identifies gaps in a sequence of validity times (i.e. the
+    forecast trajectory from a fixed forecast reference time) and fills them using
+    temporal interpolation. When cluster_sources are configured, it can also identify
+    forecast periods from a fixed forecast reference time that should be regenerated
+    (e.g. when transitioning between forecast sources) even if they exist in the input
+    forecast.
 
     The plugin will:
-    1. Sort input cubes by forecast period
-    2. Identify missing forecast periods (gaps)
-    3. Optionally identify periods to regenerate based on cluster sources
+    1. Sort input cubes by validity time
+    2. Identify missing validity times (gaps)
+    3. Optionally identify times to regenerate based on cluster sources
     4. Use TemporalInterpolation to fill gaps
-    5. Return a Cube with all forecast periods
+    5. Return a Cube with all validity times
     """
 
     def __init__(
@@ -748,14 +774,16 @@ class ForecastPeriodGapFiller(BasePlugin):
         interpolation_window_in_hours: Optional[int] = None,
         model_path: Optional[str] = None,
         scaling: str = "minmax",
-        clipping_bounds: Optional[Union[Tuple[float, float], List[float]]] = (0.0, 1.0),
+        clipping_bounds: Optional[Union[Tuple[float, float], List[float]]] = None,
+        clip_in_scaled_space: bool = True,
+        clip_to_physical_bounds: bool = False,
         **kwargs,
     ) -> None:
-        """Initialize the ForecastPeriodGapFiller.
+        """Initialise the plugin.
 
         Args:
             interval_in_minutes:
-                The expected interval between forecast periods in minutes.
+                The expected interval between validity times in minutes.
                 Used to identify gaps in the sequence.
             interpolation_method:
                 Method of interpolation to use.
@@ -763,7 +791,7 @@ class ForecastPeriodGapFiller(BasePlugin):
             cluster_sources_attribute:
                 Name of cube attribute containing cluster sources dictionary.
                 When provided with interpolation_window_in_hours, enables
-                identification of forecast periods to regenerate at source transitions.
+                identification of validity times to regenerate at source transitions.
             interpolation_window_in_hours:
                 Time window (in hours) as +/- range around forecast source transitions.
             model_path:
@@ -774,6 +802,12 @@ class ForecastPeriodGapFiller(BasePlugin):
             clipping_bounds:
                 Bounds for clipping google_film interpolated data. Can be a tuple
                 or list of two floats.
+            clip_in_scaled_space:
+                If True, clipping_bounds are applied in scaled space for
+                google_film interpolation.
+            clip_to_physical_bounds:
+                If True, interpolated data is clipped to physical bounds
+                after inverse scaling for google_film interpolation.
             **kwargs:
                 Additional arguments passed to TemporalInterpolation.
         """
@@ -783,28 +817,41 @@ class ForecastPeriodGapFiller(BasePlugin):
         self.interpolation_window_in_hours = interpolation_window_in_hours
         self.model_path = model_path
         self.scaling = scaling
-        # Convert clipping_bounds to tuple if it's a list
-        if clipping_bounds is not None and isinstance(clipping_bounds, list):
-            self.clipping_bounds = tuple(clipping_bounds)
-        else:
-            self.clipping_bounds = clipping_bounds
+        # Ensure clipping_bounds is a tuple if needed
+        self.clipping_bounds = _as_tuple_if_list(clipping_bounds)
+        self.clip_in_scaled_space = clip_in_scaled_space
+        self.clip_to_physical_bounds = clip_to_physical_bounds
         self.kwargs = kwargs
 
     def _get_forecast_periods(self, cubelist: CubeList) -> List[int]:
-        """Extract forecast periods from cubes in hours.
+        """Extract forecast periods from cubes in minutes since the reference time.
 
         Args:
             cubelist: List of cubes to extract forecast periods from.
 
         Returns:
-            Sorted list of unique forecast periods in hours.
+            Sorted list of unique forecast periods in minutes.
         """
         periods = set()
         for cube in cubelist:
             period_seconds = cube.coord("forecast_period").points[0]
-            period_hours = int(round(period_seconds / 3600))
-            periods.add(period_hours)
+            period_minutes = int(round(period_seconds / 60))
+            periods.add(period_minutes)
         return sorted(periods)
+
+    def _extract_cube_for_period(self, cubelist: CubeList, period: int) -> Cube:
+        """Extract a cube for a specific forecast period (in minutes).
+        Args:
+            cubelist: List of cubes to extract from.
+            period: Forecast period in minutes.
+
+        Returns:
+            Cube corresponding to the specified forecast period.
+        """
+        constraint = iris.Constraint(
+            forecast_period=lambda fp: abs((fp.point / 60) - period) < 0.01
+        )
+        return cubelist.extract_cube(constraint)
 
     def identify_gaps(self, cubelist: CubeList) -> List[int]:
         """Identify missing forecast periods that need filling.
@@ -813,22 +860,19 @@ class ForecastPeriodGapFiller(BasePlugin):
             cubelist: List of input cubes.
 
         Returns:
-            List of forecast periods (in hours) that are missing.
+            List of forecast_periods (in minutes) that are missing.
 
         Raises:
             ValueError: If interval_in_minutes is not set.
         """
         if self.interval_in_minutes is None:
             raise ValueError(
-                "interval_in_minutes must be set to identify gaps in forecast periods."
+                "interval_in_minutes must be set to identify gaps in forecast period."
             )
 
         existing_periods = self._get_forecast_periods(cubelist)
         if len(existing_periods) < 2:
             return []
-
-        # Calculate expected interval in hours
-        interval_hours = self.interval_in_minutes / 60
 
         # Find all periods that should exist
         min_period = existing_periods[0]
@@ -837,10 +881,10 @@ class ForecastPeriodGapFiller(BasePlugin):
         current = min_period
         while current <= max_period:
             expected_periods.append(int(round(current)))
-            current += interval_hours
+            current += self.interval_in_minutes
 
         # Find missing periods
-        missing = [p for p in expected_periods if p not in existing_periods]
+        missing = [t for t in expected_periods if t not in existing_periods]
         return missing
 
     def parse_cluster_sources(self, cube: Cube) -> dict:
@@ -965,8 +1009,6 @@ class ForecastPeriodGapFiller(BasePlugin):
         ):
             return []
 
-        periods_to_regenerate = []
-
         if not cubelist:
             return []
 
@@ -987,6 +1029,7 @@ class ForecastPeriodGapFiller(BasePlugin):
             return []
 
         # Find transitions for each realization
+        periods_to_regenerate = []
         seen_transitions = set()
         for real_idx in realization_indices:
             transitions = self.identify_source_transitions(
@@ -1003,25 +1046,6 @@ class ForecastPeriodGapFiller(BasePlugin):
 
         return periods_to_regenerate
 
-    def _get_cubes_for_period(self, cubelist: CubeList, period_hours: int) -> Cube:
-        """Get cube(s) for a specific forecast period.
-
-        Args:
-            cubelist: List of cubes to search.
-            period_hours: Forecast period in hours.
-
-        Returns:
-            Cube at the specified forecast period.
-
-        Raises:
-            ValueError: If no cube found at the specified period.
-        """
-        for cube in cubelist:
-            cube_period = cube.coord("forecast_period").points[0] / 3600
-            if abs(cube_period - period_hours) < 0.01:
-                return cube
-        raise ValueError(f"No cube found for forecast period T+{period_hours}")
-
     def _validate_input(self, cubelist: CubeList) -> None:
         """Validate that the input cubelist meets requirements.
 
@@ -1034,16 +1058,47 @@ class ForecastPeriodGapFiller(BasePlugin):
         """
         if not cubelist or len(cubelist) < 2:
             raise ValueError(
-                "ForecastPeriodGapFiller requires at least 2 cubes in the "
+                f"{self.__class__.__name__} requires at least 2 cubes in the "
                 "input CubeList."
             )
 
-        # Verify all cubes have forecast_period
+        # Verify all cubes have required coordinates
+        required_coords = ["forecast_period", "time"]
         for cube in cubelist:
-            if not cube.coords("forecast_period"):
+            missing = [crd for crd in required_coords if not cube.coords(crd)]
+            if missing:
                 raise ValueError(
-                    "All cubes must have a forecast_period coordinate for gap filling."
+                    f"All cubes must have {', '.join(required_coords)} "
+                    f"coordinates for gap filling. Missing from cube: {missing}"
                 )
+
+        # Extract forecast_periods, times, and forecast_reference_times from each cube
+        forecast_periods = [
+            cube.coord("forecast_period").points[0] for cube in cubelist
+        ]
+        times = [cube.coord("time").points[0] for cube in cubelist]
+        forecast_reference_times = [
+            cube.coord("forecast_reference_time").points[0] for cube in cubelist
+        ]
+
+        # Check for multiple, different forecast_periods and times
+        unique_counts = {
+            "forecast_periods": len(set(forecast_periods)),
+            "times": len(set(times)),
+        }
+        missing = [k for k, v in unique_counts.items() if v < 2]
+        if missing:
+            raise ValueError(
+                f"{self.__class__.__name__} requires cubes with multiple, "
+                f"different {', '.join(missing)}."
+            )
+
+        # Check that all cubes have the same forecast_reference_time
+        if len(set(forecast_reference_times)) > 1:
+            raise ValueError(
+                f"All cubes in cubelist must have the same forecast_reference_time "
+                f"to define a valid forecast trajectory. Found: {set(forecast_reference_times)}"
+            )
 
     def _create_gap_filling_tasks(
         self, missing_periods: List[int], sorted_cubelist: CubeList
@@ -1108,14 +1163,14 @@ class ForecastPeriodGapFiller(BasePlugin):
 
         Args:
             cube_t0: The cube at the earlier forecast period.
-            target_period: The target forecast period in hours.
-            t0_period: The earlier forecast period in hours.
+            target_period: The target forecast period in minutes.
+            t0_period: The earlier forecast period in minutes.
 
         Returns:
             The target time as a datetime object.
         """
         time_t0 = iris_time_to_datetime(cube_t0.coord("time"))[0]
-        target_offset = (target_period - t0_period) * 3600
+        target_offset = (target_period - t0_period) * 60
         target_time = time_t0 + timedelta(seconds=target_offset)
         return target_time
 
@@ -1137,10 +1192,10 @@ class ForecastPeriodGapFiller(BasePlugin):
             t1_period: The later forecast period in hours.
 
         Returns:
-            CubeList containing the interpolated cube for the target period.
+            Cube for the target period.
         """
-        cube_t0 = self._get_cubes_for_period(sorted_cubelist, t0_period)
-        cube_t1 = self._get_cubes_for_period(sorted_cubelist, t1_period)
+        cube_t0 = self._extract_cube_for_period(sorted_cubelist, t0_period)
+        cube_t1 = self._extract_cube_for_period(sorted_cubelist, t1_period)
 
         # Calculate target time
         target_time = self._calculate_target_time(cube_t0, target_period, t0_period)
@@ -1152,13 +1207,45 @@ class ForecastPeriodGapFiller(BasePlugin):
         interpolated = interpolator.process(cube_t0, cube_t1)
 
         # Filter to only return the target period cube
-        result_cubes = CubeList()
-        for cube in interpolated:
-            # Check if this is the target period (not the t1 boundary)
-            cube_period = cube.coord("forecast_period").points[0] / 3600
-            if abs(cube_period - target_period) < 0.01:
-                result_cubes.append(cube)
+        return self._extract_cube_for_period(interpolated, target_period)
 
+    def _interpolate_batch_periods(
+        self,
+        interpolator: TemporalInterpolation,
+        sorted_cubelist: CubeList,
+        target_periods: list,
+        t0_period: int,
+        t1_period: int,
+    ) -> CubeList:
+        """Interpolate multiple forecast periods between t0_period and t1_period in
+        one batch.
+
+        Args:
+            interpolator: The TemporalInterpolation plugin to use.
+            sorted_cubelist: Sorted list of cubes by forecast period.
+            target_periods: List of target forecast periods (in minutes).
+            t0_period: The earlier forecast period in minutes.
+            t1_period: The later forecast period in minutes.
+
+        Returns:
+            CubeList of interpolated cubes for the target periods.
+        """
+        cube_t0 = self._extract_cube_for_period(sorted_cubelist, t0_period)
+        cube_t1 = self._extract_cube_for_period(sorted_cubelist, t1_period)
+
+        # Calculate all target times
+        target_times = [
+            self._calculate_target_time(cube_t0, tp, t0_period) for tp in target_periods
+        ]
+        interpolator.times = target_times
+
+        # Perform interpolation (batched)
+        interpolated = interpolator.process(cube_t0, cube_t1)
+
+        # Extract cubes for each target period
+        result_cubes = CubeList()
+        for tp in target_periods:
+            result_cubes.append(self._extract_cube_for_period(interpolated, tp))
         return result_cubes
 
     def _assemble_final_cubelist(
@@ -1195,17 +1282,20 @@ class ForecastPeriodGapFiller(BasePlugin):
         return result_cubes
 
     def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
-        """Fill gaps in forecast period sequence.
+        """Fill gaps in the forecast trajectory i.e. gaps in the validity time sequence,
+        or equivalently forecast period sequence for a fixed forecast reference time.
 
         Args:
             cubes:
-                One or more cubes with potentially missing forecast periods.
+                One or more cubes with potentially missing validity times.
                 Can be:
-                - A single Cube with a forecast_period dimension (will be sliced)
-                - Multiple Cube arguments representing different forecast periods
-                - A single CubeList containing multiple forecast periods
-                All cubes should have the same validity time coordinate structure
-                and dimensions (except for forecast_period and time).
+                        - A single Cube with a forecast_period or time dimension
+                            (will be sliced)
+                        - Multiple Cube arguments representing different validity times
+                        - A single CubeList containing multiple validity times
+                All cubes should have the same validity time coordinate structure and
+                dimensions (except for forecast_period and time), and are expected to
+                all have the same forecast_reference_time.
 
         Returns:
             A single merged Cube with gaps filled using temporal interpolation.
@@ -1213,26 +1303,20 @@ class ForecastPeriodGapFiller(BasePlugin):
 
         Raises:
             ValueError: If cubelist is empty or has fewer than 2 cubes.
-            ValueError: If cubes don't have forecast_period coordinate.
+            ValueError: If cubes don't have forecast_period or time coordinate.
         """
         # Handle variable arguments - convert to single CubeList
         if len(cubes) == 1:
-            cubelist = cubes[0]
+            cube = cubes[0]
             # Convert single Cube to CubeList if necessary
-            if isinstance(cubelist, Cube):
-                # Slice over the appropriate coordinate
-                if cubelist.coords("forecast_period", dim_coords=True):
-                    # Cube has forecast_period as a dimension - slice it
-                    cubelist = CubeList(cubelist.slices_over("forecast_period"))
-                elif (
-                    cubelist.coords("time", dim_coords=True)
-                    and cubelist.coord("time").shape[0] > 1
-                ):
-                    # Cube has time as a dimension - slice it
-                    cubelist = CubeList(cubelist.slices_over("time"))
+            if isinstance(cube, Cube):
+                # Try slicing over forecast_period, then time, else wrap as CubeList
+                for coord in ("forecast_period", "time"):
+                    if cube.coords(coord, dim_coords=True):
+                        cubelist = CubeList(cube.slices_over(coord))
+                        break
                 else:
-                    # Single cube without sliceable dimension
-                    cubelist = CubeList([cubelist])
+                    cubelist = CubeList([cube])
         else:
             # Multiple cubes passed as separate arguments
             cubelist = CubeList(cubes)
@@ -1240,12 +1324,13 @@ class ForecastPeriodGapFiller(BasePlugin):
         # Validate input
         self._validate_input(cubelist)
 
-        # Sort cubelist by forecast period
+        # Sort cubelist by validity time (time coordinate)
         sorted_cubelist = CubeList(
-            sorted(cubelist, key=lambda c: c.coord("forecast_period").points[0])
+            sorted(cubelist, key=lambda c: c.coord("time").points[0])
         )
 
-        # Identify gaps and periods to regenerate
+        # Identify gaps and forecast periods (for a fixed forecast reference time)
+        # to regenerate
         missing_periods = self.identify_gaps(sorted_cubelist)
         periods_to_regenerate = self.identify_periods_to_regenerate(sorted_cubelist)
 
@@ -1268,26 +1353,35 @@ class ForecastPeriodGapFiller(BasePlugin):
             model_path=self.model_path,
             scaling=self.scaling,
             clipping_bounds=self.clipping_bounds,
+            clip_in_scaled_space=self.clip_in_scaled_space,
+            clip_to_physical_bounds=self.clip_to_physical_bounds,
             **self.kwargs,
         )
 
-        # Perform interpolations
+        # Group interpolation tasks by (t0_period, t1_period) for batching
+        # (t0_period, t1_period) -> list of (task_type, target_time)
+        batch_tasks = defaultdict(list)
+        task_type_map = {}  # (target_time) -> task_type
+        for task_type, target_period, t0_time, t1_time in interpolation_tasks:
+            batch_tasks[(t0_time, t1_time)].append(target_period)
+            task_type_map[target_period] = task_type
+
         result_cubes = CubeList()
         periods_to_exclude = set()
-
-        for task_type, target_period, t0_period, t1_period in interpolation_tasks:
-            interpolated_cubes = self._interpolate_single_period(
+        for (t0_time, t1_time), target_periods in batch_tasks.items():
+            # Interpolate all target_periods for this t0-t1 pair in one batch
+            batch_cubes = self._interpolate_batch_periods(
                 interpolator,
                 sorted_cubelist,
-                target_period,
-                t0_period,
-                t1_period,
+                target_periods,
+                t0_time,
+                t1_time,
             )
-            result_cubes.extend(interpolated_cubes)
-
-            if task_type == "regenerate":
-                # Mark original for exclusion
-                periods_to_exclude.add(target_period)
+            result_cubes.extend(batch_cubes)
+            # Mark originals for exclusion if any are 'regenerate'
+            for tp in target_periods:
+                if task_type_map[tp] == "regenerate":
+                    periods_to_exclude.add(tp)
 
         # Assemble final cubelist
         final_cubelist = self._assemble_final_cubelist(
@@ -1312,7 +1406,9 @@ class GoogleFilmInterpolation:
         self,
         model_path: str,
         scaling: str = "minmax",
-        clipping_bounds: Optional[Tuple[float, float]] = (0.0, 1.0),
+        clipping_bounds: Optional[Tuple[float, float]] = None,
+        clip_in_scaled_space: bool = False,
+        clip_to_physical_bounds: bool = False,
         cluster_sources_attribute: Optional[str] = None,
         interpolation_window_in_hours: Optional[int] = None,
     ) -> None:
@@ -1326,6 +1422,12 @@ class GoogleFilmInterpolation:
             clipping_bounds:
                 A tuple specifying the (min, max) bounds to which to clip
                 the interpolated data. Use None for no bound in that direction.
+            clip_in_scaled_space:
+                If True, clipping_bounds are applied in scaled space before
+                inverse scaling.
+            clip_to_physical_bounds:
+                If True, interpolated data is clipped to physical bounds
+                after inverse scaling.
             cluster_sources_attribute:
                 Name of a cube attribute containing a dictionary that maps
                 realization indices to their forecast sources and periods.
@@ -1338,6 +1440,8 @@ class GoogleFilmInterpolation:
         self.model_path = model_path
         self.scaling = scaling
         self.clipping_bounds = clipping_bounds
+        self.clip_in_scaled_space = clip_in_scaled_space
+        self.clip_to_physical_bounds = clip_to_physical_bounds
         self.cluster_sources_attribute = cluster_sources_attribute
         self.interpolation_window_in_hours = interpolation_window_in_hours
         self.cluster_sources_attribute = cluster_sources_attribute
@@ -1352,6 +1456,8 @@ class GoogleFilmInterpolation:
         Returns:
             The loaded TensorFlow Hub model.
         """
+        # TODO: Remove this monkeypatch if the error reporting that the
+        # 'register_load_context_function' attribute is missing no longer occurs.
         # Apply monkey patch before importing anything TensorFlow-related
         # We need to patch all possible import paths that tf_keras might use
         # Related to https://github.com/keras-team/tf-keras/issues/257
@@ -1421,60 +1527,112 @@ class GoogleFilmInterpolation:
         else:
             raise ValueError(f"Unsupported scaling method: {scaling}")
 
-    def apply_clipping(self, interpolated: Cube) -> None:
-        """Clip the interpolated cube data to be within the bounds of the
-        input cubes, if clipping_bounds is not None.
+    def apply_clipping(self, interpolated: Cube, cube1: Cube, cube2: Cube) -> None:
+        """Clip the interpolated cube data to within the provided clipping bounds,
+        if provided. Otherwise, clip within the bounds of the input cubes if either
+        clip_to_physical_bounds or clip_in_scaled_space is True. If neither is set,
+        no clipping is applied.
 
         Args:
             interpolated:
                 The interpolated cube.
         """
-        if self.clipping_bounds is not None:
-            interpolated.data = np.clip(
-                interpolated.data, self.clipping_bounds[0], self.clipping_bounds[1]
-            )
+        if self.clipping_bounds is None:
+            if self.clip_to_physical_bounds or self.clip_in_scaled_space:
+                min_val = min(cube1.data.min(), cube2.data.min())
+                max_val = max(cube1.data.max(), cube2.data.max())
+                clipping_bounds = (min_val, max_val)
+            else:
+                return
+        else:
+            clipping_bounds = self.clipping_bounds
 
-    def run_google_film(
-        self, cube1: Cube, cube2: Cube, model: Any, time_point: float
+        interpolated.data = np.clip(
+            interpolated.data, clipping_bounds[0], clipping_bounds[1]
+        )
+
+    def _finalise_interpolated_cube(
+        self,
+        cube: Cube,
+        cube1: Cube,
+        cube2: Cube,
+        cube1_orig: Cube,
+        cube2_orig: Cube,
     ) -> Cube:
-        """Run the Google FILM model to interpolate between two cubes.
+        """
+        Apply clipping and reverse scaling to an interpolated cube.
 
         Args:
-            cube1:
-                The first input cube.
-            cube2:
-                The second input cube.
-            model:
-                The loaded TensorFlow Hub model.
-            time_point:
-                A float between 0 and 1 indicating the interpolation point.
+            cube: The interpolated cube to finalise (in scaled space).
+            cube1: The first input cube (scaled, for clipping in scaled space).
+            cube2: The second input cube (scaled, for clipping in scaled space).
+            cube1_orig: The first input cube before scaling (for reverse scaling and
+            physical clipping).
+            cube2_orig: The second input cube before scaling (for reverse scaling and
+            physical clipping).
 
         Returns:
-            The interpolated cube.
+            The finalised interpolated cube, with scaling reversed and clipping applied
+            as configured.
         """
-        # Stack the data 3 times to simulate the RGB data the model expects.
-        # Convert to float32 as required by the model
-        image1 = np.stack([cube1.data] * 3, axis=-1).astype(np.float32)
-        image2 = np.stack([cube2.data] * 3, axis=-1).astype(np.float32)
+        if self.clip_in_scaled_space:
+            self.apply_clipping(cube, cube1, cube2)
+        self.reverse_scaling(cube, cube1_orig, cube2_orig, self.scaling)
+        if self.clip_to_physical_bounds:
+            self.apply_clipping(cube, cube1_orig, cube2_orig)
+        return cube
 
+    def run_google_film(
+        self,
+        arr1: np.ndarray,
+        arr2: np.ndarray,
+        model: Any,
+        time_points: List[float],
+    ) -> np.ndarray:
+        """
+        Run the Google FILM model to interpolate between two arrays at multiple time
+        points. The input arrays can be 2D (H, W) or 3D (N, H, W), where N is the number
+        of pairs to process. The output will be a 3D array (N, H, W) of interpolated
+        data. Each input array is treated as a grayscale image, expanded to 3 channels
+        for the model. The number of pairs N should match the length of time_points.
+        The dimension N could represent e.g. different realizations or multiple time
+        points, or these items stacked together.
+
+        Args:
+            arr1: The first input array.
+            arr2: The second input array.
+            model: The loaded TensorFlow Hub model.
+            time_points: A list of floats between 0 and 1 indicating the interpolation
+            points.
+
+        Returns:
+            Numpy array of interpolated data for each time point, shape (N, H, W)
+        """
+        times = np.asarray(time_points, dtype=np.float32).reshape((-1, 1))  # (N, 1)
+        # Ensure arr1/arr2 are (N, H, W) for RGB stacking
+        n_times = times.shape[0]
+        if arr1.ndim == 2:
+            arr1 = np.broadcast_to(arr1, (n_times, *arr1.shape))
+        if arr2.ndim == 2:
+            arr2 = np.broadcast_to(arr2, (n_times, *arr2.shape))
+        image1 = np.broadcast_to(arr1[..., np.newaxis], arr1.shape + (3,)).astype(
+            np.float32
+        )  # (N, H, W, 3)
+        image2 = np.broadcast_to(arr2[..., np.newaxis], arr2.shape + (3,)).astype(
+            np.float32
+        )  # (N, H, W, 3)
         inputs = {
-            "time": np.array([[time_point]], dtype=np.float32),  # Shape (1, 1)
-            "x0": np.expand_dims(
-                image1, axis=0
-            ),  # adding the batch dimension to the image
-            "x1": np.expand_dims(
-                image2, axis=0
-            ),  # adding the batch dimension to the image
+            "time": times,  # (N, 1)
+            "x0": image1,  # (N, H, W, 3)
+            "x1": image2,  # (N, H, W, 3)
         }
-
         frame = model(inputs)
-        # Handle both TensorFlow tensors and numpy arrays (for testing)
-        result_data = frame["image"][0, ..., 0]
+        result_data = frame["image"]  # (N, H, W, 3)
         if hasattr(result_data, "numpy"):
             result_data = result_data.numpy()
-        interpolated = cube1.copy(data=result_data)
-
-        return interpolated
+        # Take the first channel (assume grayscale output)
+        result_data = result_data[..., 0]  # (N, H, W)
+        return result_data
 
     def process(
         self, cube1: Cube, cube2: Cube, template_interpolated_cube: Cube
@@ -1487,7 +1645,7 @@ class GoogleFilmInterpolation:
             cube2:
                 The second input cube (at time t=1).
             template_interpolated_cube:
-                A cube containing the linearly interpolated data with the correct
+                A cube containing the interpolated data with the correct
                 metadata for the output times.
 
         Returns:
@@ -1497,7 +1655,6 @@ class GoogleFilmInterpolation:
             ValueError: If cube1 or cube2 do not have realization coordinates.
             ValueError: If cube1 and cube2 have different numbers of realizations.
         """
-
         # Identify spatial dims
         spatial_dims = [
             "projection_x_coordinate",
@@ -1505,6 +1662,8 @@ class GoogleFilmInterpolation:
             "latitude",
             "longitude",
         ]
+        # Expected coordinates in extra_dims might be e.g. realization, percentile
+        # or the name of the probability threshold coord.
         extra_dims = [
             coord.name()
             for coord in cube1.coords(dim_coords=True)
@@ -1519,9 +1678,9 @@ class GoogleFilmInterpolation:
 
         if extra_dim:
             # Ensure both cubes have the same extra dim points
-            points1 = cube1.coord(extra_dim).points
-            points2 = cube2.coord(extra_dim).points
-            if not np.array_equal(points1, points2):
+            coord1 = cube1.coord(extra_dim)
+            coord2 = cube2.coord(extra_dim)
+            if coord1 != coord2:
                 raise ValueError(
                     f"Coordinate '{extra_dim}' does not match between cubes."
                 )
@@ -1540,40 +1699,69 @@ class GoogleFilmInterpolation:
         time_range = t1 - t0
 
         interpolated_cubes = CubeList()
-        for template_slice in template_interpolated_cube.slices_over("time"):
-            # Get the target time from the template
+        # Calculate all time fractions for the target times
+        time_fractions = []
+        template_slices = list(template_interpolated_cube.slices_over("time"))
+        for template_slice in template_slices:
             target_seconds = template_slice.coord("time").points[0]
-
-            # Calculate fraction (0 to 1) between the two input times
             time_fraction = (target_seconds - t0) / time_range
+            time_fractions.append(time_fraction)
 
-            if extra_dim:
-                slices = CubeList([])
+        if extra_dim:
+            # Batched over both time and extra_dim
+            extra_points = cube1.coord(extra_dim).points
+            num_extra = len(extra_points)
+            # Stack all cube1 and cube2 slices for all times and extra values
+            cube1_data_stacked = []
+            cube2_data_stacked = []
+            for template_slice in template_slices:
                 for cube1_slice, cube2_slice in zip(
                     cube1.slices_over(extra_dim), cube2.slices_over(extra_dim)
                 ):
-                    temporary_interpolated_cube = self.run_google_film(
-                        cube1_slice, cube2_slice, model, time_fraction
+                    cube1_data_stacked.append(cube1_slice.data)
+                    cube2_data_stacked.append(cube2_slice.data)
+
+            cube1_data_stacked = np.array(cube1_data_stacked)  # (N * num_extra, H, W)
+            cube2_data_stacked = np.array(cube2_data_stacked)  # (N * num_extra, H, W)
+            # Repeat time fractions for each extra value
+            time_fractions_stacked = np.repeat(time_fractions, num_extra)
+            # Batched FILM call
+            result_data = self.run_google_film(
+                cube1_data_stacked, cube2_data_stacked, model, time_fractions_stacked
+            )  # (N * num_extra, H, W)
+            # Reconstruct cubes for each time
+            for template_idx, template_slice in enumerate(template_slices):
+                cubes_for_merge = []
+                start = template_idx * num_extra
+                end = start + num_extra
+                data_stack = result_data[start:end]  # (N * num_extra, H, W)
+                for extra_idx, data in enumerate(data_stack):
+                    cube = template_slice.extract(
+                        iris.Constraint(**{extra_dim: extra_points[extra_idx]})
                     )
-                    slices.append(temporary_interpolated_cube)
-                temporary_interpolated_cube = slices.merge_cube()
-                interpolated_cube = template_slice.copy()
-                interpolated_cube.data = temporary_interpolated_cube.data
-            else:
-                # No extra dim, just interpolate the 2D spatial slices
-                interpolated_cube = self.run_google_film(
-                    cube1, cube2, model, time_fraction
+                    cube = cube.copy(data=data)
+                    cube.coord(extra_dim).points = [extra_points[extra_idx]]
+                    # Apply clipping and reverse scaling
+                    cube = self._finalise_interpolated_cube(
+                        cube, cube1, cube2, cube1_orig, cube2_orig
+                    )
+                    cubes_for_merge.append(cube)
+                merged_cube = cubes_for_merge[0].copy()
+                if num_extra > 1:
+                    merged_cube = MergeCubes()(iris.cube.CubeList(cubes_for_merge))
+                interpolated_cubes.append(merged_cube)
+        else:
+            # Batched call for all time points
+            result_data = self.run_google_film(
+                cube1.data, cube2.data, model, time_fractions
+            )  # (N, H, W)
+            for idx, template_slice in enumerate(template_slices):
+                interpolated_cube = template_slice.copy(data=result_data[idx])
+                # Apply clipping and reverse scaling
+                interpolated_cube = self._finalise_interpolated_cube(
+                    interpolated_cube, cube1, cube2, cube1_orig, cube2_orig
                 )
-                # Copy metadata from template
-                interpolated_cube = template_slice.copy(data=interpolated_cube.data)
-
-            # Apply clipping and reverse scaling
-            self.apply_clipping(interpolated_cube)
-            self.reverse_scaling(
-                interpolated_cube, cube1_orig, cube2_orig, self.scaling
-            )
-
-            interpolated_cubes.append(interpolated_cube)
+                interpolated_cubes.append(interpolated_cube)
 
         return interpolated_cubes
 
@@ -1694,6 +1882,7 @@ class DurationSubdivision:
         # Split the whole period duration into allocations for each fidelity
         # period.
         intervals = period // self.fidelity
+
         interval_data = (cube.data / intervals).astype(cube.data.dtype)
 
         daynightplugin = DayNightMask()

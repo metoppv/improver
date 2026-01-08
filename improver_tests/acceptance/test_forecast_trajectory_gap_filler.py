@@ -2,7 +2,7 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""Tests for the forecast-period-gap-filler CLI."""
+"""Tests for the forecast-trajectory-gap-filler CLI."""
 
 import pytest
 
@@ -15,9 +15,9 @@ run_cli = acc.run_cli(CLI)
 
 def test_fill_gaps(tmp_path):
     """
-    Test filling gaps in forecast period sequence using linear interpolation.
+    Test filling gaps in the forecast trajectory using linear interpolation.
 
-    Input cubes at T+3, T+6, and T+9 hours are provided. The plugin should
+    Input cubes at T+3 and T+9 hours are provided. The plugin should
     identify that T+6 is missing and interpolate it from T+3 and T+9.
     """
     kgo_dir = acc.kgo_root() / "forecast-trajectory-gap-filler" / "gap"
@@ -44,7 +44,9 @@ def test_fill_gaps(tmp_path):
 @pytest.mark.slow
 def test_regenerate_at_source_transitions(tmp_path):
     """
-    Test regenerating forecast periods at source transitions using cluster sources.
+    Test regenerating forecast periods within a single forecast trajectory
+    (i.e. multiple forecast periods with the same forecast reference time)
+    at source transitions using cluster sources.
 
     Input cubes contain a cluster_sources attribute indicating transitions between
     different forecast sources. The plugin should identify these transitions and

@@ -2,7 +2,7 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""Unit tests for ForecastPeriodGapFiller."""
+"""Unit tests for ForecastTrajectoryGapFiller."""
 
 import datetime
 
@@ -10,7 +10,7 @@ import numpy as np
 import pytest
 from iris.cube import CubeList
 
-from improver.utilities.temporal_interpolation import ForecastPeriodGapFiller
+from improver.utilities.temporal_interpolation import ForecastTrajectoryGapFiller
 from improver_tests.utilities.test_TemporalInterpolation import (
     diagnostic_cube,
     multi_time_cube,
@@ -47,8 +47,8 @@ def setup_cubes_with_gaps(hours, data_values=None, realizations=None, npoints=10
 
 
 def test_init_default_parameters():
-    """Test ForecastPeriodGapFiller initializes with default parameters."""
-    plugin = ForecastPeriodGapFiller(interval_in_minutes=60)
+    """Test ForecastTrajectoryGapFiller initializes with default parameters."""
+    plugin = ForecastTrajectoryGapFiller(interval_in_minutes=60)
 
     assert plugin.interval_in_minutes == 60
     assert plugin.interpolation_method == "linear"
@@ -60,8 +60,8 @@ def test_init_default_parameters():
 
 
 def test_init_custom_parameters():
-    """Test ForecastPeriodGapFiller initializes with custom parameters."""
-    plugin = ForecastPeriodGapFiller(
+    """Test ForecastTrajectoryGapFiller initializes with custom parameters."""
+    plugin = ForecastTrajectoryGapFiller(
         interval_in_minutes=120,
         interpolation_method="google_film",
         cluster_sources_attribute="cluster_sources",
@@ -87,7 +87,7 @@ def test_process_no_gaps():
     cube = multi_time_cube(times, data, "latlon")
     cubelist = CubeList(cube.slices_over("time"))
 
-    plugin = ForecastPeriodGapFiller(interval_in_minutes=180)
+    plugin = ForecastTrajectoryGapFiller(interval_in_minutes=180)
     result = plugin.process(cubelist)
 
     assert result.shape[0] == 3
@@ -104,7 +104,7 @@ def test_process_fills_single_gap():
     # Create cubes for T+3 and T+9, missing T+6
     cubelist = setup_cubes_with_gaps(hours=[3, 9], data_values=[1.0, 7.0])
 
-    plugin = ForecastPeriodGapFiller(interval_in_minutes=180)
+    plugin = ForecastTrajectoryGapFiller(interval_in_minutes=180)
     result = plugin.process(cubelist)
 
     # Should now have 3 time points: T+3, T+6 (filled), T+9
@@ -126,7 +126,7 @@ def test_process_fills_multiple_gaps():
     # Create cubes for T+3, T+9, and T+15, missing T+6 and T+12
     cubelist = setup_cubes_with_gaps(hours=[3, 9, 15], data_values=[1.0, 5.0, 9.0])
 
-    plugin = ForecastPeriodGapFiller(interval_in_minutes=180)
+    plugin = ForecastTrajectoryGapFiller(interval_in_minutes=180)
     result = plugin.process(cubelist)
 
     # Should now have 5 time points: T+3, T+6, T+9, T+12, T+15
@@ -153,11 +153,12 @@ def test_process_with_realizations():
     cube = multi_time_cube(times, data, "latlon", realizations=[0, 1, 2])
     cubelist = CubeList(cube.slices_over("time"))
 
-    plugin = ForecastPeriodGapFiller(interval_in_minutes=180)
+    plugin = ForecastTrajectoryGapFiller(interval_in_minutes=180)
     result = plugin.process(cubelist)
 
     # Should have 3 time points with 3 realizations each
     assert result.shape[0] == 3
+    assert all(cube.data == 5)
     cubes = list(result.slices_over("time"))
     assert all(cube.coords("realization") for cube in cubes)
     assert all(len(cube.coord("realization").points) == 3 for cube in cubes)
@@ -168,7 +169,7 @@ def test_process_unsorted_input():
     # Create cubes in reverse order
     cubelist = setup_cubes_with_gaps(hours=[9, 3, 6], data_values=[1.0, 2.0, 3.0])
 
-    plugin = ForecastPeriodGapFiller(interval_in_minutes=180)
+    plugin = ForecastTrajectoryGapFiller(interval_in_minutes=180)
     result = plugin.process(cubelist)
 
     # Result should be sorted by forecast period
@@ -182,7 +183,7 @@ def test_process_unsorted_input():
 def test_process_empty_cubelist_raises_error():
     """Test that process raises error for empty CubeList."""
     cubelist = CubeList()
-    plugin = ForecastPeriodGapFiller(interval_in_minutes=60)
+    plugin = ForecastTrajectoryGapFiller(interval_in_minutes=60)
 
     with pytest.raises(ValueError, match="requires at least 2 cubes"):
         plugin.process(cubelist)
@@ -192,14 +193,15 @@ def test_process_single_cube_raises_error():
     """Test that process raises error for single cube."""
     cubelist = setup_cubes_with_gaps(hours=[3])
 
-    plugin = ForecastPeriodGapFiller(interval_in_minutes=60)
+    plugin = ForecastTrajectoryGapFiller(interval_in_minutes=60)
 
     with pytest.raises(ValueError, match="requires at least 2 cubes"):
         plugin.process(cubelist)
 
 
 def test_process_missing_forecast_period_raises_error():
-    """Test that process raises error when cubes lack forecast_period coordinate."""
+    """Test that process raises an error when cubes lack a forecast_period
+    coordinate."""
     times = [datetime.datetime(2017, 11, 1, hour) for hour in [3, 6]]
     data = np.ones((10, 10), dtype=np.float32)
     cube = multi_time_cube(times, data, "latlon")
@@ -208,7 +210,7 @@ def test_process_missing_forecast_period_raises_error():
     # Remove forecast_period from first cube
     cubelist[0].remove_coord("forecast_period")
 
-    plugin = ForecastPeriodGapFiller(interval_in_minutes=60)
+    plugin = ForecastTrajectoryGapFiller(interval_in_minutes=60)
 
     with pytest.raises(ValueError, match="must have a forecast_period coordinate"):
         plugin.process(cubelist)
@@ -229,7 +231,7 @@ def test_process_with_google_film_method(monkeypatch):
     cube = multi_time_cube(times, data, "latlon", realizations=[0, 1])
     cubelist = CubeList(cube.slices_over("time"))
 
-    plugin = ForecastPeriodGapFiller(
+    plugin = ForecastTrajectoryGapFiller(
         interval_in_minutes=180,
         interpolation_method="google_film",
         model_path="/mock/path",
@@ -244,19 +246,16 @@ def test_process_with_google_film_method(monkeypatch):
         int(round(cube.coord("forecast_period").points[0] / 3600))
         for cube in result.slices_over("time")
     ]
-    assert result_periods == [
-        6,
-        9,
-        12,
-    ]  # Times 3h and 9h with 6h interval results in forecast periods
-    # of T+6, T+9(gap), T+12
+    # Times 3h and 9h with 6h interval results in forecast periods of
+    # T+6, T+9(gap), T+12
+    assert result_periods == [6, 9, 12]
 
 
 def test_process_with_hourly_interval():
     """Test process with hourly forecast periods."""
     cubelist = setup_cubes_with_gaps(hours=[3, 6], data_values=[1.0, 4.0])
 
-    plugin = ForecastPeriodGapFiller(interval_in_minutes=60)
+    plugin = ForecastTrajectoryGapFiller(interval_in_minutes=60)
     result = plugin.process(cubelist)
 
     # Should fill T+4 and T+5
@@ -276,8 +275,8 @@ def test_process_maintains_metadata():
     for cube in cubelist:
         cube.attributes["test_attribute"] = "test_value"
 
-    plugin = ForecastPeriodGapFiller(interval_in_minutes=180)
+    plugin = ForecastTrajectoryGapFiller(interval_in_minutes=180)
     result = plugin.process(cubelist)
 
     # Interpolated cube should have the same attribute
-    assert "test_attribute" in list(result.slices_over("time"))[1].attributes
+    assert result.attributes["test_attribute"] == "test_value"

@@ -104,12 +104,6 @@ def process(
     if times is not None:
         times = [cycletime_to_datetime(timestr) for timestr in times]
 
-    # Convert clipping_bounds from comma-separated list to tuple
-    if clipping_bounds is not None:
-        clipping_bounds = tuple(float(x) for x in clipping_bounds)
-    else:
-        clipping_bounds = (0.0, 1.0)
-
     result = TemporalInterpolation(
         interval_in_minutes=interval_in_mins,
         times=times,
