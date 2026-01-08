@@ -21,6 +21,7 @@ dependencies:
   - geopandas
   - lightgbm>=4.0.0
   - numba
+  - pysteps
   - python-stratify
   - treelite>=4.0.0
   - tl2cgen>=1.0.0
