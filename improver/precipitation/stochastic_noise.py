@@ -52,16 +52,10 @@ class StochasticNoise(BasePlugin):
             threshold_units:
                 Units of the threshold value. Default is "mm/hr".
 
-        Example dictionaries for initializing and generating SSFT filter:
-            ssft_init_params={
-                "win_size": (100, 100),
-                "overlap": 0.3,
-                "war_thr": 0.1
-            }
-            ssft_generate_params={
-                "overlap": 0.3,
-                "seed": 0
-            }
+        Example dictionaries for initializing and generating SSFT filter::
+
+            ssft_init_params = {"win_size": (100, 100), "overlap": 0.3, "war_thr": 0.1}
+            ssft_generate_params = {"overlap": 0.3, "seed": 0}
 
         See Pysteps documentation for further keyword arguments.
         """
