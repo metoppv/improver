@@ -40,6 +40,13 @@ class DuffMoistureCode(FireWeatherIndexBase):
         "duff_moisture_code",
     ]
     OUTPUT_CUBE_NAME = "duff_moisture_code"
+    # Valid output ranges for warning checks (output_name: (min, max))
+    # Minimum and maximum feasible values for each output index are drawn from
+    # values reported in:
+    # Wang, X., Oliver, J., Swystun, T., Hanes, C.C., Erni, S. and Flannigan,
+    # M.D., 2023. Critical fire weather conditions during active fire spread
+    # days in Canada. Science of the total environment, 869, p.161831.
+    VALID_OUTPUT_RANGE = (0.0, 400)
     REQUIRES_MONTH = True
     # Disambiguate input DMC (yesterday's value) from output DMC (today's calculated value)
     INPUT_ATTRIBUTE_MAPPINGS = {"duff_moisture_code": "input_dmc"}

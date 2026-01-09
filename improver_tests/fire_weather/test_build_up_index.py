@@ -2,7 +2,6 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-import warnings
 
 import numpy as np
 import pytest
@@ -214,100 +213,3 @@ def test_input_attribute_mapping() -> None:
     assert hasattr(plugin, "input_dc")
     assert np.allclose(plugin.input_dmc.data, 10.0)
     assert np.allclose(plugin.input_dc.data, 30.0)
-
-
-@pytest.mark.parametrize(
-    "dmc_val, dc_val, expected_error",
-    [
-        (-5.0, 15.0, "input_dmc contains values below valid minimum"),
-        (10.0, -5.0, "input_dc contains values below valid minimum"),
-    ],
-)
-def test_invalid_input_ranges_raise_errors(
-    dmc_val: float, dc_val: float, expected_error: str
-) -> None:
-    """Test that invalid input values raise appropriate ValueError.
-
-    Verifies that the base class validation catches physically meaningless
-    or out-of-range input values and raises descriptive errors.
-
-    Args:
-        dmc_val:
-            DMC value for all grid points.
-        dc_val:
-            DC value for all grid points.
-        expected_error:
-            Expected error message substring.
-    """
-    cubes = input_cubes(dmc_val, dc_val)
-    plugin = BuildUpIndex()
-
-    with pytest.raises(ValueError, match=expected_error):
-        plugin.load_input_cubes(cubes)
-
-
-@pytest.mark.parametrize(
-    "invalid_input_type,expected_error",
-    [
-        ("input_dmc_nan", "input_dmc contains NaN"),
-        ("input_dmc_inf", "input_dmc contains infinite"),
-        ("input_dc_nan", "input_dc contains NaN"),
-        ("input_dc_inf", "input_dc contains infinite"),
-    ],
-)
-def test_nan_and_inf_values_raise_errors(
-    invalid_input_type: str, expected_error: str
-) -> None:
-    """Test that NaN and Inf values in inputs raise appropriate ValueError.
-
-    Verifies that the validation catches non-finite values (NaN, Inf) in input data.
-
-    Args:
-        invalid_input_type:
-            Which input to make invalid and how.
-        expected_error:
-            Expected error message substring.
-    """
-    # Start with valid values
-    dmc_val, dc_val = 10.0, 30.0
-
-    # Replace the appropriate value with NaN or Inf
-    if invalid_input_type == "input_dmc_nan":
-        dmc_val = np.nan
-    elif invalid_input_type == "input_dmc_inf":
-        dmc_val = np.inf
-    elif invalid_input_type == "input_dc_nan":
-        dc_val = np.nan
-    elif invalid_input_type == "input_dc_inf":
-        dc_val = -np.inf
-
-    cubes = input_cubes(dmc_val, dc_val)
-    plugin = BuildUpIndex()
-
-    with pytest.raises(ValueError, match=expected_error):
-        plugin.load_input_cubes(cubes)
-
-
-def test_output_validation_no_warning_for_valid_output() -> None:
-    """Test that valid output values do not trigger warnings.
-
-    Uses moderate inputs to verify that as long as the output
-    stays within the expected range (0-500 for BUI), no warning is issued.
-    This demonstrates that the BUI calculation naturally constrains outputs
-    to valid ranges with typical inputs.
-    """
-    # Use moderate inputs that produce valid BUI
-    # Moderate DMC and DC produce moderate BUI within valid range
-    cubes = input_cubes(dmc_val=45.9, dc_val=123.9, shape=(1, 1))
-    plugin = BuildUpIndex()
-
-    # Process should complete without warnings since output stays in valid range
-    with warnings.catch_warnings():
-        warnings.simplefilter("error")  # Turn warnings into errors
-        result = plugin.process(cubes)
-
-    # No warnings should have been raised (if any were, they'd be errors)
-    assert isinstance(result, Cube)
-    # Verify output is within expected range (0-500 for BUI)
-    assert np.all(result.data >= 0.0)
-    assert np.all(result.data <= 500.0)

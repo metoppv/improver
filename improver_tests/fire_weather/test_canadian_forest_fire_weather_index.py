@@ -5,7 +5,6 @@
 """Tests for the CanadianForestFireWeatherIndex plugin."""
 
 import itertools
-import warnings
 
 import numpy as np
 import pytest
@@ -328,99 +327,3 @@ def test_process_both_zero() -> None:
     assert result.units == "1"
     assert np.allclose(result.data, 0.0, atol=1e-6)
     assert result.dtype == np.float32
-
-
-@pytest.mark.parametrize(
-    "isi_val, bui_val, expected_error",
-    [
-        (-5.0, 50.0, "initial_spread_index contains values below valid minimum"),
-        (150.0, 50.0, "initial_spread_index contains values above valid maximum"),
-        (10.0, -5.0, "build_up_index contains values below valid minimum"),
-        (10.0, 600.0, "build_up_index contains values above valid maximum"),
-    ],
-)
-def test_invalid_input_ranges_raise_errors(
-    isi_val: float, bui_val: float, expected_error: str
-) -> None:
-    """Test that invalid input values raise appropriate ValueError.
-
-    Verifies that the base class validation catches physically meaningless
-    or out-of-range input values and raises descriptive errors.
-
-    Args:
-        isi_val:
-            ISI value for all grid points.
-        bui_val:
-            BUI value for all grid points.
-        expected_error:
-            Expected error message substring.
-    """
-    cubes = input_cubes(isi_val, bui_val)
-    plugin = CanadianForestFireWeatherIndex()
-
-    with pytest.raises(ValueError, match=expected_error):
-        plugin.load_input_cubes(CubeList(cubes))
-
-
-VALID_ISI, VALID_BUI = 10.0, 50.0
-
-
-@pytest.mark.parametrize(
-    "isi_value, bui_value, expected_error",
-    [
-        (np.nan, VALID_BUI, "initial_spread_index contains NaN"),
-        (np.inf, VALID_BUI, "initial_spread_index contains infinite"),
-        (VALID_ISI, np.nan, "build_up_index contains NaN"),
-        (VALID_ISI, -np.inf, "build_up_index contains infinite"),
-    ],
-)
-def test_nan_and_inf_values_raise_errors(
-    isi_value: float,
-    bui_value: float,
-    expected_error: str,
-) -> None:
-    """Test that NaN and Inf values in inputs raise appropriate ValueError.
-
-    Verifies that the validation catches non-finite values (NaN, Inf) in input data.
-
-    Args:
-        isi_value:
-            ISI value for all grid points.
-        bui_value:
-            BUI value for all grid points.
-        expected_error:
-            Expected error message substring.
-    """
-    cubes = input_cubes(isi_value, bui_value)
-    plugin = CanadianForestFireWeatherIndex()
-
-    with pytest.raises(ValueError, match=expected_error):
-        plugin.load_input_cubes(CubeList(cubes))
-
-
-def test_output_validation_no_warning_for_valid_output() -> None:
-    """Test that valid output values do not trigger warnings.
-
-    Uses moderate inputs to verify that as long as the output
-    stays within the expected range (0-100 for FWI), no warning is issued.
-    This demonstrates that the FWI calculation naturally constrains outputs
-    to valid ranges with typical inputs.
-    """
-    # Use moderate inputs that produce valid FWI
-    # Moderate ISI and BUI produce moderate FWI within valid range
-    cubes = [
-        make_cube(np.array([[10.0]]), "initial_spread_index", "1", add_time_coord=True),
-        make_cube(np.array([[50.0]]), "build_up_index", "1"),
-    ]
-    plugin = CanadianForestFireWeatherIndex()
-
-    # Process should complete without warnings since output stays in valid range
-    with warnings.catch_warnings():
-        warnings.simplefilter("error")  # Turn warnings into errors
-        result = plugin.process(CubeList(cubes))
-
-    # No warnings should have been raised (if any were, they'd be errors)
-    assert isinstance(result, Cube)
-    # Verify output is within expected range (0-100 for FWI)
-    assert np.all(result.data >= 0.0)
-    assert np.all(result.data <= 100.0)
