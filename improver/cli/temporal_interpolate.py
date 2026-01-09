@@ -23,6 +23,9 @@ def process(
     model_path: str = None,
     scaling: str = "minmax",
     clipping_bounds: cli.comma_separated_list = None,
+    clip_in_scaled_space: bool = False,
+    clip_to_physical_bounds: bool = False,
+    max_batch: int = None,
 ):
     """Interpolate data between validity times.
 
@@ -85,6 +88,19 @@ def process(
             Comma-separated lower and upper bounds for clipping interpolated
             values when using google_film method. E.g. "0.0,1.0".
             Default is "0.0,1.0".
+        clip_in_scaled_space (bool):
+            If True, apply clipping to the interpolated data while still in
+            scaled space (i.e. before reversing any scaling). If False, no clipping
+            is applied at this stage. Default is False.
+        clip_to_physical_bounds (bool):
+            If True, apply clipping to the interpolated data after reversing any
+            scaling using the physical bounds. If clipping_bounds are supplied these
+            are used, otherwise the min and max values from the input cubes are used.
+            If False, no clipping is applied at this stage. Default is False.
+        max_batch (int):
+            If using google_film interpolation, the maximum batch size for model
+            inference. This limits memory usage by processing the data in smaller
+            chunks. Default is None (no chunking).
     Returns:
         iris.cube.CubeList:
             A list of cubes interpolated to the desired times. The
@@ -114,5 +130,8 @@ def process(
         model_path=model_path,
         scaling=scaling,
         clipping_bounds=clipping_bounds,
+        clip_in_scaled_space=clip_in_scaled_space,
+        clip_to_physical_bounds=clip_to_physical_bounds,
+        max_batch=max_batch,
     )(start_cube, end_cube)
     return MergeCubes()(result)

@@ -21,6 +21,7 @@ def process(
     clipping_bounds: cli.comma_separated_list = None,
     clip_in_scaled_space: bool = False,
     clip_to_physical_bounds: bool = False,
+    max_batch: int = None,
 ):
     """Fill gaps in the forecast trajectory using temporal interpolation.
 
@@ -31,11 +32,9 @@ def process(
 
     The intended input is an iris Cube or CubeList where the
     forecast_reference_time coordinate is fixed, and the time and
-    forecast_period coordinates are increasing. The expectation is that the time
-    and forecast_period coordinates are associated with each other, so share a
-    dimension if the input is an iris Cube. This CLI will fill gaps in the
-    forecast trajectory, i.e. fill gaps in the validity time, or equivalently,
-    the forecast_period.
+    forecast_period coordinates are increasing. The time and forecast_period coordinates
+    should be associated with each other, so share a dimension if the input is an
+    iris Cube.
 
     Args:
         cubes (iris.cube.CubeList or iris.cube.Cube):
@@ -93,6 +92,10 @@ def process(
             scaling using the physical bounds. If clipping_bounds are supplied these
             are used, otherwise the min and max values from the input cubes are used.
             If False, no clipping is applied at this stage. Default is False.
+        max_batch (int):
+            If using google_film interpolation, the maximum batch size for model
+            inference. This limits memory usage by processing the data in smaller
+            chunks. Default is None (no chunking).
 
     Returns:
         iris.cube.Cube:
@@ -115,6 +118,7 @@ def process(
         clipping_bounds=clipping_bounds,
         clip_in_scaled_space=clip_in_scaled_space,
         clip_to_physical_bounds=clip_to_physical_bounds,
+        max_batch=max_batch,
     )
 
     result = plugin.process(*cubes)

@@ -8,6 +8,7 @@ import datetime
 
 import numpy as np
 import pytest
+from iris.coords import DimCoord
 from iris.cube import CubeList
 
 from improver.utilities.temporal_interpolation import GoogleFilmInterpolation
@@ -70,6 +71,19 @@ def test_google_film_init_default_values():
     assert plugin.clipping_bounds == (-10, 10)
 
 
+def test_google_film_init_clip_args():
+    """Test GoogleFilmInterpolation initialization with clip_in_scaled_space and clip_to_physical_bounds."""
+    plugin = GoogleFilmInterpolation(
+        model_path="/mock/path",
+        scaling="minmax",
+        clipping_bounds=(0.0, 10.0),
+        clip_in_scaled_space=False,
+        clip_to_physical_bounds=True,
+    )
+    assert plugin.clip_in_scaled_space is False
+    assert plugin.clip_to_physical_bounds is True
+
+
 @pytest.mark.parametrize("scaling", ["log10", "minmax"])
 def test_google_film_process_with_mock_model(
     google_film_sample_cubes,
@@ -82,7 +96,6 @@ def test_google_film_process_with_mock_model(
 
     # Use the shared setup_google_film_mock to patch GoogleFilmInterpolation
     setup_google_film_mock(monkeypatch)
-
     plugin = GoogleFilmInterpolation(model_path="/mock/path", scaling=scaling)
     result = plugin.process(cube1, cube2, google_film_template_cube)
 
@@ -201,8 +214,12 @@ def test_google_film_process_time_fraction_calculation(
     np.testing.assert_almost_equal(captured_time_fractions[0], 0.5, decimal=5)
 
 
-def test_google_film_process_multiple_times(google_film_sample_cubes, monkeypatch):
-    """Test processing with multiple interpolation times."""
+@pytest.mark.parametrize("max_batch", [None, 3])
+def test_google_film_process_multiple_times(
+    google_film_sample_cubes, monkeypatch, max_batch
+):
+    """Test processing with multiple interpolation times with and without the
+    max_batch option."""
     cube1, cube2 = google_film_sample_cubes
 
     # Create template with multiple times
@@ -211,13 +228,57 @@ def test_google_film_process_multiple_times(google_film_sample_cubes, monkeypatc
     data = np.ones((npoints, npoints), dtype=np.float32)
     template = multi_time_cube(times, data, "latlon")
     setup_google_film_mock(monkeypatch)
-
-    plugin = GoogleFilmInterpolation(model_path="/mock/path")
+    plugin = GoogleFilmInterpolation(model_path="/mock/path", max_batch=max_batch)
     result = plugin.process(cube1, cube2, template)
 
     assert isinstance(result, CubeList)
     assert len(result) == 5  # Five interpolated times
 
+    # Check times are in correct order
+    for i, result_cube in enumerate(result):
+        expected_time = template[i].coord("time").points[0]
+        assert result_cube.coord("time").points[0] == expected_time
+
+
+@pytest.mark.parametrize("max_batch", [None, 3])
+def test_google_film_process_multiple_times_and_realizations(
+    google_film_sample_cubes, monkeypatch, max_batch
+):
+    """Test processing with multiple interpolation times and multiple realizations
+    with and without the max_batch option, using modified google_film_sample_cubes."""
+    cube1, cube2 = google_film_sample_cubes
+    nrealizations = 3
+    npoints = cube1.shape[0]
+
+    cube1s = CubeList([])
+    cube2s = CubeList([])
+    for nrealization in range(nrealizations):
+        coord = DimCoord(nrealization, standard_name="realization")
+        cube1_realization = cube1.copy()
+        cube2_realization = cube2.copy()
+        cube1_realization.add_aux_coord(coord)
+        cube2_realization.add_aux_coord(coord)
+        cube1s.append(cube1_realization)
+        cube2s.append(cube2_realization)
+    cube1 = cube1s.merge_cube()
+    cube2 = cube2s.merge_cube()
+
+    times = [datetime.datetime(2017, 11, 1, hour) for hour in [4, 5, 6, 7, 8]]
+    data = np.ones((npoints, npoints), dtype=np.float32)
+    template = multi_time_cube(
+        times, data, "latlon", realizations=list(range(nrealizations))
+    )
+
+    setup_google_film_mock(monkeypatch)
+    plugin = GoogleFilmInterpolation(model_path="/mock/path", max_batch=max_batch)
+    result = plugin.process(cube1, cube2, template)
+
+    assert isinstance(result, CubeList)
+    assert len(result) == 5  # Five interpolated times
+    # Each result cube should have realization dimension of length 3
+    for result_cube in result:
+        assert result_cube.coord("realization").shape[0] == nrealizations
+        assert result_cube.shape[0] == nrealizations
     # Check times are in correct order
     for i, result_cube in enumerate(result):
         expected_time = template[i].coord("time").points[0]
@@ -272,3 +333,52 @@ def test_google_film_process_preserves_cube_shape(
     for result_cube in result:
         assert result_cube.shape == cube1.shape
         assert result_cube.shape == cube2.shape
+
+
+def test_google_film_process_clip_in_scaled_space(
+    google_film_sample_cubes,
+    google_film_template_cube,
+    monkeypatch,
+):
+    """Test that enabling clip_in_scaled_space enables clipping in scaled space."""
+    cube1, cube2 = google_film_sample_cubes
+    setup_google_film_mock(monkeypatch)
+    # Set tight bounds and enable clip_in_scaled_space
+    plugin = GoogleFilmInterpolation(
+        model_path="/mock/path",
+        scaling="minmax",
+        clipping_bounds=(0.0, 0.1),
+        clip_in_scaled_space=True,
+        clip_to_physical_bounds=False,
+    )
+    result = plugin.process(cube1, cube2, google_film_template_cube)
+    # When clipping is done in scaled space, the final data may not be within (0.0, 0.1)
+    # after reverse scaling. However, all values should be within the physical bounds
+    # (1.0 to 7.0)
+    for result_cube in result:
+        # The physical range is between the min and max of the input cubes (1.0 and 7.0)
+        assert result_cube.data.min() >= 1.0 - 1e-6
+        assert result_cube.data.max() <= 7.0 + 1e-6
+
+
+def test_google_film_process_clip_to_physical_bounds(
+    google_film_sample_cubes,
+    google_film_template_cube,
+    monkeypatch,
+):
+    """Test that enabling clip_to_physical_bounds applies clipping after reverse scaling."""
+    cube1, cube2 = google_film_sample_cubes
+    setup_google_film_mock(monkeypatch)
+    # Set bounds that would be exceeded after reverse scaling
+    plugin = GoogleFilmInterpolation(
+        model_path="/mock/path",
+        scaling="minmax",
+        clipping_bounds=(0.0, 0.1),
+        clip_in_scaled_space=False,
+        clip_to_physical_bounds=True,
+    )
+    result = plugin.process(cube1, cube2, google_film_template_cube)
+    # Data should be clipped to (0.0, 0.1) after reverse scaling
+    for result_cube in result:
+        assert result_cube.data.min() >= 0.0
+        assert result_cube.data.max() <= 0.1
