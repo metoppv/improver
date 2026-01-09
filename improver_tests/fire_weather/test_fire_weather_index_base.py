@@ -765,10 +765,9 @@ class ConcreteFireWeatherIndexForOutputValidation(FireWeatherIndexBase):
     """Concrete implementation for testing output validation."""
 
     INPUT_CUBE_NAMES = ["air_temperature", "relative_humidity"]
-    OUTPUT_CUBE_NAME = (
-        "fine_fuel_moisture_content"  # Use a name with defined output range
-    )
+    OUTPUT_CUBE_NAME = "fine_fuel_moisture_content"
     REQUIRES_MONTH = False
+    VALID_OUTPUT_RANGE = (0.0, 101.0)  # FFMC range for validation testing
 
     def _calculate(self) -> np.ndarray:
         """Return controlled output for testing validation."""
@@ -854,8 +853,9 @@ class ConcreteFireWeatherIndexWithUndefinedOutput(FireWeatherIndexBase):
     """Concrete implementation with undefined output range."""
 
     INPUT_CUBE_NAMES = ["air_temperature", "relative_humidity"]
-    OUTPUT_CUBE_NAME = "undefined_output"  # Not in _OUTPUT_RANGES
+    OUTPUT_CUBE_NAME = "undefined_output"
     REQUIRES_MONTH = False
+    VALID_OUTPUT_RANGE = None  # No validation defined
 
     def _calculate(self) -> np.ndarray:
         # Return extreme values that would trigger warning if validated
@@ -1020,3 +1020,84 @@ def test_validate_output_range_warns_for_defined_outputs(
         result = plugin.process(CubeList(cubes))
 
     assert isinstance(result, Cube)
+
+
+class DummyPluginWithPartialRange(FireWeatherIndexBase):
+    """Dummy plugin for testing output validation with partial ranges."""
+
+    INPUT_CUBE_NAMES = ["air_temperature", "relative_humidity"]
+    OUTPUT_CUBE_NAME = "test_output_partial"
+    REQUIRES_MONTH = False
+    VALID_OUTPUT_RANGE = (0.0, None)  # Will be overridden in tests
+
+    def _calculate(self) -> np.ndarray:
+        """Simple calculation for testing."""
+        return self.temperature.data + self.relative_humidity.data
+
+
+@pytest.mark.parametrize(
+    "output_range, output_value, should_warn, expected_match",
+    [
+        # Only minimum defined (no maximum)
+        (
+            (0.0, None),
+            -5.0,
+            True,
+            r"contains values below feasible minimum 0\.0: found minimum -5\.00",
+        ),
+        ((0.0, None), 500.0, False, None),
+        # Only maximum defined (no minimum)
+        (
+            (None, 100.0),
+            150.0,
+            True,
+            r"contains values above feasible maximum 100\.0: found maximum 150\.00",
+        ),
+        ((None, 100.0), -150.0, False, None),
+    ],
+)
+def test_output_validation_with_partial_ranges(
+    output_range: tuple[float | None, float | None],
+    output_value: float,
+    should_warn: bool,
+    expected_match: str | None,
+) -> None:
+    """Test output validation with only minimum or only maximum defined.
+
+    Args:
+        output_range:
+            The VALID_OUTPUT_RANGE to test (min, max).
+        output_value:
+            The value to use in the output.
+        should_warn:
+            Whether a warning should be issued.
+        expected_match:
+            Expected warning message pattern, or None if no warning expected.
+    """
+    cubes = [
+        make_cube(np.array([[20.0]]), "air_temperature", "Celsius"),
+        make_cube(np.array([[30.0]]), "relative_humidity", "1"),
+    ]
+
+    plugin = DummyPluginWithPartialRange()
+    plugin.VALID_OUTPUT_RANGE = output_range
+
+    # Override _calculate to return the test value
+    def calculate_test_value():
+        return np.array([[output_value]])
+
+    plugin._calculate = calculate_test_value
+
+    if should_warn:
+        with pytest.warns(UserWarning, match=expected_match):
+            result = plugin.process(CubeList(cubes))
+        assert isinstance(result, Cube)
+    else:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            result = plugin.process(CubeList(cubes))
+        assert isinstance(result, Cube)
+        assert np.allclose(result.data, output_value)
+
+    assert isinstance(result, Cube)
+    assert np.allclose(result.data, -150.0)
