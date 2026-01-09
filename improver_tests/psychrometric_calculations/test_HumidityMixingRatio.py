@@ -255,16 +255,8 @@ def test_pressure_levels():
 
 
 def test_pressure_levels_with_status_flag():
-    """Check that the plugin works with pressure cube is not provided and the input cube has
-    a status flag of type ancillary variable"""
-    temperature_cube = set_up_variable_cube(
-        np.full((3, 3, 3), fill_value=282, dtype=np.float32),
-        name="air_temperature",
-        units="K",
-        attributes=LOCAL_MANDATORY_ATTRIBUTES,
-        pressure=True,
-        vertical_levels=[100000.0, 97500.0, 95000.0],
-    )
+    """Check that the plugin works when the pressure cube is not provided and the input cube has
+    a status flag of type ancillary variable."""
     status_flag_values = np.array(
         [
             [1, 1, 1],
@@ -277,6 +269,14 @@ def test_pressure_levels_with_status_flag():
         status_flag_values,
         standard_name="status_flag",
         units="1",
+    )
+    temperature_cube = set_up_variable_cube(
+        np.full((3, 3, 3), fill_value=282, dtype=np.float32),
+        name="air_temperature",
+        units="K",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        pressure=True,
+        vertical_levels=[100000.0, 97500.0, 95000.0],
     )
     temperature_cube.add_ancillary_variable(ancillary_var, data_dims=(0, 1))
     rel_humidity_cube = set_up_variable_cube(
@@ -286,19 +286,6 @@ def test_pressure_levels_with_status_flag():
         attributes=LOCAL_MANDATORY_ATTRIBUTES,
         pressure=True,
         vertical_levels=[100000.0, 97500.0, 95000.0],
-    )
-    status_flag_values = np.array(
-        [
-            [1, 1, 1],
-            [1, 1, 0],
-            [1, 1, 1],
-        ],
-        dtype=np.int32,
-    )
-    ancillary_var = AncillaryVariable(
-        status_flag_values,
-        standard_name="status_flag",
-        units="1",
     )
     rel_humidity_cube.add_ancillary_variable(ancillary_var, data_dims=(0, 1))
     result = HumidityMixingRatio()([temperature_cube, rel_humidity_cube])

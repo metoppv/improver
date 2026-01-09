@@ -28,7 +28,6 @@ from improver.metadata.utilities import (
     minimum_increment,
 )
 from improver.utilities.common_input_handle import as_cubelist
-from improver.utilities.copy_metadata import CopyMetadata
 from improver.utilities.cube_manipulation import (
     enforce_coordinate_ordering,
     sort_coord_in_cube,
@@ -504,7 +503,23 @@ class HumidityMixingRatio(BasePlugin):
         return pressure_list
 
     def generate_pressure_cube(self, temperature_cube) -> Cube:
-        """Generate a pressure cube from the pressure coordinate on the temperature cube"""
+        """
+        Generate a pressure cube from the pressure coordinate on the temperature cube.
+
+        If there is a pressure coordinate in the temperature and relative humidity cubes, and
+        no pressure cube has been provided (as is the case for calculating virtual temperature
+        on pressure levels, for example) the pressure cube is generated from the from the
+        pressure coordinate on the temperature cube. The temperature cube has a status flag
+        that indicates where the data were derived by StaGE for data points that fell below
+        the model orography, the flag meaning is above_surface_pressure below_surface_pressure.
+        These values are expanded in the process of concatenating the cube and if they are to
+        be retained, should be copied back in to the output of the final calculation from the
+        input cubes.
+
+        See https://scitools-iris.readthedocs.io/en/stable/further_topics/controlling_merge.html
+        for more information
+        """
+
         coord_list = [coord.name() for coord in temperature_cube.coords()]
         pressure_list = self._make_pressure_list(temperature_cube)
 
@@ -530,9 +545,6 @@ class HumidityMixingRatio(BasePlugin):
         enforce_coordinate_ordering(pressure_cube, coord_list)
         pressure_cube.rename("surface_air_pressure")
         pressure_cube.units = "Pa"
-        CopyMetadata(ancillary_variables=["status_flag"]).process(
-            pressure_cube, temperature_cube
-        )
         return pressure_cube
 
     def _handle_zero_humidity(self):
@@ -553,11 +565,10 @@ class HumidityMixingRatio(BasePlugin):
         Args:
             cubes:
                 Cubes of temperature (K) and relative humidity (1). A cube of pressure (Pa) must also
-                be provided unless there is a pressure coordinate in the temperature and relative humidity cubes.
-
+                be provided unless there is a pressure coordinate in the temperature and relative
+                humidity cubes.
         Returns:
             Cube of humidity mixing ratio on same levels as input cubes
-
         """
         cubes = as_cubelist(*cubes)
         self.rel_humidity = cubes.extract_cube(
