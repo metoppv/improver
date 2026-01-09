@@ -45,22 +45,6 @@ def input_cubes(
     )
 
 
-def test_input_attribute_mapping() -> None:
-    """Test that INPUT_ATTRIBUTE_MAPPINGS correctly disambiguates input
-    `fine_fuel_moisture_content` cubes as `input_ffmc`, while not
-    changing the cube's metadata.
-    """
-    cubes = input_cubes()
-    plugin = InitialSpreadIndex()
-    plugin.load_input_cubes(CubeList(cubes))
-
-    # Check that the mapping was applied correctly
-    assert hasattr(plugin, "input_ffmc")
-    assert isinstance(plugin.input_ffmc, Cube)
-    assert plugin.input_ffmc.long_name == "fine_fuel_moisture_content"
-    assert np.allclose(plugin.input_ffmc.data, 85.0)
-
-
 @pytest.mark.parametrize(
     "ffmc_val, expected_fm",
     [

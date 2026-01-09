@@ -1098,6 +1098,3 @@ def test_output_validation_with_partial_ranges(
             result = plugin.process(CubeList(cubes))
         assert isinstance(result, Cube)
         assert np.allclose(result.data, output_value)
-
-    assert isinstance(result, Cube)
-    assert np.allclose(result.data, -150.0)

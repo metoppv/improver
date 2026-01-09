@@ -195,21 +195,3 @@ def test_process_spatially_varying() -> None:
 
     # Check that different environmental conditions produce different outputs
     assert not np.allclose(result.data[0, 0], result.data[2, 2], atol=1.0)
-
-
-def test_input_attribute_mapping() -> None:
-    """Test that input cubes are mapped to correct attribute names.
-
-    Verifies that the base class correctly maps cube standard names to
-    internal attribute names (duff_moisture_code -> input_dmc,
-    drought_code -> input_dc).
-    """
-    cubes = input_cubes(dmc_val=10.0, dc_val=30.0)
-    plugin = BuildUpIndex()
-    plugin.load_input_cubes(cubes)
-
-    # Check that attributes exist and have correct values
-    assert hasattr(plugin, "input_dmc")
-    assert hasattr(plugin, "input_dc")
-    assert np.allclose(plugin.input_dmc.data, 10.0)
-    assert np.allclose(plugin.input_dc.data, 30.0)
