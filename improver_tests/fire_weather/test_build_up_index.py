@@ -5,7 +5,7 @@
 
 import numpy as np
 import pytest
-from iris.cube import Cube, CubeList
+from iris.cube import Cube
 
 from improver.fire_weather.build_up_index import BuildUpIndex
 from improver_tests.fire_weather import make_input_cubes
@@ -17,8 +17,8 @@ def input_cubes(
     shape: tuple[int, ...] = (5, 5),
     dmc_units: str = "1",
     dc_units: str = "1",
-) -> CubeList:
-    """Create a list of dummy input cubes for BUI tests, with configurable units.
+) -> tuple[Cube, ...]:
+    """Create a tuple of dummy input cubes for BUI tests, with configurable units.
 
     DMC cube has time coordinates; DC cube does not.
 
@@ -35,9 +35,9 @@ def input_cubes(
             Units for DC cube.
 
     Returns:
-        A CubeList of Iris Cubes for DMC and DC.
+        A tuple of Iris Cubes for DMC and DC.
     """
-    return CubeList(
+    return tuple(
         make_input_cubes(
             [
                 ("duff_moisture_code", dmc_val, dmc_units, True),

@@ -12,15 +12,15 @@ from improver_tests.fire_weather import make_cube, make_input_cubes
 
 
 def input_cubes(
-    temp_val: float = 20.0,
-    precip_val: float = 1.0,
-    dc_val: float = 15.0,
-    shape: tuple[int, int] = (5, 5),
+    temp_val: float | np.ndarray = 20.0,
+    precip_val: float | np.ndarray = 1.0,
+    dc_val: float | np.ndarray = 15.0,
+    shape: tuple[int, ...] = (5, 5),
     temp_units: str = "Celsius",
     precip_units: str = "mm",
     dc_units: str = "1",
-) -> list[Cube]:
-    """Create a list of dummy input cubes for DC tests, with configurable units.
+) -> tuple[Cube, ...]:
+    """Create a tuple of dummy input cubes for DC tests, with configurable units.
 
     All cubes have forecast_reference_time. Precipitation and DC cubes also have
     time coordinates with bounds.
@@ -42,7 +42,7 @@ def input_cubes(
             Units for DC cube.
 
     Returns:
-        List of Iris Cubes for temperature, precipitation, and DC.
+        Tuple of Iris Cubes for temperature, precipitation, and DC.
     """
     return make_input_cubes(
         [

@@ -12,17 +12,17 @@ from improver_tests.fire_weather import make_cube, make_input_cubes
 
 
 def input_cubes(
-    temp_val: float = 20.0,
-    precip_val: float = 1.0,
-    rh_val: float = 50.0,
-    dmc_val: float = 6.0,
-    shape: tuple[int, int] = (5, 5),
+    temp_val: float | np.ndarray = 20.0,
+    precip_val: float | np.ndarray = 1.0,
+    rh_val: float | np.ndarray = 50.0,
+    dmc_val: float | np.ndarray = 6.0,
+    shape: tuple[int, ...] = (5, 5),
     temp_units: str = "Celsius",
     precip_units: str = "mm",
     rh_units: str = "1",
     dmc_units: str = "1",
-) -> list[Cube]:
-    """Create a list of dummy input cubes for DMC tests, with configurable units.
+) -> tuple[Cube, ...]:
+    """Create a tuple of dummy input cubes for DMC tests, with configurable units.
 
     All cubes have forecast_reference_time. Precipitation and DMC cubes also have
     time coordinates with bounds.
@@ -48,7 +48,7 @@ def input_cubes(
             Units for DMC cube.
 
     Returns:
-        List of Iris Cubes for temperature, precipitation, relative humidity, and DMC.
+        Tuple of Iris Cubes for temperature, precipitation, relative humidity, and DMC.
     """
     return make_input_cubes(
         [

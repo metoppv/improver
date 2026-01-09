@@ -13,17 +13,17 @@ from iris.cube import Cube, CubeList
 from improver.fire_weather.canadian_forest_fire_weather_index import (
     CanadianForestFireWeatherIndex,
 )
-from improver_tests.fire_weather import make_cube, make_input_cubes
+from improver_tests.fire_weather import make_input_cubes
 
 
 def input_cubes(
-    isi_val: float = 10.0,
-    bui_val: float = 50.0,
-    shape: tuple[int, int] = (5, 5),
+    isi_val: float | np.ndarray = 10.0,
+    bui_val: float | np.ndarray = 50.0,
+    shape: tuple[int, ...] = (5, 5),
     isi_units: str = "1",
     bui_units: str = "1",
-) -> list[Cube]:
-    """Create a list of dummy input cubes for FWI tests, with configurable units.
+) -> tuple[Cube, ...]:
+    """Create a tuple of dummy input cubes for FWI tests, with configurable units.
 
     ISI cube has time coordinates; BUI cube does not.
 
@@ -40,7 +40,7 @@ def input_cubes(
             Units for BUI cube.
 
     Returns:
-        List of Iris Cubes for ISI and BUI.
+        Tuple of Iris Cubes for ISI and BUI.
     """
     return make_input_cubes(
         [
@@ -185,10 +185,7 @@ def test__calculate_fwi_spatially_varying() -> None:
     isi_data = np.array([[5.0, 10.0, 20.0], [8.0, 15.0, 30.0], [12.0, 25.0, 50.0]])
     bui_data = np.array([[20.0, 40.0, 60.0], [30.0, 70.0, 90.0], [50.0, 100.0, 150.0]])
 
-    cubes = [
-        make_cube(isi_data, "initial_spread_index", "1", add_time_coord=True),
-        make_cube(bui_data, "build_up_index", "1"),
-    ]
+    cubes = input_cubes(isi_val=isi_data, bui_val=bui_data, shape=isi_data.shape)
 
     plugin = CanadianForestFireWeatherIndex()
     plugin.load_input_cubes(CubeList(cubes))
@@ -240,7 +237,7 @@ def test_process(
             Expected FWI output value.
     """
     cubes = input_cubes(isi_val=isi_val, bui_val=bui_val)
-    result = CanadianForestFireWeatherIndex().process(CubeList(cubes))
+    result = CanadianForestFireWeatherIndex().process(cubes)
 
     assert isinstance(result, Cube)
     assert result.shape == (5, 5)
@@ -258,12 +255,9 @@ def test_process_spatially_varying() -> None:
     isi_data = np.array([[5.0, 10.0, 20.0], [8.0, 15.0, 30.0], [12.0, 25.0, 50.0]])
     bui_data = np.array([[20.0, 40.0, 60.0], [30.0, 70.0, 90.0], [50.0, 100.0, 150.0]])
 
-    cubes = [
-        make_cube(isi_data, "initial_spread_index", "1", add_time_coord=True),
-        make_cube(bui_data, "build_up_index", "1"),
-    ]
+    cubes = input_cubes(isi_val=isi_data, bui_val=bui_data, shape=isi_data.shape)
 
-    result = CanadianForestFireWeatherIndex().process(CubeList(cubes))
+    result = CanadianForestFireWeatherIndex().process(cubes)
 
     # Verify shape, type, and all values are non-negative
     assert result.data.shape == (3, 3)
@@ -288,12 +282,9 @@ def test_process_isi_zero() -> None:
         [[10.0, 50.0, 100.0], [20.0, 75.0, 150.0], [30.0, 90.0, 200.0]]
     )
 
-    cubes = [
-        make_cube(isi_values, "initial_spread_index", "1", add_time_coord=True),
-        make_cube(bui_values, "build_up_index", "1"),
-    ]
+    cubes = input_cubes(isi_val=isi_values, bui_val=bui_values, shape=isi_values.shape)
 
-    result = CanadianForestFireWeatherIndex().process(CubeList(cubes))
+    result = CanadianForestFireWeatherIndex().process(cubes)
 
     # When ISI=0, FWI should be 0
     assert np.allclose(result.data, 0.0, atol=1e-6)
@@ -304,12 +295,9 @@ def test_process_bui_zero() -> None:
     isi_values = np.array([[5.0, 10.0, 20.0], [8.0, 15.0, 30.0], [12.0, 25.0, 50.0]])
     bui_values = np.zeros((3, 3))
 
-    cubes = [
-        make_cube(isi_values, "initial_spread_index", "1", add_time_coord=True),
-        make_cube(bui_values, "build_up_index", "1"),
-    ]
+    cubes = input_cubes(isi_val=isi_values, bui_val=bui_values, shape=isi_values.shape)
 
-    result = CanadianForestFireWeatherIndex().process(CubeList(cubes))
+    result = CanadianForestFireWeatherIndex().process(cubes)
 
     # All values should be positive and vary with ISI
     assert np.all(result.data > 0.0)
@@ -320,7 +308,7 @@ def test_process_bui_zero() -> None:
 def test_process_both_zero() -> None:
     """Test that when both ISI and BUI are zero, FWI equals 0."""
     cubes = input_cubes(isi_val=0.0, bui_val=0.0)
-    result = CanadianForestFireWeatherIndex().process(CubeList(cubes))
+    result = CanadianForestFireWeatherIndex().process(cubes)
 
     assert isinstance(result, Cube)
     assert result.long_name == "canadian_forest_fire_weather_index"
