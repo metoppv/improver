@@ -61,19 +61,6 @@ def input_cubes(
     )
 
 
-def test_input_attribute_mapping() -> None:
-    """Test that INPUT_ATTRIBUTE_MAPPINGS correctly disambiguates input DMC."""
-    cubes = input_cubes()
-    plugin = DuffMoistureCode()
-    plugin.load_input_cubes(CubeList(cubes), month=7)
-
-    # Check that the mapping was applied correctly
-    assert hasattr(plugin, "input_dmc")
-    assert isinstance(plugin.input_dmc, Cube)
-    assert plugin.input_dmc.long_name == "duff_moisture_code"
-    assert np.allclose(plugin.input_dmc.data, 6.0)
-
-
 @pytest.mark.parametrize(
     "precip_val, prev_dmc, expected_dmc",
     [

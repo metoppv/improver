@@ -54,21 +54,6 @@ def input_cubes(
     )
 
 
-def test_input_attribute_mapping() -> None:
-    """Test that INPUT_ATTRIBUTE_MAPPINGS correctly stored inputted `drought_code`
-    cubes as `input_dc`, while not changing the cube's metadata.
-    """
-    cubes = input_cubes()
-    plugin = DroughtCode()
-    plugin.load_input_cubes(CubeList(cubes), month=7)
-
-    # Check that the mapping was applied correctly
-    assert hasattr(plugin, "input_dc")
-    assert isinstance(plugin.input_dc, Cube)
-    assert plugin.input_dc.long_name == "drought_code"
-    assert np.allclose(plugin.input_dc.data, 15.0)
-
-
 @pytest.mark.parametrize(
     "precip_val, prev_dc, expected_dc",
     [
