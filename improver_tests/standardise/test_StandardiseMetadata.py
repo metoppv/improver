@@ -217,13 +217,11 @@ class Test_process(ImproverTest):
         self.assertEqual(cube.dtype, np.float32)
         self.assertEqual(result.data.dtype, np.float32)
 
-    def xtest_air_temperature_status_flag_coord(self):
+    def test_air_temperature_status_flag_coord(self):
         """
-        Ensure we handle cubes which now include an 'air_temperature_status flag'
-        coord to signify points below surface altitude, where previously this
-        was denoted by NaN values in the data.
-
-        See https://github.com/metoppv/improver/pull/1839
+        Ensure we handle cubes which now include a 'status flag'
+        auxillary variable to signify points below surface altitude.
+        This flag should be unchanged by the standardise step.
         """
         cube = set_up_variable_cube(
             np.full((3, 3, 5, 5), fill_value=282, dtype=np.float32),
@@ -233,37 +231,31 @@ class Test_process(ImproverTest):
             vertical_levels=[100000.0, 97500.0, 95000.0],
             realizations=[0, 18, 19],
         )
-        # The target cube has 'NaN' values in its data to denote points below
-        # surface altitude.
+        # The target cube should be unchanged
         result_no_sf = cube.copy()
-        result_no_sf.data[:, 0, ...] = np.nan
         target = StandardiseMetadata().process(result_no_sf)
 
         cube_with_flags = cube.copy()
         flag_status = np.zeros((3, 3, 5, 5), dtype=np.int8)
         flag_status[:, 0, ...] = 1
-        status_flag_coord = AuxCoord(
-            points=flag_status,
-            standard_name="air_temperature status_flag",
+        status_flag_coord = AncillaryVariable(
+            data=flag_status,
+            standard_name="status_flag",
             var_name="flag",
             attributes={
                 "flag_meanings": "above_surface_pressure below_surface_pressure",
                 "flag_values": np.array([0, 1], dtype="int8"),
             },
         )
-        cube_with_flags.add_aux_coord(status_flag_coord, (0, 1, 2, 3))
+        cube_with_flags.add_ancillary_variable(status_flag_coord, (0, 1, 2, 3))
 
         result = StandardiseMetadata().process(cube_with_flags)
         np.testing.assert_array_equal(result.data, target.data)
         self.assertEqual(result.coords(), target.coords())
 
-    def xtest_air_temperature_status_flag_coord_without_realization(self):
+    def test_air_temperature_status_flag_coord_without_realization(self):
         """
-        Ensure we handle cubes which now include an 'air_temperature_status flag'
-        coord to signify points below surface altitude, where previously this
-        was denoted by NaN values in the data.
-
-        Tests this standardisation works if input is a deterministic forecast without
+        Test standardisation works if input is a deterministic forecast without
         a realization coordinate.
         """
         cube = set_up_variable_cube(
@@ -273,25 +265,23 @@ class Test_process(ImproverTest):
             pressure=True,
             vertical_levels=[100000.0, 97500.0, 95000.0],
         )
-        # The target cube has 'NaN' values in its data to denote points below
-        # surface altitude.
+        # The target cube should be unchanged
         result_no_sf = cube.copy()
-        result_no_sf.data[0, ...] = np.nan
         target = StandardiseMetadata().process(result_no_sf)
 
         cube_with_flags = cube.copy()
         flag_status = np.zeros((3, 5, 5), dtype=np.int8)
         flag_status[0, ...] = 1
-        status_flag_coord = AuxCoord(
-            points=flag_status,
-            standard_name="air_temperature status_flag",
+        status_flag_coord = AncillaryVariable(
+            data=flag_status,
+            standard_name="status_flag",
             var_name="flag",
             attributes={
                 "flag_meanings": "above_surface_pressure below_surface_pressure",
                 "flag_values": np.array([0, 1], dtype="int8"),
             },
         )
-        cube_with_flags.add_aux_coord(status_flag_coord, (0, 1, 2))
+        cube_with_flags.add_ancillary_variable(status_flag_coord, (0, 1, 2))
 
         result = StandardiseMetadata().process(cube_with_flags)
         np.testing.assert_array_equal(result.data, target.data)

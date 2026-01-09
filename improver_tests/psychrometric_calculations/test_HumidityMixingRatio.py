@@ -255,13 +255,13 @@ def test_pressure_levels():
 
 
 def test_pressure_levels_with_status_flag():
-    """Check that the plugin works with pressure level data when pressure cube is not provided"""
+    """Check that the plugin works with pressure cube is not provided and the input cube has
+    a status flag of type ancillary variable"""
     temperature_cube = set_up_variable_cube(
         np.full((3, 3, 3), fill_value=282, dtype=np.float32),
         name="air_temperature",
         units="K",
-        spatial_grid="latlon",
-        standard_grid_metadata="gl_det",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
         pressure=True,
         vertical_levels=[100000.0, 97500.0, 95000.0],
     )
@@ -283,8 +283,7 @@ def test_pressure_levels_with_status_flag():
         np.full((3, 3, 3), fill_value=282, dtype=np.float32),
         name="relative_humidity",
         units="1",
-        spatial_grid="latlon",
-        standard_grid_metadata="gl_det",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
         pressure=True,
         vertical_levels=[100000.0, 97500.0, 95000.0],
     )
@@ -303,7 +302,8 @@ def test_pressure_levels_with_status_flag():
     )
     rel_humidity_cube.add_ancillary_variable(ancillary_var, data_dims=(0, 1))
     result = HumidityMixingRatio()([temperature_cube, rel_humidity_cube])
-    print(result)
+    metadata_ok(result, temperature_cube)
+    assert result.coords()[0].name() == "pressure"
 
 
 def test_error_raised_no_pressure_coordinate_or_pressure_cube(
