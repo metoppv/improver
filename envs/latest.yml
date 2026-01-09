@@ -26,6 +26,8 @@ dependencies:
   - pysteps
   - treelite
   - tl2cgen
+  - tensorflow
+  - tensorflow-hub
   # Development
   - astroid
   - codacy-coverage

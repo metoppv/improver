@@ -20,6 +20,9 @@ def process(
     accumulation: bool = False,
     max: bool = False,
     min: bool = False,
+    model_path: str = None,
+    scaling: str = "minmax",
+    clipping_bounds: cli.comma_separated_list = None,
 ):
     """Interpolate data between validity times.
 
@@ -47,11 +50,12 @@ def process(
             by a comma.
             If times are set, interval_in_mins can not be used.
         interpolation_method (str):
-            ["linear", "solar", "daynight"]
+            ["linear", "solar", "daynight", "google_film"]
             Specifies the interpolation method;
             solar interpolates using the solar elevation,
             daynight uses linear interpolation but sets night time points to
-            0.0 linear is linear interpolation.
+            0.0, linear is linear interpolation, google_film uses a deep
+            learning model for frame interpolation.
         accumulation:
             Set True if the diagnostic being temporally interpolated is a
             period accumulation. The output will be renormalised to ensure
@@ -69,6 +73,18 @@ def process(
             period minimum. Trends between adjacent input periods will be used
             to provide variation across the interpolated periods where these
             are consistent with the inputs.
+        model_path (str):
+            Path to the TensorFlow model for google_film interpolation.
+            Required when interpolation_method is "google_film". Can be a
+            local path or a TensorFlow Hub URL.
+        scaling (str):
+            Scaling method to apply to the data before interpolation when
+            using google_film method. Options are "log10" or "minmax".
+            Default is "minmax".
+        clipping_bounds (str):
+            Comma-separated lower and upper bounds for clipping interpolated
+            values when using google_film method. E.g. "0.0,1.0".
+            Default is "0.0,1.0".
     Returns:
         iris.cube.CubeList:
             A list of cubes interpolated to the desired times. The
@@ -95,5 +111,8 @@ def process(
         accumulation=accumulation,
         max=max,
         min=min,
+        model_path=model_path,
+        scaling=scaling,
+        clipping_bounds=clipping_bounds,
     )(start_cube, end_cube)
     return MergeCubes()(result)
