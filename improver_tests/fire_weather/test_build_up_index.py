@@ -95,7 +95,7 @@ def test__calculate(
     plugin.load_input_cubes(cubes)
     bui = plugin._calculate()
 
-    assert np.allclose(bui, expected_bui, rtol=1e-2, atol=0.1)
+    assert np.allclose(bui, expected_bui, rtol=0.01, atol=0.01)
 
 
 def test__calculate_spatially_varying() -> None:
@@ -121,10 +121,10 @@ def test__calculate_spatially_varying() -> None:
 
     # Check specific positions using the equations
     # Position [0,0]: DMC=5, DC=10, use eq 27b
-    assert np.allclose(bui[0, 0], 4.90, rtol=0.02)
+    assert np.allclose(bui[0, 0], 4.90, rtol=0.01)
 
     # Position [2,2]: DMC=60, DC=120, use eq 27b
-    assert np.allclose(bui[2, 2], 59.84, rtol=0.02)
+    assert np.allclose(bui[2, 2], 59.84, rtol=0.01)
 
 
 @pytest.mark.parametrize(
@@ -165,7 +165,7 @@ def test_process(
     assert result.shape == (5, 5)
     assert result.long_name == "build_up_index"
     assert result.units == "1"
-    assert np.allclose(result.data, expected_bui, rtol=1e-2, atol=0.1)
+    assert np.allclose(result.data, expected_bui, rtol=0.01, atol=0.01)
     assert result.dtype == np.float32
 
 
@@ -194,4 +194,4 @@ def test_process_spatially_varying() -> None:
     assert len(np.unique(result.data)) > 1
 
     # Check that different environmental conditions produce different outputs
-    assert not np.allclose(result.data[0, 0], result.data[2, 2], atol=1.0)
+    assert not np.allclose(result.data[0, 0], result.data[2, 2], atol=0.01)

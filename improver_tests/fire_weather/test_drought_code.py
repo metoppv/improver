@@ -107,7 +107,7 @@ def test__perform_rainfall_adjustment(
     plugin._perform_rainfall_adjustment()
     adjusted_dc = plugin.previous_dc
     # Check that all points are modified by the correct amount
-    assert np.allclose(adjusted_dc, expected_dc, atol=0.05)
+    assert np.allclose(adjusted_dc, expected_dc, atol=0.01)
 
 
 def test__perform_rainfall_adjustment_spatially_varying() -> None:
@@ -336,7 +336,7 @@ def test_process(
 
     # Check that DC matches expected output within tolerance
     data = np.array(result.data)
-    assert np.allclose(data, expected_output, atol=0.05)
+    assert np.allclose(data, expected_output, atol=0.01)
 
 
 def test_process_spatially_varying() -> None:

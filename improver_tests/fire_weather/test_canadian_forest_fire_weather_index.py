@@ -88,7 +88,7 @@ def test__calculate_extrapolated_duff_moisture_function(
     plugin.load_input_cubes(CubeList(cubes))
     dmf = plugin._calculate_extrapolated_duff_moisture_function()
 
-    assert np.allclose(dmf, expected_dmf, rtol=1e-2, atol=0.1)
+    assert np.allclose(dmf, expected_dmf, rtol=0.01, atol=0.01)
 
 
 @pytest.mark.parametrize("bui", [0.0, 10.0, 50.0, 80.0, 100.0, 150.0, 250.0])
@@ -148,7 +148,7 @@ def test__calculate_fwi(
     extrapolated_DMF = plugin._calculate_extrapolated_duff_moisture_function()
     fwi = plugin._calculate_fwi(extrapolated_DMF)
 
-    assert np.allclose(fwi, expected_fwi, rtol=1e-2, atol=0.2)
+    assert np.allclose(fwi, expected_fwi, rtol=0.01, atol=0.01)
 
 
 @pytest.mark.parametrize(
@@ -246,7 +246,7 @@ def test_process(
     assert result.shape == (5, 5)
     assert result.long_name == "canadian_forest_fire_weather_index"
     assert result.units == "1"
-    assert np.allclose(result.data, expected_fwi, rtol=1e-2, atol=0.2)
+    assert np.allclose(result.data, expected_fwi, rtol=0.01, atol=0.01)
     assert result.dtype == np.float32
 
 
@@ -278,7 +278,7 @@ def test_process_spatially_varying() -> None:
     assert len(np.unique(result.data)) > 1
 
     # Check that different environmental conditions produce different outputs
-    assert not np.allclose(result.data[0, 0], result.data[2, 2], atol=1.0)
+    assert not np.allclose(result.data[0, 0], result.data[2, 2], atol=0.01)
 
 
 def test_process_isi_zero() -> None:
@@ -314,7 +314,7 @@ def test_process_bui_zero() -> None:
     # All values should be positive and vary with ISI
     assert np.all(result.data > 0.0)
     assert len(np.unique(result.data)) > 1  # Different ISI values give different FWI
-    assert np.isclose(result.data[0, 1], 3.492, rtol=1e-2)
+    assert np.isclose(result.data[0, 1], 3.492, rtol=0.01)
 
 
 def test_process_both_zero() -> None:

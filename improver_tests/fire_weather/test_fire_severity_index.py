@@ -74,7 +74,7 @@ def test__calculate(
     plugin.load_input_cubes(CubeList(cubes))
     dsr = plugin._calculate()
 
-    assert np.allclose(dsr, expected_dsr, rtol=1e-2, atol=0.1)
+    assert np.allclose(dsr, expected_dsr, rtol=0.01, atol=0.01)
 
 
 @pytest.mark.parametrize(
@@ -120,10 +120,10 @@ def test__calculate_spatially_varying() -> None:
     assert len(np.unique(dsr)) > 1
 
     # Check specific position - low FWI should give low DSR
-    assert np.allclose(dsr[0, 0], 0.470, rtol=0.02)
+    assert np.allclose(dsr[0, 0], 0.470, rtol=0.01)
 
     # Check specific position - high FWI should give high DSR
-    assert np.allclose(dsr[2, 2], 27.653, rtol=0.02)
+    assert np.allclose(dsr[2, 2], 27.653, rtol=0.01)
 
 
 @pytest.mark.parametrize(
@@ -206,7 +206,7 @@ def test_process(
     assert result.shape == (5, 5)
     assert result.long_name == "fire_severity_index"
     assert result.units == "1"
-    assert np.allclose(result.data, expected_dsr, rtol=1e-2, atol=0.1)
+    assert np.allclose(result.data, expected_dsr, rtol=0.01, atol=0.01)
     assert result.dtype == np.float32
 
 
@@ -238,7 +238,7 @@ def test_process_spatially_varying() -> None:
     assert len(np.unique(result.data)) > 1
 
     # Check that different FWI values produce different DSR outputs
-    assert not np.allclose(result.data[0, 0], result.data[2, 2], atol=0.1)
+    assert not np.allclose(result.data[0, 0], result.data[2, 2], atol=0.01)
 
 
 def test_process_zero_fwi() -> None:

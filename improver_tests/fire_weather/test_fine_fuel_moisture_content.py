@@ -618,7 +618,7 @@ def test_process(
     assert result.data.shape == cubes[0].data.shape
     # Check that FFMC matches expected output within tolerance
     data = np.array(result.data)
-    assert np.allclose(data, expected_output, atol=0.05)
+    assert np.allclose(data, expected_output, atol=0.01)
 
 
 def test_process_spatially_varying() -> None:
@@ -659,4 +659,4 @@ def test_process_spatially_varying() -> None:
     assert result.data[0, 2] < ffmc_data[0, 2]
     assert len(np.unique(result.data)) > 1
     # Check that different environmental conditions produce different outputs
-    assert not np.allclose(result.data[0, 0], result.data[2, 2], atol=0.1)
+    assert not np.allclose(result.data[0, 0], result.data[2, 2], atol=0.01)

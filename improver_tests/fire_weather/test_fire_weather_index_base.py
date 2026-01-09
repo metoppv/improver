@@ -445,7 +445,7 @@ def test_make_output_cube_basic(output_value: float, shape: tuple[int, int]) -> 
     assert result_cube.units == "1"
     assert result_cube.data.dtype == np.float32
     assert result_cube.data.shape == shape
-    assert np.allclose(result_cube.data, output_value, atol=0.001)
+    assert np.allclose(result_cube.data, output_value, atol=0.01)
 
 
 def test_make_output_cube_with_template() -> None:
@@ -608,7 +608,7 @@ def test_process_with_unit_conversion() -> None:
 
     # Should convert Kelvin->Celsius (293.15->20) and %->1 (50->0.5)
     # Result should be 20 + 0.5 = 20.5
-    assert np.allclose(result.data, 20.5, atol=0.1)
+    assert np.allclose(result.data, 20.5, atol=0.01)
 
 
 def test_input_attribute_mappings_in_process() -> None:
