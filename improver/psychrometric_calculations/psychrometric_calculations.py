@@ -28,6 +28,7 @@ from improver.metadata.utilities import (
     minimum_increment,
 )
 from improver.utilities.common_input_handle import as_cubelist
+from improver.utilities.copy_metadata import CopyMetadata
 from improver.utilities.cube_manipulation import (
     enforce_coordinate_ordering,
     sort_coord_in_cube,
@@ -529,6 +530,9 @@ class HumidityMixingRatio(BasePlugin):
         enforce_coordinate_ordering(pressure_cube, coord_list)
         pressure_cube.rename("surface_air_pressure")
         pressure_cube.units = "Pa"
+        CopyMetadata(ancillary_variables=["status_flag"]).process(
+            pressure_cube, temperature_cube
+        )
         return pressure_cube
 
     def _handle_zero_humidity(self):
