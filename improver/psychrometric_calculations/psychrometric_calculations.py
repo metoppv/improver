@@ -514,8 +514,7 @@ class HumidityMixingRatio(BasePlugin):
         the model orography, the flag meaning is above_surface_pressure below_surface_pressure.
         These values are expanded in the process of concatenating the cube and if they are to
         be retained, should be copied back in to the output of the final calculation from the
-        input cubes, as the status flag is not retained in the pressure output cube from this
-        function.
+        input cubes.
 
         See https://scitools-iris.readthedocs.io/en/stable/further_topics/controlling_merge.html
         for more information
