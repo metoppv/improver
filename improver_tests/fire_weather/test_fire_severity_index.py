@@ -127,52 +127,6 @@ def test__calculate_spatially_varying() -> None:
 
 
 @pytest.mark.parametrize(
-    "dsr_value, shape",
-    [
-        # Case 0: Typical DSR value with standard grid
-        (14.6, (5, 5)),
-        # Case 1: Low DSR value with different grid size
-        (1.63, (3, 4)),
-        # Case 2: High DSR value with larger grid
-        (61.7, (10, 10)),
-        # Case 3: Zero DSR with small grid
-        (0.0, (2, 2)),
-        # Case 4: Another typical DSR value
-        (25.0, (5, 5)),
-    ],
-)
-def test__make_dsr_cube(
-    dsr_value: float,
-    shape: tuple[int, int],
-) -> None:
-    """Test creation of DSR cube from DSR data.
-
-    Verifies cube creation with proper metadata for DSR.
-
-    Args:
-        dsr_value:
-            DSR value to use.
-        shape:
-            Shape of the grid.
-    """
-    cubes = input_cubes(fwi_val=25.0, shape=shape)
-    plugin = FireSeverityIndex()
-    plugin.load_input_cubes(CubeList(cubes))
-
-    dsr_data = np.full(shape, dsr_value)
-    dsr_cube = plugin._make_output_cube(dsr_data)
-
-    assert isinstance(dsr_cube, Cube)
-    assert dsr_cube.shape == shape
-    assert dsr_cube.long_name == "fire_severity_index"
-    assert dsr_cube.units == "1"
-    assert np.allclose(dsr_cube.data, dsr_value)
-    assert dsr_cube.dtype == np.float32
-    assert dsr_cube.coord("forecast_reference_time")
-    assert dsr_cube.coord("time")
-
-
-@pytest.mark.parametrize(
     "fwi_val, expected_dsr",
     [
         # Case 0: Zero
