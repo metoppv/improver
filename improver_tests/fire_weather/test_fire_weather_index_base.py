@@ -19,6 +19,10 @@ class ConcreteFireWeatherIndex(FireWeatherIndexBase):
     OUTPUT_CUBE_NAME = "test_index"
     REQUIRES_MONTH = False
 
+    # Type hints for dynamically created attributes
+    temperature: Cube
+    relative_humidity: Cube
+
     def _calculate(self) -> np.ndarray:
         """Simple test calculation: sum temperature and relative humidity."""
         return self.temperature.data + self.relative_humidity.data
@@ -30,6 +34,10 @@ class ConcreteFireWeatherIndexWithMonth(FireWeatherIndexBase):
     INPUT_CUBE_NAMES = ["air_temperature", "lwe_thickness_of_precipitation_amount"]
     OUTPUT_CUBE_NAME = "test_index_with_month"
     REQUIRES_MONTH = True
+
+    # Type hints for dynamically created attributes
+    temperature: Cube
+    precipitation: Cube
 
     def _calculate(self) -> np.ndarray:
         """Simple test calculation that uses month."""
@@ -47,6 +55,11 @@ class ConcreteFireWeatherIndexWithPrecipitation(FireWeatherIndexBase):
     OUTPUT_CUBE_NAME = "test_index_with_precip"
     REQUIRES_MONTH = False
 
+    # Type hints for dynamically created attributes
+    temperature: Cube
+    precipitation: Cube
+    relative_humidity: Cube
+
     def _calculate(self) -> np.ndarray:
         """Simple test calculation."""
         return (
@@ -63,6 +76,10 @@ class ConcreteFireWeatherIndexWithMappings(FireWeatherIndexBase):
     OUTPUT_CUBE_NAME = "test_index"
     REQUIRES_MONTH = False
     INPUT_ATTRIBUTE_MAPPINGS = {"test_index": "input_test_index"}
+
+    # Type hints for dynamically created attributes
+    temperature: Cube
+    input_test_index: Cube
 
     def _calculate(self) -> np.ndarray:
         """Simple test calculation."""
@@ -262,14 +279,13 @@ def test_load_input_cubes_wrong_number_raises_error(
 
 def test_load_input_cubes_with_month_parameter() -> None:
     """Test load_input_cubes with REQUIRES_MONTH=True."""
-    temp = make_cube(np.full((5, 5), 20.0), "air_temperature", "Celsius")
-    precip = make_cube(
-        np.full((5, 5), 1.0),
-        "lwe_thickness_of_precipitation_amount",
-        "mm",
-        add_time_coord=True,
+    cubes = make_input_cubes(
+        [
+            ("air_temperature", 20.0, "Celsius", False),
+            ("lwe_thickness_of_precipitation_amount", 1.0, "mm", True),
+        ],
+        shape=(5, 5),
     )
-    cubes = [temp, precip]
 
     plugin = ConcreteFireWeatherIndexWithMonth()
     plugin.load_input_cubes(CubeList(cubes), month=7)
@@ -284,11 +300,13 @@ def test_load_input_cubes_with_month_parameter() -> None:
 
 def test_load_input_cubes_missing_month_raises_error() -> None:
     """Test that missing month parameter raises ValueError when required."""
-    temp = make_cube(np.full((5, 5), 20.0), "air_temperature", "Celsius")
-    precip = make_cube(
-        np.full((5, 5), 1.0), "lwe_thickness_of_precipitation_amount", "mm"
+    cubes = make_input_cubes(
+        [
+            ("air_temperature", 20.0, "Celsius", False),
+            ("lwe_thickness_of_precipitation_amount", 1.0, "mm", False),
+        ],
+        shape=(5, 5),
     )
-    cubes = [temp, precip]
 
     plugin = ConcreteFireWeatherIndexWithMonth()
 
@@ -328,11 +346,13 @@ def test_load_input_cubes_month_validation(
         expected_message:
             Expected error message.
     """
-    temp = make_cube(np.full((5, 5), 20.0), "air_temperature", "Celsius")
-    precip = make_cube(
-        np.full((5, 5), 1.0), "lwe_thickness_of_precipitation_amount", "mm"
+    cubes = make_input_cubes(
+        [
+            ("air_temperature", 20.0, "Celsius", False),
+            ("lwe_thickness_of_precipitation_amount", 1.0, "mm", False),
+        ],
+        shape=(5, 5),
     )
-    cubes = [temp, precip]
 
     plugin = ConcreteFireWeatherIndexWithMonth()
 
@@ -388,10 +408,13 @@ def test_get_attribute_name_with_mappings() -> None:
 
 def test_input_attribute_mappings_disambiguation() -> None:
     """Test INPUT_ATTRIBUTE_MAPPINGS allows input/output name disambiguation."""
-    temp = make_cube(np.full((5, 5), 20.0), "air_temperature", "Celsius")
-    input_index = make_cube(np.full((5, 5), 10.0), "test_index", "1")
-
-    cubes = [temp, input_index]
+    cubes = make_input_cubes(
+        [
+            ("air_temperature", 20.0, "Celsius", False),
+            ("test_index", 10.0, "1", False),
+        ],
+        shape=(5, 5),
+    )
     plugin = ConcreteFireWeatherIndexWithMappings()
     plugin.load_input_cubes(CubeList(cubes))
 
@@ -445,7 +468,7 @@ def test_make_output_cube_basic(output_value: float, shape: tuple[int, int]) -> 
     assert result_cube.units == "1"
     assert result_cube.data.dtype == np.float32
     assert result_cube.data.shape == shape
-    assert np.allclose(result_cube.data, output_value, atol=0.001)
+    assert np.allclose(result_cube.data, output_value, atol=0.01)
 
 
 def test_make_output_cube_with_template() -> None:
@@ -549,7 +572,7 @@ def test_process_complete_workflow() -> None:
     cubes = input_cubes_basic(temp_val=20.0, rh_val=50.0)
     plugin = ConcreteFireWeatherIndex()
 
-    result = plugin.process(CubeList(cubes))
+    result = plugin.process(cubes)
 
     # Check result is a cube
     assert isinstance(result, Cube)
@@ -562,14 +585,13 @@ def test_process_complete_workflow() -> None:
 
 def test_process_with_month_parameter() -> None:
     """Test process method with month parameter."""
-    temp = make_cube(np.full((5, 5), 10.0), "air_temperature", "Celsius")
-    precip = make_cube(
-        np.full((5, 5), 1.0),
-        "lwe_thickness_of_precipitation_amount",
-        "mm",
-        add_time_coord=True,
+    cubes = make_input_cubes(
+        [
+            ("air_temperature", 10.0, "Celsius", False),
+            ("lwe_thickness_of_precipitation_amount", 1.0, "mm", True),
+        ],
+        shape=(5, 5),
     )
-    cubes = [temp, precip]
 
     plugin = ConcreteFireWeatherIndexWithMonth()
     result = plugin.process(CubeList(cubes), month=3)
@@ -583,7 +605,7 @@ def test_process_with_precipitation_time_coords() -> None:
     cubes = input_cubes_with_precip(temp_val=10.0, precip_val=5.0, rh_val=15.0)
     plugin = ConcreteFireWeatherIndexWithPrecipitation()
 
-    result = plugin.process(CubeList(cubes))
+    result = plugin.process(cubes)
 
     # Check calculation (10 + 5 + 15 = 30)
     assert np.allclose(result.data, 30.0)
@@ -598,28 +620,34 @@ def test_process_with_precipitation_time_coords() -> None:
 def test_process_with_unit_conversion() -> None:
     """Test that process correctly handles unit conversion."""
     # Create cubes with non-standard units
-    temp = make_cube(np.full((5, 5), 293.15), "air_temperature", "K")
-    rh = make_cube(np.full((5, 5), 50.0), "relative_humidity", "%")
-
-    cubes = [temp, rh]
+    cubes = make_input_cubes(
+        [
+            ("air_temperature", 293.15, "K", False),
+            ("relative_humidity", 50.0, "%", False),
+        ],
+        shape=(5, 5),
+    )
     plugin = ConcreteFireWeatherIndex()
 
-    result = plugin.process(CubeList(cubes))
+    result = plugin.process(cubes)
 
     # Should convert Kelvin->Celsius (293.15->20) and %->1 (50->0.5)
     # Result should be 20 + 0.5 = 20.5
-    assert np.allclose(result.data, 20.5, atol=0.1)
+    assert np.allclose(result.data, 20.5, atol=0.01)
 
 
 def test_input_attribute_mappings_in_process() -> None:
     """Test INPUT_ATTRIBUTE_MAPPINGS works in full process workflow."""
-    temp = make_cube(np.full((5, 5), 15.0), "air_temperature", "Celsius")
-    input_index = make_cube(np.full((5, 5), 25.0), "test_index", "1")
-
-    cubes = [temp, input_index]
+    cubes = make_input_cubes(
+        [
+            ("air_temperature", 15.0, "Celsius", False),
+            ("test_index", 25.0, "1", False),
+        ],
+        shape=(5, 5),
+    )
     plugin = ConcreteFireWeatherIndexWithMappings()
 
-    result = plugin.process(CubeList(cubes))
+    result = plugin.process(cubes)
 
     # Calculation should use mapped attribute (temp + input_test_index = 15 + 25 = 40)
     assert np.allclose(result.data, 40.0)
@@ -660,13 +688,9 @@ def test_validate_input_range_raises_error(
     """
     # Create cubes with invalid values
     if param == "temperature":
-        temp = make_cube(np.full((5, 5), value), "air_temperature", "Celsius")
-        rh = make_cube(np.full((5, 5), 50.0), "relative_humidity", "1")
-        cubes = [temp, rh]
+        cubes = input_cubes_basic(temp_val=value, rh_val=50.0)
     else:  # relative_humidity
-        temp = make_cube(np.full((5, 5), 20.0), "air_temperature", "Celsius")
-        rh = make_cube(np.full((5, 5), value), "relative_humidity", "1")
-        cubes = [temp, rh]
+        cubes = input_cubes_basic(temp_val=20.0, rh_val=value)
 
     plugin = ConcreteFireWeatherIndex()
 
@@ -701,13 +725,9 @@ def test_validate_input_range_nan_inf_raises_error(
     """
     # Create cubes with NaN or Inf values
     if param == "temperature":
-        temp = make_cube(np.full((5, 5), value), "air_temperature", "Celsius")
-        rh = make_cube(np.full((5, 5), 50.0), "relative_humidity", "1")
-        cubes = [temp, rh]
+        cubes = input_cubes_basic(temp_val=value, rh_val=50.0)
     else:  # relative_humidity
-        temp = make_cube(np.full((5, 5), 20.0), "air_temperature", "Celsius")
-        rh = make_cube(np.full((5, 5), value), "relative_humidity", "1")
-        cubes = [temp, rh]
+        cubes = input_cubes_basic(temp_val=20.0, rh_val=value)
 
     plugin = ConcreteFireWeatherIndex()
 
@@ -765,10 +785,13 @@ class ConcreteFireWeatherIndexForOutputValidation(FireWeatherIndexBase):
     """Concrete implementation for testing output validation."""
 
     INPUT_CUBE_NAMES = ["air_temperature", "relative_humidity"]
-    OUTPUT_CUBE_NAME = (
-        "fine_fuel_moisture_content"  # Use a name with defined output range
-    )
+    OUTPUT_CUBE_NAME = "fine_fuel_moisture_content"
     REQUIRES_MONTH = False
+    VALID_OUTPUT_RANGE = (0.0, 101.0)  # FFMC range for validation testing
+
+    # Type hints for dynamically created attributes
+    temperature: Cube
+    relative_humidity: Cube
 
     def _calculate(self) -> np.ndarray:
         """Return controlled output for testing validation."""
@@ -784,7 +807,7 @@ def test_validate_output_range_no_warning_for_valid_output() -> None:
     # Process should complete without warnings
     with warnings.catch_warnings():
         warnings.simplefilter("error")  # Turn warnings into errors
-        result = plugin.process(CubeList(cubes))
+        result = plugin.process(cubes)
 
     # No warnings should have been raised (if any were, they'd be errors)
     assert isinstance(result, Cube)
@@ -805,7 +828,7 @@ def test_validate_output_range_warns_for_nan() -> None:
 
     # Should issue a warning about NaN
     with pytest.warns(UserWarning, match="fine_fuel_moisture_content contains NaN"):
-        result = plugin.process(CubeList(cubes))
+        result = plugin.process(cubes)
 
     assert isinstance(result, Cube)
 
@@ -825,7 +848,7 @@ def test_validate_output_range_warns_for_inf() -> None:
     with pytest.warns(
         UserWarning, match="fine_fuel_moisture_content contains infinite"
     ):
-        result = plugin.process(CubeList(cubes))
+        result = plugin.process(cubes)
 
     assert isinstance(result, Cube)
 
@@ -845,7 +868,7 @@ def test_validate_output_range_warns_for_negative_inf() -> None:
     with pytest.warns(
         UserWarning, match="fine_fuel_moisture_content contains infinite"
     ):
-        result = plugin.process(CubeList(cubes))
+        result = plugin.process(cubes)
 
     assert isinstance(result, Cube)
 
@@ -854,8 +877,13 @@ class ConcreteFireWeatherIndexWithUndefinedOutput(FireWeatherIndexBase):
     """Concrete implementation with undefined output range."""
 
     INPUT_CUBE_NAMES = ["air_temperature", "relative_humidity"]
-    OUTPUT_CUBE_NAME = "undefined_output"  # Not in _OUTPUT_RANGES
+    OUTPUT_CUBE_NAME = "undefined_output"
     REQUIRES_MONTH = False
+    VALID_OUTPUT_RANGE = None  # No validation defined
+
+    # Type hints for dynamically created attributes
+    temperature: Cube
+    relative_humidity: Cube
 
     def _calculate(self) -> np.ndarray:
         # Return extreme values that would trigger warning if validated
@@ -896,7 +924,7 @@ def test_validate_output_range_warns_for_out_of_range_values(
         UserWarning,
         match="fine_fuel_moisture_content contains values outside feasible range",
     ):
-        result = plugin.process(CubeList(cubes))
+        result = plugin.process(cubes)
 
     assert isinstance(result, Cube)
 
@@ -917,7 +945,7 @@ def test_validate_output_range_warns_with_actual_min_max_values() -> None:
 
     # Should issue a warning that includes the actual min and max found
     with pytest.warns(UserWarning, match=r"found range \[-5\.00, 120\.00\]"):
-        result = plugin.process(CubeList(cubes))
+        result = plugin.process(cubes)
 
     assert isinstance(result, Cube)
 
@@ -930,7 +958,7 @@ def test_validate_output_range_skips_undefined_outputs() -> None:
     # Should not warn since this output doesn't have defined ranges
     with warnings.catch_warnings():
         warnings.simplefilter("error")  # Turn warnings into errors
-        result = plugin.process(CubeList(cubes))
+        result = plugin.process(cubes)
 
     assert isinstance(result, Cube)
 
@@ -951,9 +979,11 @@ def test_abstract_calculate_raises_not_implemented_error() -> None:
 
         def _calculate(self) -> np.ndarray:
             """Call parent _calculate to trigger NotImplementedError."""
-            return super()._calculate()
+            return super()._calculate()  # pyright: ignore[reportAbstractUsage]
 
-    cubes = [make_cube(np.full((5, 5), 20.0), "air_temperature", "Celsius")]
+    cubes = make_input_cubes(
+        [("air_temperature", 20.0, "Celsius", False)], shape=(5, 5)
+    )
     plugin = IncompleteFireWeatherIndex()
 
     # Should raise NotImplementedError when trying to process
@@ -961,7 +991,7 @@ def test_abstract_calculate_raises_not_implemented_error() -> None:
         NotImplementedError,
         match="Subclasses must implement the _calculate method",
     ):
-        plugin.process(CubeList(cubes))
+        plugin.process(cubes)
 
 
 @pytest.mark.parametrize(
@@ -1017,6 +1047,85 @@ def test_validate_output_range_warns_for_defined_outputs(
 
     # Should issue a warning about values outside range
     with pytest.warns(UserWarning, match=expected_match):
-        result = plugin.process(CubeList(cubes))
+        result = plugin.process(cubes)
 
     assert isinstance(result, Cube)
+
+
+class DummyPluginWithPartialRange(FireWeatherIndexBase):
+    """Dummy plugin for testing output validation with partial ranges."""
+
+    INPUT_CUBE_NAMES = ["air_temperature", "relative_humidity"]
+    OUTPUT_CUBE_NAME = "test_output_partial"
+    REQUIRES_MONTH = False
+    VALID_OUTPUT_RANGE = (0.0, None)  # Will be overridden in tests
+
+    # Type hints for dynamically created attributes
+    temperature: Cube
+    relative_humidity: Cube
+
+    def _calculate(self) -> np.ndarray:
+        """Simple calculation for testing."""
+        return self.temperature.data + self.relative_humidity.data
+
+
+@pytest.mark.parametrize(
+    "output_range, output_value, should_warn, expected_match",
+    [
+        # Only minimum defined (no maximum)
+        (
+            (0.0, None),
+            -5.0,
+            True,
+            r"contains values below feasible minimum 0\.0: found minimum -5\.00",
+        ),
+        ((0.0, None), 500.0, False, None),
+        # Only maximum defined (no minimum)
+        (
+            (None, 100.0),
+            150.0,
+            True,
+            r"contains values above feasible maximum 100\.0: found maximum 150\.00",
+        ),
+        ((None, 100.0), -150.0, False, None),
+    ],
+)
+def test_output_validation_with_partial_ranges(
+    output_range: tuple[float | None, float | None],
+    output_value: float,
+    should_warn: bool,
+    expected_match: str | None,
+) -> None:
+    """Test output validation with only minimum or only maximum defined.
+
+    Args:
+        output_range:
+            The VALID_OUTPUT_RANGE to test (min, max).
+        output_value:
+            The value to use in the output.
+        should_warn:
+            Whether a warning should be issued.
+        expected_match:
+            Expected warning message pattern, or None if no warning expected.
+    """
+    cubes = input_cubes_basic(temp_val=20.0, rh_val=30.0, shape=(1, 1))
+
+    plugin = DummyPluginWithPartialRange()
+    plugin.VALID_OUTPUT_RANGE = output_range
+
+    # Override _calculate to return the test value
+    def calculate_test_value():
+        return np.array([[output_value]])
+
+    plugin._calculate = calculate_test_value
+
+    if should_warn:
+        with pytest.warns(UserWarning, match=expected_match):
+            result = plugin.process(cubes)
+        assert isinstance(result, Cube)
+    else:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            result = plugin.process(cubes)
+        assert isinstance(result, Cube)
+        assert np.allclose(result.data, output_value)

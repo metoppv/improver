@@ -38,6 +38,13 @@ class DroughtCode(FireWeatherIndexBase):
         "drought_code",
     ]
     OUTPUT_CUBE_NAME = "drought_code"
+    # Valid output ranges for warning checks (output_name: (min, max))
+    # Minimum and maximum feasible values for each output index are drawn from
+    # values reported in:
+    # Wang, X., Oliver, J., Swystun, T., Hanes, C.C., Erni, S. and Flannigan,
+    # M.D., 2023. Critical fire weather conditions during active fire spread
+    # days in Canada. Science of the total environment, 869, p.161831.
+    VALID_OUTPUT_RANGE = (0.0, 1000)
     REQUIRES_MONTH = True
     # Disambiguate input DC (yesterday's value) from output DC (today's calculated value)
     INPUT_ATTRIBUTE_MAPPINGS = {"drought_code": "input_dc"}

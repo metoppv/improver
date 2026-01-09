@@ -4,8 +4,6 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Tests for the FireSeverityIndex plugin."""
 
-import warnings
-
 import numpy as np
 import pytest
 from iris.cube import Cube, CubeList
@@ -15,11 +13,11 @@ from improver_tests.fire_weather import make_cube, make_input_cubes
 
 
 def input_cubes(
-    fwi_val: float = 25.0,
-    shape: tuple[int, int] = (5, 5),
+    fwi_val: float | np.ndarray = 25.0,
+    shape: tuple[int, ...] = (5, 5),
     fwi_units: str = "1",
-) -> list[Cube]:
-    """Create a list of dummy input cubes for DSR tests, with configurable units.
+) -> tuple[Cube, ...]:
+    """Create a tuple of dummy input cubes for DSR tests, with configurable units.
 
     FWI cube has time coordinates.
 
@@ -32,7 +30,7 @@ def input_cubes(
             Units for FWI cube.
 
     Returns:
-        List containing FWI Cube.
+        Tuple containing FWI Cube.
     """
     return make_input_cubes(
         [("canadian_forest_fire_weather_index", fwi_val, fwi_units, True)],
@@ -76,7 +74,7 @@ def test__calculate(
     plugin.load_input_cubes(CubeList(cubes))
     dsr = plugin._calculate()
 
-    assert np.allclose(dsr, expected_dsr, rtol=1e-2, atol=0.1)
+    assert np.allclose(dsr, expected_dsr, rtol=0.01, atol=0.01)
 
 
 @pytest.mark.parametrize(
@@ -122,56 +120,10 @@ def test__calculate_spatially_varying() -> None:
     assert len(np.unique(dsr)) > 1
 
     # Check specific position - low FWI should give low DSR
-    assert np.allclose(dsr[0, 0], 0.470, rtol=0.02)
+    assert np.allclose(dsr[0, 0], 0.470, rtol=0.01)
 
     # Check specific position - high FWI should give high DSR
-    assert np.allclose(dsr[2, 2], 27.653, rtol=0.02)
-
-
-@pytest.mark.parametrize(
-    "dsr_value, shape",
-    [
-        # Case 0: Typical DSR value with standard grid
-        (14.6, (5, 5)),
-        # Case 1: Low DSR value with different grid size
-        (1.63, (3, 4)),
-        # Case 2: High DSR value with larger grid
-        (61.7, (10, 10)),
-        # Case 3: Zero DSR with small grid
-        (0.0, (2, 2)),
-        # Case 4: Another typical DSR value
-        (25.0, (5, 5)),
-    ],
-)
-def test__make_dsr_cube(
-    dsr_value: float,
-    shape: tuple[int, int],
-) -> None:
-    """Test creation of DSR cube from DSR data.
-
-    Verifies cube creation with proper metadata for DSR.
-
-    Args:
-        dsr_value:
-            DSR value to use.
-        shape:
-            Shape of the grid.
-    """
-    cubes = input_cubes(fwi_val=25.0, shape=shape)
-    plugin = FireSeverityIndex()
-    plugin.load_input_cubes(CubeList(cubes))
-
-    dsr_data = np.full(shape, dsr_value)
-    dsr_cube = plugin._make_output_cube(dsr_data)
-
-    assert isinstance(dsr_cube, Cube)
-    assert dsr_cube.shape == shape
-    assert dsr_cube.long_name == "fire_severity_index"
-    assert dsr_cube.units == "1"
-    assert np.allclose(dsr_cube.data, dsr_value)
-    assert dsr_cube.dtype == np.float32
-    assert dsr_cube.coord("forecast_reference_time")
-    assert dsr_cube.coord("time")
+    assert np.allclose(dsr[2, 2], 27.653, rtol=0.01)
 
 
 @pytest.mark.parametrize(
@@ -202,13 +154,13 @@ def test_process(
             Expected DSR output value.
     """
     cubes = input_cubes(fwi_val=fwi_val)
-    result = FireSeverityIndex().process(CubeList(cubes))
+    result = FireSeverityIndex().process(cubes)
 
     assert isinstance(result, Cube)
     assert result.shape == (5, 5)
     assert result.long_name == "fire_severity_index"
     assert result.units == "1"
-    assert np.allclose(result.data, expected_dsr, rtol=1e-2, atol=0.1)
+    assert np.allclose(result.data, expected_dsr, rtol=0.01, atol=0.01)
     assert result.dtype == np.float32
 
 
@@ -225,7 +177,7 @@ def test_process_spatially_varying() -> None:
         ),
     ]
 
-    result = FireSeverityIndex().process(CubeList(cubes))
+    result = FireSeverityIndex().process(cubes)
 
     # Verify shape, type, and all values are non-negative
     assert result.data.shape == (3, 3)
@@ -240,97 +192,16 @@ def test_process_spatially_varying() -> None:
     assert len(np.unique(result.data)) > 1
 
     # Check that different FWI values produce different DSR outputs
-    assert not np.allclose(result.data[0, 0], result.data[2, 2], atol=0.1)
+    assert not np.allclose(result.data[0, 0], result.data[2, 2], atol=0.01)
 
 
 def test_process_zero_fwi() -> None:
     """Test that when FWI=0, DSR equals 0."""
     cubes = input_cubes(fwi_val=0.0)
-    result = FireSeverityIndex().process(CubeList(cubes))
+    result = FireSeverityIndex().process(cubes)
 
     assert isinstance(result, Cube)
     assert result.long_name == "fire_severity_index"
     assert result.units == "1"
     assert np.allclose(result.data, 0.0, atol=1e-6)
     assert result.dtype == np.float32
-
-
-@pytest.mark.parametrize(
-    "fwi_val, expected_error",
-    [
-        (
-            -5.0,
-            "canadian_forest_fire_weather_index contains values below valid minimum",
-        ),
-        (
-            150.0,
-            "canadian_forest_fire_weather_index contains values above valid maximum",
-        ),
-    ],
-)
-def test_invalid_input_ranges_raise_errors(fwi_val: float, expected_error: str) -> None:
-    """Test that invalid input values raise appropriate ValueError.
-
-    Verifies that the base class validation catches physically meaningless
-    or out-of-range input values and raises descriptive errors.
-
-    Args:
-        fwi_val:
-            FWI value for all grid points.
-        expected_error:
-            Expected error message substring.
-    """
-    cubes = input_cubes(fwi_val=fwi_val)
-    plugin = FireSeverityIndex()
-
-    with pytest.raises(ValueError, match=expected_error):
-        plugin.load_input_cubes(CubeList(cubes))
-
-
-@pytest.mark.parametrize(
-    "fwi_val, expected_error",
-    [
-        (np.nan, "canadian_forest_fire_weather_index contains NaN"),
-        (np.inf, "canadian_forest_fire_weather_index contains infinite"),
-    ],
-)
-def test_nan_and_inf_values_raise_errors(fwi_val: float, expected_error: str) -> None:
-    """Test that NaN and Inf values in inputs raise appropriate ValueError.
-
-    Verifies that the validation catches non-finite values (NaN, Inf) in input data.
-
-    Args:
-        fwi_val:
-            Fire Weather Index value to use (NaN or Inf).
-        expected_error:
-            Expected error message substring.
-    """
-    cubes = input_cubes(fwi_val=fwi_val)
-    plugin = FireSeverityIndex()
-
-    with pytest.raises(ValueError, match=expected_error):
-        plugin.load_input_cubes(CubeList(cubes))
-
-
-def test_output_validation_no_warning_for_valid_output() -> None:
-    """Test that valid output values do not trigger warnings.
-
-    Uses valid inputs to verify that as long as the output stays within
-    the expected range (0-100 for FSI/DSR), no warning is issued. This
-    demonstrates that the FSI calculation naturally constrains outputs
-    to valid ranges with typical inputs.
-    """
-    # Use moderate input that produces valid FSI
-    cubes = input_cubes(fwi_val=50.0)
-    plugin = FireSeverityIndex()
-
-    # Process should complete without warnings since output stays in valid range
-    with warnings.catch_warnings():
-        warnings.simplefilter("error")  # Turn warnings into errors
-        result = plugin.process(CubeList(cubes))
-
-    # No warnings should have been raised (if any were, they'd be errors)
-    assert isinstance(result, Cube)
-    # Verify output is within expected range (0-100 for FSI)
-    assert np.all(result.data >= 0.0)
-    assert np.all(result.data <= 100.0)

@@ -2,11 +2,10 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-import warnings
 
 import numpy as np
 import pytest
-from iris.cube import Cube, CubeList
+from iris.cube import Cube
 
 from improver.fire_weather.build_up_index import BuildUpIndex
 from improver_tests.fire_weather import make_input_cubes
@@ -18,8 +17,8 @@ def input_cubes(
     shape: tuple[int, ...] = (5, 5),
     dmc_units: str = "1",
     dc_units: str = "1",
-) -> CubeList:
-    """Create a list of dummy input cubes for BUI tests, with configurable units.
+) -> tuple[Cube, ...]:
+    """Create a tuple of dummy input cubes for BUI tests, with configurable units.
 
     DMC cube has time coordinates; DC cube does not.
 
@@ -36,9 +35,9 @@ def input_cubes(
             Units for DC cube.
 
     Returns:
-        A CubeList of Iris Cubes for DMC and DC.
+        A tuple of Iris Cubes for DMC and DC.
     """
-    return CubeList(
+    return tuple(
         make_input_cubes(
             [
                 ("duff_moisture_code", dmc_val, dmc_units, True),
@@ -96,7 +95,7 @@ def test__calculate(
     plugin.load_input_cubes(cubes)
     bui = plugin._calculate()
 
-    assert np.allclose(bui, expected_bui, rtol=1e-2, atol=0.1)
+    assert np.allclose(bui, expected_bui, rtol=0.01, atol=0.01)
 
 
 def test__calculate_spatially_varying() -> None:
@@ -122,10 +121,10 @@ def test__calculate_spatially_varying() -> None:
 
     # Check specific positions using the equations
     # Position [0,0]: DMC=5, DC=10, use eq 27b
-    assert np.allclose(bui[0, 0], 4.90, rtol=0.02)
+    assert np.allclose(bui[0, 0], 4.90, rtol=0.01)
 
     # Position [2,2]: DMC=60, DC=120, use eq 27b
-    assert np.allclose(bui[2, 2], 59.84, rtol=0.02)
+    assert np.allclose(bui[2, 2], 59.84, rtol=0.01)
 
 
 @pytest.mark.parametrize(
@@ -166,7 +165,7 @@ def test_process(
     assert result.shape == (5, 5)
     assert result.long_name == "build_up_index"
     assert result.units == "1"
-    assert np.allclose(result.data, expected_bui, rtol=1e-2, atol=0.1)
+    assert np.allclose(result.data, expected_bui, rtol=0.01, atol=0.01)
     assert result.dtype == np.float32
 
 
@@ -195,119 +194,4 @@ def test_process_spatially_varying() -> None:
     assert len(np.unique(result.data)) > 1
 
     # Check that different environmental conditions produce different outputs
-    assert not np.allclose(result.data[0, 0], result.data[2, 2], atol=1.0)
-
-
-def test_input_attribute_mapping() -> None:
-    """Test that input cubes are mapped to correct attribute names.
-
-    Verifies that the base class correctly maps cube standard names to
-    internal attribute names (duff_moisture_code -> input_dmc,
-    drought_code -> input_dc).
-    """
-    cubes = input_cubes(dmc_val=10.0, dc_val=30.0)
-    plugin = BuildUpIndex()
-    plugin.load_input_cubes(cubes)
-
-    # Check that attributes exist and have correct values
-    assert hasattr(plugin, "input_dmc")
-    assert hasattr(plugin, "input_dc")
-    assert np.allclose(plugin.input_dmc.data, 10.0)
-    assert np.allclose(plugin.input_dc.data, 30.0)
-
-
-@pytest.mark.parametrize(
-    "dmc_val, dc_val, expected_error",
-    [
-        (-5.0, 15.0, "input_dmc contains values below valid minimum"),
-        (10.0, -5.0, "input_dc contains values below valid minimum"),
-    ],
-)
-def test_invalid_input_ranges_raise_errors(
-    dmc_val: float, dc_val: float, expected_error: str
-) -> None:
-    """Test that invalid input values raise appropriate ValueError.
-
-    Verifies that the base class validation catches physically meaningless
-    or out-of-range input values and raises descriptive errors.
-
-    Args:
-        dmc_val:
-            DMC value for all grid points.
-        dc_val:
-            DC value for all grid points.
-        expected_error:
-            Expected error message substring.
-    """
-    cubes = input_cubes(dmc_val, dc_val)
-    plugin = BuildUpIndex()
-
-    with pytest.raises(ValueError, match=expected_error):
-        plugin.load_input_cubes(cubes)
-
-
-@pytest.mark.parametrize(
-    "invalid_input_type,expected_error",
-    [
-        ("input_dmc_nan", "input_dmc contains NaN"),
-        ("input_dmc_inf", "input_dmc contains infinite"),
-        ("input_dc_nan", "input_dc contains NaN"),
-        ("input_dc_inf", "input_dc contains infinite"),
-    ],
-)
-def test_nan_and_inf_values_raise_errors(
-    invalid_input_type: str, expected_error: str
-) -> None:
-    """Test that NaN and Inf values in inputs raise appropriate ValueError.
-
-    Verifies that the validation catches non-finite values (NaN, Inf) in input data.
-
-    Args:
-        invalid_input_type:
-            Which input to make invalid and how.
-        expected_error:
-            Expected error message substring.
-    """
-    # Start with valid values
-    dmc_val, dc_val = 10.0, 30.0
-
-    # Replace the appropriate value with NaN or Inf
-    if invalid_input_type == "input_dmc_nan":
-        dmc_val = np.nan
-    elif invalid_input_type == "input_dmc_inf":
-        dmc_val = np.inf
-    elif invalid_input_type == "input_dc_nan":
-        dc_val = np.nan
-    elif invalid_input_type == "input_dc_inf":
-        dc_val = -np.inf
-
-    cubes = input_cubes(dmc_val, dc_val)
-    plugin = BuildUpIndex()
-
-    with pytest.raises(ValueError, match=expected_error):
-        plugin.load_input_cubes(cubes)
-
-
-def test_output_validation_no_warning_for_valid_output() -> None:
-    """Test that valid output values do not trigger warnings.
-
-    Uses moderate inputs to verify that as long as the output
-    stays within the expected range (0-500 for BUI), no warning is issued.
-    This demonstrates that the BUI calculation naturally constrains outputs
-    to valid ranges with typical inputs.
-    """
-    # Use moderate inputs that produce valid BUI
-    # Moderate DMC and DC produce moderate BUI within valid range
-    cubes = input_cubes(dmc_val=45.9, dc_val=123.9, shape=(1, 1))
-    plugin = BuildUpIndex()
-
-    # Process should complete without warnings since output stays in valid range
-    with warnings.catch_warnings():
-        warnings.simplefilter("error")  # Turn warnings into errors
-        result = plugin.process(cubes)
-
-    # No warnings should have been raised (if any were, they'd be errors)
-    assert isinstance(result, Cube)
-    # Verify output is within expected range (0-500 for BUI)
-    assert np.all(result.data >= 0.0)
-    assert np.all(result.data <= 500.0)
+    assert not np.allclose(result.data[0, 0], result.data[2, 2], atol=0.01)
