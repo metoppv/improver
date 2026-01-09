@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional
 
 import numpy as np
 from iris.coords import CellMethod
-from iris.cube import Cube, CubeList
+from iris.cube import Cube
 from iris.exceptions import AncillaryVariableNotFoundError, CoordinateNotFoundError
 from numpy import dtype, ndarray
 
@@ -73,47 +73,6 @@ class StandardiseMetadata(BasePlugin):
         self._coord_modification = coord_modification
         self._attributes_dict = attributes_dict
         self._ancillary_variables_to_remove = ancillary_variables_to_remove
-
-    @staticmethod
-    def _remove_air_temperature_status_flag(cube: Cube) -> Cube:
-        """
-        Remove air_temperature status_flag coord by applying as NaN to cube data.
-
-        See https://github.com/metoppv/improver/pull/1839 for further details.
-        """
-        coord_name = "air_temperature status_flag"
-        try:
-            coord = cube.coord(coord_name)
-        except CoordinateNotFoundError:
-            coord = None
-
-        if coord:
-            if coord.attributes != {
-                "flag_meanings": "above_surface_pressure below_surface_pressure",
-                "flag_values": np.array([0, 1], dtype="int8"),
-            }:
-                raise ValueError(
-                    f"'{coord_name}' coordinate is not of the expected form."
-                )
-            ncube = CubeList()
-
-            try:
-                cube_iterator = cube.slices_over("realization")
-            except CoordinateNotFoundError:
-                cube_iterator = [cube]
-
-            for cc in cube_iterator:
-                coord = cc.coord(coord_name)
-                if np.ma.is_masked(coord.points):
-                    raise ValueError(
-                        f"'{coord_name}' coordinate has unexpected mask values."
-                    )
-                mask = np.asarray(coord.points)
-                cc.data[mask.astype(bool)] = np.nan
-                cc.remove_coord(coord_name)
-                ncube.append(cc)
-            cube = ncube.merge_cube()
-        return cube
 
     @staticmethod
     def _collapse_scalar_dimensions(cube: Cube) -> Cube:
@@ -277,11 +236,6 @@ class StandardiseMetadata(BasePlugin):
         - to convert time-related metadata into the required units
         - to remove cell method ("point": "time").
 
-        If the air_temperature data is required, this can be retained by
-        removing the `air_temperature status_flag` as part of the standardise step
-        so that the process of masking this data with NaNs is bypassed.
-        See https://github.com/metoppv/improver/pull/1839 for further information.
-
         Args:
             cube:
                 Input cube to be standardised
@@ -290,17 +244,10 @@ class StandardiseMetadata(BasePlugin):
             The processed cube
         """
         cube = as_cube(cube)
-        # It is necessary to have the `_coords_to_remove step` first
-        # so that it allows keeping the air temperature data for
-        # a future calculation. Removing the `air_temperature status_flag`
-        # means the air temperature data will then not be masked by NaNs,
-        # as happens in the `_remove_air_temperature_status_flag` step if
-        # the flag is not removed.
         if self._coords_to_remove:
             self._remove_scalar_coords(cube, self._coords_to_remove)
         if self._ancillary_variables_to_remove:
             self._remove_ancillary_variables(cube, self._ancillary_variables_to_remove)
-        cube = self._remove_air_temperature_status_flag(cube)
         cube = self._collapse_scalar_dimensions(cube)
         if self._new_name:
             cube.rename(self._new_name)
