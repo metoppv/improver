@@ -93,7 +93,9 @@ class FireWeatherIndexBase(BasePlugin):
         "canadian_forest_fire_weather_index": (0.0, 100.0),  # FWI valid range
     }
 
-    def load_input_cubes(self, cubes: tuple[Cube] | CubeList, month: int | None = None):
+    def load_input_cubes(
+        self, cubes: tuple[Cube, ...] | CubeList, month: int | None = None
+    ):
         """Loads the required input cubes for the calculation. These are stored
         internally as Cube objects.
 
@@ -270,7 +272,9 @@ class FireWeatherIndexBase(BasePlugin):
         """
         raise NotImplementedError("Subclasses must implement the _calculate method.")
 
-    def process(self, cubes: tuple[Cube] | CubeList, month: int | None = None) -> Cube:
+    def process(
+        self, cubes: tuple[Cube, ...] | CubeList, month: int | None = None
+    ) -> Cube:
         """Calculate the fire weather index component.
 
         Args:

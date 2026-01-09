@@ -13,11 +13,11 @@ from improver_tests.fire_weather import make_cube, make_input_cubes
 
 
 def input_cubes(
-    fwi_val: float = 25.0,
-    shape: tuple[int, int] = (5, 5),
+    fwi_val: float | np.ndarray = 25.0,
+    shape: tuple[int, ...] = (5, 5),
     fwi_units: str = "1",
-) -> list[Cube]:
-    """Create a list of dummy input cubes for DSR tests, with configurable units.
+) -> tuple[Cube, ...]:
+    """Create a tuple of dummy input cubes for DSR tests, with configurable units.
 
     FWI cube has time coordinates.
 
@@ -30,7 +30,7 @@ def input_cubes(
             Units for FWI cube.
 
     Returns:
-        List containing FWI Cube.
+        Tuple containing FWI Cube.
     """
     return make_input_cubes(
         [("canadian_forest_fire_weather_index", fwi_val, fwi_units, True)],
@@ -200,7 +200,7 @@ def test_process(
             Expected DSR output value.
     """
     cubes = input_cubes(fwi_val=fwi_val)
-    result = FireSeverityIndex().process(CubeList(cubes))
+    result = FireSeverityIndex().process(cubes)
 
     assert isinstance(result, Cube)
     assert result.shape == (5, 5)
@@ -223,7 +223,7 @@ def test_process_spatially_varying() -> None:
         ),
     ]
 
-    result = FireSeverityIndex().process(CubeList(cubes))
+    result = FireSeverityIndex().process(cubes)
 
     # Verify shape, type, and all values are non-negative
     assert result.data.shape == (3, 3)
@@ -244,7 +244,7 @@ def test_process_spatially_varying() -> None:
 def test_process_zero_fwi() -> None:
     """Test that when FWI=0, DSR equals 0."""
     cubes = input_cubes(fwi_val=0.0)
-    result = FireSeverityIndex().process(CubeList(cubes))
+    result = FireSeverityIndex().process(cubes)
 
     assert isinstance(result, Cube)
     assert result.long_name == "fire_severity_index"

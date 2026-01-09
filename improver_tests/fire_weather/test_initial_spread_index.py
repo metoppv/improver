@@ -8,17 +8,17 @@ import pytest
 from iris.cube import Cube, CubeList
 
 from improver.fire_weather.initial_spread_index import InitialSpreadIndex
-from improver_tests.fire_weather import make_cube, make_input_cubes
+from improver_tests.fire_weather import make_input_cubes
 
 
 def input_cubes(
-    wind_val: float = 10.0,
-    ffmc_val: float = 85.0,
-    shape: tuple[int, int] = (5, 5),
+    wind_val: float | np.ndarray = 10.0,
+    ffmc_val: float | np.ndarray = 85.0,
+    shape: tuple[int, ...] = (5, 5),
     wind_units: str = "km/h",
     ffmc_units: str = "1",
-) -> list[Cube]:
-    """Create a list of dummy input cubes for ISI tests, with configurable units.
+) -> tuple[Cube, ...]:
+    """Create a tuple of dummy input cubes for ISI tests, with configurable units.
 
     All cubes have forecast_reference_time. FFMC cube also has time coordinates with bounds.
 
@@ -34,7 +34,7 @@ def input_cubes(
         ffmc_units:
             Units for FFMC cube.
     Returns:
-        List of Iris Cubes for wind speed and FFMC.
+        Tuple of Iris Cubes for wind speed and FFMC.
     """
     return make_input_cubes(
         [
@@ -242,7 +242,7 @@ def test_process(
             Expected ISI output value.
     """
     cubes = input_cubes(wind_val=wind_val, ffmc_val=ffmc_val)
-    result = InitialSpreadIndex().process(CubeList(cubes))
+    result = InitialSpreadIndex().process(cubes)
 
     assert isinstance(result, Cube)
     assert result.shape == (5, 5)
@@ -260,12 +260,9 @@ def test_process_spatially_varying() -> None:
     wind_data = np.array([[5.0, 10.0, 15.0], [10.0, 15.0, 20.0], [15.0, 20.0, 25.0]])
     ffmc_data = np.array([[70.0, 80.0, 85.0], [75.0, 85.0, 90.0], [80.0, 88.0, 92.0]])
 
-    cubes = [
-        make_cube(wind_data, "wind_speed", "km/h"),
-        make_cube(ffmc_data, "fine_fuel_moisture_content", "1", add_time_coord=True),
-    ]
+    cubes = input_cubes(wind_val=wind_data, ffmc_val=ffmc_data, shape=wind_data.shape)
 
-    result = InitialSpreadIndex().process(CubeList(cubes))
+    result = InitialSpreadIndex().process(cubes)
 
     # Verify shape, type, and all values are positive
     assert result.data.shape == (3, 3)
@@ -295,12 +292,9 @@ def test_process_with_varying_wind() -> None:
     wind_data = np.array([[0.0, 10.0, 20.0], [5.0, 15.0, 25.0], [10.0, 20.0, 30.0]])
     ffmc_data = np.full((3, 3), 85.0)
 
-    cubes = [
-        make_cube(wind_data, "wind_speed", "km/h"),
-        make_cube(ffmc_data, "fine_fuel_moisture_content", "1", add_time_coord=True),
-    ]
+    cubes = input_cubes(wind_val=wind_data, ffmc_val=ffmc_data, shape=wind_data.shape)
 
-    result = InitialSpreadIndex().process(CubeList(cubes))
+    result = InitialSpreadIndex().process(cubes)
 
     # ISI should increase with wind at constant FFMC
     # Check each row
@@ -317,12 +311,9 @@ def test_process_with_varying_ffmc() -> None:
     wind_data = np.full((3, 3), 10.0)
     ffmc_data = np.array([[60.0, 70.0, 80.0], [65.0, 75.0, 85.0], [70.0, 80.0, 90.0]])
 
-    cubes = [
-        make_cube(wind_data, "wind_speed", "km/h"),
-        make_cube(ffmc_data, "fine_fuel_moisture_content", "1", add_time_coord=True),
-    ]
+    cubes = input_cubes(wind_val=wind_data, ffmc_val=ffmc_data, shape=wind_data.shape)
 
-    result = InitialSpreadIndex().process(CubeList(cubes))
+    result = InitialSpreadIndex().process(cubes)
 
     # ISI should increase with FFMC at constant wind
     # Check each row

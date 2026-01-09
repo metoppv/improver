@@ -12,19 +12,19 @@ from improver_tests.fire_weather import make_cube, make_input_cubes
 
 
 def input_cubes(
-    temp_val: float = 20.0,
-    precip_val: float = 1.0,
-    rh_val: float = 50.0,
-    wind_val: float = 10.0,
-    ffmc_val: float = 85.0,
-    shape: tuple[int, int] = (5, 5),
+    temp_val: float | np.ndarray = 20.0,
+    precip_val: float | np.ndarray = 1.0,
+    rh_val: float | np.ndarray = 50.0,
+    wind_val: float | np.ndarray = 10.0,
+    ffmc_val: float | np.ndarray = 85.0,
+    shape: tuple[int, ...] = (5, 5),
     temp_units: str = "Celsius",
     precip_units: str = "mm",
     rh_units: str = "1",
     wind_units: str = "km/h",
     ffmc_units: str = "1",
-) -> list[Cube]:
-    """Create a list of dummy input cubes for FFMC tests, with configurable units.
+) -> tuple[Cube, ...]:
+    """Create a tuple of dummy input cubes for FFMC tests, with configurable units.
 
     All cubes have forecast_reference_time. Precipitation and FFMC cubes also have
     time coordinates with bounds.
@@ -54,7 +54,7 @@ def input_cubes(
             Units for FFMC cube.
 
     Returns:
-        List of Iris Cubes for temperature, precipitation, relative humidity, wind speed, and FFMC.
+        Tuple of Iris Cubes for temperature, precipitation, relative humidity, wind speed, and FFMC.
     """
     return make_input_cubes(
         [
@@ -612,7 +612,7 @@ def test_process(
     """
     cubes = input_cubes(temp_val, precip_val, rh_val, wind_val, ffmc_val)
     plugin = FineFuelMoistureContent()
-    result = plugin.process(CubeList(cubes))
+    result = plugin.process(cubes)
     # Check output type and shape
     assert hasattr(result, "data")
     assert result.data.shape == cubes[0].data.shape
@@ -645,7 +645,7 @@ def test_process_spatially_varying() -> None:
         make_cube(ffmc_data, "fine_fuel_moisture_content", "1", add_time_coord=True),
     ]
 
-    result = FineFuelMoistureContent().process(CubeList(cubes))
+    result = FineFuelMoistureContent().process(cubes)
 
     # Verify shape, type, and all values in valid range (0-101)
     assert (
