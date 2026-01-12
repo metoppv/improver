@@ -9,7 +9,6 @@ Unit tests for ConvertLocationAndScaleParameters
 import unittest
 
 import numpy as np
-from iris.tests import IrisTest
 from scipy import stats
 
 import improver.ensemble_copula_coupling._scipy_continuous_distns as scipy_cont_distns
@@ -18,7 +17,7 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
 )
 
 
-class Test__init__(IrisTest):
+class Test__init__(unittest.TestCase):
     """Test the __init__ method."""
 
     def test_valid_distribution(self):
@@ -46,7 +45,7 @@ class Test__init__(IrisTest):
             Plugin(distribution="elephant")
 
 
-class Test__repr__(IrisTest):
+class Test__repr__(unittest.TestCase):
     """Test string representation of plugin."""
 
     def test_basic(self):
@@ -59,7 +58,7 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, expected_string)
 
 
-class Test__rescale_shape_parameters(IrisTest):
+class Test__rescale_shape_parameters(unittest.TestCase):
     """Test the _rescale_shape_parameters"""
 
     def setUp(self):
@@ -73,7 +72,7 @@ class Test__rescale_shape_parameters(IrisTest):
         shape_parameters = np.array([0, np.inf], dtype=np.float32)
         plugin = Plugin(distribution="truncnorm", shape_parameters=shape_parameters)
         plugin._rescale_shape_parameters(self.location_parameter, self.scale_parameter)
-        self.assertArrayAlmostEqual(plugin.shape_parameters, expected)
+        np.testing.assert_array_almost_equal(plugin.shape_parameters, expected)
 
     def test_discrete_shape_parameters(self):
         """Test scaling discrete shape parameters."""
@@ -81,7 +80,7 @@ class Test__rescale_shape_parameters(IrisTest):
         shape_parameters = np.array([-4, 6], dtype=np.float32)
         plugin = Plugin(distribution="truncnorm", shape_parameters=shape_parameters)
         plugin._rescale_shape_parameters(self.location_parameter, self.scale_parameter)
-        self.assertArrayAlmostEqual(plugin.shape_parameters, expected)
+        np.testing.assert_array_almost_equal(plugin.shape_parameters, expected)
 
     def test_alternative_distribution(self):
         """Test specifying a distribution other than truncated normal. In
@@ -89,7 +88,7 @@ class Test__rescale_shape_parameters(IrisTest):
         shape_parameters = np.array([0, np.inf], dtype=np.float32)
         plugin = Plugin(distribution="norm", shape_parameters=shape_parameters)
         plugin._rescale_shape_parameters(self.location_parameter, self.scale_parameter)
-        self.assertArrayEqual(plugin.shape_parameters, shape_parameters)
+        np.testing.assert_array_equal(plugin.shape_parameters, shape_parameters)
 
 
 if __name__ == "__main__":

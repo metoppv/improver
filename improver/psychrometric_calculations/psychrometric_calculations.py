@@ -270,7 +270,9 @@ def dry_adiabatic_pressure(
 
 def saturated_humidity(temperature: ndarray, pressure: ndarray) -> ndarray:
     """
-    Calculate specific humidity mixing ratio of saturated air of given temperature and pressure
+    Calculate specific humidity mixing ratio of saturated air of given temperature and pressure.
+
+    Invalid and masked values are filtered and result in NaN outputs.
 
     Args:
         temperature:
@@ -279,7 +281,8 @@ def saturated_humidity(temperature: ndarray, pressure: ndarray) -> ndarray:
             Air pressure (Pa)
 
     Returns:
-        Array of specific humidity values (kg kg-1) representing saturated air
+        Array of specific humidity values (kg kg-1) representing saturated air. NaN is returned
+        if either input is NaN.
 
     Method from referenced documentation. Note that EARTH_REPSILON is
     simply given as an unnamed constant in the reference (0.62198).
@@ -287,10 +290,76 @@ def saturated_humidity(temperature: ndarray, pressure: ndarray) -> ndarray:
     References:
         ASHRAE Fundamentals handbook (2005) Equation 22, 24, p6.8
     """
-    svp = calculate_svp_in_air(temperature, pressure)
+    mask, pressure_allvalid, temperature_allvalid = _to_valid_values(
+        pressure, temperature
+    )
+
+    # Calculate saturated humidity
+    svp = calculate_svp_in_air(temperature_allvalid, pressure_allvalid)
     numerator = consts.EARTH_REPSILON * svp
-    denominator = np.maximum(svp, pressure) - ((1.0 - consts.EARTH_REPSILON) * svp)
-    return (numerator / denominator).astype(temperature.dtype)
+    denominator = np.maximum(svp, pressure_allvalid) - (
+        (1.0 - consts.EARTH_REPSILON) * svp
+    )
+    result = (numerator / denominator).astype(temperature.dtype)
+
+    result_is_masked = isinstance(temperature, np.ma.MaskedArray) or isinstance(
+        pressure, np.ma.MaskedArray
+    )
+    result = _reapply_mask(mask, result, result_is_masked).astype(temperature.dtype)
+    return result
+
+
+def _reapply_mask(
+    mask: np.ndarray, array_to_mask: np.ndarray, as_masked_array: bool
+) -> np.ndarray:
+    """Reapply mask to data array
+
+    Args:
+        mask:
+            Boolean array where True indicates invalid data points.
+        array_to_mask:
+            Data array to which the mask will be applied.
+        as_masked_array:
+            If True, return a numpy MaskedArray. If False, return a regular ndarray
+            with NaNs in place of masked values.
+    Returns:
+        Masked array or ndarray with NaNs where mask is True.
+    """
+    array_to_mask[mask] = np.nan
+    if as_masked_array:
+        array_to_mask = np.ma.MaskedArray(data=array_to_mask, mask=mask)
+    return array_to_mask
+
+
+def _to_valid_values(
+    pressure: np.ndarray, temperature: np.ndarray
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Identify and replace any invalid values with dummy values for calculation purposes.
+    Invalid data points are where either the temperature or the pressure array have masked
+    data points, or non-finite values (NaN or Inf).
+    The safe values are 1000 hPa and 0 degC (273.15 K).
+
+    Args:
+        pressure:
+            Array of air pressures (Pa).
+        temperature:
+            Array of air temperatures (K).
+    Returns:
+        Tuple of:
+            - mask: Boolean array where True indicates invalid data points.
+            - pressure: Array of air pressures (Pa) with invalid values replaced.
+            - temperature: Array of air temperatures (K) with invalid values replaced.
+    """
+    mask = np.full_like(temperature, False)
+    if isinstance(temperature, np.ma.MaskedArray):
+        mask = np.logical_or(mask, temperature.mask)
+    if isinstance(pressure, np.ma.MaskedArray):
+        mask = np.logical_or(mask, pressure.mask)
+    mask = np.logical_or(mask, np.logical_not(np.isfinite(temperature)))
+    mask = np.logical_or(mask, np.logical_not(np.isfinite(pressure)))
+    temperature_allvalid = np.where(mask, 273.15, temperature)
+    pressure_allvalid = np.where(mask, 100000.0, pressure)
+    return mask, pressure_allvalid, temperature_allvalid
 
 
 def _calculate_latent_heat(temperature: ndarray) -> ndarray:
@@ -425,18 +494,58 @@ class HumidityMixingRatio(BasePlugin):
         )
         return cube
 
-    def generate_pressure_cube(self) -> None:
-        """Generate a pressure cube from the pressure coordinate on the temperature cube"""
-        coord_list = [coord.name() for coord in self.temperature.coords()]
+    def _make_pressure_list(self, temperature_cube) -> CubeList:
         pressure_list = CubeList()
-        for temp_slice in self.temperature.slices_over("pressure"):
+        for temp_slice in temperature_cube.slices_over("pressure"):
             pressure_value = temp_slice.coord("pressure").points
             temp_slice.data = np.broadcast_to(pressure_value, temp_slice.shape)
             pressure_list.append(temp_slice)
-        self.pressure = pressure_list.merge_cube()
-        enforce_coordinate_ordering(self.pressure, coord_list)
-        self.pressure.rename("surface_air_pressure")
-        self.pressure.units = "Pa"
+        return pressure_list
+
+    def generate_pressure_cube(self, temperature_cube) -> Cube:
+        """
+        Generate a pressure cube from the pressure coordinate on the temperature cube.
+
+        If there is a pressure coordinate in the temperature and relative humidity cubes, and
+        no pressure cube has been provided (as is the case for calculating virtual temperature
+        on pressure levels, for example) the pressure cube is generated from the from the
+        pressure coordinate on the temperature cube. The temperature cube has a status flag
+        that indicates where the data were derived by StaGE for data points that fell below
+        the model orography, the flag meaning is above_surface_pressure below_surface_pressure.
+        These values are expanded in the process of concatenating the cube and if they are to
+        be retained, should be copied back in to the output of the final calculation from the
+        input cubes.
+
+        See https://scitools-iris.readthedocs.io/en/stable/further_topics/controlling_merge.html
+        for more information
+        """
+
+        coord_list = [coord.name() for coord in temperature_cube.coords()]
+        pressure_list = self._make_pressure_list(temperature_cube)
+
+        try:
+            expanded_pressure_list = CubeList(
+                iris.util.new_axis(cube, "pressure", expand_extras=["status_flag"])
+                for cube in pressure_list
+            )
+        except KeyError:
+            expanded_pressure_list = CubeList(
+                iris.util.new_axis(cube, "pressure") for cube in pressure_list
+            )
+
+        try:
+            pressure_cube = expanded_pressure_list.concatenate_cube()
+        except iris.exceptions.ConcatenateError as error:
+            raise RuntimeError(
+                "Unable to concatenate pressure cubelist with input ",
+                expanded_pressure_list,
+                error,
+            )
+
+        enforce_coordinate_ordering(pressure_cube, coord_list)
+        pressure_cube.rename("surface_air_pressure")
+        pressure_cube.units = "Pa"
+        return pressure_cube
 
     def _handle_zero_humidity(self):
         """Sets the minimum humidity value to half the least significant value
@@ -456,11 +565,10 @@ class HumidityMixingRatio(BasePlugin):
         Args:
             cubes:
                 Cubes of temperature (K) and relative humidity (1). A cube of pressure (Pa) must also
-                be provided unless there is a pressure coordinate in the temperature and relative humidity cubes.
-
+                be provided unless there is a pressure coordinate in the temperature and relative
+                humidity cubes.
         Returns:
             Cube of humidity mixing ratio on same levels as input cubes
-
         """
         cubes = as_cubelist(*cubes)
         self.rel_humidity = cubes.extract_cube(
@@ -495,14 +603,14 @@ class HumidityMixingRatio(BasePlugin):
                 raise ValueError(f"{more_than_one.group()} with 'pressure' in name.")
 
             # If no pressure cube is provided, check if pressure is a coordinate in the temperature and relative humidity cubes
-            temp_coord_flag = any(
+            temp_cube_has_pressure_coord = any(
                 coord.name() == "pressure" for coord in self.temperature.coords()
             )
-            rh_coord_flag = any(
+            rh_cube_has_pressure_coord = any(
                 coord.name() == "pressure" for coord in self.rel_humidity.coords()
             )
-            if temp_coord_flag & rh_coord_flag:
-                self.generate_pressure_cube()
+            if temp_cube_has_pressure_coord & rh_cube_has_pressure_coord:
+                self.pressure = self.generate_pressure_cube(self.temperature)
             else:
                 raise ValueError(
                     "No pressure cube with name 'pressure' found and no pressure coordinate found in temperature or relative humidity cubes"

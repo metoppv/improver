@@ -17,7 +17,7 @@ from improver import BasePlugin
 from improver.metadata.constants import FLOAT_DTYPE, FLOAT_TYPES
 from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.metadata.utilities import enforce_time_point_standard
-from improver.utilities.common_input_handle import as_cube
+from improver.utilities.common_input_handle import as_cube, as_cubelist
 from improver.utilities.cube_checker import check_cube_coordinates
 
 
@@ -157,6 +157,19 @@ def get_coord_names(cube: Cube) -> List[str]:
     return [coord.name() for coord in cube.coords()]
 
 
+def get_ancillary_variable_names(cube: Cube) -> List[str]:
+    """
+    Returns a list of all ancillary variable names on the cube
+
+    Args:
+        cube
+
+    Returns:
+        List of all ancillary variable names
+    """
+    return [anc_var.name() for anc_var in cube.ancillary_variables()]
+
+
 def strip_var_names(cubes: Union[Cube, CubeList]) -> CubeList:
     """
     Strips var_name from the cube and from all coordinates except where
@@ -187,8 +200,37 @@ class MergeCubes(BasePlugin):
     avoid merge failures and anonymous dimensions.
     """
 
-    def __init__(self) -> None:
-        """Initialise constants"""
+    def __init__(
+        self,
+        check_time_bounds_ranges: bool = False,
+        slice_over_realization: bool = False,
+        copy: bool = True,
+    ) -> None:
+        """
+        Initialise constants
+
+        Args:
+            *cubes:
+                Cubes to be merged.
+            check_time_bounds_ranges:
+                Flag to check whether scalar time bounds ranges match.
+                This is for when we are expecting to create a new "time" axis
+                through merging for eg precipitation accumulations, where we
+                want to make sure that the bounds match so that we are not eg
+                combining 1 hour with 3 hour accumulations.
+            slice_over_realization:
+                Options to combine cubes with different realization dimensions.
+                These cannot always be concatenated directly as this can create a
+                non-monotonic realization coordinate.
+            copy:
+                If True, this will copy the cubes, thus not having any impact on
+                the original objects.
+
+        """
+        self._run_check_time_bounds_ranges = check_time_bounds_ranges
+        self._slice_over_realization = slice_over_realization
+        self._copy = copy
+
         # List of attributes to remove silently if unmatched
         self.silent_attributes = ["history", "title", "mosg__grid_version"]
 
@@ -240,13 +282,7 @@ class MergeCubes(BasePlugin):
                 )
                 raise ValueError(msg)
 
-    def process(
-        self,
-        cubes_in: Union[List[Cube], CubeList],
-        check_time_bounds_ranges: bool = False,
-        slice_over_realization: bool = False,
-        copy: bool = True,
-    ) -> Cube:
+    def process(self, *cubes: Cube | CubeList) -> Cube:
         """
         Function to merge cubes, accounting for differences in attributes,
         coordinates and cell methods.  Note that cubes with different sets
@@ -259,45 +295,30 @@ class MergeCubes(BasePlugin):
         result of premature iris merging on load).
 
         Args:
-            cubes_in:
+            *cubes:
                 Cubes to be merged.
-            check_time_bounds_ranges:
-                Flag to check whether scalar time bounds ranges match.
-                This is for when we are expecting to create a new "time" axis
-                through merging for eg precipitation accumulations, where we
-                want to make sure that the bounds match so that we are not eg
-                combining 1 hour with 3 hour accumulations.
-            slice_over_realization:
-                Options to combine cubes with different realization dimensions.
-                These cannot always be concatenated directly as this can create a
-                non-monotonic realization coordinate.
-            copy:
-                If True, this will copy the cubes, thus not having any impact on
-                the original objects.
 
         Returns:
             Merged cube.
         """
-        # if input is already a single cube, return unchanged
-        if isinstance(cubes_in, iris.cube.Cube):
-            return cubes_in
+        cubes = as_cubelist(*cubes)
 
-        if len(cubes_in) == 1:
+        if len(cubes) == 1:
             # iris merges cubelist into shortest list possible on load
             # - may already have collapsed across invalid time bounds
-            if check_time_bounds_ranges:
-                self._check_time_bounds_ranges(cubes_in[0])
-            return cubes_in[0]
+            if self._run_check_time_bounds_ranges:
+                self._check_time_bounds_ranges(cubes[0])
+            return cubes[0]
 
-        if copy:
+        if self._copy:
             # create copies of input cubes so as not to modify in place
             cube_return = lambda cube: cube.copy()
         else:
             cube_return = lambda cube: cube
 
         cubelist = iris.cube.CubeList([])
-        for cube in cubes_in:
-            if slice_over_realization:
+        for cube in cubes:
+            if self._slice_over_realization:
                 for real_slice in cube.slices_over("realization"):
                     cubelist.append(cube_return(real_slice))
             else:
@@ -312,7 +333,7 @@ class MergeCubes(BasePlugin):
         result = cubelist.merge_cube()
 
         # check time bounds if required
-        if check_time_bounds_ranges:
+        if self._run_check_time_bounds_ranges:
             self._check_time_bounds_ranges(result)
 
         return result
@@ -460,6 +481,54 @@ def compare_coords(
                     )
 
     return unmatching_coords
+
+
+def compare_ancillary_variables(cubes: CubeList) -> List[Dict]:
+    """
+    Function to compare the ancillary variables of the cubes
+
+    Args:
+        cubes:
+            List of cubes to compare (must be more than 1)
+
+    Returns:
+        List of dictionaries of unmatching ancillary variables
+        Number of dictionaries equals number of cubes
+        unless cubes is a single cube in which case
+        unmatching_ancillary_variables returns an empty list.
+
+    Warns:
+        Warning: If only a single cube is supplied
+    """
+    unmatching_ancillary_variables = []
+    if len(cubes) == 1:
+        msg = "Only a single cube so no differences will be found "
+        warnings.warn(msg)
+    else:
+        common_ancillary_variables = cubes[0].ancillary_variables()
+        for cube in cubes[1:]:
+            cube_ancillary_variables = cube.ancillary_variables()
+            common_ancillary_variables = [
+                anc_var
+                for anc_var in common_ancillary_variables
+                if (
+                    anc_var in cube_ancillary_variables
+                    and np.all(
+                        cube.ancillary_variable(anc_var)
+                        == cubes[0].ancillary_variable(anc_var)
+                    )
+                )
+            ]
+
+        for i, cube in enumerate(cubes):
+            unmatching_ancillary_variables.append({})
+            for anc_var in cube.ancillary_variables():
+                if anc_var not in common_ancillary_variables:
+                    unmatching_ancillary_variables[i].update(
+                        {anc_var.name(): {"ancillary_variable": anc_var}}
+                    )
+
+    return unmatching_ancillary_variables
 
 
 def sort_coord_in_cube(cube: Cube, coord: str, descending: bool = False) -> Cube:
@@ -919,8 +988,58 @@ def manipulate_n_realizations(cube: Cube, n_realizations: int) -> Cube:
             raw_forecast_realization.coord("realization").points = index
             raw_forecast_realizations_extended.append(raw_forecast_realization)
 
-        output = MergeCubes()(
-            raw_forecast_realizations_extended, slice_over_realization=True
+        output = MergeCubes(slice_over_realization=True)(
+            raw_forecast_realizations_extended,
         )
 
     return output
+
+
+def convert_aux_coord_to_ancillary_variable(
+    cube: Cube, auxiliary_coord_name: str, ancillary_var_name: str
+) -> Cube:
+    """
+    Given a Cube containing an auxiliary coordinate named in auxiliary_coord_name,
+    create a new Cube with the same data, but with the values from the auxiliary coordinate
+    stored as an ancillary variable as named in the ancillary_var_name.
+
+    Args:
+        cube: A cube with an auxiliary coordinate to convert.
+        auxiliary_coord_name: The name of the auxiliary coordinate to convert.
+        ancillary_var_name: The name of the ancillary variable to create.
+
+    Returns:
+        A cube with the named auxiliary coordinate converted to an ancillary variable
+        with the name specified in ancillary_var_name.
+
+    Raises:
+        ValueError: If the cube does not contain an auxiliary coordinate with the
+        name specified in auxiliary_coord_name.
+    """
+    all_aux_coords = cube.aux_coords
+    # Check if the auxiliary coordinate with the specified name exists.
+    relevant_aux_coords = [
+        c for c in all_aux_coords if auxiliary_coord_name == c.name()
+    ]
+    # If no such auxiliary coordinate exists then raise an error.
+    if not relevant_aux_coords:
+        msg = f"Input cube does not contain an auxiliary coordinate with name '{auxiliary_coord_name}'."
+        raise ValueError(msg)
+
+    aux_coord = cube.coord(auxiliary_coord_name)
+    relevant_dimensions = cube.coord_dims(aux_coord)
+
+    # Create an AncillaryVariable from the auxiliary coordinate.
+    ancillary_var = iris.coords.AncillaryVariable(
+        aux_coord.points,
+        standard_name=ancillary_var_name,
+        long_name=aux_coord.long_name,
+        var_name=aux_coord.var_name,
+        units=aux_coord.units,
+        attributes=aux_coord.attributes,
+    )
+    # Create a new Cube with the same data.
+    new_cube = cube.copy()
+    new_cube.remove_coord(aux_coord)
+    new_cube.add_ancillary_variable(ancillary_var, data_dims=relevant_dimensions)
+    return new_cube

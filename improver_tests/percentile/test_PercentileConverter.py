@@ -10,14 +10,13 @@ from datetime import datetime
 import iris
 import numpy as np
 from iris.exceptions import CoordinateNotFoundError
-from iris.tests import IrisTest
 
 from improver.percentile import PercentileConverter
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cube_manipulation import get_coord_names, get_dim_coord_names
 
 
-class Test_process(IrisTest):
+class Test_process(unittest.TestCase):
     """Test the creation of percentiles by the plugin."""
 
     def setUp(self):
@@ -49,7 +48,7 @@ class Test_process(IrisTest):
         result = plugin.process(self.cube)
 
         # Check percentile values.
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.data[:, 0, 0], self.default_percentiles * 0.1
         )
         # Check collapsed coordinate removed
@@ -59,7 +58,7 @@ class Test_process(IrisTest):
         # Check coordinate units.
         self.assertEqual(result.coords()[0].units, "%")
         # Check coordinate points.
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             result.coord("percentile").points,
             [0, 5, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 95, 100],
         )
@@ -86,7 +85,7 @@ class Test_process(IrisTest):
         result = plugin.process(cube)
 
         # Check percentile values.
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.data[:, 0, 0, 0], self.default_percentiles * 0.01
         )
         # Check collapsed coordinate removed
@@ -96,7 +95,7 @@ class Test_process(IrisTest):
         # Check coordinate units.
         self.assertEqual(result.coords()[0].units, "%")
         # Check coordinate points.
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             result.coord("percentile").points,
             [0, 5, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 95, 100],
         )
@@ -192,7 +191,7 @@ class Test_process(IrisTest):
         result = plugin.process(self.cube)
 
         # Check percentile values.
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.data[:, 0],
             [
                 0.0,
@@ -220,7 +219,7 @@ class Test_process(IrisTest):
         # Check coordinate units.
         self.assertEqual(result.coords()[0].units, "%")
         # Check coordinate points.
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             result.coord("percentile").points,
             [0, 5, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 95, 100],
         )
@@ -265,7 +264,7 @@ class Test_process(IrisTest):
         result = plugin.process(cube)
 
         # Check percentile values.
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.data[:, 0, 0], self.default_percentiles * 0.1
         )
         # Check coordinate name.
@@ -273,7 +272,7 @@ class Test_process(IrisTest):
         # Check coordinate units.
         self.assertEqual(result.coords()[0].units, "%")
         # Check coordinate points.
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             result.coord("percentile").points,
             [0, 5, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 95, 100],
         )

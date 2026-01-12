@@ -11,13 +11,12 @@ from datetime import datetime as dt
 import numpy as np
 import pytest
 from iris.coords import CellMethod
-from iris.tests import IrisTest
 
 from improver.metadata.amend import (
     amend_attributes,
+    get_unique_attributes,
     set_history_attribute,
     update_diagnostic_name,
-    update_model_id_attr_attribute,
 )
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
@@ -60,7 +59,7 @@ def create_cube_with_threshold(data=None, threshold_values=None):
     return cube
 
 
-class Test_amend_attributes(IrisTest):
+class Test_amend_attributes(unittest.TestCase):
     """Test the amend_attributes method."""
 
     def setUp(self):
@@ -94,7 +93,7 @@ class Test_amend_attributes(IrisTest):
             self.assertTrue(re.match(v, self.cube.attributes[k]))
 
 
-class Test_set_history_attribute(IrisTest):
+class Test_set_history_attribute(unittest.TestCase):
     """Test the set_history_attribute function."""
 
     def test_add_history(self):
@@ -133,8 +132,8 @@ class Test_set_history_attribute(IrisTest):
         self.assertTrue("Nowcast" in cube.attributes["history"])
 
 
-class Test_update_model_id_attr_attribute(IrisTest):
-    """Test the update_model_id_attr_attribute function."""
+class Test_get_unique_attributes(unittest.TestCase):
+    """Test the get_unique_attributes  function."""
 
     def setUp(self):
         """Set up cube."""
@@ -147,18 +146,16 @@ class Test_update_model_id_attr_attribute(IrisTest):
     def test_one_input_attribute(self):
         """Test handling of model_id_attr attribute for one input."""
         self.cube.attributes["mosg__model_configuration"] = "uk_ens"
-        result = update_model_id_attr_attribute([self.cube], self.model_id_attr)
-        self.assertArrayEqual(result["mosg__model_configuration"], "uk_ens")
+        result = get_unique_attributes([self.cube], self.model_id_attr)
+        np.testing.assert_array_equal(result["mosg__model_configuration"], "uk_ens")
 
     def test_two_matching_input_attributes(self):
         """Test handling of model_id_attr attribute for two matching inputs."""
         self.cube.attributes["mosg__model_configuration"] = "uk_ens"
         self.cube1 = self.cube.copy()
         self.cube2 = self.cube.copy()
-        result = update_model_id_attr_attribute(
-            [self.cube1, self.cube2], self.model_id_attr
-        )
-        self.assertArrayEqual(result["mosg__model_configuration"], "uk_ens")
+        result = get_unique_attributes([self.cube1, self.cube2], self.model_id_attr)
+        np.testing.assert_array_equal(result["mosg__model_configuration"], "uk_ens")
 
     def test_two_different_input_attributes(self):
         """Test handling of model_id_attr attribute for two different inputs."""
@@ -166,10 +163,10 @@ class Test_update_model_id_attr_attribute(IrisTest):
         self.cube2 = self.cube.copy()
         self.cube1.attributes["mosg__model_configuration"] = "uk_ens"
         self.cube2.attributes["mosg__model_configuration"] = "nc_det"
-        result = update_model_id_attr_attribute(
-            [self.cube1, self.cube2], self.model_id_attr
+        result = get_unique_attributes([self.cube1, self.cube2], self.model_id_attr)
+        np.testing.assert_array_equal(
+            result["mosg__model_configuration"], "nc_det uk_ens"
         )
-        self.assertArrayEqual(result["mosg__model_configuration"], "nc_det uk_ens")
 
     def test_compound_attributes(self):
         """Test handling of compound attributes."""
@@ -177,10 +174,8 @@ class Test_update_model_id_attr_attribute(IrisTest):
         self.cube2 = self.cube.copy()
         self.cube1.attributes["mosg__model_configuration"] = "uk_det uk_ens"
         self.cube2.attributes["mosg__model_configuration"] = "nc_det uk_det uk_ens"
-        result = update_model_id_attr_attribute(
-            [self.cube1, self.cube2], self.model_id_attr
-        )
-        self.assertArrayEqual(
+        result = get_unique_attributes([self.cube1, self.cube2], self.model_id_attr)
+        np.testing.assert_array_equal(
             result["mosg__model_configuration"], "nc_det uk_det uk_ens"
         )
 
@@ -191,7 +186,32 @@ class Test_update_model_id_attr_attribute(IrisTest):
         self.cube1.attributes["mosg__model_configuration"] = "uk_ens"
         msg = "Expected to find mosg__model_configuration attribute on all cubes"
         with self.assertRaisesRegex(AttributeError, msg):
-            update_model_id_attr_attribute([self.cube1, self.cube2], self.model_id_attr)
+            get_unique_attributes([self.cube1, self.cube2], self.model_id_attr)
+
+    def test_different_separator(self):
+        """Test a different separator can be provided and used in splitting
+        the attributes on the input cubes. Common elements between the two
+        should be retained, returned separated by the provided separator."""
+        self.cube1 = self.cube.copy()
+        self.cube2 = self.cube.copy()
+        self.cube1.attributes["mosg__model_configuration"] = "uk_ens\npuppies"
+        self.cube2.attributes["mosg__model_configuration"] = "nc_det\npuppies"
+        result = get_unique_attributes(
+            [self.cube1, self.cube2], self.model_id_attr, separator="\n"
+        )
+        np.testing.assert_array_equal(
+            result["mosg__model_configuration"], "nc_det\npuppies\nuk_ens"
+        )
+
+    def test_different_attribute_name(self):
+        """Test a different attribute name can be provided and the values
+        returned in a dictionary with a matching key."""
+        self.cube1 = self.cube.copy()
+        self.cube2 = self.cube.copy()
+        self.cube1.attributes["pets"] = "fish kittens"
+        self.cube2.attributes["pets"] = "kittens puppies"
+        result = get_unique_attributes([self.cube1, self.cube2], "pets")
+        np.testing.assert_array_equal(result["pets"], "fish kittens puppies")
 
 
 @pytest.mark.parametrize("cell_method", (True, False))

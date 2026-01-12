@@ -16,7 +16,6 @@ from cf_units import Unit
 from iris.coords import AuxCoord
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
-from iris.tests import IrisTest
 
 from improver.categorical.decision_tree import ApplyDecisionTree
 from improver.metadata.probabilistic import (
@@ -247,7 +246,7 @@ def test_deterministic_complex_diagnostic_fields(precip_cube, hail_cube):
     assert np.all(expression_result == 315)
 
 
-class Test_WXCode(IrisTest):
+class Test_WXCode(unittest.TestCase):
     """Test class for the WX code tests, setting up inputs."""
 
     def setUp(self):
@@ -456,7 +455,7 @@ class Test_WXCode(IrisTest):
 
     def assertArrayAndMaskEqual(self, array_a, array_b, **kwargs):
         """
-        Checks test output and expected array are equal, using self.assertArrayEqual
+        Checks test output and expected array are equal, using np.testing.assert_array_equal
         and then checks that if a mask is present on the test array, it matches the
         expected mask.
 
@@ -471,7 +470,7 @@ class Test_WXCode(IrisTest):
                 if a mask is present on only one argument or masks do not match
 
         """
-        self.assertArrayEqual(array_a, array_b, **kwargs)
+        np.testing.assert_array_equal(array_a, array_b, **kwargs)
         if not np.ma.is_masked(array_a) and not np.ma.is_masked(array_b):
             # Neither array is masked. Test passes.
             return
@@ -489,7 +488,7 @@ class Test_WXCode(IrisTest):
         raise AssertionError(msg)
 
 
-class Test__repr__(IrisTest):
+class Test__repr__(unittest.TestCase):
     """Test the repr method."""
 
     def test_basic(self):
@@ -576,7 +575,7 @@ class Test_prepare_input_cubes(Test_WXCode):
             self.assertEqual(len(result.extract(constraint)), 0)
 
 
-class Test_invert_condition(IrisTest):
+class Test_invert_condition(unittest.TestCase):
     """Test the invert condition method."""
 
     def test_basic(self):
@@ -694,7 +693,7 @@ class Test_create_condition_chain(Test_WXCode):
         for i in range(2):
             constraint_exp = expected[0][i][0]
             constraint_res = result[0][i][0]
-            self.assertArrayEqual(
+            np.testing.assert_array_equal(
                 self.cubes.extract(constraint_res)[0].data,
                 self.cubes.extract(constraint_exp)[0].data,
             )
@@ -845,7 +844,7 @@ class Test_create_condition_chain(Test_WXCode):
             for k in [0, 2]:
                 constraint_exp = expected[0][i][0][k]
                 constraint_res = result[0][i][0][k]
-                self.assertArrayEqual(
+                np.testing.assert_array_equal(
                     self.cubes.extract(constraint_res)[0].data,
                     self.cubes.extract(constraint_exp)[0].data,
                 )
@@ -873,7 +872,7 @@ class Test_construct_extract_constraint(Test_WXCode):
             ),
         )
         self.assertIsInstance(result, iris.Constraint)
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             self.cubes.extract(result)[0].data, self.cubes.extract(expected)[0].data
         )
 
@@ -904,7 +903,7 @@ class Test_construct_extract_constraint(Test_WXCode):
             ),
         )
         self.assertIsInstance(result, iris.Constraint)
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             self.cubes.extract(result)[0].data, self.cubes.extract(expected)[0].data
         )
 
@@ -939,7 +938,7 @@ class Test_evaluate_extract_expression(Test_WXCode):
             self.cubes.extract(expression[0])[0].data
             - 0.5 * self.cubes.extract(expression[4])[0].data
         )
-        self.assertArrayEqual(result, expected)
+        np.testing.assert_array_equal(result, expected)
 
     def test_sub_expresssions(self):
         """Test evaluating an expression containing sub-expressions."""
@@ -982,7 +981,7 @@ class Test_evaluate_extract_expression(Test_WXCode):
             - self.cubes.extract(expression[4][2])[0].data
         )
         result = self.plugin.evaluate_extract_expression(self.cubes, expression)
-        self.assertArrayEqual(result, expected)
+        np.testing.assert_array_equal(result, expected)
 
 
 class Test_evaluate_condition_chain(Test_WXCode):
@@ -1029,7 +1028,7 @@ class Test_evaluate_condition_chain(Test_WXCode):
         expected = (self.cubes.extract(c1)[0].data >= 0.5) | (
             self.cubes.extract(c2)[0].data >= 0.5
         )
-        self.assertArrayEqual(result, expected)
+        np.testing.assert_array_equal(result, expected)
 
     def test_error(self):
         """Test that we get an error if first element of the chain has length > 1
@@ -1128,7 +1127,7 @@ class Test_evaluate_condition_chain(Test_WXCode):
         expected = (
             self.cubes.extract(c1)[0].data - self.cubes.extract(c2)[0].data >= 0.5
         ) | (self.cubes.extract(c3)[0].data >= 0.5)
-        self.assertArrayEqual(result, expected)
+        np.testing.assert_array_equal(result, expected)
 
     def test_with_subconditions(self):
         """Test "AND" condition chain with sub-chain containing "OR"."""
@@ -1191,7 +1190,7 @@ class Test_evaluate_condition_chain(Test_WXCode):
             (self.cubes.extract(c1)[0].data >= 0.5)
             | (self.cubes.extract(c2)[0].data >= 0.5)
         ) & (self.cubes.extract(c3)[0].data >= 0.5)
-        self.assertArrayEqual(result, expected)
+        np.testing.assert_array_equal(result, expected)
 
     def test_blank_condition(self):
         """Test a condition chain where the combination condition is ""."""
@@ -1235,10 +1234,10 @@ class Test_evaluate_condition_chain(Test_WXCode):
             self.cubes.extract(expression[0])[0].data
             - 0.5 * self.cubes.extract(expression[4])[0].data
         ) >= 0.0
-        self.assertArrayEqual(result, expected)
+        np.testing.assert_array_equal(result, expected)
 
 
-class Test_remove_optional_missing(IrisTest):
+class Test_remove_optional_missing(unittest.TestCase):
     """Test the rewriting of the decision tree on-the-fly to take into account
     allowed missing diagnostics."""
 
@@ -1328,7 +1327,7 @@ class Test_remove_optional_missing(IrisTest):
         self.assertEqual(test_node["if_false"], "precipitation_in_vicinity")
 
 
-class Test_find_all_routes(IrisTest):
+class Test_find_all_routes(unittest.TestCase):
     """Test the find_all_routes method ."""
 
     def setUp(self):
@@ -1474,7 +1473,7 @@ class Test_check_coincidence(Test_WXCode):
         self.assertEqual(self.plugin.template_cube, expected)
 
 
-class Test_create_categorical_cube(IrisTest):
+class Test_create_categorical_cube(unittest.TestCase):
     """Test the create_categorical_cube method ."""
 
     def setUp(self):
@@ -1520,7 +1519,7 @@ class Test_create_categorical_cube(IrisTest):
         self.plugin.model_id_attr = "mosg__model_configuration"
         result = self.plugin.create_categorical_cube([self.cube])
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             result.attributes["mosg__model_configuration"], "uk_det uk_ens"
         )
         self.assertNotIn("mosg__model_run", result.attributes)
@@ -1535,11 +1534,11 @@ class Test_create_categorical_cube(IrisTest):
         self.plugin.record_run_attr = "mosg__model_run"
         result = self.plugin.create_categorical_cube([self.cube])
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             result.attributes["mosg__model_run"],
             "uk_det:20171109T2300Z:\nuk_ens:20171109T2100Z:",
         )
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             result.attributes["mosg__model_configuration"], "uk_det uk_ens"
         )
         self.assertTrue((result.data.mask).all())
@@ -1556,11 +1555,11 @@ class Test_create_categorical_cube(IrisTest):
 
         result = self.plugin.create_categorical_cube([self.cube, cube1])
 
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             result.attributes["mosg__model_run"],
             "gl_ens:20171109T1800Z:\nuk_det:20171109T2300Z:\nuk_ens:20171109T2100Z:",
         )
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             result.attributes["mosg__model_configuration"], "gl_ens uk_det uk_ens"
         )
         self.assertTrue((result.data.mask).all())
@@ -1642,7 +1641,7 @@ class Test_create_categorical_cube(IrisTest):
             self.plugin.create_categorical_cube([self.cube, cube1])
 
 
-class Test_compare_to_threshold(IrisTest):
+class Test_compare_to_threshold(unittest.TestCase):
     """Test the compare_to_threshold method ."""
 
     def test_array(self):
@@ -1658,7 +1657,7 @@ class Test_compare_to_threshold(IrisTest):
         }
         for item in test_case_map:
             result = plugin.compare_array_to_threshold(arr, item, 1)
-            self.assertArrayEqual(result, test_case_map[item])
+            np.testing.assert_array_equal(result, test_case_map[item])
 
     def test_error_on_unexpected_comparison(self):
         """Test that an error is raised if the comparison operator is not

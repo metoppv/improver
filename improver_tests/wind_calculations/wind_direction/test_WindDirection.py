@@ -9,7 +9,6 @@ import unittest
 import numpy as np
 from iris.coords import DimCoord
 from iris.cube import Cube
-from iris.tests import IrisTest
 
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.wind_calculations.wind_direction import WindDirection, deg_to_complex
@@ -146,7 +145,7 @@ def pad_wdir_cube_222():
     return cube
 
 
-class Test__init__(IrisTest):
+class Test__init__(unittest.TestCase):
     """Test the init method."""
 
     def test_basic(self):
@@ -166,7 +165,7 @@ class Test__init__(IrisTest):
             WindDirection(backup_method="invalid")
 
 
-class Test__repr__(IrisTest):
+class Test__repr__(unittest.TestCase):
     """Test the repr method."""
 
     def test_basic(self):
@@ -179,7 +178,7 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, msg)
 
 
-class Test_calc_wind_dir_mean(IrisTest):
+class Test_calc_wind_dir_mean(unittest.TestCase):
     """Test the calc_wind_dir_mean function."""
 
     def setUp(self):
@@ -207,7 +206,7 @@ class Test_calc_wind_dir_mean(IrisTest):
         expected_complex = deg_to_complex(
             self.expected_wind_mean, radius=np.absolute(result)
         )
-        self.assertArrayAlmostEqual(result, expected_complex)
+        np.testing.assert_array_almost_equal(result, expected_complex)
 
     def test_degrees(self):
         """Test that the function defines correct degrees cube."""
@@ -215,10 +214,12 @@ class Test_calc_wind_dir_mean(IrisTest):
         result = self.plugin.wdir_slice_mean
         self.assertIsInstance(result, Cube)
         self.assertIsInstance(result.data, np.ndarray)
-        self.assertArrayAlmostEqual(result.data, self.expected_wind_mean, decimal=4)
+        np.testing.assert_array_almost_equal(
+            result.data, self.expected_wind_mean, decimal=4
+        )
 
 
-class Test_find_r_values(IrisTest):
+class Test_find_r_values(unittest.TestCase):
     """Test the find_r_values function."""
 
     def setUp(self):
@@ -254,10 +255,10 @@ class Test_find_r_values(IrisTest):
         self.plugin.find_r_values()
         result = self.plugin.r_vals_slice.data
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, expected_out)
+        np.testing.assert_array_almost_equal(result, expected_out)
 
 
-class Test_wind_dir_decider(IrisTest):
+class Test_wind_dir_decider(unittest.TestCase):
     """Test the wind_dir_decider function."""
 
     def test_runs_function_1st_member(self):
@@ -279,7 +280,7 @@ class Test_wind_dir_decider(IrisTest):
         result = self.plugin.wdir_slice_mean.data
 
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, expected_out)
+        np.testing.assert_array_almost_equal(result, expected_out)
 
     def test_runs_function_nbhood(self):
         """First element has two angles directly opposite (90 & 270 degs).
@@ -321,10 +322,10 @@ class Test_wind_dir_decider(IrisTest):
         self.plugin.wind_dir_decider(where_low_r, cube)
         result = self.plugin.wdir_slice_mean.data
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result[4:6, 4:6], expected_out, decimal=2)
+        np.testing.assert_array_almost_equal(result[4:6, 4:6], expected_out, decimal=2)
 
 
-class Test_process(IrisTest):
+class Test_process(unittest.TestCase):
     """Test entire code handles a cube correctly."""
 
     def setUp(self):
@@ -378,7 +379,7 @@ class Test_process(IrisTest):
         result = result_cube.data
 
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, self.expected_wind_mean, decimal=4)
+        np.testing.assert_array_almost_equal(result, self.expected_wind_mean, decimal=4)
 
     def test_with_backup(self):
         """Test that wind_dir_decider is invoked to select a better value for
@@ -403,7 +404,7 @@ class Test_process(IrisTest):
 
         result = result_cube.data[3:6, 3:7]
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, self.expected_wind_mean, decimal=4)
+        np.testing.assert_array_almost_equal(result, self.expected_wind_mean, decimal=4)
 
 
 if __name__ == "__main__":
