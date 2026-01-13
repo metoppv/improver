@@ -128,7 +128,8 @@ jobs:
     - name: Reduced coverage failure
       if: steps.comp-coverage.outputs.coverage_decreased == 'true'
       run:  |
-          echo 'Artifact ID is ${{ steps.artifact-coverage-upload.outputs.artifact-url }}'
+          echo "Code coverage has decreased from ${{ steps.comp-coverage.outputs.ref_cov }}% to ${{ steps.comp-coverage.outputs.pr_cov }}%"
+          echo "Please review test coverage report for more details: ${{ steps.artifact-coverage-upload.outputs.artifact-url }}"
           exit 1
 
 
