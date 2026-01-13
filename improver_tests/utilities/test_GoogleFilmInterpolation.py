@@ -201,10 +201,12 @@ def test_google_film_process_time_fraction_calculation(
             interpolated = x0 + time_frac * (x1 - x0)
             return {"image": np.expand_dims(interpolated, axis=0)}
 
-    def mock_load_model(self, model_path):
+    def mock_load_model(model_path):
         return CapturingMockModel()
 
-    monkeypatch.setattr(GoogleFilmInterpolation, "load_model", mock_load_model)
+    monkeypatch.setattr(
+        "improver.utilities.temporal_interpolation.load_model", mock_load_model
+    )
 
     plugin = GoogleFilmInterpolation(model_path="/mock/path")
     plugin.process(cube1, cube2, template)

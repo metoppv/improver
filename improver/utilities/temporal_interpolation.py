@@ -117,6 +117,7 @@ class TemporalInterpolation(BasePlugin):
         max_batch: Optional[int] = 1,
         parallel_backend: Optional[str] = None,
         n_workers: Optional[int] = 1,
+        model_loader: Any = None,
     ) -> None:
         """
         Initialise class.
@@ -183,6 +184,10 @@ class TemporalInterpolation(BasePlugin):
                 If using parallel_backend, the number of workers to use for
                 parallel processing. Default is None, which results in the use of
                 1 core.
+            model_loader:
+                Optional callable to load the TensorFlow model. This is mainly
+                intended for use in testing where a mock model loader can be
+                supplied. If None, the default model loader will be used.
 
         Raises:
             ValueError: If neither interval_in_minutes nor times are set.
@@ -243,6 +248,7 @@ class TemporalInterpolation(BasePlugin):
         self.max_batch = max_batch
         self.parallel_backend = parallel_backend
         self.n_workers = n_workers
+        self.model_loader = model_loader or load_model
         if any([accumulation, max, min]):
             self.period_inputs = True
 
@@ -769,6 +775,7 @@ class TemporalInterpolation(BasePlugin):
                 max_batch=self.max_batch,
                 parallel_backend=self.parallel_backend,
                 n_workers=self.n_workers,
+                model_loader=self.model_loader,
             )
             interpolated_cubes = plugin.process(
                 cube[0], cube[1], interpolated_cube[:-1]
@@ -813,6 +820,7 @@ class ForecastTrajectoryGapFiller(BasePlugin):
         max_batch: Optional[int] = 1,
         parallel_backend: Optional[str] = None,
         n_workers: Optional[int] = 1,
+        model_loader: Any = None,
         **kwargs,
     ) -> None:
         """Initialise the plugin.
@@ -857,6 +865,10 @@ class ForecastTrajectoryGapFiller(BasePlugin):
                 If using parallel_backend, the number of workers to use for
                 parallel processing. Default is None, which results in the use of
                 1 core.
+            model_loader:
+                Optional callable to load the TensorFlow model. This is mainly
+                intended for use in testing where a mock model loader can be
+                supplied. If None, the default model loader will be used.
             **kwargs:
                 Additional arguments passed to TemporalInterpolation.
         """
@@ -873,6 +885,7 @@ class ForecastTrajectoryGapFiller(BasePlugin):
         self.max_batch = max_batch
         self.parallel_backend = parallel_backend
         self.n_workers = n_workers
+        self.model_loader = model_loader
         self.kwargs = kwargs
 
     def _get_forecast_periods(self, cubelist: CubeList) -> List[int]:
@@ -1379,6 +1392,7 @@ class ForecastTrajectoryGapFiller(BasePlugin):
             max_batch=self.max_batch,
             parallel_backend=self.parallel_backend,
             n_workers=self.n_workers,
+            model_loader=self.model_loader,
             **self.kwargs,
         )
 
@@ -1438,6 +1452,7 @@ class GoogleFilmInterpolation(BasePlugin):
         max_batch: Optional[int] = 1,
         parallel_backend: Optional[str] = None,
         n_workers: Optional[int] = 1,
+        model_loader: Any = None,
     ) -> None:
         """
         Initialise the plugin.
@@ -1475,6 +1490,10 @@ class GoogleFilmInterpolation(BasePlugin):
                 If using parallel_backend, the number of workers to use for
                 parallel processing. Default is None, which results in the use of
                 1 core.
+            model_loader:
+                Optional callable to load the TensorFlow model. This is mainly
+                intended for use in testing where a mock model loader can be
+                supplied. If None, the default model loader will be used.
         """
         self.model_path = model_path
         self.scaling = scaling
@@ -1486,6 +1505,7 @@ class GoogleFilmInterpolation(BasePlugin):
         self.max_batch = max_batch
         self.parallel_backend = parallel_backend
         self.n_workers = n_workers
+        self.model_loader = model_loader or load_model
 
     def apply_scaling(self, cube1: Cube, cube2: Cube, scaling: str) -> None:
         """Apply scaling to the input cubes before interpolation.
@@ -1745,6 +1765,7 @@ class GoogleFilmInterpolation(BasePlugin):
                         self.model_path,
                         0,
                         1,
+                        self.model_loader,
                     )
                 )
                 results = Parallel(n_jobs=n_workers, backend=self.parallel_backend)(
@@ -1753,15 +1774,13 @@ class GoogleFilmInterpolation(BasePlugin):
 
             return np.concatenate(results, axis=0)
         elif self.max_batch is None or self.max_batch >= n_times:
-            result = self._run_film_chunk(arr1, arr2, times, model, 0, n_times)
+            result = _run_film_chunk(arr1, arr2, times, model, 0, n_times)
             return result
         else:
             results = []
             for start in range(0, n_times, self.max_batch):
                 end = min(start + self.max_batch, n_times)
-                chunk_result = self._run_film_chunk(
-                    arr1, arr2, times, model, start, end
-                )
+                chunk_result = _run_film_chunk(arr1, arr2, times, model, start, end)
                 results.append(chunk_result)
             return np.concatenate(results, axis=0)
 
@@ -1820,7 +1839,7 @@ class GoogleFilmInterpolation(BasePlugin):
         # is set, each worker will load its own model.
         model = None
         if self.parallel_backend is None:
-            model = load_model(self.model_path)
+            model = self.model_loader(self.model_path)
 
         # Store original data for reverting scaling
         cube1_orig = cube1.copy()
@@ -1916,9 +1935,9 @@ def _run_film_chunk_mp(args):
     Returns:
         Numpy array of interpolated data for the chunk.
     """
-    arr1, arr2, times, model_path, start, end = args
+    arr1, arr2, times, model_path, start, end, model_loader = args
     # Each process loads its own model
-    model = load_model(model_path)
+    model = model_loader(model_path)
     return _run_film_chunk(arr1, arr2, times, model, start, end)
 
 

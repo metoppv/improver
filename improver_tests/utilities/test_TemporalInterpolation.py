@@ -16,7 +16,6 @@ from iris.exceptions import CoordinateNotFoundError
 
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.temporal_interpolation import (
-    GoogleFilmInterpolation,
     TemporalInterpolation,
 )
 
@@ -226,7 +225,7 @@ def setup_google_film_mock(monkeypatch):
     """Helper function to set up mock GoogleFilmInterpolation for testing.
 
     Creates a mock model that performs simple linear interpolation and
-    monkeypatches GoogleFilmInterpolation.load_model to return it.
+    monkeypatches the standalone load_model function to return it.
 
     Args:
         monkeypatch: pytest monkeypatch fixture
@@ -248,10 +247,15 @@ def setup_google_film_mock(monkeypatch):
                 interpolated = np.broadcast_to(interpolated, orig_shape)
             return {"image": interpolated}
 
-    def mock_load_model(self, model_path):
+    def mock_load_model(model_path):
         return MockModel()
 
-    monkeypatch.setattr(GoogleFilmInterpolation, "load_model", mock_load_model)
+    # Patch the module-level load_model function for non-parallel usage
+    monkeypatch.setattr(
+        "improver.utilities.temporal_interpolation.load_model", mock_load_model
+    )
+    # Return the mock_load_model for use as model_loader argument (for parallel)
+    return mock_load_model
 
 
 @pytest.mark.parametrize(
@@ -1075,9 +1079,11 @@ def test_process_accumulation_unequal_inputs(
 )
 def test_process_google_film_method(monkeypatch, parallel_backend, n_workers):
     """Test that the google_film interpolation method produces interpolated
-    cubes with the correct times and uses the GoogleFilmInterpolation plugin."""
+    cubes with the correct times and uses the GoogleFilmInterpolation plugin.
+    The GoogleFilmInterpolation plugin is mocked to avoid the need for
+    a trained model."""
 
-    setup_google_film_mock(monkeypatch)
+    model_loader = setup_google_film_mock(monkeypatch)
 
     times = [datetime.datetime(2017, 11, 1, hour) for hour in [3, 9]]
     npoints = 10
@@ -1096,6 +1102,7 @@ def test_process_google_film_method(monkeypatch, parallel_backend, n_workers):
         model_path="/mock/path",
         parallel_backend=parallel_backend,
         n_workers=n_workers,
+        model_loader=model_loader,
     )
     assert plugin.parallel_backend == parallel_backend
     assert plugin.n_workers == n_workers
@@ -1130,15 +1137,15 @@ def test_process_google_film_with_custom_parameters(monkeypatch):
     cube = multi_time_cube(times, data, "latlon")
 
     result = TemporalInterpolation(
-        interval_in_minutes=360,
+        interval_in_minutes=180,
         interpolation_method="google_film",
         model_path="/mock/path",
         scaling="log10",
-        clipping_bounds=(0.0, 10.0),
+        clipping_bounds=(3.5, 7),
+        clip_to_physical_bounds=True,
     ).process(cube[0], cube[1])
-
     assert isinstance(result, CubeList)
-    assert len(result) == 1  # One interpolated time at 9:00
-    # Data should be within reasonable bounds after scaling/clipping
-    assert np.all(result[0].data >= 0.5)
-    assert np.all(result[0].data <= 10.0)
+    assert len(result) == 2  # Two interpolated times at 6:00 and 9:00
+    # Data should be within the expected bounds after scaling/clipping
+    assert np.all(result[0].data == 3.5)
+    assert np.all(result[1].data == 7.0)

@@ -970,8 +970,6 @@ d89a8587bc28b574b8b1e624bb3bf339aaeb9c8c2355db7fe518af8c9bce527c  ./standardise/
 6335cba81be74577fe10d0a4f5cb75724abcef16499d76c263e80c16cf092a05  ./standardise/radarnet/input_preciprate.nimrod
 74d7216176c1e7feeded6f867cd69eb5ee960ab0b92472f2327eb1e5ae033329  ./standardise/radarnet/kgo_coverage.nc
 a7c196adab463ab48a5bf90934a9f53d5a41ce79a8e2a27ac78268c7e6702516  ./standardise/radarnet/kgo_preciprate.nc
-44cf0fd7d6a4d24546da814d08f87f58d2f83ef5ae3a94c4272a4d33659c3f24  ./standardise/stage-v110/input.nc
-add67f9b08aade71cac803044d650a966698820b8e889468b760edaf3bf89dcc  ./standardise/stage-v110/kgo.nc
 cf7166f2d915fcffaebbe5421a1e064f8d2f2ef6b8813f42142820076dbf98e8  ./temp-lapse-rate/basic/kgo.nc
 53e071816cc4fda21c5397777decf5752f4d8820d96bba0c2a04600e8e5df7ab  ./temp-lapse-rate/basic/temperature_at_screen_level.nc
 bd47eab38ae9099fe5db71b328ebc52225b47f0db97ed673fca30dd67e4655ff  ./temp-lapse-rate/basic/ukvx_landmask.nc
