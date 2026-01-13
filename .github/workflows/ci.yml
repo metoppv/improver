@@ -74,15 +74,10 @@ jobs:
       shell: bash -el {0}
 
     - name: pytest
-      # if: steps.report-cache-restore.outputs.cache-hit != 'true'
+      if: steps.report-cache-restore.outputs.cache-hit != 'true'
       run: |
-          #pytest --cov=improver --cov-report=term --cov-report=html | tee coverage_output.txt; test ${PIPESTATUS[0]} -eq 0
-          # dummy coverage run to generate coverage report for testing cache mechanism
-          rm -rf coverage_output.txt htmlcov/
-          echo "TOTAL   10000   1000   30%" > coverage_output.txt
-          mkdir htmlcov
-          echo "<html><body><h1>Dummy Coverage Report</h1></body></html>" > htmlcov/index.html
-      # shell: micromamba-shell {0}
+          pytest --cov=improver --cov-report=term --cov-report=html | tee coverage_output.txt; test ${PIPESTATUS[0]} -eq 0
+      shell: micromamba-shell {0}
 
     - name: Save cached coverage report
       uses: actions/cache/save@v5
