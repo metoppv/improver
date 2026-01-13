@@ -115,43 +115,8 @@ jobs:
             fi
         fi
 
-    - name: Publish coverage report on coverage-reference branch (non-fork PRs only)
-      if: github.event.pull_request.head.repo.full_name == github.repository
-      run: |
-        BRANCH=${{ env.BRANCH }}
-
-        cd covref
-        git pull origin coverage-reference
-        git config user.name github-actions[bot]
-        git config user.email "github-actions[bot]@users.noreply.github.com"
-
-        echo "=== clear out old reports for this branch ==="
-        find . -path "./${BRANCH}_*" ! -name "index.html" -type f -delete
-        find . -path "./${BRANCH}_*" -type d -empty -delete
-        # replace contents of ./${BRANCH}_*/index.html with a message: "Outdated coverage report.  Repository has been updated since."
-        for dir in $(find . -path "./${BRANCH}_*" -type d); do
-          if [ -f "${dir}/index.html" ]; then
-            echo "<html><body><h1>Outdated coverage report. Repository has been updated since.</h1></body></html>" > "${dir}/index.html"
-          fi
-        done
-
-        if [ "${{ steps.comp-coverage.outputs.coverage_decreased }}" == "true" ]; then
-          echo "=== adding new coverage report ==="
-          mkdir ${BRANCH}_${{ github.event.pull_request.head.sha }}/
-          cp -r ../coverage_output.txt ../htmlcov/ ${BRANCH}_${{ github.event.pull_request.head.sha }}/.
-
-          git add -f ${BRANCH}_${{ github.event.pull_request.head.sha }}/
-        fi
-
-        echo "=== git status after add ==="
-        git status -s
-
-        echo "=== git commit and push ==="
-        git commit -a --amend --no-edit || echo "No changes to commit"
-        git push origin -f coverage-reference
-
-    - name: Upload coverage report (fork PRs only)
-      if: github.event.pull_request.head.repo.full_name != github.repository
+    - name: Upload coverage report
+      if: steps.comp-coverage.outputs.coverage_decreased == 'true'
       uses: actions/upload-artifact@v6
       with:
         name: coverage-report-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
@@ -159,41 +124,11 @@ jobs:
           coverage_output.txt
           htmlcov/
 
-    - name: Output artifact ID
-      run:  echo 'Artifact ID is ${{ steps.artifact-upload-step.outputs.artifact-url }}'
-
-    # - name: Get Job ID from GH API
-    #   id: get-job-id
-    #   if: github.event.pull_request.head.repo.full_name != github.repository
-    #   env:
-    #     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    #   run: |
-    #     jobs=$(gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id}}/attempts/${{ github.run_attempt }}/jobs)
-    #     job_id=$(echo $jobs | jq -r '.jobs[] | select(.runner_name=="${{ runner.name }}") | .id')
-    #     echo "JOB_ID=$job_id" | tee -a $GITHUB_ENV
-    #     echo "ACTIONS_RUN_URL=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/job/$job_id" | tee -a $GITHUB_ENV
-
-    - name: Coverage report PR comment
+    - name: Reduced coverage failure
       if: steps.comp-coverage.outputs.coverage_decreased == 'true'
-      uses: actions/github-script@v8
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        script: |
-          const actions_run_url = "${{ env.ACTIONS_RUN_URL }}";
-          comment = "The test coverage has decreased from ${{ steps.comp-coverage.outputs.ref_cov }}% to ${{ steps.comp-coverage.outputs.pr_cov }}% (commit SHA: ${{ github.event.pull_request.head.sha }})."
-
-          if (context.payload.pull_request.head.repo.full_name == context.payload.repository.full_name) {
-            comment += `\nPlease review test coverage [here](https://metoppv.github.io/improver/${{ env.BRANCH }}_${{ github.event.pull_request.head.sha }}/htmlcov/index.html)`;
-          } else {
-            comment += `\nPlease review test coverage report via the [uploaded artifact](${{ steps.artifact-upload-step.outputs.artifact-url }})`;
-          }
-          console.log(comment)
-          github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: comment
-          });
+      run:  |
+          echo 'Artifact ID is ${{ steps.artifact-upload-step.outputs.artifact-url }}'
+          exit 1
 
 
   Pytest:
