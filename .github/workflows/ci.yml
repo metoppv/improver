@@ -81,7 +81,7 @@ jobs:
           rm -rf coverage_output.txt htmlcov/
           echo "TOTAL   10000   1000   30%" > coverage_output.txt
           mkdir htmlcov
-          echo "<html><body><h1>Dummy Coverage Report</h1></body></
+          echo "<html><body><h1>Dummy Coverage Report</h1></body></html>" > htmlcov/index.html
       # shell: micromamba-shell {0}
 
     - name: Save cached coverage report
