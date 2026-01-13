@@ -169,7 +169,7 @@ def test_process_unsorted_input():
     # Create cubes in reverse order
     cubelist = setup_cubes_with_gaps(hours=[9, 3, 6], data_values=[1.0, 2.0, 3.0])
 
-    plugin = ForecastTrajectoryGapFiller(interval_in_minutes=180)
+    plugin = ForecastTrajectoryGapFiller(interval_in_minutes=120)
     result = plugin.process(cubelist)
 
     # Result should be sorted by forecast period
@@ -177,7 +177,12 @@ def test_process_unsorted_input():
         int(round(cube.coord("forecast_period").points[0] / 3600))
         for cube in result.slices_over("time")
     ]
-    assert result_periods == [3, 6, 9]
+    assert result_periods == [3, 5, 6, 7, 9]
+    assert np.allclose(result[0].data, 2.0)  # T+3
+    assert np.allclose(result[1].data, 2 + 2 / 3)  # T+5
+    assert np.allclose(result[2].data, 3.0)  # T+6
+    assert np.allclose(result[3].data, 2 + 1 / 3)  # T+7
+    assert np.allclose(result[4].data, 1.0)  # T+9
 
 
 def test_process_empty_cubelist_raises_error():
