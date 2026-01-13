@@ -1066,7 +1066,14 @@ def test_process_accumulation_unequal_inputs(
             np.testing.assert_almost_equal(result[i].data, expected_data)
 
 
-def test_process_google_film_method(monkeypatch):
+@pytest.mark.parametrize(
+    "parallel_backend,n_workers",
+    [
+        (None, None),
+        ("loky", 2),
+    ],
+)
+def test_process_google_film_method(monkeypatch, parallel_backend, n_workers):
     """Test that the google_film interpolation method produces interpolated
     cubes with the correct times and uses the GoogleFilmInterpolation plugin."""
 
@@ -1083,11 +1090,16 @@ def test_process_google_film_method(monkeypatch):
     cube = multi_time_cube(times, data, "latlon")
 
     # Test with interval_in_minutes
-    result = TemporalInterpolation(
+    plugin = TemporalInterpolation(
         interval_in_minutes=180,
         interpolation_method="google_film",
         model_path="/mock/path",
-    ).process(cube[0], cube[1])
+        parallel_backend=parallel_backend,
+        n_workers=n_workers,
+    )
+    assert plugin.parallel_backend == parallel_backend
+    assert plugin.n_workers == n_workers
+    result = plugin.process(cube[0], cube[1])
 
     assert isinstance(result, CubeList)
     assert len(result) == 2  # Two interpolated times (6:00 and 9:00)

@@ -214,12 +214,20 @@ def test_google_film_process_time_fraction_calculation(
     np.testing.assert_almost_equal(captured_time_fractions[0], 0.5, decimal=5)
 
 
-@pytest.mark.parametrize("max_batch", [None, 3])
+@pytest.mark.parametrize(
+    "max_batch,parallel_backend,n_workers",
+    [
+        (None, None, None),
+        (3, None, None),
+        (None, "loky", 2),
+        (3, "loky", 2),
+    ],
+)
 def test_google_film_process_multiple_times(
-    google_film_sample_cubes, monkeypatch, max_batch
+    google_film_sample_cubes, monkeypatch, max_batch, parallel_backend, n_workers
 ):
-    """Test processing with multiple interpolation times with and without the
-    max_batch option."""
+    """Test processing with multiple interpolation times, max_batch, and
+    parallel options."""
     cube1, cube2 = google_film_sample_cubes
 
     # Create template with multiple times
@@ -228,7 +236,12 @@ def test_google_film_process_multiple_times(
     data = np.ones((npoints, npoints), dtype=np.float32)
     template = multi_time_cube(times, data, "latlon")
     setup_google_film_mock(monkeypatch)
-    plugin = GoogleFilmInterpolation(model_path="/mock/path", max_batch=max_batch)
+    plugin = GoogleFilmInterpolation(
+        model_path="/mock/path",
+        max_batch=max_batch,
+        parallel_backend=parallel_backend,
+        n_workers=n_workers,
+    )
     result = plugin.process(cube1, cube2, template)
 
     assert isinstance(result, CubeList)
@@ -240,12 +253,20 @@ def test_google_film_process_multiple_times(
         assert result_cube.coord("time").points[0] == expected_time
 
 
-@pytest.mark.parametrize("max_batch", [None, 3])
+@pytest.mark.parametrize(
+    "max_batch,parallel_backend,n_workers",
+    [
+        (None, None, None),
+        (3, None, None),
+        (None, "loky", 2),
+        (3, "loky", 2),
+    ],
+)
 def test_google_film_process_multiple_times_and_realizations(
-    google_film_sample_cubes, monkeypatch, max_batch
+    google_film_sample_cubes, monkeypatch, max_batch, parallel_backend, n_workers
 ):
-    """Test processing with multiple interpolation times and multiple realizations
-    with and without the max_batch option, using modified google_film_sample_cubes."""
+    """Test processing with multiple interpolation times, realizations, max_batch,
+    and parallel options."""
     cube1, cube2 = google_film_sample_cubes
     nrealizations = 3
     npoints = cube1.shape[0]
@@ -270,7 +291,12 @@ def test_google_film_process_multiple_times_and_realizations(
     )
 
     setup_google_film_mock(monkeypatch)
-    plugin = GoogleFilmInterpolation(model_path="/mock/path", max_batch=max_batch)
+    plugin = GoogleFilmInterpolation(
+        model_path="/mock/path",
+        max_batch=max_batch,
+        parallel_backend=parallel_backend,
+        n_workers=n_workers,
+    )
     result = plugin.process(cube1, cube2, template)
 
     assert isinstance(result, CubeList)

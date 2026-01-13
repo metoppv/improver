@@ -31,9 +31,17 @@ from improver.utilities.temporal import iris_time_to_datetime
 # Utility function to ensure clipping_bounds is a tuple if not None
 def _as_tuple_if_list(bounds):
     """Convert a list to a tuple, or return as is if already a tuple or None."""
-    if bounds is not None and isinstance(bounds, list):
-        return tuple(bounds)
-    return bounds
+    if bounds is None:
+        return None
+    # Convert to tuple if list, else keep as tuple
+    if isinstance(bounds, list):
+        bounds_tuple = tuple(bounds)
+    elif isinstance(bounds, tuple):
+        bounds_tuple = bounds
+    else:
+        raise TypeError(f"clipping_bounds must be a list or tuple, got {type(bounds)}")
+    # Convert all elements to float
+    return tuple(float(b) for b in bounds_tuple)
 
 
 class TemporalInterpolation(BasePlugin):
@@ -106,7 +114,9 @@ class TemporalInterpolation(BasePlugin):
         clipping_bounds: Optional[Tuple[float, float]] = None,
         clip_in_scaled_space: bool = False,
         clip_to_physical_bounds: bool = False,
-        max_batch: Optional[int] = None,
+        max_batch: Optional[int] = 1,
+        parallel_backend: Optional[str] = None,
+        n_workers: Optional[int] = 1,
     ) -> None:
         """
         Initialise class.
@@ -161,13 +171,22 @@ class TemporalInterpolation(BasePlugin):
                 interpolation when using "google_film" method.
                 Default is False.
             max_batch:
-                Maximum number of samples to process in a single batch when using
-                the "google_film" interpolation method. This allows memory-efficient
-                chunked inference. If None, all samples are processed at once.
+                If using google_film interpolation, the maximum batch size for model
+                inference. This limits memory usage by processing the data in smaller
+                chunks. Default is 1 (no batching).
+            parallel_backend:
+                If specified, the parallelisation backend to use when performing
+                google_film interpolation. Options are currently the "loky" backend
+                provided by the joblib package. Default is None, which results in
+                no parallelisation.
+            n_workers:
+                If using parallel_backend, the number of workers to use for
+                parallel processing. Default is None, which results in the use of
+                1 core.
 
         Raises:
             ValueError: If neither interval_in_minutes nor times are set.
-            ValueError: If both interval_in_minutes and times are both set.
+            ValueError: If both interval_in_minutes and times are not set.
             ValueError: If interpolation method not in known list.
             ValueError: If multiple period diagnostic kwargs are set True.
             ValueError: A period diagnostic is being interpolated with a method
@@ -222,6 +241,8 @@ class TemporalInterpolation(BasePlugin):
         self.max = max
         self.min = min
         self.max_batch = max_batch
+        self.parallel_backend = parallel_backend
+        self.n_workers = n_workers
         if any([accumulation, max, min]):
             self.period_inputs = True
 
@@ -746,6 +767,8 @@ class TemporalInterpolation(BasePlugin):
                 clip_in_scaled_space=self.clip_in_scaled_space,
                 clip_to_physical_bounds=self.clip_to_physical_bounds,
                 max_batch=self.max_batch,
+                parallel_backend=self.parallel_backend,
+                n_workers=self.n_workers,
             )
             interpolated_cubes = plugin.process(
                 cube[0], cube[1], interpolated_cube[:-1]
@@ -787,7 +810,9 @@ class ForecastTrajectoryGapFiller(BasePlugin):
         clipping_bounds: Optional[Union[Tuple[float, float], List[float]]] = None,
         clip_in_scaled_space: bool = True,
         clip_to_physical_bounds: bool = False,
-        max_batch: Optional[int] = None,
+        max_batch: Optional[int] = 1,
+        parallel_backend: Optional[str] = None,
+        n_workers: Optional[int] = 1,
         **kwargs,
     ) -> None:
         """Initialise the plugin.
@@ -823,6 +848,15 @@ class ForecastTrajectoryGapFiller(BasePlugin):
                 Maximum number of samples to process in a single batch when using
                 the "google_film" interpolation method. This allows memory-efficient
                 chunked inference. If None, all samples are processed at once.
+            parallel_backend:
+                If specified, the parallelisation backend to use when performing
+                google_film interpolation. Options are currently the "loky" backend
+                provided by the joblib package. Default is None, which results in
+                no parallelisation.
+            n_workers:
+                If using parallel_backend, the number of workers to use for
+                parallel processing. Default is None, which results in the use of
+                1 core.
             **kwargs:
                 Additional arguments passed to TemporalInterpolation.
         """
@@ -837,6 +871,8 @@ class ForecastTrajectoryGapFiller(BasePlugin):
         self.clip_in_scaled_space = clip_in_scaled_space
         self.clip_to_physical_bounds = clip_to_physical_bounds
         self.max_batch = max_batch
+        self.parallel_backend = parallel_backend
+        self.n_workers = n_workers
         self.kwargs = kwargs
 
     def _get_forecast_periods(self, cubelist: CubeList) -> List[int]:
@@ -1341,6 +1377,8 @@ class ForecastTrajectoryGapFiller(BasePlugin):
             clip_in_scaled_space=self.clip_in_scaled_space,
             clip_to_physical_bounds=self.clip_to_physical_bounds,
             max_batch=self.max_batch,
+            parallel_backend=self.parallel_backend,
+            n_workers=self.n_workers,
             **self.kwargs,
         )
 
@@ -1378,22 +1416,8 @@ class ForecastTrajectoryGapFiller(BasePlugin):
         return MergeCubes()(final_cubelist)
 
 
-class GoogleFilmInterpolation:
+class GoogleFilmInterpolation(BasePlugin):
     """Class to perform temporal interpolation using the Google FILM model.
-
-    Args:
-        model_path:
-            Path to the TensorFlow Hub module for the Google FILM model.
-        scaling:
-            Scaling method to apply to the data before interpolation. Supported methods are "log10" and "minmax".
-        clipping_bounds:
-            A tuple specifying the (min, max) bounds to which to clip the interpolated data. Default is None.
-        clip_in_scaled_space:
-            Whether to apply clipping in the scaled data space. Default is True.
-        clip_to_physical_bounds:
-            Whether to apply clipping to physical bounds after interpolation. Default is False.
-        max_batch:
-            Maximum number of samples to process in a single batch. This allows memory-efficient chunked inference. If None, all samples are processed at once.
 
     The model is expected to be a TensorFlow Hub module that takes as input two
     images and a time point between 0 and 1, and outputs an interpolated image.
@@ -1411,32 +1435,46 @@ class GoogleFilmInterpolation:
         clip_to_physical_bounds: bool = False,
         cluster_sources_attribute: Optional[str] = None,
         interpolation_window_in_hours: Optional[int] = None,
-        max_batch: Optional[int] = None,
+        max_batch: Optional[int] = 1,
+        parallel_backend: Optional[str] = None,
+        n_workers: Optional[int] = 1,
     ) -> None:
         """
+        Initialise the plugin.
+
         Args:
             model_path:
                 Path to the TensorFlow Hub module for the Google FILM model.
             scaling:
-                Scaling method to apply to the data before interpolation.
-                Supported methods are "log10" and "minmax".
+                Scaling method to apply to the data before interpolation. Supported
+                methods are "log10" and "minmax".
             clipping_bounds:
-                A tuple specifying the (min, max) bounds to which to clip
-                the interpolated data. Use None for no bound in that direction.
+                A tuple specifying the (min, max) bounds to which to clip the
+                interpolated data. Default is None.
             clip_in_scaled_space:
-                If True, clipping_bounds are applied in scaled space before
-                inverse scaling.
+                Whether to apply clipping in the scaled data space. Default is True.
             clip_to_physical_bounds:
-                If True, interpolated data is clipped to physical bounds
-                after inverse scaling.
+                Whether to apply clipping to physical bounds after interpolation.
+                Default is False.
             cluster_sources_attribute:
-                Name of a cube attribute containing a dictionary that maps
-                realization indices to their forecast sources and periods.
+                Name of cube attribute containing cluster sources dictionary.
                 When provided with interpolation_window_in_hours, enables
-                interpolation across forecast source transitions.
+                identification of validity times to regenerate at source transitions.
             interpolation_window_in_hours:
-                The time window (in hours) to use as a +/- range around forecast
-                source transition points. Used with cluster_sources_attribute.
+                Time window (in hours) as +/- range around forecast source transitions.
+            max_batch:
+                If using google_film interpolation, the maximum batch size for model
+                inference. This limits memory usage by processing the data in smaller
+                chunks. Default is 1 (no batching).
+            parallel_backend:
+                If specified, the parallelisation backend to use when performing
+                google_film interpolation. Options are currently the "loky" backend
+                provided by the joblib package. Default is None, which results in
+                no parallelisation.
+            n_workers:
+                If using parallel_backend, the number of workers to use for
+                parallel processing. Default is None, which results in the use of
+                1 core.
         """
         self.model_path = model_path
         self.scaling = scaling
@@ -1446,41 +1484,8 @@ class GoogleFilmInterpolation:
         self.cluster_sources_attribute = cluster_sources_attribute
         self.interpolation_window_in_hours = interpolation_window_in_hours
         self.max_batch = max_batch
-
-    def load_model(self, model_path: str) -> Any:
-        """Load the TensorFlow Hub model.
-
-        Args:
-            model_path:
-                Path to the TensorFlow Hub module for the Google FILM model.
-        Returns:
-            The loaded TensorFlow Hub model.
-        """
-        # TODO: Remove this monkeypatch if the error reporting that the
-        # 'register_load_context_function' attribute is missing no longer occurs.
-        # Apply monkey patch before importing anything TensorFlow-related
-        # We need to patch all possible import paths that tf_keras might use
-        # Related to https://github.com/keras-team/tf-keras/issues/257
-        try:
-            import tensorflow as tf
-
-            # Patch all the different ways tensorflow's __internal__ can be accessed
-            if hasattr(tf.__internal__, "register_call_context_function"):
-                func = tf.__internal__.register_call_context_function
-                tf.__internal__.register_load_context_function = func
-                # Also patch the compat.v2 path that tf_keras uses
-                if hasattr(tf.compat, "v2"):
-                    tf.compat.v2.__internal__.register_load_context_function = func
-                # And the _api.v2.compat.v2 path
-                import tensorflow._api.v2.compat.v2 as tf_api
-
-                tf_api.__internal__.register_load_context_function = func
-        except (ImportError, AttributeError):
-            pass
-
-        import tensorflow_hub as hub
-
-        return hub.load(model_path)
+        self.parallel_backend = parallel_backend
+        self.n_workers = n_workers
 
     def apply_scaling(self, cube1: Cube, cube2: Cube, scaling: str) -> None:
         """Apply scaling to the input cubes before interpolation.
@@ -1582,45 +1587,115 @@ class GoogleFilmInterpolation:
             self.apply_clipping(cube, cube1_orig, cube2_orig)
         return cube
 
-    def _run_film_chunk(
+    def _interpolate_with_extra_dim(
         self,
-        arr1: np.ndarray,
-        arr2: np.ndarray,
-        times: np.ndarray,
+        cube1: Cube,
+        cube2: Cube,
+        template_slices: list,
+        time_fractions: list,
         model: "Any",
-        start: int,
-        end: int,
-    ) -> np.ndarray:
+        extra_dim: str,
+        cube1_orig: Cube,
+        cube2_orig: Cube,
+    ) -> CubeList:
         """
-        Run the Google FILM model for a chunk of data from start to end indices.
+        Helper method to handle interpolation when an extra dimension
+        (e.g. realization, percentile) is present.
 
         Args:
-            arr1: The first input array.
-            arr2: The second input array.
-            times: Array of time points for interpolation.
+            cube1: The first input cube (scaled).
+            cube2: The second input cube (scaled).
+            template_slices: List of template slices over time.
+            time_fractions: List of time fractions for interpolation.
             model: The loaded TensorFlow Hub model.
-            start: Start index for the chunk.
-            end: End index for the chunk.
+            extra_dim: The name of the extra dimension.
+            cube1_orig: The first input cube before scaling.
+            cube2_orig: The second input cube before scaling.
+
         Returns:
-            Numpy array of interpolated data for the chunk.
+            CubeList of interpolated cubes for each time and extra_dim value.
         """
-        image1 = np.broadcast_to(
-            arr1[start:end, ..., np.newaxis], arr1[start:end].shape + (3,)
-        ).astype(np.float32)
-        image2 = np.broadcast_to(
-            arr2[start:end, ..., np.newaxis], arr2[start:end].shape + (3,)
-        ).astype(np.float32)
-        inputs = {
-            "time": times[start:end],
-            "x0": image1,
-            "x1": image2,
-        }
-        frame = model(inputs)
-        result_data = frame["image"]
-        if hasattr(result_data, "numpy"):
-            result_data = result_data.numpy()
-        result_data = result_data[..., 0]
-        return result_data
+        extra_points = cube1.coord(extra_dim).points
+        num_extra = len(extra_points)
+        cube1_data_stacked = []
+        cube2_data_stacked = []
+
+        for template_slice in template_slices:
+            for cube1_slice, cube2_slice in zip(
+                cube1.slices_over(extra_dim), cube2.slices_over(extra_dim)
+            ):
+                cube1_data_stacked.append(cube1_slice.data)
+                cube2_data_stacked.append(cube2_slice.data)
+
+        cube1_data_stacked = np.array(cube1_data_stacked)  # (N * num_extra, H, W)
+        cube2_data_stacked = np.array(cube2_data_stacked)  # (N * num_extra, H, W)
+        time_fractions_stacked = np.repeat(time_fractions, num_extra)
+        result_data = self.run_google_film(
+            cube1_data_stacked,
+            cube2_data_stacked,
+            model,
+            time_fractions_stacked,
+        )  # (N * num_extra, H, W)
+
+        interpolated_cubes = CubeList()
+        for template_idx, template_slice in enumerate(template_slices):
+            cubes_for_merge = []
+            start = template_idx * num_extra
+            end = start + num_extra
+            data_stack = result_data[start:end]
+            for extra_idx, data in enumerate(data_stack):
+                cube = template_slice.extract(
+                    iris.Constraint(**{extra_dim: extra_points[extra_idx]})
+                )
+                cube = cube.copy(data=data)
+                cube.coord(extra_dim).points = [extra_points[extra_idx]]
+                cube = self._finalise_interpolated_cube(
+                    cube, cube1, cube2, cube1_orig, cube2_orig
+                )
+                cubes_for_merge.append(cube)
+            merged_cube = cubes_for_merge[0].copy()
+            if num_extra > 1:
+                merged_cube = MergeCubes()(iris.cube.CubeList(cubes_for_merge))
+            interpolated_cubes.append(merged_cube)
+        return interpolated_cubes
+
+    def _interpolate_no_extra_dim(
+        self,
+        cube1: Cube,
+        cube2: Cube,
+        template_slices: list,
+        time_fractions: list,
+        model: "Any",
+        cube1_orig: Cube,
+        cube2_orig: Cube,
+    ) -> CubeList:
+        """
+        Helper method to handle interpolation when there is no extra dimension.
+
+        Args:
+            cube1: The first input cube (scaled).
+            cube2: The second input cube (scaled).
+            template_slices: List of template slices over time.
+            time_fractions: List of time fractions for interpolation.
+            model: The loaded TensorFlow Hub model.
+            cube1_orig: The first input cube before scaling.
+            cube2_orig: The second input cube before scaling.
+
+        Returns:
+            CubeList of interpolated cubes for each time point.
+        """
+        result_data = self.run_google_film(
+            cube1.data, cube2.data, model, time_fractions
+        )  # (N, H, W)
+        interpolated_cubes = CubeList()
+        for idx, template_slice in enumerate(template_slices):
+            interpolated_cube = template_slice.copy(data=result_data[idx])
+            # Apply clipping and reverse scaling
+            interpolated_cube = self._finalise_interpolated_cube(
+                interpolated_cube, cube1, cube2, cube1_orig, cube2_orig
+            )
+            interpolated_cubes.append(interpolated_cube)
+        return interpolated_cubes
 
     def run_google_film(
         self,
@@ -1628,7 +1703,6 @@ class GoogleFilmInterpolation:
         arr2: np.ndarray,
         model: Any,
         time_points: List[float],
-        max_batch: Optional[int] = None,
     ) -> np.ndarray:
         """
         Run the Google FILM model to interpolate between two arrays at multiple time
@@ -1656,15 +1730,35 @@ class GoogleFilmInterpolation:
         if arr2.ndim == 2:
             arr2 = np.broadcast_to(arr2, (n_times, *arr2.shape))
 
-        # Chunked batching
-        if max_batch is None or max_batch >= n_times:
-            # No chunking needed, process all at once
-            return self._run_film_chunk(arr1, arr2, times, model, 0, n_times)
+        if self.parallel_backend == "loky":
+            from joblib import Parallel, delayed
+
+            n_workers = self.n_workers or 1
+
+            chunks = []
+            for arr1_slice, arr2_slice, atime in zip(arr1, arr2, times):
+                chunks.append(
+                    (
+                        arr1_slice[np.newaxis],
+                        arr2_slice[np.newaxis],
+                        atime[np.newaxis],
+                        self.model_path,
+                        0,
+                        1,
+                    )
+                )
+                results = Parallel(n_jobs=n_workers, backend=self.parallel_backend)(
+                    delayed(_run_film_chunk_mp)(args) for args in chunks
+                )
+
+            return np.concatenate(results, axis=0)
+        elif self.max_batch is None or self.max_batch >= n_times:
+            result = self._run_film_chunk(arr1, arr2, times, model, 0, n_times)
+            return result
         else:
-            # Process in chunks
             results = []
-            for start in range(0, n_times, max_batch):
-                end = min(start + max_batch, n_times)
+            for start in range(0, n_times, self.max_batch):
+                end = min(start + self.max_batch, n_times)
                 chunk_result = self._run_film_chunk(
                     arr1, arr2, times, model, start, end
                 )
@@ -1722,7 +1816,11 @@ class GoogleFilmInterpolation:
                     f"Coordinate '{extra_dim}' does not match between cubes."
                 )
 
-        model = self.load_model(self.model_path)
+        # Only load the model if parallel_backend is None. If the parallel_backend
+        # is set, each worker will load its own model.
+        model = None
+        if self.parallel_backend is None:
+            model = load_model(self.model_path)
 
         # Store original data for reverting scaling
         cube1_orig = cube1.copy()
@@ -1745,66 +1843,125 @@ class GoogleFilmInterpolation:
             time_fractions.append(time_fraction)
 
         if extra_dim:
-            # Batched over both time and extra_dim
-            extra_points = cube1.coord(extra_dim).points
-            num_extra = len(extra_points)
-            # Stack all cube1 and cube2 slices for all times and extra values
-            cube1_data_stacked = []
-            cube2_data_stacked = []
-            for template_slice in template_slices:
-                for cube1_slice, cube2_slice in zip(
-                    cube1.slices_over(extra_dim), cube2.slices_over(extra_dim)
-                ):
-                    cube1_data_stacked.append(cube1_slice.data)
-                    cube2_data_stacked.append(cube2_slice.data)
-
-            cube1_data_stacked = np.array(cube1_data_stacked)  # (N * num_extra, H, W)
-            cube2_data_stacked = np.array(cube2_data_stacked)  # (N * num_extra, H, W)
-            # Repeat time fractions for each extra value
-            time_fractions_stacked = np.repeat(time_fractions, num_extra)
-            # Batched FILM call with chunking
-            result_data = self.run_google_film(
-                cube1_data_stacked,
-                cube2_data_stacked,
-                model,
-                time_fractions_stacked,
-                self.max_batch,
-            )  # (N * num_extra, H, W)
-            # Reconstruct cubes for each time
-            for template_idx, template_slice in enumerate(template_slices):
-                cubes_for_merge = []
-                start = template_idx * num_extra
-                end = start + num_extra
-                data_stack = result_data[start:end]  # (N * num_extra, H, W)
-                for extra_idx, data in enumerate(data_stack):
-                    cube = template_slice.extract(
-                        iris.Constraint(**{extra_dim: extra_points[extra_idx]})
-                    )
-                    cube = cube.copy(data=data)
-                    cube.coord(extra_dim).points = [extra_points[extra_idx]]
-                    # Apply clipping and reverse scaling
-                    cube = self._finalise_interpolated_cube(
-                        cube, cube1, cube2, cube1_orig, cube2_orig
-                    )
-                    cubes_for_merge.append(cube)
-                merged_cube = cubes_for_merge[0].copy()
-                if num_extra > 1:
-                    merged_cube = MergeCubes()(iris.cube.CubeList(cubes_for_merge))
-                interpolated_cubes.append(merged_cube)
-        else:
-            # Batched call for all time points, with chunking
-            result_data = self.run_google_film(
-                cube1.data, cube2.data, model, time_fractions, self.max_batch
-            )  # (N, H, W)
-            for idx, template_slice in enumerate(template_slices):
-                interpolated_cube = template_slice.copy(data=result_data[idx])
-                # Apply clipping and reverse scaling
-                interpolated_cube = self._finalise_interpolated_cube(
-                    interpolated_cube, cube1, cube2, cube1_orig, cube2_orig
+            interpolated_cubes.extend(
+                self._interpolate_with_extra_dim(
+                    cube1,
+                    cube2,
+                    template_slices,
+                    time_fractions,
+                    model,
+                    extra_dim,
+                    cube1_orig,
+                    cube2_orig,
                 )
-                interpolated_cubes.append(interpolated_cube)
-
+            )
+        else:
+            interpolated_cubes.extend(
+                self._interpolate_no_extra_dim(
+                    cube1,
+                    cube2,
+                    template_slices,
+                    time_fractions,
+                    model,
+                    cube1_orig,
+                    cube2_orig,
+                )
+            )
         return interpolated_cubes
+
+
+def load_model(model_path: str) -> Any:
+    """Load the TensorFlow Hub model. This is a standalone function to allow
+    multiprocessing workers to load the model independently from the
+    GoogleFilmInterpolation class.
+
+    Args:
+        model_path:
+            Path to the TensorFlow Hub module for the Google FILM model.
+    Returns:
+        The loaded TensorFlow Hub model.
+    """
+    # TODO: Remove this monkeypatch if the error reporting that the
+    # 'register_load_context_function' attribute is missing no longer occurs.
+    # Apply monkey patch before importing anything TensorFlow-related
+    # We need to patch all possible import paths that tf_keras might use
+    # Related to https://github.com/keras-team/tf-keras/issues/257
+    try:
+        import tensorflow as tf
+
+        # Patch all the different ways tensorflow's __internal__ can be accessed
+        if hasattr(tf.__internal__, "register_call_context_function"):
+            func = tf.__internal__.register_call_context_function
+            tf.__internal__.register_load_context_function = func
+            # Also patch the compat.v2 path that tf_keras uses
+            if hasattr(tf.compat, "v2"):
+                tf.compat.v2.__internal__.register_load_context_function = func
+            # And the _api.v2.compat.v2 path
+            import tensorflow._api.v2.compat.v2 as tf_api
+
+            tf_api.__internal__.register_load_context_function = func
+    except (ImportError, AttributeError):
+        pass
+
+    import tensorflow_hub as hub
+
+    return hub.load(model_path)
+
+
+def _run_film_chunk_mp(args):
+    """Run a chunk of data through the Google FILM model in a multiprocessing worker.
+
+    Args:
+        args: Tuple containing (arr1, arr2, times, model_path, start, end).
+    Returns:
+        Numpy array of interpolated data for the chunk.
+    """
+    arr1, arr2, times, model_path, start, end = args
+    # Each process loads its own model
+    model = load_model(model_path)
+    return _run_film_chunk(arr1, arr2, times, model, start, end)
+
+
+def _run_film_chunk(
+    arr1: np.ndarray,
+    arr2: np.ndarray,
+    times: np.ndarray,
+    model: "Any",
+    start: int,
+    end: int,
+) -> np.ndarray:
+    """
+    Run the Google FILM model for a chunk of data from start to end indices.
+    Defined outside of the GoogleFilmInterpolation class to allow multiprocessing
+    workers to call it.
+
+    Args:
+        arr1: The first input array.
+        arr2: The second input array.
+        times: Array of time points for interpolation.
+        model: The loaded TensorFlow Hub model.
+        start: Start index for the chunk.
+        end: End index for the chunk.
+    Returns:
+        Numpy array of interpolated data for the chunk.
+    """
+    image1 = np.broadcast_to(
+        arr1[start:end, ..., np.newaxis], arr1[start:end].shape + (3,)
+    ).astype(np.float32)
+    image2 = np.broadcast_to(
+        arr2[start:end, ..., np.newaxis], arr2[start:end].shape + (3,)
+    ).astype(np.float32)
+    inputs = {
+        "time": times[start:end],
+        "x0": image1,
+        "x1": image2,
+    }
+    frame = model(inputs)
+    result_data = frame["image"]
+    if hasattr(result_data, "numpy"):
+        result_data = result_data.numpy()
+    result_data = result_data[..., 0]
+    return result_data
 
 
 class DurationSubdivision:

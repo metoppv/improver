@@ -219,7 +219,14 @@ def test_process_missing_forecast_period_raises_error():
         plugin.process(cubelist)
 
 
-def test_process_with_google_film_method(monkeypatch):
+@pytest.mark.parametrize(
+    "parallel_backend,n_workers",
+    [
+        (None, None),
+        ("loky", 2),
+    ],
+)
+def test_process_with_google_film_method(monkeypatch, parallel_backend, n_workers):
     """Test that process works with google_film interpolation method."""
     setup_google_film_mock(monkeypatch)
 
@@ -238,7 +245,11 @@ def test_process_with_google_film_method(monkeypatch):
         interval_in_minutes=180,
         interpolation_method="google_film",
         model_path="/mock/path",
+        parallel_backend=parallel_backend,
+        n_workers=n_workers,
     )
+    assert plugin.parallel_backend == parallel_backend
+    assert plugin.n_workers == n_workers
     result = plugin.process(cubelist)
 
     # Should have 3 cubes including the interpolated one

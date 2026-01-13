@@ -25,7 +25,9 @@ def process(
     clipping_bounds: cli.comma_separated_list = None,
     clip_in_scaled_space: bool = False,
     clip_to_physical_bounds: bool = False,
-    max_batch: int = None,
+    max_batch: int = 1,
+    parallel_backend: str = None,
+    n_workers: int = 1,
 ):
     """Interpolate data between validity times.
 
@@ -100,7 +102,16 @@ def process(
         max_batch (int):
             If using google_film interpolation, the maximum batch size for model
             inference. This limits memory usage by processing the data in smaller
-            chunks. Default is None (no chunking).
+            chunks. Default is 1 (no batching).
+        parallel_backend (str):
+            If specified, the parallelisation backend to use when performing
+            google_film interpolation. Options are currently the "loky" backend
+            provided by the joblib package. Default is None, which results in
+            no parallelisation.
+        n_workers (int):
+            If using parallel_backend, the number of workers to use for
+            parallel processing. Default is None, which results in the use of
+            1 core.
     Returns:
         iris.cube.CubeList:
             A list of cubes interpolated to the desired times. The
@@ -133,5 +144,7 @@ def process(
         clip_in_scaled_space=clip_in_scaled_space,
         clip_to_physical_bounds=clip_to_physical_bounds,
         max_batch=max_batch,
+        parallel_backend=parallel_backend,
+        n_workers=n_workers,
     )(start_cube, end_cube)
     return MergeCubes()(result)
