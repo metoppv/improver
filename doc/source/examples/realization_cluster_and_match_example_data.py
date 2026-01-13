@@ -15,6 +15,8 @@ then matches secondary (high resolution) ensemble realizations to the clusters
 based on mean squared error, respecting a configurable precedence hierarchy.
 """
 
+# sphinx_gallery_expected_failing = True
+
 # Authors: The IMPROVER developers
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -26,10 +28,7 @@ based on mean squared error, respecting a configurable precedence hierarchy.
 try:
     import kmedoids  # noqa: F401
 except ImportError:
-    import sys
-
-    print("kmedoids package not available, skipping example", file=sys.stderr)
-    sys.exit(0)
+    raise RuntimeError("kmedoids package not available, skipping example")
 
 # %%
 # Check for esmf_regrid availability
