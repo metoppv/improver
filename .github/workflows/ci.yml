@@ -81,7 +81,7 @@ jobs:
           echo "TOTAL   10000   1000   30%" > coverage_output.txt
           mkdir htmlcov
           echo "<html><body><h1>Dummy Coverage Report</h1></body></
-      shell: micromamba-shell {0}
+      # shell: micromamba-shell {0}
 
     - name: Save cached coverage report
       uses: actions/cache/save@v5
