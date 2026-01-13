@@ -158,23 +158,16 @@ jobs:
           coverage_output.txt
           htmlcov/
 
-    - name: get job id number and action output url
-      # Write the following variables to the github environment file
-      # - ACTIONS_OUTPUT_URL
-      # - JOB_ID
-      # See https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#environment-files
+    - name: Get Job ID from GH API
+      id: get-job-id
       if: github.event.pull_request.head.repo.full_name != github.repository
       env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        jobs_url="https://api.github.com/repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs"
-        actions_output_url=$(curl -s -H "Authorization: token ${{ env.GITHUB_TOKEN }}" $jobs_url | jq -r '.jobs[] | .html_url')
-        actions_run_url=$(dirname $(dirname ${actions_output_url}))
-        job_id=$(basename $actions_output_url)
+        jobs=$(gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id}}/attempts/${{ github.run_attempt }}/jobs)
+        job_id=$(echo $jobs | jq -r '.jobs[] | select(.runner_name=="${{ runner.name }}") | .id')
         echo "JOB_ID=$job_id" | tee -a $GITHUB_ENV
-        echo "ACTIONS_OUTPUT_URL=$actions_output_url" | tee -a $GITHUB_ENV
-        echo "ACTIONS_RUN_URL=$actions_run_url" | tee -a $GITHUB_ENV
-        echo job name: ${{ github.job }}
+        echo "ACTIONS_RUN_URL=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/job/${{ steps.get-job-id.outputs.job_id }}" | tee -a $GITHUB_ENV
 
     - name: Coverage report PR comment
       if: steps.comp-coverage.outputs.coverage_decreased == 'true'
