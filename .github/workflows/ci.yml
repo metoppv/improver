@@ -116,6 +116,7 @@ jobs:
         fi
 
     - name: Upload coverage report
+      id: artifact-coverage-upload
       if: steps.comp-coverage.outputs.coverage_decreased == 'true'
       uses: actions/upload-artifact@v6
       with:
@@ -127,7 +128,7 @@ jobs:
     - name: Reduced coverage failure
       if: steps.comp-coverage.outputs.coverage_decreased == 'true'
       run:  |
-          echo 'Artifact ID is ${{ steps.artifact-upload-step.outputs.artifact-url }}'
+          echo 'Artifact ID is ${{ steps.artifact-coverage-upload.outputs.artifact-url }}'
           exit 1
 
 
