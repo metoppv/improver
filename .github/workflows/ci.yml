@@ -43,6 +43,7 @@ jobs:
         fetch-depth: 1
         path: covref
         ref: coverage-reference
+        github-token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Branch name
       run: |
@@ -115,8 +116,6 @@ jobs:
         fi
 
     - name: Coverage report on coverage-reference branch
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
       run: |
         BRANCH=${{ env.BRANCH }}
 
