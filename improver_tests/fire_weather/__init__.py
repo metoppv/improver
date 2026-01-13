@@ -57,7 +57,7 @@ def make_input_cubes(
     cube_specs: list[tuple[str, float | np.ndarray, str, bool]],
     shape: tuple[int, ...] = (5, 5),
 ) -> tuple[Cube, ...]:
-    """Create a list of test cubes for fire weather index tests.
+    """Create a tuple of test cubes for fire weather index tests.
 
     This is a convenience function for creating multiple input cubes with
     a consistent shape and default values.

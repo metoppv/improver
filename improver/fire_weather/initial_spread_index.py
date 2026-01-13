@@ -30,6 +30,13 @@ class InitialSpreadIndex(FireWeatherIndexBase):
 
     INPUT_CUBE_NAMES = ["wind_speed", "fine_fuel_moisture_content"]
     OUTPUT_CUBE_NAME = "initial_spread_index"
+    # Valid output ranges for warning checks (output_name: (min, max))
+    # Minimum and maximum feasible values for each output index are drawn from
+    # values reported in:
+    # Wang, X., Oliver, J., Swystun, T., Hanes, C.C., Erni, S. and Flannigan,
+    # M.D., 2023. Critical fire weather conditions during active fire spread
+    # days in Canada. Science of the total environment, 869, p.161831.
+    VALID_OUTPUT_RANGE = (0.0, 100)
     # Disambiguate input FFMC from the output (ISI doesn't output FFMC, but uses naming consistency)
     INPUT_ATTRIBUTE_MAPPINGS = {"fine_fuel_moisture_content": "input_ffmc"}
 

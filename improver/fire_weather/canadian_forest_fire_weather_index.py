@@ -31,6 +31,13 @@ class CanadianForestFireWeatherIndex(FireWeatherIndexBase):
 
     INPUT_CUBE_NAMES = ["initial_spread_index", "build_up_index"]
     OUTPUT_CUBE_NAME = "canadian_forest_fire_weather_index"
+    # Valid output ranges for warning checks (output_name: (min, max))
+    # Minimum and maximum feasible values for each output index are drawn from
+    # values reported in:
+    # Wang, X., Oliver, J., Swystun, T., Hanes, C.C., Erni, S. and Flannigan,
+    # M.D., 2023. Critical fire weather conditions during active fire spread
+    # days in Canada. Science of the total environment, 869, p.161831.
+    VALID_OUTPUT_RANGE = (0.0, 100)
 
     initial_spread_index: Cube
     build_up_index: Cube
