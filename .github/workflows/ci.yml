@@ -78,7 +78,7 @@ jobs:
       run: |
           #pytest --cov=improver --cov-report=term --cov-report=html | tee coverage_output.txt; test ${PIPESTATUS[0]} -eq 0
           # dummy coverage run to generate coverage report for testing cache mechanism
-          echo "TOTAL 35%" > coverage_output.txt
+          echo "TOTAL   10000   1000   30%" > coverage_output.txt
           mkdir htmlcov
           echo "<html><body><h1>Dummy Coverage Report</h1></body></
       shell: micromamba-shell {0}
@@ -167,7 +167,7 @@ jobs:
         jobs=$(gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id}}/attempts/${{ github.run_attempt }}/jobs)
         job_id=$(echo $jobs | jq -r '.jobs[] | select(.runner_name=="${{ runner.name }}") | .id')
         echo "JOB_ID=$job_id" | tee -a $GITHUB_ENV
-        echo "ACTIONS_RUN_URL=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/job/${{ steps.get-job-id.outputs.job_id }}" | tee -a $GITHUB_ENV
+        echo "ACTIONS_RUN_URL=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/job/$job_id" | tee -a $GITHUB_ENV
 
     - name: Coverage report PR comment
       if: steps.comp-coverage.outputs.coverage_decreased == 'true'
