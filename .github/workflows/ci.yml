@@ -43,7 +43,6 @@ jobs:
         fetch-depth: 1
         path: covref
         ref: coverage-reference
-        repository: cpelley/improver
 
     - name: Branch name
       run: |
@@ -147,6 +146,7 @@ jobs:
 
         echo "=== git commit and push ==="
         git commit -a --amend --no-edit || echo "No changes to commit"
+        git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
         git push origin -f coverage-reference
 
     - name: Coverage report PR comment
