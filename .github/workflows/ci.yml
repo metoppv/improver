@@ -78,6 +78,7 @@ jobs:
       run: |
           #pytest --cov=improver --cov-report=term --cov-report=html | tee coverage_output.txt; test ${PIPESTATUS[0]} -eq 0
           # dummy coverage run to generate coverage report for testing cache mechanism
+          rm -rf coverage_output.txt htmlcov/
           echo "TOTAL   10000   1000   30%" > coverage_output.txt
           mkdir htmlcov
           echo "<html><body><h1>Dummy Coverage Report</h1></body></
