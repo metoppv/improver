@@ -10,6 +10,9 @@ on: [pull_request]
 jobs:
   Test-Coverage:
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: write   # needed for push/pull over HTTPS
     steps:
 
     - name: Checkout dev branch
