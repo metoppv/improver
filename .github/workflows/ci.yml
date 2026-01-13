@@ -76,7 +76,11 @@ jobs:
     - name: pytest
       if: steps.report-cache-restore.outputs.cache-hit != 'true'
       run: |
-          pytest --cov=improver --cov-report=term --cov-report=html | tee coverage_output.txt; test ${PIPESTATUS[0]} -eq 0
+          #pytest --cov=improver --cov-report=term --cov-report=html | tee coverage_output.txt; test ${PIPESTATUS[0]} -eq 0
+          # dummy coverage run to generate coverage report for testing cache mechanism
+          echo "TOTAL 35%" > coverage_output.txt
+          mkdir htmlcov
+          echo "<html><body><h1>Dummy Coverage Report</h1></body></
       shell: micromamba-shell {0}
 
     - name: Save cached coverage report
@@ -111,6 +115,8 @@ jobs:
         fi
 
     - name: Coverage report on coverage-reference branch
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
       run: |
         BRANCH=${{ env.BRANCH }}
 
