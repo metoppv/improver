@@ -10,9 +10,6 @@ on: [pull_request]
 jobs:
   Test-Coverage:
     runs-on: ubuntu-latest
-
-    permissions:
-      contents: write   # needed for push/pull over HTTPS
     steps:
 
     - name: Checkout dev branch
@@ -46,7 +43,6 @@ jobs:
         fetch-depth: 1
         path: covref
         ref: coverage-reference
-        token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Branch name
       run: |
@@ -118,7 +114,8 @@ jobs:
             fi
         fi
 
-    - name: Coverage report on coverage-reference branch
+    - name: Publish coverage report on coverage-reference branch (non-fork PRs only)
+      if: github.event.pull_request.head.repo.full_name == github.repository
       run: |
         BRANCH=${{ env.BRANCH }}
 
@@ -150,8 +147,34 @@ jobs:
 
         echo "=== git commit and push ==="
         git commit -a --amend --no-edit || echo "No changes to commit"
-        git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
         git push origin -f coverage-reference
+
+    - name: Upload coverage report (fork PRs only)
+      if: github.event.pull_request.head.repo.full_name != github.repository
+      uses: actions/upload-artifact@v6
+      with:
+        name: coverage-report-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
+        path: |
+          coverage_output.txt
+          htmlcov/
+
+    - name: get job id number and action output url
+      # Write the following variables to the github environment file
+      # - ACTIONS_OUTPUT_URL
+      # - JOB_ID
+      # See https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#environment-files
+      if: github.event.pull_request.head.repo.full_name != github.repository
+      env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        jobs_url="https://api.github.com/repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs"
+        actions_output_url=$(curl -s -H "Authorization: token ${{ env.GITHUB_TOKEN }}" $jobs_url | jq -r '.jobs[] | .html_url')
+        actions_run_url=$(dirname $(dirname ${actions_output_url}))
+        job_id=$(basename $actions_output_url)
+        echo "JOB_ID=$job_id" | tee -a $GITHUB_ENV
+        echo "ACTIONS_OUTPUT_URL=$actions_output_url" | tee -a $GITHUB_ENV
+        echo "ACTIONS_RUN_URL=$actions_run_url" | tee -a $GITHUB_ENV
+        echo job name: ${{ github.job }}
 
     - name: Coverage report PR comment
       if: steps.comp-coverage.outputs.coverage_decreased == 'true'
@@ -159,8 +182,14 @@ jobs:
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
+          const actions_run_url = "${{ env.ACTIONS_RUN_URL }}";
           comment = "The test coverage has decreased from ${{ steps.comp-coverage.outputs.ref_cov }}% to ${{ steps.comp-coverage.outputs.pr_cov }}% (commit SHA: ${{ github.event.pull_request.head.sha }})."
-          comment += `\nPlease review test coverage [here](https://metoppv.github.io/improver/${{ env.BRANCH }}_${{ github.event.pull_request.head.sha }}/htmlcov/index.html)`;
+
+          if (context.payload.pull_request.head.repo.full_name == context.payload.repository.full_name) {
+            comment += `\nPlease review test coverage [here](https://metoppv.github.io/improver/${{ env.BRANCH }}_${{ github.event.pull_request.head.sha }}/htmlcov/index.html)`;
+          } else {
+            comment += "\nPlease review test coverage report via the uploaded artifact [here](" + actions_run_url + ")";
+          }
           console.log(comment)
           github.rest.issues.createComment({
             issue_number: context.issue.number,
