@@ -43,6 +43,7 @@ jobs:
         fetch-depth: 1
         path: covref
         ref: coverage-reference
+        token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Branch name
       run: |
