@@ -73,10 +73,6 @@ c7eb9bab2ad43ac19ecc071730479a9f27a58992fcb22050743d34cdf2ad9639  ./apply-lapse-
 6eb89848a2a36007d9a2210e2ff4cb459921502329eb4bb6ef0bde74701d0c27  ./apply-lapse-rate/realizations/enukx_orography.nc
 25eeaa6b86b95354efd9406b1f9f1b5b43f0a7dd46f75fc5f3d144f52a30059e  ./apply-lapse-rate/realizations/enukx_temperature.nc
 30dc30126050590de49fc7d192ff84423c91228c407a2ac693e0f8a60db4a6e2  ./apply-lapse-rate/realizations/kgo.nc
-216ab74f8ffe8de6a496b51423d965eb51b9fc6528cfedab6b7dbc669fa8493e  ./apply-mask/kgo.nc
-a6239c8d7f59491d0ad1d69b1e53d43575025095b256c1e352034535440186db  ./apply-mask/kgo_inverted.nc
-f33c0f3d10846ee69edd24fb318bebd4a2645363c89a434f56aeff24313fc886  ./apply-mask/mask.nc
-9fba2a41268f30c530e9362bf15ef34c781d24b5e580589cec7715b1a6d25b27  ./apply-mask/wind_speed.nc
 3a3d1b902e9e97f6ec7c74937e43dfce460c6599ef1890ac90f711959415f6ed  ./apply-night-mask/global_basic/input.nc
 a766e5137fc00e51ccaf39c9a463eefa0e56fb7c4d3b07b7dbbb5b02f201bd22  ./apply-night-mask/global_basic/kgo.nc
 c5860ce0801d097e1705130d6e3f49b19c43fa399041bd7726b7a1257335f2fb  ./apply-night-mask/uk_basic/input.nc
@@ -1217,6 +1213,10 @@ a1e927872b9a0fcb95487b4d86c1600086b80e880095e7559e272a747d65c846  ./wet-bulb-tem
 41ee83244418a5ba7f9b8bf06acacc90954d615c4e4ba59e272093c7ca8a485f  ./wind-gust-diagnostic/basic/kgo_extreme_wind_gust.nc
 6dfd07ebe1c74e4b6dff46de48d6af9ef7f3790e99e36f06e27cbdd0d987f81c  ./wind-gust-diagnostic/basic/wind_gust_perc.nc
 e289d09022edd03a1a6532d27e4e1c1c08e530f03ab8bfe989786add3c8e63f0  ./wind-gust-diagnostic/basic/wind_speed_perc.nc
+0a4910bbffecdb0077c65b4ac938efecfebdc6a1059d521ecd92a84ad8d2608e  ./wind-speed-typical/input.nc
+3b88a480b776ccbaa90d4292afe67819e60f57f7f22cca66b1aba56ff65acca0  ./wind-speed-typical/input_32.nc
+852dae30421bb1a158a4a29de6df47a2d89f5fd26294a33dc9ffc068058607f2  ./wind-speed-typical/kgo_typical_wind.nc
+91af3d25fce25e1cbea7259f5923eea4c4826c59a89ca1ef9b701479397d177e  ./wind-speed-typical/kgo_typical_wind_64.nc
 2688c22d71c5380c905ffa31bc59ee01eaee5822a16820e39909336f29e3eea0  ./wind_direction/basic/input.nc
 42f2c6f870e231fbbe331af491bbf81dc1e7fdbbb66946cc026ee775cba867a5  ./wind_direction/basic/kgo.nc
 8db748aa602078aa30ef2da41c8295e3fd39d594578f1752d279940fbd78973c  ./wind_direction/global/input.nc
