@@ -27,6 +27,7 @@ def process(
     link: str = "identity",
     fit_intercept: bool = True,
     window_length: int = 11,
+    rolling_window_type: str = "centered",
     unique_site_id_key: str = "wmo_id",
 ):
     """Estimate Generalized Additive Model (GAM) for SAMOS.
@@ -100,6 +101,11 @@ def process(
             when the input cube does not have a realization dimension coordinate. If a
             given window has fewer than half valid data points (not NaN) then the value
             returned for that window will be NaN and will be excluded from training.
+        rolling_window_type (str):
+            Either "centered" or "trailing". If "centered", the result of the rolling
+            window calculation is aligned with the center of the window. If "trailing",
+            the result of the rolling window calculation is aligned with the end of the
+            window.
         unique_site_id_key (str):
             If working with spot data and available, the name of the coordinate
             in the input cubes that contains unique site IDs, e.g. "wmo_id" if
@@ -151,6 +157,7 @@ def process(
         link=link,
         fit_intercept=fit_intercept,
         window_length=window_length,
+        rolling_window_type=rolling_window_type,
         unique_site_id_key=unique_site_id_key,
     )
 

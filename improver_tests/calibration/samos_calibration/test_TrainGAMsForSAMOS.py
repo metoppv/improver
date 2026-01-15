@@ -44,7 +44,7 @@ def model_specification():
             "model_specification": [["linear", [0], {}]],
             "window_length": 7,
             "valid_rolling_window_fraction": 0.7,
-            "rolling_window_type": "look-back",
+            "rolling_window_type": "trailing",
         },  # Check that inputs related to rolling window calculations are initialised
         # correctly.
     ],
@@ -108,7 +108,7 @@ def test_init_rolling_window_type_exception(model_specification, rolling_window_
     """
     msg = (
         "The rolling_window_type input must be either 'centered' or "
-        f"'look-back'. Received: {rolling_window_type}."
+        f"'trailing'. Received: {rolling_window_type}."
     )
     with pytest.raises(ValueError, match=msg):
         TrainGAMsForSAMOS(
@@ -260,7 +260,7 @@ def test_calculate_cube_statistics_missing_data(model_specification):
 
 def test_calculate_cube_statistics_lookback_window(model_specification):
     """Test that this method still calculates the mean and standard deviations
-    correctly when there a look-back rolling window is used.
+    correctly when there a trailing rolling window is used.
 
     The time points in the input_cube are modified so that they are not evenly spaced,
     but a single artificial time point can be added during processing to allow rolling
@@ -321,7 +321,7 @@ def test_calculate_cube_statistics_lookback_window(model_specification):
     result = TrainGAMsForSAMOS(
         model_specification=model_specification,
         window_length=5,
-        rolling_window_type="look-back",
+        rolling_window_type="trailing",
     ).calculate_cube_statistics(input_cube=input_cube)
 
     assert expected == result

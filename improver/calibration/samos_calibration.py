@@ -273,8 +273,8 @@ class TrainGAMsForSAMOS(BasePlugin):
                 NaN and will be excluded from training.
             rolling_window_type:
                 The type of rolling window to use. This can be either "centered" or
-                "look-back". A centered window assigns the calculated statistic to the
-                central time point in the window, whereas a look-back window assigns
+                "trailing". A centered window assigns the calculated statistic to the
+                central time point in the window, whereas a trailing window assigns
                 the calculated statistic to the last time point.
             unique_site_id_key:
                 An optional key to use for uniquely identifying each site in the
@@ -305,10 +305,10 @@ class TrainGAMsForSAMOS(BasePlugin):
         else:
             self.valid_rolling_window_fraction = valid_rolling_window_fraction
 
-        if rolling_window_type not in ["centered", "look-back"]:
+        if rolling_window_type not in ["centered", "trailing"]:
             raise ValueError(
                 "The rolling_window_type input must be either 'centered' or "
-                f"'look-back'. Received: {rolling_window_type}."
+                f"'trailing'. Received: {rolling_window_type}."
             )
         else:
             self.rolling_window_type = rolling_window_type
@@ -404,8 +404,8 @@ class TrainGAMsForSAMOS(BasePlugin):
         # rolling window calculation is the same shape as the input cube.
         existing_points = time_coord.points
         time_extension = min_increment * pad_width
-        if self.rolling_window_type == "look-back":
-            # Double padding if using a look-back window, because the leftmost time
+        if self.rolling_window_type == "trailing":
+            # Double padding if using a trailing window, because the leftmost time
             # points require more padding to ensure the rolling window can be applied.
             time_extension = time_extension * 2
 
@@ -459,10 +459,10 @@ class TrainGAMsForSAMOS(BasePlugin):
             aggregated_cube.data[valid_count.data < allowed_valid_count] = nan
             aggregated_cubes[aggregator.name()] = aggregated_cube.copy()
 
-        # If we are using a 'look-back' rolling window, we need to shift the data along
+        # If we are using a 'trailing' rolling window, we need to shift the data along
         # the time coordinate. The length of shift required is (window_length - 1) / 2,
         # which is equal to pad_width.
-        if self.rolling_window_type == "look-back":
+        if self.rolling_window_type == "trailing":
             time_dim = padded_cube.coord_dims("time")[0]
             for key in aggregated_cubes:
                 aggregated_cubes[key].data = roll(
