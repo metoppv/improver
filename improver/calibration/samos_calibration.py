@@ -26,7 +26,7 @@ except ModuleNotFoundError:
 from iris.analysis import MEAN, STD_DEV, SUM
 from iris.cube import Cube, CubeList
 from iris.util import new_axis
-from numpy import array, clip, float32, int64, isnan, nan
+from numpy import array, clip, float32, int64, isnan, nan, roll
 from numpy.ma import masked_all_like
 
 from improver import BasePlugin, PostProcessingPlugin
@@ -234,6 +234,7 @@ class TrainGAMsForSAMOS(BasePlugin):
         fit_intercept: bool = True,
         window_length: int = 11,
         valid_rolling_window_fraction: float = 0.5,
+        rolling_window_type: str = "centered",
         unique_site_id_key: Optional[str] = None,
     ):
         """
@@ -270,6 +271,11 @@ class TrainGAMsForSAMOS(BasePlugin):
                 rolling window calculations, if a given window has less than this
                 fraction of valid data points (not NaN) then the value returned will be
                 NaN and will be excluded from training.
+            rolling_window_type:
+                The type of rolling window to use. This can be either "centered" or
+                "look-back". A centered window assigns the calculated statistic to the
+                central time point in the window, whereas a look-back window assigns
+                the calculated statistic to the last time point.
             unique_site_id_key:
                 An optional key to use for uniquely identifying each site in the
                 training data. If not provided, the default behavior is to use the
@@ -299,6 +305,14 @@ class TrainGAMsForSAMOS(BasePlugin):
         else:
             self.valid_rolling_window_fraction = valid_rolling_window_fraction
 
+        if rolling_window_type not in ["centered", "look-back"]:
+            raise ValueError(
+                "The rolling_window_type input must be either 'centered' or "
+                f"'look-back'. Received: {rolling_window_type}."
+            )
+        else:
+            self.rolling_window_type = rolling_window_type
+
     def apply_aggregator(
         self, padded_cube: Cube, aggregator: iris.analysis.WeightedAggregator
     ) -> Cube:
@@ -327,7 +341,10 @@ class TrainGAMsForSAMOS(BasePlugin):
         summary_cube.data = summary_cube.data.filled(nan)
         return summary_cube
 
-    def calculate_statistic_by_rolling_window(self, input_cube: Cube):
+    def calculate_statistic_by_rolling_window(
+        self,
+        input_cube: Cube,
+    ):
         """Function to calculate mean and standard deviation of input_cube using a
         rolling window calculation over the time coordinate.
 
@@ -386,12 +403,18 @@ class TrainGAMsForSAMOS(BasePlugin):
         # are equally spaced and the padding ensures that the output of the
         # rolling window calculation is the same shape as the input cube.
         existing_points = time_coord.points
+        time_extension = min_increment * pad_width
+        if self.rolling_window_type == "look-back":
+            # Double padding if using a look-back window, because the leftmost time
+            # points require more padding to ensure the rolling window can be applied.
+            time_extension = time_extension * 2
+
         desired_points = array(
             [
                 x
                 for x in range(
-                    min(existing_points) - (min_increment * pad_width),
-                    max(existing_points) + (min_increment * pad_width) + 1,
+                    min(existing_points) - time_extension,
+                    max(existing_points) + time_extension + 1,
                     min_increment,
                 )
             ],
@@ -435,6 +458,16 @@ class TrainGAMsForSAMOS(BasePlugin):
             aggregated_cube = self.apply_aggregator(padded_cube, aggregator)
             aggregated_cube.data[valid_count.data < allowed_valid_count] = nan
             aggregated_cubes[aggregator.name()] = aggregated_cube.copy()
+
+        # If we are using a 'look-back' rolling window, we need to shift the data along
+        # the time coordinate. The length of shift required is (window_length - 1) / 2,
+        # which is equal to pad_width.
+        if self.rolling_window_type == "look-back":
+            time_dim = padded_cube.coord_dims("time")[0]
+            for key in aggregated_cubes:
+                aggregated_cubes[key].data = roll(
+                    aggregated_cubes[key].data, shift=pad_width, axis=time_dim
+                )
 
         # Create constraint to extract only those time points which were present in
         # the original input cube.
@@ -491,7 +524,7 @@ class TrainGAMsForSAMOS(BasePlugin):
             input_sd = collapse_realizations(input_cube, method="std_dev")
         else:
             input_mean, input_sd = self.calculate_statistic_by_rolling_window(
-                input_cube
+                input_cube,
             )
 
         return CubeList([input_mean, input_sd])
