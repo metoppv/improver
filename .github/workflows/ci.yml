@@ -91,6 +91,7 @@ jobs:
     - name: Compare coverage
       id: comp-coverage
       run: |
+        set -e
         # ----- USER SETTINGS -------------------------------------------------
         CHECK_MISS_TOL=1      # 1 = evaluate the miss‑count difference, 0 = ignore it
         CHECK_PERC_TOL=1      # 1 = evaluate the percentage difference, 0 = ignore it
@@ -100,10 +101,8 @@ jobs:
         perc_tol=0.0        # percentage float tolerance
         # --------------------------------------------------------------------
 
-        ls -R covref/master/
-
         read pr_tot_stmts pr_tot_miss <<< $(awk '/^[[:space:]]*TOTAL/ {print $2, $3}' coverage_output.txt)
-        pr_perc_total=$(echo "scale=4; ($tot_stmts-$tot_miss)/$tot_stmts"'*100' | bc)
+        pr_perc_total=$(echo "scale=4; ($pr_tot_stmts-$pr_tot_miss)/$pr_tot_stmts"'*100' | bc)
         echo "pr_perc_total=$pr_perc_total" | tee -a $GITHUB_OUTPUT
         echo "pr_tot_stmts=$pr_tot_stmts" | tee -a $GITHUB_OUTPUT
         echo "pr_tot_miss=$pr_tot_miss" | tee -a $GITHUB_OUTPUT
@@ -117,15 +116,15 @@ jobs:
             exit 0
         else
             read ref_tot_stmts ref_tot_miss <<< $(awk '/^[[:space:]]*TOTAL/ {print $2, $3}' coverage_output.txt)
-            ref_perc_total=$(echo "scale=4; ($tot_stmts-$tot_miss)/$tot_stmts"'*100' | bc)
+            ref_perc_total=$(echo "scale=4; ($ref_tot_stmts-$ref_tot_miss)/$ref_tot_stmts"'*100' | bc)
             echo "ref_perc_total=$ref_perc_total" | tee -a $GITHUB_OUTPUT
             echo "ref_tot_stmts=$ref_tot_stmts" | tee -a $GITHUB_OUTPUT
             echo "ref_tot_miss=$ref_tot_miss" | tee -a $GITHUB_OUTPUT
 
             trigger=0
 
-            miss_diff=$(( tot_miss_b - tot_miss_a ))               # integer diff
-            perc_diff=$(bc <<< "scale=4; $perc_b - $perc_a")       # float diff
+            miss_diff=$(( ref_tot_miss_b - pr_tot_miss_a ))               # integer diff
+            perc_diff=$(bc <<< "scale=4; $ref_perc_total - $pr_perc_total")       # float diff
 
             if (( CHECK_MISS_TOL == 1 )) && (( miss_diff > miss_tol )); then
                 trigger=1
