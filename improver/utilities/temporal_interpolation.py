@@ -1768,9 +1768,9 @@ class GoogleFilmInterpolation(BasePlugin):
                         self.model_loader,
                     )
                 )
-                results = Parallel(n_jobs=n_workers, backend=self.parallel_backend)(
-                    delayed(_run_film_chunk_mp)(args) for args in chunks
-                )
+            results = Parallel(n_jobs=n_workers, backend=self.parallel_backend)(
+                delayed(_run_film_chunk_mp)(args) for args in chunks
+            )
 
             return np.concatenate(results, axis=0)
         elif self.max_batch is None or self.max_batch >= n_times:
