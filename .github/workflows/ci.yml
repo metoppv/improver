@@ -76,7 +76,7 @@ jobs:
     - name: pytest
       if: steps.report-cache-restore.outputs.cache-hit != 'true'
       run: |
-          DUMMY=1  # set to 1 to use dummy report, 0 to run actual tests
+          DUMMY=0  # set to 1 to use dummy report, 0 to run actual tests
           if [ $DUMMY -eq 1 ]; then
               # dummy report
               echo "TOTAL 1000 500 50%" >> coverage_output.txt
