@@ -497,8 +497,9 @@ class TrainGAMsForSAMOS(BasePlugin):
         window and assigns the value of the statistic to the central time in the window.
         For example, for data points [0.0, 1.0, 2.0, 1.0, 0.0] each valid in
         consecutive hours T+0, T+1, T+2, T+3, T+4, the mean calculated by a rolling
-        window of width 5 would be 0.8. This value would be associated with T+2 in the
-        resulting cube.
+        window of width 5 would be 0.8. If using a centered rolling window, this value
+        would be associated with T+2 in the resulting cube, otherwise if using a
+        trailing rolling window it would be associated with T+4.
 
         To enable this calculation to produce a cube of the same dimensions as
         input_cube, the data in input_cube is first padded with additional data. For a
