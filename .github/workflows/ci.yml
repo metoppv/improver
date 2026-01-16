@@ -115,12 +115,12 @@ jobs:
         echo "pr_tot_stmts=$pr_tot_stmts" | tee -a $GITHUB_OUTPUT
         echo "pr_tot_miss=$pr_tot_miss" | tee -a $GITHUB_OUTPUT
 
-        if [ ! -f covref/master/coverage_output.txt ]; then
+        if [ ! -f covref/master/coverage_output_dummy.txt ]; then
             echo "Warning: covref/master/coverage_output.txt does not exist, reporting coverage."
             echo "coverage_decreased=true" | tee -a $GITHUB_OUTPUT
-            echo "ref_perc_total=$ref_perc_total" | tee -a $GITHUB_OUTPUT
-            echo "ref_tot_stmts=$ref_tot_stmts" | tee -a $GITHUB_OUTPUT
-            echo "ref_tot_miss=$ref_tot_miss" | tee -a $GITHUB_OUTPUT
+            echo "ref_perc_total=--" | tee -a $GITHUB_OUTPUT
+            echo "ref_tot_stmts=--" | tee -a $GITHUB_OUTPUT
+            echo "ref_tot_miss=--" | tee -a $GITHUB_OUTPUT
             exit 0
         else
             read ref_tot_stmts ref_tot_miss <<< $(awk '/^[[:space:]]*TOTAL/ {print $2, $3}' covref/master/coverage_output.txt)
