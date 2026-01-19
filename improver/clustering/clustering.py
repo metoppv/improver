@@ -33,7 +33,8 @@ class FitClustering(BasePlugin):
                 "DBSCAN", "AgglomerativeClustering").
             **kwargs: Additional keyword arguments to pass to the clustering
                 algorithm. These are method-specific parameters. Common examples:
-                - n_clusters (int): Number of clusters (for KMeans, AgglomerativeClustering)
+                - n_clusters (int): Number of clusters (for KMeans,
+                AgglomerativeClustering)
                 - random_state (int): Random seed for reproducibility
                 Refer to the scikit-learn or kmedoids documentation for the complete
                 list of parameters for each clustering method.
