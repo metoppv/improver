@@ -36,50 +36,41 @@ def _create_clusterable_dataframe():
 
 
 @pytest.mark.parametrize(
-    "clustering_method,n_clusters,random_state,expected_n_labels",
+    "clustering_method,n_clusters,random_state,expected_n_labels,expected_shape",
     [
-        ("KMeans", 3, 42, 3),  # Basic KMeans
-        ("KMeans", 2, 42, 2),  # KMeans with 2 clusters
-        ("KMeans", 5, 100, 5),  # KMeans with different random state
-        ("AgglomerativeClustering", 4, None, 4),  # AgglomerativeClustering
+        ("KMeans", 3, 42, 3, (3, 5)),  # Basic KMeans
+        ("KMeans", 2, 42, 2, (2, 5)),  # KMeans with 2 clusters
+        ("KMeans", 5, 100, 5, (5, 5)),  # KMeans with different random state
+        ("AgglomerativeClustering", 4, None, 4, None),  # AgglomerativeClustering
     ],
 )
-def test_process_basic_clustering(
-    clustering_method, n_clusters, random_state, expected_n_labels
+def test_process_clustering_combined(
+    clustering_method,
+    n_clusters,
+    random_state,
+    expected_n_labels,
+    expected_shape,
 ):
-    """Test the FitClustering.process method with various clustering methods."""
-    sample_df = _create_sample_dataframe()
+    """Test FitClustering.process with various clustering methods and
+    cluster center assertions (excluding KMedoids)."""
+    df = _create_sample_dataframe()
 
     kwargs = {"n_clusters": n_clusters}
     if random_state is not None:
         kwargs["random_state"] = random_state
 
     plugin = FitClustering(clustering_method, **kwargs)
-    result = plugin.process(sample_df)
+    result = plugin.process(df)
 
     assert hasattr(result, "labels_")
-    assert len(result.labels_) == len(sample_df)
+    assert len(result.labels_) == len(df)
     assert len(np.unique(result.labels_)) == expected_n_labels
     assert np.all((result.labels_ >= 0) & (result.labels_ < n_clusters))
 
-
-@pytest.mark.parametrize(
-    "n_clusters,random_state,expected_shape",
-    [
-        (3, 42, (3, 5)),  # 3 clusters, 5 features
-        (2, 42, (2, 5)),  # 2 clusters, 5 features
-        (4, 100, (4, 5)),  # 4 clusters, 5 features
-    ],
-)
-def test_process_kmeans_cluster_centers(n_clusters, random_state, expected_shape):
-    """Test that KMeans clustering produces cluster centers with correct shape."""
-    sample_df = _create_sample_dataframe()
-
-    plugin = FitClustering("KMeans", n_clusters=n_clusters, random_state=random_state)
-    result = plugin.process(sample_df)
-
-    assert hasattr(result, "cluster_centers_")
-    assert result.cluster_centers_.shape == expected_shape
+    # Cluster center assertions for KMeans only
+    if expected_shape is not None:
+        assert hasattr(result, "cluster_centers_")
+        assert result.cluster_centers_.shape == expected_shape
 
 
 def test_process_dbscan():
