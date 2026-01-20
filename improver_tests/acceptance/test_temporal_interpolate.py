@@ -138,9 +138,33 @@ def test_accumulation(tmp_path):
 
 @pytest.mark.slow
 def test_google_film(tmp_path):
-    """Test interpolation using google_film method with deep learning model."""
-    model_url = "https://tfhub.dev/google/film/1"
+    """Test interpolation using google_film method with deep learning model.
+    Skips if TensorFlow Hub is not available in the environment or
+    if the model URL is not accessible.
+    """
 
+    # Monkeypatch for TensorFlow Hub import, matching load_model logic from the
+    # Google FILM temporal interpolation plugin.
+    try:
+        import tensorflow as tf
+
+        if hasattr(tf.__internal__, "register_call_context_function"):
+            func = tf.__internal__.register_call_context_function
+            tf.__internal__.register_load_context_function = func
+            if hasattr(tf.compat, "v2"):
+                tf.compat.v2.__internal__.register_load_context_function = func
+            import tensorflow._api.v2.compat.v2 as tf_api
+
+            tf_api.__internal__.register_load_context_function = func
+    except (ImportError, AttributeError):
+        pass
+
+    try:
+        import tensorflow_hub  # noqa: F401
+    except ImportError:
+        pytest.skip("TensorFlow Hub is not available in this environment.")
+
+    model_url = "https://tfhub.dev/google/film/1"
     try:
         with urllib.request.urlopen(model_url) as response:  # noqa: S310
             if response.status != 200:

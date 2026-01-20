@@ -1119,7 +1119,11 @@ class ForecastTrajectoryGapFiller(BasePlugin):
 
         Raises:
             ValueError: If cubelist is empty or has fewer than 2 cubes.
-            ValueError: If cubes don't have forecast_period coordinate.
+            ValueError: If any cube is missing required coordinates
+                (forecast_period, time).
+            ValueError: If cubes do not have multiple, different
+                forecast_periods and times.
+            ValueError: If cubes do not all have the same forecast_reference_time.
         """
         if not cubelist or len(cubelist) < 2:
             raise ValueError(
@@ -1852,7 +1856,6 @@ class GoogleFilmInterpolation(BasePlugin):
         t1 = cube2.coord("time").points[0]
         time_range = t1 - t0
 
-        interpolated_cubes = CubeList()
         # Calculate all time fractions for the target times
         time_fractions = []
         template_slices = list(template_interpolated_cube.slices_over("time"))
@@ -1862,29 +1865,25 @@ class GoogleFilmInterpolation(BasePlugin):
             time_fractions.append(time_fraction)
 
         if extra_dim:
-            interpolated_cubes.extend(
-                self._interpolate_with_extra_dim(
-                    cube1,
-                    cube2,
-                    template_slices,
-                    time_fractions,
-                    model,
-                    extra_dim,
-                    cube1_orig,
-                    cube2_orig,
-                )
+            interpolated_cubes = self._interpolate_with_extra_dim(
+                cube1,
+                cube2,
+                template_slices,
+                time_fractions,
+                model,
+                extra_dim,
+                cube1_orig,
+                cube2_orig,
             )
         else:
-            interpolated_cubes.extend(
-                self._interpolate_no_extra_dim(
-                    cube1,
-                    cube2,
-                    template_slices,
-                    time_fractions,
-                    model,
-                    cube1_orig,
-                    cube2_orig,
-                )
+            interpolated_cubes = self._interpolate_no_extra_dim(
+                cube1,
+                cube2,
+                template_slices,
+                time_fractions,
+                model,
+                cube1_orig,
+                cube2_orig,
             )
         return interpolated_cubes
 
