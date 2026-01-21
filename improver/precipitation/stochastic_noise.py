@@ -2,12 +2,12 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""
-Plugin for adding stochastic noise to a dependence template using Short-Space Fourier
-Transform (SSFT).
+"""Plugin for adding stochastic noise to a cube using Short-Space Fourier Transform
+(SSFT).
 """
 
 import os
+from typing import Optional
 
 import cf_units
 import numpy as np
@@ -22,35 +22,61 @@ from improver import BasePlugin
 
 
 class StochasticNoise(BasePlugin):
-    """Class to add stochastic noise to a dependence template cube object using SSFT."""
+    """Class to add stochastic noise to a cube object using Short-Space Fourier
+    Transform (SSFT).
+
+    The SSFT approach from Nerini et al. (2017) generates stochastic noise with
+    realistic spatial structure, where noise values at neighboring grid points are
+    correlated rather than independent. This is particularly useful for Ensemble Copula
+    Coupling-Quantile (ECC-Q) realization generation, where post-processing may indicate
+    non-zero precipitation should occur at locations where all raw ensemble members had
+    zero. In ECC reordering, these locations create ties (all raw members have identical
+    zero values) that cannot be meaningfully reordered. The spatially-structured noise
+    breaks these ties by adding small contiguous precipitation patches in dry regions,
+    avoiding unrealistic single-pixel artifacts while respecting the calibrated forecast
+    probabilities.
+    """
 
     def __init__(
         self,
-        ssft_init_params: dict = None,
-        ssft_generate_params: dict = None,
-        threshold: float = 0.03,
-        threshold_units: str = "mm/hr",
+        ssft_init_params: dict = {},
+        ssft_generate_params: dict = {},
+        db_threshold: float = 0.03,
+        db_threshold_units: str = "mm/hr",
+        num_workers: Optional[int] = len(os.sched_getaffinity(0)),
+        scale_dry_noise: bool = False,
     ):
         """
         Initialise the plugin.
 
         If ssft_init_params or ssft_generate_params are not provided, default values
-        will be used.
+        from the Pysteps documentation will be used.
 
         Args:
             ssft_init_params:
                 Keyword arguments for initializing SSFT filter using
                 pysteps.noise.fftgenerators.initialize_nonparam_2d_ssft_filter.
-                - Recommended: win_size, overlap, war_thr.
             ssft_generate_params:
                 Keyword arguments for generating stochastic noise using
                 pysteps.noise.fftgenerators.generate_noise_2d_ssft_filter.
-                - Recommended: overlap, seed.
-            threshold:
-                Threshold value below which data will be set to a constant in dB scale.
+            db_threshold:
+                Threshold value below which data will be set to a constant in dB scale
+                to avoid issues with log(0).
                 Default is 0.03 mm/hr.
-            threshold_units:
-                Units of the threshold value. Default is "mm/hr".
+            db_threshold_units:
+                Units of the db_threshold value. Default is "mm/hr".
+            num_workers:
+                Number of worker threads for parallel FFT computation.
+                If not specified, uses the smaller of the plugin's default (number of
+                available CPUs) or the number of realizations in the input cube.
+            scale_dry_noise:
+                If True, noise in dry regions (where template.data <= 0) will be scaled
+                such that the maximum noise value in those regions is zero and all other
+                noise values are negative.
+                This prevents the addition of positive noise to dry regions, which could
+                artificially increase precipitation values where the input cube
+                indicates no precipitation should occur.
+                Default is False.
 
         Example dictionaries for initializing and generating SSFT filter::
 
@@ -59,45 +85,34 @@ class StochasticNoise(BasePlugin):
 
         See Pysteps documentation for further keyword arguments.
         """
-        if ssft_init_params is None:
-            ssft_init_params = {
-                "win_size": (100, 100),
-                "overlap": 0.3,
-                "war_thr": 0.1,
-            }
-        if ssft_generate_params is None:
-            ssft_generate_params = {
-                "overlap": 0.3,
-                "seed": 0,
-            }
+        if db_threshold <= 0:
+            raise ValueError("db_threshold must be a positive value.")
+
         self.ssft_init_params = ssft_init_params
         self.ssft_generate_params = ssft_generate_params
-        self.threshold = threshold
-        self.threshold_units = threshold_units
+        self.db_threshold = db_threshold
+        self.db_threshold_units = db_threshold_units
+        self.num_workers = num_workers
+        self.scale_dry_noise = scale_dry_noise
 
     def _convert_threshold_units(self, cube: Cube) -> float:
         """
-        Convert threshold to the units of the provided cube.
+        Convert db_threshold to the units of the provided cube.
 
         Args:
             cube:
                 Cube whose units will be used for conversion.
         Returns:
             float:
-                Threshold value converted to the units of the cube.
+                db_threshold value converted to the units of the cube.
         """
-        if cube.units != self.threshold_units:
-            try:
-                threshold = cf_units.Unit(self.threshold_units).convert(
-                    self.threshold, cube.units
-                )
-                return threshold
-            except Exception:
-                raise ValueError(
-                    f"Cannot convert threshold from {self.threshold_units} to {cube.units}"
-                )
+        if str(cube.units) != self.db_threshold_units:
+            threshold = cf_units.Unit(self.db_threshold_units).convert(
+                self.db_threshold, cube.units
+            )
+            return threshold
         else:
-            return self.threshold
+            return self.db_threshold
 
     def _to_dB(self, cube: Cube) -> Cube:
         """Convert cube data to dB scale with thresholding.
@@ -109,55 +124,49 @@ class StochasticNoise(BasePlugin):
             cube:
                 Cube containing data to be converted to dB scale.
         Returns:
-            Cube with data converted from original scale to dB scale.
+            Cube with data converted from linear scale to dB scale.
         """
         threshold = self._convert_threshold_units(cube)
         threshold_dB = 10.0 * np.log10(threshold)
         mask = cube.data < threshold
-        # Ensure no zero or negative values are passed to log10
-        safe_data = np.copy(cube.data[~mask])
-        safe_data[safe_data <= 0] = threshold  # Replace non-positive with threshold
-        cube.data[~mask] = 10.0 * np.log10(safe_data)
-        cube.data[mask] = threshold_dB - 5  # Use -5 dB offset for sub-threshold values
+        cube.data[~mask] = 10.0 * np.log10(cube.data[~mask])
+        cube.data[mask] = threshold_dB - 5  # Offset sub-threshold values
         return cube
 
-    def _from_dB(self, cube: Cube) -> Cube:
+    def _from_dB(self, data: np.ndarray, units_cube: Cube) -> np.ndarray:
         """Convert cube data from dB scale with thresholding.
 
         Function based on dB_transform function (with arg inverse=True) from
         https://github.com/pySTEPS/pysteps/blob/master/pysteps/utils/transformation.py.
 
         Args:
-            cube:
-                Cube containing data to be converted from dB scale.
+            data:
+                data in dB scale.
+            units_cube:
+                Cube whose units will be used for threshold conversion.
         Returns:
-            Cube with data converted from dB scale to original scale.
+            np.ndarray with data converted from dB scale to original scale.
             Note: After conversion to original scale, values below the threshold
             are set to zero.
         """
-        cube.data = 10 ** (cube.data / 10.0)
-        threshold = self._convert_threshold_units(cube)
-        cube.data[cube.data < threshold] = 0
-        return cube
+        linear = 10 ** (data / 10.0)
+        db_threshold = self._convert_threshold_units(units_cube)
+        linear[linear < db_threshold] = 0.0
+        return linear
 
     def do_fft(
         self,
         data: np.ndarray,
     ) -> np.ndarray:
         """
-        Function to generate stochastic noise using SSFT.
+        Generate stochastic noise using SSFT for a 2-D array slice (one realization).
 
         Args:
-            data (np.ndarray):
-                2D/3D array for which stochastic noise is to be added.
-            ssft_init_params (dict):
-                Dictionary of parameters for initializing SSFT filter.
-            ssft_generate_params (dict):
-                Dictionary of parameters for generating stochastic noise using SSFT.
-                - Recommended: overlap, seed.
+            data:
+                2D array for which stochastic noise is to be added.
         Returns:
             np.ndarray:
-                2D/3D array of generated stochastic noise.
+                2D array of generated stochastic noise.
         """
         nonparametric_filter = initialize_nonparam_2d_ssft_filter(
             data,
@@ -167,76 +176,108 @@ class StochasticNoise(BasePlugin):
             nonparametric_filter, **self.ssft_generate_params
         )
 
-        # Handle possible NaN output from generate_noise_2d_ssft_filter
-        if np.any(np.isnan(stochastic_noise)):
-            stochastic_noise = np.nan_to_num(stochastic_noise, nan=0.0)
         return stochastic_noise
 
-    def stochastic_noise_to_dependence_template(
+    def stochastic_noise_to_input_cube(
         self,
-        dependence_template: Cube,
+        input_cube: Cube,
     ) -> Cube:
         """
-        Add stochastic noise to a dependence template cube object using SSFT.
+        Add locally-conditioned stochastic noise to a cube using SSFT.
 
         Args:
-            dependence_template:
+            input_cube:
                 Cube to which stochastic noise will be added.
         Returns:
-            Original dependence template cube with added stochastic noise.
+            Cube with added stochastic noise.
         """
-        template = dependence_template.copy()
+        # Store original precipitation units and mask
+        original_units = input_cube.units
+        original_mask = None
+        if np.ma.isMaskedArray(input_cube.data):
+            original_mask = input_cube.data.mask.copy()
+
+        # Convert to db_threshold_units for processing
+        template = input_cube.copy()
+        template.convert_units(self.db_threshold_units)
+
+        # Fill masked values with 0 for processing (dask does not support native numpy
+        # masked arrays)
+        if np.ma.isMaskedArray(template.data):
+            template.data = np.ma.filled(template.data, 0.0).astype(np.float32)
+
+        # Identify dry regions (no precipitation) where noise should be added
+        dry_mask = template.data <= 0
+
+        # If no dry values, return input unchanged (output would be unchanged with SSFT
+        # noise addition only to dry regions)
+        if not np.any(dry_mask):
+            output_cube = input_cube.copy()
+            return output_cube
+
+        # Create a copy of the template in dB scale to use for SSFT processing
         template_dB = self._to_dB(template.copy())
-        noise_dB = template.copy()
 
-        realization_coord = template.coord("realization")
-        delay_results = []
-        for k in range(len(realization_coord.points)):
-            realization_data = template_dB.data[k]
-            # If all values are masked, skip FFT
-            if np.ma.isMaskedArray(realization_data):
-                if np.all(realization_data.mask):
-                    delay_results.append(
-                        delayed(np.zeros_like)(realization_data, dtype=np.float32)
-                    )
-                    continue
-                realization_data = np.ma.filled(realization_data, 0).astype(np.float32)
-                # Check for constant arrays
-                # (e.g. log-transformed zeros)
-                delay_results.append(
-                    delayed(self.do_fft)(realization_data.astype(np.float32))
-                )
+        # Build delayed processing tasks for each realization
+        n_realiz = template.coord("realization").points.size
+        tasks = []
+        for k in range(n_realiz):
+            realiz_data = template_dB.data[k].astype(np.float32)
+            tasks.append(delayed(self.do_fft)(realiz_data))
 
-        num_workers = min(len(template.coord("realization").points), os.cpu_count() - 1)
+        # Set number of workers for parallel processing
+        if self.num_workers is None:
+            num_workers = min(
+                len(template.coord("realization").points),
+                len(os.sched_getaffinity(0)),
+            )
+        else:
+            num_workers = self.num_workers
 
-        results = compute(*delay_results, scheduler="threads", num_workers=num_workers)
+        # Compute all SSFT noise arrays (in dB scale) in parallel
+        results = compute(*tasks, scheduler="threads", num_workers=num_workers)
 
-        for k, result in enumerate(results):
-            # Ensure result is float32 for consistency
-            noise_dB.data[k] = np.array(result, dtype=np.float32)
+        # Convert dB to linear scale
+        noise_linear = template.copy()
+        noise_linear.data = np.zeros_like(template.data, dtype=np.float32)
+        for k, result_db in enumerate(results):
+            lin_noise = self._from_dB(data=result_db, units_cube=template)
+            noise_linear.data[k] = lin_noise
 
-        noise = self._from_dB(noise_dB.copy())
+        # If requested, scale noise in dry regions to prevent increasing values where
+        # there should be no precipitation
+        if self.scale_dry_noise:
+            max_noise_dry_regions = np.max(noise_linear.data[dry_mask])
+            noise_linear.data[dry_mask] = (
+                noise_linear.data[dry_mask] - max_noise_dry_regions
+            )
 
-        # Set noise to zero where dependence template data is below threshold
-        # to prevent spurious wet pixels
-        dry_mask = template.data < self._convert_threshold_units(template)
-        noise.data[dry_mask] = 0
-
-        # Add noise to dependence template
+        # Add noise only to dry regions (zero precipitation), leave wet regions
+        # unchanged
         output_cube = template.copy()
-        output_cube.data = (template.data + noise.data).astype(np.float32)
+        output_cube.data[dry_mask] = (
+            template.data[dry_mask] + noise_linear.data[dry_mask]
+        )
+
+        # Restore original mask
+        if original_mask is not None:
+            output_cube.data = np.ma.masked_array(output_cube.data, mask=original_mask)
+
+        # Convert back to original units
+        output_cube.convert_units(original_units)
 
         return output_cube
 
-    def process(self, dependence_template: Cube) -> Cube:
+    def process(self, input_cube: Cube) -> Cube:
         """
-        Add stochastic noise to a dependence template cube object using SSFT.
+        Add locally-conditioned stochastic noise to a cube object using Short-Space
+        Fourier Transform (SSFT).
 
         Args:
-            dependence_template:
+            input_cube:
                 Cube to which stochastic noise will be added.
         Returns:
-            Original dependence template cube with added stochastic noise.
+            Cube with added stochastic noise.
         """
-        output = self.stochastic_noise_to_dependence_template(dependence_template)
+        output = self.stochastic_noise_to_input_cube(input_cube)
         return output
