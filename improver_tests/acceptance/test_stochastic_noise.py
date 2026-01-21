@@ -18,7 +18,7 @@ run_cli = acc.run_cli(CLI)
 def test_basic(tmp_path):
     """Test basic stochastic noise addition."""
     kgo_dir = acc.kgo_root() / "stochastic_noise"
-    kgo_path = kgo_dir / "kgo.nc"
+    kgo_path = kgo_dir / "unscaled/kgo.nc"
     dependence_template_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
     args = [
@@ -27,10 +27,34 @@ def test_basic(tmp_path):
         "{'win_size': (100, 100), 'overlap': 0.3, 'war_thr': 0.1}",
         "--ssft-generate-params",
         "{'overlap': 0.3, 'seed': 0}",
-        "--threshold",
+        "--db-threshold",
         "0.03",
-        "--threshold-units",
+        "--db-threshold-units",
         "mm/hr",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_scale_dry_noise(tmp_path):
+    """Test stochastic noise addition with scaled_dry_noise=True"""
+    kgo_dir = acc.kgo_root() / "stochastic_noise"
+    kgo_path = kgo_dir / "scaled/kgo.nc"
+    dependence_template_path = kgo_dir / "input.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        dependence_template_path,
+        "--ssft-init-params",
+        "{'win_size': (100, 100), 'overlap': 0.3, 'war_thr': 0.1}",
+        "--ssft-generate-params",
+        "{'overlap': 0.3, 'seed': 0}",
+        "--db-threshold",
+        "0.03",
+        "--db-threshold-units",
+        "mm/hr",
+        "--scale-dry-noise",
         "--output",
         output_path,
     ]
