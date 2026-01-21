@@ -1,8 +1,8 @@
 # This environment is a representative example for usage of IMPROVER
 # It does not include dependencies for the following IMPROVER CLIs:
-# estimate-emos-coefficients, nowcast-accumulate, nowcast-extrapolate
-# and nowcast-optical-flow-from-winds
-# See doc/source/Dependencies.rst for more information
+# estimate-emos-coefficients, nowcast-accumulate, nowcast-extrapolate, 
+# nowcast-optical-flow-from-winds, and stochastic-noise.
+# See doc/source/Dependencies.rst for more information.
 name: improver_b
 channels:
   - conda-forge
@@ -21,7 +21,6 @@ dependencies:
   - geopandas
   - lightgbm>=4.0.0
   - numba
-  - pysteps
   - python-stratify
   - treelite>=4.0.0
   - tl2cgen>=1.0.0
