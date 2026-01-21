@@ -85,7 +85,9 @@ def test_process(thresholds, deterministic_training_data, tmp_path):
 
     result_path = tmp_path / "output.txt"
 
-    threshold = thresholds[0]
-    trainer.process(threshold, result_path)
+    trainer.process(thresholds, result_path)
 
-    assert Path.exists(result_path)
+    for threshold in thresholds:
+        # Should add a suffix for each threshold
+        expected_path = result_path.with_stem(f"{result_path.stem}_{threshold:08.6f}")
+        assert Path.exists(expected_path)

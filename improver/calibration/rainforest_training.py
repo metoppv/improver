@@ -54,22 +54,25 @@ class TrainRainForestsModel(BasePlugin):
         # Keep only the columns relevant for training.
         self.training_data = training_data[expected_columns]
 
-    def process(self, threshold, output_path):
+    def process(self, thresholds, output_path):
         """Train a model for a particular threshold.
 
         Args:
-            threshold (float):
-                Threshold for which the observation column is trained.
+            thresholds (list of float):
+                Thresholds for which the observation column is trained.
             output_path (str or Path):
-                The model will be exported to this file path.
+                Template file path for export of model files.
+                Actual paths will have the threshold appended to the filename.
         """
         import lightgbm
 
-        threshold_met = (
-            self.training_data[self.observation_column] >= threshold
-        ).astype(int)
-        dataset = lightgbm.Dataset(self.training_data, label=threshold_met)
+        for threshold in thresholds:
+            threshold_met = (
+                self.training_data[self.observation_column] >= threshold
+            ).astype(int)
+            dataset = lightgbm.Dataset(self.training_data, label=threshold_met)
 
-        model = lightgbm.train(self.lightgbm_params, dataset)
+            model = lightgbm.train(self.lightgbm_params, dataset)
 
-        model.save_model(output_path)
+            threshold_path = output_path.with_stem(f"{output_path.stem}_{threshold:08.6f}")
+            model.save_model(threshold_path)
