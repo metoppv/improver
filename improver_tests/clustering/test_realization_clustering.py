@@ -45,44 +45,84 @@ def _create_realization_cube(shape=(5, 10, 10), seed=42):
 
 
 def _create_4d_realization_cube(
-    n_realizations=5, n_forecast_periods=3, y_dim=8, x_dim=8, seed=42
+    n_realizations=5,
+    forecast_periods=None,
+    y_dim=8,
+    x_dim=8,
+    seed=42,
+    model_id=None,
+    base_value=None,
+    realization_values=None,
 ):
     """Create a 4D cube with realization and forecast_period dimensions.
 
     Args:
         n_realizations: Number of realizations.
-        n_forecast_periods: Number of forecast periods.
+        forecast_periods: List of forecast period hours. If None,
+            uses range(n_forecast_periods).
         y_dim: Size of y dimension.
         x_dim: Size of x dimension.
-        seed: Random seed for reproducibility.
+        seed: Random seed for reproducibility (used if random data).
+        model_id: Optional model_id attribute value.
+        base_value: If set, use as base value for all data (plus forecast period offset).
+        realization_values: Optional list/array of values for each realization
+            (overrides base_value/random).
 
     Returns:
         A 4D cube with shape (n_realizations, n_forecast_periods, y_dim, x_dim).
     """
-    np.random.seed(seed)
+    if forecast_periods is None:
+        n_forecast_periods = 3
+        forecast_periods = list(range(n_forecast_periods))
+    else:
+        n_forecast_periods = len(forecast_periods)
 
     cubes = iris.cube.CubeList()
-    for fp_hours in range(n_forecast_periods):
-        data = np.random.randn(n_realizations, y_dim, x_dim).astype(np.float32)
+    for i, fp_hours in enumerate(forecast_periods):
+        if realization_values is not None:
+            # Use per-realization values without forecast period offset
+            data = np.array(
+                [
+                    np.full((y_dim, x_dim), val, dtype=np.float32)
+                    for val in realization_values
+                ]
+            )
+        elif base_value is not None:
+            data = np.full(
+                (n_realizations, y_dim, x_dim),
+                base_value + fp_hours,
+                dtype=np.float32,
+            )
+        else:
+            np.random.seed(seed + i)  # Different seed per forecast period
+            data = np.random.randn(n_realizations, y_dim, x_dim).astype(np.float32)
+
         cube = set_up_variable_cube(
             data,
             name="air_temperature",
             units="K",
             spatial_grid="equalarea",
             realizations=np.arange(n_realizations),
-            time=datetime(2017, 1, 10, 3 + fp_hours),
+            time=datetime(2017, 1, 10, 3 + i),
             frt=datetime(2017, 1, 10, 3),
         )
+        # Remove existing forecast_period and replace with desired value in seconds
+        cube.remove_coord("forecast_period")
+        forecast_period = iris.coords.DimCoord(
+            np.array([fp_hours * 3600], dtype=np.int32),
+            standard_name="forecast_period",
+            units="seconds",
+        )
+        cube.add_aux_coord(forecast_period)
+        if model_id is not None:
+            cube.attributes["model_id"] = model_id
         cubes.append(cube)
 
-    # Merge the cubes along forecast_period dimension
     merged_cube = cubes.merge_cube()
-
     # Transpose so realization is the leading dimension
     # Order after merge is typically: time, realization, y, x
     # We want: realization, time (forecast_period), y, x
     merged_cube.transpose([1, 0, 2, 3])
-
     return merged_cube
 
 
@@ -327,29 +367,27 @@ def test_clustering_distinct_clusters():
     assert len(np.unique(result.labels_)) == 2
 
 
-def test_clustering_dbscan():
-    """Test the RealizationClustering.process method with DBSCAN clustering."""
-    cube = _create_realization_cube(shape=(8, 10, 10))
-
-    plugin = RealizationClustering("DBSCAN", eps=50.0, min_samples=2)
+# fmt: off
+@pytest.mark.parametrize(
+    "method,kwargs,expected_attrs",
+    [
+        ("DBSCAN", {"eps": 50.0, "min_samples": 2}, ["labels_"]),
+        ("KMedoids", {"n_clusters": 2, "random_state": 42}, ["labels_", "medoid_indices_"]),
+    ],
+)
+# fmt: on
+def test_clustering_specific_methods(method, kwargs, expected_attrs):
+    """Test specific clustering methods."""
+    if method == "KMedoids":
+        pytest.importorskip("kmedoids")
+    if method == "DBSCAN":
+        cube = _create_realization_cube(shape=(8, 10, 10))
+    elif method == "KMedoids":
+        cube = _create_clusterable_realization_cube()
+    plugin = RealizationClustering(method, **kwargs)
     result = plugin.process(cube)
-
-    assert hasattr(result, "labels_")
-    assert len(result.labels_) == 8
-
-
-def test_clustering_kmedoids():
-    """Test the RealizationClustering.process method with KMedoids."""
-    pytest.importorskip("kmedoids")
-    cube = _create_clusterable_realization_cube()
-
-    plugin = RealizationClustering("KMedoids", n_clusters=2, random_state=42)
-    result = plugin.process(cube)
-
-    assert hasattr(result, "labels_")
-    assert hasattr(result, "medoid_indices_")
-    assert len(result.labels_) == 6
-    assert len(result.medoid_indices_) == 2
+    for attr in expected_attrs:
+        assert hasattr(result, attr)
 
 
 def test_clustering_invalid_clustering_method():
@@ -456,7 +494,8 @@ def test_matcher_process_multiple_realizations():
     # - Candidate 1 (99.0) to cluster 2 with MSE=1.0
     # - Candidate 0 (75.0) to cluster 1 with MSE=625.0
     # - Candidate 3 (2.0) tries cluster 0 but has MSE=4.0 > 1.0, so rejected
-    # Result: cluster 0 -> candidate 2, cluster 1 -> candidate 0, cluster 2 -> candidate 1
+    # Result:
+    # cluster 0 -> candidate 2, cluster 1 -> candidate 0, cluster 2 -> candidate 1
     _assert_realization_matching(result, [0, 1, 2], [2, 0, 1])
 
 
@@ -528,15 +567,16 @@ def test_matcher_process_all_clusters_matched():
     plugin = RealizationToClusterMatcher()
     result = plugin.process(clustered_cube, candidate_cube)
 
-    # All clusters should be matched: cluster 0->candidate 1, cluster 1->candidate 2, cluster 2->candidate 0
+    # All clusters should be matched: cluster 0->candidate 1, cluster 1->candidate 2,
+    # cluster 2->candidate 0
     cluster_indices, realization_indices = result
     assert len(cluster_indices) == 3
     assert len(realization_indices) == 3
     np.testing.assert_array_equal(cluster_indices, [0, 1, 2])
     # Verify unique assignments
-    assert (
-        len(set(realization_indices)) == 3
-    ), "All realization indices should be unique"
+    assert len(set(realization_indices)) == 3, (
+        "All realization indices should be unique"
+    )
 
 
 def test_matcher_choose_clusters_consistent_results():
@@ -613,17 +653,17 @@ def test_matcher_process_metadata_and_datatype_preservation():
     assert isinstance(realization_indices, list), "realization_indices should be a list"
 
     # Verify same length
-    assert len(cluster_indices) == len(
-        realization_indices
-    ), "cluster_indices and realization_indices should have same length"
+    assert len(cluster_indices) == len(realization_indices), (
+        "cluster_indices and realization_indices should have same length"
+    )
 
     # Verify all indices are integers
     for idx in cluster_indices:
         assert isinstance(idx, (int, np.integer)), "Cluster indices should be integers"
     for idx in realization_indices:
-        assert isinstance(
-            idx, (int, np.integer)
-        ), "Realization indices should be integers"
+        assert isinstance(idx, (int, np.integer)), (
+            "Realization indices should be integers"
+        )
 
 
 # Tests for RealizationToClusterMatcher with 4D cubes
@@ -733,53 +773,40 @@ def test_matcher_process_4d_multiple_candidates():
     np.testing.assert_array_equal(realization_indices, [0, 1])
 
 
-def test_matcher_process_4d_mismatched_forecast_periods():
-    """Test that mismatched forecast_period coordinates raise an error."""
-    clustered_cube = _create_4d_realization_cube(
-        n_realizations=2, n_forecast_periods=2, y_dim=3, x_dim=3, seed=10
-    )
-
-    # Create candidate with different forecast periods
-    candidate_cube = _create_4d_realization_cube(
-        n_realizations=2, n_forecast_periods=3, y_dim=3, x_dim=3, seed=20
-    )
-
+@pytest.mark.parametrize(
+    "clustered_cube_func, candidate_cube_func, expect_exception",
+    [
+        # Mismatched forecast periods: should raise ValueError
+        (
+            lambda: _create_4d_realization_cube(n_realizations=2, n_forecast_periods=2, y_dim=3, x_dim=3, seed=10),
+            lambda: _create_4d_realization_cube(n_realizations=2, n_forecast_periods=3, y_dim=3, x_dim=3, seed=20),
+            ValueError,
+        ),
+        # 4D vs 3D: should raise ValueError
+        (
+            lambda: _create_uniform_cube([10.0, 20.0]),
+            lambda: _create_4d_realization_cube(n_realizations=2, n_forecast_periods=2, y_dim=3, x_dim=3, seed=50),
+            ValueError,
+        ),
+        # 4D consistent results: should not raise, should be consistent
+        (
+            lambda: _create_4d_realization_cube(n_realizations=3, n_forecast_periods=2, y_dim=5, x_dim=5, seed=123),
+            lambda: _create_4d_realization_cube(n_realizations=3, n_forecast_periods=2, y_dim=5, x_dim=5, seed=456),
+            None,
+        ),
+    ]
+)
+def test_matcher_4d_cases(clustered_cube_func, candidate_cube_func, expect_exception):
+    clustered_cube = clustered_cube_func()
+    candidate_cube = candidate_cube_func()
     plugin = RealizationToClusterMatcher()
-
-    with pytest.raises(ValueError, match="Forecast period coords must match"):
-        plugin.process(clustered_cube, candidate_cube)
-
-
-def test_matcher_process_4d_vs_3d_dimension_mismatch():
-    """Test that mixing 3D and 4D cubes raises an error."""
-    clustered_cube_3d = _create_uniform_cube([10.0, 20.0])
-    candidate_cube_4d = _create_4d_realization_cube(
-        n_realizations=2, n_forecast_periods=2, y_dim=3, x_dim=3, seed=50
-    )
-
-    plugin = RealizationToClusterMatcher()
-
-    with pytest.raises(
-        ValueError, match="Both cubes must have the same number of dimensions"
-    ):
-        plugin.process(clustered_cube_3d, candidate_cube_4d)
-
-
-def test_matcher_process_4d_consistent_results():
-    """Test that 4D matching produces consistent results for repeated calls."""
-    clustered_cube = _create_4d_realization_cube(
-        n_realizations=3, n_forecast_periods=2, y_dim=5, x_dim=5, seed=123
-    )
-    candidate_cube = _create_4d_realization_cube(
-        n_realizations=3, n_forecast_periods=2, y_dim=5, x_dim=5, seed=456
-    )
-
-    plugin = RealizationToClusterMatcher()
-    result1 = plugin.process(clustered_cube, candidate_cube)
-    result2 = plugin.process(clustered_cube, candidate_cube)
-
-    # Results should be identical
-    _assert_realization_matching(result1, result2[0], result2[1])
+    if expect_exception:
+        with pytest.raises(expect_exception):
+            plugin.process(clustered_cube, candidate_cube)
+    else:
+        result1 = plugin.process(clustered_cube, candidate_cube)
+        result2 = plugin.process(clustered_cube, candidate_cube)
+        _assert_realization_matching(result1, result2[0], result2[1])
 
 
 def test_matcher_process_4d_metadata_preservation():
@@ -809,70 +836,6 @@ def test_matcher_process_4d_metadata_preservation():
 
 
 # Tests for RealizationClusterAndMatch
-
-
-def _create_cube_with_forecast_periods(
-    forecast_periods,
-    n_realizations,
-    model_id,
-    spatial_shape=(5, 5),
-    base_value=100.0,
-    realization_values=None,
-):
-    """Create cubes with specific forecast periods and model_id.
-
-    Args:
-        forecast_periods: List of forecast period hours.
-        n_realizations: Number of realizations.
-        model_id: Model ID attribute value.
-        spatial_shape: Shape of spatial dimensions (y, x).
-        base_value: Base value for data (forecast period will be added).
-            Ignored if realization_values is provided.
-        realization_values: Optional list/array of values for each realization.
-            If provided, should have length n_realizations. Each realization
-            will be filled with its corresponding value (no forecast period
-            offset added).
-
-    Returns:
-        CubeList containing cubes for each forecast period.
-    """
-    cubes = iris.cube.CubeList()
-    for fp_hours in forecast_periods:
-        if realization_values is not None:
-            # Use per-realization values without forecast period offset
-            data = np.array(
-                [
-                    np.full(spatial_shape, val, dtype=np.float32)
-                    for val in realization_values
-                ]
-            )
-        else:
-            # Use uniform base_value with forecast period offset
-            data = np.full(
-                (n_realizations, *spatial_shape),
-                base_value + fp_hours,
-                dtype=np.float32,
-            )
-        cube = set_up_variable_cube(
-            data,
-            name="air_temperature",
-            units="K",
-            spatial_grid="equalarea",
-            realizations=np.arange(n_realizations),
-            time=datetime(2024, 1, 1, 0),
-            frt=datetime(2024, 1, 1, 0),
-        )
-        # Remove existing forecast_period and replace with desired value in seconds
-        cube.remove_coord("forecast_period")
-        forecast_period = iris.coords.DimCoord(
-            np.array([fp_hours * 3600], dtype=np.int32),
-            standard_name="forecast_period",
-            units="seconds",
-        )
-        cube.add_aux_coord(forecast_period)
-        cube.attributes["model_id"] = model_id
-        cubes.append(cube)
-    return cubes
 
 
 def _create_target_grid_cube(spatial_shape=(3, 3)):
@@ -954,23 +917,38 @@ def test_clusterandmatch_process_basic():
     spatial_shape = (5, 5)
 
     # Primary input with 6 realizations, value 100
-    cubes.extend(
-        _create_cube_with_forecast_periods(
-            [0, 6, 12, 18], 6, "primary_model", spatial_shape, 100.0
+    cubes.append(
+        _create_4d_realization_cube(
+            n_realizations=6,
+            forecast_periods=[0, 6, 12, 18],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            base_value=100.0,
+            model_id="primary_model",
         )
     )
 
     # Secondary input 1 for fp=[0, 6] with value 200
-    cubes.extend(
-        _create_cube_with_forecast_periods(
-            [0, 6], 6, "secondary_model_1", spatial_shape, 200.0
+    cubes.append(
+        _create_4d_realization_cube(
+            n_realizations=6,
+            forecast_periods=[0, 6],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            base_value=200.0,
+            model_id="secondary_model_1",
         )
     )
 
     # Secondary input 2 for fp=[12, 18] with value 300
-    cubes.extend(
-        _create_cube_with_forecast_periods(
-            [12, 18], 4, "secondary_model_2", spatial_shape, 300.0
+    cubes.append(
+        _create_4d_realization_cube(
+            n_realizations=4,
+            forecast_periods=[12, 18],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            base_value=300.0,
+            model_id="secondary_model_2",
         )
     )
 
@@ -1028,14 +1006,14 @@ def test_clusterandmatch_process_basic():
 
     # fp=12,18 should use secondary_model_2 (highest precedence, values ~300)
     fp_12_data = result.extract(iris.Constraint(forecast_period=12 * 3600)).data
-    assert np.allclose(
-        fp_12_data, 312.0, atol=5.0
-    ), "fp=12 should use secondary_model_2"
+    assert np.allclose(fp_12_data, 312.0, atol=5.0), (
+        "fp=12 should use secondary_model_2"
+    )
 
     fp_18_data = result.extract(iris.Constraint(forecast_period=18 * 3600)).data
-    assert np.allclose(
-        fp_18_data, 318.0, atol=5.0
-    ), "fp=18 should use secondary_model_2"
+    assert np.allclose(fp_18_data, 318.0, atol=5.0), (
+        "fp=18 should use secondary_model_2"
+    )
 
     # Check cluster_sources attribute exists and has correct structure
     expected_sources = {}
@@ -1062,16 +1040,26 @@ def test_clusterandmatch_cluster_primary_input():
     spatial_shape = (5, 5)
 
     # Primary input with 6 realizations, value 100
-    cubes.extend(
-        _create_cube_with_forecast_periods(
-            [0, 6, 12], 6, "primary_model", spatial_shape, 100.0
+    cubes.append(
+        _create_4d_realization_cube(
+            n_realizations=6,
+            forecast_periods=[0, 6, 12],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            model_id="primary_model",
+            base_value=100.0,
         )
     )
 
     # Secondary input only for fp=[0, 6], value 200
-    cubes.extend(
-        _create_cube_with_forecast_periods(
-            [0, 6], 6, "secondary_model_1", spatial_shape, 200.0
+    cubes.append(
+        _create_4d_realization_cube(
+            n_realizations=6,
+            forecast_periods=[0, 6],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            model_id="secondary_model_1",
+            base_value=200.0,
         )
     )
 
@@ -1108,7 +1096,7 @@ def test_clusterandmatch_cluster_primary_input():
     assert result.name() == "air_temperature"
 
     # Check data values: fp=12 should use primary (value ~112),
-    # others secondary (~200, ~206)
+    # others secondary model 1 (~200, ~206)
     fp_0_data = result.extract(iris.Constraint(forecast_period=0)).data
     assert np.allclose(fp_0_data, 200.0, atol=5.0), "fp=0 should use secondary_model_1"
 
@@ -1116,9 +1104,9 @@ def test_clusterandmatch_cluster_primary_input():
     assert np.allclose(fp_6_data, 206.0, atol=5.0), "fp=6 should use secondary_model_1"
 
     fp_12_data = result.extract(iris.Constraint(forecast_period=12 * 3600)).data
-    assert np.allclose(
-        fp_12_data, 112.0, atol=5.0
-    ), "fp=12 should use clustered primary_model"
+    assert np.allclose(fp_12_data, 112.0, atol=5.0), (
+        "fp=12 should use clustered primary_model"
+    )
 
 
 def test_clusterandmatch_precedence_order():
@@ -1133,23 +1121,38 @@ def test_clusterandmatch_precedence_order():
     spatial_shape = (5, 5)
 
     # Primary input with 6 realizations at fp=0
-    cubes.extend(
-        _create_cube_with_forecast_periods(
-            [0], 6, "primary_model", spatial_shape, 100.0
+    cubes.append(
+        _create_4d_realization_cube(
+            n_realizations=6,
+            forecast_periods=[0],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            model_id="primary_model",
+            base_value=100.0,
         )
     )
 
     # Secondary input 1 (lower precedence) with 6 realizations, distinct value
-    cubes.extend(
-        _create_cube_with_forecast_periods(
-            [0], 6, "secondary_model_1", spatial_shape, 200.0
+    cubes.append(
+        _create_4d_realization_cube(
+            n_realizations=6,
+            forecast_periods=[0],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            model_id="secondary_model_1",
+            base_value=200.0,
         )
     )
 
     # Secondary input 2 (higher precedence) with 6 realizations, distinct value
-    cubes.extend(
-        _create_cube_with_forecast_periods(
-            [0], 6, "secondary_model_2", spatial_shape, 300.0
+    cubes.append(
+        _create_4d_realization_cube(
+            n_realizations=6,
+            forecast_periods=[0],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            model_id="secondary_model_2",
+            base_value=300.0,
         )
     )
 
@@ -1179,9 +1182,9 @@ def test_clusterandmatch_precedence_order():
 
     # Result should contain data from secondary_model_1 (highest precedence,
     # listed first). All values should be close to 200.0
-    assert np.allclose(
-        result.data, 200.0, atol=1.0
-    ), "Result should use highest precedence input (secondary_model_1)"
+    assert np.allclose(result.data, 200.0, atol=1.0), (
+        "Result should use highest precedence input (secondary_model_1)"
+    )
 
     # Check cluster_sources attribute reflects precedence order
     expected_sources = {}
@@ -1198,23 +1201,38 @@ def test_clusterandmatch_overlapping_forecast_periods():
     spatial_shape = (5, 5)
 
     # Primary input with 6 realizations, value 100
-    cubes.extend(
-        _create_cube_with_forecast_periods(
-            [0, 6, 12], 6, "primary_model", spatial_shape, 100.0
+    cubes.append(
+        _create_4d_realization_cube(
+            n_realizations=6,
+            forecast_periods=[0, 6, 12],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            model_id="primary_model",
+            base_value=100.0,
         )
     )
 
     # Secondary input 1 for fp=[0, 6], value 200 (higher precedence - listed first)
-    cubes.extend(
-        _create_cube_with_forecast_periods(
-            [0, 6], 6, "secondary_model_1", spatial_shape, 200.0
+    cubes.append(
+        _create_4d_realization_cube(
+            n_realizations=6,
+            forecast_periods=[0, 6],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            model_id="secondary_model_1",
+            base_value=200.0,
         )
     )
 
     # Secondary input 2 for fp=[6, 12], value 300 (lower precedence, overlaps at fp=6)
-    cubes.extend(
-        _create_cube_with_forecast_periods(
-            [6, 12], 6, "secondary_model_2", spatial_shape, 300.0
+    cubes.append(
+        _create_4d_realization_cube(
+            n_realizations=6,
+            forecast_periods=[6, 12],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            model_id="secondary_model_2",
+            base_value=300.0,
         )
     )
 
@@ -1254,14 +1272,14 @@ def test_clusterandmatch_overlapping_forecast_periods():
     assert np.allclose(fp_0_data, 200.0, atol=5.0), "fp=0 should use secondary_model_1"
 
     fp_6_data = result.extract(iris.Constraint(forecast_period=6 * 3600)).data
-    assert np.allclose(
-        fp_6_data, 206.0, atol=5.0
-    ), "fp=6 should use secondary_model_1 (higher precedence), not secondary_model_2"
+    assert np.allclose(fp_6_data, 206.0, atol=5.0), (
+        "fp=6 should use secondary_model_1 (higher precedence), not secondary_model_2"
+    )
 
     fp_12_data = result.extract(iris.Constraint(forecast_period=12 * 3600)).data
-    assert np.allclose(
-        fp_12_data, 312.0, atol=5.0
-    ), "fp=12 should use secondary_model_2"
+    assert np.allclose(fp_12_data, 312.0, atol=5.0), (
+        "fp=12 should use secondary_model_2"
+    )
 
 
 def test_clusterandmatch_single_secondary_input():
@@ -1272,16 +1290,26 @@ def test_clusterandmatch_single_secondary_input():
     spatial_shape = (5, 5)
 
     # Primary input with value 100
-    cubes.extend(
-        _create_cube_with_forecast_periods(
-            [0, 6, 12], 6, "primary_model", spatial_shape, 100.0
+    cubes.append(
+        _create_4d_realization_cube(
+            n_realizations=6,
+            forecast_periods=[0, 6, 12],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            model_id="primary_model",
+            base_value=100.0,
         )
     )
 
     # Secondary input only for fp=[0, 6], value 200
-    cubes.extend(
-        _create_cube_with_forecast_periods(
-            [0, 6], 6, "secondary_model_1", spatial_shape, 200.0
+    cubes.append(
+        _create_4d_realization_cube(
+            n_realizations=6,
+            forecast_periods=[0, 6],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            model_id="secondary_model_1",
+            base_value=200.0,
         )
     )
 
@@ -1313,7 +1341,7 @@ def test_clusterandmatch_single_secondary_input():
     assert len(forecast_periods) == 3
     np.testing.assert_array_equal(forecast_periods, [0, 6 * 3600, 12 * 3600])
 
-    # Check data values: fp=0,6 should use secondary (~200),
+    # Check data values: fp=[0,6] should use secondary (~200),
     # fp=12 should use primary (~112)
     fp_0_data = result.extract(iris.Constraint(forecast_period=0)).data
     assert np.allclose(fp_0_data, 200.0, atol=5.0), "fp=0 should use secondary_model_1"
@@ -1322,9 +1350,9 @@ def test_clusterandmatch_single_secondary_input():
     assert np.allclose(fp_6_data, 206.0, atol=5.0), "fp=6 should use secondary_model_1"
 
     fp_12_data = result.extract(iris.Constraint(forecast_period=12 * 3600)).data
-    assert np.allclose(
-        fp_12_data, 112.0, atol=5.0
-    ), "fp=12 should use clustered primary_model"
+    assert np.allclose(fp_12_data, 112.0, atol=5.0), (
+        "fp=12 should use clustered primary_model"
+    )
 
     # Check cluster_sources attribute
     expected_sources = {}
@@ -1347,24 +1375,39 @@ def test_clusterandmatch_categorise_full_realizations():
     spatial_shape = (5, 5)
 
     # Primary input with value 100
-    cubes.extend(
-        _create_cube_with_forecast_periods(
-            [0, 6], 6, "primary_model", spatial_shape, 100.0
+    cubes.append(
+        _create_4d_realization_cube(
+            n_realizations=6,
+            forecast_periods=[0, 6],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            model_id="primary_model",
+            base_value=100.0,
         )
     )
 
     # Secondary input 1 for fp=0, value 200 (6 realizations >= 3 clusters)
-    cubes.extend(
-        _create_cube_with_forecast_periods(
-            [0], 6, "secondary_model_1", spatial_shape, 200.0
+    cubes.append(
+        _create_4d_realization_cube(
+            n_realizations=6,
+            forecast_periods=[0],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            model_id="secondary_model_1",
+            base_value=200.0,
         )
     )
 
     # Secondary input 2 for fp=6, value 300 (4 realizations >= 3 clusters)
     # Note: Using 294.0 as base so that 294.0 + 6 (fp_hours) = 300.0
-    cubes.extend(
-        _create_cube_with_forecast_periods(
-            [6], 4, "secondary_model_2", spatial_shape, 294.0
+    cubes.append(
+        _create_4d_realization_cube(
+            n_realizations=4,
+            forecast_periods=[6],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            model_id="secondary_model_2",
+            base_value=294.0,
         )
     )
 
@@ -1400,14 +1443,14 @@ def test_clusterandmatch_categorise_full_realizations():
 
     # Check data: both fps should use their respective secondary inputs
     fp_0_data = result.extract(iris.Constraint(forecast_period=0)).data
-    assert np.allclose(
-        fp_0_data, 200.0, atol=5.0
-    ), "fp=0 should use secondary_model_1 (full realizations)"
+    assert np.allclose(fp_0_data, 200.0, atol=5.0), (
+        "fp=0 should use secondary_model_1 (full realizations)"
+    )
 
     fp_6_data = result.extract(iris.Constraint(forecast_period=6 * 3600)).data
-    assert np.allclose(
-        fp_6_data, 300.0, atol=5.0
-    ), "fp=6 should use secondary_model_2 (full realizations)"
+    assert np.allclose(fp_6_data, 300.0, atol=5.0), (
+        "fp=6 should use secondary_model_2 (full realizations)"
+    )
 
 
 def test_clusterandmatch_categorise_partial_realizations():
@@ -1423,24 +1466,39 @@ def test_clusterandmatch_categorise_partial_realizations():
     spatial_shape = (5, 5)
 
     # Primary input with value 100
-    cubes.extend(
-        _create_cube_with_forecast_periods(
-            [0, 6, 12], 6, "primary_model", spatial_shape, 100.0
+    cubes.append(
+        _create_4d_realization_cube(
+            n_realizations=6,
+            forecast_periods=[0, 6, 12],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            model_id="primary_model",
+            base_value=100.0,
         )
     )
 
     # Secondary input 1 for fp=0, value 200 (2 realizations < 3 clusters)
-    cubes.extend(
-        _create_cube_with_forecast_periods(
-            [0], 2, "secondary_model_1", spatial_shape, 200.0
+    cubes.append(
+        _create_4d_realization_cube(
+            n_realizations=2,
+            forecast_periods=[0],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            model_id="secondary_model_1",
+            base_value=200.0,
         )
     )
 
     # Secondary input 2 for fp=6, value 300 (2 realizations < 3 clusters)
     # Note: Using 294.0 as base so that 294.0 + 6 (fp_hours) = 300.0
-    cubes.extend(
-        _create_cube_with_forecast_periods(
-            [6], 2, "secondary_model_2", spatial_shape, 294.0
+    cubes.append(
+        _create_4d_realization_cube(
+            n_realizations=2,
+            forecast_periods=[6],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            model_id="secondary_model_2",
+            base_value=294.0,
         )
     )
 
@@ -1486,32 +1544,32 @@ def test_clusterandmatch_categorise_partial_realizations():
 
     fp_0_data = result.extract(iris.Constraint(forecast_period=0)).data
     # Check cluster 0 and 1 get secondary (~200), cluster 2 gets primary (~100)
-    assert np.allclose(
-        fp_0_data[0], 200.0, atol=5.0
-    ), "Realization 0 should use secondary_model_1"
-    assert np.allclose(
-        fp_0_data[1], 200.0, atol=5.0
-    ), "Realization 1 should use secondary_model_1"
-    assert np.allclose(
-        fp_0_data[2], 100.0, atol=5.0
-    ), "Realization 2 should use clustered primary_model"
+    assert np.allclose(fp_0_data[0], 200.0, atol=5.0), (
+        "Realization 0 should use secondary_model_1"
+    )
+    assert np.allclose(fp_0_data[1], 200.0, atol=5.0), (
+        "Realization 1 should use secondary_model_1"
+    )
+    assert np.allclose(fp_0_data[2], 100.0, atol=5.0), (
+        "Realization 2 should use clustered primary_model"
+    )
 
     fp_6_data = result.extract(iris.Constraint(forecast_period=6 * 3600)).data
-    assert np.allclose(
-        fp_6_data[0], 300.0, atol=5.0
-    ), "Realization 0 should use secondary_model_2"
-    assert np.allclose(
-        fp_6_data[1], 300.0, atol=5.0
-    ), "Realization 1 should use secondary_model_2"
-    assert np.allclose(
-        fp_6_data[2], 106.0, atol=5.0
-    ), "Realization 2 should use clustered primary_model"
+    assert np.allclose(fp_6_data[0], 300.0, atol=5.0), (
+        "Realization 0 should use secondary_model_2"
+    )
+    assert np.allclose(fp_6_data[1], 300.0, atol=5.0), (
+        "Realization 1 should use secondary_model_2"
+    )
+    assert np.allclose(fp_6_data[2], 106.0, atol=5.0), (
+        "Realization 2 should use clustered primary_model"
+    )
 
     # fp=12 should be entirely from primary
     fp_12_data = result.extract(iris.Constraint(forecast_period=12 * 3600)).data
-    assert np.allclose(
-        fp_12_data, 112.0, atol=5.0
-    ), "fp=12 should use clustered primary_model only"
+    assert np.allclose(fp_12_data, 112.0, atol=5.0), (
+        "fp=12 should use clustered primary_model only"
+    )
 
 
 def test_clusterandmatch_multiple_partial_secondary_same_forecast_period():
@@ -1537,12 +1595,13 @@ def test_clusterandmatch_multiple_partial_secondary_same_forecast_period():
     # Group 1 (realizations 0, 1): ~90
     # Group 2 (realizations 2, 3): ~100
     # Group 3 (realizations 4, 5): ~110
-    cubes.extend(
-        _create_cube_with_forecast_periods(
-            [0],
-            6,
-            "primary_model",
-            spatial_shape,
+    cubes.append(
+        _create_4d_realization_cube(
+            n_realizations=6,
+            forecast_periods=[0],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            model_id="primary_model",
             realization_values=[90.0, 91.0, 100.0, 101.0, 110.0, 111.0],
         )
     )
@@ -1550,18 +1609,28 @@ def test_clusterandmatch_multiple_partial_secondary_same_forecast_period():
     # Secondary input 1 for fp=0, value 90 (2 realizations < 3 clusters)
     # This has highest precedence (listed first)
     # Value chosen to match the low cluster (~90)
-    cubes.extend(
-        _create_cube_with_forecast_periods(
-            [0], 2, "secondary_model_1", spatial_shape, 90.0
+    cubes.append(
+        _create_4d_realization_cube(
+            n_realizations=2,
+            forecast_periods=[0],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            model_id="secondary_model_1",
+            base_value=90.0,
         )
     )
 
     # Secondary input 2 for fp=0, value 110 (1 realization < 3 clusters)
     # This has lower precedence (listed second) but will still be processed
     # Value chosen to match the high cluster (~110)
-    cubes.extend(
-        _create_cube_with_forecast_periods(
-            [0], 1, "secondary_model_2", spatial_shape, 110.0
+    cubes.append(
+        _create_4d_realization_cube(
+            n_realizations=1,
+            forecast_periods=[0],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            model_id="secondary_model_2",
+            base_value=110.0,
         )
     )
 
@@ -1611,12 +1680,12 @@ def test_clusterandmatch_multiple_partial_secondary_same_forecast_period():
     unique_values = np.unique(fp_0_data.round())
 
     # Should see values from both secondary inputs
-    assert any(
-        np.isclose(unique_values, 90.0, atol=5.0)
-    ), "Should contain values from secondary_model_1 (~90)"
-    assert any(
-        np.isclose(unique_values, 110.0, atol=5.0)
-    ), "Should contain values from secondary_model_2 (~110)"
+    assert any(np.isclose(unique_values, 90.0, atol=5.0)), (
+        "Should contain values from secondary_model_1 (~90)"
+    )
+    assert any(np.isclose(unique_values, 110.0, atol=5.0)), (
+        "Should contain values from secondary_model_2 (~110)"
+    )
 
     # Count how many clusters got each value
     n_from_secondary_1 = np.sum(np.isclose(fp_0_data, 90.0, atol=5.0))
@@ -1624,12 +1693,12 @@ def test_clusterandmatch_multiple_partial_secondary_same_forecast_period():
 
     # Should have 2 clusters from secondary_model_1 (its 2 realizations)
     # and 1 cluster from secondary_model_2 (its 1 realization)
-    assert (
-        n_from_secondary_1 == 2 * spatial_shape[0] * spatial_shape[1]
-    ), "2 clusters should use secondary_model_1"
-    assert (
-        n_from_secondary_2 == 1 * spatial_shape[0] * spatial_shape[1]
-    ), "1 cluster should use secondary_model_2"
+    assert n_from_secondary_1 == 2 * spatial_shape[0] * spatial_shape[1], (
+        "2 clusters should use secondary_model_1"
+    )
+    assert n_from_secondary_2 == 1 * spatial_shape[0] * spatial_shape[1], (
+        "1 cluster should use secondary_model_2"
+    )
 
 
 def test_clusterandmatch_categorise_mixed_realizations():
@@ -1644,24 +1713,39 @@ def test_clusterandmatch_categorise_mixed_realizations():
     spatial_shape = (5, 5)
 
     # Primary input with value 100
-    cubes.extend(
-        _create_cube_with_forecast_periods(
-            [0, 6, 12], 6, "primary_model", spatial_shape, 100.0
+    cubes.append(
+        _create_4d_realization_cube(
+            n_realizations=6,
+            forecast_periods=[0, 6, 12],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            model_id="primary_model",
+            base_value=100.0,
         )
     )
 
     # Secondary input 1 for fp=0, value 200 (6 realizations >= 3 clusters, full)
-    cubes.extend(
-        _create_cube_with_forecast_periods(
-            [0], 6, "secondary_model_1", spatial_shape, 200.0
+    cubes.append(
+        _create_4d_realization_cube(
+            n_realizations=6,
+            forecast_periods=[0],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            model_id="secondary_model_1",
+            base_value=200.0,
         )
     )
 
     # Secondary input 2 for fp=6, value 300 (2 realizations < 3 clusters, partial)
     # Note: Using 294.0 as base so that 294.0 + 6 (fp_hours) = 300.0
-    cubes.extend(
-        _create_cube_with_forecast_periods(
-            [6], 2, "secondary_model_2", spatial_shape, 294.0
+    cubes.append(
+        _create_4d_realization_cube(
+            n_realizations=2,
+            forecast_periods=[6],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            model_id="secondary_model_2",
+            base_value=294.0,
         )
     )
 
@@ -1702,28 +1786,28 @@ def test_clusterandmatch_categorise_mixed_realizations():
     # fp=0 should be entirely from secondary_model_1
     # (full realizations, 6 >= 3 clusters)
     fp_0_data = result.extract(iris.Constraint(forecast_period=0)).data
-    assert np.allclose(
-        fp_0_data, 200.0, atol=5.0
-    ), "fp=0 should use secondary_model_1 (full realizations)"
+    assert np.allclose(fp_0_data, 200.0, atol=5.0), (
+        "fp=0 should use secondary_model_1 (full realizations)"
+    )
 
     # fp=6: With random_state=42, clusters [0, 1] get replaced by secondary_model_2,
     # cluster [2] keeps primary data
     fp_6_data = result.extract(iris.Constraint(forecast_period=6 * 3600)).data
-    assert np.allclose(
-        fp_6_data[0], 300.0, atol=5.0
-    ), "Realization 0 should use secondary_model_2"
-    assert np.allclose(
-        fp_6_data[1], 300.0, atol=5.0
-    ), "Realization 1 should use secondary_model_2"
-    assert np.allclose(
-        fp_6_data[2], 106.0, atol=5.0
-    ), "Realization 2 should use clustered primary_model"
+    assert np.allclose(fp_6_data[0], 300.0, atol=5.0), (
+        "Realization 0 should use secondary_model_2"
+    )
+    assert np.allclose(fp_6_data[1], 300.0, atol=5.0), (
+        "Realization 1 should use secondary_model_2"
+    )
+    assert np.allclose(fp_6_data[2], 106.0, atol=5.0), (
+        "Realization 2 should use clustered primary_model"
+    )
 
     # fp=12 should be entirely from primary
     fp_12_data = result.extract(iris.Constraint(forecast_period=12 * 3600)).data
-    assert np.allclose(
-        fp_12_data, 112.0, atol=5.0
-    ), "fp=12 should use clustered primary_model only"
+    assert np.allclose(fp_12_data, 112.0, atol=5.0), (
+        "fp=12 should use clustered primary_model only"
+    )
 
 
 def test_clusterandmatch_regrid_for_clustering_false():
@@ -1740,23 +1824,38 @@ def test_clusterandmatch_regrid_for_clustering_false():
     spatial_shape = (5, 5)
 
     # Primary input with 6 realizations, value 100
-    cubes.extend(
-        _create_cube_with_forecast_periods(
-            [0, 6, 12], 6, "primary_model", spatial_shape, 100.0
+    cubes.append(
+        _create_4d_realization_cube(
+            n_realizations=6,
+            forecast_periods=[0, 6, 12],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            model_id="primary_model",
+            base_value=100.0,
         )
     )
 
     # Secondary input 1 for fp=[0, 6], value 200
-    cubes.extend(
-        _create_cube_with_forecast_periods(
-            [0, 6], 6, "secondary_model_1", spatial_shape, 200.0
+    cubes.append(
+        _create_4d_realization_cube(
+            n_realizations=6,
+            forecast_periods=[0, 6],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            model_id="secondary_model_1",
+            base_value=200.0,
         )
     )
 
     # Secondary input 2 for fp=[12], value 300
-    cubes.extend(
-        _create_cube_with_forecast_periods(
-            [12], 4, "secondary_model_2", spatial_shape, 300.0
+    cubes.append(
+        _create_4d_realization_cube(
+            n_realizations=4,
+            forecast_periods=[12],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            model_id="secondary_model_2",
+            base_value=300.0,
         )
     )
 
@@ -1816,40 +1915,25 @@ def test_clusterandmatch_regrid_for_clustering_false():
 
     # fp=12 should use secondary_model_2 (highest precedence, values ~300)
     fp_12_data = result.extract(iris.Constraint(forecast_period=12 * 3600)).data
-    assert np.allclose(
-        fp_12_data, 312.0, atol=5.0
-    ), "fp=12 should use secondary_model_2"
-
-
-def test_clusterandmatch_regrid_for_clustering_false_without_target_grid_name():
-    """Test that regrid_for_clustering=False allows omitting target_grid_name."""
-    pytest.importorskip("kmedoids")
-
-    hierarchy = {
-        "primary_input": "model_a",
-        "secondary_inputs": {"model_b": [0, 6]},
-    }
-
-    # Should not raise an error when regrid_for_clustering=False
-    # and target_grid_name is None
-    plugin = RealizationClusterAndMatch(
-        hierarchy=hierarchy,
-        model_id_attr="model_id",
-        clustering_method="KMedoids",
-        regrid_for_clustering=False,
-        n_clusters=3,
-        random_state=42,
+    assert np.allclose(fp_12_data, 312.0, atol=5.0), (
+        "fp=12 should use secondary_model_2"
     )
 
-    assert plugin.regrid_for_clustering is False
-    assert plugin.target_grid_name is None
 
+@pytest.mark.parametrize(
+    "regrid_for_clustering,target_grid_name,should_raise",
+    [
+        (False, None, False),
+        (True, None, True),
+    ],
+)
+def test_clusterandmatch_regrid_for_clustering_and_target_grid_name(
+        regrid_for_clustering, target_grid_name, should_raise):
+    """Test the interaction between regrid_for_clustering and target_grid_name.
 
-def test_clusterandmatch_regrid_for_clustering_true_requires_target_grid_name():
-    """Test that regrid_for_clustering=True requires target_grid_name.
-
-    This test verifies that when regrid_for_clustering is True (the default),
-    target_grid_name must be provided, otherwise a ValueError is raised.
+    If regrid_for_clustering is True, target_grid_name must be provided,
+    otherwise ValueError is raised.
+    If regrid_for_clustering is False, target_grid_name can be omitted (None).
     """
     pytest.importorskip("kmedoids")
 
@@ -1858,17 +1942,28 @@ def test_clusterandmatch_regrid_for_clustering_true_requires_target_grid_name():
         "secondary_inputs": {"model_b": [0, 6]},
     }
 
-    # Should raise ValueError when regrid_for_clustering=True
-    # but target_grid_name is not provided
-    with pytest.raises(
-        ValueError,
-        match="target_grid_name must be provided when regrid_for_clustering is True",
-    ):
-        RealizationClusterAndMatch(
+    if should_raise:
+        with pytest.raises(
+            ValueError,
+            match="target_grid_name must be provided when regrid_for_clustering is True",
+        ):
+            RealizationClusterAndMatch(
+                hierarchy=hierarchy,
+                model_id_attr="model_id",
+                clustering_method="KMedoids",
+                target_grid_name=target_grid_name,
+                regrid_for_clustering=regrid_for_clustering,
+                n_clusters=3,
+            )
+    else:
+        plugin = RealizationClusterAndMatch(
             hierarchy=hierarchy,
             model_id_attr="model_id",
             clustering_method="KMedoids",
-            target_grid_name=None,
-            regrid_for_clustering=True,
+            target_grid_name=target_grid_name,
+            regrid_for_clustering=regrid_for_clustering,
             n_clusters=3,
+            random_state=42,
         )
+        assert plugin.regrid_for_clustering is False
+        assert plugin.target_grid_name is None

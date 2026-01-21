@@ -17,14 +17,18 @@ def test_single_lead_time(tmp_path):
     """Test with a single lead time and two input cubes."""
     kgo_dir = acc.kgo_root() / "realization_cluster_and_match"
     kgo_path = kgo_dir / "single_lead_time_kgo.nc"
-    coarse_resolution_input = kgo_dir / "coarse_resolution_subdomain_PT0006H00M.nc"
-    high_resolution_input = kgo_dir / "high_resolution_subdomain_PT0006H00M.nc"
+    coarse_resolution_primary_input = (
+        kgo_dir / "coarse_resolution_primary_subdomain_PT0006H00M.nc"
+    )
+    high_resolution_secondary_input = (
+        kgo_dir / "high_resolution_secondary_subdomain_PT0006H00M.nc"
+    )
     target_grid_input = kgo_dir / "target_grid.nc"
     hierarchy_input = kgo_dir / "hierarchy.json"
     output_path = tmp_path / "output.nc"
     args = [
-        coarse_resolution_input,
-        high_resolution_input,
+        coarse_resolution_primary_input,
+        high_resolution_secondary_input,
         target_grid_input,
         "--hierarchy",
         hierarchy_input,
@@ -45,18 +49,26 @@ def test_multiple_lead_time(tmp_path):
     """Test with multiple lead times and four input cubes."""
     kgo_dir = acc.kgo_root() / "realization_cluster_and_match"
     kgo_path = kgo_dir / "multiple_lead_time_kgo.nc"
-    coarse_resolution_6H_input = kgo_dir / "coarse_resolution_subdomain_PT0006H00M.nc"
-    high_resolution_6H_input = kgo_dir / "high_resolution_subdomain_PT0006H00M.nc"
-    coarse_resolution_12H_input = kgo_dir / "coarse_resolution_subdomain_PT0012H00M.nc"
-    high_resolution_12H_input = kgo_dir / "high_resolution_subdomain_PT0012H00M.nc"
+    coarse_resolution_primary_6H_input = (
+        kgo_dir / "coarse_resolution_primary_subdomain_PT0006H00M.nc"
+    )
+    high_resolution_secondary_6H_input = (
+        kgo_dir / "high_resolution_secondary_subdomain_PT0006H00M.nc"
+    )
+    coarse_resolution_primary_12H_input = (
+        kgo_dir / "coarse_resolution_primary_subdomain_PT0012H00M.nc"
+    )
+    high_resolution_secondary_12H_input = (
+        kgo_dir / "high_resolution_secondary_subdomain_PT0012H00M.nc"
+    )
     target_grid_input = kgo_dir / "target_grid.nc"
     hierarchy_input = kgo_dir / "hierarchy.json"
     output_path = tmp_path / "output.nc"
     args = [
-        coarse_resolution_6H_input,
-        high_resolution_6H_input,
-        coarse_resolution_12H_input,
-        high_resolution_12H_input,
+        coarse_resolution_primary_6H_input,
+        high_resolution_secondary_6H_input,
+        coarse_resolution_primary_12H_input,
+        high_resolution_secondary_12H_input,
         target_grid_input,
         "--hierarchy",
         hierarchy_input,
