@@ -5,6 +5,8 @@
 
 """RainForests model training plugin."""
 
+from pathlib import Path
+
 from improver import BasePlugin
 from improver.calibration import (
     lightgbm_package_available,
@@ -59,7 +61,7 @@ class TrainRainForestsModel(BasePlugin):
         self.compiler = compiler
 
     def process(self, thresholds, output_path, compile=False):
-        """Train a model for a particular threshold.
+        """Train models for a set of threshold values.
 
         Args:
             thresholds (list of float):
@@ -71,24 +73,40 @@ class TrainRainForestsModel(BasePlugin):
                 Whether to also compile the model.
                 Defaults to False.
         """
-        import lightgbm
+
+        output_path = Path(output_path)
+        output_dir = output_path.parent
+
+        if compile and not self.compiler:
+            raise ValueError("Compile option used when compiler not present.")
 
         for threshold in thresholds:
-            threshold_met = (
-                self.training_data[self.observation_column] >= threshold
-            ).astype(int)
-            dataset = lightgbm.Dataset(self.training_data, label=threshold_met)
-
-            model = lightgbm.train(self.lightgbm_params, dataset)
-
             threshold_path = output_path.with_stem(
                 f"{output_path.stem}_{threshold:08.6f}"
             )
+
+            model = self._train_model(threshold)
             model.save_model(threshold_path)
 
             if compile:
-                if not self.compiler:
-                    raise ValueError(
-                        "Compiler must be present when compile option used."
-                    )
-                self.compiler.process(threshold_path, threshold_path.parent)
+                self.compiler.process(threshold_path, output_dir)
+
+    def _train_model(self, threshold):
+        """Train a model for a particular threshold.
+
+        Args:
+            threshold (float):
+                Threshold for which the observation column is trained.
+
+        Returns:
+            The model object (lightgbm.Booster)
+        """
+        import lightgbm
+
+        threshold_met = (
+            self.training_data[self.observation_column] >= threshold
+        ).astype(int)
+
+        dataset = lightgbm.Dataset(self.training_data, label=threshold_met)
+
+        return lightgbm.train(self.lightgbm_params, dataset)
