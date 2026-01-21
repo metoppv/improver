@@ -22,8 +22,11 @@ dependencies:
   - proj=9.7.1  # https://github.com/metoppv/improver/issues/2325
 =======
   - pandas
+<<<<<<< HEAD
   - pysteps
 >>>>>>> 897e0cb9 (Add pytest to environments)
+=======
+>>>>>>> 08001d9b (Undo environemnt changes)
   # Additional libraries to run tests, not included in improver-feedstock
   - filelock
   - pytest
