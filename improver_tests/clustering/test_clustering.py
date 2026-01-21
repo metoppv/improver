@@ -51,8 +51,8 @@ def test_process_clustering_combined(
     expected_n_labels,
     expected_shape,
 ):
-    """Test FitClustering.process with various clustering methods and
-    cluster center assertions (excluding KMedoids)."""
+    """Test FitClustering.process with various clustering methods available in
+    scikit-learn and cluster center assertions (excluding KMedoids)."""
     df = _create_sample_dataframe()
 
     kwargs = {"n_clusters": n_clusters}

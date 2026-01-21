@@ -10,31 +10,49 @@ from typing import Any
 import iris
 import numpy as np
 import pandas as pd
-from iris.coords import AuxCoord
+from iris.cube import Cube, CubeList
 from iris.util import equalise_attributes, new_axis, promote_aux_coord_to_dim_coord
 
 from improver import BasePlugin
 from improver.clustering.clustering import FitClustering
 from improver.regrid.landsea import RegridLandSea
 
+try:
+    import kmedoids
+except ModuleNotFoundError:
+    # Define empty class to avoid type hint errors.
+    class KMedoids:
+        pass
+
 
 class RealizationClustering(BasePlugin):
-    """Class to perform clustering on realizations of a cube."""
+    """Class to perform clustering on realizations of a cube. For example, this can be
+    used to cluster a large number of ensemble members based on their spatial patterns
+    into a smaller set of distinct clusters. If the input is precipitation forecasts,
+    the resultant clusters could represent different types of precipitation events.
+    """
 
     def __init__(self, clustering_method: str, **kwargs: Any) -> None:
         """Initialise the RealizationClustering class.
 
         Args:
-            clustering_method: The clustering method to use.
+            clustering_method: The clustering method to use. The clustering method
+            to use (e.g. "KMedoids"). The method must be supported by the
+            improver.clustering.FitClustering class.
             **kwargs: Additional arguments for the clustering method.
         """
         self.clustering_method = clustering_method
         self.kwargs = kwargs
 
     @staticmethod
-    def convert_to_2d(array: np.ndarray) -> np.ndarray:
+    def _convert_to_2d(array: np.ndarray) -> np.ndarray:
         """Convert an array with arbitrary dimensions to a 2D array by maintaining
         the zeroth dimension and flattening all other dimensions.
+
+        This prepares the data for clustering algorithms that expect 2D input where
+        rows are samples (realizations) and columns are features
+        (e.g. spatial points x forecast periods) so that an array of shape
+        (18, 4, 100, 100) is converted to shape (18, 40000).
 
         Args:
             array: The input array to convert. Can have any number of dimensions.
@@ -44,12 +62,13 @@ class RealizationClustering(BasePlugin):
         if array.ndim < 2:
             msg = "Input array must have at least 2 dimensions."
             raise ValueError(msg)
-        if array.ndim == 2:
+        elif array.ndim == 2:
             return array.copy()
-        target_shape = (array.shape[0], -1)
-        return array.reshape(target_shape)
+        else:
+            target_shape = (array.shape[0], -1)
+            return array.reshape(target_shape)
 
-    def process(self, cube: iris.cube.Cube) -> Any:
+    def process(self, cube: Cube) -> Any:
         """Apply the clustering method to the cube.
 
         Cubes with more than 2 dimensions are converted to 2D arrays before
@@ -57,10 +76,11 @@ class RealizationClustering(BasePlugin):
         The leading dimension is assumed to be the realization dimension.
 
         Args:
-            cube: The input cube to cluster.
+            cube: The input cube to cluster with the realization dimension
+                as the leading dimension.
 
         Returns:
-            clustering_result: The result of the clustering.
+            The result of the clustering algorithm applied to the input data.
 
         Raises:
             ValueError: If the leading dimension of the input cube is not
@@ -69,10 +89,10 @@ class RealizationClustering(BasePlugin):
         if cube.dim_coords[0].name() != "realization":
             msg = (
                 "The leading dimension of the input cube must be "
-                "the realization dimension."
+                "the 'realization' dimension."
             )
             raise ValueError(msg)
-        array_2d = self.convert_to_2d(cube.data)
+        array_2d = self._convert_to_2d(cube.data)
         # The rows of the DataFrame correspond to realizations. The columns correspond
         # to the flattened non-realization dimensions. These column values are the
         # features that the clustering algorithm will use to cluster the realizations.
@@ -84,36 +104,43 @@ class RealizationClustering(BasePlugin):
 
 
 class RealizationToClusterMatcher(BasePlugin):
-    """Match candidate realizations to clusters based on mean squared error.
+    """Match candidate realizations to clusters based on mean squared error (MSE).
+    In this context, 'candidate realizations' refers to the set of realizations being
+    considered for assignment to clusters from a secondary input. These are matched
+    to clusters derived from a primary input by minimizing mean squared error (MSE).
 
-    Each cluster is assigned to the candidate realization with the lowest MSE
-    for that cluster. When multiple candidates compete for the same cluster,
-    only the candidate with the lowest MSE is assigned; other candidates are
-    not assigned to any cluster.
+    Assigns realizations from a secondary input (e.g. a high-resolution regional
+    ensemble model) to clusters defined by a primary input (e.g. a coarse global
+    ensemble model). When multiple candidates compete for the same cluster, only the
+    candidate with the lowest MSE is assigned; other candidates are not assigned to
+    any cluster.
 
-    Supports both 3D cubes (realization, y, x) and 4D cubes
-    (realization, forecast_period, y, x).
+    Supports both 3D cubes and 4D cubes of dimensions (realization, y, x) and
+    (realization, forecast_period, y, x) respectively only.
     """
 
     def __init__(self) -> None:
         """Initialise the plugin."""
         pass
 
-    def mean_squared_error(
+    def _mean_squared_error_per_realization(
         self,
         clustered_array: np.ndarray,
         candidate_array: np.ndarray,
         n_realizations: int,
     ) -> np.ndarray:
-        """Calculate mean squared error between clustered and candidate arrays.
+        """Calculate MSE between clustered and candidate realization arrays. Lower MSE
+        indicates a candidate realization better matches a cluster's representative
+        member.
 
-        For 3D cubes, the MSE is calculated by averaging over spatial dimensions.
+        For 3D cubes, the MSE is calculated by averaging over spatial dimensions (y, x).
         For 4D cubes, the mean is calculated over spatial dimensions first, then
-        the MSE is summed over forecast_period. This approach gives more weight
-        to forecast periods in the matching process, as the MSE values are summed
-        rather than averaged across forecast periods. This means that differences
-        at multiple forecast periods accumulate, making the total MSE more
-        sensitive to patterns across time.
+        the MSE is summed over forecast_period. This summing rather than averaging
+        gives equal weight to each forecast period in the matching process. This means
+        that differences at multiple forecast periods accumulate, making the total
+        MSE more sensitive to patterns across time. I.e. a realization that matches
+        a cluster at all forecast periods will have lower (preferable) total MSE
+        than one that matches well at fewer periods.
 
         Args:
             clustered_array: The clustered array with shape (n_clusters, y, x) or
@@ -122,12 +149,14 @@ class RealizationToClusterMatcher(BasePlugin):
                 or (n_realizations, forecast_period, y, x).
             n_realizations: The number of realizations in the candidate array.
         Returns:
-            realization_cluster_mse: The mean squared error array with shape
-                (n_realizations, n_clusters).
+            Array of MSE values with shape (n_realizations, n_clusters) with
+            element [i, j] containing the MSE between candidate realization i
+            and cluster j.
         """
         mse_list = []
         for index in range(n_realizations):
-            # Calculate squared differences
+            # Calculate squared differences between each candidate realization and
+            # all cluster medoids
             squared_diff = np.square(clustered_array - candidate_array[index])
 
             if clustered_array.ndim == 3:
@@ -140,41 +169,71 @@ class RealizationToClusterMatcher(BasePlugin):
             mse_list.append(mse)
         return np.array(mse_list)
 
-    def _validate_cube_dimensions(
-        self, cube: iris.cube.Cube, candidate_cube: iris.cube.Cube
-    ) -> None:
-        """Validate that both cubes have matching dimensions.
+    @staticmethod
+    def _enforce_dimension_order(cube: Cube) -> None:
+        """Enforce strict dimension coordinate order for 3D and 4D cubes.
+
+        For 3D: (realization, y, x)
+        For 4D: (realization, forecast_period, y, x)
 
         Args:
-            cube: The clustered cube.
+            cube: The input cube to check.
+
+        Raises:
+            ValueError: If the dimension coordinate order does not match expectations.
+        """
+        dim_coords = [cube.dim_coords[i].name() for i in range(cube.ndim)]
+        if cube.ndim == 3:
+            expected = ["realization", "y", "x"]
+        elif cube.ndim == 4:
+            expected = ["realization", "forecast_period", "y", "x"]
+        else:
+            raise ValueError(
+                f"Cube must be 3D or 4D, got {cube.ndim}D with dims {dim_coords}."
+            )
+        if dim_coords != expected:
+            raise ValueError(
+                f"Cube dimension order must be {expected}, got {dim_coords}."
+            )
+
+    def _validate_cube_dimensions(
+        self, clusters_cube: Cube, candidate_cube: Cube
+    ) -> None:
+        """Validate that both the clustered and candidate cubes have matching
+        dimensions.
+
+        Args:
+            clusters_cube: The clustered cube.
             candidate_cube: The candidate cube.
 
         Raises:
             ValueError: If cube dimensions don't match.
         """
-        if cube.ndim != candidate_cube.ndim:
+        if clusters_cube.ndim != candidate_cube.ndim:
             msg = (
-                f"Clustered cube has {cube.ndim} dimensions but candidate cube has "
-                f"{candidate_cube.ndim} dimensions. Both cubes must have the same "
-                "number of dimensions (either 3D or 4D)."
+                f"Clustered cube has {clusters_cube.ndim} dimensions but candidate "
+                f"cube has {candidate_cube.ndim} dimensions. Both cubes must have "
+                "the same number of dimensions (either 3D or 4D)."
             )
             raise ValueError(msg)
 
     def _validate_forecast_period_coords(
-        self, cube: iris.cube.Cube, candidate_cube: iris.cube.Cube
+        self, clusters_cube: Cube, candidate_cube: Cube
     ) -> None:
         """Validate matching forecast_period coordinates for 4D cubes.
 
         Args:
-            cube: The clustered cube.
+            clusters_cube: The clustered cube.
             candidate_cube: The candidate cube.
 
         Raises:
-            ValueError: If forecast_period coords don't match or are missing.
+            ValueError: If forecast period coords do not match between clustered and
+                candidate cubes.
+            ValueError: If either input cube is missing a forecast_period coordinate.
         """
-        if cube.ndim == 4:
+        if clusters_cube.ndim == 4:
             try:
-                cube_fp = cube.coord("forecast_period")
+                cube_fp = clusters_cube.coord("forecast_period")
                 candidate_fp = candidate_cube.coord("forecast_period")
                 if not np.array_equal(cube_fp.points, candidate_fp.points):
                     msg = (
@@ -190,13 +249,22 @@ class RealizationToClusterMatcher(BasePlugin):
                 )
                 raise ValueError(msg) from e
 
-    def choose_clusters(self, realization_cluster_mse: np.ndarray) -> list[int]:
-        """Choose clusters using a greedy assignment algorithm based on MSE.
+    def assign_clusters(self, realization_cluster_mse: np.ndarray) -> list[int]:
+        """Assign clusters to candidate realizations using greedy MSE minimization.
 
-        This method assigns clusters to candidate realizations by minimizing
-        mean squared error. When multiple realizations compete for the same
-        cluster, the cluster is assigned to the realization with the lowest
-        MSE, and other competing realizations are not assigned to any cluster.
+        This method assigns candidate reaizations to clusters by minimizing mean
+        squared error. The algorithm iterates through realizations in descending order
+        of their "MSE cost" (the sum of differences between each cluster's MSE and
+        the minimum MSE for that realization). Realizations with higher costs
+        (those with more uniform MSE across clusters, i.e. without a cluster that they
+        are "well matched" to) are processed first; low cost-realizations (those with
+        a stronger "preference" for one cluster) are processed last. During each
+        iteration, if the realization's MSE is better than the current holder's MSE
+        (or the cluster is unassigned), it replaces assignment to that cluster;
+        otherwise the cluster remains assigned to its current realization. This
+        iterative process continues through all realizations, with early assignments
+        by flexible realizations often being replaced by later-processed realizations
+        that have stronger (lower MSE) matches to clusters
 
         Note: This greedy algorithm is chosen for its relative simplicity and
         computational efficiency. While optimal assignment algorithms (such as
@@ -204,32 +272,17 @@ class RealizationToClusterMatcher(BasePlugin):
         this approach provides good results with O(n²) complexity and
         deterministic behavior.
 
-        The algorithm processes realizations in descending order of their
-        "MSE cost" (the sum of differences between each cluster's MSE and the
-        minimum MSE for that realization). Realizations with higher costs
-        (those with more uniform MSE across clusters and without a cluster that they
-        are "well matched" to) are processed first.
-        This ordering ensures that when realizations must be forced into
-        clusters (when realizations_remaining <= clusters_remaining),
-        realizations with strong cluster preferences are processed last and
-        are more likely to get their preferred cluster.
-
-        Each cluster is matched to the realization with the globally lowest
-        MSE for that cluster. The number of assigned realizations may be
-        less than the total number of input realizations, and may also be less
-        than the number of clusters.
-
         Args:
-            realization_cluster_mse: The mean squared error array with shape
+            realization_cluster_mse: The MSE array with shape
                 (n_realizations, n_clusters).
 
         Returns:
             Tuple of (cluster_indices, realization_indices):
 
-            - cluster_indices: List of cluster indices that were assigned.
-            - realization_indices: List of realization indices, one per
-              assigned cluster. Each element is the index of the
-              candidate realization assigned to that cluster.
+            - cluster_indices: List of cluster indices that were assigned
+              (may be < n_clusters), sorted in ascending order.
+            - realization_indices: List of realization indices assigned to each
+              cluster (one per assigned cluster).
         """
         # Calculate cost for each realization (sum of differences from minimum MSE)
         min_mse_array = np.min(realization_cluster_mse, axis=1, keepdims=True)
@@ -244,14 +297,14 @@ class RealizationToClusterMatcher(BasePlugin):
         cluster_to_mse = {}
 
         for loop_idx, realization_idx in enumerate(realization_order):
-            realizations_remaining = n_realizations - loop_idx
+            n_realizations_remaining = n_realizations - loop_idx
             assigned_clusters = list(cluster_to_realization.keys())
             clusters_remaining = n_clusters - len(assigned_clusters)
 
             mse_values = realization_cluster_mse[realization_idx].copy()
             # If there are more clusters remaining than realizations,
             # allow this realization to compete for already-assigned clusters
-            if realizations_remaining <= clusters_remaining:
+            if n_realizations_remaining <= clusters_remaining:
                 mse_values[assigned_clusters] = np.inf
 
             cluster_idx = np.nanargmin(mse_values)
@@ -266,56 +319,53 @@ class RealizationToClusterMatcher(BasePlugin):
 
     def process(
         self,
-        cube: iris.cube.Cube,
-        candidate_cube: iris.cube.Cube,
+        clusters_cube: Cube,
+        candidate_cube: Cube,
     ) -> tuple[list[int], list[int]]:
-        """Assign candidate realizations to clusters by mean squared error.
+        """Assign candidate realizations to clusters by mean squared error (MSE).
 
-        This method takes a cube of clustered realizations and candidate
-        realizations, then assigns each cluster to the candidate realization
-        with the lowest MSE for that cluster. When multiple candidates compete
-        for the same cluster, only the one with the lowest MSE is assigned;
-        other candidates are not assigned to any cluster.
+        This method takes a cube of clustered realizations (e.g. from a global model)
+        and candidate realizations (e.g. from a higher-resolution model), then assigns
+        each cluster to the candidate realization with the lowest MSE for that cluster.
+        When multiple candidates compete for the same cluster, only the one with the
+        lowest MSE is assigned; other candidates are not assigned to any cluster.
 
         Supports both 3D cubes (realization, y, x) and 4D cubes
         (realization, forecast_period, y, x). When using 4D cubes, both input
         cubes must have matching forecast_period coordinates.
 
         Args:
-            cube: The cube containing clustered realizations (e.g., from
-                KMedoids). Shape: (n_clusters, y, x) or
-                (n_clusters, forecast_period, y, x)
+            clusters_cube: The cube containing clustered realizations (e.g., from
+                KMedoids clustering). Shape: (n_clusters, y, x) or
+                (n_clusters, forecast_period, y, x).
             candidate_cube: The input cube with realizations to assign to
                 clusters. Shape: (n_realizations, y, x) or
-                (n_realizations, forecast_period, y, x)
+                (n_realizations, forecast_period, y, x).
 
         Returns:
             Tuple of (cluster_indices, realization_indices):
                 cluster_indices: List of cluster indices that were assigned.
                     May have length < n_clusters if there are fewer candidates
                     than clusters.
-                realization_indices: List of candidate realization indices,
-                    one per assigned cluster. Each element is the index of the
-                    candidate realization assigned to that cluster.
-
-        Raises:
-            ValueError: If forecast_period coordinates don't match (for 4D
-                cubes).
-            ValueError: If cube dimensions don't match between clustered and
-                candidate cubes.
+                realization_indices: List of realization indices assigned to each
+                    cluster (one per assigned cluster).
         """
+        # Strictly enforce dimension order for both cubes
+        self._enforce_dimension_order(clusters_cube)
+        self._enforce_dimension_order(candidate_cube)
+
         n_candidates = len(candidate_cube.coord("realization").points)
 
         # Validate inputs
-        self._validate_cube_dimensions(cube, candidate_cube)
-        self._validate_forecast_period_coords(cube, candidate_cube)
+        self._validate_cube_dimensions(clusters_cube, candidate_cube)
+        self._validate_forecast_period_coords(clusters_cube, candidate_cube)
 
-        realization_cluster_mse = self.mean_squared_error(
-            cube.data,
+        realization_cluster_mse = self._mean_squared_error_per_realization(
+            clusters_cube.data,
             candidate_cube.data,
             n_candidates,
         )
-        cluster_indices, realization_indices = self.choose_clusters(
+        cluster_indices, realization_indices = self.assign_clusters(
             realization_cluster_mse
         )
 
@@ -327,8 +377,17 @@ class RealizationClusterAndMatch(BasePlugin):
 
     This plugin performs KMedoids clustering on a primary input, then matches
     secondary input realizations to the resulting clusters based on mean squared
-    error, respecting a configurable precedence hierarchy for multiple secondary
-    inputs.
+    error. When multiple secondary inputs are provided, their order in the hierarchy
+    determines their precedence: inputs listed later in the secondary_inputs dictionary
+    have higher priority and can overwrite matches from earlier (lower-priority) ones
+    for overlapping forecast periods. In other words, the last (rightmost) secondary
+    input in the dictionary has the highest precedence, and earlier ones have lower
+    precedence. See the Args section of the __init__ docstring for details on how the
+    hierarchy is specified and used.
+
+    See Also:
+        For a practical usage example, see:
+        doc/source/examples/realization_cluster_and_match_example_data.py.
     """
 
     def __init__(
@@ -350,19 +409,19 @@ class RealizationClusterAndMatch(BasePlugin):
                 The order of the secondary_inputs is used as the priority for matching.
                 The list values for secondary inputs specify forecast periods in hours.
                 A two-element list [start, end] will be expanded to include all hours
-                in that range. Lists with other lengths are treated as explicit lists
-                of forecast period hours. All values will be automatically converted
-                to seconds to match the forecast_period coordinate units in the input
-                cubes::
+                in that inclusive range. Lists with other lengths are treated as
+                explicit lists of forecast period hours. All values will be
+                automatically converted to seconds to match the forecast_period
+                coordinate units in the input cubes::
 
                     {
                         "primary_input": "input1",
-                        "secondary_inputs": {"input2": [0, 6], "input3": [0, 24]},
+                        "secondary_inputs": {"input2": [0, 24], "input3": [0, 6]},
                     }
 
                 In this example, input2 will use forecast periods in the range
-                0 to 6 hours inclusive (i.e., any forecast periods between 0 and
-                21600 seconds), and input3 will use the range 0 to 24 hours
+                0 to 24 hours inclusive (i.e., any forecast periods between 0 and
+                86400 seconds), and input3 will use the range 0 to 6 hours
                 (0 to 86400 seconds). Only forecast periods that actually exist in the
                 input cubes within these ranges will be processed.
             model_id_attr: The model ID attribute used to identify different models
@@ -373,21 +432,27 @@ class RealizationClusterAndMatch(BasePlugin):
             regrid_mode: The regridding mode to use. Default is
                 "esmf-area-weighted". See RegridLandSea for available modes.
             regrid_for_clustering: If True, regrid all cubes (primary and secondary)
-                to the target grid before clustering and matching. If False, perform
-                clustering and matching on the original grids without regridding.
-                Default is True.
+                to the target grid before clustering and matching. This regridding
+                step speeds up the computation by reducing the data size and,
+                importantly, emphasises larger-scale spatial features in the data,
+                rather than small-scale detail. This helps the clustering focus on the
+                most relevant broad patterns rather than being dominated by
+                fine-scale noise. If False, clustering and matching are performed
+                on the original grids without regridding. Default is True.
             regrid_kwargs: Additional keyword arguments to pass to RegridLandSea.
                 Common options include:
 
-                - mdtol (float): Tolerance of missing data (default 1)
-                - extrapolation_mode (str): Mode to fill regions outside domain
-                - landmask (Cube): Land-sea mask for mask-aware regridding
-                - landmask_vicinity (float): Radius for coastline search
+                - mdtol (float): Tolerance of missing data (default 1).
+                - extrapolation_mode (str): Mode to fill regions outside domain.
+                - landmask (Cube): Land-sea mask for mask-aware regridding.
+                - landmask_vicinity (float): Radius for coastline search.
 
             **kwargs: Additional arguments for the clustering method.
 
         Raises:
-            NotImplementedError: If the clustering method is not supported.
+            ValueError: If regrid_for_clustering is True but target_grid_name is None.
+            NotImplementedError: If the clustering method is not supported
+                (currently only KMedoids is supported).
         """
         self.hierarchy = hierarchy
         self.model_id_attr = model_id_attr
@@ -449,11 +514,11 @@ class RealizationClusterAndMatch(BasePlugin):
         return [h * 3600 for h in hours]
 
     def cluster_primary_input(
-        self, cube: iris.cube.Cube, target_grid_cube: iris.cube.Cube | None
-    ) -> tuple[iris.cube.Cube, iris.cube.Cube]:
+        self, primary_cube: Cube, target_grid_cube: Cube | None
+    ) -> tuple[Cube, Cube]:
         """Cluster the primary input cube. If regridding is enabled, the primary
         input cube is regridded to the target grid before clustering using the
-        specified regridding method.
+        specified regridding method. Please see RegridLandSea for available modes.
 
         Args:
             primary_cube: The primary input cube to cluster.
@@ -469,12 +534,12 @@ class RealizationClusterAndMatch(BasePlugin):
             regridded_cube = RegridLandSea(
                 regrid_mode=self.regrid_mode,
                 **self.regrid_kwargs,
-            )(cube, target_grid_cube)
+            )(primary_cube, target_grid_cube)
             clustering_result = RealizationClustering(
                 self.clustering_method, **self.kwargs
             )(regridded_cube)
             clustered_cube = self._select_realizations_for_kmedoid_clusters(
-                cube, clustering_result
+                primary_cube, clustering_result
             )
             clustered_regridded_cube = self._select_realizations_for_kmedoid_clusters(
                 regridded_cube, clustering_result
@@ -482,37 +547,42 @@ class RealizationClusterAndMatch(BasePlugin):
         else:
             clustering_result = RealizationClustering(
                 self.clustering_method, **self.kwargs
-            )(cube)
+            )(primary_cube)
             clustered_cube = self._select_realizations_for_kmedoid_clusters(
-                cube, clustering_result
+                primary_cube, clustering_result
             )
             clustered_regridded_cube = clustered_cube
 
         return clustered_cube, clustered_regridded_cube
 
     def _select_realizations_for_kmedoid_clusters(
-        self, cube: iris.cube.Cube, clustering_result: Any
-    ) -> iris.cube.Cube:
+        self, primary_cube: Cube, clustering_result: "kmedoids.KMedoids"
+    ) -> Cube:
         """Select the realizations corresponding to the medoid indices from
         the clustering result.
 
         Args:
-            cube: The input cube to select realizations from.
+            primary_cube: The input cube to select realizations from.
             clustering_result: The result of the clustering.
         Returns:
             cube_clustered: The clustered cube.
+
+        Raises:
+            ValueError: If the number of clusters is greater than the number of
+                realizations in the input cube.
         """
-        n_realizations = len(cube.coord("realization").points)
+        n_realizations = len(primary_cube.coord("realization").points)
         if len(clustering_result.medoid_indices_) > n_realizations:
             n_clusters = len(clustering_result.medoid_indices_)
             msg = (
                 f"The number of clusters {n_clusters} is expected to be less than "
-                "the number of realizations {}. Please reduce the number of clusters."
+                f"the number of realizations {n_realizations}. "
+                "Please reduce the number of clusters."
             )
             raise ValueError(msg)
 
         # Select the realizations corresponding to the medoid indices.
-        cube_clustered = cube[clustering_result.medoid_indices_]
+        cube_clustered = primary_cube[clustering_result.medoid_indices_]
         cube_clustered.coord("realization").points = range(
             len(clustering_result.medoid_indices_)
         )
@@ -520,24 +590,30 @@ class RealizationClusterAndMatch(BasePlugin):
         return cube_clustered
 
     def _categorise_secondary_inputs(
-        self, cubes: iris.cube.CubeList, n_clusters: int
+        self, cubes: CubeList, n_clusters: int
     ) -> tuple[list[tuple[str, list[int]]], list[tuple[str, list[int]]]]:
-        """Categorise secondary inputs by full or partial realizations.
+        """
+        Categorise secondary inputs by full or partial realizations.
 
         Args:
-            cubes: The input CubeList containing all inputs.
-            n_clusters: The number of clusters.
+            cubes: CubeList containing all input cubes (primary and secondary)
+                required for clustering and matching. Each cube should be identifiable
+                by the model_id_attr.
+            n_clusters: Number of clusters (realizations), created from the primary
+                input, required to be considered a 'full' input.
 
         Returns:
-            Tuple of (full_realization_inputs, partial_realization_inputs):
-                full_realization_inputs: List of (name, forecast_periods) tuples
-                    for inputs with >= n_clusters realizations. The forecast_periods
-                    are the actual forecast periods (in seconds) that exist in the cubes
-                    within the specified hour range.
-                partial_realization_inputs: List of (name, forecast_periods) tuples
-                    for inputs with < n_clusters realizations. The forecast_periods
-                    are the actual forecast periods (in seconds) that exist in the cubes
-                    within the specified hour range.
+            Tuple (full_realization_inputs, partial_realization_inputs):
+                full_realization_inputs: List of (model_name, forecast_periods) tuples
+                    for secondary inputs with at least n_clusters realizations for
+                    the relevant forecast periods. The forecast_periods are the
+                    forecast periods (in seconds) that exist in the cubes within the
+                    specified hour range.
+                partial_realization_inputs: List of (model_name, forecast_periods)
+                    tuples for secondary inputs with fewer than n_clusters realizations
+                    for the relevant forecast periods. The forecast_periods are the
+                    forecast periods (in seconds) that exist in the cubes within the
+                    specified hour range.
         """
         full_realization_inputs = []
         partial_realization_inputs = []
@@ -583,16 +659,14 @@ class RealizationClusterAndMatch(BasePlugin):
 
         return full_realization_inputs, partial_realization_inputs
 
-    def _ensure_realization_is_first_dimension(
-        self, cube: iris.cube.Cube
-    ) -> iris.cube.Cube:
+    def _ensure_realization_is_first_dimension(self, cube: Cube) -> Cube:
         """Ensure realization is the leading dimension coordinate.
 
         Args:
             cube: The cube to check and potentially transpose.
 
         Returns:
-            The cube with realization as the first dimension.
+            The cube with 'realization' as the first dimension.
         """
         if cube.dim_coords[0].name() != "realization":
             real_dim = cube.coord_dims("realization")[0]
@@ -600,9 +674,7 @@ class RealizationClusterAndMatch(BasePlugin):
             cube.transpose(new_order)
         return cube
 
-    def _ensure_forecast_period_is_dimension(
-        self, cube: iris.cube.Cube
-    ) -> iris.cube.Cube:
+    def _ensure_forecast_period_is_dimension(self, cube: Cube) -> Cube:
         """Ensure forecast_period is a dimension coordinate and realization is first.
 
         If forecast_period exists but is not a dimension coordinate (i.e., it's scalar
@@ -640,9 +712,9 @@ class RealizationClusterAndMatch(BasePlugin):
         return cube
 
     def _initialise_matched_cubes_with_primary(
-        self, clustered_primary_cube: iris.cube.Cube
-    ) -> iris.cube.CubeList:
-        """Initialize matched_cubes with clustered primary cube for all periods.
+        self, clustered_primary_cube: Cube
+    ) -> CubeList:
+        """Initialise matched_cubes with clustered primary cube for all periods.
 
         This ensures we always have a full set of realizations to work with
         as a base, which can then be selectively replaced by secondary inputs.
@@ -655,10 +727,8 @@ class RealizationClusterAndMatch(BasePlugin):
             A CubeList containing one cube per forecast period from the clustered
             primary cube, each with forecast_period as a dimension coordinate.
         """
-        matched_cubes = iris.cube.CubeList()
-        for fp in clustered_primary_cube.coord("forecast_period").points:
-            fp_constr = iris.Constraint(forecast_period=fp)
-            fp_cube = clustered_primary_cube.extract(fp_constr)
+        matched_cubes = CubeList()
+        for fp_cube in clustered_primary_cube.slices_over("forecast_period"):
             fp_cube = self._ensure_forecast_period_is_dimension(fp_cube)
             matched_cubes.append(fp_cube)
         return matched_cubes
@@ -670,16 +740,20 @@ class RealizationClusterAndMatch(BasePlugin):
         candidate_name: str,
         fp: int,
     ) -> None:
-        """Update cluster sources tracking when replacing data.
+        """Update cluster sources tracking when replacing data from one model
+        with another.
 
-        This method removes the forecast period from the primary input and adds
-        it to the secondary input for the specified clusters.
+        This method removes the forecast period from the primary input's tracking
+        and adds it to the secondary input for the specified clusters, maintaining a
+        record of which model provided data for each cluster at each forecast_period.
 
         Args:
             cluster_sources: Dictionary tracking which input was used for each
                 cluster at each forecast period. Modified in-place.
+                Format: {cluster_idx: {model_name: [fp1, fp2, ...]}}
             cluster_indices: List of cluster indices being updated.
-            candidate_name: Name of the secondary input being added.
+            candidate_name: Name of the secondary input being added
+                e.g. 'secondary_input1'.
             fp: Forecast period value in seconds.
         """
         primary_name = self.hierarchy["primary_input"]
@@ -699,64 +773,37 @@ class RealizationClusterAndMatch(BasePlugin):
             if fp not in cluster_sources[cluster_idx][candidate_name]:
                 cluster_sources[cluster_idx][candidate_name].append(fp)
 
-    def _add_cluster_sources_coord(
-        self,
-        result_cube: iris.cube.Cube,
-        cluster_sources: dict[int, dict[str, list[int]]],
-    ) -> None:
-        """Add cluster_sources coordinate to the result cube.
-
-        Creates a 2D auxiliary coordinate that maps each (cluster, forecast_period)
-        pair to the input name that was used for that cluster at that forecast period.
+    def _maybe_regrid_candidate_cube(
+        self, candidate_cube: Cube, target_grid_cube: Cube
+    ) -> Cube:
+        """Regrid the candidate cube if regrid_for_clustering is True, otherwise
+        return as is.
 
         Args:
-            result_cube: The cube to add the coordinate to. Modified in-place.
-            cluster_sources: Dictionary tracking which input was used for each
-                cluster at each forecast period.
+            candidate_cube: The input candidate Cube to potentially regrid.
+            target_grid_cube: The target grid Cube to regrid onto if regridding
+                is enabled.
+
+        Returns:
+            The regridded candidate Cube if regrid_for_clustering is True, otherwise
+            the original candidate Cube.
         """
-        # Get dimensions
-        realization_points = result_cube.coord("realization").points
-        forecast_period_points = result_cube.coord("forecast_period").points
-
-        # Build 2D array of input names (cluster x forecast_period)
-        cluster_sources_array = np.empty(
-            (len(realization_points), len(forecast_period_points)), dtype=object
-        )
-
-        for cluster_idx, cluster_num in enumerate(realization_points):
-            for fp_idx, fp in enumerate(forecast_period_points):
-                # Find which input was used for this cluster at this forecast period
-                input_name = None
-                if cluster_num in cluster_sources:
-                    for name, fps in cluster_sources[cluster_num].items():
-                        if fp in fps:
-                            input_name = name
-                            break
-                # Fill with the input name or empty string if not found
-                cluster_sources_array[cluster_idx, fp_idx] = (
-                    input_name if input_name is not None else ""
-                )
-
-        # Create the auxiliary coordinate
-        cluster_sources_coord = AuxCoord(
-            cluster_sources_array,
-            long_name="cluster_sources",
-            units="no_unit",
-        )
-
-        # Add the coordinate associated with realization and forecast_period dimensions
-        real_dim = result_cube.coord_dims("realization")[0]
-        fp_dim = result_cube.coord_dims("forecast_period")[0]
-        result_cube.add_aux_coord(cluster_sources_coord, (real_dim, fp_dim))
+        if self.regrid_for_clustering:
+            return RegridLandSea(
+                regrid_mode=self.regrid_mode,
+                **self.regrid_kwargs,
+            )(candidate_cube, target_grid_cube)
+        else:
+            return candidate_cube
 
     def _process_full_realization_inputs(
         self,
         full_realization_inputs: list[tuple[str, list[int]]],
-        cubes: iris.cube.CubeList,
-        target_grid_cube: iris.cube.Cube,
-        regridded_clustered_primary_cube: iris.cube.Cube,
+        cubes: CubeList,
+        target_grid_cube: Cube,
+        regridded_clustered_primary_cube: Cube,
         replaced_realizations: dict[int, set[int]],
-        matched_cubes: iris.cube.CubeList,
+        matched_cubes: CubeList,
         cluster_sources: dict[int, dict[str, list[int]]],
     ) -> None:
         """Process full realization inputs in reverse precedence order.
@@ -776,10 +823,12 @@ class RealizationClusterAndMatch(BasePlugin):
             matched_cubes: CubeList containing cubes to modify. Modified in-place.
             cluster_sources: Dictionary tracking which input was used for each cluster
                 at each forecast period. Modified in-place.
+                Format: {cluster_idx: {model_name: [fp1, fp2, ...]}}
         """
         inputs_list = list(reversed(full_realization_inputs))
 
-        # Process in reverse order (lowest precedence first)
+        # Process in reverse order (lowest precedence first) so higher precedence
+        # inputs can overwrite
         for idx, (candidate_name, forecast_periods) in enumerate(inputs_list):
             # Collect forecast periods from all higher-precedence inputs
             # (those that come after this one in inputs_list, i.e., earlier in
@@ -814,13 +863,9 @@ class RealizationClusterAndMatch(BasePlugin):
             else:
                 continue  # No matching cubes for this forecast period
 
-            if self.regrid_for_clustering:
-                regridded_candidate_cube = RegridLandSea(
-                    regrid_mode=self.regrid_mode,
-                    **self.regrid_kwargs,
-                )(candidate_cube, target_grid_cube)
-            else:
-                regridded_candidate_cube = candidate_cube
+            regridded_candidate_cube = self._maybe_regrid_candidate_cube(
+                candidate_cube, target_grid_cube
+            )
 
             cluster_indices, realization_indices = RealizationToClusterMatcher()(
                 regridded_clustered_primary_cube.extract(fp_constr),
@@ -865,11 +910,11 @@ class RealizationClusterAndMatch(BasePlugin):
     def _process_partial_realization_inputs(
         self,
         partial_realization_inputs: list[tuple[str, list[int]]],
-        cubes: iris.cube.CubeList,
-        target_grid_cube: iris.cube.Cube,
-        regridded_clustered_primary_cube: iris.cube.Cube,
+        cubes: CubeList,
+        target_grid_cube: Cube,
+        regridded_clustered_primary_cube: Cube,
         replaced_realizations: dict[int, set[int]],
-        matched_cubes: iris.cube.CubeList,
+        matched_cubes: CubeList,
         cluster_sources: dict[int, dict[str, list[int]]],
     ) -> None:
         """Process partial realization inputs in reverse precedence order.
@@ -882,7 +927,10 @@ class RealizationClusterAndMatch(BasePlugin):
         Args:
             partial_realization_inputs: List of (name, forecast_periods) tuples for
                 inputs with partial realization sets.
-            cubes: The input CubeList containing all data.
+            cubes: CubeList containing all primary and secondary input cubes needed
+                for clustering and matching. Each cube must have the model_id_attr
+                attribute set, and all relevant models, forecast periods, and
+                realizations to be processed or matched should be included.
             target_grid_cube: The target grid cube for regridding.
             regridded_clustered_primary_cube: The regridded clustered primary cube.
             replaced_realizations: Dictionary tracking which (forecast_period, cluster)
@@ -890,11 +938,10 @@ class RealizationClusterAndMatch(BasePlugin):
             matched_cubes: CubeList to append/modify matched results. Modified in-place.
             cluster_sources: Dictionary tracking which input was used for each cluster
                 at each forecast period. Modified in-place.
+                Format: {cluster_idx: {model_name: [fp1, fp2, ...]}}
         """
-        inputs_list = list(reversed(partial_realization_inputs))
-
         # Process in reverse order (lowest precedence first)
-        for candidate_name, forecast_periods in inputs_list:
+        for candidate_name, forecast_periods in reversed(partial_realization_inputs):
             model_id_constr = iris.AttributeConstraint(
                 **{self.model_id_attr: candidate_name}
             )
@@ -903,13 +950,9 @@ class RealizationClusterAndMatch(BasePlugin):
                 fp_constr = iris.Constraint(forecast_period=fp)
                 candidate_cube = cubes.extract_cube(model_id_constr & fp_constr)
 
-                if self.regrid_for_clustering:
-                    regridded_candidate_cube = RegridLandSea(
-                        regrid_mode=self.regrid_mode,
-                        **self.regrid_kwargs,
-                    )(candidate_cube, target_grid_cube)
-                else:
-                    regridded_candidate_cube = candidate_cube
+                regridded_candidate_cube = self._maybe_regrid_candidate_cube(
+                    candidate_cube, target_grid_cube
+                )
 
                 # Get the matching cluster indices from the matcher
                 clustered_fp_cube = regridded_clustered_primary_cube.extract(fp_constr)
@@ -940,10 +983,9 @@ class RealizationClusterAndMatch(BasePlugin):
                     result_data = existing_fp_cube.data.copy()
                     for i, cluster_idx in enumerate(cluster_indices):
                         # Find which position cluster_idx is in the existing cube
-                        existing_real_coords = existing_fp_cube.coord(
-                            "realization"
-                        ).points
-                        pos = np.where(existing_real_coords == cluster_idx)[0]
+                        pos = np.where(
+                            existing_fp_cube.coord("realization").points == cluster_idx
+                        )[0]
                         if len(pos) > 0:
                             result_data[pos[0]] = matched_cube.data[i]
 
@@ -969,21 +1011,43 @@ class RealizationClusterAndMatch(BasePlugin):
                     cluster_sources, cluster_indices, candidate_name, fp
                 )
 
-    def process(self, cubes: iris.cube.CubeList) -> iris.cube.Cube:
+    def process(self, cubes: CubeList) -> Cube:
         """Cluster and match the data.
 
+        This method clusters the primary input realizations and matches secondary input
+        realizations to the resulting clusters, according to the specified hierarchy
+        and precedence.
+
         Args:
-            cubes: The input CubeList containing all primary and secondary inputs.
-                Different forecast sources must be identifiable using the model_id_attr
-                attribute.
+            cubes: The input CubeList containing all primary and secondary input
+                cubes required for clustering and matching. Each cube must have the
+                model_id_attr attribute set to identify its source/model. For each
+                model (primary and secondary), include all forecast periods and
+                realizations that should be considered for matching or replacement.
+
+                Expected input shapes:
+                - 2D: (y, x) — for single realization, single forecast period fields.
+                - 3D: (realization, y, x) — for multiple realizations at a single
+                    forecast period.
+                - 4D: (realization, forecast_period, y, x) — for multiple realizations
+                    and multiple forecast periods.
+                The leading dimension must always be realization if present.
+                For 4D cubes, the second dimension must be forecast_period.
+
         Returns:
             The matched cube containing all secondary inputs matched to clusters.
-            The cube includes a 'cluster_sources' attribute (JSON string) that tracks
-            which input source was used for each cluster at each forecast period.
-            Format: {cluster_idx: {model_name: [fp1, fp2, ...]}}
+            The output cube will have realization and forecast_period as leading
+            dimensions (if present in the input), followed by spatial dimensions (y, x).
+            The cube includes a 'cluster_sources' attribute (JSON string) that
+            tracks which input source was used for each cluster at each
+            forecast period. Format: {cluster_idx: {model_name: [fp1, fp2, ...]}},
             where cluster_idx is the cluster index (int), model_name is the value
-            from model_id_attr (str), and the list contains forecast period values
-            in seconds (int). Use json.loads() to parse the attribute value.
+            from model_id_attr (str), and the list contains forecast period values in
+            seconds (int). Use json.loads() to parse the attribute value.
+
+            Raises:
+                ValueError: If no primary cube is found with the specified
+                    model_id_attr.
         """
         constr = iris.AttributeConstraint(
             **{self.model_id_attr: self.hierarchy["primary_input"]}
@@ -1033,7 +1097,7 @@ class RealizationClusterAndMatch(BasePlugin):
             clustered_primary_cube
         )
 
-        # Initialize cluster_sources with primary input for all clusters and
+        # Initialise cluster_sources with primary input for all clusters and
         # forecast periods
         primary_name = self.hierarchy["primary_input"]
         for cluster_idx in range(n_clusters):
