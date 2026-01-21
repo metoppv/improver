@@ -74,5 +74,7 @@ class TrainRainForestsModel(BasePlugin):
 
             model = lightgbm.train(self.lightgbm_params, dataset)
 
-            threshold_path = output_path.with_stem(f"{output_path.stem}_{threshold:08.6f}")
+            threshold_path = output_path.with_stem(
+                f"{output_path.stem}_{threshold:08.6f}"
+            )
             model.save_model(threshold_path)
