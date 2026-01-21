@@ -20,7 +20,9 @@ class TrainRainForestsModel(BasePlugin):
         "seed": 0,
     }
 
-    def __init__(self, training_data, observation_column, training_columns):
+    def __init__(
+        self, training_data, observation_column, training_columns, compiler=None
+    ):
         """Initialise the options used when compiling models.
 
         Args:
@@ -54,7 +56,9 @@ class TrainRainForestsModel(BasePlugin):
         # Keep only the columns relevant for training.
         self.training_data = training_data[expected_columns]
 
-    def process(self, thresholds, output_path):
+        self.compiler = compiler
+
+    def process(self, thresholds, output_path, compile=False):
         """Train a model for a particular threshold.
 
         Args:
@@ -63,6 +67,9 @@ class TrainRainForestsModel(BasePlugin):
             output_path (str or Path):
                 Template file path for export of model files.
                 Actual paths will have the threshold appended to the filename.
+            compile (Bool):
+                Whether to also compile the model.
+                Defaults to False.
         """
         import lightgbm
 
@@ -78,3 +85,10 @@ class TrainRainForestsModel(BasePlugin):
                 f"{output_path.stem}_{threshold:08.6f}"
             )
             model.save_model(threshold_path)
+
+            if compile:
+                if not self.compiler:
+                    raise ValueError(
+                        "Compiler must be present when compile option used."
+                    )
+                self.compiler.process(threshold_path, threshold_path.parent)

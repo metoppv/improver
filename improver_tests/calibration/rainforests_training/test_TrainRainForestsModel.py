@@ -7,6 +7,9 @@ from pathlib import Path
 
 import pytest
 
+from improver.calibration.rainforest_compilation import (
+    CompileRainForestsModel,
+)
 from improver.calibration.rainforest_training import (
     TrainRainForestsModel,
 )
@@ -91,3 +94,39 @@ def test_process(thresholds, deterministic_training_data, tmp_path):
         # Should add a suffix for each threshold
         expected_path = result_path.with_stem(f"{result_path.stem}_{threshold:08.6f}")
         assert Path.exists(expected_path)
+
+
+def test_process_with_compile_missing_compiler(
+    thresholds, deterministic_training_data, tmp_path
+):
+    """Test lightgbm models are created at specified path."""
+
+    training_data, observation_column, training_columns = deterministic_training_data
+
+    # Do not provide compiler to training plugin
+    trainer = TrainRainForestsModel(training_data, observation_column, training_columns)
+
+    # Error when trying to use compile option
+    with pytest.raises(ValueError):
+        trainer.process(thresholds, tmp_path / "output.txt", compile=True)
+
+
+def test_process_compile(thresholds, deterministic_training_data, tmp_path):
+    """Test lightgbm models are created at specified path."""
+
+    training_data, observation_column, training_columns = deterministic_training_data
+
+    compiler = CompileRainForestsModel(parallel_comp=8)
+    trainer = TrainRainForestsModel(
+        training_data, observation_column, training_columns, compiler
+    )
+
+    result_path = tmp_path / "output.txt"
+
+    trainer.process(thresholds, result_path, compile=True)
+
+    for threshold in thresholds:
+        expected_path = result_path.with_stem(f"{result_path.stem}_{threshold:08.6f}")
+        assert Path.exists(expected_path)
+        # Should also produce a compiled file.
+        assert Path.exists(expected_path.with_suffix(".so"))
