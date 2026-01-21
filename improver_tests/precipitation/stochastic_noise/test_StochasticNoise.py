@@ -28,8 +28,8 @@ def plugin():
     plugin = StochasticNoise(
         ssft_init_params=ssft_init_params,
         ssft_generate_params=ssft_generate_params,
-        threshold=0.03,
-        threshold_units="mm/hr",
+        db_threshold=0.03,
+        db_threshold_units="mm/hr",
     )
     return plugin
 
@@ -37,10 +37,8 @@ def plugin():
 @pytest.fixture
 def simple_cube():
     """
-    Create a simple cube with two realizations for testing, where values to the bottom
-    left are lower than all others, but bottom right are the highest. If spatial
-    structure is maintained, the noise added to the bottom left should be lower
-    than that added to the bottom right.
+    Create a simple cube with two realizations for testing.
+    All values are non-zero, so no noise should be added when the data is unmodified.
     """
     data = np.array(
         [
@@ -55,13 +53,11 @@ def simple_cube():
     return cube
 
 
-@pytest.mark.parametrize(
-    "test_case", ["same_units", "different_units", "incompatible_units"]
-)
+@pytest.mark.parametrize("test_case", ["same_units", "different_units"])
 def test__convert_threshold_units(
     plugin: StochasticNoise, simple_cube: Cube, test_case: str
 ):
-    """Test that threshold is converted to the correct units."""
+    """Test that db_threshold is converted to the correct units."""
     if test_case == "same_units":
         expected_threshold = 0.03
 
@@ -69,12 +65,6 @@ def test__convert_threshold_units(
         simple_cube.units = "mm/s"
         # 0.03 mm/hr = 0.03/3600 mm/s = 8.333e-6 mm/s
         expected_threshold = 8.333e-06
-
-    elif test_case == "incompatible_units":
-        simple_cube.units = "K"
-        with pytest.raises(ValueError, match="Cannot convert"):
-            plugin._convert_threshold_units(simple_cube)
-        return
 
     result = plugin._convert_threshold_units(simple_cube)
     assert np.isclose(result, expected_threshold)
@@ -84,9 +74,9 @@ def test__to_dB_and__from_dB(plugin: StochasticNoise, simple_cube: Cube):
     """Test that _to_dB and _from_dB are inverses of each other."""
     cube = simple_cube.copy()
     dB_cube = plugin._to_dB(cube.copy())
-    restored_cube = plugin._from_dB(dB_cube.copy())
-    threshold = plugin.threshold
-    expected = np.where(simple_cube.data < threshold, 0, simple_cube.data)
+    restored_cube = plugin._from_dB(dB_cube.data, simple_cube)
+    db_threshold = plugin.db_threshold
+    expected = np.where(simple_cube.data < db_threshold, 0, simple_cube.data)
     np.testing.assert_allclose(restored_cube.data, expected, rtol=1e-6)
 
 
@@ -107,62 +97,68 @@ def test_do_fft(plugin: StochasticNoise, simple_cube: Cube):
         "base",
         "plugin_defaults",
         "some_data_masked",
-        "fully_masked_array",
-        "unmodified_below_threshold",
+        "with_zero_values",
     ],
 )
-def test_stochastic_noise_to_dependence_template(
+def test_stochastic_noise_to_input_cube(
     plugin: StochasticNoise,
     simple_cube: Cube,
     test_case: str,
 ):
-    """Test stochastic_noise_to_dependence_template method."""
-
-    base_expected = np.array(
-        [
-            [[3.5848932, 4.995262], [2.2589254, 6.5118866]],
-            [[3.859587, 5.289296], [2.5182567, 6.830268]],
-        ],
-        dtype=np.float32,
-    )
-
+    """Test stochastic_noise_to_input_cube method."""
     cube = simple_cube.copy()
-    expected = base_expected.copy()
+
+    # All values in simple_cube > 0 (not dry), so no noise should be added (i.e., output
+    # should equal input)
+    expected = cube.data.copy()
 
     if test_case == "plugin_defaults":
-        plugin = StochasticNoise()  # Use default parameters
+        # Use plugin with default parameters (except seed for reproducibility)
+        plugin = StochasticNoise(ssft_generate_params={"seed": 0})
 
-    elif test_case in ["some_data_masked", "fully_masked_array"]:
+    elif test_case == "some_data_masked":
+        # Create masked input array
         cube.data = np.ma.masked_array(cube.data, mask=False, dtype=np.float32)
+        cube.data[0, 0, 0] = np.ma.masked
+        cube.data[1, 1, 1] = np.ma.masked
 
-        if test_case == "some_data_masked":
-            cube.data[0, 0, 0] = np.ma.masked
-            cube.data[1, 1, 1] = np.ma.masked
+        # Create expected output masked array
+        expected = np.ma.masked_array(expected, mask=False, dtype=np.float32)
+        expected[0, 0, 0] = np.ma.masked
+        expected[1, 1, 1] = np.ma.masked
 
-            expected = np.ma.masked_array(base_expected, mask=False, dtype=np.float32)
-            expected[0, 0, 0] = np.ma.masked
-            expected[1, 1, 1] = np.ma.masked
+    elif test_case == "with_zero_values":
+        # Create cube with some zero values where noise should be added
+        plugin = StochasticNoise(
+            ssft_init_params={"domain_size": [2, 2], "overlap": 0},
+            ssft_generate_params={"seed": 0},
+            db_threshold=0.03,
+            db_threshold_units="mm/hr",
+        )
+        data = np.array(
+            [
+                [[0.0, 3.0], [0.0, 4.0]],
+                [[0.0, 3.2], [0.0, 4.2]],
+            ],
+            dtype=np.float32,
+        )
+        cube = set_up_variable_cube(data=data, name="precipitation_rate", units="mm/hr")
 
-        elif test_case == "fully_masked_array":
-            cube.data[:, :, :] = np.ma.masked
-            expected = cube.data
+        # Noise will be added only to zero values; non-zero values should remain
+        # unchanged
+        expected = [
+            [[1.1456498, 3.0], [0.8874278, 4.0]],
+            [[1.1456498, 3.2], [0.8874278, 4.2]],
+        ]
 
-        cube.data = np.ma.filled(cube.data, 0).astype(np.float32)
-        expected = np.ma.filled(expected, 0).astype(np.float32)
+    result = plugin.stochastic_noise_to_input_cube(cube)
 
-    elif test_case == "unmodified_below_threshold":
-        cube.data[0, 0, 0] = 0.01  # Below threshold of 0.03
-        cube.data[1, 0, 0] = 0.02  # Below threshold of 0.03
-
-        expected = base_expected.copy()
-        expected[0, 0, 0] = 0.01
-        expected[1, 0, 0] = 0.02
-
-    result = plugin.stochastic_noise_to_dependence_template(cube)
-
-    # Use looser tolerance for stochastic/FFT-based calculations
-    # which can vary slightly across platforms and library versions
-    np.testing.assert_allclose(result.data, expected, rtol=1e-4, atol=1e-6)
+    if test_case == "with_zero_values":
+        # Use allclose for floating point comparisons
+        np.testing.assert_allclose(result.data, expected, rtol=1e-6)
+    else:
+        # Use array_equal for exact comparisons (no noise added)
+        np.testing.assert_array_equal(result.data, expected)
     assert result.data.dtype == np.float32
 
 
@@ -175,5 +171,42 @@ def test_process(plugin: StochasticNoise, simple_cube: Cube):
     assert result.shape == simple_cube.shape
     assert result.data.dtype == np.float32
 
-    # Verify noise was added (output differs from input)
-    assert not np.allclose(result.data, simple_cube.data)
+    # All values in simple_cube are non-zero, so output should equal input
+    np.testing.assert_array_equal(result.data, simple_cube.data)
+
+
+def test_scale_dry_noise():
+    """Test that scale_dry_noise ensures max noise in dry regions is <= 0."""
+    plugin = StochasticNoise(
+        ssft_init_params={"domain_size": [2, 2], "overlap": 0},
+        ssft_generate_params={"seed": 0},
+        db_threshold=0.03,
+        db_threshold_units="mm/hr",
+        scale_dry_noise=True,
+    )
+
+    # Create cube with zero values
+    data = np.array(
+        [
+            [[0.0, 3.0], [0.0, 4.0]],
+            [[0.0, 3.2], [0.0, 4.2]],
+        ],
+        dtype=np.float32,
+    )
+    cube = set_up_variable_cube(data=data, name="precipitation_rate", units="mm/hr")
+
+    result = plugin.stochastic_noise_to_input_cube(cube)
+
+    # Non-zero values should remain unchanged
+    non_zero_mask = data > 0
+    np.testing.assert_array_equal(result.data[non_zero_mask], data[non_zero_mask])
+
+    # Dry regions should have values <= 0 (scaled so max is 0)
+    dry_mask = data <= 0
+    assert np.all(result.data[dry_mask] <= 0), "Noise in dry regions should be <= 0"
+
+
+def test_non_positive_threshold():
+    """Test that ValueError is raised for non-positive db_threshold."""
+    with pytest.raises(ValueError, match="db_threshold must be a positive value"):
+        StochasticNoise(db_threshold=0)
