@@ -171,7 +171,7 @@ class RealizationToClusterMatcher(BasePlugin):
 
     @staticmethod
     def _enforce_dimension_order(cube: Cube) -> None:
-        """Enforce strict dimension coordinate order for 3D and 4D cubes.
+        """Enforce dimension coordinate order for 3D and 4D cubes by axis type.
 
         For 3D: (realization, y, x)
         For 4D: (realization, forecast_period, y, x)
@@ -183,17 +183,36 @@ class RealizationToClusterMatcher(BasePlugin):
             ValueError: If the dimension coordinate order does not match expectations.
         """
         dim_coords = [cube.dim_coords[i].name() for i in range(cube.ndim)]
-        if cube.ndim == 3:
-            expected = ["realization", "y", "x"]
-        elif cube.ndim == 4:
-            expected = ["realization", "forecast_period", "y", "x"]
-        else:
+        if cube.ndim not in (3, 4):
             raise ValueError(
                 f"Cube must be 3D or 4D, got {cube.ndim}D with dims {dim_coords}."
             )
-        if dim_coords != expected:
+        # First dimension must be 'realization'
+        if cube.dim_coords[0].name() != "realization":
             raise ValueError(
-                f"Cube dimension order must be {expected}, got {dim_coords}."
+                "First dimension must be 'realization', "
+                f"got '{cube.dim_coords[0].name()}'."
+            )
+        # For 4D, second dimension must be 'forecast_period' or 'time'
+        if cube.ndim == 4:
+            second_dim = cube.dim_coords[1].name()
+            if second_dim not in ("forecast_period", "time"):
+                raise ValueError(
+                    "Second dimension must be 'forecast_period' or 'time', "
+                    f"got '{second_dim}'."
+                )
+        # Check y and x axes for the last two dimensions
+        y_coord = cube.coord(axis="y").name()
+        x_coord = cube.coord(axis="x").name()
+        if (
+            cube.dim_coords[-2].name() != y_coord
+            or cube.dim_coords[-1].name() != x_coord
+        ):
+            raise ValueError(
+                "Cube dimension order must be ['realization', "
+                "'[forecast_period|time]', '<y>', '<x>'] "
+                "where <y> and <x> are coordinates with axis types 'y' and 'x'. "
+                f"Got {dim_coords}."
             )
 
     def _validate_cube_dimensions(
@@ -378,12 +397,12 @@ class RealizationClusterAndMatch(BasePlugin):
     This plugin performs KMedoids clustering on a primary input, then matches
     secondary input realizations to the resulting clusters based on mean squared
     error. When multiple secondary inputs are provided, their order in the hierarchy
-    determines their precedence: inputs listed later in the secondary_inputs dictionary
-    have higher priority and can overwrite matches from earlier (lower-priority) ones
-    for overlapping forecast periods. In other words, the last (rightmost) secondary
-    input in the dictionary has the highest precedence, and earlier ones have lower
-    precedence. See the Args section of the __init__ docstring for details on how the
-    hierarchy is specified and used.
+    determines their precedence: inputs listed earlier (leftmost) in the
+    secondary_inputs dictionary have higher priority and can overwrite matches from
+    later (lower-priority) ones for overlapping forecast periods. In other words, the
+    first (leftmost) secondary input in the dictionary has the highest precedence, and
+    later ones have lower precedence. See the Args section of the __init__ docstring
+    for details on how the hierarchy is specified and used.
 
     See Also:
         For a practical usage example, see:
@@ -956,6 +975,7 @@ class RealizationClusterAndMatch(BasePlugin):
 
                 # Get the matching cluster indices from the matcher
                 clustered_fp_cube = regridded_clustered_primary_cube.extract(fp_constr)
+
                 cluster_indices, realization_indices = RealizationToClusterMatcher()(
                     clustered_fp_cube,
                     regridded_candidate_cube,
@@ -1025,12 +1045,15 @@ class RealizationClusterAndMatch(BasePlugin):
                 model (primary and secondary), include all forecast periods and
                 realizations that should be considered for matching or replacement.
 
-                Expected input shapes:
-                - 2D: (y, x) — for single realization, single forecast period fields.
-                - 3D: (realization, y, x) — for multiple realizations at a single
-                    forecast period.
-                - 4D: (realization, forecast_period, y, x) — for multiple realizations
-                    and multiple forecast periods.
+                Expected input shapes::
+
+                    2D: (y, x)
+                        for single realization, single forecast period fields.
+                    3D: (realization, y, x)
+                        for multiple realizations at a single forecast period.
+                    4D: (realization, forecast_period, y, x)
+                        for multiple realizations and multiple forecast periods.
+
                 The leading dimension must always be realization if present.
                 For 4D cubes, the second dimension must be forecast_period.
 
