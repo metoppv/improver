@@ -10,6 +10,7 @@ from datetime import datetime
 import iris
 import numpy as np
 import pytest
+from iris.util import promote_aux_coord_to_dim_coord
 
 from improver.clustering.realization_clustering import (
     RealizationClusterAndMatch,
@@ -53,6 +54,7 @@ def _create_4d_realization_cube(
     model_id=None,
     base_value=None,
     realization_values=None,
+    merge=True,
 ):
     """Create a 4D cube with realization and forecast_period dimensions.
 
@@ -69,7 +71,10 @@ def _create_4d_realization_cube(
             (overrides base_value/random).
 
     Returns:
-        A 4D cube with shape (n_realizations, n_forecast_periods, y_dim, x_dim).
+        If merge is True (default), returns a 4D cube with shape
+        (n_realizations, n_forecast_periods, y_dim, x_dim).
+        If merge is False, returns a list of cubes, one for each forecast_period,
+        each with shape (n_realizations, y_dim, x_dim).
     """
     if forecast_periods is None:
         n_forecast_periods = 3
@@ -103,27 +108,25 @@ def _create_4d_realization_cube(
             units="K",
             spatial_grid="equalarea",
             realizations=np.arange(n_realizations),
-            time=datetime(2017, 1, 10, 3 + i),
+            time=datetime(2017, 1, 10, 3 + fp_hours),
             frt=datetime(2017, 1, 10, 3),
         )
-        # Remove existing forecast_period and replace with desired value in seconds
-        cube.remove_coord("forecast_period")
-        forecast_period = iris.coords.DimCoord(
-            np.array([fp_hours * 3600], dtype=np.int32),
-            standard_name="forecast_period",
-            units="seconds",
-        )
-        cube.add_aux_coord(forecast_period)
         if model_id is not None:
             cube.attributes["model_id"] = model_id
         cubes.append(cube)
 
-    merged_cube = cubes.merge_cube()
-    # Transpose so realization is the leading dimension
-    # Order after merge is typically: time, realization, y, x
-    # We want: realization, time (forecast_period), y, x
-    merged_cube.transpose([1, 0, 2, 3])
-    return merged_cube
+    if merge:
+        merged_cube = cubes.merge_cube()
+        # Promote the forecast_reference_time to a dimension coordinate.
+        promote_aux_coord_to_dim_coord(merged_cube, "forecast_period")
+        # Transpose so realization is the leading dimension
+        # Order after merge is typically: time, realization, y, x
+        # We want: realization, time (forecast_period), y, x
+        merged_cube.transpose([1, 0, 2, 3])
+        return merged_cube
+    else:
+        # Return the list of cubes, one per forecast_period, unmerged
+        return list(cubes)
 
 
 def _create_clusterable_realization_cube():
@@ -335,9 +338,10 @@ def test_clustering_arbitrary_dimensions_to_2d_conversion(
     if use_4d:
         # For 4D: shape = (n_realizations, n_forecast_periods, y_dim, x_dim)
         n_realizations, n_forecast_periods, y_dim, x_dim = shape
+        forecast_periods = list(range(n_forecast_periods))
         cube = _create_4d_realization_cube(
             n_realizations=n_realizations,
-            n_forecast_periods=n_forecast_periods,
+            forecast_periods=forecast_periods,
             y_dim=y_dim,
             x_dim=x_dim,
         )
@@ -421,7 +425,8 @@ def test_clustering_wrong_leading_dimension():
     with pytest.raises(
         ValueError,
         match=(
-            "The leading dimension of the input cube must be the realization dimension"
+            "The leading dimension of the input cube must be the "
+            "'realization' dimension"
         ),
     ):
         plugin.process(cube)
@@ -673,10 +678,10 @@ def test_matcher_process_4d_basic():
     """Test the process method with 4D cubes (realization, forecast_period, y, x)."""
     # Create 4D cubes with distinct patterns
     clustered_cube = _create_4d_realization_cube(
-        n_realizations=2, n_forecast_periods=3, y_dim=4, x_dim=4, seed=100
+        n_realizations=2, forecast_periods=list(range(3)), y_dim=4, x_dim=4, seed=100
     )
     candidate_cube = _create_4d_realization_cube(
-        n_realizations=2, n_forecast_periods=3, y_dim=4, x_dim=4, seed=200
+        n_realizations=2, forecast_periods=list(range(3)), y_dim=4, x_dim=4, seed=200
     )
 
     plugin = RealizationToClusterMatcher()
@@ -720,6 +725,8 @@ def test_matcher_process_4d_multiple_candidates():
         )
         clustered_cubes.append(cube)
     clustered_cube = clustered_cubes.merge_cube()
+    # Promote the forecast_reference_time to a dimension coordinate.
+    promote_aux_coord_to_dim_coord(clustered_cube, "forecast_period")
     clustered_cube.transpose([1, 0, 2, 3])  # realization, forecast_period, y, x
 
     # Create candidate cube with 4 realizations that match clusters with varying quality
@@ -754,6 +761,7 @@ def test_matcher_process_4d_multiple_candidates():
         )
         candidate_cubes.append(cube)
     candidate_cube = candidate_cubes.merge_cube()
+    promote_aux_coord_to_dim_coord(candidate_cube, "forecast_period")
     candidate_cube.transpose([1, 0, 2, 3])  # realization, forecast_period, y, x
 
     plugin = RealizationToClusterMatcher()
@@ -778,20 +786,20 @@ def test_matcher_process_4d_multiple_candidates():
     [
         # Mismatched forecast periods: should raise ValueError
         (
-            lambda: _create_4d_realization_cube(n_realizations=2, n_forecast_periods=2, y_dim=3, x_dim=3, seed=10),
-            lambda: _create_4d_realization_cube(n_realizations=2, n_forecast_periods=3, y_dim=3, x_dim=3, seed=20),
+            lambda: _create_4d_realization_cube(n_realizations=2, forecast_periods=list(range(2)), y_dim=3, x_dim=3, seed=10),
+            lambda: _create_4d_realization_cube(n_realizations=2, forecast_periods=list(range(3)), y_dim=3, x_dim=3, seed=20),
             ValueError,
         ),
         # 4D vs 3D: should raise ValueError
         (
             lambda: _create_uniform_cube([10.0, 20.0]),
-            lambda: _create_4d_realization_cube(n_realizations=2, n_forecast_periods=2, y_dim=3, x_dim=3, seed=50),
+            lambda: _create_4d_realization_cube(n_realizations=2, forecast_periods=list(range(2)), y_dim=3, x_dim=3, seed=50),
             ValueError,
         ),
         # 4D consistent results: should not raise, should be consistent
         (
-            lambda: _create_4d_realization_cube(n_realizations=3, n_forecast_periods=2, y_dim=5, x_dim=5, seed=123),
-            lambda: _create_4d_realization_cube(n_realizations=3, n_forecast_periods=2, y_dim=5, x_dim=5, seed=456),
+            lambda: _create_4d_realization_cube(n_realizations=3, forecast_periods=list(range(2)), y_dim=5, x_dim=5, seed=123),
+            lambda: _create_4d_realization_cube(n_realizations=3, forecast_periods=list(range(2)), y_dim=5, x_dim=5, seed=456),
             None,
         ),
     ]
@@ -812,10 +820,10 @@ def test_matcher_4d_cases(clustered_cube_func, candidate_cube_func, expect_excep
 def test_matcher_process_4d_metadata_preservation():
     """Test that the process method returns valid indices for 4D cubes."""
     clustered_cube = _create_4d_realization_cube(
-        n_realizations=2, n_forecast_periods=2, y_dim=3, x_dim=3, seed=99
+        n_realizations=2, forecast_periods=list(range(2)), y_dim=3, x_dim=3, seed=99
     )
     candidate_cube = _create_4d_realization_cube(
-        n_realizations=2, n_forecast_periods=2, y_dim=3, x_dim=3, seed=88
+        n_realizations=2, forecast_periods=list(range(2)), y_dim=3, x_dim=3, seed=88
     )
 
     plugin = RealizationToClusterMatcher()
@@ -917,7 +925,7 @@ def test_clusterandmatch_process_basic():
     spatial_shape = (5, 5)
 
     # Primary input with 6 realizations, value 100
-    cubes.append(
+    cubes.extend(
         _create_4d_realization_cube(
             n_realizations=6,
             forecast_periods=[0, 6, 12, 18],
@@ -925,11 +933,12 @@ def test_clusterandmatch_process_basic():
             x_dim=spatial_shape[1],
             base_value=100.0,
             model_id="primary_model",
+            merge=False
         )
     )
 
     # Secondary input 1 for fp=[0, 6] with value 200
-    cubes.append(
+    cubes.extend(
         _create_4d_realization_cube(
             n_realizations=6,
             forecast_periods=[0, 6],
@@ -937,11 +946,12 @@ def test_clusterandmatch_process_basic():
             x_dim=spatial_shape[1],
             base_value=200.0,
             model_id="secondary_model_1",
+            merge=False
         )
     )
 
     # Secondary input 2 for fp=[12, 18] with value 300
-    cubes.append(
+    cubes.extend(
         _create_4d_realization_cube(
             n_realizations=4,
             forecast_periods=[12, 18],
@@ -949,6 +959,7 @@ def test_clusterandmatch_process_basic():
             x_dim=spatial_shape[1],
             base_value=300.0,
             model_id="secondary_model_2",
+            merge=False
         )
     )
 
@@ -1040,7 +1051,7 @@ def test_clusterandmatch_cluster_primary_input():
     spatial_shape = (5, 5)
 
     # Primary input with 6 realizations, value 100
-    cubes.append(
+    cubes.extend(
         _create_4d_realization_cube(
             n_realizations=6,
             forecast_periods=[0, 6, 12],
@@ -1048,11 +1059,12 @@ def test_clusterandmatch_cluster_primary_input():
             x_dim=spatial_shape[1],
             model_id="primary_model",
             base_value=100.0,
+            merge=False
         )
     )
 
     # Secondary input only for fp=[0, 6], value 200
-    cubes.append(
+    cubes.extend(
         _create_4d_realization_cube(
             n_realizations=6,
             forecast_periods=[0, 6],
@@ -1060,6 +1072,7 @@ def test_clusterandmatch_cluster_primary_input():
             x_dim=spatial_shape[1],
             model_id="secondary_model_1",
             base_value=200.0,
+            merge=False
         )
     )
 
@@ -1112,7 +1125,7 @@ def test_clusterandmatch_cluster_primary_input():
 def test_clusterandmatch_precedence_order():
     """Test that secondary inputs are processed in correct precedence order.
 
-    Last in hierarchy = highest precedence, should overwrite earlier inputs.
+    First in hierarchy = highest precedence, should overwrite earlier inputs.
     """
     pytest.importorskip("kmedoids")
 
@@ -1121,7 +1134,7 @@ def test_clusterandmatch_precedence_order():
     spatial_shape = (5, 5)
 
     # Primary input with 6 realizations at fp=0
-    cubes.append(
+    cubes.extend(
         _create_4d_realization_cube(
             n_realizations=6,
             forecast_periods=[0],
@@ -1129,11 +1142,12 @@ def test_clusterandmatch_precedence_order():
             x_dim=spatial_shape[1],
             model_id="primary_model",
             base_value=100.0,
+            merge=False
         )
     )
 
-    # Secondary input 1 (lower precedence) with 6 realizations, distinct value
-    cubes.append(
+    # Secondary input 1 (higher precedence) with 6 realizations, distinct value
+    cubes.extend(
         _create_4d_realization_cube(
             n_realizations=6,
             forecast_periods=[0],
@@ -1141,11 +1155,12 @@ def test_clusterandmatch_precedence_order():
             x_dim=spatial_shape[1],
             model_id="secondary_model_1",
             base_value=200.0,
+            merge=False
         )
     )
 
-    # Secondary input 2 (higher precedence) with 6 realizations, distinct value
-    cubes.append(
+    # Secondary input 2 (lower precedence) with 6 realizations, distinct value
+    cubes.extend(
         _create_4d_realization_cube(
             n_realizations=6,
             forecast_periods=[0],
@@ -1153,6 +1168,7 @@ def test_clusterandmatch_precedence_order():
             x_dim=spatial_shape[1],
             model_id="secondary_model_2",
             base_value=300.0,
+            merge=False
         )
     )
 
@@ -1201,7 +1217,7 @@ def test_clusterandmatch_overlapping_forecast_periods():
     spatial_shape = (5, 5)
 
     # Primary input with 6 realizations, value 100
-    cubes.append(
+    cubes.extend(
         _create_4d_realization_cube(
             n_realizations=6,
             forecast_periods=[0, 6, 12],
@@ -1209,11 +1225,12 @@ def test_clusterandmatch_overlapping_forecast_periods():
             x_dim=spatial_shape[1],
             model_id="primary_model",
             base_value=100.0,
+            merge=False
         )
     )
 
     # Secondary input 1 for fp=[0, 6], value 200 (higher precedence - listed first)
-    cubes.append(
+    cubes.extend(
         _create_4d_realization_cube(
             n_realizations=6,
             forecast_periods=[0, 6],
@@ -1221,11 +1238,12 @@ def test_clusterandmatch_overlapping_forecast_periods():
             x_dim=spatial_shape[1],
             model_id="secondary_model_1",
             base_value=200.0,
+            merge=False
         )
     )
 
     # Secondary input 2 for fp=[6, 12], value 300 (lower precedence, overlaps at fp=6)
-    cubes.append(
+    cubes.extend(
         _create_4d_realization_cube(
             n_realizations=6,
             forecast_periods=[6, 12],
@@ -1233,6 +1251,7 @@ def test_clusterandmatch_overlapping_forecast_periods():
             x_dim=spatial_shape[1],
             model_id="secondary_model_2",
             base_value=300.0,
+            merge=False
         )
     )
 
@@ -1290,7 +1309,7 @@ def test_clusterandmatch_single_secondary_input():
     spatial_shape = (5, 5)
 
     # Primary input with value 100
-    cubes.append(
+    cubes.extend(
         _create_4d_realization_cube(
             n_realizations=6,
             forecast_periods=[0, 6, 12],
@@ -1298,11 +1317,12 @@ def test_clusterandmatch_single_secondary_input():
             x_dim=spatial_shape[1],
             model_id="primary_model",
             base_value=100.0,
+            merge=False
         )
     )
 
     # Secondary input only for fp=[0, 6], value 200
-    cubes.append(
+    cubes.extend(
         _create_4d_realization_cube(
             n_realizations=6,
             forecast_periods=[0, 6],
@@ -1310,6 +1330,7 @@ def test_clusterandmatch_single_secondary_input():
             x_dim=spatial_shape[1],
             model_id="secondary_model_1",
             base_value=200.0,
+            merge=False
         )
     )
 
@@ -1375,7 +1396,7 @@ def test_clusterandmatch_categorise_full_realizations():
     spatial_shape = (5, 5)
 
     # Primary input with value 100
-    cubes.append(
+    cubes.extend(
         _create_4d_realization_cube(
             n_realizations=6,
             forecast_periods=[0, 6],
@@ -1383,11 +1404,12 @@ def test_clusterandmatch_categorise_full_realizations():
             x_dim=spatial_shape[1],
             model_id="primary_model",
             base_value=100.0,
+            merge=False
         )
     )
 
     # Secondary input 1 for fp=0, value 200 (6 realizations >= 3 clusters)
-    cubes.append(
+    cubes.extend(
         _create_4d_realization_cube(
             n_realizations=6,
             forecast_periods=[0],
@@ -1395,12 +1417,13 @@ def test_clusterandmatch_categorise_full_realizations():
             x_dim=spatial_shape[1],
             model_id="secondary_model_1",
             base_value=200.0,
+            merge=False
         )
     )
 
     # Secondary input 2 for fp=6, value 300 (4 realizations >= 3 clusters)
     # Note: Using 294.0 as base so that 294.0 + 6 (fp_hours) = 300.0
-    cubes.append(
+    cubes.extend(
         _create_4d_realization_cube(
             n_realizations=4,
             forecast_periods=[6],
@@ -1408,6 +1431,7 @@ def test_clusterandmatch_categorise_full_realizations():
             x_dim=spatial_shape[1],
             model_id="secondary_model_2",
             base_value=294.0,
+            merge=False
         )
     )
 
@@ -1466,7 +1490,7 @@ def test_clusterandmatch_categorise_partial_realizations():
     spatial_shape = (5, 5)
 
     # Primary input with value 100
-    cubes.append(
+    cubes.extend(
         _create_4d_realization_cube(
             n_realizations=6,
             forecast_periods=[0, 6, 12],
@@ -1474,11 +1498,11 @@ def test_clusterandmatch_categorise_partial_realizations():
             x_dim=spatial_shape[1],
             model_id="primary_model",
             base_value=100.0,
-        )
+            merge=False)
     )
 
     # Secondary input 1 for fp=0, value 200 (2 realizations < 3 clusters)
-    cubes.append(
+    cubes.extend(
         _create_4d_realization_cube(
             n_realizations=2,
             forecast_periods=[0],
@@ -1486,12 +1510,13 @@ def test_clusterandmatch_categorise_partial_realizations():
             x_dim=spatial_shape[1],
             model_id="secondary_model_1",
             base_value=200.0,
+            merge=False
         )
     )
 
     # Secondary input 2 for fp=6, value 300 (2 realizations < 3 clusters)
     # Note: Using 294.0 as base so that 294.0 + 6 (fp_hours) = 300.0
-    cubes.append(
+    cubes.extend(
         _create_4d_realization_cube(
             n_realizations=2,
             forecast_periods=[6],
@@ -1499,6 +1524,7 @@ def test_clusterandmatch_categorise_partial_realizations():
             x_dim=spatial_shape[1],
             model_id="secondary_model_2",
             base_value=294.0,
+            merge=False
         )
     )
 
@@ -1595,7 +1621,7 @@ def test_clusterandmatch_multiple_partial_secondary_same_forecast_period():
     # Group 1 (realizations 0, 1): ~90
     # Group 2 (realizations 2, 3): ~100
     # Group 3 (realizations 4, 5): ~110
-    cubes.append(
+    cubes.extend(
         _create_4d_realization_cube(
             n_realizations=6,
             forecast_periods=[0],
@@ -1603,13 +1629,14 @@ def test_clusterandmatch_multiple_partial_secondary_same_forecast_period():
             x_dim=spatial_shape[1],
             model_id="primary_model",
             realization_values=[90.0, 91.0, 100.0, 101.0, 110.0, 111.0],
+            merge=False
         )
     )
 
     # Secondary input 1 for fp=0, value 90 (2 realizations < 3 clusters)
     # This has highest precedence (listed first)
     # Value chosen to match the low cluster (~90)
-    cubes.append(
+    cubes.extend(
         _create_4d_realization_cube(
             n_realizations=2,
             forecast_periods=[0],
@@ -1617,13 +1644,14 @@ def test_clusterandmatch_multiple_partial_secondary_same_forecast_period():
             x_dim=spatial_shape[1],
             model_id="secondary_model_1",
             base_value=90.0,
+            merge=False
         )
     )
 
     # Secondary input 2 for fp=0, value 110 (1 realization < 3 clusters)
     # This has lower precedence (listed second) but will still be processed
     # Value chosen to match the high cluster (~110)
-    cubes.append(
+    cubes.extend(
         _create_4d_realization_cube(
             n_realizations=1,
             forecast_periods=[0],
@@ -1631,6 +1659,7 @@ def test_clusterandmatch_multiple_partial_secondary_same_forecast_period():
             x_dim=spatial_shape[1],
             model_id="secondary_model_2",
             base_value=110.0,
+            merge=False
         )
     )
 
@@ -1713,7 +1742,7 @@ def test_clusterandmatch_categorise_mixed_realizations():
     spatial_shape = (5, 5)
 
     # Primary input with value 100
-    cubes.append(
+    cubes.extend(
         _create_4d_realization_cube(
             n_realizations=6,
             forecast_periods=[0, 6, 12],
@@ -1721,11 +1750,12 @@ def test_clusterandmatch_categorise_mixed_realizations():
             x_dim=spatial_shape[1],
             model_id="primary_model",
             base_value=100.0,
+            merge=False
         )
     )
 
     # Secondary input 1 for fp=0, value 200 (6 realizations >= 3 clusters, full)
-    cubes.append(
+    cubes.extend(
         _create_4d_realization_cube(
             n_realizations=6,
             forecast_periods=[0],
@@ -1733,12 +1763,13 @@ def test_clusterandmatch_categorise_mixed_realizations():
             x_dim=spatial_shape[1],
             model_id="secondary_model_1",
             base_value=200.0,
+            merge=False
         )
     )
 
     # Secondary input 2 for fp=6, value 300 (2 realizations < 3 clusters, partial)
     # Note: Using 294.0 as base so that 294.0 + 6 (fp_hours) = 300.0
-    cubes.append(
+    cubes.extend(
         _create_4d_realization_cube(
             n_realizations=2,
             forecast_periods=[6],
@@ -1746,6 +1777,7 @@ def test_clusterandmatch_categorise_mixed_realizations():
             x_dim=spatial_shape[1],
             model_id="secondary_model_2",
             base_value=294.0,
+            merge=False
         )
     )
 
@@ -1824,7 +1856,7 @@ def test_clusterandmatch_regrid_for_clustering_false():
     spatial_shape = (5, 5)
 
     # Primary input with 6 realizations, value 100
-    cubes.append(
+    cubes.extend(
         _create_4d_realization_cube(
             n_realizations=6,
             forecast_periods=[0, 6, 12],
@@ -1832,11 +1864,12 @@ def test_clusterandmatch_regrid_for_clustering_false():
             x_dim=spatial_shape[1],
             model_id="primary_model",
             base_value=100.0,
+            merge=False
         )
     )
 
     # Secondary input 1 for fp=[0, 6], value 200
-    cubes.append(
+    cubes.extend(
         _create_4d_realization_cube(
             n_realizations=6,
             forecast_periods=[0, 6],
@@ -1844,11 +1877,12 @@ def test_clusterandmatch_regrid_for_clustering_false():
             x_dim=spatial_shape[1],
             model_id="secondary_model_1",
             base_value=200.0,
+            merge=False
         )
     )
 
     # Secondary input 2 for fp=[12], value 300
-    cubes.append(
+    cubes.extend(
         _create_4d_realization_cube(
             n_realizations=4,
             forecast_periods=[12],
@@ -1856,6 +1890,7 @@ def test_clusterandmatch_regrid_for_clustering_false():
             x_dim=spatial_shape[1],
             model_id="secondary_model_2",
             base_value=300.0,
+            merge=False
         )
     )
 

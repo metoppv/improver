@@ -6,16 +6,33 @@
 =================================================================
 Using example data: Cluster and match ensemble realizations
 =================================================================
-This is an example of clustering ensemble realizations from a primary input
-and matching secondary input realizations to the resulting clusters using the
-RealizationClusterAndMatch plugin with data from the improver_example_data package.
+This notebook demonstrates how to use the RealizationClusterAndMatch plugin to
+combine ensemble forecast data from different sources, using clustering and matching
+techniques.
 
-The plugin performs KMedoids clustering on a primary (coarse resolution) ensemble,
-then matches secondary (high resolution) ensemble realizations to the clusters
-based on mean squared error, respecting a configurable precedence hierarchy.
+Aim:
+The goal is to reduce the number of ensemble members in a coarse-resolution forecast
+(primary input) by clustering similar realizations, and then match high-resolution
+ensemble members (secondary input) to these clusters. This approach enables the
+creation of a compact, representative set of ensemble forecasts that leverages
+both the broad coverage of global models and the spatial detail of regional models.
+
+Why use clustering and matching?
+
+Clustering helps identify representative patterns in large ensembles, reducing
+computational cost and simplifying interpretation. Matching allows high-resolution
+data to be mapped onto these clusters, improving local detail where available.
+
+Hierarchy and precedence:
+This notebook uses a configurable hierarchy to control which data source is used for
+each forecast period. The hierarchy specifies:
+- The primary input (e.g., a global or coarse-resolution ensemble) to be clustered.
+- One or more secondary inputs (e.g., high-resolution ensembles) to be matched to
+clusters for selected forecast periods.
+- For each forecast period, the hierarchy determines which model's data takes
+precedence, allowing switching between sources depending on availability or
+user preference.
 """
-
-# sphinx_gallery_expected_failing = True
 
 # Authors: The IMPROVER developers
 # SPDX-License-Identifier: BSD-3-Clause
@@ -113,7 +130,7 @@ cbar.set_ticks(precip_levels)
 cbar.set_ticklabels([str(level) for level in precip_levels])
 
 plt.suptitle(
-    "Coarse Resolution Input - 6 Hour Forecast", fontsize=14, fontweight="bold"
+    "Coarse Resolution Input - 6 Hour Forecast", fontsize=14, fontweight="bold", y=0.94
 )
 plt.show()
 
