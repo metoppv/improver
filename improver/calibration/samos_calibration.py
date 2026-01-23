@@ -326,9 +326,7 @@ class TrainGAMsForSAMOS(BasePlugin):
         input_mean = CubeList()
         input_sd = CubeList()
 
-        for tp, fp in zip(
-            input_cube.coord("time").points, input_cube.coord("forecast_period").points
-        ):
+        for tp in input_cube.coord("time").points:
             time_point = datetime.datetime.fromtimestamp(tp)
             # Create time constraint for rolling window and extract data within window.
             if self.rolling_window_type == "centered":
@@ -379,15 +377,23 @@ class TrainGAMsForSAMOS(BasePlugin):
                     window_sd.data,
                 )
 
-                window_mean.coord("time").points = np.array([tp])
-                window_sd.coord("time").points = np.array([tp])
+                # Set time and forecast period coordinates to match those for this time
+                # point on the input cube.
+                for coord_name in ["time", "forecast_period"]:
+                    if coord_name in [c.name() for c in window_mean.coords()]:
+                        point = (
+                            tp
+                            if coord_name == "time"
+                            else input_cube.coord(coord_name).points[
+                                input_cube.coord("time").points.tolist().index(tp)
+                            ]
+                        )
 
-                for coord_name, point in zip(["time", "forecast_period"], [tp, fp]):
-                    window_mean.coord(coord_name).points = np.array([point])
-                    window_mean.coord(coord_name).bounds = None
+                        window_mean.coord(coord_name).points = np.array([point])
+                        window_mean.coord(coord_name).bounds = None
 
-                    window_sd.coord(coord_name).points = np.array([point])
-                    window_sd.coord(coord_name).bounds = None
+                        window_sd.coord(coord_name).points = np.array([point])
+                        window_sd.coord(coord_name).bounds = None
 
             input_mean.append(window_mean.copy())
             input_sd.append(window_sd.copy())
