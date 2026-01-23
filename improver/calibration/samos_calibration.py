@@ -7,11 +7,13 @@ This module defines all the "plugins" specific to Standardised Anomaly Model Out
 Statistics (SAMOS).
 """
 
+import datetime
 import warnings
 from typing import Dict, List, Optional, Sequence, Tuple
 
 import iris
 import iris.pandas
+import numpy as np
 import pandas as pd
 
 try:
@@ -23,11 +25,8 @@ except ModuleNotFoundError:
             pass
 
 
-from iris.analysis import MEAN, STD_DEV, SUM
 from iris.cube import Cube, CubeList
-from iris.util import new_axis
-from numpy import array, clip, float32, int64, isnan, nan
-from numpy.ma import masked_all_like
+from numpy import clip, float32
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.calibration import add_static_feature_from_cube_to_df
@@ -41,7 +40,11 @@ from improver.calibration.emos_calibration import (
 )
 from improver.ensemble_copula_coupling.utilities import get_bounds_of_distribution
 from improver.metadata.probabilistic import find_threshold_coordinate
-from improver.utilities.cube_manipulation import collapse_realizations
+from improver.utilities.cube_manipulation import (
+    MergeCubes,
+    collapse_realizations,
+    collapse_time,
+)
 from improver.utilities.generalized_additive_models import GAMFit, GAMPredict
 from improver.utilities.mathematical_operations import CalculateClimateAnomalies
 
@@ -233,7 +236,8 @@ class TrainGAMsForSAMOS(BasePlugin):
         link: str = "identity",
         fit_intercept: bool = True,
         window_length: int = 11,
-        valid_rolling_window_fraction: float = 0.5,
+        required_rolling_window_points: int = 6,
+        rolling_window_type: str = "centered",
         unique_site_id_key: Optional[str] = None,
     ):
         """
@@ -262,14 +266,18 @@ class TrainGAMsForSAMOS(BasePlugin):
                 the model.
             window_length:
                 This must be an odd integer greater than 1. The length of the rolling
-                window used to calculate the mean and standard deviation of the input
-                cube when the input cube does not have a realization dimension
+                window, in days, used to calculate the mean and standard deviation of
+                the input cube when the input cube does not have a realization dimension
                 coordinate.
-            valid_rolling_window_fraction:
-                This must be a float between 0 and 1, inclusive. When performing
-                rolling window calculations, if a given window has less than this
-                fraction of valid data points (not NaN) then the value returned will be
-                NaN and will be excluded from training.
+            required_rolling_window_points:
+                The minimum number of valid data points required within a rolling
+                window. If fewer valid points are present, the mean and standard
+                deviation will be set to NaN for this window.
+            rolling_window_type:
+                The type of rolling window to use. This can be either "centered" or
+                "trailing". A centered window assigns the calculated statistic to the
+                central time point in the window, whereas a trailing window assigns
+                the calculated statistic to the last time point.
             unique_site_id_key:
                 An optional key to use for uniquely identifying each site in the
                 training data. If not provided, the default behavior is to use the
@@ -291,166 +299,101 @@ class TrainGAMsForSAMOS(BasePlugin):
         else:
             self.window_length = window_length
 
-        if not (0 <= valid_rolling_window_fraction <= 1):
+        if (
+            not isinstance(required_rolling_window_points, int)
+            or not 1 < required_rolling_window_points <= self.window_length
+        ):
             raise ValueError(
-                "The valid_rolling_window_fraction input must be between 0 and 1. "
-                f"Received: {valid_rolling_window_fraction}."
+                "The required_rolling_window_points input must be greater than 1 "
+                "and less than or equal to the window_length input. "
+                f"Received: {required_rolling_window_points}."
             )
         else:
-            self.valid_rolling_window_fraction = valid_rolling_window_fraction
+            self.required_rolling_window_points = required_rolling_window_points
 
-    def apply_aggregator(
-        self, padded_cube: Cube, aggregator: iris.analysis.WeightedAggregator
-    ) -> Cube:
-        """
-        Internal function to apply rolling window aggregator to padded cube.
-
-        Args:
-            padded_cube:
-                The cube to have rolling window calculation applied to.
-            aggregator:
-                The aggregator to use in the rolling window calculation.
-
-        Returns:
-            A cube containing the result of the rolling window calculation. Any
-            cell methods and time bounds are removed from the cube as they are not
-            necessary for later calculations.
-        """
-        summary_cube = padded_cube.rolling_window(
-            coord="time", aggregator=aggregator, window=self.window_length
-        )
-        summary_cube.cell_methods = ()
-        summary_cube.coord("time").bounds = None
-        summary_cube.coord("time").points = summary_cube.coord("time").points.astype(
-            int64
-        )
-        summary_cube.data = summary_cube.data.filled(nan)
-        return summary_cube
+        if rolling_window_type not in ["centered", "trailing"]:
+            raise ValueError(
+                "The rolling_window_type input must be either 'centered' or "
+                f"'trailing'. Received: {rolling_window_type}."
+            )
+        else:
+            self.rolling_window_type = rolling_window_type
 
     def calculate_statistic_by_rolling_window(self, input_cube: Cube):
         """Function to calculate mean and standard deviation of input_cube using a
         rolling window calculation over the time coordinate.
-
-        The input_cube time coordinate is padded at the beginning and end of the time
-        coordinate, to ensure that the result of the rolling window calculation has the
-        same shape as input_cube. Additionally, any missing time points in the input
-        cube are filled with masked data, so that the rolling window is always taken
-        over a period containing an equal number of time points.
         """
-        removed_coords = []
-        pad_width = int((self.window_length - 1) / 2)
-        # Define the minimum number of valid points required in each rolling window.
-        # This threshold does not have to be an integer.
-        allowed_valid_count = self.window_length * self.valid_rolling_window_fraction
+        input_mean = CubeList()
+        input_sd = CubeList()
 
-        # Pad the time coordinate of the input cube, then calculate the mean and
-        # standard deviation using a rolling window over the time coordinate.
-        time_coord = input_cube.coord("time")
-        increments = time_coord.points[1:] - time_coord.points[:-1]
-        min_increment = increments.min()
+        for tp, fp in zip(
+            input_cube.coord("time").points, input_cube.coord("forecast_period").points
+        ):
+            time_point = datetime.datetime.fromtimestamp(tp)
+            # Create time constraint for rolling window and extract data within window.
+            if self.rolling_window_type == "centered":
+                half_window = datetime.timedelta(days=self.window_length // 2)
+                time_bounds = [time_point - half_window, time_point + half_window]
+            else:
+                time_bounds = [
+                    time_point - datetime.timedelta(days=self.window_length),
+                    time_point,
+                ]
 
-        if not all(x % min_increment == 0 for x in increments):
-            raise ValueError(
-                "The increments between points in the time coordinate of the input "
-                "cube must be divisible by the smallest increment between points to "
-                "allow for rolling window calculations to be performed over the time "
-                "coordinate. The increments between points in the time coordinate "
-                f"were: {increments}. The smallest increment was: {min_increment}."
+            time_constraint = iris.Constraint(
+                time=lambda cell: time_bounds[0] <= cell.point <= time_bounds[1]
             )
+            window_cube = input_cube.extract(time_constraint)
 
-        padded_cube = input_cube.copy()
-
-        # Check if we are dealing with a period diagnostic.
-        if padded_cube.coord("time").bounds is not None:
-            bounds_width = (
-                padded_cube.coord("time").bounds[0][1]
-                - padded_cube.coord("time").bounds[0][0]
-            )
-        else:
-            bounds_width = None
-        # Remove time related coordinates other than the coordinate called
-        # "time" on the input cube in order to allow extension of the "time"
-        # coordinate. These coordinates are saved and added back to the output
-        # cubes.
-        for coord in [
-            "forecast_reference_time",
-            "forecast_period",
-            "blend_time",
-        ]:
-            if padded_cube.coords(coord):
-                removed_coords.append(padded_cube.coord(coord).copy())
-                padded_cube.remove_coord(coord)
-
-        # Create slices of artificial cube data to pad the existing cube time
-        # coordinate and fill any gaps. This ensures that all the time points
-        # are equally spaced and the padding ensures that the output of the
-        # rolling window calculation is the same shape as the input cube.
-        existing_points = time_coord.points
-        desired_points = array(
-            [
-                x
-                for x in range(
-                    min(existing_points) - (min_increment * pad_width),
-                    max(existing_points) + (min_increment * pad_width) + 1,
-                    min_increment,
+            if len(window_cube.coord("time").points) == 1:
+                # If there is only one time point in the window, mean and sd are
+                # set to NaN.
+                window_mean = window_cube.copy(
+                    data=np.full_like(window_cube.data, np.nan, dtype=np.float32)
                 )
-            ],
-            dtype=int64,
-        )
+                window_sd = window_cube.copy(
+                    data=np.full_like(window_cube.data, np.nan, dtype=np.float32)
+                )
+            else:
+                # Choose collapse function
+                window_mean = collapse_time(window_cube, "time", iris.analysis.MEAN)
+                window_sd = collapse_time(window_cube, "time", iris.analysis.STD_DEV)
 
-        # Slice input_cube over time dimension so that the artificial cubes can be
-        # concatenated correctly.
-        padded_cubelist = iris.cube.CubeList([])
-        for cslice in padded_cube.slices_over("time"):
-            padded_cubelist.append(new_axis(cslice.copy(), "time"))
+                # Check there are enough valid points in the window. Where there are
+                # insufficient data points, replace calculated statistics with NaNs.
+                window_valid_count = collapse_time(
+                    window_cube,
+                    "time",
+                    iris.analysis.COUNT,
+                    function=lambda values: ~np.isnan(values),
+                )
 
-        # For each desired point which doesn't already correspond to a time point
-        # on the cube, create a new cube slice with that time point with all data
-        # masked.
-        cslice = padded_cube.extract(iris.Constraint(time=time_coord.cell(0)))
-        for point in desired_points:
-            if point not in existing_points:
-                # Create a new cube slice with time point equal to point.
-                new_slice = cslice.copy()
-                new_slice.coord("time").points = point
-                if bounds_width:
-                    # Add correct bounds to point if required.
-                    new_slice.coord("time").bounds = [point - bounds_width, point]
-                new_slice = new_axis(new_slice, "time")
-                new_slice.data = masked_all_like(new_slice.data)
-                padded_cubelist.append(new_slice)
-        padded_cube = padded_cubelist.concatenate_cube()
+                window_mean.data = np.where(
+                    window_valid_count.data < self.required_rolling_window_points,
+                    np.nan,
+                    window_mean.data,
+                )
+                window_sd.data = np.where(
+                    window_valid_count.data < self.required_rolling_window_points,
+                    np.nan,
+                    window_sd.data,
+                )
 
-        # A data sufficiency check is performed to ensure that each rolling window
-        # contains enough valid data points to produce a sensible result. Data is
-        # considered sufficient if at least 50% of the data points in the window are
-        # valid. Where data is considered insufficient, the result of the rolling
-        # window calculation is replaced with nan.
-        check_data = padded_cube.copy()
-        check_data.data = (~isnan(check_data.data)).astype(float32)
-        valid_count = self.apply_aggregator(check_data, SUM)
+                window_mean.coord("time").points = np.array([tp])
+                window_sd.coord("time").points = np.array([tp])
 
-        aggregated_cubes = {}
-        for aggregator in [MEAN, STD_DEV]:
-            aggregated_cube = self.apply_aggregator(padded_cube, aggregator)
-            aggregated_cube.data[valid_count.data < allowed_valid_count] = nan
-            aggregated_cubes[aggregator.name()] = aggregated_cube.copy()
+                for coord_name, point in zip(["time", "forecast_period"], [tp, fp]):
+                    window_mean.coord(coord_name).points = np.array([point])
+                    window_mean.coord(coord_name).bounds = None
 
-        # Create constraint to extract only those time points which were present in
-        # the original input cube.
-        constr = iris.Constraint(
-            time=lambda cell: cell.point in input_cube.coord("time").cells()
-        )
-        input_mean = aggregated_cubes["mean"].extract(constr)
-        input_sd = aggregated_cubes["standard_deviation"].extract(constr)
+                    window_sd.coord(coord_name).points = np.array([point])
+                    window_sd.coord(coord_name).bounds = None
 
-        # Add any removed time coordinates back on to the mean and standard
-        # deviation cubes.
-        for coord in removed_coords:
-            time_dim = padded_cube.coord_dims("time")
-            kwargs = {"data_dims": time_dim} if len(coord.points) > 1 else {}
-            input_mean.add_aux_coord(coord, **kwargs)
-            input_sd.add_aux_coord(coord, **kwargs)
+            input_mean.append(window_mean.copy())
+            input_sd.append(window_sd.copy())
+
+        input_mean = MergeCubes().process(input_mean)
+        input_sd = MergeCubes().process(input_sd)
 
         return input_mean, input_sd
 
@@ -461,30 +404,23 @@ class TrainGAMsForSAMOS(BasePlugin):
         the time dimension will be used.
 
         The rolling window method calculates a statistic over data in a fixed time
-        window and assigns the value of the statistic to the central time in the window.
+        window and assigns the value of the statistic to the end of the time window.
         For example, for data points [0.0, 1.0, 2.0, 1.0, 0.0] each valid in
         consecutive hours T+0, T+1, T+2, T+3, T+4, the mean calculated by a rolling
-        window of width 5 would be 0.8. This value would be associated with T+2 in the
+        window of length 5 would be 0.8. This value would be associated with T+4 in the
         resulting cube.
-
-        To enable this calculation to produce a cube of the same dimensions as
-        input_cube, the data in input_cube is first padded with additional data. For a
-        rolling window of width 5, 2 data slices are added to the start and end of the
-        input_cube time coordinate. The data in these slices are masked so that they
-        don't affect the calculated statistics.
 
         Args:
             input_cube:
                 A cube with at least one of the following coordinates:
                 1. A realization dimension coordinate
-                2. A time coordinate with more than one point and evenly spaced points.
+                2. A time coordinate
 
         Returns:
             CubeList containing a mean cube and standard deviation cube.
 
         Raises:
-            ValueError: If input_cube does not contain a realization coordinate and
-            does contain a time coordinate with unevenly spaced points.
+            ValueError: If input_cube does not contain a realization coordinate.
         """
         if input_cube.coords("realization"):
             input_mean = collapse_realizations(input_cube, method="mean")

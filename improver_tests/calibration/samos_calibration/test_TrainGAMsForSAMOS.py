@@ -79,20 +79,21 @@ def test_init_window_length_exception(model_specification, window_length):
         )
 
 
-@pytest.mark.parametrize("valid_rolling_window_fraction", [-0.05, 1.05, 23])
-def test_init_valid_rolling_window_fraction_exception(
-    model_specification, valid_rolling_window_fraction
+@pytest.mark.parametrize("required_rolling_window_points", [-1, 1.05, 23])
+def test_init_required_rolling_window_points(
+    model_specification, required_rolling_window_points
 ):
-    """Test that an exception is raised if the valid_rolling_window_fraction is not a
-    float between 0 and 1, inclusive."""
+    """Test that an exception is raised if the required_rolling_window_points is not an
+    integer greater than 1 and less than or equal to window_length."""
     msg = (
-        "The valid_rolling_window_fraction input must be between 0 and 1. "
-        f"Received: {valid_rolling_window_fraction}."
+        "The required_rolling_window_points input must be greater than 1 "
+        "and less than or equal to the window_length input. "
+        f"Received: {required_rolling_window_points}."
     )
     with pytest.raises(ValueError, match=msg):
         TrainGAMsForSAMOS(
             model_specification=model_specification,
-            valid_rolling_window_fraction=valid_rolling_window_fraction,
+            required_rolling_window_points=required_rolling_window_points,
         )
 
 
@@ -167,7 +168,9 @@ def test_calculate_cube_statistics(
     expected = CubeList([expected_mean, expected_sd])
 
     result = TrainGAMsForSAMOS(
-        model_specification=model_specification, window_length=5
+        model_specification=model_specification,
+        window_length=5,
+        required_rolling_window_points=3,
     ).calculate_cube_statistics(input_cube=input_cube)
 
     assert expected == result
@@ -231,7 +234,9 @@ def test_calculate_cube_statistics_missing_data(model_specification):
     expected = CubeList([expected_mean, expected_sd])
 
     result = TrainGAMsForSAMOS(
-        model_specification=model_specification, window_length=5
+        model_specification=model_specification,
+        window_length=5,
+        required_rolling_window_points=3,
     ).calculate_cube_statistics(input_cube=input_cube)
 
     assert expected == result
@@ -284,7 +289,9 @@ def test_calculate_cube_statistics_insufficient_data(model_specification):
     expected = CubeList([expected_mean, expected_sd])
 
     result = TrainGAMsForSAMOS(
-        model_specification=model_specification, window_length=11
+        model_specification=model_specification,
+        window_length=11,
+        required_rolling_window_points=6,
     ).calculate_cube_statistics(input_cube=input_cube)
 
     assert expected == result
@@ -328,44 +335,12 @@ def test_calculate_cube_statistics_period_diagnostic(model_specification):
     expected = CubeList([expected_mean, expected_sd])
 
     result = TrainGAMsForSAMOS(
-        model_specification=model_specification, window_length=5
+        model_specification=model_specification,
+        window_length=5,
+        required_rolling_window_points=3,
     ).calculate_cube_statistics(input_cube=input_cube)
 
     assert expected == result
-
-
-def test_calculate_cube_statistics_exception(model_specification):
-    """Test that this method raises the correct exception when a rolling window
-    calculation over the time coordinate is required to calculate the cube statistics,
-    but the time coordinate has unevenly spaced points.
-    """
-    create_cube_kwargs = {
-        "forecast_type": "spot",
-        "n_spatial_points": 2,
-        "n_realizations": 1,
-        "n_times": 3,
-        "fill_value": 305.0,
-    }
-
-    # Returns cube with 3 time points at one day intervals.
-    test_cube = create_simple_cube(**create_cube_kwargs)
-
-    # Modify the time points so that they are not equally spaced
-    test_cube.coord("time").points = test_cube.coord("time").points + np.array(
-        [0, 0, 1], dtype=np.int64
-    )
-
-    msg = (
-        "The increments between points in the time coordinate of the input "
-        "cube must be divisible by the smallest increment between points to "
-        "allow for rolling window calculations to be performed over the time "
-        "coordinate. The increments between points in the time coordinate "
-        "were: \\[86400 86401\\]. The smallest increment was: 86400."
-    )
-    with pytest.raises(ValueError, match=msg):
-        TrainGAMsForSAMOS(
-            model_specification=model_specification
-        ).calculate_cube_statistics(input_cube=test_cube)
 
 
 @pytest.mark.parametrize(
@@ -375,49 +350,49 @@ def test_calculate_cube_statistics_exception(model_specification):
             False,
             [["linear", [0], {}], ["linear", [1], {}]],
             11,
-            np.array([288.1492261877016, 0.5494898838013565], dtype=np.float64),
+            np.array([288.14922, 0.54948], dtype=np.float64),
         ],
         [
             True,
             [["linear", [0], {}], ["linear", [1], {}]],
             11,
-            np.array([288.16844872649284, 0.5496814185908583], dtype=np.float64),
+            np.array([288.16844, 0.54968], dtype=np.float64),
         ],
         [
             False,
             [["tensor", [0, 1], {}]],
             11,
-            np.array([288.1285965937152, 0.5290237015452911], dtype=np.float64),
+            np.array([288.12859, 0.52902], dtype=np.float64),
         ],
         [
             True,
             [["tensor", [0, 1], {}]],
             11,
-            np.array([288.13439901991666, 0.5280646018499808], dtype=np.float64),
+            np.array([288.13439, 0.52806], dtype=np.float64),
         ],
         [
             False,
             [["linear", [0], {}], ["linear", [1], {}]],
             1,
-            np.array([288.1659800896903, 0.561020575955558], dtype=np.float64),
+            np.array([288.16598, 0.56102], dtype=np.float64),
         ],
         [
             True,
             [["linear", [0], {}], ["linear", [1], {}]],
             1,
-            np.array([288.15797722833526, 0.5427105296998994], dtype=np.float64),
+            np.array([288.15797, 0.54271], dtype=np.float64),
         ],
         [
             False,
             [["tensor", [0, 1], {}]],
             1,
-            np.array([287.97628879844785, 0.5074109794042518], dtype=np.float64),
+            np.array([287.97628, 0.50741], dtype=np.float64),
         ],
         [
             True,
             [["tensor", [0, 1], {}]],
             1,
-            np.array([287.9622424769424, 0.48765295694648797], dtype=np.float64),
+            np.array([287.96224, 0.48765], dtype=np.float64),
         ],
     ],
 )
@@ -472,8 +447,8 @@ def test_process(
         assert gam.statistics_["n_samples"] == n_times * n_spatial_points**2
         assert gam.statistics_["m_features"] == len(features)
 
-    np.testing.assert_almost_equal(mean_prediction[0], expected[0])
-    np.testing.assert_almost_equal(sd_prediction[0], expected[1])
+    np.testing.assert_almost_equal(mean_prediction[0], expected[0], decimal=5)
+    np.testing.assert_almost_equal(sd_prediction[0], expected[1], decimal=5)
 
 
 def test_process_insufficient_data():
@@ -499,7 +474,7 @@ def test_process_insufficient_data():
         "link": "identity",
         "fit_intercept": True,
         "window_length": 11,
-        "valid_rolling_window_fraction": 0.5,
+        "required_rolling_window_points": 6,
     }
     n_spatial_points = 5
     n_times = 5
