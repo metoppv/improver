@@ -42,8 +42,10 @@ def model_specification():
         },  # Check that inputs related to the model design are initialised correctly.
         {
             "model_specification": [["linear", [0], {}]],
-            "window_length": 7,
-        },  # Check that window length is initialised correctly.
+            "window_length": 6,
+            "required_rolling_window_points": 4,
+            "rolling_window_type": "trailing",
+        },  # Check that inputs for window calculations are initialised correctly.
     ],
 )
 def test__init__(kwargs):
@@ -65,12 +67,12 @@ def test__init__(kwargs):
         assert getattr(result, key) == kwargs[key]
 
 
-@pytest.mark.parametrize("window_length", [4, -3, 3.5])
+@pytest.mark.parametrize("window_length", [3, -2, 2.5])
 def test_init_window_length_exception(model_specification, window_length):
     """Test that an exception is raised if the window_length is not a positive,
     odd integer."""
     msg = (
-        "The window_length input must be an odd integer greater than 1. "
+        "The window_length input must be an even integer greater than 1. "
         f"Received: {window_length}."
     )
     with pytest.raises(ValueError, match=msg):
@@ -79,15 +81,14 @@ def test_init_window_length_exception(model_specification, window_length):
         )
 
 
-@pytest.mark.parametrize("required_rolling_window_points", [-1, 1.05, 23])
+@pytest.mark.parametrize("required_rolling_window_points", [-1, 1.05])
 def test_init_required_rolling_window_points(
     model_specification, required_rolling_window_points
 ):
     """Test that an exception is raised if the required_rolling_window_points is not an
     integer greater than 1 and less than or equal to window_length."""
     msg = (
-        "The required_rolling_window_points input must be greater than 1 "
-        "and less than or equal to the window_length input. "
+        "The required_rolling_window_points input must be an integer greater than 1. "
         f"Received: {required_rolling_window_points}."
     )
     with pytest.raises(ValueError, match=msg):
@@ -185,7 +186,7 @@ def test_calculate_cube_statistics(
 
     result = TrainGAMsForSAMOS(
         model_specification=model_specification,
-        window_length=5,
+        window_length=4,
         required_rolling_window_points=3,
     ).calculate_cube_statistics(input_cube=input_cube)
 
@@ -251,7 +252,7 @@ def test_calculate_cube_statistics_missing_data(model_specification):
 
     result = TrainGAMsForSAMOS(
         model_specification=model_specification,
-        window_length=5,
+        window_length=4,
         required_rolling_window_points=3,
     ).calculate_cube_statistics(input_cube=input_cube)
 
@@ -319,7 +320,7 @@ def test_calculate_cube_statistics_trailing_window(model_specification):
 
     result = TrainGAMsForSAMOS(
         model_specification=model_specification,
-        window_length=5,
+        window_length=4,
         required_rolling_window_points=3,
         rolling_window_type="trailing",
     ).calculate_cube_statistics(input_cube=input_cube)
@@ -375,7 +376,7 @@ def test_calculate_cube_statistics_insufficient_data(model_specification):
 
     result = TrainGAMsForSAMOS(
         model_specification=model_specification,
-        window_length=11,
+        window_length=10,
         required_rolling_window_points=6,
     ).calculate_cube_statistics(input_cube=input_cube)
 
@@ -421,7 +422,7 @@ def test_calculate_cube_statistics_period_diagnostic(model_specification):
 
     result = TrainGAMsForSAMOS(
         model_specification=model_specification,
-        window_length=5,
+        window_length=4,
         required_rolling_window_points=3,
     ).calculate_cube_statistics(input_cube=input_cube)
 
@@ -540,10 +541,10 @@ def test_process_insufficient_data():
     """Test that this method returns None when there is insufficient data to fit the
     GAMs.
 
-    In this test we provide 5 days of training data but specify a window_length of 11
-    days meaning that our training data does not fulfil the 50%
-    valid_rolling_window_fraction. The values are set to nan as an indicator of
-    incompleteness, which results in GAMFit raising a warning and returning None.
+    In this test we provide 5 days of training data but specify a window_length of 10
+    and required_rolling_window_points of 6 so that there cannot be sufficient data in
+    each window. The values are set to nan as an indicator of incompleteness, which
+    results in GAMFit raising a warning and returning None.
     """
     # Skip test if pyGAM not available.
     pytest.importorskip("pygam")
@@ -558,7 +559,7 @@ def test_process_insufficient_data():
         "distribution": "normal",
         "link": "identity",
         "fit_intercept": True,
-        "window_length": 11,
+        "window_length": 10,
         "required_rolling_window_points": 6,
     }
     n_spatial_points = 5

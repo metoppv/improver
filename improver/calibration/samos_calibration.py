@@ -235,8 +235,8 @@ class TrainGAMsForSAMOS(BasePlugin):
         distribution: str = "normal",
         link: str = "identity",
         fit_intercept: bool = True,
-        window_length: int = 11,
-        required_rolling_window_points: int = 6,
+        window_length: int = 10,
+        required_rolling_window_points: int = 5,
         rolling_window_type: str = "centered",
         unique_site_id_key: Optional[str] = None,
     ):
@@ -291,9 +291,9 @@ class TrainGAMsForSAMOS(BasePlugin):
         self.fit_intercept = fit_intercept
         self.unique_site_id_key = unique_site_id_key
 
-        if window_length < 3 or window_length % 2 == 0 or window_length % 1 != 0:
+        if window_length < 2 or window_length % 2 != 0 or window_length % 1 != 0:
             raise ValueError(
-                "The window_length input must be an odd integer greater than 1. "
+                "The window_length input must be an even integer greater than 1. "
                 f"Received: {window_length}."
             )
         else:
@@ -304,9 +304,8 @@ class TrainGAMsForSAMOS(BasePlugin):
             or not 1 < required_rolling_window_points <= self.window_length
         ):
             raise ValueError(
-                "The required_rolling_window_points input must be greater than 1 "
-                "and less than or equal to the window_length input. "
-                f"Received: {required_rolling_window_points}."
+                "The required_rolling_window_points input must be an integer greater "
+                f"than 1. Received: {required_rolling_window_points}."
             )
         else:
             self.required_rolling_window_points = required_rolling_window_points
@@ -330,11 +329,11 @@ class TrainGAMsForSAMOS(BasePlugin):
             time_point = datetime.datetime.fromtimestamp(tp)
             # Create time constraint for rolling window and extract data within window.
             if self.rolling_window_type == "centered":
-                half_window = datetime.timedelta(days=self.window_length // 2)
+                half_window = datetime.timedelta(days=self.window_length / 2)
                 time_bounds = [time_point - half_window, time_point + half_window]
             else:
                 time_bounds = [
-                    time_point - datetime.timedelta(days=self.window_length - 1),
+                    time_point - datetime.timedelta(days=self.window_length),
                     time_point,
                 ]
 

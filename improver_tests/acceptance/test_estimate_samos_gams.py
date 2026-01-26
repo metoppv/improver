@@ -49,7 +49,7 @@ def test_gam_features_on_cube(tmp_path):
         "--model-specification",
         model_specification_path,
         "--window-length",
-        "3",
+        "2",
         "--required-rolling-window-points",
         "2",
         "--output",
@@ -97,7 +97,7 @@ def test_gam_cube_gam_features(tmp_path):
         "--model-specification",
         model_specification_path,
         "--window-length",
-        "3",
+        "2",
         "--required-rolling-window-points",
         "2",
         "--output",
@@ -140,7 +140,7 @@ def test_gam_at_sites(tmp_path):
         "--model-specification",
         model_specification_path,
         "--window-length",
-        "3",
+        "2",
         "--required-rolling-window-points",
         "2",
         "--output",
@@ -159,7 +159,7 @@ def test_insufficient_data(tmp_path):
     Test estimate-samos-gams returns None when insufficient data is available at all
     sites.
 
-    This test provides 3 days of input data but uses a window length of 11 days. This
+    This test provides 3 days of input data but uses a window length of 10 days. This
     will cause the training data at all sites to be considered insufficient to fit the
     GAMs (at least 6 data points are required in each window). Hence, None should be
     returned.
@@ -187,7 +187,7 @@ def test_insufficient_data(tmp_path):
         "--model-specification",
         model_specification_path,
         "--window-length",
-        "11",
+        "10",
         "--required-rolling-window-points",
         "6",
         "--output",
