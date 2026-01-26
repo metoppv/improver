@@ -379,15 +379,23 @@ class TrainGAMsForSAMOS(BasePlugin):
 
                 # Set time and forecast period coordinates to match those for this time
                 # point on the input cube.
-                for coord_name in ["time", "forecast_period"]:
+                for coord_name in [
+                    "time",
+                    "forecast_reference_time",
+                    "blend_time",
+                    "forecast_period",
+                ]:
                     if coord_name in [c.name() for c in window_mean.coords()]:
-                        point = (
-                            tp
-                            if coord_name == "time"
-                            else input_cube.coord(coord_name).points[
-                                input_cube.coord("time").points.tolist().index(tp)
-                            ]
-                        )
+                        point = tp
+                        if coord_name != "time":
+                            # The time-related coordinates are either scalar or have one
+                            # point associated with each time point.
+                            if len(input_cube.coord(coord_name).points) == 1:
+                                point = input_cube.coord(coord_name).points[0]
+                            else:
+                                point = input_cube.coord(coord_name).points[
+                                    input_cube.coord("time").points.tolist().index(tp)
+                                ]
 
                         window_mean.coord(coord_name).points = np.array([point])
                         window_mean.coord(coord_name).bounds = None

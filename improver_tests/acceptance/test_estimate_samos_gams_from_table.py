@@ -58,6 +58,8 @@ def test_additional_features_coords(
         "10,20,30,40,50,60,70,80,90",
         "--window-length",
         "3",
+        "--required-rolling-window-points",
+        "2",
         "--output",
         output_path,
     ]
@@ -110,6 +112,8 @@ def test_additional_features_cube(
         "10,20,30,40,50,60,70,80,90",
         "--window-length",
         "3",
+        "--required-rolling-window-points",
+        "2",
         "--output",
         output_path,
     ]
@@ -163,6 +167,8 @@ def test_additional_features_cubes(
         "10,20,30,40,50,60,70,80,90",
         "--window-length",
         "3",
+        "--required-rolling-window-points",
+        "2",
         "--output",
         output_path,
     ]
@@ -212,6 +218,8 @@ def test_no_forecast(
         "10,20,30,40,50,60,70,80,90",
         "--window-length",
         "3",
+        "--required-rolling-window-points",
+        "2",
         "--output",
         output_path,
     ]
@@ -230,7 +238,7 @@ def test_insufficient_data(
 
     This test provides 3 days of input data but uses a window length of 11 days. This
     will cause the training data at all sites to be considered insufficient to fit the
-    GAMs (at least 50% of the possible data points are required). Hence, None should be
+    GAMs (at least 6 days of data are required). Hence, None should be
     returned.
     """
     source_dir = acc.kgo_root() / "estimate-emos-coefficients-from-table/"
@@ -262,6 +270,8 @@ def test_insufficient_data(
         "10,20,30,40,50,60,70,80,90",
         "--window-length",
         "11",
+        "--required-rolling-window-points",
+        "6",
         "--output",
         output_path,
     ]
