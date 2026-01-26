@@ -469,6 +469,15 @@ def test_clustering_with_single_realization():
     assert result.labels_[0] == 0
 
 
+def test_convert_to_2d_raises_for_1d():
+    """Test that _convert_to_2d raises ValueError for 1D input array."""
+    arr = np.arange(5)
+    with pytest.raises(
+        ValueError, match="Input array must have at least 2 dimensions."
+    ):
+        RealizationClustering._convert_to_2d(arr)
+
+
 # Tests for RealizationToClusterMatcher
 
 
@@ -669,6 +678,72 @@ def test_matcher_process_metadata_and_datatype_preservation():
         assert isinstance(idx, (int, np.integer)), (
             "Realization indices should be integers"
         )
+
+
+@pytest.mark.parametrize("expectation",
+    ["2D", "First dim not 'realization'", "Second dim not 'forecast_period' or 'time'", "Last two dims not y/x"]
+)
+def test_enforce_dimension_order_exceptions(expectation):
+    """Test all exceptions in _enforce_dimension_order are raised as expected."""
+    matcher = RealizationToClusterMatcher()
+    if expectation == "2D":
+        cube = set_up_variable_cube(
+                    np.zeros((2, 2), dtype=np.float32),
+                    name="air_temperature",
+                    units="K",
+                    spatial_grid="equalarea",
+                )
+        expected_message = r"Cube must be 3D or 4D"
+    elif expectation == "First dim not 'realization'":
+        cube = set_up_variable_cube(
+                    np.zeros((2, 2, 2), dtype=np.float32),
+                    name="air_temperature",
+                    units="K",
+                    spatial_grid="equalarea",
+                )
+        cube.transpose([1, 0, 2])
+        expected_message = r"First dimension must be 'realization', got 'projection_y_coordinate'"
+    elif expectation == "Second dim not 'forecast_period' or 'time'":
+        cube = set_up_variable_cube(
+                    np.zeros((2, 2, 2, 2), dtype=np.float32),
+                    name="air_temperature",
+                    units="K",
+                    spatial_grid="equalarea",
+                    realizations=np.arange(2),
+                    vertical_levels=np.arange(2),
+                    height=True
+                )
+        expected_message = r"Second dimension must be 'forecast_period' or 'time', got 'height'"
+    elif expectation == "Last two dims not y/x":
+        cube = set_up_variable_cube(
+                    np.zeros((2, 2, 2), dtype=np.float32),
+                    name="air_temperature",
+                    units="K",
+                    spatial_grid="equalarea",
+                    realizations=np.arange(2),
+                )
+        cube.transpose([0, 2, 1])
+        expected_message = "Cube dimension order must be"
+    with pytest.raises(ValueError, match=expected_message):
+        matcher._enforce_dimension_order(cube)
+
+
+@pytest.mark.parametrize("coord_presence", ["with_forecast_period_coordinate", "without_forecast_period_coordinate"])
+def test_validate_forecast_period_coords_exceptions(coord_presence):
+    """Test ValueError is raised for mismatched or missing forecast_period coords in 4D cubes."""
+    matcher = RealizationToClusterMatcher()
+    clustered_cube = _create_4d_realization_cube(n_realizations=2, forecast_periods=[0, 6], y_dim=3, x_dim=3, seed=10)
+    if coord_presence == "with_forecast_period_coordinate":
+        msg = "Forecast period coords must match between"
+    elif coord_presence == "without_forecast_period_coordinate":
+        # Remove forecast_period coordinate
+        clustered_cube.remove_coord("forecast_period")
+        msg = "Both cubes must have forecast_period coordinate"
+    candidate_cube = _create_realization_cube(shape=(2, 3, 3), seed=20)
+    with pytest.raises(ValueError, match=(
+        msg
+        )):
+        matcher._validate_forecast_period_coords(clustered_cube, candidate_cube)
 
 
 # Tests for RealizationToClusterMatcher with 4D cubes
@@ -1037,14 +1112,21 @@ def test_clusterandmatch_process_basic():
     _assert_cluster_sources_attribute(result, expected_sources)
 
 
-def test_clusterandmatch_cluster_primary_input():
-    """Test the clustering of primary input returns correct shape and structure.
-
-    This test verifies that the primary input is correctly clustered by checking
-    that the output has the expected number of clusters and forecast periods.
-    Uses distinct values to verify primary input is used when no secondary inputs
-    cover a forecast period.
-    """
+@pytest.mark.parametrize(
+    "secondary_fps,expected_fp0,expected_fp6,expected_fp12,desc",
+    [
+        # Original: secondary input covers 0, 6
+        ([0, 6], 200.0, 206.0, 112.0, "secondary covers 0,6; 12 from primary"),
+        # New: secondary input covers 0, 6, 12 (all replaced)
+        ([0, 6, 12], 200.0, 206.0, 212.0, "secondary covers all; all replaced"),
+        # New: secondary input covers only 0 (6,12 from primary)
+        ([0], 200.0, 106.0, 112.0, "secondary covers 0; 6,12 from primary"),
+    ]
+)
+def test_clusterandmatch_cluster_primary_input(
+        secondary_fps, expected_fp0, expected_fp6, expected_fp12, desc
+    ):
+    """Test clustering and matching with various secondary input forecast period coverage."""
     pytest.importorskip("kmedoids")
 
     cubes = iris.cube.CubeList()
@@ -1063,11 +1145,11 @@ def test_clusterandmatch_cluster_primary_input():
         )
     )
 
-    # Secondary input only for fp=[0, 6], value 200
+    # Secondary input with parameterized forecast periods, value 200
     cubes.extend(
         _create_4d_realization_cube(
             n_realizations=6,
-            forecast_periods=[0, 6],
+            forecast_periods=secondary_fps,
             y_dim=spatial_shape[0],
             x_dim=spatial_shape[1],
             model_id="secondary_model_1",
@@ -1081,7 +1163,7 @@ def test_clusterandmatch_cluster_primary_input():
 
     hierarchy = {
         "primary_input": "primary_model",
-        "secondary_inputs": {"secondary_model_1": [0, 6]},
+        "secondary_inputs": {"secondary_model_1": [0, 6, 12]},
     }
 
     plugin = RealizationClusterAndMatch(
@@ -1108,18 +1190,55 @@ def test_clusterandmatch_cluster_primary_input():
     assert isinstance(result, iris.cube.Cube)
     assert result.name() == "air_temperature"
 
-    # Check data values: fp=12 should use primary (value ~112),
-    # others secondary model 1 (~200, ~206)
+    # Check data values for each forecast period
     fp_0_data = result.extract(iris.Constraint(forecast_period=0)).data
-    assert np.allclose(fp_0_data, 200.0, atol=5.0), "fp=0 should use secondary_model_1"
+    assert np.allclose(fp_0_data, expected_fp0, atol=5.0), f"fp=0: {desc}"
 
     fp_6_data = result.extract(iris.Constraint(forecast_period=6 * 3600)).data
-    assert np.allclose(fp_6_data, 206.0, atol=5.0), "fp=6 should use secondary_model_1"
+    assert np.allclose(fp_6_data, expected_fp6, atol=5.0), f"fp=6: {desc}"
 
     fp_12_data = result.extract(iris.Constraint(forecast_period=12 * 3600)).data
-    assert np.allclose(fp_12_data, 112.0, atol=5.0), (
-        "fp=12 should use clustered primary_model"
+    assert np.allclose(fp_12_data, expected_fp12, atol=5.0), f"fp=12: {desc}"
+
+
+def test_clusterandmatch_process_no_primary_cube():
+    """Test that ValueError is raised if no primary cube is found with the specified model_id_attr."""
+    # Only secondary input cubes, no primary input
+    cubes = iris.cube.CubeList()
+    spatial_shape = (5, 5)
+    # Add a secondary input cube with model_id 'secondary_model_1'
+    cubes.extend(
+        _create_4d_realization_cube(
+            n_realizations=2,
+            forecast_periods=[0, 6],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            model_id="secondary_model_1",
+            base_value=200.0,
+            merge=False
+        )
     )
+    # Add a target grid cube
+    cubes.append(_create_target_grid_cube())
+
+    hierarchy = {
+        "primary_input": "primary_model",
+        "secondary_inputs": {"secondary_model_1": [0, 6]},
+    }
+
+    plugin = RealizationClusterAndMatch(
+        hierarchy=hierarchy,
+        model_id_attr="model_id",
+        clustering_method="KMedoids",
+        target_grid_name="target_grid",
+        n_clusters=2,
+        random_state=42,
+    )
+
+    with pytest.raises(
+        ValueError, match=r"No primary cube found with model_id=primary_model"
+    ):
+        plugin.process(cubes)
 
 
 def test_clusterandmatch_precedence_order():
@@ -1362,8 +1481,8 @@ def test_clusterandmatch_single_secondary_input():
     assert len(forecast_periods) == 3
     np.testing.assert_array_equal(forecast_periods, [0, 6 * 3600, 12 * 3600])
 
-    # Check data values: fp=[0,6] should use secondary (~200),
-    # fp=12 should use primary (~112)
+    # Check data values: fp=12 should use primary (value ~112),
+    # others secondary model 1 (~200, ~206)
     fp_0_data = result.extract(iris.Constraint(forecast_period=0)).data
     assert np.allclose(fp_0_data, 200.0, atol=5.0), "fp=0 should use secondary_model_1"
 
@@ -2002,3 +2121,96 @@ def test_clusterandmatch_regrid_for_clustering_and_target_grid_name(
         )
         assert plugin.regrid_for_clustering is False
         assert plugin.target_grid_name is None
+
+
+def test_clusterandmatch_full_realization_input_missing_forecast_period():
+    """Test that if a secondary input is missing a forecast period listed in the hierarchy,
+    the code continues gracefully and does not replace the primary data for that period."""
+    pytest.importorskip("kmedoids")
+
+    cubes = iris.cube.CubeList()
+    spatial_shape = (4, 4)
+
+    # Primary input with 3 forecast periods: 0, 6, 12
+    cubes.extend(
+        _create_4d_realization_cube(
+            n_realizations=4,
+            forecast_periods=[0, 6, 12],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            model_id="primary_model",
+            base_value=100.0,
+            merge=False
+        )
+    )
+
+    # Secondary input with only 2 forecast periods: 0, 6 (missing 12)
+    cubes.extend(
+        _create_4d_realization_cube(
+            n_realizations=4,
+            forecast_periods=[0, 6],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            model_id="secondary_model_1",
+            base_value=200.0,
+            merge=False
+        )
+    )
+
+    # Target grid
+    cubes.append(_create_target_grid_cube(spatial_shape))
+
+    hierarchy = {
+        "primary_input": "primary_model",
+        "secondary_inputs": {"secondary_model_1": [0, 6, 12]},
+    }
+
+    plugin = RealizationClusterAndMatch(
+        hierarchy=hierarchy,
+        model_id_attr="model_id",
+        clustering_method="KMedoids",
+        target_grid_name="target_grid",
+        n_clusters=2,
+        random_state=42,
+    )
+
+    result = plugin.process(cubes)
+
+    # fp=0,6 should use secondary_model_1 (values ~200), fp=12 should use primary (values ~112)
+    fp_0_data = result.extract(iris.Constraint(forecast_period=0)).data
+    assert np.allclose(fp_0_data, 200.0, atol=5.0), "fp=0 should use secondary_model_1"
+
+    fp_6_data = result.extract(iris.Constraint(forecast_period=6 * 3600)).data
+    assert np.allclose(fp_6_data, 206.0, atol=5.0), "fp=6 should use secondary_model_1"
+
+    fp_12_data = result.extract(iris.Constraint(forecast_period=12 * 3600)).data
+    assert np.allclose(fp_12_data, 112.0, atol=5.0), "fp=12 should use primary_model (not replaced)"
+
+
+def test_select_realizations_for_kmedoid_clusters_too_many_clusters():
+    """Test that ValueError is raised if number of clusters > number of realizations."""
+    # Create a cube with 2 realizations
+    cube = _create_realization_cube(shape=(2, 4, 4))
+    # Mock clustering_result with 3 medoid indices
+    class MockClusteringResult:
+        medoid_indices_ = [0, 1, 2]
+    plugin = RealizationClusterAndMatch(
+        hierarchy={"primary_input": "primary_model", "secondary_inputs": {}},
+        model_id_attr="model_id",
+        clustering_method="KMedoids",
+        target_grid_name="target_grid",
+        n_clusters=3,
+    )
+    with pytest.raises(ValueError, match=(
+        "The number of clusters 3 is expected to be less than the number of"
+         " realizations 2. Please reduce the number of clusters.")):
+        plugin._select_realizations_for_kmedoid_clusters(cube, MockClusteringResult())
+
+
+def test_expand_forecast_period_range_start_greater_than_end():
+    """Test that ValueError is raised if start > end in
+    _expand_forecast_period_range."""
+    with pytest.raises(ValueError, match=(
+        r"Forecast period range start \(10\) must be <= end \(5\)")
+    ):
+        RealizationClusterAndMatch._expand_forecast_period_range([10, 5])
