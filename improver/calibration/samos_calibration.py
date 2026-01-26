@@ -417,17 +417,15 @@ class TrainGAMsForSAMOS(BasePlugin):
         the time dimension will be used.
 
         The rolling window method calculates a statistic over data in a fixed time
-        window and assigns the value of the statistic to the end of the time window.
-        For example, for data points [0.0, 1.0, 2.0, 1.0, 0.0] each valid in
+        window. For example, for data points [0.0, 1.0, 2.0, 1.0, 0.0] each valid in
         consecutive hours T+0, T+1, T+2, T+3, T+4, the mean calculated by a rolling
-        window of length 5 would be 0.8. This value would be associated with T+4 in the
-        resulting cube.
+        window of length 5 would be 0.8.
 
         Args:
             input_cube:
                 A cube with at least one of the following coordinates:
                 1. A realization dimension coordinate
-                2. A time coordinate
+                2. A time coordinate with more than one point.
 
         Returns:
             CubeList containing a mean cube and standard deviation cube.
