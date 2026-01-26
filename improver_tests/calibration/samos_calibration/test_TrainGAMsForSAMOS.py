@@ -97,6 +97,22 @@ def test_init_required_rolling_window_points(
         )
 
 
+@pytest.mark.parametrize("rolling_window_type", ["invalid_type", "", 5])
+def test_init_rolling_window_type_exception(model_specification, rolling_window_type):
+    """Test that an exception is raised if the rolling_window_type is not one of the
+    accepted strings.
+    """
+    msg = (
+        "The rolling_window_type input must be either 'centered' or "
+        f"'trailing'. Received: {rolling_window_type}."
+    )
+    with pytest.raises(ValueError, match=msg):
+        TrainGAMsForSAMOS(
+            model_specification=model_specification,
+            rolling_window_type=rolling_window_type,
+        )
+
+
 @pytest.mark.parametrize("forecast_type", ["gridded", "spot"])
 @pytest.mark.parametrize("n_realizations,n_times", [[5, 1], [5, 5], [1, 5]])
 @pytest.mark.parametrize("include_blend_time", [False, True])
@@ -237,6 +253,75 @@ def test_calculate_cube_statistics_missing_data(model_specification):
         model_specification=model_specification,
         window_length=5,
         required_rolling_window_points=3,
+    ).calculate_cube_statistics(input_cube=input_cube)
+
+    assert expected == result
+
+
+def test_calculate_cube_statistics_trailing_window(model_specification):
+    """Test that this method still calculates the mean and standard deviations
+    correctly when a trailing rolling window is used.
+
+    The time points in the input_cube are modified so that they are not evenly spaced,
+    to demonstrate that the rolling window is still applied correctly.
+    """
+    create_cube_kwargs = {
+        "forecast_type": "spot",
+        "n_spatial_points": 2,
+        "n_realizations": 1,
+        "n_times": 5,
+        "fill_value": 305.0,
+    }
+
+    expected_cube_kwargs = {
+        "forecast_type": "spot",
+        "n_spatial_points": 2,
+        "n_realizations": 1,
+        "n_times": 5,
+    }
+    shape = [5, 1]
+
+    # Set up input cube. Time coordinate is modified so that the time points are not
+    # evenly spaced, but a single artificial time point can be added during processing
+    # to allow rolling window calculations.
+    input_cube = create_simple_cube(**create_cube_kwargs)
+    add_values = np.array([-1.0, 0.0, 0.0, 0.0, 1.0]).reshape(shape)
+    input_cube.data = input_cube.data + np.broadcast_to(
+        add_values, input_cube.data.shape
+    )
+
+    input_cube.coord("time").points = input_cube.coord("time").points + np.array(
+        [0, 86400, 86400, 86400, 86400], dtype=np.int64
+    )
+
+    # Set up expected output cubes.
+    expected_mean = create_simple_cube(fill_value=305.0, **expected_cube_kwargs)
+    add_values_mean = np.array([0.0, 0.0, -0.33333333, -0.25, 0.25]).reshape(shape)
+    expected_mean.data = expected_mean.data + add_values_mean
+    # These values have insufficient valid data points contributing to them. Therefore,
+    # these points are expected to be nans in the output.
+    expected_mean.data[:2, :] = np.array([[np.nan, np.nan], [np.nan, np.nan]])
+    expected_mean.coord("time").points = expected_mean.coord("time").points + np.array(
+        [0, 86400, 86400, 86400, 86400], dtype=np.int64
+    )
+
+    expected_sd = create_simple_cube(fill_value=0.0, **expected_cube_kwargs)
+    add_values_sd = np.array([0.0, 0.0, 0.57735027, 0.5, 0.5]).reshape(shape)
+    expected_sd.data = expected_sd.data + add_values_sd
+    # These values have insufficient valid data points contributing to them. Therefore,
+    # these points are expected to be nans in the output.
+    expected_sd.data[:2, :] = np.array([[np.nan, np.nan], [np.nan, np.nan]])
+    expected_sd.coord("time").points = expected_sd.coord("time").points + np.array(
+        [0, 86400, 86400, 86400, 86400], dtype=np.int64
+    )
+
+    expected = CubeList([expected_mean, expected_sd])
+
+    result = TrainGAMsForSAMOS(
+        model_specification=model_specification,
+        window_length=5,
+        required_rolling_window_points=3,
+        rolling_window_type="trailing",
     ).calculate_cube_statistics(input_cube=input_cube)
 
     assert expected == result

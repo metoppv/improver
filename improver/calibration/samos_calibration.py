@@ -334,7 +334,7 @@ class TrainGAMsForSAMOS(BasePlugin):
                 time_bounds = [time_point - half_window, time_point + half_window]
             else:
                 time_bounds = [
-                    time_point - datetime.timedelta(days=self.window_length),
+                    time_point - datetime.timedelta(days=self.window_length - 1),
                     time_point,
                 ]
 
