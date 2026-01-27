@@ -6,7 +6,6 @@
 """CLI to apply ensemble copula coupling."""
 
 from improver import cli
-from typing import Optional
 
 
 @cli.clizefy
@@ -42,10 +41,9 @@ def process(
             Calibrated ensemble forecast, with same dimensions as raw_ensemble_forecast.
     """
     from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
-        RebadgePercentilesAsRealizations,
-        ResamplePercentiles,
         ConvertProbabilitiesToPercentiles,
         EnsembleReordering,
+        ResamplePercentiles,
     )
     from improver.metadata.probabilistic import (
         is_percentile,

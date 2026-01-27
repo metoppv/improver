@@ -4,9 +4,6 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Tests for the apply-ensemble-copula-coupling CLI."""
 
-import json
-import sys
-
 import pytest
 
 from . import acceptance as acc
