@@ -161,8 +161,46 @@ class GAMFit(BasePlugin):
 class GAMPredict(BasePlugin):
     """Class for predicting new outputs from a fitted GAM given new input predictors."""
 
-    def __init__(self):
-        """Initialize class"""
+    def __init__(self, extrapolation: str = "extend"):
+        """Initialize class
+
+        Args:
+            extrapolation:
+                A string determining how to handle predictor values outside the range
+                used to fit the GAM. Options are 'clip' to clip predictor values to be
+                within the min and max values used to fit the GAM, or 'extend' to allow
+                extrapolation beyond the training data range. Default is 'extend'.
+        """
+        if extrapolation in ["clip", "extend"]:
+            self.extrapolation = extrapolation
+        else:
+            msg = (
+                f"The extrapolation method {extrapolation} is not recognised. "
+                f"Accepted values are 'clip' or 'extend'."
+            )
+            raise ValueError(msg)
+
+    @staticmethod
+    def clip_predictors(predictors: np.ndarray) -> np.ndarray:
+        """
+        Clip predictor values to be within the min and max values used to fit the GAM.
+
+        Args:
+            predictors: A 2-D array of inputs to use to predict new values. Each
+                feature (column) should have the same index as in the training dataset.
+
+        Returns:
+            A 2-D array of clipped predictor values.
+        """
+        # TODO: Use pygam gridsearch to determine appropriate ranges for predictors.
+        #  I'm pretty sure the Copilot generated code below is rubbish.
+
+        clipped_predictors = np.empty_like(predictors)
+        for i in range(predictors.shape[1]):
+            col_min = np.nanmin(predictors[:, i])
+            col_max = np.nanmax(predictors[:, i])
+            clipped_predictors[:, i] = np.clip(predictors[:, i], col_min, col_max)
+        return clipped_predictors
 
     def process(self, gam, predictors: np.ndarray) -> np.ndarray:
         """
@@ -177,5 +215,7 @@ class GAMPredict(BasePlugin):
             A 1-D array of values predicted by the GAM with each value in the array
             corresponding to one row in the input predictors.
         """
+        if self.extrapolation == "clip":
+            predictors = self.clip_predictors(predictors)
 
         return gam.predict(predictors)
