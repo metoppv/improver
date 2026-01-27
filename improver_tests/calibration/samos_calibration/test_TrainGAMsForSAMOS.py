@@ -44,7 +44,7 @@ def model_specification():
             "model_specification": [["linear", [0], {}]],
             "window_length": 6,
             "required_rolling_window_points": 4,
-            "rolling_window_type": "trailing",
+            "trailing_window": True,
         },  # Check that inputs for window calculations are initialised correctly.
     ],
 )
@@ -59,6 +59,8 @@ def test__init__(kwargs):
         "link": "identity",
         "fit_intercept": True,
         "window_length": 11,
+        "required_rolling_window_points": 6,
+        "trailing_window": False,
     }
     expected.update(kwargs)
     result = TrainGAMsForSAMOS(**kwargs)
@@ -67,62 +69,51 @@ def test__init__(kwargs):
         assert getattr(result, key) == kwargs[key]
 
 
-@pytest.mark.parametrize("window_length", [3, -2, 2.5])
-def test_init_window_length_exception(model_specification, window_length):
-    """Test that an exception is raised if the window_length is not a positive,
-    odd integer."""
-    msg = (
-        "The window_length input must be an even integer greater than 1. "
-        f"Received: {window_length}."
-    )
-    with pytest.raises(ValueError, match=msg):
-        TrainGAMsForSAMOS(
-            model_specification=model_specification, window_length=window_length
-        )
-
-
-@pytest.mark.parametrize("required_rolling_window_points", [-1, 1.05])
-def test_init_required_rolling_window_points(
-    model_specification, required_rolling_window_points
+@pytest.mark.parametrize(
+    "trailing_window,window_length",
+    [
+        [False, 1.05],  # window_length is not an integer
+        [False, 3],  # window_length is not even when using centred window
+        [False, -4],  # window_length is not greater than 1
+        [True, 0],  # window_length is not greater than 1
+        [True, 2.5],  # window_length is not an integer
+    ],
+)
+def test_init_rolling_window_length_exceptions(
+    model_specification, trailing_window, window_length
 ):
-    """Test that an exception is raised if the required_rolling_window_points is not an
-    integer greater than 1 and less than or equal to window_length."""
+    """Test that the correct exception is raised if impermissible combinations of
+    window_length and trailing_window are provided as inputs."""
+
     msg = (
-        "The required_rolling_window_points input must be an integer greater than 1. "
-        f"Received: {required_rolling_window_points}."
+        "The window_length input must be an even integer greater than 1 when using a "
+        f"centred rolling window. Received: {window_length}."
     )
-    with pytest.raises(ValueError, match=msg):
-        TrainGAMsForSAMOS(
-            model_specification=model_specification,
-            required_rolling_window_points=required_rolling_window_points,
+    if trailing_window:
+        msg = (
+            "The window_length input must be an integer greater than 1 when using a "
+            f"trailing rolling window. Received: {window_length}."
         )
 
-
-@pytest.mark.parametrize("rolling_window_type", ["invalid_type", "", 5])
-def test_init_rolling_window_type_exception(model_specification, rolling_window_type):
-    """Test that an exception is raised if the rolling_window_type is not one of the
-    accepted strings.
-    """
-    msg = (
-        "The rolling_window_type input must be either 'centered' or "
-        f"'trailing'. Received: {rolling_window_type}."
-    )
     with pytest.raises(ValueError, match=msg):
         TrainGAMsForSAMOS(
             model_specification=model_specification,
-            rolling_window_type=rolling_window_type,
+            window_length=window_length,
+            trailing_window=trailing_window,
         )
 
 
 @pytest.mark.parametrize("forecast_type", ["gridded", "spot"])
 @pytest.mark.parametrize("n_realizations,n_times", [[5, 1], [5, 5], [1, 5]])
 @pytest.mark.parametrize("include_blend_time", [False, True])
+@pytest.mark.parametrize("trailing_window", [False, True])
 def test_calculate_cube_statistics(
     forecast_type,
     n_realizations,
     n_times,
     include_blend_time,
     model_specification,
+    trailing_window,
 ):
     """Test that this method correctly calculates the mean and standard deviation of
     the input cube."""
@@ -161,16 +152,25 @@ def test_calculate_cube_statistics(
         expected_sd = create_simple_cube(fill_value=0.707106, **expected_cube_kwargs)
     else:
         shape = [5, 1] if forecast_type == "spot" else [5, 1, 1]
+        if trailing_window:
+            add_values_mean = np.array([np.nan, np.nan, -0.333333, -0.25, 0.0]).reshape(
+                shape
+            )
+            add_values_sd = np.array([np.nan, np.nan, 0.577350, 0.5, 0.707106]).reshape(
+                shape
+            )
+        else:
+            add_values_mean = np.array([-0.333333, -0.25, 0.0, 0.25, 0.333333]).reshape(
+                shape
+            )
+            add_values_sd = np.array([0.577350, 0.5, 0.707106, 0.5, 0.577350]).reshape(
+                shape
+            )
+
         expected_mean = create_simple_cube(fill_value=305.0, **expected_cube_kwargs)
-        add_values_mean = np.array([-0.333333, -0.25, 0.0, 0.25, 0.333333]).reshape(
-            shape
-        )
         expected_mean.data = expected_mean.data + add_values_mean
 
         expected_sd = create_simple_cube(fill_value=0.0, **expected_cube_kwargs)
-        add_values_sd = np.array([0.577350, 0.5, 0.707106, 0.5, 0.577350]).reshape(
-            shape
-        )
         expected_sd.data = expected_sd.data + add_values_sd
 
     if include_blend_time:
@@ -188,12 +188,14 @@ def test_calculate_cube_statistics(
         model_specification=model_specification,
         window_length=4,
         required_rolling_window_points=3,
+        trailing_window=trailing_window,
     ).calculate_cube_statistics(input_cube=input_cube)
 
     assert expected == result
 
 
-def test_calculate_cube_statistics_missing_data(model_specification):
+@pytest.mark.parametrize("trailing_window", [False, True])
+def test_calculate_cube_statistics_missing_data(model_specification, trailing_window):
     """Test that this method still calculates the mean and standard deviations
     correctly when there is missing data in the time period covered by the
     input_cube.
@@ -215,8 +217,7 @@ def test_calculate_cube_statistics_missing_data(model_specification):
     shape = [5, 1]
 
     # Set up input cube. Time coordinate is modified so that the time points are not
-    # evenly spaced, but a single artificial time point can be added during processing
-    # to allow rolling window calculations.
+    # evenly spaced.
     input_cube = create_simple_cube(**create_cube_kwargs)
     add_values = np.array([-1.0, 0.0, 0.0, 0.0, 1.0]).reshape(shape)
     input_cube.data = input_cube.data + np.broadcast_to(
@@ -228,22 +229,27 @@ def test_calculate_cube_statistics_missing_data(model_specification):
     )
 
     # Set up expected output cubes.
+    if trailing_window:
+        # The first two time points have insufficient data contributing to them due to
+        # missing data, so they are expected to be nan in the output.
+        add_values_mean = np.array([np.nan, np.nan, -0.33333333, -0.25, 0.25]).reshape(
+            shape
+        )
+        add_values_sd = np.array([np.nan, np.nan, 0.57735027, 0.5, 0.5]).reshape(shape)
+    else:
+        # The first time point has insufficient data contributing to it due to missing
+        # data, so is expected to be nan in the output.
+        add_values_mean = np.array([np.nan, -0.25, 0.25, 0.25, 0.333333]).reshape(shape)
+        add_values_sd = np.array([np.nan, 0.5, 0.5, 0.5, 0.577350]).reshape(shape)
+
     expected_mean = create_simple_cube(fill_value=305.0, **expected_cube_kwargs)
-    add_values_mean = np.array([-0.5, -0.25, 0.25, 0.25, 0.333333]).reshape(shape)
     expected_mean.data = expected_mean.data + add_values_mean
-    # These values have insufficient valid data points contributing to them. Therefore,
-    # these points are expected to be nans in the output.
-    expected_mean.data[0, :] = np.array([np.nan, np.nan])
     expected_mean.coord("time").points = expected_mean.coord("time").points + np.array(
         [0, 86400, 86400, 86400, 86400], dtype=np.int64
     )
 
     expected_sd = create_simple_cube(fill_value=0.0, **expected_cube_kwargs)
-    add_values_sd = np.array([0.707106, 0.5, 0.5, 0.5, 0.577350]).reshape(shape)
     expected_sd.data = expected_sd.data + add_values_sd
-    # These values have insufficient valid data points contributing to them. Therefore,
-    # these points are expected to be nans in the output.
-    expected_sd.data[0, :] = np.array([np.nan, np.nan])
     expected_sd.coord("time").points = expected_sd.coord("time").points + np.array(
         [0, 86400, 86400, 86400, 86400], dtype=np.int64
     )
@@ -254,81 +260,16 @@ def test_calculate_cube_statistics_missing_data(model_specification):
         model_specification=model_specification,
         window_length=4,
         required_rolling_window_points=3,
+        trailing_window=trailing_window,
     ).calculate_cube_statistics(input_cube=input_cube)
 
     assert expected == result
 
 
-def test_calculate_cube_statistics_trailing_window(model_specification):
-    """Test that this method still calculates the mean and standard deviations
-    correctly when a trailing rolling window is used.
-
-    The time points in the input_cube are modified so that they are not evenly spaced,
-    to demonstrate that the rolling window is still applied correctly.
-    """
-    create_cube_kwargs = {
-        "forecast_type": "spot",
-        "n_spatial_points": 2,
-        "n_realizations": 1,
-        "n_times": 5,
-        "fill_value": 305.0,
-    }
-
-    expected_cube_kwargs = {
-        "forecast_type": "spot",
-        "n_spatial_points": 2,
-        "n_realizations": 1,
-        "n_times": 5,
-    }
-    shape = [5, 1]
-
-    # Set up input cube. Time coordinate is modified so that the time points are not
-    # evenly spaced, but a single artificial time point can be added during processing
-    # to allow rolling window calculations.
-    input_cube = create_simple_cube(**create_cube_kwargs)
-    add_values = np.array([-1.0, 0.0, 0.0, 0.0, 1.0]).reshape(shape)
-    input_cube.data = input_cube.data + np.broadcast_to(
-        add_values, input_cube.data.shape
-    )
-
-    input_cube.coord("time").points = input_cube.coord("time").points + np.array(
-        [0, 86400, 86400, 86400, 86400], dtype=np.int64
-    )
-
-    # Set up expected output cubes.
-    expected_mean = create_simple_cube(fill_value=305.0, **expected_cube_kwargs)
-    add_values_mean = np.array([0.0, 0.0, -0.33333333, -0.25, 0.25]).reshape(shape)
-    expected_mean.data = expected_mean.data + add_values_mean
-    # These values have insufficient valid data points contributing to them. Therefore,
-    # these points are expected to be nans in the output.
-    expected_mean.data[:2, :] = np.array([[np.nan, np.nan], [np.nan, np.nan]])
-    expected_mean.coord("time").points = expected_mean.coord("time").points + np.array(
-        [0, 86400, 86400, 86400, 86400], dtype=np.int64
-    )
-
-    expected_sd = create_simple_cube(fill_value=0.0, **expected_cube_kwargs)
-    add_values_sd = np.array([0.0, 0.0, 0.57735027, 0.5, 0.5]).reshape(shape)
-    expected_sd.data = expected_sd.data + add_values_sd
-    # These values have insufficient valid data points contributing to them. Therefore,
-    # these points are expected to be nans in the output.
-    expected_sd.data[:2, :] = np.array([[np.nan, np.nan], [np.nan, np.nan]])
-    expected_sd.coord("time").points = expected_sd.coord("time").points + np.array(
-        [0, 86400, 86400, 86400, 86400], dtype=np.int64
-    )
-
-    expected = CubeList([expected_mean, expected_sd])
-
-    result = TrainGAMsForSAMOS(
-        model_specification=model_specification,
-        window_length=4,
-        required_rolling_window_points=3,
-        rolling_window_type="trailing",
-    ).calculate_cube_statistics(input_cube=input_cube)
-
-    assert expected == result
-
-
-def test_calculate_cube_statistics_insufficient_data(model_specification):
+@pytest.mark.parametrize("trailing_window", [False, True])
+def test_calculate_cube_statistics_insufficient_data(
+    model_specification, trailing_window
+):
     """Test that this method returns nan for all means and standard deviation where
     there is insufficient data in the time period covered by the input_cube.
     """
@@ -378,12 +319,16 @@ def test_calculate_cube_statistics_insufficient_data(model_specification):
         model_specification=model_specification,
         window_length=10,
         required_rolling_window_points=6,
+        trailing_window=trailing_window,
     ).calculate_cube_statistics(input_cube=input_cube)
 
     assert expected == result
 
 
-def test_calculate_cube_statistics_period_diagnostic(model_specification):
+@pytest.mark.parametrize("trailing_window", [False, True])
+def test_calculate_cube_statistics_period_diagnostic(
+    model_specification, trailing_window
+):
     """Test that this method correctly calculates the mean and standard deviation when
     the input cube contains a period diagnostic.
     """
@@ -416,6 +361,13 @@ def test_calculate_cube_statistics_period_diagnostic(model_specification):
     expected_mean = create_simple_cube(fill_value=305.0, **expected_cube_kwargs)
     expected_sd = create_simple_cube(fill_value=0.0, **expected_cube_kwargs)
 
+    if trailing_window:
+        add_values_mean = np.array([np.nan, np.nan, 0.0, 0.0, 0.0]).reshape([5, 1])
+        add_values_sd = np.array([np.nan, np.nan, 0.0, 0.0, 0.0]).reshape([5, 1])
+
+        expected_mean.data = expected_mean.data + add_values_mean
+        expected_sd.data = expected_sd.data + add_values_sd
+
     input_cube.coord("time").bounds = time_bounds
 
     expected = CubeList([expected_mean, expected_sd])
@@ -424,6 +376,7 @@ def test_calculate_cube_statistics_period_diagnostic(model_specification):
         model_specification=model_specification,
         window_length=4,
         required_rolling_window_points=3,
+        trailing_window=trailing_window,
     ).calculate_cube_statistics(input_cube=input_cube)
 
     assert expected == result

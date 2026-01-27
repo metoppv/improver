@@ -83,8 +83,10 @@ def prepare_data_for_gam(
         input_cube and containing the following columns:
         1. A column with the same name as input_cube containing the original cube data
         2. A series of columns derived from the input_cube dimension coordinates
-        3. A series of columns associated with any auxiliary coordinates (scalar or otherwise) of input_cube
-        4. One column associated with each of the cubes in additional cubes, with column names matching the associated cube
+        3. A series of columns associated with any auxiliary coordinates
+        (scalar or otherwise) of input_cube
+        4. One column associated with each of the cubes in additional cubes, with
+        column names matching the associated cube
 
 
     """
@@ -237,7 +239,7 @@ class TrainGAMsForSAMOS(BasePlugin):
         fit_intercept: bool = True,
         window_length: int = 10,
         required_rolling_window_points: int = 5,
-        rolling_window_type: str = "centered",
+        trailing_window: bool = False,
         unique_site_id_key: Optional[str] = None,
     ):
         """
@@ -265,19 +267,21 @@ class TrainGAMsForSAMOS(BasePlugin):
                 A pyGAM argument determining whether to include an intercept term in
                 the model.
             window_length:
-                This must be an odd integer greater than 1. The length of the rolling
-                window, in days, used to calculate the mean and standard deviation of
-                the input cube when the input cube does not have a realization dimension
-                coordinate.
+                The length of the rolling window, in days, used to calculate the mean
+                and standard deviation of the input cube when the input cube does not
+                have a realization dimension coordinate. If using a centred rolling
+                window, this must be an even integer greater than 1 in order to allow
+                equal numbers of days on either side of the central time point. If
+                using a trailing rolling window, this must be an integer greater than 1.
             required_rolling_window_points:
                 The minimum number of valid data points required within a rolling
                 window. If fewer valid points are present, the mean and standard
                 deviation will be set to NaN for this window.
-            rolling_window_type:
-                The type of rolling window to use. This can be either "centered" or
-                "trailing". A centered window assigns the calculated statistic to the
-                central time point in the window, whereas a trailing window assigns
-                the calculated statistic to the last time point.
+            trailing_window:
+                If False, a centred window is used, which assigns the calculated
+                statistic to the central time point in the window. If True, a trailing
+                window is used, which assigns the calculated statistic to the final time
+                point.
             unique_site_id_key:
                 An optional key to use for uniquely identifying each site in the
                 training data. If not provided, the default behavior is to use the
@@ -291,32 +295,33 @@ class TrainGAMsForSAMOS(BasePlugin):
         self.fit_intercept = fit_intercept
         self.unique_site_id_key = unique_site_id_key
 
-        if window_length < 2 or window_length % 2 != 0 or window_length % 1 != 0:
+        # Check if the window_length is an integer greater than one.
+        raise_window_warning = False
+        if window_length < 2 or window_length % 1 != 0:
+            raise_window_warning = True
+
+        if trailing_window & raise_window_warning:
             raise ValueError(
-                "The window_length input must be an even integer greater than 1. "
-                f"Received: {window_length}."
+                "The window_length input must be an integer greater than 1 when "
+                f"using a trailing rolling window. Received: {window_length}."
+            )
+        elif raise_window_warning or window_length % 2 != 0:
+            # Additionally, check if window_length is even when using a centred window.
+            raise ValueError(
+                "The window_length input must be an even integer greater than 1 "
+                f"when using a centred rolling window. Received: {window_length}."
             )
         else:
             self.window_length = window_length
+            self.trailing_window = trailing_window
 
-        if (
-            not isinstance(required_rolling_window_points, int)
-            or not 1 < required_rolling_window_points <= self.window_length
-        ):
+        if not isinstance(required_rolling_window_points, int):
             raise ValueError(
                 "The required_rolling_window_points input must be an integer greater "
                 f"than 1. Received: {required_rolling_window_points}."
             )
         else:
             self.required_rolling_window_points = required_rolling_window_points
-
-        if rolling_window_type not in ["centered", "trailing"]:
-            raise ValueError(
-                "The rolling_window_type input must be either 'centered' or "
-                f"'trailing'. Received: {rolling_window_type}."
-            )
-        else:
-            self.rolling_window_type = rolling_window_type
 
     def calculate_statistic_by_rolling_window(self, input_cube: Cube):
         """Function to calculate mean and standard deviation of input_cube using a
@@ -325,17 +330,16 @@ class TrainGAMsForSAMOS(BasePlugin):
         input_mean = CubeList()
         input_sd = CubeList()
 
+        # This variable is used to calculate the bounds of each rolling window.
+        window_td = datetime.timedelta(days=self.window_length)
+
         for tp in input_cube.coord("time").points:
             time_point = datetime.datetime.fromtimestamp(tp)
             # Create time constraint for rolling window and extract data within window.
-            if self.rolling_window_type == "centered":
-                half_window = datetime.timedelta(days=self.window_length / 2)
-                time_bounds = [time_point - half_window, time_point + half_window]
+            if self.trailing_window:
+                time_bounds = [time_point - window_td, time_point]
             else:
-                time_bounds = [
-                    time_point - datetime.timedelta(days=self.window_length),
-                    time_point,
-                ]
+                time_bounds = [time_point - window_td / 2, time_point + window_td / 2]
 
             time_constraint = iris.Constraint(
                 time=lambda cell: time_bounds[0] <= cell.point <= time_bounds[1]
@@ -352,7 +356,6 @@ class TrainGAMsForSAMOS(BasePlugin):
                     data=np.full_like(window_cube.data, np.nan, dtype=np.float32)
                 )
             else:
-                # Choose collapse function
                 window_mean = collapse_time(window_cube, "time", iris.analysis.MEAN)
                 window_sd = collapse_time(window_cube, "time", iris.analysis.STD_DEV)
 
@@ -376,31 +379,31 @@ class TrainGAMsForSAMOS(BasePlugin):
                     window_sd.data,
                 )
 
-                # Set time and forecast period coordinates to match those for this time
-                # point on the input cube.
-                for coord_name in [
-                    "time",
-                    "forecast_reference_time",
-                    "blend_time",
-                    "forecast_period",
-                ]:
-                    if coord_name in [c.name() for c in window_mean.coords()]:
-                        point = tp
-                        if coord_name != "time":
-                            # The time-related coordinates are either scalar or have one
-                            # point associated with each time point.
-                            if len(input_cube.coord(coord_name).points) == 1:
-                                point = input_cube.coord(coord_name).points[0]
-                            else:
-                                point = input_cube.coord(coord_name).points[
-                                    input_cube.coord("time").points.tolist().index(tp)
-                                ]
+            # Set time-related coordinates to match those for this time point on
+            # the input cube.
+            for coord_name in [
+                "time",
+                "forecast_reference_time",
+                "blend_time",
+                "forecast_period",
+            ]:
+                if coord_name in [c.name() for c in window_mean.coords()]:
+                    point = tp
+                    if coord_name != "time":
+                        # The time-related coordinates are either scalar or have one
+                        # point associated with each time point.
+                        if len(input_cube.coord(coord_name).points) == 1:
+                            point = input_cube.coord(coord_name).points[0]
+                        else:
+                            point = input_cube.coord(coord_name).points[
+                                input_cube.coord("time").points.tolist().index(tp)
+                            ]
 
-                        window_mean.coord(coord_name).points = np.array([point])
-                        window_mean.coord(coord_name).bounds = None
+                    window_mean.coord(coord_name).points = np.array([point])
+                    window_mean.coord(coord_name).bounds = None
 
-                        window_sd.coord(coord_name).points = np.array([point])
-                        window_sd.coord(coord_name).bounds = None
+                    window_sd.coord(coord_name).points = np.array([point])
+                    window_sd.coord(coord_name).bounds = None
 
             input_mean.append(window_mean.copy())
             input_sd.append(window_sd.copy())
@@ -429,9 +432,6 @@ class TrainGAMsForSAMOS(BasePlugin):
 
         Returns:
             CubeList containing a mean cube and standard deviation cube.
-
-        Raises:
-            ValueError: If input_cube does not contain a realization coordinate.
         """
         if input_cube.coords("realization"):
             input_mean = collapse_realizations(input_cube, method="mean")
@@ -458,7 +458,7 @@ class TrainGAMsForSAMOS(BasePlugin):
                 Historic forecasts or observations from the training dataset. Must
                 contain at least one of:
                 - a realization coordinate
-                - a time coordinate with more than one point and equally spaced points
+                - a time coordinate with more than one point
             features:
                 The list of features. These must be either coordinates on input_cube or
                 share a name with a cube in additional_fields. The index of each

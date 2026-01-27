@@ -236,7 +236,7 @@ def test_insufficient_data(
     Test estimate-samos-gams-from-table returns None when insufficient data is
     available at all sites.
 
-    This test provides 3 days of input data but uses a window length of 11 days. This
+    This test provides 3 days of input data but uses a window length of 10 days. This
     will cause the training data at all sites to be considered insufficient to fit the
     GAMs (at least 6 days of data are required). Hence, None should be
     returned.
