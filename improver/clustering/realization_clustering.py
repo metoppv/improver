@@ -777,8 +777,7 @@ class RealizationClusterAndMatch(BasePlugin):
         """
         primary_name = self.hierarchy["primary_input"]
         for cluster_idx in cluster_indices:
-            if cluster_idx not in cluster_sources:
-                cluster_sources[cluster_idx] = {}
+            cluster_sources.setdefault(cluster_idx, {})
             # Remove this forecast period from primary input
             if primary_name in cluster_sources[cluster_idx]:
                 if fp in cluster_sources[cluster_idx][primary_name]:
@@ -871,6 +870,7 @@ class RealizationClusterAndMatch(BasePlugin):
                 forecast_period=lambda cell: cell in fps_to_process
             )
             candidate_cubes = cubes.extract(model_id_constr & fp_constr)
+
             if len(candidate_cubes) > 1:
                 candidate_cube = candidate_cubes.merge_cube()
                 # Ensure realization is the leading dimension
@@ -879,8 +879,6 @@ class RealizationClusterAndMatch(BasePlugin):
                 )
             elif len(candidate_cubes) == 1:
                 candidate_cube = candidate_cubes[0]
-            else:
-                continue  # No matching cubes for this forecast period
 
             regridded_candidate_cube = self._maybe_regrid_candidate_cube(
                 candidate_cube, target_grid_cube
