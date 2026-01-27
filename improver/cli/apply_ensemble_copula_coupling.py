@@ -6,10 +6,6 @@
 """CLI to apply ensemble copula coupling."""
 
 from improver import cli
-from improver.metadata.probabilistic import (
-    is_percentile,
-    is_probability,
-)
 from typing import Optional
 
 
@@ -50,6 +46,10 @@ def process(
         ResamplePercentiles,
         ConvertProbabilitiesToPercentiles,
         EnsembleReordering,
+    )
+    from improver.metadata.probabilistic import (
+        is_percentile,
+        is_probability,
     )
 
     num_realizations = len(raw_ensemble_forecast.coord("realization").points)
