@@ -478,6 +478,13 @@ def test_convert_to_2d_raises_for_1d():
         RealizationClustering._convert_to_2d(arr)
 
 
+def test_convert_to_2d_returns_copy_for_2d():
+    """Test that _convert_to_2d returns a 2D array if one is provided.
+    """
+    arr = np.array([[1, 2], [3, 4]])
+    result = RealizationClustering._convert_to_2d(arr)
+    assert np.array_equal(result, arr)
+
 # Tests for RealizationToClusterMatcher
 
 
@@ -1503,11 +1510,33 @@ def test_clusterandmatch_single_secondary_input():
     _assert_cluster_sources_attribute(result, expected_sources)
 
 
-def test_clusterandmatch_categorise_full_realizations():
-    """Test categorisation with all inputs having >= n_clusters realizations.
 
-    This test verifies that when all secondary inputs have enough realizations
-    to fill all clusters, they are correctly used in the output.
+@pytest.mark.parametrize(
+    "secondary_inputs, provided_cubes, expected_fp0, expected_fp6, desc",
+    [
+        # Both forecast periods covered by secondary models
+        (
+            {"secondary_model_1": [0], "secondary_model_2": [6]},
+            {"secondary_model_1": [0], "secondary_model_2": [6]},
+            200.0,  # fp=0 uses secondary_model_1
+            300.0,  # fp=6 uses secondary_model_2
+            "Both forecast periods covered by secondary models"
+        ),
+        # Only fp=0 covered by a secondary model, fp=6 should fall back to primary
+        (
+            {"secondary_model_1": [0], "secondary_model_2": [6]},
+            {"secondary_model_1": [0]},  # secondary_model_2 not provided as Cube
+            200.0,  # fp=0 uses secondary_model_1
+            106.0,  # fp=6 uses primary_model (base_value + 6)
+            "secondary_model_2 specified but not provided; fp=6 falls back to primary"
+        ),
+    ]
+)
+def test_clusterandmatch_categorise_full_realizations(
+    secondary_inputs, provided_cubes, expected_fp0, expected_fp6, desc):
+    """Test categorisation with all inputs having >= n_clusters realizations, including
+    case where a secondary model is specified in the hierarchy but not provided as a Cube.
+    This ensures the 'continue' line in _process_full_realization_inputs is covered.
     """
     pytest.importorskip("kmedoids")
 
@@ -1527,42 +1556,38 @@ def test_clusterandmatch_categorise_full_realizations():
         )
     )
 
-    # Secondary input 1 for fp=0, value 200 (6 realizations >= 3 clusters)
-    cubes.extend(
-        _create_4d_realization_cube(
-            n_realizations=6,
-            forecast_periods=[0],
-            y_dim=spatial_shape[0],
-            x_dim=spatial_shape[1],
-            model_id="secondary_model_1",
-            base_value=200.0,
-            merge=False
+    # Add only the provided secondary input cubes
+    if "secondary_model_1" in provided_cubes:
+        cubes.extend(
+            _create_4d_realization_cube(
+                n_realizations=6,
+                forecast_periods=provided_cubes["secondary_model_1"],
+                y_dim=spatial_shape[0],
+                x_dim=spatial_shape[1],
+                model_id="secondary_model_1",
+                base_value=200.0,
+                merge=False
+            )
         )
-    )
-
-    # Secondary input 2 for fp=6, value 300 (4 realizations >= 3 clusters)
-    # Note: Using 294.0 as base so that 294.0 + 6 (fp_hours) = 300.0
-    cubes.extend(
-        _create_4d_realization_cube(
-            n_realizations=4,
-            forecast_periods=[6],
-            y_dim=spatial_shape[0],
-            x_dim=spatial_shape[1],
-            model_id="secondary_model_2",
-            base_value=294.0,
-            merge=False
+    if "secondary_model_2" in provided_cubes:
+        cubes.extend(
+            _create_4d_realization_cube(
+                n_realizations=4,
+                forecast_periods=provided_cubes["secondary_model_2"],
+                y_dim=spatial_shape[0],
+                x_dim=spatial_shape[1],
+                model_id="secondary_model_2",
+                base_value=294.0,
+                merge=False
+            )
         )
-    )
 
     # Target grid
     cubes.append(_create_target_grid_cube())
 
     hierarchy = {
         "primary_input": "primary_model",
-        "secondary_inputs": {
-            "secondary_model_1": [0],
-            "secondary_model_2": [6],
-        },
+        "secondary_inputs": secondary_inputs,
     }
 
     plugin = RealizationClusterAndMatch(
@@ -1576,7 +1601,7 @@ def test_clusterandmatch_categorise_full_realizations():
 
     result = plugin.process(cubes)
 
-    # Both forecast periods should be present and use secondary inputs
+    # Both forecast periods should be present
     forecast_periods = result.coord("forecast_period").points
     assert len(forecast_periods) == 2
     np.testing.assert_array_equal(forecast_periods, [0, 6 * 3600])
@@ -1584,16 +1609,12 @@ def test_clusterandmatch_categorise_full_realizations():
     # Should have correct number of clusters
     assert len(result.coord("realization").points) == 3
 
-    # Check data: both fps should use their respective secondary inputs
+    # Check data for each forecast period
     fp_0_data = result.extract(iris.Constraint(forecast_period=0)).data
-    assert np.allclose(fp_0_data, 200.0, atol=5.0), (
-        "fp=0 should use secondary_model_1 (full realizations)"
-    )
+    assert np.allclose(fp_0_data, expected_fp0, atol=5.0), f"fp=0: {desc}"
 
     fp_6_data = result.extract(iris.Constraint(forecast_period=6 * 3600)).data
-    assert np.allclose(fp_6_data, 300.0, atol=5.0), (
-        "fp=6 should use secondary_model_2 (full realizations)"
-    )
+    assert np.allclose(fp_6_data, expected_fp6, atol=5.0), f"fp=6: {desc}"
 
 
 def test_clusterandmatch_categorise_partial_realizations():
