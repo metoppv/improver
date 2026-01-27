@@ -55,9 +55,7 @@ def process(
     num_realizations = len(raw_ensemble_forecast.coord("realization").points)
     if is_probability(post_processed_forecast):
         plugin = ConvertProbabilitiesToPercentiles()
-        percentile_cube = plugin.process(
-            post_processed_forecast, num_realizations
-        )
+        percentile_cube = plugin.process(post_processed_forecast, num_realizations)
     elif is_percentile(post_processed_forecast):
         plugin = ResamplePercentiles()
         percentile_cube = plugin.process(
