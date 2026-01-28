@@ -315,7 +315,10 @@ class TrainGAMsForSAMOS(BasePlugin):
             self.window_length = window_length
             self.trailing_window = trailing_window
 
-        if not isinstance(required_rolling_window_points, int):
+        if (
+            not isinstance(required_rolling_window_points, int)
+            or required_rolling_window_points < 2
+        ):
             raise ValueError(
                 "The required_rolling_window_points input must be an integer greater "
                 f"than 1. Received: {required_rolling_window_points}."

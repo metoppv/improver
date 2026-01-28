@@ -103,6 +103,23 @@ def test_init_rolling_window_length_exceptions(
         )
 
 
+@pytest.mark.parametrize("required_rolling_window_points", [-1, 1.05])
+def test_init_required_rolling_window_points(
+    model_specification, required_rolling_window_points
+):
+    """Test that an exception is raised if the required_rolling_window_points is not an
+    integer greater than 1 and less than or equal to window_length."""
+    msg = (
+        "The required_rolling_window_points input must be an integer greater than 1. "
+        f"Received: {required_rolling_window_points}."
+    )
+    with pytest.raises(ValueError, match=msg):
+        TrainGAMsForSAMOS(
+            model_specification=model_specification,
+            required_rolling_window_points=required_rolling_window_points,
+        )
+
+
 @pytest.mark.parametrize("forecast_type", ["gridded", "spot"])
 @pytest.mark.parametrize("n_realizations,n_times", [[5, 1], [5, 5], [1, 5]])
 @pytest.mark.parametrize("include_blend_time", [False, True])
