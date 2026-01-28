@@ -26,7 +26,7 @@ class StochasticNoise(BasePlugin):
     Transform (SSFT).
 
     The SSFT approach from Nerini et al. (2017) generates stochastic noise with
-    realistic spatial structure, where noise values at neighboring grid points are
+    realistic spatial structure, where noise values at neighbouring grid points are
     correlated rather than independent. This is particularly useful for Ensemble Copula
     Coupling-Quantile (ECC-Q) realization generation, where post-processing may indicate
     non-zero precipitation should occur at locations where all raw ensemble members had
@@ -130,6 +130,9 @@ class StochasticNoise(BasePlugin):
         threshold_dB = 10.0 * np.log10(threshold)
         mask = cube.data < threshold
         cube.data[~mask] = 10.0 * np.log10(cube.data[~mask])
+        # The below offsets sub-threshold values. The choice to subtract 5 is arbitrary,
+        # and ensures masked values have a distinct value, which is later handled in
+        # _from_dB by setting values below the threshold to zero.
         cube.data[mask] = threshold_dB - 5  # Offset sub-threshold values
         return cube
 
@@ -226,13 +229,10 @@ class StochasticNoise(BasePlugin):
             tasks.append(delayed(self.do_fft)(realiz_data))
 
         # Set number of workers for parallel processing
-        if self.num_workers is None:
-            num_workers = min(
-                len(template.coord("realization").points),
-                len(os.sched_getaffinity(0)),
-            )
-        else:
-            num_workers = self.num_workers
+        num_workers = min(
+            self.num_workers,
+            len(template.coord("realization").points),
+        )
 
         # Compute all SSFT noise arrays (in dB scale) in parallel
         results = compute(*tasks, scheduler="threads", num_workers=num_workers)
