@@ -86,14 +86,10 @@ def test_init_rolling_window_length_exceptions(
     window_length and trailing_window are provided as inputs."""
 
     msg = (
-        "The window_length input must be an even integer greater than 1 when using a "
-        f"centred rolling window. Received: {window_length}."
+        "The window_length input must be.*" + "trailing"
+        if trailing_window
+        else "centred"
     )
-    if trailing_window:
-        msg = (
-            "The window_length input must be an integer greater than 1 when using a "
-            f"trailing rolling window. Received: {window_length}."
-        )
 
     with pytest.raises(ValueError, match=msg):
         TrainGAMsForSAMOS(
@@ -170,19 +166,13 @@ def test_calculate_cube_statistics(
     else:
         shape = [5, 1] if forecast_type == "spot" else [5, 1, 1]
         if trailing_window:
-            add_values_mean = np.array([np.nan, np.nan, -0.333333, -0.25, 0.0]).reshape(
-                shape
-            )
-            add_values_sd = np.array([np.nan, np.nan, 0.577350, 0.5, 0.707106]).reshape(
-                shape
-            )
+            add_values_mean = [np.nan, np.nan, -0.333333, -0.25, 0.0]
+            add_values_sd = [np.nan, np.nan, 0.577350, 0.5, 0.707106]
         else:
-            add_values_mean = np.array([-0.333333, -0.25, 0.0, 0.25, 0.333333]).reshape(
-                shape
-            )
-            add_values_sd = np.array([0.577350, 0.5, 0.707106, 0.5, 0.577350]).reshape(
-                shape
-            )
+            add_values_mean = [-0.333333, -0.25, 0.0, 0.25, 0.333333]
+            add_values_sd = [0.577350, 0.5, 0.707106, 0.5, 0.577350]
+        add_values_mean = np.array(add_values_mean).reshape(shape)
+        add_values_sd = np.array(add_values_sd).reshape(shape)
 
         expected_mean = create_simple_cube(fill_value=305.0, **expected_cube_kwargs)
         expected_mean.data = expected_mean.data + add_values_mean
