@@ -258,6 +258,7 @@ def setup_google_film_mock(monkeypatch):
     return mock_load_model
 
 
+# fmt: off
 @pytest.mark.parametrize(
     "kwargs,exception",
     [
@@ -278,8 +279,14 @@ def setup_google_film_mock(monkeypatch):
             {"interval_in_minutes": 60, "max": True, "interpolation_method": "solar"},
             "Period diagnostics can only be temporally interpolated",
         ),  # Invalid interpolation method requested
+        (
+            {"interval_in_minutes": 60, "interpolation_method": "google_film", "model_path": None,
+            },
+            "model_path must be provided when using google_film",
+        ),  # Missing model path for google_film
     ],
 )
+# fmt: on
 def test__init__(kwargs, exception):
     """Test exceptions raised by the __init__ method."""
     with pytest.raises(ValueError, match=exception):

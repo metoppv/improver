@@ -12,10 +12,10 @@ from improver import cli
 @cli.with_output
 def process(
     *cubes: cli.inputcube,
-    interval_in_mins: int = None,
+    interval_in_minutes: int = None,
     interpolation_method: str = "linear",
     cluster_sources_attribute: str = None,
-    interpolation_window_in_hours: int = None,
+    interpolation_window_in_minutes: int = None,
     model_path: str = None,
     scaling: str = "minmax",
     clipping_bounds: cli.comma_separated_list = None,
@@ -120,10 +120,10 @@ def process(
     from improver.utilities.temporal_interpolation import ForecastTrajectoryGapFiller
 
     plugin = ForecastTrajectoryGapFiller(
-        interval_in_minutes=interval_in_mins,
+        interval_in_minutes=interval_in_minutes,
         interpolation_method=interpolation_method,
         cluster_sources_attribute=cluster_sources_attribute,
-        interpolation_window_in_hours=interpolation_window_in_hours,
+        interpolation_window_in_minutes=interpolation_window_in_minutes,
         model_path=model_path,
         scaling=scaling,
         clipping_bounds=clipping_bounds,

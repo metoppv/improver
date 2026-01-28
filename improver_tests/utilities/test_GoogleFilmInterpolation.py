@@ -11,7 +11,10 @@ import pytest
 from iris.coords import DimCoord
 from iris.cube import CubeList
 
-from improver.utilities.temporal_interpolation import GoogleFilmInterpolation
+from improver.utilities.temporal_interpolation import (
+    GoogleFilmInterpolation,
+    _run_film_chunk,
+)
 from improver_tests.utilities.test_TemporalInterpolation import (
     diagnostic_cube,
     multi_time_cube,
@@ -82,6 +85,12 @@ def test_google_film_init_clip_args():
     )
     assert plugin.clip_in_scaled_space is False
     assert plugin.clip_to_physical_bounds is True
+
+
+def test_google_film_init_unsupported_scaling():
+    """Test that unsupported scaling method raises ValueError at init."""
+    with pytest.raises(ValueError, match="Unsupported scaling method: not_a_scaling"):
+        GoogleFilmInterpolation(model_path="/mock/path", scaling="not_a_scaling")
 
 
 @pytest.mark.parametrize("scaling", ["log10", "minmax"])
@@ -345,6 +354,29 @@ def test_google_film_clipping_bounds_enforcement(
         assert result_cube.data.max() <= expected_max + 0.1  # Small tolerance
 
 
+def test_google_film_process_no_clipping(
+    google_film_sample_cubes,
+    google_film_template_cube,
+    monkeypatch,
+):
+    """Test that no clipping is applied if all clipping options are unset."""
+    cube1, cube2 = google_film_sample_cubes
+    setup_google_film_mock(monkeypatch)
+    # No clipping_bounds, clip_in_scaled_space, or clip_to_physical_bounds
+    plugin = GoogleFilmInterpolation(
+        model_path="/mock/path",
+        scaling="minmax",
+        clipping_bounds=None,
+        clip_in_scaled_space=False,
+        clip_to_physical_bounds=False,
+    )
+    result = plugin.process(cube1, cube2, google_film_template_cube)
+    # The result should not be clipped, so should match the interpolated value
+    # For minmax scaling, the interpolated value should be 4 everywhere
+    for result_cube in result:
+        assert np.allclose(result_cube.data, 4)
+
+
 def test_google_film_process_preserves_cube_shape(
     google_film_sample_cubes,
     google_film_template_cube,
@@ -410,3 +442,28 @@ def test_google_film_process_clip_to_physical_bounds(
     for result_cube in result:
         assert result_cube.data.min() >= 0.0
         assert result_cube.data.max() <= 0.1
+
+
+class DummyTensor:
+    def __init__(self, array):
+        self._array = array
+
+    def numpy(self):
+        return self._array
+
+
+def test_run_film_chunk_handles_tensor_output():
+    """Test _run_film_chunk handles model output with .numpy() method."""
+    arr1 = np.ones((2, 4, 4), dtype=np.float32)
+    arr2 = np.ones((2, 4, 4), dtype=np.float32) * 2
+    times = np.array([[0.5], [0.5]], dtype=np.float32)
+
+    # Model returns a dict with "image" as a DummyTensor
+    def dummy_model(inputs):
+        # Output shape: (2, 4, 4, 1)
+        return {"image": DummyTensor(np.ones((2, 4, 4, 1), dtype=np.float32))}
+
+    result = _run_film_chunk(arr1, arr2, times, dummy_model, 0, 2)
+    assert isinstance(result, np.ndarray)
+    assert result.shape == (2, 4, 4)
+    assert np.allclose(result, 1.0)

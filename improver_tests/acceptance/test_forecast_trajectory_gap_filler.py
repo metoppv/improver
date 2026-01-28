@@ -32,7 +32,7 @@ def test_fill_gaps(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [
         *input_files,
-        "--interval-in-mins",
+        "--interval-in-minutes",
         "180",
         "--output",
         output_path,
@@ -62,14 +62,14 @@ def test_regenerate_at_source_transitions(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [
         input_file,
-        "--interval-in-mins",
+        "--interval-in-minutes",
         "180",
         "--interpolation-method",
         "linear",
         "--cluster-sources-attribute",
         "cluster_sources",
-        "--interpolation-window-in-hours",
-        "3",
+        "--interpolation-window-in-minutes",
+        "180",
         "--output",
         output_path,
     ]
