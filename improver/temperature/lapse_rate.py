@@ -4,14 +4,14 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Module containing lapse rate calculation plugins."""
 
-from typing import Optional, Tuple, Iterable
+from typing import Iterable, Optional, Tuple
 
 import iris
 import numpy as np
+import scipy.stats
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 from numpy import ndarray
-import scipy.stats
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.constants import DALR, ELR
@@ -97,7 +97,9 @@ def compute_lapse_rate_adjustment(
     return vertical_adjustment
 
 
-def compute_from_slope_and_intercept(position: np.ndarray, slope: np.ndarray, intercept: np.ndarray) -> np.ndarray:
+def compute_from_slope_and_intercept(
+    position: np.ndarray, slope: np.ndarray, intercept: np.ndarray
+) -> np.ndarray:
     """
     Solves y for a linear equation y = mx + c
 
@@ -170,7 +172,9 @@ class ApplyGriddedLapseRate(PostProcessingPlugin):
     def _apply_limits(self, cube: Cube):
         """Apply defined limits to the data in the cube"""
         # If there are no data limits, return
-        if not self.data_limits or (self.data_limits[0] is None and self.data_limits[1] is None):
+        if not self.data_limits or (
+            self.data_limits[0] is None and self.data_limits[1] is None
+        ):
             return
         cube.data = np.clip(cube.data, *self.data_limits)
 
@@ -222,17 +226,23 @@ class ApplyGriddedLapseRate(PostProcessingPlugin):
         adjusted_diagnostic = []
         if intercept:
             for lr_slice, diagnostic_slice, intercept_slice in zip(
-                lapse_rate.slices(self.xy_coords), diagnostic.slices(self.xy_coords), intercept
+                lapse_rate.slices(self.xy_coords),
+                diagnostic.slices(self.xy_coords),
+                intercept,
             ):
                 newcube = diagnostic_slice.copy()
-                newcube.data += compute_from_slope_and_intercept(dest_orog.data, lr_slice.data, intercept_slice.data)
+                newcube.data += compute_from_slope_and_intercept(
+                    dest_orog.data, lr_slice.data, intercept_slice.data
+                )
                 adjusted_diagnostic.append(newcube)
         else:
             for lr_slice, diagnostic_slice in zip(
                 lapse_rate.slices(self.xy_coords), diagnostic.slices(self.xy_coords)
             ):
                 newcube = diagnostic_slice.copy()
-                newcube.data += compute_lapse_rate_adjustment(lr_slice.data, orog_diff.data)
+                newcube.data += compute_lapse_rate_adjustment(
+                    lr_slice.data, orog_diff.data
+                )
                 adjusted_diagnostic.append(newcube)
 
         merged_cube = iris.cube.CubeList(adjusted_diagnostic).merge_cube()
@@ -345,7 +355,9 @@ class LapseRate(BasePlugin):
         )
         return desc
 
-    def _create_windows(self, diagnostic: ndarray, orog: ndarray) -> Tuple[ndarray, ndarray]:
+    def _create_windows(
+        self, diagnostic: ndarray, orog: ndarray
+    ) -> Tuple[ndarray, ndarray]:
         """Uses neighbourhood tools to pad and generate rolling windows
         of the diagnostic and orog datasets.
 
@@ -408,7 +420,11 @@ class LapseRate(BasePlugin):
         cnpt = self.ind_central_point
         axis = (-2, -1)
         for lapse, intercept, error, diag, orog in zip(
-            lapse_rate_array, intercept_array, error_array, diagnostic_nbhood_window, orog_nbhood_window
+            lapse_rate_array,
+            intercept_array,
+            error_array,
+            diagnostic_nbhood_window,
+            orog_nbhood_window,
         ):
             # height_diff_mask is True for points where the height
             # difference between the central points and its
@@ -427,7 +443,9 @@ class LapseRate(BasePlugin):
                 orog, diag, axis=axis, with_nan=True
             )
 
-            margin_of_error = self._margin_of_error(orog, diag, grad, zero_point, axis=axis)
+            margin_of_error = self._margin_of_error(
+                orog, diag, grad, zero_point, axis=axis
+            )
 
             # Checks that the standard deviations are not 0
             # i.e. there is some variance to fit a gradient to.
@@ -451,7 +469,14 @@ class LapseRate(BasePlugin):
         )
         return lapse_rate_array, intercept_array, error_array
 
-    def _margin_of_error(self, x: np.ndarray, y: np.ndarray, slope: np.ndarray, intercept: np.ndarray, axis:tuple=None) -> np.ndarray:
+    def _margin_of_error(
+        self,
+        x: np.ndarray,
+        y: np.ndarray,
+        slope: np.ndarray,
+        intercept: np.ndarray,
+        axis: tuple = None,
+    ) -> np.ndarray:
         """Calculate the margin of error for the regression line.
         Args:
             x:
@@ -473,22 +498,35 @@ class LapseRate(BasePlugin):
         expanded_intercept = np.expand_dims(intercept, axis=axis)
         # find number of elements in x in the trailing two axes that are not NaN
         valid_elements = np.count_nonzero(~np.isnan(x), axis=axis)
-        se = self._standard_error(x, y, expanded_slope, expanded_intercept, valid_elements, axis=axis)
+        se = self._standard_error(
+            x, y, expanded_slope, expanded_intercept, valid_elements, axis=axis
+        )
         t = self._t_score(valid_elements - 2)
         margin = t * se
         return margin
 
     @staticmethod
-    def _standard_error(source_x: np.ndarray, source_y: np.ndarray, slope: np.ndarray, intercept: np.ndarray, valid_elements: np.ndarray, axis:tuple=None) -> np.ndarray:
+    def _standard_error(
+        source_x: np.ndarray,
+        source_y: np.ndarray,
+        slope: np.ndarray,
+        intercept: np.ndarray,
+        valid_elements: np.ndarray,
+        axis: tuple = None,
+    ) -> np.ndarray:
         """Calculate the standard error of the regression line."""
         mean_x = np.expand_dims(np.nanmean(source_x, axis=axis), axis=axis)
         predicted_y = source_x * slope + intercept
-        standard_error = ((np.nansum((source_y - predicted_y) ** 2, axis=axis) / (valid_elements - 2)) ** 0.5) / np.nansum(
-            (source_x - mean_x) ** 2, axis=axis) ** 0.5
+        standard_error = (
+            (np.nansum((source_y - predicted_y) ** 2, axis=axis) / (valid_elements - 2))
+            ** 0.5
+        ) / np.nansum((source_x - mean_x) ** 2, axis=axis) ** 0.5
         return standard_error
 
     @staticmethod
-    def _t_score(degrees_of_freedom: np.ndarray, confidence_level: float = 95.) -> np.ndarray:
+    def _t_score(
+        degrees_of_freedom: np.ndarray, confidence_level: float = 95.0
+    ) -> np.ndarray:
         """Calculate the t-score for a given confidence level and degrees of freedom.
         Args:
             degrees_of_freedom:
@@ -549,6 +587,12 @@ class LapseRate(BasePlugin):
         diagnostic_cube = diagnostic.copy()
         orography.convert_units("metres")
 
+        # Adjusts tolerance using least-significant-digit attribute if present
+        tolerance = (
+            10.0 ** -diagnostic_cube.attributes.get("least_significant_digit", 0.0)
+        ) / 2.0
+        self.min_data_value += tolerance
+
         # Extract x/y co-ordinates.
         x_coord = diagnostic_cube.coord(axis="x").name()
         y_coord = diagnostic_cube.coord(axis="y").name()
@@ -573,8 +617,10 @@ class LapseRate(BasePlugin):
         # Calculate lapse rate for each realization
         lapse_rate_data = []
         for data_slice in data_slices:
-            lapse_rate_array, intercept_array, error_array = self._generate_lapse_rate_array(
-                data_slice, orography_data, land_sea_mask_data
+            lapse_rate_array, intercept_array, error_array = (
+                self._generate_lapse_rate_array(
+                    data_slice, orography_data, land_sea_mask_data
+                )
             )
             lapse_rate_data.append(lapse_rate_array)
         lapse_rate_data = np.array(lapse_rate_data)
