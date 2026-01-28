@@ -350,8 +350,8 @@ class TrainGAMsForSAMOS(BasePlugin):
             window_cube = input_cube.extract(time_constraint)
 
             if len(window_cube.coord("time").points) == 1:
-                # If there is only one time point in the window, mean and sd are
-                # set to NaN.
+                # If there is only one time point in the window, the mean and sd for
+                # this window are set to NaN.
                 window_mean = window_cube.copy(
                     data=np.full_like(window_cube.data, np.nan, dtype=np.float32)
                 )
