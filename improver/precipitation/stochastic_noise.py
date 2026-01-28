@@ -13,10 +13,6 @@ import cf_units
 import numpy as np
 from dask import compute, delayed
 from iris.cube import Cube
-from pysteps.noise.fftgenerators import (
-    generate_noise_2d_ssft_filter,
-    initialize_nonparam_2d_ssft_filter,
-)
 
 from improver import BasePlugin
 
@@ -171,6 +167,11 @@ class StochasticNoise(BasePlugin):
             np.ndarray:
                 2D array of generated stochastic noise.
         """
+        from pysteps.noise.fftgenerators import (
+            generate_noise_2d_ssft_filter,
+            initialize_nonparam_2d_ssft_filter,
+        )
+
         nonparametric_filter = initialize_nonparam_2d_ssft_filter(
             data,
             **self.ssft_init_params,
