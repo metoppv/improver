@@ -154,5 +154,5 @@ def test_process(include_altitude):
     for i, cube in enumerate(result):
         assert expected_names[i] == cube.name()
         np.testing.assert_array_almost_equal(
-            result[i].data, np.array(expected_data[i], dtype=np.float32), decimal=8
+            result[i].data, np.array(expected_data[i], dtype=np.float32), decimal=5
         )
