@@ -136,7 +136,7 @@ exclude_patterns = [
     "examples/GALLERY_HEADER.rst",
 ]
 
-autodoc_mock_imports = ["numba"]
+autodoc_mock_imports = ["numba", "pysteps"]
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
