@@ -184,6 +184,43 @@ class Test_process(ImproverTest):
         result = RegridLandSea()(self.cube, self.target_grid)
         self.assertNotIn("mosg__grid_domain", result.attributes)
 
+    def test_area_weighted_regrid(self):
+        """Test esmf-area-weighted regridding returns expected dimensionality
+        and updated grid-defining attributes, with characteristic area-weighted
+        averaging behavior"""
+        pytest.importorskip("esmf_regrid")
+
+        # Create a checkerboard pattern to demonstrate area-weighted averaging
+        # This will produce distinct results compared to nearest-neighbor
+        checkerboard = np.zeros((15, 15), dtype=np.float32)
+        checkerboard[::2, ::2] = 300.0  # High values
+        checkerboard[1::2, 1::2] = 300.0
+        checkerboard[::2, 1::2] = 260.0  # Low values
+        checkerboard[1::2, ::2] = 260.0
+        self.cube.data = checkerboard
+
+        expected_attributes = {
+            "mosg__model_configuration": "gl_det",
+            "title": MANDATORY_ATTRIBUTE_DEFAULTS["title"],
+        }
+        for attr in ["mosg__grid_domain", "mosg__grid_type", "mosg__grid_version"]:
+            expected_attributes[attr] = self.target_grid.attributes[attr]
+
+        result = RegridLandSea(regrid_mode="esmf-area-weighted")(
+            self.cube, self.target_grid.copy()
+        )
+
+        # With area-weighted regridding, the checkerboard should average to ~280
+        # (not exactly due to grid cell overlap), demonstrating conservative regridding
+        self.assertEqual(result.shape, (12, 12))
+        self.assertAlmostEqual(result.data.mean(), 280.0, delta=5.0)
+        # Check that we get averaging, not just nearest values
+        self.assertTrue(np.any((result.data > 260.0) & (result.data < 300.0)))
+
+        for axis in ["x", "y"]:
+            self.assertEqual(result.coord(axis=axis), self.target_grid.coord(axis=axis))
+        self.assertDictEqual(result.attributes, expected_attributes)
+
 
 if __name__ == "__main__":
     unittest.main()
