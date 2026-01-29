@@ -24,9 +24,10 @@ except ModuleNotFoundError:
         def GAM(self):
             pass
 
-
+import numpy as np
+from iris.analysis import MEAN, STD_DEV, SUM
 from iris.cube import Cube, CubeList
-from numpy import clip, float32
+from iris.util import new_axis
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.calibration import add_static_feature_from_cube_to_df
@@ -211,10 +212,10 @@ def get_climatological_stats(
     # Calculate climatological means and standard deviations using previously
     # fitted GAMs.
     mean_pred = GAMPredict(constant_extrapolation=constant_extrapolation).process(
-        gams[0], array(df[gam_features])
+        gams[0], np.array(df[gam_features])
     )
     sd_pred = GAMPredict(constant_extrapolation=constant_extrapolation).process(
-        gams[1], array(df[gam_features])
+        gams[1], np.array(df[gam_features])
     )
 
     # Convert means and standard deviations into cubes
@@ -223,7 +224,7 @@ def get_climatological_stats(
 
     df[diagnostic] = sd_pred
     sd_cube = convert_dataframe_to_cube(df, input_cube)
-    sd_cube.data = clip(sd_cube.data, a_min=sd_clip, a_max=None)
+    sd_cube.data = np.clip(sd_cube.data, a_min=sd_clip, a_max=None)
 
     return mean_cube, sd_cube
 
@@ -748,7 +749,7 @@ class ApplySAMOS(PostProcessingPlugin):
                 be used. If False, extrapolation extends the trend of each
                 GAM term beyond the range of the training data. Default is False.
         """
-        self.percentiles = [float32(p) for p in percentiles] if percentiles else None
+        self.percentiles = [np.float32(p) for p in percentiles] if percentiles else None
         self.unique_site_id_key = unique_site_id_key
         self.constant_extrapolation = constant_extrapolation
 
@@ -965,11 +966,11 @@ class ApplySAMOS(PostProcessingPlugin):
             bounds_pairing = get_bounds_of_distribution(
                 bounds_pairing_key=result.name(), desired_units=result.units
             )
-            result.data = clip(
+            result.data = np.clip(
                 result.data, a_min=bounds_pairing[0], a_max=bounds_pairing[1]
             )
 
         # Enforce correct dtype.
-        result.data = result.data.astype(dtype=float32)
+        result.data = result.data.astype(dtype=np.float32)
 
         return result
