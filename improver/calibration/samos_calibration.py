@@ -24,10 +24,8 @@ except ModuleNotFoundError:
         def GAM(self):
             pass
 
-import numpy as np
-from iris.analysis import MEAN, STD_DEV, SUM
+
 from iris.cube import Cube, CubeList
-from iris.util import new_axis
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.calibration import add_static_feature_from_cube_to_df
