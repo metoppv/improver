@@ -559,6 +559,7 @@ class TrainEMOSForSAMOS(BasePlugin):
         distribution: str,
         emos_kwargs: Optional[Dict] = None,
         unique_site_id_key: Optional[str] = None,
+        constant_extrapolation: bool = False,
     ) -> None:
         """Initialize the class.
 
@@ -573,10 +574,17 @@ class TrainEMOSForSAMOS(BasePlugin):
                 If working with spot data and available, the name of the coordinate
                 in the input cubes that contains unique site IDs, e.g. "wmo_id" if
                 all sites have a valid wmo_id.
+            constant_extrapolation:
+                If True, when predicting mean and standard deviation from the GAMs,
+                when the predictor values are outside the range of those used to fit
+                the GAM, constant extrapolation (i.e. the nearest boundary value) will
+                be used. If False, extrapolation extends the trend of each
+                GAM term beyond the range of the training data. Default is False.
         """
         self.distribution = distribution
         self.emos_kwargs = emos_kwargs if emos_kwargs else {}
         self.unique_site_id_key = unique_site_id_key
+        self.constant_extrapolation = constant_extrapolation
 
     def climate_anomaly_emos(
         self,
@@ -684,6 +692,7 @@ class TrainEMOSForSAMOS(BasePlugin):
             gam_features,
             gam_additional_fields,
             unique_site_id_key=self.unique_site_id_key,
+            constant_extrapolation=self.constant_extrapolation,
         )
         truth_mean, truth_sd = get_climatological_stats(
             truths,
@@ -691,6 +700,7 @@ class TrainEMOSForSAMOS(BasePlugin):
             gam_features,
             gam_additional_fields,
             unique_site_id_key=self.unique_site_id_key,
+            constant_extrapolation=self.constant_extrapolation,
         )
 
         emos_coefficients = self.climate_anomaly_emos(
