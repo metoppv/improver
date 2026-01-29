@@ -17,7 +17,7 @@ dependencies:
   - numpy=2.2
   - scipy=1.15
   - sphinx<9.0.0  # https://github.com/tox-dev/sphinx-autodoc-typehints/issues/586
-  - pandas
+  - pandas<3  # https://github.com/SciTools/iris/issues/6761
   # Additional libraries to run tests, not included in improver-feedstock
   - filelock
   - pytest

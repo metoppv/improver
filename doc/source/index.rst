@@ -24,6 +24,7 @@
    Running-at-your-site
    Dependencies
    Ticket-Creation-and-Definition-of-Ready
+   Making-a-new-release
 
 .. toctree::
    :caption: Metadata Guide
