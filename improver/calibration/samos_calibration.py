@@ -168,6 +168,7 @@ def get_climatological_stats(
     additional_cubes: Optional[CubeList],
     sd_clip: float = 0.25,
     unique_site_id_key: Optional[str] = None,
+    constant_extrapolation: bool = False,
 ) -> Tuple[Cube, Cube]:
     """Function to predict climatological means and standard deviations given fitted
     GAMs for each statistic and cubes which can be used to construct a dataframe
@@ -191,6 +192,11 @@ def get_climatological_stats(
             If working with spot data and available, the name of the coordinate
             in the input cubes that contains unique site IDs, e.g. "wmo_id" if
             all sites have a valid wmo_id.
+        constant_extrapolation:
+            If True, predictor values outside the range of those used to fit the GAM
+            will be predicted using constant extrapolation (i.e. the nearest
+            boundary value). If False, extrapolation extends the trend of each
+            GAM term beyond the range of the training data. Default is False.
 
     Returns:
         A pair of cubes containing climatological mean and climatological standard
@@ -204,8 +210,12 @@ def get_climatological_stats(
 
     # Calculate climatological means and standard deviations using previously
     # fitted GAMs.
-    mean_pred = GAMPredict().process(gams[0], df[gam_features])
-    sd_pred = GAMPredict().process(gams[1], df[gam_features])
+    mean_pred = GAMPredict(constant_extrapolation=constant_extrapolation).process(
+        gams[0], array(df[gam_features])
+    )
+    sd_pred = GAMPredict(constant_extrapolation=constant_extrapolation).process(
+        gams[1], array(df[gam_features])
+    )
 
     # Convert means and standard deviations into cubes
     df[diagnostic] = mean_pred
