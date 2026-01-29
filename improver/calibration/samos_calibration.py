@@ -719,6 +719,9 @@ class ApplySAMOS(PostProcessingPlugin):
     - Two GAMs which model, respectively, the climatological mean and standard
     deviation of the forecast. This allows the forecast to be converted to
     climatological anomalies.
+    - Two GAMs which model, respectively, the climatological mean and standard
+    deviation of the truths. This allows the climatological anomalies to be
+    transformed back to the original forecast units.
     - A set of EMOS coefficients which can be applied to correct the climatological
     anomalies.
     """
@@ -727,6 +730,7 @@ class ApplySAMOS(PostProcessingPlugin):
         self,
         percentiles: Optional[Sequence] = None,
         unique_site_id_key: Optional[str] = None,
+        constant_extrapolation: bool = False,
     ):
         """Initialize class.
 
@@ -737,12 +741,19 @@ class ApplySAMOS(PostProcessingPlugin):
                 If working with spot data and available, the name of the coordinate
                 in the input cubes that contains unique site IDs, e.g. "wmo_id" if
                 all sites have a valid wmo_id.
+            constant_extrapolation:
+                If True, when predicting mean and standard deviation from the GAMs,
+                when the predictor values are outside the range of those used to fit
+                the GAM, constant extrapolation (i.e. the nearest boundary value) will
+                be used. If False, extrapolation extends the trend of each
+                GAM term beyond the range of the training data. Default is False.
         """
         self.percentiles = [float32(p) for p in percentiles] if percentiles else None
         self.unique_site_id_key = unique_site_id_key
+        self.constant_extrapolation = constant_extrapolation
 
+    @staticmethod
     def transform_anomalies_to_original_units(
-        self,
         location_parameter: Cube,
         scale_parameter: Cube,
         truth_mean: Cube,
@@ -889,6 +900,7 @@ class ApplySAMOS(PostProcessingPlugin):
             gam_features,
             gam_additional_fields,
             unique_site_id_key=self.unique_site_id_key,
+            constant_extrapolation=self.constant_extrapolation,
         )
         forecast_ca = CalculateClimateAnomalies(ignore_temporal_mismatch=True).process(
             diagnostic_cube=forecast_as_realizations,
@@ -919,6 +931,7 @@ class ApplySAMOS(PostProcessingPlugin):
             gam_features,
             gam_additional_fields,
             unique_site_id_key=self.unique_site_id_key,
+            constant_extrapolation=self.constant_extrapolation,
         )
 
         # Transform location and scale parameters to be in the same units as the
