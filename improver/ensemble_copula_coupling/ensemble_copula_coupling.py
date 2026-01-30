@@ -677,9 +677,7 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
             warnings.warn(msg)
 
         # Convert percentiles into fractions.
-        percentiles_as_fractions = np.array(
-            [x / 100.0 for x in percentiles], dtype=np.float32
-        )
+        percentiles_as_fractions = (percentiles / 100).astype(np.float32)
 
         forecast_at_percentiles = interpolate_multiple_rows_same_y(
             percentiles_as_fractions.astype(np.float64),
