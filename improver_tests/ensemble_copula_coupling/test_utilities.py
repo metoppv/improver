@@ -71,48 +71,101 @@ class Test_concatenate_2d_array_with_2d_array_endpoints(unittest.TestCase):
             concatenate_2d_array_with_2d_array_endpoints(input_array, -100, 10000)
 
 
-class Test_choose_set_of_percentiles(unittest.TestCase):
-    """Test the choose_set_of_percentiles plugin."""
+# Tests for choose_set_of_percentiles function
 
-    def test_basic(self):
-        """
-        Test that the plugin returns a list with the expected number of
-        percentiles.
-        """
-        no_of_percentiles = 3
-        result = choose_set_of_percentiles(no_of_percentiles)
-        self.assertIsInstance(result, np.ndarray)
-        self.assertEqual(len(result), no_of_percentiles)
 
-    def test_data(self):
-        """
-        Test that the plugin returns a list with the expected data values
-        for the percentiles.
-        """
-        data = np.array([25, 50, 75])
-        no_of_percentiles = 3
-        result = choose_set_of_percentiles(no_of_percentiles)
-        np.testing.assert_array_almost_equal(result, data)
+def test_choose_set_of_percentiles_basic():
+    """Test that the plugin returns a numpy array with the expected number of percentiles."""
+    no_of_percentiles = 3
+    result = choose_set_of_percentiles(no_of_percentiles)
+    assert isinstance(result, np.ndarray)
+    assert len(result) == no_of_percentiles
 
-    def test_random(self):
-        """
-        Test that the plugin returns a list with the expected number of
-        percentiles, if the random sampling option is selected.
-        """
-        no_of_percentiles = 3
-        result = choose_set_of_percentiles(no_of_percentiles, sampling="random")
-        self.assertIsInstance(result, np.ndarray)
-        self.assertEqual(len(result), no_of_percentiles)
 
-    def test_unknown_sampling_option(self):
-        """
-        Test that the plugin returns the expected error message,
-        if an unknown sampling option is selected.
-        """
-        no_of_percentiles = 3
-        msg = "Unrecognised sampling option"
-        with self.assertRaisesRegex(ValueError, msg):
-            choose_set_of_percentiles(no_of_percentiles, sampling="unknown")
+def test_choose_set_of_percentiles_data():
+    """Test that the plugin returns a numpy array with the expected data values for the percentiles."""
+    data = np.array([25, 50, 75])
+    no_of_percentiles = 3
+    result = choose_set_of_percentiles(no_of_percentiles)
+    np.testing.assert_array_almost_equal(result, data)
+
+
+def test_choose_set_of_percentiles_random():
+    """Test that the plugin returns a numpy array with the expected number of percentiles for random sampling."""
+    no_of_percentiles = 3
+    result = choose_set_of_percentiles(no_of_percentiles, sampling="random")
+    assert isinstance(result, np.ndarray)
+    assert len(result) == no_of_percentiles
+
+
+@pytest.mark.parametrize("nan_mask_value", [0.0, None])
+@pytest.mark.parametrize("scale_percentiles_to_probability_lower_bound", [True, False])
+def test_choose_set_of_percentiles_transformation(
+    nan_mask_value, scale_percentiles_to_probability_lower_bound
+):
+    """Test choose_set_of_percentiles with 'transformation' sampling option, parameterised."""
+    intensity_data = np.array(
+        [[[0.0, 2.0], [3.0, 4.0]], [[0.0, 2.0], [3.0, 4.0]]], dtype=np.float32
+    )
+    probability_data = np.array(
+        [[[0.8, 0.6], [0.4, 0.2]], [[0.8, 0.6], [0.4, 0.2]]], dtype=np.float32
+    )
+    thresholds = [0.5, 1.0]
+
+    intensity_cube = set_up_variable_cube(
+        intensity_data,
+        name="precipitation_rate",
+        units="mm h-1",
+    )
+    probability_cube = set_up_probability_cube(
+        probability_data,
+        thresholds=thresholds,
+        variable_name="precipitation_rate",
+        threshold_units="mm h-1",
+        spp__relative_to_threshold="above",
+    )
+
+    no_of_percentiles = 2
+    result = choose_set_of_percentiles(
+        no_of_percentiles,
+        sampling="transformation",
+        probability_cube=probability_cube,
+        intensity_cube=intensity_cube,
+        nan_mask_value=nan_mask_value,
+        scale_percentiles_to_probability_lower_bound=scale_percentiles_to_probability_lower_bound,
+    )
+
+    if scale_percentiles_to_probability_lower_bound and nan_mask_value == 0.0:
+        expected = np.array(
+            [[[0.0, 70.199], [80.089, 90.033]], [[0.0, 70.199], [80.089, 90.033]]],
+            dtype=np.float32,
+        )
+    elif not scale_percentiles_to_probability_lower_bound and nan_mask_value == 0.0:
+        expected = np.array(
+            [[[0.0, 50.332], [50.222, 50.166]], [[0.0, 50.332], [50.222, 50.166]]],
+            dtype=np.float32,
+        )
+    elif scale_percentiles_to_probability_lower_bound and nan_mask_value is None:
+        expected = np.array(
+            [[[20.0, 70.199], [80.089, 90.033]], [[20.0, 70.199], [80.089, 90.033]]],
+            dtype=np.float32,
+        )
+    elif not scale_percentiles_to_probability_lower_bound and nan_mask_value is None:
+        expected = np.array(
+            [[[0.0, 50.332], [50.222, 50.166]], [[0.0, 50.332], [50.222, 50.166]]],
+            dtype=np.float32,
+        )
+
+    assert isinstance(result, np.ndarray)
+    assert result.shape == intensity_data.shape
+    np.testing.assert_array_almost_equal(result, expected, decimal=3)
+
+
+def test_choose_set_of_percentiles_unknown_sampling_option():
+    """Test that the plugin raises the expected error message for an unknown sampling option."""
+    no_of_percentiles = 3
+    with pytest.raises(ValueError, match="Unrecognised sampling option"):
+        choose_set_of_percentiles(no_of_percentiles, sampling="unknown")
 
 
 class Test_create_cube_with_percentiles(unittest.TestCase):
@@ -635,9 +688,9 @@ def test_init_nan_mask_value(nan_mask_value):
 
 @pytest.mark.parametrize("rescale", [True, False])
 @pytest.mark.parametrize("nan_mask_value", [0.0, None])
-def test_process_basic_3d(rescale, nan_mask_value):
-    """Test basic percentile calculation with 3D gamma distribution, with and without
-    rescaling the percentiles and with/without NaN masking."""
+def test_process_3d(rescale, nan_mask_value):
+    """Test percentile calculation with 3D gamma distribution, with and without
+    rescaling the percentiles, and with and without NaN masking."""
     # Create test data: 3 realizations, 3x3 grid
     intensity_data = np.array(
         [
@@ -725,7 +778,8 @@ def test_process_basic_3d(rescale, nan_mask_value):
     )
 
     plugin = CalculatePercentilesFromIntensityDistribution(
-        rescale_percentiles=rescale, nan_mask_value=nan_mask_value
+        scale_percentiles_to_probability_lower_bound=rescale,
+        nan_mask_value=nan_mask_value,
     )
     result = plugin.process(probability_cube, intensity_cube)
     assert isinstance(result, np.ndarray)
@@ -740,7 +794,7 @@ def test_process_basic_3d(rescale, nan_mask_value):
 @pytest.mark.parametrize("nan_mask_value", [0.0, None])
 def test_process_2d_spot_data(rescale, nan_mask_value):
     """Test process method with 2D input (e.g., spot data), with and without
-    rescaling the percentiles and with/without NaN masking."""
+    rescaling the percentiles, and with and without NaN masking."""
     # 2D input: 3 realizations, 5 sites
     intensity_data = np.array(
         [
@@ -813,7 +867,8 @@ def test_process_2d_spot_data(rescale, nan_mask_value):
         )
 
     plugin = CalculatePercentilesFromIntensityDistribution(
-        rescale_percentiles=rescale, nan_mask_value=nan_mask_value
+        scale_percentiles_to_probability_lower_bound=rescale,
+        nan_mask_value=nan_mask_value,
     )
     result = plugin.process(probability_cube, intensity_cube)
     assert isinstance(result, np.ndarray)
