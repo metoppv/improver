@@ -19,6 +19,7 @@ from iris.cube import Cube
 from numpy import ndarray
 
 from improver.ensemble_copula_coupling.constants import BOUNDS_FOR_ECDF
+from improver.metadata.probabilistic import find_threshold_coordinate
 
 
 def concatenate_2d_array_with_2d_array_endpoints(
@@ -51,9 +52,158 @@ def concatenate_2d_array_with_2d_array_endpoints(
     return array_2d
 
 
+class CalculatePercentilesFromIntensityDistribution:
+    """
+    Plugin to calculate percentiles at which provided intensity values would fall,
+    according to a fitted probability distribution (currently only gamma).
+    """
+
+    def __init__(
+        self,
+        distribution: str = "gamma",
+        nan_mask_value: Optional[float] = 0.0,
+        rescale_percentiles: bool = True,
+    ):
+        """
+        Initialise the plugin.
+
+        Args:
+            distribution: Type of distribution to fit
+                (currently only 'gamma' is supported).
+            nan_mask_value: Value to mask as NaN before calculating mean and std.
+                If None, no masking is performed. Default is 0.0.
+            rescale_percentiles: Whether to rescale percentiles based on provided
+            probabilities. Default is True.
+        """
+        if distribution != "gamma":
+            raise ValueError(
+                f"Unrecognised distribution option '{distribution}'. "
+                "The supported options are: 'gamma'."
+            )
+        self.distribution = distribution
+        self.nan_mask_value = nan_mask_value
+        self.rescale_percentiles = rescale_percentiles
+
+    @staticmethod
+    def _rescale_percentiles(
+        percentiles: np.ndarray,
+        probabilities: np.ndarray,
+        nan_mask_value: Optional[float] = 0.0,
+    ):
+        """Rescale percentiles based on provided probabilities, with optional NaN
+        masking. The rescaling uses the min probability after converting probabilities
+        to be "less than" a given threshold, rather than "greater than".
+        This rescaling has the effect that when the percentiles are later used for
+        sampling the probabilities, the percentiles will not sample below the min
+        probability. This is helpful for distributions with a high frequency of zero
+        values, where the probability of e.g. the precipitation being less than a
+        particular value can be large. This therefore focuses the percentiles on the
+        non-zero part of the distribution.
+
+        Args:
+            percentiles: Array of percentiles to be rescaled.
+            probabilities: Array of probabilities for scaling.
+            nan_mask_value: Value to mask as NaN before rescaling. If None,
+                no masking is performed.
+
+        Returns:
+            Rescaled percentiles array.
+        """
+        percentiles_nan = percentiles.copy()
+        scaled_percentiles = percentiles.copy()
+        cdf_probabilities = 1 - probabilities
+        lower_limit = cdf_probabilities[0]
+        upper_limit = np.ones(lower_limit.shape)
+        if nan_mask_value is not None:
+            percentiles_nan[percentiles_nan == nan_mask_value] = np.nan
+        percentiles_nan[:, np.all(probabilities == 0, axis=0)] = np.nan
+        scaled_percentiles_nan = (
+            (upper_limit - lower_limit) * percentiles_nan
+        ) + lower_limit
+        scaled_percentiles[~np.isnan(scaled_percentiles_nan)] = scaled_percentiles_nan[
+            ~np.isnan(scaled_percentiles_nan)
+        ]
+        return scaled_percentiles
+
+    def _calculate_percentiles_from_intensity_distribution(
+        self,
+        probability_cube: Cube,
+        intensity_cube: Cube,
+    ):
+        """For each spatial location, calculate the percentiles at which the provided
+        intensity values would fall, according to a fitted probability distribution.
+
+        Args:
+            probability_cube: Cube containing probability data at a range of thresholds.
+            intensity_cube: Cube containing the intensity data to be mapped to percentiles.
+
+        Returns:
+            An array of percentiles (CDF values) for each intensity at each location.
+        """
+
+        from scipy.stats import gamma
+
+        if intensity_cube.ndim < 2:
+            raise ValueError(
+                "Expected at least 2D input, got {}D input".format(intensity_cube.ndim)
+            )
+
+        # Optionally mask a value as NaN before calculating mean and std
+        cube_nan = intensity_cube.copy()
+        if self.nan_mask_value is not None:
+            cube_nan.data[cube_nan.data == self.nan_mask_value] = np.nan
+        mean = np.nanmean(cube_nan.data, axis=0)
+        std = np.nanstd(cube_nan.data, axis=0)
+        # Avoid zero mean or std causing issues.
+        absolute_thresholds = np.abs(find_threshold_coordinate(probability_cube).points)
+        min_non_zero_threshold = np.min(absolute_thresholds[absolute_thresholds > 0])
+        tolerance = min_non_zero_threshold / 10.0
+        mean = np.where(mean > tolerance, mean, tolerance)
+        std = np.where(std > tolerance, std, tolerance)
+        shape_parameter = mean**2 / std**2
+        scale_parameter = std**2 / mean
+
+        percentiles = gamma.cdf(
+            intensity_cube.data,
+            shape_parameter[None, ...],
+            scale=scale_parameter[None, ...],
+        )
+        if self.rescale_percentiles:
+            percentiles = self._rescale_percentiles(
+                percentiles, probability_cube.data, self.nan_mask_value
+            )
+        percentiles = np.sort(percentiles, axis=0)
+        return percentiles.astype(np.float32)
+
+    def process(
+        self,
+        probability_cube: Cube,
+        intensity_cube: Cube,
+    ) -> np.ndarray:
+        """
+        Public interface to calculate percentiles from intensity distribution.
+
+        Args:
+            no_of_percentiles: Number of percentiles.
+            probability_cube: Cube containing probability data at a range of thresholds.
+            intensity_cube: Cube containing the intensity data to be mapped to percentiles.
+
+        Returns:
+            A 3D array of percentiles (CDF values) for each intensity at each location.
+        """
+        return self._calculate_percentiles_from_intensity_distribution(
+            probability_cube, intensity_cube
+        )
+
+
 def choose_set_of_percentiles(
-    no_of_percentiles: int, sampling: str = "quantile"
-) -> List[float]:
+    no_of_percentiles: int,
+    sampling: str = "quantile",
+    probability_cube: Optional[Cube] = None,
+    intensity_cube: Optional[Cube] = None,
+    distribution: Optional[str] = "gamma",
+    nan_mask_value: Optional[float] = 0.0,
+) -> np.ndarray:
     """
     Function to create percentiles.
 
@@ -62,7 +212,7 @@ def choose_set_of_percentiles(
             Number of percentiles.
         sampling:
             Type of sampling of the distribution to produce a set of
-            percentiles e.g. quantile or random.
+            percentiles e.g. quantile, random or transformation.
 
             Accepted options for sampling are:
 
@@ -70,9 +220,11 @@ def choose_set_of_percentiles(
                         at dividing a Cumulative Distribution Function into
                         blocks of equal probability.
             * Random: A random set of ordered percentiles.
+            * Transformation: A set of percentiles generated by applying a
+                              transformation to the distribution.
 
     Returns:
-        Percentiles calculated using the sampling technique specified.
+        Percentiles calculated using the sampling technique specified as a numpy array.
 
     Raises:
         ValueError: if the sampling option is not one of the accepted options.
@@ -87,26 +239,26 @@ def choose_set_of_percentiles(
         Statistical Science, 28(4), pp.616-640.
     """
     if sampling in ["quantile"]:
-        # Generate percentiles from 1/N+1 to N/N+1.
         percentiles = np.linspace(
             1 / float(1 + no_of_percentiles),
             no_of_percentiles / float(1 + no_of_percentiles),
             no_of_percentiles,
-        ).tolist()
+        )
     elif sampling in ["random"]:
-        # Generate percentiles from 1/N+1 to N/N+1.
-        # Random sampling doesn't currently sample the ends of the
-        # distribution i.e. 0 to 1/N+1 and N/N+1 to 1.
         percentiles = np.random.uniform(
             1 / float(1 + no_of_percentiles),
             no_of_percentiles / float(1 + no_of_percentiles),
             no_of_percentiles,
         )
-        percentiles = sorted(list(percentiles))
+        percentiles = np.sort(percentiles)
+    elif sampling in ["transformation"]:
+        percentiles = CalculatePercentilesFromIntensityDistribution(
+            distribution=distribution, nan_mask_value=nan_mask_value
+        ).process(probability_cube, intensity_cube)
     else:
         msg = "Unrecognised sampling option '{}'".format(sampling)
         raise ValueError(msg)
-    return [item * 100 for item in percentiles]
+    return percentiles * 100
 
 
 def create_cube_with_percentiles(

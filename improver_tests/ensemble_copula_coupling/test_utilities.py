@@ -15,12 +15,14 @@ from unittest.case import skipIf
 from unittest.mock import patch
 
 import numpy as np
+import pytest
 from cf_units import Unit
 from iris.coords import DimCoord
 from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.ensemble_copula_coupling.utilities import (
+    CalculatePercentilesFromIntensityDistribution,
     choose_set_of_percentiles,
     concatenate_2d_array_with_2d_array_endpoints,
     create_cube_with_percentiles,
@@ -34,6 +36,9 @@ from improver.ensemble_copula_coupling.utilities import (
 )
 from improver.synthetic_data.set_up_test_cubes import (
     set_up_percentile_cube,
+    set_up_probability_cube,
+    set_up_spot_probability_cube,
+    set_up_spot_variable_cube,
     set_up_variable_cube,
 )
 
@@ -76,7 +81,7 @@ class Test_choose_set_of_percentiles(unittest.TestCase):
         """
         no_of_percentiles = 3
         result = choose_set_of_percentiles(no_of_percentiles)
-        self.assertIsInstance(result, list)
+        self.assertIsInstance(result, np.ndarray)
         self.assertEqual(len(result), no_of_percentiles)
 
     def test_data(self):
@@ -96,7 +101,7 @@ class Test_choose_set_of_percentiles(unittest.TestCase):
         """
         no_of_percentiles = 3
         result = choose_set_of_percentiles(no_of_percentiles, sampling="random")
-        self.assertIsInstance(result, list)
+        self.assertIsInstance(result, np.ndarray)
         self.assertEqual(len(result), no_of_percentiles)
 
     def test_unknown_sampling_option(self):
@@ -560,6 +565,277 @@ class TestInterpolateMultipleRowsSameX(unittest.TestCase):
         interp_imp.assert_called_once_with(
             mock.sentinel.x, mock.sentinel.xp, mock.sentinel.fp
         )
+
+
+def _create_intensity_and_probability_cubes(
+    intensity_data,
+    thresholds,
+    probability_data,
+    nan_mask_value=None,
+):
+    """Helper function to create intensity and probability cubes for testing.
+
+    Args:
+        intensity_data: 3D array (realization, y, x) of intensity values.
+        thresholds: List of threshold values for probability cube.
+        probability_data: 3D array (threshold, y, x) of probability values.
+        nan_mask_value: Optional value to set to NaN in intensity data.
+
+    Returns:
+        Tuple of (intensity_cube, probability_cube)
+    """
+    intensity_cube = set_up_variable_cube(
+        intensity_data,
+        name="precipitation_rate",
+        units="mm h-1",
+    )
+
+    if nan_mask_value is not None:
+        intensity_cube.data[intensity_cube.data == nan_mask_value] = nan_mask_value
+
+    probability_cube = set_up_probability_cube(
+        probability_data,
+        thresholds=thresholds,
+        variable_name="precipitation_rate",
+        threshold_units="mm h-1",
+        spp__relative_to_threshold="above",
+    )
+
+    return intensity_cube, probability_cube
+
+
+# Tests for CalculatePercentilesFromIntensityDistribution initialisation
+
+
+def test_init_valid_distribution():
+    """Test initialisation with valid distribution."""
+    plugin = CalculatePercentilesFromIntensityDistribution(distribution="gamma")
+    assert plugin.distribution == "gamma"
+    assert plugin.nan_mask_value == 0.0
+
+
+@pytest.mark.parametrize("distribution", ["normal", "exponential", "invalid"])
+def test_init_invalid_distribution(distribution):
+    """Test initialisation raises error for invalid distributions."""
+    with pytest.raises(ValueError, match="Unrecognised distribution option"):
+        CalculatePercentilesFromIntensityDistribution(distribution=distribution)
+
+
+@pytest.mark.parametrize("nan_mask_value", [0.0, None, 1.0, -999.0])
+def test_init_nan_mask_value(nan_mask_value):
+    """Test initialisation with different nan_mask_values."""
+    plugin = CalculatePercentilesFromIntensityDistribution(
+        nan_mask_value=nan_mask_value
+    )
+    assert plugin.nan_mask_value == nan_mask_value
+
+
+# Tests for CalculatePercentilesFromIntensityDistribution.process method
+
+
+@pytest.mark.parametrize("rescale", [True, False])
+@pytest.mark.parametrize("nan_mask_value", [0.0, None])
+def test_process_basic_3d(rescale, nan_mask_value):
+    """Test basic percentile calculation with 3D gamma distribution, with and without
+    rescaling the percentiles and with/without NaN masking."""
+    # Create test data: 3 realizations, 3x3 grid
+    intensity_data = np.array(
+        [
+            [[0.5, 2.0, 2.0], [0.0, 0.0, 2.0], [1.0, 2.0, 0.0]],
+            [[4.0, 8.0, 4.0], [2.0, 8.0, 2.0], [4.0, 2.0, 1.0]],
+            [[6.0, 10.0, 6.0], [2.0, 2.0, 6.0], [6.0, 6.0, 2.0]],
+        ],
+        dtype=np.float32,
+    )
+    thresholds = [0.5, 1.0, 2.0, 4.0]
+
+    probability_data = np.array(
+        [
+            [[0.6, 0.9, 1.0], [0.4, 0.7, 1.0], [0.9, 1.0, 0.6]],
+            [[0.5, 0.6, 0.6], [0.3, 0.5, 0.9], [0.6, 0.6, 0.3]],
+            [[0.4, 0.4, 0.4], [0.2, 0.4, 0.5], [0.4, 0.4, 0.1]],
+            [[0.3, 0.3, 0.2], [0.0, 0.1, 0.2], [0.1, 0.1, 0.0]],
+        ],
+        dtype=np.float32,
+    )
+
+    # Expected results for each combination of rescale and nan_mask_value.
+    if rescale and nan_mask_value == 0.0:
+        # Focusing on with and without rescaling, for the top left corner, the intensity
+        # values are [0.5, 4.0, 6.0] with probabilities [0.6, 0.5, 0.4, 0.3].
+        # Without rescaling, this maps the 0.5 value to a percentile value of 0.021
+        # when using a gamma distribution. With rescaling, the percentiles are scaled
+        # between the min and max percentiles i.e. (1 - max_probability (0.6)) = 0.4 to
+        # give the min percentile and a max percentile of 1. This gives a rescaled
+        # percentile value of 0.413.
+        expected = np.array(
+            [
+                [[0.413, 0.133, 0.084], [0.000, 0.000, 0.263], [0.140, 0.263, 0.000]],
+                [[0.799, 0.734, 0.554], [0.801, 0.393, 0.263], [0.671, 0.263, 0.492]],
+                [[0.921, 0.861, 0.884], [0.801, 0.896, 0.909], [0.885, 0.909, 0.907]],
+            ],
+            dtype=np.float32,
+        )
+    elif not rescale and nan_mask_value == 0.0:
+        expected = np.array(
+            [
+                [[0.021, 0.037, 0.084], [0.000, 0.000, 0.263], [0.044, 0.263, 0.000]],
+                [[0.665, 0.704, 0.554], [0.503, 0.133, 0.263], [0.635, 0.263, 0.153]],
+                [[0.869, 0.846, 0.884], [0.503, 0.852, 0.909], [0.872, 0.909, 0.845]],
+            ],
+            dtype=np.float32,
+        )
+    elif rescale and nan_mask_value is None:
+        # Expected results when no NaN masking is applied (i.e., zeros are included in
+        # calculations). For the middle left position in realization 0, when zero
+        # values are included, the intensity values are [0., 2.0, 2.0] with
+        # probabilities [0.4, 0.3, 0.2, 0.0]. Previously, the masking of zeros meant
+        # that the mapping of a 0.0 intensity value to a percentile resulted in a
+        # percentile value of 0.0. However, when zeros are included, the rescaling means
+        # that the min percentile is now (1 - max_probability (0.4)) = 0.6 and the max
+        # percentile is 1. This gives a rescaled percentile value of 0.600.
+        expected = np.array(
+            [
+                [[0.413, 0.133, 0.084], [0.600, 0.300, 0.263], [0.140, 0.263, 0.400]],
+                [[0.799, 0.734, 0.554], [0.920, 0.620, 0.263], [0.671, 0.263, 0.765]],
+                [[0.921, 0.861, 0.884], [0.920, 0.935, 0.909], [0.885, 0.909, 0.933]],
+            ],
+            dtype=np.float32,
+        )
+    elif not rescale and nan_mask_value is None:
+        # Expected results when no NaN masking is applied and no rescaling. For the
+        # central grid point in realization 1, when zero values are included, the
+        # intensity values are [0., 8.0, 2.0] with probabilities [0.7, 0.5, 0.4, 0.1].
+        # Previously, the masking of zeros meant that the percentile creation using the
+        # gamma distribution only included the [8.0, 2.0] intensity values. If rescaling
+        # is applied the percentiles are restricted to between 0.3 and 1. This results
+        # in the central grid point being scaled to 0.620. Withoutout rescaling, this
+        # results in a percentile value of 0.458.
+        expected = np.array(
+            [
+                [[0.021, 0.037, 0.084], [0.000, 0.000, 0.263], [0.044, 0.263, 0.000]],
+                [[0.665, 0.704, 0.554], [0.801, 0.458, 0.263], [0.635, 0.263, 0.608]],
+                [[0.869, 0.846, 0.884], [0.801, 0.907, 0.909], [0.872, 0.909, 0.888]],
+            ],
+            dtype=np.float32,
+        )
+
+    intensity_cube, probability_cube = _create_intensity_and_probability_cubes(
+        intensity_data, thresholds, probability_data, nan_mask_value=nan_mask_value
+    )
+
+    plugin = CalculatePercentilesFromIntensityDistribution(
+        rescale_percentiles=rescale, nan_mask_value=nan_mask_value
+    )
+    result = plugin.process(probability_cube, intensity_cube)
+    assert isinstance(result, np.ndarray)
+    assert result.shape == intensity_data.shape
+    assert result.dtype == np.float32
+    # Check that the calculation has handled zeros appropriately
+    assert np.all(np.isfinite(result))
+    np.testing.assert_array_almost_equal(result, expected, decimal=3)
+
+
+@pytest.mark.parametrize("rescale", [True, False])
+@pytest.mark.parametrize("nan_mask_value", [0.0, None])
+def test_process_2d_spot_data(rescale, nan_mask_value):
+    """Test process method with 2D input (e.g., spot data), with and without
+    rescaling the percentiles and with/without NaN masking."""
+    # 2D input: 3 realizations, 5 sites
+    intensity_data = np.array(
+        [
+            [0.0, 4.0, 3.0, 4.0, 5.0],
+            [2.0, 2.0, 4.0, 0.0, 0.0],
+            [8.0, 1.0, 1.0, 6.0, 7.0],
+        ],
+        dtype=np.float32,
+    )
+
+    thresholds = [0.5, 2.0, 4.0]
+    probability_data = np.array(
+        [
+            [0.8, 0.9, 1.0, 0.6, 0.7],
+            [0.6, 0.8, 0.8, 0.4, 0.6],
+            [0.5, 0.3, 0.2, 0.3, 0.5],
+        ],
+        dtype=np.float32,
+    )
+
+    intensity_cube = set_up_spot_variable_cube(
+        intensity_data,
+        name="precipitation_rate",
+        units="mm h-1",
+    )
+
+    probability_cube = set_up_spot_probability_cube(
+        probability_data,
+        thresholds=thresholds,
+        variable_name="precipitation_rate",
+        threshold_units="mm h-1",
+        spp__relative_to_threshold="above",
+    )
+
+    if rescale and nan_mask_value == 0.0:
+        expected = np.array(
+            [
+                [0.0, 0.203, 0.051, 0.0, 0.0],
+                [0.306, 0.514, 0.66, 0.494, 0.41],
+                [0.881, 0.909, 0.86, 0.906, 0.89],
+            ],
+            dtype=np.float32,
+        )
+    elif not rescale and nan_mask_value == 0.0:
+        expected = np.array(
+            [
+                [0.0, 0.115, 0.051, 0.0, 0.0],
+                [0.133, 0.46, 0.66, 0.157, 0.157],
+                [0.852, 0.899, 0.86, 0.843, 0.842],
+            ],
+            dtype=np.float32,
+        )
+    elif rescale and nan_mask_value is None:
+        expected = np.array(
+            [
+                [0.2, 0.203, 0.051, 0.4, 0.3],
+                [0.566, 0.514, 0.66, 0.815, 0.798],
+                [0.926, 0.909, 0.86, 0.92, 0.901],
+            ],
+            dtype=np.float32,
+        )
+    elif not rescale and nan_mask_value is None:
+        expected = np.array(
+            [
+                [0.0, 0.115, 0.051, 0.0, 0.0],
+                [0.458, 0.46, 0.66, 0.691, 0.712],
+                [0.907, 0.899, 0.86, 0.866, 0.859],
+            ],
+            dtype=np.float32,
+        )
+
+    plugin = CalculatePercentilesFromIntensityDistribution(
+        rescale_percentiles=rescale, nan_mask_value=nan_mask_value
+    )
+    result = plugin.process(probability_cube, intensity_cube)
+    assert isinstance(result, np.ndarray)
+    assert result.shape == intensity_data.shape
+    assert result.dtype == np.float32
+    np.testing.assert_array_almost_equal(result, expected, decimal=3)
+
+
+def test_process_1d_input_raises_error():
+    """Test that process method with 1D input raises appropriate error."""
+    from iris.cube import Cube
+
+    intensity_data = np.ones(3, dtype=np.float32)
+    probability_data = np.ones(2, dtype=np.float32)
+
+    intensity_cube = Cube(intensity_data, units="mm h-1")
+    probability_cube = Cube(probability_data, units="1")
+
+    plugin = CalculatePercentilesFromIntensityDistribution()
+
+    with pytest.raises(ValueError, match="Expected at least 2D input"):
+        plugin.process(probability_cube, intensity_cube)
 
 
 if __name__ == "__main__":
