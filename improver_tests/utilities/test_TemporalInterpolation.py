@@ -15,7 +15,9 @@ from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
-from improver.utilities.temporal_interpolation import TemporalInterpolation
+from improver.utilities.temporal_interpolation import (
+    TemporalInterpolation,
+)
 
 
 def _grid_params(spatial_grid: str, npoints: int) -> Tuple[Tuple[float, float], float]:
@@ -219,6 +221,44 @@ def daynight_mask():
     return mask_values()
 
 
+def setup_google_film_mock(monkeypatch):
+    """Helper function to set up mock GoogleFilmInterpolation for testing.
+
+    Creates a mock model that performs simple linear interpolation and
+    monkeypatches the standalone load_model function to return it.
+
+    Args:
+        monkeypatch: pytest monkeypatch fixture
+    """
+
+    class MockModel:
+        def __call__(self, inputs):
+            time_fracs = inputs["time"]
+            x0 = inputs["x0"]
+            x1 = inputs["x1"]
+            orig_shape = x0.shape  # Save original shape before any modification
+            # Ensure time_fracs is at least 1D (always shape (N,))
+            time_fracs = np.atleast_1d(time_fracs.squeeze())
+            # Expand time_fracs to match x0/x1 dims
+            time_fracs = time_fracs[(...,) + (np.newaxis,) * (x0.ndim - 1)]
+            interpolated = x0 + time_fracs * (x1 - x0)
+            # Always ensure output shape matches the original x0 shape
+            if interpolated.shape != orig_shape:
+                interpolated = np.broadcast_to(interpolated, orig_shape)
+            return {"image": interpolated}
+
+    def mock_load_model(model_path):
+        return MockModel()
+
+    # Patch the module-level load_model function for non-parallel usage
+    monkeypatch.setattr(
+        "improver.utilities.temporal_interpolation.load_model", mock_load_model
+    )
+    # Return the mock_load_model for use as model_loader argument (for parallel)
+    return mock_load_model
+
+
+# fmt: off
 @pytest.mark.parametrize(
     "kwargs,exception",
     [
@@ -239,8 +279,14 @@ def daynight_mask():
             {"interval_in_minutes": 60, "max": True, "interpolation_method": "solar"},
             "Period diagnostics can only be temporally interpolated",
         ),  # Invalid interpolation method requested
+        (
+            {"interval_in_minutes": 60, "interpolation_method": "google_film", "model_path": None,
+            },
+            "model_path must be provided when using google_film",
+        ),  # Missing model path for google_film
     ],
 )
+# fmt: on
 def test__init__(kwargs, exception):
     """Test exceptions raised by the __init__ method."""
     with pytest.raises(ValueError, match=exception):
@@ -527,12 +573,25 @@ def test_process_wind_direction(bearings, expected_value):
             [5],
             [None],
         ),
+        (
+            {
+                "times": [datetime.datetime(2017, 11, 1, 6)],
+                "interpolation_method": "google_film",
+                "model_path": "/mock/path",
+            },
+            [3, 6],
+            [None, None],  # Values depend on mock model
+        ),
     ],
 )
-def test_process_interpolation(kwargs, offsets, expected):
+def test_process_interpolation(kwargs, offsets, expected, monkeypatch):
     """Test the process method with a variety of kwargs, selecting different
     interpolation methods and output times. Check that the returned times and
     data are as expected."""
+
+    # Mock GoogleFilmInterpolation if google_film method is being tested
+    if kwargs.get("interpolation_method") == "google_film":
+        setup_google_film_mock(monkeypatch)
 
     times = [datetime.datetime(2017, 11, 1, hour) for hour in [3, 9]]
     npoints = 10
@@ -1016,3 +1075,84 @@ def test_process_accumulation_unequal_inputs(
         assert result[i].coord("forecast_period").points.dtype == "int32"
         if value is not None:
             np.testing.assert_almost_equal(result[i].data, expected_data)
+
+
+@pytest.mark.parametrize(
+    "parallel_backend,n_workers",
+    [
+        (None, None),
+        ("loky", 2),
+    ],
+)
+def test_process_google_film_method(monkeypatch, parallel_backend, n_workers):
+    """Test that the google_film interpolation method produces interpolated
+    cubes with the correct times and uses the GoogleFilmInterpolation plugin.
+    The GoogleFilmInterpolation plugin is mocked to avoid the need for
+    a trained model."""
+
+    model_loader = setup_google_film_mock(monkeypatch)
+
+    times = [datetime.datetime(2017, 11, 1, hour) for hour in [3, 9]]
+    npoints = 10
+    data = np.stack(
+        [
+            np.ones((npoints, npoints), dtype=np.float32),
+            np.ones((npoints, npoints), dtype=np.float32) * 7,
+        ]
+    )
+    cube = multi_time_cube(times, data, "latlon")
+
+    # Test with interval_in_minutes
+    plugin = TemporalInterpolation(
+        interval_in_minutes=180,
+        interpolation_method="google_film",
+        model_path="/mock/path",
+        parallel_backend=parallel_backend,
+        n_workers=n_workers,
+        model_loader=model_loader,
+    )
+    assert plugin.parallel_backend == parallel_backend
+    assert plugin.n_workers == n_workers
+    result = plugin.process(cube[0], cube[1])
+
+    assert isinstance(result, CubeList)
+    assert len(result) == 2  # Two interpolated times (6:00 and 9:00)
+
+    # Check times are correct
+    expected_times = [1509516000, 1509526800]  # 6:00 and 9:00
+    for i, expected_time in enumerate(expected_times):
+        assert result[i].coord("time").points[0] == expected_time
+
+    # Check data is interpolated (not just copied from inputs)
+    assert not np.allclose(result[0].data, cube[0].data)
+    assert not np.allclose(result[0].data, cube[1].data)
+
+
+def test_process_google_film_with_custom_parameters(monkeypatch):
+    """Test google_film method with custom scaling and clipping_bounds parameters."""
+
+    setup_google_film_mock(monkeypatch)
+
+    times = [datetime.datetime(2017, 11, 1, hour) for hour in [3, 9]]
+    npoints = 10
+    data = np.stack(
+        [
+            np.ones((npoints, npoints), dtype=np.float32),
+            np.ones((npoints, npoints), dtype=np.float32) * 7,
+        ]
+    )
+    cube = multi_time_cube(times, data, "latlon")
+
+    result = TemporalInterpolation(
+        interval_in_minutes=180,
+        interpolation_method="google_film",
+        model_path="/mock/path",
+        scaling="log10",
+        clipping_bounds=(3.5, 7),
+        clip_to_physical_bounds=True,
+    ).process(cube[0], cube[1])
+    assert isinstance(result, CubeList)
+    assert len(result) == 2  # Two interpolated times at 6:00 and 9:00
+    # Data should be within the expected bounds after scaling/clipping
+    assert np.all(result[0].data == 3.5)
+    assert np.all(result[1].data == 7.0)

@@ -6,6 +6,8 @@
 Tests for the temporal-interpolate CLI
 """
 
+import urllib.request
+
 import pytest
 
 from . import acceptance as acc
@@ -127,6 +129,64 @@ def test_accumulation(tmp_path):
         "--interpolation-method",
         "linear",
         "--accumulation",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+@pytest.mark.slow
+def test_google_film(tmp_path):
+    """Test interpolation using google_film method with deep learning model.
+    Skips if TensorFlow Hub is not available in the environment or
+    if the model URL is not accessible.
+    """
+
+    # Monkeypatch for TensorFlow Hub import, matching load_model logic from the
+    # Google FILM temporal interpolation plugin.
+    try:
+        import tensorflow as tf
+
+        if hasattr(tf.__internal__, "register_call_context_function"):
+            func = tf.__internal__.register_call_context_function
+            tf.__internal__.register_load_context_function = func
+            if hasattr(tf.compat, "v2"):
+                tf.compat.v2.__internal__.register_load_context_function = func
+            import tensorflow._api.v2.compat.v2 as tf_api
+
+            tf_api.__internal__.register_load_context_function = func
+    except (ImportError, AttributeError):
+        pass
+
+    try:
+        import tensorflow_hub  # noqa: F401
+    except ImportError:
+        pytest.skip("TensorFlow Hub is not available in this environment.")
+
+    model_url = "https://tfhub.dev/google/film/1"
+    try:
+        with urllib.request.urlopen(model_url) as response:  # noqa: S310
+            if response.status != 200:
+                pytest.skip(f"Google FILM model not available at {model_url}")
+    except Exception:
+        pytest.skip(f"Google FILM model not available at {model_url}")
+
+    kgo_dir = acc.kgo_root() / "temporal-interpolate/google_film"
+    kgo_path = kgo_dir / "kgo.nc"
+    input_paths = [
+        kgo_dir / "20251205T0600Z-PT0006H00M-precip_rate.nc",
+        kgo_dir / "20251205T0900Z-PT0009H00M-precip_rate.nc",
+    ]
+    output_path = tmp_path / "output.nc"
+    args = [
+        *input_paths,
+        "--interval-in-mins",
+        "60",
+        "--interpolation-method",
+        "google_film",
+        "--model-path",
+        model_url,
         "--output",
         output_path,
     ]

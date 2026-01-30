@@ -21,6 +21,8 @@ dependencies:
   - pygam<0.11
   - pysteps
   - python-stratify
+  - tensorflow
+  - tensorflow-hub
   # Development
   - astroid
   - codacy-coverage
