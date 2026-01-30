@@ -364,7 +364,7 @@ class CubeCombiner(BasePlugin):
             )
             raise ValueError(msg)
 
-    def _zero_mask_values(self, cube_list: Union[List[Cube], CubeList]) -> Cube:
+    def _zero_mask_values(self, cube_list: Union[List[Cube], CubeList]) -> List[Cube]:
         """Replace all masked values in masked cube datasets with 0.0.
 
         Args:
