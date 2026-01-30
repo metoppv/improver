@@ -65,19 +65,19 @@ EXPECTED_DATA_DICT = {
     "real_real_emosalt_gamalt": np.array(
         [
             [
-                [313.50665, 305.0316, 287.89963],
-                [280.07907, 287.8345, 296.38815],
-                [333.15, 333.15, 304.0257],
+                [313.17203, 301.30695, 287.89954],
+                [280.74792, 288.16888, 296.38806],
+                [333.15, 333.15, 304.0256],
             ],
             [
-                [313.4974, 304.8424, 288.25708],
-                [279.9784, 288.0995, 295.84637],
-                [333.15, 333.15, 302.26242],
+                [313.1628, 301.11777, 288.257],
+                [280.64725, 288.43387, 295.84628],
+                [333.15, 333.15, 302.2623],
             ],
             [
-                [313.50204, 304.65323, 288.61453],
-                [280.17975, 287.967, 296.11728],
-                [333.15, 333.15, 303.14404],
+                [313.16742, 300.9286, 288.61444],
+                [280.8486, 288.3014, 296.1172],
+                [333.15, 333.15, 303.14395],
             ],
         ],
         dtype=np.float32,
@@ -85,19 +85,19 @@ EXPECTED_DATA_DICT = {
     "real_real_notemosalt_gamalt": np.array(
         [
             [
-                [273.1705, 280.77353, 287.91034],
+                [263.1705, 275.77353, 287.91034],
                 [280.7542, 288.18423, 296.4416],
-                [288.2182, 295.7106, 304.02924],
+                [278.2182, 290.7106, 304.02924],
             ],
             [
-                [273.1613, 280.58432, 288.2678],
+                [263.1613, 275.58432, 288.2678],
                 [280.65353, 288.44922, 295.8998],
-                [288.01764, 295.00946, 302.26596],
+                [278.01764, 290.00946, 302.26596],
             ],
             [
-                [273.1659, 280.39514, 288.62524],
+                [263.1659, 275.39514, 288.62524],
                 [280.8549, 288.3167, 296.17072],
-                [288.41873, 296.41177, 303.1476],
+                [278.41873, 291.41177, 303.1476],
             ],
         ],
         dtype=np.float32,
@@ -233,21 +233,26 @@ def test__init__(percentiles):
 
 
 @pytest.mark.parametrize(
-    "input_format,output_format,emos_include_altitude,gam_include_altitude",
+    "input_format,output_format,emos_include_altitude,gam_include_altitude,constant_extrapolation",
     [
-        ["realization", "realization", False, False],
-        ["realization", "realization", True, False],
-        ["realization", "realization", False, True],
-        ["realization", "realization", True, True],
-        ["realization", "probability", False, False],
-        ["realization", "probability", True, False],
-        ["percentile", "percentile", False, False],
-        ["percentile", "probability", False, False],
-        ["probability", "probability", False, False],
+        ["realization", "realization", False, False, False],
+        ["realization", "realization", True, False, False],
+        ["realization", "realization", False, True, False],
+        ["realization", "realization", False, True, True],
+        ["realization", "realization", True, True, False],
+        ["realization", "probability", False, False, False],
+        ["realization", "probability", True, False, False],
+        ["percentile", "percentile", False, False, False],
+        ["percentile", "probability", False, False, False],
+        ["probability", "probability", False, False, False],
     ],
 )
 def test_process(
-    input_format, output_format, emos_include_altitude, gam_include_altitude
+    input_format,
+    output_format,
+    emos_include_altitude,
+    gam_include_altitude,
+    constant_extrapolation,
 ):
     """Test that the process method returns the expected results."""
     # Skip test if pyGAM not available.
@@ -260,22 +265,50 @@ def test_process(
     n_realizations = 3
     n_times = 20
 
+    if gam_include_altitude:
+        features.append("surface_altitude")
+        model_specification.append(["spline", [features.index("surface_altitude")], {}])
+
     forecast_cube, additional_cubes = create_cubes_for_gam_fitting(
         n_spatial_points=n_spatial_points,
         n_realizations=n_realizations,
         n_times=n_times,
-        include_altitude=emos_include_altitude,
+        include_altitude=emos_include_altitude or gam_include_altitude,
         fixed_forecast_period=True,
     )
+    gam_additional_cubes = additional_cubes.copy() if gam_include_altitude else None
+    emos_additional_cubes = additional_cubes.copy() if emos_include_altitude else None
 
     for key, value in FORECAST_ATTRIBUTES.items():
         forecast_cube.attributes[key] = value
 
     forecast_gams = TrainGAMsForSAMOS(model_specification).process(
-        forecast_cube, features, additional_cubes
+        forecast_cube,
+        features,
+        additional_fields=gam_additional_cubes,
     )
 
     forecast_slice = next(forecast_cube.slices_over(["forecast_reference_time"]))
+
+    if constant_extrapolation:
+        # Modify latitude and longitude coordinates so that the first and last point
+        # are outside the bounds of those variables in the training data. Constant
+        # extrapolation should ensure that the expected result is unchanged.
+        for coord_name in ["latitude", "longitude"]:
+            forecast_slice.coord(coord_name).points = np.array(
+                [-20.0, 0.0, 20.0], dtype=np.float32
+            )
+            forecast_slice.coord(coord_name).bounds = np.array(
+                [[-30.0, -10.0], [-10.0, 10.0], [10.0, 30.0]], dtype=np.float32
+            )
+            gam_additional_cubes[0].coord(coord_name).points = np.array(
+                [-20.0, 0.0, 20.0], dtype=np.float32
+            )
+            gam_additional_cubes[0].coord(coord_name).bounds = np.array(
+                [[-30.0, -10.0], [-10.0, 10.0], [10.0, 30.0]],
+                dtype=np.float32,
+            )
+
     if emos_include_altitude:
         emos_coefficients = build_coefficients_cubelist(
             forecast_slice,
@@ -323,8 +356,8 @@ def test_process(
         truth_gams=forecast_gams,
         gam_features=features,
         emos_coefficients=emos_coefficients,
-        gam_additional_fields=None,
-        emos_additional_fields=additional_cubes,
+        gam_additional_fields=gam_additional_cubes,
+        emos_additional_fields=emos_additional_cubes,
         **process_kwargs,
     )
 
