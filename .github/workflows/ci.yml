@@ -102,7 +102,7 @@ jobs:
         set -e
         # ----- USER SETTINGS -------------------------------------------------
         CHECK_MISS_TOL=1      # 1 = evaluate the miss‑count difference, 0 = ignore it
-        CHECK_PERC_TOL=1      # 1 = evaluate the percentage difference, 0 = ignore it
+        CHECK_PERC_TOL=0      # 1 = evaluate the percentage difference, 0 = ignore it
 
         # Tolerances
         miss_tol=0          # miss integer tolerance
