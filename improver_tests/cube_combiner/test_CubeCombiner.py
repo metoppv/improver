@@ -318,7 +318,6 @@ class Test_process(CombinerTest):
         np.testing.assert_array_almost_equal(result.data.data, expected_data)
         np.testing.assert_array_equal(result.data.mask, mask)
 
-    # Parameterize this test
     def test_process_add_replace_masked_values(self):
         """Test plugin removes the mask when a value is given for replace_masked_values_with."""
         expected_data = np.full((2, 2), 0.7, dtype=np.float32)

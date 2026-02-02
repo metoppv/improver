@@ -247,7 +247,7 @@ class CubeCombiner(BasePlugin):
             replace_masked_values_with:
                 If given, masked values in the input datasets will be replaced by the
                 given value when used to calculate the output datasets. In this scenario
-                Masked areas in the input datasets will not persist into the outputs.
+                masked areas in the input datasets will not persist into the outputs.
 
         Raises:
             ValueError: if operation is not recognised in dictionary
