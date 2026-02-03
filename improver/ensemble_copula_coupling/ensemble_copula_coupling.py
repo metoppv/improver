@@ -703,19 +703,30 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
         # Convert percentiles into fractions.
         percentiles_as_fractions = (percentiles / 100).astype(np.float32)
 
+        # If percentiles are per-point (e.g. shape (P, Y, X, ...)), move P to last
+        # and flatten the leading dims to shape (Y*X*..., P) for interpolation.
+        if multi_dim := percentiles_as_fractions.ndim >= 2:
+            paf = np.moveaxis(percentiles_as_fractions, 0, -1)  # (..., P)
+            percentiles_flat = paf.reshape(-1, paf.shape[-1])  # (N, P)
+            percentiles_idealised_1d = choose_set_of_percentiles(
+                percentiles_as_fractions.shape[0], sampling="quantile"
+            )
+        else:
+            percentiles_flat = percentiles_as_fractions  # (P,)
+            percentiles_idealised_1d = percentiles_as_fractions  # (P,)
+        # import pdb; pdb.set_trace()
         forecast_at_percentiles = interpolate_multiple_rows_same_y(
-            percentiles_as_fractions.astype(np.float64),
+            percentiles_flat.astype(np.float64),
             probabilities_for_cdf.astype(np.float64),
             threshold_points.astype(np.float64),
-        )
-        forecast_at_percentiles = forecast_at_percentiles.transpose()
-
+        ).transpose()
+        # import pdb; pdb.set_trace()
         # Reshape forecast_at_percentiles, so the percentiles dimension is
         # first, and any other dimension coordinates follow.
         forecast_at_percentiles = restore_non_percentile_dimensions(
             forecast_at_percentiles,
             next(forecast_probabilities.slices_over(threshold_coord)),
-            len(percentiles),
+            percentiles_as_fractions.shape[0],
         )
 
         if self.mask_percentiles:
@@ -728,10 +739,17 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
             if relation == "above":
                 mask_probability = 1 - mask_probability
 
-            for index, perc in enumerate(percentiles_as_fractions):
-                forecast_at_percentiles[index] = np.ma.masked_where(
-                    mask_probability <= perc, forecast_at_percentiles[index]
-                )
+            if multi_dim:
+                for k in range(percentiles_as_fractions.shape[0]):
+                    forecast_at_percentiles[k] = np.ma.masked_where(
+                        mask_probability <= percentiles_as_fractions[k],
+                        forecast_at_percentiles[k],
+                    )
+            else:
+                for k, perc in enumerate(percentiles_as_fractions):
+                    forecast_at_percentiles[k] = np.ma.masked_where(
+                        mask_probability <= perc, forecast_at_percentiles[k]
+                    )
 
         template_cube = next(forecast_probabilities.slices_over(threshold_name))
         template_cube.rename(
@@ -740,7 +758,7 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
         template_cube.remove_coord(threshold_name)
 
         percentile_cube = create_cube_with_percentiles(
-            percentiles,
+            percentiles_idealised_1d,
             template_cube,
             forecast_at_percentiles,
             cube_unit=threshold_unit,
