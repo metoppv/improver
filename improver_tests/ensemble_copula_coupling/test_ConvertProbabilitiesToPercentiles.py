@@ -23,6 +23,7 @@ from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     set_up_probability_cube,
+    set_up_variable_cube,
 )
 
 from .ecc_test_data import (
@@ -62,7 +63,7 @@ def temperature_cube():
 
 @pytest.fixture
 def percentiles():
-    return [10, 50, 90]
+    return np.array([10, 50, 90], dtype=np.float32)
 
 
 @pytest.fixture
@@ -328,7 +329,9 @@ def test_probabilities_to_percentiles_check_data_multiple_timesteps(percentiles)
         ],
         dtype=np.float32,
     )
-    result = Plugin()._probabilities_to_percentiles(cube, [20, 60, 80])
+    result = Plugin()._probabilities_to_percentiles(
+        cube, np.array([20, 60, 80], dtype=np.float32)
+    )
     np.testing.assert_array_almost_equal(result.data, expected, decimal=5)
 
 
@@ -680,3 +683,129 @@ def test_process_vicinity_metadata(temperature_cube):
     )
     result = Plugin().process(temperature_cube)
     assert result.name() == "air_temperature_in_vicinity"
+
+
+@pytest.mark.parametrize("nan_mask_value", [0.0, None])
+@pytest.mark.parametrize("scale_percentiles_to_probability_lower_bound", [True, False])
+def test_process_transformation_sampling_3d(
+    nan_mask_value, scale_percentiles_to_probability_lower_bound
+):
+    """Test the process method using the 'transformation' sampling option, with
+    parameterisation over nan_mask_value and
+    scale_percentiles_to_probability_lower_bound.
+    """
+    # 3 realizations, 3x3 grid (same dataset used in test_utilities.py)
+    intensity_data = np.array(
+        [
+            [[0.5, 2.0, 2.0], [0.0, 0.0, 2.0], [1.0, 2.0, 0.0]],
+            [[4.0, 8.0, 4.0], [2.0, 8.0, 2.0], [4.0, 2.0, 1.0]],
+            [[6.0, 10.0, 6.0], [2.0, 2.0, 6.0], [6.0, 6.0, 2.0]],
+        ],
+        dtype=np.float32,
+    )
+    thresholds = [0.5, 1.0, 4.0, 16.0]
+    probability_data = np.array(
+        [
+            [[0.6, 0.9, 1.0], [0.4, 0.7, 1.0], [0.9, 1.0, 0.6]],
+            [[0.5, 0.6, 0.6], [0.3, 0.5, 0.9], [0.6, 0.6, 0.3]],
+            [[0.4, 0.4, 0.4], [0.2, 0.4, 0.5], [0.4, 0.4, 0.1]],
+            [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+        ],
+        dtype=np.float32,
+    )
+
+    # Build cubes
+    prob_cube = set_up_probability_cube(
+        probability_data,
+        thresholds=thresholds,
+        variable_name="lwe_precipitation_rate",
+        threshold_units="mm h-1",
+        spp__relative_to_threshold="above",
+    )
+    intensity_cube = set_up_variable_cube(
+        intensity_data,
+        name="lwe_precipitation_rate",
+        units="mm h-1",
+    )
+
+    # Configure plugin with transformation options
+    plugin = Plugin(
+        distribution="gamma",
+        nan_mask_value=nan_mask_value,
+        scale_percentiles_to_probability_lower_bound=scale_percentiles_to_probability_lower_bound,
+    )
+    result = plugin.process(
+        prob_cube,
+        sampling="transformation",
+        intensity_cube=intensity_cube,
+    )
+
+    # Temporary helper: print the array rounded to 3 d.p. with commas, to copy into expected.
+    # Remove after updating expected values.
+    print(
+        np.array2string(
+            np.round(result.data, 3),
+            separator=",",
+            formatter={"float_kind": lambda x: f"{x:.3f}"},
+        )
+    )
+    # import pdb
+
+    # pdb.set_trace()
+    # Expected arrays: replace with printed outputs for each branch below.
+    if scale_percentiles_to_probability_lower_bound and nan_mask_value == 0.0:
+        # fmt: off
+        expected = np.array(
+            [
+                [[0.563, 0.556, 0.605], [0.000, 0.000, 2.219], [0.566, 0.828, 0.000]],
+                [[9.970, 8.019, 3.315], [4.080, 0.733, 2.219], [6.136, 0.828, 0.653]],
+                [[13.634, 11.831, 12.529], [4.080, 12.882, 13.804], [12.551, 13.255, 4.838]],
+            ],
+            dtype=np.float32,
+        )
+        # fmt: on
+    elif not scale_percentiles_to_probability_lower_bound and nan_mask_value == 0.0:
+        # fmt: off
+        expected = np.array(
+            [
+                [[0.026, 0.185, 0.605], [0.000, 0.000, 2.219], [0.220, 0.828, 0.000]],
+                [[5.950, 7.132, 3.315], [0.419, 0.222, 2.219], [5.040, 0.828, 0.191]],
+                [[12.057, 11.367, 12.529], [0.419, 11.546, 13.804], [12.168, 13.255, 3.175]],
+            ],
+            dtype=np.float32,
+        )
+        # fmt: on
+    elif scale_percentiles_to_probability_lower_bound and nan_mask_value is None:
+        # fmt: off
+        expected = np.array(
+            [
+                [[0.563, 0.556, 0.605], [0.500, 0.500, 2.219], [0.566, 0.828, 0.500]],
+                [[9.970, 8.019, 3.315], [11.220, 4.608, 2.219], [6.136, 0.828, 1.975]],
+                [[13.634, 11.831, 12.529], [11.220, 14.048, 13.804], [12.551, 13.255, 7.964]]
+            ],
+            dtype=np.float32,
+        )
+        # fmt: on
+    elif not scale_percentiles_to_probability_lower_bound and nan_mask_value is None:
+        # fmt: off
+        expected = np.array(
+            [
+                [[0.026, 0.185, 0.605], [0.000, 0.000, 2.219], [0.220, 0.828, 0.000]],
+                [[5.950, 7.132, 3.315], [4.051, 0.894, 2.219], [5.040, 0.828, 0.847]],
+                [[12.057, 11.367, 12.529], [4.051, 13.211, 13.804], [12.168, 13.255, 3.826]],
+            ],
+            dtype=np.float32,
+        )
+        # fmt: on
+
+    # Assertions
+    assert isinstance(result, Cube)
+    assert result.data.dtype == np.float32
+    assert result.shape == (intensity_data.shape[0],) + intensity_data.shape[1:]
+    np.testing.assert_array_almost_equal(result.data, expected, decimal=3)
+    percentile_coord = result.coord("percentile")
+    assert percentile_coord.units == "%"
+    np.testing.assert_array_equal(
+        percentile_coord.points,
+        np.linspace(100 / (2 * 10), 100 - (100 / (2 * 10)), 10),
+    )

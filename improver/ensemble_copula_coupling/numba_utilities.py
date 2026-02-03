@@ -114,3 +114,92 @@ def fast_interp_same_y(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndar
                         slope = (fp[ind] - intercept) / h_diff
                 result[i, j] = intercept + (curr_x - x_lower) * slope
     return result
+
+
+@njit(parallel=True)
+def fast_interp_same_y_2d(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndarray:
+    """For each row i of xp, do the equivalent of np.interp(x[i], xp[i], fp).
+
+    Args:
+        x: 2-D array with one row per xp row (shape: n * k)
+        xp: n * m array, each row must be in non-decreasing order
+        fp: 1-D array with length m
+    Returns:
+        n * k array where each row i is equal to np.interp(x[i], xp[i], fp)
+    """
+    # checks
+    if len(x.shape) != 2:
+        raise ValueError("x must be 2-dimensional for fast_interp_same_y_2d.")
+    if len(fp.shape) != 1:
+        raise ValueError("fp must be 1-dimensional.")
+    if xp.shape[1] != len(fp):
+        raise ValueError("Dimension 1 of xp must be equal to length of fp.")
+    if x.shape[0] != xp.shape[0]:
+        raise ValueError("Rows of x must match rows of xp for 2-D x.")
+
+    n = xp.shape[0]
+    m = xp.shape[1]
+    k = x.shape[1]
+    max_ind = m
+    min_val = fp[0]
+    max_val = fp[-1]
+    result = np.empty((n, k), dtype=np.float32)
+
+    for i in prange(n):
+        # Check whether row x[i] is non-decreasing
+        x_ordered = True
+        for t in range(1, k):
+            if x[i, t] < x[i, t - 1]:
+                x_ordered = False
+                break
+
+        ind = 0
+        intercept = 0.0
+        slope = 0.0
+        x_lower = 0.0
+
+        for j in range(k):
+            recalculate = False
+            curr_x = x[i, j]
+
+            # Find smallest index ind of xp[i] for which xp[i, ind] >= curr_x.
+            if x_ordered:
+                while (ind < max_ind) and (xp[i, ind] < curr_x):
+                    ind += 1
+                    recalculate = True
+            else:
+                ind = np.searchsorted(xp[i], curr_x)
+                recalculate = True
+
+            # linear interpolation
+            if ind == 0:
+                result[i, j] = min_val
+            elif ind == max_ind:
+                result[i, j] = max_val
+            else:
+                if recalculate or not x_ordered:
+                    intercept = fp[ind - 1]
+                    x_lower = xp[i, ind - 1]
+                    h_diff = xp[i, ind] - x_lower
+                    if h_diff < 1e-15:
+                        slope = 0.0
+                    else:
+                        slope = (fp[ind] - intercept) / h_diff
+                result[i, j] = intercept + (curr_x - x_lower) * slope
+
+    return result
+
+
+def fast_interp_same_y_nd(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndarray:
+    """Dispatch to 1D or 2D numba kernels.
+
+    Args:
+        x: 1-D or 2-D array
+        xp: n * m array, each row must be in non-decreasing order
+        fp: 1-D array with length m
+    """
+    if x.ndim == 1:
+        return fast_interp_same_y(x, xp, fp)
+    if x.ndim == 2:
+        return fast_interp_same_y_2d(x, xp, fp)
+    raise ValueError("x must be 1D or 2D.")

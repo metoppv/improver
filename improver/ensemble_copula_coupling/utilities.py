@@ -178,7 +178,7 @@ class CalculatePercentilesFromIntensityDistribution:
         std = np.where(std > tolerance, std, tolerance)
         # Calculate gamma distribution parameters from mean and std. Taken from
         # Wilks (2019) Section 4.4.5 and Scheuerer and Hamill (2015). These are
-        # most accurate estimates when the shape paratemer is large.
+        # most accurate estimates when the shape parameter is large.
         shape_parameter = mean**2 / std**2
         scale_parameter = std**2 / mean
 
@@ -528,9 +528,11 @@ def interpolate_multiple_rows_same_y(*args):
     try:
         import numba  # noqa: F401
 
-        from improver.ensemble_copula_coupling.numba_utilities import fast_interp_same_y
+        from improver.ensemble_copula_coupling.numba_utilities import (
+            fast_interp_same_y_nd,
+        )
 
-        return fast_interp_same_y(*args)
+        return fast_interp_same_y_nd(*args)
     except ImportError:
         warnings.warn(
             "Module numba unavailable. ConvertProbabilitiesToPercentiles will be slower."
