@@ -348,6 +348,55 @@ def create_cube_with_percentiles(
     return result
 
 
+def create_cube_with_percentile_index(
+    indices: Union[List[int], ndarray],
+    template_cube: Cube,
+    cube_data: ndarray,
+    cube_unit: Optional[Union[Unit, str]] = None,
+) -> Cube:
+    """
+    Create a cube with a percentile_index coordinate based on a template cube.
+    The resulting cube will have an extra percentile_index coordinate compared with
+    the template cube. The shape of the cube_data should be the shape of the
+    desired output cube.
+
+    Args:
+        indices:
+            Indices to use for the percentile_index coordinate. There should be the same
+            number of indices as the first dimension of cube_data.
+        template_cube:
+            Cube to copy metadata from.
+        cube_data:
+            Data to insert into the template cube.
+            The shape of the cube_data, excluding the dimension associated with
+            the percentile_index coordinate, should be the same as the shape of
+            template_cube.
+        cube_unit:
+            The units of the data within the cube, if different from those of
+            the template_cube.
+
+    Returns:
+        Cube containing a percentile_index coordinate as the leading dimension (or
+        scalar percentile_index coordinate if single-valued)
+    """
+    cubes = iris.cube.CubeList([])
+    for idx in indices:
+        cube = template_cube.copy()
+        cube.add_aux_coord(
+            iris.coords.AuxCoord(
+                int(idx), long_name="percentile_index", units=unit.Unit("1")
+            )
+        )
+        cubes.append(cube)
+    result = cubes.merge_cube()
+
+    result.data = cube_data
+    if cube_unit is not None:
+        result.units = cube_unit
+
+    return result
+
+
 def get_bounds_of_distribution(bounds_pairing_key: str, desired_units: Unit) -> ndarray:
     """
     Gets the bounds of the distribution and converts the units of the

@@ -740,18 +740,6 @@ def test_process_transformation_sampling_3d(
         intensity_cube=intensity_cube,
     )
 
-    # Temporary helper: print the array rounded to 3 d.p. with commas, to copy into expected.
-    # Remove after updating expected values.
-    print(
-        np.array2string(
-            np.round(result.data, 3),
-            separator=",",
-            formatter={"float_kind": lambda x: f"{x:.3f}"},
-        )
-    )
-    # import pdb
-
-    # pdb.set_trace()
     # Expected arrays: replace with printed outputs for each branch below.
     if scale_percentiles_to_probability_lower_bound and nan_mask_value == 0.0:
         # fmt: off
@@ -803,9 +791,9 @@ def test_process_transformation_sampling_3d(
     assert result.data.dtype == np.float32
     assert result.shape == (intensity_data.shape[0],) + intensity_data.shape[1:]
     np.testing.assert_array_almost_equal(result.data, expected, decimal=3)
-    percentile_coord = result.coord("percentile")
-    assert percentile_coord.units == "%"
+    percentile_coord = result.coord("percentile_index")
+    assert percentile_coord.units == "1"
     np.testing.assert_array_equal(
         percentile_coord.points,
-        np.linspace(100 / (2 * 10), 100 - (100 / (2 * 10)), 10),
+        range(intensity_data.shape[0]),
     )
