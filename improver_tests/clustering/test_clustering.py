@@ -36,19 +36,18 @@ def _create_clusterable_dataframe():
 
 
 @pytest.mark.parametrize(
-    "clustering_method,n_clusters,random_state,expected_n_labels,expected_shape",
+    "clustering_method,n_clusters,random_state,expected_shape",
     [
-        ("KMeans", 3, 42, 3, (3, 5)),  # Basic KMeans
-        ("KMeans", 2, 42, 2, (2, 5)),  # KMeans with 2 clusters
-        ("KMeans", 5, 100, 5, (5, 5)),  # KMeans with different random state
-        ("AgglomerativeClustering", 4, None, 4, None),  # AgglomerativeClustering
+        ("KMeans", 3, 42, (3, 5)),  # Basic KMeans
+        ("KMeans", 2, 42, (2, 5)),  # KMeans with 2 clusters
+        ("KMeans", 5, 100, (5, 5)),  # KMeans with different random state
+        ("AgglomerativeClustering", 4, None, None),  # AgglomerativeClustering
     ],
 )
 def test_process_clustering_combined(
     clustering_method,
     n_clusters,
     random_state,
-    expected_n_labels,
     expected_shape,
 ):
     """Test FitClustering.process with various clustering methods available in
@@ -64,7 +63,7 @@ def test_process_clustering_combined(
 
     assert hasattr(result, "labels_")
     assert len(result.labels_) == len(df)
-    assert len(np.unique(result.labels_)) == expected_n_labels
+    assert len(np.unique(result.labels_)) == n_clusters
     assert np.all((result.labels_ >= 0) & (result.labels_ < n_clusters))
 
     # Cluster center assertions for KMeans only

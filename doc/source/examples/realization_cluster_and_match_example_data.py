@@ -26,6 +26,7 @@ data to be mapped onto these clusters, improving local detail where available.
 Hierarchy and precedence:
 This notebook uses a configurable hierarchy to control which data source is used for
 each forecast period. The hierarchy specifies:
+
 - The primary input (e.g., a global or coarse-resolution ensemble) to be clustered.
 - One or more secondary inputs (e.g., high-resolution ensembles) to be matched to
 clusters for selected forecast periods.
@@ -113,7 +114,7 @@ for i in range(n_realizations):
     cube_plot.units = "mm/hr"
 
     mesh = iplt.pcolormesh(cube_plot, cmap=cmap, norm=norm, axes=ax)
-    ax.coastlines(resolution="10m", linewidth=0.5)
+    ax.coastlines(resolution="10m", linewidth=0.5, color="red")
     ax.add_feature(cfeature.BORDERS, linewidth=0.3, alpha=0.5)
     ax.set_title(f"Realization {i}")
 
@@ -260,7 +261,7 @@ for i in range(n_realizations):
     cube_plot.units = "mm/hr"
 
     mesh = iplt.pcolormesh(cube_plot, cmap=cmap, norm=norm, axes=ax)
-    ax.coastlines(resolution="10m", linewidth=0.5)
+    ax.coastlines(resolution="10m", linewidth=0.5, color="red")
     ax.add_feature(cfeature.BORDERS, linewidth=0.3, alpha=0.5)
     ax.set_title(f"Original Realization {i}", fontweight="bold")
     ax.text(
@@ -284,7 +285,7 @@ for i in range(n_clusters):
     cube_plot.units = "mm/hr"
 
     mesh = iplt.pcolormesh(cube_plot, cmap=cmap, norm=norm, axes=ax)
-    ax.coastlines(resolution="10m", linewidth=0.5)
+    ax.coastlines(resolution="10m", linewidth=0.5, color="red")
     ax.add_feature(cfeature.BORDERS, linewidth=0.3, alpha=0.5)
     ax.set_title(f"Cluster {i}", fontweight="bold")
     ax.text(
@@ -381,7 +382,7 @@ for period_idx, fp in enumerate(forecast_periods):
         cube_plot.units = "mm/hr"
 
         mesh = iplt.pcolormesh(cube_plot, cmap=cmap, norm=norm, axes=ax)
-        ax.coastlines(resolution="10m", linewidth=0.5)
+        ax.coastlines(resolution="10m", linewidth=0.5, color="red")
         ax.add_feature(cfeature.BORDERS, linewidth=0.3, alpha=0.5)
         ax.set_title(f"T+{int(fp_hours)}h - Cluster {cluster_idx}", fontweight="bold")
 

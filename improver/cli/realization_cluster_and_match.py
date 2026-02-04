@@ -24,10 +24,12 @@ def process(
 ):
     """Cluster primary input and match secondary inputs to clusters.
 
-    Clusters the primary input using the specified clustering method, then
-    matches secondary input realizations to the resulting clusters based on
-    mean squared error. The hierarchy configuration specifies which input is
-    primary (to be clustered) and which are secondary (to be matched).
+    Clusters the primary input using the specified clustering method, then matches
+    other input realizations from other sources to the clusters derived from the
+    primary inputs. A single match from other sources is made for each lead time.
+    If there are multiple sources for a given lead time then the order of
+    precedence defined in the hierarchy specification is used to determine
+    which to use.
 
     Args:
         cubes (list of iris.cube.Cube):
