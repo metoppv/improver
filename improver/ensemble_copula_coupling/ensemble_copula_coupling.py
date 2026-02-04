@@ -23,6 +23,7 @@ from improver.calibration.utilities import convert_cube_data_to_2d
 from improver.ensemble_copula_coupling.utilities import (
     choose_set_of_percentiles,
     concatenate_2d_array_with_2d_array_endpoints,
+    create_cube_with_percentile_index,
     create_cube_with_percentiles,
     get_bounds_of_distribution,
     insert_lower_and_upper_endpoint_to_1d_array,
@@ -708,19 +709,15 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
         if multi_dim := percentiles_as_fractions.ndim >= 2:
             paf = np.moveaxis(percentiles_as_fractions, 0, -1)  # (..., P)
             percentiles_flat = paf.reshape(-1, paf.shape[-1])  # (N, P)
-            percentiles_idealised_1d = choose_set_of_percentiles(
-                percentiles_as_fractions.shape[0], sampling="quantile"
-            )
         else:
             percentiles_flat = percentiles_as_fractions  # (P,)
-            percentiles_idealised_1d = percentiles_as_fractions  # (P,)
-        # import pdb; pdb.set_trace()
+
         forecast_at_percentiles = interpolate_multiple_rows_same_y(
             percentiles_flat.astype(np.float64),
             probabilities_for_cdf.astype(np.float64),
             threshold_points.astype(np.float64),
         ).transpose()
-        # import pdb; pdb.set_trace()
+
         # Reshape forecast_at_percentiles, so the percentiles dimension is
         # first, and any other dimension coordinates follow.
         forecast_at_percentiles = restore_non_percentile_dimensions(
@@ -757,12 +754,26 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
         )
         template_cube.remove_coord(threshold_name)
 
-        percentile_cube = create_cube_with_percentiles(
-            percentiles_idealised_1d,
-            template_cube,
-            forecast_at_percentiles,
-            cube_unit=threshold_unit,
-        )
+        if multi_dim:
+            # To fully describe the percentiles that are represented after sampling,
+            # we would need to use a 3D percentile coordinate. However, for simplicity,
+            # and as these percentiles are not required by subsequent steps, the
+            # percentile values are instead stored relative to a 1D percentile_index
+            # coordinate. Using a percentile_index coordinate avoids any confusion
+            # that could occur by misrepresenting the percentile coordinate.
+            percentile_cube = create_cube_with_percentile_index(
+                range(len(percentiles)),
+                template_cube,
+                forecast_at_percentiles,
+                cube_unit=threshold_unit,
+            )
+        else:
+            percentile_cube = create_cube_with_percentiles(
+                percentiles,
+                template_cube,
+                forecast_at_percentiles,
+                cube_unit=threshold_unit,
+            )
         if original_mask is not None:
             original_mask = np.broadcast_to(original_mask, percentile_cube.shape)
             percentile_cube.data = np.ma.MaskedArray(
