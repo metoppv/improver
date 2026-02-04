@@ -276,9 +276,7 @@ class MergeCubes(BasePlugin):
             bounds_ranges = np.abs(np.diff(coord.bounds))
             reference_range = bounds_ranges[0]
             if not np.all(np.isclose(bounds_ranges, reference_range)):
-                msg = "Cube with mismatching {} bounds ranges cannot be blended".format(
-                    name
-                )
+                msg = f"Cube with mismatching {name} bounds ranges cannot be blended"
                 raise ValueError(msg)
 
     def process(self, *cubes: Cube | CubeList) -> Cube:
@@ -572,14 +570,14 @@ def enforce_coordinate_ordering(
 ) -> None:
     """
     Function to reorder dimensions within a cube according to the order of the
-    coordinates specified. If a coordinate is specified in the list but not
+    coordinates or axes specified. If a coordinate is specified in the list but not
     present within the cube it is ignored. Note that the input cube is modified
     in place.
 
     Args:
         cube:
             Cube where the ordering will be enforced to match the order within
-            the coord_names. This input cube will be modified as part of this
+            coord_names_or_axes. This input cube will be modified as part of this
             function.
         coord_names_or_axes:
             List of the names or axes of the coordinates to order. If a string is

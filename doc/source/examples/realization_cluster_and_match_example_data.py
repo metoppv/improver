@@ -28,11 +28,11 @@ This notebook uses a configurable hierarchy to control which data source is used
 each forecast period. The hierarchy specifies:
 
 - The primary input (e.g., a global or coarse-resolution ensemble) to be clustered.
-- One or more secondary inputs (e.g., high-resolution ensembles) to be matched to
-clusters for selected forecast periods.
+- One or more secondary inputs (e.g., high-resolution ensembles) to be matched
+  to clusters for selected forecast periods.
 - For each forecast period, the hierarchy determines which model's data takes
-precedence, allowing switching between sources depending on availability or
-user preference.
+  precedence, allowing switching between sources depending on availability or
+  user preference.
 """
 
 # Authors: The IMPROVER developers
