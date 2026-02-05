@@ -119,6 +119,19 @@ class Test_enforce_coordinate_ordering(unittest.TestCase):
         self.assertEqual(self.cube.coord_dims("time")[0], 3)
         np.testing.assert_array_almost_equal(self.cube.data, expected.data)
 
+    def test_full_reordering_with_axes(self):
+        """Test that a cube with the expected data contents is returned when
+        all the coordinates within the cube are reordered into the order
+        specified by the names or axes within the input list."""
+        expected = self.cube.copy()
+        expected.transpose([2, 0, 3, 1])
+        enforce_coordinate_ordering(self.cube, ["y", "realization", "x", "time"])
+        self.assertEqual(self.cube.coord_dims("latitude")[0], 0)
+        self.assertEqual(self.cube.coord_dims("realization")[0], 1)
+        self.assertEqual(self.cube.coord_dims("longitude")[0], 2)
+        self.assertEqual(self.cube.coord_dims("time")[0], 3)
+        np.testing.assert_array_almost_equal(self.cube.data, expected.data)
+
     def test_include_extra_coordinates(self):
         """Test that a cube with the expected data contents is returned when
         extra coordinates are passed in for reordering but these coordinates
