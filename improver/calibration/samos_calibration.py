@@ -16,6 +16,8 @@ import iris.pandas
 import numpy as np
 import pandas as pd
 
+from improver.utilities.statistical import DistributionalParameters
+
 try:
     import pygam
 except ModuleNotFoundError:
@@ -912,14 +914,27 @@ class ApplySAMOS(PostProcessingPlugin):
             input_forecast_type=input_forecast_type,
         )
 
+        distribution = get_attribute_from_coefficients(
+            emos_coefficients, "distribution"
+        )
+        shape, location, scale = DistributionalParameters(
+            distribution=distribution
+        ).process(
+            mean_cube=location_parameter,
+            sd_cube=scale_parameter,
+            truncation_points=(
+                get_attribute_from_coefficients(
+                    emos_coefficients, "shape_parameters", optional=True
+                )
+            ),
+        )
+
         # Generate output in desired format from distribution.
         self.distribution = {
-            "name": get_attribute_from_coefficients(emos_coefficients, "distribution"),
-            "location": location_parameter,
-            "scale": scale_parameter,
-            "shape": get_attribute_from_coefficients(
-                emos_coefficients, "shape_parameters", optional=True
-            ),
+            "name": distribution,
+            "location": location,
+            "scale": scale,
+            "shape": shape,
         }
 
         template = prob_template if prob_template else forecast

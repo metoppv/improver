@@ -89,7 +89,7 @@ class DistributionalParameters(BasePlugin):
                 If truncation points are not provided or if the number of truncation
                 points is not equal to two.
         """
-        if not truncation_points or len(truncation_points) != 2:
+        if truncation_points is None or len(truncation_points) != 2:
             raise ValueError(
                 "Upper and lower truncation points must be provided for truncated "
                 "normal distribution. The following truncation points were provided: "
@@ -150,7 +150,7 @@ class DistributionalParameters(BasePlugin):
             parameters may be None if not applicable for the chosen distribution.
         """
         kwargs = {}
-        if truncation_points:
+        if truncation_points is not None:
             kwargs.update({"truncation_points": truncation_points})
 
         shape, loc, scale = self.distribution_dict.get(self.distribution)(
