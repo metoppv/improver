@@ -227,7 +227,7 @@ class RealizationToClusterMatcher(BasePlugin):
     def assign_clusters(self, realization_cluster_mse: np.ndarray) -> list[int]:
         """Assign clusters to candidate realizations using greedy MSE minimization.
 
-        This method assigns candidate reaizations to clusters by minimizing mean
+        This method assigns candidate realizations to clusters by minimizing mean
         squared error. The algorithm iterates through realizations in descending order
         of their "MSE cost" (the sum of differences between each cluster's MSE and
         the minimum MSE for that realization). Realizations with higher costs
