@@ -162,7 +162,7 @@ class LightningFromCapePrecip(PostProcessingPlugin):
         cube.add_aux_coord(coord)
 
         cell_method = CellMethod(
-            "Sum",
+            "sum",
             coords="time",
             comments="of number_of_lightning_flashes_per_unit_area",
         )
