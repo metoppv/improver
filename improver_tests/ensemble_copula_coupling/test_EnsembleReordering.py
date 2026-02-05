@@ -517,6 +517,28 @@ class Test_process(unittest.TestCase):
         )
         np.testing.assert_array_almost_equal(result.data, expected_data)
 
+    def test_basic_percentile_index(self):
+        """
+        Test that the plugin returns an iris.cube.Cube, the cube has a
+        realization coordinate with specific realization numbers and is
+        correctly re-ordered to match the source realizations when the post-processed
+        percentile input contains a percentile_index coordinate, rather than a
+        percentile coordinate.
+        """
+        expected_data = self.raw_cube.data.copy()
+        self.post_processed_percentiles.coord("percentile").rename("percentile_index")
+        self.post_processed_percentiles.coord("percentile_index").points = np.array(
+            [0, 1, 2], dtype=np.float32
+        )
+        self.post_processed_percentiles.coord("percentile_index").units = "1"
+        result = Plugin().process(self.post_processed_percentiles, self.raw_cube)
+        self.assertIsInstance(result, Cube)
+        self.assertTrue(result.coords("realization"))
+        self.assertEqual(
+            result.coord("realization"), self.raw_cube.coord("realization")
+        )
+        np.testing.assert_array_almost_equal(result.data, expected_data)
+
     def test_basic_masked_input_data(self):
         """
         Test that the plugin returns an iris.cube.Cube, the cube has a

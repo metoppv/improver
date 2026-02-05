@@ -322,6 +322,15 @@ class Test_find_percentile_coordinate(unittest.TestCase):
         self.assertIsInstance(perc_coord, iris.coords.Coord)
         self.assertEqual(perc_coord.name(), "percentile")
 
+    def test_percentile_index(self):
+        """Test that the function returns a Coord."""
+        cube_wg = self.cube_wg.copy()
+        cube_wg.coord("percentile").rename("percentile_index")
+        cube_wg.coord("percentile_index").points = np.array([0, 1], dtype=np.float32)
+        perc_coord = find_percentile_coordinate(cube_wg)
+        self.assertIsInstance(perc_coord, iris.coords.Coord)
+        self.assertEqual(perc_coord.name(), "percentile")
+
     def test_fails_if_data_is_not_cube(self):
         """Test it raises a Type Error if cube is not a cube."""
         msg = "Expecting data to be an instance of iris.cube.Cube "
