@@ -124,44 +124,37 @@ class RebadgePercentilesAsRealizations(BasePlugin):
     if required.
     """
 
-    @staticmethod
-    def process(
-        cube: Cube, ensemble_realization_numbers: Optional[ndarray] = None
-    ) -> Cube:
+    def __init__(self, ensemble_realization_numbers: Optional[np.ndarray] = None):
         """
-        Rebadge percentiles as ensemble realizations. The ensemble
-        realization numbering will depend upon the number of percentiles in
-        the input cube i.e. 0, 1, 2, 3, ..., n-1, if there are n percentiles.
+        Initialise the plugin.
 
         Args:
-            cube:
-                Cube containing a percentile coordinate, which will be
-                rebadged as ensemble realization.
             ensemble_realization_numbers:
                 An array containing the ensemble numbers required in the output
                 realization coordinate. Default is None, meaning the
                 realization coordinate will be numbered 0, 1, 2 ... n-1 for n
                 percentiles on the input cube.
+        """
+        self.ensemble_realization_numbers = ensemble_realization_numbers
 
-        Returns:
-            Processed cube
+    def _check_evenly_spaced_percentiles(self, cube: Cube, percentile_coord_name: str):
+        """
+        Check that percentiles are evenly spaced, centered, and partition the space.
+
+        Args:
+            cube:
+                Cube containing the percentile coordinate.
+            percentile_coord_name:
+                Name of the percentile coordinate.
 
         Raises:
-            InvalidCubeError:
-                If the realization coordinate already exists on the cube.
+            ValueError:
+                If percentiles are not evenly spaced and partitioned.
         """
-        percentile_coord_name = find_percentile_coordinate(cube).name()
-
-        # create array of percentiles from cube metadata, add in fake
-        # 0th and 100th percentiles if not already included
         percentile_coords = np.sort(
             np.unique(np.append(cube.coord(percentile_coord_name).points, [0, 100]))
         )
         percentile_diffs = np.diff(percentile_coords)
-
-        # percentiles cannot be rebadged unless they are evenly spaced,
-        # centred on 50th percentile, and equally partition percentile
-        # space
         if not np.isclose(np.max(percentile_diffs), np.min(percentile_diffs)):
             msg = (
                 "The percentile cube provided cannot be rebadged as ensemble "
@@ -172,31 +165,78 @@ class RebadgePercentilesAsRealizations(BasePlugin):
             )
             raise ValueError(msg)
 
-        if ensemble_realization_numbers is None:
-            ensemble_realization_numbers = np.arange(
-                len(cube.coord(percentile_coord_name).points), dtype=np.int32
-            )
+    def _check_no_existing_realization_coord(self, cube: Cube):
+        """
+        Raise InvalidCubeError if realization coordinate already exists.
 
-        cube.coord(percentile_coord_name).points = ensemble_realization_numbers
+        Args:
+            cube:
+                Cube to check for an existing realization coordinate.
 
-        # we can't rebadge if the realization coordinate already exists:
+        Raises:
+            InvalidCubeError:
+                If the realization coordinate already exists.
+        """
         try:
             realization_coord = cube.coord("realization")
         except CoordinateNotFoundError:
             realization_coord = None
-
         if realization_coord:
             raise InvalidCubeError(
                 "Cannot rebadge percentile coordinate to realization "
                 "coordinate because a realization coordinate already exists."
             )
 
+    def _rebadge_percentile_coord(
+        self, cube: Cube, percentile_coord_name: str, realization_numbers: np.ndarray
+    ):
+        """
+        Rename percentile coord to realization and set points/units.
+
+        Args:
+            cube:
+                Cube containing the percentile coordinate.
+            percentile_coord_name:
+                Name of the percentile coordinate.
+            realization_numbers:
+                Array of realization numbers to assign.
+        """
+        cube.coord(percentile_coord_name).points = realization_numbers
         cube.coord(percentile_coord_name).rename("realization")
         cube.coord("realization").units = "1"
         cube.coord("realization").points = cube.coord("realization").points.astype(
             np.int32
         )
 
+    def process(self, cube: Cube) -> Cube:
+        """
+        Public interface to rebadge percentiles as ensemble realizations.
+
+        Args:
+            cube:
+                Cube containing a percentile coordinate, which will be
+                rebadged as ensemble realization.
+
+        Returns:
+            Cube:
+                Processed cube with realization coordinate.
+
+        Raises:
+            ValueError:
+                If percentiles are not evenly spaced, centered, and partitioned.
+            InvalidCubeError:
+                If the realization coordinate already exists on the cube.
+        """
+        percentile_coord_name = find_percentile_coordinate(cube).name()
+        self._check_evenly_spaced_percentiles(cube, percentile_coord_name)
+        self._check_no_existing_realization_coord(cube)
+        if self.ensemble_realization_numbers:
+            realization_numbers = self.ensemble_realization_numbers
+        else:
+            realization_numbers = np.arange(
+                len(cube.coord(percentile_coord_name).points), dtype=np.int32
+            )
+        self._rebadge_percentile_coord(cube, percentile_coord_name, realization_numbers)
         return cube
 
 
@@ -1640,6 +1680,9 @@ class EnsembleReordering(BasePlugin):
             random_seed=random_seed,
             tie_break=tie_break,
         )
+        import pdb
+
+        pdb.set_trace()
         plugin = RebadgePercentilesAsRealizations()
         post_processed_forecast_realizations = plugin(
             post_processed_forecast_realizations,
