@@ -8,11 +8,11 @@ This module defines the plugins required for Ensemble Copula Coupling.
 """
 
 import warnings
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 import iris
 import numpy as np
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
 from numpy import ndarray
 from scipy import stats
@@ -871,57 +871,51 @@ calculate_truncated_normal_crps`,
                 )
                 raise AttributeError(msg)
 
-        if shape_parameters is None:
-            if self.distribution.name == "truncnorm":
-                raise ValueError(
-                    "For the truncated normal distribution, "
-                    "shape parameters must be specified."
-                )
-            shape_parameters = []
-        self.shape_parameters = shape_parameters
-
     def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
-        result = (
-            "<ConvertLocationAndScaleParameters: distribution: {}; "
-            "shape_parameters: {}>"
-        )
-        return result.format(self.distribution.name, self.shape_parameters)
+        result = "<ConvertLocationAndScaleParameters: distribution: {}>"
+        return result.format(self.distribution.name)
 
-    def _rescale_shape_parameters(
-        self, location_parameter: ndarray, scale_parameter: ndarray
-    ) -> None:
+    @staticmethod
+    def _prepare_shape_parameter_truncnorm(
+        shape_parameter: ndarray,
+        location_parameter: ndarray,
+        scale_parameter: ndarray,
+    ) -> ndarray:
         """
-        Rescale the shape parameters for the desired location and scale
-        parameters for the truncated normal distribution. The shape parameters
-        for any other distribution will remain unchanged.
+        Rescale the shape parameter for the desired location and scale
+        parameters for the truncated normal distribution.
 
         For the truncated normal distribution, if the shape parameters are not
         rescaled, then :data:`scipy.stats.truncnorm` will assume that the shape
         parameters are appropriate for a standard normal distribution. As the
         aim is to construct a distribution using specific values for the
         location and scale parameters, the assumption of a standard normal
-        distribution is not appropriate. Therefore the shape parameters are
+        distribution is not appropriate. Therefore, the shape parameters are
         rescaled using the equations:
 
         .. math::
           a\\_rescaled = (a - location\\_parameter)/scale\\_parameter
 
-          b\\_rescaled = (b - location\\_parameter)/scale\\_parameter
-
         Please see :data:`scipy.stats.truncnorm` for some further information.
 
         Args:
+            shape_parameter:
+                Shape parameter to be rescaled using the location and scale parameters
+                for the truncated normal distribution. The input shape parameter is
+                expected to define one truncation point of a truncated normal
+                distribution.
             location_parameter:
                 Location parameter to be used to scale the shape parameters.
             scale_parameter:
                 Scale parameter to be used to scale the shape parameters.
+
+        Returns:
+            A rescaled shape parameter.
         """
-        if self.distribution.name == "truncnorm":
-            rescaled_values = []
-            for value in self.shape_parameters:
-                rescaled_values.append((value - location_parameter) / scale_parameter)
-            self.shape_parameters = rescaled_values
+        rescaled_parameter = (shape_parameter - location_parameter) / scale_parameter
+
+        return rescaled_parameter
 
 
 class ConvertLocationAndScaleParametersToPercentiles(
@@ -935,14 +929,12 @@ class ConvertLocationAndScaleParametersToPercentiles(
 
     def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
-        result = (
-            "<ConvertLocationAndScaleParametersToPercentiles: "
-            "distribution: {}; shape_parameters: {}>"
-        )
-        return result.format(self.distribution.name, self.shape_parameters)
+        result = "<ConvertLocationAndScaleParametersToPercentiles: " "distribution: {}>"
+        return result.format(self.distribution.name)
 
     def _location_and_scale_parameters_to_percentiles(
         self,
+        shape_parameter: CubeList,
         location_parameter: Cube,
         scale_parameter: Cube,
         template_cube: Cube,
@@ -953,6 +945,8 @@ class ConvertLocationAndScaleParametersToPercentiles(
         scale parameters.
 
         Args:
+            shape_parameter:
+                Shape parameter(s) of the calibrated distribution.
             location_parameter:
                 Location parameter of calibrated distribution.
             scale_parameter:
@@ -977,6 +971,9 @@ class ConvertLocationAndScaleParametersToPercentiles(
         """
         # Remove any mask that may be applied to location and scale parameters
         # and replace with ones
+        shape_data = []
+        for cube in shape_parameter:
+            shape_data.append(cube.data.flatten())
         location_data = np.ma.filled(location_parameter.data, 1).flatten()
         scale_data = np.ma.filled(scale_parameter.data, 1).flatten()
 
@@ -989,10 +986,8 @@ class ConvertLocationAndScaleParametersToPercentiles(
             (len(percentiles_as_fractions), location_data.shape[0]), dtype=np.float32
         )
 
-        self._rescale_shape_parameters(location_data, scale_data)
-
         percentile_method = self.distribution(
-            *self.shape_parameters, loc=location_data, scale=scale_data
+            *shape_data, loc=location_data, scale=scale_data
         )
 
         # Loop over percentiles, and use the distribution as the
@@ -1003,9 +998,9 @@ class ConvertLocationAndScaleParametersToPercentiles(
             result[index, :] = percentile_method.ppf(percentile_list)
             # If percent point function (PPF) returns NaNs, fill in
             # mean instead of NaN values. NaN will only be generated if the
-            # scale parameter (standard deviation) is zero or negative. Therefore, if the
-            # scale parameter (standard deviation) is zero or negative, the mean value is
-            # used for all gridpoints with a NaN.
+            # scale parameter (standard deviation) is zero or negative. Therefore, if
+            # the scale parameter (standard deviation) is zero or negative, the mean
+            # value is used for all gridpoints with a NaN.
             if np.any(scale_data <= 0):
                 nan_index = np.argwhere(np.isnan(result[index, :]))
                 result[index, nan_index] = location_data[nan_index]
@@ -1047,6 +1042,7 @@ class ConvertLocationAndScaleParametersToPercentiles(
 
     def process(
         self,
+        shape_parameter: Optional[Union[Cube, CubeList]],
         location_parameter: Cube,
         scale_parameter: Cube,
         template_cube: Cube,
@@ -1057,6 +1053,12 @@ class ConvertLocationAndScaleParametersToPercentiles(
         Generate ensemble percentiles from the location and scale parameters.
 
         Args:
+            shape_parameter:
+                Cube or CubeList containing the shape parameters. If a single shape
+                parameter is required (e.g a Gamma distribution), this should be
+                provided as a Cube. If multiple shape parameters are required (e.g a
+                Truncated Normal distribution), these should be provided as a CubeList,
+                where each Cube contains one shape parameter.
             location_parameter:
                 Cube containing the location parameters.
             scale_parameter:
@@ -1091,11 +1093,39 @@ class ConvertLocationAndScaleParametersToPercentiles(
             )
             raise ValueError(msg)
 
+        if self.distribution.name == "truncnorm":
+            if (
+                shape_parameter is None
+                or not isinstance(shape_parameter, CubeList)
+                or len(shape_parameter) != 2
+            ):
+                raise ValueError(
+                    "For the truncated normal distribution, two shape parameters are "
+                    "required to define the lower and upper truncation points. These "
+                    f"shape parameters were provided: {shape_parameter}."
+                )
+            else:
+                for i, cube in enumerate(shape_parameter.copy()):
+                    # Rescale the shape parameters for the truncated normal
+                    # distribution.
+                    shape_parameter[i].data = self._prepare_shape_parameter_truncnorm(
+                        cube.data, location_parameter.data, scale_parameter.data
+                    )
+
+        if isinstance(shape_parameter, Cube):
+            shape_parameter = iris.cube.CubeList(shape_parameter)
+        elif shape_parameter is None:
+            shape_parameter = iris.cube.CubeList([])
+
         if no_of_percentiles:
             percentiles = choose_set_of_percentiles(no_of_percentiles)
         calibrated_forecast_percentiles = (
             self._location_and_scale_parameters_to_percentiles(
-                location_parameter, scale_parameter, template_cube, percentiles
+                shape_parameter,
+                location_parameter,
+                scale_parameter,
+                template_cube,
+                percentiles,
             )
         )
 
@@ -1113,10 +1143,9 @@ class ConvertLocationAndScaleParametersToProbabilities(
     def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         result = (
-            "<ConvertLocationAndScaleParametersToProbabilities: "
-            "distribution: {}; shape_parameters: {}>"
+            "<ConvertLocationAndScaleParametersToProbabilities: " "distribution: {}>"
         )
-        return result.format(self.distribution.name, self.shape_parameters)
+        return result.format(self.distribution.name)
 
     def _check_template_cube(self, cube: Cube) -> None:
         """
@@ -1190,6 +1219,7 @@ class ConvertLocationAndScaleParametersToProbabilities(
 
     def _location_and_scale_parameters_to_probabilities(
         self,
+        shape_parameter: CubeList,
         location_parameter: Cube,
         scale_parameter: Cube,
         probability_cube_template: Cube,
@@ -1199,6 +1229,8 @@ class ConvertLocationAndScaleParametersToProbabilities(
         on the supplied location and scale parameters.
 
         Args:
+            shape_parameter:
+                Shape parameter(s) of the calibrated distribution.
             location_parameter:
                 Predictor for the calibrated forecast location parameter.
             scale_parameter:
@@ -1220,14 +1252,13 @@ class ConvertLocationAndScaleParametersToProbabilities(
         mask = np.logical_or(loc_mask, scale_mask)
         # Remove any mask that may be applied to location and scale parameters
         # and replace with ones
+        shape_data = []
+        for cube in shape_parameter:
+            shape_data.append(cube.data.flatten())
         location_parameter.data = np.ma.filled(location_parameter.data, 1)
         scale_parameter.data = np.ma.filled(scale_parameter.data, 1)
         thresholds = find_threshold_coordinate(probability_cube_template).points
         relative_to_threshold = probability_is_above_or_below(probability_cube_template)
-
-        self._rescale_shape_parameters(
-            location_parameter.data.flatten(), scale_parameter.data.flatten()
-        )
 
         # Loop over thresholds, and use the specified distribution with the
         # location and scale parameter to calculate the probabilities relative
@@ -1235,7 +1266,7 @@ class ConvertLocationAndScaleParametersToProbabilities(
         probabilities = np.empty_like(probability_cube_template.data)
 
         distribution = self.distribution(
-            *self.shape_parameters,
+            *shape_data,
             loc=location_parameter.data.flatten(),
             scale=scale_parameter.data.flatten(),
         )
@@ -1258,6 +1289,7 @@ class ConvertLocationAndScaleParametersToProbabilities(
 
     def process(
         self,
+        shape_parameter: Optional[Union[Cube, CubeList]],
         location_parameter: Cube,
         scale_parameter: Cube,
         probability_cube_template: Cube,
@@ -1267,6 +1299,12 @@ class ConvertLocationAndScaleParametersToProbabilities(
         distribution.
 
         Args:
+            shape_parameter:
+                Cube or CubeList containing the shape parameters. If a single shape
+                parameter is required (e.g a Gamma distribution), this should be
+                provided as a Cube. If multiple shape parameters are required (e.g a
+                Truncated Normal distribution), these should be provided as a CubeList,
+                where each Cube contains one shape parameter.
             location_parameter:
                 Cube containing the location parameters.
             scale_parameter:
@@ -1286,8 +1324,35 @@ class ConvertLocationAndScaleParametersToProbabilities(
             location_parameter, scale_parameter, probability_cube_template
         )
 
+        if self.distribution.name == "truncnorm":
+            if (
+                shape_parameter is None
+                or not isinstance(shape_parameter, CubeList)
+                or len(shape_parameter) != 2
+            ):
+                raise ValueError(
+                    "For the truncated normal distribution, two shape parameters are "
+                    "required to define the lower and upper truncation points. These "
+                    f"shape parameters were provided: {shape_parameter}."
+                )
+            else:
+                for i, cube in enumerate(shape_parameter.copy()):
+                    # Rescale the shape parameters for the truncated normal
+                    # distribution.
+                    shape_parameter[i].data = self._prepare_shape_parameter_truncnorm(
+                        cube.data, location_parameter.data, scale_parameter.data
+                    )
+
+        if isinstance(shape_parameter, Cube):
+            shape_parameter = iris.cube.CubeList(shape_parameter)
+        elif shape_parameter is None:
+            shape_parameter = iris.cube.CubeList([])
+
         probability_cube = self._location_and_scale_parameters_to_probabilities(
-            location_parameter, scale_parameter, probability_cube_template
+            shape_parameter,
+            location_parameter,
+            scale_parameter,
+            probability_cube_template,
         )
 
         return probability_cube
