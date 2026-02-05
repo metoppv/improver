@@ -1023,6 +1023,7 @@ def test_clusterandmatch_init_invalid_clustering_method():
 def test_clusterandmatch_process_basic():
     """Test basic end-to-end processing with simple hierarchy."""
     pytest.importorskip("kmedoids")
+    pytest.importorskip("esmf_regrid")
 
     # Create cubes with distinct, verifiable values
     cubes = iris.cube.CubeList()
@@ -1156,6 +1157,7 @@ def test_clusterandmatch_cluster_primary_input(
     ):
     """Test clustering and matching with various secondary input forecast period coverage."""
     pytest.importorskip("kmedoids")
+    pytest.importorskip("esmf_regrid")
 
     cubes = iris.cube.CubeList()
     spatial_shape = (5, 5)
@@ -1285,6 +1287,7 @@ def test_clusterandmatch_precedence_order(
     even if a lower-precedence input is a better match to the primary.
     """
     pytest.importorskip("kmedoids")
+    pytest.importorskip("esmf_regrid")
 
     # Create cubes with distinct patterns
     cubes = iris.cube.CubeList()
@@ -1367,6 +1370,7 @@ def test_clusterandmatch_precedence_order(
 def test_clusterandmatch_overlapping_forecast_periods():
     """Test handling of overlapping forecast periods with different precedence."""
     pytest.importorskip("kmedoids")
+    pytest.importorskip("esmf_regrid")
 
     cubes = iris.cube.CubeList()
     spatial_shape = (5, 5)
@@ -1459,6 +1463,7 @@ def test_clusterandmatch_overlapping_forecast_periods():
 def test_clusterandmatch_single_secondary_input():
     """Test with only one secondary input."""
     pytest.importorskip("kmedoids")
+    pytest.importorskip("esmf_regrid")
 
     cubes = iris.cube.CubeList()
     spatial_shape = (5, 5)
@@ -1568,6 +1573,7 @@ def test_clusterandmatch_categorise_full_realizations(
     This ensures the 'continue' line in _process_full_realization_inputs is covered.
     """
     pytest.importorskip("kmedoids")
+    pytest.importorskip("esmf_regrid")
 
     cubes = iris.cube.CubeList()
     spatial_shape = (5, 5)
@@ -1654,6 +1660,7 @@ def test_clusterandmatch_categorise_partial_realizations():
     The result should merge partial secondary inputs with the clustered primary.
     """
     pytest.importorskip("kmedoids")
+    pytest.importorskip("esmf_regrid")
 
     cubes = iris.cube.CubeList()
     spatial_shape = (5, 5)
@@ -1780,6 +1787,7 @@ def test_clusterandmatch_multiple_partial_secondary_same_forecast_period():
     forecast period.
     """
     pytest.importorskip("kmedoids")
+    pytest.importorskip("esmf_regrid")
 
     cubes = iris.cube.CubeList()
     spatial_shape = (5, 5)
@@ -1905,6 +1913,7 @@ def test_clusterandmatch_categorise_mixed_realizations():
     realizations to fill all clusters while others have fewer.
     """
     pytest.importorskip("kmedoids")
+    pytest.importorskip("esmf_regrid")
 
     cubes = iris.cube.CubeList()
     spatial_shape = (5, 5)
@@ -2018,6 +2027,7 @@ def test_clusterandmatch_regrid_for_clustering_false():
     3. Results are produced successfully with original grid data
     """
     pytest.importorskip("kmedoids")
+    pytest.importorskip("esmf_regrid")
 
     cubes = iris.cube.CubeList()
     spatial_shape = (5, 5)
@@ -2142,6 +2152,7 @@ def test_clusterandmatch_regrid_for_clustering_and_target_grid_name(
     target_grid_name can be omitted (None).
     """
     pytest.importorskip("kmedoids")
+    pytest.importorskip("esmf_regrid")
 
     hierarchy = {
         "primary_input": "model_a",
@@ -2202,6 +2213,7 @@ def test_clusterandmatch_full_realization_input_missing_forecast_period():
     """Test that if a secondary input is missing a forecast period listed in the hierarchy,
     the code continues gracefully and does not replace the primary data for that period."""
     pytest.importorskip("kmedoids")
+    pytest.importorskip("esmf_regrid")
 
     cubes = iris.cube.CubeList()
     spatial_shape = (4, 4)
@@ -2295,6 +2307,7 @@ def test_clusterandmatch_secondary_input_missing_primary_forecast_period(
     skipped (not included in the result).
     """
     pytest.importorskip("kmedoids")
+    pytest.importorskip("esmf_regrid")
 
     cubes = iris.cube.CubeList()
     spatial_shape = (5, 5)

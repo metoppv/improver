@@ -271,16 +271,24 @@ class RealizationToClusterMatcher(BasePlugin):
         cluster_to_realization = {}
         cluster_to_mse = {}
 
+        # Iterate through realizations in order of descending cost. For example,
+        # realization_order might be [3, 1, 0, 2].
         for loop_idx, realization_idx in enumerate(realization_order):
-            n_realizations_remaining = n_realizations - loop_idx
+            # assigned_clusters is a list of cluster indices that have already
+            # been assigned to a realization. In the first iteration, this will be
+            # empty. In later iterations, this will contain the clusters that have
+            # already been assigned to realizations in previous iterations.
+            # clusters_remaining is the number of clusters that have not yet been
+            # assigned to any realization.
             assigned_clusters = list(cluster_to_realization.keys())
             clusters_remaining = n_clusters - len(assigned_clusters)
 
-            mse_values = realization_cluster_mse[realization_idx].copy()
             # If there are at least as many unassigned clusters as remaining
             # realizations, prevent competition for already-assigned clusters by
             # setting their MSE to inf. This forces each remaining realization to
             # select from unassigned clusters.
+            mse_values = realization_cluster_mse[realization_idx].copy()
+            n_realizations_remaining = n_realizations - loop_idx
             if n_realizations_remaining <= clusters_remaining:
                 mse_values[assigned_clusters] = np.inf
             # Skip this realization if all MSE values are NaN
@@ -289,6 +297,9 @@ class RealizationToClusterMatcher(BasePlugin):
 
             cluster_idx = np.nanargmin(mse_values)
             if mse_values[cluster_idx] < cluster_to_mse.get(cluster_idx, np.inf):
+                # cluster_to_realization maps cluster indices to the currently assigned
+                # realization index e.g. {1: 3}. cluster_to_mse maps cluster indices
+                # to the MSE of the currently assigned realization e.g. {1: 10000}.
                 cluster_to_mse[cluster_idx] = mse_values[cluster_idx]
                 cluster_to_realization[cluster_idx] = realization_idx
 
