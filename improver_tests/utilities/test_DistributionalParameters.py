@@ -73,7 +73,7 @@ def test_process(distribution, forecast_type):
         expected_scale = np.full(data_shape, 2.0, dtype=np.float32)
     elif distribution == "gamma":
         expected_shape = np.full(data_shape, (3.0 / 2.0) ** 2, dtype=np.float32)
-        expected_location = None
+        expected_location = np.full(data_shape, 0.0, dtype=np.float32)
         expected_scale = np.full(data_shape, (2.0**2) / 3.0, dtype=np.float32)
 
     expected_data_arrays = [expected_shape, expected_location, expected_scale]

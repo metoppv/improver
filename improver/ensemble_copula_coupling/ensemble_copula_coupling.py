@@ -1113,7 +1113,7 @@ class ConvertLocationAndScaleParametersToPercentiles(
                     )
 
         if isinstance(shape_parameter, Cube):
-            shape_parameter = iris.cube.CubeList(shape_parameter)
+            shape_parameter = iris.cube.CubeList([shape_parameter])
         elif shape_parameter is None:
             shape_parameter = iris.cube.CubeList([])
 
@@ -1344,7 +1344,7 @@ class ConvertLocationAndScaleParametersToProbabilities(
                     )
 
         if isinstance(shape_parameter, Cube):
-            shape_parameter = iris.cube.CubeList(shape_parameter)
+            shape_parameter = iris.cube.CubeList([shape_parameter])
         elif shape_parameter is None:
             shape_parameter = iris.cube.CubeList([])
 

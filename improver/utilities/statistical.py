@@ -122,7 +122,7 @@ class DistributionalParameters(BasePlugin):
             Arrays containing shape and scale parameters of a gamma distribution.
         """
         shape = (mean / sd) ** 2
-        loc = None
+        loc = np.full_like(mean, 0)
         scale = sd**2 / mean
         return shape, loc, scale
 
