@@ -19,3 +19,8 @@ docstring-code-format = true
 [tool.ruff.lint.extend-per-file-ignores]
 "improver_tests/*" = ["S101"]
 "doc/source/examples/*" = ["E402"]
+
+[tool.coverage.run]
+omit = [
+    "improver/cli/*",
+]

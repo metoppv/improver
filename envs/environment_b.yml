@@ -1,7 +1,8 @@
 # This environment is a representative example for usage of IMPROVER
 # It does not include dependencies for the following IMPROVER CLIs:
-# estimate-emos-coefficients, nowcast-accumulate, nowcast-extrapolate
-# and nowcast-optical-flow-from-winds
+# estimate-emos-coefficients, nowcast-accumulate, nowcast-extrapolate,
+# nowcast-optical-flow-from-winds, temporal-interpolate and
+# forecast-trajectory-gap-filler.
 # See doc/source/Dependencies.rst for more information
 name: improver_b
 channels:
@@ -13,7 +14,7 @@ dependencies:
   - clize
   - iris=3.12
   - numpy=2.2
-  - pandas
+  - pandas<3  # https://github.com/SciTools/iris/issues/6761
   - pytz
   - scipy=1.15
   - sphinx<9.0.0  # https://github.com/tox-dev/sphinx-autodoc-typehints/issues/586

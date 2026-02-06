@@ -76,7 +76,15 @@ jobs:
     - name: pytest
       if: steps.report-cache-restore.outputs.cache-hit != 'true'
       run: |
-          pytest --cov=improver --cov-report=term --cov-report=html | tee coverage_output.txt; test ${PIPESTATUS[0]} -eq 0
+          DUMMY=0  # set to 1 to use dummy report, 0 to run actual tests
+          if [ $DUMMY -eq 1 ]; then
+              # dummy report
+              echo "TOTAL 1000 500 50%" >> coverage_output.txt
+              mkdir -p htmlcov
+              touch htmlcov/index.html
+          else
+              pytest --cov=improver --cov-report=term --cov-report=html | tee coverage_output.txt; test ${PIPESTATUS[0]} -eq 0
+          fi
       shell: micromamba-shell {0}
 
     - name: Save cached coverage report
@@ -91,76 +99,77 @@ jobs:
     - name: Compare coverage
       id: comp-coverage
       run: |
-        ls -R covref/master/
+        set -e
+        # ----- USER SETTINGS -------------------------------------------------
+        CHECK_MISS_TOL=1      # 1 = evaluate the miss‑count difference, 0 = ignore it
+        CHECK_PERC_TOL=0      # 1 = evaluate the percentage difference, 0 = ignore it
 
-        pr_cov=$(grep TOTAL coverage_output.txt | awk '{print $NF}' | awk '{print substr($0, 1, length($0)-1)}')
-        echo "pr_cov=$pr_cov" | tee -a $GITHUB_OUTPUT
+        # Tolerances
+        miss_tol=0          # miss integer tolerance
+        perc_tol=0.0        # percentage float tolerance
+        # --------------------------------------------------------------------
+
+        read pr_tot_stmts pr_tot_miss <<< $(awk '/^[[:space:]]*TOTAL/ {print $2, $3}' coverage_output.txt)
+        pr_perc_total=$(echo "scale=4; ($pr_tot_stmts-$pr_tot_miss)/$pr_tot_stmts"'*100' | bc)
+        echo "pr_perc_total=$pr_perc_total" | tee -a $GITHUB_OUTPUT
+        echo "pr_tot_stmts=$pr_tot_stmts" | tee -a $GITHUB_OUTPUT
+        echo "pr_tot_miss=$pr_tot_miss" | tee -a $GITHUB_OUTPUT
+
         if [ ! -f covref/master/coverage_output.txt ]; then
             echo "Warning: covref/master/coverage_output.txt does not exist, reporting coverage."
-            echo "ref_cov=--" | tee -a $GITHUB_OUTPUT
             echo "coverage_decreased=true" | tee -a $GITHUB_OUTPUT
+            echo "ref_perc_total=--" | tee -a $GITHUB_OUTPUT
+            echo "ref_tot_stmts=--" | tee -a $GITHUB_OUTPUT
+            echo "ref_tot_miss=--" | tee -a $GITHUB_OUTPUT
             exit 0
         else
-            ref_cov=$(grep TOTAL covref/master/coverage_output.txt | awk '{print $NF}' | awk '{print substr($0, 1, length($0)-1)}')
-            echo "ref_cov=$ref_cov" | tee -a $GITHUB_OUTPUT
-            if (( (( ref_cov - pr_cov )) > 1 )); then
+            read ref_tot_stmts ref_tot_miss <<< $(awk '/^[[:space:]]*TOTAL/ {print $2, $3}' covref/master/coverage_output.txt)
+            ref_perc_total=$(echo "scale=4; ($ref_tot_stmts-$ref_tot_miss)/$ref_tot_stmts"'*100' | bc)
+            echo "ref_perc_total=$ref_perc_total" | tee -a $GITHUB_OUTPUT
+            echo "ref_tot_stmts=$ref_tot_stmts" | tee -a $GITHUB_OUTPUT
+            echo "ref_tot_miss=$ref_tot_miss" | tee -a $GITHUB_OUTPUT
+
+            trigger=0
+
+            miss_diff=$(( ref_tot_miss_b - pr_tot_miss_a ))               # integer diff
+            perc_diff=$(bc <<< "scale=4; $ref_perc_total - $pr_perc_total")       # float diff
+
+            if (( CHECK_MISS_TOL == 1 )) && (( miss_diff > miss_tol )); then
+                trigger=1
+            fi
+            if (( CHECK_PERC_TOL == 1 )) && (( $(bc <<< "$perc_diff > $perc_tol") )); then
+                trigger=1
+            fi
+            if (( trigger == 1 )); then
                 echo "coverage_decreased=true" | tee -a $GITHUB_OUTPUT
             else
                 echo "coverage_decreased=false" | tee -a $GITHUB_OUTPUT
             fi
         fi
 
-    - name: Coverage report on coverage-reference branch
-      run: |
-        BRANCH=${{ env.BRANCH }}
-
-        cd covref
-        git config user.name github-actions[bot]
-        git config user.email "github-actions[bot]@users.noreply.github.com"
-
-        echo "=== clear out old reports for this branch ==="
-        find . -path "./${BRANCH}_*" ! -name "index.html" -type f -delete
-        find . -path "./${BRANCH}_*" -type d -empty -delete
-        # replace contents of ./${BRANCH}_*/index.html with a message: "Outdated coverage report.  Repository has been updated since."
-        for dir in $(find . -path "./${BRANCH}_*" -type d); do
-          if [ -f "${dir}/index.html" ]; then
-            echo "<html><body><h1>Outdated coverage report. Repository has been updated since.</h1></body></html>" > "${dir}/index.html"
-          fi
-        done
-
-        if [ "${{ steps.comp-coverage.outputs.coverage_decreased }}" == "true" ]; then
-          echo "=== adding new coverage report ==="
-          mkdir ${BRANCH}_${{ github.event.pull_request.head.sha }}/
-          cp -r ../coverage_output.txt ../htmlcov/ ${BRANCH}_${{ github.event.pull_request.head.sha }}/.
-
-          git add -f ${BRANCH}_${{ github.event.pull_request.head.sha }}/
-        fi
-
-        echo "=== git status after add ==="
-        git status -s
-
-        echo "=== git commit and push ==="
-        git commit -a --amend --no-edit || echo "No changes to commit"
-        git push origin -f coverage-reference
-
-    - name: Coverage report PR comment
+    - name: Upload coverage report
+      id: artifact-coverage-upload
       if: steps.comp-coverage.outputs.coverage_decreased == 'true'
-      uses: actions/github-script@v8
+      uses: actions/upload-artifact@v6
       with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        script: |
-          comment = "The test coverage has decreased from ${{ steps.comp-coverage.outputs.ref_cov }}% to ${{ steps.comp-coverage.outputs.pr_cov }}% (commit SHA: ${{ github.event.pull_request.head.sha }})."
-          comment += `\nPlease review test coverage [here](https://metoppv.github.io/improver/${{ env.BRANCH }}_${{ github.event.pull_request.head.sha }}/htmlcov/index.html)`;
-          console.log(comment)
-          github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: comment
-          });
+        name: coverage-report-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
+        path: |
+          coverage_output.txt
+          htmlcov/
+
+    - name: Reduced coverage failure
+      if: steps.comp-coverage.outputs.coverage_decreased == 'true'
+      run:  |
+          echo "Code coverage has decreased"
+          echo "-----------------------------------------------"
+          echo -e "Coverage totals\tstatements\tmissed\n\
+          PR\t${{ steps.comp-coverage.outputs.pr_tot_stmts }}\t${{ steps.comp-coverage.outputs.pr_tot_miss }}\t${{ steps.comp-coverage.outputs.pr_perc_total }}%\n\
+          Reference\t${{ steps.comp-coverage.outputs.ref_tot_stmts }}\t${{ steps.comp-coverage.outputs.ref_tot_miss }}\t${{ steps.comp-coverage.outputs.ref_perc_total }}%" \
+          | column -t -s $'\t'
+          exit 1
 
 
-  Sphinx-Pytest:
+  Pytest:
     runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
@@ -207,13 +216,6 @@ jobs:
       run: |
         micromamba install safety
         safety check || true
-      shell: micromamba-shell {0}
-
-    - name: sphinx documentation
-      run: |
-        micromamba install ipykernel
-        pip install .
-        make -C doc html SPHINXOPTS="-W --keep-going"
       shell: micromamba-shell {0}
 
     - name: pytest

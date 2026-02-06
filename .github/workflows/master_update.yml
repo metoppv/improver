@@ -14,7 +14,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v6
       with:
-        fetch-depth: 0
+        fetch-depth: 1
 
     - name: Substitute branch name in environment files
       run: |
@@ -39,20 +39,24 @@ jobs:
           pytest --cov=improver --cov-report=term --cov-report=html | tee coverage_output.txt; test ${PIPESTATUS[0]} -eq 0
       shell: micromamba-shell {0}
 
+    - name: Checkout reference coverage report
+      uses: actions/checkout@v6
+      with:
+        fetch-depth: 1
+        path: covref
+        ref: coverage-reference
+
     - name: Commit and push coverage report
       run: |
+        cd covref
         git config user.name github-actions[bot]
         git config user.email "github-actions[bot]@users.noreply.github.com"
 
-        git worktree add /tmp/coverage-ref coverage-reference
+        rm -rf master/
+        mkdir master/
 
-        rm -rf /tmp/coverage-ref/master/
-        mkdir /tmp/coverage-ref/master/
-
-        cp coverage_output.txt /tmp/coverage-ref/master/.
-        cp -r htmlcov/ /tmp/coverage-ref/master/.
-
-        cd /tmp/coverage-ref
+        cp ../coverage_output.txt master/.
+        cp -r ../htmlcov/ master/.
         git add -f master/
 
         # identify directories who's creation date is older than 14 days (excluding master/) and remove them

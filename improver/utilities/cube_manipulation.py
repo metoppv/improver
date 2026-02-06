@@ -57,7 +57,7 @@ def collapsed(cube: Cube, *args: Any, **kwargs: Any) -> Cube:
     return new_cube
 
 
-def collapse_time(cube, *args: Any) -> Cube:
+def collapse_time(cube, *args: Any, **kwargs: Any) -> Cube:
     """Collapses a time / forecast period coord of a cube and modifies the
     time coordinates to place the point at the end of the bound range. If the
     coordinate being collapsed (time or forecast_period) is of length 1 the
@@ -84,7 +84,7 @@ def collapse_time(cube, *args: Any) -> Cube:
     if cube.coord("time").shape[0] == 1:
         return cube
 
-    collapsed_cube = collapsed(cube, *args)
+    collapsed_cube = collapsed(cube, *args, **kwargs)
     enforce_time_point_standard(collapsed_cube)
 
     return collapsed_cube

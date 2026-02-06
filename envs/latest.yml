@@ -26,20 +26,22 @@ dependencies:
   - pysteps
   - treelite
   - tl2cgen
+  - tensorflow
+  - tensorflow-hub
   # Development
   - astroid
   - codacy-coverage
   - filelock
   - mock
   - mypy
+  - pandas<3  # https://github.com/SciTools/iris/issues/6761
   - pytest
   - pytest-cov
   - pytest-xdist
   - sphinx-autodoc-typehints
-  - sphinx-book-theme  
+  - sphinx-book-theme
   - sphinx-gallery
   - threadpoolctl
-  - pytest-xdist
   - pip
   - pip:
-    - git+https://github.com/metoppv/improver_example_data.git@${BRANCH_NAME}  
+    - git+https://github.com/metoppv/improver_example_data.git@${BRANCH_NAME}

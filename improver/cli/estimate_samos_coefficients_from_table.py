@@ -26,6 +26,7 @@ def process(
     diagnostic: str,
     cycletime: str,
     unique_site_id_key: str = "wmo_id",
+    constant_extrapolation: bool = False,
 ):
     """Estimate EMOS coefficients for use with SAMOS.
 
@@ -74,7 +75,7 @@ def process(
         predictor (str):
             String to specify the form of the predictor used to calculate the
             location parameter when estimating the EMOS coefficients.
-            Currently the ensemble mean ("mean") and the ensemble realizations
+            Currently, the ensemble mean ("mean") and the ensemble realizations
             ("realizations") are supported as options.
         tolerance (float):
             The tolerance for the Continuous Ranked Probability Score (CRPS)
@@ -110,6 +111,12 @@ def process(
             in the input cubes that contains unique site IDs, e.g. "wmo_id" if
             all sites have a valid wmo_id. For estimation the default is "wmo_id"
             as we expect to be including observation data.
+        constant_extrapolation:
+            If True, when predicting mean and standard deviation from the GAMs,
+            when the predictor values are outside the range of those used to fit
+            the GAM, constant extrapolation (i.e. the nearest boundary value) will
+            be used. If False, extrapolation extends the trend of each
+            GAM term beyond the range of the training data. Default is False.
 
     Returns:
         iris.cube.CubeList or None:
@@ -170,6 +177,7 @@ def process(
         distribution="norm",
         emos_kwargs=emos_kwargs,
         unique_site_id_key=unique_site_id_key,
+        constant_extrapolation=constant_extrapolation,
     )
     return plugin(
         historic_forecasts=forecast_cube,

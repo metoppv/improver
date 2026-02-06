@@ -494,18 +494,58 @@ class HumidityMixingRatio(BasePlugin):
         )
         return cube
 
-    def generate_pressure_cube(self) -> None:
-        """Generate a pressure cube from the pressure coordinate on the temperature cube"""
-        coord_list = [coord.name() for coord in self.temperature.coords()]
+    def _make_pressure_list(self, temperature_cube) -> CubeList:
         pressure_list = CubeList()
-        for temp_slice in self.temperature.slices_over("pressure"):
+        for temp_slice in temperature_cube.slices_over("pressure"):
             pressure_value = temp_slice.coord("pressure").points
             temp_slice.data = np.broadcast_to(pressure_value, temp_slice.shape)
             pressure_list.append(temp_slice)
-        self.pressure = pressure_list.merge_cube()
-        enforce_coordinate_ordering(self.pressure, coord_list)
-        self.pressure.rename("surface_air_pressure")
-        self.pressure.units = "Pa"
+        return pressure_list
+
+    def generate_pressure_cube(self, temperature_cube) -> Cube:
+        """
+        Generate a pressure cube from the pressure coordinate on the temperature cube.
+
+        If there is a pressure coordinate in the temperature and relative humidity cubes, and
+        no pressure cube has been provided (as is the case for calculating virtual temperature
+        on pressure levels, for example) the pressure cube is generated from the from the
+        pressure coordinate on the temperature cube. The temperature cube has a status flag
+        that indicates where the data were derived by StaGE for data points that fell below
+        the model orography, the flag meaning is above_surface_pressure below_surface_pressure.
+        These values are expanded in the process of concatenating the cube and if they are to
+        be retained, should be copied back in to the output of the final calculation from the
+        input cubes.
+
+        See https://scitools-iris.readthedocs.io/en/stable/further_topics/controlling_merge.html
+        for more information
+        """
+
+        coord_list = [coord.name() for coord in temperature_cube.coords()]
+        pressure_list = self._make_pressure_list(temperature_cube)
+
+        try:
+            expanded_pressure_list = CubeList(
+                iris.util.new_axis(cube, "pressure", expand_extras=["status_flag"])
+                for cube in pressure_list
+            )
+        except KeyError:
+            expanded_pressure_list = CubeList(
+                iris.util.new_axis(cube, "pressure") for cube in pressure_list
+            )
+
+        try:
+            pressure_cube = expanded_pressure_list.concatenate_cube()
+        except iris.exceptions.ConcatenateError as error:
+            raise RuntimeError(
+                "Unable to concatenate pressure cubelist with input ",
+                expanded_pressure_list,
+                error,
+            )
+
+        enforce_coordinate_ordering(pressure_cube, coord_list)
+        pressure_cube.rename("surface_air_pressure")
+        pressure_cube.units = "Pa"
+        return pressure_cube
 
     def _handle_zero_humidity(self):
         """Sets the minimum humidity value to half the least significant value
@@ -525,11 +565,10 @@ class HumidityMixingRatio(BasePlugin):
         Args:
             cubes:
                 Cubes of temperature (K) and relative humidity (1). A cube of pressure (Pa) must also
-                be provided unless there is a pressure coordinate in the temperature and relative humidity cubes.
-
+                be provided unless there is a pressure coordinate in the temperature and relative
+                humidity cubes.
         Returns:
             Cube of humidity mixing ratio on same levels as input cubes
-
         """
         cubes = as_cubelist(*cubes)
         self.rel_humidity = cubes.extract_cube(
@@ -564,14 +603,14 @@ class HumidityMixingRatio(BasePlugin):
                 raise ValueError(f"{more_than_one.group()} with 'pressure' in name.")
 
             # If no pressure cube is provided, check if pressure is a coordinate in the temperature and relative humidity cubes
-            temp_coord_flag = any(
+            temp_cube_has_pressure_coord = any(
                 coord.name() == "pressure" for coord in self.temperature.coords()
             )
-            rh_coord_flag = any(
+            rh_cube_has_pressure_coord = any(
                 coord.name() == "pressure" for coord in self.rel_humidity.coords()
             )
-            if temp_coord_flag & rh_coord_flag:
-                self.generate_pressure_cube()
+            if temp_cube_has_pressure_coord & rh_cube_has_pressure_coord:
+                self.pressure = self.generate_pressure_cube(self.temperature)
             else:
                 raise ValueError(
                     "No pressure cube with name 'pressure' found and no pressure coordinate found in temperature or relative humidity cubes"

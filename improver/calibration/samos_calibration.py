@@ -7,11 +7,13 @@ This module defines all the "plugins" specific to Standardised Anomaly Model Out
 Statistics (SAMOS).
 """
 
+import datetime
 import warnings
 from typing import Dict, List, Optional, Sequence, Tuple
 
 import iris
 import iris.pandas
+import numpy as np
 import pandas as pd
 
 try:
@@ -23,11 +25,7 @@ except ModuleNotFoundError:
             pass
 
 
-from iris.analysis import MEAN, STD_DEV, SUM
 from iris.cube import Cube, CubeList
-from iris.util import new_axis
-from numpy import array, clip, float32, int64, isnan, nan
-from numpy.ma import masked_all_like
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.calibration import add_static_feature_from_cube_to_df
@@ -41,7 +39,11 @@ from improver.calibration.emos_calibration import (
 )
 from improver.ensemble_copula_coupling.utilities import get_bounds_of_distribution
 from improver.metadata.probabilistic import find_threshold_coordinate
-from improver.utilities.cube_manipulation import collapse_realizations
+from improver.utilities.cube_manipulation import (
+    MergeCubes,
+    collapse_realizations,
+    collapse_time,
+)
 from improver.utilities.generalized_additive_models import GAMFit, GAMPredict
 from improver.utilities.mathematical_operations import CalculateClimateAnomalies
 
@@ -80,8 +82,10 @@ def prepare_data_for_gam(
         input_cube and containing the following columns:
         1. A column with the same name as input_cube containing the original cube data
         2. A series of columns derived from the input_cube dimension coordinates
-        3. A series of columns associated with any auxiliary coordinates (scalar or otherwise) of input_cube
-        4. One column associated with each of the cubes in additional cubes, with column names matching the associated cube
+        3. A series of columns associated with any auxiliary coordinates
+        (scalar or otherwise) of input_cube
+        4. One column associated with each of the cubes in additional cubes, with
+        column names matching the associated cube
 
 
     """
@@ -163,6 +167,7 @@ def get_climatological_stats(
     additional_cubes: Optional[CubeList],
     sd_clip: float = 0.25,
     unique_site_id_key: Optional[str] = None,
+    constant_extrapolation: bool = False,
 ) -> Tuple[Cube, Cube]:
     """Function to predict climatological means and standard deviations given fitted
     GAMs for each statistic and cubes which can be used to construct a dataframe
@@ -186,6 +191,11 @@ def get_climatological_stats(
             If working with spot data and available, the name of the coordinate
             in the input cubes that contains unique site IDs, e.g. "wmo_id" if
             all sites have a valid wmo_id.
+        constant_extrapolation:
+            If True, predictor values outside the range of those used to fit the GAM
+            will be predicted using constant extrapolation (i.e. the nearest
+            boundary value). If False, extrapolation extends the trend of each
+            GAM term beyond the range of the training data. Default is False.
 
     Returns:
         A pair of cubes containing climatological mean and climatological standard
@@ -199,8 +209,12 @@ def get_climatological_stats(
 
     # Calculate climatological means and standard deviations using previously
     # fitted GAMs.
-    mean_pred = GAMPredict().process(gams[0], df[gam_features])
-    sd_pred = GAMPredict().process(gams[1], df[gam_features])
+    mean_pred = GAMPredict(constant_extrapolation=constant_extrapolation).process(
+        gams[0], np.array(df[gam_features])
+    )
+    sd_pred = GAMPredict(constant_extrapolation=constant_extrapolation).process(
+        gams[1], np.array(df[gam_features])
+    )
 
     # Convert means and standard deviations into cubes
     df[diagnostic] = mean_pred
@@ -208,7 +222,7 @@ def get_climatological_stats(
 
     df[diagnostic] = sd_pred
     sd_cube = convert_dataframe_to_cube(df, input_cube)
-    sd_cube.data = clip(sd_cube.data, a_min=sd_clip, a_max=None)
+    sd_cube.data = np.clip(sd_cube.data, a_min=sd_clip, a_max=None)
 
     return mean_cube, sd_cube
 
@@ -232,8 +246,9 @@ class TrainGAMsForSAMOS(BasePlugin):
         distribution: str = "normal",
         link: str = "identity",
         fit_intercept: bool = True,
-        window_length: int = 11,
-        valid_rolling_window_fraction: float = 0.5,
+        window_length: int = 10,
+        required_rolling_window_points: int = 5,
+        trailing_window: bool = False,
         unique_site_id_key: Optional[str] = None,
     ):
         """
@@ -261,15 +276,21 @@ class TrainGAMsForSAMOS(BasePlugin):
                 A pyGAM argument determining whether to include an intercept term in
                 the model.
             window_length:
-                This must be an odd integer greater than 1. The length of the rolling
-                window used to calculate the mean and standard deviation of the input
-                cube when the input cube does not have a realization dimension
-                coordinate.
-            valid_rolling_window_fraction:
-                This must be a float between 0 and 1, inclusive. When performing
-                rolling window calculations, if a given window has less than this
-                fraction of valid data points (not NaN) then the value returned will be
-                NaN and will be excluded from training.
+                The length of the rolling window, in days, used to calculate the mean
+                and standard deviation of the input cube when the input cube does not
+                have a realization dimension coordinate. If using a centred rolling
+                window, this must be an even integer greater than 1 in order to allow
+                equal numbers of days on either side of the central time point. If
+                using a trailing rolling window, this must be an integer greater than 1.
+            required_rolling_window_points:
+                The minimum number of valid data points required within a rolling
+                window. If fewer valid points are present, the mean and standard
+                deviation will be set to NaN for this window.
+            trailing_window:
+                If False, a centred window is used, which assigns the calculated
+                statistic to the central time point in the window. If True, a trailing
+                window is used, which assigns the calculated statistic to the final time
+                point.
             unique_site_id_key:
                 An optional key to use for uniquely identifying each site in the
                 training data. If not provided, the default behavior is to use the
@@ -283,174 +304,124 @@ class TrainGAMsForSAMOS(BasePlugin):
         self.fit_intercept = fit_intercept
         self.unique_site_id_key = unique_site_id_key
 
-        if window_length < 3 or window_length % 2 == 0 or window_length % 1 != 0:
+        # Check if the window_length is an integer greater than one.
+        raise_window_warning = False
+        if window_length < 2 or window_length % 1 != 0:
+            raise_window_warning = True
+
+        if trailing_window & raise_window_warning:
             raise ValueError(
-                "The window_length input must be an odd integer greater than 1. "
-                f"Received: {window_length}."
+                "The window_length input must be an integer greater than 1 when "
+                f"using a trailing rolling window. Received: {window_length}."
+            )
+        elif raise_window_warning or window_length % 2 != 0:
+            # Additionally, check if window_length is even when using a centred window.
+            raise ValueError(
+                "The window_length input must be an even integer greater than 1 "
+                f"when using a centred rolling window. Received: {window_length}."
             )
         else:
             self.window_length = window_length
+            self.trailing_window = trailing_window
 
-        if not (0 <= valid_rolling_window_fraction <= 1):
+        if (
+            not isinstance(required_rolling_window_points, int)
+            or required_rolling_window_points < 2
+        ):
             raise ValueError(
-                "The valid_rolling_window_fraction input must be between 0 and 1. "
-                f"Received: {valid_rolling_window_fraction}."
+                "The required_rolling_window_points input must be an integer greater "
+                f"than 1. Received: {required_rolling_window_points}."
             )
         else:
-            self.valid_rolling_window_fraction = valid_rolling_window_fraction
-
-    def apply_aggregator(
-        self, padded_cube: Cube, aggregator: iris.analysis.WeightedAggregator
-    ) -> Cube:
-        """
-        Internal function to apply rolling window aggregator to padded cube.
-
-        Args:
-            padded_cube:
-                The cube to have rolling window calculation applied to.
-            aggregator:
-                The aggregator to use in the rolling window calculation.
-
-        Returns:
-            A cube containing the result of the rolling window calculation. Any
-            cell methods and time bounds are removed from the cube as they are not
-            necessary for later calculations.
-        """
-        summary_cube = padded_cube.rolling_window(
-            coord="time", aggregator=aggregator, window=self.window_length
-        )
-        summary_cube.cell_methods = ()
-        summary_cube.coord("time").bounds = None
-        summary_cube.coord("time").points = summary_cube.coord("time").points.astype(
-            int64
-        )
-        summary_cube.data = summary_cube.data.filled(nan)
-        return summary_cube
+            self.required_rolling_window_points = required_rolling_window_points
 
     def calculate_statistic_by_rolling_window(self, input_cube: Cube):
         """Function to calculate mean and standard deviation of input_cube using a
         rolling window calculation over the time coordinate.
-
-        The input_cube time coordinate is padded at the beginning and end of the time
-        coordinate, to ensure that the result of the rolling window calculation has the
-        same shape as input_cube. Additionally, any missing time points in the input
-        cube are filled with masked data, so that the rolling window is always taken
-        over a period containing an equal number of time points.
         """
-        removed_coords = []
-        pad_width = int((self.window_length - 1) / 2)
-        # Define the minimum number of valid points required in each rolling window.
-        # This threshold does not have to be an integer.
-        allowed_valid_count = self.window_length * self.valid_rolling_window_fraction
+        input_mean = CubeList()
+        input_sd = CubeList()
 
-        # Pad the time coordinate of the input cube, then calculate the mean and
-        # standard deviation using a rolling window over the time coordinate.
-        time_coord = input_cube.coord("time")
-        increments = time_coord.points[1:] - time_coord.points[:-1]
-        min_increment = increments.min()
+        # This variable is used to calculate the bounds of each rolling window.
+        window_td = datetime.timedelta(days=self.window_length)
 
-        if not all(x % min_increment == 0 for x in increments):
-            raise ValueError(
-                "The increments between points in the time coordinate of the input "
-                "cube must be divisible by the smallest increment between points to "
-                "allow for rolling window calculations to be performed over the time "
-                "coordinate. The increments between points in the time coordinate "
-                f"were: {increments}. The smallest increment was: {min_increment}."
+        for tp in input_cube.coord("time").points:
+            time_point = datetime.datetime.fromtimestamp(tp)
+            # Create time constraint for rolling window and extract data within window.
+            if self.trailing_window:
+                time_bounds = [time_point - window_td, time_point]
+            else:
+                time_bounds = [time_point - window_td / 2, time_point + window_td / 2]
+
+            time_constraint = iris.Constraint(
+                time=lambda cell: time_bounds[0] <= cell.point <= time_bounds[1]
             )
+            window_cube = input_cube.extract(time_constraint)
 
-        padded_cube = input_cube.copy()
-
-        # Check if we are dealing with a period diagnostic.
-        if padded_cube.coord("time").bounds is not None:
-            bounds_width = (
-                padded_cube.coord("time").bounds[0][1]
-                - padded_cube.coord("time").bounds[0][0]
-            )
-        else:
-            bounds_width = None
-        # Remove time related coordinates other than the coordinate called
-        # "time" on the input cube in order to allow extension of the "time"
-        # coordinate. These coordinates are saved and added back to the output
-        # cubes.
-        for coord in [
-            "forecast_reference_time",
-            "forecast_period",
-            "blend_time",
-        ]:
-            if padded_cube.coords(coord):
-                removed_coords.append(padded_cube.coord(coord).copy())
-                padded_cube.remove_coord(coord)
-
-        # Create slices of artificial cube data to pad the existing cube time
-        # coordinate and fill any gaps. This ensures that all the time points
-        # are equally spaced and the padding ensures that the output of the
-        # rolling window calculation is the same shape as the input cube.
-        existing_points = time_coord.points
-        desired_points = array(
-            [
-                x
-                for x in range(
-                    min(existing_points) - (min_increment * pad_width),
-                    max(existing_points) + (min_increment * pad_width) + 1,
-                    min_increment,
+            if len(window_cube.coord("time").points) == 1:
+                # If there is only one time point in the window, the mean and sd for
+                # this window are set to NaN.
+                window_mean = window_cube.copy(
+                    data=np.full_like(window_cube.data, np.nan, dtype=np.float32)
                 )
-            ],
-            dtype=int64,
-        )
+                window_sd = window_cube.copy(
+                    data=np.full_like(window_cube.data, np.nan, dtype=np.float32)
+                )
+            else:
+                window_mean = collapse_time(window_cube, "time", iris.analysis.MEAN)
+                window_sd = collapse_time(window_cube, "time", iris.analysis.STD_DEV)
 
-        # Slice input_cube over time dimension so that the artificial cubes can be
-        # concatenated correctly.
-        padded_cubelist = iris.cube.CubeList([])
-        for cslice in padded_cube.slices_over("time"):
-            padded_cubelist.append(new_axis(cslice.copy(), "time"))
+                # Check there are enough valid points in the window. Where there are
+                # insufficient data points, replace calculated statistics with NaNs.
+                window_valid_count = collapse_time(
+                    window_cube,
+                    "time",
+                    iris.analysis.COUNT,
+                    function=lambda values: ~np.isnan(values),
+                )
 
-        # For each desired point which doesn't already correspond to a time point
-        # on the cube, create a new cube slice with that time point with all data
-        # masked.
-        cslice = padded_cube.extract(iris.Constraint(time=time_coord.cell(0)))
-        for point in desired_points:
-            if point not in existing_points:
-                # Create a new cube slice with time point equal to point.
-                new_slice = cslice.copy()
-                new_slice.coord("time").points = point
-                if bounds_width:
-                    # Add correct bounds to point if required.
-                    new_slice.coord("time").bounds = [point - bounds_width, point]
-                new_slice = new_axis(new_slice, "time")
-                new_slice.data = masked_all_like(new_slice.data)
-                padded_cubelist.append(new_slice)
-        padded_cube = padded_cubelist.concatenate_cube()
+                window_mean.data = np.where(
+                    window_valid_count.data < self.required_rolling_window_points,
+                    np.nan,
+                    window_mean.data,
+                )
+                window_sd.data = np.where(
+                    window_valid_count.data < self.required_rolling_window_points,
+                    np.nan,
+                    window_sd.data,
+                )
 
-        # A data sufficiency check is performed to ensure that each rolling window
-        # contains enough valid data points to produce a sensible result. Data is
-        # considered sufficient if at least 50% of the data points in the window are
-        # valid. Where data is considered insufficient, the result of the rolling
-        # window calculation is replaced with nan.
-        check_data = padded_cube.copy()
-        check_data.data = (~isnan(check_data.data)).astype(float32)
-        valid_count = self.apply_aggregator(check_data, SUM)
+            # Set time-related coordinates to match those for this time point on
+            # the input cube.
+            for coord_name in [
+                "time",
+                "forecast_reference_time",
+                "blend_time",
+                "forecast_period",
+            ]:
+                if coord_name in [c.name() for c in window_mean.coords()]:
+                    point = tp
+                    if coord_name != "time":
+                        # The time-related coordinates are either scalar or have one
+                        # point associated with each time point.
+                        if len(input_cube.coord(coord_name).points) == 1:
+                            point = input_cube.coord(coord_name).points[0]
+                        else:
+                            point = input_cube.coord(coord_name).points[
+                                input_cube.coord("time").points.tolist().index(tp)
+                            ]
 
-        aggregated_cubes = {}
-        for aggregator in [MEAN, STD_DEV]:
-            aggregated_cube = self.apply_aggregator(padded_cube, aggregator)
-            aggregated_cube.data[valid_count.data < allowed_valid_count] = nan
-            aggregated_cubes[aggregator.name()] = aggregated_cube.copy()
+                    window_mean.coord(coord_name).points = np.array([point])
+                    window_mean.coord(coord_name).bounds = None
 
-        # Create constraint to extract only those time points which were present in
-        # the original input cube.
-        constr = iris.Constraint(
-            time=lambda cell: cell.point in input_cube.coord("time").cells()
-        )
-        input_mean = aggregated_cubes["mean"].extract(constr)
-        input_sd = aggregated_cubes["standard_deviation"].extract(constr)
+                    window_sd.coord(coord_name).points = np.array([point])
+                    window_sd.coord(coord_name).bounds = None
 
-        # Add any removed time coordinates back on to the mean and standard
-        # deviation cubes.
-        for coord in removed_coords:
-            time_dim = padded_cube.coord_dims("time")
-            kwargs = {"data_dims": time_dim} if len(coord.points) > 1 else {}
-            input_mean.add_aux_coord(coord, **kwargs)
-            input_sd.add_aux_coord(coord, **kwargs)
+            input_mean.append(window_mean.copy())
+            input_sd.append(window_sd.copy())
+
+        input_mean = MergeCubes().process(input_mean)
+        input_sd = MergeCubes().process(input_sd)
 
         return input_mean, input_sd
 
@@ -461,30 +432,18 @@ class TrainGAMsForSAMOS(BasePlugin):
         the time dimension will be used.
 
         The rolling window method calculates a statistic over data in a fixed time
-        window and assigns the value of the statistic to the central time in the window.
-        For example, for data points [0.0, 1.0, 2.0, 1.0, 0.0] each valid in
+        window. For example, for data points [0.0, 1.0, 2.0, 1.0, 0.0] each valid in
         consecutive hours T+0, T+1, T+2, T+3, T+4, the mean calculated by a rolling
-        window of width 5 would be 0.8. This value would be associated with T+2 in the
-        resulting cube.
-
-        To enable this calculation to produce a cube of the same dimensions as
-        input_cube, the data in input_cube is first padded with additional data. For a
-        rolling window of width 5, 2 data slices are added to the start and end of the
-        input_cube time coordinate. The data in these slices are masked so that they
-        don't affect the calculated statistics.
+        window of length 5 would be 0.8.
 
         Args:
             input_cube:
                 A cube with at least one of the following coordinates:
                 1. A realization dimension coordinate
-                2. A time coordinate with more than one point and evenly spaced points.
+                2. A time coordinate with more than one point.
 
         Returns:
             CubeList containing a mean cube and standard deviation cube.
-
-        Raises:
-            ValueError: If input_cube does not contain a realization coordinate and
-            does contain a time coordinate with unevenly spaced points.
         """
         if input_cube.coords("realization"):
             input_mean = collapse_realizations(input_cube, method="mean")
@@ -511,7 +470,7 @@ class TrainGAMsForSAMOS(BasePlugin):
                 Historic forecasts or observations from the training dataset. Must
                 contain at least one of:
                 - a realization coordinate
-                - a time coordinate with more than one point and equally spaced points
+                - a time coordinate with more than one point
             features:
                 The list of features. These must be either coordinates on input_cube or
                 share a name with a cube in additional_fields. The index of each
@@ -599,6 +558,7 @@ class TrainEMOSForSAMOS(BasePlugin):
         distribution: str,
         emos_kwargs: Optional[Dict] = None,
         unique_site_id_key: Optional[str] = None,
+        constant_extrapolation: bool = False,
     ) -> None:
         """Initialize the class.
 
@@ -613,10 +573,17 @@ class TrainEMOSForSAMOS(BasePlugin):
                 If working with spot data and available, the name of the coordinate
                 in the input cubes that contains unique site IDs, e.g. "wmo_id" if
                 all sites have a valid wmo_id.
+            constant_extrapolation:
+                If True, when predicting mean and standard deviation from the GAMs,
+                when the predictor values are outside the range of those used to fit
+                the GAM, constant extrapolation (i.e. the nearest boundary value) will
+                be used. If False, extrapolation extends the trend of each
+                GAM term beyond the range of the training data. Default is False.
         """
         self.distribution = distribution
         self.emos_kwargs = emos_kwargs if emos_kwargs else {}
         self.unique_site_id_key = unique_site_id_key
+        self.constant_extrapolation = constant_extrapolation
 
     def climate_anomaly_emos(
         self,
@@ -724,6 +691,7 @@ class TrainEMOSForSAMOS(BasePlugin):
             gam_features,
             gam_additional_fields,
             unique_site_id_key=self.unique_site_id_key,
+            constant_extrapolation=self.constant_extrapolation,
         )
         truth_mean, truth_sd = get_climatological_stats(
             truths,
@@ -731,6 +699,7 @@ class TrainEMOSForSAMOS(BasePlugin):
             gam_features,
             gam_additional_fields,
             unique_site_id_key=self.unique_site_id_key,
+            constant_extrapolation=self.constant_extrapolation,
         )
 
         emos_coefficients = self.climate_anomaly_emos(
@@ -749,6 +718,9 @@ class ApplySAMOS(PostProcessingPlugin):
     - Two GAMs which model, respectively, the climatological mean and standard
     deviation of the forecast. This allows the forecast to be converted to
     climatological anomalies.
+    - Two GAMs which model, respectively, the climatological mean and standard
+    deviation of the truths. This allows the climatological anomalies to be
+    transformed back to the original forecast units.
     - A set of EMOS coefficients which can be applied to correct the climatological
     anomalies.
     """
@@ -757,6 +729,7 @@ class ApplySAMOS(PostProcessingPlugin):
         self,
         percentiles: Optional[Sequence] = None,
         unique_site_id_key: Optional[str] = None,
+        constant_extrapolation: bool = False,
     ):
         """Initialize class.
 
@@ -767,12 +740,19 @@ class ApplySAMOS(PostProcessingPlugin):
                 If working with spot data and available, the name of the coordinate
                 in the input cubes that contains unique site IDs, e.g. "wmo_id" if
                 all sites have a valid wmo_id.
+            constant_extrapolation:
+                If True, when predicting mean and standard deviation from the GAMs,
+                when the predictor values are outside the range of those used to fit
+                the GAM, constant extrapolation (i.e. the nearest boundary value) will
+                be used. If False, extrapolation extends the trend of each
+                GAM term beyond the range of the training data. Default is False.
         """
-        self.percentiles = [float32(p) for p in percentiles] if percentiles else None
+        self.percentiles = [np.float32(p) for p in percentiles] if percentiles else None
         self.unique_site_id_key = unique_site_id_key
+        self.constant_extrapolation = constant_extrapolation
 
+    @staticmethod
     def transform_anomalies_to_original_units(
-        self,
         location_parameter: Cube,
         scale_parameter: Cube,
         truth_mean: Cube,
@@ -919,6 +899,7 @@ class ApplySAMOS(PostProcessingPlugin):
             gam_features,
             gam_additional_fields,
             unique_site_id_key=self.unique_site_id_key,
+            constant_extrapolation=self.constant_extrapolation,
         )
         forecast_ca = CalculateClimateAnomalies(ignore_temporal_mismatch=True).process(
             diagnostic_cube=forecast_as_realizations,
@@ -949,6 +930,7 @@ class ApplySAMOS(PostProcessingPlugin):
             gam_features,
             gam_additional_fields,
             unique_site_id_key=self.unique_site_id_key,
+            constant_extrapolation=self.constant_extrapolation,
         )
 
         # Transform location and scale parameters to be in the same units as the
@@ -982,11 +964,11 @@ class ApplySAMOS(PostProcessingPlugin):
             bounds_pairing = get_bounds_of_distribution(
                 bounds_pairing_key=result.name(), desired_units=result.units
             )
-            result.data = clip(
+            result.data = np.clip(
                 result.data, a_min=bounds_pairing[0], a_max=bounds_pairing[1]
             )
 
         # Enforce correct dtype.
-        result.data = result.data.astype(dtype=float32)
+        result.data = result.data.astype(dtype=np.float32)
 
         return result
