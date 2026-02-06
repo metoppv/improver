@@ -127,7 +127,7 @@ def test_basic(cube, binary_expected, kwargs):
     (
         ({"radii": [RADIUS]}, "radius_coord"),
         ({"grid_point_radii": [GRID_POINT_RADIUS]}, "grid_point_radius_coord"),
-        ({"radii": [RADIUS], "apply_cell_method": False}, "radius_coord")
+        ({"radii": [RADIUS], "apply_cell_method": False}, "radius_coord"),
     ),
 )
 def test_metadata(request, cube, kwargs, expected_coord):

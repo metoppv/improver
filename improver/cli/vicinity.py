@@ -71,5 +71,8 @@ def process(
     from improver.utilities.spatial import OccurrenceWithinVicinity
 
     return OccurrenceWithinVicinity(
-        radii=vicinity, land_mask_cube=land_mask, operator=operator, apply_cell_method=apply_cell_method
+        radii=vicinity,
+        land_mask_cube=land_mask,
+        operator=operator,
+        apply_cell_method=apply_cell_method,
     ).process(cube, new_name=new_name)
