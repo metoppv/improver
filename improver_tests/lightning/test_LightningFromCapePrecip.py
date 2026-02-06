@@ -113,7 +113,7 @@ def expected_cube_fixture() -> Cube:
     )
 
     cell_method = CellMethod(
-        "Sum", coords="time", comments="of number_of_lightning_flashes_per_unit_area"
+        "sum", coords="time", comments="of number_of_lightning_flashes_per_unit_area"
     )
     cube.add_cell_method(cell_method)
 
