@@ -127,6 +127,7 @@ def test_basic(cube, binary_expected, kwargs):
     (
         ({"radii": [RADIUS]}, "radius_coord"),
         ({"grid_point_radii": [GRID_POINT_RADIUS]}, "grid_point_radius_coord"),
+        ({"radii": [RADIUS], "apply_cell_method": False}, "radius_coord")
     ),
 )
 def test_metadata(request, cube, kwargs, expected_coord):
@@ -146,6 +147,11 @@ def test_metadata(request, cube, kwargs, expected_coord):
         assert isinstance(result, Cube)
         assert result.coord("radius_of_vicinity") == expected_coord
         assert "in_vicinity" in result.name()
+        if "apply_cell_method" in kwargs:
+            assert result.cell_methods == ()
+        else:
+            assert "area" in result.cell_methods[0].coord_names
+            assert result.cell_methods[0].method == "maximum"
 
 
 def test_basic_latlon(latlon_cube, binary_expected):

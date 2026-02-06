@@ -1092,8 +1092,8 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
         radii: Optional[List[Union[float, int]]] = None,
         grid_point_radii: Optional[List[Union[float, int]]] = None,
         land_mask_cube: Cube = None,
-        new_name: str = None,
         operator: str = "max",
+        apply_cell_method: bool = True,
     ) -> None:
         """
         Args:
@@ -1108,10 +1108,11 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
                 Binary land-sea mask data. True for land-points, False for sea.
                 Restricts in-vicinity processing to only include points of a
                 like mask value.
-            new_name:
-                New name to give to the resultant cube
-            Operator:
+            operator:
                 Operator to evaluate over the vicinities. Defaults to max.
+            apply_cell_method:
+                If True, a cell method is added to the output cube to describe the
+                vicinity operation.
 
         Raises:
             ValueError: If both radii and grid point radii are set.
@@ -1153,6 +1154,7 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
         else:
             self.land_mask = None
         self.land_mask_cube = land_mask_cube
+        self.apply_cell_method = apply_cell_method
 
         if operator not in OccurrenceWithinVicinity.SUPPORTED_VICINITY_OPERATORS.keys():
             raise ValueError("Unsupported operator to apply over vicinity.")
@@ -1246,7 +1248,8 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
         # Enforce order of leading dimensions on the output to match the input.
         enforce_coordinate_ordering(result_cube, leading_dimensions)
         # Add cell method to describe the vicinity operation applied.
-        set_vicinity_cell_method(result_cube, operation=self.cell_method)
+        if self.apply_cell_method:
+            set_vicinity_cell_method(result_cube, operation=self.cell_method)
 
         return result_cube
 

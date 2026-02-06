@@ -109,3 +109,15 @@ def test_vicinity_cube_rename(tmp_path):
 
     run_cli(args)
     acc.compare(output_path, kgo_path)
+
+
+def test_no_cell_method(tmp_path):
+    """Test exclusion of vicinity cell_method when apply_cell_method=False"""
+    kgo_dir = acc.kgo_root() / "vicinity"
+    kgo_path = kgo_dir / f"kgo_10000_no_cell_method.nc"
+    input_path = kgo_dir / "lightning.nc"
+    output_path = tmp_path / "output.nc"
+    args = [input_path, "--vicinity", "10000", "--apply-cell-method", "False", "--output", f"{output_path}"]
+
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
