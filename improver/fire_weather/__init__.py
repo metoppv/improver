@@ -6,6 +6,7 @@
 
 import warnings
 from abc import abstractmethod
+from copy import deepcopy
 from typing import cast
 
 import iris.exceptions
@@ -131,8 +132,9 @@ class FireWeatherIndexBase(BasePlugin):
         )
 
         # Assign cubes to instance attributes and convert units in a single loop
-        for cube, cube_name in zip(loaded_cubes, self.INPUT_CUBE_NAMES):
+        for loaded_cube, cube_name in zip(loaded_cubes, self.INPUT_CUBE_NAMES):
             attr_name = self._get_attribute_name(cube_name)
+            cube = deepcopy(loaded_cube)  # Avoid modifying input cubes in-place
             setattr(self, attr_name, cube)
 
             # Convert to required units if defined
