@@ -12,6 +12,9 @@ pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
 CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
+pytest.importorskip("esmf_regrid")
+pytest.importorskip("kmedoids")
+
 
 def test_single_lead_time(tmp_path):
     """Test with a single lead time and two input cubes."""
