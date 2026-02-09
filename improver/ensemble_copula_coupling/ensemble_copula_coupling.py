@@ -124,7 +124,11 @@ class RebadgePercentilesAsRealizations(BasePlugin):
     if required.
     """
 
-    def __init__(self, ensemble_realization_numbers: Optional[np.ndarray] = None):
+    def __init__(
+        self,
+        ensemble_realization_numbers: Optional[np.ndarray] = None,
+        ensure_evenly_spaced_percentiles: bool = True,
+    ):
         """
         Initialise the plugin.
 
@@ -134,8 +138,13 @@ class RebadgePercentilesAsRealizations(BasePlugin):
                 realization coordinate. Default is None, meaning the
                 realization coordinate will be numbered 0, 1, 2 ... n-1 for n
                 percentiles on the input cube.
+            ensure_evenly_spaced_percentiles:
+                If True, the plugin will check that the percentiles on the
+                input cube are evenly spaced, centered on the 50th percentile,
+                and partition the space. If False, no check is performed.
         """
         self.ensemble_realization_numbers = ensemble_realization_numbers
+        self.ensure_evenly_spaced_percentiles = ensure_evenly_spaced_percentiles
 
     def _check_evenly_spaced_percentiles(self, cube: Cube, percentile_coord_name: str):
         """
@@ -228,7 +237,8 @@ class RebadgePercentilesAsRealizations(BasePlugin):
                 If the realization coordinate already exists on the cube.
         """
         percentile_coord_name = find_percentile_coordinate(cube).name()
-        self._check_evenly_spaced_percentiles(cube, percentile_coord_name)
+        if self.ensure_evenly_spaced_percentiles:
+            self._check_evenly_spaced_percentiles(cube, percentile_coord_name)
         self._check_no_existing_realization_coord(cube)
         if self.ensemble_realization_numbers:
             realization_numbers = self.ensemble_realization_numbers
