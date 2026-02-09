@@ -382,7 +382,7 @@ def test_process_percentile_index(process_cubes):
     perc.coord("percentile").rename("percentile_index")
     perc.coord("percentile_index").points = np.array([0, 1, 2], dtype=np.float32)
     perc.coord("percentile_index").units = "1"
-    result = Plugin().process(perc, raw)
+    result = Plugin(ensure_evenly_spaced_realizations=False).process(perc, raw)
     assert isinstance(result, Cube)
     assert result.coords("realization")
     np.testing.assert_array_almost_equal(result.data, expected)

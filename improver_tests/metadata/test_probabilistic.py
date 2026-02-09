@@ -329,7 +329,7 @@ class Test_find_percentile_coordinate(unittest.TestCase):
         cube_wg.coord("percentile_index").points = np.array([0, 1], dtype=np.float32)
         perc_coord = find_percentile_coordinate(cube_wg)
         self.assertIsInstance(perc_coord, iris.coords.Coord)
-        self.assertEqual(perc_coord.name(), "percentile")
+        self.assertEqual(perc_coord.name(), "percentile_index")
 
     def test_fails_if_data_is_not_cube(self):
         """Test it raises a Type Error if cube is not a cube."""

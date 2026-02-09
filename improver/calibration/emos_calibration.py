@@ -2063,11 +2063,12 @@ def generate_forecast_from_distribution(
                 template,
                 no_of_percentiles=no_of_percentiles,
             )
-            result = EnsembleReordering().process(
-                percentiles,
-                template,
+            result = EnsembleReordering(
                 random_ordering=randomise,
                 random_seed=random_seed,
+            ).process(
+                percentiles,
+                template,
             )
 
         # Preserve cell methods from template.

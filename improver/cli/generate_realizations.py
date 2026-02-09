@@ -16,6 +16,7 @@ def process(
     realizations_count: int = None,
     random_seed: int = None,
     tie_break: str = "random",
+    ensure_evenly_spaced_realizations: bool = True,
     ignore_ecc_bounds_exceedance: bool = False,
     skip_ecc_bounds: bool = False,
 ):
@@ -42,6 +43,10 @@ def process(
             The available methods are "random", to tie-break randomly, and
             "realization", to tie-break by assigning values to the highest numbered
             realizations first.
+        ensure_evenly_spaced_realizations (bool):
+            If True, the plugin will ensure that the output realizations are evenly
+            spaced in percentile space are centered on the 50th percentile, and
+            partition the space. If False, no check is performed.
         ignore_ecc_bounds_exceedance (bool):
             If True where percentiles (calculated as an intermediate output
             before realization) exceed the ECC bounds range, raises a
@@ -94,9 +99,11 @@ def process(
         )(cube, no_of_percentiles=realizations_count)
 
     if raw_cube:
-        result = EnsembleReordering()(
-            percentiles, raw_cube, random_seed=random_seed, tie_break=tie_break
-        )
+        result = EnsembleReordering(
+            random_seed=random_seed,
+            tie_break=tie_break,
+            ensure_evenly_spaced_realizations=ensure_evenly_spaced_realizations,
+        )(percentiles, raw_cube)
     else:
         result = RebadgePercentilesAsRealizations()(percentiles)
 
