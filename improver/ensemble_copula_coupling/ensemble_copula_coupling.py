@@ -240,12 +240,12 @@ class RebadgePercentilesAsRealizations(BasePlugin):
         if self.ensure_evenly_spaced_percentiles:
             self._check_evenly_spaced_percentiles(cube, percentile_coord_name)
         self._check_no_existing_realization_coord(cube)
-        if self.ensemble_realization_numbers:
-            realization_numbers = self.ensemble_realization_numbers
-        else:
+        if self.ensemble_realization_numbers is None:
             realization_numbers = np.arange(
                 len(cube.coord(percentile_coord_name).points), dtype=np.int32
             )
+        else:
+            realization_numbers = self.ensemble_realization_numbers
         self._rebadge_percentile_coord(cube, percentile_coord_name, realization_numbers)
         return cube
 
@@ -1431,6 +1431,34 @@ class EnsembleReordering(BasePlugin):
 
     """
 
+    def __init__(
+        self,
+        random_ordering: bool = False,
+        random_seed: Optional[int] = None,
+        tie_break: Optional[str] = "random",
+    ):
+        """Initialise the class.
+
+        Args:
+            random_ordering:
+                If random_ordering is True, the post-processed forecasts are
+                reordered randomly, rather than using the ordering of the
+                raw ensemble.
+            random_seed:
+                If random_seed is an integer, the integer value is used for
+                the random seed.
+                If random_seed is None, no random seed is set, so the random
+                values generated are not reproducible.
+            tie_break:
+                The method of tie breaking to use when the first ordering method
+                contains ties. The available methods are "random", to tie-break
+                randomly, and "realization", to tie-break by assigning values to the
+                highest numbered realizations first.
+        """
+        self.random_ordering = random_ordering
+        self.random_seed = random_seed
+        self.tie_break = tie_break
+
     @staticmethod
     def _recycle_raw_ensemble_realizations(
         post_processed_forecast_percentiles: Cube,
@@ -1475,13 +1503,10 @@ class EnsembleReordering(BasePlugin):
             )
         return raw_forecast_realizations
 
-    @staticmethod
     def rank_ecc(
+        self,
         post_processed_forecast_percentiles: Cube,
         raw_forecast_realizations: Cube,
-        random_ordering: bool = False,
-        random_seed: Optional[int] = None,
-        tie_break: Optional[str] = "random",
     ) -> Cube:
         """
         Function to apply Ensemble Copula Coupling. This ranks the
@@ -1496,20 +1521,6 @@ class EnsembleReordering(BasePlugin):
                 Cube containing the raw (not post-processed) forecasts.
                 The probabilistic dimension is assumed to be the zeroth
                 dimension.
-            random_ordering:
-                If random_ordering is True, the post-processed forecasts are
-                reordered randomly, rather than using the ordering of the
-                raw ensemble.
-            random_seed:
-                If random_seed is an integer, the integer value is used for
-                the random seed.
-                If random_seed is None, no random seed is set, so the random
-                values generated are not reproducible.
-            tie_break:
-                The method of tie breaking to use when the first ordering method
-                contains ties. The available methods are "random", to tie-break
-                randomly, and "realization", to tie-break by assigning values to the
-                highest numbered realizations first.
 
         Returns:
             Cube for post-processed realizations where at a particular grid
@@ -1519,8 +1530,8 @@ class EnsembleReordering(BasePlugin):
         Raises:
             ValueError: tie_break is not either 'random' or 'realization'
         """
-        if random_seed is not None:
-            random_seed = int(random_seed)
+        if self.random_seed is not None:
+            random_seed = int(self.random_seed)
         random_seed = np.random.RandomState(random_seed)
 
         results = iris.cube.CubeList([])
@@ -1528,16 +1539,16 @@ class EnsembleReordering(BasePlugin):
             raw_forecast_realizations.slices_over("time"),
             post_processed_forecast_percentiles.slices_over("time"),
         ):
-            if random_ordering:
+            if self.random_ordering:
                 random_data = random_seed.rand(*rawfc.data.shape)
                 # Returns the indices that would sort the array.
                 # As these indices are from a random dataset, only an argsort
                 # is used.
                 ranking = np.argsort(random_data, axis=0)
             else:
-                if tie_break == "random":
+                if self.tie_break == "random":
                     tie_break_data = random_seed.rand(*rawfc.data.shape)
-                elif tie_break == "realization":
+                elif self.tie_break == "realization":
                     realizations = raw_forecast_realizations.coord("realization").points
                     target_shape = rawfc.data.shape
                     realizations = np.expand_dims(
@@ -1547,7 +1558,7 @@ class EnsembleReordering(BasePlugin):
                 else:
                     msg = (
                         'Input tie_break must be either "random", or "realization",'
-                        f' not "{tie_break}".'
+                        f' not "{self.tie_break}".'
                     )
                     raise ValueError(msg)
                 # Lexsort returns the indices sorted firstly by the
@@ -1635,9 +1646,6 @@ class EnsembleReordering(BasePlugin):
         self,
         post_processed_forecast: Cube,
         raw_forecast: Cube,
-        random_ordering: bool = False,
-        random_seed: Optional[int] = None,
-        tie_break: Optional[str] = "random",
     ) -> Cube:
         """
         Reorder post-processed forecast using the ordering of the
@@ -1650,20 +1658,6 @@ class EnsembleReordering(BasePlugin):
             raw_forecast:
                 The cube containing the raw (not post-processed)
                 forecast.
-            random_ordering:
-                If random_ordering is True, the post-processed forecasts are
-                reordered randomly, rather than using the ordering of the
-                raw ensemble.
-            random_seed:
-                If random_seed is an integer, the integer value is used for
-                the random seed.
-                If random_seed is None, no random seed is set, so the random
-                values generated are not reproducible.
-            tie_break:
-                The method of tie breaking to use when the first ordering method
-                contains ties. The available methods are "random", to tie-break
-                randomly, and "realization", to tie-break by assigning values to the
-                highest numbered realizations first.
 
         Returns:
             Cube containing the new ensemble realizations where all points
@@ -1684,19 +1678,14 @@ class EnsembleReordering(BasePlugin):
             post_processed_forecast, raw_forecast, percentile_coord_name
         )
         post_processed_forecast_realizations = self.rank_ecc(
-            post_processed_forecast,
-            raw_forecast,
-            random_ordering=random_ordering,
-            random_seed=random_seed,
-            tie_break=tie_break,
+            post_processed_forecast, raw_forecast
         )
-        import pdb
 
-        pdb.set_trace()
-        plugin = RebadgePercentilesAsRealizations()
-        post_processed_forecast_realizations = plugin(
-            post_processed_forecast_realizations,
+        plugin = RebadgePercentilesAsRealizations(
             ensemble_realization_numbers=raw_forecast.coord("realization").points,
+        )
+        post_processed_forecast_realizations = plugin(
+            post_processed_forecast_realizations
         )
 
         enforce_coordinate_ordering(post_processed_forecast_realizations, "realization")

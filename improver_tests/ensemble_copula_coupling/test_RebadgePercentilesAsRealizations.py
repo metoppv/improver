@@ -41,10 +41,35 @@ def test_basic(percentile_cube):
 def test_specify_realization_numbers(percentile_cube):
     """Test specifying particular values for the ensemble realization numbers."""
     ensemble_realization_numbers = [12, 13, 14]
-    result = Plugin().process(percentile_cube, ensemble_realization_numbers)
+    result = Plugin(ensemble_realization_numbers=ensemble_realization_numbers).process(
+        percentile_cube
+    )
     np.testing.assert_array_equal(
         result.coord("realization").points, ensemble_realization_numbers
     )
+
+
+@pytest.mark.parametrize("ensure_evenly_spaced_percentiles", [True, False])
+def test_ensure_evenly_spaced_percentiles(
+    percentile_cube, ensure_evenly_spaced_percentiles
+):
+    """Test specifying particular values for the ensemble realization numbers."""
+    percentile_cube.coord("percentile").points = np.array(
+        [10, 50, 90], dtype=np.float32
+    )
+    if ensure_evenly_spaced_percentiles:
+        msg = r"The percentile cube provided cannot be rebadged as ensemble realizations.*"
+        with pytest.raises(ValueError, match=msg):
+            Plugin(
+                ensure_evenly_spaced_percentiles=ensure_evenly_spaced_percentiles
+            ).process(percentile_cube)
+    else:
+        result = Plugin(
+            ensure_evenly_spaced_percentiles=ensure_evenly_spaced_percentiles
+        ).process(percentile_cube)
+        np.testing.assert_array_equal(
+            result.coord("realization").points, np.array([0, 1, 2])
+        )
 
 
 def test_number_of_realizations(percentile_cube):
@@ -63,34 +88,33 @@ def test_raises_exception_if_realization_already_exists(percentile_cube):
         Plugin().process(percentile_cube)
 
 
-def test_raises_exception_if_percentiles_unevenly_spaced():
+def test_raises_exception_if_percentiles_unevenly_spaced(percentile_cube):
     """Check that an exception is raised if the input percentiles are not evenly spaced."""
-    cube = set_up_percentile_cube(
-        np.sort(ECC_TEMPERATURE_REALIZATIONS.copy(), axis=0),
-        np.array([25, 50, 90], dtype=np.float32),
+    percentile_cube.coord("percentile").points = np.array(
+        [25, 50, 90], dtype=np.float32
     )
     msg = r"The percentile cube provided cannot be rebadged as ensemble realizations.*"
     with pytest.raises(ValueError, match=msg):
-        Plugin().process(cube)
+        Plugin().process(percentile_cube)
 
 
-def test_raises_exception_if_percentiles_not_centred():
+def test_raises_exception_if_percentiles_not_centred(percentile_cube):
     """Check that an exception is raised if the input percentiles are not centred on 50th percentile."""
-    cube = set_up_percentile_cube(
-        np.sort(ECC_TEMPERATURE_REALIZATIONS.copy(), axis=0),
-        np.array([30, 60, 90], dtype=np.float32),
+    percentile_cube.coord("percentile").points = np.array(
+        [30, 60, 90], dtype=np.float32
     )
     msg = r"The percentile cube provided cannot be rebadged as ensemble realizations.*"
     with pytest.raises(ValueError, match=msg):
-        Plugin().process(cube)
+        Plugin().process(percentile_cube)
 
 
-def test_raises_exception_if_percentiles_unequal_partition_percentile_space():
+def test_raises_exception_if_percentiles_unequal_partition_percentile_space(
+    percentile_cube,
+):
     """Check that an exception is raised if the input percentiles don't evenly partition percentile space."""
-    cube = set_up_percentile_cube(
-        np.sort(ECC_TEMPERATURE_REALIZATIONS.copy(), axis=0),
-        np.array([10, 50, 90], dtype=np.float32),
+    percentile_cube.coord("percentile").points = np.array(
+        [10, 50, 90], dtype=np.float32
     )
     msg = r"The percentile cube provided cannot be rebadged as ensemble realizations.*"
     with pytest.raises(ValueError, match=msg):
-        Plugin().process(cube)
+        Plugin().process(percentile_cube)
