@@ -1436,6 +1436,7 @@ class EnsembleReordering(BasePlugin):
         random_ordering: bool = False,
         random_seed: Optional[int] = None,
         tie_break: Optional[str] = "random",
+        ensure_evenly_spaced_realizations: bool = False,
     ):
         """Initialise the class.
 
@@ -1454,10 +1455,15 @@ class EnsembleReordering(BasePlugin):
                 contains ties. The available methods are "random", to tie-break
                 randomly, and "realization", to tie-break by assigning values to the
                 highest numbered realizations first.
+            ensure_evenly_spaced_realizations:
+                If True, the plugin will ensure that the output realizations are
+                evenly spaced in percentile space are centered on the 50th percentile,
+                and partition the space. If False, no check is performed.
         """
         self.random_ordering = random_ordering
         self.random_seed = random_seed
         self.tie_break = tie_break
+        self.ensure_evenly_spaced_realizations = ensure_evenly_spaced_realizations
 
     @staticmethod
     def _recycle_raw_ensemble_realizations(
@@ -1530,6 +1536,7 @@ class EnsembleReordering(BasePlugin):
         Raises:
             ValueError: tie_break is not either 'random' or 'realization'
         """
+        random_seed = self.random_seed
         if self.random_seed is not None:
             random_seed = int(self.random_seed)
         random_seed = np.random.RandomState(random_seed)
@@ -1683,6 +1690,7 @@ class EnsembleReordering(BasePlugin):
 
         plugin = RebadgePercentilesAsRealizations(
             ensemble_realization_numbers=raw_forecast.coord("realization").points,
+            ensure_evenly_spaced_percentiles=self.ensure_evenly_spaced_realizations,
         )
         post_processed_forecast_realizations = plugin(
             post_processed_forecast_realizations

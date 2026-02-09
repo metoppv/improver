@@ -477,7 +477,7 @@ class Test_interpolate_multiple_rows_same_y(unittest.TestCase):
         )
 
     @skipIf(not (numba_installed), "numba not installed")
-    @patch("improver.ensemble_copula_coupling.numba_utilities.fast_interp_same_y")
+    @patch("improver.ensemble_copula_coupling.numba_utilities.fast_interp_same_y_nd")
     def test_fast_interp_same_y_called(self, interp_imp):
         """Test that fast_interp_same_y is called if numba is installed."""
         interpolate_multiple_rows_same_y(
