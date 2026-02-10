@@ -3,13 +3,18 @@
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 
+import os
+
 import numpy as np
 from iris.cube import Cube
 
-from improver.fire_weather import FireWeatherIndexBase
+from improver.fire_weather import IterativeFireWeatherIndexBase
+
+DC_START_VALUE = os.environ.get("DC_START_VALUE", 15)
+DC_LAG_TIME = os.environ.get("DC_LAG_TIME", 53)
 
 
-class DroughtCode(FireWeatherIndexBase):
+class DroughtCode(IterativeFireWeatherIndexBase):
     """
     Plugin to calculate the Drought Code (DC) following
     the Canadian Forest Fire Weather Index System.
@@ -31,6 +36,9 @@ class DroughtCode(FireWeatherIndexBase):
         - Previous DC: dimensionless
         - Month: integer (1-12) for day length factor lookup
     """
+
+    STARTING_VALUE = DC_START_VALUE
+    LAG_TIME = DC_LAG_TIME
 
     INPUT_CUBE_NAMES = [
         "air_temperature",
