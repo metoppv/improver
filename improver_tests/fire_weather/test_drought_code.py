@@ -8,7 +8,7 @@ import pytest
 from iris.cube import Cube, CubeList
 
 from improver.fire_weather.drought_code import DroughtCode
-from improver_tests.fire_weather import make_cube, make_input_cubes
+from improver_tests.fire_weather import START_DATE_DICT, make_cube, make_input_cubes
 
 
 def input_cubes(
@@ -44,14 +44,12 @@ def input_cubes(
     Returns:
         Tuple of Iris Cubes for temperature, precipitation, and DC.
     """
-    return make_input_cubes(
-        [
-            ("air_temperature", temp_val, temp_units, False),
-            ("lwe_thickness_of_precipitation_amount", precip_val, precip_units, True),
-            ("drought_code", dc_val, dc_units, True),
-        ],
-        shape=shape,
-    )
+    cube_args = [
+        ("air_temperature", temp_val, temp_units, False, {}),
+        ("lwe_thickness_of_precipitation_amount", precip_val, precip_units, True, {}),
+        ("drought_code", dc_val, dc_units, True, START_DATE_DICT),
+    ]
+    return make_input_cubes(cube_args, shape=shape)
 
 
 @pytest.mark.parametrize(
@@ -129,19 +127,12 @@ def test__perform_rainfall_adjustment_spatially_varying() -> None:
         ]
     )
 
-    cubes = [
-        make_cube(np.full(shape, 20.0), "air_temperature", "Celsius"),
-        make_cube(
-            precip_data,
-            "lwe_thickness_of_precipitation_amount",
-            "mm",
-            add_time_coord=True,
-        ),
-        make_cube(dc_data, "drought_code", "1", add_time_coord=True),
-    ]
+    cube_1 = make_cube(np.full(shape, 20.0), "air_temperature", "Celsius")
+    cube_2 = make_cube(precip_data, "lwe_thickness_of_precipitation_amount", "mm", True)
+    cube_3 = make_cube(dc_data, "drought_code", "1", True, START_DATE_DICT)
 
     plugin = DroughtCode()
-    plugin.load_input_cubes(CubeList(cubes), month=7)
+    plugin.load_input_cubes(CubeList([cube_1, cube_2, cube_3]), month=7)
     plugin.previous_dc = dc_data.copy()
     plugin._perform_rainfall_adjustment()
 
@@ -349,19 +340,13 @@ def test_process_spatially_varying() -> None:
     dc_data = np.array(
         [[10.0, 50.0, 100.0], [20.0, 150.0, 200.0], [50.0, 100.0, 300.0]]
     )
+    temp_cube = make_cube(temp_data, "air_temperature", "Celsius")
+    precip_cube = make_cube(
+        precip_data, "lwe_thickness_of_precipitation_amount", "mm", True
+    )
+    dc_cube = make_cube(dc_data, "drought_code", "1", True, START_DATE_DICT)
 
-    cubes = [
-        make_cube(temp_data, "air_temperature", "Celsius"),
-        make_cube(
-            precip_data,
-            "lwe_thickness_of_precipitation_amount",
-            "mm",
-            add_time_coord=True,
-        ),
-        make_cube(dc_data, "drought_code", "1", add_time_coord=True),
-    ]
-
-    result = DroughtCode().process(CubeList(cubes), month=7)
+    result = DroughtCode().process(CubeList([temp_cube, precip_cube, dc_cube]), month=7)
 
     # Verify shape, type, and all non-negative
     assert (

@@ -3,12 +3,13 @@
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 
+
 import numpy as np
 import pytest
 from iris.cube import Cube, CubeList
 
 from improver.fire_weather.fine_fuel_moisture_content import FineFuelMoistureContent
-from improver_tests.fire_weather import make_cube, make_input_cubes
+from improver_tests.fire_weather import START_DATE_DICT, make_cube, make_input_cubes
 
 
 def input_cubes(
@@ -56,16 +57,14 @@ def input_cubes(
     Returns:
         Tuple of Iris Cubes for temperature, precipitation, relative humidity, wind speed, and FFMC.
     """
-    return make_input_cubes(
-        [
-            ("air_temperature", temp_val, temp_units, False),
-            ("lwe_thickness_of_precipitation_amount", precip_val, precip_units, True),
-            ("relative_humidity", rh_val, rh_units, False),
-            ("wind_speed", wind_val, wind_units, False),
-            ("fine_fuel_moisture_content", ffmc_val, ffmc_units, True),
-        ],
-        shape=shape,
-    )
+    cube_args = [
+        ("air_temperature", temp_val, temp_units, False, {}),
+        ("lwe_thickness_of_precipitation_amount", precip_val, precip_units, True, {}),
+        ("relative_humidity", rh_val, rh_units, False, {}),
+        ("wind_speed", wind_val, wind_units, False, {}),
+        ("fine_fuel_moisture_content", ffmc_val, ffmc_units, True, START_DATE_DICT),
+    ]
+    return make_input_cubes(cube_args, shape=shape)
 
 
 @pytest.mark.parametrize(
@@ -200,20 +199,15 @@ def test__perform_rainfall_adjustment_spatially_varying() -> None:
         ]
     )
 
-    cubes = [
-        make_cube(np.full(shape, 20.0), "air_temperature", "Celsius"),
-        make_cube(
-            precip_data,
-            "lwe_thickness_of_precipitation_amount",
-            "mm",
-            add_time_coord=True,
-        ),
-        make_cube(np.full(shape, 50.0), "relative_humidity", "1"),
-        make_cube(np.full(shape, 10.0), "wind_speed", "km/h"),
-        make_cube(
-            np.full(shape, 85.0), "fine_fuel_moisture_content", "1", add_time_coord=True
-        ),
-    ]
+    temp_cube = make_cube(np.full(shape, 20.0), "air_temperature", "Celsius")
+    precip_cube = make_cube(
+        precip_data, "lwe_thickness_of_precipitation_amount", "mm", True
+    )
+    humidity_cube = make_cube(np.full(shape, 50.0), "relative_humidity", "1")
+    wind_cube = make_cube(np.full(shape, 10.0), "wind_speed", "km/h")
+    ffmc_cube = make_cube(np.full(shape, 85.0), "fine_fuel_moisture_content", "1", True)
+
+    cubes = [temp_cube, precip_cube, humidity_cube, wind_cube, ffmc_cube]
 
     plugin = FineFuelMoistureContent()
     plugin.load_input_cubes(CubeList(cubes))
@@ -632,19 +626,17 @@ def test_process_spatially_varying() -> None:
     wind_data = np.array([[5.0, 10.0, 15.0], [10.0, 15.0, 20.0], [15.0, 20.0, 25.0]])
     ffmc_data = np.array([[70.0, 80.0, 85.0], [75.0, 85.0, 90.0], [80.0, 88.0, 92.0]])
 
-    cubes = [
-        make_cube(temp_data, "air_temperature", "Celsius"),
-        make_cube(
-            precip_data,
-            "lwe_thickness_of_precipitation_amount",
-            "mm",
-            add_time_coord=True,
-        ),
-        make_cube(rh_data, "relative_humidity", "1"),
-        make_cube(wind_data, "wind_speed", "km/h"),
-        make_cube(ffmc_data, "fine_fuel_moisture_content", "1", add_time_coord=True),
-    ]
+    temp_cube = make_cube(temp_data, "air_temperature", "Celsius")
+    precip_cube = make_cube(
+        precip_data, "lwe_thickness_of_precipitation_amount", "mm", True
+    )
+    humidity_cube = make_cube(rh_data, "relative_humidity", "1")
+    wind_cube = make_cube(wind_data, "wind_speed", "km/h")
+    ffmc_cube = make_cube(
+        ffmc_data, "fine_fuel_moisture_content", "1", True, START_DATE_DICT
+    )
 
+    cubes = [temp_cube, precip_cube, humidity_cube, wind_cube, ffmc_cube]
     result = FineFuelMoistureContent().process(cubes)
 
     # Verify shape, type, and all values in valid range (0-101)

@@ -8,7 +8,7 @@ import pytest
 from iris.cube import Cube, CubeList
 
 from improver.fire_weather.duff_moisture_code import DuffMoistureCode
-from improver_tests.fire_weather import make_cube, make_input_cubes
+from improver_tests.fire_weather import START_DATE_DICT, make_cube, make_input_cubes
 
 
 def input_cubes(
@@ -50,15 +50,13 @@ def input_cubes(
     Returns:
         Tuple of Iris Cubes for temperature, precipitation, relative humidity, and DMC.
     """
-    return make_input_cubes(
-        [
-            ("air_temperature", temp_val, temp_units, False),
-            ("lwe_thickness_of_precipitation_amount", precip_val, precip_units, True),
-            ("relative_humidity", rh_val, rh_units, False),
-            ("duff_moisture_code", dmc_val, dmc_units, True),
-        ],
-        shape=shape,
-    )
+    cube_args = [
+        ("air_temperature", temp_val, temp_units, False, {}),
+        ("lwe_thickness_of_precipitation_amount", precip_val, precip_units, True, {}),
+        ("relative_humidity", rh_val, rh_units, False, {}),
+        ("duff_moisture_code", dmc_val, dmc_units, True, START_DATE_DICT),
+    ]
+    return make_input_cubes(cube_args, shape=shape)
 
 
 @pytest.mark.parametrize(
@@ -136,17 +134,13 @@ def test__perform_rainfall_adjustment_spatially_varying() -> None:
         ]
     )
 
-    cubes = [
-        make_cube(np.full(shape, 20.0), "air_temperature", "Celsius"),
-        make_cube(
-            precip_data,
-            "lwe_thickness_of_precipitation_amount",
-            "mm",
-            add_time_coord=True,
-        ),
-        make_cube(np.full(shape, 50.0), "relative_humidity", "1"),
-        make_cube(dmc_data, "duff_moisture_code", "1", add_time_coord=True),
-    ]
+    temp_cube = make_cube(np.full(shape, 20.0), "air_temperature", "Celsius")
+    precip_cube = make_cube(
+        precip_data, "lwe_thickness_of_precipitation_amount", "mm", True
+    )
+    humidity_cube = make_cube(np.full(shape, 50.0), "relative_humidity", "1")
+    dmc_cube = make_cube(dmc_data, "duff_moisture_code", "1", True, START_DATE_DICT)
+    cubes = [temp_cube, precip_cube, humidity_cube, dmc_cube]
 
     plugin = DuffMoistureCode()
     plugin.load_input_cubes(CubeList(cubes), month=7)
@@ -361,7 +355,13 @@ def test_process_spatially_varying() -> None:
             add_time_coord=True,
         ),
         make_cube(rh_data, "relative_humidity", "1"),
-        make_cube(dmc_data, "duff_moisture_code", "1", add_time_coord=True),
+        make_cube(
+            dmc_data,
+            "duff_moisture_code",
+            "1",
+            add_time_coord=True,
+            attributes=START_DATE_DICT,
+        ),
     ]
 
     result = DuffMoistureCode().process(CubeList(cubes), month=7)
