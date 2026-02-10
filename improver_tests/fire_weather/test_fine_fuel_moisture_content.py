@@ -4,6 +4,9 @@
 # See LICENSE in the root of the repository for full licensing details.
 
 
+import warnings
+from datetime import datetime, timedelta
+
 import numpy as np
 import pytest
 from iris.cube import Cube, CubeList
@@ -652,3 +655,61 @@ def test_process_spatially_varying() -> None:
     assert len(np.unique(result.data)) > 1
     # Check that different environmental conditions produce different outputs
     assert not np.allclose(result.data[0, 0], result.data[2, 2], atol=0.01)
+
+
+def test_warning_for_start_dates_inside_lag_time() -> None:
+    """When start_date + 2 days runtime < LAG_TIME so warning is created."""
+    under_lag_time = str(datetime.now() - timedelta(days=2))
+    cube_args = [
+        ("air_temperature", 20.0, "Celsius", False, {}),
+        ("lwe_thickness_of_precipitation_amount", 1.0, "mm", False, {}),
+        ("relative_humidity", 50.0, "1", False, {}),
+        ("fine_fuel_moisture_content", 20, "1", False, {"start_date": under_lag_time}),
+        ("wind_speed", 50.0, "km/h", False, {}),
+    ]
+    cubes = make_input_cubes(cube_args, shape=(5, 5))
+
+    msg = r"fine_fuel_moisture_content is 2 days in to it's initialisation"
+    with pytest.warns(UserWarning, match=msg):
+        FineFuelMoistureContent().process(cubes, month=4)
+
+
+@pytest.mark.filterwarnings("ignore:numpy.ndarray size changed:RuntimeWarning")
+def test_no_warning_for_start_dates_outside_lag_time(
+    recwarn: list[warnings.WarningMessage],
+) -> None:
+    """When start_date + 3 days runtime > LAG_TIME so no warning is created."""
+    over_lag_time = str(datetime.now() - timedelta(days=3))
+    cube_args = [
+        ("air_temperature", 20.0, "Celsius", False, {}),
+        ("lwe_thickness_of_precipitation_amount", 1.0, "mm", False, {}),
+        ("relative_humidity", 50.0, "1", False, {}),
+        ("wind_speed", 50.0, "km/h", False, {}),
+        ("fine_fuel_moisture_content", 20.0, "1", False, {"start_date": over_lag_time}),
+    ]
+    cubes = make_input_cubes(cube_args, shape=(5, 5))
+
+    FineFuelMoistureContent().process(cubes, month=1)
+
+    np_warning = "numpy.ndarray size changed"
+    relevant_warnings = [w for w in recwarn if np_warning not in str(w.message)]
+    assert len(relevant_warnings) == 0
+
+
+def test_initialise_true_leads_to_user_warning() -> None:
+    """When initialise=True start_date=now, so runtime < LAG_TIME and warning created."""
+    initialisation_input_cubes = make_input_cubes(
+        [
+            ("air_temperature", 20.0, "Celsius", False, {}),
+            ("lwe_thickness_of_precipitation_amount", 1.0, "mm", False, {}),
+            ("relative_humidity", 50.0, "1", False, {}),
+            ("wind_speed", 50.0, "km/h", False, {}),
+        ],
+        shape=(5, 5),
+    )
+
+    msg = r"fine_fuel_moisture_content is 0 days in to it's initialisation"
+    with pytest.warns(UserWarning, match=msg):
+        FineFuelMoistureContent().process(
+            initialisation_input_cubes, month=12, initialise=True
+        )

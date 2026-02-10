@@ -149,12 +149,3 @@ def test_reference_cube_has_start_date_attribute() -> None:
     msg = r"Unexpected start_date in reference_cube attributes"
     with pytest.raises(ValueError, match=msg):
         plugin.process(cubes, initialise=True)
-
-
-# Test utils
-# Write tests for make baseline cube and move to utils or sim
-
-
-# Test child classes
-# Write test with initialisation set for each of the 3 states
-# Write test for initialisation values in some sense

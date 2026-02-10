@@ -3,6 +3,9 @@
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 
+import warnings
+from datetime import datetime, timedelta
+
 import numpy as np
 import pytest
 from iris.cube import Cube, CubeList
@@ -398,3 +401,58 @@ def test_dmc_day_length_factors_table() -> None:
     ]
 
     assert DuffMoistureCode.DMC_DAY_LENGTH_FACTORS == expected_factors
+
+
+def test_warning_for_start_dates_inside_lag_time() -> None:
+    """When start_date + 14 days runtime < LAG_TIME so warning is created."""
+    under_lag_time = str(datetime.now() - timedelta(days=14))
+    cube_args = [
+        ("air_temperature", 20.0, "Celsius", False, {}),
+        ("lwe_thickness_of_precipitation_amount", 1.0, "mm", False, {}),
+        ("relative_humidity", 50.0, "1", False, {}),
+        ("duff_moisture_code", 20.0, "1", False, {"start_date": under_lag_time}),
+    ]
+    cubes = make_input_cubes(cube_args, shape=(5, 5))
+
+    msg = r"duff_moisture_code is 14 days in to it's initialisation"
+    with pytest.warns(UserWarning, match=msg):
+        DuffMoistureCode().process(cubes, month=4)
+
+
+@pytest.mark.filterwarnings("ignore:numpy.ndarray size changed:RuntimeWarning")
+def test_no_warning_for_start_dates_outside_lag_time(
+    recwarn: list[warnings.WarningMessage],
+) -> None:
+    """When start_date + 15 days runtime > LAG_TIME so no warning is created."""
+    over_lag_time = str(datetime.now() - timedelta(days=15))
+    cube_args = [
+        ("air_temperature", 20.0, "Celsius", False, {}),
+        ("lwe_thickness_of_precipitation_amount", 1.0, "mm", False, {}),
+        ("relative_humidity", 50.0, "1", False, {}),
+        ("duff_moisture_code", 20.0, "1", False, {"start_date": over_lag_time}),
+    ]
+    cubes = make_input_cubes(cube_args, shape=(5, 5))
+
+    DuffMoistureCode().process(cubes, month=1)
+
+    np_warning = "numpy.ndarray size changed"
+    relevant_warnings = [w for w in recwarn if np_warning not in str(w.message)]
+    assert len(relevant_warnings) == 0
+
+
+def test_initialise_true_leads_to_user_warning() -> None:
+    """When initialise=True start_date=now, so runtime < LAG_TIME and warning created."""
+    initialisation_input_cubes = make_input_cubes(
+        [
+            ("air_temperature", 20.0, "Celsius", False, {}),
+            ("lwe_thickness_of_precipitation_amount", 1.0, "mm", False, {}),
+            ("relative_humidity", 50.0, "1", False, {}),
+        ],
+        shape=(5, 5),
+    )
+
+    msg = r"duff_moisture_code is 0 days in to it's initialisation"
+    with pytest.warns(UserWarning, match=msg):
+        DuffMoistureCode().process(
+            initialisation_input_cubes, month=12, initialise=True
+        )
