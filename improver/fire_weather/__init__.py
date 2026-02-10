@@ -171,6 +171,7 @@ class FireWeatherIndexBase(BasePlugin):
 
     def _validate_input_range(self, cube: Cube, attr_name: str) -> None:
         """Validate that input data falls within expected physical ranges.
+        If values fall outside the valid range for this input type, then emit a warning.
 
         Args:
             cube:
@@ -180,8 +181,7 @@ class FireWeatherIndexBase(BasePlugin):
 
         Raises:
             ValueError:
-                If any values fall outside the valid range for this input type,
-                or if data contains NaN or Inf values
+                If data contains NaN or Inf values
         """
         if attr_name not in self._VALID_RANGES:
             return  # No validation defined for this input type
@@ -200,17 +200,23 @@ class FireWeatherIndexBase(BasePlugin):
         # Check minimum bound if defined
         if min_val is not None and np.any(data < min_val):
             actual_min = float(np.min(data))
-            raise ValueError(
+            warnings.warn(
                 f"{attr_name} contains values below valid minimum: "
-                f"found {actual_min}, expected >= {min_val}"
+                f"found {actual_min}, expected >= {min_val}. "
+                f"This may indicate unusual conditions or invalid input data.",
+                UserWarning,
+                stacklevel=3,
             )
 
         # Check maximum bound if defined
         if max_val is not None and np.any(data > max_val):
             actual_max = float(np.max(data))
-            raise ValueError(
+            warnings.warn(
                 f"{attr_name} contains values above valid maximum: "
-                f"found {actual_max}, expected <= {max_val}"
+                f"found {actual_max}, expected <= {max_val}. "
+                f"This may indicate unusual conditions or invalid input data.",
+                UserWarning,
+                stacklevel=3,
             )
 
     def _make_output_cube(
