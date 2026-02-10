@@ -12,6 +12,7 @@ import scipy.stats
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 from numpy import ndarray
+from scipy.ndimage import maximum_filter, minimum_filter
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.constants import DALR, ELR
@@ -19,6 +20,7 @@ from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
+from improver.nbhood.nbhood import circular_kernel
 from improver.utilities import mathematical_operations, neighbourhood_tools
 from improver.utilities.cube_checker import spatial_coords_match
 from improver.utilities.cube_manipulation import (
@@ -117,7 +119,11 @@ def compute_from_slope_and_intercept(
 class ApplyGriddedLapseRate(PostProcessingPlugin):
     """Class to apply a lapse rate adjustment to a forecast diagnostic"""
 
-    def __init__(self, data_limits: Iterable[float] = (None, None)):
+    def __init__(
+        self,
+        data_limits: Iterable[float] = (None, None),
+        data_limits_from_nbhood: int = None,
+    ):
         """
         Initialise the class
 
@@ -125,8 +131,20 @@ class ApplyGriddedLapseRate(PostProcessingPlugin):
             data_limits:
                 (Minimum value, Maximum value). If one or both are not None, these values are used to truncate
                 the data after all calculations are complete.
+            data_limits_from_nbhood:
+                If not None, this value is used to calculate data limits from the neighbourhood of each point.
+                The value is the numbe of grid points in a radius in grid-lengths from which to sample the local minima and maxima.
         """
-        self.data_limits = data_limits
+        if data_limits_from_nbhood is None:
+            self.data_limits_from_nbhood = None
+            self.local_min, self.local_max = data_limits
+        else:
+            self.data_limits_from_nbhood = data_limits_from_nbhood
+            self.local_min, self.local_max = (None, None)
+            if data_limits_from_nbhood <= 1:
+                raise ValueError(
+                    f"Neighbourhood radius must be greater than 1 to ensure that the central point is not the only point in the neighbourhood. Got {data_limits_from_nbhood}."
+                )
 
     @staticmethod
     def _check_dim_coords(diagnostic: Cube, lapse_rate: Cube) -> None:
@@ -169,14 +187,20 @@ class ApplyGriddedLapseRate(PostProcessingPlugin):
         )
         return orog_diff
 
+    def _calc_local_limits(self, cube: Cube):
+        """Uses data_limits_from_nbhood to calculate the local minima and maxima for each point in the cube, and sets these as the data limits."""
+
+        # Make a local maxima and minima for capping
+        kernel = circular_kernel(self.data_limits_from_nbhood, weighted_mode=False)
+        self.local_max = maximum_filter(cube.data, footprint=kernel) * 1.1
+        self.local_min = minimum_filter(cube.data, footprint=kernel)
+
     def _apply_limits(self, cube: Cube):
         """Apply defined limits to the data in the cube"""
         # If there are no data limits, return
-        if not self.data_limits or (
-            self.data_limits[0] is None and self.data_limits[1] is None
-        ):
+        if self.local_min is None and self.local_max is None:
             return
-        cube.data = np.clip(cube.data, *self.data_limits)
+        cube.data = np.clip(cube.data, self.local_min, self.local_max)
 
     def process(
         self,
@@ -222,6 +246,9 @@ class ApplyGriddedLapseRate(PostProcessingPlugin):
             )
 
         orog_diff = self._calc_orog_diff(source_orog, dest_orog)
+
+        if self.data_limits_from_nbhood:
+            self._calc_local_limits(diagnostic)
 
         adjusted_diagnostic = []
         if intercept:
@@ -317,6 +344,7 @@ class LapseRate(BasePlugin):
         self.nbhood_radius = nbhood_radius
         self.max_lapse_rate = max_lapse_rate
         self.min_lapse_rate = min_lapse_rate
+        self.original_min_data_value = min_data_value
         self.min_data_value = min_data_value
         self.default = default
         self.intercept = None
@@ -591,7 +619,7 @@ class LapseRate(BasePlugin):
         tolerance = (
             10.0 ** -diagnostic_cube.attributes.get("least_significant_digit", 0.0)
         ) / 2.0
-        self.min_data_value += tolerance
+        self.min_data_value = self.original_min_data_value + tolerance
 
         # Extract x/y co-ordinates.
         x_coord = diagnostic_cube.coord(axis="x").name()
