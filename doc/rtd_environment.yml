@@ -14,6 +14,8 @@ dependencies:
   - geopandas
   - pandas
   - cf-units
+  - iris-esmf-regrid
+  - kmedoids
   - joblib
   - sphinx<9.0.0  # https://github.com/tox-dev/sphinx-autodoc-typehints/issues/586
   - sphinx-autodoc-typehints
