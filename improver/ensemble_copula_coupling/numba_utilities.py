@@ -119,6 +119,9 @@ def fast_interp_same_y(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndar
 @njit(parallel=True)
 def fast_interp_same_y_2d(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndarray:
     """For each row i of xp, do the equivalent of np.interp(x[i], xp[i], fp).
+    This function is distinct from fast_interp_same_y for compatibility with numba.
+    The function is essentially the same as fast_interp_same_y but with an
+    additional loop over rows to handle a 2-D x array.
 
     Args:
         x: 2-D array with one row per xp row (shape: n * k)
@@ -145,9 +148,11 @@ def fast_interp_same_y_2d(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.n
     max_val = fp[-1]
     result = np.empty((n, k), dtype=np.float32)
 
+    # Loop over each row (sample) in x and xp
     for i in prange(n):
         # Check whether row x[i] is non-decreasing
         x_ordered = True
+        # Loop over each element in the row to check ordering
         for t in range(1, k):
             if x[i, t] < x[i, t - 1]:
                 x_ordered = False
@@ -158,18 +163,20 @@ def fast_interp_same_y_2d(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.n
         slope = 0.0
         x_lower = 0.0
 
+        # Loop over each value in the current row of x
         for j in range(k):
             recalculate = False
             curr_x = x[i, j]
 
             # Find smallest index ind of xp[i] for which xp[i, ind] >= curr_x.
             if x_ordered:
+                # Loop forward through xp[i] until the correct interval is found
                 while (ind < max_ind) and (xp[i, ind] < curr_x):
                     ind += 1
                     recalculate = True
             else:
+                # Use searchsorted to find the interval for unordered x[i]
                 ind = np.searchsorted(xp[i], curr_x)
-                recalculate = True
 
             # linear interpolation
             if ind == 0:
@@ -182,6 +189,7 @@ def fast_interp_same_y_2d(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.n
                     x_lower = xp[i, ind - 1]
                     h_diff = xp[i, ind] - x_lower
                     if h_diff < 1e-15:
+                        # avoid division by very small values for numerical stability
                         slope = 0.0
                     else:
                         slope = (fp[ind] - intercept) / h_diff

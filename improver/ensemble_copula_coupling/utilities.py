@@ -560,6 +560,22 @@ def slow_interp_same_y(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndar
     return result
 
 
+def slow_interp_same_y_2d(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndarray:
+    """For each row i of xp, do the equivalent of np.interp(x[i], xp[i], fp).
+
+    Args:
+        x: 2-d array, shape (n, k)
+        xp: n * m array, each row must be in non-decreasing order
+        fp: 1-d array with length m
+    Returns:
+        n * k array where each row i is equal to np.interp(x[i], xp[i], fp)
+    """
+    result = np.empty(x.shape, dtype=np.float32)
+    for i in range(x.shape[0]):
+        result[i] = np.interp(x[i], xp[i], fp)
+    return result
+
+
 def interpolate_multiple_rows_same_y(*args):
     """For each row i of xp, do the equivalent of np.interp(x, xp[i], fp).
 
@@ -586,4 +602,10 @@ def interpolate_multiple_rows_same_y(*args):
         warnings.warn(
             "Module numba unavailable. ConvertProbabilitiesToPercentiles will be slower."
         )
-        return slow_interp_same_y(*args)
+        x = args[0]
+        if x.ndim == 1:
+            return slow_interp_same_y(*args)
+        elif x.ndim == 2:
+            return slow_interp_same_y_2d(*args)
+        else:
+            raise ValueError("x must be 1D or 2D.")
