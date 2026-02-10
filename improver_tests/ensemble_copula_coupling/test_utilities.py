@@ -33,6 +33,7 @@ from improver.ensemble_copula_coupling.utilities import (
     restore_non_percentile_dimensions,
     slow_interp_same_x,
     slow_interp_same_y,
+    slow_interp_same_y_2d,
 )
 from improver.synthetic_data.set_up_test_cubes import (
     set_up_percentile_cube,
@@ -464,6 +465,28 @@ class Test_interpolate_multiple_rows_same_y(unittest.TestCase):
         expected = np.array([[0, 1, 4], [6, 8, 8]], dtype=np.float32)
         result = slow_interp_same_y(x, xp, fp)
         np.testing.assert_allclose(result, expected)
+
+    def test_slow_2d(self):
+        """Check slow 2D interpolation produces expected results."""
+        # Two rows, three columns for x, matching xp rows
+        x = np.array([[0.5, 2.0, 3.5], [1.0, 2.5, 4.0]], dtype=np.float32)
+        xp = np.array([[0, 1, 2, 3, 4], [1, 2, 3, 4, 5]], dtype=np.float32)
+        fp = np.array([10, 20, 30, 40, 50], dtype=np.float32)
+        # Calculate expected using numpy for each row
+        expected = np.vstack(
+            [np.interp(x[0], xp[0], fp), np.interp(x[1], xp[1], fp)]
+        ).astype(np.float32)
+
+        result = slow_interp_same_y_2d(x, xp, fp)
+        np.testing.assert_allclose(result, expected)
+
+    def test_invalid_x_ndim(self):
+        """Test that ValueError is raised if x is not 1D or 2D."""
+        x = np.zeros((2, 2, 2), dtype=np.float32)  # 3D input
+        xp = np.zeros((2, 2), dtype=np.float32)
+        fp = np.zeros(2, dtype=np.float32)
+        with self.assertRaises(ValueError, msg="x must be 1D or 2D."):
+            interpolate_multiple_rows_same_y(x, xp, fp)
 
     @patch.dict("sys.modules", numba=None)
     @patch("improver.ensemble_copula_coupling.utilities.slow_interp_same_y")
