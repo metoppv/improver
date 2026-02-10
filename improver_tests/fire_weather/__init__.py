@@ -15,6 +15,7 @@ from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 DEFAULT_FRT = datetime(2017, 11, 10, 0, 0)
 DEFAULT_TIME = datetime(2017, 11, 10, 12, 0)
 DEFAULT_TIME_BOUNDS = (datetime(2017, 11, 10, 0, 0), datetime(2017, 11, 10, 12, 0))
+START_DATE_DICT = {"start_date": str(datetime.now())}
 
 
 def make_cube(
@@ -22,6 +23,7 @@ def make_cube(
     name: str,
     units: str,
     add_time_coord: bool = False,
+    attributes: dict[any] | None = None,
 ) -> Cube:
     """Create a test cube for fire weather index tests.
 
@@ -37,6 +39,8 @@ def make_cube(
             The units for the cube.
         add_time_coord:
             Whether to add time bounds (for accumulation periods).
+        attributes:
+            A dictionary of cube attributes
 
     Returns:
         Iris Cube with the given properties, including forecast_reference_time
@@ -50,6 +54,7 @@ def make_cube(
         frt=DEFAULT_FRT,
         time=DEFAULT_TIME,
         time_bounds=time_bounds,
+        attributes=attributes,
     )
 
 
@@ -70,6 +75,7 @@ def make_input_cubes(
             - value: Scalar value or ndarray to fill the cube
             - units: Units for the cube
             - add_time_coord: Whether to add time bounds
+            - attributes: A dictionary of cube attributes
         shape:
             Shape of the grid for each cube.
 
@@ -79,8 +85,8 @@ def make_input_cubes(
     Example:
         >>> cubes = make_input_cubes(
         ...     [
-        ...         ("air_temperature", 20.0, "Celsius", False),
-        ...         ("lwe_thickness_of_precipitation_amount", 1.0, "mm", True),
+        ...         ("air_temperature", 20.0, "Celsius", False, {}),
+        ...         ("lwe_thickness_of_precipitation_amount", 1.0, "mm", True, {}),
         ...     ]
         ... )
     """
@@ -90,6 +96,7 @@ def make_input_cubes(
             name,
             units,
             add_time_coord,
+            attributes,
         )
-        for name, value, units, add_time_coord in cube_specs
+        for name, value, units, add_time_coord, attributes in cube_specs
     )
