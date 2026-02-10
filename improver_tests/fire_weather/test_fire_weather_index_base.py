@@ -635,6 +635,9 @@ def test_process_with_unit_conversion() -> None:
     # Result should be 20 + 0.5 = 20.5
     assert np.allclose(result.data, 20.5, atol=0.01)
 
+    # Check that the input cube's data has not been modified by a side-effect
+    assert np.allclose(cubes[0].data, 293.15)  # air_temperature
+
 
 def test_input_attribute_mappings_in_process() -> None:
     """Test INPUT_ATTRIBUTE_MAPPINGS works in full process workflow."""
