@@ -619,7 +619,11 @@ class LapseRate(BasePlugin):
         tolerance = (
             10.0 ** -diagnostic_cube.attributes.get("least_significant_digit", 0.0)
         ) / 2.0
-        self.min_data_value = self.original_min_data_value + tolerance
+        self.min_data_value = (
+            self.original_min_data_value + tolerance
+            if self.original_min_data_value is not None
+            else None
+        )
 
         # Extract x/y co-ordinates.
         x_coord = diagnostic_cube.coord(axis="x").name()
@@ -644,6 +648,8 @@ class LapseRate(BasePlugin):
 
         # Calculate lapse rate for each realization
         lapse_rate_data = []
+        intercept_data = []
+        error_data = []
         for data_slice in data_slices:
             lapse_rate_array, intercept_array, error_array = (
                 self._generate_lapse_rate_array(
@@ -651,9 +657,15 @@ class LapseRate(BasePlugin):
                 )
             )
             lapse_rate_data.append(lapse_rate_array)
+            intercept_data.append(intercept_array)
+            error_data.append(error_array)
         lapse_rate_data = np.array(lapse_rate_data)
+        intercept_data = np.array(intercept_data)
+        error_data = np.array(error_data)
         if not has_realization_dimension:
             lapse_rate_data = np.squeeze(lapse_rate_data)
+            intercept_data = np.squeeze(intercept_data)
+            error_data = np.squeeze(error_data)
 
         attributes = generate_mandatory_attributes(
             [diagnostic], model_id_attr=model_id_attr
@@ -670,14 +682,14 @@ class LapseRate(BasePlugin):
             diagnostic.units,
             diagnostic_cube,
             attributes,
-            data=intercept_array,
+            data=intercept_data,
         )
         self.error_margin = create_new_diagnostic_cube(
             f"{diagnostic.name()}_margin_of_error",
             diagnostic.units,
             diagnostic_cube,
             attributes,
-            data=error_array,
+            data=error_data,
         )
 
         if original_dimension_order:
