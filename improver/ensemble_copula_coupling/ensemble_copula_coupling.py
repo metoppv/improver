@@ -767,7 +767,6 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
             probabilities_for_cdf.astype(np.float64),
             threshold_points.astype(np.float64),
         ).transpose()
-
         # Reshape forecast_at_percentiles, so the percentiles dimension is
         # first, and any other dimension coordinates follow.
         forecast_at_percentiles = restore_non_percentile_dimensions(

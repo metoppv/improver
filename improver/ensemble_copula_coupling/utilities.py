@@ -18,6 +18,7 @@ from cf_units import Unit
 from iris.cube import Cube
 from numpy import ndarray
 
+from improver import BasePlugin
 from improver.ensemble_copula_coupling.constants import BOUNDS_FOR_ECDF
 from improver.metadata.probabilistic import find_threshold_coordinate
 
@@ -52,7 +53,7 @@ def concatenate_2d_array_with_2d_array_endpoints(
     return array_2d
 
 
-class CalculatePercentilesFromIntensityDistribution:
+class CalculatePercentilesFromIntensityDistribution(BasePlugin):
     """
     Plugin to calculate percentiles at which provided intensity values would fall,
     according to a fitted probability distribution (currently only gamma).
