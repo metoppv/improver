@@ -489,7 +489,7 @@ class Test_interpolate_multiple_rows_same_y(unittest.TestCase):
             interpolate_multiple_rows_same_y(x, xp, fp)
 
     @patch.dict("sys.modules", numba=None)
-    @patch("improver.ensemble_copula_coupling.utilities.slow_interp_same_y")
+    @patch("improver.ensemble_copula_coupling.utilities.slow_interp_same_y_nd")
     def test_slow_interp_same_y_called(self, interp_imp):
         """Test that slow_interp_same_y is called if numba is not installed."""
         interpolate_multiple_rows_same_y(
