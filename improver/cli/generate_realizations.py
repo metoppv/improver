@@ -20,6 +20,9 @@ def process(
     ensure_evenly_spaced_realizations: bool = True,
     ignore_ecc_bounds_exceedance: bool = False,
     skip_ecc_bounds: bool = False,
+    distribution: str = "gamma",
+    nan_mask_value: float = 0.0,
+    scale_percentiles_to_probability_lower_bound: bool = False,
 ):
     """Converts an incoming cube into one containing realizations.
 
@@ -77,6 +80,24 @@ def process(
             interpolation from the nearest available percentile, rather than using
             linear interpolation between the nearest available percentile and
             the ECC bound.
+        distribution: Valid if the "transformation" option is selected for sampling
+            the probability distribution. Type of distribution to fit
+            (currently only 'gamma' is supported).
+        nan_mask_value: Valid if the "transformation" option is selected for
+            sampling the probability distribution. Value to mask as NaN before
+            calculating mean and std. This option might be most useful for a
+            diagnostic, such as precipitation rate, where there is a high
+            frequency of zero values. If None, no masking is performed.
+            Default is 0.0.
+        scale_percentiles_to_probability_lower_bound (bool):
+            Valid if the "transformation" option is selected for sampling the
+            probability distribution. If True, the minimum value of the calculated
+            percentiles will be set to the minimum CDF probability implied by the
+            input probabilities, rather than zero. This has the effect of restricting
+            the percentiles to the non-zero part of the distribution, which is
+            useful when there is a high probability of zero values (e.g., for
+            precipitation). When False, percentiles are calculated over the
+            full [0, 1] range, regardless of the input probabilities. Default is False.
 
     Returns:
         iris.cube.Cube:
@@ -113,6 +134,9 @@ def process(
         percentiles = ConvertProbabilitiesToPercentiles(
             ecc_bounds_warning=ignore_ecc_bounds_exceedance,
             skip_ecc_bounds=skip_ecc_bounds,
+            distribution=distribution,
+            nan_mask_value=nan_mask_value,
+            scale_percentiles_to_probability_lower_bound=scale_percentiles_to_probability_lower_bound,
         )(
             cube,
             no_of_percentiles=realizations_count,
