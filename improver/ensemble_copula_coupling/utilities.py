@@ -603,10 +603,19 @@ def interpolate_multiple_rows_same_y(*args):
         warnings.warn(
             "Module numba unavailable. ConvertProbabilitiesToPercentiles will be slower."
         )
-        x = args[0]
-        if x.ndim == 1:
-            return slow_interp_same_y(*args)
-        elif x.ndim == 2:
-            return slow_interp_same_y_2d(*args)
-        else:
-            raise ValueError("x must be 1D or 2D.")
+        return slow_interp_same_y_nd(*args)
+
+
+def slow_interp_same_y_nd(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndarray:
+    """Dispatch to functions that handle 1D or 2D x inputs.
+
+    Args:
+        x: 1-D or 2-D array
+        xp: n * m array, each row must be in non-decreasing order
+        fp: 1-D array with length m
+    """
+    if x.ndim == 1:
+        return slow_interp_same_y(x, xp, fp)
+    if x.ndim == 2:
+        return slow_interp_same_y_2d(x, xp, fp)
+    raise ValueError("x must be 1D or 2D.")
