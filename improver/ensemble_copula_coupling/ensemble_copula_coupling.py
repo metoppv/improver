@@ -564,7 +564,9 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
                 (currently only 'gamma' is supported).
             nan_mask_value: Valid if the "transformation" option is selected for
                 sampling the probability distribution. Value to mask as NaN before
-                calculating mean and std. If None, no masking is performed.
+                calculating mean and std. This option might be most useful for a
+                diagnostic, such as precipitation rate, where there is a high
+                frequency of zero values. If None, no masking is performed.
                 Default is 0.0.
             scale_percentiles_to_probability_lower_bound: Valid if the "transformation"
                 option is selected for sampling the probability distribution. If True,
