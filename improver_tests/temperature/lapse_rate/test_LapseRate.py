@@ -18,78 +18,88 @@ from improver.temperature.lapse_rate import LapseRate
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 
-class Test__repr__(unittest.TestCase):
-    """Test the repr method."""
+def test__repr__():
+    """Test that the __repr__ returns the expected string."""
+    result = str(LapseRate())
+    msg = (
+        "<LapseRate: max_height_diff: 35, nbhood_radius: 7,"
+        "max_lapse_rate: 0.0294, min_lapse_rate: -0.0098>"
+    )
+    assert result == msg
 
-    def test_basic(self):
-        """Test that the __repr__ returns the expected string."""
-        result = str(LapseRate())
-        msg = (
-            "<LapseRate: max_height_diff: 35, nbhood_radius: 7,"
-            "max_lapse_rate: 0.0294, min_lapse_rate: -0.0098>"
-        )
-        self.assertEqual(result, msg)
-
-
-class Test__calc_lapse_rate(unittest.TestCase):
     """Test the _calc_lapse_rate function."""
 
-    def setUp(self):
-        """Sets up arrays."""
 
-        self.temperature = np.array(
-            [
-                [280.06, 279.97, 279.90],
-                [280.15, 280.03, 279.96],
-                [280.25, 280.33, 280.27],
-            ]
-        )
-        self.orography = np.array(
-            [
-                [174.67, 179.87, 188.46],
-                [155.84, 169.58, 185.05],
-                [134.90, 144.00, 157.89],
-            ]
-        )
-        self.land_sea_mask = ~np.zeros_like(self.temperature, dtype=bool)
+@pytest.fixture()
+def temperature():
+    """Sets up arrays."""
+    temperature = np.array(
+        [
+            [280.06, 279.97, 279.90],
+            [280.15, 280.03, 279.96],
+            [280.25, 280.33, 280.27],
+        ]
+    )
+    return temperature
 
-    def test_returns_expected_values(self):
-        """Test that the function returns expected lapse rate."""
 
-        expected_out = -0.00765005774676
-        result, _, _ = LapseRate(nbhood_radius=1)._generate_lapse_rate_array(
-            self.temperature, self.orography, self.land_sea_mask
-        )
-        np.testing.assert_array_almost_equal(result[1, 1], expected_out)
+@pytest.fixture()
+def orography():
+    orography = np.array(
+        [
+            [174.67, 179.87, 188.46],
+            [155.84, 169.58, 185.05],
+            [134.90, 144.00, 157.89],
+        ]
+    )
+    return orography
 
-    def test_handles_nan(self):
-        """Test that the function returns DALR value when central point
-        is NaN."""
 
-        self.temperature[..., 1, 1] = np.nan
-        expected_out = DALR
-        result, _, _ = LapseRate(nbhood_radius=1)._generate_lapse_rate_array(
-            self.temperature, self.orography, self.land_sea_mask
-        )
-        np.testing.assert_array_almost_equal(result[1, 1], expected_out)
+@pytest.fixture()
+def land_sea_mask(temperature):
+    land_sea_mask = ~np.zeros_like(temperature, dtype=bool)
+    return land_sea_mask
 
-    def test_handles_height_difference(self):
-        """Test that the function calculates the correct value when a large height
-        difference is present in the orography data."""
-        self.temperature[..., 1, 1] = 280.03
-        self.orography[..., 0, 0] = 205.0
-        expected_out = np.array(
-            [
-                [0.00358138, -0.00249654, -0.00615844],
-                [-0.00759706, -0.00775436, -0.0098],
-                [-0.00755349, -0.00655047, -0.0098],
-            ]
-        )
 
-        result, _, _ = LapseRate(nbhood_radius=1)._generate_lapse_rate_array(
-            self.temperature, self.orography, self.land_sea_mask
-        )
-        np.testing.assert_array_almost_equal(result, expected_out)
+def test_returns_expected_values(temperature, orography, land_sea_mask):
+    """Test that the function returns expected lapse rate."""
+
+    expected_out = -0.00765005774676
+    result, _, _ = LapseRate(nbhood_radius=1)._generate_lapse_rate_array(
+        temperature, orography, land_sea_mask
+    )
+    np.testing.assert_array_almost_equal(result[1, 1], expected_out)
+
+
+def test_handles_nan(temperature, orography, land_sea_mask):
+    """Test that the function returns DALR value when central point
+    is NaN."""
+
+    temperature[..., 1, 1] = np.nan
+    expected_out = DALR
+    result, _, _ = LapseRate(nbhood_radius=1)._generate_lapse_rate_array(
+        temperature, orography, land_sea_mask
+    )
+    np.testing.assert_array_almost_equal(result[1, 1], expected_out)
+
+
+def test_handles_height_difference(temperature, orography, land_sea_mask):
+    """Test that the function calculates the correct value when a large height
+    difference is present in the orography data."""
+    temperature[..., 1, 1] = 280.03
+    orography[..., 0, 0] = 205.0
+    expected_out = np.array(
+        [
+            [0.00358138, -0.00249654, -0.00615844],
+            [-0.00759706, -0.00775436, -0.0098],
+            [-0.00755349, -0.00655047, -0.0098],
+        ]
+    )
+
+    result, _, _ = LapseRate(nbhood_radius=1)._generate_lapse_rate_array(
+        temperature, orography, land_sea_mask
+    )
+    np.testing.assert_array_almost_equal(result, expected_out)
 
 
 @pytest.mark.parametrize(
