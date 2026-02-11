@@ -72,6 +72,8 @@ class CalculatePercentilesFromIntensityDistribution(BasePlugin):
             distribution: Type of distribution to fit
                 (currently only 'gamma' is supported).
             nan_mask_value: Value to mask as NaN before calculating mean and std.
+                This option might be most useful for a diagnostic, such as
+                precipitation rate, where there is a high frequency of zero values.
                 If None, no masking is performed. Default is 0.0.
             scale_percentiles_to_probability_lower_bound: If True, the minimum value
                 of the calculated percentiles will be set to the minimum CDF

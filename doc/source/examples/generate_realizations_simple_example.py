@@ -4,10 +4,17 @@
 # See LICENSE in the root of the repository for full licensing details.
 """
 =======================================================================
-Example: Convert probabilities to percentiles and perform reordering
+Example: Convert probabilities to percentiles and perform reordering to generate realizations
 =======================================================================
 This example demonstrates how to use the ConvertProbabilitiesToPercentiles and
 EnsembleReordering plugins on a synthetic precipitation probability cube.
+
+It provides a worked example of the Ensemble Copula Coupling (ECC) approach,
+showing how to convert probabilities of exceeding thresholds into percentiles,
+and then reorder these percentiles to generate ensemble realizations. The example
+illustrates both the "quantile" and "transformation" sampling options available
+within ECC, highlighting the differences in the resulting percentiles and
+realizations produced by each method
 """
 
 # Authors: The IMPROVER developers
@@ -15,9 +22,6 @@ EnsembleReordering plugins on a synthetic precipitation probability cube.
 
 # %%
 # Import necessary libraries and plugins
-import sys
-
-sys.path.insert(0, "/home/users/gavin.evans/impro/improver2")
 import iris.quickplot as qplt
 import matplotlib.pyplot as plt
 import numpy as np
