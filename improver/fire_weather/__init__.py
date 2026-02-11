@@ -179,9 +179,11 @@ class FireWeatherIndexBase(BasePlugin):
             attr_name:
                 The attribute name for the cube
 
-        Raises:
+        Warns:
             UserWarning:
                 If any values fall outside the valid range for this input type
+
+        Raises:
             ValueError:
                 If data contains NaN or Inf values
         """
