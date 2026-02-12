@@ -6,6 +6,7 @@
 
 import json
 import warnings
+from collections import defaultdict
 from typing import Any
 
 import iris
@@ -579,6 +580,20 @@ class RealizationClusterAndMatch(BasePlugin):
             len(clustering_result.medoid_indices_)
         )
         promote_aux_coord_to_dim_coord(cube_clustered, "realization")
+
+        cluster_to_realizations = defaultdict(list)
+        for idx, cluster_num in enumerate(clustering_result.labels_):
+            cluster_to_realizations[int(cluster_num)].append(
+                int(primary_cube.coord("realization").points[idx])
+            )
+
+        # Convert defaultdict to regular dict for serialization
+        cluster_to_realizations = {
+            k: cluster_to_realizations[k] for k in sorted(cluster_to_realizations)
+        }
+        cube_clustered.attributes["clusters_to_primary_input_realizations"] = (
+            cluster_to_realizations
+        )
         return cube_clustered
 
     def _categorise_secondary_inputs(
@@ -1059,6 +1074,10 @@ class RealizationClusterAndMatch(BasePlugin):
         clustered_primary_cube, regridded_clustered_primary_cube = (
             self.cluster_primary_input(primary_cube, target_grid_cube)
         )
+        # Store mapping for re-application to result.
+        clusters_to_primary_input_realizations = clustered_primary_cube.attributes[
+            "clusters_to_primary_input_realizations"
+        ]
 
         n_clusters = len(clustered_primary_cube.coord("realization").points)
 
@@ -1128,6 +1147,10 @@ class RealizationClusterAndMatch(BasePlugin):
             CubeList([iris.util.squeeze(c) for c in matched_cubes])
         )
 
+        # Use json.dumps to store dictionary as attribute.
+        result_cube.attributes["clusters_to_primary_input_realizations"] = json.dumps(
+            clusters_to_primary_input_realizations
+        )
         # Store cluster_sources as a cube attribute (as JSON string)
         # Format: {cluster_idx: {model_name: [fp1, fp2, ...]}}
         # Convert numpy int32 to native Python int for JSON serialization
