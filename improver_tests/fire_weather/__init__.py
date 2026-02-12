@@ -4,7 +4,7 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Common test utilities for fire weather index tests."""
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import numpy as np
 from iris.cube import Cube
@@ -15,7 +15,7 @@ from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 DEFAULT_FRT = datetime(2017, 11, 10, 0, 0)
 DEFAULT_TIME = datetime(2017, 11, 10, 12, 0)
 DEFAULT_TIME_BOUNDS = (datetime(2017, 11, 10, 0, 0), datetime(2017, 11, 10, 12, 0))
-START_DATE_DICT = {"start_date": str(datetime.now())}
+START_DATE_DICT = {"start_date": str(datetime.now() - timedelta(days=55))}
 
 
 def make_cube(
