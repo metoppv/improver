@@ -2,13 +2,18 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
+import os
+
 import numpy as np
 from iris.cube import Cube
 
-from improver.fire_weather import FireWeatherIndexBase
+from improver.fire_weather import IterativeFireWeatherIndexBase
+
+FFMC_START_VALUE = os.environ.get("FFMC_START_VALUE", 85)
+FFMC_LAG_TIME = os.environ.get("FFMC_LAG_TIME", 3)
 
 
-class FineFuelMoistureContent(FireWeatherIndexBase):
+class FineFuelMoistureContent(IterativeFireWeatherIndexBase):
     """
     Plugin to calculate the Fine Fuel Moisture Code (FFMC) following
     the Canadian Forest Fire Weather Index System.
@@ -30,6 +35,9 @@ class FineFuelMoistureContent(FireWeatherIndexBase):
         - Wind speed: km/h
         - Previous FFMC: dimensionless (0-101)
     """
+
+    STARTING_VALUE = FFMC_START_VALUE
+    LAG_TIME = FFMC_LAG_TIME
 
     INPUT_CUBE_NAMES = [
         "air_temperature",
