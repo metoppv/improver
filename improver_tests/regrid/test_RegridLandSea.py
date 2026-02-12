@@ -221,6 +221,20 @@ class Test_process(ImproverTest):
             self.assertEqual(result.coord(axis=axis), self.target_grid.coord(axis=axis))
         self.assertDictEqual(result.attributes, expected_attributes)
 
+    def test_run_regrid_with_tolerance_specified(self):
+        """Test masked regridding with relative grid tolerance specified."""
+        expected_data = 282 * np.ones((12, 12), dtype=np.float32)
+        test_cases = [1.0e-10, 1.0e-5, 4.0e-3, 7.0e-1]
+        for rtol in test_cases:
+            with self.subTest(rtol=rtol):
+                result = RegridLandSea(
+                    regrid_mode="nearest-with-mask-2",
+                    landmask=self.landmask,
+                    landmask_vicinity=90000,
+                    rtol_grid_spacing=rtol,
+                )(self.cube, self.target_grid.copy())
+                np.testing.assert_array_almost_equal(result.data, expected_data)
+
 
 if __name__ == "__main__":
     unittest.main()

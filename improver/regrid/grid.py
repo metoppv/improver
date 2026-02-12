@@ -15,6 +15,7 @@ from numpy import ndarray
 from numpy.ma.core import MaskedArray
 from scipy.interpolate import RegularGridInterpolator
 
+from improver.constants import RTOL_GRID_SPACING_DEFAULT
 from improver.utilities.cube_manipulation import sort_coord_in_cube
 from improver.utilities.spatial import calculate_grid_spacing, lat_lon_determine
 
@@ -36,7 +37,9 @@ def ensure_ascending_coord(cube: Cube) -> Cube:
     return cube
 
 
-def calculate_input_grid_spacing(cube_in: Cube) -> Tuple[float, float]:
+def calculate_input_grid_spacing(
+    cube_in: Cube, rtol: float = RTOL_GRID_SPACING_DEFAULT
+) -> Tuple[float, float]:
     """
     Calculate grid spacing in latitude and logitude.
     Check if input source grid is on even-spacing and ascending lat/lon system.
@@ -44,6 +47,8 @@ def calculate_input_grid_spacing(cube_in: Cube) -> Tuple[float, float]:
     Args:
         cube_in:
             Input source cube.
+        rtol:
+            Relative tolerance to use when calculating grid spacing.
 
     Returns:
         - Grid spacing in latitude, in degree.
@@ -59,8 +64,8 @@ def calculate_input_grid_spacing(cube_in: Cube) -> Tuple[float, float]:
         raise ValueError("Input grid is not on a latitude/longitude system")
 
     # calculate grid spacing
-    lon_spacing = calculate_grid_spacing(cube_in, "degree", axis="x", rtol=4.0e-5)
-    lat_spacing = calculate_grid_spacing(cube_in, "degree", axis="y", rtol=4.0e-5)
+    lon_spacing = calculate_grid_spacing(cube_in, "degree", axis="x", rtol=rtol)
+    lat_spacing = calculate_grid_spacing(cube_in, "degree", axis="y", rtol=rtol)
 
     y_coord = cube_in.coord(axis="y").points
     x_coord = cube_in.coord(axis="x").points
