@@ -658,7 +658,7 @@ def test_input_attribute_mappings_in_process() -> None:
 
 
 @pytest.mark.parametrize(
-    "param,value,expected_error",
+    "param,value,expected_warning",
     [
         # Temperature validation
         ("temperature", 150.0, "temperature contains values above valid maximum"),
@@ -676,18 +676,18 @@ def test_input_attribute_mappings_in_process() -> None:
         ),
     ],
 )
-def test_validate_input_range_raises_error(
-    param: str, value: float, expected_error: str
+def test_validate_input_range_raises_warning(
+    param: str, value: float, expected_warning: str
 ) -> None:
-    """Test that _validate_input_range raises ValueError for out-of-range values.
+    """Test that _validate_input_range emits a warning for out-of-range values.
 
     Args:
         param:
             Parameter name to test.
         value:
             Invalid value to test.
-        expected_error:
-            Expected error message substring.
+        expected_warning:
+            Expected warning message substring.
     """
     # Create cubes with invalid values
     if param == "temperature":
@@ -697,8 +697,10 @@ def test_validate_input_range_raises_error(
 
     plugin = ConcreteFireWeatherIndex()
 
-    with pytest.raises(ValueError, match=expected_error):
-        plugin.load_input_cubes(CubeList(cubes))
+    # Should issue a warning about values outside valid range but still process the cubes
+    with pytest.warns(UserWarning, match=expected_warning):
+        result = plugin.process(cubes)
+    assert isinstance(result, Cube)
 
 
 @pytest.mark.parametrize(
