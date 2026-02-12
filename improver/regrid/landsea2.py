@@ -11,6 +11,7 @@ import numpy as np
 from iris.cube import Cube
 
 from improver import PostProcessingPlugin
+from improver.constants import RTOL_GRID_SPACING_DEFAULT
 from improver.regrid.bilinear import (
     adjust_for_surface_mismatch,
     apply_weights,
@@ -55,7 +56,10 @@ class RegridWithLandSeaMask(PostProcessingPlugin):
     """
 
     def __init__(
-        self, regrid_mode: str = "bilinear-2", vicinity_radius: float = 25000.0
+        self,
+        regrid_mode: str = "bilinear-2",
+        vicinity_radius: float = 25000.0,
+        rtol_grid_spacing: float = RTOL_GRID_SPACING_DEFAULT,
     ):
         """
         Initialise class
@@ -68,9 +72,12 @@ class RegridWithLandSeaMask(PostProcessingPlugin):
                 source points in terms of land / sea type.
             vicinity_radius:
                 Radius of vicinity to search for a coastline, in metres.
+            rtol_grid_spacing:
+                Relative tolerance to use when calculating grid spacing.
         """
         self.regrid_mode = regrid_mode
         self.vicinity = vicinity_radius
+        self.rtol_grid_spacing = rtol_grid_spacing
 
     def process(self, cube_in: Cube, cube_in_mask: Cube, cube_out_mask: Cube) -> Cube:
         """
@@ -100,7 +107,9 @@ class RegridWithLandSeaMask(PostProcessingPlugin):
 
         # check if input source grid is on even-spacing, ascending lat/lon system
         # return grid spacing for latitude and logitude
-        lat_spacing, lon_spacing = calculate_input_grid_spacing(cube_in)
+        lat_spacing, lon_spacing = calculate_input_grid_spacing(
+            cube_in, rtol=self.rtol_grid_spacing
+        )
 
         # Gather output latitude/longitudes from output template cube
         if (
