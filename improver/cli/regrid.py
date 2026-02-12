@@ -6,6 +6,7 @@
 """Script to regrid a NetCDF file"""
 
 from improver import cli
+from improver.constants import RTOL_GRID_SPACING_DEFAULT
 
 
 @cli.clizefy
@@ -18,6 +19,7 @@ def process(
     regrid_mode="bilinear",
     extrapolation_mode="nanmask",
     land_sea_mask_vicinity: float = 25000,
+    rtol_grid_spacing: float = RTOL_GRID_SPACING_DEFAULT,
     regridded_title: str = None,
 ):
     """Regrids source cube data onto a target grid. Optional land-sea awareness.
@@ -57,6 +59,10 @@ def process(
             will be masked; otherwise they will be set to NaN
         land_sea_mask_vicinity (float):
             Radius of vicinity to search for a coastline, in metres.
+        rtol_grid_spacing (float):
+            Relative tolerance to use when calculating grid spacing. Only used
+            with the following regrid modes: "nearest-2",
+            "nearest-with-mask-2", "bilinear-2", "bilinear-with-mask-2".
         regridded_title (str):
             New "title" attribute to be set if the field is being regridded
             (since "title" may contain grid information). If None, a default
@@ -96,4 +102,5 @@ def process(
         extrapolation_mode=extrapolation_mode,
         landmask=land_sea_mask,
         landmask_vicinity=land_sea_mask_vicinity,
+        rtol_grid_spacing=rtol_grid_spacing,
     )(cube, target_grid, regridded_title=regridded_title)
