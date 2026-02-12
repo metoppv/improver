@@ -12,11 +12,28 @@
 import numpy as np
 import pytest
 
+from improver.constants import (
+    RTOL_GRID_SPACING_DEFAULT,
+    RTOL_GRID_SPACING_TIGHT,
+)
 from improver.regrid.bilinear import basic_indexes
 from improver.regrid.grid import calculate_input_grid_spacing, latlon_from_cube
 from improver.regrid.landsea import RegridLandSea
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.pad_spatial import pad_cube_with_halo
+
+# Different values of grid spacing relative tolerance to use as test parameters
+RTOL_GRID_SPACING_TEST_DATA = (
+    RTOL_GRID_SPACING_TIGHT,
+    RTOL_GRID_SPACING_DEFAULT,
+    1.0e-6,
+    0.0001,
+    0.001,
+    0.5,
+)
+
+# Function to generate IDs for parametrised tests using relative tolerance
+rtol_id_fn = lambda val: f"rtol={val}"
 
 
 def modify_cube_coordinate_value(cube, coord_x, coord_y):
@@ -116,13 +133,18 @@ def define_source_target_grid_data_same_domain():
     return cube_in, cube_out_mask, cube_in_mask
 
 
-def test_basic_indexes():
+@pytest.mark.parametrize(
+    "rtol_grid_spacing", RTOL_GRID_SPACING_TEST_DATA, ids=rtol_id_fn
+)
+def test_basic_indexes(rtol_grid_spacing: float):
     """Test basic_indexes for identical source and target domain case"""
     cube_in, cube_out_mask, _ = define_source_target_grid_data_same_domain()
     in_latlons = latlon_from_cube(cube_in)
     out_latlons = latlon_from_cube(cube_out_mask)
     in_lons_size = cube_in.coord(axis="x").shape[0]
-    lat_spacing, lon_spacing = calculate_input_grid_spacing(cube_in)
+    lat_spacing, lon_spacing = calculate_input_grid_spacing(
+        cube_in, rtol=rtol_grid_spacing
+    )
     indexes = basic_indexes(
         out_latlons, in_latlons, in_lons_size, lat_spacing, lon_spacing
     )
@@ -139,11 +161,16 @@ def test_basic_indexes():
     np.testing.assert_array_equal(test_results, expected_results)
 
 
-def test_regrid_nearest_2():
+@pytest.mark.parametrize(
+    "rtol_grid_spacing", RTOL_GRID_SPACING_TEST_DATA, ids=rtol_id_fn
+)
+def test_regrid_nearest_2(rtol_grid_spacing: float):
     """Test nearest neighbour regridding option 'nearest-2'"""
 
     cube_in, cube_out_mask, _ = define_source_target_grid_data()
-    regrid_nearest = RegridLandSea(regrid_mode="nearest-2")(cube_in, cube_out_mask)
+    regrid_nearest = RegridLandSea(
+        regrid_mode="nearest-2", rtol_grid_spacing=rtol_grid_spacing
+    )(cube_in, cube_out_mask)
     expected_results = np.array(
         [
             [0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 3],
@@ -159,11 +186,16 @@ def test_regrid_nearest_2():
     np.testing.assert_allclose(regrid_nearest.data, expected_results, atol=1e-3)
 
 
-def test_regrid_bilinear_2():
+@pytest.mark.parametrize(
+    "rtol_grid_spacing", RTOL_GRID_SPACING_TEST_DATA, ids=rtol_id_fn
+)
+def test_regrid_bilinear_2(rtol_grid_spacing: float):
     """Test bilinear regridding option 'bilinear-2'"""
 
     cube_in, cube_out_mask, _ = define_source_target_grid_data()
-    regrid_bilinear = RegridLandSea(regrid_mode="bilinear-2")(cube_in, cube_out_mask)
+    regrid_bilinear = RegridLandSea(
+        regrid_mode="bilinear-2", rtol_grid_spacing=rtol_grid_spacing
+    )(cube_in, cube_out_mask)
 
     expected_results = np.array(
         [
@@ -181,7 +213,10 @@ def test_regrid_bilinear_2():
     np.testing.assert_allclose(regrid_bilinear.data, expected_results, atol=1e-3)
 
 
-def test_regrid_nearest_with_mask_2():
+@pytest.mark.parametrize(
+    "rtol_grid_spacing", RTOL_GRID_SPACING_TEST_DATA, ids=rtol_id_fn
+)
+def test_regrid_nearest_with_mask_2(rtol_grid_spacing: float):
     """Test nearest-with-mask-2 regridding"""
 
     cube_in, cube_out_mask, cube_in_mask = define_source_target_grid_data()
@@ -189,6 +224,7 @@ def test_regrid_nearest_with_mask_2():
         regrid_mode="nearest-with-mask-2",
         landmask=cube_in_mask,
         landmask_vicinity=250000000,
+        rtol_grid_spacing=rtol_grid_spacing,
     )(cube_in, cube_out_mask)
 
     expected_results = np.array(
@@ -221,7 +257,10 @@ def test_regrid_nearest_with_mask_2():
     )
 
 
-def test_regrid_bilinear_with_mask_2():
+@pytest.mark.parametrize(
+    "rtol_grid_spacing", RTOL_GRID_SPACING_TEST_DATA, ids=rtol_id_fn
+)
+def test_regrid_bilinear_with_mask_2(rtol_grid_spacing: float):
     """Test bilinear-with-mask-2 regridding"""
 
     cube_in, cube_out_mask, cube_in_mask = define_source_target_grid_data()
@@ -229,6 +268,7 @@ def test_regrid_bilinear_with_mask_2():
         regrid_mode="bilinear-with-mask-2",
         landmask=cube_in_mask,
         landmask_vicinity=250000000,
+        rtol_grid_spacing=rtol_grid_spacing,
     )(cube_in, cube_out_mask)
 
     expected_results = np.array(
