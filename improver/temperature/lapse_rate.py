@@ -141,9 +141,9 @@ class ApplyGriddedLapseRate(PostProcessingPlugin):
         else:
             self.data_limits_from_nbhood = data_limits_from_nbhood
             self.local_min, self.local_max = (None, None)
-            if data_limits_from_nbhood <= 1:
+            if not data_limits_from_nbhood >= 1:
                 raise ValueError(
-                    f"Neighbourhood radius must be greater than 1 to ensure that the central point is not the only point in the neighbourhood. Got {data_limits_from_nbhood}."
+                    f"Neighbourhood radius must be at least 1 to ensure that the central point is not the only point in the neighbourhood. Got {data_limits_from_nbhood}."
                 )
 
     @staticmethod

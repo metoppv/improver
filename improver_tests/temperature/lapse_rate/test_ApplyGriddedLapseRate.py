@@ -8,6 +8,7 @@ import unittest
 
 import iris
 import numpy as np
+import pytest
 
 from improver.constants import DALR
 from improver.synthetic_data.set_up_test_cubes import (
@@ -184,6 +185,53 @@ class Test_process(unittest.TestCase):
             self.plugin(
                 self.temperature, self.lapse_rate, self.source_orog, self.dest_orog
             )
+
+
+@pytest.mark.parametrize(
+    "data_limits,data_limits_from_nbhood,expected_local_min,expected_local_max,expected_nbhood",
+    [
+        # Test case 1: No limits specified
+        ((None, None), None, None, None, None),
+        # Test case 2: Only minimum limit specified
+        ((0.0, None), None, 0.0, None, None),
+        # Test case 3: Only maximum limit specified
+        ((None, 100.0), None, None, 100.0, None),
+        # Test case 4: Both limits specified
+        ((0.0, 100.0), None, 0.0, 100.0, None),
+        # Test case 5: Neighbourhood-based limits
+        ((None, None), 5, None, None, 5),
+        # Test case 6: Neighbourhood overrides static limits
+        ((0.0, 100.0), 7, None, None, 7),
+    ],
+)
+def test_initialization_valid(
+    data_limits,
+    data_limits_from_nbhood,
+    expected_local_min,
+    expected_local_max,
+    expected_nbhood,
+):
+    """Test valid initialization combinations"""
+    kwargs = {}
+    if data_limits is not None:
+        kwargs["data_limits"] = data_limits
+    if data_limits_from_nbhood is not None:
+        kwargs["data_limits_from_nbhood"] = data_limits_from_nbhood
+    plugin = ApplyGriddedLapseRate(**kwargs)
+
+    assert plugin.local_min == expected_local_min
+    assert plugin.local_max == expected_local_max
+    assert plugin.data_limits_from_nbhood == expected_nbhood
+
+
+@pytest.mark.parametrize(
+    "data_limits_from_nbhood",
+    [0, -1, np.nan, -np.inf],
+)
+def test_initialization_invalid_nbhood(data_limits_from_nbhood):
+    """Test that invalid neighbourhood radius raises ValueError"""
+    with pytest.raises(ValueError, match="Neighbourhood radius must be at least 1"):
+        ApplyGriddedLapseRate(data_limits_from_nbhood=data_limits_from_nbhood)
 
 
 if __name__ == "__main__":
