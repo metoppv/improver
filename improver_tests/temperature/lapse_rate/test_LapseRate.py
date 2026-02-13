@@ -69,16 +69,16 @@ def test_returns_expected_values(temperature, orography, land_sea_mask):
     np.testing.assert_array_almost_equal(result[1, 1], expected_out)
 
 
-def test_handles_nan(temperature, orography, land_sea_mask):
-    """Test that the function returns DALR value when central point
+@pytest.mark.parametrize("default, expected", ((None, DALR), (-DALR, -DALR)))
+def test_handles_nan(temperature, orography, land_sea_mask, default, expected):
+    """Test that the function returns default lapse-rate value when central point
     is NaN."""
-
     temperature[..., 1, 1] = np.nan
-    expected_out = DALR
-    result, _, _ = LapseRate(nbhood_radius=1)._generate_lapse_rate_array(
+    kwargs = {"default": default} if default is not None else {}
+    result, _, _ = LapseRate(nbhood_radius=1, **kwargs)._generate_lapse_rate_array(
         temperature, orography, land_sea_mask
     )
-    np.testing.assert_array_almost_equal(result[1, 1], expected_out)
+    np.testing.assert_array_almost_equal(result[1, 1], expected)
 
 
 def test_handles_height_difference(temperature, orography, land_sea_mask):
@@ -349,17 +349,21 @@ def test_return_single_precision(temperature_cube, orography_cube, land_sea_mask
     assert result.dtype == np.float32
 
 
-def test_constant_orog(temperature_cube, orography_cube, land_sea_mask_cube):
-    """Test that the function returns expected DALR values where the
+@pytest.mark.parametrize("default, expected", ((None, DALR), (-DALR, -DALR)))
+def test_constant_orog(
+    temperature_cube, orography_cube, land_sea_mask_cube, default, expected
+):
+    """Test that the function returns expected default lapse-rate values where the
     orography fields are constant values.
     """
-    expected_out = np.full((1, 5, 5), DALR)
+    expected_out = np.full((1, 5, 5), expected)
+    kwargs = {"default": default} if default is not None else {}
 
     temperature_cube.data[:, :, :] = 0.08
     temperature_cube.data[:, 1, 1] = 0.09
     orography_cube.data[:, :] = 10
 
-    result = LapseRate(nbhood_radius=1).process(
+    result = LapseRate(nbhood_radius=1, **kwargs).process(
         temperature_cube, orography_cube, land_sea_mask_cube
     )
     np.testing.assert_array_almost_equal(result.data, expected_out, decimal=4)
@@ -374,6 +378,42 @@ def test_fails_if_max_less_min_lapse_rate(
 
     with pytest.raises(ValueError, match=msg):
         LapseRate(max_lapse_rate=-1, min_lapse_rate=1).process(
+            temperature_cube, orography_cube, land_sea_mask_cube
+        )
+
+
+@pytest.mark.parametrize(
+    "min_lapse_rate, max_lapse_rate, default",
+    (
+        (0, 1, None),
+        (-2, -1, None),
+        (-1, 1, 2),
+        (-1, 1, -2),
+        (None, None, -1),
+        (None, None, 1),
+    ),
+)
+def test_fails_if_default_out_of_bounds(
+    temperature_cube,
+    orography_cube,
+    land_sea_mask_cube,
+    max_lapse_rate,
+    min_lapse_rate,
+    default,
+):
+    """Test code raises a Value Error if default lapse rate is
+    not between the min and max lapse rates."""
+    msg = "Default lapse rate is not between the minimum and maximum lapse rates"
+    kwargs = {}
+    if default is not None:
+        kwargs["default"] = default
+    if max_lapse_rate is not None:
+        kwargs["max_lapse_rate"] = max_lapse_rate
+    if min_lapse_rate is not None:
+        kwargs["min_lapse_rate"] = min_lapse_rate
+
+    with pytest.raises(ValueError, match=msg):
+        LapseRate(**kwargs).process(
             temperature_cube, orography_cube, land_sea_mask_cube
         )
 
@@ -718,6 +758,50 @@ def test_decr_temp_decr_orog(temperature_cube, orography_cube, land_sea_mask_cub
     orography_cube.data[:, 4] = 40
 
     result = LapseRate(nbhood_radius=1).process(
+        temperature_cube, orography_cube, land_sea_mask_cube
+    )
+    np.testing.assert_array_almost_equal(result.data, expected_out)
+
+
+@pytest.mark.parametrize("least_significant_digit", (None, 2, 5))
+def test_min_data_value(
+    temperature_cube, orography_cube, land_sea_mask_cube, least_significant_digit
+):
+    """Test that the function returns expected values when the minimum
+    data value is set. To prove this, I have taken the same test as test_decr_temp_incr_orog,
+    raised the temperature of most points to be a little above zero, where they would not be ignored,
+    and used the min_data_value argument in combination with the tolerance derived from the
+    least_significant_digit attribute, if present, to cause these points to be ignored so that
+    the original expected output is returned.
+    """
+    expected_out = np.array(
+        [
+            [
+                [DALR, DALR, DALR, -0.00642857, -0.005],
+                [DALR, DALR, DALR, -0.00642857, -0.005],
+                [DALR, DALR, DALR, -0.00642857, -0.005],
+                [DALR, DALR, DALR, -0.00642857, -0.005],
+                [DALR, DALR, DALR, -0.00642857, -0.005],
+            ]
+        ]
+    )
+
+    temperature_cube.data = np.full_like(temperature_cube.data, 0.05)
+    temperature_cube.data[:, :, 0:2] = 0.4
+    temperature_cube.data[:, :, 2] = 0.3
+    temperature_cube.data[:, :, 3] = 0.2
+    temperature_cube.data[:, :, 4] = 0.1
+    if least_significant_digit is not None:
+        temperature_cube.attributes["least_significant_digit"] = least_significant_digit
+        min_data_value = 0.05 - 10 ** (-least_significant_digit)
+    else:
+        min_data_value = 0.05 - 10 ** (-7)
+
+    orography_cube.data[:, 2] = 10
+    orography_cube.data[:, 3] = 20
+    orography_cube.data[:, 4] = 40
+
+    result = LapseRate(nbhood_radius=1, min_data_value=min_data_value).process(
         temperature_cube, orography_cube, land_sea_mask_cube
     )
     np.testing.assert_array_almost_equal(result.data, expected_out)

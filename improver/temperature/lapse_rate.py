@@ -354,6 +354,12 @@ class LapseRate(BasePlugin):
             msg = "Maximum lapse rate is less than minimum lapse rate"
             raise ValueError(msg)
 
+        if not (self.min_lapse_rate <= self.default <= self.max_lapse_rate):
+            msg = (
+                "Default lapse rate is not between the minimum and maximum lapse rates"
+            )
+            raise ValueError(msg)
+
         if self.nbhood_radius < 0:
             msg = "Neighbourhood radius is less than zero"
             raise ValueError(msg)
@@ -461,7 +467,7 @@ class LapseRate(BasePlugin):
             height_diff_mask = np.abs(orog - orog_centre) > self.max_height_diff
 
             diag = np.where(height_diff_mask, np.nan, diag)
-            if self.min_data_value:
+            if self.min_data_value is not None:
                 diag = np.where(diag <= self.min_data_value, np.nan, diag)
 
             # Places NaNs in orog to match diag
@@ -617,7 +623,7 @@ class LapseRate(BasePlugin):
 
         # Adjusts tolerance using least-significant-digit attribute if present
         tolerance = (
-            10.0 ** -diagnostic_cube.attributes.get("least_significant_digit", 0.0)
+            10.0 ** -diagnostic_cube.attributes.get("least_significant_digit", 7)
         ) / 2.0
         self.min_data_value = (
             self.original_min_data_value + tolerance
