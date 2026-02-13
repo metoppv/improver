@@ -345,8 +345,8 @@ class TrainGAMsForSAMOS(BasePlugin):
         # This variable is used to calculate the bounds of each rolling window.
         window_td = datetime.timedelta(days=self.window_length)
 
-        for tp in input_cube.coord("time").points:
-            time_point = datetime.datetime.fromtimestamp(tp)
+        for time_index, tp in enumerate(input_cube.coord("time").cells()):
+            time_point = tp.point._to_real_datetime()
             # Create time constraint for rolling window and extract data within window.
             if self.trailing_window:
                 time_bounds = [time_point - window_td, time_point]
@@ -400,16 +400,12 @@ class TrainGAMsForSAMOS(BasePlugin):
                 "forecast_period",
             ]:
                 if coord_name in [c.name() for c in window_mean.coords()]:
-                    point = tp
-                    if coord_name != "time":
-                        # The time-related coordinates are either scalar or have one
-                        # point associated with each time point.
-                        if len(input_cube.coord(coord_name).points) == 1:
-                            point = input_cube.coord(coord_name).points[0]
-                        else:
-                            point = input_cube.coord(coord_name).points[
-                                input_cube.coord("time").points.tolist().index(tp)
-                            ]
+                    # The time-related coordinates are either scalar or have one
+                    # point associated with each time point.
+                    if len(input_cube.coord(coord_name).points) == 1:
+                        point = input_cube.coord(coord_name).points[0]
+                    else:
+                        point = input_cube.coord(coord_name).points[time_index]
 
                     window_mean.coord(coord_name).points = np.array([point])
                     window_mean.coord(coord_name).bounds = None
