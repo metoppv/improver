@@ -345,6 +345,7 @@ class LapseRate(BasePlugin):
         min_lapse_rate: float = DALR,
         min_data_value: float = None,
         default: float = DALR,
+        default_intercept: float = 0.0,
     ) -> None:
         """
         The class is called with the default constraints for the processing
@@ -370,6 +371,9 @@ class LapseRate(BasePlugin):
             default:
                 Lapse rate to use where no lapse rate can be calculated
                 (e.g. over the sea)
+            default_intercept:
+                Intercept to use where no lapse rate can be calculated
+                (e.g. over the sea)
         """
 
         self.max_height_diff = max_height_diff
@@ -379,6 +383,7 @@ class LapseRate(BasePlugin):
         self.original_min_data_value = min_data_value
         self.min_data_value = min_data_value
         self.default = default
+        self.default_intercept = default_intercept
         self.intercept = None
         self.error_margin = None
 
@@ -523,7 +528,7 @@ class LapseRate(BasePlugin):
 
             dalr_mask = diagcheck | orogcheck | diag_nan_check | np.isnan(grad)
             grad[dalr_mask] = self.default
-            zero_point[dalr_mask] = np.nan
+            zero_point[dalr_mask] = self.default_intercept
 
             lapse[...] = grad
             intercept[...] = zero_point
