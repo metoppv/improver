@@ -187,6 +187,108 @@ class Test_process(unittest.TestCase):
             )
 
 
+@pytest.fixture
+def source_orog():
+    source_orog = np.array(
+        [
+            [400.0, 450.0, 500.0, 550.0],
+            [400.0, 450.0, 500.0, 550.0],
+            [400.0, 450.0, 500.0, 550.0],
+            [400.0, 450.0, 500.0, 550.0],
+        ],
+        dtype=np.float32,
+    )
+    source_orog = set_up_variable_cube(
+        source_orog, name="orography", units="m", spatial_grid="equalarea"
+    )
+    return source_orog
+
+
+@pytest.fixture
+def dest_orog():
+    dest_orog = np.array(
+        [
+            [400.0, 450.0, 500.0, 550.0],
+            [400.0, 450.0, 500.0, 550.0],
+            [400.0, 450.0, 500.0, 550.0],
+            [400.0, 450.0, 500.0, 550.0],
+        ],
+        dtype=np.float32,
+    )
+    dest_orog = set_up_variable_cube(
+        dest_orog, name="orography", units="m", spatial_grid="equalarea"
+    )
+    return dest_orog
+
+
+@pytest.fixture
+def lapse_rate():
+    return set_up_variable_cube(
+        np.full((4, 4), 5.0e-6, dtype=np.float32),
+        name="lapse_rate",
+        units="m m-1",
+        spatial_grid="equalarea",
+    )
+
+
+@pytest.fixture
+def intercept():
+    """Set up an intercept cube with a constant value of -2.1e-3 m, this equates to a snow line of 420 m for a lapse rate of 5e-6 m m-1."""
+    return set_up_variable_cube(
+        np.full((4, 4), -2.1e-3, dtype=np.float32),
+        name="intercept",
+        units="m",
+        spatial_grid="equalarea",
+    )
+
+
+@pytest.fixture
+def input_cube():
+    """Snow depth values increasing in 2.5e-5 m increments and starting at 1.5e-5 m, this equates to a snow line of 420 m."""
+    data = np.array(
+        [
+            [0.0, 1.5e-4, 4.0e-4, 6.5e-4],
+            [0.0, 1.5e-4, 4.0e-4, 6.5e-4],
+            [0.0, 1.5e-4, 4.0e-4, 6.5e-4],
+            [0.0, 1.5e-4, 4.0e-4, 6.5e-4],
+        ],
+        dtype=np.float32,
+    )
+    input_cube = set_up_variable_cube(
+        data, name="snow_depth", units="m", spatial_grid="equalarea"
+    )
+    return input_cube
+
+
+def test_intercept_basic(input_cube, lapse_rate, intercept, source_orog, dest_orog):
+    """Test the behaviour of the intercept parameter using snow depth as an example variable.
+    In this idealised case, the output matches the input."""
+    plugin = ApplyGriddedLapseRate(data_limits_from_nbhood=1)
+    expected = input_cube.copy()
+    result = plugin.process(
+        input_cube, lapse_rate, source_orog, dest_orog, intercept=intercept
+    )
+    np.testing.assert_array_almost_equal(result.data, expected.data)
+    assert result == expected
+
+
+def test_intercept(input_cube, lapse_rate, intercept, source_orog, dest_orog):
+    """Test the behaviour of the intercept parameter using snow depth as an example variable.
+    Differs from above in having an unresolved valley and hill."""
+    expected = input_cube.copy()
+    dest_orog.data[1] = [350.0, 450.0, 500.0, 350.0]
+    dest_orog.data[2] = [600.0, 450.0, 500.0, 600.0]
+    expected.data[1, 3] = 4e-4  # local minimum
+    expected.data[2, 0] = 1.65e-4  # local maximum
+    expected.data[2, 3] = 7.15e-4  # local maximum
+    plugin = ApplyGriddedLapseRate(data_limits_from_nbhood=1)
+    result = plugin.process(
+        input_cube, lapse_rate, source_orog, dest_orog, intercept=intercept
+    )
+    np.testing.assert_array_almost_equal(result.data, expected.data)
+    assert result == expected
+
+
 @pytest.mark.parametrize(
     "data_limits,data_limits_from_nbhood,expected_local_min,expected_local_max,expected_nbhood",
     [

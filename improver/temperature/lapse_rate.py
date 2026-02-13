@@ -287,10 +287,10 @@ class ApplyGriddedLapseRate(PostProcessingPlugin):
             for lr_slice, diagnostic_slice, intercept_slice in zip(
                 lapse_rate.slices(self.xy_coords),
                 diagnostic.slices(self.xy_coords),
-                intercept,
+                intercept.slices(self.xy_coords),
             ):
                 newcube = diagnostic_slice.copy()
-                newcube.data += compute_from_slope_and_intercept(
+                newcube.data = compute_from_slope_and_intercept(
                     dest_orog.data, lr_slice.data, intercept_slice.data
                 )
                 adjusted_diagnostic.append(newcube)
