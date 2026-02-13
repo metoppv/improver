@@ -357,7 +357,7 @@ class TrainGAMsForSAMOS(BasePlugin):
                 time=lambda cell: time_bounds[0] <= cell.point <= time_bounds[1]
             )
             window_cube = input_cube.extract(time_constraint)
-            print(window_cube)
+
             if len(window_cube.coord("time").points) == 1:
                 # If there is only one time point in the window, the mean and sd for
                 # this window are set to NaN.

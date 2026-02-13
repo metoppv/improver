@@ -6,6 +6,8 @@
 
 from copy import deepcopy
 
+import os
+import time
 import numpy as np
 import pytest
 from iris.cube import CubeList
@@ -116,11 +118,13 @@ def test_init_required_rolling_window_points(
         )
 
 
+@pytest.mark.parametrize("timezone", ["UTC", "America/Los_Angeles"])
 @pytest.mark.parametrize("forecast_type", ["gridded", "spot"])
 @pytest.mark.parametrize("n_realizations,n_times", [[5, 1], [5, 5], [1, 5]])
 @pytest.mark.parametrize("include_blend_time", [False, True])
 @pytest.mark.parametrize("trailing_window", [False, True])
 def test_calculate_cube_statistics(
+    timezone,
     forecast_type,
     n_realizations,
     n_times,
@@ -130,6 +134,12 @@ def test_calculate_cube_statistics(
 ):
     """Test that this method correctly calculates the mean and standard deviation of
     the input cube."""
+
+    # Modify the timezone to ensure that the time handling within the method
+    # is robust to different timezones.
+    os.environ['TZ'] = timezone
+    time.tzset()
+
     create_cube_kwargs = {
         "forecast_type": forecast_type,
         "n_spatial_points": 2,
