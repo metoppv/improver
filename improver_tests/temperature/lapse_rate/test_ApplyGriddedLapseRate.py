@@ -234,5 +234,74 @@ def test_initialization_invalid_nbhood(data_limits_from_nbhood):
         ApplyGriddedLapseRate(data_limits_from_nbhood=data_limits_from_nbhood)
 
 
+@pytest.mark.parametrize(
+    "min_from_nbhood_uplift, max_from_nbhood_uplift",
+    ((-1.0, None), (None, -1.0), (-1.0, -1.0)),
+)
+def test_initialization_invalid_uplift(min_from_nbhood_uplift, max_from_nbhood_uplift):
+    """Test that invalid min and/or max neighbourhood uplifts raise ValueErrors"""
+    kwargs = {}
+    if min_from_nbhood_uplift is not None:
+        kwargs["min_from_nbhood_uplift"] = min_from_nbhood_uplift
+    if max_from_nbhood_uplift is not None:
+        kwargs["max_from_nbhood_uplift"] = max_from_nbhood_uplift
+    with pytest.raises(
+        ValueError,
+        match="max_from_nbhood_uplift and min_from_nbhood_uplift should be greater than 0.",
+    ):
+        ApplyGriddedLapseRate(data_limits_from_nbhood=1, **kwargs)
+
+
+def test_initialization_invalid_uplift_pair():
+    """Test that incompatible neighbourhood uplifts raises ValueError"""
+    with pytest.raises(
+        ValueError,
+        match="max_from_nbhood_uplift should be greater than or equal to min_from_nbhood_uplift",
+    ):
+        ApplyGriddedLapseRate(
+            data_limits_from_nbhood=1,
+            min_from_nbhood_uplift=1.1,
+            max_from_nbhood_uplift=1.0,
+        )
+
+
+@pytest.mark.parametrize("as_array", (False, True))
+def test__apply_limits(as_array):
+    """Test the _apply_limits method with limits as scalars and arrays"""
+    data = np.array([[-10.0, 0.0, 10.0], [50.0, 100.0, 150.0]], dtype=np.float32)
+    cube = set_up_variable_cube(data, name="test_data", units="K")
+    expected = np.array([[0.0, 0.0, 10.0], [50.0, 100.0, 100.0]])
+    plugin = ApplyGriddedLapseRate()
+    plugin.local_min = 0.0 if not as_array else np.zeros_like(cube.data)
+    plugin.local_max = 100.0 if not as_array else np.full_like(cube.data, 100.0)
+    plugin._apply_limits(cube)
+    np.testing.assert_array_equal(cube.data, expected)
+
+
+@pytest.mark.parametrize("min_from_nbhood_uplift", (None, 1.0, 0.9))
+@pytest.mark.parametrize("max_from_nbhood_uplift", (None, 1.0, 1.1))
+def test__calc_local_limits(min_from_nbhood_uplift, max_from_nbhood_uplift):
+    """Test the _calc_local_limits method with a simple input cube"""
+    data = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32)
+    cube = set_up_variable_cube(data, name="test_data", units="K")
+    kwargs = {}
+    if min_from_nbhood_uplift is not None:
+        kwargs["min_from_nbhood_uplift"] = min_from_nbhood_uplift
+        min_uplift = min_from_nbhood_uplift
+    else:
+        min_uplift = 1.0  # default value
+    if max_from_nbhood_uplift is not None:
+        kwargs["max_from_nbhood_uplift"] = max_from_nbhood_uplift
+        max_uplift = max_from_nbhood_uplift
+    else:
+        max_uplift = 1.1  # default value
+    plugin = ApplyGriddedLapseRate(data_limits_from_nbhood=1, **kwargs)
+    plugin._calc_local_limits(cube)
+    expected_min = np.array([[1.0, 1.0], [1.0, 2.0]], dtype=np.float32) * min_uplift
+    expected_max = np.array([[3.0, 4.0], [4.0, 4.0]], dtype=np.float32) * max_uplift
+    np.testing.assert_array_equal(plugin.local_min, expected_min)
+    np.testing.assert_array_equal(plugin.local_max, expected_max)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -123,6 +123,8 @@ class ApplyGriddedLapseRate(PostProcessingPlugin):
         self,
         data_limits: Iterable[float] = (None, None),
         data_limits_from_nbhood: int = None,
+        max_from_nbhood_uplift: float = 1.1,
+        min_from_nbhood_uplift: float = 1.0,
     ):
         """
         Initialise the class
@@ -133,17 +135,43 @@ class ApplyGriddedLapseRate(PostProcessingPlugin):
                 the data after all calculations are complete.
             data_limits_from_nbhood:
                 If not None, this value is used to calculate data limits from the neighbourhood of each point.
-                The value is the numbe of grid points in a radius in grid-lengths from which to sample the local minima and maxima.
+                The value is the number of grid points in a radius in grid-lengths from which to sample the local minima and maxima.
+            max_from_nbhood_uplift:
+                If data_limits_from_nbhood is not None, the local maximum is multiplied by this value
+                to give the upper limit for the data. This allows the local maximum to be exceeded by
+                a small amount, which may be desirable for modelling unresolved hills and valleys.
+            min_from_nbhood_uplift:
+                If data_limits_from_nbhood is not None, the local minimum is multiplied by this value
+                to give the lower limit for the data. This allows the local minimum to be exceeded by
+                a small amount, which may be desirable for modelling unresolved hills and valleys.
+                This multiplier must be smaller than or equal to the max_from_nbhood_uplift multiplier,
+                otherwise the limits could be inverted.
         """
         if data_limits_from_nbhood is None:
             self.data_limits_from_nbhood = None
             self.local_min, self.local_max = data_limits
+            if not np.isclose(max_from_nbhood_uplift, 1.1) or not np.isclose(
+                min_from_nbhood_uplift, 1.0
+            ):
+                raise ValueError(
+                    "max_from_nbhood_uplift and min_from_nbhood_uplift should not be set if data_limits_from_nbhood is None"
+                )
         else:
             self.data_limits_from_nbhood = data_limits_from_nbhood
             self.local_min, self.local_max = (None, None)
+            self.max_from_nbhood_uplift = max_from_nbhood_uplift
+            self.min_from_nbhood_uplift = min_from_nbhood_uplift
             if not data_limits_from_nbhood >= 1:
                 raise ValueError(
                     f"Neighbourhood radius must be at least 1 to ensure that the central point is not the only point in the neighbourhood. Got {data_limits_from_nbhood}."
+                )
+            if self.max_from_nbhood_uplift <= 0.0 or self.min_from_nbhood_uplift <= 0.0:
+                raise ValueError(
+                    f"max_from_nbhood_uplift and min_from_nbhood_uplift should be greater than 0. Got max_from_nbhood_uplift = {max_from_nbhood_uplift}, min_from_nbhood_uplift = {min_from_nbhood_uplift}."
+                )
+            if self.max_from_nbhood_uplift < self.min_from_nbhood_uplift:
+                raise ValueError(
+                    f"max_from_nbhood_uplift should be greater than or equal to min_from_nbhood_uplift. Got max_from_nbhood_uplift = {max_from_nbhood_uplift}, min_from_nbhood_uplift = {min_from_nbhood_uplift}."
                 )
 
     @staticmethod
@@ -192,8 +220,12 @@ class ApplyGriddedLapseRate(PostProcessingPlugin):
 
         # Make a local maxima and minima for capping
         kernel = circular_kernel(self.data_limits_from_nbhood, weighted_mode=False)
-        self.local_max = maximum_filter(cube.data, footprint=kernel) * 1.1
-        self.local_min = minimum_filter(cube.data, footprint=kernel)
+        self.local_max = (
+            maximum_filter(cube.data, footprint=kernel) * self.max_from_nbhood_uplift
+        )
+        self.local_min = (
+            minimum_filter(cube.data, footprint=kernel) * self.min_from_nbhood_uplift
+        )
 
     def _apply_limits(self, cube: Cube):
         """Apply defined limits to the data in the cube"""
