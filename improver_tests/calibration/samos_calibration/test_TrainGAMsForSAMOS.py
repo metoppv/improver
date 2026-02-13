@@ -4,10 +4,10 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the TrainGAMsForSAMOS class within samos_calibration.py"""
 
-from copy import deepcopy
-
 import os
 import time
+from copy import deepcopy
+
 import numpy as np
 import pytest
 from iris.cube import CubeList
@@ -137,7 +137,7 @@ def test_calculate_cube_statistics(
 
     # Modify the timezone to ensure that the time handling within the method
     # is robust to different timezones.
-    os.environ['TZ'] = timezone
+    os.environ["TZ"] = timezone
     time.tzset()
 
     create_cube_kwargs = {
