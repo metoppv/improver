@@ -591,7 +591,7 @@ class RealizationClusterAndMatch(BasePlugin):
         cluster_to_realizations = {
             k: cluster_to_realizations[k] for k in sorted(cluster_to_realizations)
         }
-        cube_clustered.attributes["clusters_to_primary_input_realizations"] = (
+        cube_clustered.attributes["primary_input_realizations_to_clusters"] = (
             cluster_to_realizations
         )
         return cube_clustered
@@ -1075,8 +1075,8 @@ class RealizationClusterAndMatch(BasePlugin):
             self.cluster_primary_input(primary_cube, target_grid_cube)
         )
         # Store mapping for re-application to result.
-        clusters_to_primary_input_realizations = clustered_primary_cube.attributes[
-            "clusters_to_primary_input_realizations"
+        primary_input_realizations_to_clusters = clustered_primary_cube.attributes[
+            "primary_input_realizations_to_clusters"
         ]
 
         n_clusters = len(clustered_primary_cube.coord("realization").points)
@@ -1148,8 +1148,8 @@ class RealizationClusterAndMatch(BasePlugin):
         )
 
         # Use json.dumps to store dictionary as attribute.
-        result_cube.attributes["clusters_to_primary_input_realizations"] = json.dumps(
-            clusters_to_primary_input_realizations
+        result_cube.attributes["primary_input_realizations_to_clusters"] = json.dumps(
+            primary_input_realizations_to_clusters
         )
         # Store cluster_sources as a cube attribute (as JSON string)
         # Format: {cluster_idx: {model_name: [fp1, fp2, ...]}}
