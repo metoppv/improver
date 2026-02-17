@@ -11,7 +11,6 @@ import numpy as np
 from iris.cube import Cube
 
 from improver import PostProcessingPlugin
-from improver.constants import RTOL_GRID_SPACING_DEFAULT
 from improver.regrid.bilinear import (
     adjust_for_surface_mismatch,
     apply_weights,
@@ -34,7 +33,10 @@ from improver.regrid.grid import (
     unflatten_spatial_dimensions,
 )
 from improver.regrid.nearest import nearest_regrid, nearest_with_mask_regrid
-from improver.utilities.spatial import transform_grid_to_lat_lon
+from improver.utilities.spatial import (
+    RTOL_GRID_SPACING_DEFAULT,
+    transform_grid_to_lat_lon,
+)
 
 NEAREST = "nearest"
 BILINEAR = "bilinear"

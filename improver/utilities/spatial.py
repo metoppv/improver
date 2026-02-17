@@ -28,10 +28,6 @@ from scipy.ndimage.filters import (
 )
 
 from improver import BasePlugin, PostProcessingPlugin
-from improver.constants import (
-    RTOL_GRID_SPACING_TIGHT,
-    RTOL_GRID_SPACING_WARNING_THRESHOLD,
-)
 from improver.metadata.amend import update_diagnostic_name
 from improver.metadata.constants import FLOAT_DTYPE
 from improver.metadata.probabilistic import in_vicinity_name_format, is_probability
@@ -41,6 +37,11 @@ from improver.metadata.utilities import (
 )
 from improver.utilities.cube_checker import check_cube_coordinates, spatial_coords_match
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
+
+# Grid spacing relative tolerances
+RTOL_GRID_SPACING_TIGHT = 1.0e-5
+RTOL_GRID_SPACING_DEFAULT = 4.0e-5
+RTOL_GRID_SPACING_WARNING_THRESHOLD = 0.5
 
 
 def check_if_grid_is_equal_area(

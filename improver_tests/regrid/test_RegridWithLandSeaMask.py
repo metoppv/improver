@@ -12,15 +12,15 @@
 import numpy as np
 import pytest
 
-from improver.constants import (
-    RTOL_GRID_SPACING_DEFAULT,
-    RTOL_GRID_SPACING_TIGHT,
-)
 from improver.regrid.bilinear import basic_indexes
 from improver.regrid.grid import calculate_input_grid_spacing, latlon_from_cube
 from improver.regrid.landsea import RegridLandSea
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.pad_spatial import pad_cube_with_halo
+from improver.utilities.spatial import (
+    RTOL_GRID_SPACING_DEFAULT,
+    RTOL_GRID_SPACING_TIGHT,
+)
 
 # Different values of grid spacing relative tolerance to use as test parameters
 RTOL_GRID_SPACING_TEST_DATA = (
