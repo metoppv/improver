@@ -8,7 +8,10 @@ Tests for the regrid CLI
 
 import pytest
 
-from improver.constants import RTOL_GRID_SPACING_DEFAULT, RTOL_GRID_SPACING_TIGHT
+from improver.utilities.spatial import (
+    RTOL_GRID_SPACING_DEFAULT,
+    RTOL_GRID_SPACING_TIGHT,
+)
 
 from . import acceptance as acc
 

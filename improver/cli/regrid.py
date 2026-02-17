@@ -6,7 +6,7 @@
 """Script to regrid a NetCDF file"""
 
 from improver import cli
-from improver.constants import RTOL_GRID_SPACING_DEFAULT
+from improver.utilities.spatial import RTOL_GRID_SPACING_DEFAULT
 
 
 @cli.clizefy

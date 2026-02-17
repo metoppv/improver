@@ -15,9 +15,12 @@ from numpy import ndarray
 from numpy.ma.core import MaskedArray
 from scipy.interpolate import RegularGridInterpolator
 
-from improver.constants import RTOL_GRID_SPACING_DEFAULT
 from improver.utilities.cube_manipulation import sort_coord_in_cube
-from improver.utilities.spatial import calculate_grid_spacing, lat_lon_determine
+from improver.utilities.spatial import (
+    RTOL_GRID_SPACING_DEFAULT,
+    calculate_grid_spacing,
+    lat_lon_determine,
+)
 
 
 def ensure_ascending_coord(cube: Cube) -> Cube:
