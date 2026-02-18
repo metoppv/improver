@@ -461,6 +461,7 @@ a979ae8ee62d3e7867ac6ed31a423c03bd65fc52f818d7e24ad212f789352c61  ./estimate-sam
 34222261b96e60ffd281637d5876cf84664a59efc9977407cb3a7de30c99b0c9  ./estimate-samos-gam/samos_model_spec_simple.json
 cc3fb6e27313a487f17a69ca223523e86f3fa6c7c71f08574d2efcecab5bc4a2  ./estimate-samos-gams-from-table/distance_to_water.nc
 a67d9606590ecafd2099f5491e683ec722b574c9bc2a2d1105ecc2eba8ed7bc8  ./estimate-samos-gams-from-table/kgo_coords.pkl
+550c894800dc1714a93343cbd7c1abc0cc62c4b9ce53669f54ab309696db5937  ./estimate-samos-gams-from-table/kgo_coords_adjacent.pkl
 8811643fb3b05232e8dfd2bac852f986c7b6f99989946a26f92630d5a588e834  ./estimate-samos-gams-from-table/kgo_cubes.pkl
 3ad45b58562c2c654bc988e3eccd55c608a312b615acd1297d569dbef42cbfb9  ./estimate-samos-gams-from-table/roughness.nc
 34222261b96e60ffd281637d5876cf84664a59efc9977407cb3a7de30c99b0c9  ./estimate-samos-gams-from-table/samos_model_spec_simple.json
