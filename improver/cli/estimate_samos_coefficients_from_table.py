@@ -27,6 +27,7 @@ def process(
     cycletime: str,
     unique_site_id_key: str = "wmo_id",
     constant_extrapolation: bool = False,
+    adjacent_range: int = 0,
 ):
     """Estimate EMOS coefficients for use with SAMOS.
 
@@ -117,6 +118,10 @@ def process(
             the GAM, constant extrapolation (i.e. the nearest boundary value) will
             be used. If False, extrapolation extends the trend of each
             GAM term beyond the range of the training data. Default is False.
+        adjacent_range:
+            A period in hours that should be used to either side of the
+            defined forecast_period to allow for the inclusion of forecasts and
+            observations that are close to the validity time being calibrated.
 
     Returns:
         iris.cube.CubeList or None:
@@ -159,6 +164,7 @@ def process(
         training_length=training_length,
         percentiles=percentiles,
         experiment=experiment,
+        adjacent_range=adjacent_range,
     )
 
     if not forecast_cube or not truth_cube:
