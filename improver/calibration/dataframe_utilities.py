@@ -601,7 +601,7 @@ def _prepare_dataframes(
     return forecast_df, truth_df
 
 
-def forecast_dataframe_to_cube(df: DataFrame, training_dates: DatetimeIndex) -> Cube:
+def forecast_dataframe_to_cube(df: DataFrame, training_dates: DatetimeIndex, forecast_period: int) -> Cube:
     """Convert a forecast DataFrame into an iris Cube. The percentiles
     within the forecast DataFrame are rebadged as realizations.
 
@@ -615,19 +615,22 @@ def forecast_dataframe_to_cube(df: DataFrame, training_dates: DatetimeIndex) -> 
             columns are ignored.
         training_dates:
             Datetimes spanning the training period.
+        forecast_period:
+            Forecast period in seconds as an integer.
 
     Returns:
         Cube containing the forecasts from the training period.
     """
 
     representation_type = get_forecast_representation(df)
+    fp_point = pd.Timedelta(int(forecast_period), unit="seconds")
     cubelist = CubeList()
 
     for adate in training_dates:
-        time_df = df.loc[(df["time"] == adate)]
+        time_df = df.loc[(df["time"] == adate) & (df["forecast_period"] == fp_point)]
+
         if time_df.empty:
             continue
-        (fp_point,) = time_df.forecast_period.unique()
         time_df = _preprocess_temporal_columns(time_df)
 
         # The following columns are expected to contain one unique value
@@ -843,6 +846,6 @@ def forecast_and_truth_dataframes_to_cubes(
         adjacent_range=adjacent_range,
     )
 
-    forecast_cube = forecast_dataframe_to_cube(forecast_df, training_dates)
+    forecast_cube = forecast_dataframe_to_cube(forecast_df, training_dates, forecast_period)
     truth_cube = truth_dataframe_to_cube(truth_df, training_dates)
     return forecast_cube, truth_cube
