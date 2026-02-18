@@ -33,7 +33,10 @@ EST_EMOS_TOL = str(EST_EMOS_TOLERANCE)
 
 
 @pytest.mark.slow
-@pytest.mark.parametrize("adjacent_range,kgo", [(0, "kgo_coordinates.nc"), (1, "kgo_coordinates_adjacent.nc")])
+@pytest.mark.parametrize(
+    "adjacent_range,kgo",
+    [(0, "kgo_coordinates.nc"), (1, "kgo_coordinates_adjacent.nc")],
+)
 def test_additional_features_coords(tmp_path, adjacent_range, kgo):
     """
     Test estimate-samos-coefficients-from-table with an example forecast and truth
@@ -77,7 +80,9 @@ def test_additional_features_coords(tmp_path, adjacent_range, kgo):
 
 
 @pytest.mark.slow
-@pytest.mark.parametrize("adjacent_range,kgo", [(0, "kgo_gam_cube.nc"), (1, "kgo_gam_cube_adjacent.nc")])
+@pytest.mark.parametrize(
+    "adjacent_range,kgo", [(0, "kgo_gam_cube.nc"), (1, "kgo_gam_cube_adjacent.nc")]
+)
 def test_additional_gam_features_cube(tmp_path, adjacent_range, kgo):
     """
     Test estimate-samos-coefficients-from-table with an example forecast and truth

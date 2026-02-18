@@ -317,17 +317,22 @@ def _training_dates_for_calibration(
     """
     forecast_period = pd.Timedelta(int(forecast_period), unit="seconds")
     validity_times = [
-        pd.Timestamp(cycletime) + forecast_period + pd.Timedelta(hours=offset) for offset in range(-adjacent_range, adjacent_range + 1)
+        pd.Timestamp(cycletime) + forecast_period + pd.Timedelta(hours=offset)
+        for offset in range(-adjacent_range, adjacent_range + 1)
     ]
     training_times = []
     for validity_time in validity_times:
         training_times.extend(
-            list(pd.date_range(
-                end=validity_time - pd.Timedelta(1, unit="days") - forecast_period.floor("D"),
-                periods=int(training_length),
-                freq="D",
-                tz="UTC",
-            ))
+            list(
+                pd.date_range(
+                    end=validity_time
+                    - pd.Timedelta(1, unit="days")
+                    - forecast_period.floor("D"),
+                    periods=int(training_length),
+                    freq="D",
+                    tz="UTC",
+                )
+            )
         )
     return pd.DatetimeIndex(sorted(training_times))
 
@@ -596,9 +601,7 @@ def _prepare_dataframes(
     return forecast_df, truth_df
 
 
-def forecast_dataframe_to_cube(
-    df: DataFrame, training_dates: DatetimeIndex
-) -> Cube:
+def forecast_dataframe_to_cube(df: DataFrame, training_dates: DatetimeIndex) -> Cube:
     """Convert a forecast DataFrame into an iris Cube. The percentiles
     within the forecast DataFrame are rebadged as realizations.
 
@@ -624,7 +627,7 @@ def forecast_dataframe_to_cube(
         time_df = df.loc[(df["time"] == adate)]
         if time_df.empty:
             continue
-        fp_point, = time_df.forecast_period.unique()
+        (fp_point,) = time_df.forecast_period.unique()
         time_df = _preprocess_temporal_columns(time_df)
 
         # The following columns are expected to contain one unique value
@@ -840,8 +843,6 @@ def forecast_and_truth_dataframes_to_cubes(
         adjacent_range=adjacent_range,
     )
 
-    forecast_cube = forecast_dataframe_to_cube(
-        forecast_df, training_dates
-    )
+    forecast_cube = forecast_dataframe_to_cube(forecast_df, training_dates)
     truth_cube = truth_dataframe_to_cube(truth_df, training_dates)
     return forecast_cube, truth_cube

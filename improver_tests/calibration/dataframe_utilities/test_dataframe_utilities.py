@@ -9,7 +9,6 @@ module.
 """
 
 import unittest
-from unittest import result
 
 import iris
 import numpy as np
@@ -1269,7 +1268,9 @@ class Test_forecast_and_truth_dataframes_to_cubes(
             df_offset = df.copy()
             df_offset["time"] = df_offset["time"] + pd.Timedelta(hours=offset_hours)
             try:
-                df_offset["forecast_period"] = df_offset["forecast_period"] + pd.Timedelta(hours=offset_hours)
+                df_offset["forecast_period"] = df_offset[
+                    "forecast_period"
+                ] + pd.Timedelta(hours=offset_hours)
             except KeyError:
                 pass
             return df_offset
@@ -1281,15 +1282,15 @@ class Test_forecast_and_truth_dataframes_to_cubes(
                 offset_time(self.forecast_df, -1),
                 offset_time(self.forecast_df, 1),
             ],
-            ignore_index=True
+            ignore_index=True,
         )
         truth_df = pd.concat(
             [
                 self.truth_subset_df,
                 offset_time(self.truth_subset_df, -1),
-                offset_time(self.truth_subset_df, 1)
+                offset_time(self.truth_subset_df, 1),
             ],
-            ignore_index=True
+            ignore_index=True,
         )
 
         forecast_cube, truth_cube = forecast_and_truth_dataframes_to_cubes(
@@ -1300,7 +1301,9 @@ class Test_forecast_and_truth_dataframes_to_cubes(
             self.training_length,
             adjacent_range=1,
         )
-        forecast_hours = [item.point.hour for item in forecast_cube.coord("time").cells()]
+        forecast_hours = [
+            item.point.hour for item in forecast_cube.coord("time").cells()
+        ]
         truth_hours = [item.point.hour for item in truth_cube.coord("time").cells()]
 
         assert forecast_cube.shape == (3, 9, 3)
@@ -1319,21 +1322,28 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         ("20170109T0000Z", 12, 5, 1),
     ],
 )
-def test__training_dates_for_calibration(cycletime, forecast_period, training_length, adjacent_range):
+def test__training_dates_for_calibration(
+    cycletime, forecast_period, training_length, adjacent_range
+):
     """Test that the correct training dates are returned for a given cycletime,
     forecast period and training length. A non-zero adjacent range should result
     in additional hours being made available."""
 
-    expected_hours = set(range(forecast_period - adjacent_range, forecast_period + adjacent_range + 1))
+    expected_hours = set(
+        range(forecast_period - adjacent_range, forecast_period + adjacent_range + 1)
+    )
     cycle_day = pd.Timestamp(cycletime).day
     expected_days = set(range(cycle_day - training_length, cycle_day))
 
-    result = _training_dates_for_calibration(cycletime, forecast_period * 3600, training_length, adjacent_range)
+    result = _training_dates_for_calibration(
+        cycletime, forecast_period * 3600, training_length, adjacent_range
+    )
 
     hours = set([item.hour for item in result])
     days = set([item.day for item in result])
     assert hours == expected_hours
     assert days == expected_days
+
 
 if __name__ == "__main__":
     unittest.main()

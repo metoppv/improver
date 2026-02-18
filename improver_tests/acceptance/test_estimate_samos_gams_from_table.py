@@ -20,7 +20,9 @@ for mod in ["pyarrow", "statsmodels"]:
 
 
 @pytest.mark.slow
-@pytest.mark.parametrize("adjacent_range,kgo", [(0, "kgo_coords.pkl"), (1, "kgo_coords_adjacent.pkl")])
+@pytest.mark.parametrize(
+    "adjacent_range,kgo", [(0, "kgo_coords.pkl"), (1, "kgo_coords_adjacent.pkl")]
+)
 def test_additional_features_coords(
     tmp_path,
     adjacent_range,
