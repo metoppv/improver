@@ -601,7 +601,9 @@ def _prepare_dataframes(
     return forecast_df, truth_df
 
 
-def forecast_dataframe_to_cube(df: DataFrame, training_dates: DatetimeIndex, forecast_period: int) -> Cube:
+def forecast_dataframe_to_cube(
+    df: DataFrame, training_dates: DatetimeIndex, forecast_period: int
+) -> Cube:
     """Convert a forecast DataFrame into an iris Cube. The percentiles
     within the forecast DataFrame are rebadged as realizations.
 
@@ -846,6 +848,8 @@ def forecast_and_truth_dataframes_to_cubes(
         adjacent_range=adjacent_range,
     )
 
-    forecast_cube = forecast_dataframe_to_cube(forecast_df, training_dates, forecast_period)
+    forecast_cube = forecast_dataframe_to_cube(
+        forecast_df, training_dates, forecast_period
+    )
     truth_cube = truth_dataframe_to_cube(truth_df, training_dates)
     return forecast_cube, truth_cube
