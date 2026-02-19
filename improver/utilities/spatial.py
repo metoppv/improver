@@ -41,7 +41,7 @@ from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 # Grid spacing relative tolerances
 RTOL_GRID_SPACING_TIGHT = 1.0e-5
 RTOL_GRID_SPACING_DEFAULT = 4.0e-5
-RTOL_GRID_SPACING_WARNING_THRESHOLD = 0.5
+RTOL_GRID_SPACING_WARNING_THRESHOLD = 0.01
 
 
 def check_if_grid_is_equal_area(
