@@ -70,7 +70,6 @@ class Test__prepare_shape_parameter_truncnorm(unittest.TestCase):
     def test_discrete_shape_parameters(self):
         """Test scaling discrete shape parameters."""
         expected = [np.array([-3, -2.666667, -2.5]), np.array([7, 4, 2.5])]
-        shape_parameters = np.array([-4, 6], dtype=np.float32)
         shape_parameters = [
             np.array([-4, -4, -4], dtype=np.float32),
             np.array([6, 6, 6], dtype=np.float32),

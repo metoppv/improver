@@ -337,7 +337,17 @@ def test_process(
 @pytest.mark.parametrize("output_format", ["realization", "probability"])
 def test_process_gamma(output_format):
     """Test that the process method returns the expected results when using a gamma
-    distribution."""
+    distribution.
+
+    This test creates a simple forecast cube containing data with an increasing trend
+    with latitude and gamma distributed noise. A GAM is fitted to the data and simple
+    EMOS coefficient cubes are created. The ApplySAMOS process method is then called to
+    'calibrate' the same forecasts used for training.
+
+    The output_format determines whether we want ApplySAMOS to return calibrated
+    realizations or probabilities of exceeding a threshold, and the expected results
+    are set accordingly.
+    """
     # Skip test if pyGAM not available.
     pytest.importorskip("pygam")
 
@@ -361,16 +371,17 @@ def test_process_gamma(output_format):
     for key, value in FORECAST_ATTRIBUTES.items():
         forecast_cube.attributes[key] = value
 
+    # Set up data with increasing mean and variance with latitude, and gamma
+    # distributed noise, to test that the process method can handle a gamma
+    # distribution.
     addition = np.abs(
         np.linspace(start=2, stop=5, num=n_spatial_points).reshape(
             [n_spatial_points, 1]
         )
-    )  # Create increasing trend in data with latitude.
+    )
     addition = np.broadcast_to(addition, shape=forecast_cube.data.shape)
     rng = np.random.RandomState(210825)  # Set seed for reproducible results.
-    noise = rng.gamma(
-        shape=addition, scale=2.0
-    )  # Create gamma distributed noise which increases with latitude.
+    noise = rng.gamma(shape=addition, scale=2.0)
     forecast_cube.data = forecast_cube.data + addition + noise
 
     forecast_gams = TrainGAMsForSAMOS(model_specification).process(

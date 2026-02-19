@@ -1847,22 +1847,22 @@ class ApplyEMOS(PostProcessingPlugin):
         else:
             distribution = get_attribute_from_coefficients(coefficients, "distribution")
             shape, location, scale = DistributionalParameters(
-                distribution=distribution
-            ).process(
-                mean_cube=location_parameter,
-                sd_cube=scale_parameter,
+                distribution=distribution,
                 truncation_points=(
                     get_attribute_from_coefficients(
                         coefficients, "shape_parameters", optional=True
                     )
                 ),
+            ).process(
+                mean_cube=location_parameter,
+                sd_cube=scale_parameter,
             )
 
             self.distribution = {
                 "name": distribution,
+                "shape": shape,
                 "location": location,
                 "scale": scale,
-                "shape": shape,
             }
 
             template = prob_template if prob_template else forecast

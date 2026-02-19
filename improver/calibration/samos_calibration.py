@@ -931,15 +931,15 @@ class ApplySAMOS(PostProcessingPlugin):
         distribution = PYGAM_DISTRIBUTION_MAPPING[distribution]
 
         shape, location, scale = DistributionalParameters(
-            distribution=distribution
-        ).process(
-            mean_cube=location_parameter,
-            sd_cube=scale_parameter,
+            distribution=distribution,
             truncation_points=(
                 get_attribute_from_coefficients(
                     emos_coefficients, "shape_parameters", optional=True
                 )
             ),
+        ).process(
+            mean_cube=location_parameter,
+            sd_cube=scale_parameter,
         )
 
         # Generate output in desired format from distribution.

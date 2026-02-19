@@ -825,9 +825,7 @@ class ConvertLocationAndScaleParameters:
     probabilities from the location and scale parameters.
     """
 
-    def __init__(
-        self, distribution: str = "norm", shape_parameters: Optional[ndarray] = None
-    ) -> None:
+    def __init__(self, distribution: str = "norm") -> None:
         """
         Initialise the class.
 
@@ -843,19 +841,6 @@ class ConvertLocationAndScaleParameters:
         Args:
             distribution:
                 Name of a distribution supported by scipy.stats.
-            shape_parameters:
-                For use with distributions in scipy.stats (e.g. truncnorm) that
-                require the specification of shape parameters to be able to
-                define the shape of the distribution. For the truncated normal
-                distribution, the shape parameters should be appropriate for
-                the distribution constructed from the location and scale
-                parameters provided.
-                Please note that for use with
-                :meth:`~improver.calibration.\
-ensemble_calibration.ContinuousRankedProbabilityScoreMinimisers.\
-calculate_truncated_normal_crps`,
-                the shape parameters for a truncated normal distribution with
-                a lower bound of zero should be [0, np.inf].
 
         """
         if distribution == "truncnorm":

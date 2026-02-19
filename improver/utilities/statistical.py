@@ -18,7 +18,11 @@ class DistributionalParameters(BasePlugin):
     Class for estimating distributional parameters given some statistics.
     """
 
-    def __init__(self, distribution: str = "norm"):
+    def __init__(
+        self,
+        distribution: str = "norm",
+        truncation_points: Optional[list[float]] = None,
+    ):
         """
         Initialize class for estimating distributional parameters.
 
@@ -26,6 +30,9 @@ class DistributionalParameters(BasePlugin):
             distribution:
                 The distribution for which parameters are to be estimated. The default
                 is a normal distribution.
+            truncation_points:
+                List containing the lower and upper truncation points for a truncated
+                normal distribution.
         """
         self.distribution_dict = {
             "norm": self._normal_parameters,
@@ -40,6 +47,14 @@ class DistributionalParameters(BasePlugin):
                 f"Distribution '{distribution}' is not supported. "
                 f"Supported distributions are: {list(self.distribution_dict.keys())}"
             )
+
+        if self.distribution != "truncnorm" and truncation_points is not None:
+            raise ValueError(
+                "Truncation points should not be provided for non-truncated normal "
+                f"distributions. The following distribution was chosen: {distribution}."
+            )
+        else:
+            self.truncation_points = truncation_points
 
     @staticmethod
     def _normal_parameters(
@@ -63,9 +78,8 @@ class DistributionalParameters(BasePlugin):
         scale = sd
         return shape, loc, scale
 
-    @staticmethod
     def _truncated_normal_parameters(
-        mean: np.array, sd: np.array, truncation_points: List[float] = None
+        self, mean: np.array, sd: np.array
     ) -> tuple[List[np.array], np.array, np.array]:
         """
         Estimate parameters for a truncated normal distribution given mean and standard
@@ -76,9 +90,6 @@ class DistributionalParameters(BasePlugin):
                 Array of mean values.
             sd:
                 Array of standard deviation values.
-            truncation_points:
-                List containing the lower and upper truncation points for a truncated
-                normal distribution.
 
         Returns:
             Arrays containing location and scale parameters of a truncated normal
@@ -89,16 +100,16 @@ class DistributionalParameters(BasePlugin):
                 If truncation points are not provided or if the number of truncation
                 points is not equal to two.
         """
-        if truncation_points is None or len(truncation_points) != 2:
+        if self.truncation_points is None or len(self.truncation_points) != 2:
             raise ValueError(
                 "Upper and lower truncation points must be provided for truncated "
                 "normal distribution. The following truncation points were provided: "
-                f"{truncation_points}."
+                f"{self.truncation_points}."
             )
 
         shape = [
-            np.full_like(mean, truncation_points[0]),
-            np.full_like(mean, truncation_points[1]),
+            np.full_like(mean, self.truncation_points[0]),
+            np.full_like(mean, self.truncation_points[1]),
         ]
         loc = mean
         scale = sd
@@ -130,7 +141,6 @@ class DistributionalParameters(BasePlugin):
         self,
         mean_cube: Cube,
         sd_cube: Cube,
-        truncation_points: Optional[list[float]] = None,
     ) -> tuple[Union[CubeList, Cube, None], Union[Cube, None], Union[Cube, None]]:
         """
         Estimate distributional parameters given mean and variance cubes.
@@ -140,50 +150,35 @@ class DistributionalParameters(BasePlugin):
                 Cube containing the mean values.
             sd_cube:
                 Cube containing the standard deviation values.
-            truncation_points:
-                List containing the lower and upper truncation points for a truncated
-                normal distribution.
 
         Returns:
             The shape, location and scale parameter cubes. The shape parameter(s) may
             be a cubelist if multiple shape parameters are returned. Any of the
             parameters may be None if not applicable for the chosen distribution.
         """
-        kwargs = {}
-        if truncation_points is not None:
-            kwargs.update({"truncation_points": truncation_points})
-
         shape, loc, scale = self.distribution_dict.get(self.distribution)(
-            mean_cube.data, sd_cube.data, **kwargs
+            mean_cube.data, sd_cube.data
         )
 
-        shape_parameter, location_parameter, scale_parameter = (
-            None,
-            None,
-            None,
-        )
+        shape_parameter = location_parameter = scale_parameter = None
 
         if shape is not None:
-            if isinstance(shape, list):
-                shape_parameter = CubeList()
-                for arr in shape:
-                    shape_parameter.append(
-                        create_new_diagnostic_cube(
-                            "shape_parameter",
-                            mean_cube.units,
-                            mean_cube,
-                            mean_cube.attributes,
-                            data=arr,
-                        )
+            shape = shape if isinstance(shape, list) else [shape]
+            shape_parameter = CubeList()
+            for arr in shape:
+                shape_parameter.append(
+                    create_new_diagnostic_cube(
+                        "shape_parameter",
+                        mean_cube.units,
+                        mean_cube,
+                        mean_cube.attributes,
+                        data=arr,
                     )
-            else:
-                shape_parameter = create_new_diagnostic_cube(
-                    "shape_parameter",
-                    mean_cube.units,
-                    mean_cube,
-                    mean_cube.attributes,
-                    data=shape,
                 )
+            shape_parameter = (
+                shape_parameter[0] if len(shape_parameter) == 1 else shape_parameter
+            )
+
         if loc is not None:
             location_parameter = create_new_diagnostic_cube(
                 "location_parameter",

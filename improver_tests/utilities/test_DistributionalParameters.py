@@ -23,18 +23,45 @@ MANDATORY_ATTRIBUTES = {
 }
 
 
-@pytest.mark.parametrize("distribution", ["norm", "truncnorm", "gamma", "unsupported"])
-def test__init__(distribution):
-    """Test that the class initialises variables correctly."""
+@pytest.mark.parametrize(
+    "distribution,truncation_points",
+    [
+        ["norm", None],
+        ["norm", [0.0, 1.0]],
+        ["truncnorm", None],
+        ["gamma", None],
+        ["unsupported", None],
+    ],
+)
+def test__init__(distribution, truncation_points):
+    """Test that the class initialises variables correctly and that the expected
+    exceptions are raised for unsupported combinations of inputs.
+    """
 
     if distribution == "unsupported":
         with pytest.raises(
             ValueError, match="Distribution 'unsupported' is not supported."
         ):
-            DistributionalParameters(distribution=distribution)
+            DistributionalParameters(
+                distribution=distribution, truncation_points=truncation_points
+            )
+    elif distribution != "truncnorm" and truncation_points is not None:
+        with pytest.raises(
+            ValueError,
+            match=re.escape(
+                "Truncation points should not be provided for non-truncated normal "
+                f"distributions. The following distribution was chosen: {distribution}."
+            ),
+        ):
+            DistributionalParameters(
+                distribution=distribution, truncation_points=truncation_points
+            )
     else:
-        plugin = DistributionalParameters(distribution=distribution)
+        plugin = DistributionalParameters(
+            distribution=distribution, truncation_points=truncation_points
+        )
         assert plugin.distribution == distribution
+        assert plugin.truncation_points == truncation_points
 
 
 @pytest.mark.parametrize("distribution", ["norm", "truncnorm", "gamma"])
@@ -79,12 +106,12 @@ def test_process(distribution, forecast_type):
     expected_data_arrays = [expected_shape, expected_location, expected_scale]
     expected_names = ["shape_parameter", "location_parameter", "scale_parameter"]
 
-    result_shape, result_loc, result_scale = DistributionalParameters(
-        distribution=distribution
-    ).process(mean_cube, sd_cube, **kwargs)
+    results = DistributionalParameters(distribution=distribution, **kwargs).process(
+        mean_cube, sd_cube
+    )
 
     for expected_data, expected_name, result in zip(
-        expected_data_arrays, expected_names, [result_shape, result_loc, result_scale]
+        expected_data_arrays, expected_names, results
     ):
         if expected_data is None:
             assert result is None
@@ -116,6 +143,6 @@ def test_truncnorm_exception(truncation_points):
             f"{truncation_points}."
         ),
     ):
-        DistributionalParameters(distribution="truncnorm").process(
-            mean_cube, sd_cube, truncation_points=truncation_points
-        )
+        DistributionalParameters(
+            distribution="truncnorm", truncation_points=truncation_points
+        ).process(mean_cube, sd_cube)
