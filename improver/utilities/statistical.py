@@ -107,7 +107,7 @@ class DistributionalParameters(BasePlugin):
     @staticmethod
     def _gamma_parameters(
         mean: np.array, sd: np.array
-    ) -> tuple[np.array, None, np.array]:
+    ) -> tuple[np.array, np.array, np.array]:
         """
         Estimate parameters for a gamma distribution given mean and standard deviation
         cubes.

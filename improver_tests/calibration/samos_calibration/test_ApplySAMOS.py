@@ -19,6 +19,7 @@ from improver_tests.calibration.emos_calibration.test_ApplyEMOS import (
 from improver_tests.calibration.samos_calibration.helper_functions import (
     FORECAST_ATTRIBUTES,
     create_cubes_for_gam_fitting,
+    create_simple_cube,
 )
 
 EXPECTED_DATA_DICT = {
@@ -325,6 +326,119 @@ def test_process(
         emos_coefficients=emos_coefficients,
         gam_additional_fields=None,
         emos_additional_fields=additional_cubes,
+        **process_kwargs,
+    )
+
+    np.testing.assert_array_almost_equal(result.data, expected_data, decimal=4)
+    assert result.name() == expected_name
+    assert [c.name() for c in result.coords(dim_coords=True)] == expected_dims
+
+
+@pytest.mark.parametrize("output_format", ["realization", "probability"])
+def test_process_gamma(output_format):
+    """Test that the process method returns the expected results when using a gamma
+    distribution."""
+    # Skip test if pyGAM not available.
+    pytest.importorskip("pygam")
+
+    # Set up model terms for spatial predictors.
+    model_specification = [["linear", [0], {}], ["linear", [1], {}]]
+    features = ["latitude", "longitude"]
+    n_spatial_points = 3
+    n_realizations = 3
+    n_times = 20
+    process_kwargs = {}
+
+    forecast_cube = create_simple_cube(
+        forecast_type="gridded",
+        n_spatial_points=n_spatial_points,
+        n_realizations=n_realizations,
+        n_times=n_times,
+        fill_value=273.15,
+        fixed_forecast_period=True,
+    )
+
+    for key, value in FORECAST_ATTRIBUTES.items():
+        forecast_cube.attributes[key] = value
+
+    addition = np.abs(
+        np.linspace(start=2, stop=5, num=n_spatial_points).reshape(
+            [n_spatial_points, 1]
+        )
+    )  # Create increasing trend in data with latitude.
+    addition = np.broadcast_to(addition, shape=forecast_cube.data.shape)
+    rng = np.random.RandomState(210825)  # Set seed for reproducible results.
+    noise = rng.gamma(
+        shape=addition, scale=2.0
+    )  # Create gamma distributed noise which increases with latitude.
+    forecast_cube.data = forecast_cube.data + addition + noise
+
+    forecast_gams = TrainGAMsForSAMOS(model_specification).process(
+        forecast_cube, features, CubeList([])
+    )
+
+    forecast_slice = next(forecast_cube.slices_over(["forecast_reference_time"]))
+    emos_coefficients = build_coefficients_cubelist(
+        forecast_slice,
+        [0, 1, 0, 1],
+        CubeList([forecast_slice]),
+    )
+
+    if output_format == "probability":
+        thresholds = [278, 283]
+        prob_template = Threshold(thresholds, collapse_coord="realization").process(
+            forecast_slice
+        )
+        process_kwargs.update({"prob_template": prob_template})
+        expected_data = np.array(
+            [
+                [
+                    [0.4935, 0.8348, 0.6408],
+                    [0.9462, 0.9999, 1.0000],
+                    [0.9995, 0.9911, 0.9946],
+                ],
+                [
+                    [0.0018, 0.4832, 0.1224],
+                    [0.6000, 0.9747, 0.9034],
+                    [0.9780, 0.9165, 0.8773],
+                ],
+            ],
+            dtype=np.float32,
+        )
+        expected_name = "probability_of_air_temperature_above_threshold"
+        expected_dims = ["air_temperature", "latitude", "longitude"]
+    else:  # output_format == "realization"
+        expected_data = np.array(
+            [
+                [
+                    [279.1376, 282.7929, 279.1829],
+                    [286.421, 288.3678, 284.4564],
+                    [288.2437, 290.0013, 284.7539],
+                ],
+                [
+                    [276.8062, 279.4716, 276.9695],
+                    [283.9340, 286.9906, 285.2114],
+                    [293.5306, 293.4192, 287.1828],
+                ],
+                [
+                    [277.9719, 286.1142, 281.3962],
+                    [281.4469, 285.6135, 283.70135],
+                    [290.8871, 286.5834, 289.61172],
+                ],
+            ],
+            dtype=np.float32,
+        )
+        expected_name = "air_temperature"
+        expected_dims = ["realization", "latitude", "longitude"]
+
+    result = ApplySAMOS(percentiles=None).process(
+        forecast=forecast_slice,
+        forecast_gams=forecast_gams,
+        truth_gams=forecast_gams,
+        gam_features=features,
+        emos_coefficients=emos_coefficients,
+        gam_additional_fields=None,
+        emos_additional_fields=CubeList([]),
         **process_kwargs,
     )
 
