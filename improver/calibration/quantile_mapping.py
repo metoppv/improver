@@ -48,8 +48,6 @@ class QuantileMapping(PostProcessingPlugin):
                 compute but less smooth, while the 'linear' method produces a smoother
                 mapping at the cost of increased computational complexity.
 
-                The step method is
-
             Raises:
                 ValueError: If an unsupported method is specified.
 
