@@ -6,7 +6,6 @@
 """Script to regrid a NetCDF file"""
 
 from improver import cli
-from improver.utilities.spatial import RTOL_GRID_SPACING_DEFAULT
 
 
 @cli.clizefy
@@ -19,7 +18,7 @@ def process(
     regrid_mode="bilinear",
     extrapolation_mode="nanmask",
     land_sea_mask_vicinity: float = 25000,
-    rtol_grid_spacing: float = RTOL_GRID_SPACING_DEFAULT,
+    rtol_grid_spacing: float = 4.0e-5,
     regridded_title: str = None,
 ):
     """Regrids source cube data onto a target grid. Optional land-sea awareness.
