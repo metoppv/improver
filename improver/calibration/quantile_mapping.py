@@ -27,45 +27,133 @@ class QuantileMapping(PostProcessingPlugin):
     def __init__(
         self,
         preservation_threshold: Optional[float] = None,
-        method: Literal["step", "linear"] = "step",
+        method: Literal["step", "continuous"] = "step",
     ) -> None:
         """Initialize the quantile mapping plugin.
 
-        Args:
-            preservation_threshold:
-                Optional threshold value below which (exclusive) the forecast
-                values are not adjusted to be like the reference. Useful for variables
-                such as precipitation, where a user may be wary of mapping 0mm/hr
-                precipitation values to non-zero values.
-            method:
-                Choose from two broad quantile mapping behaviours:
-                - "step": value-interpolated ECDF + floored inverse CDF (discrete
-                stepwise method)
-                - "linear": rank-based quantiles (ties spread) + interpolated inverse
-                CDF.
+            Args:
+                preservation_threshold:
+                    Optional threshold value below which (exclusive) the forecast
+                    values are not adjusted to be like the reference. Useful for variables
+                    such as precipitation, where a user may be wary of mapping 0mm/hr
+                    precipitation values to non-zero values.
+                method:
+                    Choose from two methods of converting forecast values into quantiles
+                    before mapping them onto the reference distribution: 'step' and
+                    'continuous'. These methods differ in three ways:
+                    1. How quantiles are assigned to ranked data ('plotting positions').
+                    - 'step' uses rank/number of points (i/n), which corresponds to the
+                    formal ECDF definition and treats the largest value as the 1.0 quantile
+                    (100th percentile).
+                    - 'continuous' uses midpoint plotting positions ((i-0.5)/n), which place
+                     values in the centre of their rank intervals and avoids probabilities
+                     of exactly 0 or 1.
+                    2. How probabilities are mapped back to values.
+                    - 'step' uses flooring, so each probability maps to the nearest lower
+                    observed value in the reference distribution, creating the step-function
+                    mapping.
+                    - 'continuous' uses interpolation, creating a smoother mapping where
+                    small changes in probability lead to small changes in value.
+                    3. How repeated values are treated.
+                    - 'step' assigns the same quantile to repeated values, so they all map
+                    to the same value in the reference distribution (creating flat steps in
+                    the mapping).
+                    - 'continuous' assigns different quantiles to repeated values, spreading
+                    them evenly across their range, so they can map to different values in
+                    the reference distribution.
 
-                The 'step' method creates a step-function mapping that is faster to
-                compute but less smooth, while the 'linear' method produces a smoother
-                mapping at the cost of increased computational complexity.
+                    Example
+                    --------
+                    With the following reference and forecast data (totalling 11 points in
+                    each array), the two methods would produce their output as illustrated
+                    below:
+                        forecast = np.array([0, 0, 0, 0, 0, 0, 0, 0, 10, 20, 30])
+                        reference = np.array([0, 0, 0, 0, 0, 0, 0, 10, 20, 40, 50])
+                        num_points = 11
 
-            Raises:
-                ValueError: If an unsupported method is specified.
+                    ---- Step method ----
+
+                    1. The forecast data are sorted.
+
+                        [0, 0, 0, 0, 0, 0, 0, 0, 10, 20, 30]
+
+                    2. ECDF quantiles are assigned using i/n, where i is the number of
+                    values less than or equal to each value.
+
+                        ECDF counts:
+                        [8, 8, 8, 8, 8, 8, 8, 8, 9, 10, 11]
+
+                        Quantiles:
+                        [8/11, 8/11, 8/11, 8/11, 8/11, 8/11, 8/11, 8/11, 9/11, 10/11, 11/11]
+                        ≈ [0.727, ..., 0.727, 0.818, 0.909, 1.0]
+
+                    3. These quantiles are mapped to the reference distribution using a
+                    stepwise empirical quantile mapping. Each probability is mapped to
+                    the reference value at the right edge of the corresponding ECDF step
+                    (i.e. the smallest reference value whose empirical cumulative
+                    probability is greater than or equal to the given probability),
+                    yielding:
+
+                        [10, 10, 10, 10, 10, 10, 10, 10, 20, 40, 50]
+
+                    ---- Continuous method ----
+
+                    1. The forecast data are ranked using a stable sorting algorithm
+                    (np.argsort with kind='mergesort'), which assigns ranks in order of
+                    appearance for repeated values:
+
+                        Ranks:
+                        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+                    2. Midpoint quantiles are assigned using (rank + 0.5) / n:
+
+                        Quantiles:
+                        [0.045, 0.136, 0.227, 0.318, 0.409, 0.500,
+                        0.591, 0.682, 0.773, 0.864, 0.955]
+
+                    3. These quantiles are mapped to the reference distribution using
+                    linear interpolation between reference quantiles, yielding
+                    smoothly varying mapped values. Repeated forecast values may
+                    therefore map to different reference values rather than
+                    collapsing to a single step.
+
+                        [0, 0, 0, 0, 0, 0, 0, 10, 20, 40, 50]
+
+                    Note: Due to statistical convention, the 'step' method uses standard
+                    plotting positions (i/n), rather than (i/(n+1)). The consequences of
+                    this choice are that the quantiles assigned to the forecast data will be
+                    asymmetrically distributed: i/n produces quantiles ranging from
+                    1/n to 1, so probabilities are shifted upwards, especially near the top
+                    end of the distribution. While the discrepancies are large for small
+                    datasets (e.g. for n=5, quantiles are [0.2, 0.4, 0.6, 0.8, 1.0] vs
+                    [0.16666667, 0.33333333, 0.50000000, 0.66666667, 0.83333333]),
+                    the differences become negligible for larger datasets (e.g. for n=1000,
+                    quantiles are [0.001, 0.002, ..., 0.999, 1.0] vs [0.0005, 0.0015, ...,
+                    0.9985, 0.9995]).
+        Raises:
+                ValueError:
+                    If an unsupported method is specified.
 
         """
         self.preservation_threshold = preservation_threshold
         method = method.lower()
-        if method not in ["step", "linear"]:
+        if method not in ["step", "continuous"]:
             raise ValueError(
-                f"Unsupported method '{method}'. Choose 'step' or 'linear'."
+                f"Unsupported method '{method}'. Choose 'step' or 'continuous'."
             )
         self.method = method
 
     def _plotting_positions(self, num_points: int) -> np.ndarray:
-        """Return plotting positions for a sorted sample of size n."""
+        """
+        Return plotting positions for a sorted sample of size n.
+
+        The plotting positions determine the quantiles assigned to each data point
+        when building the empirical CDF.
+        """
         i = np.arange(1, num_points + 1)
         if self.method == "step":  # Standard plotting positions
             return i / num_points
-        else:  # self.method == "linear"
+        else:  # self.method == "continuous"
             return (i - 0.5) / num_points  # Midpoint plotting positions
 
     def _build_empirical_cdf(self, data: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
@@ -83,7 +171,8 @@ class QuantileMapping(PostProcessingPlugin):
         return sorted_values, quantiles
 
     def _forecast_to_quantiles(self, forecast_data: np.ndarray) -> np.ndarray:
-        """Assign a quantile to each forecast element.
+        """Assign a quantile to each value in the forecast data based on its rank in the
+        forecast distribution.
 
         Args:
             forecast_data:
@@ -99,7 +188,7 @@ class QuantileMapping(PostProcessingPlugin):
             # (right-most) quantile, creating a step-function mapping.
             sorted_values, quantiles = self._build_empirical_cdf(forecast_data)
             return np.interp(forecast_data, sorted_values, quantiles)
-        else:  # self.method == 'linear'
+        else:  # self.method == 'continuous'
             # Rank-based quantiles: repeated values get their own quantiles spread
             # evenly across their range.
             order = np.argsort(forecast_data, kind="mergesort")
@@ -139,7 +228,7 @@ class QuantileMapping(PostProcessingPlugin):
             idx = np.floor((num_points - 1) * quantiles).astype(np.int32)
             idx = np.clip(idx, 0, num_points - 1)  # Ensure indices are within bounds
             return sorted_reference[idx]
-        else:  # self.method == 'linear'
+        else:  # self.method == 'continuous'
             quantiles_reference = (np.arange(num_points) + 0.5) / num_points
             return np.interp(quantiles, quantiles_reference, sorted_reference)
 
@@ -156,25 +245,25 @@ class QuantileMapping(PostProcessingPlugin):
 
         1. Find its quantile position in the forecast distribution
         2. Map that quantile to the corresponding value in the reference distribution
-           using the specified method (step or linear).
+           using the specified method (step or continuous).
 
         Examples:
         - Discrete
             If reference_data is [10, 20, 30, 40, 50] and forecast_data
             is [20, 25, 30, 35, 40], the forecast values are mapped to the corresponding
             values in the reference data distribution. This stretches the range of the
-            forecast data, shifting the extreme values by 10 units in opposing directions.
-            The median value is left unchanged as the two distributions are aligned at this
-            point. The inter-quartile values are each shifted by 5 units in opposing
-            directions, again reflecting the broader distribution found in the reference
-            data.
-        - Linear
-            Using the same reference and forecast data as above, the linear method would
-            produce a smoother mapping. The extreme values would still be shifted by 10
-            units, but the intermediate values would be adjusted more gradually. The
-            median value would still be unchanged, but the inter-quartile values would be
-            shifted by less than 5 units, reflecting the more continuous nature of the
-            mapping.
+            forecast data, shifting the extreme values by 10 units in opposing
+            directions. The median value is left unchanged as the two distributions are
+            aligned at this point. The inter-quartile values are each shifted by 5 units
+            in opposing directions, again reflecting the broader distribution found in
+            the reference data.
+        - Continuous
+            Using the same reference and forecast data as above, the continuous method
+            would produce a smoother mapping. The extreme values would still be shifted
+            by 10 units, but the intermediate values would be adjusted more gradually.
+            The median value would still be unchanged, but the inter-quartile values
+            would be shifted by less than 5 units, reflecting the more continuous nature
+            of the mapping.
 
         Args:
             reference_data:
