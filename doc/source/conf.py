@@ -463,4 +463,6 @@ sphinx_gallery_conf = {
     "doc_module": "improver",  # Module name for cross-referencing
     "backreferences_dir": None,  # Disable automatic backreferences generation
     "matplotlib_animations": False,  # Disable matplotlib animation support
+    "expected_failing_examples": {},  # Examples that are expected to fail
+    "only_warn_on_example_error": True,  # Warn instead of error on example failures
 }

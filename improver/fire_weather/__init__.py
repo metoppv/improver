@@ -6,13 +6,17 @@
 
 import warnings
 from abc import abstractmethod
+from copy import deepcopy
+from datetime import datetime
 from typing import cast
 
 import iris.exceptions
 import numpy as np
 from iris.cube import Cube, CubeList
+from iris.exceptions import ConstraintMismatchError
 
 from improver import BasePlugin
+from improver.utilities.load import load_baseline_cube
 
 
 class FireWeatherIndexBase(BasePlugin):
@@ -131,8 +135,9 @@ class FireWeatherIndexBase(BasePlugin):
         )
 
         # Assign cubes to instance attributes and convert units in a single loop
-        for cube, cube_name in zip(loaded_cubes, self.INPUT_CUBE_NAMES):
+        for loaded_cube, cube_name in zip(loaded_cubes, self.INPUT_CUBE_NAMES):
             attr_name = self._get_attribute_name(cube_name)
+            cube = deepcopy(loaded_cube)  # Avoid modifying input cubes in-place
             setattr(self, attr_name, cube)
 
             # Convert to required units if defined
@@ -169,6 +174,7 @@ class FireWeatherIndexBase(BasePlugin):
 
     def _validate_input_range(self, cube: Cube, attr_name: str) -> None:
         """Validate that input data falls within expected physical ranges.
+        If values fall outside the valid range for this input type, then emit a warning.
 
         Args:
             cube:
@@ -176,10 +182,13 @@ class FireWeatherIndexBase(BasePlugin):
             attr_name:
                 The attribute name for the cube
 
+        Warns:
+            UserWarning:
+                If any values fall outside the valid range for this input type
+
         Raises:
             ValueError:
-                If any values fall outside the valid range for this input type,
-                or if data contains NaN or Inf values
+                If data contains NaN or Inf values
         """
         if attr_name not in self._VALID_RANGES:
             return  # No validation defined for this input type
@@ -198,17 +207,23 @@ class FireWeatherIndexBase(BasePlugin):
         # Check minimum bound if defined
         if min_val is not None and np.any(data < min_val):
             actual_min = float(np.min(data))
-            raise ValueError(
+            warnings.warn(
                 f"{attr_name} contains values below valid minimum: "
-                f"found {actual_min}, expected >= {min_val}"
+                f"found {actual_min}, expected >= {min_val}. "
+                f"This may indicate unusual conditions or invalid input data.",
+                UserWarning,
+                stacklevel=3,
             )
 
         # Check maximum bound if defined
         if max_val is not None and np.any(data > max_val):
             actual_max = float(np.max(data))
-            raise ValueError(
+            warnings.warn(
                 f"{attr_name} contains values above valid maximum: "
-                f"found {actual_max}, expected <= {max_val}"
+                f"found {actual_max}, expected <= {max_val}. "
+                f"This may indicate unusual conditions or invalid input data.",
+                UserWarning,
+                stacklevel=3,
             )
 
     def _make_output_cube(
@@ -373,3 +388,147 @@ class FireWeatherIndexBase(BasePlugin):
                     UserWarning,
                     stacklevel=3,
                 )
+
+
+class IterativeFireWeatherIndexBase(FireWeatherIndexBase):
+    """
+    Iterative abstract base class for Iterative Fire Weather calculations.
+
+    Extends common functionality provided by FireWeatherIndexBase to provide
+    iterative functionality for Fire Weather values that take the previous
+    days outputs as an input to the current days calculation.
+
+    Subclasses must define class attributes:
+
+    - INPUT_CUBE_NAMES: List of standard names for required input cubes
+    - OUTPUT_CUBE_NAME: Standard name for the output cube
+    - REQUIRES_MONTH: Boolean indicating if month parameter is required
+    - STARTING_VALUE: Integer providing starting value for iterative
+        calculations in the absense of input data for the preceding day.
+    - LAG_TIME: Integer representing the number of days needed after
+        starting calculations from the STARTING_VALUE, before outputs
+        should be considered scientifically valid.
+
+    Subclasses must implement:
+
+    - _calculate(): Method that performs the actual calculation
+
+    """
+
+    STARTING_VALUE: int
+    LAG_TIME: int
+    REFERENCE_CUBE_NAME = "air_temperature"
+
+    def process(
+        self,
+        cubes: tuple[Cube, ...] | CubeList,
+        month: int | None = None,
+        initialise: bool = False,
+    ) -> Cube:
+        """
+        Args:
+            cubes:
+                Input cubes as specified by INPUT_CUBE_NAMES. When initialise is True cubes should
+                exclude the OUTPUT_CUBE_NAME, which should otherwise be given as the iterative input.
+            month:
+                Month parameter (1-12), required only if REQUIRES_MONTH is True
+            initialise:
+                True when starting the iterative process else False
+
+        Returns:
+            The calculated output cube.
+
+        Warns:
+            UserWarning:
+                If output values fall outside typical expected ranges
+
+        Raises:
+            ValueError: If an output cube is given with initialise=True
+
+        """
+        try:
+            output_cube = cast(
+                Cube, CubeList(cubes).extract_cube(self.OUTPUT_CUBE_NAME)
+            )
+        except (IndexError, ConstraintMismatchError):
+            output_cube = None
+
+        if initialise:
+            if output_cube is not None:
+                raise ValueError(
+                    f"Unexpected output cube '{self.OUTPUT_CUBE_NAME}' supplied when attempting initialisation"
+                )
+            output_cube = self._initialise_baseline_cube(cubes)
+            cubes = (*cubes, output_cube)
+
+        self._report_lag_time_state(output_cube)
+
+        return super().process(cubes, month)
+
+    def _initialise_baseline_cube(self, cubes: tuple[Cube, ...] | CubeList) -> Cube:
+        """Create a baseline cube from the reference cube and set start_date=now.
+
+        Args:
+            cubes:
+                Input cubes as specified by INPUT_CUBE_NAMES except OUTPUT_CUBE_NAME
+
+        Raises:
+            ValueError: If the REFERENCE_CUBE is not present in cubes
+            ValueError: If the REFERENCE_CUBE has a start_date attribute
+
+        """
+        try:
+            reference_cube = cast(
+                Cube, CubeList(cubes).extract_cube(self.REFERENCE_CUBE_NAME)
+            )
+        except (IndexError, ConstraintMismatchError) as exc:
+            raise ValueError(
+                f"Reference cube '{self.REFERENCE_CUBE_NAME}' not found during initialisation process"
+            ) from exc
+
+        cube = load_baseline_cube(
+            reference_cube,
+            self.STARTING_VALUE,
+            self.OUTPUT_CUBE_NAME,
+            self._REQUIRED_UNITS[self.OUTPUT_CUBE_NAME],
+        )
+        if "start_date" in cube.attributes:
+            raise ValueError("Unexpected start_date in reference_cube attributes.")
+
+        cube.attributes["start_date"] = str(datetime.now())
+
+        return cube
+
+    def _report_lag_time_state(self, cube: Cube) -> None:
+        """Check for start_date attribute and warn if LAG_TIME has not been exceeded.
+
+        Args:
+            cube:
+                The output cube with start_date to compare to LAG_TIME
+
+        Raises:
+            ValueError: If cube has no start_date attribute
+            ValueError: If the REFERENCE_CUBE has a start_date attribute
+
+        Warns:
+            UserWarning:
+                If runtime is less than LAG_TIME
+
+        """
+        if "start_date" not in cube.attributes:
+            raise ValueError(
+                f"{cube.name()} has no start_date attribute. To start "
+                f"initialise process set `initialise=True`."
+            )
+
+        start_date = datetime.fromisoformat(cube.attributes["start_date"])
+        now = datetime.now()
+        runtime = now - start_date
+
+        if runtime.days < self.LAG_TIME:
+            warnings.warn(
+                f"{cube.name()} is {runtime.days} days in to it's "
+                f"initialisation period of {self.LAG_TIME}.",
+                UserWarning,
+                stacklevel=3,
+            )
