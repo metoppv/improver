@@ -5,14 +5,15 @@
 """Module containing quantile mapping bias correction.
 
 Quantile mapping is a statistical calibration technique that adjusts forecast
-values to match the distribution of reference (observed) data. It works by:
+values to match the distribution of reference data (i.e. observations or a differently
+processed reference forecast). It works by:
 1. Finding each forecast value's position (quantile) in the forecast distribution
 2. Mapping that quantile to the corresponding value in the reference distribution
 
 This corrects systematic biases while preserving spatial patterns.
 """
 
-from typing import Optional
+from typing import Literal, Optional, Tuple
 
 import numpy as np
 from iris.cube import Cube
@@ -23,7 +24,11 @@ from improver import PostProcessingPlugin
 class QuantileMapping(PostProcessingPlugin):
     """Apply quantile mapping bias correction to forecast data."""
 
-    def __init__(self, preservation_threshold: Optional[float] = None) -> None:
+    def __init__(
+        self,
+        preservation_threshold: Optional[float] = None,
+        method: Literal["step", "linear"] = "step",
+    ) -> None:
         """Initialize the quantile mapping plugin.
 
         Args:
@@ -32,27 +37,85 @@ class QuantileMapping(PostProcessingPlugin):
                 values are not adjusted to be like the reference. Useful for variables
                 such as precipitation, where a user may be wary of mapping 0mm/hr
                 precipitation values to non-zero values.
+            method:
+                Choose from two broad quantile mapping behaviours:
+                - "step": value-interpolated ECDF + floored inverse CDF (discrete
+                stepwise method)
+                - "linear": rank-based quantiles (ties spread) + interpolated inverse
+                CDF.
+
+                The 'step' method creates a step-function mapping that is faster to
+                compute but less smooth, while the 'linear' method produces a smoother
+                mapping at the cost of increased computational complexity.
+
+                The step method is
+
+            Raises:
+                ValueError: If an unsupported method is specified.
+
         """
         self.preservation_threshold = preservation_threshold
+        method = method.lower()
+        if method not in ["step", "linear"]:
+            raise ValueError(
+                f"Unsupported method '{method}'. Choose 'step' or 'linear'."
+            )
+        self.method = method
 
-    @staticmethod
-    def _build_empirical_cdf(data: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        """Build empirical cumulative distribution function (CDF).
+    def _plotting_positions(self, num_points: int) -> np.ndarray:
+        """Return plotting positions for a sorted sample of size n."""
+        i = np.arange(1, num_points + 1)
+        if self.method == "step":  # Standard plotting positions
+            return i / num_points
+        else:  # self.method == "linear"
+            return (i - 0.5) / num_points  # Midpoint plotting positions
+
+    def _build_empirical_cdf(self, data: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        """Build ECDF components (sorted values and quantiles).
 
         Args:
-            data: 1D array of input data values.
+            data:
+                1D array of input data values.
 
         Returns:
             Tuple of (sorted_values, quantiles) representing the empirical CDF.
-
         """
         sorted_values = np.sort(data)
-        num_points = sorted_values.shape[0]
-        quantiles = np.arange(1, num_points + 1) / num_points
+        quantiles = self._plotting_positions(sorted_values.size)
         return sorted_values, quantiles
 
-    @staticmethod
-    def _inverted_cdf(data: np.ndarray, quantiles: np.ndarray) -> np.ndarray:
+    def _forecast_to_quantiles(self, forecast_data: np.ndarray) -> np.ndarray:
+        """Assign a quantile to each forecast element.
+
+        Args:
+            forecast_data:
+                1D array of forecast values.
+
+        Returns:
+            1D array of quantiles corresponding to each forecast value.
+        """
+        num_points = forecast_data.size
+
+        if self.method == "step":
+            # Value -> quantile mapping. Repeated values collapse to the same
+            # (right-most) quantile, creating a step-function mapping.
+            sorted_values, quantiles = self._build_empirical_cdf(forecast_data)
+            return np.interp(forecast_data, sorted_values, quantiles)
+        else:  # self.method == 'linear'
+            # Rank-based quantiles: repeated values get their own quantiles spread
+            # evenly across their range.
+            order = np.argsort(forecast_data, kind="mergesort")
+            ranks = np.empty_like(order)
+            ranks[order] = np.arange(num_points)
+
+            # Convert ranks to midpoint quantiles
+            return (ranks + 0.5) / num_points
+
+    def _inverted_cdf(
+        self,
+        reference_data: np.ndarray,
+        quantiles: np.ndarray,
+    ) -> np.ndarray:
         """Get distribution values at specified quantiles (discrete step method).
 
         Uses floored index lookup, rounding each quantile down to the nearest
@@ -63,20 +126,24 @@ class QuantileMapping(PostProcessingPlugin):
         https://github.com/ecmwf-projects/ibicus/blob/main/ibicus/utils/_math_utils.py
 
         Args:
-            data:
-                1D array of data values defining the distribution.
+            reference_data:
+                1D array of data values defining the reference distribution.
             quantiles:
                 Quantiles to evaluate (values between 0 and 1).
 
         Returns:
-            Values from the data corresponding to the requested quantiles.
+            Values from the reference data corresponding to the requested quantiles.
         """
-        sorted_values = np.sort(data)
-        num_points = sorted_values.shape[0]
-        floored_indices = np.array(
-            np.floor((num_points - 1) * quantiles), dtype=np.int32
-        )
-        return sorted_values[floored_indices]
+        sorted_reference = np.sort(reference_data)
+        num_points = sorted_reference.size
+
+        if self.method == "step":
+            idx = np.floor((num_points - 1) * quantiles).astype(np.int32)
+            idx = np.clip(idx, 0, num_points - 1)  # Ensure indices are within bounds
+            return sorted_reference[idx]
+        else:  # self.method == 'linear'
+            quantiles_reference = (np.arange(num_points) + 0.5) / num_points
+            return np.interp(quantiles, quantiles_reference, sorted_reference)
 
     def _map_quantiles(
         self,
@@ -85,16 +152,31 @@ class QuantileMapping(PostProcessingPlugin):
     ) -> np.ndarray:
         """Transform forecast values to match the reference distribution.
 
+        Behaviour depends on the self.method (see __init__).
+
         For each forecast value:
 
         1. Find its quantile position in the forecast distribution
         2. Map that quantile to the corresponding value in the reference distribution
-           using discrete (floor) method
+           using the specified method (step or linear).
 
-        For example, if reference_data is [10, 20, 30, 40, 50] and forecast_data
-        is [5, 15, 25, 35, 45], the forecast systematically underestimates by 5 units.
-        The corrected values will be [10, 20, 30, 40, 50], mapped to match the
-        reference distribution.
+        Examples:
+        - Discrete
+            If reference_data is [10, 20, 30, 40, 50] and forecast_data
+            is [20, 25, 30, 35, 40], the forecast values are mapped to the corresponding
+            values in the reference data distribution. This stretches the range of the
+            forecast data, shifting the extreme values by 10 units in opposing directions.
+            The median value is left unchanged as the two distributions are aligned at this
+            point. The inter-quartile values are each shifted by 5 units in opposing
+            directions, again reflecting the broader distribution found in the reference
+            data.
+        - Linear
+            Using the same reference and forecast data as above, the linear method would
+            produce a smoother mapping. The extreme values would still be shifted by 10
+            units, but the intermediate values would be adjusted more gradually. The
+            median value would still be unchanged, but the inter-quartile values would be
+            shifted by less than 5 units, reflecting the more continuous nature of the
+            mapping.
 
         Args:
             reference_data:
@@ -105,20 +187,11 @@ class QuantileMapping(PostProcessingPlugin):
         Returns:
             Bias-corrected forecast values matching the reference distribution.
         """
-        # Build empirical CDF for the forecast distribution
-        sorted_forecast_values, forecast_empirical_quantiles = (
-            self._build_empirical_cdf(forecast_data)
-        )
+        # Convert forecast values to quantiles in the forecast distribution
+        forecast_quantiles = self._forecast_to_quantiles(forecast_data)
 
-        # Find where each forecast value sits in the forecast distribution
-        # (i.e., determine its quantile, clipped to [0, 1])
-        forecast_quantiles = np.interp(
-            forecast_data, sorted_forecast_values, forecast_empirical_quantiles
-        )
-
-        # Map the quantiles to values in the reference distribution
+        # Map forecast quantiles to values in the reference distribution
         corrected_values = self._inverted_cdf(reference_data, forecast_quantiles)
-
         return corrected_values
 
     @staticmethod
@@ -141,11 +214,11 @@ class QuantileMapping(PostProcessingPlugin):
             ValueError: If units are incompatible and cannot be converted.
         """
         target_units = forecast_cube.units
+        reference_cube = reference_cube.copy()
 
         # Convert reference_cube to target_units if needed
         if reference_cube.units != target_units:
             try:
-                reference_cube = reference_cube.copy()
                 reference_cube.convert_units(target_units)
             except ValueError:
                 raise ValueError(
@@ -159,7 +232,7 @@ class QuantileMapping(PostProcessingPlugin):
         self,
         reference_cube: Cube,
         forecast_cube: Cube,
-    ) -> tuple[np.ndarray, Optional[np.ndarray]]:
+    ) -> np.ndarray:
         """Apply quantile mapping while properly handling masked data.
 
         Masked values are excluded from the calibration CDFs to avoid
@@ -173,9 +246,8 @@ class QuantileMapping(PostProcessingPlugin):
                 The forecast cube to calibrate.
 
         Returns:
-            Tuple of:
-                - corrected_data_flat: 1D array with corrected values.
-                - output_mask: The mask to apply, or None if data is not masked.
+                corrected_data_flat: 1D array with corrected values.
+
         """
         # Determine if either cube has masked data
         forecast_is_masked = np.ma.is_masked(forecast_cube.data)
@@ -208,17 +280,18 @@ class QuantileMapping(PostProcessingPlugin):
             # Reconstruct full array with corrected values at valid positions
             corrected_values_flat = forecast_data_flat.copy()
             corrected_values_flat[valid_mask] = corrected_valid
+            corrected_values_flat = np.ma.masked_array(
+                corrected_values_flat, mask=combined_mask_flat
+            )
 
-            output_mask = combined_mask
         else:
             # No masking needed
-            output_mask = None
             corrected_values_flat = self._map_quantiles(
                 reference_cube.data.flatten(),
                 forecast_cube.data.flatten(),
             )
 
-        return corrected_values_flat, output_mask
+        return corrected_values_flat
 
     def _apply_preservation_threshold(
         self, output_cube: Cube, forecast_cube: Cube
@@ -245,30 +318,25 @@ class QuantileMapping(PostProcessingPlugin):
         )
 
     def _finalise_output_cube(
-        self,
-        corrected_values_flat: np.ndarray,
-        forecast_cube: Cube,
-        output_cube: Cube,
-        output_mask,
+        self, corrected_values_flat: np.ndarray, forecast_cube: Cube, output_cube: Cube
     ) -> None:
         """Make final adjustments to output cube metadata and data type.
         Args:
+            corrected_values_flat:
+                1D array of corrected values to reshape and insert into output cube.
+            forecast_cube:
+                The original forecast cube, used to determine the shape and for
+                preservation threshold.
             output_cube:
                 The cube to finalize.
+            output_mask:
+                The mask to apply to the output cube, or None if no masking is needed.
         """
         # Reshape corrected data to match original shape and set data type to float32
         if corrected_values_flat.dtype != np.float32:
             corrected_values_flat = corrected_values_flat.astype(np.float32)
 
-        corrected_data_reshaped = np.reshape(corrected_values_flat, forecast_cube.shape)
-
-        # Reinstate original mask if applicable
-        if output_mask is not None:
-            output_cube.data = np.ma.masked_array(
-                corrected_data_reshaped, mask=output_mask
-            )
-        else:
-            output_cube.data = corrected_data_reshaped
+        output_cube.data = np.reshape(corrected_values_flat, forecast_cube.shape)
 
         # Preserve low values if threshold is set, modifying in-place
         self._apply_preservation_threshold(output_cube, forecast_cube)
@@ -311,20 +379,20 @@ class QuantileMapping(PostProcessingPlugin):
         """
 
         # Ensure both cubes use the same units
-        reference_cube, forecast_cube = self._convert_reference_cube_to_forecast_units(
-            reference_cube, forecast_cube
+        reference_cube_same_units, forecast_cube = (
+            self._convert_reference_cube_to_forecast_units(
+                reference_cube, forecast_cube
+            )
         )
 
         # Create output cube to preserve metadata
         output_cube = forecast_cube.copy()
 
         # Apply quantile mapping (handles masked data automatically)
-        corrected_values_flat, output_mask = self._process_masked_data(
-            reference_cube, forecast_cube
+        corrected_values_flat = self._process_masked_data(
+            reference_cube_same_units, forecast_cube
         )
 
-        self._finalise_output_cube(
-            corrected_values_flat, forecast_cube, output_cube, output_mask
-        )
+        self._finalise_output_cube(corrected_values_flat, forecast_cube, output_cube)
 
         return output_cube

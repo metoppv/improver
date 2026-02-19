@@ -47,6 +47,7 @@ def test__map_quantiles(
     simple_reference_array,
     simple_forecast_array,
 ):
+    """Test _map_quantiles returns the correct mapped values."""
     expected = np.array([10, 20, 30, 40, 50])
     result = QuantileMapping()._map_quantiles(
         simple_reference_array,
@@ -98,18 +99,6 @@ def forecast_cube():
     return set_up_variable_cube(data, name="lwe_precipitation_rate", units="mm h-1")
 
 
-@pytest.fixture
-def expected_result_no_threshold():
-    """Expected result for quantile mapping without a preservation threshold."""
-    return np.array(
-        [
-            [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]],
-            [[0.7, 1.8, 2.8], [3.8, 4.9, 5.8], [6.8, 7.7, 8.7]],
-        ],
-        dtype=np.float32,
-    )
-
-
 @pytest.mark.parametrize(
     "test_case",
     [
@@ -147,18 +136,24 @@ def test__convert_reference_cube_to_forecast(
             plugin.process(reference_cube, forecast_cube_copy)
 
 
-def test_quantile_mapping_process_no_threshold(
-    reference_cube, forecast_cube, expected_result_no_threshold
-):
+def test_quantile_mapping_process_no_threshold(reference_cube, forecast_cube):
     """Test quantile mapping with no preservation threshold."""
     plugin = QuantileMapping()
     result = plugin.process(reference_cube, forecast_cube)
+
+    expected = np.array(
+        [
+            [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]],
+            [[0.7, 1.8, 2.8], [3.8, 4.9, 5.8], [6.8, 7.7, 8.7]],
+        ],
+        dtype=np.float32,
+    )
 
     assert isinstance(result, Cube)
     assert result.shape == forecast_cube.shape
     assert result.data.dtype == np.float32
     assert not np.ma.is_masked(result.data)
-    np.testing.assert_array_equal(result.data, expected_result_no_threshold)
+    np.testing.assert_array_equal(result.data, expected)
 
 
 def test_quantile_mapping_process_with_threshold(reference_cube, forecast_cube):
@@ -180,7 +175,7 @@ def test_quantile_mapping_process_with_threshold(reference_cube, forecast_cube):
     assert isinstance(result, Cube)
     assert result.shape == forecast_cube.shape
     assert result.data.dtype == np.float32
-    assert result.data.mask is not False
+    assert not np.ma.is_masked(result.data)
     np.testing.assert_array_equal(result.data, expected_result)
 
 
