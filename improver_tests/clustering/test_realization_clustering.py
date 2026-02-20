@@ -270,6 +270,34 @@ def _assert_cluster_sources_attribute(
             )
 
 
+def _assert_primary_input_realizations_to_clusters(result_cube, expected_mapping=None):
+    """Assert that primary_input_realizations_to_clusters attribute exists and is
+    correct.
+
+    Args:
+        result_cube: The output cube from RealizationClusterAndMatch.process().
+        expected_mapping: Optional dict mapping cluster index to list of original
+            realization indices.
+    """
+    assert (
+        "primary_input_realizations_to_clusters" in result_cube.attributes
+    ), "primary_input_realizations_to_clusters attribute should exist"
+    mapping = json.loads(
+        result_cube.attributes["primary_input_realizations_to_clusters"]
+    )
+    # mapping is a dict: {cluster_idx: [realization_indices]}
+    assert isinstance(mapping, dict)
+    if expected_mapping is not None:
+        # Convert keys and values to int for comparison
+        mapping = {int(k): [int(x) for x in v] for k, v in mapping.items()}
+        expected_mapping = {
+            int(k): [int(x) for x in v] for k, v in expected_mapping.items()
+        }
+        assert (
+            mapping == expected_mapping
+        ), f"Expected {expected_mapping}, got {mapping}"
+
+
 # Tests for RealizationClustering
 
 
@@ -1139,6 +1167,8 @@ def test_clusterandmatch_process_basic():
         expected_sources[(cluster_idx, 1)] = "secondary_model_1"
         # fp=12,18 may use secondary_model_2 or fall back to primary_model
     _assert_cluster_sources_attribute(result, expected_sources)
+    expected_mapping = {0: [0, 2, 3, 4], 1: [1], 2: [5]}
+    _assert_primary_input_realizations_to_clusters(result, expected_mapping)
 
 
 @pytest.mark.parametrize(
@@ -1365,6 +1395,8 @@ def test_clusterandmatch_precedence_order(
     for cluster_idx in range(3):
         expected_sources[(cluster_idx, 0)] = "secondary_model_1"
     _assert_cluster_sources_attribute(result, expected_sources)
+    expected_mapping = {0: [0, 2, 3, 4], 1: [1], 2: [5]}
+    _assert_primary_input_realizations_to_clusters(result, expected_mapping)
 
 
 def test_clusterandmatch_overlapping_forecast_periods():
@@ -1542,7 +1574,8 @@ def test_clusterandmatch_single_secondary_input():
         expected_sources[(cluster_idx, 1)] = "secondary_model_1"  # fp=6
         expected_sources[(cluster_idx, 2)] = "primary_model"  # fp=12
     _assert_cluster_sources_attribute(result, expected_sources)
-
+    expected_mapping = {0: [0, 2, 3, 4], 1: [1], 2: [5]}
+    _assert_primary_input_realizations_to_clusters(result, expected_mapping)
 
 
 @pytest.mark.parametrize(
@@ -2113,6 +2146,8 @@ def test_clusterandmatch_regrid_for_clustering_false():
         expected_sources[(cluster_idx, 0)] = "secondary_model_1"
         expected_sources[(cluster_idx, 1)] = "secondary_model_1"
     _assert_cluster_sources_attribute(result, expected_sources)
+    expected_mapping = {0: [0, 2, 3, 4], 1: [1], 2: [5]}
+    _assert_primary_input_realizations_to_clusters(result, expected_mapping)
 
     # Check that model_id attribute is removed from result
     assert "model_id" not in result.attributes
