@@ -268,7 +268,7 @@ class QuantileMapping(PostProcessingPlugin):
 
         Args:
             reference_data:
-                Target distribution (observed/historical data).
+                Target distribution (observations or a differently processed forecast).
             forecast_data:
                 Source distribution (biased forecasts to correct).
 
