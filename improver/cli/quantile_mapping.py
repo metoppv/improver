@@ -12,7 +12,7 @@ from improver import cli
 @cli.with_output
 def process(
     *cubes: cli.inputcube,
-    truth_attribute: str,
+    reference_attribute: str,
     preservation_threshold: float = None,
 ):
     """Adjust forecast values to match the statistical distribution of reference
@@ -25,12 +25,12 @@ def process(
 
     Args:
         cubes:
-            A list of cubes containing the forecasts and corresponding truth (reference)
+            A list of cubes containing the forecasts and reference data to be
             used for calibration. They must have the same cube name and will be
-            separated based on the truth attribute.
-        truth_attribute:
+            separated based on the reference attribute.
+        reference_attribute:
             An attribute and its value in the format of "attribute=value",
-            which must be present on historical truth cubes.
+            which must be present on cubes.
         reference_cube:
             The reference data that define what the "correct" distribution
             should look like.
@@ -51,7 +51,9 @@ def process(
     from improver.calibration import split_forecasts_and_truth
     from improver.calibration.quantile_mapping import QuantileMapping
 
-    forecast_cube, reference_cube, _ = split_forecasts_and_truth(cubes, truth_attribute)
+    forecast_cube, reference_cube, _ = split_forecasts_and_truth(
+        cubes, reference_attribute
+    )
     plugin = QuantileMapping(preservation_threshold=preservation_threshold)
     return plugin.process(
         reference_cube,

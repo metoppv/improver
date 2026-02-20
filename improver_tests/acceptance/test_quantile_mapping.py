@@ -24,7 +24,7 @@ def test_floor_no_threshold(tmp_path):
     args = [
         reference_path,
         forecast_path,
-        "--truth-attribute",
+        "--reference-attribute",
         "mosg__model_configuration=uk_det",
         "--output",
         output_path,
@@ -46,7 +46,7 @@ def test_floor_with_threshold(tmp_path):
         forecast_path,
         "--preservation-threshold",
         "2.0",
-        "--truth-attribute",
+        "--reference-attribute",
         "mosg__model_configuration=uk_det",
         "--output",
         output_path,
