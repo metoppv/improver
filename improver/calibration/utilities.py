@@ -612,7 +612,7 @@ def convert_parquet_to_cube(
             A value within the experiment column to select from the forecast
             table.
         adjacent_range (int):
-            A period in hours that should be used to either side of the
+            A period in hours that should be used either side of the
             defined forecast_period to allow for the inclusion of forecasts and
             observations that are close to the validity time being calibrated.
 

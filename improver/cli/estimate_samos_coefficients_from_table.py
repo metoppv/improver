@@ -119,7 +119,7 @@ def process(
             be used. If False, extrapolation extends the trend of each
             GAM term beyond the range of the training data. Default is False.
         adjacent_range:
-            A period in hours that should be used to either side of the
+            A period in hours that should be used either side of the
             defined forecast_period to allow for the inclusion of forecasts and
             observations that are close to the validity time being calibrated.
 

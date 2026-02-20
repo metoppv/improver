@@ -120,7 +120,7 @@ def process(
             "wmo_id" as we expect to have a training data set comprising matched
             obs and forecast sites.
         adjacent_range (int):
-            A period in hours that should be used to either side of the
+            A period in hours that should be used either side of the
             defined forecast_period to allow for the inclusion of forecasts and
             observations that are close to the validity time for which a GAM is
             being constructed.
