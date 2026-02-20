@@ -1328,6 +1328,24 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         assert len(forecast_hours.intersection(set([16, 20]))) == 0
         assert len(truth_hours.intersection(set([16, 20]))) == 0
 
+        # Demonstrate that we have intentionally set the forecast_period to be
+        # inconsistent with the relationship between forecast_reference_time
+        # and validity time, meaning that only 3 out of 9 grid points have the
+        # "correct" forecast period. This inconsistency allows a cube to be
+        # constructed without a multi-dimensional time coordinate.
+        count = 0
+        for frt_cell, time_cell in zip(
+            forecast_cube.coord("forecast_reference_time").cells(),
+            forecast_cube.coord("time").cells(),
+        ):
+            actual_forecast_period = (
+                time_cell.point._to_real_datetime() - frt_cell.point._to_real_datetime()
+            )
+            if actual_forecast_period.total_seconds() == self.forecast_period:
+                count += 1
+
+        assert count == 3
+
 
 @pytest.mark.parametrize(
     "cycletime, forecast_period, training_length, adjacent_range",
