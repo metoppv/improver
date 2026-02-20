@@ -34,39 +34,39 @@ class QuantileMapping(PostProcessingPlugin):
             Args:
                 preservation_threshold:
                     Optional threshold value below which (exclusive) the forecast
-                    values are not adjusted to be like the reference. Useful for variables
-                    such as precipitation, where a user may be wary of mapping 0mm/hr
-                    precipitation values to non-zero values.
+                    values are not adjusted to be like the reference. Useful for
+                    variables such as precipitation, where a user may be wary of mapping
+                    0mm/hr precipitation values to non-zero values.
                 method:
                     Choose from two methods of converting forecast values into quantiles
                     before mapping them onto the reference distribution: 'step' and
                     'continuous'. These methods differ in three ways:
                     1. How quantiles are assigned to ranked data ('plotting positions').
                     - 'step' uses rank/number of points (i/n), which corresponds to the
-                    formal ECDF definition and treats the largest value as the 1.0 quantile
-                    (100th percentile).
-                    - 'continuous' uses midpoint plotting positions ((i-0.5)/n), which place
-                     values in the centre of their rank intervals and avoids probabilities
-                     of exactly 0 or 1.
+                    formal ECDF definition and treats the largest value as the 1.0
+                    quantile (100th percentile).
+                    - 'continuous' uses midpoint plotting positions ((i-0.5)/n), which
+                    place values in the centre of their rank intervals and avoids
+                    probabilities of exactly 0 or 1.
                     2. How probabilities are mapped back to values.
-                    - 'step' uses flooring, so each probability maps to the nearest lower
-                    observed value in the reference distribution, creating the step-function
-                    mapping.
+                    - 'step' uses flooring, so each probability maps to the nearest
+                    lower observed value in the reference distribution, creating the
+                    step-function mapping.
                     - 'continuous' uses interpolation, creating a smoother mapping where
                     small changes in probability lead to small changes in value.
                     3. How repeated values are treated.
-                    - 'step' assigns the same quantile to repeated values, so they all map
-                    to the same value in the reference distribution (creating flat steps in
-                    the mapping).
-                    - 'continuous' assigns different quantiles to repeated values, spreading
-                    them evenly across their range, so they can map to different values in
-                    the reference distribution.
+                    - 'step' assigns the same quantile to repeated values, so they all
+                    map to the same value in the reference distribution (creating flat
+                    steps in the mapping).
+                    - 'continuous' assigns different quantiles to repeated values,
+                    spreading them evenly across their range, so they can map to
+                    different values in the reference distribution.
 
                     Example
                     --------
-                    With the following reference and forecast data (totalling 11 points in
-                    each array), the two methods would produce their output as illustrated
-                    below:
+                    With the following reference and forecast data (totalling 11 points
+                    in each array), the two methods would produce their output as
+                    illustrated below:
                         forecast = np.array([0, 0, 0, 0, 0, 0, 0, 0, 10, 20, 30])
                         reference = np.array([0, 0, 0, 0, 0, 0, 0, 10, 20, 40, 50])
                         num_points = 11
@@ -84,7 +84,8 @@ class QuantileMapping(PostProcessingPlugin):
                         [8, 8, 8, 8, 8, 8, 8, 8, 9, 10, 11]
 
                         Quantiles:
-                        [8/11, 8/11, 8/11, 8/11, 8/11, 8/11, 8/11, 8/11, 9/11, 10/11, 11/11]
+                        [8/11, 8/11, 8/11, 8/11, 8/11, 8/11, 8/11, 8/11, 9/11, 10/11,
+                        11/11]
                         ≈ [0.727, ..., 0.727, 0.818, 0.909, 1.0]
 
                     3. These quantiles are mapped to the reference distribution using a
@@ -121,15 +122,15 @@ class QuantileMapping(PostProcessingPlugin):
 
                     Note: Due to statistical convention, the 'step' method uses standard
                     plotting positions (i/n), rather than (i/(n+1)). The consequences of
-                    this choice are that the quantiles assigned to the forecast data will be
-                    asymmetrically distributed: i/n produces quantiles ranging from
-                    1/n to 1, so probabilities are shifted upwards, especially near the top
-                    end of the distribution. While the discrepancies are large for small
-                    datasets (e.g. for n=5, quantiles are [0.2, 0.4, 0.6, 0.8, 1.0] vs
-                    [0.16666667, 0.33333333, 0.50000000, 0.66666667, 0.83333333]),
-                    the differences become negligible for larger datasets (e.g. for n=1000,
-                    quantiles are [0.001, 0.002, ..., 0.999, 1.0] vs [0.0005, 0.0015, ...,
-                    0.9985, 0.9995]).
+                    this choice are that the quantiles assigned to the forecast data
+                    will be asymmetrically distributed: i/n produces quantiles ranging
+                    from 1/n to 1, so probabilities are shifted upwards, especially near
+                    the top end of the distribution. While the discrepancies are large
+                    for small datasets (e.g. for n=5, quantiles are [0.2, 0.4, 0.6, 0.8,
+                    1.0] vs [0.16666667, 0.33333333, 0.50000000, 0.66666667,
+                    0.83333333]),the differences become negligible for larger datasets
+                    (e.g. for n=1000,quantiles are [0.001, 0.002, ..., 0.999, 1.0] vs
+                    [0.0005, 0.0015, ..., 0.9985, 0.9995]).
         Raises:
                 ValueError:
                     If an unsupported method is specified.
@@ -341,7 +342,7 @@ class QuantileMapping(PostProcessingPlugin):
         reference_is_masked = np.ma.is_masked(reference_cube.data)
 
         if forecast_is_masked or reference_is_masked:
-            # Create combined mask using getmaskarray (returns False array if not masked)
+            # Create combined mask using getmaskarray (returns False array if unmasked)
             combined_mask = np.ma.getmaskarray(forecast_cube.data) | np.ma.getmaskarray(
                 reference_cube.data
             )
