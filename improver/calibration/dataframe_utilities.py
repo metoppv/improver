@@ -293,9 +293,18 @@ def _training_dates_for_calibration(
     and 20170717T0600Z.
 
     An adjacent_range in hours can be provided so that adjacent validity
-    times may be used in the training dataset. The last validity time is not
-    adjusted to ensure that later adjacent times are in the past, these will
-    simply be discarded if they are not present in the truth data.
+    times may be used in the training dataset. Note that the training_times
+    are not adjusted to ensure that the adjacent validity times are in
+    the past relative to the cycletime; the adjacent_range is expected to be
+    small (<< 24 hours). For example, for a cycletime of 20170720T0000Z with a
+    forecast period of T+1 the validity time is 20170720T0100Z. For a training
+    length of 3 days the training_times are calculated here as 20170719T0100Z,
+    20170718T0100Z and 20170717T0100Z. If an adjacent_range of 24-hours is
+    requested the validity times for the training dataset would include
+    20170720T0100Z which falls in the future relative to the cycle and can have
+    no matching observation. Should such an extreme range be requested the data
+    falling in the future would simply not be found in the tables and would be
+    ignored in any case.
 
     Args:
         cycletime:

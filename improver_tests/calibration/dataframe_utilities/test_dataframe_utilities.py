@@ -1259,7 +1259,14 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         the forecast periods have been made consistent, breaking the
         relationship between validity time and forecast reference time.
         This allows the cube to be constructed without a multi-dimensional
-        time coordinate."""
+        time coordinate.
+
+        The target validity hour is 18Z. The adjacent_range is set to 1,
+        meaning that hours spanning 17-19Z on each day in the dataframes
+        should be extracted for training. Additional hours are added to the
+        dataframes at 16Z and 20Z to test that these are not included in the
+        output cubes.
+        """
 
         def offset_time(df, offset_hours):
             """Offset the time coordinate of a dataframe by a given number of
@@ -1275,12 +1282,16 @@ class Test_forecast_and_truth_dataframes_to_cubes(
                 pass
             return df_offset
 
-        # Add T+-1 validity times to the dataframe.
+        # Add T+-1 and 2 validity times to the dataframes.
+        # The dataframe contains validity times on several days at hours of
+        # 16Z, 17Z, 18Z, 19Z and 20Z.
         forecast_df = pd.concat(
             [
                 self.forecast_df,
                 offset_time(self.forecast_df, -1),
                 offset_time(self.forecast_df, 1),
+                offset_time(self.forecast_df, -2),
+                offset_time(self.forecast_df, 2),
             ],
             ignore_index=True,
         )
@@ -1289,6 +1300,8 @@ class Test_forecast_and_truth_dataframes_to_cubes(
                 self.truth_subset_df,
                 offset_time(self.truth_subset_df, -1),
                 offset_time(self.truth_subset_df, 1),
+                offset_time(self.truth_subset_df, -2),
+                offset_time(self.truth_subset_df, 2),
             ],
             ignore_index=True,
         )
@@ -1301,15 +1314,19 @@ class Test_forecast_and_truth_dataframes_to_cubes(
             self.training_length,
             adjacent_range=1,
         )
-        forecast_hours = [
-            item.point.hour for item in forecast_cube.coord("time").cells()
-        ]
-        truth_hours = [item.point.hour for item in truth_cube.coord("time").cells()]
+        forecast_hours = set(
+            [item.point.hour for item in forecast_cube.coord("time").cells()]
+        )
+        truth_hours = set(
+            [item.point.hour for item in truth_cube.coord("time").cells()]
+        )
 
         assert forecast_cube.shape == (3, 9, 3)
         assert truth_cube.shape == (9, 3)
-        assert set(forecast_hours) == set([17, 18, 19])
-        assert set(truth_hours) == set([17, 18, 19])
+        assert forecast_hours == set([17, 18, 19])
+        assert truth_hours == set([17, 18, 19])
+        assert len(forecast_hours.intersection(set([16, 20]))) == 0
+        assert len(truth_hours.intersection(set([16, 20]))) == 0
 
 
 @pytest.mark.parametrize(
