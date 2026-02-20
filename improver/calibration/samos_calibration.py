@@ -30,7 +30,6 @@ except ModuleNotFoundError:
 
 
 from iris.cube import Cube, CubeList
-from numpy import clip, float32
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.calibration import add_static_feature_from_cube_to_df
@@ -181,6 +180,7 @@ def get_climatological_stats(
     additional_cubes: Optional[CubeList],
     sd_clip: float = 0.25,
     unique_site_id_key: Optional[str] = None,
+    constant_extrapolation: bool = False,
 ) -> Tuple[Cube, Cube]:
     """Function to predict climatological means and standard deviations given fitted
     GAMs for each statistic and cubes which can be used to construct a dataframe
@@ -204,6 +204,11 @@ def get_climatological_stats(
             If working with spot data and available, the name of the coordinate
             in the input cubes that contains unique site IDs, e.g. "wmo_id" if
             all sites have a valid wmo_id.
+        constant_extrapolation:
+            If True, predictor values outside the range of those used to fit the GAM
+            will be predicted using constant extrapolation (i.e. the nearest
+            boundary value). If False, extrapolation extends the trend of each
+            GAM term beyond the range of the training data. Default is False.
 
     Returns:
         A pair of cubes containing climatological mean and climatological standard
@@ -217,8 +222,12 @@ def get_climatological_stats(
 
     # Calculate climatological means and standard deviations using previously
     # fitted GAMs.
-    mean_pred = GAMPredict().process(gams[0], df[gam_features])
-    sd_pred = GAMPredict().process(gams[1], df[gam_features])
+    mean_pred = GAMPredict(constant_extrapolation=constant_extrapolation).process(
+        gams[0], np.array(df[gam_features])
+    )
+    sd_pred = GAMPredict(constant_extrapolation=constant_extrapolation).process(
+        gams[1], np.array(df[gam_features])
+    )
 
     # Convert means and standard deviations into cubes
     df[diagnostic] = mean_pred
@@ -226,7 +235,7 @@ def get_climatological_stats(
 
     df[diagnostic] = sd_pred
     sd_cube = convert_dataframe_to_cube(df, input_cube)
-    sd_cube.data = clip(sd_cube.data, a_min=sd_clip, a_max=None)
+    sd_cube.data = np.clip(sd_cube.data, a_min=sd_clip, a_max=None)
 
     return mean_cube, sd_cube
 
@@ -349,8 +358,8 @@ class TrainGAMsForSAMOS(BasePlugin):
         # This variable is used to calculate the bounds of each rolling window.
         window_td = datetime.timedelta(days=self.window_length)
 
-        for tp in input_cube.coord("time").points:
-            time_point = datetime.datetime.fromtimestamp(tp)
+        for time_index, tp in enumerate(input_cube.coord("time").cells()):
+            time_point = tp.point._to_real_datetime()
             # Create time constraint for rolling window and extract data within window.
             if self.trailing_window:
                 time_bounds = [time_point - window_td, time_point]
@@ -404,16 +413,12 @@ class TrainGAMsForSAMOS(BasePlugin):
                 "forecast_period",
             ]:
                 if coord_name in [c.name() for c in window_mean.coords()]:
-                    point = tp
-                    if coord_name != "time":
-                        # The time-related coordinates are either scalar or have one
-                        # point associated with each time point.
-                        if len(input_cube.coord(coord_name).points) == 1:
-                            point = input_cube.coord(coord_name).points[0]
-                        else:
-                            point = input_cube.coord(coord_name).points[
-                                input_cube.coord("time").points.tolist().index(tp)
-                            ]
+                    # The time-related coordinates are either scalar or have one
+                    # point associated with each time point.
+                    if len(input_cube.coord(coord_name).points) == 1:
+                        point = input_cube.coord(coord_name).points[0]
+                    else:
+                        point = input_cube.coord(coord_name).points[time_index]
 
                     window_mean.coord(coord_name).points = np.array([point])
                     window_mean.coord(coord_name).bounds = None
@@ -562,6 +567,7 @@ class TrainEMOSForSAMOS(BasePlugin):
         distribution: str,
         emos_kwargs: Optional[Dict] = None,
         unique_site_id_key: Optional[str] = None,
+        constant_extrapolation: bool = False,
     ) -> None:
         """Initialize the class.
 
@@ -576,10 +582,17 @@ class TrainEMOSForSAMOS(BasePlugin):
                 If working with spot data and available, the name of the coordinate
                 in the input cubes that contains unique site IDs, e.g. "wmo_id" if
                 all sites have a valid wmo_id.
+            constant_extrapolation:
+                If True, when predicting mean and standard deviation from the GAMs,
+                when the predictor values are outside the range of those used to fit
+                the GAM, constant extrapolation (i.e. the nearest boundary value) will
+                be used. If False, extrapolation extends the trend of each
+                GAM term beyond the range of the training data. Default is False.
         """
         self.distribution = distribution
         self.emos_kwargs = emos_kwargs if emos_kwargs else {}
         self.unique_site_id_key = unique_site_id_key
+        self.constant_extrapolation = constant_extrapolation
 
     def climate_anomaly_emos(
         self,
@@ -687,6 +700,7 @@ class TrainEMOSForSAMOS(BasePlugin):
             gam_features,
             gam_additional_fields,
             unique_site_id_key=self.unique_site_id_key,
+            constant_extrapolation=self.constant_extrapolation,
         )
         truth_mean, truth_sd = get_climatological_stats(
             truths,
@@ -694,6 +708,7 @@ class TrainEMOSForSAMOS(BasePlugin):
             gam_features,
             gam_additional_fields,
             unique_site_id_key=self.unique_site_id_key,
+            constant_extrapolation=self.constant_extrapolation,
         )
 
         emos_coefficients = self.climate_anomaly_emos(
@@ -712,6 +727,9 @@ class ApplySAMOS(PostProcessingPlugin):
     - Two GAMs which model, respectively, the climatological mean and standard
     deviation of the forecast. This allows the forecast to be converted to
     climatological anomalies.
+    - Two GAMs which model, respectively, the climatological mean and standard
+    deviation of the truths. This allows the climatological anomalies to be
+    transformed back to the original forecast units.
     - A set of EMOS coefficients which can be applied to correct the climatological
     anomalies.
     """
@@ -720,6 +738,7 @@ class ApplySAMOS(PostProcessingPlugin):
         self,
         percentiles: Optional[Sequence] = None,
         unique_site_id_key: Optional[str] = None,
+        constant_extrapolation: bool = False,
     ):
         """Initialize class.
 
@@ -730,12 +749,19 @@ class ApplySAMOS(PostProcessingPlugin):
                 If working with spot data and available, the name of the coordinate
                 in the input cubes that contains unique site IDs, e.g. "wmo_id" if
                 all sites have a valid wmo_id.
+            constant_extrapolation:
+                If True, when predicting mean and standard deviation from the GAMs,
+                when the predictor values are outside the range of those used to fit
+                the GAM, constant extrapolation (i.e. the nearest boundary value) will
+                be used. If False, extrapolation extends the trend of each
+                GAM term beyond the range of the training data. Default is False.
         """
-        self.percentiles = [float32(p) for p in percentiles] if percentiles else None
+        self.percentiles = [np.float32(p) for p in percentiles] if percentiles else None
         self.unique_site_id_key = unique_site_id_key
+        self.constant_extrapolation = constant_extrapolation
 
+    @staticmethod
     def transform_anomalies_to_original_units(
-        self,
         location_parameter: Cube,
         scale_parameter: Cube,
         truth_mean: Cube,
@@ -882,6 +908,7 @@ class ApplySAMOS(PostProcessingPlugin):
             gam_features,
             gam_additional_fields,
             unique_site_id_key=self.unique_site_id_key,
+            constant_extrapolation=self.constant_extrapolation,
         )
         forecast_ca = CalculateClimateAnomalies(ignore_temporal_mismatch=True).process(
             diagnostic_cube=forecast_as_realizations,
@@ -912,6 +939,7 @@ class ApplySAMOS(PostProcessingPlugin):
             gam_features,
             gam_additional_fields,
             unique_site_id_key=self.unique_site_id_key,
+            constant_extrapolation=self.constant_extrapolation,
         )
 
         # Transform location and scale parameters to be in the same units as the
@@ -960,11 +988,11 @@ class ApplySAMOS(PostProcessingPlugin):
             bounds_pairing = get_bounds_of_distribution(
                 bounds_pairing_key=result.name(), desired_units=result.units
             )
-            result.data = clip(
+            result.data = np.clip(
                 result.data, a_min=bounds_pairing[0], a_max=bounds_pairing[1]
             )
 
         # Enforce correct dtype.
-        result.data = result.data.astype(dtype=float32)
+        result.data = result.data.astype(dtype=np.float32)
 
         return result
