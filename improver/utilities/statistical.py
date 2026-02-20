@@ -121,7 +121,8 @@ class DistributionalParameters(BasePlugin):
     ) -> tuple[np.array, np.array, np.array]:
         """
         Estimate parameters for a gamma distribution given mean and standard deviation
-        cubes.
+        cubes. The estimation method is based on the method of moments, as described in
+        Wilks (2019).
 
         Args:
             mean:
@@ -131,6 +132,10 @@ class DistributionalParameters(BasePlugin):
 
         Returns:
             Arrays containing shape and scale parameters of a gamma distribution.
+
+        References:
+            Wilks, D. S., 2019: Statistical Methods in the Atmospheric Sciences,
+            Academic Press.
         """
         shape = (mean / sd) ** 2
         loc = np.full_like(mean, 0)

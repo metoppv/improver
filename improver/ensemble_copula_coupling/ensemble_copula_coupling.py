@@ -863,9 +863,9 @@ class ConvertLocationAndScaleParameters:
 
     @staticmethod
     def _prepare_shape_parameter_truncnorm(
-        shape_parameter: ndarray,
-        location_parameter: ndarray,
-        scale_parameter: ndarray,
+        shape_parameter: CubeList,
+        location_parameter: Cube,
+        scale_parameter: Cube,
     ) -> ndarray:
         """
         Rescale the shape parameter for the desired location and scale
@@ -886,21 +886,33 @@ class ConvertLocationAndScaleParameters:
 
         Args:
             shape_parameter:
-                Shape parameter to be rescaled using the location and scale parameters
-                for the truncated normal distribution. The input shape parameter is
-                expected to define one truncation point of a truncated normal
-                distribution.
+                Shape parameters to be rescaled using the location and scale parameters
+                for the truncated normal distribution.
             location_parameter:
                 Location parameter to be used to scale the shape parameters.
             scale_parameter:
                 Scale parameter to be used to scale the shape parameters.
 
-        Returns:
-            A rescaled shape parameter.
+        Raises:
+            ValueError: If the shape_parameter is not a CubeList of length 2.
         """
-        rescaled_parameter = (shape_parameter - location_parameter) / scale_parameter
-
-        return rescaled_parameter
+        if (
+            shape_parameter is None
+            or not isinstance(shape_parameter, CubeList)
+            or len(shape_parameter) != 2
+        ):
+            raise ValueError(
+                "For the truncated normal distribution, two shape parameters are "
+                "required to define the lower and upper truncation points. These "
+                f"shape parameters were provided: {shape_parameter}."
+            )
+        else:
+            for i, cube in enumerate(shape_parameter.copy()):
+                # Rescale the shape parameters for the truncated normal
+                # distribution.
+                shape_parameter[i].data = (
+                    cube.data - location_parameter.data
+                ) / scale_parameter.data
 
 
 class ConvertLocationAndScaleParametersToPercentiles(
@@ -914,7 +926,7 @@ class ConvertLocationAndScaleParametersToPercentiles(
 
     def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
-        result = "<ConvertLocationAndScaleParametersToPercentiles: " "distribution: {}>"
+        result = "<ConvertLocationAndScaleParametersToPercentiles: distribution: {}>"
         return result.format(self.distribution.name)
 
     def _location_and_scale_parameters_to_percentiles(
@@ -1079,23 +1091,9 @@ class ConvertLocationAndScaleParametersToPercentiles(
             raise ValueError(msg)
 
         if self.distribution.name == "truncnorm":
-            if (
-                shape_parameter is None
-                or not isinstance(shape_parameter, CubeList)
-                or len(shape_parameter) != 2
-            ):
-                raise ValueError(
-                    "For the truncated normal distribution, two shape parameters are "
-                    "required to define the lower and upper truncation points. These "
-                    f"shape parameters were provided: {shape_parameter}."
-                )
-            else:
-                for i, cube in enumerate(shape_parameter.copy()):
-                    # Rescale the shape parameters for the truncated normal
-                    # distribution.
-                    shape_parameter[i].data = self._prepare_shape_parameter_truncnorm(
-                        cube.data, location_parameter.data, scale_parameter.data
-                    )
+            self._prepare_shape_parameter_truncnorm(
+                shape_parameter, location_parameter, scale_parameter
+            )
 
         if isinstance(shape_parameter, Cube):
             shape_parameter = iris.cube.CubeList([shape_parameter])
@@ -1127,9 +1125,7 @@ class ConvertLocationAndScaleParametersToProbabilities(
 
     def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
-        result = (
-            "<ConvertLocationAndScaleParametersToProbabilities: " "distribution: {}>"
-        )
+        result = "<ConvertLocationAndScaleParametersToProbabilities: distribution: {}>"
         return result.format(self.distribution.name)
 
     def _check_template_cube(self, cube: Cube) -> None:
@@ -1310,23 +1306,9 @@ class ConvertLocationAndScaleParametersToProbabilities(
         )
 
         if self.distribution.name == "truncnorm":
-            if (
-                shape_parameter is None
-                or not isinstance(shape_parameter, CubeList)
-                or len(shape_parameter) != 2
-            ):
-                raise ValueError(
-                    "For the truncated normal distribution, two shape parameters are "
-                    "required to define the lower and upper truncation points. These "
-                    f"shape parameters were provided: {shape_parameter}."
-                )
-            else:
-                for i, cube in enumerate(shape_parameter.copy()):
-                    # Rescale the shape parameters for the truncated normal
-                    # distribution.
-                    shape_parameter[i].data = self._prepare_shape_parameter_truncnorm(
-                        cube.data, location_parameter.data, scale_parameter.data
-                    )
+            self._prepare_shape_parameter_truncnorm(
+                shape_parameter, location_parameter, scale_parameter
+            )
 
         if isinstance(shape_parameter, Cube):
             shape_parameter = iris.cube.CubeList([shape_parameter])
