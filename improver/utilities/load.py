@@ -7,6 +7,7 @@
 from typing import List, Optional, Union
 
 import iris
+import numpy as np
 from iris import Constraint
 from iris.cube import Cube, CubeList
 
@@ -117,4 +118,29 @@ def load_cube(
         cube = cubes[0]
     else:
         cube = MergeCubes()(cubes)
+    return cube
+
+
+def load_baseline_cube(
+    reference_cube: Cube, value: float, name: str, units: str
+) -> Cube:
+    """Create a baseline cube with the structure of the reference cube but filled with a constant value.
+
+    Args:
+        reference_cube:
+            A cube to define the shape and data type of the baseline cube
+        value:
+            The value that will be populated as a constant across the baseline cube
+        name:
+            The name of the baseline cube
+        units:
+            The unit of measurement for the cube data
+
+    """
+    data = np.full(reference_cube.shape, value, dtype=reference_cube.core_data().dtype)
+
+    cube = reference_cube.copy(data=data)
+    cube.rename(name)
+    cube.units = units
+
     return cube

@@ -3,12 +3,13 @@
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 
+
 import numpy as np
 import pytest
 from iris.cube import Cube
 
 from improver.fire_weather.build_up_index import BuildUpIndex
-from improver_tests.fire_weather import make_input_cubes
+from improver_tests.fire_weather import START_DATE_DICT, make_input_cubes
 
 
 def input_cubes(
@@ -37,15 +38,11 @@ def input_cubes(
     Returns:
         A tuple of Iris Cubes for DMC and DC.
     """
-    return tuple(
-        make_input_cubes(
-            [
-                ("duff_moisture_code", dmc_val, dmc_units, True),
-                ("drought_code", dc_val, dc_units, False),
-            ],
-            shape=shape,
-        )
-    )
+    cube_args = [
+        ("duff_moisture_code", dmc_val, dmc_units, True, START_DATE_DICT),
+        ("drought_code", dc_val, dc_units, False, START_DATE_DICT),
+    ]
+    return tuple(make_input_cubes(cube_args, shape=shape))
 
 
 @pytest.mark.parametrize(
