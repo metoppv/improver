@@ -14,6 +14,7 @@ def process(
     *cubes: cli.inputcube,
     reference_attribute: str,
     preservation_threshold: float = None,
+    method: str = "step",
 ):
     """Adjust forecast values to match the statistical distribution of reference
     data.
@@ -30,7 +31,8 @@ def process(
             separated based on the reference attribute.
         reference_attribute:
             An attribute and its value in the format of "attribute=value",
-            which must be present on cubes.
+            which must be present on cubes to identify them as reference data.
+            The remaining cubes will be treated as forecast data.
         reference_cube:
             The reference data that define what the "correct" distribution
             should look like.
@@ -40,13 +42,38 @@ def process(
             Optional threshold value below which (exclusive) the forecast values
             are not adjusted. Useful for variables like precipitation where you
             may want to preserve small/zero values.
+        method:
+            Choose from two methods of converting forecast values into quantiles
+            before mapping them onto the reference distribution: 'step' and
+            'continuous'. These methods differ in three ways:
+            1. How quantiles are assigned to ranked data ('plotting positions').
+            - 'step' uses rank/number of points (i/n), which corresponds to the
+            formal ECDF definition and treats the largest value as the 1.0
+            quantile (100th percentile).
+            - 'continuous' uses midpoint plotting positions ((i-0.5)/n), which
+            place values in the centre of their rank intervals and avoids
+            probabilities of exactly 0 or 1.
+            2. How probabilities are mapped back to values.
+            - 'step' uses flooring, so each probability maps to the nearest
+            lower observed value in the reference distribution, creating the
+            step-function mapping.
+            - 'continuous' uses interpolation, creating a smoother mapping where
+            small changes in probability lead to small changes in value.
+            3. How repeated values are treated.
+            - 'step' assigns the same quantile to repeated values, so they all
+            map to the same value in the reference distribution (creating flat
+            steps in the mapping).
+            - 'continuous' assigns different quantiles to repeated values,
+            spreading them evenly across their range, so they can map to
+            different values in the reference distribution.
 
     Returns:
         Calibrated forecast cube with quantiles mapped to the reference
         distribution.
 
     Raises:
-        ValueError: If reference and forecast cubes have incompatible units.
+        ValueError:
+            If reference and forecast cubes have incompatible units.
     """
     from improver.calibration import split_forecasts_and_truth
     from improver.calibration.quantile_mapping import QuantileMapping
@@ -54,7 +81,9 @@ def process(
     forecast_cube, reference_cube, _ = split_forecasts_and_truth(
         cubes, reference_attribute
     )
-    plugin = QuantileMapping(preservation_threshold=preservation_threshold)
+    plugin = QuantileMapping(
+        preservation_threshold=preservation_threshold, method=method
+    )
     return plugin.process(
         reference_cube,
         forecast_cube,

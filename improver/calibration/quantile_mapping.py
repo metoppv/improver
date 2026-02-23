@@ -92,7 +92,7 @@ class QuantileMapping(PostProcessingPlugin):
                     stepwise empirical quantile mapping. Each probability is mapped to
                     the reference value at the right edge of the corresponding ECDF step
                     (i.e. the smallest reference value whose empirical cumulative
-                    probability is greater than or equal to the given probability),
+                    probability is less than or equal to the given probability),
                     yielding:
 
                         [10, 10, 10, 10, 10, 10, 10, 10, 20, 40, 50]
@@ -106,7 +106,7 @@ class QuantileMapping(PostProcessingPlugin):
                         Ranks:
                         [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
-                    2. Midpoint quantiles are assigned using (rank + 0.5) / n:
+                    2. Midpoint quantiles are assigned using (rank - 0.5) / n:
 
                         Quantiles:
                         [0.045, 0.136, 0.227, 0.318, 0.409, 0.500,
@@ -194,10 +194,10 @@ class QuantileMapping(PostProcessingPlugin):
             # evenly across their range.
             order = np.argsort(forecast_data, kind="mergesort")
             ranks = np.empty_like(order)
-            ranks[order] = np.arange(num_points)
+            ranks[order] = np.arange(1, num_points + 1)
 
             # Convert ranks to midpoint quantiles
-            return (ranks + 0.5) / num_points
+            return (ranks - 0.5) / num_points
 
     def _inverted_cdf(
         self,
@@ -230,7 +230,7 @@ class QuantileMapping(PostProcessingPlugin):
             idx = np.clip(idx, 0, num_points - 1)  # Ensure indices are within bounds
             return sorted_reference[idx]
         else:  # self.method == 'continuous'
-            quantiles_reference = (np.arange(num_points) + 0.5) / num_points
+            quantiles_reference = self._plotting_positions(num_points)
             return np.interp(quantiles, quantiles_reference, sorted_reference)
 
     def _map_quantiles(
@@ -323,9 +323,9 @@ class QuantileMapping(PostProcessingPlugin):
     ) -> np.ndarray:
         """Apply quantile mapping while properly handling masked data.
 
-        Masked values are excluded from the calibration CDFs to avoid
-        contaminating the statistics. They are preserved in their original
-        (masked) state in the output.
+        Masked values in reference_cube are excluded from CDF calculations.
+        Forecast mask is preserved in output to avoid filling intentionally masked
+        locations.
 
         Args:
             reference_cube:
@@ -334,49 +334,36 @@ class QuantileMapping(PostProcessingPlugin):
                 The forecast cube to calibrate.
 
         Returns:
-                corrected_data_flat: 1D array with corrected values.
-
+            corrected_data_flat:
+                1D array with corrected values (forecast mask preserved).
         """
-        # Determine if either cube has masked data
-        forecast_is_masked = np.ma.is_masked(forecast_cube.data)
-        reference_is_masked = np.ma.is_masked(reference_cube.data)
+        # Flatten data
+        reference_data_flat = reference_cube.data.flatten()
+        forecast_data_flat = forecast_cube.data.flatten()
 
-        if forecast_is_masked or reference_is_masked:
-            # Create combined mask using getmaskarray (returns False array if unmasked)
-            combined_mask = np.ma.getmaskarray(forecast_cube.data) | np.ma.getmaskarray(
-                reference_cube.data
-            )
+        # Extract valid (non-masked) data for quantile mapping
+        if np.ma.is_masked(reference_data_flat):
+            reference_valid = reference_data_flat.compressed()
+        else:
+            reference_valid = reference_data_flat
 
-            # Flatten and get valid (non-masked) indices
-            combined_mask_flat = combined_mask.flatten()
-            valid_mask = ~combined_mask_flat
+        if np.ma.is_masked(forecast_data_flat):
+            forecast_mask = np.ma.getmaskarray(forecast_data_flat)
+            forecast_valid = forecast_data_flat.compressed()
 
-            # Extract underlying data arrays (ignoring masks temporarily)
-            # We need the full arrays to reconstruct later, but will only
-            # use valid_mask indices for quantile mapping calculations
-            reference_data_flat = np.ma.getdata(reference_cube.data).flatten()
-            forecast_data_flat = np.ma.getdata(forecast_cube.data).flatten()
-
-            # Extract ONLY valid (non-masked) values for CDF calculations
-            # Masked values are not included in these arrays
-            reference_valid = reference_data_flat[valid_mask]
-            forecast_valid = forecast_data_flat[valid_mask]
-
-            # Apply quantile mapping using only valid values
+            # Apply quantile mapping to valid data only
             corrected_valid = self._map_quantiles(reference_valid, forecast_valid)
 
-            # Reconstruct full array with corrected values at valid positions
-            corrected_values_flat = forecast_data_flat.copy()
-            corrected_values_flat[valid_mask] = corrected_valid
+            # Reconstruct with forecast mask preserved
+            corrected_values_flat = np.empty_like(forecast_data_flat.data)
+            corrected_values_flat[~forecast_mask] = corrected_valid
             corrected_values_flat = np.ma.masked_array(
-                corrected_values_flat, mask=combined_mask_flat
+                corrected_values_flat, mask=forecast_mask
             )
-
         else:
-            # No masking needed
+            # No forecast masking - apply directly
             corrected_values_flat = self._map_quantiles(
-                reference_cube.data.flatten(),
-                forecast_cube.data.flatten(),
+                reference_valid, forecast_data_flat
             )
 
         return corrected_values_flat

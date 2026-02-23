@@ -385,7 +385,8 @@ def test_quantile_mapping_process_thresholding(
 @pytest.mark.parametrize(
     "test_case",
     [
-        "one_input_masked",
+        "only_reference_masked",
+        "only_forecast_masked",
         "both_inputs_masked",
     ],
 )
@@ -397,37 +398,53 @@ def test_masked_input(reference_cube, forecast_cube, test_case):
     reference_cube = reference_cube.copy()
     forecast_cube = forecast_cube.copy()
 
-    # Mask reference at position [0, 0, 0]
-    reference_cube.data = np.ma.masked_array(
-        reference_cube.data, mask=np.zeros_like(reference_cube.data, dtype=bool)
-    )
-    reference_cube.data[0, 0, 0] = np.ma.masked
+    if test_case == "only_reference_masked":
+        # Mask reference at position [0, 0, 0]
+        reference_cube.data = np.ma.masked_array(
+            reference_cube.data, mask=np.zeros_like(reference_cube.data, dtype=bool)
+        )
+        reference_cube.data[0, 0, 0] = np.ma.masked
+        expected_mask_count = 0
 
-    if test_case == "one_input_masked":
-        expected_mask_count = 1
-
-    elif test_case == "both_inputs_masked":
-        # Also mask forecast at position [0, 0, 1]
+    elif test_case == "only_forecast_masked":
+        # Mask forecast at position [0, 0, 1]
         forecast_cube.data = np.ma.masked_array(
             forecast_cube.data, mask=np.zeros_like(forecast_cube.data, dtype=bool)
         )
         forecast_cube.data[0, 0, 1] = np.ma.masked
-        expected_mask_count = 2
+        expected_mask_count = 1
+
+    elif test_case == "both_inputs_masked":
+        reference_cube.data = np.ma.masked_array(
+            reference_cube.data, mask=np.zeros_like(reference_cube.data, dtype=bool)
+        )
+        reference_cube.data[0, 0, 0] = np.ma.masked
+
+        # Mask forecast at position [0, 0, 1]
+        forecast_cube.data = np.ma.masked_array(
+            forecast_cube.data, mask=np.zeros_like(forecast_cube.data, dtype=bool)
+        )
+        forecast_cube.data[0, 0, 1] = np.ma.masked
+        expected_mask_count = 1  # Only forecast mask preserved
 
     plugin = QuantileMapping()
     result = plugin.process(reference_cube, forecast_cube)
 
-    # Check that result is masked
-    assert np.ma.is_masked(result.data)
-    # Check mask count matches expected (union of input masks)
+    # Check masking behavior
     assert expected_mask_count == np.ma.count_masked(result.data)
-    # Check that the correct positions are masked
-    if test_case == "one_input_masked":
-        assert result.data.mask[0, 0, 0]
-        assert not result.data.mask[0, 0, 1]
-    elif test_case == "both_inputs_masked":
-        assert result.data.mask[0, 0, 0]
-        assert result.data.mask[0, 0, 1]
+
+    if test_case == "only_reference_masked":
+        # No masking expected in output since reference mask should NOT be preserved
+        assert not np.ma.is_masked(result.data)
+    else:
+        assert np.ma.is_masked(result.data)
+
+        # Check that only forecast masked positions are masked in output
+        if test_case == "only_forecast_masked":
+            assert result.data.mask[0, 0, 1]
+        elif test_case == "both_inputs_masked":
+            assert result.data.mask[0, 0, 1]
+            assert not result.data.mask[0, 0, 0]  # Reference mask NOT preserved
 
 
 def test_metadata_preservation(reference_cube, forecast_cube):

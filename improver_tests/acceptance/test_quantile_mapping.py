@@ -13,10 +13,11 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
-def test_floor_no_threshold(tmp_path):
-    """Test quantile mapping with floor method and no preservation threshold."""
+@pytest.mark.parametrize("method", ["step", "continuous"])
+def test_step_no_threshold(tmp_path, method):
+    """Test quantile mapping with step method and no preservation threshold."""
     kgo_dir = acc.kgo_root() / "quantile-mapping/basic/"
-    kgo_path = kgo_dir / "kgo.nc"
+    kgo_path = kgo_dir / f"kgo_{method}.nc"
     reference_path = acc.kgo_root() / "quantile-mapping/reference.nc"
     forecast_path = acc.kgo_root() / "quantile-mapping/forecast.nc"
     output_path = tmp_path / "output.nc"
@@ -24,6 +25,8 @@ def test_floor_no_threshold(tmp_path):
     args = [
         reference_path,
         forecast_path,
+        "--method",
+        method,
         "--reference-attribute",
         "mosg__model_configuration=uk_det",
         "--output",
@@ -33,10 +36,11 @@ def test_floor_no_threshold(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-def test_floor_with_threshold(tmp_path):
-    """Test quantile mapping with floor method and preservation threshold."""
+@pytest.mark.parametrize("method", ["step", "continuous"])
+def test_step_with_threshold(tmp_path, method):
+    """Test quantile mapping with step method and preservation threshold."""
     kgo_dir = acc.kgo_root() / "quantile-mapping/with_preservation_threshold/"
-    kgo_path = kgo_dir / "kgo.nc"
+    kgo_path = kgo_dir / f"kgo_{method}.nc"
     reference_path = acc.kgo_root() / "quantile-mapping/reference.nc"
     forecast_path = acc.kgo_root() / "quantile-mapping/forecast.nc"
     output_path = tmp_path / "output.nc"
@@ -44,6 +48,8 @@ def test_floor_with_threshold(tmp_path):
     args = [
         reference_path,
         forecast_path,
+        "--method",
+        method,
         "--preservation-threshold",
         "2.0",
         "--reference-attribute",
