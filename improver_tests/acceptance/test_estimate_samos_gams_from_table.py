@@ -20,8 +20,13 @@ for mod in ["pyarrow", "statsmodels"]:
 
 
 @pytest.mark.slow
+@pytest.mark.parametrize(
+    "adjacent_range,kgo", [(0, "kgo_coords.pkl"), (1, "kgo_coords_adjacent.pkl")]
+)
 def test_additional_features_coords(
     tmp_path,
+    adjacent_range,
+    kgo,
 ):
     """
     Test estimate-samos-gams-from-table with an example forecast and truth
@@ -33,7 +38,7 @@ def test_additional_features_coords(
     truth_path = source_dir / "truth_table"
 
     kgo_dir = acc.kgo_root() / "estimate-samos-gams-from-table/"
-    kgo_path = kgo_dir / "kgo_coords.pkl"
+    kgo_path = kgo_dir / kgo
 
     output_path = tmp_path / "output.pkl"
     compulsory_args = [history_path, truth_path]
@@ -57,7 +62,11 @@ def test_additional_features_coords(
         "--percentiles",
         "10,20,30,40,50,60,70,80,90",
         "--window-length",
-        "3",
+        "2",
+        "--required-rolling-window-points",
+        "2",
+        "--adjacent-range",
+        str(adjacent_range),
         "--output",
         output_path,
     ]
@@ -109,7 +118,9 @@ def test_additional_features_cube(
         "--percentiles",
         "10,20,30,40,50,60,70,80,90",
         "--window-length",
-        "3",
+        "2",
+        "--required-rolling-window-points",
+        "2",
         "--output",
         output_path,
     ]
@@ -162,7 +173,9 @@ def test_additional_features_cubes(
         "--percentiles",
         "10,20,30,40,50,60,70,80,90",
         "--window-length",
-        "3",
+        "2",
+        "--required-rolling-window-points",
+        "2",
         "--output",
         output_path,
     ]
@@ -211,7 +224,9 @@ def test_no_forecast(
         "--percentiles",
         "10,20,30,40,50,60,70,80,90",
         "--window-length",
-        "3",
+        "2",
+        "--required-rolling-window-points",
+        "2",
         "--output",
         output_path,
     ]
@@ -228,9 +243,9 @@ def test_insufficient_data(
     Test estimate-samos-gams-from-table returns None when insufficient data is
     available at all sites.
 
-    This test provides 3 days of input data but uses a window length of 11 days. This
+    This test provides 3 days of input data but uses a window length of 10 days. This
     will cause the training data at all sites to be considered insufficient to fit the
-    GAMs (at least 50% of the possible data points are required). Hence, None should be
+    GAMs (at least 6 days of data are required). Hence, None should be
     returned.
     """
     source_dir = acc.kgo_root() / "estimate-emos-coefficients-from-table/"
@@ -261,7 +276,9 @@ def test_insufficient_data(
         "--percentiles",
         "10,20,30,40,50,60,70,80,90",
         "--window-length",
-        "11",
+        "10",
+        "--required-rolling-window-points",
+        "6",
         "--output",
         output_path,
     ]

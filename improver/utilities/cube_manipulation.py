@@ -57,7 +57,7 @@ def collapsed(cube: Cube, *args: Any, **kwargs: Any) -> Cube:
     return new_cube
 
 
-def collapse_time(cube, *args: Any) -> Cube:
+def collapse_time(cube, *args: Any, **kwargs: Any) -> Cube:
     """Collapses a time / forecast period coord of a cube and modifies the
     time coordinates to place the point at the end of the bound range. If the
     coordinate being collapsed (time or forecast_period) is of length 1 the
@@ -84,7 +84,7 @@ def collapse_time(cube, *args: Any) -> Cube:
     if cube.coord("time").shape[0] == 1:
         return cube
 
-    collapsed_cube = collapsed(cube, *args)
+    collapsed_cube = collapsed(cube, *args, **kwargs)
     enforce_time_point_standard(collapsed_cube)
 
     return collapsed_cube
@@ -276,10 +276,7 @@ class MergeCubes(BasePlugin):
             bounds_ranges = np.abs(np.diff(coord.bounds))
             reference_range = bounds_ranges[0]
             if not np.all(np.isclose(bounds_ranges, reference_range)):
-                msg = (
-                    "Cube with mismatching {} bounds ranges "
-                    "cannot be blended".format(name)
-                )
+                msg = f"Cube with mismatching {name} bounds ranges cannot be blended"
                 raise ValueError(msg)
 
     def process(self, *cubes: Cube | CubeList) -> Cube:
@@ -569,19 +566,21 @@ def sort_coord_in_cube(cube: Cube, coord: str, descending: bool = False) -> Cube
 
 
 def enforce_coordinate_ordering(
-    cube: Cube, coord_names: Union[List[str], str], anchor_start: bool = True
+    cube: Cube, coord_names_or_axes: Union[List[str], str], anchor_start: bool = True
 ) -> None:
     """
-    Function to reorder dimensions within a cube.
-    Note that the input cube is modified in place.
+    Function to reorder dimensions within a cube according to the order of the
+    coordinates or axes specified. If a coordinate is specified in the list but not
+    present within the cube it is ignored. Note that the input cube is modified
+    in place.
 
     Args:
         cube:
             Cube where the ordering will be enforced to match the order within
-            the coord_names. This input cube will be modified as part of this
+            coord_names_or_axes. This input cube will be modified as part of this
             function.
-        coord_names:
-            List of the names of the coordinates to order. If a string is
+        coord_names_or_axes:
+            List of the names or axes of the coordinates to order. If a string is
             passed in, only the single specified coordinate is reordered.
         anchor_start:
             Define whether the specified coordinates should be moved to the
@@ -592,13 +591,13 @@ def enforce_coordinate_ordering(
             ["time", "realization"] then "realization" will be the last
             coordinate within the cube, whilst "time" will be the last but one.
     """
-    if isinstance(coord_names, str):
-        coord_names = [coord_names]
+    if isinstance(coord_names_or_axes, str):
+        coord_names_or_axes = [coord_names_or_axes]
 
     # construct a list of dimensions on the cube to be reordered
     dim_coord_names = get_dim_coord_names(cube)
     coords_to_reorder = []
-    for coord in coord_names:
+    for coord in coord_names_or_axes:
         if coord == "threshold":
             try:
                 coord = find_threshold_coordinate(cube).name()
@@ -606,6 +605,8 @@ def enforce_coordinate_ordering(
                 continue
         if coord in dim_coord_names:
             coords_to_reorder.append(coord)
+        elif cube.coords(axis=coord):
+            coords_to_reorder.append(cube.coord(axis=coord).name())
 
     original_coords = cube.coords(dim_coords=True)
     coord_dims = cube.coord_dims

@@ -9,11 +9,12 @@ dependencies:
   - clize
   - iris=3.12
   - numpy=2.2
-  - pandas
+  - pandas<3  # https://github.com/SciTools/iris/issues/6761
   - pytz
   - scipy=1.15
   - sphinx<9.0.0  # https://github.com/tox-dev/sphinx-autodoc-typehints/issues/586
   # Optional
+  - iris-esmf-regrid
   - fastparquet
   - statsmodels
   - geopandas
@@ -21,6 +22,10 @@ dependencies:
   - pygam<0.11
   - pysteps
   - python-stratify
+  - tensorflow
+  - tensorflow-hub
+  - scikit-learn
+  - kmedoids
   # Development
   - astroid
   - codacy-coverage

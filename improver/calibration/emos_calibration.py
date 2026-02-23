@@ -52,6 +52,7 @@ from improver.metadata.utilities import (
     generate_mandatory_attributes,
 )
 from improver.utilities.cube_manipulation import collapsed, enforce_coordinate_ordering
+from improver.utilities.statistical import DistributionalParameters
 
 
 class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
@@ -1844,13 +1845,24 @@ class ApplyEMOS(PostProcessingPlugin):
         if return_parameters:
             return location_parameter, scale_parameter
         else:
-            self.distribution = {
-                "name": get_attribute_from_coefficients(coefficients, "distribution"),
-                "location": location_parameter,
-                "scale": scale_parameter,
-                "shape": get_attribute_from_coefficients(
-                    coefficients, "shape_parameters", optional=True
+            distribution = get_attribute_from_coefficients(coefficients, "distribution")
+            shape, location, scale = DistributionalParameters(
+                distribution=distribution,
+                truncation_points=(
+                    get_attribute_from_coefficients(
+                        coefficients, "shape_parameters", optional=True
+                    )
                 ),
+            ).process(
+                mean_cube=location_parameter,
+                sd_cube=scale_parameter,
+            )
+
+            self.distribution = {
+                "name": distribution,
+                "shape": shape,
+                "location": location,
+                "scale": scale,
             }
 
             template = prob_template if prob_template else forecast
@@ -2020,21 +2032,23 @@ def generate_forecast_from_distribution(
     if output_forecast_type == "probabilities":
         conversion_plugin = ConvertLocationAndScaleParametersToProbabilities(
             distribution=distribution["name"],
-            shape_parameters=distribution["shape"],
         )
         result = conversion_plugin(
-            distribution["location"], distribution["scale"], template
+            distribution["shape"],
+            distribution["location"],
+            distribution["scale"],
+            template,
         )
 
     else:
         conversion_plugin = ConvertLocationAndScaleParametersToPercentiles(
             distribution=distribution["name"],
-            shape_parameters=distribution["shape"],
         )
 
         if output_forecast_type == "percentiles":
             perc_coord = find_percentile_coordinate(template)
             result = conversion_plugin(
+                distribution["shape"],
                 distribution["location"],
                 distribution["scale"],
                 template,
@@ -2043,6 +2057,7 @@ def generate_forecast_from_distribution(
         else:
             no_of_percentiles = len(template.coord("realization").points)
             percentiles = conversion_plugin(
+                distribution["shape"],
                 distribution["location"],
                 distribution["scale"],
                 template,
