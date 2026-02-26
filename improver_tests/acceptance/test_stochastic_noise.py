@@ -38,8 +38,8 @@ def test_basic(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-def test_scale_dry_noise(tmp_path):
-    """Test stochastic noise addition with scaled_dry_noise=True"""
+def test_scale_non_positive_noise(tmp_path):
+    """Test stochastic noise addition with scale_non_positive_noise=True"""
     kgo_dir = acc.kgo_root() / "stochastic_noise"
     kgo_path = kgo_dir / "scaled/kgo.nc"
     dependence_template_path = kgo_dir / "input.nc"
@@ -54,7 +54,7 @@ def test_scale_dry_noise(tmp_path):
         "0.03",
         "--db-threshold-units",
         "mm/hr",
-        "--scale-dry-noise",
+        "--scale-non-positive-noise",
         "--output",
         output_path,
     ]
