@@ -8,6 +8,7 @@ import warnings
 from typing import Union
 
 import numpy as np
+from iris.coords import DimCoord
 from iris.cube import Cube, CubeList
 
 from improver import BasePlugin
@@ -18,6 +19,32 @@ from improver.utilities.cube_manipulation import MergeCubes
 
 class GenerateTimeLaggedEnsemble(BasePlugin):
     """Combine realizations from different forecast cycles into one cube"""
+
+    def add_realization_coord(self, cubelist: CubeList) -> Cube:
+        """Add a realization coordinate to each cube in the cubelist if not
+        already present. This facilitates the creation of a time-lagged ensemble
+        from deterministic forecasts.
+
+        Args:
+            cubelist:
+                List of input forecasts.
+        Returns:
+            Cubelist with a realization coordinate added to each cube if not already
+            present.
+        """
+        index = 0
+        for cube in cubelist:
+            if not cube.coords("realization"):
+                cube.add_aux_coord(
+                    DimCoord(
+                        np.array([index], dtype=np.int32),
+                        standard_name="realization",
+                        units="1",
+                    ),
+                )
+                index += 1
+
+        return cubelist
 
     def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
         """
@@ -39,6 +66,8 @@ class GenerateTimeLaggedEnsemble(BasePlugin):
             Concatenated forecasts
         """
         cubelist = as_cubelist(cubes)
+        cubelist = self.add_realization_coord(cubelist)
+
         if len(cubelist) == 1:
             warnings.warn(
                 "Only a single cube input, so time lagging will have no effect."
