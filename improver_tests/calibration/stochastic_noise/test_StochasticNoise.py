@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 from iris.cube import Cube
 
-from improver.stochastic_noise import StochasticNoise
+from improver.calibration.stochastic_noise import StochasticNoise
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 pytest.importorskip("pysteps")
