@@ -83,7 +83,7 @@ def process(
     """
     import ast
 
-    from improver.stochastic_noise import StochasticNoise
+    from improver.calibration.stochastic_noise import StochasticNoise
 
     # Parse string representations to dicts
     if ssft_init_params and isinstance(ssft_init_params, str):
