@@ -578,6 +578,7 @@ def convert_parquet_to_cube(
     diagnostic: str,
     percentiles: List[float],
     experiment: str,
+    adjacent_range: int = 0,
 ) -> iris.cube.CubeList:
     """Function to convert a parquet file containing forecast and truth data
     into a CubeList for use in calibration.
@@ -610,6 +611,10 @@ def convert_parquet_to_cube(
         experiment (str):
             A value within the experiment column to select from the forecast
             table.
+        adjacent_range (int):
+            A period in hours that should be used either side of the
+            defined forecast_period to allow for the inclusion of forecasts and
+            observations that are close to the validity time being calibrated.
 
     Returns:
         A CubeList containing the forecast and truth cubes, with the
@@ -650,6 +655,7 @@ def convert_parquet_to_cube(
         training_length,
         percentiles=percentiles,
         experiment=experiment,
+        adjacent_range=adjacent_range,
     )
     if not forecast_cube or not truth_cube:
         return [None, None]

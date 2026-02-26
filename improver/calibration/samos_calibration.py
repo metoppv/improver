@@ -16,6 +16,10 @@ import iris.pandas
 import numpy as np
 import pandas as pd
 
+from improver.utilities.statistical import (
+    DistributionalParameters,
+)
+
 try:
     import pygam
 except ModuleNotFoundError:
@@ -49,6 +53,15 @@ from improver.utilities.mathematical_operations import CalculateClimateAnomalies
 
 # Setting to allow cubes with more than 2 dimensions to be converted to/from dataframes.
 iris.FUTURE.pandas_ndim = True
+
+# Dictionary mapping PyGAM distribution names to those used internally in Scipy.
+PYGAM_DISTRIBUTION_MAPPING = {
+    "normal": "norm",
+    "binomial": "binom",
+    "poisson": "poisson",
+    "gamma": "gamma",
+    "inv_gauss": "invgauss",
+}
 
 
 def prepare_data_for_gam(
@@ -940,14 +953,29 @@ class ApplySAMOS(PostProcessingPlugin):
             input_forecast_type=input_forecast_type,
         )
 
+        # Use the GAM distribution for the truths to determine the distribution to use
+        # for the calibrated forecast.
+        distribution = truth_gams[0].distribution.get_params(deep=True)["_name"]
+        distribution = PYGAM_DISTRIBUTION_MAPPING[distribution]
+
+        shape, location, scale = DistributionalParameters(
+            distribution=distribution,
+            truncation_points=(
+                get_attribute_from_coefficients(
+                    emos_coefficients, "shape_parameters", optional=True
+                )
+            ),
+        ).process(
+            mean_cube=location_parameter,
+            sd_cube=scale_parameter,
+        )
+
         # Generate output in desired format from distribution.
         self.distribution = {
-            "name": get_attribute_from_coefficients(emos_coefficients, "distribution"),
-            "location": location_parameter,
-            "scale": scale_parameter,
-            "shape": get_attribute_from_coefficients(
-                emos_coefficients, "shape_parameters", optional=True
-            ),
+            "name": distribution,
+            "location": location,
+            "scale": scale,
+            "shape": shape,
         }
 
         template = prob_template if prob_template else forecast
