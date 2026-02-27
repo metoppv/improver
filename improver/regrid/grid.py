@@ -279,7 +279,9 @@ def similar_surface_classify(
 
 
 def slice_cube_by_domain(
-    cube_in: Cube, output_domain: Tuple[float, float, float, float]
+    cube_in: Cube,
+    output_domain: Tuple[float, float, float, float],
+    rtol_grid_spacing: float = RTOL_GRID_SPACING_DEFAULT,
 ) -> Cube:
     """
     Extract cube domain to be consistent as cube_reference's domain.
@@ -289,12 +291,14 @@ def slice_cube_by_domain(
             Input data cube to be sliced.
         output_domain:
             Lat_max, lon_max, lat_min, lon_min.
+        rtol_grid_spacing:
+            Relative tolerance to use when calculating grid spacing.
 
     Returns:
         Data cube after slicing.
     """
     lat_max, lon_max, lat_min, lon_min = output_domain
-    lat_d, lon_d = calculate_input_grid_spacing(cube_in)
+    lat_d, lon_d = calculate_input_grid_spacing(cube_in, rtol_grid_spacing)
 
     domain = iris.Constraint(
         latitude=lambda val: lat_min - 2.0 * lat_d < val < lat_max + 2.0 * lat_d

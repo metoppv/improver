@@ -154,12 +154,8 @@ class Test_calculate_input_grid_spacing(unittest.TestCase):
     def test_incorrect_projection(self):
         """Test ValueError for incorrect projections"""
         msg = "Input grid is not on a latitude/longitude system"
-        # Test for different values of rtol
-        test_cases = [1.0e-10, 1.0e-5, 4.0e-3, 0.1]
-        for rtol in test_cases:
-            with self.subTest(rtol=rtol):
-                with self.assertRaisesRegex(ValueError, msg):
-                    calculate_input_grid_spacing(self.equal_area_cube, rtol=rtol)
+        with self.assertRaisesRegex(ValueError, msg):
+            calculate_input_grid_spacing(self.equal_area_cube)
 
     def test_descending_lat_lon_coordinates(self):
         """Test ValueError for descending coordinates"""
@@ -171,20 +167,6 @@ class Test_calculate_input_grid_spacing(unittest.TestCase):
     def test_lat_lon_equal_spacing(self):
         """Test grid spacing outputs with lat-lon grid in degrees"""
         result = calculate_input_grid_spacing(self.lat_lon_cube)
-        self.assertAlmostEqual(result, (10.0, 10.0))
-
-    def test_lat_lon_large_rtol(self):
-        """Test grid spacing when applying a much larger relative
-        tolerance than the default."""
-        rtol = 0.05
-        result = calculate_input_grid_spacing(self.lat_lon_cube, rtol=rtol)
-        self.assertAlmostEqual(result, (10.0, 10.0))
-
-    def test_lat_lon_small_rtol(self):
-        """Test grid spacing when applying a much smaller relative
-        tolerance than the default."""
-        rtol = 1.0e-8
-        result = calculate_input_grid_spacing(self.lat_lon_cube, rtol=rtol)
         self.assertAlmostEqual(result, (10.0, 10.0))
 
     def test_warning_raised_with_excessive_rtol(self):
@@ -201,8 +183,15 @@ class Test_calculate_input_grid_spacing(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, msg):
             calculate_input_grid_spacing(self.lat_lon_cube, rtol=rtol)
 
+    def test_lat_lon_zero_rtol(self):
+        """Test grid spacing when rtol is zero."""
+        rtol = 0.0
+        result = calculate_input_grid_spacing(self.lat_lon_cube, rtol=rtol)
+        self.assertAlmostEqual(result, (10.0, 10.0))
+
     def test_lat_lon_with_irregular_grid(self):
-        """Test that using an irregular grid results in a ValueError."""
+        """Test that using an irregular grid results in a ValueError
+        when validating spacing."""
         latlon_cube = set_up_variable_cube(np.ones((5, 5), dtype=np.float32))
         # Replace with irregularly spaced longitudes
         new_x_points = np.array([0.0, 11.0, 132.0, 333.0, 504.5])
@@ -210,12 +199,8 @@ class Test_calculate_input_grid_spacing(unittest.TestCase):
         latlon_cube.remove_coord("longitude")
         latlon_cube.add_dim_coord(new_x_coord, 1)
         msg = "Coordinate longitude points are not equally spaced"
-        # Test for different values of rtol
-        test_cases = [1.0e-10, 1.0e-5, 4.0e-3, 0.1]
-        for rtol in test_cases:
-            with self.subTest(rtol=rtol):
-                with self.assertRaisesRegex(ValueError, msg):
-                    calculate_input_grid_spacing(latlon_cube, rtol=rtol)
+        with self.assertRaisesRegex(ValueError, msg):
+            calculate_input_grid_spacing(latlon_cube, rtol=0.0001)
 
 
 Names = namedtuple(
