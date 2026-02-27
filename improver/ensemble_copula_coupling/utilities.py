@@ -18,7 +18,9 @@ from cf_units import Unit
 from iris.cube import Cube
 from numpy import ndarray
 
+from improver import BasePlugin
 from improver.ensemble_copula_coupling.constants import BOUNDS_FOR_ECDF
+from improver.metadata.probabilistic import find_threshold_coordinate
 
 
 def concatenate_2d_array_with_2d_array_endpoints(
@@ -51,9 +53,180 @@ def concatenate_2d_array_with_2d_array_endpoints(
     return array_2d
 
 
+class CalculatePercentilesFromIntensityDistribution(BasePlugin):
+    """
+    Plugin to calculate percentiles at which provided intensity values would fall,
+    according to a fitted probability distribution (currently only gamma).
+    """
+
+    def __init__(
+        self,
+        distribution: str = "gamma",
+        nan_mask_value: Optional[float] = 0.0,
+        scale_percentiles_to_probability_lower_bound: bool = True,
+    ):
+        """
+        Initialise the plugin.
+
+        Args:
+            distribution: Type of distribution to fit
+                (currently only 'gamma' is supported).
+            nan_mask_value: Value to mask as NaN before calculating mean and std.
+                This option might be most useful for a diagnostic, such as
+                precipitation rate, where there is a high frequency of zero values.
+                If None, no masking is performed. Default is 0.0.
+            scale_percentiles_to_probability_lower_bound: If True, the minimum value
+                of the calculated percentiles will be set to the minimum CDF
+                probability implied by the input probabilities, rather than zero.
+                This has the effect of restricting the percentiles to the non-zero
+                part of the distribution, which is useful when there is a high
+                probability of zero values (e.g., for precipitation). When False,
+                percentiles are calculated over the full [0, 1] range, regardless
+                of the input probabilities. Default is True.
+        """
+        if distribution != "gamma":
+            raise ValueError(
+                f"Unrecognised distribution option '{distribution}'. "
+                "The supported options are: 'gamma'."
+            )
+        self.distribution = distribution
+        self.nan_mask_value = nan_mask_value
+        self.scale_percentiles_to_probability_lower_bound = (
+            scale_percentiles_to_probability_lower_bound
+        )
+
+    @staticmethod
+    def _scale_percentiles_to_probability_lower_bound(
+        percentiles: np.ndarray,
+        probabilities: np.ndarray,
+        nan_mask_value: Optional[float] = 0.0,
+    ):
+        """Rescale percentiles based on provided probabilities, with optional NaN
+        masking. The rescaling uses the min probability after converting probabilities
+        to be "less than" a given threshold, rather than "greater than".
+        This rescaling has the effect that when the percentiles are later used for
+        sampling the probabilities, the percentiles will not sample below the min
+        probability. This is helpful for distributions with a high frequency of zero
+        values, where the probability of e.g. the precipitation being less than a
+        particular value can be large. This therefore focuses the percentiles on the
+        non-zero part of the distribution.
+
+        Args:
+            percentiles: Array of percentiles to be rescaled.
+            probabilities: Array of probabilities for scaling.
+            nan_mask_value: Value to mask as NaN before rescaling. If None,
+                no masking is performed.
+
+        Returns:
+            Rescaled percentiles array.
+        """
+        percentiles_nan = percentiles.copy()
+        scaled_percentiles = percentiles.copy()
+        cdf_probabilities = 1 - probabilities
+        lower_limit = cdf_probabilities[0]
+        upper_limit = np.ones(lower_limit.shape)
+        if nan_mask_value is not None:
+            percentiles_nan[percentiles_nan == nan_mask_value] = np.nan
+        percentiles_nan[:, np.all(probabilities == 0, axis=0)] = np.nan
+        scaled_percentiles_nan = (
+            (upper_limit - lower_limit) * percentiles_nan
+        ) + lower_limit
+        scaled_percentiles[~np.isnan(scaled_percentiles_nan)] = scaled_percentiles_nan[
+            ~np.isnan(scaled_percentiles_nan)
+        ]
+        return scaled_percentiles
+
+    def _calculate_percentiles_from_intensity_distribution(
+        self,
+        probability_cube: Cube,
+        intensity_cube: Cube,
+    ):
+        """For each spatial location, calculate the percentiles at which the provided
+        intensity values would fall, according to a fitted probability distribution.
+
+        Args:
+            probability_cube: Cube containing probability data at a range of thresholds.
+            intensity_cube: Cube containing the intensity data to be mapped to percentiles.
+
+        Returns:
+            An array of percentiles (CDF values) for each intensity at each location.
+
+        References:
+            Scheuerer, M., and T. M. Hamill, 2015: Statistical Postprocessing of
+            Ensemble Precipitation Forecasts by Fitting Censored, Shifted Gamma
+            Distributions. Mon. Wea. Rev., 143, 4578–4596,
+            https://doi.org/10.1175/MWR-D-15-0061.1.
+            Wilks, D. S., 2019: Statistical Methods in the Atmospheric Sciences,
+            Academic Press.
+        """
+
+        from scipy.stats import gamma
+
+        if intensity_cube.ndim < 2:
+            raise ValueError(
+                "Expected at least 2D input, got {}D input".format(intensity_cube.ndim)
+            )
+
+        # Optionally mask a value as NaN before calculating mean and std
+        cube_nan = intensity_cube.copy()
+        if self.nan_mask_value is not None:
+            cube_nan.data[cube_nan.data == self.nan_mask_value] = np.nan
+        mean = np.nanmean(cube_nan.data, axis=0)
+        std = np.nanstd(cube_nan.data, axis=0)
+        # Avoid zero mean or std causing issues.
+        absolute_thresholds = np.abs(find_threshold_coordinate(probability_cube).points)
+        min_non_zero_threshold = np.min(absolute_thresholds[absolute_thresholds > 0])
+        tolerance = min_non_zero_threshold / 10.0
+        mean = np.where(mean > tolerance, mean, tolerance)
+        std = np.where(std > tolerance, std, tolerance)
+        # Calculate gamma distribution parameters from mean and std. Taken from
+        # Wilks (2019) Section 4.4.5 and Scheuerer and Hamill (2015). These are
+        # most accurate estimates when the shape parameter is large.
+        shape_parameter = mean**2 / std**2
+        scale_parameter = std**2 / mean
+
+        percentiles = gamma.cdf(
+            intensity_cube.data,
+            shape_parameter[None, ...],
+            scale=scale_parameter[None, ...],
+        )
+        if self.scale_percentiles_to_probability_lower_bound:
+            percentiles = self._scale_percentiles_to_probability_lower_bound(
+                percentiles, probability_cube.data, self.nan_mask_value
+            )
+        percentiles = np.sort(percentiles, axis=0)
+        return percentiles.astype(np.float32)
+
+    def process(
+        self,
+        probability_cube: Cube,
+        intensity_cube: Cube,
+    ) -> np.ndarray:
+        """
+        Public interface to calculate percentiles from intensity distribution.
+
+        Args:
+            no_of_percentiles: Number of percentiles.
+            probability_cube: Cube containing probability data at a range of thresholds.
+            intensity_cube: Cube containing the intensity data to be mapped to percentiles.
+
+        Returns:
+            A 3D array of percentiles (CDF values) for each intensity at each location.
+        """
+        return self._calculate_percentiles_from_intensity_distribution(
+            probability_cube, intensity_cube
+        )
+
+
 def choose_set_of_percentiles(
-    no_of_percentiles: int, sampling: str = "quantile"
-) -> List[float]:
+    no_of_percentiles: int,
+    sampling: str = "quantile",
+    probability_cube: Optional[Cube] = None,
+    intensity_cube: Optional[Cube] = None,
+    distribution: Optional[str] = "gamma",
+    nan_mask_value: Optional[float] = 0.0,
+    scale_percentiles_to_probability_lower_bound: bool = True,
+) -> np.ndarray:
     """
     Function to create percentiles.
 
@@ -62,7 +235,7 @@ def choose_set_of_percentiles(
             Number of percentiles.
         sampling:
             Type of sampling of the distribution to produce a set of
-            percentiles e.g. quantile or random.
+            percentiles e.g. quantile, random or transformation.
 
             Accepted options for sampling are:
 
@@ -70,9 +243,24 @@ def choose_set_of_percentiles(
                         at dividing a Cumulative Distribution Function into
                         blocks of equal probability.
             * Random: A random set of ordered percentiles.
+            * Transformation: A set of percentiles generated by applying a
+                              transformation to the distribution.
+        probability_cube: Cube containing probability data at a range of thresholds.
+        intensity_cube: Cube containing the intensity data to be mapped to percentiles.
+        distribution: Type of distribution to fit (currently only 'gamma' is supported).
+        nan_mask_value: Value to mask as NaN before calculating mean and std.
+            If None, no masking is performed. Default is 0.0.
+        scale_percentiles_to_probability_lower_bound: If True, the minimum value
+            of the calculated percentiles will be set to the minimum CDF
+            probability implied by the input probabilities, rather than zero.
+            This has the effect of restricting the percentiles to the non-zero
+            part of the distribution, which is useful when there is a high
+            probability of zero values (e.g., for precipitation). When False,
+            percentiles are calculated over the full [0, 1] range, regardless
+            of the input probabilities. Default is True.
 
     Returns:
-        Percentiles calculated using the sampling technique specified.
+        Percentiles calculated using the sampling technique specified as a numpy array.
 
     Raises:
         ValueError: if the sampling option is not one of the accepted options.
@@ -83,30 +271,31 @@ def choose_set_of_percentiles(
         Tellus, Series A: Dynamic Meteorology and Oceanography, 66(1), pp.1-20.
         Schefzik, R., Thorarinsdottir, T.L. & Gneiting, T., 2013.
         Uncertainty Quantification in Complex Simulation Models Using Ensemble
-        Copula Coupling.
-        Statistical Science, 28(4), pp.616-640.
+        Copula Coupling. Statistical Science, 28(4), pp.616-640.
     """
     if sampling in ["quantile"]:
-        # Generate percentiles from 1/N+1 to N/N+1.
         percentiles = np.linspace(
             1 / float(1 + no_of_percentiles),
             no_of_percentiles / float(1 + no_of_percentiles),
             no_of_percentiles,
-        ).tolist()
+        )
     elif sampling in ["random"]:
-        # Generate percentiles from 1/N+1 to N/N+1.
-        # Random sampling doesn't currently sample the ends of the
-        # distribution i.e. 0 to 1/N+1 and N/N+1 to 1.
         percentiles = np.random.uniform(
             1 / float(1 + no_of_percentiles),
             no_of_percentiles / float(1 + no_of_percentiles),
             no_of_percentiles,
         )
-        percentiles = sorted(list(percentiles))
+        percentiles = np.sort(percentiles)
+    elif sampling in ["transformation"]:
+        percentiles = CalculatePercentilesFromIntensityDistribution(
+            distribution=distribution,
+            nan_mask_value=nan_mask_value,
+            scale_percentiles_to_probability_lower_bound=scale_percentiles_to_probability_lower_bound,
+        ).process(probability_cube, intensity_cube)
     else:
         msg = "Unrecognised sampling option '{}'".format(sampling)
         raise ValueError(msg)
-    return [item * 100 for item in percentiles]
+    return percentiles * 100
 
 
 def create_cube_with_percentiles(
@@ -155,6 +344,55 @@ def create_cube_with_percentiles(
     result = cubes.merge_cube()
 
     # replace data and units
+    result.data = cube_data
+    if cube_unit is not None:
+        result.units = cube_unit
+
+    return result
+
+
+def create_cube_with_percentile_index(
+    indices: Union[List[int], ndarray],
+    template_cube: Cube,
+    cube_data: ndarray,
+    cube_unit: Optional[Union[Unit, str]] = None,
+) -> Cube:
+    """
+    Create a cube with a percentile_index coordinate based on a template cube.
+    The resulting cube will have an extra percentile_index coordinate compared with
+    the template cube. The shape of the cube_data should be the shape of the
+    desired output cube.
+
+    Args:
+        indices:
+            Indices to use for the percentile_index coordinate. There should be the same
+            number of indices as the first dimension of cube_data.
+        template_cube:
+            Cube to copy metadata from.
+        cube_data:
+            Data to insert into the template cube.
+            The shape of the cube_data, excluding the dimension associated with
+            the percentile_index coordinate, should be the same as the shape of
+            template_cube.
+        cube_unit:
+            The units of the data within the cube, if different from those of
+            the template_cube.
+
+    Returns:
+        Cube containing a percentile_index coordinate as the leading dimension (or
+        scalar percentile_index coordinate if single-valued)
+    """
+    cubes = iris.cube.CubeList([])
+    for idx in indices:
+        cube = template_cube.copy()
+        cube.add_aux_coord(
+            iris.coords.AuxCoord(
+                int(idx), long_name="percentile_index", units=unit.Unit("1")
+            )
+        )
+        cubes.append(cube)
+    result = cubes.merge_cube()
+
     result.data = cube_data
     if cube_unit is not None:
         result.units = cube_unit
@@ -325,6 +563,22 @@ def slow_interp_same_y(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndar
     return result
 
 
+def slow_interp_same_y_2d(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndarray:
+    """For each row i of xp, do the equivalent of np.interp(x[i], xp[i], fp).
+
+    Args:
+        x: 2-d array, shape (n, k)
+        xp: n * m array, each row must be in non-decreasing order
+        fp: 1-d array with length m
+    Returns:
+        n * k array where each row i is equal to np.interp(x[i], xp[i], fp)
+    """
+    result = np.empty(x.shape, dtype=np.float32)
+    for i in range(x.shape[0]):
+        result[i] = np.interp(x[i], xp[i], fp)
+    return result
+
+
 def interpolate_multiple_rows_same_y(*args):
     """For each row i of xp, do the equivalent of np.interp(x, xp[i], fp).
 
@@ -342,11 +596,28 @@ def interpolate_multiple_rows_same_y(*args):
     try:
         import numba  # noqa: F401
 
-        from improver.ensemble_copula_coupling.numba_utilities import fast_interp_same_y
+        from improver.ensemble_copula_coupling.numba_utilities import (
+            fast_interp_same_y_nd,
+        )
 
-        return fast_interp_same_y(*args)
+        return fast_interp_same_y_nd(*args)
     except ImportError:
         warnings.warn(
             "Module numba unavailable. ConvertProbabilitiesToPercentiles will be slower."
         )
-        return slow_interp_same_y(*args)
+        return slow_interp_same_y_nd(*args)
+
+
+def slow_interp_same_y_nd(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndarray:
+    """Dispatch to functions that handle 1D or 2D x inputs.
+
+    Args:
+        x: 1-D or 2-D array
+        xp: n * m array, each row must be in non-decreasing order
+        fp: 1-D array with length m
+    """
+    if x.ndim == 1:
+        return slow_interp_same_y(x, xp, fp)
+    if x.ndim == 2:
+        return slow_interp_same_y_2d(x, xp, fp)
+    raise ValueError("x must be 1D or 2D.")

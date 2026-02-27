@@ -7,7 +7,6 @@ Unit tests for the
 `ensemble_copula_coupling.ConvertProbabilitiesToPercentiles` class.
 """
 
-import unittest
 from datetime import datetime
 
 import cf_units as unit
@@ -24,6 +23,7 @@ from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     set_up_probability_cube,
+    set_up_variable_cube,
 )
 
 from .ecc_test_data import (
@@ -33,612 +33,767 @@ from .ecc_test_data import (
 )
 
 
-class Test__add_bounds_to_thresholds_and_probabilities(unittest.TestCase):
+@pytest.fixture
+def probabilities_for_cdf():
+    """Set up data for testing."""
+    return ECC_TEMPERATURE_PROBABILITIES.reshape(3, 9)
+
+
+@pytest.fixture
+def threshold_points():
+    """Set up data for testing."""
+    return ECC_TEMPERATURE_THRESHOLDS
+
+
+@pytest.fixture
+def bounds_pairing():
+    """Set up data for testing."""
+    return (-40, 50)
+
+
+@pytest.fixture
+def temperature_cube():
+    """Set up temperature cube."""
+    return set_up_probability_cube(
+        ECC_TEMPERATURE_PROBABILITIES,
+        ECC_TEMPERATURE_THRESHOLDS,
+        threshold_units="degC",
+    )
+
+
+@pytest.fixture
+def percentiles():
+    return np.array([10, 50, 90], dtype=np.float32)
+
+
+@pytest.fixture
+def expected_percentiles_arrays():
+    """Set up expected output percentiles (25, 50, 75) for comparisons."""
+    percentile_25 = np.array(
+        [[24.0, 8.75, 11.0], [8.33333333, 8.75, -46.0], [-46.0, -66.25, -73.0]],
+        dtype=np.float32,
+    )
+    percentile_50 = np.array(
+        [[36.0, 10.0, 12.0], [10.0, 10.0, 8.0], [8.0, -32.5, -46.0]],
+        dtype=np.float32,
+    )
+    percentile_75 = np.array(
+        [
+            [48.0, 11.66666667, 36.0],
+            [11.66666667, 11.0, 10.5],
+            [9.66666667, 1.25, -19.0],
+        ],
+        dtype=np.float32,
+    )
+    return percentile_25, percentile_50, percentile_75
+
+
+# Tests for the _add_bounds_to_thresholds_and_probabilities method
+
+
+def test_add_bounds_to_thresholds_and_probabilities_basic(
+    threshold_points, probabilities_for_cdf, bounds_pairing
+):
+    """Test that the plugin returns two numpy arrays."""
+    result = Plugin()._add_bounds_to_thresholds_and_probabilities(
+        threshold_points, probabilities_for_cdf, bounds_pairing
+    )
+    assert isinstance(result[0], np.ndarray)
+    assert isinstance(result[1], np.ndarray)
+
+
+def test_add_bounds_to_thresholds_and_probabilities_bounds_of_threshold_points(
+    threshold_points, probabilities_for_cdf, bounds_pairing
+):
     """
-    Test the _add_bounds_to_thresholds_and_probabilities method of the
-    ConvertProbabilitiesToPercentiles.
+    Test that the plugin returns the expected results for the
+    threshold_points, where they've been padded with the values from
+    the bounds_pairing.
     """
-
-    def setUp(self):
-        """Set up data for testing."""
-        self.probabilities_for_cdf = ECC_TEMPERATURE_PROBABILITIES.reshape(3, 9)
-        self.threshold_points = ECC_TEMPERATURE_THRESHOLDS
-        self.bounds_pairing = (-40, 50)
-
-    def test_basic(self):
-        """Test that the plugin returns two numpy arrays."""
-        result = Plugin()._add_bounds_to_thresholds_and_probabilities(
-            self.threshold_points, self.probabilities_for_cdf, self.bounds_pairing
-        )
-        self.assertIsInstance(result[0], np.ndarray)
-        self.assertIsInstance(result[1], np.ndarray)
-
-    def test_bounds_of_threshold_points(self):
-        """
-        Test that the plugin returns the expected results for the
-        threshold_points, where they've been padded with the values from
-        the bounds_pairing.
-        """
-        result = Plugin()._add_bounds_to_thresholds_and_probabilities(
-            self.threshold_points, self.probabilities_for_cdf, self.bounds_pairing
-        )
-        np.testing.assert_array_almost_equal(result[0][0], self.bounds_pairing[0])
-        np.testing.assert_array_almost_equal(result[0][-1], self.bounds_pairing[1])
-
-    def test_probability_data(self):
-        """
-        Test that the plugin returns the expected results for the
-        probabilities, where they've been padded with zeros and ones to
-        represent the extreme ends of the Cumulative Distribution Function.
-        """
-        zero_array = np.zeros(self.probabilities_for_cdf[:, 0].shape)
-        one_array = np.ones(self.probabilities_for_cdf[:, 0].shape)
-        result = Plugin()._add_bounds_to_thresholds_and_probabilities(
-            self.threshold_points, self.probabilities_for_cdf, self.bounds_pairing
-        )
-        np.testing.assert_array_almost_equal(result[1][:, 0], zero_array)
-        np.testing.assert_array_almost_equal(result[1][:, -1], one_array)
-
-    def test_endpoints_of_distribution_exceeded(self):
-        """
-        Test that the plugin raises a ValueError when the constant
-        end points of the distribution are exceeded by a threshold value
-        used in the forecast.
-        """
-        probabilities_for_cdf = np.array([[0.05, 0.7, 0.95]])
-        threshold_points = np.array([8, 10, 60])
-        msg = (
-            "The calculated threshold values \\[-40   8  10  60  50\\] are "
-            "not in ascending order as required for the cumulative distribution "
-            "function \\(CDF\\). This is due to the threshold values exceeding "
-            "the range given by the ECC bounds \\(-40, 50\\)."
-        )
-        with self.assertRaisesRegex(ValueError, msg):
-            Plugin()._add_bounds_to_thresholds_and_probabilities(
-                threshold_points, probabilities_for_cdf, self.bounds_pairing
-            )
-
-    def test_endpoints_of_distribution_exceeded_warning(self):
-        """
-        Test that the plugin raises a warning message when the constant
-        end points of the distribution are exceeded by a threshold value
-        used in the forecast and the ecc_bounds_warning keyword argument
-        has been specified.
-        """
-        probabilities_for_cdf = np.array([[0.05, 0.7, 0.95]])
-        threshold_points = np.array([8, 10, 60])
-        plugin = Plugin(ecc_bounds_warning=True)
-        warning_msg = (
-            "The calculated threshold values \\[-40   8  10  60  50\\] are "
-            "not in ascending order as required for the cumulative distribution "
-            "function \\(CDF\\). This is due to the threshold values exceeding "
-            "the range given by the ECC bounds \\(-40, 50\\). The threshold "
-            "points that have exceeded the existing bounds will be used as "
-            "new bounds."
-        )
-        with pytest.warns(UserWarning, match=warning_msg):
-            plugin._add_bounds_to_thresholds_and_probabilities(
-                threshold_points, probabilities_for_cdf, self.bounds_pairing
-            )
-
-    def test_new_endpoints_generation(self):
-        """Test that the plugin re-applies the threshold bounds using the
-        maximum and minimum threshold points values when the original bounds
-        have been exceeded and ecc_bounds_warning has been set."""
-        probabilities_for_cdf = np.array([[0.05, 0.7, 0.95]])
-        threshold_points = np.array([-50, 10, 60])
-        plugin = Plugin(ecc_bounds_warning=True)
-        result = plugin._add_bounds_to_thresholds_and_probabilities(
-            threshold_points, probabilities_for_cdf, self.bounds_pairing
-        )
-        self.assertEqual(max(result[0]), max(threshold_points))
-        self.assertEqual(min(result[0]), min(threshold_points))
+    result = Plugin()._add_bounds_to_thresholds_and_probabilities(
+        threshold_points, probabilities_for_cdf, bounds_pairing
+    )
+    np.testing.assert_array_almost_equal(result[0][0], bounds_pairing[0])
+    np.testing.assert_array_almost_equal(result[0][-1], bounds_pairing[1])
 
 
-class Test__probabilities_to_percentiles(unittest.TestCase):
-    """Test the _probabilities_to_percentiles method of the
-    ConvertProbabilitiesToPercentiles plugin."""
+def test_add_bounds_to_thresholds_and_probabilities_probability_data(
+    threshold_points, probabilities_for_cdf, bounds_pairing
+):
+    """
+    Test that the plugin returns the expected results for the
+    probabilities, where they've been padded with zeros and ones to
+    represent the extreme ends of the Cumulative Distribution Function.
+    """
+    zero_array = np.zeros(probabilities_for_cdf[:, 0].shape)
+    one_array = np.ones(probabilities_for_cdf[:, 0].shape)
+    result = Plugin()._add_bounds_to_thresholds_and_probabilities(
+        threshold_points, probabilities_for_cdf, bounds_pairing
+    )
+    np.testing.assert_array_almost_equal(result[1][:, 0], zero_array)
+    np.testing.assert_array_almost_equal(result[1][:, -1], one_array)
 
-    def setUp(self):
-        """Set up temperature cube."""
-        self.cube = set_up_probability_cube(
-            ECC_TEMPERATURE_PROBABILITIES,
-            ECC_TEMPERATURE_THRESHOLDS,
-            threshold_units="degC",
-        )
-        self.percentiles = [10, 50, 90]
 
-    def test_basic(self):
-        """Test that the plugin returns an Iris.cube.Cube with the expected name"""
-        result = Plugin()._probabilities_to_percentiles(self.cube, self.percentiles)
-        self.assertIsInstance(result, Cube)
-        self.assertEqual(result.name(), "air_temperature")
-
-    def test_unknown_thresholding(self):
-        """Test an error is raised for "between thresholds" probability cubes"""
-        self.cube.coord(var_name="threshold").attributes[
-            "spp__relative_to_threshold"
-        ] = "between"
-        msg = "Probabilities to percentiles only implemented for"
-        with self.assertRaisesRegex(NotImplementedError, msg):
-            Plugin()._probabilities_to_percentiles(self.cube, self.percentiles)
-
-    def test_percentile_coord(self):
-        """Test that the plugin returns an Iris.cube.Cube with an appropriate
-        percentile coordinate with suitable units.
-        """
-        result = Plugin()._probabilities_to_percentiles(self.cube, self.percentiles)
-        self.assertIsInstance(result.coord("percentile"), DimCoord)
-        np.testing.assert_array_equal(
-            result.coord("percentile").points, self.percentiles
-        )
-        self.assertEqual(result.coord("percentile").units, unit.Unit("%"))
-
-    def test_transpose_cube_dimensions(self):
-        """
-        Test that the plugin returns an the expected data, when comparing
-        input cubes which have dimensions in a different order.
-        """
-        # Calculate result for nontransposed cube.
-        nontransposed_result = Plugin()._probabilities_to_percentiles(
-            self.cube, self.percentiles
+def test_add_bounds_to_thresholds_and_probabilities_endpoints_of_distribution_exceeded(
+    bounds_pairing,
+):
+    """
+    Test that the plugin raises a ValueError when the constant
+    end points of the distribution are exceeded by a threshold value
+    used in the forecast.
+    """
+    probabilities_for_cdf = np.array([[0.05, 0.7, 0.95]])
+    threshold_points = np.array([8, 10, 60])
+    msg = (
+        "The calculated threshold values \\[-40   8  10  60  50\\] are "
+        "not in ascending order as required for the cumulative distribution "
+        "function \\(CDF\\). This is due to the threshold values exceeding "
+        "the range given by the ECC bounds \\(-40, 50\\)."
+    )
+    with pytest.raises(ValueError, match=msg):
+        Plugin()._add_bounds_to_thresholds_and_probabilities(
+            threshold_points, probabilities_for_cdf, bounds_pairing
         )
 
-        # Calculate result for transposed cube.
-        # Original cube dimensions are [P, Y, X].
-        # Transposed cube dimensions are [X, Y, P].
-        self.cube.transpose([2, 1, 0])
-        transposed_result = Plugin()._probabilities_to_percentiles(
-            self.cube, self.percentiles
+
+def test_add_bounds_to_thresholds_and_probabilities_endpoints_of_distribution_exceeded_warning(
+    bounds_pairing,
+):
+    """
+    Test that the plugin raises a warning message when the constant
+    end points of the distribution are exceeded by a threshold value
+    used in the forecast and the ecc_bounds_warning keyword argument
+    has been specified.
+    """
+    probabilities_for_cdf = np.array([[0.05, 0.7, 0.95]])
+    threshold_points = np.array([8, 10, 60])
+    plugin = Plugin(ecc_bounds_warning=True)
+    warning_msg = (
+        "The calculated threshold values \\[-40   8  10  60  50\\] are "
+        "not in ascending order as required for the cumulative distribution "
+        "function \\(CDF\\). This is due to the threshold values exceeding "
+        "the range given by the ECC bounds \\(-40, 50\\). The threshold "
+        "points that have exceeded the existing bounds will be used as "
+        "new bounds."
+    )
+    with pytest.warns(UserWarning, match=warning_msg):
+        plugin._add_bounds_to_thresholds_and_probabilities(
+            threshold_points, probabilities_for_cdf, bounds_pairing
         )
 
-        # Result cube will be [P, X, Y]
-        # Transpose cube to be [P, Y, X]
-        transposed_result.transpose([0, 2, 1])
-        np.testing.assert_array_almost_equal(
-            nontransposed_result.data, transposed_result.data
+
+def test_add_bounds_to_thresholds_and_probabilities_new_endpoints_generation(
+    bounds_pairing,
+):
+    """Test that the plugin re-applies the threshold bounds using the
+    maximum and minimum threshold points values when the original bounds
+    have been exceeded and ecc_bounds_warning has been set."""
+    probabilities_for_cdf = np.array([[0.05, 0.7, 0.95]])
+    threshold_points = np.array([-50, 10, 60])
+    plugin = Plugin(ecc_bounds_warning=True)
+    result = plugin._add_bounds_to_thresholds_and_probabilities(
+        threshold_points, probabilities_for_cdf, bounds_pairing
+    )
+    assert max(result[0]) == max(threshold_points)
+    assert min(result[0]) == min(threshold_points)
+
+
+# Tests for the _probabilities_to_percentiles method
+
+
+def test_probabilities_to_percentiles_basic(temperature_cube, percentiles):
+    """Test that the plugin returns an Iris.cube.Cube with the expected name"""
+    result = Plugin()._probabilities_to_percentiles(temperature_cube, percentiles)
+    assert isinstance(result, Cube)
+    assert result.name() == "air_temperature"
+
+
+def test_probabilities_to_percentiles_unknown_thresholding(
+    temperature_cube, percentiles
+):
+    """Test an error is raised for "between thresholds" probability cubes"""
+    temperature_cube.coord(var_name="threshold").attributes[
+        "spp__relative_to_threshold"
+    ] = "between"
+    msg = "Probabilities to percentiles only implemented for"
+    with pytest.raises(NotImplementedError, match=msg):
+        Plugin()._probabilities_to_percentiles(temperature_cube, percentiles)
+
+
+def test_probabilities_to_percentiles_percentile_coord(temperature_cube, percentiles):
+    """Test that the plugin returns an Iris.cube.Cube with an appropriate
+    percentile coordinate with suitable units.
+    """
+    result = Plugin()._probabilities_to_percentiles(temperature_cube, percentiles)
+    assert isinstance(result.coord("percentile"), DimCoord)
+    np.testing.assert_array_equal(result.coord("percentile").points, percentiles)
+    assert result.coord("percentile").units == unit.Unit("%")
+
+
+def test_probabilities_to_percentiles_transpose_cube_dimensions(
+    temperature_cube, percentiles
+):
+    """
+    Test that the plugin returns an the expected data, when comparing
+    input cubes which have dimensions in a different order.
+    """
+    # Calculate result for nontransposed cube.
+    cube1 = temperature_cube.copy()
+    nontransposed_result = Plugin()._probabilities_to_percentiles(cube1, percentiles)
+
+    # Calculate result for transposed cube.
+    # Original cube dimensions are [P, Y, X].
+    # Transposed cube dimensions are [X, Y, P].
+    cube2 = temperature_cube.copy()
+    cube2.transpose([2, 1, 0])
+    transposed_result = Plugin()._probabilities_to_percentiles(cube2, percentiles)
+
+    # Result cube will be [P, X, Y]
+    # Transpose cube to be [P, Y, X]
+    transposed_result.transpose([0, 2, 1])
+    np.testing.assert_array_almost_equal(
+        nontransposed_result.data, transposed_result.data
+    )
+
+
+def test_probabilities_to_percentiles_simple_check_data_above(percentiles):
+    """
+    Test that the plugin returns an Iris.cube.Cube with the expected
+    data values for the percentiles when input probabilities are given
+    for being above a threshold.
+    The input cube contains probabilities that values are above a given
+    threshold.
+    """
+    expected = np.array([8.15384615, 9.38461538, 11.6])[:, np.newaxis, np.newaxis]
+    data = np.array([0.95, 0.3, 0.05])[:, np.newaxis, np.newaxis]
+    cube = set_up_probability_cube(
+        data.astype(np.float32), ECC_TEMPERATURE_THRESHOLDS, threshold_units="degC"
+    )
+    result = Plugin()._probabilities_to_percentiles(cube, percentiles)
+    np.testing.assert_array_almost_equal(result.data, expected)
+
+
+def test_probabilities_to_percentiles_simple_check_data_below(percentiles):
+    """
+    Test that the plugin returns an Iris.cube.Cube with the expected
+    data values for the percentiles when input probabilities are given
+    for being below a threshold.
+    The input cube contains probabilities that values are below a given
+    threshold.
+    """
+    expected = np.array([8.4, 10.61538462, 11.84615385])[:, np.newaxis, np.newaxis]
+    data = np.array([0.95, 0.3, 0.05])[::-1][:, np.newaxis, np.newaxis]
+    cube = set_up_probability_cube(
+        data.astype(np.float32),
+        ECC_TEMPERATURE_THRESHOLDS,
+        threshold_units="degC",
+        spp__relative_to_threshold="below",
+    )
+    result = Plugin()._probabilities_to_percentiles(cube, percentiles)
+    np.testing.assert_array_almost_equal(result.data, expected)
+
+
+def test_probabilities_to_percentiles_check_data_multiple_timesteps(percentiles):
+    """
+    Test that the plugin returns an Iris.cube.Cube with the expected
+    data values for the percentiles.
+    """
+    expected = np.array(
+        [
+            [[[8.0, 8.0], [-28.0, 8.666667]], [[8.0, -46], [8.0, -46]]],
+            [[[12.0, 12.0], [12.0, 12.0]], [[10.5, 10.0], [10.5, 10.0]]],
+            [[[36.0, 36.0], [36.0, 36.0]], [[11.5, 11.333333], [11.5, 12.0]]],
+        ],
+        dtype=np.float32,
+    )
+
+    cube = set_up_probability_cube(
+        np.zeros((3, 2, 2), dtype=np.float32),
+        ECC_TEMPERATURE_THRESHOLDS,
+        threshold_units="degC",
+        time=datetime(2015, 11, 23, 7),
+        frt=datetime(2015, 11, 23, 6),
+    )
+    cube = add_coordinate(
+        cube,
+        [datetime(2015, 11, 23, 7), datetime(2015, 11, 23, 8)],
+        "time",
+        is_datetime=True,
+        order=[1, 0, 2, 3],
+    )
+    cube.data = np.array(
+        [
+            [[[0.8, 0.8], [0.7, 0.9]], [[0.8, 0.6], [0.8, 0.6]]],
+            [[[0.6, 0.6], [0.6, 0.6]], [[0.5, 0.4], [0.5, 0.4]]],
+            [[[0.4, 0.4], [0.4, 0.4]], [[0.1, 0.1], [0.1, 0.2]]],
+        ],
+        dtype=np.float32,
+    )
+    result = Plugin()._probabilities_to_percentiles(
+        cube, np.array([20, 60, 80], dtype=np.float32)
+    )
+    np.testing.assert_array_almost_equal(result.data, expected, decimal=5)
+
+
+def test_probabilities_to_percentiles_probabilities_not_monotonically_increasing(
+    percentiles,
+):
+    """
+    Test that the plugin raises a Warning when the probabilities
+    of the Cumulative Distribution Function are not monotonically
+    increasing.
+    """
+    data = np.array([0.05, 0.7, 0.95])[:, np.newaxis, np.newaxis]
+    cube = set_up_probability_cube(
+        data.astype(np.float32), ECC_TEMPERATURE_THRESHOLDS, threshold_units="degC"
+    )
+    warning_msg = "The probability values used to construct the"
+    with pytest.warns(UserWarning, match=warning_msg):
+        Plugin()._probabilities_to_percentiles(cube, percentiles)
+
+
+def test_probabilities_to_percentiles_result_cube_has_no_air_temperature_threshold_coordinate(
+    temperature_cube, percentiles
+):
+    """
+    Test that the plugin returns a cube with coordinates that
+    do not include a threshold-type coordinate.
+    """
+    result = Plugin()._probabilities_to_percentiles(temperature_cube, percentiles)
+    try:
+        threshold_coord = find_threshold_coordinate(result)
+    except CoordinateNotFoundError:
+        threshold_coord = None
+    assert threshold_coord is None
+
+
+def test_probabilities_to_percentiles_check_data(temperature_cube, percentiles):
+    """
+    Test that the plugin returns an Iris.cube.Cube with the expected
+    data values for the percentiles.
+    """
+    data = np.array(
+        [
+            [[16.8, 8.0, 10.4], [-46, 8.0, -78.4], [-78.4, -86.5, -89.2]],
+            [[36.0, 10.0, 12.0], [10.0, 10.0, 8.0], [8.0, -32.5, -46.0]],
+            [[55.2, 36.0, 50.4], [36.0, 11.6, 12.0], [11.0, 9.0, -2.8]],
+        ],
+        dtype=np.float32,
+    )
+    result = Plugin()._probabilities_to_percentiles(temperature_cube, percentiles)
+    np.testing.assert_array_almost_equal(result.data, data, decimal=4)
+
+
+def test_probabilities_to_percentiles_check_single_threshold(
+    temperature_cube, percentiles
+):
+    """
+    Test that the plugin returns an Iris.cube.Cube with the expected
+    data values for the percentiles, if a single threshold is used for
+    constructing the percentiles.
+    """
+    threshold_coord = find_threshold_coordinate(temperature_cube)
+    cube_slice = next(temperature_cube.slices_over(threshold_coord))
+    data = np.array(
+        [
+            [[13.2, 8.0, 13.2], [-46.0, 8.0, -78.4], [-78.4, -86.5, -89.2]],
+            [[34, 31.1111, 34.0], [27.5, 31.1111, 8.0], [8.0, -32.5, -46.0]],
+            [[54.8, 54.2222, 54.8], [53.5, 54.2222, 49.6], [49.6, 34, -2.8]],
+        ],
+        dtype=np.float32,
+    )
+    result = Plugin()._probabilities_to_percentiles(cube_slice, percentiles)
+    np.testing.assert_array_almost_equal(result.data, data, decimal=4)
+
+
+def test_probabilities_to_percentiles_lots_of_probability_thresholds(percentiles):
+    """
+    Test that the plugin returns an Iris.cube.Cube with the expected
+    data values for the percentiles, if there are lots of thresholds.
+    """
+    data = np.array(
+        [
+            [[2.9, 2.9, 2.9], [2.9, 2.9, 2.9], [2.9, 2.9, 2.9]],
+            [[14.5, 14.5, 14.5], [14.5, 14.5, 14.5], [14.5, 14.5, 14.5]],
+            [
+                [26.099998, 26.099998, 26.099998],
+                [26.099998, 26.099998, 26.099998],
+                [26.099998, 26.099998, 26.099998],
+            ],
+        ],
+        dtype=np.float32,
+    )
+    input_probs = np.tile(np.linspace(1, 0, 30), (3, 3, 1)).T
+    cube = set_up_probability_cube(
+        input_probs.astype(np.float32),
+        np.arange(30).astype(np.float32),
+        threshold_units="degC",
+    )
+    result = Plugin()._probabilities_to_percentiles(cube, percentiles)
+    np.testing.assert_array_almost_equal(result.data, data)
+
+
+def test_probabilities_to_percentiles_lots_of_percentiles(temperature_cube):
+    """
+    Test that the plugin returns an Iris.cube.Cube with the expected
+    data values for the percentiles, if lots of percentile values are
+    requested.
+    """
+    data = np.array(
+        [
+            [[14.4, -46, 10.2], [-73.0, -46, -89.2], [-89.2, -93.25, -94.6]],
+            [[19.2, 8.25, 10.6], [-19, 8.25, -67.6], [-67.6, -79.75, -83.8]],
+            [[24.0, 8.75, 11.0], [8.33333, 8.75, -46.0], [-46.0, -66.25, -73.0]],
+            [[28.8, 9.25, 11.4], [9.0, 9.25, -24.4], [-24.4, -52.75, -62.2]],
+            [[33.6, 9.75, 11.8], [9.666667, 9.75, -2.8], [-2.8, -39.25, -51.4]],
+            [
+                [38.4, 10.333333, 16.8],
+                [10.333333, 10.2, 8.5],
+                [8.333333, -25.75, -40.6],
+            ],
+            [[43.2, 11.0, 26.4], [11.0, 10.6, 9.5], [9.0, -12.25, -29.8]],
+            [[48.0, 11.666667, 36.0], [11.666667, 11.0, 10.5], [9.666667, 1.25, -19.0]],
+            [[52.8, 24, 45.6], [24, 11.4, 11.5], [10.5, 8.5, -8.2]],
+            [[57.6, 48, 55.2], [48, 11.8, 36.0], [11.5, 9.5, 2.6]],
+        ],
+        dtype=np.float32,
+    )
+    percentiles_arr = np.arange(5, 100, 10)
+    result = Plugin()._probabilities_to_percentiles(temperature_cube, percentiles_arr)
+    np.testing.assert_array_almost_equal(result.data, data, decimal=5)
+
+
+def test_probabilities_to_percentiles_check_data_spot_forecasts(percentiles):
+    """
+    Test that the plugin returns an Iris.cube.Cube with the expected
+    data values for the percentiles for spot forecasts.
+    """
+    data = np.array(
+        [
+            [16.8, 8, 10.4, -46, 8, -78.4, -78.4, -86.5, -89.2],
+            [36.0, 10.0, 12.0, 10.0, 10.0, 8.0, 8.0, -32.5, -46.0],
+            [55.2, 36, 50.4, 36, 11.6, 12.0, 11.0, 9.0, -2.8],
+        ],
+        dtype=np.float32,
+    )
+    cube = set_up_spot_test_cube(cube_type="probability")
+    result = Plugin()._probabilities_to_percentiles(cube, percentiles)
+    np.testing.assert_array_almost_equal(result.data, data, decimal=4)
+
+
+def test_probabilities_to_percentiles_masked_data_below(temperature_cube, percentiles):
+    """Test that if mask_percentiles is true, data is masked as
+    expected when input probability data is below a threshold"""
+    expected_mask = np.full_like(temperature_cube.data, False, dtype=bool)
+    expected_mask[:, 0, 0] = True
+    expected_mask[1, 0, 2] = True
+    expected_mask[2, 0] = True
+    expected_mask[2, 1, 2] = True
+    expected_mask[2, 1, 0] = True
+
+    cube = set_up_probability_cube(
+        1 - temperature_cube.data,
+        [200, 1000, 15000],
+        variable_name=(
+            "cloud_base_height_assuming_only_consider_cloud_"
+            "area_fraction_greater_than_4p5_oktas"
+        ),
+        threshold_units="m",
+        spp__relative_to_threshold="below",
+    )
+    result = Plugin(mask_percentiles=True)._probabilities_to_percentiles(
+        cube, percentiles
+    )
+    np.testing.assert_array_equal(result.data.mask, expected_mask)
+
+
+def test_probabilities_to_percentiles_masked_data_above(temperature_cube, percentiles):
+    """Test that if mask_percentiles is true, data is masked as expected
+    when input probability data is above a threshold"""
+    expected_mask = np.full_like(temperature_cube.data, False, dtype=bool)
+    expected_mask[:, 0, 0] = True
+    expected_mask[1, 0, 2] = True
+    expected_mask[2, 0] = True
+    expected_mask[2, 1, 2] = True
+    expected_mask[2, 1, 0] = True
+
+    cube = set_up_probability_cube(
+        temperature_cube.data,
+        [200, 1000, 15000],
+        variable_name=(
+            "cloud_base_height_assuming_only_consider_cloud_"
+            "area_fraction_greater_than_4p5_oktas"
+        ),
+        threshold_units="m",
+        spp__relative_to_threshold="above",
+    )
+    result = Plugin(mask_percentiles=True)._probabilities_to_percentiles(
+        cube, percentiles
+    )
+    np.testing.assert_array_equal(result.data.mask, expected_mask)
+
+
+# Tests for the process method of the ConvertProbabilitiesToPercentiles plugin.
+
+
+def test_process_check_data_specifying_no_of_percentiles(
+    temperature_cube, expected_percentiles_arrays
+):
+    """
+    Test that the plugin returns an Iris.cube.Cube with the expected
+    data values for a specific number of percentiles.
+    """
+    p25, p50, p75 = expected_percentiles_arrays
+    expected_data = np.array([p25, p50, p75])
+    result = Plugin().process(temperature_cube, no_of_percentiles=3)
+    np.testing.assert_array_almost_equal(result.data, expected_data, decimal=5)
+
+
+def test_process_check_data_specifying_single_percentile(
+    temperature_cube, expected_percentiles_arrays
+):
+    """
+    Test that the plugin returns an Iris.cube.Cube with the expected
+    data values for a specific percentile passes in as a single realization
+    list.
+    """
+    p25, _, _ = expected_percentiles_arrays
+    expected_data = np.array(p25)
+    result = Plugin().process(temperature_cube, percentiles=[25])
+    np.testing.assert_array_almost_equal(result.data, expected_data, decimal=5)
+
+
+def test_process_check_data_specifying_single_percentile_not_as_list(
+    temperature_cube, expected_percentiles_arrays
+):
+    """
+    Test that the plugin returns an Iris.cube.Cube with the expected
+    data values for a specific percentile passed in as a value.
+    """
+    p25, _, _ = expected_percentiles_arrays
+    expected_data = np.array(p25)
+    result = Plugin().process(temperature_cube, percentiles=25)
+    np.testing.assert_array_almost_equal(result.data, expected_data, decimal=5)
+
+
+def test_process_check_data_specifying_percentiles(
+    temperature_cube, expected_percentiles_arrays
+):
+    """
+    Test that the plugin returns an Iris.cube.Cube with the expected
+    data values for a specific set of percentiles.
+    """
+    p25, p50, p75 = expected_percentiles_arrays
+    expected_data = np.array([p25, p50, p75])
+    result = Plugin().process(temperature_cube, percentiles=[25, 50, 75])
+    np.testing.assert_array_almost_equal(result.data, expected_data, decimal=5)
+
+
+def test_process_check_data_not_specifying_percentiles(
+    temperature_cube, expected_percentiles_arrays
+):
+    """
+    Test that the plugin returns an Iris.cube.Cube with the expected
+    data values without specifying the number of percentiles.
+    """
+    p25, p50, p75 = expected_percentiles_arrays
+    expected_data = np.array([p25, p50, p75])
+    result = Plugin().process(temperature_cube)
+    np.testing.assert_array_almost_equal(result.data, expected_data, decimal=5)
+
+
+def test_process_check_data_masked_input_data(
+    temperature_cube, expected_percentiles_arrays
+):
+    """
+    Test that the plugin returns an Iris.cube.Cube with the expected
+    data values when the input data is masked.
+    """
+    cube = temperature_cube.copy()
+    cube.data[:, 0, 0] = np.nan
+    cube.data = np.ma.masked_invalid(cube.data)
+
+    p25, p50, p75 = expected_percentiles_arrays
+    expected_data = np.array([p25, p50, p75])
+    expected_data[:, 0, 0] = np.nan
+    expected_data = np.ma.masked_invalid(expected_data)
+
+    result = Plugin().process(cube)
+    np.testing.assert_array_almost_equal(
+        result.data.data, expected_data.data, decimal=5
+    )
+    np.testing.assert_array_equal(result.data.mask, expected_data.mask)
+
+
+def test_process_check_data_masked_input_data_non_nans(
+    temperature_cube, expected_percentiles_arrays
+):
+    """
+    Test that the plugin returns an Iris.cube.Cube with the expected
+    data values when the input data is masked without underlying nans.
+    """
+    cube = temperature_cube.copy()
+    cube.data[:, 0, 0] = 1000
+    cube.data = np.ma.masked_equal(cube.data, 1000)
+
+    p25, p50, p75 = expected_percentiles_arrays
+    expected_data = np.array([p25, p50, p75])
+    expected_data[:, 0, 0] = np.nan
+    expected_data = np.ma.masked_invalid(expected_data)
+
+    result = Plugin().process(cube)
+    np.testing.assert_array_almost_equal(
+        result.data.data, expected_data.data, decimal=5
+    )
+    np.testing.assert_array_equal(result.data.mask, expected_data.mask)
+
+
+def test_process_check_data_over_specifying_percentiles(temperature_cube):
+    """
+    Test that the plugin raises a suitable error when both a number and set
+    or percentiles are specified.
+    """
+    msg = "Cannot specify both no_of_percentiles and percentiles"
+    with pytest.raises(ValueError, match=msg):
+        Plugin().process(
+            temperature_cube, no_of_percentiles=3, percentiles=[25, 50, 75]
         )
 
-    def test_simple_check_data_above(self):
-        """
-        Test that the plugin returns an Iris.cube.Cube with the expected
-        data values for the percentiles when input probabilities are given
-        for being above a threshold.
-        The input cube contains probabilities that values are above a given
-        threshold.
-        """
-        expected = np.array([8.15384615, 9.38461538, 11.6])
-        expected = expected[:, np.newaxis, np.newaxis]
 
-        data = np.array([0.95, 0.3, 0.05])
-        data = data[:, np.newaxis, np.newaxis]
+def test_process_metadata(temperature_cube):
+    """Test name and cell methods are updated as expected after conversion"""
+    threshold_coord = find_threshold_coordinate(temperature_cube)
+    expected_name = threshold_coord.name()
+    expected_units = threshold_coord.units
+    # add a cell method indicating "max in period" for the underlying data
+    temperature_cube.add_cell_method(
+        CellMethod("max", coords="time", comments=f"of {expected_name}")
+    )
+    expected_cell_method = CellMethod("max", coords="time")
+    result = Plugin().process(temperature_cube)
+    assert result.name() == expected_name
+    assert result.units == expected_units
+    assert result.cell_methods[0] == expected_cell_method
 
-        cube = set_up_probability_cube(
-            data.astype(np.float32), ECC_TEMPERATURE_THRESHOLDS, threshold_units="degC"
-        )
 
-        result = Plugin()._probabilities_to_percentiles(cube, self.percentiles)
-        np.testing.assert_array_almost_equal(result.data, expected)
+def test_process_vicinity_metadata(temperature_cube):
+    """Test vicinity cube name is correctly regenerated after processing"""
+    temperature_cube.rename(
+        "probability_of_air_temperature_in_vicinity_above_threshold"
+    )
+    result = Plugin().process(temperature_cube)
+    assert result.name() == "air_temperature_in_vicinity"
 
-    def test_simple_check_data_below(self):
-        """
-        Test that the plugin returns an Iris.cube.Cube with the expected
-        data values for the percentiles when input probabilities are given
-        for being below a threshold.
-        The input cube contains probabilities that values are below a given
-        threshold.
-        """
-        expected = np.array([8.4, 10.61538462, 11.84615385])
-        expected = expected[:, np.newaxis, np.newaxis]
 
-        data = np.array([0.95, 0.3, 0.05])[::-1]
-        data = data[:, np.newaxis, np.newaxis]
+@pytest.mark.parametrize("nan_mask_value", [0.0, None])
+@pytest.mark.parametrize("scale_percentiles_to_probability_lower_bound", [True, False])
+def test_process_transformation_sampling_3d(
+    nan_mask_value, scale_percentiles_to_probability_lower_bound
+):
+    """Test the process method using the 'transformation' sampling option, with
+    parameterisation over nan_mask_value and
+    scale_percentiles_to_probability_lower_bound.
+    """
+    # 3 realizations, 3x3 grid (same dataset used in test_utilities.py)
+    intensity_data = np.array(
+        [
+            [[0.5, 2.0, 2.0], [0.0, 0.0, 2.0], [1.0, 2.0, 0.0]],
+            [[4.0, 8.0, 4.0], [2.0, 8.0, 2.0], [4.0, 2.0, 1.0]],
+            [[6.0, 10.0, 6.0], [2.0, 2.0, 6.0], [6.0, 6.0, 2.0]],
+        ],
+        dtype=np.float32,
+    )
+    thresholds = [0.5, 1.0, 4.0, 16.0]
+    probability_data = np.array(
+        [
+            [[0.6, 0.9, 1.0], [0.4, 0.7, 1.0], [0.9, 1.0, 0.6]],
+            [[0.5, 0.6, 0.6], [0.3, 0.5, 0.9], [0.6, 0.6, 0.3]],
+            [[0.4, 0.4, 0.4], [0.2, 0.4, 0.5], [0.4, 0.4, 0.1]],
+            [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+        ],
+        dtype=np.float32,
+    )
 
-        cube = set_up_probability_cube(
-            data.astype(np.float32),
-            ECC_TEMPERATURE_THRESHOLDS,
-            threshold_units="degC",
-            spp__relative_to_threshold="below",
-        )
+    # Build cubes
+    prob_cube = set_up_probability_cube(
+        probability_data,
+        thresholds=thresholds,
+        variable_name="lwe_precipitation_rate",
+        threshold_units="mm h-1",
+        spp__relative_to_threshold="above",
+    )
+    intensity_cube = set_up_variable_cube(
+        intensity_data,
+        name="lwe_precipitation_rate",
+        units="mm h-1",
+    )
 
-        result = Plugin()._probabilities_to_percentiles(cube, self.percentiles)
-        np.testing.assert_array_almost_equal(result.data, expected)
+    # Configure plugin with transformation options
+    plugin = Plugin(
+        distribution="gamma",
+        nan_mask_value=nan_mask_value,
+        scale_percentiles_to_probability_lower_bound=scale_percentiles_to_probability_lower_bound,
+    )
+    result = plugin.process(
+        prob_cube,
+        sampling="transformation",
+        intensity_cube=intensity_cube,
+    )
 
-    def test_check_data_multiple_timesteps(self):
-        """
-        Test that the plugin returns an Iris.cube.Cube with the expected
-        data values for the percentiles.
-        """
+    # Expected arrays: replace with printed outputs for each branch below.
+    if scale_percentiles_to_probability_lower_bound and nan_mask_value == 0.0:
+        # fmt: off
         expected = np.array(
             [
-                [[[8.0, 8.0], [-28.0, 8.666667]], [[8.0, -46], [8.0, -46]]],
-                [[[12.0, 12.0], [12.0, 12.0]], [[10.5, 10.0], [10.5, 10.0]]],
-                [[[36.0, 36.0], [36.0, 36.0]], [[11.5, 11.333333], [11.5, 12.0]]],
+                [[0.563, 0.556, 0.605], [0.000, 0.000, 2.219], [0.566, 0.828, 0.000]],
+                [[9.970, 8.019, 3.315], [4.080, 0.733, 2.219], [6.136, 0.828, 0.653]],
+                [[13.634, 11.831, 12.529], [4.080, 12.882, 13.804], [12.551, 13.255, 4.838]],
             ],
             dtype=np.float32,
         )
-
-        cube = set_up_probability_cube(
-            np.zeros((3, 2, 2), dtype=np.float32),
-            ECC_TEMPERATURE_THRESHOLDS,
-            threshold_units="degC",
-            time=datetime(2015, 11, 23, 7),
-            frt=datetime(2015, 11, 23, 6),
-        )
-        cube = add_coordinate(
-            cube,
-            [datetime(2015, 11, 23, 7), datetime(2015, 11, 23, 8)],
-            "time",
-            is_datetime=True,
-            order=[1, 0, 2, 3],
-        )
-
-        cube.data = np.array(
+        # fmt: on
+    elif not scale_percentiles_to_probability_lower_bound and nan_mask_value == 0.0:
+        # fmt: off
+        expected = np.array(
             [
-                [[[0.8, 0.8], [0.7, 0.9]], [[0.8, 0.6], [0.8, 0.6]]],
-                [[[0.6, 0.6], [0.6, 0.6]], [[0.5, 0.4], [0.5, 0.4]]],
-                [[[0.4, 0.4], [0.4, 0.4]], [[0.1, 0.1], [0.1, 0.2]]],
+                [[0.026, 0.185, 0.605], [0.000, 0.000, 2.219], [0.220, 0.828, 0.000]],
+                [[5.950, 7.132, 3.315], [0.419, 0.222, 2.219], [5.040, 0.828, 0.191]],
+                [[12.057, 11.367, 12.529], [0.419, 11.546, 13.804], [12.168, 13.255, 3.175]],
             ],
             dtype=np.float32,
         )
-
-        percentiles = [20, 60, 80]
-        result = Plugin()._probabilities_to_percentiles(cube, percentiles)
-        np.testing.assert_array_almost_equal(result.data, expected, decimal=5)
-
-    def test_probabilities_not_monotonically_increasing(self):
-        """
-        Test that the plugin raises a Warning when the probabilities
-        of the Cumulative Distribution Function are not monotonically
-        increasing.
-        """
-        data = np.array([0.05, 0.7, 0.95])
-        data = data[:, np.newaxis, np.newaxis]
-        cube = set_up_probability_cube(
-            data.astype(np.float32), ECC_TEMPERATURE_THRESHOLDS, threshold_units="degC"
-        )
-
-        warning_msg = "The probability values used to construct the"
-        with pytest.warns(UserWarning, match=warning_msg):
-            Plugin()._probabilities_to_percentiles(cube, self.percentiles)
-
-    def test_result_cube_has_no_air_temperature_threshold_coordinate(self):
-        """
-        Test that the plugin returns a cube with coordinates that
-        do not include a threshold-type coordinate.
-        """
-        result = Plugin()._probabilities_to_percentiles(self.cube, self.percentiles)
-        try:
-            threshold_coord = find_threshold_coordinate(result)
-        except CoordinateNotFoundError:
-            threshold_coord = None
-        self.assertIsNone(threshold_coord)
-
-    def test_check_data(self):
-        """
-        Test that the plugin returns an Iris.cube.Cube with the expected
-        data values for the percentiles.
-        """
-        data = np.array(
+        # fmt: on
+    elif scale_percentiles_to_probability_lower_bound and nan_mask_value is None:
+        # fmt: off
+        expected = np.array(
             [
-                [[16.8, 8.0, 10.4], [-46, 8.0, -78.4], [-78.4, -86.5, -89.2]],
-                [[36.0, 10.0, 12.0], [10.0, 10.0, 8.0], [8.0, -32.5, -46.0]],
-                [[55.2, 36.0, 50.4], [36.0, 11.6, 12.0], [11.0, 9.0, -2.8]],
+                [[0.563, 0.556, 0.605], [0.500, 0.500, 2.219], [0.566, 0.828, 0.500]],
+                [[9.970, 8.019, 3.315], [11.220, 4.608, 2.219], [6.136, 0.828, 1.975]],
+                [[13.634, 11.831, 12.529], [11.220, 14.048, 13.804], [12.551, 13.255, 7.964]]
             ],
             dtype=np.float32,
         )
-
-        result = Plugin()._probabilities_to_percentiles(self.cube, self.percentiles)
-        np.testing.assert_array_almost_equal(result.data, data, decimal=4)
-
-    def test_check_single_threshold(self):
-        """
-        Test that the plugin returns an Iris.cube.Cube with the expected
-        data values for the percentiles, if a single threshold is used for
-        constructing the percentiles.
-        """
-        data = np.array(
+        # fmt: on
+    elif not scale_percentiles_to_probability_lower_bound and nan_mask_value is None:
+        # fmt: off
+        expected = np.array(
             [
-                [[13.2, 8.0, 13.2], [-46.0, 8.0, -78.4], [-78.4, -86.5, -89.2]],
-                [[34, 31.1111, 34.0], [27.5, 31.1111, 8.0], [8.0, -32.5, -46.0]],
-                [[54.8, 54.2222, 54.8], [53.5, 54.2222, 49.6], [49.6, 34, -2.8]],
+                [[0.026, 0.185, 0.605], [0.000, 0.000, 2.219], [0.220, 0.828, 0.000]],
+                [[5.950, 7.132, 3.315], [4.051, 0.894, 2.219], [5.040, 0.828, 0.847]],
+                [[12.057, 11.367, 12.529], [4.051, 13.211, 13.804], [12.168, 13.255, 3.826]],
             ],
             dtype=np.float32,
         )
+        # fmt: on
 
-        threshold_coord = find_threshold_coordinate(self.cube)
-        cube = next(self.cube.slices_over(threshold_coord))
-
-        result = Plugin()._probabilities_to_percentiles(cube, self.percentiles)
-        np.testing.assert_array_almost_equal(result.data, data, decimal=4)
-
-    def test_lots_of_probability_thresholds(self):
-        """
-        Test that the plugin returns an Iris.cube.Cube with the expected
-        data values for the percentiles, if there are lots of thresholds.
-        """
-        data = np.array(
-            [
-                [[2.9, 2.9, 2.9], [2.9, 2.9, 2.9], [2.9, 2.9, 2.9]],
-                [[14.5, 14.5, 14.5], [14.5, 14.5, 14.5], [14.5, 14.5, 14.5]],
-                [
-                    [26.099998, 26.099998, 26.099998],
-                    [26.099998, 26.099998, 26.099998],
-                    [26.099998, 26.099998, 26.099998],
-                ],
-            ],
-            dtype=np.float32,
-        )
-
-        input_probs = np.tile(np.linspace(1, 0, 30), (3, 3, 1)).T
-        cube = set_up_probability_cube(
-            input_probs.astype(np.float32),
-            np.arange(30).astype(np.float32),
-            threshold_units="degC",
-        )
-
-        result = Plugin()._probabilities_to_percentiles(cube, self.percentiles)
-
-        np.testing.assert_array_almost_equal(result.data, data)
-
-    def test_lots_of_percentiles(self):
-        """
-        Test that the plugin returns an Iris.cube.Cube with the expected
-        data values for the percentiles, if lots of percentile values are
-        requested.
-        """
-        data = np.array(
-            [
-                [[14.4, -46, 10.2], [-73.0, -46, -89.2], [-89.2, -93.25, -94.6]],
-                [[19.2, 8.25, 10.6], [-19, 8.25, -67.6], [-67.6, -79.75, -83.8]],
-                [[24.0, 8.75, 11.0], [8.33333, 8.75, -46.0], [-46.0, -66.25, -73.0]],
-                [[28.8, 9.25, 11.4], [9.0, 9.25, -24.4], [-24.4, -52.75, -62.2]],
-                [[33.6, 9.75, 11.8], [9.666667, 9.75, -2.8], [-2.8, -39.25, -51.4]],
-                [
-                    [38.4, 10.333333, 16.8],
-                    [10.333333, 10.2, 8.5],
-                    [8.333333, -25.75, -40.6],
-                ],
-                [[43.2, 11.0, 26.4], [11.0, 10.6, 9.5], [9.0, -12.25, -29.8]],
-                [
-                    [48.0, 11.666667, 36.0],
-                    [11.666667, 11.0, 10.5],
-                    [9.666667, 1.25, -19.0],
-                ],
-                [[52.8, 24, 45.6], [24, 11.4, 11.5], [10.5, 8.5, -8.2]],
-                [[57.6, 48, 55.2], [48, 11.8, 36.0], [11.5, 9.5, 2.6]],
-            ],
-            dtype=np.float32,
-        )
-
-        percentiles = np.arange(5, 100, 10)
-        result = Plugin()._probabilities_to_percentiles(self.cube, percentiles)
-        np.testing.assert_array_almost_equal(result.data, data, decimal=5)
-
-    def test_check_data_spot_forecasts(self):
-        """
-        Test that the plugin returns an Iris.cube.Cube with the expected
-        data values for the percentiles for spot forecasts.
-        """
-        data = np.array(
-            [
-                [16.8, 8, 10.4, -46, 8, -78.4, -78.4, -86.5, -89.2],
-                [36.0, 10.0, 12.0, 10.0, 10.0, 8.0, 8.0, -32.5, -46.0],
-                [55.2, 36, 50.4, 36, 11.6, 12.0, 11.0, 9.0, -2.8],
-            ],
-            dtype=np.float32,
-        )
-
-        cube = set_up_spot_test_cube(cube_type="probability")
-        result = Plugin()._probabilities_to_percentiles(cube, self.percentiles)
-        np.testing.assert_array_almost_equal(result.data, data, decimal=4)
-
-    def test_masked_data_below(self):
-        """Test that if mask_percentiles is true, data is masked as
-        expected when input probability data is below a threshold"""
-
-        expected_mask = np.full_like(self.cube.data, False, dtype=bool)
-        expected_mask[:, 0, 0] = True
-        expected_mask[1, 0, 2] = True
-        expected_mask[2, 0] = True
-        expected_mask[2, 1, 2] = True
-        expected_mask[2, 1, 0] = True
-
-        cube = set_up_probability_cube(
-            1 - self.cube.data,
-            [200, 1000, 15000],
-            variable_name=(
-                "cloud_base_height_assuming_only_consider_cloud_"
-                "area_fraction_greater_than_4p5_oktas"
-            ),
-            threshold_units="m",
-            spp__relative_to_threshold="below",
-        )
-
-        result = Plugin(mask_percentiles=True)._probabilities_to_percentiles(
-            cube, self.percentiles
-        )
-        np.testing.assert_array_equal(result.data.mask, expected_mask)
-
-    def test_masked_data_above(self):
-        """Test that if mask_percentiles is true, data is masked as expected
-        when input probability data is above a threshold"""
-
-        expected_mask = np.full_like(self.cube.data, False, dtype=bool)
-        expected_mask[:, 0, 0] = True
-        expected_mask[1, 0, 2] = True
-        expected_mask[2, 0] = True
-        expected_mask[2, 1, 2] = True
-        expected_mask[2, 1, 0] = True
-
-        cube = set_up_probability_cube(
-            self.cube.data,
-            [200, 1000, 15000],
-            variable_name=(
-                "cloud_base_height_assuming_only_consider_cloud_"
-                "area_fraction_greater_than_4p5_oktas"
-            ),
-            threshold_units="m",
-            spp__relative_to_threshold="above",
-        )
-
-        result = Plugin(mask_percentiles=True)._probabilities_to_percentiles(
-            cube, self.percentiles
-        )
-
-        np.testing.assert_array_equal(result.data.mask, expected_mask)
-
-
-class Test_process(unittest.TestCase):
-    """
-    Test the process method of the ConvertProbabilitiesToPercentiles plugin.
-    """
-
-    def setUp(self):
-        """Set up temperature probability cube and expected output percentiles."""
-        self.cube = set_up_probability_cube(
-            ECC_TEMPERATURE_PROBABILITIES,
-            ECC_TEMPERATURE_THRESHOLDS,
-            threshold_units="degC",
-        )
-
-        self.percentile_25 = np.array(
-            [[24.0, 8.75, 11.0], [8.33333333, 8.75, -46.0], [-46.0, -66.25, -73.0]],
-            dtype=np.float32,
-        )
-        self.percentile_50 = np.array(
-            [[36.0, 10.0, 12.0], [10.0, 10.0, 8.0], [8.0, -32.5, -46.0]],
-            dtype=np.float32,
-        )
-        self.percentile_75 = np.array(
-            [
-                [48.0, 11.66666667, 36.0],
-                [11.66666667, 11.0, 10.5],
-                [9.66666667, 1.25, -19.0],
-            ],
-            dtype=np.float32,
-        )
-
-    def test_check_data_specifying_no_of_percentiles(self):
-        """
-        Test that the plugin returns an Iris.cube.Cube with the expected
-        data values for a specific number of percentiles.
-        """
-        expected_data = np.array(
-            [self.percentile_25, self.percentile_50, self.percentile_75]
-        )
-        result = Plugin().process(self.cube, no_of_percentiles=3)
-        np.testing.assert_array_almost_equal(result.data, expected_data, decimal=5)
-
-    def test_check_data_specifying_single_percentile(self):
-        """
-        Test that the plugin returns an Iris.cube.Cube with the expected
-        data values for a specific percentile passes in as a single realization
-        list.
-        """
-        expected_data = np.array(self.percentile_25)
-        result = Plugin().process(self.cube, percentiles=[25])
-        np.testing.assert_array_almost_equal(result.data, expected_data, decimal=5)
-
-    def test_check_data_specifying_single_percentile_not_as_list(self):
-        """
-        Test that the plugin returns an Iris.cube.Cube with the expected
-        data values for a specific percentile passed in as a value.
-        """
-        expected_data = np.array(self.percentile_25)
-        result = Plugin().process(self.cube, percentiles=25)
-        np.testing.assert_array_almost_equal(result.data, expected_data, decimal=5)
-
-    def test_check_data_specifying_percentiles(self):
-        """
-        Test that the plugin returns an Iris.cube.Cube with the expected
-        data values for a specific set of percentiles.
-        """
-        expected_data = np.array(
-            [self.percentile_25, self.percentile_50, self.percentile_75]
-        )
-        result = Plugin().process(self.cube, percentiles=[25, 50, 75])
-        np.testing.assert_array_almost_equal(result.data, expected_data, decimal=5)
-
-    def test_check_data_not_specifying_percentiles(self):
-        """
-        Test that the plugin returns an Iris.cube.Cube with the expected
-        data values without specifying the number of percentiles.
-        """
-        expected_data = np.array(
-            [self.percentile_25, self.percentile_50, self.percentile_75]
-        )
-        result = Plugin().process(self.cube)
-        np.testing.assert_array_almost_equal(result.data, expected_data, decimal=5)
-
-    def test_check_data_masked_input_data(self):
-        """
-        Test that the plugin returns an Iris.cube.Cube with the expected
-        data values when the input data is masked.
-        """
-        cube = self.cube.copy()
-        cube.data[:, 0, 0] = np.nan
-        cube.data = np.ma.masked_invalid(cube.data)
-        expected_data = np.array(
-            [self.percentile_25, self.percentile_50, self.percentile_75]
-        )
-        expected_data[:, 0, 0] = np.nan
-        expected_data = np.ma.masked_invalid(expected_data)
-        result = Plugin().process(cube)
-        np.testing.assert_array_almost_equal(
-            result.data.data, expected_data.data, decimal=5
-        )
-        np.testing.assert_array_equal(result.data.mask, expected_data.mask)
-
-    def test_check_data_masked_input_data_non_nans(self):
-        """
-        Test that the plugin returns an Iris.cube.Cube with the expected
-        data values when the input data is masked without underlying nans.
-        """
-        cube = self.cube.copy()
-        cube.data[:, 0, 0] = 1000
-        cube.data = np.ma.masked_equal(cube.data, 1000)
-        expected_data = np.array(
-            [self.percentile_25, self.percentile_50, self.percentile_75]
-        )
-        expected_data[:, 0, 0] = np.nan
-        expected_data = np.ma.masked_invalid(expected_data)
-        result = Plugin().process(cube)
-        np.testing.assert_array_almost_equal(
-            result.data.data, expected_data.data, decimal=5
-        )
-        np.testing.assert_array_equal(result.data.mask, expected_data.mask)
-
-    def test_check_data_over_specifying_percentiles(self):
-        """
-        Test that the plugin raises a suitable error when both a number and set
-        or percentiles are specified.
-        """
-        msg = "Cannot specify both no_of_percentiles and percentiles"
-        with self.assertRaisesRegex(ValueError, msg):
-            Plugin().process(self.cube, no_of_percentiles=3, percentiles=[25, 50, 75])
-
-    def test_metadata(self):
-        """Test name and cell methods are updated as expected after conversion"""
-        threshold_coord = find_threshold_coordinate(self.cube)
-        expected_name = threshold_coord.name()
-        expected_units = threshold_coord.units
-        # add a cell method indicating "max in period" for the underlying data
-        self.cube.add_cell_method(
-            CellMethod("max", coords="time", comments=f"of {expected_name}")
-        )
-        expected_cell_method = CellMethod("max", coords="time")
-        result = Plugin().process(self.cube)
-        self.assertEqual(result.name(), expected_name)
-        self.assertEqual(result.units, expected_units)
-        self.assertEqual(result.cell_methods[0], expected_cell_method)
-
-    def test_vicinity_metadata(self):
-        """Test vicinity cube name is correctly regenerated after processing"""
-        self.cube.rename("probability_of_air_temperature_in_vicinity_above_threshold")
-        result = Plugin().process(self.cube)
-        self.assertEqual(result.name(), "air_temperature_in_vicinity")
-
-
-if __name__ == "__main__":
-    unittest.main()
+    # Assertions
+    assert isinstance(result, Cube)
+    assert result.data.dtype == np.float32
+    assert result.shape == (intensity_data.shape[0],) + intensity_data.shape[1:]
+    np.testing.assert_array_almost_equal(result.data, expected, decimal=3)
+    percentile_coord = result.coord("percentile_index")
+    assert percentile_coord.units == "1"
+    np.testing.assert_array_equal(
+        percentile_coord.points,
+        range(intensity_data.shape[0]),
+    )
