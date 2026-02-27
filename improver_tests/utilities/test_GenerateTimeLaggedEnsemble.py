@@ -182,6 +182,37 @@ class Test_process(unittest.TestCase):
         self.assertEqual(result, expected_cube)
         self.assertEqual(result.coord("realization").dtype, np.int32)
 
+    def test_single_cube_without_realization(self):
+        """Test single input cube without realization coordinate gets one added."""
+        # Remove realization coordinate
+        cube = next(self.input_cube.slices_over("realization")).copy()
+        cube.remove_coord("realization")
+        input_cubelist = iris.cube.CubeList([cube])
+        result = GenerateTimeLaggedEnsemble().process(input_cubelist)
+        self.assertIn("realization", [coord.name() for coord in result.coords()])
+        self.assertEqual(result.coord("realization").points.tolist(), [0])
+
+    def test_multiple_cubes_without_realization(self):
+        """Test multiple input cubes without realization coordinates get unique ones added."""
+        cube1 = next(self.input_cube.slices_over("realization")).copy()
+        cube2 = next(self.input_cube.slices_over("realization")).copy()
+        cube1.remove_coord("realization")
+        cube2.remove_coord("realization")
+        input_cubelist = iris.cube.CubeList([cube1, cube2])
+        result = GenerateTimeLaggedEnsemble().process(input_cubelist)
+        self.assertIn("realization", [coord.name() for coord in result.coords()])
+        np.testing.assert_array_equal(result.coord("realization").points, [0, 1])
+
+    def test_mixed_cubes_with_and_without_realization(self):
+        """Test mixing cubes with and without realization coordinates."""
+        cube1 = next(self.input_cube.slices_over("realization")).copy()
+        cube2 = self.input_cube2.copy()
+        cube1.remove_coord("realization")
+        input_cubelist = iris.cube.CubeList([cube1, cube2])
+        result = GenerateTimeLaggedEnsemble().process(input_cubelist)
+        self.assertIn("realization", [coord.name() for coord in result.coords()])
+        np.testing.assert_array_equal(result.coord("realization").points, [0, 3, 4, 5])
+
 
 if __name__ == "__main__":
     unittest.main()
