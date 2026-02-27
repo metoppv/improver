@@ -101,7 +101,7 @@ class RegridWithLandSeaMask(PostProcessingPlugin):
         Returns:
             Regridded result cube.
         """
-        # if cube_in's coordinate descending, make it assending.
+        # if cube_in's coordinate is descending, make it ascending.
         # if mask considered, reverse mask cube's coordinate if descending
         cube_in = ensure_ascending_coord(cube_in)
         if WITH_MASK in self.regrid_mode:
@@ -110,7 +110,7 @@ class RegridWithLandSeaMask(PostProcessingPlugin):
         # check if input source grid is on even-spacing, ascending lat/lon system
         # return grid spacing for latitude and logitude
         lat_spacing, lon_spacing = calculate_input_grid_spacing(
-            cube_in, rtol=self.rtol_grid_spacing
+            cube_in=cube_in, rtol=self.rtol_grid_spacing
         )
 
         # Gather output latitude/longitudes from output template cube
@@ -135,7 +135,9 @@ class RegridWithLandSeaMask(PostProcessingPlugin):
             )
         else:  # not WITH_MASK
             cube_in = slice_cube_by_domain(
-                cube_in, (lat_max, lon_max, lat_min, lon_min)
+                cube_in,
+                (lat_max, lon_max, lat_min, lon_min),
+                rtol_grid_spacing=self.rtol_grid_spacing,
             )
 
         # group cube_out's grid points into outside or inside cube_in's domain

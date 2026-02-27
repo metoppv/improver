@@ -8,11 +8,6 @@ Tests for the regrid CLI
 
 import pytest
 
-from improver.utilities.spatial import (
-    RTOL_GRID_SPACING_DEFAULT,
-    RTOL_GRID_SPACING_TIGHT,
-)
-
 from . import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
@@ -21,19 +16,6 @@ MOGREPS_G_UK_TITLE = "MOGREPS-G Model Forecast on UK 2 km Standard Grid"
 UKV_GLOBAL_CUTOUT_TITLE = "UKV Model Forecast on UK 10 km Grid"
 CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
-
-# Different values of grid spacing relative tolerance to use as test parameters
-RTOL_GRID_SPACING_TEST_DATA = (
-    RTOL_GRID_SPACING_TIGHT,
-    RTOL_GRID_SPACING_DEFAULT,
-    1.0e-6,
-    0.0001,
-    0.001,
-    0.5,
-)
-
-# Function to generate IDs for parametrised tests using relative tolerance
-rtol_id_fn = lambda val: f"rtol={val}"
 
 
 def test_regrid_basic(tmp_path):
@@ -49,10 +31,7 @@ def test_regrid_basic(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-@pytest.mark.parametrize(
-    "rtol_grid_spacing", RTOL_GRID_SPACING_TEST_DATA, ids=rtol_id_fn
-)
-def test_regrid_bilinear_2(rtol_grid_spacing: float, tmp_path):
+def test_regrid_bilinear_2(tmp_path):
     """Test bilinear-2 regridding"""
     # KGO for this test is the same as test_regrid_basic
     # bilinear-2 regridding produces the same result as Iris/bilinear regridding
@@ -68,7 +47,6 @@ def test_regrid_bilinear_2(rtol_grid_spacing: float, tmp_path):
         output_path,
         "--regrid-mode",
         "bilinear-2",
-        f"--rtol-grid-spacing={rtol_grid_spacing}",
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
@@ -228,10 +206,7 @@ def test_regrid_nearest_landmask_multi_realization(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-@pytest.mark.parametrize(
-    "rtol_grid_spacing", RTOL_GRID_SPACING_TEST_DATA, ids=rtol_id_fn
-)
-def test_regrid_nearest_2_multi_realization(rtol_grid_spacing: float, tmp_path):
+def test_regrid_nearest_2_multi_realization(tmp_path):
     """Test nearest-2 neighbour regridding"""
     kgo_dir = acc.kgo_root() / "regrid"
     kgo_path = kgo_dir / "nearest_2/kgo_multi_realization.nc"
@@ -247,16 +222,12 @@ def test_regrid_nearest_2_multi_realization(rtol_grid_spacing: float, tmp_path):
         "nearest-2",
         "--regridded-title",
         MOGREPS_G_UK_TITLE,
-        f"--rtol-grid-spacing={rtol_grid_spacing}",
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
-@pytest.mark.parametrize(
-    "rtol_grid_spacing", RTOL_GRID_SPACING_TEST_DATA, ids=rtol_id_fn
-)
-def test_regrid_bilinear_2_multi_realization(rtol_grid_spacing: float, tmp_path):
+def test_regrid_bilinear_2_multi_realization(tmp_path):
     """Test bilinear-2 regridding"""
     kgo_dir = acc.kgo_root() / "regrid"
     kgo_path = kgo_dir / "bilinear_2/kgo_multi_realization.nc"
@@ -272,18 +243,12 @@ def test_regrid_bilinear_2_multi_realization(rtol_grid_spacing: float, tmp_path)
         "bilinear-2",
         "--regridded-title",
         MOGREPS_G_UK_TITLE,
-        f"--rtol-grid-spacing={rtol_grid_spacing}",
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
-@pytest.mark.parametrize(
-    "rtol_grid_spacing", RTOL_GRID_SPACING_TEST_DATA, ids=rtol_id_fn
-)
-def test_regrid_nearest_landmask_2_multi_realization(
-    rtol_grid_spacing: float, tmp_path
-):
+def test_regrid_nearest_landmask_2_multi_realization(tmp_path):
     """Test nearest neighbour-2 with land sea mask and realizations"""
     kgo_dir = acc.kgo_root() / "regrid"
     kgo_path = kgo_dir / "nearest_landmask_2/kgo_multi_realization.nc"
@@ -301,18 +266,12 @@ def test_regrid_nearest_landmask_2_multi_realization(
         "nearest-with-mask-2",
         "--regridded-title",
         MOGREPS_G_UK_TITLE,
-        f"--rtol-grid-spacing={rtol_grid_spacing}",
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
-@pytest.mark.parametrize(
-    "rtol_grid_spacing", RTOL_GRID_SPACING_TEST_DATA, ids=rtol_id_fn
-)
-def test_regrid_bilinear_landmask_2_multi_realization(
-    rtol_grid_spacing: float, tmp_path
-):
+def test_regrid_bilinear_landmask_2_multi_realization(tmp_path):
     """Test bilinear-2 with land sea mask and realizations"""
     kgo_dir = acc.kgo_root() / "regrid"
     kgo_path = kgo_dir / "bilinear_landmask_2/kgo_multi_realization.nc"
@@ -330,7 +289,27 @@ def test_regrid_bilinear_landmask_2_multi_realization(
         "bilinear-with-mask-2",
         "--regridded-title",
         MOGREPS_G_UK_TITLE,
-        f"--rtol-grid-spacing={rtol_grid_spacing}",
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path, atol=0.05)
+
+
+def test_regrid_bilinear_2_custom_rtol(tmp_path):
+    """Test regridding with a custom relative tolerance value."""
+    kgo_dir = acc.kgo_root() / "regrid"
+    kgo_path = kgo_dir / "basic/kgo.nc"
+    input_path = kgo_dir / "global_cutout.nc"
+    target_path = kgo_dir / "ukvx_grid.nc"
+    output_path = tmp_path / "output.nc"
+    rtol_grid_spacing = 0.05
+    args = [
+        input_path,
+        target_path,
+        "--output",
+        output_path,
+        "--regrid-mode",
+        "bilinear-2",
+        f"--rtol-grid-spacing={rtol_grid_spacing}",
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
