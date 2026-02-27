@@ -20,6 +20,8 @@ try:
 except ImportError:
     improver_example_data = None
 
+import _lazy_iris_import  # noqa: F401
+
 
 class BasePlugin(ABC):
     """An abstract class for IMPROVER plugins.
