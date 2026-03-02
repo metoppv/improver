@@ -18,16 +18,31 @@ from improver.utilities.cube_manipulation import MergeCubes
 
 
 class GenerateTimeLaggedEnsemble(BasePlugin):
-    """Combine realizations from different forecast cycles into one cube::
+    """Combine realizations from different forecast cycles into one cube.
 
     * If a cube has no ``realization`` coordinate, one is added.
+      For example: If you provide two deterministic cubes, the output will have
+      realization coordinates [0, 1].
+
     * For fully deterministic input (no realization coordinates on any cube),
       added realizations are assigned sequentially in input order (0, 1, 2, ...).
+
     * For mixed input (some cubes have realizations and others do not), missing
       coordinates are added only to cubes that need them.
+      For example: If you provide one deterministic and one ensemble cube, the
+      deterministic cube will be assigned a new realization, while the ensemble
+      cube retains its original realization numbers.
+
     * If this creates duplicate realization numbers across the combined inputs,
       all realization numbers are rebadged to a unique sequential set in input
       order before merging.
+      For example: If two cubes both have realization 0, the output will have
+      realizations [0, 1] (rebadged).
+
+    * If ``rebadge_realizations=True`` is set, the final output cube's realization
+      coordinate will always be sequentially numbered from 0.
+      For example: If the merged cube has 3 realizations, they will be numbered
+      [0, 1, 2] regardless of their original values.
     """
 
     def __init__(self, rebadge_realizations: bool = False) -> None:
