@@ -28,16 +28,13 @@ def process(
         cubes:
             A list of cubes containing the forecasts and reference data to be
             used for calibration. They must have the same cube name and will be
-            separated based on the reference attribute.
+            separated based on the reference attribute. The reference cube defines
+            what the "correct" distribution should look like. The forecast cube
+            contains the data that you want to correct (e.g. smoothed model output).
         reference_attribute:
             An attribute and its value in the format of "attribute=value",
             which must be present on cubes to identify them as reference data.
             The remaining cubes will be treated as forecast data.
-        reference_cube:
-            The reference data that define what the "correct" distribution
-            should look like.
-        forecast_cube:
-            The forecast data you want to correct (e.g. smoothed model output).
         preservation_threshold:
             Optional threshold value below which (exclusive) the forecast values
             are not adjusted. Useful for variables like precipitation where you
