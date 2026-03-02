@@ -292,3 +292,24 @@ def test_regrid_bilinear_landmask_2_multi_realization(tmp_path):
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path, atol=0.05)
+
+
+def test_regrid_bilinear_2_custom_rtol(tmp_path):
+    """Test regridding with a custom relative tolerance value."""
+    kgo_dir = acc.kgo_root() / "regrid"
+    kgo_path = kgo_dir / "basic/kgo.nc"
+    input_path = kgo_dir / "global_cutout.nc"
+    target_path = kgo_dir / "ukvx_grid.nc"
+    output_path = tmp_path / "output.nc"
+    rtol_grid_spacing = 0.05
+    args = [
+        input_path,
+        target_path,
+        "--output",
+        output_path,
+        "--regrid-mode",
+        "bilinear-2",
+        f"--rtol-grid-spacing={rtol_grid_spacing}",
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
