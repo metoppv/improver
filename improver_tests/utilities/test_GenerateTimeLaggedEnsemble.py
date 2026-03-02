@@ -82,6 +82,19 @@ class Test_process(unittest.TestCase):
         )
         self.assertEqual(result.coord("realization").dtype, np.int32)
 
+    def test_rebadge_realizations_option(self):
+        """Test optional rebadging of final output realizations to 0..N-1."""
+        self.input_cube2.coord("realization").points = np.array(
+            [6, 7, 8], dtype=np.int32
+        )
+        result = GenerateTimeLaggedEnsemble(rebadge_realizations=True).process(
+            self.input_cubelist
+        )
+        np.testing.assert_array_equal(
+            result.coord("realization").points, [0, 1, 2, 3, 4, 5]
+        )
+        self.assertEqual(result.coord("realization").dtype, np.int32)
+
     def test_duplicate_realizations(self):
         """Test that the expected metadata is correct with different
         realizations and that realizations are renumbered if a
@@ -146,11 +159,27 @@ class Test_process(unittest.TestCase):
         self.assertEqual(result.attributes, expected_attributes)
 
     def test_single_cube(self):
-        """Test only one input cube returns cube unchanged"""
+        """Test only one input cube returns the cube unchanged and raises a warning."""
         input_cubelist = iris.cube.CubeList([self.input_cube])
         expected_cube = self.input_cube.copy()
-        result = GenerateTimeLaggedEnsemble().process(input_cubelist)
+        with self.assertWarnsRegex(
+            UserWarning,
+            "Only a single cube input, so time lagging will have no effect.",
+        ):
+            result = GenerateTimeLaggedEnsemble().process(input_cubelist)
         self.assertEqual(result, expected_cube)
+
+    def test_mismatched_validity_times_raises(self):
+        """Test mismatched validity times raise a ValueError."""
+        cube_with_different_time = self.input_cube2.copy()
+        cube_with_different_time.coord("time").points = (
+            cube_with_different_time.coord("time").points + 3600
+        )
+        input_cubelist = iris.cube.CubeList([self.input_cube, cube_with_different_time])
+        with self.assertRaisesRegex(
+            ValueError, "Cubes with mismatched validity times are not compatible."
+        ):
+            GenerateTimeLaggedEnsemble().process(input_cubelist)
 
     def test_non_monotonic_realizations(self):
         """Test handling of case where realization coordinates cannot be
@@ -193,7 +222,8 @@ class Test_process(unittest.TestCase):
         self.assertEqual(result.coord("realization").points.tolist(), [0])
 
     def test_multiple_cubes_without_realization(self):
-        """Test multiple input cubes without realization coordinates get unique ones added."""
+        """Test multiple input cubes without realization coordinates get unique ones
+        added."""
         cube1 = next(self.input_cube.slices_over("realization")).copy()
         cube2 = next(self.input_cube.slices_over("realization")).copy()
         cube1.remove_coord("realization")
