@@ -27,5 +27,5 @@ doc/source/improver*.rst
 /doc/build/
 
 # Code coverage files
-lib/.coverage
-lib/coverage.xml
+.coverage
+coverage.xml
