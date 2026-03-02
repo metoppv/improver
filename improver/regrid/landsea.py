@@ -21,7 +21,10 @@ from improver.metadata.constants.mo_attributes import MOSG_GRID_ATTRIBUTES
 from improver.regrid.landsea2 import RegridWithLandSeaMask
 from improver.threshold import Threshold
 from improver.utilities.cube_checker import spatial_coords_match
-from improver.utilities.spatial import OccurrenceWithinVicinity
+from improver.utilities.spatial import (
+    RTOL_GRID_SPACING_DEFAULT,
+    OccurrenceWithinVicinity,
+)
 
 
 class RegridLandSea(PostProcessingPlugin):
@@ -50,6 +53,7 @@ class RegridLandSea(PostProcessingPlugin):
         landmask: Optional[Cube] = None,
         landmask_vicinity: float = 25000,
         mdtol: float = 1,
+        rtol_grid_spacing: float = RTOL_GRID_SPACING_DEFAULT,
     ):
         """
         Initialise regridding parameters.
@@ -76,6 +80,10 @@ class RegridLandSea(PostProcessingPlugin):
                 mdtol=1 means the element will be masked only if all overlapping
                 source elements are masked. Only used for esmf-area-weighted
                 regridding. Default is 1.
+            rtol_grid_spacing:
+                Relative tolerance to use when calculating grid spacing.
+                Only used with the following regrid modes: "nearest-2",
+                "nearest-with-mask-2", "bilinear-2", "bilinear-with-mask-2".
         """
         if regrid_mode not in self.REGRID_REQUIRES_LANDMASK:
             msg = "Unrecognised regrid mode {}"
@@ -89,6 +97,7 @@ class RegridLandSea(PostProcessingPlugin):
         self.landmask_vicinity = None if landmask is None else landmask_vicinity
         self.landmask_name = "land_binary_mask"
         self.mdtol = mdtol
+        self.rtol_grid_spacing = rtol_grid_spacing
 
     def _regrid_to_target(
         self,
@@ -167,7 +176,9 @@ class RegridLandSea(PostProcessingPlugin):
             "bilinear-with-mask-2",
         ):
             cube = RegridWithLandSeaMask(
-                regrid_mode=regrid_mode, vicinity_radius=self.landmask_vicinity
+                regrid_mode=regrid_mode,
+                vicinity_radius=self.landmask_vicinity,
+                rtol_grid_spacing=self.rtol_grid_spacing,
             )(cube, self.landmask_source_grid, target_grid)
 
         # identify grid-describing attributes on source cube that need updating

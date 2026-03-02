@@ -33,7 +33,10 @@ from improver.regrid.grid import (
     unflatten_spatial_dimensions,
 )
 from improver.regrid.nearest import nearest_regrid, nearest_with_mask_regrid
-from improver.utilities.spatial import transform_grid_to_lat_lon
+from improver.utilities.spatial import (
+    RTOL_GRID_SPACING_DEFAULT,
+    transform_grid_to_lat_lon,
+)
 
 NEAREST = "nearest"
 BILINEAR = "bilinear"
@@ -55,7 +58,10 @@ class RegridWithLandSeaMask(PostProcessingPlugin):
     """
 
     def __init__(
-        self, regrid_mode: str = "bilinear-2", vicinity_radius: float = 25000.0
+        self,
+        regrid_mode: str = "bilinear-2",
+        vicinity_radius: float = 25000.0,
+        rtol_grid_spacing: float = RTOL_GRID_SPACING_DEFAULT,
     ):
         """
         Initialise class
@@ -68,9 +74,12 @@ class RegridWithLandSeaMask(PostProcessingPlugin):
                 source points in terms of land / sea type.
             vicinity_radius:
                 Radius of vicinity to search for a coastline, in metres.
+            rtol_grid_spacing:
+                Relative tolerance to use when calculating grid spacing.
         """
         self.regrid_mode = regrid_mode
         self.vicinity = vicinity_radius
+        self.rtol_grid_spacing = rtol_grid_spacing
 
     def process(self, cube_in: Cube, cube_in_mask: Cube, cube_out_mask: Cube) -> Cube:
         """
@@ -92,7 +101,7 @@ class RegridWithLandSeaMask(PostProcessingPlugin):
         Returns:
             Regridded result cube.
         """
-        # if cube_in's coordinate descending, make it assending.
+        # if cube_in's coordinate is descending, make it ascending.
         # if mask considered, reverse mask cube's coordinate if descending
         cube_in = ensure_ascending_coord(cube_in)
         if WITH_MASK in self.regrid_mode:
@@ -100,7 +109,9 @@ class RegridWithLandSeaMask(PostProcessingPlugin):
 
         # check if input source grid is on even-spacing, ascending lat/lon system
         # return grid spacing for latitude and logitude
-        lat_spacing, lon_spacing = calculate_input_grid_spacing(cube_in)
+        lat_spacing, lon_spacing = calculate_input_grid_spacing(
+            cube_in=cube_in, rtol=self.rtol_grid_spacing
+        )
 
         # Gather output latitude/longitudes from output template cube
         if (
@@ -124,7 +135,9 @@ class RegridWithLandSeaMask(PostProcessingPlugin):
             )
         else:  # not WITH_MASK
             cube_in = slice_cube_by_domain(
-                cube_in, (lat_max, lon_max, lat_min, lon_min)
+                cube_in,
+                (lat_max, lon_max, lat_min, lon_min),
+                rtol_grid_spacing=self.rtol_grid_spacing,
             )
 
         # group cube_out's grid points into outside or inside cube_in's domain

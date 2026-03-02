@@ -16,7 +16,11 @@ from numpy.ma.core import MaskedArray
 from scipy.interpolate import RegularGridInterpolator
 
 from improver.utilities.cube_manipulation import sort_coord_in_cube
-from improver.utilities.spatial import calculate_grid_spacing, lat_lon_determine
+from improver.utilities.spatial import (
+    RTOL_GRID_SPACING_DEFAULT,
+    calculate_grid_spacing,
+    lat_lon_determine,
+)
 
 
 def ensure_ascending_coord(cube: Cube) -> Cube:
@@ -36,7 +40,9 @@ def ensure_ascending_coord(cube: Cube) -> Cube:
     return cube
 
 
-def calculate_input_grid_spacing(cube_in: Cube) -> Tuple[float, float]:
+def calculate_input_grid_spacing(
+    cube_in: Cube, rtol: float = RTOL_GRID_SPACING_DEFAULT
+) -> Tuple[float, float]:
     """
     Calculate grid spacing in latitude and logitude.
     Check if input source grid is on even-spacing and ascending lat/lon system.
@@ -44,6 +50,8 @@ def calculate_input_grid_spacing(cube_in: Cube) -> Tuple[float, float]:
     Args:
         cube_in:
             Input source cube.
+        rtol:
+            Relative tolerance to use when calculating grid spacing.
 
     Returns:
         - Grid spacing in latitude, in degree.
@@ -59,8 +67,8 @@ def calculate_input_grid_spacing(cube_in: Cube) -> Tuple[float, float]:
         raise ValueError("Input grid is not on a latitude/longitude system")
 
     # calculate grid spacing
-    lon_spacing = calculate_grid_spacing(cube_in, "degree", axis="x", rtol=4.0e-5)
-    lat_spacing = calculate_grid_spacing(cube_in, "degree", axis="y", rtol=4.0e-5)
+    lon_spacing = calculate_grid_spacing(cube_in, "degree", axis="x", rtol=rtol)
+    lat_spacing = calculate_grid_spacing(cube_in, "degree", axis="y", rtol=rtol)
 
     y_coord = cube_in.coord(axis="y").points
     x_coord = cube_in.coord(axis="x").points
@@ -271,7 +279,9 @@ def similar_surface_classify(
 
 
 def slice_cube_by_domain(
-    cube_in: Cube, output_domain: Tuple[float, float, float, float]
+    cube_in: Cube,
+    output_domain: Tuple[float, float, float, float],
+    rtol_grid_spacing: float = RTOL_GRID_SPACING_DEFAULT,
 ) -> Cube:
     """
     Extract cube domain to be consistent as cube_reference's domain.
@@ -281,12 +291,14 @@ def slice_cube_by_domain(
             Input data cube to be sliced.
         output_domain:
             Lat_max, lon_max, lat_min, lon_min.
+        rtol_grid_spacing:
+            Relative tolerance to use when calculating grid spacing.
 
     Returns:
         Data cube after slicing.
     """
     lat_max, lon_max, lat_min, lon_min = output_domain
-    lat_d, lon_d = calculate_input_grid_spacing(cube_in)
+    lat_d, lon_d = calculate_input_grid_spacing(cube_in, rtol_grid_spacing)
 
     domain = iris.Constraint(
         latitude=lambda val: lat_min - 2.0 * lat_d < val < lat_max + 2.0 * lat_d

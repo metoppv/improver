@@ -11,6 +11,7 @@ from datetime import datetime
 
 import numpy as np
 import pytest
+from iris.coords import DimCoord
 
 from improver.regrid.grid import (
     calculate_input_grid_spacing,
@@ -167,6 +168,39 @@ class Test_calculate_input_grid_spacing(unittest.TestCase):
         """Test grid spacing outputs with lat-lon grid in degrees"""
         result = calculate_input_grid_spacing(self.lat_lon_cube)
         self.assertAlmostEqual(result, (10.0, 10.0))
+
+    def test_warning_raised_with_excessive_rtol(self):
+        """Test that a warning is raised when an excessive rtol is passed."""
+        rtol = 1.0
+        with self.assertWarns(UserWarning):
+            result = calculate_input_grid_spacing(self.lat_lon_cube, rtol=rtol)
+        self.assertAlmostEqual(result, (10.0, 10.0))
+
+    def test_lat_lon_negative_rtol(self):
+        """Test grid spacing when applying a negative rtol."""
+        rtol = -4.0e-4
+        msg = "rtol must be non-negative"
+        with self.assertRaisesRegex(ValueError, msg):
+            calculate_input_grid_spacing(self.lat_lon_cube, rtol=rtol)
+
+    def test_lat_lon_zero_rtol(self):
+        """Test grid spacing when rtol is zero."""
+        rtol = 0.0
+        result = calculate_input_grid_spacing(self.lat_lon_cube, rtol=rtol)
+        self.assertAlmostEqual(result, (10.0, 10.0))
+
+    def test_lat_lon_with_irregular_grid(self):
+        """Test that using an irregular grid results in a ValueError
+        when validating spacing."""
+        latlon_cube = set_up_variable_cube(np.ones((5, 5), dtype=np.float32))
+        # Replace with irregularly spaced longitudes
+        new_x_points = np.array([0.0, 11.0, 132.0, 333.0, 504.5])
+        new_x_coord = DimCoord(new_x_points, standard_name="longitude", units="degrees")
+        latlon_cube.remove_coord("longitude")
+        latlon_cube.add_dim_coord(new_x_coord, 1)
+        msg = "Coordinate longitude points are not equally spaced"
+        with self.assertRaisesRegex(ValueError, msg):
+            calculate_input_grid_spacing(latlon_cube, rtol=0.0001)
 
 
 Names = namedtuple(
