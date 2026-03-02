@@ -5,7 +5,7 @@
 import os
 
 import numpy as np
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 
 from improver.fire_weather import IterativeFireWeatherIndexBase
 
@@ -64,6 +64,33 @@ class FineFuelMoistureContent(IterativeFireWeatherIndexBase):
     input_ffmc: Cube
     initial_moisture_content: np.ndarray
     moisture_content: np.ndarray
+
+    def process(
+        self,
+        cubes: tuple[Cube, ...] | CubeList,
+        month: int | None = None,
+        initialise: bool = False,
+        clip_ffmc: bool = False,
+    ) -> Cube:
+        """
+        Args:
+            cubes:
+                Input cubes as specified by INPUT_CUBE_NAMES. When initialise is True cubes should
+                exclude the OUTPUT_CUBE_NAME, which should otherwise be given as the iterative input.
+            month:
+                Month parameter (1-12), required only if REQUIRES_MONTH is True
+            initialise:
+                True when starting the iterative process else False
+            clip_ffmc:
+                If true Fine Fuel Moisture Content values will be clipped to
+                    a minimum of 0 and a maximum of 101.
+
+        Returns:
+            The calculated output cube.
+
+        """
+        self.clip_ffmc = clip_ffmc
+        return super().process(cubes, month, initialise)
 
     def _calculate(self) -> np.ndarray:
         """Calculate the Fine Fuel Moisture Code (FFMC).
@@ -127,7 +154,7 @@ class FineFuelMoistureContent(IterativeFireWeatherIndexBase):
         )
 
         # Step 9: Calculate Fine Fuel Moisture Content (FFMC) from moisture content
-        ffmc = self._calculate_ffmc_from_moisture_content()
+        ffmc = self._calculate_ffmc_from_moisture_content(self.clip_ffmc)
 
         return ffmc
 
@@ -308,16 +335,27 @@ class FineFuelMoistureContent(IterativeFireWeatherIndexBase):
 
         return new_moisture_content
 
-    def _calculate_ffmc_from_moisture_content(self) -> np.ndarray:
+    def _calculate_ffmc_from_moisture_content(
+        self, clip_ffmc: bool = False
+    ) -> np.ndarray:
         """Calculates the Fine Fuel Moisture Content (FFMC) from the moisture
         content.
 
         From Van Wagner and Pickett (1985), Page 5: Equation 10, and Step 9.
 
+        Args:
+            clip_ffmc:
+                If true Fine Fuel Moisture Content values will be clipped to
+                    a minimum of 0 and a maximum of 101.
+
         Returns:
-            The calculated FFMC values (dimensionless, range 0-101). Array shape
-            matches input cube data shape.
+            The calculated FFMC values (dimensionless, clipped range 0-101).
+            Return array will be clipped only if clip_ffmc is True.
+            Array shape matches input cube data shape.
+
         """
         # Equation 10: Calculate FFMC from moisture content
         ffmc = 59.5 * (250.0 - self.moisture_content) / (147.2 + self.moisture_content)
+        if clip_ffmc:
+            return np.clip(ffmc, 0, 101)
         return ffmc
