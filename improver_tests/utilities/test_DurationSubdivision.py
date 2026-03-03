@@ -541,6 +541,20 @@ def test_construct_target_periods(kwargs, data, input_period, expected):
     [
         (
             {
+                "target_period": 3600,
+                "fidelity": 3600,
+                "night_mask": False,
+                "day_mask": False,
+            },
+            np.full((3, 3), 10800),  # Data in the input cube.
+            dt(2024, 6, 15, 12),  # Validity time
+            10800,  # Input period
+            np.full((3, 3, 3), 3600),  # Expected data in the output cube.
+            None,  # List of realization numbers if any
+            None,  # Expected exception
+        ),  # Raise a ValueError as the target period is not a factor of the input period.
+        (
+            {
                 "target_period": 1100,
                 "fidelity": 550,
                 "night_mask": False,
