@@ -9,10 +9,39 @@ from improver import BasePlugin
 
 
 class LayerExtractionAndInterpolation(BasePlugin):
+    """
+    Plugin to extract and interpolate temperature values at specified layer boundaries.
+
+    This plugin extracts all temperature levels within a specified vertical layer
+    (between `bottom` and `top` heights, in feet), and interpolates temperature
+    at the exact base and top of the layer. The output is a cube containing
+    temperature at all interior levels plus the interpolated base and top.
+
+    """
+
     def __init__(self, metres_to_ft=3.28084):
+        """
+        Initialise the plugin.
+
+        Args:
+            metres_to_ft (float): Conversion factor from metres to feet.
+        """
         self.metres_to_ft = metres_to_ft
 
     def process(self, temp_cube, bottom, top, verbosity=0):
+        """
+        Extract and interpolate temperature values at layer boundaries.
+
+        Args:
+            temp_cube (iris.cube.Cube): Input temperature cube with a height coordinate.
+            bottom (float): Lower boundary of the layer (in feet).
+            top (float): Upper boundary of the layer (in feet).
+            verbosity (int): Verbosity level for printing debug information.
+
+        Returns:
+            iris.cube.Cube: Cube containing temperature at all layer heights
+                            (base, interior, and top).
+        """
         if verbosity:
             print(f"Extracting/interpolating levels from {bottom} to {top} ft")
         # Extract cube of temperature levels within layer
