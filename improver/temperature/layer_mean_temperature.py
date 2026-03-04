@@ -5,8 +5,10 @@
 import iris
 import numpy as np
 
+from improver import BasePlugin
 
-class LayerExtractionAndInterpolation:
+
+class LayerExtractionAndInterpolation(BasePlugin):
     def __init__(self, metres_to_ft=3.28084):
         self.metres_to_ft = metres_to_ft
 
@@ -40,3 +42,62 @@ class LayerExtractionAndInterpolation:
             print(layer_levels_temp_cube)
 
         return layer_levels_temp_cube
+
+
+class CalculateLayerMeanTemperature(BasePlugin):
+    """Calculate the vertically weighted mean temperature for a layer."""
+
+    def process(self, layer_cube, verbosity=0):
+        """
+        Calculate the mean temperature between the lowest and highest heights in the input cube.
+
+        Args:
+            layer_cube (iris.cube.Cube): Cube containing temperature at heights within the specified layer
+            verbosity (int): Set level of output to print.
+
+        Returns:
+            iris.cube.Cube: 2D cube of layer mean temperature.
+        """
+
+        # Set up array for holding sum of products of temperature and vertical distance
+        layer_temp_product = np.zeros(layer_cube.data.shape[1:])
+
+        # Estimate mean temperature of layers between 2000-3000ft and
+        # weight by vertical extent of layer
+        altitude_array = layer_cube.coord("height").points
+        for alt_index in range(1, len(altitude_array) - 1):
+            layer_thickness = (
+                altitude_array[alt_index + 1] - altitude_array[alt_index - 1]
+            ) / 2
+            layer_temp_product += layer_cube.data[alt_index, :, :] * layer_thickness
+
+        # Add contributions from base and top
+        layer_temp_product += (
+            layer_cube.data[0, :, :] * (altitude_array[1] - altitude_array[0]) / 2
+        )
+        layer_temp_product += (
+            layer_cube.data[-1, :, :] * (altitude_array[-1] - altitude_array[-2]) / 2
+        )
+
+        # Divide by total thickness to get mean
+        lmt_array = layer_temp_product / (altitude_array[-1] - altitude_array[0])
+
+        if verbosity:
+            print("Layer mean temperature array:", lmt_array)
+
+        # Wrap result in a cube (add metadata as needed)
+        lmt_cube = iris.cube.Cube(
+            lmt_array,
+            var_name="air_temperature",
+            units="K",
+            dim_coords_and_dims=(
+                (layer_cube.coord("projection_y_coordinate"), 0),
+                (layer_cube.coord("projection_x_coordinate"), 1),
+            ),
+            aux_coords_and_dims=(
+                (layer_cube.coord("forecast_period"), ()),
+                (layer_cube.coord("forecast_reference_time"), ()),
+                (layer_cube.coord("time"), ()),
+            ),
+        )
+        return lmt_cube
