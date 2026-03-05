@@ -2038,10 +2038,10 @@ class DurationSubdivision:
                 The data will be reconstructed into non-overlapping periods.
                 The target_period must be a factor of the original period.
             fidelity:
-                The shortest increment in seconds into which the input periods are
-                divided and to which the night mask is applied. The target periods are
-                reconstructed from these shorter periods. Shorter fidelity periods
-                better capture where the day / night discriminator falls, if used.
+                If provided, the shortest increment in seconds into which the input
+                periods are divided and to which the night mask is applied. The target
+                periods are reconstructed from these shorter periods. Shorter fidelity
+                periods better capture where the day / night discriminator falls.
                 Setting fidelity either to None or equal to target_period will result in
                 a simple subdivision of the original period into the specified target
                 periods with no intermediate fidelity period processing.
@@ -2193,17 +2193,20 @@ class DurationSubdivision:
 
         new_period_cubes = iris.cube.CubeList()
 
+        # The cycle times are already the same. However, below we use this variable
+        # to recalculate the forecast periods relative to the cycletime for each of our
+        # extracted shorter duration cubes.
+        cycle_time = fidelity_period_cube.coord("forecast_reference_time").cell(0).point
+
+        # If the fidelity is the same as the target period, we can skip the step of
+        # summing up the fidelity period cubes into target period cubes seen in the else
+        # statement below and just enforce the time point standard and unify cycletime
+        # on the fidelity period cubes.
         if self.fidelity == self.target_period:
             for time_slice in fidelity_period_cube.slices_over("time"):
                 enforce_time_point_standard(time_slice)
                 new_period_cubes.append(time_slice)
 
-            # The cycle times are already the same. This code will recalculate
-            # the forecast periods relative to the cycletime for each of our
-            # extracted shorter duration cubes.
-            cycle_time = (
-                fidelity_period_cube.coord("forecast_reference_time").cell(0).point
-            )
             new_period_cubes = unify_cycletime(new_period_cubes, cycle_time)
             return new_period_cubes.merge_cube()
 
@@ -2220,9 +2223,6 @@ class DurationSubdivision:
                 new_period_cubes.append(component_cube)
                 start_time += interval
 
-            cycle_time = (
-                fidelity_period_cube.coord("forecast_reference_time").cell(0).point
-            )
             new_period_cubes = unify_cycletime(new_period_cubes, cycle_time)
             return new_period_cubes.merge_cube()
 

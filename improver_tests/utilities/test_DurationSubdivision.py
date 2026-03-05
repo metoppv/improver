@@ -542,7 +542,7 @@ def test_construct_target_periods(kwargs, data, input_period, expected):
         (
             {
                 "target_period": 3600,
-                "fidelity": None,
+                "fidelity": None,  # Demonstrate the fidelity argument set to None.
                 "night_mask": False,
                 "day_mask": False,
             },
