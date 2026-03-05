@@ -2022,7 +2022,7 @@ class DurationSubdivision:
     def __init__(
         self,
         target_period: int,
-        fidelity: int,
+        fidelity: Optional[int] = None,
         night_mask: bool = True,
         day_mask: bool = False,
     ):
@@ -2054,16 +2054,19 @@ class DurationSubdivision:
             ValueError: If target_period and / or fidelity are not positive integers.
             ValueError: If day and night mask options are both set True.
         """
-        for item in [target_period, fidelity]:
+        self.target_period = target_period
+        self.fidelity = fidelity
+        if self.fidelity is None:
+            self.fidelity = self.target_period
+
+        for item in [self.target_period, self.fidelity]:
             if item <= 0:
                 raise ValueError(
                     "Target period and fidelity must be a positive integer "
                     "numbers of seconds. Currently set to "
-                    f"target_period: {target_period}, fidelity: {fidelity}"
+                    f"target_period: {self.target_period}, fidelity: {self.fidelity}"
                 )
 
-        self.target_period = target_period
-        self.fidelity = fidelity
         if night_mask and day_mask:
             raise ValueError(
                 "Only one or neither of night_mask and day_mask may be set to True"
@@ -2184,7 +2187,7 @@ class DurationSubdivision:
         """
         # If fidelity equals target period, then this processing is not needed and the
         # fidelity period cube can be returned as is.
-        if self.fidelity == self.target_period:
+        if self.fidelity is None or self.fidelity == self.target_period:
             return fidelity_period_cube
 
         new_period_cubes = iris.cube.CubeList()
@@ -2224,8 +2227,8 @@ class DurationSubdivision:
 
         Raises:
             ValueError: The target period is not a factor of the input period.
-            ValueError: The fidelity period is not less than or equal to the
-                        target period.
+            ValueError: The fidelity period is supplied but is not less than or equal to
+            the target period.
         """
         period = self.cube_period(cube)
 
@@ -2240,7 +2243,7 @@ class DurationSubdivision:
                 "period. "
                 f"Input period: {period}, target period: {self.target_period}"
             )
-        if self.fidelity > self.target_period:
+        if self.fidelity is not None and self.fidelity > self.target_period:
             raise ValueError(
                 "The fidelity period must be less than or equal to the target period."
             )
