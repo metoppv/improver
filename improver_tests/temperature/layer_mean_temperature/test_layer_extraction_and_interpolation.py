@@ -4,6 +4,7 @@
 # See LICENSE in the root of the repository for full licensing details.
 import iris
 import numpy as np
+import pytest
 
 from improver.temperature.layer_mean_temperature import LayerExtractionAndInterpolation
 
@@ -132,3 +133,77 @@ def test_interpolated_base_and_top_values():
     np.testing.assert_allclose(
         result.data[-1, :, :], expected_top.data[0, :, :], rtol=1e-5
     )
+
+
+def test_verbosity_layer_extraction(capsys):
+    """Test that LayerExtractionAndInterpolation prints expected output
+    when verbosity is set to 1.
+
+    Checks that the bottom and top layer bounds are printed to stdout.
+    """
+    cube = make_test_cube()
+    plugin = LayerExtractionAndInterpolation()
+    plugin.process(cube, bottom=600, top=800, verbosity=1)
+    captured = capsys.readouterr()
+    assert "600" in captured.out
+    assert "800" in captured.out
+
+
+def test_layer_bounds_match_data_level():
+    """Test that LayerExtractionAndInterpolation handles the case where
+    the layer bounds exactly match an existing data level.
+
+    Layer bounds: 656 ft (≈200 m) to 787 ft (≈240 m).
+    Both 200 m and 240 m are exact data levels in the test cube.
+
+    Expected output:
+        - No duplicate height points in the output cube.
+    """
+    cube = make_test_cube()
+    plugin = LayerExtractionAndInterpolation()
+
+    # Pass bounds directly in feet - the plugin handles the conversion internally
+    result = plugin.process(cube, bottom=656, top=787, verbosity=0)
+
+    # Check no duplicate height points exist in the output
+    height_points = result.coord("height").points
+    assert len(height_points) == len(
+        np.unique(height_points)
+    ), f"Duplicate height points found: {height_points}"
+
+
+def test_no_interior_levels():
+    """Test that LayerExtractionAndInterpolation returns at least the interpolated
+    base and top when no interior levels exist within the layer bounds.
+
+    Layer bounds: 610 ft (≈185 m) to 640 ft (≈195 m).
+    No data levels fall between 185 m and 195 m in the test cube
+    (nearest levels are 200 m, 220 m, 240 m).
+
+    Expected output:
+        - Interpolated base at 610 ft (≈185 m)
+        - Interpolated top at 640 ft (≈195 m)
+        - Total: 2 height levels, shape (2, 2, 2)
+    """
+    cube = make_test_cube()
+    plugin = LayerExtractionAndInterpolation()
+
+    # These bounds have no data levels between them
+    result = plugin.process(cube, bottom=610, top=640, verbosity=0)
+
+    # Should have exactly 2 levels: interpolated base and top only
+    assert result.shape == (2, 2, 2)
+
+
+def test_bottom_greater_than_top_raises_error():
+    """Test that LayerExtractionAndInterpolation raises a ValueError when
+    the bottom bound is greater than the top bound.
+
+    This is physically nonsensical and should be caught early with a
+    clear error message rather than producing garbage output silently.
+    """
+    cube = make_test_cube()
+    plugin = LayerExtractionAndInterpolation()
+
+    with pytest.raises(ValueError, match="bottom .* must be less than top"):
+        plugin.process(cube, bottom=800, top=600, verbosity=0)

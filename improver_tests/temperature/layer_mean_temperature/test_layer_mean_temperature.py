@@ -64,7 +64,7 @@ def test_layer_mean_temperature_uniform():
     np.testing.assert_allclose(result.data, 280, rtol=1e-5)
 
 
-def test_layer_mean_temperature_output_shape_and_coordinates():
+def test_layer_mean_temperature_output_shape_and_coordinates_exists():
     """Test that CalculateLayerMeanTemperature returns a 2D cube with correct
     dimension and auxiliary coordinates.
 
@@ -92,3 +92,40 @@ def test_layer_mean_temperature_output_shape_and_coordinates():
     assert result.coords("forecast_period")
     assert result.coords("forecast_reference_time")
     assert result.coords("time")
+
+
+def test_layer_mean_temperature_scalar_coordinate_values_preserved():
+    """Test that CalculateLayerMeanTemperature preserves scalar coordinate
+    values from the input cube in the output cube.
+
+    Checks that forecast_period, forecast_reference_time and time coordinate
+    values are unchanged between input and output.
+    """
+    data = np.full((3, 2, 2), 280, dtype=np.float32)
+    cube = make_layer_cube(data)
+    plugin = CalculateLayerMeanTemperature()
+    result = plugin.process(cube, verbosity=0)
+
+    # Check scalar coordinate values are preserved from input to output
+    assert (
+        result.coord("forecast_period").points == cube.coord("forecast_period").points
+    )
+    assert (
+        result.coord("forecast_reference_time").points
+        == cube.coord("forecast_reference_time").points
+    )
+    assert result.coord("time").points == cube.coord("time").points
+
+
+def test_verbosity_layer_mean_temperature(capsys):
+    """Test that CalculateLayerMeanTemperature prints expected output
+    when verbosity is set to 1.
+
+    Checks that the layer mean temperature array is printed to stdout.
+    """
+    data = np.full((3, 2, 2), 280, dtype=np.float32)
+    cube = make_layer_cube(data)
+    plugin = CalculateLayerMeanTemperature()
+    plugin.process(cube, verbosity=1)
+    captured = capsys.readouterr()
+    assert "Layer mean temperature array" in captured.out

@@ -42,6 +42,9 @@ class LayerExtractionAndInterpolation(BasePlugin):
             iris.cube.Cube: Cube containing temperature at all layer heights
                             (base, interior, and top).
         """
+        if bottom >= top:
+            raise ValueError(f"bottom ({bottom} ft) must be less than top ({top} ft).")
+
         if verbosity:
             print(f"Extracting/interpolating levels from {bottom} to {top} ft")
         # Extract cube of temperature levels within layer
@@ -64,9 +67,10 @@ class LayerExtractionAndInterpolation(BasePlugin):
             collapse_scalar=False,
         )
         # Merge cubes of temperature at top, bottom and within layer
-        layer_levels_temp_cube = iris.cube.CubeList(
-            [base_temp, between_layer_temp_cube, top_temp]
-        ).concatenate_cube()
+        cubes_to_merge = [base_temp, between_layer_temp_cube, top_temp]
+        cubes_to_merge = [cube for cube in cubes_to_merge if cube is not None]
+        layer_levels_temp_cube = iris.cube.CubeList(cubes_to_merge).concatenate_cube()
+
         if verbosity > 1:
             print(layer_levels_temp_cube)
 
