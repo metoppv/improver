@@ -801,3 +801,7 @@ def test_process(kwargs, data_cube, period, expected, exception, realizations):
             # Check periods returned are correct.
             (bounds,) = np.unique(np.diff(result.coord("time").bounds, axis=1))
             assert bounds == kwargs["target_period"]
+            (bounds,) = np.unique(
+                np.diff(result.coord("forecast_period").bounds, axis=1)
+            )
+            assert bounds == kwargs["target_period"]
