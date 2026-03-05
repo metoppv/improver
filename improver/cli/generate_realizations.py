@@ -28,7 +28,13 @@ def process(
 
     Args:
         cube (iris.cube.Cube):
-            A cube to be processed.
+            A cube to be processed. Must contain either:
+
+            * A realization dimension (returned unchanged), or
+            * A percentile coordinate (resampled and optionally reordered), or
+            * Probabilities (converted to percentiles, then resampled and
+                optionally reordered).
+
         raw_cube (iris.cube.Cube):
             Cube of raw (not post processed) weather data.
             If this argument is given ensemble realizations will be created
@@ -39,7 +45,7 @@ def process(
             point, and the percentiles will be generated from this distribution.
         realizations_count (int):
             The number of ensemble realizations in the output.
-        sampling:
+        sampling (str):
             Type of sampling of the distribution to produce a set of
             percentiles e.g. quantile or random.
 
@@ -80,10 +86,12 @@ def process(
             interpolation from the nearest available percentile, rather than using
             linear interpolation between the nearest available percentile and
             the ECC bound.
-        distribution: Valid if the "transformation" option is selected for sampling
+        distribution (str):
+            Valid if the "transformation" option is selected for sampling
             the probability distribution. Type of distribution to fit
             (currently only 'gamma' is supported).
-        nan_mask_value: Valid if the "transformation" option is selected for
+        nan_mask_value (float):
+            Valid if the "transformation" option is selected for
             sampling the probability distribution. Value to mask as NaN before
             calculating mean and std. This option might be most useful for a
             diagnostic, such as precipitation rate, where there is a high
@@ -102,6 +110,12 @@ def process(
     Returns:
         iris.cube.Cube:
             The processed cube.
+
+    Raises:
+        ValueError: If the input cube does not contain a percentile coordinate or
+            probability coordinates that can then be converted to a realization
+            coordinate.
+        ValueError: If neither realizations_count nor raw_cube is provided.
     """
     from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
         ConvertProbabilitiesToPercentiles,
