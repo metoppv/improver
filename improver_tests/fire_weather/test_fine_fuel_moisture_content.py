@@ -567,6 +567,42 @@ def test__calculate_ffmc_from_moisture_content(
 
 
 @pytest.mark.parametrize(
+    "moisture_content_val, expected_array_val",
+    [
+        (0.0, 101.05298913),
+        (16.0, 85.3125),
+        (250.0, 0.0),
+        (-10.0, 112.75510204),
+        (500.0, -22.98362176),
+    ],
+)
+def test_moisture_conversion_without_clip(moisture_content_val, expected_array_val):
+    """Test a range of moisture content values with clip_ffmc=False."""
+    plugin = FineFuelMoistureContent()
+
+    plugin.moisture_content = np.full(5, moisture_content_val)
+    expected_array = np.full(5, expected_array_val)
+
+    ffmc = plugin._calculate_ffmc_from_moisture_content(False)
+    assert np.allclose(ffmc, expected_array, atol=0.01)
+
+
+@pytest.mark.parametrize(
+    "moisture_content_val, expected_array_val",
+    [(0.0, 101.0), (16.0, 85.3125), (250.0, 0.0), (-10.0, 101.0), (500.0, 0)],
+)
+def test_moisture_conversion_with_clip(moisture_content_val, expected_array_val):
+    """Test a range of moisture content values with clip_ffmc=True."""
+    plugin = FineFuelMoistureContent()
+
+    plugin.moisture_content = np.full(5, moisture_content_val)
+    expected_array = np.full(5, expected_array_val)
+
+    ffmc = plugin._calculate_ffmc_from_moisture_content(True)
+    assert np.allclose(ffmc, expected_array, atol=0.01)
+
+
+@pytest.mark.parametrize(
     "temp_val, precip_val, rh_val, wind_val, ffmc_val, expected_output",
     [
         # Case 0: Typical mid-range values
@@ -609,7 +645,7 @@ def test_process(
     """
     cubes = input_cubes(temp_val, precip_val, rh_val, wind_val, ffmc_val)
     plugin = FineFuelMoistureContent()
-    result = plugin.process(cubes)
+    result = plugin.process(cubes, clip_ffmc=True)
     # Check output type and shape
     assert hasattr(result, "data")
     assert result.data.shape == cubes[0].data.shape
