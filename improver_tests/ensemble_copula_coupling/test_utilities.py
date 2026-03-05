@@ -647,7 +647,6 @@ def _create_intensity_and_probability_cubes(
     intensity_data,
     thresholds,
     probability_data,
-    nan_mask_value=None,
 ):
     """Helper function to create intensity and probability cubes for testing.
 
@@ -655,7 +654,6 @@ def _create_intensity_and_probability_cubes(
         intensity_data: 3D array (realization, y, x) of intensity values.
         thresholds: List of threshold values for probability cube.
         probability_data: 3D array (threshold, y, x) of probability values.
-        nan_mask_value: Optional value to set to NaN in intensity data.
 
     Returns:
         Tuple of (intensity_cube, probability_cube)
@@ -665,9 +663,6 @@ def _create_intensity_and_probability_cubes(
         name="precipitation_rate",
         units="mm h-1",
     )
-
-    if nan_mask_value is not None:
-        intensity_cube.data[intensity_cube.data == nan_mask_value] = nan_mask_value
 
     probability_cube = set_up_probability_cube(
         probability_data,
@@ -714,7 +709,7 @@ def test_init_nan_mask_value(nan_mask_value):
 def test_process_3d(rescale, nan_mask_value):
     """Test percentile calculation with 3D gamma distribution, with and without
     rescaling the percentiles, and with and without NaN masking."""
-    # Create test data: 3 realizations, 3x3 grid
+    # Create test data: 3 realizations, 3x3 grid, 4 thresholds.
     intensity_data = np.array(
         [
             [[0.5, 2.0, 2.0], [0.0, 0.0, 2.0], [1.0, 2.0, 0.0]],
@@ -797,7 +792,7 @@ def test_process_3d(rescale, nan_mask_value):
         )
 
     intensity_cube, probability_cube = _create_intensity_and_probability_cubes(
-        intensity_data, thresholds, probability_data, nan_mask_value=nan_mask_value
+        intensity_data, thresholds, probability_data
     )
 
     plugin = CalculatePercentilesFromIntensityDistribution(

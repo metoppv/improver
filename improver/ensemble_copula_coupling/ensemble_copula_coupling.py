@@ -121,7 +121,9 @@ class RebadgePercentilesAsRealizations(BasePlugin):
     Class to rebadge percentiles as ensemble realizations.
     This will allow the quantisation to percentiles to be completed, without
     a subsequent EnsembleReordering step to restore spatial correlations,
-    if required.
+    if required. For example, with the default options set, the 'percentile' dimension
+    would be renamed 'realization' and points of [25, 50, 75] would be replaced
+    with [0, 1, 2].
     """
 
     def __init__(
@@ -184,7 +186,7 @@ class RebadgePercentilesAsRealizations(BasePlugin):
 
         Raises:
             InvalidCubeError:
-                If the realization coordinate already exists.
+                If the realization coordinate already exists on the cube.
         """
         try:
             realization_coord = cube.coord("realization")
@@ -230,16 +232,12 @@ class RebadgePercentilesAsRealizations(BasePlugin):
             Cube:
                 Processed cube with realization coordinate.
 
-        Raises:
-            ValueError:
-                If percentiles are not evenly spaced, centered, and partitioned.
-            InvalidCubeError:
-                If the realization coordinate already exists on the cube.
         """
+        self._check_no_existing_realization_coord(cube)
         percentile_coord_name = find_percentile_coordinate(cube).name()
         if self.ensure_evenly_spaced_percentiles:
             self._check_evenly_spaced_percentiles(cube, percentile_coord_name)
-        self._check_no_existing_realization_coord(cube)
+
         if self.ensemble_realization_numbers is None:
             realization_numbers = np.arange(
                 len(cube.coord(percentile_coord_name).points), dtype=np.int32
@@ -532,7 +530,7 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
         skip_ecc_bounds=False,
         distribution: str = "gamma",
         nan_mask_value: float = 0.0,
-        scale_percentiles_to_probability_lower_bound: bool = True,
+        scale_percentiles_to_probability_lower_bound: bool = False,
     ) -> None:
         """
         Initialise the class.
@@ -559,24 +557,27 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
                 percentiles will be computed by nearest neighbour interpolation from
                 the nearest available percentile, rather than using linear interpolation
                 between the nearest available percentile and the ECC bound.
-            distribution: Valid if the "transformation" option is selected for sampling
+            distribution:
+                Valid if the "transformation" option is selected for sampling
                 the probability distribution. Type of distribution to fit
                 (currently only 'gamma' is supported).
-            nan_mask_value: Valid if the "transformation" option is selected for
+            nan_mask_value:
+                Valid if the "transformation" option is selected for
                 sampling the probability distribution. Value to mask as NaN before
                 calculating mean and std. This option might be most useful for a
                 diagnostic, such as precipitation rate, where there is a high
                 frequency of zero values. If None, no masking is performed.
                 Default is 0.0.
-            scale_percentiles_to_probability_lower_bound: Valid if the "transformation"
-                option is selected for sampling the probability distribution. If True,
-                the minimum value of the calculated percentiles will be set to the
-                minimum CDF probability implied by the input probabilities, rather
-                than zero. This has the effect of restricting the percentiles to
-                the non-zero part of the distribution, which is useful when there
-                is a high probability of zero values (e.g., for precipitation).
-                When False, percentiles are calculated over the full [0, 1] range,
-                regardless of the input probabilities. Default is True.
+            scale_percentiles_to_probability_lower_bound:
+                Valid if the "transformation" option is selected for sampling the
+                probability distribution. If True, the minimum value of the calculated
+                percentiles will be set to the minimum CDF probability implied by the
+                input probabilities, rather than zero. This has the effect of
+                restricting the percentiles to the non-zero part of the distribution,
+                which is useful when there is a high probability of zero values (e.g.,
+                for precipitation). When False, percentiles are calculated over the
+                full [0, 1] range, regardless of the input probabilities.
+                Default is True.
 
         """
         self.ecc_bounds_warning = ecc_bounds_warning
@@ -877,7 +878,8 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
                     distribution to the data. This generates a different set of
                     percentiles at each grid point, based on the local
                     distribution of probabilities. Follows Schefzik et al., 2013.
-            intensity_cube: Valid if the "transformation" option is selected for
+            intensity_cube:
+                Valid if the "transformation" option is selected for
                 sampling the probability distribution. Cube containing the intensity
                 data used to determine the percentile values at which the probability
                 distribution will be sampled. This cube should be on the same grid
@@ -1477,7 +1479,7 @@ class EnsembleReordering(BasePlugin):
             random_ordering:
                 If random_ordering is True, the post-processed forecasts are
                 reordered randomly, rather than using the ordering of the
-                raw ensemble.
+                raw ensemble. This is referred to as ECC-R in Schefzik et al. (2013).
             random_seed:
                 If random_seed is an integer, the integer value is used for
                 the random seed.
@@ -1487,10 +1489,13 @@ class EnsembleReordering(BasePlugin):
                 The method of tie breaking to use when the first ordering method
                 contains ties. The available methods are "random", to tie-break
                 randomly, and "realization", to tie-break by assigning values to the
-                highest numbered realizations first.
+                highest numbered realizations first. Tie breaking using the
+                "realization" option is deterministic, and provides a simple
+                approach for tie breaking (based on the realization number) without
+                introducing spatial arfefacts that can occur with "random" tie breaking.
             ensure_evenly_spaced_realizations:
                 If True, the plugin will ensure that the output realizations are
-                evenly spaced in percentile space are centered on the 50th percentile,
+                evenly spaced in percentile space and centered on the 50th percentile,
                 and partition the space. If False, no check is performed.
         """
         self.random_ordering = random_ordering

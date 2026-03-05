@@ -234,7 +234,7 @@ def test_probabilities_to_percentiles_transpose_cube_dimensions(
     temperature_cube, percentiles
 ):
     """
-    Test that the plugin returns an the expected data, when comparing
+    Test that the plugin returns the expected data, when comparing
     input cubes which have dimensions in a different order.
     """
     # Calculate result for nontransposed cube.

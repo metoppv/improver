@@ -2056,7 +2056,7 @@ def generate_forecast_from_distribution(
             )
         else:
             no_of_percentiles = len(template.coord("realization").points)
-            percentiles = conversion_plugin(
+            percentile_forecast_cube = conversion_plugin(
                 distribution["shape"],
                 distribution["location"],
                 distribution["scale"],
@@ -2067,7 +2067,7 @@ def generate_forecast_from_distribution(
                 random_ordering=randomise,
                 random_seed=random_seed,
             ).process(
-                percentiles,
+                percentile_forecast_cube,
                 template,
             )
 

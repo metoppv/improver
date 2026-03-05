@@ -63,7 +63,7 @@ class CalculatePercentilesFromIntensityDistribution(BasePlugin):
         self,
         distribution: str = "gamma",
         nan_mask_value: Optional[float] = 0.0,
-        scale_percentiles_to_probability_lower_bound: bool = True,
+        scale_percentiles_to_probability_lower_bound: bool = False,
     ):
         """
         Initialise the plugin.
@@ -82,7 +82,7 @@ class CalculatePercentilesFromIntensityDistribution(BasePlugin):
                 part of the distribution, which is useful when there is a high
                 probability of zero values (e.g., for precipitation). When False,
                 percentiles are calculated over the full [0, 1] range, regardless
-                of the input probabilities. Default is True.
+                of the input probabilities. Default is False.
         """
         if distribution != "gamma":
             raise ValueError(
@@ -505,7 +505,10 @@ def restore_non_percentile_dimensions(
 
 
 def slow_interp_same_x(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndarray:
-    """For each row i of fp, calculate np.interp(x, xp, fp[i, :]).
+    """For each row i of fp, calculate np.interp(x, xp, fp[i, :]). Note that a
+    fast_interp_same_x version of this function exists that uses numba. This
+    slow version is retained as a fallback for when numba is not available.
+
     Args:
         x: 1-D array
         xp: 1-D array, sorted in non-decreasing order
@@ -548,7 +551,9 @@ def interpolate_multiple_rows_same_x(*args):
 
 
 def slow_interp_same_y(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndarray:
-    """For each row i of xp, do the equivalent of np.interp(x, xp[i], fp).
+    """For each row i of xp, do the equivalent of np.interp(x, xp[i], fp). Note that a
+    fast_interp_same_y version of this function exists that uses numba. This
+    slow version is retained as a fallback for when numba is not available.
 
     Args:
         x: 1-d array
@@ -565,6 +570,8 @@ def slow_interp_same_y(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndar
 
 def slow_interp_same_y_2d(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndarray:
     """For each row i of xp, do the equivalent of np.interp(x[i], xp[i], fp).
+    Note that a fast_interp_same_y_2d version of this function exists that uses numba.
+    This slow version is retained as a fallback for when numba is not available.
 
     Args:
         x: 2-d array, shape (n, k)
@@ -610,11 +617,22 @@ def interpolate_multiple_rows_same_y(*args):
 
 def slow_interp_same_y_nd(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndarray:
     """Dispatch to functions that handle 1D or 2D x inputs.
+    Note that a fast_interp_same_y_nd version of this function exists that uses numba.
+    This slow version is retained as a fallback for when numba is not available.
 
     Args:
         x: 1-D or 2-D array
         xp: n * m array, each row must be in non-decreasing order
         fp: 1-D array with length m
+
+    Returns:
+        If x is 1-D, returns n * len(x) array where each row i is equal to
+            np.interp(x, xp[i], fp).
+        If x is 2-D, returns n * k array where each row i is equal to
+            np.interp(x[i], xp[i], fp).
+
+    Raises:
+        ValueError: If x is not 1-D or 2-D.
     """
     if x.ndim == 1:
         return slow_interp_same_y(x, xp, fp)

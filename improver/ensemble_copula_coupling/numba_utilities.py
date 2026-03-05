@@ -205,6 +205,15 @@ def fast_interp_same_y_nd(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.n
         x: 1-D or 2-D array
         xp: n * m array, each row must be in non-decreasing order
         fp: 1-D array with length m
+
+    Returns:
+        If x is 1-D, returns n * len(x) array where each row i is equal to
+            np.interp(x, xp[i], fp).
+        If x is 2-D, returns n * k array where each row i is equal to
+            np.interp(x[i], xp[i], fp).
+
+    Raises:
+        ValueError: If x is not 1-D or 2-D.
     """
     if x.ndim == 1:
         return fast_interp_same_y(x, xp, fp)
