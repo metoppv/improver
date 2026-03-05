@@ -17,6 +17,7 @@ def process(
     vicinity: cli.comma_separated_list = None,
     operator: str = "max",
     new_name: str = None,
+    apply_cell_method: bool = True,
 ):
     """Module to apply vicinity processing to data.
 
@@ -60,6 +61,9 @@ def process(
             Name to assign to the resultant cube after calculating the vicinity
             values for the specified operator. Where no value is provided, the
             cube will retain the same name as the input cube.
+        apply_cell_method (bool):
+            If True, a cell method is added to the output cube to describe the
+            vicinity operation.
     Returns:
         iris.cube.Cube:
             Cube with the vicinity processed data.
@@ -67,5 +71,8 @@ def process(
     from improver.utilities.spatial import OccurrenceWithinVicinity
 
     return OccurrenceWithinVicinity(
-        radii=vicinity, land_mask_cube=land_mask, operator=operator
+        radii=vicinity,
+        land_mask_cube=land_mask,
+        operator=operator,
+        apply_cell_method=apply_cell_method,
     ).process(cube, new_name=new_name)
