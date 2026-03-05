@@ -181,7 +181,7 @@ class RoughnessCorrectionUtilities:
         self.orog_model = orog_model
 
         # Half peak‑to‑trough orographic height
-        self.h_half = self.sigma2hover2(orog_stddev)
+        self.h_half = self.orog_stddev_to_h_half(orog_stddev)
 
         # Height‑correction and roughness‑correction masks
         self.hc_mask, self.rc_mask = self._setmask()
@@ -197,7 +197,7 @@ class RoughnessCorrectionUtilities:
         self.dx_max = 3.0 * res_model
 
         # Wavenumber of terrain variability: k = 2π / L
-        self.wavenum = self._calc_wavenumber()
+        self.wavenumber = self._calc_wavenumber()
 
         # Reference height used for roughness correction.
         self.h_ref = self._calc_h_ref()
@@ -409,8 +409,10 @@ class RoughnessCorrectionUtilities:
         # Ensure broadcast correctly (expand 1D to 3D)
         if height_above_orog.ndim == 1:
             height_above_orog = height_above_orog[np.newaxis, np.newaxis, :]
-        ustar_3d = ustar[:, :, np.newaxis]
-        z0_3d = self.roughness_length_z0[:, :, np.newaxis]
+        ustar_3d = ustar[:, :, np.newaxis] * np.ones_like(height_above_orog)
+        z0_3d = self.roughness_length_z0[:, :, np.newaxis] * np.ones_like(
+            height_above_orog
+        )
 
         # Apply the roughness correction below the reference height
         below_href = height_above_orog < h_ref[:, :, np.newaxis]
@@ -649,11 +651,11 @@ class RoughnessCorrectionUtilities:
             nz = height_above_orog.shape[2]
 
         # Amplitude term
-        amp = self.h_at0 * self.wavenum
+        amp = self.h_at0 * self.wavenumber
 
         # Exponential decay factor exp(-k * z)
         decay = np.ones((nx, ny, nz), dtype=np.float32)
-        kz = self.wavenum[:, :, np.newaxis] * height_above_orog
+        kz = self.wavenumber[:, :, np.newaxis] * height_above_orog
         decay[kz > 1e-4] = np.exp(-kz[kz > 1e-4])
 
         # Full additive height correction
@@ -717,7 +719,7 @@ class RoughnessCorrectionUtilities:
         # 2. Height correction
         # Requires wind speed at the reference height, so interpolate first
         uhref_orig = self._interpolate_wspeed_to_height(
-            wspeed_original, height_above_orog, 1.0 / self.wavenum, mask_hc
+            wspeed_original, height_above_orog, 1.0 / self.wavenumber, mask_hc
         )
         # HC only where u(h_ref) is positive
         mask_hc[uhref_orig <= 0.0] = False
@@ -1034,29 +1036,28 @@ class RoughnessCorrection(PostProcessingPlugin):
 
         return hld.data
 
+    def check_wind_ancil(self, xwp: int, ywp: int) -> None:
+        """Verify that the wind field and ancillary grids share the same
+        horizontal orientation.
 
-def check_wind_ancil(self, xwp: int, ywp: int) -> None:
-    """Verify that the wind field and ancillary grids share the same
-    horizontal orientation.
+        Args:
+            xwp (int): Dimension index of the x-axis in the wind cube.
+            ywp (int): Dimension index of the y-axis in the wind cube.
 
-    Args:
-        xwp (int): Dimension index of the x-axis in the wind cube.
-        ywp (int): Dimension index of the y-axis in the wind cube.
+        Raises:
+            ValueError: If ancillary grids do not share the same x/y dimension
+                        ordering as the wind cube.
+        """
+        # Dim-order of ancillary post-processing-grid orography
+        xap, yap, _, _ = self.find_coord_order(self.orog_pp)
 
-    Raises:
-        ValueError: If ancillary grids do not share the same x/y dimension
-                    ordering as the wind cube.
-    """
-    # Dim-order of ancillary post-processing-grid orography
-    xap, yap, _, _ = self.find_coord_order(self.orog_pp)
-
-    # Compare relative ordering of (x,y) dimensions
-    if xwp - ywp != xap - yap:
-        if np.isnan(xap) or np.isnan(yap):
-            raise ValueError("Ancillary grid differs from wind grid.")
-        raise ValueError(
-            "XY dimension ordering differs between wind and ancillary grids."
-        )
+        # Compare relative ordering of (x,y) dimensions
+        if xwp - ywp != xap - yap:
+            if np.isnan(xap) or np.isnan(yap):
+                raise ValueError("Ancillary grid differs from wind grid.")
+            raise ValueError(
+                "XY dimension ordering differs between wind and ancillary grids."
+            )
 
     def process(self, input_cube: Cube) -> Cube:
         """Apply roughness (RC) and height (HC) corrections to a 4D wind cube.
@@ -1084,9 +1085,9 @@ def check_wind_ancil(self, xwp: int, ywp: int) -> None:
 
         # Reorder wind cube so dimensions are consistently (y, x, z [, t])
         if np.isnan(twp):
-            input_cube = input_cube.transpose([ywp, xwp, zwp])
+            input_cube.transpose([ywp, xwp, zwp])
         else:
-            input_cube = input_cube.transpose([ywp, xwp, zwp, twp])
+            input_cube.transpose([ywp, xwp, zwp, twp])
 
         z0_data = (
             None if self.roughness_length_z0 is None else self.roughness_length_z0.data
@@ -1118,10 +1119,10 @@ def check_wind_ancil(self, xwp: int, ywp: int) -> None:
         # Restore the original dimension ordering of both input and output
         if np.isnan(twp):
             order = np.argsort([ywp, xwp, zwp])
-            input_cube = input_cube.transpose(order)
-            output_cube = output_cube.transpose(order)
+            input_cube.transpose(order)
+            output_cube.transpose(order)
         else:
-            input_cube = input_cube.transpose(np.argsort([ywp, xwp, zwp, twp]))
-            output_cube = output_cube.transpose(np.argsort([twp, ywp, xwp, zwp]))
+            input_cube.transpose(np.argsort([ywp, xwp, zwp, twp]))
+            output_cube.transpose(np.argsort([twp, ywp, xwp, zwp]))
 
         return output_cube
