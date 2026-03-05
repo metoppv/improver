@@ -2187,11 +2187,6 @@ class DurationSubdivision:
             with an entry for each target period. These periods combined span
             the original cube's period.
         """
-        # If fidelity equals target period, then this processing is not needed and the
-        # fidelity period cube can be returned as is.
-        # if self.fidelity is None or self.fidelity == self.target_period:
-        #     return fidelity_period_cube
-
         interval = timedelta(seconds=self.target_period)
         start_time = fidelity_period_cube.coord("time").cell(0).bound[0]
         end_time = fidelity_period_cube.coord("time").cell(-1).bound[-1]
