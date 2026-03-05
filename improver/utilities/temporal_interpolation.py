@@ -2039,10 +2039,12 @@ class DurationSubdivision:
                 The target_period must be a factor of the original period.
             fidelity:
                 The shortest increment in seconds into which the input periods are
-                divided and to which the night mask is applied. The
-                target periods are reconstructed from these shorter periods.
-                Shorter fidelity periods better capture where the day / night
-                discriminator falls.
+                divided and to which the night mask is applied. The target periods are
+                reconstructed from these shorter periods. Shorter fidelity periods
+                better capture where the day / night discriminator falls, if used.
+                Setting fidelity either to None or equal to target_period will result in
+                a simple subdivision of the original period into the specified target
+                periods with no intermediate fidelity period processing.
             night_mask:
                 If true, points that fall at night are zeroed and duration
                 reallocated to day time periods as much as possible.
@@ -2187,30 +2189,47 @@ class DurationSubdivision:
         """
         # If fidelity equals target period, then this processing is not needed and the
         # fidelity period cube can be returned as is.
-        if self.fidelity is None or self.fidelity == self.target_period:
-            return fidelity_period_cube
-
-        new_period_cubes = iris.cube.CubeList()
+        # if self.fidelity is None or self.fidelity == self.target_period:
+        #     return fidelity_period_cube
 
         interval = timedelta(seconds=self.target_period)
         start_time = fidelity_period_cube.coord("time").cell(0).bound[0]
         end_time = fidelity_period_cube.coord("time").cell(-1).bound[-1]
-        while start_time < end_time:
-            period_constraint = iris.Constraint(
-                time=lambda cell: start_time <= cell.bound[0] < start_time + interval
-            )
-            components = fidelity_period_cube.extract(period_constraint)
-            component_cube = components.collapsed("time", iris.analysis.SUM)
-            enforce_time_point_standard(component_cube)
-            new_period_cubes.append(component_cube)
-            start_time += interval
-        # The cycle times are already the same. This code will recalculate
-        # the forecasts periods relative to the cycletime for each of our
-        # extracted shorter duration cubes.
-        cycle_time = fidelity_period_cube.coord("forecast_reference_time").cell(0).point
 
-        new_period_cubes = unify_cycletime(new_period_cubes, cycle_time)
-        return new_period_cubes.merge_cube()
+        new_period_cubes = iris.cube.CubeList()
+
+        if self.fidelity == self.target_period:
+            for time_slice in fidelity_period_cube.slices_over("time"):
+                enforce_time_point_standard(time_slice)
+                new_period_cubes.append(time_slice)
+
+            # The cycle times are already the same. This code will recalculate
+            # the forecast periods relative to the cycletime for each of our
+            # extracted shorter duration cubes.
+            cycle_time = (
+                fidelity_period_cube.coord("forecast_reference_time").cell(0).point
+            )
+            new_period_cubes = unify_cycletime(new_period_cubes, cycle_time)
+            return new_period_cubes.merge_cube()
+
+        else:
+            while start_time < end_time:
+                period_constraint = iris.Constraint(
+                    time=lambda cell: start_time
+                    <= cell.bound[0]
+                    < start_time + interval
+                )
+                components = fidelity_period_cube.extract(period_constraint)
+                component_cube = components.collapsed("time", iris.analysis.SUM)
+                enforce_time_point_standard(component_cube)
+                new_period_cubes.append(component_cube)
+                start_time += interval
+
+            cycle_time = (
+                fidelity_period_cube.coord("forecast_reference_time").cell(0).point
+            )
+            new_period_cubes = unify_cycletime(new_period_cubes, cycle_time)
+            return new_period_cubes.merge_cube()
 
     def process(self, cube: Cube) -> Cube:
         """Create target period duration diagnostics from the original duration
