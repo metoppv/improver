@@ -28,6 +28,7 @@ def test_single_lead_time(tmp_path):
     )
     target_grid_input = kgo_dir / "target_grid.nc"
     hierarchy_input = kgo_dir / "hierarchy.json"
+    clustering_kwargs_input = kgo_dir / "clustering_kwargs.json"
     output_path = tmp_path / "output.nc"
     args = [
         coarse_resolution_primary_input,
@@ -41,6 +42,8 @@ def test_single_lead_time(tmp_path):
         "mosg__model_configuration",
         "--target-grid-name",
         "target_grid",
+        "--clustering-kwargs",
+        clustering_kwargs_input,
         "--output",
         output_path,
     ]
@@ -66,6 +69,7 @@ def test_multiple_lead_time(tmp_path):
     )
     target_grid_input = kgo_dir / "target_grid.nc"
     hierarchy_input = kgo_dir / "hierarchy.json"
+    clustering_kwargs_input = kgo_dir / "clustering_kwargs.json"
     output_path = tmp_path / "output.nc"
     args = [
         coarse_resolution_primary_6H_input,
@@ -81,6 +85,8 @@ def test_multiple_lead_time(tmp_path):
         "mosg__model_configuration",
         "--target-grid-name",
         "target_grid",
+        "--clustering-kwargs",
+        clustering_kwargs_input,
         "--output",
         output_path,
     ]

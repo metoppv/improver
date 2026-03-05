@@ -106,8 +106,8 @@ def input_cubes_basic(
     """
     return make_input_cubes(
         [
-            ("air_temperature", temp_val, "Celsius", False),
-            ("relative_humidity", rh_val, "1", False),
+            ("air_temperature", temp_val, "Celsius", False, {}),
+            ("relative_humidity", rh_val, "1", False, {}),
         ],
         shape=shape,
     )
@@ -136,9 +136,9 @@ def input_cubes_with_precip(
     """
     return make_input_cubes(
         [
-            ("air_temperature", temp_val, "Celsius", False),
-            ("lwe_thickness_of_precipitation_amount", precip_val, "mm", True),
-            ("relative_humidity", rh_val, "1", False),
+            ("air_temperature", temp_val, "Celsius", False, {}),
+            ("lwe_thickness_of_precipitation_amount", precip_val, "mm", True, {}),
+            ("relative_humidity", rh_val, "1", False, {}),
         ],
         shape=shape,
     )
@@ -281,8 +281,8 @@ def test_load_input_cubes_with_month_parameter() -> None:
     """Test load_input_cubes with REQUIRES_MONTH=True."""
     cubes = make_input_cubes(
         [
-            ("air_temperature", 20.0, "Celsius", False),
-            ("lwe_thickness_of_precipitation_amount", 1.0, "mm", True),
+            ("air_temperature", 20.0, "Celsius", False, {}),
+            ("lwe_thickness_of_precipitation_amount", 1.0, "mm", True, {}),
         ],
         shape=(5, 5),
     )
@@ -302,8 +302,8 @@ def test_load_input_cubes_missing_month_raises_error() -> None:
     """Test that missing month parameter raises ValueError when required."""
     cubes = make_input_cubes(
         [
-            ("air_temperature", 20.0, "Celsius", False),
-            ("lwe_thickness_of_precipitation_amount", 1.0, "mm", False),
+            ("air_temperature", 20.0, "Celsius", False, {}),
+            ("lwe_thickness_of_precipitation_amount", 1.0, "mm", False, {}),
         ],
         shape=(5, 5),
     )
@@ -348,8 +348,8 @@ def test_load_input_cubes_month_validation(
     """
     cubes = make_input_cubes(
         [
-            ("air_temperature", 20.0, "Celsius", False),
-            ("lwe_thickness_of_precipitation_amount", 1.0, "mm", False),
+            ("air_temperature", 20.0, "Celsius", False, {}),
+            ("lwe_thickness_of_precipitation_amount", 1.0, "mm", False, {}),
         ],
         shape=(5, 5),
     )
@@ -410,8 +410,8 @@ def test_input_attribute_mappings_disambiguation() -> None:
     """Test INPUT_ATTRIBUTE_MAPPINGS allows input/output name disambiguation."""
     cubes = make_input_cubes(
         [
-            ("air_temperature", 20.0, "Celsius", False),
-            ("test_index", 10.0, "1", False),
+            ("air_temperature", 20.0, "Celsius", False, {}),
+            ("test_index", 10.0, "1", False, {}),
         ],
         shape=(5, 5),
     )
@@ -587,8 +587,8 @@ def test_process_with_month_parameter() -> None:
     """Test process method with month parameter."""
     cubes = make_input_cubes(
         [
-            ("air_temperature", 10.0, "Celsius", False),
-            ("lwe_thickness_of_precipitation_amount", 1.0, "mm", True),
+            ("air_temperature", 10.0, "Celsius", False, {}),
+            ("lwe_thickness_of_precipitation_amount", 1.0, "mm", True, {}),
         ],
         shape=(5, 5),
     )
@@ -622,8 +622,8 @@ def test_process_with_unit_conversion() -> None:
     # Create cubes with non-standard units
     cubes = make_input_cubes(
         [
-            ("air_temperature", 293.15, "K", False),
-            ("relative_humidity", 50.0, "%", False),
+            ("air_temperature", 293.15, "K", False, {}),
+            ("relative_humidity", 50.0, "%", False, {}),
         ],
         shape=(5, 5),
     )
@@ -643,8 +643,8 @@ def test_input_attribute_mappings_in_process() -> None:
     """Test INPUT_ATTRIBUTE_MAPPINGS works in full process workflow."""
     cubes = make_input_cubes(
         [
-            ("air_temperature", 15.0, "Celsius", False),
-            ("test_index", 25.0, "1", False),
+            ("air_temperature", 15.0, "Celsius", False, {}),
+            ("test_index", 25.0, "1", False, {}),
         ],
         shape=(5, 5),
     )
@@ -658,7 +658,7 @@ def test_input_attribute_mappings_in_process() -> None:
 
 
 @pytest.mark.parametrize(
-    "param,value,expected_error",
+    "param,value,expected_warning",
     [
         # Temperature validation
         ("temperature", 150.0, "temperature contains values above valid maximum"),
@@ -676,18 +676,18 @@ def test_input_attribute_mappings_in_process() -> None:
         ),
     ],
 )
-def test_validate_input_range_raises_error(
-    param: str, value: float, expected_error: str
+def test_validate_input_range_raises_warning(
+    param: str, value: float, expected_warning: str
 ) -> None:
-    """Test that _validate_input_range raises ValueError for out-of-range values.
+    """Test that _validate_input_range emits a warning for out-of-range values.
 
     Args:
         param:
             Parameter name to test.
         value:
             Invalid value to test.
-        expected_error:
-            Expected error message substring.
+        expected_warning:
+            Expected warning message substring.
     """
     # Create cubes with invalid values
     if param == "temperature":
@@ -697,8 +697,10 @@ def test_validate_input_range_raises_error(
 
     plugin = ConcreteFireWeatherIndex()
 
-    with pytest.raises(ValueError, match=expected_error):
-        plugin.load_input_cubes(CubeList(cubes))
+    # Should issue a warning about values outside valid range but still process the cubes
+    with pytest.warns(UserWarning, match=expected_warning):
+        result = plugin.process(cubes)
+    assert isinstance(result, Cube)
 
 
 @pytest.mark.parametrize(
@@ -985,7 +987,7 @@ def test_abstract_calculate_raises_not_implemented_error() -> None:
             return super()._calculate()  # pyright: ignore[reportAbstractUsage]
 
     cubes = make_input_cubes(
-        [("air_temperature", 20.0, "Celsius", False)], shape=(5, 5)
+        [("air_temperature", 20.0, "Celsius", False, {})], shape=(5, 5)
     )
     plugin = IncompleteFireWeatherIndex()
 

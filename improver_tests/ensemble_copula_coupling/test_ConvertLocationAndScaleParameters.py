@@ -9,12 +9,13 @@ Unit tests for ConvertLocationAndScaleParameters
 import unittest
 
 import numpy as np
+from iris.cube import CubeList
 from scipy import stats
 
-import improver.ensemble_copula_coupling._scipy_continuous_distns as scipy_cont_distns
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     ConvertLocationAndScaleParameters as Plugin,
 )
+from improver.synthetic_data.set_up_test_cubes import set_up_spot_variable_cube
 
 
 class Test__init__(unittest.TestCase):
@@ -24,19 +25,6 @@ class Test__init__(unittest.TestCase):
         """Test for a valid distribution."""
         plugin = Plugin(distribution="norm")
         self.assertEqual(plugin.distribution, stats.norm)
-        self.assertEqual(plugin.shape_parameters, [])
-
-    def test_valid_distribution_with_shape_parameters(self):
-        """Test for a valid distribution with shape parameters."""
-        plugin = Plugin(distribution="truncnorm", shape_parameters=[0, np.inf])
-        self.assertEqual(plugin.distribution, scipy_cont_distns.truncnorm)
-        self.assertEqual(plugin.shape_parameters, [0, np.inf])
-
-    def test_error_shape_parameters_required(self):
-        """Test error is raised when shape parameters are needed"""
-        msg = "shape parameters must be specified"
-        with self.assertRaisesRegex(ValueError, msg):
-            Plugin(distribution="truncnorm")
 
     def test_invalid_distribution(self):
         """Test for an invalid distribution."""
@@ -50,45 +38,89 @@ class Test__repr__(unittest.TestCase):
 
     def test_basic(self):
         """Test string representation"""
-        expected_string = (
-            "<ConvertLocationAndScaleParameters: "
-            "distribution: norm; shape_parameters: []>"
-        )
+        expected_string = "<ConvertLocationAndScaleParameters: distribution: norm>"
         result = str(Plugin())
         self.assertEqual(result, expected_string)
 
 
-class Test__rescale_shape_parameters(unittest.TestCase):
+class Test__prepare_shape_parameter_truncnorm(unittest.TestCase):
     """Test the _rescale_shape_parameters"""
 
     def setUp(self):
         """Set up values for testing."""
-        self.location_parameter = np.array([-1, 0, 1])
-        self.scale_parameter = np.array([1, 1.5, 2])
+        location_parameter_data = np.array([-1, 0, 1], dtype=np.float32)
+        scale_parameter_data = np.array([1, 1.5, 2], dtype=np.float32)
+
+        self.location_parameter = set_up_spot_variable_cube(location_parameter_data)
+        self.scale_parameter = set_up_spot_variable_cube(scale_parameter_data)
 
     def test_truncated_at_zero(self):
         """Test scaling shape parameters implying a truncation at zero."""
         expected = [np.array([1.0, 0, -0.5]), np.array([np.inf, np.inf, np.inf])]
-        shape_parameters = np.array([0, np.inf], dtype=np.float32)
-        plugin = Plugin(distribution="truncnorm", shape_parameters=shape_parameters)
-        plugin._rescale_shape_parameters(self.location_parameter, self.scale_parameter)
-        np.testing.assert_array_almost_equal(plugin.shape_parameters, expected)
+        shape_parameters = CubeList()
+        for arr in [
+            np.array([0, 0, 0], dtype=np.float32),
+            np.array([np.inf, np.inf, np.inf], dtype=np.float32),
+        ]:
+            shape_parameters.append(set_up_spot_variable_cube(arr))
+
+        plugin = Plugin(distribution="truncnorm")
+        plugin._prepare_shape_parameter_truncnorm(
+            shape_parameters, self.location_parameter, self.scale_parameter
+        )
+
+        for res, exp in zip(shape_parameters, expected):
+            np.testing.assert_array_almost_equal(res.data, exp)
 
     def test_discrete_shape_parameters(self):
         """Test scaling discrete shape parameters."""
         expected = [np.array([-3, -2.666667, -2.5]), np.array([7, 4, 2.5])]
-        shape_parameters = np.array([-4, 6], dtype=np.float32)
-        plugin = Plugin(distribution="truncnorm", shape_parameters=shape_parameters)
-        plugin._rescale_shape_parameters(self.location_parameter, self.scale_parameter)
-        np.testing.assert_array_almost_equal(plugin.shape_parameters, expected)
+        shape_parameters = CubeList()
+        for arr in [
+            np.array([-4, -4, -4], dtype=np.float32),
+            np.array([6, 6, 6], dtype=np.float32),
+        ]:
+            shape_parameters.append(set_up_spot_variable_cube(arr))
 
-    def test_alternative_distribution(self):
-        """Test specifying a distribution other than truncated normal. In
-        this instance, no rescaling is applied."""
-        shape_parameters = np.array([0, np.inf], dtype=np.float32)
-        plugin = Plugin(distribution="norm", shape_parameters=shape_parameters)
-        plugin._rescale_shape_parameters(self.location_parameter, self.scale_parameter)
-        np.testing.assert_array_equal(plugin.shape_parameters, shape_parameters)
+        plugin = Plugin(distribution="truncnorm")
+        plugin._prepare_shape_parameter_truncnorm(
+            shape_parameters, self.location_parameter, self.scale_parameter
+        )
+
+        for res, exp in zip(shape_parameters, expected):
+            np.testing.assert_array_almost_equal(res.data, exp)
+
+    def test_too_few_shape_parameters(self):
+        """Test error raised if too few shape parameters are provided."""
+        shape_parameters = CubeList()
+        for arr in [
+            np.array([0, 0, 0], dtype=np.float32),
+        ]:
+            shape_parameters.append(set_up_spot_variable_cube(arr))
+
+        plugin = Plugin(distribution="truncnorm")
+        msg = "For the truncated normal distribution, two shape parameters are"
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin._prepare_shape_parameter_truncnorm(
+                shape_parameters, self.location_parameter, self.scale_parameter
+            )
+
+    def test_too_many_shape_parameters(self):
+        """Test error raised if too many shape parameters are provided."""
+        shape_parameters = CubeList()
+        for arr in [
+            np.array([0, 0, 0], dtype=np.float32),
+            np.array([1, 1, 1], dtype=np.float32),
+            np.array([np.inf, np.inf, np.inf], dtype=np.float32),
+        ]:
+            shape_parameters.append(set_up_spot_variable_cube(arr))
+
+        plugin = Plugin(distribution="truncnorm")
+        msg = "For the truncated normal distribution, two shape parameters are"
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin._prepare_shape_parameter_truncnorm(
+                shape_parameters, self.location_parameter, self.scale_parameter
+            )
 
 
 if __name__ == "__main__":

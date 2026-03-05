@@ -11,6 +11,7 @@ from tempfile import mkdtemp
 
 import iris
 import numpy as np
+import pytest
 
 from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.synthetic_data.set_up_test_cubes import (
@@ -19,7 +20,7 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_probability_cube,
     set_up_variable_cube,
 )
-from improver.utilities.load import load_cube, load_cubelist
+from improver.utilities.load import load_baseline_cube, load_cube, load_cubelist
 from improver.utilities.save import save_netcdf
 
 
@@ -437,6 +438,33 @@ class Test_load_cubelist(unittest.TestCase):
         loader._LAZYVAR_MIN_BYTES = 0
         result = load_cubelist([self.filepath, self.filepath])
         np.testing.assert_array_equal([True, True], [_.has_lazy_data() for _ in result])
+
+
+@pytest.fixture
+def reference_cube():
+    """Create a 12 by 12 by 12 cube where all values are 1."""
+    return set_up_variable_cube(np.ones((12, 12, 12), dtype=np.float32))
+
+
+@pytest.mark.parametrize("value, units", [(42, "m"), (-77.77, "1"), (-9999, "Celsius")])
+def test_load_baseline_cube(reference_cube, value, units):
+    """Test load_baseline_cube with mix of values and units."""
+    name = "test_baseline_cube"
+    baseline_cube = load_baseline_cube(reference_cube, value, name, units)
+
+    assert name == baseline_cube.name()
+    assert units == baseline_cube.units
+    assert (baseline_cube.data == value).all()
+
+
+def test_load_baseline_cube_with_nans(reference_cube):
+    """Test load baseline cube with nans."""
+    name, value, units = "test_baseline_cube", "nan", "km/h"
+    baseline_cube = load_baseline_cube(reference_cube, value, name, units)
+
+    assert name == baseline_cube.name()
+    assert units == baseline_cube.units
+    assert np.isnan(baseline_cube.data).all()
 
 
 if __name__ == "__main__":

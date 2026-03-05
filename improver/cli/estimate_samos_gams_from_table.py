@@ -30,6 +30,7 @@ def process(
     required_rolling_window_points: int = 5,
     trailing_window: bool = False,
     unique_site_id_key: str = "wmo_id",
+    adjacent_range: int = 0,
 ):
     """Estimate Generalized Additive Model (GAM) for SAMOS.
 
@@ -118,6 +119,11 @@ def process(
             all sites have a valid wmo_id. For GAM estimation the default is
             "wmo_id" as we expect to have a training data set comprising matched
             obs and forecast sites.
+        adjacent_range (int):
+            A period in hours that should be used either side of the
+            defined forecast_period to allow for the inclusion of forecasts and
+            observations that are close to the validity time for which a GAM is
+            being constructed.
 
     Returns:
         (list of GAM models):
@@ -150,6 +156,7 @@ def process(
         training_length=training_length,
         percentiles=percentiles,
         experiment=experiment,
+        adjacent_range=adjacent_range,
     )
 
     if not forecast_cube or not truth_cube:

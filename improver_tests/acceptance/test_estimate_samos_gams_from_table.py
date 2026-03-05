@@ -20,8 +20,13 @@ for mod in ["pyarrow", "statsmodels"]:
 
 
 @pytest.mark.slow
+@pytest.mark.parametrize(
+    "adjacent_range,kgo", [(0, "kgo_coords.pkl"), (1, "kgo_coords_adjacent.pkl")]
+)
 def test_additional_features_coords(
     tmp_path,
+    adjacent_range,
+    kgo,
 ):
     """
     Test estimate-samos-gams-from-table with an example forecast and truth
@@ -33,7 +38,7 @@ def test_additional_features_coords(
     truth_path = source_dir / "truth_table"
 
     kgo_dir = acc.kgo_root() / "estimate-samos-gams-from-table/"
-    kgo_path = kgo_dir / "kgo_coords.pkl"
+    kgo_path = kgo_dir / kgo
 
     output_path = tmp_path / "output.pkl"
     compulsory_args = [history_path, truth_path]
@@ -60,6 +65,8 @@ def test_additional_features_coords(
         "2",
         "--required-rolling-window-points",
         "2",
+        "--adjacent-range",
+        str(adjacent_range),
         "--output",
         output_path,
     ]

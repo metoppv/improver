@@ -26,8 +26,7 @@ class Test__repr__(unittest.TestCase):
     def test_basic(self):
         """Test string representation"""
         expected_string = (
-            "<ConvertLocationAndScaleParametersToProbabilities: "
-            "distribution: norm; shape_parameters: []>"
+            "<ConvertLocationAndScaleParametersToProbabilities: distribution: norm>"
         )
         result = str(Plugin())
         self.assertEqual(result, expected_string)
@@ -149,6 +148,7 @@ class Test__location_and_scale_parameters_to_probabilities(unittest.TestCase):
         which they are calculated above the thresholds."""
 
         result = Plugin()._location_and_scale_parameters_to_probabilities(
+            iris.cube.CubeList([]),
             self.location_parameter_values,
             self.scale_parameter_values,
             self.template_cube,
@@ -165,6 +165,7 @@ class Test__location_and_scale_parameters_to_probabilities(unittest.TestCase):
         )
         expected_with_mask = np.ma.masked_array(self.expected, mask=expected_mask)
         result = Plugin()._location_and_scale_parameters_to_probabilities(
+            iris.cube.CubeList([]),
             self.location_parameter_values,
             self.scale_parameter_values,
             self.template_cube,
@@ -181,6 +182,7 @@ class Test__location_and_scale_parameters_to_probabilities(unittest.TestCase):
         )
         expected_with_mask = np.ma.masked_array(self.expected, mask=expected_mask)
         result = Plugin()._location_and_scale_parameters_to_probabilities(
+            iris.cube.CubeList([]),
             self.location_parameter_values,
             self.scale_parameter_values,
             self.template_cube,
@@ -201,6 +203,7 @@ class Test__location_and_scale_parameters_to_probabilities(unittest.TestCase):
         )
         expected_with_mask = np.ma.masked_array(self.expected, mask=expected_mask)
         result = Plugin()._location_and_scale_parameters_to_probabilities(
+            iris.cube.CubeList([]),
             self.location_parameter_values,
             self.scale_parameter_values,
             self.template_cube,
@@ -214,9 +217,33 @@ class Test__location_and_scale_parameters_to_probabilities(unittest.TestCase):
         expected = (np.ones((3, 3, 3)) * [0.8914245, 0.5942867, 0.2971489]).T
         plugin = Plugin(
             distribution="truncnorm",
-            shape_parameters=np.array([0, np.inf], dtype=np.float32),
         )
+
+        truncnorm_shape_parameters = iris.cube.CubeList(
+            [
+                self.location_parameter_values.copy(
+                    data=np.full_like(
+                        self.location_parameter_values.data, 0, dtype=np.float32
+                    )
+                ),
+                self.location_parameter_values.copy(
+                    data=np.full_like(
+                        self.location_parameter_values.data, np.inf, dtype=np.float32
+                    )
+                ),
+            ]
+        )
+        # Rescale the shape parameters for the truncated normal distribution, so that
+        # they are in the form expected by the underlying scipy function. This rescaling
+        # happens in the .process() method.
+        rescaled_shape_parameter = truncnorm_shape_parameters.copy()
+        for i, cube in enumerate(rescaled_shape_parameter.copy()):
+            rescaled_shape_parameter[i].data = (
+                cube.data - self.location_parameter_values.data
+            ) / self.scale_parameter_values.data
+
         result = plugin._location_and_scale_parameters_to_probabilities(
+            rescaled_shape_parameter,
             self.location_parameter_values,
             self.scale_parameter_values,
             self.template_cube,
@@ -231,6 +258,7 @@ class Test__location_and_scale_parameters_to_probabilities(unittest.TestCase):
         ] = "below"
         expected = (np.ones((3, 3, 3)) * [0.25, 0.5, 0.75]).T
         result = Plugin()._location_and_scale_parameters_to_probabilities(
+            iris.cube.CubeList([]),
             self.location_parameter_values,
             self.scale_parameter_values,
             self.template_cube,
@@ -262,6 +290,7 @@ class Test_process(unittest.TestCase):
     def test_metadata_matches_template(self):
         """Test that the returned cube's metadata matches the template cube."""
         result = Plugin().process(
+            iris.cube.CubeList([]),
             self.location_parameter_values,
             self.scale_parameter_values,
             self.template_cube,
@@ -274,6 +303,7 @@ class Test_process(unittest.TestCase):
         cube."""
         self.template_cube.data = np.ones((3, 3, 3))
         result = Plugin().process(
+            iris.cube.CubeList([]),
             self.location_parameter_values,
             self.scale_parameter_values,
             self.template_cube,

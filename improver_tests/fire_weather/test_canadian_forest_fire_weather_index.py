@@ -44,8 +44,8 @@ def input_cubes(
     """
     return make_input_cubes(
         [
-            ("initial_spread_index", isi_val, isi_units, True),
-            ("build_up_index", bui_val, bui_units, False),
+            ("initial_spread_index", isi_val, isi_units, True, {}),
+            ("build_up_index", bui_val, bui_units, False, {}),
         ],
         shape=shape,
     )

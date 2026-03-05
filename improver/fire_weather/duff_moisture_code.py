@@ -3,13 +3,18 @@
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 
+import os
+
 import numpy as np
 from iris.cube import Cube
 
-from improver.fire_weather import FireWeatherIndexBase
+from improver.fire_weather import IterativeFireWeatherIndexBase
+
+DMC_START_VALUE = os.environ.get("DMC_START_VALUE", 6)
+DMC_LAG_TIME = os.environ.get("DMC_LAG_TIME", 15)
 
 
-class DuffMoistureCode(FireWeatherIndexBase):
+class DuffMoistureCode(IterativeFireWeatherIndexBase):
     """
     Plugin to calculate the Duff Moisture Code (DMC) following
     the Canadian Forest Fire Weather Index System.
@@ -32,6 +37,9 @@ class DuffMoistureCode(FireWeatherIndexBase):
         - Previous DMC: dimensionless
         - Month: integer (1-12) for day length factor lookup
     """
+
+    STARTING_VALUE = DMC_START_VALUE
+    LAG_TIME = DMC_LAG_TIME
 
     INPUT_CUBE_NAMES = [
         "air_temperature",

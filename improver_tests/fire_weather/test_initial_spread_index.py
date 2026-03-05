@@ -2,13 +2,12 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-
 import numpy as np
 import pytest
 from iris.cube import Cube, CubeList
 
 from improver.fire_weather.initial_spread_index import InitialSpreadIndex
-from improver_tests.fire_weather import make_input_cubes
+from improver_tests.fire_weather import START_DATE_DICT, make_input_cubes
 
 
 def input_cubes(
@@ -36,13 +35,11 @@ def input_cubes(
     Returns:
         Tuple of Iris Cubes for wind speed and FFMC.
     """
-    return make_input_cubes(
-        [
-            ("wind_speed", wind_val, wind_units, False),
-            ("fine_fuel_moisture_content", ffmc_val, ffmc_units, True),
-        ],
-        shape=shape,
-    )
+    cube_args = [
+        ("wind_speed", wind_val, wind_units, False, START_DATE_DICT),
+        ("fine_fuel_moisture_content", ffmc_val, ffmc_units, True, START_DATE_DICT),
+    ]
+    return make_input_cubes(cube_args, shape=shape)
 
 
 @pytest.mark.parametrize(

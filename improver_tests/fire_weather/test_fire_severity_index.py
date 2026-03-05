@@ -33,7 +33,7 @@ def input_cubes(
         Tuple containing FWI Cube.
     """
     return make_input_cubes(
-        [("canadian_forest_fire_weather_index", fwi_val, fwi_units, True)],
+        [("canadian_forest_fire_weather_index", fwi_val, fwi_units, True, {})],
         shape=shape,
     )
 

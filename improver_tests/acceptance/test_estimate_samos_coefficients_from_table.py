@@ -33,7 +33,11 @@ EST_EMOS_TOL = str(EST_EMOS_TOLERANCE)
 
 
 @pytest.mark.slow
-def test_additional_features_coords(tmp_path):
+@pytest.mark.parametrize(
+    "adjacent_range,kgo",
+    [(0, "kgo_coordinates.nc"), (1, "kgo_coordinates_adjacent.nc")],
+)
+def test_additional_features_coords(tmp_path, adjacent_range, kgo):
     """
     Test estimate-samos-coefficients-from-table with an example forecast and truth
     table for screen temperature.Extra features for the GAMs are provided
@@ -44,7 +48,7 @@ def test_additional_features_coords(tmp_path):
     truth_path = source_dir / "truth_table"
 
     kgo_dir = acc.kgo_root() / "estimate-samos-coefficients-from-table/"
-    kgo_path = kgo_dir / "kgo_coordinates.nc"
+    kgo_path = kgo_dir / kgo
     output_path = tmp_path / "output.nc"
 
     gam_config = kgo_dir / "gam_coordinates.pkl"
@@ -63,6 +67,8 @@ def test_additional_features_coords(tmp_path):
         "temperature_at_screen_level",
         "--cycletime",
         "20210805T2100Z",
+        "--adjacent-range",
+        str(adjacent_range),
         "--output",
         output_path,
     ]
@@ -74,7 +80,10 @@ def test_additional_features_coords(tmp_path):
 
 
 @pytest.mark.slow
-def test_additional_gam_features_cube(tmp_path):
+@pytest.mark.parametrize(
+    "adjacent_range,kgo", [(0, "kgo_gam_cube.nc"), (1, "kgo_gam_cube_adjacent.nc")]
+)
+def test_additional_gam_features_cube(tmp_path, adjacent_range, kgo):
     """
     Test estimate-samos-coefficients-from-table with an example forecast and truth
     table for screen temperature. Extra features for the GAMs are provided
@@ -85,7 +94,7 @@ def test_additional_gam_features_cube(tmp_path):
     truth_path = source_dir / "truth_table"
 
     kgo_dir = acc.kgo_root() / "estimate-samos-coefficients-from-table/"
-    kgo_path = kgo_dir / "kgo_gam_cube.nc"
+    kgo_path = kgo_dir / kgo
     output_path = tmp_path / "output.nc"
     gam_additional_features = kgo_dir / "distance_to_water.nc"
     gam_config = kgo_dir / "gam_coordinates.pkl"
@@ -104,6 +113,8 @@ def test_additional_gam_features_cube(tmp_path):
         "temperature_at_screen_level",
         "--cycletime",
         "20210805T2100Z",
+        "--adjacent-range",
+        str(adjacent_range),
         "--output",
         output_path,
     ]
