@@ -542,7 +542,7 @@ def test_construct_target_periods(kwargs, data, input_period, expected):
         (
             {
                 "target_period": 3600,
-                "fidelity": 3600,
+                "fidelity": None,
                 "night_mask": False,
                 "day_mask": False,
             },
@@ -552,7 +552,7 @@ def test_construct_target_periods(kwargs, data, input_period, expected):
             np.full((3, 3, 3), 3600),  # Expected data in the output cube.
             None,  # List of realization numbers if any
             None,  # Expected exception
-        ),  # Raise a ValueError as the target period is not a factor of the input period.
+        ),
         (
             {
                 "target_period": 1100,
