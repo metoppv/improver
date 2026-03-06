@@ -194,7 +194,7 @@ percentile_cube_transformation_unscaled = plugin(
 # **Transformation sampling:**
 #
 # - Generates different percentiles at each grid point based on the local distribution
-# of probabilities.
+#   of probabilities.
 #
 # Transformation sampling without scaling in this example, generates percentiles
 # that are more widely spaced. Applying the scaling pulls the non-zero percentiles
