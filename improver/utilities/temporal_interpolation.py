@@ -2022,7 +2022,7 @@ class DurationSubdivision:
     def __init__(
         self,
         target_period: int,
-        fidelity: int,
+        fidelity: Optional[int] = None,
         night_mask: bool = True,
         day_mask: bool = False,
     ):
@@ -2038,11 +2038,13 @@ class DurationSubdivision:
                 The data will be reconstructed into non-overlapping periods.
                 The target_period must be a factor of the original period.
             fidelity:
-                The shortest increment in seconds into which the input periods are
-                divided and to which the night mask is applied. The
-                target periods are reconstructed from these shorter periods.
-                Shorter fidelity periods better capture where the day / night
-                discriminator falls.
+                If provided, the shortest increment in seconds into which the input
+                periods are divided and to which the night mask is applied. The target
+                periods are reconstructed from these shorter periods. Shorter fidelity
+                periods better capture where the day / night discriminator falls.
+                Setting fidelity either to None or equal to target_period will result in
+                a simple subdivision of the original period into the specified target
+                periods with no intermediate fidelity period processing.
             night_mask:
                 If true, points that fall at night are zeroed and duration
                 reallocated to day time periods as much as possible.
@@ -2054,16 +2056,19 @@ class DurationSubdivision:
             ValueError: If target_period and / or fidelity are not positive integers.
             ValueError: If day and night mask options are both set True.
         """
-        for item in [target_period, fidelity]:
+        self.target_period = target_period
+        self.fidelity = fidelity
+        if self.fidelity is None:
+            self.fidelity = self.target_period
+
+        for item in [self.target_period, self.fidelity]:
             if item <= 0:
                 raise ValueError(
                     "Target period and fidelity must be a positive integer "
                     "numbers of seconds. Currently set to "
-                    f"target_period: {target_period}, fidelity: {fidelity}"
+                    f"target_period: {self.target_period}, fidelity: {self.fidelity}"
                 )
 
-        self.target_period = target_period
-        self.fidelity = fidelity
         if night_mask and day_mask:
             raise ValueError(
                 "Only one or neither of night_mask and day_mask may be set to True"
@@ -2182,27 +2187,44 @@ class DurationSubdivision:
             with an entry for each target period. These periods combined span
             the original cube's period.
         """
-        new_period_cubes = iris.cube.CubeList()
-
         interval = timedelta(seconds=self.target_period)
         start_time = fidelity_period_cube.coord("time").cell(0).bound[0]
         end_time = fidelity_period_cube.coord("time").cell(-1).bound[-1]
-        while start_time < end_time:
-            period_constraint = iris.Constraint(
-                time=lambda cell: start_time <= cell.bound[0] < start_time + interval
-            )
-            components = fidelity_period_cube.extract(period_constraint)
-            component_cube = components.collapsed("time", iris.analysis.SUM)
-            enforce_time_point_standard(component_cube)
-            new_period_cubes.append(component_cube)
-            start_time += interval
-        # The cycle times are already the same. This code will recalculate
-        # the forecasts periods relative to the cycletime for each of our
+
+        new_period_cubes = iris.cube.CubeList()
+
+        # The cycle times are already the same. However, below we use this variable
+        # to recalculate the forecast periods relative to the cycletime for each of our
         # extracted shorter duration cubes.
         cycle_time = fidelity_period_cube.coord("forecast_reference_time").cell(0).point
 
-        new_period_cubes = unify_cycletime(new_period_cubes, cycle_time)
-        return new_period_cubes.merge_cube()
+        # If the fidelity is the same as the target period, we can skip the step of
+        # summing up the fidelity period cubes into target period cubes seen in the else
+        # statement below and just enforce the time point standard and unify cycletime
+        # on the fidelity period cubes.
+        if self.fidelity == self.target_period:
+            for time_slice in fidelity_period_cube.slices_over("time"):
+                enforce_time_point_standard(time_slice)
+                new_period_cubes.append(time_slice)
+
+            new_period_cubes = unify_cycletime(new_period_cubes, cycle_time)
+            return new_period_cubes.merge_cube()
+
+        else:
+            while start_time < end_time:
+                period_constraint = iris.Constraint(
+                    time=lambda cell: start_time
+                    <= cell.bound[0]
+                    < start_time + interval
+                )
+                components = fidelity_period_cube.extract(period_constraint)
+                component_cube = components.collapsed("time", iris.analysis.SUM)
+                enforce_time_point_standard(component_cube)
+                new_period_cubes.append(component_cube)
+                start_time += interval
+
+            new_period_cubes = unify_cycletime(new_period_cubes, cycle_time)
+            return new_period_cubes.merge_cube()
 
     def process(self, cube: Cube) -> Cube:
         """Create target period duration diagnostics from the original duration
@@ -2219,8 +2241,8 @@ class DurationSubdivision:
 
         Raises:
             ValueError: The target period is not a factor of the input period.
-            ValueError: The fidelity period is not less than or equal to the
-                        target period.
+            ValueError: The fidelity period is supplied but is not less than or equal to
+            the target period.
         """
         period = self.cube_period(cube)
 
@@ -2235,7 +2257,7 @@ class DurationSubdivision:
                 "period. "
                 f"Input period: {period}, target period: {self.target_period}"
             )
-        if self.fidelity > self.target_period:
+        if self.fidelity is not None and self.fidelity > self.target_period:
             raise ValueError(
                 "The fidelity period must be less than or equal to the target period."
             )

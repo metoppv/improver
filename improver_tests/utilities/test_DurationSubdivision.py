@@ -541,6 +541,20 @@ def test_construct_target_periods(kwargs, data, input_period, expected):
     [
         (
             {
+                "target_period": 3600,
+                "fidelity": None,  # Demonstrate the fidelity argument set to None.
+                "night_mask": False,
+                "day_mask": False,
+            },
+            np.full((3, 3), 10800),  # Data in the input cube.
+            dt(2024, 6, 15, 12),  # Validity time
+            10800,  # Input period
+            np.full((3, 3, 3), 3600),  # Expected data in the output cube.
+            None,  # List of realization numbers if any
+            None,  # Expected exception
+        ),
+        (
+            {
                 "target_period": 1100,
                 "fidelity": 550,
                 "night_mask": False,
@@ -786,4 +800,8 @@ def test_process(kwargs, data_cube, period, expected, exception, realizations):
             np.testing.assert_array_almost_equal(result.data, expected)
             # Check periods returned are correct.
             (bounds,) = np.unique(np.diff(result.coord("time").bounds, axis=1))
+            assert bounds == kwargs["target_period"]
+            (bounds,) = np.unique(
+                np.diff(result.coord("forecast_period").bounds, axis=1)
+            )
             assert bounds == kwargs["target_period"]
