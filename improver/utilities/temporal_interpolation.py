@@ -2093,12 +2093,56 @@ class DurationSubdivision:
         (period,) = np.diff(cube.coord("time").bounds[0])
         return period
 
-    def allocate_data(self, cube: Cube, period: int) -> Cube:
+    def _make_fidelity_cube(
+        self,
+        cube: Cube,
+        interval_data: np.ndarray,
+        interval_start: int,
+        interval_end: int,
+    ) -> Cube:
+        """Create a single fidelity period cube with masking applied.
+
+        Args:
+            cube:
+                The original period cube, used as a template for metadata.
+            interval_data:
+                The data array already divided by the total number of
+                fidelity intervals.
+            interval_start:
+                The start time of the fidelity interval in seconds since epoch.
+            interval_end:
+                The end time of the fidelity interval in seconds since epoch.
+
+        Returns:
+            A single fidelity period cube with the time coordinate set to
+            the interval bounds and any day or night masking applied.
+        """
+        interval_cube = cube.copy(data=interval_data.copy())
+        interval_cube.coord("time").points = np.array([interval_end], dtype=np.int64)
+        interval_cube.coord("time").bounds = np.array(
+            [[interval_start, interval_end]], dtype=np.int64
+        )
+
+        if self.mask_value is not None:
+            daynight_mask = DayNightMask()(interval_cube).data
+            daynight_mask = np.broadcast_to(daynight_mask, interval_cube.shape)
+            interval_cube.data[daynight_mask == self.mask_value] = 0.0
+
+        return interval_cube
+
+    def allocate_data_for_target_period(
+        self,
+        cube: Cube,
+        period: int,
+        target_start: int,
+    ) -> iris.cube.CubeList:
         """Allocate fractions of the original cube duration diagnostic to
-        shorter fidelity periods with metadata that describes these shorter
-        periods appropriately. The fidelity period cubes will be merged to
-        form a cube with a longer time dimension. This cube will be returned
-        and used elsewhere to construct the target period cubes.
+        the fidelity periods within a single target period, optionally
+        applying a day or night mask to zero out the appropriate periods.
+
+        By processing one target period at a time, only the fidelity cubes
+        for that target period are held in memory simultaneously, reducing
+        peak memory usage.
 
         Args:
             cube:
@@ -2106,66 +2150,65 @@ class DurationSubdivision:
                 taken and divided up.
             period:
                 The period of the input cube in seconds.
+            target_start:
+                The start time of the target period in seconds since epoch.
 
         Returns:
-            A cube, with a time dimension, that contains the subdivided data.
+            A CubeList of fidelity period cubes for this target period, with
+            the duration data evenly allocated across fidelity periods and
+            any day or night masking applied.
         """
-        # Split the whole period duration into allocations for each fidelity
-        # period.
-        intervals = period // self.fidelity
+        total_intervals = period // self.fidelity
+        intervals_per_period = self.target_period // self.fidelity
+        interval_data = (cube.data / total_intervals).astype(cube.data.dtype)
 
-        interval_data = (cube.data / intervals).astype(cube.data.dtype)
+        return iris.cube.CubeList(
+            [
+                self._make_fidelity_cube(
+                    cube,
+                    interval_data,
+                    target_start + i * self.fidelity,
+                    target_start + (i + 1) * self.fidelity,
+                )
+                for i in range(intervals_per_period)
+            ]
+        )
 
-        daynightplugin = DayNightMask()
-        start_time, _ = cube.coord("time").bounds.flatten()
+    def _compute_renormalisation_factor(self, cube: Cube, period: int) -> np.ndarray:
+        """Compute the renormalisation factor by streaming through all fidelity
+        periods with masking applied, without storing all fidelity cubes
+        simultaneously.
 
-        interpolated_cubes = iris.cube.CubeList()
-
-        for i in range(intervals):
-            interval_cube = cube.copy(data=interval_data.copy())
-            interval_start = start_time + i * self.fidelity
-            interval_end = start_time + (i + 1) * self.fidelity
-
-            interval_cube.coord("time").points = np.array(
-                [interval_end], dtype=np.int64
-            )
-            interval_cube.coord("time").bounds = np.array(
-                [[interval_start, interval_end]], dtype=np.int64
-            )
-
-            if self.mask_value is not None:
-                daynight_mask = daynightplugin(interval_cube).data
-                daynight_mask = np.broadcast_to(daynight_mask, interval_cube.shape)
-                interval_cube.data[daynight_mask == self.mask_value] = 0.0
-            interpolated_cubes.append(interval_cube)
-
-        return interpolated_cubes.merge_cube()
-
-    @staticmethod
-    def renormalisation_factor(cube: Cube, fidelity_period_cube: Cube) -> np.ndarray:
-        """Sum up the total of the durations distributed amongst the fidelity
-        period cubes following the application of any masking. These are
-        then used with the durations in the unsubdivided original data to
-        calculate a factor to restore the correct totals; note that where
-        clipping plays a role the original totals may not be restored.
+        This is used to compute the factor needed to renormalise the fidelity
+        period data so that the total across all fidelity periods matches the
+        original period total after masking.
 
         Args:
             cube:
                 The original period cube of duration data.
-            fidelity_period_cube:
-                The cube of fidelity period durations (the original durations
-                divided up into shorter fidelity periods).
+            period:
+                The period of the input cube in seconds.
 
         Returns:
             factor:
-                An array of factors that can be used to multiply up the
-                fidelity period durations such that when the are summed up
-                they are equal to the original durations.
+                An array of renormalisation factors.
         """
-        retotal = fidelity_period_cube.collapsed("time", iris.analysis.SUM)
-        factor = cube.data / retotal.data
-        # Masked points indicate divide by 0, set these points to 0. Also handle
-        # a case in which there is no masking on the factor array.
+        total_intervals = period // self.fidelity
+        interval_data = (cube.data / total_intervals).astype(cube.data.dtype)
+        start_time, _ = cube.coord("time").bounds.flatten()
+
+        retotal = np.zeros_like(cube.data, dtype=np.float64)
+        for i in range(total_intervals):
+            interval_cube = self._make_fidelity_cube(
+                cube,
+                interval_data,
+                start_time + i * self.fidelity,
+                start_time + (i + 1) * self.fidelity,
+            )
+            retotal += interval_cube.data
+            del interval_cube
+
+        factor = cube.data / retotal
         try:
             factor = factor.filled(0)
         except AttributeError:
@@ -2173,62 +2216,88 @@ class DurationSubdivision:
 
         return factor
 
-    def construct_target_periods(self, fidelity_period_cube: Cube) -> Cube:
-        """Combine the short fidelity period cubes into cubes that describe
-        the target period.
+    def _process_target_period(
+        self,
+        cube: Cube,
+        period: int,
+        n_target_periods: int,
+        target_start: int,
+        target_end: int,
+        factor: np.ndarray,
+    ) -> Cube:
+        """Process a single target period, constructing, masking, renormalising,
+        and collapsing the fidelity cubes into a single target period cube.
 
         Args:
-            fidelity_period_cube:
-                The short fidelity period cubes from which the target periods
-                are constructed.
+            cube:
+                The original duration diagnostic cube.
+            period:
+                The period of the input cube in seconds.
+            n_target_periods:
+                The total number of target periods.
+            target_start:
+                The start time of the target period in seconds since epoch.
+            target_end:
+                The end time of the target period in seconds since epoch.
+            factor:
+                An array of renormalisation factors.
 
         Returns:
-            A cube containing the target period data with a time dimension
-            with an entry for each target period. These periods combined span
-            the original cube's period.
+            A single cube representing the target period.
         """
-        interval = timedelta(seconds=self.target_period)
-        start_time = fidelity_period_cube.coord("time").cell(0).bound[0]
-        end_time = fidelity_period_cube.coord("time").cell(-1).bound[-1]
-
-        new_period_cubes = iris.cube.CubeList()
-
-        # The cycle times are already the same. However, below we use this variable
-        # to recalculate the forecast periods relative to the cycletime for each of our
-        # extracted shorter duration cubes.
-        cycle_time = fidelity_period_cube.coord("forecast_reference_time").cell(0).point
-
-        # If the fidelity is the same as the target period, we can skip the step of
-        # summing up the fidelity period cubes into target period cubes seen in the else
-        # statement below and just enforce the time point standard and unify cycletime
-        # on the fidelity period cubes.
         if self.fidelity == self.target_period:
-            for time_slice in fidelity_period_cube.slices_over("time"):
-                enforce_time_point_standard(time_slice)
-                new_period_cubes.append(time_slice)
+            # No intermediate fidelity processing needed. Construct a single
+            # cube for this target period directly from the original data,
+            # applying masking, renormalisation, and clipping.
+            target_cube = cube.copy(
+                data=(cube.data / n_target_periods).astype(cube.data.dtype)
+            )
+            target_cube.coord("time").points = np.array([target_end], dtype=np.int64)
+            target_cube.coord("time").bounds = np.array(
+                [[target_start, target_end]], dtype=np.int64
+            )
 
-            new_period_cubes = unify_cycletime(new_period_cubes, cycle_time)
-            return new_period_cubes.merge_cube()
+            if self.mask_value is not None:
+                daynightplugin = DayNightMask()
+                daynight_mask = daynightplugin(target_cube).data
+                daynight_mask = np.broadcast_to(daynight_mask, target_cube.shape)
+                target_cube.data[daynight_mask == self.mask_value] = 0.0
+
+            target_cube.data = np.clip(
+                target_cube.data * factor, 0, self.target_period
+            ).astype(cube.data.dtype)
 
         else:
-            while start_time < end_time:
-                period_constraint = iris.Constraint(
-                    time=lambda cell: start_time
-                    <= cell.bound[0]
-                    < start_time + interval
-                )
-                components = fidelity_period_cube.extract(period_constraint)
-                component_cube = components.collapsed("time", iris.analysis.SUM)
-                enforce_time_point_standard(component_cube)
-                new_period_cubes.append(component_cube)
-                start_time += interval
+            # Construct, mask, renormalise, and collapse the fidelity cubes
+            # for this target period immediately, without retaining them.
+            fidelity_cubes = self.allocate_data_for_target_period(
+                cube, period, target_start
+            )
 
-            new_period_cubes = unify_cycletime(new_period_cubes, cycle_time)
-            return new_period_cubes.merge_cube()
+            # Apply renormalisation and clipping to each fidelity cube.
+            for fidelity_cube in fidelity_cubes:
+                fidelity_cube.data = np.clip(
+                    fidelity_cube.data * factor, 0, self.fidelity
+                ).astype(cube.data.dtype)
+
+            # Immediately collapse the fidelity cubes into the target period.
+            fidelity_merged = fidelity_cubes.merge_cube()
+            target_cube = fidelity_merged.collapsed("time", iris.analysis.SUM)
+            del fidelity_cubes, fidelity_merged
+
+        enforce_time_point_standard(target_cube)
+        return target_cube
 
     def process(self, cube: Cube) -> Cube:
         """Create target period duration diagnostics from the original duration
         diagnostic data.
+
+        Rather than constructing all fidelity period cubes upfront and storing
+        them in memory, this method pipelines the fidelity construction and
+        collapse steps. For each target period, the fidelity cubes are
+        constructed, masked, renormalised, clipped, and immediately collapsed
+        into a single target period cube before moving on to the next target
+        period. This significantly reduces peak memory usage.
 
         Args:
             cube:
@@ -2261,18 +2330,47 @@ class DurationSubdivision:
             raise ValueError(
                 "The fidelity period must be less than or equal to the target period."
             )
+
         # Ensure that the cube is already self-consistent and does not include
         # any durations that exceed the period described. This is mostly to
         # handle grib packing errors for ECMWF data.
         cube.data = np.clip(cube.data, 0, period, dtype=cube.data.dtype)
 
-        fidelity_period_cube = self.allocate_data(cube, period)
-        factor = self.renormalisation_factor(cube, fidelity_period_cube)
+        cycle_time = cube.coord("forecast_reference_time").cell(0).point
+        start_time, _ = cube.coord("time").bounds.flatten()
+        n_target_periods = period // self.target_period
 
-        # Apply clipping to limit these values to the maximum possible
-        # duration that can be contained within the period.
-        fidelity_period_cube = fidelity_period_cube.copy(
-            data=np.clip(fidelity_period_cube.data * factor, 0, self.fidelity)
-        )
+        # Compute the renormalisation factor once across the full period.
+        # This requires one pass through all fidelity periods with masking applied.
+        # No intermediate cubes are retained after this step.
+        if self.mask_value is not None:
+            factor = self._compute_renormalisation_factor(cube, period)
+        else:
+            # Without masking, every fidelity period retains its full allocation,
+            # so the sum of all fidelity periods equals the original and the
+            # factor is uniformly 1.
+            factor = np.ones_like(cube.data, dtype=np.float64)
 
-        return self.construct_target_periods(fidelity_period_cube)
+        new_period_cubes = iris.cube.CubeList()
+
+        for i in range(n_target_periods):
+            target_start = start_time + i * self.target_period
+            target_end = target_start + self.target_period
+
+            target_cube = self._process_target_period(
+                cube, period, n_target_periods, target_start, target_end, factor
+            )
+            new_period_cubes.append(target_cube)
+
+        del cube
+
+        new_period_cubes = unify_cycletime(new_period_cubes, cycle_time)
+
+        for i, cube in enumerate(new_period_cubes):
+            cube = iris.util.new_axis(cube, "time")
+            fp_coord = cube.coord("forecast_period")
+            cube.remove_coord(fp_coord.name())
+            cube.add_aux_coord(fp_coord, data_dims=cube.coord_dims("time")[0])
+            new_period_cubes[i] = cube
+
+        return new_period_cubes.concatenate_cube()
