@@ -78,9 +78,7 @@ class LapseRate(BasePlugin):
         """
 
         def _fit_function(diag_window, orog_window):
-            if np.isnan(diag_window[self.ind_central_point]) or np.isnan(
-                orog_window[self.ind_central_point]
-            ):
+            if not np.isfinite(diag_window).all(diag_window):
                 return lambda x: np.nan
             sort_idx = np.argsort(orog_window)
             return self._calc_function(
