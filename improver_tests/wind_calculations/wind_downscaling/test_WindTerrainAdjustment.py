@@ -329,7 +329,7 @@ class Test1D(unittest.TestCase):
     uin = np.array([20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0], dtype=np.float32)
     hls = np.array([0.2, 3, 13, 33, 133, 333, 1133], dtype=np.float32)
 
-    def test_section0a(self):
+    def test_no_correction_when_silhouette_roughness_is_RMDI(self):
         """Test silhouette_roughness is RMDI, point should not do anything, uin = uout."""
         landpointtests_hc_rc = TestSinglePoint(
             silhouette_roughness=RMDI, heightlevels=self.hls
@@ -337,7 +337,7 @@ class Test1D(unittest.TestCase):
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         np.testing.assert_array_equal(landpointtests_hc_rc.w_cube, land_hc_rc)
 
-    def test_section0b(self):
+    def test_no_correction_when_silhouette_roughness_is_nan(self):
         """Test silhouette_roughness is np.nan, point should not do anything, uin = uout."""
         landpointtests_hc_rc = TestSinglePoint(
             silhouette_roughness=np.nan, heightlevels=self.hls
@@ -345,13 +345,13 @@ class Test1D(unittest.TestCase):
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         np.testing.assert_array_equal(landpointtests_hc_rc.w_cube, land_hc_rc)
 
-    def test_section0c(self):
+    def test_no_correction_when_orog_stddev_is_RMDI(self):
         """Test orog_stddev is RMDI, point should not do anything, uin = uout."""
         landpointtests_hc_rc = TestSinglePoint(orog_stddev=RMDI, heightlevels=self.hls)
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         np.testing.assert_array_equal(landpointtests_hc_rc.w_cube, land_hc_rc)
 
-    def test_section0d(self):
+    def test_no_correction_when_orog_stddev_is_nan(self):
         """Test orog_stddev is np.nan, point should not do anything, uin = uout."""
         landpointtests_hc_rc = TestSinglePoint(
             orog_stddev=np.nan, heightlevels=self.hls
@@ -359,7 +359,7 @@ class Test1D(unittest.TestCase):
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         np.testing.assert_array_equal(landpointtests_hc_rc.w_cube, land_hc_rc)
 
-    def test_section0e(self):
+    def test_no_rc_when_z0_is_RMDI_and_no_hc_due_to_equal_orography(self):
         """Test roughness_length_z0 is RMDI, point should not do RC.
 
         modeloro = pporo, so point should not do HC, uin = uout.
@@ -371,7 +371,7 @@ class Test1D(unittest.TestCase):
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         np.testing.assert_array_equal(landpointtests_hc_rc.w_cube, land_hc_rc)
 
-    def test_section0f(self):
+    def test_no_rc_when_z0_is_nan_and_no_hc_due_to_equal_orography(self):
         """Test roughness_length_z0 is np.nan, point should not do RC.
 
         modeloro = pporo, so point should not do HC, uin = uout.
@@ -383,7 +383,9 @@ class Test1D(unittest.TestCase):
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         np.testing.assert_array_equal(landpointtests_hc_rc.w_cube, land_hc_rc)
 
-    def test_section0g(self):
+    def test_positive_hc_when_model_orog_is_less_than_pp_and_rc_disabled_by_missing_z0(
+        self,
+    ):
         """Test roughness_length_z0 is RMDI, point should not do RC.
 
         modeloro < pporo, so point should do positive HC, uin < uout.
@@ -395,7 +397,7 @@ class Test1D(unittest.TestCase):
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertTrue((land_hc_rc.data > landpointtests_hc_rc.w_cube.data).all())
 
-    def test_section0h(self):
+    def test_rc_only_when_orog_pp_is_RMDI_and_hc_disabled(self):
         """Test orog_pp is RMDI (QUESTION: or should this fail???)
 
         RC could be done for this point, HC cannot.
@@ -411,7 +413,7 @@ class Test1D(unittest.TestCase):
             and land_hc_rc.data[0] == 0
         )
 
-    def test_section0i(self):
+    def test_rc_only_when_orog_pp_is_nan_and_hc_disabled(self):
         """Test orog_pp is np.nan (QUESTION: or should this fail???)
 
         RC could be done for this point, HC cannot.
@@ -427,7 +429,7 @@ class Test1D(unittest.TestCase):
             and land_hc_rc.data[0] == 0
         )
 
-    def test_section0j(self):
+    def test_rc_only_when_orog_model_is_RMDI_and_hc_disabled(self):
         """Test orog_model is RMDI (QUESTION: or should this fail???).
 
         RC could be done for this point, HC cannot.
@@ -443,7 +445,7 @@ class Test1D(unittest.TestCase):
             and land_hc_rc.data[0] == 0
         )
 
-    def test_section0k(self):
+    def test_error_when_height_grid_contains_RMDI(self):
         """Test fail for RMDI in height grid.
 
         height grid is RMDI at that location somewhere in z-direction,
@@ -455,7 +457,7 @@ class Test1D(unittest.TestCase):
         with self.assertRaises(ValueError):
             _ = landpointtests_hc_rc.run_hc_rc(self.uin)
 
-    def test_section0l(self):
+    def test_error_when_height_grid_contains_nan(self):
         """Test fail for np.nan in height grid.
 
         height grid is np.nan at that location somewhere in z-direction,
@@ -467,7 +469,7 @@ class Test1D(unittest.TestCase):
         with self.assertRaises(ValueError):
             _ = landpointtests_hc_rc.run_hc_rc(self.uin)
 
-    def test_section0m(self):
+    def test_error_when_wind_input_contains_RMDI(self):
         """Test fail for RMDI in uin.
 
         uin is RMDI at that location somewhere in z-direction,
@@ -479,7 +481,7 @@ class Test1D(unittest.TestCase):
         with self.assertRaises(ValueError):
             _ = landpointtests_hc_rc.run_hc_rc(uin)
 
-    def test_section0n(self):
+    def test_error_when_wind_input_contains_nan(self):
         """Test fail for np.nan in uin.
 
         uin is np.nan at that location somewhere in z-direction,
@@ -491,7 +493,7 @@ class Test1D(unittest.TestCase):
         with self.assertRaises(ValueError):
             _ = landpointtests_hc_rc.run_hc_rc(uin)
 
-    def test_section1a(self):
+    def test_hc_zero_when_z0_none_and_orography_equal(self):
         """Test HC only, HC = 0.
 
         roughness_length_z0 passed as None, hence RC not performed.
@@ -503,7 +505,7 @@ class Test1D(unittest.TestCase):
         land_hc_rc = landpointtests_hc.run_hc_rc(self.uin)
         np.testing.assert_array_equal(landpointtests_hc.w_cube, land_hc_rc)
 
-    def test_section1b(self):
+    def test_positive_hc_when_z0_none_and_orog_pp_greater_than_model(self):
         """Test HC only.
 
         roughness_length_z0 passed as None, hence RC not performed.
@@ -518,7 +520,7 @@ class Test1D(unittest.TestCase):
             and (land_hc_rc.data > landpointtests_hc.w_cube.data).any()
         )
 
-    def test_section1c(self):
+    def test_rc_applied_and_hc_zero_when_orography_equal(self):
         """Test RC and HC, HC=0.
 
         roughness_length_z0 passed, hence RC performed.
@@ -534,7 +536,7 @@ class Test1D(unittest.TestCase):
             and land_hc_rc.data[0] == 0
         )
 
-    def test_section1d(self):
+    def test_negative_hc_clamped_to_zero_with_positive_rc_near_surface(self):
         """Test RC and HC.
 
         roughness_length_z0 passed, hence RC performed.
@@ -554,7 +556,7 @@ class Test1D(unittest.TestCase):
             and land_hc_rc.data[0] == 0
         )
 
-    def test_section1e(self):
+    def test_no_correction_when_silhouette_roughness_zero_sea_point(self):
         """Test RC and HC, but sea point masked out (silhouette_roughness).
 
         Sea point according to (silhouette_roughness=0) => masked out.
@@ -566,7 +568,7 @@ class Test1D(unittest.TestCase):
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         np.testing.assert_array_equal(landpointtests_hc_rc.w_cube, land_hc_rc)
 
-    def test_section1f(self):
+    def test_no_correction_when_orog_stddev_zero_sea_point(self):
         """Test RC and HC, but sea point masked out (orog_stddev).
 
         Sea point according to (orog_stddev=0) => masked out
@@ -578,7 +580,7 @@ class Test1D(unittest.TestCase):
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         np.testing.assert_array_equal(landpointtests_hc_rc.w_cube, land_hc_rc)
 
-    def test_section1g(self):
+    def test_output_is_float32(self):
         """Test that code returns float32 precision."""
         landpointtests_hc_rc = TestSinglePoint()
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
@@ -597,7 +599,7 @@ class Test2D(unittest.TestCase):
     uin = [20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0]
     hls = [0.2, 3, 13, 33, 133, 333, 1133]
 
-    def test_section2a(self):
+    def test_uniform_profile_preserved_across_all_points(self):
         """Test multiple points.
 
         All points should have equal u profile hence all points in a
@@ -613,7 +615,7 @@ class Test2D(unittest.TestCase):
         for field in land_hc_rc.slices_over(hidx):
             self.assertTrue((field.data == field.data[0, 0]).all())
 
-    def test_section2b(self):
+    def test_mixed_sea_and_land_points_over_multiple_timesteps(self):
         """Test a mix of sea and land points over multiple timesteps.
 
         p1: sea point, no correction
@@ -654,7 +656,7 @@ class Test2D(unittest.TestCase):
             (landp2new <= landp3new).all() and (landp2new < landp3new).any()
         )
 
-    def test_section2c(self):
+    def test_error_when_passing_list_instead_of_cube(self):
         """As test 2b, but passing the two time steps in a list.
 
         timesteps are a list rather than a 4D cube. This should raise
@@ -673,7 +675,7 @@ class Test2D(unittest.TestCase):
         with self.assertRaisesRegex(TypeError, msg):
             _ = multip_hc_rc.run_hc_rc([uin, uin], dtime=2, height=heights, aslist=True)
 
-    def test_section2d(self):
+    def test_output_dtype_float32_in_multipoint_case(self):
         """Test whether output is float32."""
         hlvs = 10
         uin = (np.ones(hlvs) * 20).astype(np.float32)
@@ -682,7 +684,7 @@ class Test2D(unittest.TestCase):
         land_hc_rc = multip_hc_rc.run_hc_rc(uin, dtime=1, height=heights)
         self.assertEqual(land_hc_rc.dtype, np.float32)
 
-    def test_section3a(self):
+    def test_error_when_z0_grid_inconsistent(self):
         """As test 1c, however with manipulated roughness_length_z0 cube.
 
         All ancillary fields have 1x1 dim, roughness_length_z0 is on a different grid.
@@ -703,7 +705,7 @@ class Test2D(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, msg):
             _ = landpointtests_rc.run_hc_rc(self.uin)
 
-    def test_section3b(self):
+    def test_error_when_orog_model_grid_inconsistent(self):
         """As test 3a, however with manipulated orog_model cube instead.
 
         This should fail with ValueError("ancillary grids are not
@@ -726,7 +728,7 @@ class Test2D(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, msg):
             _ = landpointtests_rc.run_hc_rc(self.uin)
 
-    def test_section3c(self):
+    def test_error_when_z0_has_incorrect_units(self):
         """As test 3a, however with manipulated roughness_length_z0 units.
 
         This should fail with a wrong units error.
