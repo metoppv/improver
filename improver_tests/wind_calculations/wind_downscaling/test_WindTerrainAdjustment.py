@@ -2,7 +2,7 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""Unit tests for plugin wind_downscaling.RoughnessCorrection."""
+"""Unit tests for plugin wind_downscaling.WindTerrainAdjustment."""
 
 import datetime
 import unittest
@@ -16,7 +16,7 @@ from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     set_up_variable_cube,
 )
-from improver.wind_calculations.wind_downscaling import RoughnessCorrection
+from improver.wind_calculations.wind_downscaling import WindTerrainAdjustment
 
 
 def _make_flat_cube(data, name, unit):
@@ -161,7 +161,7 @@ class TestMultiPoint:
     def run_hc_rc(self, wind, dtime=1, height=None, aslist=False):
         """Function to set up a wind cube from the supplied np.array.
 
-        Set up the wind and call the RoughnessCorrection class. If the
+        Set up the wind and call the WindTerrainAdjustment class. If the
         supplied array is 1D, it is assumed to be the height profile
         and the values are copied to all x-y points and all time steps.
         If the supplied array is 2D, it is assumed that the supplied
@@ -207,7 +207,7 @@ class TestMultiPoint:
                     cube, time_points, "time", is_datetime=True, order=[1, 0, 2, 3]
                 )
 
-        plugin = RoughnessCorrection(
+        plugin = WindTerrainAdjustment(
             self.silhouette_roughness_cube,
             self.s_cube,
             self.orog_pp_cube,
@@ -244,7 +244,7 @@ class TestSinglePoint:
         orog_model=230.0,
         heightlevels=np.array([0.2, 3.0, 13.0, 33.0, 133.0, 333.0, 1133.0]),
     ):
-        """Set up the single point test for RoughnessCorrection.
+        """Set up the single point test for WindTerrainAdjustment.
 
         Args:
             silhouette_roughness (float):
@@ -299,7 +299,7 @@ class TestSinglePoint:
                 default None.
         """
         self.w_cube = make_point_data_cube(wind, "wind_speed", "m s-1")
-        plugin = RoughnessCorrection(
+        plugin = WindTerrainAdjustment(
             silhouette_roughness_cube=self.silhouette_roughness_cube,
             orog_stddev_cube=self.s_cube,
             orog_pp_cube=self.orog_pp_cube,

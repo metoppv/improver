@@ -124,7 +124,7 @@ class FrictionVelocity(BasePlugin):
         return ustar
 
 
-class RoughnessCorrectionUtilities:
+class WindTerrainAdjustmentUtilities:
     """Compute wind-speed corrections related to surface roughness and
     height differences.
 
@@ -681,59 +681,74 @@ class RoughnessCorrectionUtilities:
         delt_z[valid] = self.orog_pp[valid] - self.orog_model[valid]
         return delt_z
 
-    def do_rc_hc_all(
-        self, height_above_orog: ndarray, wspeed_original: ndarray
-    ) -> ndarray:
-        """Apply roughness (RC) and height (HC) corrections to the wind field.
+    def _mask_missing_data(self, height_above_orog, wspeed_original):
+        """Return a boolean mask: True where either RC or HC may be applied.
 
         Args:
-            height_above_orog (ndarray):
-                1D or 3D float32 array of heights above local orography.
-            wspeed_original (ndarray):
-                3D float32 array of wind speed defined on height_above_orog.
+            height_above_orog (ndarray): heights above local orography.
+            wspeed_original (ndarray): wind speed defined on height_above_orog.
 
         Returns:
-            ndarray: 3D float32 array of wind speed after applying RC and HC.
+            ndarray: 2D boolean array where True indicates valid points.
         """
-        # Remove RC/HC where height inputs contain missing values
+        valid = np.ones_like(self.rc_mask, dtype=bool)
+
+        # Disable RC/HC where height inputs contain missing values
         if height_above_orog.ndim == 3:
             missing_h = (height_above_orog == RMDI).any(axis=2)
-            self.hc_mask[missing_h] = False
-            self.rc_mask[missing_h] = False
+            valid[missing_h] = False
 
         # Disable RC/HC wherever the vertical wind profile is missing
-        mask_rc = np.copy(self.rc_mask)
-        mask_hc = np.copy(self.hc_mask)
         missing_w = (wspeed_original == RMDI).any(axis=2)
-        mask_rc[missing_w] = False
-        mask_hc[missing_w] = False
+        valid[missing_w] = False
 
-        # 1. Roughness correction
-        if self.roughness_length_z0 is not None:
-            wspeed_rc = self.calc_roughness_correction(
-                height_above_orog, wspeed_original, mask_rc
-            )
-        else:
-            wspeed_rc = wspeed_original
+        return valid
+
+    def do_rc(self, height_above_orog, wspeed_original):
+        if self.roughness_length_z0 is None:
+            return wspeed_original
+
+        valid = self._mask_missing_data(height_above_orog, wspeed_original)
+
+        mask_rc = np.copy(self.rc_mask)
+        mask_rc[~valid] = False
+
+        return self.calc_roughness_correction(
+            height_above_orog, wspeed_original, mask_rc
+        )
+
+    def do_hc(self, height_above_orog, wspeed_original):
+        # Identify points where HC is even allowed (missing wind/height → invalid)
+        valid = self._mask_missing_data(height_above_orog, wspeed_original)
+
+        # Base HC mask
+        mask_hc = np.copy(self.hc_mask)
+        mask_hc[~valid] = False
 
         # 2. Height correction
         # Requires wind speed at the reference height, so interpolate first
         uhref_orig = self._interpolate_wspeed_to_height(
-            wspeed_original, height_above_orog, 1.0 / self.wavenumber, mask_hc
+            wspeed_original,
+            height_above_orog,
+            1.0 / self.wavenumber,
+            mask_hc,
         )
+
         # HC only where u(h_ref) is positive
         mask_hc[uhref_orig <= 0.0] = False
+
         # Setting this value to 1, is equivalent to setting the
         # Bessel function to 1. (Friedrich, 2016)
         # Example usage if the Bessel function was not set to 1 is:
         # onemfrac = 1.0 - BfuncFrac(nx,ny,nz,heightvec,z_0,waveno, Ustar, UI)
         onemfrac = 1.0
+
         hc_add = self._calc_height_corr(
             uhref_orig, height_above_orog, mask_hc, onemfrac
         )
 
-        # Combine RC and HC components
-        wspeed_out = wspeed_rc + hc_add
+        # Apply HC additively
+        wspeed_out = wspeed_original + hc_add
 
         # Enforce non-negative wind speeds
         # HC can be negative if orog_pp < orog_model
@@ -741,8 +756,17 @@ class RoughnessCorrectionUtilities:
 
         return wspeed_out.astype(np.float32)
 
+    def do_rc_and_hc(self, height_above_orog, wspeed_original):
+        """
+        Apply roughness correction (RC) followed by height correction (HC)
+        to the wind field.
+        """
+        wspeed_rc = self.do_rc(height_above_orog, wspeed_original)
+        wspeed_hc = self.do_hc(height_above_orog, wspeed_rc)
+        return wspeed_hc.astype(np.float32)
 
-class RoughnessCorrection(PostProcessingPlugin):
+
+class WindTerrainAdjustment(PostProcessingPlugin):
     """Plugin to orographically-correct 3d wind speeds."""
 
     zcoordnames = ["height", "model_level_number"]
@@ -757,8 +781,9 @@ class RoughnessCorrection(PostProcessingPlugin):
         res_model: float,
         z0_cube: Optional[Cube] = None,
         height_levels_cube: Optional[Cube] = None,
+        mode: str = "hc_and_rc",
     ) -> None:
-        """Initialise the RoughnessCorrection plugin.
+        """Initialise the WindTerrainAdjustment plugin.
 
         Args:
             silhouette_roughness_cube (Cube):
@@ -775,7 +800,14 @@ class RoughnessCorrection(PostProcessingPlugin):
                 2D vegetative roughness length z0 (m). If None, no RC applied.
             height_levels_cube (Optional[Cube]):
                 1D or 3D height levels of the input wind field (m).
+            mode (str):
+                Which correction(s) to apply: "hc_and_rc" (default), "hc", or "rc".
         """
+        valid_modes = ("hc_and_rc", "hc", "rc")
+        if mode not in valid_modes:
+            raise ValueError(f"mode must be one of {valid_modes}, got {mode!r}")
+        self.mode = mode
+
         res_model = np.float32(res_model)
         x_name, y_name, _, _ = self.find_coord_names(orog_pp_cube)
 
@@ -1092,7 +1124,7 @@ class RoughnessCorrection(PostProcessingPlugin):
         z0_data = (
             None if self.roughness_length_z0 is None else self.roughness_length_z0.data
         )
-        rc_utils = RoughnessCorrectionUtilities(
+        rc_utils = WindTerrainAdjustmentUtilities(
             self.silhouette_roughness.data,
             self.orog_stddev.data,
             z0_data,
@@ -1110,10 +1142,17 @@ class RoughnessCorrection(PostProcessingPlugin):
             if np.isnan(time_slice.data).any() or (time_slice.data < 0.0).any():
                 tcoord = time_slice.coord(self.t_name)
                 raise ValueError(f"{tcoord} has invalid wind data")
-            # Compute RC + HC result
-            rc_hc_cube = time_slice.copy()
-            rc_hc_cube.data = rc_utils.do_rc_hc_all(height_grid, time_slice.data)
-            corrected_list.append(rc_hc_cube)
+            # Compute windspeed correction/s
+            corrected_cube = time_slice.copy()
+            if self.mode == "rc":
+                corrected_cube.data = rc_utils.do_rc(height_grid, time_slice.data)
+            elif self.mode == "hc":
+                corrected_cube.data = rc_utils.do_hc(height_grid, time_slice.data)
+            elif self.mode == "hc_and_rc":
+                corrected_cube.data = rc_utils.do_rc_and_hc(
+                    height_grid, time_slice.data
+                )
+            corrected_list.append(corrected_cube)
         output_cube = corrected_list.merge_cube()
 
         # Restore the original dimension ordering of both input and output
