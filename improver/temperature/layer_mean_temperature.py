@@ -4,13 +4,16 @@
 # See LICENSE in the root of the repository for full licensing details.
 import iris
 import numpy as np
+from iris.cube import Cube
 
 from improver import BasePlugin
 
+METRES_TO_FT = 3.28084
 
-class LayerExtractionAndInterpolation(BasePlugin):
+
+class LayerTemperatureInterpolation(BasePlugin):
     """
-    Plugin to extract and interpolate temperature values at specified layer boundaries.
+    Plugin to interpolate temperature values at specified layer boundaries.
 
     This plugin extracts all temperature levels within a specified vertical layer
     (between `bottom` and `top` heights, in feet), and interpolates temperature
@@ -19,50 +22,41 @@ class LayerExtractionAndInterpolation(BasePlugin):
 
     """
 
-    def __init__(self, metres_to_ft=3.28084):
+    def process(
+        self, temp_cube: Cube, bottom: float, top: float, verbosity: int = 0
+    ) -> Cube:
         """
-        Initialise the plugin.
+        Interpolate temperature values at layer boundaries.
 
         Args:
-            metres_to_ft (float): Conversion factor from metres to feet.
-        """
-        self.metres_to_ft = metres_to_ft
-
-    def process(self, temp_cube, bottom, top, verbosity=0):
-        """
-        Extract and interpolate temperature values at layer boundaries.
-
-        Args:
-            temp_cube (iris.cube.Cube): Input temperature cube with a height coordinate.
-            bottom (float): Lower boundary of the layer (in feet).
-            top (float): Upper boundary of the layer (in feet).
-            verbosity (int): Verbosity level for printing debug information.
+            temp_cube: Input temperature cube with a height coordinate.
+            bottom: Lower boundary of the layer in feet.
+            top: Upper boundary of the layer in feet.
+            verbosity: Verbosity level for printing debug information.
 
         Returns:
-            iris.cube.Cube: Cube containing temperature at all layer heights
-                            (base, interior, and top).
+            Cube containing temperature at all layer heights
+            (base, interior, and top).
         """
         if bottom >= top:
-            raise ValueError(f"bottom ({bottom} ft) must be less than top ({top} ft).")
+            raise ValueError(f"Bottom ({bottom} ft) must be less than top ({top} ft).")
 
         if verbosity:
-            print(f"Extracting/interpolating levels from {bottom} to {top} ft")
+            print(f"Interpolating temperature at {bottom} ft and {top} ft")
         # Extract cube of temperature levels within layer
         between_layer_temp_cube = temp_cube.extract(
             iris.Constraint(
-                height=lambda point: bottom / self.metres_to_ft
-                < point
-                < top / self.metres_to_ft
+                height=lambda point: bottom / METRES_TO_FT < point < top / METRES_TO_FT
             )
         )
         # Interpolate temperature at top and base of layer
         base_temp = temp_cube.interpolate(
-            [("height", np.array([bottom / self.metres_to_ft], dtype=np.float32))],
+            [("height", np.array([bottom / METRES_TO_FT], dtype=np.float32))],
             iris.analysis.Linear(),
             collapse_scalar=False,
         )
         top_temp = temp_cube.interpolate(
-            [("height", np.array([top / self.metres_to_ft], dtype=np.float32))],
+            [("height", np.array([top / METRES_TO_FT], dtype=np.float32))],
             iris.analysis.Linear(),
             collapse_scalar=False,
         )
@@ -80,23 +74,23 @@ class LayerExtractionAndInterpolation(BasePlugin):
 class CalculateLayerMeanTemperature(BasePlugin):
     """Calculate the vertically weighted mean temperature for a layer."""
 
-    def process(self, layer_cube, verbosity=0):
+    def process(self, layer_cube: Cube, verbosity: int = 0) -> Cube:
         """
-        Calculate the mean temperature between the lowest and highest heights in the input cube.
+        Calculate the altitude-weighted mean temperature across the layer.
 
         Args:
-            layer_cube (iris.cube.Cube): Cube containing temperature at heights within the specified layer
-            verbosity (int): Set level of output to print.
+            layer_cube: Cube containing temperature at all heights within
+                the specified layer (including interpolated base and top).
+            verbosity: Set level of output to print.
 
         Returns:
-            iris.cube.Cube: 2D cube of layer mean temperature.
+            2D cube of layer mean temperature.
         """
-
         # Set up array for holding sum of products of temperature and vertical distance
         layer_temp_product = np.zeros(layer_cube.data.shape[1:])
 
-        # Estimate mean temperature of layers between 2000-3000ft and
-        # weight by vertical extent of layer
+        # Estimate mean temperature of layers and
+        # Weight by vertical extent of layer
         altitude_array = layer_cube.coord("height").points
         for alt_index in range(1, len(altitude_array) - 1):
             layer_thickness = (
@@ -118,7 +112,7 @@ class CalculateLayerMeanTemperature(BasePlugin):
         if verbosity:
             print("Layer mean temperature array:", lmt_array)
 
-        # Wrap result in a cube (add metadata as needed)
+        # Wrap result in a cube and add required metadata
         lmt_cube = iris.cube.Cube(
             lmt_array,
             var_name="air_temperature",

@@ -6,7 +6,7 @@ import iris
 import numpy as np
 import pytest
 
-from improver.temperature.layer_mean_temperature import LayerExtractionAndInterpolation
+from improver.temperature.layer_mean_temperature import LayerTemperatureInterpolation
 
 METRES_TO_FT = 3.28084
 
@@ -44,7 +44,7 @@ def make_test_cube():
 
 
 def test_extract_and_interpolate_layer():
-    """Test that LayerExtractionAndInterpolation correctly extracts and interpolates
+    """Test that LayerTemperatureInterpolation correctly extracts and interpolates
     temperature levels within a specified layer.
 
     Layer bounds: 600 ft (≈182.88 m) to 800 ft (≈243.84 m).
@@ -56,7 +56,7 @@ def test_extract_and_interpolate_layer():
         - Total: 5 height levels, shape (5, 2, 2)
     """
     cube = make_test_cube()
-    plugin = LayerExtractionAndInterpolation()
+    plugin = LayerTemperatureInterpolation()
     # bottom=600 ft converts to ~182.88 m, top=800 ft converts to ~243.84 m
     # All three data levels (200, 220, 240 m) fall within the layer bounds,
     # so the result should contain 5 heights: interpolated base + 3 interior + interpolated top
@@ -72,7 +72,7 @@ def test_extract_and_interpolate_layer():
 
 
 def test_extract_and_interpolate_layer_coordinates():
-    """Test that LayerExtractionAndInterpolation preserves and returns
+    """Test that LayerTemperatureInterpolation preserves and returns
     the correct coordinates in the output cube.
 
     Checks:
@@ -81,7 +81,7 @@ def test_extract_and_interpolate_layer_coordinates():
         - projection_x_coordinate exists and matches input.
     """
     cube = make_test_cube()
-    plugin = LayerExtractionAndInterpolation()
+    plugin = LayerTemperatureInterpolation()
     result = plugin.process(cube, bottom=600, top=800, verbosity=0)
 
     # Check height coordinate exists and has correct units
@@ -102,7 +102,7 @@ def test_extract_and_interpolate_layer_coordinates():
 
 
 def test_interpolated_base_and_top_values():
-    """Test that LayerExtractionAndInterpolation correctly interpolates
+    """Test that LayerTemperatureInterpolation correctly interpolates
     temperature values at the base and top of the layer.
 
     Layer bounds: 600 ft (≈182.88 m) to 800 ft (≈243.84 m).
@@ -111,7 +111,7 @@ def test_interpolated_base_and_top_values():
     to ensure we are testing our plugin's behaviour, not reimplementing the science.
     """
     cube = make_test_cube()
-    plugin = LayerExtractionAndInterpolation()
+    plugin = LayerTemperatureInterpolation()
     result = plugin.process(cube, bottom=600, top=800, verbosity=0)
 
     # Use Iris directly to get the expected interpolated values at base and top
@@ -136,13 +136,13 @@ def test_interpolated_base_and_top_values():
 
 
 def test_verbosity_layer_extraction(capsys):
-    """Test that LayerExtractionAndInterpolation prints expected output
+    """Test that LayerTemperatureInterpolation prints expected output
     when verbosity is set to 1.
 
     Checks that the bottom and top layer bounds are printed to stdout.
     """
     cube = make_test_cube()
-    plugin = LayerExtractionAndInterpolation()
+    plugin = LayerTemperatureInterpolation()
     plugin.process(cube, bottom=600, top=800, verbosity=1)
     captured = capsys.readouterr()
     assert "600" in captured.out
@@ -150,7 +150,7 @@ def test_verbosity_layer_extraction(capsys):
 
 
 def test_layer_bounds_match_data_level():
-    """Test that LayerExtractionAndInterpolation handles the case where
+    """Test that LayerTemperatureInterpolation handles the case where
     the layer bounds exactly match an existing data level.
 
     Layer bounds: 656 ft (≈200 m) to 787 ft (≈240 m).
@@ -160,7 +160,7 @@ def test_layer_bounds_match_data_level():
         - No duplicate height points in the output cube.
     """
     cube = make_test_cube()
-    plugin = LayerExtractionAndInterpolation()
+    plugin = LayerTemperatureInterpolation()
 
     # Pass bounds directly in feet - the plugin handles the conversion internally
     result = plugin.process(cube, bottom=656, top=787, verbosity=0)
@@ -173,7 +173,7 @@ def test_layer_bounds_match_data_level():
 
 
 def test_no_interior_levels():
-    """Test that LayerExtractionAndInterpolation returns at least the interpolated
+    """Test that LayerTemperatureInterpolation returns at least the interpolated
     base and top when no interior levels exist within the layer bounds.
 
     Layer bounds: 610 ft (≈185 m) to 640 ft (≈195 m).
@@ -186,7 +186,7 @@ def test_no_interior_levels():
         - Total: 2 height levels, shape (2, 2, 2)
     """
     cube = make_test_cube()
-    plugin = LayerExtractionAndInterpolation()
+    plugin = LayerTemperatureInterpolation()
 
     # These bounds have no data levels between them
     result = plugin.process(cube, bottom=610, top=640, verbosity=0)
@@ -196,14 +196,14 @@ def test_no_interior_levels():
 
 
 def test_bottom_greater_than_top_raises_error():
-    """Test that LayerExtractionAndInterpolation raises a ValueError when
+    """Test that LayerTemperatureInterpolation raises a ValueError when
     the bottom bound is greater than the top bound.
 
     This is physically nonsensical and should be caught early with a
     clear error message rather than producing garbage output silently.
     """
     cube = make_test_cube()
-    plugin = LayerExtractionAndInterpolation()
+    plugin = LayerTemperatureInterpolation()
 
-    with pytest.raises(ValueError, match="bottom .* must be less than top"):
+    with pytest.raises(ValueError, match="Bottom .* must be less than top"):
         plugin.process(cube, bottom=800, top=600, verbosity=0)
