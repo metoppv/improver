@@ -176,6 +176,13 @@ class StochasticNoise(BasePlugin):
         Returns:
             Cube with added stochastic noise.
         """
+        # Check that input cube has the expected dimensions for processing
+        from improver.utilities.cube_checker import validate_cube_dimensions
+
+        validate_cube_dimensions(
+            cube=input_cube, required_dimensions=["realization", "x", "y"], mode="exact"
+        )
+
         # Store original cube units and mask
         original_units = input_cube.units
         original_mask = None
