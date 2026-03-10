@@ -169,7 +169,7 @@ def test_layer_bounds_match_data_level():
     height_points = result.coord("height").points
     assert len(height_points) == len(np.unique(height_points)), (
         f"Duplicate height points found: {height_points}"
-    ) # noqa
+    )
 
 
 def test_no_interior_levels():
