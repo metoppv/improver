@@ -80,7 +80,7 @@ class CalculateLayerMeanTemperature(BasePlugin):
 
         Args:
             layer_cube: Cube containing temperature at all heights within
-                the specified layer (including interpolated base and top).
+            the specified layer (including interpolated base and top).
             verbosity: Set level of output to print.
 
         Returns:
