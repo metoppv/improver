@@ -36,8 +36,8 @@ Z0M_SEA = 0.0001
 
 
 class FrictionVelocity(BasePlugin):
-    """Compute friction velocity u* using the logarithmic wind profile:
-        u* = K * u(h_ref) / ln(h_ref / z0)
+    """Compute friction velocity u_star using the logarithmic wind profile:
+        u_star = K * u(h_ref) / ln(h_ref / z0)
     where:
       - u(h_ref) is wind speed evaluated at the reference height h_ref,
       - z0 is the aerodynamic roughness length,
@@ -45,7 +45,7 @@ class FrictionVelocity(BasePlugin):
 
     Notes:
       - h_ref and roughness_length_z0 must share the same units.
-      - The returned u* has the same velocity units as wspeed_at_h_ref.
+      - The returned u_star has the same velocity units as wspeed_at_h_ref.
     """
 
     def __init__(
@@ -62,7 +62,7 @@ class FrictionVelocity(BasePlugin):
                 height h_ref.
             h_ref (ndarray): Effective reference height h_ref.
             roughness_length_z0 (ndarray): Vegetative roughness length z0.
-            ustar_mask (ndarray): 2D boolean array, True where u* should be
+            ustar_mask (ndarray): 2D boolean array, True where u_star should be
                 computed.
 
         Raises:
@@ -90,11 +90,11 @@ class FrictionVelocity(BasePlugin):
             )
 
     def process(self) -> ndarray:
-        """Compute friction velocity (u*) using the logarithmic wind profile.
+        """Compute friction velocity (u_star) using the logarithmic wind profile.
 
         The friction velocity is computed according to the neutral-stability
         logarithmic wind law:
-            u* = K * u(h_ref) / ln(h_ref / z0)
+            u_star = K * u(h_ref) / ln(h_ref / z0)
         where:
           - u(h_ref) is wind speed evaluated at the reference height h_ref,
           - z0 is the aerodynamic roughness length,
@@ -105,11 +105,11 @@ class FrictionVelocity(BasePlugin):
         missing-data indicators.
 
         Returns:
-            ndarray: 2D float32 array of friction velocity u*.
+            ndarray: 2D float32 array of friction velocity u_star.
         """
         ustar = np.full(self.wspeed_at_h_ref.shape, RMDI, dtype=np.float32)
 
-        # Values at locations where u* is to be computed
+        # Values at locations where u_star is to be computed
         wind_vals = self.wspeed_at_h_ref[self.ustar_mask]
 
         # Compute log(h_ref / z0)
@@ -118,7 +118,7 @@ class FrictionVelocity(BasePlugin):
                 self.h_ref[self.ustar_mask] / self.roughness_length_z0[self.ustar_mask]
             )
 
-        # Compute u* following the log-profile relation
+        # Compute u_star following the log-profile relation
         ustar[self.ustar_mask] = VONKARMAN * (wind_vals / log_term)
 
         return ustar
@@ -397,7 +397,7 @@ class RoughnessCorrectionUtilities:
             wspeed_original, height_above_orog, self.h_ref, rc_mask
         )
 
-        # Friction velocity u*
+        # Friction velocity u_star
         ustar = FrictionVelocity(
             u_at_href, self.h_ref, self.roughness_length_z0, rc_mask
         )()
