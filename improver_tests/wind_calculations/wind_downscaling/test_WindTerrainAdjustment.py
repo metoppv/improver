@@ -158,7 +158,7 @@ class TestMultiPoint:
             orog_model, "surface_altitude", "m", shape=shape
         )
 
-    def run_hc_rc(self, wind, dtime=1, height=None, aslist=False):
+    def run_hc_rc(self, wind, dtime=1, height=None, aslist=False, mode="hc_and_rc"):
         """Function to set up a wind cube from the supplied np.array.
 
         Set up the wind and call the WindTerrainAdjustment class. If the
@@ -183,6 +183,9 @@ class TestMultiPoint:
             aslist (bool):
                 Make wind cube into a CubeList of height slices or not,
                 default False
+            mode (str):
+                Whether to do height correction (hc), roughness correction
+                (rc) or both (hc_and_rc), default hc_and_rc.
         """
         if aslist:
             self.w_cube = iris.cube.CubeList()
@@ -214,6 +217,7 @@ class TestMultiPoint:
             self.orog_model_cube,
             1500.0,
             self.z0_cube,
+            mode=mode,
         )
         return plugin(self.w_cube)
 
@@ -285,7 +289,7 @@ class TestSinglePoint:
         else:
             self.hl_cube = None
 
-    def run_hc_rc(self, wind, height=None):
+    def run_hc_rc(self, wind, height=None, mode="hc_and_rc"):
         """Test single point height correction and roughness correction.
 
         Make an iris cube of the supplied wind and set up the height
@@ -297,6 +301,9 @@ class TestSinglePoint:
             height (float):
                 Value for height in metres for zeroth slice of wind,
                 default None.
+            mode (str):
+                Whether to do height correction (hc), roughness correction
+                (rc) or both (hc_and_rc), default hc_and_rc.
         """
         self.w_cube = make_point_data_cube(wind, "wind_speed", "m s-1")
         plugin = WindTerrainAdjustment(
@@ -307,6 +314,7 @@ class TestSinglePoint:
             res_model=1500.0,
             z0_cube=self.z0_cube,
             height_levels_cube=self.hl_cube,
+            mode=mode,
         )
         return plugin(self.w_cube)
 
