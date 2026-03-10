@@ -843,6 +843,15 @@ class RoughnessCorrection(PostProcessingPlugin):
             print(f"'{exc}' while determining y_name. Args: {exc.args}")
             y_name = None
 
+        # Check spatial coordinates exist
+        missing = [
+            name for name, value in (("x", x_name), ("y", y_name)) if value is None
+        ]
+        if missing:
+            raise ValueError(
+                f"Cube is missing required spatial coordinate(s): {', '.join(missing)}"
+            )
+
         # z coordinate
         z_matches = coord_names.intersection(self.zcoordnames)
         z_name = next(iter(z_matches), None)
