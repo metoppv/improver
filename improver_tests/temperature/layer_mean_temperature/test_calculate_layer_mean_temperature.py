@@ -19,9 +19,15 @@ def make_layer_cube(data):
         - 200 m
         - 300 m
     """
-    height_points = np.array([100, 200, 300], dtype=np.float32)
-    y_points = np.array([0, 1], dtype=np.float32)
-    x_points = np.array([0, 1], dtype=np.float32)
+    # produces height arrays of the form [100.0, 200.0, 300.0, ...]
+    height_points = np.array(
+        np.arange(start=100.0, stop=(data.shape[0] + 1) * 100, step=100),
+        dtype=np.float32,
+    )
+    # produces y-coordinate arrays of the form [ 0.0, 1.0, 2.0, ...]
+    y_points = np.array(range(data.shape[1]), dtype=np.float32)
+    # produces x-coordinate arrays of the form [ 0.0, 1.0, 2.0, ...]
+    x_points = np.array(range(data.shape[2]), dtype=np.float32)
     cube = iris.cube.Cube(
         data,
         dim_coords_and_dims=[
@@ -93,6 +99,9 @@ def test_layer_mean_temperature_output_shape_and_coordinates_exists():
     assert result.coords("forecast_reference_time")
     assert result.coords("time")
 
+    # Check mean values are as expected
+    assert np.allclose(result.data, 280)
+
 
 def test_layer_mean_temperature_scalar_coordinate_values_preserved():
     """Test that CalculateLayerMeanTemperature preserves scalar coordinate
@@ -115,6 +124,37 @@ def test_layer_mean_temperature_scalar_coordinate_values_preserved():
         == cube.coord("forecast_reference_time").points
     )
     assert result.coord("time").points == cube.coord("time").points
+
+
+def test_layer_mean_temperature_values():
+    """Test that CalculateLayerMeanTemperature returns
+    the correct mean temperature values where the temperature
+    field is varying
+
+    Reference data was collected from a prior run.
+
+    """
+
+    # create a varying temperature field, so the resulting
+    # layer mean temperature will have varying values too
+    # the input is deterministically calculated (i.e. no random numbers)
+    data = np.fromfunction(
+        lambda layer, y, x: 280.0 + 10.0 * np.sin(x) - 5.0 * np.cos(y) + np.sqrt(layer),
+        (3, 2, 2),
+        dtype=np.float32,
+    )
+
+    cube = make_layer_cube(data)
+    plugin = CalculateLayerMeanTemperature()
+
+    actual_result = plugin.process(cube, verbosity=0)
+
+    expected_result = [
+        [275.8535546875, 284.26826171875],
+        [278.15205078125, 286.5667529296875],
+    ]
+
+    assert np.allclose(actual_result.data, expected_result)
 
 
 def test_verbosity_layer_mean_temperature(capsys):

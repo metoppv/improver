@@ -21,9 +21,9 @@ def make_test_cube():
     """
     data = np.array(
         [
-            [[280, 281], [282, 283]],  # height = 200
+            [[280, 281], [282, 283]],  # height = 200 m
             [[285, 286], [287, 288]],  # height = 220 m
-            [[290, 291], [292, 293]],  # height = 250 m
+            [[290, 291], [292, 293]],  # height = 240 m
         ],
         dtype=np.float32,
     )
@@ -151,7 +151,7 @@ def test_verbosity_layer_extraction(capsys):
 
 def test_layer_bounds_match_data_level():
     """Test that LayerTemperatureInterpolation handles the case where
-    the layer bounds exactly match an existing data level.
+    the layer bounds are both very close to an existing data level.
 
     Layer bounds: 656 ft (≈200 m) to 787 ft (≈240 m).
     Both 200 m and 240 m are exact data levels in the test cube.
@@ -167,9 +167,9 @@ def test_layer_bounds_match_data_level():
 
     # Check no duplicate height points exist in the output
     height_points = result.coord("height").points
-    assert len(height_points) == len(
-        np.unique(height_points)
-    ), f"Duplicate height points found: {height_points}"
+    assert len(height_points) == len(np.unique(height_points)), (
+        f"Duplicate height points found: {height_points}"
+    )
 
 
 def test_no_interior_levels():
