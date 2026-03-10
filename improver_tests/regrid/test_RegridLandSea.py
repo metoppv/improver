@@ -271,7 +271,11 @@ class Test_process(ImproverTest):
         x_array = np.linspace(100.0, 115.0, n_points, dtype=np.float32)
         data = 282 * np.ones((15, 15), dtype=np.float32)
         y_coord, x_coord = _construct_yx_coords_from_arrays(
-            y_array=y_array, x_array=x_array, spatial_grid="latlon"
+            y_array=y_array,
+            x_array=x_array,
+            spatial_grid="latlon",
+            y_points=n_points,
+            x_points=n_points,
         )
         dim_coords = _construct_dimension_coords(
             data,
