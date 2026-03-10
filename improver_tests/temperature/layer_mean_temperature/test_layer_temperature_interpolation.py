@@ -167,9 +167,10 @@ def test_layer_bounds_match_data_level():
 
     # Check no duplicate height points exist in the output
     height_points = result.coord("height").points
-    assert len(height_points) == len(
-        np.unique(height_points)
-    ), f"Duplicate height points found: {height_points}"
+    assert len(height_points) == len(np.unique(height_points)), (
+        f"Duplicate height points found: {height_points}"
+    ) # noqa
+
 
 def test_no_interior_levels():
     """Test that LayerTemperatureInterpolation returns at least the interpolated
