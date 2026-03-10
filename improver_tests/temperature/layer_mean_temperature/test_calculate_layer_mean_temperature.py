@@ -19,14 +19,14 @@ def make_layer_cube(data):
         - 200 m
         - 300 m
     """
-    # produces height arrays of the form [100.0, 200.0, 300.0, ...]
+    # produces height arrays of the form [100.0, 200.0, 300.0, 400.0, ...]
     height_points = np.array(
         np.arange(start=100.0, stop=(data.shape[0] + 1) * 100, step=100),
         dtype=np.float32,
     )
-    # produces y-coordinate arrays of the form [ 0.0, 1.0, 2.0, ...]
+    # produces y-coordinate arrays of the form [ 0.0, 1.0, 2.0, 3.0, ...]
     y_points = np.array(range(data.shape[1]), dtype=np.float32)
-    # produces x-coordinate arrays of the form [ 0.0, 1.0, 2.0, ...]
+    # produces x-coordinate arrays of the form [ 0.0, 1.0, 2.0, 3.0, ...]
     x_points = np.array(range(data.shape[2]), dtype=np.float32)
     cube = iris.cube.Cube(
         data,
