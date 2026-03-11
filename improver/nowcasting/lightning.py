@@ -96,7 +96,7 @@ class NowcastLightning(PostProcessingPlugin):
                 and increases to 2*radius at T+6 hours.  The radius is applied
                 in "process" using the circular neighbourhood plugin.
         """
-        self.radius = radius
+        self.radius = float(radius)
         lead_times = [0.0, 6.0]
         radii = [self.radius, 2 * self.radius]
         self.neighbourhood = NeighbourhoodProcessing(
