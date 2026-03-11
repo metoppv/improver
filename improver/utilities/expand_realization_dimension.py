@@ -38,10 +38,14 @@ class ExpandRealizationDimension(BasePlugin):
                 A cube with a realization coordinate that has fewer realizations than
                 required.
 
-        Exceptions:
-            ValueError: If the input cube does not contain a realization coordinate.
+        Returns:
+            Expanded cube. Dimensions are the same as input cube, with the realization
+            dimension expanded to the specified size.
+
+        Raises:
+            ValueError: if realization is not a dimension coordinate.
         """
-        if not cube.coords("realization"):
+        if not cube.coords("realization", dim_coords=True):
             raise ValueError(
                 "The input cube does not contain a realization coordinate."
             )
@@ -56,6 +60,4 @@ class ExpandRealizationDimension(BasePlugin):
             realization_slice.coord("realization").points = index
             extended_realization_cubelist.append(realization_slice)
 
-        extended_realization_cube = extended_realization_cubelist.merge_cube()
-
-        return extended_realization_cube
+        return extended_realization_cubelist.merge_cube()
