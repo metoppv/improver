@@ -4,11 +4,10 @@
 # See LICENSE in the root of the repository for full licensing details.
 import iris
 import numpy as np
+from cf_units import Unit
 from iris.cube import Cube
 
 from improver import BasePlugin
-
-METRES_TO_FT = 3.28084
 
 
 class LayerTemperatureInterpolation(BasePlugin):
@@ -19,7 +18,6 @@ class LayerTemperatureInterpolation(BasePlugin):
     (between `bottom` and `top` heights, in feet), and interpolates temperature
     at the exact base and top of the layer. The output is a cube containing
     temperature at all interior levels plus the interpolated base and top.
-
     """
 
     def process(
@@ -29,7 +27,7 @@ class LayerTemperatureInterpolation(BasePlugin):
         Interpolate temperature values at layer boundaries.
 
         Args:
-            temp_cube: Input temperature cube with a height coordinate.
+            temp_cube: Input temperature cube with a height coordinate in metres.
             bottom: Lower boundary of the layer in feet.
             top: Upper boundary of the layer in feet.
             verbosity: Verbosity level for printing debug information.
@@ -41,32 +39,39 @@ class LayerTemperatureInterpolation(BasePlugin):
         if bottom >= top:
             raise ValueError(f"Bottom ({bottom} ft) must be less than top ({top} ft).")
 
+        # Convert layer bounds from feet to metres using cf_units
+        bottom_m = Unit("ft").convert(bottom, "m")
+        top_m = Unit("ft").convert(top, "m")
+
         if verbosity:
-            print(f"Interpolating temperature at {bottom} ft and {top} ft")
+            print(f"Interpolating temperature at base: {bottom} ft")
+
         # Extract cube of temperature levels within layer
         between_layer_temp_cube = temp_cube.extract(
-            iris.Constraint(
-                height=lambda point: bottom / METRES_TO_FT < point < top / METRES_TO_FT
-            )
+            iris.Constraint(height=lambda point: bottom_m < point < top_m)
         )
-        # Interpolate temperature at top and base of layer
+
+        # Interpolate temperature at base of layer
         base_temp = temp_cube.interpolate(
-            [("height", np.array([bottom / METRES_TO_FT], dtype=np.float32))],
+            [("height", np.array([bottom_m], dtype=np.float32))],
             iris.analysis.Linear(),
             collapse_scalar=False,
         )
+
+        if verbosity:
+            print(f"Interpolating temperature at top: {top} ft")
+
+        # Interpolate temperature at top of layer
         top_temp = temp_cube.interpolate(
-            [("height", np.array([top / METRES_TO_FT], dtype=np.float32))],
+            [("height", np.array([top_m], dtype=np.float32))],
             iris.analysis.Linear(),
             collapse_scalar=False,
         )
+
         # Merge cubes of temperature at top, bottom and within layer
         cubes_to_merge = [base_temp, between_layer_temp_cube, top_temp]
         cubes_to_merge = [cube for cube in cubes_to_merge if cube is not None]
         layer_levels_temp_cube = iris.cube.CubeList(cubes_to_merge).concatenate_cube()
-
-        if verbosity > 1:
-            print(layer_levels_temp_cube)
 
         return layer_levels_temp_cube
 
