@@ -476,8 +476,8 @@ class Test_process(unittest.TestCase):
         """Test that cell methods are preserved on the calibrated forecast, if
         present on the input forecast."""
         self.percentiles.coord("time").bounds = [
-            int(self.percentiles.coord("time").points - 3600),
-            int(self.percentiles.coord("time").points),
+            int((self.percentiles.coord("time").points - 3600).item()),
+            int(self.percentiles.coord("time").points.item()),
         ]
 
         cell_methods = CellMethod("maximum", coords="time")
@@ -499,8 +499,8 @@ class Test_process(unittest.TestCase):
         without duplication of the cell methods, if cell methods are present on the
         input probability forecast."""
         self.probabilities.coord("time").bounds = [
-            int(self.probabilities.coord("time").points - 3600),
-            int(self.probabilities.coord("time").points),
+            int((self.probabilities.coord("time").points - 3600).item()),
+            int(self.probabilities.coord("time").points.item()),
         ]
 
         cell_methods = CellMethod("maximum", coords="time")

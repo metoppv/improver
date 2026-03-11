@@ -138,7 +138,7 @@ def distance_to_number_of_grid_cells(
     grid_cells = distance / abs(grid_spacing_metres)
 
     if return_int:
-        grid_cells = int(grid_cells)
+        grid_cells = int(np.asarray(grid_cells).item())
         if grid_cells == 0:
             zero_distance_error = f"{d_error} gives zero cell extent"
             raise ValueError(zero_distance_error)

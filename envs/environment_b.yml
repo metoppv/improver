@@ -15,6 +15,7 @@ dependencies:
   - iris=3.12
   - numpy=2.2
   - pandas<3  # https://github.com/SciTools/iris/issues/6761
+  - proj=9.7.1  # https://github.com/metoppv/improver/issues/2325
   - pytz
   - scipy=1.15
   - sphinx<9.0.0  # https://github.com/tox-dev/sphinx-autodoc-typehints/issues/586
