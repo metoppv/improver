@@ -3,14 +3,14 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""Script to collapse the realizations dimension of a cube."""
+"""Script to expand the realization dimension of a cube."""
 
 from improver import cli
 
 
 @cli.clizefy
 @cli.with_output
-def process(cube: cli.inputcube, n_realizations_required: int):
+def process(cube: cli.inputcube, *, n_realizations_required: int):
     """Expand the realization dimension of a cube.
 
     Args:

@@ -25,7 +25,7 @@ def test_basic(tmp_path):
     args = [
         input_path,
         "--n-realizations-required",
-        "24",
+        "5",
         "--output",
         output_path,
     ]
@@ -44,7 +44,7 @@ def test_no_realization_coord(tmp_path):
     args = [
         input_path,
         "--n-realizations-required",
-        "24",
+        "5",
         "--output",
         output_path,
     ]

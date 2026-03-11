@@ -28,10 +28,13 @@ def test_expand_realization_dimension():
     # Check size of realization correct
     assert expanded_cube.coord("realization").points.size == 5
     # Check realization points monotonically increasing
-    assert expanded_cube.coord("realization").points == np.array([0, 1, 2, 3, 4])
+    np.testing.assert_array_equal(
+        expanded_cube.coord("realization").points, np.array([0, 1, 2, 3, 4])
+    )
     # Check output data matches expected cycling behaviour
     np.testing.assert_array_equal(
-        expanded_cube.data, np.array([1.0, 0.0, 1.0, 0.0, 1.0], dtype=np.float32)
+        expanded_cube.data,
+        np.array([[[1.0]], [[0.0]], [[1.0]], [[0.0]], [[1.0]]], dtype=np.float32),
     )
 
 
