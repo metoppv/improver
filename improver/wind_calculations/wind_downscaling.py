@@ -706,10 +706,13 @@ class WindTerrainAdjustmentUtilities:
 
     def do_rc(self, height_above_orog, wspeed_original):
         if self.roughness_length_z0 is None:
-            return wspeed_original
+            raise ValueError(
+                "Roughness correction (RC) was requested, but no roughness-length "
+                "field (z0_cube) was supplied."
+            )
 
+        # Mask where missing data in height and wind fields
         valid = self._mask_missing_data(height_above_orog, wspeed_original)
-
         mask_rc = np.copy(self.rc_mask)
         mask_rc[~valid] = False
 
@@ -718,14 +721,12 @@ class WindTerrainAdjustmentUtilities:
         )
 
     def do_hc(self, height_above_orog, wspeed_original):
-        # Identify points where HC is even allowed (missing wind/height → invalid)
+        # Mask where missing data in height and wind fields
         valid = self._mask_missing_data(height_above_orog, wspeed_original)
-
-        # Base HC mask
         mask_hc = np.copy(self.hc_mask)
         mask_hc[~valid] = False
 
-        # 2. Height correction
+        # Height correction
         # Requires wind speed at the reference height, so interpolate first
         uhref_orig = self._interpolate_wspeed_to_height(
             wspeed_original,
@@ -807,6 +808,13 @@ class WindTerrainAdjustment(PostProcessingPlugin):
         if mode not in valid_modes:
             raise ValueError(f"mode must be one of {valid_modes}, got {mode!r}")
         self.mode = mode
+
+        # Roughness correction cannot be performed without providing roughness length
+        if "rc" in self.mode and z0_cube is None:
+            raise ValueError(
+                f"Roughness correction (RC) requested via mode={self.mode!r}, "
+                "but no z0_cube was supplied. Provide a roughness-length cube or use mode='hc'."
+            )
 
         res_model = np.float32(res_model)
         x_name, y_name, _, _ = self.find_coord_names(orog_pp_cube)
