@@ -548,12 +548,11 @@ class Test1D(unittest.TestCase):
 
 
 class Test2D(unittest.TestCase):
-    """Test multi-point wind corrections.
+    """Tests multi-point and multi-time wind corrections.
 
-    Section 2 are multiple point, multiple time tests
-    Section 3 are tests that should fail because the grids are not all
-    the same or units are wrong.
-
+    Covers:
+    - multiple point + multiple time tests
+    - tests that should fail (grids are not all the same or units are wrong)
     """
 
     uin = [20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0]
@@ -617,12 +616,7 @@ class Test2D(unittest.TestCase):
         )
 
     def test_error_when_passing_list_instead_of_cube(self):
-        """As test 2b, but passing the two time steps in a list.
-
-        timesteps are a list rather than a 4D cube. This should raise
-        an error.
-
-        """
+        """Test that passing timesteps as a list instead of a Cube raises a TypeError."""
         uin = np.ones(10) * 20
         heights = ((np.arange(10) + 1) ** 2.0) * 12
         multip_hc_rc = TestMultiPoint(
@@ -647,11 +641,10 @@ class Test2D(unittest.TestCase):
         self.assertEqual(land_hc_rc.dtype, np.float32)
 
     def test_error_when_z0_grid_inconsistent(self):
-        """As test 1c, however with manipulated roughness_length_z0 cube.
+        """Test that a roughness_length_z0 cube on an inconsistent grid raises an ancillary-grid error.
 
         All ancillary fields have 1x1 dim, roughness_length_z0 is on a different grid.
-        This should fail with ValueError("ancillary grids are not
-        consistent").
+        This should fail with ValueError.
 
         """
         landpointtests_rc = TestSinglePoint(
@@ -668,11 +661,9 @@ class Test2D(unittest.TestCase):
             _ = landpointtests_rc.run_corrections(self.uin)
 
     def test_error_when_orog_model_grid_inconsistent(self):
-        """As test 3a, however with manipulated orog_model cube instead.
+        """Test that a manipulated orog_model cube on an inconsistent grid raises an ancillary-grid error.
 
-        This should fail with ValueError("ancillary grids are not
-        consistent").
-
+        This should fail with ValueError.
         """
         landpointtests_rc = TestSinglePoint(
             roughness_length_z0=0.2, orog_pp=250.0, orog_model=250.0
@@ -691,10 +682,9 @@ class Test2D(unittest.TestCase):
             _ = landpointtests_rc.run_corrections(self.uin)
 
     def test_error_when_z0_has_incorrect_units(self):
-        """As test 3a, however with manipulated roughness_length_z0 units.
+        """Test that a roughness_length_z0 cube with incorrect units raises a ValueError.
 
         This should fail with a wrong units error.
-
         """
         landpointtests_rc = TestSinglePoint(
             roughness_length_z0=0.2, orog_pp=250.0, orog_model=250.0
