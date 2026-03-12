@@ -83,32 +83,6 @@ def construct_yx_coords(
         ypoints, xpoints, domain_corner, x_grid_spacing, y_grid_spacing
     )
 
-    return _construct_yx_coords_from_arrays(
-        y_array, x_array, spatial_grid, ypoints, xpoints
-    )
-
-
-def _construct_yx_coords_from_arrays(
-    y_array: ndarray, x_array: ndarray, spatial_grid: str, y_points: int, x_points: int
-):
-    """
-     Construct y/x spatial dimension coordinates given y- and x-arrays.
-
-     Args:
-         y_array:
-             Grid data values along the y-axis
-         x_array:
-             Grid data values along the x-axis
-         spatial_grid:
-             Specifier to produce either a "latlon" or "equalarea" grid
-        y_points:
-            Number of points along the y-axis
-        x_points:
-            Number of points along the x-axis
-
-    Returns:
-         Tuple containing y and x iris.coords.DimCoords
-    """
     y_coord = DimCoord(
         y_array,
         GRID_COORD_ATTRIBUTES[spatial_grid]["yname"],
@@ -123,9 +97,9 @@ def _construct_yx_coords_from_arrays(
     )
 
     # add bounds on spatial coordinates
-    if y_points > 1:
+    if ypoints > 1:
         y_coord.guess_bounds()
-    if x_points > 1:
+    if xpoints > 1:
         x_coord.guess_bounds()
 
     return y_coord, x_coord
