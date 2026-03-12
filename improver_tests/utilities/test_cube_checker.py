@@ -425,6 +425,9 @@ def test_time_coord_exceptions(
 
 @pytest.fixture
 def cube_3d():
+    """
+    Set up a 3D cube with 2 'realization' points, and 'longitude' and 'latitude'.
+    """
     data = np.ones((2, 1, 1), dtype=np.float32)
     return set_up_variable_cube(data)
 
@@ -439,6 +442,12 @@ def cube_3d():
 def test_validate_cube_dimensions_passes(
     cube_3d, required_dimensions, forbidden_dimensions, mode
 ):
+    """
+    Test that validate_cube_dimensions passes for valid dimension configurations:
+    - When the cube dimensions match the required dimensions exactly in 'exact' mode
+    - When the cube dimensions include at least the required dimensions in 'minimum'
+    mode
+    """
     validate_cube_dimensions(
         cube=cube_3d,
         required_dimensions=required_dimensions,
@@ -464,6 +473,16 @@ def test_validate_cube_dimensions_passes(
 def test_validate_cube_dimensions_raises(
     cube_3d, required_dimensions, forbidden_dimensions, mode, error_message
 ):
+    """
+    Test that validate_cube_dimensions raises ValueError when the cube dimension
+    configuration does not match the required and forbidden dimensions for the specified
+    mode:
+    - When an invalid mode is provided
+    - When forbidden dimensions are present in the cube
+    - When required dimensions are missing from the cube
+    - When the cube dimensions do not match the required dimensions exactly when mode is
+    'exact'
+    """
     with pytest.raises(ValueError, match=error_message):
         validate_cube_dimensions(
             cube=cube_3d,
