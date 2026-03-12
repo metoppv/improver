@@ -9,13 +9,11 @@ from unittest.mock import patch
 
 import numpy as np
 import pytest
-from iris.cube import Cube
+from iris.coords import DimCoord
 
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.regrid.landsea import RegridLandSea
 from improver.synthetic_data.set_up_test_cubes import (
-    _construct_dimension_coords,
-    _construct_yx_coords_from_arrays,
     set_up_variable_cube,
 )
 from improver_tests import ImproverTest
@@ -243,71 +241,40 @@ class Test_process(ImproverTest):
         """Test that a custom grid spacing relative tolerance allows
         regridding of a cube with slightly irregular spacing, when the
         default relative tolerance does not allow regridding."""
-        n_points = 15
         regrid_mode = "nearest-2"
-        # Set up data array
-        # Irregularly spaced y points
-        y_array = np.array(
-            [
-                -46.8,
-                -46.813496399,
-                -46.826994705,
-                -46.840493965,
-                -46.85399418,
-                -46.86749058,
-                -46.880988884,
-                -46.894488144,
-                -46.90798836,
-                -46.92148476,
-                -46.93498306,
-                -46.94848232,
-                -46.96198254,
-                -46.97547894,
-                -46.98897724,
-            ],
-            dtype=np.float32,
-        )
-        # Regularly spaced x points
-        x_array = np.linspace(100.0, 115.0, n_points, dtype=np.float32)
-        data = 282 * np.ones((15, 15), dtype=np.float32)
-        y_coord, x_coord = _construct_yx_coords_from_arrays(
-            y_array=y_array,
-            x_array=x_array,
-            spatial_grid="latlon",
-            y_points=n_points,
-            x_points=n_points,
-        )
-        dim_coords = _construct_dimension_coords(
-            data,
-            y_coord=y_coord,
-            x_coord=x_coord,
-        )
-        src_cube = Cube(
-            data.astype(np.float32),
-            standard_name="air_temperature",
-            units="K",
-            dim_coords_and_dims=dim_coords,
-        )
+        input_cube = self.cube.copy()
 
-        # Set up synthetic target grid - checkerboard style
-        data = np.zeros((n_points, n_points), dtype=np.float32)
-        data[::2, ::2] = 1
-        data[1::2, 1::2] = 1
-        target_grid = Cube(
-            data,
-            standard_name="land_binary_mask",
-            # Use same coordinates as input cube
-            dim_coords_and_dims=dim_coords,
-            units="no_unit",
+        # Set up irregularly spaced y points.
+        # This is set up so that `mean(grid_spacing)` is the same as the
+        # grid spacing for most points, but that one or more grid_spacing
+        # values exceed the rtol.
+        rtol_orig = 4.0e-5
+        lat_coord = input_cube.coord("latitude")
+        y_array = lat_coord.points.copy()
+        y_mean_diff = np.diff(y_array).mean()
+        delta = rtol_orig * y_mean_diff + 4e-7  # delta > rtol * mean(grid_spacing)
+        y_array[1] += delta
+        y_array[2] -= delta
+
+        # Update input cube with new y values.
+        lon_dim = input_cube.coord_dims("latitude")[0]
+        new_y_coord = DimCoord(
+            y_array,
+            standard_name="latitude",
+            units="degrees",
+            coord_system=lat_coord.coord_system,
         )
+        input_cube.remove_coord("latitude")
+        input_cube.add_dim_coord(new_y_coord, lon_dim)
 
         # Regrid should fail with default rtol
         msg = "Coordinate latitude points are not equally spaced"
         with self.assertRaisesRegex(ValueError, msg):
-            RegridLandSea(regrid_mode=regrid_mode)(src_cube, target_grid)
+            RegridLandSea(regrid_mode=regrid_mode)(input_cube, self.target_grid)
+
         # More lenient rtol should allow regrid to pass without errors
         RegridLandSea(regrid_mode=regrid_mode, rtol_grid_spacing=4.0e-4)(
-            src_cube, target_grid
+            input_cube, self.target_grid
         )
 
     def test_args_passed_to_regrid_with_land_sea_mask(self):
