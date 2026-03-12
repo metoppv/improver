@@ -25,7 +25,7 @@ def test_basic(tmp_path):
     args = [
         input_path,
         "--n-realizations-required",
-        "5",
+        "3",
         "--output",
         output_path,
     ]

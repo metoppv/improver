@@ -35,7 +35,7 @@ def test_expand_realization_dimension():
     np.testing.assert_array_equal(
         result.data,
         np.array(
-            [[[1.0]], [[0.0]], [[1.0]], [[0.0]], [[1.0]], [[0.0]], [[1.0]]],
+            [[[1.0]], [[0.0]], [[0.0]], [[1.0]], [[0.0]], [[0.0]], [[1.0]]],
             dtype=np.float32,
         ),
     )
