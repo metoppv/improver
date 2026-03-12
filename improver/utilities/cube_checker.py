@@ -70,12 +70,13 @@ def validate_cube_dimensions(
 
     Raises:
         ValueError:
-            If an invalid mode is specified, if required dimensions are missing, or if
-            forbidden dimensions are present.
+            - An invalid mode is specified.
+            - Required dimensions are missing.
+            - Forbidden dimensions are present.
 
     """
     if mode not in ("exact", "minimum"):
-        raise ValueError("mode must be 'exact' or 'minimum'")
+        raise ValueError(f"mode must be 'exact' or 'minimum'. Received: {mode}")
 
     required_dimensions = list(required_dimensions or [])
     forbidden_dimensions = list(forbidden_dimensions or [])
@@ -84,26 +85,27 @@ def validate_cube_dimensions(
 
     def _resolve_dimension(dim: str) -> str:
         """
-        Resolve dimension tokens to actual dimension coordinate names. 'x' and 'y' are
-        treated as axis tokens to resolve, while all other entries are treated as
+        Resolve dimension labels to actual dimension coordinate names. 'x' and 'y' are
+        treated as axis labels to resolve, while all other entries are treated as
         explicit dimension coordinate names.
 
         Args:
             dim:
-                Dimension token to resolve.
+                Dimension label to resolve.
 
         Returns:
             Resolved dimension coordinate name.
 
         Raises:
-            ValueError: If an axis token is not found on the cube.
+            ValueError:
+                If an axis label is not found on the cube.
         """
-        token = dim.lower()
-        if token in ("x", "y"):
+        label = dim.lower()
+        if label in ("x", "y"):
             try:
-                axis_name = cube.coord(axis=token, dim_coords=True).name()
+                axis_name = cube.coord(axis=label, dim_coords=True).name()
             except CoordinateNotFoundError as exc:
-                raise ValueError(f"Axis token '{dim}' not found on cube.") from exc
+                raise ValueError(f"Axis label '{dim}' not found on cube.") from exc
 
             return axis_name
         return dim
