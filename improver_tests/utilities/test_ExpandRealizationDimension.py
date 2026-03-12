@@ -12,7 +12,7 @@ from improver.utilities.expand_realization_dimension import ExpandRealizationDim
 
 def basic_cube_with_realization_coord():
     """Create a basic cube with a realization coordinate."""
-    data = np.zeros((2, 1, 1), dtype=np.float32)
+    data = np.zeros((3, 1, 1), dtype=np.float32)
     data[0, 0, 0] = 1.0
     cube = set_up_variable_cube(data)
     return cube
@@ -22,19 +22,22 @@ def test_expand_realization_dimension():
     """Test that the ExpandRealizationDimension plugin correctly expands the realization
     dimension of a cube."""
     cube = basic_cube_with_realization_coord()
-    plugin = ExpandRealizationDimension(n_realizations_required=5)
-    expanded_cube = plugin.process(cube)
+    plugin = ExpandRealizationDimension(n_realizations_required=7)
+    result = plugin.process(cube)
 
     # Check size of realization correct
-    assert expanded_cube.coord("realization").points.size == 5
+    assert result.coord("realization").points.size == 7
     # Check realization points monotonically increasing
     np.testing.assert_array_equal(
-        expanded_cube.coord("realization").points, np.array([0, 1, 2, 3, 4])
+        result.coord("realization").points, np.array([0, 1, 2, 3, 4, 5, 6])
     )
     # Check output data matches expected cycling behaviour
     np.testing.assert_array_equal(
-        expanded_cube.data,
-        np.array([[[1.0]], [[0.0]], [[1.0]], [[0.0]], [[1.0]]], dtype=np.float32),
+        result.data,
+        np.array(
+            [[[1.0]], [[0.0]], [[1.0]], [[0.0]], [[1.0]], [[0.0]], [[1.0]]],
+            dtype=np.float32,
+        ),
     )
 
 
@@ -48,3 +51,13 @@ def test_no_realization_coord():
         plugin.process(cube)
     except ValueError as err:
         assert str(err) == "The input cube does not contain a realization coordinate."
+
+
+def test_fewer_realizations_requested_than_input():
+    """Test that a subset of the input cube is returned if n_realizations_required is
+    set to fewer realizations than the input cube contains."""
+    cube = basic_cube_with_realization_coord()  # 3 realizations
+    plugin = ExpandRealizationDimension(n_realizations_required=2)
+    result = plugin(cube)
+    # Check size of realization correct
+    assert result.coord("realization").points.size == 2

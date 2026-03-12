@@ -27,13 +27,10 @@ def process(cube: cli.inputcube, *, n_realizations_required: int):
     Raises:
         ValueError: if realization is not a dimension coordinate.
     """
-    if not (cube.coords("realization", dim_coords=True)):
-        raise ValueError("realization must be a dimension coordinate.")
-
     from improver.utilities.expand_realization_dimension import (
         ExpandRealizationDimension,
     )
 
     plugin = ExpandRealizationDimension(n_realizations_required=n_realizations_required)
 
-    return plugin.process(cube)
+    return plugin(cube)

@@ -8,6 +8,7 @@ realizations than required."""
 from iris.cube import Cube, CubeList
 
 from improver import BasePlugin
+from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 
 class ExpandRealizationDimension(BasePlugin):
@@ -31,7 +32,9 @@ class ExpandRealizationDimension(BasePlugin):
         realizations as necessary. E.g. if the input cube has 18 realizations and 24 are
         required, the first 18 realizations will be repeated and the first 6 of these
         will be used to create the additional 6 realizations needed to reach the
-        required 24.
+        required 24. Realization points will be renumbered from 0 to
+        n_realizations_required - 1 in the output cube, regardless of the original
+        realization points in the input cube.
 
         Args:
             cube:
@@ -53,6 +56,9 @@ class ExpandRealizationDimension(BasePlugin):
         realizations_available = cube.coord("realization").points.size
 
         extended_realization_cubelist = CubeList([])
+
+        # Ensure the realization coordinate is the first dimension coordinate
+        enforce_coordinate_ordering(cube, ["realization"])
 
         for index in range(self.n_realizations_required):
             r_index = index % realizations_available
