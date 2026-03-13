@@ -5,13 +5,17 @@
 """Unit tests for the standardise.RegridLandSea plugin."""
 
 import unittest
+from unittest.mock import patch
 
 import numpy as np
 import pytest
+from iris.coords import DimCoord
 
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.regrid.landsea import RegridLandSea
-from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
+from improver.synthetic_data.set_up_test_cubes import (
+    set_up_variable_cube,
+)
 from improver_tests import ImproverTest
 
 
@@ -220,6 +224,78 @@ class Test_process(ImproverTest):
         for axis in ["x", "y"]:
             self.assertEqual(result.coord(axis=axis), self.target_grid.coord(axis=axis))
         self.assertDictEqual(result.attributes, expected_attributes)
+
+    def test_run_regrid_with_tolerance_specified(self):
+        """Test masked regridding with non-default relative grid tolerance specified."""
+        expected_data = 282 * np.ones((12, 12), dtype=np.float32)
+        rtol = 0.0007
+        result = RegridLandSea(
+            regrid_mode="nearest-with-mask-2",
+            landmask=self.landmask,
+            landmask_vicinity=90000,
+            rtol_grid_spacing=rtol,
+        )(self.cube, self.target_grid.copy())
+        np.testing.assert_array_almost_equal(result.data, expected_data)
+
+    def test_configurable_rtol_allows_irregular_grid_spacing(self):
+        """Test that a custom grid spacing relative tolerance allows
+        regridding of a cube with slightly irregular spacing, when the
+        default relative tolerance does not allow regridding."""
+        regrid_mode = "nearest-2"
+        input_cube = self.cube.copy()
+
+        # Set up irregularly spaced y points.
+        # This is set up so that `mean(grid_spacing)` is the same as the
+        # grid spacing for most points, but that one or more grid_spacing
+        # values exceed the rtol.
+        rtol_orig = 4.0e-5
+        lat_coord = input_cube.coord("latitude")
+        y_array = lat_coord.points.copy()
+        y_mean_diff = np.diff(y_array).mean()
+        delta = rtol_orig * y_mean_diff + 4e-7  # delta > rtol * mean(grid_spacing)
+        y_array[1] += delta
+        y_array[2] -= delta
+
+        # Update input cube with new y values.
+        lon_dim = input_cube.coord_dims("latitude")[0]
+        new_y_coord = DimCoord(
+            y_array,
+            standard_name="latitude",
+            units="degrees",
+            coord_system=lat_coord.coord_system,
+        )
+        input_cube.remove_coord("latitude")
+        input_cube.add_dim_coord(new_y_coord, lon_dim)
+
+        # Regrid should fail with default rtol
+        msg = "Coordinate latitude points are not equally spaced"
+        with self.assertRaisesRegex(ValueError, msg):
+            RegridLandSea(regrid_mode=regrid_mode)(input_cube, self.target_grid)
+
+        # More lenient rtol should allow regrid to pass without errors
+        RegridLandSea(regrid_mode=regrid_mode, rtol_grid_spacing=4.0e-4)(
+            input_cube, self.target_grid
+        )
+
+    def test_args_passed_to_regrid_with_land_sea_mask(self):
+        """Test that the correct arguments are passed to the
+        RegridWithLandSeaMask class when using a relevant regrid mode."""
+        regrid_mode = "nearest-with-mask-2"
+        landmask_vicinity = 90000
+        rtol = 0.00412
+        with patch("improver.regrid.landsea.RegridWithLandSeaMask") as mock_class:
+            RegridLandSea(
+                regrid_mode=regrid_mode,
+                landmask=self.landmask,
+                landmask_vicinity=landmask_vicinity,
+                rtol_grid_spacing=rtol,
+            )(self.cube, self.target_grid.copy())
+
+            mock_class.assert_called_once_with(
+                regrid_mode=regrid_mode,
+                vicinity_radius=landmask_vicinity,
+                rtol_grid_spacing=rtol,
+            )
 
 
 if __name__ == "__main__":
