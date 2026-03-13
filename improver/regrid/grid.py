@@ -17,7 +17,6 @@ from scipy.interpolate import RegularGridInterpolator
 
 from improver.utilities.cube_manipulation import sort_coord_in_cube
 from improver.utilities.spatial import (
-    RTOL_GRID_SPACING_DEFAULT,
     calculate_grid_spacing,
     lat_lon_determine,
 )
@@ -41,7 +40,7 @@ def ensure_ascending_coord(cube: Cube) -> Cube:
 
 
 def calculate_input_grid_spacing(
-    cube_in: Cube, rtol: float = RTOL_GRID_SPACING_DEFAULT
+    cube_in: Cube, rtol: float = None
 ) -> Tuple[float, float]:
     """
     Calculate grid spacing in latitude and logitude.
@@ -62,6 +61,8 @@ def calculate_input_grid_spacing(
             If input grid is not on a latitude/longitude system or
             input grid coordinates are not ascending.
     """
+    if rtol is None:
+        rtol = 4.0e-5
     # check if in lat/lon system
     if lat_lon_determine(cube_in) is not None:
         raise ValueError("Input grid is not on a latitude/longitude system")
@@ -281,7 +282,7 @@ def similar_surface_classify(
 def slice_cube_by_domain(
     cube_in: Cube,
     output_domain: Tuple[float, float, float, float],
-    rtol_grid_spacing: float = RTOL_GRID_SPACING_DEFAULT,
+    rtol_grid_spacing: float = None,
 ) -> Cube:
     """
     Extract cube domain to be consistent as cube_reference's domain.
