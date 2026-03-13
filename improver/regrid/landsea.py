@@ -21,10 +21,7 @@ from improver.metadata.constants.mo_attributes import MOSG_GRID_ATTRIBUTES
 from improver.regrid.landsea2 import RegridWithLandSeaMask
 from improver.threshold import Threshold
 from improver.utilities.cube_checker import spatial_coords_match
-from improver.utilities.spatial import (
-    RTOL_GRID_SPACING_DEFAULT,
-    OccurrenceWithinVicinity,
-)
+from improver.utilities.spatial import OccurrenceWithinVicinity
 
 
 class RegridLandSea(PostProcessingPlugin):
@@ -53,7 +50,7 @@ class RegridLandSea(PostProcessingPlugin):
         landmask: Optional[Cube] = None,
         landmask_vicinity: float = 25000,
         mdtol: float = 1,
-        rtol_grid_spacing: float = RTOL_GRID_SPACING_DEFAULT,
+        rtol_grid_spacing: float = None,
     ):
         """
         Initialise regridding parameters.
