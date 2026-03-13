@@ -25,6 +25,7 @@ from improver.utilities.cube_checker import (
     check_for_x_and_y_axes,
     find_dimension_coordinate_mismatch,
     spatial_coords_match,
+    validate_cube_dimensions,
 )
 
 
@@ -417,6 +418,78 @@ def test_time_coord_exceptions(
     modifier(cubes)
     with pytest.raises(ValueError, match=error_match):
         assert_time_coords_valid(cubes, time_bounds=time_bounds)
+
+
+# Tests for the validate_cube_dimensions function
+
+
+@pytest.fixture
+def cube_3d():
+    """
+    Set up a 3D cube with 2 'realization' points, and 'longitude' and 'latitude'.
+    """
+    data = np.ones((2, 1, 1), dtype=np.float32)
+    return set_up_variable_cube(data)
+
+
+@pytest.mark.parametrize(
+    "required_dimensions, forbidden_dimensions, mode",
+    [
+        (["realization", "x", "y"], None, "exact"),
+        (["x", "y"], None, "minimum"),
+    ],
+)
+def test_validate_cube_dimensions_passes(
+    cube_3d, required_dimensions, forbidden_dimensions, mode
+):
+    """
+    Test that validate_cube_dimensions passes for valid dimension configurations:
+    - When the cube dimensions match the required dimensions exactly in 'exact' mode
+    - When the cube dimensions include at least the required dimensions in 'minimum'
+    mode
+    """
+    validate_cube_dimensions(
+        cube=cube_3d,
+        required_dimensions=required_dimensions,
+        forbidden_dimensions=forbidden_dimensions,
+        mode=mode,
+    )
+
+
+@pytest.mark.parametrize(
+    "required_dimensions, forbidden_dimensions, mode, error_message",
+    [
+        (None, None, "kittens", "mode must be 'exact' or 'minimum'"),
+        (["x", "y"], ["realization"], "minimum", "Forbidden dimension"),
+        (["time", "x", "y"], [], "minimum", "Missing required dimension"),
+        (
+            ["time"],
+            [],
+            "exact",
+            "Cube dim coords must match required_dimensions exactly",
+        ),
+    ],
+)
+def test_validate_cube_dimensions_raises(
+    cube_3d, required_dimensions, forbidden_dimensions, mode, error_message
+):
+    """
+    Test that validate_cube_dimensions raises ValueError when the cube dimension
+    configuration does not match the required and forbidden dimensions for the specified
+    mode:
+    - When an invalid mode is provided
+    - When forbidden dimensions are present in the cube
+    - When required dimensions are missing from the cube
+    - When the cube dimensions do not match the required dimensions exactly when mode is
+    'exact'
+    """
+    with pytest.raises(ValueError, match=error_message):
+        validate_cube_dimensions(
+            cube=cube_3d,
+            required_dimensions=required_dimensions,
+            forbidden_dimensions=forbidden_dimensions,
+            mode=mode,
+        )
 
 
 if __name__ == "__main__":

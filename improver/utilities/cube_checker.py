@@ -4,7 +4,7 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Provides support utilities for checking cubes."""
 
-from typing import List, Optional, Union
+from typing import List, Literal, Optional, Union
 
 import iris
 import numpy as np
@@ -37,6 +37,105 @@ def check_for_x_and_y_axes(cube: Cube, require_dim_coords: bool = False) -> None
         else:
             msg = "The cube does not contain the expected {} coordinates.".format(axis)
             raise ValueError(msg)
+
+
+def validate_cube_dimensions(
+    cube: Cube,
+    required_dimensions: Optional[List[str]] = None,
+    forbidden_dimensions: Optional[List[str]] = None,
+    mode: Literal["exact", "minimum"] = "exact",
+) -> None:
+    """
+    Validate cube dimension coordinates.
+
+    Notes:
+    - 'x' and 'y' are treated as axes to resolve. This prevents instances where
+    the dimension could be called 'latitude', 'projection_x_coordinate', etc.
+    from being misidentified as non-dimension coordinates.
+    - All other entries are treated as explicit dimension coord names.
+
+    Args:
+        cube:
+            The cube to validate.
+        required_dimensions:
+            Dimension names that must be present on the cube.
+        forbidden_dimensions:
+            Dimension names that must not be present on the cube.
+        mode:
+            Validation mode.
+            - "exact" requires the cube to have exactly the required dimensions
+            (no more, no less).
+            - "minimum":  the cube must have at least the required dimensions,
+            but can have additional ones.
+
+    Raises:
+        ValueError:
+            - An invalid mode is specified.
+            - Required dimensions are missing.
+            - Forbidden dimensions are present.
+
+    """
+    if mode not in ("exact", "minimum"):
+        raise ValueError(f"mode must be 'exact' or 'minimum'. Received: {mode}")
+
+    required_dimensions = list(required_dimensions or [])
+    forbidden_dimensions = list(forbidden_dimensions or [])
+
+    dim_coord_name_set = {coord.name() for coord in cube.dim_coords}
+
+    def _resolve_dimension(dim: str) -> str:
+        """
+        Resolve dimension labels to actual dimension coordinate names. 'x' and 'y' are
+        treated as axis labels to resolve, while all other entries are treated as
+        explicit dimension coordinate names.
+
+        Args:
+            dim:
+                Dimension label to resolve.
+
+        Returns:
+            Resolved dimension coordinate name.
+
+        Raises:
+            ValueError:
+                If an axis label is not found on the cube.
+        """
+        label = dim.lower()
+        if label in ("x", "y"):
+            try:
+                axis_name = cube.coord(axis=label, dim_coords=True).name()
+            except CoordinateNotFoundError as exc:
+                raise ValueError(f"Axis label '{dim}' not found on cube.") from exc
+
+            return axis_name
+        return dim
+
+    required_set = {_resolve_dimension(dim) for dim in required_dimensions}
+    forbidden_set = {_resolve_dimension(dim) for dim in forbidden_dimensions}
+
+    # Forbidden dimensions check (applies in both modes)
+    present_forbidden = sorted(forbidden_set & dim_coord_name_set)
+    if present_forbidden:
+        raise ValueError(
+            f"Forbidden dimension(s) present: {present_forbidden}. "
+            f"Cube dim coords are: {sorted(dim_coord_name_set)}"
+        )
+
+    # Required dimensions check by mode
+    if mode == "minimum":
+        missing_required = sorted(required_set - dim_coord_name_set)
+        if missing_required:
+            raise ValueError(
+                f"Missing required dimension(s): {missing_required}. "
+                f"Found: {sorted(dim_coord_name_set)}"
+            )
+    else:  # mode == "exact"
+        if dim_coord_name_set != required_set:
+            raise ValueError(
+                "Cube dim coords must match required_dimensions exactly. "
+                f"Required: {sorted(required_set)}"
+                f"Found: {sorted(dim_coord_name_set)}"
+            )
 
 
 def check_cube_coordinates(
