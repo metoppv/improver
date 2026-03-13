@@ -315,20 +315,6 @@ def _assert_secondary_input_realizations_to_clusters(
     )
     assert isinstance(mapping, dict)
     if expected_mapping is not None:
-        # Convert all keys to int for comparison (if needed)
-        # def convert_keys(obj):
-        #     if isinstance(obj, dict):
-        #         return {
-        #             int(k) if k.isdigit() else k: convert_keys(v)
-        #             for k, v in obj.items()
-        #         }
-        #     elif isinstance(obj, list):
-        #         return [convert_keys(i) for i in obj]
-        #     else:
-        #         return obj
-
-        # mapping = convert_keys(mapping)
-        # expected_mapping = convert_keys(expected_mapping)
         assert (
             mapping == expected_mapping
         ), f"Expected {expected_mapping}, got {mapping}"
