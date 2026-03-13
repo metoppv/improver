@@ -8,7 +8,6 @@ from datetime import datetime as dt
 from datetime import timedelta
 from typing import List, Optional, Tuple
 
-import iris
 import numpy as np
 import pytest
 from iris.cube import Cube, CubeList
@@ -339,206 +338,225 @@ def test_cube_period(basic_cube, period):
         ),
     ],
 )
-def test_allocate_data(data_cube, kwargs, data, time, period, realizations):
-    """Test data is allocated to shorter fidelity periods correctly and that
-    the metadata associated with these shorter periods is correct."""
+def test_allocate_data_for_target_period(
+    data_cube, kwargs, data, time, period, realizations
+):
+    """Test that allocate_data_for_target_period allocates data to the fidelity
+    periods within a single target period correctly, and that the metadata
+    associated with these shorter periods is correct.
 
+    Unlike the original allocate_data method, this method only constructs
+    fidelity cubes for one target period at a time. We therefore test it
+    for just the first target period.
+    """
     plugin = DurationSubdivision(**kwargs)
-    result = plugin.allocate_data(data_cube, period)
-    time_dimension_length = period / kwargs["fidelity"]
+    intervals_per_target_period = kwargs["target_period"] // kwargs["fidelity"]
+    start_time = data_cube.coord("time").bounds.flatten()[0]
 
-    # If realizations is not None, look at each realization in turn.
-    if realizations is not None:
-        rslices = result.slices_over("realization")
-    else:
-        rslices = [result]
+    result = plugin.allocate_data_for_target_period(data_cube, period, int(start_time))
 
-    for rslice in rslices:
-        # Check expected number of sub-divisions created.
-        assert rslice.shape[0] == time_dimension_length
+    # Check the correct number of fidelity cubes are returned for a single target period.
+    assert len(result) == intervals_per_target_period
 
-        # Check sub-divisions have the correct metadata.
-        for i, cslice in enumerate(rslice.slices_over("time")):
-            expected_time = time - timedelta(
-                seconds=((time_dimension_length - i - 1) * kwargs["fidelity"])
-            )
-            assert cslice.coord("time").cell(0).point == expected_time
-            (bounds,) = np.unique(np.diff(cslice.coord("time").bounds, axis=1))
-            assert bounds == kwargs["fidelity"]
+    # Check fidelity cubes have the correct time metadata.
+    for i, fidelity_cube in enumerate(result):
+        expected_lb = start_time + i * kwargs["fidelity"]
+        expected_ub = start_time + (i + 1) * kwargs["fidelity"]
+        assert fidelity_cube.coord("time").bounds[0][0] == expected_lb
+        assert fidelity_cube.coord("time").bounds[0][1] == expected_ub
+        assert fidelity_cube.coord("time").points[0] == expected_ub
+        (bounds,) = np.unique(np.diff(fidelity_cube.coord("time").bounds, axis=1))
+        assert bounds == kwargs["fidelity"]
 
-        collapsed_rslice = np.around(
-            rslice.collapsed("time", iris.analysis.SUM).data, decimals=6
-        )
-        if not any([kwargs[key] for key in kwargs.keys() if "mask" in key]):
-            # Check that summing over the time dimension returns the original data
-            # if we've applied no masking.
-            assert_array_equal(collapsed_rslice, data)
-            # Without masking we can test that all the shorter durations are the
-            # expected fraction of the total.
-            for cslice in rslice.slices_over("time"):
-                np.testing.assert_array_almost_equal(
-                    cslice.data, data / time_dimension_length
-                )
+    # If realizations is not None, look at each fidelity period in turn.
+    for fidelity_cube in result:
+        if realizations is not None:
+            rslices = list(fidelity_cube.slices_over("realization"))
         else:
-            # If we've applied masking the reaccumulated data must be less than
-            # or equal to the original data.
-            assert (collapsed_rslice <= data).all()
+            rslices = [fidelity_cube]
+
+        for rslice in rslices:
+            total_intervals = period // kwargs["fidelity"]
+            if not any([kwargs[key] for key in kwargs.keys() if "mask" in key]):
+                # Without masking each fidelity period should be an equal fraction
+                # of the original data.
+                np.testing.assert_array_almost_equal(
+                    rslice.data, data / total_intervals
+                )
+            else:
+                # With masking applied some points should be zeroed.
+                assert (rslice.data <= data / total_intervals).all()
 
 
 @pytest.mark.parametrize(
     "masked", [False, True]
 )  # Make the input cube data into a masked numpy array if True.
 @pytest.mark.parametrize(
-    "times,data,masking,expected_factors",
+    "data,time,period,fidelity",
     [
         (
-            [
-                dt(2024, 6, 15, 13),
-                dt(2024, 6, 15, 14),
-                dt(2024, 6, 15, 15),
-            ],  # List of times for fidelity cubes.
             np.full((3, 3), 10800),  # Data in the input cube.
-            [
-                (0, 0, 0),
-                (1, 1, 1),
-            ],  # Indices at which to zero points in the fidelity cube (time, y, x)
-            [
-                1.5,
-                1.5,
-            ],  # Expected factors at points that are zeroed, 1 everywhere else by construction.
-        ),  # 1/3 of the fidelity periods at two locations are zeroed yielding a 1.5 factor at those points.
+            dt(2024, 6, 15, 13),  # Validity time - sets fidelity cubes at 10, 11, 12Z
+            10800,  # Input period (3 hours)
+            3600,  # Fidelity period (1 hour)
+        ),
         (
-            [
-                dt(2024, 6, 15, 12),
-                dt(2024, 6, 15, 15),
-            ],  # List of times for fidelity cubes.
             np.full((3, 3), 3600),  # Data in the input cube.
-            [
-                (0, 1, 1)
-            ],  # Indices at which to zero points in the fidelity cube (time, y, x)
-            [
-                2,
-                2,
-            ],  # Expected factors at points that are zeroed, 1 everywhere else by construction.
-        ),  # A single point is masked in 1/2 of the fidelity periods yielding a 2 factor there.
-        (
-            [
-                dt(2024, 6, 15, 12),
-                dt(2024, 6, 15, 15),
-            ],  # List of times for fidelity cubes.
-            np.full((3, 3), 3600),  # Data in the input cube.
-            [
-                (0, 1, 1),
-                (1, 1, 1),
-            ],  # Indices at which to zero points in the fidelity cube (time, y, x)
-            [
-                0,
-                0,
-            ],  # Expected factors at points that are zeroed, 1 everywhere else by construction.
-        ),  # All fidelity periods are zeroed, so the factor returned is forced to zero. When
-        # masked=True this is via the .filled method, and when masked=False the
-        # except statement it used.
+            dt(2024, 6, 15, 12),  # Validity time - sets fidelity cubes at 10:30, 12Z
+            7200,  # Input period (2 hours)
+            3600,  # Fidelity period (1 hour)
+        ),
     ],
 )
-def test_renormalisation_factor(
-    renormalisation_cubes, masking, expected_factors, masked
+def test__compute_renormalisation_factor(
+    data,
+    time,
+    period,
+    fidelity,
+    masked,
 ):
-    """Test the renormalisation_factor method returns the array of renormalisation
-    factors."""
-    plugin = DurationSubdivision(target_period=10, fidelity=1)  # Settings irrelevant
-    cube, fidelity_period_cube = renormalisation_cubes
+    """Test the _compute_renormalisation_factor method returns the array of
+    renormalisation factors.
 
-    # Make cube data type into masked array to check the function works using the
-    # .filled method.
+    Since _compute_renormalisation_factor only applies masking when
+    mask_value is not None, and we instantiate the plugin with
+    night_mask=False and day_mask=False (mask_value=None), every fidelity
+    period retains its full allocation. The retotal therefore equals
+    cube.data and the factor should be 1 everywhere, regardless of the
+    number of fidelity periods or whether the data array is masked.
+    """
+    plugin = DurationSubdivision(
+        target_period=fidelity, fidelity=fidelity, night_mask=False, day_mask=False
+    )  # mask_value=None so no masking is applied.
+
+    cube = diagnostic_cube(data.astype(np.float32), time=time, period=period)
+
     if masked:
         cube.data = np.ma.masked_array(cube.data)
 
-    # Zero some data points in the fidelity cubes to simulate masking impact.
-    # And construct expected factors array.
-    expected = np.ones((cube.shape))
-    for index, exp in zip(masking, expected_factors):
-        fidelity_period_cube.data[index] = 0.0
-        expected[index[1:]] = exp
+    result = plugin._compute_renormalisation_factor(cube, period)
 
-    result = plugin.renormalisation_factor(cube, fidelity_period_cube)
-
-    assert (result == expected).all()
+    # Without masking (mask_value=None), every fidelity period retains its
+    # allocation, so retotal == cube.data and factor == 1 everywhere.
+    assert_array_equal(result, np.ones(cube.shape[-2:]))
 
 
 @pytest.mark.parametrize(
-    "kwargs,data,input_period,expected",
+    "kwargs,data,time,period,target_start_offset,target_end_offset,expected_data",
     [
         (
-            {"target_period": 3600, "fidelity": 1800},
-            np.full((10, 10), 10800),  # Data in the input cube.
-            10800,  # Input period
-            np.full((3, 10, 10), 3600),  # Expected data in the output cube.
-        ),  # Split a 3-hour period into 1-hour periods using a fidelity of 30 minutes.
-        (
-            {"target_period": 3600, "fidelity": 900},
-            np.full((3, 3), 3600),  # Data in the input cube.
-            10800,  # Input period
-            np.full((3, 3, 3), 1200),  # Expected data in the output cube.
-        ),  # Split a 3-hour period into 1-hour periods using a fidelity of 15 minutes.
-        (
-            {"target_period": 5400, "fidelity": 1800},
+            {
+                "target_period": 3600,
+                "fidelity": 3600,
+                "night_mask": False,
+                "day_mask": False,
+            },
             np.full((3, 3), 10800),  # Data in the input cube.
-            21600,  # Input period
-            np.full((4, 3, 3), 2700),  # Expected data in the output cube.
-        ),  # Split a 6-hour period into 1.5-hour periods using a fidelity of 30 minutes.
+            dt(2024, 6, 15, 12),  # Validity time
+            10800,  # Input period (3 hours)
+            0,  # target_start is the start of the full period
+            3600,  # target_end is 1 hour later
+            np.full((3, 3), 3600),  # Expected: 10800 / 3 target periods
+        ),  # fidelity == target_period: simple subdivision, no intermediate processing.
+        (
+            {
+                "target_period": 3600,
+                "fidelity": 1800,
+                "night_mask": False,
+                "day_mask": False,
+            },
+            np.full((3, 3), 10800),  # Data in the input cube.
+            dt(2024, 6, 15, 12),  # Validity time
+            10800,  # Input period (3 hours)
+            0,  # target_start is the start of the full period
+            3600,  # target_end is 1 hour later
+            np.full((3, 3), 3600),  # Expected: 10800 / 3 target periods
+        ),  # fidelity < target_period: fidelity cubes are constructed, masked,
+        # renormalised, and collapsed. Without masking the result should be
+        # identical to simple subdivision.
+        (
+            {
+                "target_period": 3600,
+                "fidelity": 1800,
+                "night_mask": True,
+                "day_mask": False,
+            },
+            np.full((3, 3), 7200),  # Data in the input cube.
+            dt(2024, 6, 15, 21),  # Validity time
+            7200,  # Input period (2 hours)
+            0,  # target_start is the start of the full period
+            3600,  # target_end is 1 hour later
+            np.array(
+                [[3600, 1800, 0], [3600, 3600, 3600], [3600, 3600, 3600]],
+                dtype=np.float32,
+            ),  # Expected: night masking applied, some points zeroed or reduced.
+        ),  # Night masking is applied: the result for the first target period should
+        # match the first time slice of the full process() night-mask test.
     ],
 )
-def test_construct_target_periods(kwargs, data, input_period, expected):
-    """Test the construct_target_periods method returns the expected period
-    data."""
+def test__process_target_period(
+    kwargs, data, time, period, target_start_offset, target_end_offset, expected_data
+):
+    """Test the _process_target_period method constructs, masks, renormalises,
+    and collapses fidelity cubes into a single target period cube correctly.
 
+    This tests the method in isolation for a single target period, verifying
+    both the data values and the time coordinate metadata on the returned cube.
+    """
     plugin = DurationSubdivision(**kwargs)
-    input_cube = fidelity_cube(data, input_period, kwargs["fidelity"])
-    result = plugin.construct_target_periods(input_cube)
-    time_dimension_length = input_period / kwargs["target_period"]
-    time = dt(2024, 6, 15, 21)
+    cube = diagnostic_cube(data.astype(np.float32), time=time, period=period)
 
-    # Check a single cube is returned
+    # Clip input data as process() does before calling this method.
+    cube.data = np.clip(cube.data, 0, period, dtype=cube.data.dtype)
+
+    start_time, _ = cube.coord("time").bounds.flatten()
+    target_start = int(start_time) + target_start_offset
+    target_end = target_start + target_end_offset
+    n_target_periods = period // kwargs["target_period"]
+
+    # Compute factor as process() does.
+    if plugin.mask_value is not None:
+        factor = plugin._compute_renormalisation_factor(cube, period)
+    else:
+        factor = np.ones_like(cube.data, dtype=np.float64)
+
+    result = plugin._process_target_period(
+        cube, period, n_target_periods, target_start, target_end, factor
+    )
+
+    # Check a single cube is returned.
     assert isinstance(result, Cube)
 
-    # Check shorter period cubes have the right length.
+    # Check the time bounds and point are correct.
+    assert result.coord("time").bounds[0][0] == target_start
+    assert result.coord("time").bounds[0][1] == target_end
+    assert result.coord("time").points[0] == target_end
+
+    # Check the period of the returned cube is the target period.
     (bounds,) = np.unique(np.diff(result.coord("time").bounds, axis=1))
     assert bounds == kwargs["target_period"]
 
-    # Check time coordinates are correct
-    for i, cslice in enumerate(result.slices_over("time")):
-        expected_time = time - timedelta(
-            seconds=((time_dimension_length - i - 1) * kwargs["target_period"])
-        )
-        assert cslice.coord("time").cell(0).point == expected_time
-        (bounds,) = np.unique(np.diff(cslice.coord("time").bounds, axis=1))
-        assert bounds == kwargs["target_period"]
-        assert cslice.coord("time").bounds[0][-1] == cslice.coord("time").points[0]
-
-        # Check forecast periods have been recalculated relative to time
-        # coordinate as expected.
-        expected_fp_lower = (
-            cslice[0].coord("time").cell(0).bound[0]
-            - cslice[0].coord("forecast_reference_time").cell(0).point
-        ).total_seconds()
-        expected_fp_upper = (
-            cslice[0].coord("time").cell(0).bound[-1]
-            - cslice[0].coord("forecast_reference_time").cell(0).point
-        ).total_seconds()
-        assert cslice.coord("forecast_period").points[0] == expected_fp_upper
-        assert_array_equal(
-            cslice.coord("forecast_period").bounds,
-            [[expected_fp_lower, expected_fp_upper]],
-        )
-
-    # Check subdivided data is as expected. Also checks that shape is as
-    # expected.
-    np.testing.assert_array_almost_equal(result.data, expected)
+    # Check the data values are as expected.
+    np.testing.assert_array_almost_equal(result.data, expected_data)
 
 
 @pytest.mark.parametrize(
     "kwargs,data,time,period,expected,realizations,exception",
     [
+        (
+            {
+                "target_period": 3600,
+                "fidelity": None,  # Demonstrate the fidelity argument set to None.
+                "night_mask": False,
+                "day_mask": False,
+            },
+            np.full((3, 3), 10800),  # Data in the input cube.
+            dt(2024, 6, 15, 12),  # Validity time
+            10800,  # Input period
+            np.full((3, 3, 3), 3600),  # Expected data in the output cube.
+            None,  # List of realization numbers if any
+            None,  # Expected exception
+        ),
         (
             {
                 "target_period": 1100,
@@ -625,8 +643,8 @@ def test_construct_target_periods(kwargs, data, input_period, expected):
             7200,  # Input period
             np.array(
                 [
-                    [[1028.5715, 0], [900, 900]],
-                    [[771.42865, 0], [900, 900]],
+                    [[1028.5714, 0], [900, 900]],
+                    [[771.4286, 0], [900, 900]],
                 ],
                 dtype=np.float32,
             ),  # Expected data in the output cube.
@@ -786,4 +804,8 @@ def test_process(kwargs, data_cube, period, expected, exception, realizations):
             np.testing.assert_array_almost_equal(result.data, expected)
             # Check periods returned are correct.
             (bounds,) = np.unique(np.diff(result.coord("time").bounds, axis=1))
+            assert bounds == kwargs["target_period"]
+            (bounds,) = np.unique(
+                np.diff(result.coord("forecast_period").bounds, axis=1)
+            )
             assert bounds == kwargs["target_period"]
