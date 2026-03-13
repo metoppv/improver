@@ -38,11 +38,6 @@ from improver.metadata.utilities import (
 from improver.utilities.cube_checker import check_cube_coordinates, spatial_coords_match
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
-# Grid spacing relative tolerances
-RTOL_GRID_SPACING_TIGHT = 1.0e-5
-RTOL_GRID_SPACING_DEFAULT = 4.0e-5
-RTOL_GRID_SPACING_WARNING_THRESHOLD = 0.01
-
 
 def check_if_grid_is_equal_area(
     cube: Cube, require_equal_xy_spacing: bool = True
@@ -75,7 +70,7 @@ def calculate_grid_spacing(
     cube: Cube,
     units: Union[Unit, str],
     axis: str = "x",
-    rtol: float = RTOL_GRID_SPACING_TIGHT,
+    rtol: float = 1.0e-5,
 ) -> float:
     """
     Returns the grid spacing of a given spatial axis. This will be positive for
@@ -99,15 +94,14 @@ def calculate_grid_spacing(
             supplied rtol is negative.
 
     Warns:
-        UserWarning: If rtol exceeds RTOL_GRID_SPACING_WARNING_THRESHOLD,
-            as this may allow non-uniform grids to pass validation.
+        UserWarning: If rtol exceeds 0.01, as this may allow non-uniform grids
+        to pass validation.
     """
     if rtol < 0:
         raise ValueError(f"rtol must be non-negative, got {rtol}")
-    if rtol > RTOL_GRID_SPACING_WARNING_THRESHOLD:
+    if rtol > 0.01:
         warnings.warn(
-            f"rtol={rtol} exceeds recommended threshold of "
-            f"{RTOL_GRID_SPACING_WARNING_THRESHOLD}. "
+            f"rtol={rtol} exceeds recommended maximum of 0.01."
             "Large tolerance values may allow non-uniform grids to pass validation.",
         )
 
