@@ -142,13 +142,21 @@ class GenerateTimeLaggedEnsemble(BasePlugin):
             UserWarning: If only a single cube is provided, so time lagging will have
             no effect.
         """
-        cubelist = as_cubelist(cubes)
-        cubelist = self.add_realization_coord(cubelist)
+        cubelist_orig = as_cubelist(cubes)
+        cubelist = self.add_realization_coord(cubelist_orig.copy())
 
         if len(cubelist) == 1:
-            warnings.warn(
-                "Only a single cube input, so time lagging will have no effect."
-            )
+            if cubelist_orig[0].coords("realization"):
+                msg = (
+                    "Only one ensemble cube provided, so time lagging will "
+                    "have no effect."
+                )
+            else:
+                msg = (
+                    "Only one deterministic cube provided, so realization coordinate "
+                    "added but time lagging will have no effect."
+                )
+            warnings.warn(msg)
             return cubelist[0]
 
         # raise error if validity times are not all equal

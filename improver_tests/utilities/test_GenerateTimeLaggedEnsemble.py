@@ -158,13 +158,28 @@ class Test_process(unittest.TestCase):
         expected_attributes = {"institution": "Met Office"}
         self.assertEqual(result.attributes, expected_attributes)
 
-    def test_single_cube(self):
+    def test_single_cube_ensemble(self):
         """Test only one input cube returns the cube unchanged and raises a warning."""
         input_cubelist = iris.cube.CubeList([self.input_cube])
         expected_cube = self.input_cube.copy()
         with self.assertWarnsRegex(
             UserWarning,
-            "Only a single cube input, so time lagging will have no effect.",
+            "Only one ensemble cube provided, so time lagging will have no effect.",
+        ):
+            result = GenerateTimeLaggedEnsemble().process(input_cubelist)
+        self.assertEqual(result, expected_cube)
+
+    def test_single_cube_deterministic(self):
+        """Test only one input cube returns the cube unchanged, apart from adding a
+        realization coordinate, and raises a warning."""
+        input_cube = self.input_cube.copy()
+        input_cube.remove_coord("realization")
+        input_cubelist = iris.cube.CubeList([input_cube[0]])
+        expected_cube = self.input_cube[0].copy()
+        with self.assertWarnsRegex(
+            UserWarning,
+            "Only one deterministic cube provided, so realization coordinate "
+            "added but time lagging will have no effect.",
         ):
             result = GenerateTimeLaggedEnsemble().process(input_cubelist)
         self.assertEqual(result, expected_cube)
@@ -211,16 +226,6 @@ class Test_process(unittest.TestCase):
         self.assertEqual(result, expected_cube)
         self.assertEqual(result.coord("realization").dtype, np.int32)
 
-    def test_single_cube_without_realization(self):
-        """Test single input cube without realization coordinate gets one added."""
-        # Remove realization coordinate
-        cube = next(self.input_cube.slices_over("realization")).copy()
-        cube.remove_coord("realization")
-        input_cubelist = iris.cube.CubeList([cube])
-        result = GenerateTimeLaggedEnsemble().process(input_cubelist)
-        self.assertIn("realization", [coord.name() for coord in result.coords()])
-        self.assertEqual(result.coord("realization").points.tolist(), [0])
-
     def test_multiple_cubes_without_realization(self):
         """Test multiple input cubes without realization coordinates get unique ones
         added."""
@@ -234,7 +239,9 @@ class Test_process(unittest.TestCase):
         np.testing.assert_array_equal(result.coord("realization").points, [0, 1])
 
     def test_mixed_cubes_with_and_without_realization(self):
-        """Test mixing cubes with and without realization coordinates."""
+        """Test mixing cubes with and without realization coordinates.
+        Cubes without realization coordinates should have unique ones added, and
+        the final output should have all realizations renumbered to a unique set."""
         cube1 = next(self.input_cube.slices_over("realization")).copy()
         cube2 = self.input_cube2.copy()
         cube1.remove_coord("realization")
