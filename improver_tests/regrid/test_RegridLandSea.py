@@ -9,7 +9,6 @@ from unittest.mock import patch
 
 import numpy as np
 import pytest
-from iris.coords import DimCoord
 
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.regrid.landsea import RegridLandSea
@@ -255,17 +254,8 @@ class Test_process(ImproverTest):
         delta = rtol_orig * y_mean_diff + 4e-7  # delta > rtol * mean(grid_spacing)
         y_array[1] += delta
         y_array[2] -= delta
-
-        # Update input cube with new y values.
-        lon_dim = input_cube.coord_dims("latitude")[0]
-        new_y_coord = DimCoord(
-            y_array,
-            standard_name="latitude",
-            units="degrees",
-            coord_system=lat_coord.coord_system,
-        )
-        input_cube.remove_coord("latitude")
-        input_cube.add_dim_coord(new_y_coord, lon_dim)
+        # Update input cube with new y values
+        input_cube.coord("latitude").points = y_array
 
         # Regrid should fail with default rtol
         msg = "Coordinate latitude points are not equally spaced"
