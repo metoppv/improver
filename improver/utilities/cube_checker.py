@@ -4,7 +4,7 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Provides support utilities for checking cubes."""
 
-from typing import List, Literal, Optional, Union
+from typing import List, Optional, Union
 
 import iris
 import numpy as np
@@ -43,13 +43,13 @@ def validate_cube_dimensions(
     cube: Cube,
     required_dimensions: Optional[List[str]] = None,
     forbidden_dimensions: Optional[List[str]] = None,
-    mode: Literal["exact", "minimum"] = "exact",
+    exact_match: bool = True,
 ) -> None:
     """
     Validate cube dimension coordinates.
 
     Notes:
-    - 'x' and 'y' are treated as axes to resolve. This prevents instances where
+    - 'x', 'y', and 'z' are treated as axes to resolve. This prevents instances where
     the dimension could be called 'latitude', 'projection_x_coordinate', etc.
     from being misidentified as non-dimension coordinates.
     - All other entries are treated as explicit dimension coord names.
@@ -61,11 +61,11 @@ def validate_cube_dimensions(
             Dimension names that must be present on the cube.
         forbidden_dimensions:
             Dimension names that must not be present on the cube.
-        mode:
+        exact_match:
             Validation mode.
-            - "exact" requires the cube to have exactly the required dimensions
+            - True: the cube must have exactly the required dimensions
             (no more, no less).
-            - "minimum":  the cube must have at least the required dimensions,
+            - False: the cube must have at least the required dimensions,
             but can have additional ones.
 
     Raises:
@@ -75,9 +75,6 @@ def validate_cube_dimensions(
             - Forbidden dimensions are present.
 
     """
-    if mode not in ("exact", "minimum"):
-        raise ValueError(f"mode must be 'exact' or 'minimum'. Received: {mode}")
-
     required_dimensions = list(required_dimensions or [])
     forbidden_dimensions = list(forbidden_dimensions or [])
 
@@ -85,8 +82,8 @@ def validate_cube_dimensions(
 
     def _resolve_dimension(dim: str) -> str:
         """
-        Resolve dimension labels to actual dimension coordinate names. 'x' and 'y' are
-        treated as axis labels to resolve, while all other entries are treated as
+        Resolve dimension labels to actual dimension coordinate names. 'x', 'y', and 'z'
+        are treated as axis labels to resolve, while all other entries are treated as
         explicit dimension coordinate names.
 
         Args:
@@ -101,40 +98,49 @@ def validate_cube_dimensions(
                 If an axis label is not found on the cube.
         """
         label = dim.lower()
-        if label in ("x", "y"):
+        if label in "txyz":
             try:
-                axis_name = cube.coord(axis=label, dim_coords=True).name()
-            except CoordinateNotFoundError as exc:
-                raise ValueError(f"Axis label '{dim}' not found on cube.") from exc
-
-            return axis_name
+                return cube.coord(axis=label, dim_coords=True).name()
+            # If the axis label is not found, we return dim as is, which will be
+            # caught as a missing required dimension or an unexpected forbidden
+            # dimension in the main validation logic, rather than raising an error here.
+            except CoordinateNotFoundError:
+                return dim
         return dim
 
     required_set = {_resolve_dimension(dim) for dim in required_dimensions}
     forbidden_set = {_resolve_dimension(dim) for dim in forbidden_dimensions}
 
-    # Forbidden dimensions check (applies in both modes)
-    present_forbidden = sorted(forbidden_set & dim_coord_name_set)
-    if present_forbidden:
+    # Common dimensions check
+    common_dims = required_set & forbidden_set
+    if common_dims:
         raise ValueError(
-            f"Forbidden dimension(s) present: {present_forbidden}. "
+            f"Dimension(s) cannot be both required and forbidden: "
+            f"{sorted(common_dims)}. "
+        )
+    # Forbidden dimensions check
+    forbidden_dims_present = sorted(forbidden_set & dim_coord_name_set)
+    if forbidden_dims_present:
+        raise ValueError(
+            f"Forbidden dimension(s) present: {forbidden_dims_present}. "
             f"Cube dim coords are: {sorted(dim_coord_name_set)}"
         )
 
-    # Required dimensions check by mode
-    if mode == "minimum":
-        missing_required = sorted(required_set - dim_coord_name_set)
-        if missing_required:
+    # Required dimensions check
+    missing_required_dims = sorted(required_set - dim_coord_name_set)
+    if missing_required_dims:
+        raise ValueError(
+            f"Missing required dimension(s): {missing_required_dims}. "
+            f"Found: {sorted(dim_coord_name_set)}"
+        )
+    # Exact match check
+    if exact_match:
+        extra_dims = sorted(dim_coord_name_set - required_set)
+        if extra_dims:
             raise ValueError(
-                f"Missing required dimension(s): {missing_required}. "
-                f"Found: {sorted(dim_coord_name_set)}"
-            )
-    else:  # mode == "exact"
-        if dim_coord_name_set != required_set:
-            raise ValueError(
-                "Cube dim coords must match required_dimensions exactly. "
-                f"Required: {sorted(required_set)}"
-                f"Found: {sorted(dim_coord_name_set)}"
+                f"Extra dimension(s) present: {extra_dims}. "
+                "and exact_match is True. Remove these dimensions from the cube "
+                "or set exact_match to False if these dimensions are acceptable."
             )
 
 

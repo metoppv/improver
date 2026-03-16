@@ -433,62 +433,73 @@ def cube_3d():
 
 
 @pytest.mark.parametrize(
-    "required_dimensions, forbidden_dimensions, mode",
+    "required_dimensions, forbidden_dimensions, exact_match",
     [
-        (["realization", "x", "y"], None, "exact"),
-        (["x", "y"], None, "minimum"),
+        (["realization", "x", "y"], None, True),
+        (["x", "y"], None, False),
     ],
 )
 def test_validate_cube_dimensions_passes(
-    cube_3d, required_dimensions, forbidden_dimensions, mode
+    cube_3d, required_dimensions, forbidden_dimensions, exact_match
 ):
     """
     Test that validate_cube_dimensions passes for valid dimension configurations:
-    - When the cube dimensions match the required dimensions exactly in 'exact' mode
-    - When the cube dimensions include at least the required dimensions in 'minimum'
-    mode
+    - When the cube dimensions include at least the required dimensions when exact_match
+    is False
+    - When the cube dimensions match the required dimensions exactly when exact_match
+    is True
     """
     validate_cube_dimensions(
         cube=cube_3d,
         required_dimensions=required_dimensions,
         forbidden_dimensions=forbidden_dimensions,
-        mode=mode,
+        exact_match=exact_match,
     )
 
 
 @pytest.mark.parametrize(
-    "required_dimensions, forbidden_dimensions, mode, error_message",
+    "required_dimensions, forbidden_dimensions, exact_match, error_message",
     [
-        (None, None, "kittens", "mode must be 'exact' or 'minimum'"),
-        (["x", "y"], ["realization"], "minimum", "Forbidden dimension"),
-        (["time", "x", "y"], [], "minimum", "Missing required dimension"),
+        # Dimension included in both required and forbidden lists
+        (
+            ["x", "y"],
+            ["x"],
+            False,
+            r"Dimension\(s\) cannot be both required and forbidden",
+        ),
+        # Forbidden dimensions present
+        (["x", "y"], ["realization"], False, "Forbidden dimension"),
+        # Missing required dimensions
+        (["time", "x", "y"], [], False, "Missing required dimension"),
+        # Missing required dimensions with exact match
         (
             ["time"],
             [],
-            "exact",
-            "Cube dim coords must match required_dimensions exactly",
+            True,
+            "Missing required dimension",
         ),
+        # Exact_match True but surplus dimensions on input cube
+        (["x", "y"], [], True, "Extra dimension"),
     ],
 )
 def test_validate_cube_dimensions_raises(
-    cube_3d, required_dimensions, forbidden_dimensions, mode, error_message
+    cube_3d, required_dimensions, forbidden_dimensions, exact_match, error_message
 ):
     """
     Test that validate_cube_dimensions raises ValueError when the cube dimension
     configuration does not match the required and forbidden dimensions for the specified
     mode:
-    - When an invalid mode is provided
-    - When forbidden dimensions are present in the cube
+    - When a dimension is included in both required and forbidden lists
+    - When forbidden dimensions are present on the cube
     - When required dimensions are missing from the cube
-    - When the cube dimensions do not match the required dimensions exactly when mode is
-    'exact'
+    - When exact_match is True but the cube has extra dimensions not listed as required
     """
     with pytest.raises(ValueError, match=error_message):
         validate_cube_dimensions(
             cube=cube_3d,
             required_dimensions=required_dimensions,
             forbidden_dimensions=forbidden_dimensions,
-            mode=mode,
+            exact_match=exact_match,
         )
 
 
