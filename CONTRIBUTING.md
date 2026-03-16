@@ -62,6 +62,7 @@ below:
  - Peter Jordan (Met Office, UK)
  - Anzer Khan (Met Office, UK)
  - Bruno P. Kinoshita (NIWA, NZ)
+ - Alice Lake (Met Office, UK)
  - Phoebe Lambert (Met Office, UK)
  - Lucy Liu (Bureau of Meteorology, Australia)
  - Daniel Mentiplay (Bureau of Meteorology, Australia)

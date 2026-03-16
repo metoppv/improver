@@ -46,8 +46,16 @@ def model_specification():
             "model_specification": [["linear", [0], {}]],
             "window_length": 6,
             "required_rolling_window_points": 4,
+            "trailing_window": False,
+        },  # Check that inputs for window calculations are initialised correctly for
+        # a centred window.
+        {
+            "model_specification": [["linear", [0], {}]],
+            "window_length": 5,
+            "required_rolling_window_points": 10,
             "trailing_window": True,
-        },  # Check that inputs for window calculations are initialised correctly.
+        },  # Check that inputs for window calculations are initialised correctly for
+        # a trailing window.
     ],
 )
 def test__init__(kwargs):
