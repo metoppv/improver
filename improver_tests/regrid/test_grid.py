@@ -194,13 +194,16 @@ class Test_calculate_input_grid_spacing(unittest.TestCase):
         when validating spacing."""
         latlon_cube = set_up_variable_cube(np.ones((5, 5), dtype=np.float32))
         # Replace with irregularly spaced longitudes
-        new_x_points = np.array([0.0, 11.0, 132.0, 333.0, 504.5])
+        new_x_points = np.array([1.0, 2.0, 4.0, 5.0, 7.0])
         new_x_coord = DimCoord(new_x_points, standard_name="longitude", units="degrees")
         latlon_cube.remove_coord("longitude")
         latlon_cube.add_dim_coord(new_x_coord, 1)
         msg = "Coordinate longitude points are not equally spaced"
+        # Assert that exception is raised when using low tolerance
         with self.assertRaisesRegex(ValueError, msg):
             calculate_input_grid_spacing(latlon_cube, rtol=0.0001)
+        # Demonstrate that no exception is raised when using a high tolerance
+        _ = calculate_input_grid_spacing(latlon_cube, rtol=2)
 
 
 Names = namedtuple(
