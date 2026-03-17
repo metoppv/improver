@@ -42,6 +42,8 @@ class FireWeatherIndexBase(BasePlugin):
 
     Subclasses must define class attributes:
 
+    - START_DATE_CUBE_NAME: Name of cube from which the start_date
+        attribute will be sourced for the output_cube.
     - INPUT_CUBE_NAMES: List of standard names for required input cubes
     - OUTPUT_CUBE_NAME: Standard name for the output cube
     - REQUIRES_MONTH: Boolean indicating if month parameter is required
@@ -73,6 +75,7 @@ class FireWeatherIndexBase(BasePlugin):
     }
 
     # Class attributes to be overridden by subclasses
+    START_DATE_CUBE_NAME: str = ""
     INPUT_CUBE_NAMES: list[str] = []
     OUTPUT_CUBE_NAME: str = ""
     REQUIRES_MONTH: bool = False
@@ -309,6 +312,7 @@ class FireWeatherIndexBase(BasePlugin):
         self.load_input_cubes(cubes, month)
         output_data = self._calculate()
         output_cube = self._make_output_cube(output_data)
+        self._set_start_date(output_cube)
 
         # Check if output values are within expected ranges
         self._validate_output_range(output_cube)
@@ -389,6 +393,27 @@ class FireWeatherIndexBase(BasePlugin):
                     stacklevel=3,
                 )
 
+    def _set_start_date(self, output_cube: Cube) -> None:
+        """
+        Add a start_date attribute to the output_cube, sourced from either
+        the INPUT_ATTRIBUTE_MAPPING of the START_DATE_CUBE_NAME or the
+        START_DATE_CUBE_NAME attribute if no INPUT_ATTRIBUTE_MAPPINGS
+        are available.
+
+        If no START_DATE_CUBE_NAME attribute is defined then no start_date attribute
+        will be added to the output_cube.
+
+        Args:
+            output_cube:
+                The output cube
+
+        """
+        if self.START_DATE_CUBE_NAME:
+            attr_name = self._get_attribute_name(self.START_DATE_CUBE_NAME)
+            start_date_cube = getattr(self, attr_name)
+            start_date = start_date_cube.attributes["start_date"]
+            output_cube.attributes["start_date"] = start_date
+
 
 class IterativeFireWeatherIndexBase(FireWeatherIndexBase):
     """
@@ -412,6 +437,11 @@ class IterativeFireWeatherIndexBase(FireWeatherIndexBase):
     Subclasses must implement:
 
     - _calculate(): Method that performs the actual calculation
+
+    Warning:
+        Subclasses must not define class attribute START_DATE_CUBE_NAME.
+        Iterative Fire Weather classes will define their own start_date
+        when first initialised.
 
     """
 

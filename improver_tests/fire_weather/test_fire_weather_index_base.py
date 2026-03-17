@@ -11,11 +11,14 @@ from iris.cube import Cube, CubeList
 from improver.fire_weather import FireWeatherIndexBase
 from improver_tests.fire_weather import make_cube, make_input_cubes
 
+START_DATE = {"start_date": "2025-03-17"}
+
 
 class ConcreteFireWeatherIndex(FireWeatherIndexBase):
     """Concrete implementation of FireWeatherIndexBase for testing purposes."""
 
-    INPUT_CUBE_NAMES = ["air_temperature", "relative_humidity"]
+    START_DATE_CUBE_NAME = "air_temperature"
+    INPUT_CUBE_NAMES = [START_DATE_CUBE_NAME, "relative_humidity"]
     OUTPUT_CUBE_NAME = "test_index"
     REQUIRES_MONTH = False
 
@@ -72,7 +75,8 @@ class ConcreteFireWeatherIndexWithPrecipitation(FireWeatherIndexBase):
 class ConcreteFireWeatherIndexWithMappings(FireWeatherIndexBase):
     """Concrete implementation with INPUT_ATTRIBUTE_MAPPINGS for disambiguation."""
 
-    INPUT_CUBE_NAMES = ["air_temperature", "test_index"]
+    START_DATE_CUBE_NAME = "air_temperature"
+    INPUT_CUBE_NAMES = [START_DATE_CUBE_NAME, "test_index"]
     OUTPUT_CUBE_NAME = "test_index"
     REQUIRES_MONTH = False
     INPUT_ATTRIBUTE_MAPPINGS = {"test_index": "input_test_index"}
@@ -106,7 +110,7 @@ def input_cubes_basic(
     """
     return make_input_cubes(
         [
-            ("air_temperature", temp_val, "Celsius", False, {}),
+            ("air_temperature", temp_val, "Celsius", False, START_DATE),
             ("relative_humidity", rh_val, "1", False, {}),
         ],
         shape=shape,
@@ -620,13 +624,11 @@ def test_process_with_precipitation_time_coords() -> None:
 def test_process_with_unit_conversion() -> None:
     """Test that process correctly handles unit conversion."""
     # Create cubes with non-standard units
-    cubes = make_input_cubes(
-        [
-            ("air_temperature", 293.15, "K", False, {}),
-            ("relative_humidity", 50.0, "%", False, {}),
-        ],
-        shape=(5, 5),
-    )
+    args = [
+        ("air_temperature", 293.15, "K", False, START_DATE),
+        ("relative_humidity", 50.0, "%", False, {}),
+    ]
+    cubes = make_input_cubes(args, shape=(5, 5))
     plugin = ConcreteFireWeatherIndex()
 
     result = plugin.process(cubes)
@@ -641,13 +643,11 @@ def test_process_with_unit_conversion() -> None:
 
 def test_input_attribute_mappings_in_process() -> None:
     """Test INPUT_ATTRIBUTE_MAPPINGS works in full process workflow."""
-    cubes = make_input_cubes(
-        [
-            ("air_temperature", 15.0, "Celsius", False, {}),
-            ("test_index", 25.0, "1", False, {}),
-        ],
-        shape=(5, 5),
-    )
+    args = [
+        ("air_temperature", 15.0, "Celsius", False, START_DATE),
+        ("test_index", 25.0, "1", False, {}),
+    ]
+    cubes = make_input_cubes(args, shape=(5, 5))
     plugin = ConcreteFireWeatherIndexWithMappings()
 
     result = plugin.process(cubes)
@@ -1134,3 +1134,26 @@ def test_output_validation_with_partial_ranges(
             result = plugin.process(cubes)
         assert isinstance(result, Cube)
         assert np.allclose(result.data, output_value)
+
+
+@pytest.mark.parametrize(
+    "plugin_class, plugin_input_cube_names",
+    [
+        (ConcreteFireWeatherIndexWithMappings, ["air_temperature", "test_index"]),
+        (ConcreteFireWeatherIndex, ["air_temperature", "relative_humidity"]),
+    ],
+)
+def test__set_start_date(plugin_class, plugin_input_cube_names) -> None:
+    """Test _set_start_date via process.
+
+    Test confirms that the expected start_date attributes are added to the
+    output cube when run via the process function."""
+    args = [
+        (plugin_input_cube_names[0], 15.0, "Celsius", False, START_DATE),
+        (plugin_input_cube_names[1], 25.0, "1", False, {}),
+    ]
+    cubes = make_input_cubes(args, shape=(5, 5))
+    plugin = plugin_class()
+
+    output_cube = plugin.process(cubes)
+    output_cube.attributes == START_DATE
