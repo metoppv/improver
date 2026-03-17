@@ -817,7 +817,7 @@ class RealizationClusterAndMatch(BasePlugin):
     ) -> dict[str, dict[int, list[dict[str, list[list[int]] | list[int]]]]]:
         """
         Compact the mapping of secondary input realizations to clusters by grouping
-        forecast periods for each unique set of realization assignments per cluster.
+        forecast periods for each unique realization assignment per cluster.
 
         Args:
             secondary_input_realizations_to_clusters: A nested dictionary mapping
@@ -826,7 +826,7 @@ class RealizationClusterAndMatch(BasePlugin):
                 {
                     secondary_input_name: {
                         forecast_period: {
-                            cluster_idx: [realization_indices]
+                            cluster_idx: [realization_index]
                         }
                     }
                 }
@@ -834,35 +834,38 @@ class RealizationClusterAndMatch(BasePlugin):
         Returns:
             A compacted dictionary mapping each secondary input name to a dictionary
             of cluster indices, each containing a list of dicts with:
-                - "realizations": the sorted, unique realization indices assigned
+                - "realizations": the realization index assigned (always a list of
+                    length 1)
                 - "forecast_periods": a sorted list of forecast periods
             Example:
                 {
                     secondary_input_name: {
                         cluster_idx: [
                             {
-                                "realizations": [1, 2, 3],
+                                "realizations": [3],
                                 "forecast_periods": [3600, 7200, 10800]
                             }
                         ]
                     }
                 }
+            Note:
+                Only one realization is assigned to each cluster for each forecast
+                period, so the "realizations" list will always have length 1.
         """
         compact = {}
         for sec_name, fp_dict in secondary_input_realizations_to_clusters.items():
             cluster_map = {}
-            # (cluster_idx, tuple(sorted_realizations)) -> list of forecast_periods
+            # (cluster_idx, realization) -> list of forecast_periods
             temp = {}
             for fp, cluster_dict in fp_dict.items():
                 for cluster_idx, realizations in cluster_dict.items():
-                    # Deduplicate and sort realization indices
-                    unique_sorted_realizations = tuple(sorted(set(realizations)))
-                    key = (cluster_idx, unique_sorted_realizations)
+                    realization = tuple(realizations)
+                    key = (cluster_idx, realization)
                     temp.setdefault(key, []).append(fp)
-            for (cluster_idx, realizations), fps in temp.items():
+            for (cluster_idx, realization), fps in temp.items():
                 cluster_map.setdefault(cluster_idx, []).append(
                     {
-                        "realizations": list(realizations),  # already sorted
+                        "realizations": list(realization),
                         "forecast_periods": sorted(fps),
                     }
                 )
