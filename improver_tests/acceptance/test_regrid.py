@@ -6,7 +6,14 @@
 Tests for the regrid CLI
 """
 
+import tempfile
+from pathlib import Path
+
+import iris
+import numpy as np
 import pytest
+
+from improver import cli
 
 from . import acceptance as acc
 
@@ -294,22 +301,47 @@ def test_regrid_bilinear_landmask_2_multi_realization(tmp_path):
     acc.compare(output_path, kgo_path, atol=0.05)
 
 
-def test_regrid_bilinear_2_custom_rtol(tmp_path):
+def test_regrid_bilinear_2_custom_rtol():
     """Test regridding with a custom relative tolerance value."""
     kgo_dir = acc.kgo_root() / "regrid"
     kgo_path = kgo_dir / "basic/kgo.nc"
     input_path = kgo_dir / "global_cutout.nc"
     target_path = kgo_dir / "ukvx_grid.nc"
-    output_path = tmp_path / "output.nc"
-    rtol_grid_spacing = 0.05
-    args = [
-        input_path,
-        target_path,
-        "--output",
-        output_path,
-        "--regrid-mode",
-        "bilinear-2",
-        f"--rtol-grid-spacing={rtol_grid_spacing}",
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
+
+    # Load the input cube and make coordinates slightly irregular
+    input_cube = iris.load_cube(str(input_path))
+    new_points = input_cube.coord("latitude").points.copy()
+    mean_diff = np.mean(np.abs(np.diff(new_points)))
+    # Perturb one point
+    perturbation = 4.0e-5 * mean_diff + 6.0e-6
+    mid = len(new_points) // 2
+    new_points[mid] += perturbation
+    input_cube.coord("latitude").points = new_points
+
+    # Save irregular input at a temporary path
+    with tempfile.TemporaryDirectory(dir=kgo_dir) as tmp_dir:
+        print(f"Created temporary directory at: {tmp_dir}")
+        tmp_path = Path(tmp_dir)
+        irregular_input = tmp_path / "irregular_global_cutout.nc"
+        iris.save(input_cube, str(irregular_input))
+        output_path = tmp_path / "output.nc"
+
+        # Test that default rtol raises an exception
+        args = [
+            irregular_input,
+            target_path,
+            "--output",
+            output_path,
+            "--regrid-mode",
+            "bilinear-2",
+        ]
+        with pytest.raises(ValueError, match=".*not equally spaced*"):
+            # Run without verifying checksums
+            cli.main("improver", CLI, *args)
+
+        # Test that with generous rtol - it should pass
+        rtol_grid_spacing = 0.05
+        args.append(f"--rtol-grid-spacing={rtol_grid_spacing}")
+        # Run without verifying checksums
+        cli.main("improver", CLI, *args)
+        acc.compare(output_path, kgo_path)
