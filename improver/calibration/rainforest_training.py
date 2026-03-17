@@ -118,6 +118,8 @@ class TrainRainForestsModel(BasePlugin):
             self.training_data[self.observation_column] >= threshold
         ).astype(int)
 
-        dataset = lightgbm.Dataset(self.training_data, label=threshold_met)
+        dataset = lightgbm.Dataset(
+            self.training_data[self.training_columns], label=threshold_met
+        )
 
         return lightgbm.train(self.lightgbm_params, dataset)
