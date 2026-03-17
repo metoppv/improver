@@ -118,7 +118,7 @@ def test_process_compile(thresholds, deterministic_training_data, tmp_path):
 
     compiler = CompileRainForestsModel(parallel_comp=8)
     trainer = TrainRainForestsModel(
-        training_data, observation_column, training_columns, compiler
+        training_data, observation_column, training_columns, compiler=compiler
     )
 
     result_path = tmp_path / "output.txt"

@@ -17,13 +17,16 @@ class TrainRainForestsModel(BasePlugin):
     lightgbm_params = {
         "objective": "binary",
         "num_leaves": 5,
-        "num_boost_round": 10,
-        "verbose": -1,
         "seed": 0,
     }
 
     def __init__(
-        self, training_data, observation_column, training_columns, compiler=None
+        self,
+        training_data,
+        observation_column,
+        training_columns,
+        lightgbm_params=None,
+        compiler=None,
     ):
         """Initialise the options used when compiling models.
 
@@ -34,6 +37,10 @@ class TrainRainForestsModel(BasePlugin):
                 The column in the data set to be trained for.
             training_columns (List(str)):
                 Set of columns from the data set to be trained from.
+            lightgbm_params (Dict):
+                Optional. Parameters passed into training library.
+            compiler (CompileRainForestsModel):
+                Optional. Object used to compile trained models.
         """
         self.lightgbm_available = lightgbm_package_available()
         if not self.lightgbm_available:
@@ -57,6 +64,10 @@ class TrainRainForestsModel(BasePlugin):
 
         # Keep only the columns relevant for training.
         self.training_data = training_data[expected_columns]
+
+        # Merge default params with optional params.
+        lightgbm_params = lightgbm_params or {}
+        self.lightgbm_params = self.lightgbm_params | lightgbm_params
 
         self.compiler = compiler
 
