@@ -1324,3 +1324,127 @@ class RealizationClusterAndMatch(BasePlugin):
         )
 
         return result_cube
+
+
+class RealizationSelection(BasePlugin):
+    """Plugin to select realizations based on clustering results."""
+
+    def __init__(self, model_id_attr: str = "mosg__model_configuration"):
+        """
+        Initialise the plugin.
+
+        Args:
+            model_id_attr: The name of the cube attribute used to identify the model
+                source of each cube. This attribute must be present on all input cubes
+                and is used to determine which cubes correspond to which models for
+                clustering and matching. Default is 'mosg__model_configuration'.
+        """
+        self.model_id_attr = model_id_attr
+
+    def process(
+        self,
+        forecast_cubes: iris.cube.CubeList,
+        cluster_cube: iris.cube.Cube,
+    ) -> iris.cube.Cube:
+        """
+        Select realizations from input forecast cubes according to cluster assignments.
+
+        Args:
+            forecast_cubes: CubeList of input forecast cubes, each for a single
+                forecast period.
+            cluster_cube: The cube output from RealizationClusterAndMatch, containing
+                the cluster mapping attributes.
+
+        Returns:
+            A merged Cube containing the selected realizations, with realization indices
+            matching the cluster indices in cluster_cube.
+        """
+        # Parse mapping attributes
+        primary_map = cluster_cube.attributes.get(
+            "primary_input_realizations_to_clusters"
+        )
+        secondary_map = cluster_cube.attributes.get(
+            "secondary_input_realizations_to_clusters"
+        )
+
+        if isinstance(primary_map, str):
+            primary_map = json.loads(primary_map)
+        if isinstance(secondary_map, str):
+            secondary_map = json.loads(secondary_map)
+
+        selected_cubes = []
+
+        for cube in forecast_cubes:
+            fp = int(cube.coord("forecast_period").points[0])
+
+            # Gather all forecast periods from secondary mapping
+            mapping_fps = set()
+            if secondary_map:
+                for model_name, cluster_dict in secondary_map.items():
+                    for cluster_idx_str, cluster_list in cluster_dict.items():
+                        for entry in cluster_list:
+                            mapping_fps.update(entry["forecast_periods"])
+
+            use_secondary = False
+            if mapping_fps:
+                nearest_fp = min(mapping_fps, key=lambda x: abs(x - fp))
+                # Only use secondary if nearest_fp is not greater than the max in mapping_fps
+                if fp <= max(mapping_fps):
+                    use_secondary = True
+            else:
+                nearest_fp = fp
+
+            cluster_to_selection = {}
+
+            # Use secondary mapping if appropriate
+            if use_secondary and secondary_map:
+                for model_name, cluster_dict in secondary_map.items():
+                    for cluster_idx_str, cluster_list in cluster_dict.items():
+                        cluster_idx = int(cluster_idx_str)
+                        for entry in cluster_list:
+                            if nearest_fp in entry["forecast_periods"]:
+                                cluster_to_selection[cluster_idx] = (
+                                    model_name,
+                                    entry["realizations"],
+                                )
+
+            # Fill in any clusters not covered by secondary inputs using the primary mapping
+            for cluster_idx_str, realization_list in primary_map.items():
+                cluster_idx = int(cluster_idx_str)
+                if cluster_idx not in cluster_to_selection:
+                    cluster_to_selection[cluster_idx] = (
+                        cluster_cube.attributes.get(
+                            "mosg__model_configuration", "primary_input"
+                        ),
+                        realization_list,
+                    )
+
+            # For this forecast period, select the required realizations from the correct cube(s)
+            for cluster_idx in sorted(cluster_to_selection):
+                model_name, realization_indices = cluster_to_selection[cluster_idx]
+                # Find the cube for this model and forecast period
+                model_cubes = forecast_cubes.extract(
+                    iris.AttributeConstraint(**{self.model_id_attr: model_name})
+                ).extract(iris.Constraint(forecast_period=fp))
+                if not model_cubes:
+                    raise ValueError(
+                        f"No forecast cube found for model '{model_name}' and forecast_period {fp}"
+                    )
+                model_cube = model_cubes[0]
+                selected = model_cube.extract(
+                    iris.Constraint(realization=realization_indices)
+                )
+                # Set realization coordinate to cluster_idx (or to cluster indices if multiple)
+                selected.coord("realization").points = (
+                    [cluster_idx]
+                    if len(selected.coord("realization").points) == 1
+                    else [
+                        cluster_idx + i
+                        for i in range(len(selected.coord("realization").points))
+                    ]
+                )
+                selected_cubes.append(selected)
+
+        # Merge all selected cubes into a single output cube
+        result_cube = MergeCubes()(iris.cube.CubeList(selected_cubes))
+        return result_cube
