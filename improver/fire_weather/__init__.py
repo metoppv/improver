@@ -396,23 +396,34 @@ class FireWeatherIndexBase(BasePlugin):
     def _set_start_date(self, output_cube: Cube) -> None:
         """
         Add a start_date attribute to the output_cube, sourced from either
-        the INPUT_ATTRIBUTE_MAPPING of the START_DATE_CUBE_NAME or the
-        START_DATE_CUBE_NAME attribute if no INPUT_ATTRIBUTE_MAPPINGS
-        are available.
-
-        If no START_DATE_CUBE_NAME attribute is defined then no start_date attribute
-        will be added to the output_cube.
+        the INPUT_ATTRIBUTE_MAPPING of the START_DATE_CUBE_NAME, the
+        START_DATE_CUBE_NAME attribute itself, or a standard name
+        stripped of common prefixes and suffixes.
 
         Args:
             output_cube:
                 The output cube
 
+        Raise:
+            NotImplementedError: If START_DATE_CUBE_NAME is not defined
+              or the named cube has no start_date attribute
+
         """
-        if self.START_DATE_CUBE_NAME:
-            attr_name = self._get_attribute_name(self.START_DATE_CUBE_NAME)
+        if not self.START_DATE_CUBE_NAME:
+            raise NotImplementedError(
+                "A START_DATE_CUBE_NAME is required for fire weather metadata handling."
+            )
+
+        attr_name = self._get_attribute_name(self.START_DATE_CUBE_NAME)
+        try:
             start_date_cube = getattr(self, attr_name)
             start_date = start_date_cube.attributes["start_date"]
-            output_cube.attributes["start_date"] = start_date
+        except (AttributeError, KeyError):
+            raise NotImplementedError(
+                "START_DATE_CUBE_NAME must match an available input cube with a `start_date` attribute."
+            )
+
+        output_cube.attributes["start_date"] = start_date
 
 
 class IterativeFireWeatherIndexBase(FireWeatherIndexBase):
@@ -433,15 +444,12 @@ class IterativeFireWeatherIndexBase(FireWeatherIndexBase):
     - LAG_TIME: Integer representing the number of days needed after
         starting calculations from the STARTING_VALUE, before outputs
         should be considered scientifically valid.
+    - START_DATE_CUBE_NAME: The name of input cube from which the start_date
+        attribute will be sourced.
 
     Subclasses must implement:
 
     - _calculate(): Method that performs the actual calculation
-
-    Warning:
-        Subclasses must not define class attribute START_DATE_CUBE_NAME.
-        Iterative Fire Weather classes will define their own start_date
-        when first initialised.
 
     """
 
