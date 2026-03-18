@@ -1343,17 +1343,45 @@ class RealizationClusterAndMatch(BasePlugin):
 class RealizationSelection(BasePlugin):
     """Plugin to select realizations based on clustering results."""
 
-    def __init__(self, model_id_attr: str = "mosg__model_configuration"):
+    def __init__(
+        self,
+        forecast_period: int,
+        model_id_attr: str = "mosg__model_configuration",
+    ):
+        """
+        Initialise the RealizationSelection plugin.
+
+        Args:
+            model_id_attr: The name of the cube attribute used to identify the model source.
+            forecast_period: The forecast period (in seconds) to use for selection.
+        """
+        self.forecast_period = forecast_period
         self.model_id_attr = model_id_attr
 
-    def parse_mapping_attributes(self, cluster_cube):
+    def parse_mapping_attributes(
+        self, cluster_cube: Cube
+    ) -> tuple[dict[str, int], dict[str, dict[int, list[dict[str, list[int]]]]]]:
+        """
+        Parse and decode the mapping attributes from the cluster cube.
+
+        Args:
+            cluster_cube: The cube output from RealizationClusterAndMatch, containing
+                the mapping attributes as JSON-encoded strings.
+
+        Returns:
+            A tuple containing:
+                - primary_map: Dictionary mapping cluster index (as string)
+                    to medoid realization index (int).
+                - secondary_map: Dictionary mapping secondary input names to
+                    cluster mappings, where each cluster index maps to a list of
+                    dicts with "realizations" and "forecast_periods".
+        """
         primary_map = cluster_cube.attributes.get(
             "primary_input_realization_to_cluster_medoid"
         )
         secondary_map = cluster_cube.attributes.get(
             "secondary_input_realizations_to_clusters"
         )
-        import json
 
         if isinstance(primary_map, str):
             primary_map = json.loads(primary_map)
@@ -1361,7 +1389,26 @@ class RealizationSelection(BasePlugin):
             secondary_map = json.loads(secondary_map)
         return primary_map, secondary_map
 
-    def find_nearest_secondary_mapping_fp(self, mapping_fps, fp):
+    def find_nearest_secondary_mapping_fp(
+        self, mapping_fps: set[int], fp: int
+    ) -> tuple[int, bool]:
+        """
+        Find the nearest forecast period in the secondary mapping to the requested
+        forecast period.
+
+        Args:
+            mapping_fps: Set of forecast periods (in seconds) available in the
+                secondary mapping.
+            fp: The forecast period (in seconds) for which to find the nearest mapping.
+
+        Returns:
+            A tuple containing:
+                - nearest_fp: The forecast period from mapping_fps closest to fp
+                (or fp if mapping_fps is empty).
+                - use_secondary: Boolean indicating whether the secondary mapping
+                    should be used (True if fp is less than or equal to the maximum
+                    in mapping_fps, else False).
+        """
         if mapping_fps:
             nearest_fp = min(mapping_fps, key=lambda x: abs(x - fp))
             use_secondary = fp <= max(mapping_fps)
@@ -1371,8 +1418,32 @@ class RealizationSelection(BasePlugin):
         return nearest_fp, use_secondary
 
     def build_cluster_to_selection(
-        self, fp, nearest_fp, use_secondary, secondary_map, primary_map, cluster_cube
-    ):
+        self,
+        nearest_fp: int,
+        use_secondary: bool,
+        secondary_map: dict[str, dict[int, list[dict[str, list[int]]]]],
+        primary_map: dict[str, int],
+        cluster_cube: Cube,
+    ) -> dict[int, tuple[str, int]]:
+        """
+        Build a mapping from cluster index to (model name, realization index) for selection.
+
+        Args:
+            nearest_fp: The forecast period (in seconds) from the secondary mapping
+                closest to the requested forecast period.
+            use_secondary: Whether to use the secondary mapping (True) or fall back
+                to the primary mapping (False).
+            secondary_map: Dictionary mapping secondary input names to cluster mappings,
+                where each cluster index maps to a list of dicts with "realizations"
+                and "forecast_periods".
+            primary_map: Dictionary mapping cluster index (as string) to medoid
+                realization index (int).
+            cluster_cube: The cluster cube, used to extract model name for
+                primary input.
+
+        Returns:
+            Dictionary mapping cluster index (int) to a tuple of (model name, realization index).
+        """
         cluster_to_selection = {}
         # Use secondary mapping if appropriate
         if use_secondary and secondary_map:
@@ -1398,19 +1469,32 @@ class RealizationSelection(BasePlugin):
         return cluster_to_selection
 
     def select_realizations_for_clusters(
-        self, cluster_to_selection, forecast_cubes, fp
-    ):
+        self,
+        cluster_to_selection: dict[int, tuple[str, int]],
+        forecast_cubes: CubeList,
+    ) -> list[Cube]:
+        """
+        Select and relabel realizations from the input cubes according to the
+        cluster-to-selection mapping.
+
+        Args:
+            cluster_to_selection: Dictionary mapping cluster index (int) to a
+                tuple of (model name, realization index).
+            forecast_cubes: CubeList of input forecast cubes, each for a single
+                forecast period.
+
+        Returns:
+            A list of Cube objects, each containing a single realization relabelled
+            to the cluster index.
+        """
         selected_cubes = []
         for cluster_idx in sorted(cluster_to_selection):
             model_name, realization_index = cluster_to_selection[cluster_idx]
             model_cubes = forecast_cubes.extract(
                 iris.AttributeConstraint(**{self.model_id_attr: model_name})
-            ).extract(iris.Constraint(forecast_period=fp))
+            )
             if not model_cubes:
-                raise ValueError(
-                    f"No forecast cube found for model '{model_name}' "
-                    f"and forecast_period {fp}"
-                )
+                raise ValueError(f"No forecast cube found for model '{model_name}'")
             model_cube = model_cubes[0]
             selected = model_cube.extract(
                 iris.Constraint(realization=realization_index)
@@ -1425,28 +1509,34 @@ class RealizationSelection(BasePlugin):
         cluster_cube: iris.cube.Cube,
     ) -> iris.cube.Cube:
         """
-        Select realizations from input forecast cubes according to cluster assignments.
+        Select realizations from input forecast cubes according to cluster assignments
+        defined by the cluster_cube attributes.
+
+        Args:
+            forecast_cubes: CubeList of input forecast cubes, each for a single
+                forecast period.
+            cluster_cube: The cube output from RealizationClusterAndMatch, containing
+                the cluster mapping attributes.
+
+        Returns:
+            A merged Cube containing the selected realizations, with realization
+            indices matching the cluster indices in cluster_cube.
         """
         primary_map, secondary_map = self.parse_mapping_attributes(cluster_cube)
-        all_selected_cubes = []
-        for cube in forecast_cubes:
-            fp = int(cube.coord("forecast_period").points[0])
-            # Gather all forecast periods from secondary mapping
-            mapping_fps = set()
-            if secondary_map:
-                for model_name, cluster_dict in secondary_map.items():
-                    for cluster_idx_str, cluster_list in cluster_dict.items():
-                        for entry in cluster_list:
-                            mapping_fps.update(entry["forecast_periods"])
-            nearest_fp, use_secondary = self.find_nearest_secondary_mapping_fp(
-                mapping_fps, fp
-            )
-            cluster_to_selection = self.build_cluster_to_selection(
-                fp, nearest_fp, use_secondary, secondary_map, primary_map, cluster_cube
-            )
-            selected_cubes = self.select_realizations_for_clusters(
-                cluster_to_selection, forecast_cubes, fp
-            )
-            all_selected_cubes.extend(selected_cubes)
-        result_cube = MergeCubes()(iris.cube.CubeList(all_selected_cubes))
+        mapping_fps = set()
+        if secondary_map:
+            for cluster_dict in secondary_map.values():
+                for cluster_list in cluster_dict.values():
+                    for entry in cluster_list:
+                        mapping_fps.update(entry["forecast_periods"])
+        nearest_fp, use_secondary = self.find_nearest_secondary_mapping_fp(
+            mapping_fps, self.forecast_period
+        )
+        cluster_to_selection = self.build_cluster_to_selection(
+            nearest_fp, use_secondary, secondary_map, primary_map, cluster_cube
+        )
+        selected_cubes = self.select_realizations_for_clusters(
+            cluster_to_selection, forecast_cubes
+        )
+        result_cube = MergeCubes()(iris.cube.CubeList(selected_cubes))
         return result_cube

@@ -15,6 +15,7 @@ from iris.util import promote_aux_coord_to_dim_coord
 from improver.clustering.realization_clustering import (
     RealizationClusterAndMatch,
     RealizationClustering,
+    RealizationSelection,
     RealizationToClusterMatcher,
 )
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
@@ -2599,3 +2600,126 @@ def test_expand_forecast_period_range_start_greater_than_end():
         r"Forecast period range start \(10\) must be <= end \(5\)")
     ):
         RealizationClusterAndMatch._expand_forecast_period_range([10, 5])
+
+# Tests for RealizationSelection plugin
+
+def _make_cluster_cube_for_selection(
+        primary_map, secondary_map=None, model_id="primary_model"):
+    """Helper to create a minimal cluster_cube with required attributes."""
+    data = np.zeros((3, 5, 5), dtype=np.float32)
+    cube = set_up_variable_cube(
+        data,
+        name="air_temperature",
+        units="K",
+        spatial_grid="equalarea",
+        realizations=np.arange(3),
+    )
+    cube.attributes["primary_input_realization_to_cluster_medoid"] = json.dumps(
+        primary_map)
+    if secondary_map is not None:
+        cube.attributes["secondary_input_realizations_to_clusters"] = json.dumps(
+            secondary_map)
+    cube.attributes["mosg__model_configuration"] = model_id
+    return cube
+
+def _make_forecast_cubes(model_id, realization_vals, forecast_period, shape=(5, 5)):
+    """Helper to create a CubeList of forecast cubes for a single forecast period."""
+    cubes = iris.cube.CubeList()
+    data = np.array([np.full(shape, val, dtype=np.float32) for val in realization_vals])
+    cube = set_up_variable_cube(
+        data,
+        name="air_temperature",
+        units="K",
+        spatial_grid="equalarea",
+        realizations=np.arange(len(realization_vals)),
+        time=datetime(2017, 1, 10, 3 + forecast_period // 3600),
+        frt=datetime(2017, 1, 10, 3),
+    )
+    cube.attributes["mosg__model_configuration"] = model_id
+    # Set forecast_period as a scalar coordinate
+    cube.coord("forecast_period").points = [forecast_period]
+    cubes.append(cube)
+    return cubes
+
+def test_realizationselection_primary_only():
+    """Test RealizationSelection with only primary mapping (no secondary)."""
+    # Cluster cube: 3 clusters, medoids are realizations 2, 0, 1
+    primary_map = {"0": 2, "1": 0, "2": 1}
+    cluster_cube = _make_cluster_cube_for_selection(primary_map)
+    # Forecast cubes: primary model, realizations 0, 1, 2, forecast_period=3600
+    forecast_cubes = _make_forecast_cubes("primary_model", [10, 20, 30], 3600)
+    plugin = RealizationSelection(forecast_period=3600)
+    result = plugin.process(forecast_cubes, cluster_cube)
+    # Should select realization 2, 0, 1 in that order, relabelled to 0, 1, 2
+    expected = np.array([30, 10, 20])
+    np.testing.assert_array_equal(result.data[:, 0, 0], expected)
+    assert list(result.coord("realization").points) == [0, 1, 2]
+
+def test_realizationselection_secondary_precedence():
+    """Test RealizationSelection uses secondary mapping when available."""
+    # Cluster cube: 2 clusters, medoids are 0, 1
+    primary_map = {"0": 0, "1": 1}
+    # Secondary mapping: for fp=7200, cluster 0 uses realization 2 from secondary,
+    # cluster 1 uses 1
+    secondary_map = {
+        "secondary_model": {
+            "0": [{"realizations": [2], "forecast_periods": [7200]}],
+            "1": [{"realizations": [1], "forecast_periods": [7200]}],
+        }
+    }
+    cluster_cube = _make_cluster_cube_for_selection(primary_map, secondary_map)
+    # Forecast cubes: secondary model, realizations 0, 1, 2, forecast_period=7200
+    forecast_cubes = _make_forecast_cubes("secondary_model", [100, 200, 300], 7200)
+    plugin = RealizationSelection(forecast_period=7200)
+    result = plugin.process(forecast_cubes, cluster_cube)
+    # Should select realization 2 and 1 from secondary, relabelled to 0, 1
+    expected = np.array([300, 200])
+    np.testing.assert_array_equal(result.data[:, 0, 0], expected)
+    assert list(result.coord("realization").points) == [0, 1]
+
+def test_realizationselection_secondary_fallback_to_primary():
+    """Test fallback to primary mapping if forecast_period is beyond secondary."""
+    primary_map = {"0": 0, "1": 1}
+    secondary_map = {
+        "secondary_model": {
+            "0": [{"realizations": [2], "forecast_periods": [3600]}],
+            "1": [{"realizations": [1], "forecast_periods": [3600]}],
+        }
+    }
+    cluster_cube = _make_cluster_cube_for_selection(primary_map, secondary_map)
+    # Forecast cubes: only primary model for fp=7200
+    forecast_cubes = _make_forecast_cubes("primary_model", [10, 20, 30], 7200)
+    plugin = RealizationSelection(forecast_period=7200)
+    result = plugin.process(forecast_cubes, cluster_cube)
+    # Should use primary mapping (realizations 0, 1)
+    expected = np.array([10, 20])
+    np.testing.assert_array_equal(result.data[:, 0, 0], expected)
+    assert list(result.coord("realization").points) == [0, 1]
+
+def test_realizationselection_secondary_nearest_fp():
+    """Test nearest forecast period is used from secondary mapping."""
+    primary_map = {"0": 0, "1": 1}
+    secondary_map = {
+        "secondary_model": {
+            "0": [{"realizations": [2], "forecast_periods": [3600, 5400]}],
+            "1": [{"realizations": [1], "forecast_periods": [3600, 5400]}],
+        }
+    }
+    cluster_cube = _make_cluster_cube_for_selection(primary_map, secondary_map)
+    # Forecast cubes: secondary model, fp=4000 (nearest is 3600)
+    forecast_cubes = _make_forecast_cubes("secondary_model", [100, 200, 300], 4000)
+    plugin = RealizationSelection(forecast_period=4000)
+    result = plugin.process(forecast_cubes, cluster_cube)
+    expected = np.array([300, 200])
+    np.testing.assert_array_equal(result.data[:, 0, 0], expected)
+    assert list(result.coord("realization").points) == [0, 1]
+
+def test_realizationselection_missing_model_raises():
+    """Test error if required model is not present in forecast_cubes."""
+    primary_map = {"0": 0}
+    cluster_cube = _make_cluster_cube_for_selection(primary_map)
+    # Forecast cubes: different model_id
+    forecast_cubes = _make_forecast_cubes("other_model", [10], 3600)
+    plugin = RealizationSelection(forecast_period=3600)
+    with pytest.raises(ValueError, match="No forecast cube found for model 'primary_model'"):
+        plugin.process(forecast_cubes, cluster_cube)
