@@ -1358,6 +1358,41 @@ class RealizationSelection(BasePlugin):
         self.forecast_period = forecast_period
         self.model_id_attr = model_id_attr
 
+    def split_cubes_forecast_and_cluster(
+        self, cubes: iris.cube.CubeList
+    ) -> tuple[iris.cube.CubeList, iris.cube.Cube]:
+        """
+        Split a CubeList into forecast cubes and the cluster cube.
+
+        The cluster cube is identified by the presence of the
+        "primary_input_realization_to_cluster_medoid" attribute.
+
+        Args:
+            cubes: CubeList of input cubes.
+
+        Returns:
+            Tuple of (forecast_cubes, cluster_cube):
+                - forecast_cubes: CubeList of forecast cubes.
+                - cluster_cube: The cluster cube.
+
+        Raises:
+            ValueError: If no cluster cube is found.
+        """
+        cubes = iris.cube.CubeList(cubes)
+        cluster_cube = None
+        forecast_cubes = iris.cube.CubeList()
+        for cube in cubes:
+            if "primary_input_realization_to_cluster_medoid" in cube.attributes:
+                cluster_cube = cube
+            else:
+                forecast_cubes.append(cube)
+        if cluster_cube is None:
+            raise ValueError(
+                "No cluster cube found in input cubes "
+                "(missing 'primary_input_realization_to_cluster_medoid' attribute)."
+            )
+        return forecast_cubes, cluster_cube
+
     def parse_mapping_attributes(
         self, cluster_cube: Cube
     ) -> tuple[dict[str, int], dict[str, dict[int, list[dict[str, list[int]]]]]]:
@@ -1486,6 +1521,9 @@ class RealizationSelection(BasePlugin):
         Returns:
             A list of Cube objects, each containing a single realization relabelled
             to the cluster index.
+
+        Raises:
+            ValueError: If no forecast cube is found for a specified model name.
         """
         selected_cubes = []
         for cluster_idx in sorted(cluster_to_selection):
@@ -1505,23 +1543,28 @@ class RealizationSelection(BasePlugin):
 
     def process(
         self,
-        forecast_cubes: iris.cube.CubeList,
-        cluster_cube: iris.cube.Cube,
+        cubes: iris.cube.CubeList,
     ) -> iris.cube.Cube:
         """
         Select realizations from input forecast cubes according to cluster assignments
         defined by the cluster_cube attributes.
 
         Args:
-            forecast_cubes: CubeList of input forecast cubes, each for a single
-                forecast period.
-            cluster_cube: The cube output from RealizationClusterAndMatch, containing
-                the cluster mapping attributes.
+            cubes  (list of iris.cube.Cube): List of input cubes, including forecast
+                cubes and a cluster cube. The forecast cubes are from all source models
+                for a common validity time and with each containing a "realization"
+                coordinate that contributed to the clustering. Each cube must have the
+                model_id_attr attribute set to identify its source model. The cluster
+                cube is output from RealizationClusterAndMatch, containing
+                the cluster mapping attributes. The cluster cube is identified by the
+                presence of the "primary_input_realization_to_cluster_medoid" attribute.
 
         Returns:
             A merged Cube containing the selected realizations, with realization
             indices matching the cluster indices in cluster_cube.
         """
+        forecast_cubes, cluster_cube = self.split_cubes_forecast_and_cluster(cubes)
+
         primary_map, secondary_map = self.parse_mapping_attributes(cluster_cube)
         mapping_fps = set()
         if secondary_map:

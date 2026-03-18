@@ -2723,3 +2723,15 @@ def test_realizationselection_missing_model_raises():
     plugin = RealizationSelection(forecast_period=3600)
     with pytest.raises(ValueError, match="No forecast cube found for model 'primary_model'"):
         plugin.process(forecast_cubes, cluster_cube)
+
+def test_realizationselection_missing_cluster_cube_raises():
+    """Test that RealizationSelection.process raises ValueError if no cluster cube is
+    present."""
+    # Create forecast cubes without the required cluster cube attribute
+    forecast_cubes = _make_forecast_cubes("primary_model", [10, 20, 30], 3600)
+    # Do not provide any cube with 'primary_input_realization_to_cluster_medoid'
+    # attribute
+    plugin = RealizationSelection(forecast_period=3600)
+    with pytest.raises(ValueError, match="No cluster cube found in input cubes"):
+        # Provide only forecast cubes (no cluster cube)
+        plugin.process(forecast_cubes)
