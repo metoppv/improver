@@ -834,15 +834,14 @@ class RealizationClusterAndMatch(BasePlugin):
         Returns:
             A compacted dictionary mapping each secondary input name to a dictionary
             of cluster indices, each containing a list of dicts with:
-                - "realizations": the realization index assigned (always a list of
-                    length 1)
-                - "forecast_periods": a sorted list of forecast periods
+                - "realization": the realization index assigned.
+                - "forecast_periods": a sorted list of forecast periods.
             Example:
                 {
                     secondary_input_name: {
                         cluster_idx: [
                             {
-                                "realizations": [3],
+                                "realization": 3,
                                 "forecast_periods": [3600, 7200, 10800]
                             }
                         ]
@@ -850,7 +849,7 @@ class RealizationClusterAndMatch(BasePlugin):
                 }
             Note:
                 Only one realization is assigned to each cluster for each forecast
-                period, so the "realizations" list will always have length 1.
+                period.
         """
         compact = {}
         for sec_name, fp_dict in secondary_input_realizations_to_clusters.items():
@@ -865,7 +864,7 @@ class RealizationClusterAndMatch(BasePlugin):
             for (cluster_idx, realization), fps in temp.items():
                 cluster_map.setdefault(cluster_idx, []).append(
                     {
-                        "realizations": list(realization),
+                        "realization": realization[0],
                         "forecast_periods": sorted(fps),
                     }
                 )
@@ -1187,12 +1186,13 @@ class RealizationClusterAndMatch(BasePlugin):
             The matched cube containing all secondary inputs matched to clusters.
             The output cube will have realization and forecast_period as leading
             dimensions (if present in the input), followed by spatial dimensions (y, x).
-            The cube includes a 'cluster_sources' attribute (JSON string) that
-            tracks which input source was used for each cluster at each
-            forecast period. Format: {cluster_idx: {model_name: [fp1, fp2, ...]}},
-            where cluster_idx is the cluster index (int), model_name is the value
-            from model_id_attr (str), and the list contains forecast period values in
-            seconds (int). Use json.loads() to parse the attribute value.
+            The returned cube includes the following JSON string attributes:
+            - 'primary_input_realizations_to_clusters': tracks which primary input
+                realizations were assigned to each cluster.
+            - 'secondary_input_realizations_to_clusters': tracks which secondary input
+                realization was assigned to each cluster per forecast period.
+            - 'cluster_sources': tracks which input model provided the final data for
+                each cluster-forecast_period pairing.
 
             Raises:
                 ValueError: If no primary cube is found with the specified

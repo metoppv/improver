@@ -1194,19 +1194,19 @@ def test_clusterandmatch_process_basic():
         "secondary_model_2": {
             "0": [
                 {
-                    "realizations": [3],
+                    "realization": 3,
                     "forecast_periods": [43200, 64800],
                 }
             ],
             "1": [
                 {
-                    "realizations": [1],
+                    "realization": 1,
                     "forecast_periods": [43200, 64800],
                 }
             ],
             "2": [
                 {
-                    "realizations": [0],
+                    "realization": 0,
                     "forecast_periods": [43200, 64800],
                 }
             ],
@@ -1214,19 +1214,19 @@ def test_clusterandmatch_process_basic():
         "secondary_model_1": {
             "0": [
                 {
-                    "realizations": [5],
+                    "realization": 5,
                     "forecast_periods": [0, 21600],
                 }
             ],
             "1": [
                 {
-                    "realizations": [1],
+                    "realization": 1,
                     "forecast_periods": [0, 21600],
                 }
             ],
             "2": [
                 {
-                    "realizations": [0],
+                    "realization": 0,
                     "forecast_periods": [0, 21600],
                 }
             ],
@@ -1465,19 +1465,19 @@ def test_clusterandmatch_precedence_order(
         "secondary_model_1": {
             "0": [
                 {
-                    "realizations": [5],
+                    "realization": 5,
                     "forecast_periods": [0],
                 }
             ],
             "1": [
                 {
-                    "realizations": [1],
+                    "realization": 1,
                     "forecast_periods": [0],
                 }
             ],
             "2": [
                 {
-                    "realizations": [0],
+                    "realization": 0,
                     "forecast_periods": [0],
                 }
             ],
@@ -1667,19 +1667,19 @@ def test_clusterandmatch_single_secondary_input():
         "secondary_model_1": {
             "0": [
                 {
-                    "realizations": [5],
+                    "realization": 5,
                     "forecast_periods": [0, 21600],
                 }
             ],
             "1": [
                 {
-                    "realizations": [1],
+                    "realization": 1,
                     "forecast_periods": [0, 21600],
                 }
             ],
             "2": [
                 {
-                    "realizations": [0],
+                    "realization": 0,
                     "forecast_periods": [0, 21600],
                 }
             ],
@@ -2262,19 +2262,19 @@ def test_clusterandmatch_regrid_for_clustering_false():
         "secondary_model_2": {
             "0": [
                 {
-                    "realizations": [3],
+                    "realization": 3,
                     "forecast_periods": [43200],
                 }
             ],
             "1": [
                 {
-                    "realizations": [1],
+                    "realization": 1,
                     "forecast_periods": [43200],
                 }
             ],
             "2": [
                 {
-                    "realizations": [0],
+                    "realization": 0,
                     "forecast_periods": [43200],
                 }
             ],
@@ -2282,19 +2282,19 @@ def test_clusterandmatch_regrid_for_clustering_false():
         "secondary_model_1": {
             "0": [
                 {
-                    "realizations": [5],
+                    "realization": 5,
                     "forecast_periods": [0, 21600],
                 }
             ],
             "1": [
                 {
-                    "realizations": [1],
+                    "realization": 1,
                     "forecast_periods": [0, 21600],
                 }
             ],
             "2": [
                 {
-                    "realizations": [0],
+                    "realization": 0,
                     "forecast_periods": [0, 21600],
                 }
             ],
