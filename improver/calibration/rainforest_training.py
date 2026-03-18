@@ -25,6 +25,7 @@ class TrainRainForestsModel(BasePlugin):
         training_data,
         observation_column,
         training_columns,
+        output_dir,
         lightgbm_params=None,
         compiler=None,
     ):
@@ -37,6 +38,9 @@ class TrainRainForestsModel(BasePlugin):
                 The column in the data set to be trained for.
             training_columns (List(str)):
                 Set of columns from the data set to be trained from.
+            output_dir (str or Path):
+                Directory path where model files will be saved.
+                Filenames will be generated based on threshold.
             lightgbm_params (Dict):
                 Optional. Parameters passed into training library.
             compiler (CompileRainForestsModel):
@@ -65,42 +69,50 @@ class TrainRainForestsModel(BasePlugin):
         # Keep only the columns relevant for training.
         self.training_data = training_data[expected_columns]
 
+        self.output_dir = Path(output_dir)
+
         # Merge default params with optional params.
         lightgbm_params = lightgbm_params or {}
         self.lightgbm_params = self.lightgbm_params | lightgbm_params
 
         self.compiler = compiler
 
-    def process(self, thresholds, output_path, compile=False):
+        # Set a default filename formatter
+        self._model_file_name = lambda threshold: (
+            f"lgb_model-threshold_{threshold:04.2f}.txt"
+        )
+
+    @property
+    def model_file_name_formatter(self):
+        return self._model_file_name
+
+    @model_file_name_formatter.setter
+    def model_file_name_formatter(self, file_name_fn):
+        """Return elapsed time in seconds."""
+        self._model_file_name = file_name_fn
+
+    def process(self, thresholds, compile=False):
         """Train models for a set of threshold values.
 
         Args:
             thresholds (list of float):
                 Thresholds for which the observation column is trained.
-            output_path (str or Path):
-                Template file path for export of model files.
-                Actual paths will have the threshold appended to the filename.
             compile (Bool):
                 Whether to also compile the model.
                 Defaults to False.
         """
 
-        output_path = Path(output_path)
-        output_dir = output_path.parent
-
         if compile and not self.compiler:
             raise ValueError("Compile option used when compiler not present.")
 
         for threshold in thresholds:
-            threshold_path = output_path.with_stem(
-                f"{output_path.stem}_{threshold:08.6f}"
-            )
+            threshold_path = self.output_dir / self._model_file_name(threshold)
 
             model = self._train_model(threshold)
             model.save_model(threshold_path)
 
             if compile:
-                self.compiler.process(threshold_path, output_dir)
+                self.compiler.process(threshold_path, self.output_dir)
 
     def _train_model(self, threshold):
         """Train a model for a particular threshold.
