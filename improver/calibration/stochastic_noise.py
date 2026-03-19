@@ -180,7 +180,9 @@ class StochasticNoise(BasePlugin):
         from improver.utilities.cube_checker import validate_cube_dimensions
 
         validate_cube_dimensions(
-            cube=input_cube, required_dimensions=["realization", "x", "y"], mode="exact"
+            cube=input_cube,
+            required_dimensions=["realization", "x", "y"],
+            exact_match=True,
         )
 
         # Store original cube units and mask
