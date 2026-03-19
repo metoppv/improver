@@ -52,3 +52,7 @@ class Test_check_for_x_and_y_axes(unittest.TestCase):
         cube = self.cube[0, :, 0]
         with self.assertRaisesRegex(ValueError, msg):
             check_for_x_and_y_axes(cube, require_dim_coords=True)
+
+
+if __name__ == "__main__":
+    unittest.main()

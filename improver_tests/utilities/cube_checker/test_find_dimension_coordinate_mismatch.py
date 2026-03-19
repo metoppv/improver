@@ -64,3 +64,7 @@ class Test_find_dimension_coordinate_mismatch(unittest.TestCase):
         result = find_dimension_coordinate_mismatch(first_cube, second_cube)
         self.assertIsInstance(result, list)
         self.assertListEqual(result, ["height", "realization"])
+
+
+if __name__ == "__main__":
+    unittest.main()

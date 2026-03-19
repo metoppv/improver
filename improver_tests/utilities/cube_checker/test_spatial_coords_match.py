@@ -113,3 +113,7 @@ class Test_spatial_coords_match(unittest.TestCase):
         y_coord.points = [y * 1.01 for y in y_coord.points]
         result = spatial_coords_match([self.cube_a, cube_c])
         self.assertFalse(result)
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -96,3 +96,7 @@ class Test_check_cube_coordinates(unittest.TestCase):
         msg = "The number of dimension coordinates within the new cube"
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
             check_cube_coordinates(self.cube, self.squeezed_cube)
+
+
+if __name__ == "__main__":
+    unittest.main()
