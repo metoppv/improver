@@ -14,6 +14,7 @@ from dask import compute, delayed
 from iris.cube import Cube
 
 from improver import BasePlugin
+from improver.utilities.cube_checker import validate_cube_dimensions
 
 
 class StochasticNoise(BasePlugin):
@@ -177,8 +178,6 @@ class StochasticNoise(BasePlugin):
             Cube with added stochastic noise.
         """
         # Check that input cube has the expected dimensions for processing
-        from improver.utilities.cube_checker import validate_cube_dimensions
-
         validate_cube_dimensions(
             cube=input_cube,
             required_dimensions=["realization", "x", "y"],
