@@ -8,14 +8,6 @@ import pytest
 from iris.cube import Cube
 
 from improver.utilities.cube_checker import assert_time_coords_valid
-from improver_tests.utilities.test_cube_checker import (
-    inconsistent_frt,
-    inconsistent_time_bounds,
-    inconsistent_time_point,
-    only_one_cube,
-    remove_one_time_bounds,
-    remove_two_time_bounds,
-)
 
 
 def swap_frt_for_blend_time(cubes: List[Cube]):
@@ -35,6 +27,41 @@ def test_time_coords_valid(
     if blend_time:
         swap_frt_for_blend_time(cubes)
     assert_time_coords_valid(cubes[:input_count], time_bounds=time_bounds)
+
+
+def inconsistent_time_bounds(cubes: List[Cube]):
+    """Adds time bounds only to the first cube"""
+    time_point = cubes[0].coord("time").points[0]
+    cubes[0].coord("time").bounds = (time_point - 10800, time_point)
+
+
+def inconsistent_time_point(cubes: List[Cube]):
+    """Moves time point of first cube back by one hour"""
+    cubes[0].coord("time").points = cubes[0].coord("time").points - 3600
+
+
+def inconsistent_frt(cubes: List[Cube]):
+    """Moves forecast_reference_time point of first cube back by one hour"""
+    cubes[0].coord("forecast_reference_time").points = (
+        cubes[0].coord("forecast_reference_time").points - 3600
+    )
+
+
+def remove_one_time_bounds(cubes: List[Cube]):
+    """Removes time bounds from first cube"""
+    cubes[0].coord("time").bounds = None
+
+
+def remove_two_time_bounds(cubes: List[Cube]):
+    """Removes time bounds from first two cubes"""
+    cubes[0].coord("time").bounds = None
+    cubes[1].coord("time").bounds = None
+
+
+def only_one_cube(cubes: List[Cube]):
+    """Removes second and third cubes"""
+    cubes.pop(2)
+    cubes.pop(1)
 
 
 @pytest.mark.parametrize(
