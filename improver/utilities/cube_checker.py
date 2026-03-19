@@ -49,8 +49,8 @@ def validate_cube_dimensions(
     Validate cube dimension coordinates.
 
     Notes:
-    - 'x', 'y', and 'z' are treated as axes to resolve. This prevents instances where
-    the dimension could be called 'latitude', 'projection_x_coordinate', etc.
+    - 't', 'x', 'y', and 'z' are treated as axes to resolve. This prevents instances
+    where the dimension could be called 'latitude', 'projection_x_coordinate', etc.
     from being misidentified as non-dimension coordinates.
     - All other entries are treated as explicit dimension coord names.
 
@@ -82,9 +82,9 @@ def validate_cube_dimensions(
 
     def _resolve_dimension(dim: str) -> str:
         """
-        Resolve dimension labels to actual dimension coordinate names. 'x', 'y', and 'z'
-        are treated as axis labels to resolve, while all other entries are treated as
-        explicit dimension coordinate names.
+        Resolve dimension labels to actual dimension coordinate names. 't', 'x', 'y',
+        and 'z' are treated as axis labels to resolve, while all other entries are
+        treated as explicit dimension coordinate names.
 
         Args:
             dim:
@@ -105,7 +105,7 @@ def validate_cube_dimensions(
             # caught as a missing required dimension or an unexpected forbidden
             # dimension in the main validation logic, rather than raising an error here.
             except CoordinateNotFoundError:
-                return dim
+                pass
         return dim
 
     required_set = {_resolve_dimension(dim) for dim in required_dimensions}
