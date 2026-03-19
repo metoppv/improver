@@ -193,8 +193,5 @@ def cubes_fixture(time_bounds) -> List[Cube]:
     return cubes
 
 
-# Tests for the validate_cube_dimensions function
-
-
 if __name__ == "__main__":
     unittest.main()
