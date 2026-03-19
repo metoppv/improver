@@ -16,17 +16,17 @@ run_cli = acc.run_cli(CLI)
 def test_two_forecast_sources(tmp_path):
     """Test realization selection for a single lead time."""
     kgo_dir = acc.kgo_root() / "realization-selection"
-    kgo_path = kgo_dir / "single_lead_time_kgo.nc"
-    forecast_input1 = kgo_dir / "coarse_resolution_primary_subdomain_PT0006H00M.nc"
-    forecast_input2 = kgo_dir / "high_resolution_secondary_subdomain_PT0006H00M.nc"
-    cluster_cube_input = kgo_dir / "multiple_lead_time_input.nc"
+    kgo_path = kgo_dir / "kgo.nc"
+    forecast_input1 = kgo_dir / "coarse_resolution_primary_subdomain_PT0079H00M.nc"
+    forecast_input2 = kgo_dir / "high_resolution_secondary_subdomain_PT0079H00M.nc"
+    cluster_cube_input = kgo_dir / "three_lead_times_input.nc"
     output_path = tmp_path / "output.nc"
     args = [
         forecast_input1,
         forecast_input2,
         cluster_cube_input,
         "--forecast-period",
-        "21600",  # 6 hours in seconds
+        "284400",  # 79 hours in seconds
         "--model-id-attr",
         "mosg__model_configuration",
         "--output",

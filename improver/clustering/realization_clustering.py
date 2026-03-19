@@ -1341,7 +1341,26 @@ class RealizationClusterAndMatch(BasePlugin):
 
 
 class RealizationSelection(BasePlugin):
-    """Plugin to select realizations based on clustering results."""
+    """Plugin to select realizations based on clustering results.
+
+    This plugin is intended to be used with the output from the
+    RealizationClusterAndMatch plugin. A typical use case is where
+    RealizationClusterAndMatch has performed clustering and matching using a
+    subset of forecast periods (for computational efficiency or other reasons),
+    but you wish to apply the resulting cluster assignments to any forecast
+    period. The RealizationSelection plugin enables this by selecting and
+    relabelling realizations from the original forecast cubes according to the
+    cluster mapping attributes stored in the cluster cube output by
+    RealizationClusterAndMatch.
+
+    To use this plugin, provide as input the same forecast cubes as were
+    supplied to RealizationClusterAndMatch (but strictly only at a single
+    forecast period), together with the cluster cube output from
+    RealizationClusterAndMatch. The plugin will select the appropriate
+    realizations for the requested forecast period, using the cluster mapping
+    attributes, and relabel them so that the realization indices match the
+    cluster indices.
+    """
 
     def __init__(
         self,
@@ -1352,7 +1371,8 @@ class RealizationSelection(BasePlugin):
         Initialise the RealizationSelection plugin.
 
         Args:
-            model_id_attr: The name of the cube attribute used to identify the model source.
+            model_id_attr: The name of the cube attribute used to identify the model
+                source.
             forecast_period: The forecast period (in seconds) to use for selection.
         """
         self.forecast_period = forecast_period
@@ -1461,7 +1481,8 @@ class RealizationSelection(BasePlugin):
         cluster_cube: Cube,
     ) -> dict[int, tuple[str, int]]:
         """
-        Build a mapping from cluster index to (model name, realization index) for selection.
+        Build a mapping from cluster index to (model name, realization index)
+        for selection.
 
         Args:
             nearest_fp: The forecast period (in seconds) from the secondary mapping
@@ -1469,7 +1490,7 @@ class RealizationSelection(BasePlugin):
             use_secondary: Whether to use the secondary mapping (True) or fall back
                 to the primary mapping (False).
             secondary_map: Dictionary mapping secondary input names to cluster mappings,
-                where each cluster index maps to a list of dicts with "realizations"
+                where each cluster index maps to a list of dicts with "realization"
                 and "forecast_periods".
             primary_map: Dictionary mapping cluster index (as string) to medoid
                 realization index (int).
@@ -1477,7 +1498,8 @@ class RealizationSelection(BasePlugin):
                 primary input.
 
         Returns:
-            Dictionary mapping cluster index (int) to a tuple of (model name, realization index).
+            Dictionary mapping cluster index (int) to a tuple of
+            (model name, realization index).
         """
         cluster_to_selection = {}
         # Use secondary mapping if appropriate
@@ -1489,7 +1511,7 @@ class RealizationSelection(BasePlugin):
                         if nearest_fp in entry["forecast_periods"]:
                             cluster_to_selection[cluster_idx] = (
                                 model_name,
-                                entry["realizations"][0],
+                                entry["realization"],
                             )
         # Fill in any clusters not covered by secondary inputs using the medoid mapping
         for cluster_idx_str, realization in primary_map.items():
