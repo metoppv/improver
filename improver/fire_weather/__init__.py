@@ -42,6 +42,8 @@ class FireWeatherIndexBase(BasePlugin):
 
     Subclasses must define class attributes:
 
+    - START_DATE_CUBE_NAME: Name of cube from which the start_date
+        attribute will be sourced for the output_cube.
     - INPUT_CUBE_NAMES: List of standard names for required input cubes
     - OUTPUT_CUBE_NAME: Standard name for the output cube
     - REQUIRES_MONTH: Boolean indicating if month parameter is required
@@ -73,6 +75,7 @@ class FireWeatherIndexBase(BasePlugin):
     }
 
     # Class attributes to be overridden by subclasses
+    START_DATE_CUBE_NAME: str = ""
     INPUT_CUBE_NAMES: list[str] = []
     OUTPUT_CUBE_NAME: str = ""
     REQUIRES_MONTH: bool = False
@@ -309,6 +312,7 @@ class FireWeatherIndexBase(BasePlugin):
         self.load_input_cubes(cubes, month)
         output_data = self._calculate()
         output_cube = self._make_output_cube(output_data)
+        self._set_start_date(output_cube)
 
         # Check if output values are within expected ranges
         self._validate_output_range(output_cube)
@@ -389,6 +393,38 @@ class FireWeatherIndexBase(BasePlugin):
                     stacklevel=3,
                 )
 
+    def _set_start_date(self, output_cube: Cube) -> None:
+        """
+        Add a start_date attribute to the output_cube, sourced from either
+        the INPUT_ATTRIBUTE_MAPPING of the START_DATE_CUBE_NAME, the
+        START_DATE_CUBE_NAME attribute itself, or a standard name
+        stripped of common prefixes and suffixes.
+
+        Args:
+            output_cube:
+                The output cube
+
+        Raise:
+            NotImplementedError: If START_DATE_CUBE_NAME is not defined
+              or the named cube has no start_date attribute
+
+        """
+        if not self.START_DATE_CUBE_NAME:
+            raise NotImplementedError(
+                "A START_DATE_CUBE_NAME is required for fire weather metadata handling."
+            )
+
+        attr_name = self._get_attribute_name(self.START_DATE_CUBE_NAME)
+        try:
+            start_date_cube = getattr(self, attr_name)
+            start_date = start_date_cube.attributes["start_date"]
+        except (AttributeError, KeyError):
+            raise NotImplementedError(
+                "START_DATE_CUBE_NAME must match an available input cube with a `start_date` attribute."
+            )
+
+        output_cube.attributes["start_date"] = start_date
+
 
 class IterativeFireWeatherIndexBase(FireWeatherIndexBase):
     """
@@ -408,6 +444,8 @@ class IterativeFireWeatherIndexBase(FireWeatherIndexBase):
     - LAG_TIME: Integer representing the number of days needed after
         starting calculations from the STARTING_VALUE, before outputs
         should be considered scientifically valid.
+    - START_DATE_CUBE_NAME: The name of input cube from which the start_date
+        attribute will be sourced.
 
     Subclasses must implement:
 
