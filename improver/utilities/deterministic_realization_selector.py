@@ -10,9 +10,11 @@ This can then be used as a deterministic realization.
 """
 
 # Load in Packages
+import json
+
 import iris
 from iris.cube import Cube
-import json
+
 from improver import PostProcessingPlugin
 
 
@@ -21,7 +23,7 @@ class DeterministicRealizationSelector(PostProcessingPlugin):
     """Plugin which takes an Iris Cube with the attribute:
     primary_input_realizations_to_clusters.
     Then, extracts only the realization which contains the control member.
-    Then returns the subsetted Iris Cube. 
+    Then returns the subsetted Iris Cube.
     """
 
     def __init__(self, control_member=0) -> None:
@@ -91,7 +93,7 @@ class DeterministicRealizationSelector(PostProcessingPlugin):
 
         return control_realization_cube
 
-    def process(self, cubes: iris.cube.CubeList) ->  Cube:
+    def process(self, cubes: iris.cube.CubeList) -> Cube:
         """Takes a cube and applies the different plugin methods.
          Used to identify and extract the realization with the control member.
 

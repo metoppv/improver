@@ -7,6 +7,7 @@
 
 from improver import cli
 
+
 @cli.clizefy
 @cli.with_output
 def process(*cubes: cli.inputcube, control_member: int = 0):
@@ -33,10 +34,9 @@ def process(*cubes: cli.inputcube, control_member: int = 0):
              only the realization with the control member.
     """
     from improver.utilities.deterministic_realization_selector import (
-        DeterministicRealizationSelector
+        DeterministicRealizationSelector,
     )
 
-    output_cube = DeterministicRealizationSelector(
-        control_member=control_member)(cubes)
+    output_cube = DeterministicRealizationSelector(control_member=control_member)(cubes)
 
     return output_cube

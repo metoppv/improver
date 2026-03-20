@@ -5,11 +5,13 @@
 """Tests for the deterministic_realization_selector CLI."""
 
 import pytest
+
 from . import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
 CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
+
 
 def test_deterministic_realization(tmp_path):
     """Test with an available control member."""
