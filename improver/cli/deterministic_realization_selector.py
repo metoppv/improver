@@ -15,6 +15,7 @@ def process(*cubes: cli.inputcube, control_member: int = 0):
     primary_input_realizations_to_clusters.
     Then, extracts only the realization which contains the control member.
     Then returns the subsetted Iris Cube. Description of the CLI
+
     Args:
         cubes:
             A list of cubes containing forecasts and a cluster cube.
@@ -26,11 +27,11 @@ def process(*cubes: cli.inputcube, control_member: int = 0):
             The number of the ensemble member acting as the control member.
             Default value = 0.
 
-        Returns:
-            output_cube:
-                Forecast cube containing,
-                 only the realization with the control member.
-        """
+    Returns:
+        output_cube:
+            Forecast cube containing,
+             only the realization with the control member.
+    """
     from improver.utilities.deterministic_realization_selector import (
         DeterministicRealizationSelector
     )
