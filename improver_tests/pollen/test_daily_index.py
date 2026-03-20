@@ -9,7 +9,7 @@ from iris.cube import Cube, CubeList
 
 from improver.pollen.daily_index import PollenDailyIndex
 
-POLLEN_DATA = {
+INPUT_DATA = {
     "grass_pollen": np.array([[0, 0, 1], [1, 2, 1]]),
     "birch_pollen": np.array([[1, 2, 3], [0, 5, 4]]),
     "oak_pollen": np.array([[0, 2, 4], [4, 5, 2]]),
@@ -32,8 +32,8 @@ def get_input_cubes() -> CubeList:
     """
 
     cubes = CubeList()
-    # for each item in POLLEN_DATA create a Cube that has the given data
-    for pollen_name, data in POLLEN_DATA.items():
+    # for each item in INPUT_DATA create a Cube that has the given data
+    for pollen_name, data in INPUT_DATA.items():
         # create data cube
         cube = Cube(
             data,

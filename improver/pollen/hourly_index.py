@@ -26,8 +26,6 @@ class PollenHourlyIndex:
         """
         # Stack the cubes along a new species dimension and calculate the maximum across that dimension
         stacked_data = np.stack([cube.data for cube in cubes], axis=0)
-        # print(f"stacked_data:\n{stacked_data}")  # Debug print to check the shape and values of the stacked data
-        # self._output_cube.data = np.max(stacked_data, axis=0)
 
         cube_shape = cubes[0].data.shape
         # Create a new numpy array with this shape to hold the pollen index values, and fill it
@@ -48,16 +46,6 @@ class PollenHourlyIndex:
         """
         self._output_cube.rename("pollen_1hr_index")
         # self._output_cube.convert_units(1)  # Set units to dimensionless
-
-        cube_attrbutes = self._output_cube.attributes
-        # Change the following Attributes in the output cube if the key and old value
-        # match, then change the value to the new value specified in the dictionary:
-        attr_to_change_dict = {
-            # key: [old value, new value]
-        }
-        for attr, (old_value, new_value) in attr_to_change_dict.items():
-            if attr in cube_attrbutes and cube_attrbutes[attr] == old_value:
-                cube_attrbutes[attr] = new_value
 
     def process(self, cubes: tuple[Cube, ...] | CubeList) -> Cube:
         """Calculate the Pollen Hourly Index.
