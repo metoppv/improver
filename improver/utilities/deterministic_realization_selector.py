@@ -52,6 +52,9 @@ class DeterministicRealizationSelector(PostProcessingPlugin):
         Returns:
             control_key:
                 Key (realization number) that contains the control member.
+        Raises:
+            KeyError: If the attribute does not exist,
+             and cannot be converted into a dictionary.
         """
         # Test the Attribute is Present
         try:
@@ -108,7 +111,11 @@ class DeterministicRealizationSelector(PostProcessingPlugin):
         Returns:
             control_realization_cube:
                 Forecast cube containing only the deterministic realization,
-                 with the control member.
+                with the control member.
+        Raises:
+            AttributeError:
+                - If the forecast_cube or cluster_cube cannot be found in the input.
+                - If the control member, does not exist or cannot be extracted.
         """
         attribute = "primary_input_realizations_to_clusters"
         cluster_cube = None
