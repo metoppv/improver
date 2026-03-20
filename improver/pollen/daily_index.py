@@ -4,16 +4,55 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Calculations to produce Pollen Daily Index values."""
 
+from copy import deepcopy
+
+import numpy as np
 from iris.cube import Cube, CubeList
 
 
 class PollenDailyIndex:
-    def process(self, cubes: tuple[Cube, ...] | CubeList) -> Cube:
-        """Calculate the Pollen Index.
+    # The output cube is a deepcopy of the first input cube (to keep metadata) and is then manipulated in place
+    _output_cube = None
+
+    def _calculate(self, cubes: tuple[Cube, ...] | CubeList):
+        """Calculate the Pollen Daily Index.
+
+        For each grid point, determine the maximum pollen value across all species,
+        and use this as the pollen index for that grid point.
 
         Args:
             cubes:
                 Input cubes for all pollen types
+        """
+        # Stack the cubes along a new species dimension and calculate the maximum across that dimension
+        stacked_data = np.stack([cube.data for cube in cubes], axis=0)
+
+        cube_shape = cubes[0].data.shape
+        # Create a new numpy array with this shape to hold the pollen index values, and fill it
+        # with the maximum values across the species dimension
+        pollen_index_data = np.full(cube_shape, np.nan)  # Initialize with NaN values
+        for i in range(cube_shape[0]):
+            for j in range(cube_shape[1]):
+                pollen_index_data[i, j] = np.max(
+                    stacked_data[:, i, j]
+                )  # Max across species dimension for each grid point
+        self._output_cube.data = pollen_index_data.astype(np.int32)
+
+    def _metadata(self, cubes: tuple[Cube, ...] | CubeList):
+        """Change the cube name and other metadata.
+        Args:
+            cubes:
+                Input cubes for all pollen types, used to update the cube name and metadata
+        """
+        self._output_cube.rename("pollen_1day_index")
+        # self._output_cube.convert_units(1)  # Set units to dimensionless
+
+    def process(self, cubes: tuple[Cube, ...] | CubeList) -> Cube:
+        """Calculate the Pollen Daily Index.
+
+        Args:
+            cubes:
+                Input cubes for all pollen types for Pollen Value for 1 day.
 
         Returns:
             The calculated output cube.
@@ -22,12 +61,9 @@ class PollenDailyIndex:
             UserWarning:
                 If output values fall outside typical expected ranges
         """
-        self._load_input_cubes(cubes)
-        self._apply_scaling_factors_per_species()
-        self._convert_to_grains_per_cubic_meter()
-        self._calculate_daily_mean_concentrations()
-        self._calculate_hourly_pollen_values()
-        self._calculate_daily_pollen_values()
-        output_data = self._calculate()
-        output_cube = self._make_output_cube(output_data)
-        return output_cube
+        # Create output_cube ready to take data from calculations, using the first cube as a template
+        template_cube = cubes[0]
+        self._output_cube = deepcopy(template_cube)
+        self._calculate(cubes)
+        self._metadata(cubes)
+        return self._output_cube
