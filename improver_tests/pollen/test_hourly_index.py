@@ -54,7 +54,7 @@ def get_input_cubes(pollen_values_dict: dict) -> CubeList:
     All cubes have 2-D arrays of integers, with values from 0 to 5.
 
     Returns:
-        CubeList for Pollen types given in POLLEN_NAMES above.
+        CubeList for Pollen types given in INPUT_DATA above.
     """
 
     cubes = CubeList()
