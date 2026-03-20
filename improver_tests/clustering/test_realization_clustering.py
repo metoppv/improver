@@ -2648,8 +2648,10 @@ def test_realizationselection_primary_only():
     cluster_cube = _make_cluster_cube_for_selection(primary_map)
     # Forecast cubes: primary model, realizations 0, 1, 2, forecast_period=3600
     forecast_cubes = _make_forecast_cubes("primary_model", [10, 20, 30], 3600)
+    cubes = forecast_cubes.copy()
+    cubes.append(cluster_cube)
     plugin = RealizationSelection(forecast_period=3600)
-    result = plugin.process(forecast_cubes, cluster_cube)
+    result = plugin.process(cubes)
     # Should select realization 2, 0, 1 in that order, relabelled to 0, 1, 2
     expected = np.array([30, 10, 20])
     np.testing.assert_array_equal(result.data[:, 0, 0], expected)
@@ -2663,15 +2665,17 @@ def test_realizationselection_secondary_precedence():
     # cluster 1 uses 1
     secondary_map = {
         "secondary_model": {
-            "0": [{"realizations": [2], "forecast_periods": [7200]}],
-            "1": [{"realizations": [1], "forecast_periods": [7200]}],
+            "0": [{"realization": 2, "forecast_periods": [7200]}],
+            "1": [{"realization": 1, "forecast_periods": [7200]}],
         }
     }
     cluster_cube = _make_cluster_cube_for_selection(primary_map, secondary_map)
     # Forecast cubes: secondary model, realizations 0, 1, 2, forecast_period=7200
     forecast_cubes = _make_forecast_cubes("secondary_model", [100, 200, 300], 7200)
+    cubes = forecast_cubes.copy()
+    cubes.append(cluster_cube)
     plugin = RealizationSelection(forecast_period=7200)
-    result = plugin.process(forecast_cubes, cluster_cube)
+    result = plugin.process(cubes)
     # Should select realization 2 and 1 from secondary, relabelled to 0, 1
     expected = np.array([300, 200])
     np.testing.assert_array_equal(result.data[:, 0, 0], expected)
@@ -2682,15 +2686,17 @@ def test_realizationselection_secondary_fallback_to_primary():
     primary_map = {"0": 0, "1": 1}
     secondary_map = {
         "secondary_model": {
-            "0": [{"realizations": [2], "forecast_periods": [3600]}],
-            "1": [{"realizations": [1], "forecast_periods": [3600]}],
+            "0": [{"realization": 2, "forecast_periods": [3600]}],
+            "1": [{"realization": 1, "forecast_periods": [3600]}],
         }
     }
     cluster_cube = _make_cluster_cube_for_selection(primary_map, secondary_map)
     # Forecast cubes: only primary model for fp=7200
     forecast_cubes = _make_forecast_cubes("primary_model", [10, 20, 30], 7200)
+    cubes = forecast_cubes.copy()
+    cubes.append(cluster_cube)
     plugin = RealizationSelection(forecast_period=7200)
-    result = plugin.process(forecast_cubes, cluster_cube)
+    result = plugin.process(cubes)
     # Should use primary mapping (realizations 0, 1)
     expected = np.array([10, 20])
     np.testing.assert_array_equal(result.data[:, 0, 0], expected)
@@ -2701,15 +2707,17 @@ def test_realizationselection_secondary_nearest_fp():
     primary_map = {"0": 0, "1": 1}
     secondary_map = {
         "secondary_model": {
-            "0": [{"realizations": [2], "forecast_periods": [3600, 5400]}],
-            "1": [{"realizations": [1], "forecast_periods": [3600, 5400]}],
+            "0": [{"realization": 2, "forecast_periods": [3600, 5400]}],
+            "1": [{"realization": 1, "forecast_periods": [3600, 5400]}],
         }
     }
     cluster_cube = _make_cluster_cube_for_selection(primary_map, secondary_map)
     # Forecast cubes: secondary model, fp=4000 (nearest is 3600)
     forecast_cubes = _make_forecast_cubes("secondary_model", [100, 200, 300], 4000)
+    cubes = forecast_cubes.copy()
+    cubes.append(cluster_cube)
     plugin = RealizationSelection(forecast_period=4000)
-    result = plugin.process(forecast_cubes, cluster_cube)
+    result = plugin.process(cubes)
     expected = np.array([300, 200])
     np.testing.assert_array_equal(result.data[:, 0, 0], expected)
     assert list(result.coord("realization").points) == [0, 1]
@@ -2720,9 +2728,11 @@ def test_realizationselection_missing_model_raises():
     cluster_cube = _make_cluster_cube_for_selection(primary_map)
     # Forecast cubes: different model_id
     forecast_cubes = _make_forecast_cubes("other_model", [10], 3600)
+    cubes = forecast_cubes.copy()
+    cubes.append(cluster_cube)
     plugin = RealizationSelection(forecast_period=3600)
     with pytest.raises(ValueError, match="No forecast cube found for model 'primary_model'"):
-        plugin.process(forecast_cubes, cluster_cube)
+        plugin.process(cubes)
 
 def test_realizationselection_missing_cluster_cube_raises():
     """Test that RealizationSelection.process raises ValueError if no cluster cube is
