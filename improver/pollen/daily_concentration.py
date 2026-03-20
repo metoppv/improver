@@ -11,6 +11,14 @@ from iris.cube import Cube, CubeList
 
 
 class PollenDailyConcentration:
+    """Plugin to calculate the Pollen Daily Concentration.
+
+    The input cube for this plugin comes from the output of the
+    PollenHourlyConcentration plugin. This plugin calculates a daily
+    mean from 24 hours of hourly data. If 24 hours of data is not
+    available then output values from this plugin are set as NaN.
+    """
+
     # The output cube is calculated from the input CubeList and then manipulated in place
     _output_cube = None
 
@@ -21,7 +29,7 @@ class PollenDailyConcentration:
         and converts from g/m3 to grains/m3 using pollen diameter and density.
         """
         cube_count = len(cubes)
-        if cube_count == 24:
+        if cube_count >= 23:
             # Stack the cubes along a new time dimension and calculate the mean and apply the scaling factor
             stacked_data = np.stack([cube.data for cube in cubes], axis=0)
             self._output_cube.data = np.mean(stacked_data, axis=0)

@@ -11,6 +11,15 @@ from iris.cube import Cube
 
 
 class PollenHourlyConcentration:
+    """Plugin to calculate the Pollen Hourly Concentration.
+
+    The input cube for this plugin comes from the output of the
+    Numerical Atmospheric dispersion Modelling Environment (NAME).
+    It is 2D gridded data of pollen concentrations given as g/m3 and
+    the plugin converts this to concentrations in grains/m3 using
+    pollen diameter and density.
+    """
+
     # The names of pollen types that are expected by this class
     _POLLEN_NAMES = [
         "grass_pollen",

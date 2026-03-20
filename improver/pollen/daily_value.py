@@ -7,7 +7,7 @@
 from copy import deepcopy
 
 import numpy as np
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 
 
 class PollenDailyValue:
@@ -29,22 +29,40 @@ class PollenDailyValue:
     # The output cube is a deepcopy of the input cube (to keep metadata) and is then manipulated in place
     _output_cube = None
 
-    def _calculate(self, species: str):
+    def _calculate(self, cubes: tuple[Cube, ...] | CubeList, species: str):
         """Calculate the Pollen Daily Value.
 
         Use values in _POLLEN_INDEX to determine the pollen index for each grid point.
 
         Args:
+            cubes:
+                A CubeList of all 24 hour cubes for the species
             species:
                 The pollen species being processed, used to update the cube name and metadata
         """
         if species not in self._POLLEN_INDEX:
             raise ValueError(f"Pollen species {species} not handled")
         thresholds = self._POLLEN_INDEX[species]
+
+        # TODO - THIS NEEDS WORK - IT DOESN'T SEEM TO BE GETTING THE MAXIMUM - JUST VALUES OF 1
+        # IN ALL LOCATIONS.
+        # Stack the cubes along a new dimension and calculate the maximum across that dimension
+        stacked_data = np.stack([cube.data for cube in cubes], axis=0)
+
+        cube_shape = cubes[0].data.shape
+        # Create a new numpy array with this shape to hold the pollen values, and fill it
+        # with the maximum values across the stacked dimension
+        pollen_daily_data = np.full(cube_shape, np.nan)  # Initialize with NaN values
+        for i in range(cube_shape[0]):
+            for j in range(cube_shape[1]):
+                pollen_daily_data[i, j] = np.max(
+                    stacked_data[:, i, j]
+                )  # Max across species dimension for each grid point
+
         # Use np.digitize to find the index of the first threshold that is greater than the data value
         self._output_cube.data = (
-            np.digitize(self._output_cube.data, thresholds) - 1
-        )  # Subtract 1 to get 0-based index
+            np.digitize(pollen_daily_data, thresholds) - 1
+        ).astype(np.int32)  # Subtract 1 to get 0-based index
 
     def _metadata(self, species: str):
         """Change the cube name and other metadata.
@@ -66,15 +84,16 @@ class PollenDailyValue:
             if attr in cube_attrbutes and cube_attrbutes[attr] == old_value:
                 cube_attrbutes[attr] = new_value
 
-    def process(self, cube: Cube) -> Cube:
+    def process(self, cubes: tuple[Cube, ...] | CubeList) -> Cube:
         """Calculate the Daily Pollen Value.
 
         Use values in _POLLEN_INDEX to determine the pollen value for each grid point,
-        based on the daily pollen concentration values in the input cube.
+        based on the maximum hourly pollen concentration values in the input cubes.
 
         Args:
-            cube:
-                Input cube of daily pollen concentrations for a specific pollen type
+            cubes:
+                Input cubes for each hour of pollen concentrations for a specific
+                pollen type
 
         Returns:
             The calculated output cube.
@@ -83,8 +102,8 @@ class PollenDailyValue:
             UserWarning:
                 If output values fall outside typical expected ranges
         """
-        species = cube.attributes.get("species").lower()
-        self._output_cube = deepcopy(cube)
-        self._calculate(species)
+        species = cubes[0].attributes.get("species").lower()
+        self._output_cube = deepcopy(cubes[0])
+        self._calculate(cubes, species)
         self._metadata(species)
         return self._output_cube

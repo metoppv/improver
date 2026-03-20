@@ -11,6 +11,13 @@ from iris.cube import Cube
 
 
 class PollenHourlyValue:
+    """Plugin to calculate the Pollen Hourly Value.
+
+    Pollen Concentration values in the input cube are compared with threshold
+    values appropriate for the pollen species represented by the cube, and
+    categorized as values 0 to 4 for each grid point.
+    """
+
     #: Threshold index levels - minimum value (grains/m3) for each index.
     _POLLEN_INDEX = {  # 0=No pollen, 1=Low, 2=Moderate, 3=High, 4=Very High
         # (5=extra level just for contour levels)

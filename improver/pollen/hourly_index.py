@@ -11,6 +11,13 @@ from iris.cube import Cube, CubeList
 
 
 class PollenHourlyIndex:
+    """Plugin to calculate the Pollen Hourly Index.
+
+    The input cubelist has Pollen Hourly Values for all pollen species
+    for a hour as specified in the cubes. The maximum value across all
+    species at a location is saved as the Index for that location.
+    """
+
     # The output cube is a deepcopy of the first input cube (to keep metadata) and is then manipulated in place
     _output_cube = None
 
