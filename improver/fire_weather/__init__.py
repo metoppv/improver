@@ -497,8 +497,6 @@ class IterativeFireWeatherIndexBase(FireWeatherIndexBase):
 
         cube.attributes["start_date"] = str(datetime.now())
 
-        print(cube.attributes["start_date"])
-
         return cube
 
     def _report_lag_time_state(self, cube: Cube) -> None:
