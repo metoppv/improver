@@ -3,11 +3,13 @@
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 import os
+from typing import Union
 
 import numpy as np
 from iris.cube import Cube, CubeList
 
 from improver.fire_weather import IterativeFireWeatherIndexBase
+from improver.utilities.common_input_handle import as_cubelist
 
 FFMC_START_VALUE = os.environ.get("FFMC_START_VALUE", 85)
 FFMC_LAG_TIME = os.environ.get("FFMC_LAG_TIME", 3)
@@ -67,15 +69,15 @@ class FineFuelMoistureContent(IterativeFireWeatherIndexBase):
 
     def process(
         self,
-        cubes: tuple[Cube, ...] | CubeList,
+        *cubes: Union[Cube, CubeList],
         month: int | None = None,
         initialise: bool = False,
         clip_ffmc: bool = False,
     ) -> Cube:
         """
         Args:
-            cubes:
-                Input cubes as specified by INPUT_CUBE_NAMES. When initialise is True cubes should
+            *cubes:
+                One or more input cubes as specified by INPUT_CUBE_NAMES. When initialise is True *cubes should
                 exclude the OUTPUT_CUBE_NAME, which should otherwise be given as the iterative input.
             month:
                 Month parameter (1-12), required only if REQUIRES_MONTH is True
@@ -87,10 +89,10 @@ class FineFuelMoistureContent(IterativeFireWeatherIndexBase):
 
         Returns:
             The calculated output cube.
-
         """
+        cubes = as_cubelist(*cubes)
         self.clip_ffmc = clip_ffmc
-        return super().process(cubes, month, initialise)
+        return super().process(cubes, month=month, initialise=initialise)
 
     def _calculate(self) -> np.ndarray:
         """Calculate the Fine Fuel Moisture Code (FFMC).

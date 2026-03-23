@@ -4,11 +4,13 @@
 # See LICENSE in the root of the repository for full licensing details.
 
 import os
+from typing import Union
 
 import numpy as np
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 
 from improver.fire_weather import IterativeFireWeatherIndexBase
+from improver.utilities.common_input_handle import as_cubelist
 
 DC_START_VALUE = os.environ.get("DC_START_VALUE", 15)
 DC_LAG_TIME = os.environ.get("DC_LAG_TIME", 53)
@@ -80,6 +82,28 @@ class DroughtCode(IterativeFireWeatherIndexBase):
         -1.6,  # November
         -1.6,  # December
     ]
+
+    def process(
+        self,
+        *cubes: Union[Cube, CubeList],
+        month: int | None = None,
+        initialise: bool = False,
+    ) -> Cube:
+        """
+        Args:
+            *cubes:
+                One or more input cubes as specified by INPUT_CUBE_NAMES. When initialise is True *cubes should
+                exclude the OUTPUT_CUBE_NAME, which should otherwise be given as the iterative input.
+            month:
+                Month parameter (1-12), required only if REQUIRES_MONTH is True
+            initialise:
+                True when starting the iterative process else False
+
+        Returns:
+            The calculated output cube.
+        """
+        cubes = as_cubelist(*cubes)
+        return super().process(cubes, month=month, initialise=initialise)
 
     def _calculate(self) -> np.ndarray:
         """Calculate the Drought Code (DC).

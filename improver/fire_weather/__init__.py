@@ -463,7 +463,7 @@ class IterativeFireWeatherIndexBase(FireWeatherIndexBase):
 
         self._report_lag_time_state(output_cube)
 
-        return super().process(cubes, month)
+        return super().process(cubes, month=month)
 
     def _initialise_baseline_cube(self, cubes: tuple[Cube, ...] | CubeList) -> Cube:
         """Create a baseline cube from the reference cube and set start_date=now.
@@ -496,6 +496,8 @@ class IterativeFireWeatherIndexBase(FireWeatherIndexBase):
             raise ValueError("Unexpected start_date in reference_cube attributes.")
 
         cube.attributes["start_date"] = str(datetime.now())
+
+        print(cube.attributes["start_date"])
 
         return cube
 
