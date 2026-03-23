@@ -382,6 +382,19 @@ def test_process_spatially_varying() -> None:
     assert len(np.unique(result.data)) > 1
 
 
+def test_process_unpacked_cubes() -> None:
+    """
+    Verify that the DMC plugin runs successfully when given an unpacked list of
+    cubes in its arguments, in addition to the 'month' and 'initialise' keyword
+    arguments.
+    """
+    cubes = input_cubes(10, 10, 40, 5)
+    plugin = DuffMoistureCode()
+    result = plugin.process(*cubes, month=1, initialise=False)
+
+    assert isinstance(result, Cube)
+
+
 def test_dmc_day_length_factors_table() -> None:
     """Test that DMC_DAY_LENGTH_FACTORS match the expected values from lookup table."""
     expected_factors = [
