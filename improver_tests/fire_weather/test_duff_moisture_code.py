@@ -382,18 +382,6 @@ def test_process_spatially_varying() -> None:
     assert len(np.unique(result.data)) > 1
 
 
-def test_process_unpacked_cubes() -> None:
-    """
-    Verify that the DMC plugin runs successfully when given an unpacked list of
-    cubes in its arguments.
-    """
-    cubes = input_cubes(10, 10, 40, 5)
-    plugin = DuffMoistureCode()
-    result = plugin.process(*cubes)
-
-    assert isinstance(result, Cube)
-
-
 def test_process_unpacked_cubes_with_kwargs() -> None:
     """
     Verify that the DMC plugin runs successfully when given an unpacked list of

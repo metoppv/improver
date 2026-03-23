@@ -693,6 +693,18 @@ def test_process_spatially_varying() -> None:
     assert not np.allclose(result.data[0, 0], result.data[2, 2], atol=0.01)
 
 
+def test_process_unpacked_cubes() -> None:
+    """
+    Verify that the FFMC plugin runs successfully when given an unpacked list of
+    cubes in its arguments.
+    """
+    cubes = input_cubes(10, 0, 40, 5, 70)
+    plugin = FineFuelMoistureContent()
+    result = plugin.process(*cubes)
+
+    assert isinstance(result, Cube)
+
+
 def test_warning_for_start_dates_inside_lag_time() -> None:
     """When start_date + 2 days runtime < LAG_TIME so warning is created."""
     under_lag_time = str(datetime.now() - timedelta(days=2))
