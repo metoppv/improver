@@ -95,7 +95,7 @@ class PollenHourlyConcentration:
             species:
                 The pollen species being processed, used to update the cube name and metadata
         """
-        self._output_cube.rename(f"{species}_1hr_concentration")
+        self._output_cube.rename(f"{species}_concentration_PT01H")
         # self._output_cube.convert_units("grains / m3")
 
     def process(

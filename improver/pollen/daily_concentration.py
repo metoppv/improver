@@ -46,7 +46,7 @@ class PollenDailyConcentration:
             species:
                 The pollen species being processed, used to update the cube name and metadata
         """
-        self._output_cube.rename(f"{species.lower()}_1day_concentration")
+        self._output_cube.rename(f"{species.lower()}_concentration_PT24H")
 
     def process(self, cubes: tuple[Cube, ...] | CubeList) -> Cube:
         """Calculate the Pollen Daily Concentration.

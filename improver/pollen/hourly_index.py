@@ -51,7 +51,7 @@ class PollenHourlyIndex:
             cubes:
                 Input cubes for all pollen types, used to update the cube name and metadata
         """
-        self._output_cube.rename("pollen_1hr_index")
+        self._output_cube.rename("pollen_index_PT01H")
         # self._output_cube.convert_units(1)  # Set units to dimensionless
 
     def process(self, cubes: tuple[Cube, ...] | CubeList) -> Cube:

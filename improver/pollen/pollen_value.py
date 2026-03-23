@@ -10,8 +10,8 @@ import numpy as np
 from iris.cube import Cube
 
 
-class PollenHourlyValue:
-    """Plugin to calculate the Pollen Hourly Value.
+class PollenValueForPeriod:
+    """Plugin to calculate a Pollen Value cube for either Daily or Hourly.
 
     Pollen Concentration values in the input cube are compared with threshold
     values appropriate for the pollen species represented by the cube, and
@@ -37,7 +37,7 @@ class PollenHourlyValue:
     _output_cube = None
 
     def _calculate(self, species: str):
-        """Calculate the Pollen Hourly Value.
+        """Calculate the Pollen Value.
 
         Use values in _POLLEN_INDEX to determine the pollen index for each grid point.
 
@@ -59,7 +59,9 @@ class PollenHourlyValue:
             species:
                 The pollen species being processed, used to update the cube name and metadata
         """
-        self._output_cube.rename(f"{species}_1hr_value")
+        # The 1-hour (PT01H) or 1-day (PT24H) period to use in the new cube name
+        period = self._output_cube.name()[-5:]
+        self._output_cube.rename(f"{species}_value_{period}")
         # self._output_cube.convert_units(1)  # Set units to dimensionless
 
         cube_attrbutes = self._output_cube.attributes
@@ -77,11 +79,11 @@ class PollenHourlyValue:
         """Calculate the Pollen Value.
 
         Use values in _POLLEN_INDEX to determine the pollen value for each grid point,
-        based on the hourly pollen concentration values in the input cube.
+        based on the pollen concentration values in the input cube.
 
         Args:
             cube:
-                Input cube of hourly pollen concentrations for a specific pollen type
+                Input cube of hourly or daily pollen concentrations for a specific pollen type
 
         Returns:
             The calculated output cube.
