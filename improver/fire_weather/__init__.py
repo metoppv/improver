@@ -42,8 +42,10 @@ class FireWeatherIndexBase(BasePlugin):
 
     Subclasses must define class attributes:
 
-    - START_DATE_CUBE_NAME: Name of cube from which the start_date
-        attribute will be sourced for the output_cube.
+    - START_DATE_CUBE_NAME: The name of the input cube from which the
+        start_date attribute will be sourced for the output_cube. For
+        downstream datasets that take iterative datasets as input this
+        should be the iterative dataset.
     - INPUT_CUBE_NAMES: List of standard names for required input cubes
     - OUTPUT_CUBE_NAME: Standard name for the output cube
     - REQUIRES_MONTH: Boolean indicating if month parameter is required
@@ -408,6 +410,17 @@ class FireWeatherIndexBase(BasePlugin):
             NotImplementedError: If START_DATE_CUBE_NAME is not defined
               or the named cube has no start_date attribute
 
+        Note:
+            A start_date attribute is required on all Fire Severity Index datasets.
+            This value records the date when the build up period of the iterative datasets
+            (Fine Fuel Moisture Content, Duff Moisture Code and Drought Code) was begun.
+
+            The start_date value is also added to datasets which are not iterative but which
+            take iterative datasets as inputs as the context of when the build up period was
+            begun may still be relevant to stakeholders.  These downstream datasets include
+            the Initial Spread Index, the Build Up Index, the Fire Weather Index and the
+            Fire Severity Index.
+
         """
         if not self.START_DATE_CUBE_NAME:
             raise NotImplementedError(
@@ -444,8 +457,9 @@ class IterativeFireWeatherIndexBase(FireWeatherIndexBase):
     - LAG_TIME: Integer representing the number of days needed after
         starting calculations from the STARTING_VALUE, before outputs
         should be considered scientifically valid.
-    - START_DATE_CUBE_NAME: The name of input cube from which the start_date
-        attribute will be sourced.
+    - START_DATE_CUBE_NAME: The name of the input cube from which the
+        start_date attribute will be sourced for the output_cube. For
+        iterative fire weather clases this must match the OUTPUT_CUBE_NAME.
 
     Subclasses must implement:
 
