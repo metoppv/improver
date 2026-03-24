@@ -13,6 +13,31 @@ from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cube_checker import assert_time_coords_valid
 
 
+@pytest.fixture(name="cubes")
+def cubes_fixture(time_bounds) -> List[Cube]:
+    """Set up matching r, y, x cubes matching Plugin requirements, with or without time
+    bounds"""
+    cubes = []
+    data = np.ones((2, 3, 4), dtype=np.float32)
+    kwargs = {}
+    if time_bounds:
+        kwargs["time_bounds"] = (
+            datetime(2017, 11, 10, 3, 0),
+            datetime(2017, 11, 10, 4, 0),
+        )
+    cube = set_up_variable_cube(data, **kwargs)
+    for descriptor in (
+        {"name": "air_temperature", "units": "K"},
+        {"name": "air_pressure", "units": "Pa"},
+        {"name": "relative_humidity", "units": "kg kg-1"},
+    ):
+        cube = cube.copy()
+        cube.rename(descriptor["name"])
+        cube.units = descriptor["units"]
+        cubes.append(cube)
+    return cubes
+
+
 def swap_frt_for_blend_time(cubes: List[Cube]):
     """Renames the forecast_reference_time coord on each cube to blend_time"""
     for cube in cubes:
@@ -93,28 +118,3 @@ def test_time_coord_exceptions(
     modifier(cubes)
     with pytest.raises(ValueError, match=error_match):
         assert_time_coords_valid(cubes, time_bounds=time_bounds)
-
-
-@pytest.fixture(name="cubes")
-def cubes_fixture(time_bounds) -> List[Cube]:
-    """Set up matching r, y, x cubes matching Plugin requirements, with or without time
-    bounds"""
-    cubes = []
-    data = np.ones((2, 3, 4), dtype=np.float32)
-    kwargs = {}
-    if time_bounds:
-        kwargs["time_bounds"] = (
-            datetime(2017, 11, 10, 3, 0),
-            datetime(2017, 11, 10, 4, 0),
-        )
-    cube = set_up_variable_cube(data, **kwargs)
-    for descriptor in (
-        {"name": "air_temperature", "units": "K"},
-        {"name": "air_pressure", "units": "Pa"},
-        {"name": "relative_humidity", "units": "kg kg-1"},
-    ):
-        cube = cube.copy()
-        cube.rename(descriptor["name"])
-        cube.units = descriptor["units"]
-        cubes.append(cube)
-    return cubes
