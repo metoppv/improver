@@ -100,6 +100,7 @@ PROCESSING_MODULES = {
     "OccurrenceBetweenThresholds": "improver.between_thresholds",
     "OccurrenceWithinVicinity": "improver.utilities.spatial",
     "OpticalFlow": "improver.nowcasting.optical_flow",
+    "OrogLapseRate": "improver.orographic_adjustment.lapse_rate",
     "MetaOrographicEnhancement": "improver.orographic_enhancement",
     "OrographicSmoothingCoefficients": "improver.generate_ancillaries.generate_orographic_smoothing_coefficients",
     "PercentileConverter": "improver.percentile",

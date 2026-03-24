@@ -7,13 +7,13 @@
 import numpy as np
 from iris.cube import Cube, CubeList
 from numpy import ndarray
-from scipy.interpolate import make_splrep
+from scipy.interpolate import make_smoothing_spline
 
 from improver import BasePlugin
 from improver.utilities import neighbourhood_tools
 
 
-class LapseRate(BasePlugin):
+class OrogLapseRate(BasePlugin):
     """Class containing methods to calculate the modelled lapse rate from a specified neighbourhood
     and to apply the lapse rate to a new orography to calculate the expected value of the variable."""
 
@@ -23,8 +23,9 @@ class LapseRate(BasePlugin):
 
     def __init__(
         self,
-        nbhood_radius: int = 7,
-        lapse_rate_function: callable = make_splrep,
+        nbhood_radius: int = 3,
+        lapse_rate_function: callable = make_smoothing_spline,
+        lam: float = 100000.0,
         **lapse_rate_function_kwargs,
     ):
         """
@@ -55,22 +56,28 @@ class LapseRate(BasePlugin):
             msg = "The provided lapse rate function is not callable."
             raise ValueError(msg)
         self._calc_function_kwargs = lapse_rate_function_kwargs
+        if lam is not None:
+            self._calc_function_kwargs["lam"] = lam
 
     def _create_windows(self, data: ndarray) -> ndarray:
         """Uses neighbourhood tools to pad and generate rolling windows
-        of the given dataset.
+        of the given dataset. Data from outside the bounds of the original
+        dataset is padded with NaNs, and the resulting windows are reshaped
+        so that the innermost dimension contains each point in the neighbourhood.
 
         Args:
             data:
                 2D array of the source diagnostic data
 
         Returns:
-            - Rolling windows of the padded dataset.
+            Rolling windows of the padded dataset where innermost dimension.
+            contains each point in the neighbourhood.
         """
         window_shape = (self.nbhood_size, self.nbhood_size)
+        resulting_shape = [*data.shape, self.nbhood_size * self.nbhood_size]
         return neighbourhood_tools.pad_and_roll(
             data, window_shape, mode="constant", constant_values=np.nan
-        )
+        ).reshape(resulting_shape)
 
     def _create_local_functions(self):
         """Calculates the local lapse rate function for each point in the dataset.
@@ -78,9 +85,10 @@ class LapseRate(BasePlugin):
         """
 
         def _fit_function(diag_window, orog_window):
-            if not np.isfinite(diag_window).all(diag_window):
+            if not np.isfinite(diag_window).any():
                 return lambda x: np.nan
             sort_idx = np.argsort(orog_window)
+            sort_idx = sort_idx[np.isfinite(diag_window[sort_idx])]
             return self._calc_function(
                 orog_window[sort_idx],
                 diag_window[sort_idx],
@@ -89,8 +97,7 @@ class LapseRate(BasePlugin):
 
         vectorized_fit = np.vectorize(_fit_function, signature="(n),(n)->()")
         self._local_functions = vectorized_fit(
-            np.moveaxis(self.diagnostic_windows, 0, -1),
-            np.moveaxis(self.orography_windows, 0, -1),
+            self.diagnostic_windows, self.orography_windows
         )
 
     def _apply_new_orography_to_functions(self, new_orography: ndarray) -> ndarray:
@@ -116,8 +123,8 @@ class LapseRate(BasePlugin):
         Returns:
             2D array of the same shape as adjusted_data, containing the clipped expected value of the variable at each point.
         """
-        max_in_area = np.nanmax(self.diagnostic_windows, axis=(0, 1))
-        min_in_area = np.nanmin(self.diagnostic_windows, axis=(0, 1))
+        max_in_area = np.nanmax(self.diagnostic_windows, axis=-1)
+        min_in_area = np.nanmin(self.diagnostic_windows, axis=-1)
         return np.clip(adjusted_data, min_in_area, max_in_area)
 
     def process(self, diagnostic: Cube, orography: Cube, new_orography: Cube) -> Cube:
