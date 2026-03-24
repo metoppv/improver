@@ -23,10 +23,7 @@ class ExpandRealizationDimension(BasePlugin):
         """
         self.n_realizations_required = n_realizations_required
 
-    def process(
-        self,
-        cube: Cube,
-    ) -> Cube:
+    def process(self, cube: Cube) -> Cube:
         """
         Expand the realization dimension of a cube by repeating the existing
         realizations as necessary. E.g. if the input cube has 18 realizations and 24 are

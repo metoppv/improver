@@ -23,9 +23,6 @@ def process(cube: cli.inputcube, *, n_realizations_required: int):
         iris.cube.Cube
             Expanded cube. Dimensions are the same as input cube, with the realization
             dimension expanded to the specified size.
-
-    Raises:
-        ValueError: if realization is not a dimension coordinate.
     """
     from improver.utilities.expand_realization_dimension import (
         ExpandRealizationDimension,
