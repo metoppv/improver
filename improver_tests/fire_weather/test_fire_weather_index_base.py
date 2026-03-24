@@ -639,6 +639,34 @@ def test_process_with_unit_conversion() -> None:
     assert np.allclose(cubes[0].data, 293.15)  # air_temperature
 
 
+def test_process_unpacked_cubes() -> None:
+    """
+    Verify that the plugin runs successfully when given an unpacked list of
+    cubes in its arguments.
+    """
+    cubes = input_cubes_basic()
+    plugin = ConcreteFireWeatherIndex()
+    result = plugin.process(*cubes)
+    assert isinstance(result, Cube)
+
+
+def test_process_unpacked_cubes_and_kwargs() -> None:
+    """
+    Verify that the plugin runs successfully when given an unpacked list of
+    cubes in its arguments, in addition to keyword arguments.
+    """
+    cubes = make_input_cubes(
+        [
+            ("air_temperature", 20.0, "Celsius", False, {}),
+            ("lwe_thickness_of_precipitation_amount", 1.0, "mm", True, {}),
+        ],
+        shape=(5, 5),
+    )
+    plugin = ConcreteFireWeatherIndexWithMonth()
+    result = plugin.process(*cubes, month=1)
+    assert isinstance(result, Cube)
+
+
 def test_input_attribute_mappings_in_process() -> None:
     """Test INPUT_ATTRIBUTE_MAPPINGS works in full process workflow."""
     cubes = make_input_cubes(

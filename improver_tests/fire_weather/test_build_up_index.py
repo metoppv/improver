@@ -13,8 +13,8 @@ from improver_tests.fire_weather import START_DATE_DICT, make_input_cubes
 
 
 def input_cubes(
-    dmc_val: float | np.ndarray,
-    dc_val: float | np.ndarray,
+    dmc_val: float | np.ndarray = 10.0,
+    dc_val: float | np.ndarray = 30.0,
     shape: tuple[int, ...] = (5, 5),
     dmc_units: str = "1",
     dc_units: str = "1",
