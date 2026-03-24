@@ -62,7 +62,7 @@ class PollenValueForPeriod:
         # The 1-hour (PT01H) or 1-day (PT24H) period to use in the new cube name
         period = self._output_cube.name()[-5:]
         self._output_cube.rename(f"{species}_value_{period}")
-        # self._output_cube.convert_units(1)  # Set units to dimensionless
+        # self._output_cube.convert_units(1)  # Set units to unitless
 
         cube_attrbutes = self._output_cube.attributes
         # Change the following Attributes in the output cube if the key and old value

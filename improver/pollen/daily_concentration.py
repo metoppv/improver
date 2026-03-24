@@ -4,6 +4,7 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Calculations to produce Pollen Daily Concentration values."""
 
+import warnings
 from copy import deepcopy
 
 import numpy as np
@@ -36,8 +37,9 @@ class PollenDailyConcentration:
         else:
             # Warning message if not 24 cubes, and set average data values to NaN
             self._output_cube.data = np.full_like(cubes[0].data, np.nan)
-            UserWarning(
-                f"Expected 24 cubes for hourly data, but got {cube_count}. Output values set to NaN."
+            warnings.warn(
+                f"Expected 24 cubes for hourly data, but got {cube_count}. Output values set to NaN.",
+                UserWarning,
             )
 
     def _metadata(self, species: str):

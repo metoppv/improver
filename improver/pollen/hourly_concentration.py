@@ -109,7 +109,7 @@ class PollenHourlyConcentration:
             cube:
                 Input cube for any pollen type handled by the class
             scaling_factors_dict:
-                Optional scaling factors to user per pollen type
+                Optional scaling factors to use per pollen type
 
         Returns:
             The calculated output cube.

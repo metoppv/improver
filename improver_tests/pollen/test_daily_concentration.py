@@ -5,6 +5,7 @@
 
 
 import numpy as np
+import pytest
 from iris.cube import Cube, CubeList
 
 from improver.pollen.daily_concentration import PollenDailyConcentration
@@ -34,7 +35,7 @@ pollen_hourly_concentrations_dict = {
         21: np.array([[0.0, 0.01, 29.0], [50.0, 131.2, 409.0]]),
         22: np.array([[0.0, 0.01, 29.0], [50.0, 131.2, 409.0]]),
         23: np.array([[0.0, 0.01, 29.0], [50.0, 131.2, 409.0]]),
-        24: np.array([[0.0, 0.01, 29.0], [50.0, 131.2, 409.0]]),
+        24: np.array([[0.0, 0.01, 29.0], [50.0, 100.0, 200.0]]),
     },
     "insufficient_pollen": {
         1: np.array([[0.0, 0.01, 29.0], [50.0, 131.2, 409.0]]),
@@ -52,7 +53,7 @@ pollen_hourly_concentrations_dict = {
     },
 }
 
-WEED_AVERAGE = np.array([[0.0, 0.01, 29.0], [50.0, 131.2, 409.0]])
+WEED_AVERAGE = np.array([[0.0, 0.01, 29.0], [50.0, 129.9, 400.29166667]])
 INSUFFICIENT_AVERAGE = np.array([[np.nan, np.nan, np.nan], [np.nan, np.nan, np.nan]])
 
 
@@ -78,17 +79,15 @@ def test_process():
     cubes = get_input_cubes("weed_pollen")
     plugin = PollenDailyConcentration()
     output_cube = plugin.process(cubes)
-    print(output_cube)
-    print("------------")
-    print(output_cube.data)
-    assert output_cube.data.all() == WEED_AVERAGE.all()
+    np.testing.assert_array_almost_equal(output_cube.data, WEED_AVERAGE)
 
 
 def test_insufficient_data():
     cubes = get_input_cubes("insufficient_pollen")
     plugin = PollenDailyConcentration()
-    output_cube = plugin.process(cubes)
-    print(output_cube)
-    print("------------")
-    print(output_cube.data)
-    assert output_cube.data.all() == INSUFFICIENT_AVERAGE.all()
+    with pytest.warns(
+        UserWarning,
+        match="Expected 24 cubes for hourly data, but got 12. Output values set to NaN.",
+    ):
+        output_cube = plugin.process(cubes)
+    np.testing.assert_array_almost_equal(output_cube.data, INSUFFICIENT_AVERAGE)
