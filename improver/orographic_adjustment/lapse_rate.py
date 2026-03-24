@@ -4,6 +4,8 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Module containing generic lapse rate calculation plugins."""
 
+import warnings
+
 import numpy as np
 from iris.cube import Cube, CubeList
 from numpy import ndarray
@@ -85,15 +87,23 @@ class OrogLapseRate(BasePlugin):
         """
 
         def _fit_function(diag_window, orog_window):
-            if not np.isfinite(diag_window).any():
-                return lambda x: np.nan
+            if np.allclose(diag_window, 0.0, atol=1e-5):
+                return lambda x: 0.0
             sort_idx = np.argsort(orog_window)
             sort_idx = sort_idx[np.isfinite(diag_window[sort_idx])]
-            return self._calc_function(
-                orog_window[sort_idx],
-                diag_window[sort_idx],
-                **self._calc_function_kwargs,
-            )
+            try:
+                result = self._calc_function(
+                    orog_window[sort_idx],
+                    diag_window[sort_idx],
+                    **self._calc_function_kwargs,
+                )
+            except Exception as e:
+                warnings.warn(f"{e}")
+                # Central point of the flattened window array is n + n(2n+1) where n is the neighbourhood radius.
+                result = lambda x: diag_window[
+                    2 * self.nbhood_radius**2 + 2 * self.nbhood_radius
+                ]
+            return result
 
         vectorized_fit = np.vectorize(_fit_function, signature="(n),(n)->()")
         self._local_functions = vectorized_fit(
