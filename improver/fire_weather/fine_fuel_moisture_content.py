@@ -9,7 +9,6 @@ import numpy as np
 from iris.cube import Cube, CubeList
 
 from improver.fire_weather import IterativeFireWeatherIndexBase
-from improver.utilities.common_input_handle import as_cubelist
 
 FFMC_START_VALUE = os.environ.get("FFMC_START_VALUE", 85)
 FFMC_LAG_TIME = os.environ.get("FFMC_LAG_TIME", 3)
@@ -90,7 +89,6 @@ class FineFuelMoistureContent(IterativeFireWeatherIndexBase):
         Returns:
             The calculated output cube.
         """
-        cubes = as_cubelist(*cubes)
         self.clip_ffmc = clip_ffmc
         return super().process(cubes, month=month, initialise=initialise)
 

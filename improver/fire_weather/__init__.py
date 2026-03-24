@@ -8,7 +8,7 @@ import warnings
 from abc import abstractmethod
 from copy import deepcopy
 from datetime import datetime
-from typing import cast
+from typing import Union, cast
 
 import iris.exceptions
 import numpy as np
@@ -16,6 +16,7 @@ from iris.cube import Cube, CubeList
 from iris.exceptions import ConstraintMismatchError
 
 from improver import BasePlugin
+from improver.utilities.common_input_handle import as_cubelist
 from improver.utilities.load import load_baseline_cube
 
 
@@ -287,9 +288,7 @@ class FireWeatherIndexBase(BasePlugin):
         """
         raise NotImplementedError("Subclasses must implement the _calculate method.")
 
-    def process(
-        self, cubes: tuple[Cube, ...] | CubeList, month: int | None = None
-    ) -> Cube:
+    def process(self, *cubes: Union[Cube, CubeList], month: int | None = None) -> Cube:
         """Calculate the fire weather index component.
 
         Args:
@@ -306,6 +305,7 @@ class FireWeatherIndexBase(BasePlugin):
             UserWarning:
                 If output values fall outside typical expected ranges
         """
+        cubes = as_cubelist(*cubes)
         self.load_input_cubes(cubes, month)
         output_data = self._calculate()
         output_cube = self._make_output_cube(output_data)
@@ -421,14 +421,14 @@ class IterativeFireWeatherIndexBase(FireWeatherIndexBase):
 
     def process(
         self,
-        cubes: tuple[Cube, ...] | CubeList,
+        *cubes: Union[Cube, CubeList],
         month: int | None = None,
         initialise: bool = False,
     ) -> Cube:
         """
         Args:
             cubes:
-                Input cubes as specified by INPUT_CUBE_NAMES. When initialise is True cubes should
+                One or more input cubes as specified by INPUT_CUBE_NAMES. When initialise is True cubes should
                 exclude the OUTPUT_CUBE_NAME, which should otherwise be given as the iterative input.
             month:
                 Month parameter (1-12), required only if REQUIRES_MONTH is True
@@ -446,6 +446,7 @@ class IterativeFireWeatherIndexBase(FireWeatherIndexBase):
             ValueError: If an output cube is given with initialise=True
 
         """
+        cubes = as_cubelist(*cubes)
         try:
             output_cube = cast(
                 Cube, CubeList(cubes).extract_cube(self.OUTPUT_CUBE_NAME)
