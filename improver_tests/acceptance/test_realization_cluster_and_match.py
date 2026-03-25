@@ -18,7 +18,7 @@ pytest.importorskip("kmedoids")
 
 def test_single_lead_time(tmp_path):
     """Test with a single lead time and two input cubes."""
-    kgo_dir = acc.kgo_root() / "realization_cluster_and_match"
+    kgo_dir = acc.kgo_root() / "realization-cluster-and-match"
     kgo_path = kgo_dir / "single_lead_time_kgo.nc"
     coarse_resolution_primary_input = (
         kgo_dir / "coarse_resolution_primary_subdomain_PT0006H00M.nc"
@@ -53,7 +53,7 @@ def test_single_lead_time(tmp_path):
 
 def test_multiple_lead_time(tmp_path):
     """Test with multiple lead times and four input cubes."""
-    kgo_dir = acc.kgo_root() / "realization_cluster_and_match"
+    kgo_dir = acc.kgo_root() / "realization-cluster-and-match"
     kgo_path = kgo_dir / "multiple_lead_time_kgo.nc"
     coarse_resolution_primary_6H_input = (
         kgo_dir / "coarse_resolution_primary_subdomain_PT0006H00M.nc"
