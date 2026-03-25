@@ -7,7 +7,7 @@
 import numpy as np
 from iris.cube import Cube
 
-from improver.pollen import build_output_cube
+from improver.pollen import build_output_cube_with_new_units
 
 
 class PollenHourlyConcentration:
@@ -86,7 +86,6 @@ class PollenHourlyConcentration:
         # (then apply scaling factor)
         # and convert to grains/m3
         new_data = self._output_cube.data / 1000.0 * scaling_factor / mass_per_grain
-        # new_data = self._output_cube.data / 1000.0 / mass_per_grain
         self._output_cube.data = new_data
 
     def _metadata(self, species: str):
@@ -115,7 +114,7 @@ class PollenHourlyConcentration:
             The calculated output cube.
         """
         self._scaling_factors_dict = scaling_factors_dict
-        self._output_cube = build_output_cube(self, cube, "grains / m3")
+        self._output_cube = build_output_cube_with_new_units(self, cube, "grains / m3")
 
         # Check that the pollen species is one that is handled by the class
         species = self._output_cube.attributes.get("species").lower()

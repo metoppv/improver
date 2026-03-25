@@ -7,7 +7,7 @@
 import numpy as np
 from iris.cube import Cube
 
-from improver.pollen import build_output_cube
+from improver.pollen import build_output_cube_with_new_units
 
 
 class PollenValueForPeriod:
@@ -62,7 +62,6 @@ class PollenValueForPeriod:
         # The 1-hour (PT01H) or 1-day (PT24H) period to use in the new cube name
         period = self._output_cube.name()[-5:]
         self._output_cube.rename(f"{species}_value_{period}")
-        # self._output_cube.convert_units(1)  # Set units to unitless
 
         cube_attrbutes = self._output_cube.attributes
         # Change the following Attributes in the output cube if the key and old value
@@ -93,7 +92,7 @@ class PollenValueForPeriod:
                 If output values fall outside typical expected ranges
         """
         species = cube.attributes.get("species").lower()
-        self._output_cube = build_output_cube(self, cube, 1)
+        self._output_cube = build_output_cube_with_new_units(self, cube, 1)
         self._calculate(species)
         self._metadata(species)
         return self._output_cube

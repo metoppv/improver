@@ -8,8 +8,28 @@ from iris.coords import AuxCoord
 from iris.cube import Cube
 
 
-def build_output_cube(self, cube: Cube, new_units) -> Cube:
-    """Build the output cube as a copy of the input cube, to keep metadata."""
+def build_output_cube_with_new_units(self, cube: Cube, new_units) -> Cube:
+    """Build the output cube as a copy of the input cube, adjusting units.
+
+    There are two places in the Pollen workflow where units are changed and the
+    iris function Cube.convert_units() doesn't work, so the cube needs to be rebuilt
+    with the new units and appropriate metadata. This function handles that process.
+
+    The places where this is required are:
+    - In the PollenHourlyConcentration plugin, the input cube has units of g/m3 and
+      the output cube needs to have units of grains/m3 after a conversion.
+    - In the PollenValueForPeriod plugin, the input cube has units grains/m3 and
+      the output cube has unitless index values (0 to 4) that are derived from
+      the input cube data values.
+    Args:
+        cube:
+            The input cube from which to copy data and metadata.
+        new_units:
+            The units to set on the output cube.
+    Returns:
+        Cube:
+            The output cube with updated units and copied data and metadata.
+    """
     standard_name = cube.standard_name
     long_name = cube.long_name
     var_name = cube.var_name
