@@ -84,6 +84,8 @@ PROCESSING_MODULES = {
     "Integration": "improver.utilities.mathematical_operations",
     "InterpolateUsingDifference": "improver.utilities.interpolation",
     "LapseRate": "improver.temperature.lapse_rate",
+    "LayerTemperatureInterpolation": "improver.temperature.layer_mean_temperature",
+    "CalculateLayerMeanTemperature": "improver.temperature.layer_mean_temperature",
     "LightningFromCapePrecip": "improver.lightning",
     "LightningMultivariateProbability_USAF2024": "improver.lightning",
     "ManipulateReliabilityTable": "improver.calibration.reliability_calibration",
