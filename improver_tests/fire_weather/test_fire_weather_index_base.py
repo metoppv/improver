@@ -1092,8 +1092,8 @@ class DummyPluginWithPartialRange(FireWeatherIndexBase):
     relative_humidity: Cube
 
     def _calculate(self) -> np.ndarray:
-        """Simple calculation for testing."""
-        return self.temperature.data + self.relative_humidity.data
+        """Dummy calculation to allow class instantiation."""
+        return 1 + 1  # pragma: no cover
 
 
 @pytest.mark.parametrize(
@@ -1178,7 +1178,7 @@ def test__set_start_date(plugin_class, plugin_input_cube_names) -> None:
     plugin = plugin_class()
 
     output_cube = plugin.process(cubes)
-    output_cube.attributes == START_DATE
+    assert output_cube.attributes == START_DATE
 
 
 @pytest.mark.parametrize(
