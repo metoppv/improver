@@ -4,10 +4,10 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Calculations to produce Pollen Hourly Concentration values."""
 
-from copy import deepcopy
-
 import numpy as np
 from iris.cube import Cube
+
+from improver.pollen import build_output_cube
 
 
 class PollenHourlyConcentration:
@@ -115,7 +115,7 @@ class PollenHourlyConcentration:
             The calculated output cube.
         """
         self._scaling_factors_dict = scaling_factors_dict
-        self._output_cube = deepcopy(cube)
+        self._output_cube = build_output_cube(self, cube, "grains / m3")
 
         # Check that the pollen species is one that is handled by the class
         species = self._output_cube.attributes.get("species").lower()

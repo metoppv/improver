@@ -4,10 +4,10 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Calculations to produce Pollen Hourly Values."""
 
-from copy import deepcopy
-
 import numpy as np
 from iris.cube import Cube
+
+from improver.pollen import build_output_cube
 
 
 class PollenValueForPeriod:
@@ -93,7 +93,7 @@ class PollenValueForPeriod:
                 If output values fall outside typical expected ranges
         """
         species = cube.attributes.get("species").lower()
-        self._output_cube = deepcopy(cube)
+        self._output_cube = build_output_cube(self, cube, 1)
         self._calculate(species)
         self._metadata(species)
         return self._output_cube
