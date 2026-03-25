@@ -667,6 +667,38 @@ def test_process_unpacked_cubes_and_kwargs() -> None:
     assert isinstance(result, Cube)
 
 
+@pytest.mark.parametrize(
+    "cubes, expected_match",
+    [
+        (
+            (None, None),
+            r"Object .* cannot be put in a cubelist, as it is not a Cube.",
+        ),
+        (
+            ("Foobar", "Spam"),
+            r"Object .* cannot be put in a cubelist, as it is not a Cube.",
+        ),
+        (
+            (Cube,),
+            r"Expected .* cubes, found 1",
+        ),
+        (
+            (),
+            r"One or more cubes should be provided.",
+        ),
+    ],
+)
+def test_process_invalid_cubes_raises_error(cubes, expected_match: str) -> None:
+    """
+    Verify that the plugin produces the expected error and message when given
+    invalid inputs instead of cubes.
+    """
+    plugin = ConcreteFireWeatherIndexWithMonth()
+    with pytest.raises(ValueError, match=expected_match):
+        plugin.process(*cubes, month=1)
+        plugin.process(cubes, month=1)
+
+
 def test_input_attribute_mappings_in_process() -> None:
     """Test INPUT_ATTRIBUTE_MAPPINGS works in full process workflow."""
     cubes = make_input_cubes(
