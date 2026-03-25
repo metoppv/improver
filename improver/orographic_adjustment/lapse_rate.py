@@ -12,6 +12,7 @@ from numpy import ndarray
 from scipy.interpolate import make_smoothing_spline
 
 from improver import BasePlugin
+from improver.nbhood.nbhood import circular_kernel
 from improver.utilities import neighbourhood_tools
 
 
@@ -22,12 +23,14 @@ class OrogLapseRate(BasePlugin):
     _local_functions = None
     orography_windows = None
     diagnostic_windows = None
+    weighted = False
 
     def __init__(
         self,
         nbhood_radius: int = 3,
         lapse_rate_function: callable = make_smoothing_spline,
         lam: float = 100000.0,
+        weighted: bool = False,
         **lapse_rate_function_kwargs,
     ):
         """
@@ -40,6 +43,7 @@ class OrogLapseRate(BasePlugin):
                 The default value of 7 is from the referenced paper.
         """
         self.nbhood_radius = nbhood_radius
+        self.weighted = weighted
 
         if self.nbhood_radius < 0:
             msg = "Neighbourhood radius is less than zero"
@@ -81,20 +85,56 @@ class OrogLapseRate(BasePlugin):
             data, window_shape, mode="constant", constant_values=np.nan
         ).reshape(resulting_shape)
 
+    def _adjust_duplicate_orography_points(self):
+        """If there are any duplicate orography points in the window, adjust them within the max_adjustment limit
+        to satisfy the requirement of unique orography points for the spline fit."""
+        vectorized_function = np.vectorize(
+            self._adjust_duplicate_points, signature="(n)->(n)"
+        )
+        self.orography_windows = np.apply_along_axis(
+            vectorized_function, -1, self.orography_windows
+        )
+
+    def _adjust_duplicate_points(
+        self, orog_window: ndarray, max_adjustment: float = 0.0625
+    ) -> ndarray:
+        """If there are any duplicate orography points in the window, adjust them within the max_adjustment limit
+        to satisfy the requirement of unique orography points for the spline fit."""
+        unique_orog_points = np.unique(orog_window)
+        if len(unique_orog_points) == len(orog_window):
+            return orog_window
+        orog_window = orog_window.copy()
+        for orog_point in unique_orog_points:
+            duplicate_indices = np.where(orog_window == orog_point)[0]
+            for i, idx in enumerate(duplicate_indices):
+                adjustment = (i - (len(duplicate_indices) - 1) / 2) * max_adjustment
+                orog_window[idx] += adjustment
+        return orog_window
+
     def _create_local_functions(self):
         """Calculates the local lapse rate function for each point in the dataset.
         The resulting array of functions is stored as an attribute of the class.
         """
+        if self.weighted:
+            weights = circular_kernel(self.nbhood_radius, True).flatten()
+        else:
+            weights = np.ones(self.orography_windows.shape[-1])
 
         def _fit_function(diag_window, orog_window):
+            if len(orog_window.shape) != 1:
+                raise ValueError(
+                    "The innermost dimension of the input windows must be 1-dimensional."
+                )
             if np.allclose(diag_window, 0.0, atol=1e-5):
                 return lambda x: 0.0
             sort_idx = np.argsort(orog_window)
             sort_idx = sort_idx[np.isfinite(diag_window[sort_idx])]
+            sort_idx = sort_idx[weights[sort_idx] > 0]
             try:
                 result = self._calc_function(
                     orog_window[sort_idx],
                     diag_window[sort_idx],
+                    w=weights[sort_idx],
                     **self._calc_function_kwargs,
                 )
             except Exception as e:
@@ -153,6 +193,7 @@ class OrogLapseRate(BasePlugin):
         """
         orography.convert_units(new_orography.units)
         self.orography_windows = self._create_windows(orography.data)
+        self._adjust_duplicate_orography_points()
         xy_coords = [orography.coord(axis="y"), orography.coord(axis="x")]
         adjusted_slices = CubeList()
         for diagnostic_slice in diagnostic.slices(xy_coords):

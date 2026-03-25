@@ -101,3 +101,19 @@ def test_basic(snow_depth, orography, new_orography):
     assert isinstance(result, Cube)
     assert result.units == cf_units.Unit("m")
     assert np.allclose(result.data, expected_data, equal_nan=True, atol=1e-4)
+
+
+def test__adjust_duplicate_orography_points(orography):
+    """Test that the method for adjusting duplicate orography points works as expected
+    by creating some duplicate orography points, creating the windows and adjusting them,
+    then proving that there are no duplicated finite values."""
+    orography[0, 0] = orography[0, 1]
+    orography[1, 0] = orography[2, 0]
+    lapse_rate_plugin = OrogLapseRate()
+    lapse_rate_plugin.orography_windows = lapse_rate_plugin._create_windows(orography)
+    lapse_rate_plugin._adjust_duplicate_orography_points()
+    for window in [x for y in lapse_rate_plugin.orography_windows for x in y]:
+        if np.any(np.isnan(window)):
+            assert len(np.unique(window)) - 1 == sum(np.isfinite(window))
+        else:
+            assert len(np.unique(window)) == len(window)
