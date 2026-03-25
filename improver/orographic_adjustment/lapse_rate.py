@@ -53,9 +53,11 @@ class OrogLapseRate(BasePlugin):
         # central point.
         self.nbhood_size = int((2 * nbhood_radius) + 1)
 
-        # Used in the neighbourhood checks, ensures that the center
-        # of the array is non NaN.
+        # Used in the neighbourhood checks, ensures that the centre
+        # of the array is non NaN and allows us to find the centre
+        # of the flattened window arrays.
         self.ind_central_point = self.nbhood_size // 2
+        self.central_idx = 2 * self.nbhood_radius**2 + 2 * self.nbhood_radius
 
         self._calc_function = lapse_rate_function
         if not callable(self._calc_function):
@@ -64,6 +66,11 @@ class OrogLapseRate(BasePlugin):
         self._calc_function_kwargs = lapse_rate_function_kwargs
         if lam is not None:
             self._calc_function_kwargs["lam"] = lam
+
+        if self.weighted:
+            self.weights = circular_kernel(self.nbhood_radius, True).flatten()
+        else:
+            self.weights = np.ones(self.nbhood_size * self.nbhood_size)
 
     def _create_windows(self, data: ndarray) -> ndarray:
         """Uses neighbourhood tools to pad and generate rolling windows
@@ -115,10 +122,6 @@ class OrogLapseRate(BasePlugin):
         """Calculates the local lapse rate function for each point in the dataset.
         The resulting array of functions is stored as an attribute of the class.
         """
-        if self.weighted:
-            weights = circular_kernel(self.nbhood_radius, True).flatten()
-        else:
-            weights = np.ones(self.orography_windows.shape[-1])
 
         def _fit_function(diag_window, orog_window):
             if len(orog_window.shape) != 1:
@@ -129,20 +132,18 @@ class OrogLapseRate(BasePlugin):
                 return lambda x: 0.0
             sort_idx = np.argsort(orog_window)
             sort_idx = sort_idx[np.isfinite(diag_window[sort_idx])]
-            sort_idx = sort_idx[weights[sort_idx] > 0]
+            sort_idx = sort_idx[self.weights[sort_idx] > 0]
             try:
                 result = self._calc_function(
                     orog_window[sort_idx],
                     diag_window[sort_idx],
-                    w=weights[sort_idx],
+                    w=self.weights[sort_idx],
                     **self._calc_function_kwargs,
                 )
             except Exception as e:
                 warnings.warn(f"{e}")
                 # Central point of the flattened window array is n + n(2n+1) where n is the neighbourhood radius.
-                result = lambda x: diag_window[
-                    2 * self.nbhood_radius**2 + 2 * self.nbhood_radius
-                ]
+                result = lambda x: diag_window[self.central_idx]
             return result
 
         vectorized_fit = np.vectorize(_fit_function, signature="(n),(n)->()")
