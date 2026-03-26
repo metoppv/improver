@@ -14,7 +14,7 @@ def process(
     cube: cli.inputcube,
     *,
     target_period: int,
-    fidelity: int,
+    fidelity: int = None,
     day_mask: bool = False,
     night_mask: bool = False,
 ):
@@ -53,12 +53,14 @@ def process(
             The time period described by the output cubes in seconds.
             The data will be reconstructed into non-overlapping periods.
             The target_period must be a factor of the original period.
-        fidelity (int):
+        fidelity (int, optional):
             The shortest increment in seconds into which the input periods are
-            divided and to which the night mask is applied. The
-            target periods are reconstructed from these shorter periods.
-            Shorter fidelity periods better capture where the day / night
-            discriminator falls.
+            divided and to which the night mask is applied. The target periods are
+            reconstructed from these shorter periods. Shorter fidelity periods
+            better capture where the day / night discriminator falls, if used.
+            Setting fidelity either to None or equal to target_period will result in
+            a simple subdivision of the original period into the specified target
+            periods with no intermediate fidelity period processing.
         night_mask (bool):
             If true, points that fall at night are zeroed and duration
             reallocated to day time periods as much as possible.
