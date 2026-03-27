@@ -12,6 +12,7 @@ dependencies:
   - cartopy
   - clize
   - iris
+  - joblib
   - numpy
   - pytz
   - scipy
