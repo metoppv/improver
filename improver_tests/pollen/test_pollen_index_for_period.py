@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 from iris.cube import Cube, CubeList
 
-from improver.pollen.pollen_value import PollenValueForPeriod
+from improver.pollen.pollen_index_for_period import PollenIndexForPeriod
 
 INPUT_DATA = {
     "grass_pollen": np.array([[0.0, 0.0999999, 29.0], [50.0, 131.2, 409.0]]),
@@ -51,7 +51,7 @@ def test_process():
     for species in INPUT_DATA:
         input_cube = get_test_cube(INPUT_DATA[species], species)
         expected_cube = get_test_cube(EXPECTED_DATA[species], species)
-        plugin = PollenValueForPeriod()
+        plugin = PollenIndexForPeriod()
         cube = plugin.process(input_cube)
         assert cube.data.all() == expected_cube.data.all()
 
@@ -62,7 +62,7 @@ def test_invalid_pollen_name():
         [[200.0, 79.2, 49.999999999], [30.00000001, 0.5, 0.00000]]
     )
     input_cube = get_test_cube(input_pollen_data, species)
-    plugin = PollenValueForPeriod()
+    plugin = PollenIndexForPeriod()
 
     msg = f"Pollen species {species} not handled"
     with pytest.raises(ValueError, match=msg):

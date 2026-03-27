@@ -10,12 +10,25 @@ from iris.cube import Cube
 
 from improver.pollen.hourly_concentration import PollenHourlyConcentration
 
-weed_pollen_data = np.array(
-    [[0.0, 2.191227039816113e-07, 0.00000011], [0.000000073, 5.6e-08, 4.4e-08]]
-)
-WEED_EXPECTED = np.array(
-    [[0.0, 190.484086385, 95.623361348], [63.459139804, 48.680983959, 38.24934454]]
-)
+pollen_data = {
+    "weed_pollen": np.array(
+        [[0.0, 2.191227039816113e-07, 0.00000011], [0.000000073, 5.6e-08, 4.4e-08]]
+    ),
+    "alder_pollen": np.array(
+        [
+            [0.0, 9.3936263e-13, 4.766694816638051e-10],
+            [1.5695971e-29, 1.2977890e-12, 4.6269901e-22],
+        ]
+    ),
+}
+EXPECTED = {
+    "weed_pollen": np.array(
+        [[0.0, 190.484086385, 95.623361348], [63.459139804, 48.680983959, 38.24934454]]
+    ),
+    "alder_pollen": np.array(
+        [[0.0, 0.000143524, 0.072829732], [0.0, 0.000198288, 0.0]]
+    ),
+}
 
 
 def get_input_cubes(pollen_name: str) -> Cube:
@@ -63,7 +76,7 @@ def get_input_cubes(pollen_name: str) -> Cube:
 
     # create data cube including the latitude and longitude coordinates
     cube = Cube(
-        weed_pollen_data,
+        pollen_data[pollen_name],
         units="g / m3",
         dim_coords_and_dims=[(latitude_coord, 0), (longitude_coord, 1)],
     )
@@ -73,10 +86,11 @@ def get_input_cubes(pollen_name: str) -> Cube:
 
 
 def test_process():
-    cube = get_input_cubes("weed_pollen")
-    plugin = PollenHourlyConcentration()
-    output_cube = plugin.process(cube)
-    np.testing.assert_array_almost_equal(output_cube.data, WEED_EXPECTED)
+    for pollen_name in pollen_data.keys():
+        cube = get_input_cubes(pollen_name)
+        plugin = PollenHourlyConcentration()
+        output_cube = plugin.process(cube)
+        np.testing.assert_array_almost_equal(output_cube.data, EXPECTED[pollen_name])
 
 
 def test_invalid_species():
@@ -90,11 +104,13 @@ def test_invalid_species():
 
 
 def test_scaling_factor():
-    cube = get_input_cubes("weed_pollen")
-    plugin = PollenHourlyConcentration()
     scaling_factors_dict = {
-        "weed_pollen": [1.0, 213.0]
-    }  # Use a scaling factor of 213 for weed pollen
-    output_cube = plugin.process(cube, scaling_factors_dict)
-    expected_scaled_data = WEED_EXPECTED * 213
-    np.testing.assert_array_almost_equal(output_cube.data, expected_scaled_data)
+        "weed_pollen": [1.0, 213.0],
+        "alder_pollen": [1.0, 14.6],
+    }
+    for species, scaling_factor in scaling_factors_dict.items():
+        cube = get_input_cubes(species)
+        plugin = PollenHourlyConcentration()
+        output_cube = plugin.process(cube, scaling_factors_dict)
+        expected_scaled_data = EXPECTED[species] * scaling_factor[1]
+        np.testing.assert_array_almost_equal(output_cube.data, expected_scaled_data)

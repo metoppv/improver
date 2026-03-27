@@ -2,7 +2,7 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""Calculations to produce Pollen Hourly Values."""
+"""Calculations to produce Pollen Indexes for a period (Hourly or Daily)."""
 
 import numpy as np
 from iris.cube import Cube
@@ -10,12 +10,12 @@ from iris.cube import Cube
 from improver.pollen import build_output_cube_with_new_units
 
 
-class PollenValueForPeriod:
-    """Plugin to calculate a Pollen Value cube for either Daily or Hourly.
+class PollenIndexForPeriod:
+    """Plugin to calculate a Pollen Index cube for either Daily or Hourly.
 
     Pollen Concentration values in the input cube are compared with threshold
     values appropriate for the pollen species represented by the cube, and
-    categorized as values 0 to 4 for each grid point.
+    categorized as indexes 0 to 4 for each grid point.
     """
 
     #: Threshold index levels - minimum value (grains/m3) for each index.
@@ -37,7 +37,7 @@ class PollenValueForPeriod:
     _output_cube = None
 
     def _calculate(self, species: str):
-        """Calculate the Pollen Value.
+        """Calculate the Pollen Index.
 
         Use values in _POLLEN_INDEX to determine the pollen index for each grid point.
 
@@ -61,23 +61,23 @@ class PollenValueForPeriod:
         """
         # The 1-hour (PT01H) or 1-day (PT24H) period to use in the new cube name
         period = self._output_cube.name()[-5:]
-        self._output_cube.rename(f"{species}_value_{period}")
+        self._output_cube.rename(f"{species}_index_{period}")
 
         cube_attrbutes = self._output_cube.attributes
         # Change the following Attributes in the output cube if the key and old value
         # match, then change the value to the new value specified in the dictionary:
         attr_to_change_dict = {
             # key: [old value, new value]
-            "quantity": ["Concentration", "Pollen Value"],
+            "quantity": ["Concentration", "Pollen Index"],
         }
         for attr, (old_value, new_value) in attr_to_change_dict.items():
             if attr in cube_attrbutes and cube_attrbutes[attr] == old_value:
                 cube_attrbutes[attr] = new_value
 
     def process(self, cube: Cube) -> Cube:
-        """Calculate the Pollen Value.
+        """Calculate the Pollen Index.
 
-        Use values in _POLLEN_INDEX to determine the pollen value for each grid point,
+        Use values in _POLLEN_INDEX to determine the pollen index for each grid point,
         based on the pollen concentration values in the input cube.
 
         Args:
