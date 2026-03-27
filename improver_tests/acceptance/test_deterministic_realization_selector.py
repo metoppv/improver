@@ -14,7 +14,7 @@ run_cli = acc.run_cli(CLI)
 
 
 def test_deterministic_realization(tmp_path):
-    """Test with an available control member."""
+    """Test with an available target realization."""
     cube_dir = acc.kgo_root() / "deterministic_realization_selection"
     kgo_path = cube_dir / "deterministic_realization_selection_kgo.nc"
     fcst_path = cube_dir / "forecast_input_cube.nc"
@@ -25,8 +25,10 @@ def test_deterministic_realization(tmp_path):
     args = [
         fcst_path,
         cluster_path,
-        "--control-member",
+        "--target-realization-id",
         "0",
+        "--attribute",
+        "primary_input_realizations_to_clusters",
         "--output",
         output_path,
     ]

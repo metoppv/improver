@@ -2,143 +2,180 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""Module containing a deterministic realization selector.
-
-It interprets the cube's attribute: primary_input_realizations_to_clusters.
-It can then select and extract a realization from the cube.
-This can then be used as a deterministic realization.
-"""
+"""Module containing a deterministic realization selector."""
 
 # Load in Packages
 import json
 
 import iris
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 
 from improver import PostProcessingPlugin
 
 
 # Define Plugin
 class DeterministicRealizationSelector(PostProcessingPlugin):
-    """Plugin which takes an Iris Cube with the attribute:
-    primary_input_realizations_to_clusters.
-    Then, extracts only the realization which contains the control member.
-    Then returns the subsetted Iris Cube.
+    """Plugin to extract a deterministic realization
+    from a set of realization ensembles that have been clustered
+    using the improver.clustering.realization_clustering plugin.
     """
 
-    def __init__(self, control_member=0) -> None:
-        """Init Method, to set up processing for the Plugin.
+    def __init__(
+        self,
+        target_realization_id=0,
+        attribute="primary_input_realizations_to_clusters",
+    ) -> None:
+        """Initialise the plugin.
 
         Args:
-            control_member:
-                The number of the ensemble member acting as the control member.
-                Default value = 0.
-        """
-        self.control_member = control_member
-
-    def find_control_key(self, cube: Cube, attribute: str) -> int | None:
-        """Method takes the cube and finds the
-        key (realization) that contains the control member.
-        This is done by testing the attribute and the control member exists.
-        Then finds the ensemble's respective key.
-
-        Args:
-            cube:
-                Cube with realizations and
-                the attribute to be searched through for the control member.
+            target_realization_id:
+                The numeric id of realization of intrest. Default value = 0.
             attribute:
-                The attribute which contains the cluster metadata,
-                as a dictionary, to be searched through.
+                The attribute of the cluster cube,
+                used to identify target realization, and it's associated cluster.
+                Default value = "primary_input_realizations_to_clusters".
+        """
+        self.target_realization_id = target_realization_id
+        self.attribute = attribute
+
+    def split_input_cubelist(self, input_cubelist: CubeList) -> tuple[Cube, Cube]:
+        """Splits the input cubelist into two cubes,
+         depending on whether they contain the attribute:
+         "primary_input_realizations_to_clusters".
+        Args:
+            input_cubelist:
+                A list of cubes containing two cubes,
+                with only one which contains the attribute:
+                "primary_input_realizations_to_clusters".
         Returns:
-            control_key:
-                Key (realization number) that contains the control member.
+            cube_with_attribute:
+                Cube, to be the cluster_cube, which contains the attribute:
+                "primary_input_realizations_to_clusters".
+            cube_without_attribute:
+                Cube, to be the forecast_cube, which doesn't contain the attribute:
+                "primary_input_realizations_to_clusters".
+        Raises:
+            AttributeError:
+                - If the input cubelist contains more than two cubes.
+                - If the forecast_cube or cluster_cube cannot be found in the input.
+                - If the target realization, does not exist or cannot be extracted.
+        """
+        cube_with_attribute = None
+        cube_without_attribute = None
+
+        # Check cubes only has two cubes
+        if len(input_cubelist) != 2:
+            raise AttributeError(
+                f"Expected 2 cubes but found {len(input_cubelist)} cubes."
+            )
+
+        # Split the cubes by the presence of the attribute
+        for cube in input_cubelist:
+            if self.attribute in cube.attributes:
+                cube_with_attribute = cube
+            else:
+                cube_without_attribute = cube
+
+        if not (cube_with_attribute and cube_without_attribute):
+            raise AttributeError(
+                "Forecast and/or cluster cubes were not found in the input."
+            )
+        return cube_with_attribute, cube_without_attribute
+
+    def find_target_key(self, cluster_cube: Cube) -> int | None:
+        """Find the key (cluster) of the cluster cube,
+        that contains the target realization.
+        This cluster will become the deterministic realization.
+
+        Args:
+            cluster_cube:
+                Clustered cube with the attribute :
+                "primary_input_realizations_to_clusters", as a dictionary,
+                to be searched through for the target realization.
+        Returns:
+            target_key:
+                Key (cluster) that contains the target realization.
         Raises:
             KeyError: If the attribute does not exist,
-             and cannot be converted into a dictionary.
+             or cannot be converted into a dictionary.
         """
-        # Test the Attribute is Present
+        # Extract the attribute and convert it into a dictionary
         try:
-            cube_attribute = cube.attributes[attribute]
+            cube_attribute = cluster_cube.attributes[self.attribute]
             cube_attribute_dict = json.loads(cube_attribute)
         except KeyError:
+            # Return None as this case is handled in the process method.
             return None
-        control_key = None
+
+        # Search through dictionary, to find target realization's key
+        target_key = None
         for key, value in cube_attribute_dict.items():
-            # Test control member Exists
-            if self.control_member in value:
-                control_key = key
+            if self.target_realization_id in value:
+                target_key = key
                 break
             else:
-                control_key = None
+                target_key = None
 
-        return control_key
+        return target_key
 
     @staticmethod
-    def extract_realization_from_cube(key: int, cube: Cube) -> Cube:
-        """Method extracts the realization containing the control member.
-        Using a constraint created from the control_key.
+    def extract_cluster_from_cube(target_key: int, forecast_cube: Cube) -> Cube:
+        """Extract the cluster containing the target realization.
+        This cube becomes our deterministic realization.
 
         Args:
-            key:
-                The key referring to the realization,
-                 that contains the control member.
-            cube:
-                The cube with the realization
-                 containing the control member to be removed.
+            target_key:
+                The key corresponding to the cluster,
+                 that contains the target realization.
+            forecast_cube:
+                The cube with the clusters
+                 containing the target realization to be extracted.
 
         Returns:
-            control_realization_cube:
-                Cube containing only the realization with the control member.
+            deterministic_realization_cube:
+                Cube containing only the cluster with the target realization.
         """
 
-        realization_constraint = iris.Constraint(realization=int(key))
-        control_realization_cube = cube.extract(realization_constraint)
+        realization_constraint = iris.Constraint(realization=int(target_key))
+        deterministic_realization_cube = forecast_cube.extract(realization_constraint)
 
-        return control_realization_cube
+        return deterministic_realization_cube
 
-    def process(self, cubes: iris.cube.CubeList) -> Cube:
-        """Takes a cube and applies the different plugin methods.
-         Used to identify and extract the realization with the control member.
+    def process(self, cubes: CubeList) -> Cube:
+        """Extracts the target deterministic realization from the forecast cubes.
+        Identifies the cluster cube
+        (containing the attribute: "primary_input_realizations_to_clusters")
+        and the forecast cube from the input cubelist.
+        Determines the target realization, and it's cluster,
+        extracts this from the forecast cube and
+        returns the deterministic_realization_cube.
 
         Args:
             cubes:
-                A list of cubes containing forecasts and a cluster cube.
+                A list of two cubes containing a forecast and a cluster cube.
                 The cluster cube will contain the attribute:
                 "primary_input_realizations_to_clusters".
                 This will be used to split the forecasts and cluster cube and
                 determine which realizations to extract from the forecast cube.
 
         Returns:
-            control_realization_cube:
-                Forecast cube containing only the deterministic realization,
-                with the control member.
+            deterministic_realization_cube:
+                Forecast cube containing only the cluster with the target realization.
+                This cluster becomes our deterministic realization.
+
         Raises:
             AttributeError:
                 - If the forecast_cube or cluster_cube cannot be found in the input.
-                - If the control member, does not exist or cannot be extracted.
+                - If the target realization, does not exist or cannot be extracted.
         """
-        attribute = "primary_input_realizations_to_clusters"
-        cluster_cube = None
-        forecast_cube = None
 
-        # Split the cubes into forecast and cluster cubes,
-        # by the presence of the attribute
-        for cube in cubes:
-            if attribute in cube.attributes:
-                cluster_cube = cube
-            else:
-                forecast_cube = cube
+        cluster_cube, forecast_cube = self.split_input_cubelist(cubes)
 
-        if cluster_cube is None or forecast_cube is None:
-            raise AttributeError(
-                "Forecast and/or cluster cubes were not found in the input."
-            )
+        target_key = self.find_target_key(cluster_cube)
+        if target_key is None:
+            raise AttributeError("Target realization not found")
 
-        control_key = self.find_control_key(cluster_cube, attribute)
-        if control_key is None:
-            raise AttributeError("Control Member not found")
-
-        control_realization_cube = self.extract_realization_from_cube(
-            control_key, forecast_cube
+        deterministic_realization_cube = self.extract_cluster_from_cube(
+            target_key, forecast_cube
         )
-        return control_realization_cube
+        return deterministic_realization_cube

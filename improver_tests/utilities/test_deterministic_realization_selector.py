@@ -14,7 +14,6 @@ from improver.utilities.deterministic_realization_selector import (
 )
 
 
-# Function to create an input cube
 def basic_input_cube() -> Cube:
     """Set up an input cube with realizations"""
     data = np.array(
@@ -28,7 +27,6 @@ def basic_input_cube() -> Cube:
     return input_cube
 
 
-# Set up a Forecast Cube
 @pytest.fixture
 def forecast_cube() -> Cube:
     """Return a forecast cube with realizations."""
@@ -36,11 +34,10 @@ def forecast_cube() -> Cube:
     return forecast_cube
 
 
-# Set up a Cluster Cube
 @pytest.fixture
 def cluster_cube() -> Cube:
-    """Return a cluster cube with realizations and
-    the attribute: primary_input_realizations_to_clusters"""
+    """Return a cluster cube with realizations and the attribute:
+    primary_input_realizations_to_clusters"""
     cluster_cube = basic_input_cube()
     cluster_cube.attributes = {
         "primary_input_realizations_to_clusters": '{"0": [19], "1": [0, 18]}'
@@ -48,29 +45,28 @@ def cluster_cube() -> Cube:
     return cluster_cube
 
 
-# Define CubeList
-# @pytest.fixture
 def create_input_cubelist(cube_1, cube_2) -> CubeList:
-    """Return a cluster cube with realizations and
-    the attribute: primary_input_realizations_to_clusters"""
+    """Return a cluster cube with realizations and the attribute:
+    primary_input_realizations_to_clusters"""
     input_cubelist = CubeList([cube_1, cube_2])
     return input_cubelist
 
 
-# Set up expected output
 def create_output_cube(cube: Cube) -> Cube:
     """Return an output cube that has been extracted from the forecast cube,
-    with only a single realization, realization 1 with control member 0"""
+    with only a single cluster 1 which contains the target realization 0"""
     output_cube = cube.copy()
     realization_constraint = iris.Constraint(realization=1)
     output_cube = output_cube.extract(realization_constraint)
     return output_cube
 
 
-# Test function for expected output via process cube
+# TESTS
+
+
 def test_deterministic_realization(forecast_cube, cluster_cube):
     """Test the deterministic realization selector function produces
-    an output cube with the correct realization, as expected."""
+    an output cube with the correct cluster, as expected."""
     input_cubelist = create_input_cubelist(forecast_cube, cluster_cube)
     output_cube = create_output_cube(forecast_cube)
     result = DeterministicRealizationSelector().process(input_cubelist)
@@ -78,24 +74,30 @@ def test_deterministic_realization(forecast_cube, cluster_cube):
     assert result == output_cube
 
 
-# Test Function for missing ensemble via process cube
 def test_missing_control_member(forecast_cube, cluster_cube):
-    """Test the deterministic realization selector function
-    raises an Attribute Error,
+    """Test the deterministic realization selector function raises an attribute error,
     when provided a realization that doesn't exist."""
     input_cubelist = create_input_cubelist(forecast_cube, cluster_cube)
     with pytest.raises(AttributeError):
-        DeterministicRealizationSelector(control_member=1).process(input_cubelist)
+        DeterministicRealizationSelector(target_realization_id=1).process(
+            input_cubelist
+        )
 
 
-# Test Function for missing attribute via process cube
 def test_missing_attribute(forecast_cube, cluster_cube):
-    """Test the deterministic realization selector function
-    raises an Attribute Error,
+    """Test the deterministic realization selector function raises an attribute error,
     when provided a cluster cube without the attribute:
     primary_input_realizations_to_clusters"""
     cluster_cube_no_attribute = cluster_cube.copy()
     cluster_cube_no_attribute.attributes.pop("primary_input_realizations_to_clusters")
     input_cubelist = create_input_cubelist(forecast_cube, cluster_cube_no_attribute)
+    with pytest.raises(AttributeError):
+        DeterministicRealizationSelector().process(input_cubelist)
+
+
+def test_incorrect_cubelist(forecast_cube, cluster_cube):
+    """Test the deterministic realization selector function raises an attribute error,
+    when provided an input_cubelist with more than 2 cubes."""
+    input_cubelist = CubeList([forecast_cube, forecast_cube, cluster_cube])
     with pytest.raises(AttributeError):
         DeterministicRealizationSelector().process(input_cubelist)

@@ -10,23 +10,27 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(*cubes: cli.inputcube, control_member: int = 0):
-    """CLI Wrapper with uses the DeterministicRealizationSelection_Plugin.
-    The plugin takes forecasts and a cluster cube with the attribute:
-    primary_input_realizations_to_clusters.
-    Then, extracts only the realization which contains the control member.
-    Then returns the subsetted Iris Cube. Description of the CLI
+def process(
+    *cubes: cli.inputcube,
+    target_realization_id: int = 0,
+    attribute="primary_input_realizations_to_clusters",
+):
+    """Extract a specific realization from a forecast cube,
+    using a cluster cube's attribute: "primary_input_realizations_to_clusters".
 
     Args:
         cubes:
-            A list of cubes containing forecasts and a cluster cube.
+            A list of two cubes containing a forecast and a cluster cube.
             The cluster cube will contain the attribute:
             "primary_input_realizations_to_clusters".
             This will be used to split the forecasts and cluster cube and
             determine which realizations to extract from the forecast cube.
-        control_member:
-            The number of the ensemble member acting as the control member.
-            Default value = 0.
+        target_realization_id:
+            The numeric id of realization of intrest. Default value = 0.
+        attribute:
+                The attribute of the cluster cube,
+                used to identify target realization, and it's associated cluster.
+                Default value = "primary_input_realizations_to_clusters".
 
     Returns:
         output_cube:
@@ -37,6 +41,8 @@ def process(*cubes: cli.inputcube, control_member: int = 0):
         DeterministicRealizationSelector,
     )
 
-    output_cube = DeterministicRealizationSelector(control_member=control_member)(cubes)
+    output_cube = DeterministicRealizationSelector(
+        target_realization_id=target_realization_id, attribute=attribute
+    )(cubes)
 
     return output_cube
