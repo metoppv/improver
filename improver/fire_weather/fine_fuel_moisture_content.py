@@ -40,12 +40,13 @@ class FineFuelMoistureContent(IterativeFireWeatherIndexBase):
     STARTING_VALUE = FFMC_START_VALUE
     LAG_TIME = FFMC_LAG_TIME
 
+    START_DATE_CUBE_NAME = "fine_fuel_moisture_content"
     INPUT_CUBE_NAMES = [
         "air_temperature",
         "lwe_thickness_of_precipitation_amount",
         "relative_humidity",
         "wind_speed",
-        "fine_fuel_moisture_content",
+        START_DATE_CUBE_NAME,
     ]
     OUTPUT_CUBE_NAME = "fine_fuel_moisture_content"
     # Valid output ranges for warning checks (output_name: (min, max))

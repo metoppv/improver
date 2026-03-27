@@ -40,10 +40,11 @@ class DroughtCode(IterativeFireWeatherIndexBase):
     STARTING_VALUE = DC_START_VALUE
     LAG_TIME = DC_LAG_TIME
 
+    START_DATE_CUBE_NAME = "drought_code"
     INPUT_CUBE_NAMES = [
         "air_temperature",
         "lwe_thickness_of_precipitation_amount",
-        "drought_code",
+        START_DATE_CUBE_NAME,
     ]
     OUTPUT_CUBE_NAME = "drought_code"
     # Valid output ranges for warning checks (output_name: (min, max))
