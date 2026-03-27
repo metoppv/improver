@@ -678,7 +678,7 @@ def test_process_unpacked_cubes_and_kwargs() -> None:
     """
     cubes = make_input_cubes(
         [
-            ("air_temperature", 20.0, "Celsius", False, {}),
+            ("air_temperature", 20.0, "Celsius", False, START_DATE),
             ("lwe_thickness_of_precipitation_amount", 1.0, "mm", True, {}),
         ],
         shape=(5, 5),
