@@ -7,7 +7,6 @@
 import os
 from typing import List, Optional, Tuple, Union
 
-import iris
 import numpy as np
 import pyproj
 from geopandas import GeoDataFrame, GeoSeries, clip
@@ -440,9 +439,7 @@ class DistanceTo(BasePlugin):
             aux_coords_and_dims.append(
                 (
                     AuxCoord(
-                        np.array(
-                            angle_means, dtype=np.float32
-                        ),
+                        np.array(angle_means, dtype=np.float32),
                         bounds=np.array(self.angle_pairs, dtype=np.float32),
                         long_name="sector_angle_from_true_north",
                         units="degrees",

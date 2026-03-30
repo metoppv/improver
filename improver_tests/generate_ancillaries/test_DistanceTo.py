@@ -545,9 +545,7 @@ def test_distance_to_with_angle_pairs(single_site_cube):
     )
     np.testing.assert_allclose(
         output_cube.coord("sector_angle_from_true_north").bounds,
-        [
-            [315, 45], [45, 135], [135, 225], [225, 315]
-        ],
+        [[315, 45], [45, 135], [135, 225], [225, 315]],
     )
 
 
