@@ -38,8 +38,8 @@ class StochasticNoise(BasePlugin):
 
     def __init__(
         self,
-        ssft_init_params: dict = {},
-        ssft_generate_params: dict = {},
+        ssft_init_params: Optional[dict] = None,
+        ssft_generate_params: Optional[dict] = None,
         db_threshold: float = 0.03,
         db_threshold_units: str = "mm/hr",
         num_workers: Optional[int] = len(os.sched_getaffinity(0)),
@@ -87,8 +87,8 @@ class StochasticNoise(BasePlugin):
         if db_threshold <= 0:
             raise ValueError("db_threshold must be a positive value.")
 
-        self.ssft_init_params = ssft_init_params
-        self.ssft_generate_params = ssft_generate_params
+        self.ssft_init_params = ssft_init_params or {}
+        self.ssft_generate_params = ssft_generate_params or {}
         self.db_threshold = db_threshold
         self.db_threshold_units = db_threshold_units
         self.num_workers = num_workers
@@ -222,6 +222,11 @@ class StochasticNoise(BasePlugin):
             len(template.coord("realization").points),
         )
 
+        # pySTEPS uses numpy.random.seed when a seed kwarg is passed. Restrict to a
+        # single worker in that case to avoid concurrent global RNG mutations.
+        if "seed" in self.ssft_generate_params:
+            num_workers = 1
+
         # Compute all SSFT noise arrays (in dB scale) in parallel
         results = compute(*tasks, scheduler="threads", num_workers=num_workers)
 
@@ -229,6 +234,18 @@ class StochasticNoise(BasePlugin):
         noise_linear = template.copy()
         noise_linear.data = np.zeros_like(template.data, dtype=np.float32)
         for k, result_db in enumerate(results):
+            # Guard against occasional non-finite outputs from SSFT generation on
+            # degenerate fields by mapping them to a sub-threshold dB value.
+            if not np.all(np.isfinite(result_db)):
+                # Repeat scaling from _to_dB to get a sub-threshold dB value for
+                # non-finite outputs.
+                sub_threshold_dB = 10.0 * np.log10(self.db_threshold) - 5
+                result_db = np.nan_to_num(
+                    result_db,
+                    nan=sub_threshold_dB,
+                    posinf=sub_threshold_dB,
+                    neginf=sub_threshold_dB,
+                )
             lin_noise = self._from_dB(data=result_db)
             noise_linear.data[k] = lin_noise
 

@@ -115,7 +115,7 @@ def test_process(
     elif test_case == "with_zero_values":
         # Create cube with some zero values where noise should be added
         plugin = StochasticNoise(
-            ssft_init_params={"domain_size": [2, 2], "overlap": 0},
+            ssft_init_params={"win_size": (2, 2), "overlap": 0},
             ssft_generate_params={"seed": 0},
             db_threshold=0.03,
             db_threshold_units="mm/hr",
@@ -159,7 +159,7 @@ def test_scale_non_positive_noise():
     """Test that scale_non_positive_noise ensures resultant max noise in regions where
     diagnostic values are non-positive is <= 0."""
     plugin = StochasticNoise(
-        ssft_init_params={"domain_size": [2, 2], "overlap": 0},
+        ssft_init_params={"win_size": (2, 2), "overlap": 0},
         ssft_generate_params={"seed": 0},
         db_threshold=0.03,
         db_threshold_units="mm/hr",
