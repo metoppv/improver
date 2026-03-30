@@ -15,6 +15,8 @@ from improver.fire_weather.canadian_forest_fire_weather_index import (
 )
 from improver_tests.fire_weather import make_input_cubes
 
+START_DATE = {"start_date": "2025-03-17"}
+
 
 def input_cubes(
     isi_val: float | np.ndarray = 10.0,
@@ -44,8 +46,8 @@ def input_cubes(
     """
     return make_input_cubes(
         [
-            ("initial_spread_index", isi_val, isi_units, True, {}),
-            ("build_up_index", bui_val, bui_units, False, {}),
+            ("initial_spread_index", isi_val, isi_units, True, START_DATE),
+            ("build_up_index", bui_val, bui_units, False, START_DATE),
         ],
         shape=shape,
     )

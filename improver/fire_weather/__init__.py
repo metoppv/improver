@@ -8,7 +8,7 @@ import warnings
 from abc import abstractmethod
 from copy import deepcopy
 from datetime import datetime
-from typing import cast
+from typing import Union, cast
 
 import iris.exceptions
 import numpy as np
@@ -16,6 +16,7 @@ from iris.cube import Cube, CubeList
 from iris.exceptions import ConstraintMismatchError
 
 from improver import BasePlugin
+from improver.utilities.common_input_handle import as_cubelist
 from improver.utilities.load import load_baseline_cube
 
 
@@ -42,6 +43,10 @@ class FireWeatherIndexBase(BasePlugin):
 
     Subclasses must define class attributes:
 
+    - START_DATE_CUBE_NAME: The name of the input cube from which the
+        start_date attribute will be sourced for the output_cube. For
+        downstream datasets that take iterative datasets as input this
+        should be the iterative dataset.
     - INPUT_CUBE_NAMES: List of standard names for required input cubes
     - OUTPUT_CUBE_NAME: Standard name for the output cube
     - REQUIRES_MONTH: Boolean indicating if month parameter is required
@@ -73,6 +78,7 @@ class FireWeatherIndexBase(BasePlugin):
     }
 
     # Class attributes to be overridden by subclasses
+    START_DATE_CUBE_NAME: str = ""
     INPUT_CUBE_NAMES: list[str] = []
     OUTPUT_CUBE_NAME: str = ""
     REQUIRES_MONTH: bool = False
@@ -287,9 +293,7 @@ class FireWeatherIndexBase(BasePlugin):
         """
         raise NotImplementedError("Subclasses must implement the _calculate method.")
 
-    def process(
-        self, cubes: tuple[Cube, ...] | CubeList, month: int | None = None
-    ) -> Cube:
+    def process(self, *cubes: Union[Cube, CubeList], month: int | None = None) -> Cube:
         """Calculate the fire weather index component.
 
         Args:
@@ -306,9 +310,11 @@ class FireWeatherIndexBase(BasePlugin):
             UserWarning:
                 If output values fall outside typical expected ranges
         """
+        cubes = as_cubelist(*cubes)
         self.load_input_cubes(cubes, month)
         output_data = self._calculate()
         output_cube = self._make_output_cube(output_data)
+        self._set_start_date(output_cube)
 
         # Check if output values are within expected ranges
         self._validate_output_range(output_cube)
@@ -389,6 +395,49 @@ class FireWeatherIndexBase(BasePlugin):
                     stacklevel=3,
                 )
 
+    def _set_start_date(self, output_cube: Cube) -> None:
+        """
+        Add a start_date attribute to the output_cube, sourced from either
+        the INPUT_ATTRIBUTE_MAPPING of the START_DATE_CUBE_NAME, the
+        START_DATE_CUBE_NAME attribute itself, or a standard name
+        stripped of common prefixes and suffixes.
+
+        Args:
+            output_cube:
+                The output cube
+
+        Raise:
+            NotImplementedError: If START_DATE_CUBE_NAME is not defined
+              or the named cube has no start_date attribute
+
+        Note:
+            A start_date attribute is required on all Fire Severity Index datasets.
+            This value records the date when the build up period of the iterative datasets
+            (Fine Fuel Moisture Content, Duff Moisture Code and Drought Code) was begun.
+
+            The start_date value is also added to datasets which are not iterative but which
+            take iterative datasets as inputs as the context of when the build up period was
+            begun may still be relevant to stakeholders.  These downstream datasets include
+            the Initial Spread Index, the Build Up Index, the Fire Weather Index and the
+            Fire Severity Index.
+
+        """
+        if not self.START_DATE_CUBE_NAME:
+            raise NotImplementedError(
+                "A START_DATE_CUBE_NAME is required for fire weather metadata handling."
+            )
+
+        attr_name = self._get_attribute_name(self.START_DATE_CUBE_NAME)
+        try:
+            start_date_cube = getattr(self, attr_name)
+            start_date = start_date_cube.attributes["start_date"]
+        except (AttributeError, KeyError):
+            raise NotImplementedError(
+                "START_DATE_CUBE_NAME must match an available input cube with a `start_date` attribute."
+            )
+
+        output_cube.attributes["start_date"] = start_date
+
 
 class IterativeFireWeatherIndexBase(FireWeatherIndexBase):
     """
@@ -408,6 +457,9 @@ class IterativeFireWeatherIndexBase(FireWeatherIndexBase):
     - LAG_TIME: Integer representing the number of days needed after
         starting calculations from the STARTING_VALUE, before outputs
         should be considered scientifically valid.
+    - START_DATE_CUBE_NAME: The name of the input cube from which the
+        start_date attribute will be sourced for the output_cube. For
+        iterative fire weather clases this must match the OUTPUT_CUBE_NAME.
 
     Subclasses must implement:
 
@@ -421,14 +473,14 @@ class IterativeFireWeatherIndexBase(FireWeatherIndexBase):
 
     def process(
         self,
-        cubes: tuple[Cube, ...] | CubeList,
+        *cubes: Union[Cube, CubeList],
         month: int | None = None,
         initialise: bool = False,
     ) -> Cube:
         """
         Args:
             cubes:
-                Input cubes as specified by INPUT_CUBE_NAMES. When initialise is True cubes should
+                One or more input cubes as specified by INPUT_CUBE_NAMES. When initialise is True cubes should
                 exclude the OUTPUT_CUBE_NAME, which should otherwise be given as the iterative input.
             month:
                 Month parameter (1-12), required only if REQUIRES_MONTH is True
@@ -446,6 +498,7 @@ class IterativeFireWeatherIndexBase(FireWeatherIndexBase):
             ValueError: If an output cube is given with initialise=True
 
         """
+        cubes = as_cubelist(*cubes)
         try:
             output_cube = cast(
                 Cube, CubeList(cubes).extract_cube(self.OUTPUT_CUBE_NAME)
@@ -463,7 +516,7 @@ class IterativeFireWeatherIndexBase(FireWeatherIndexBase):
 
         self._report_lag_time_state(output_cube)
 
-        return super().process(cubes, month)
+        return super().process(cubes, month=month)
 
     def _initialise_baseline_cube(self, cubes: tuple[Cube, ...] | CubeList) -> Cube:
         """Create a baseline cube from the reference cube and set start_date=now.
