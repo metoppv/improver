@@ -77,7 +77,7 @@ class FineFuelMoistureContent(IterativeFireWeatherIndexBase):
         """
         Args:
             *cubes:
-                One or more input cubes as specified by INPUT_CUBE_NAMES. When initialise is True *cubes should
+                One or more input cubes as specified by INPUT_CUBE_NAMES. When initialise is True `cubes` should
                 exclude the OUTPUT_CUBE_NAME, which should otherwise be given as the iterative input.
             month:
                 Month parameter (1-12), required only if REQUIRES_MONTH is True
