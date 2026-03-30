@@ -158,3 +158,35 @@ def test_reference_cube_has_start_date_attribute() -> None:
     msg = r"Unexpected start_date in reference_cube attributes"
     with pytest.raises(ValueError, match=msg):
         plugin.process(cubes, initialise=True)
+
+
+def test_process_unpacked_cubes() -> None:
+    """
+    Verify that the plugin runs successfully when given an unpacked list of
+    cubes in its arguments.
+    """
+    dt_attributes = {"start_date": str(datetime(2025, 1, 10, 13, 14, 31))}
+    cube_args = [
+        ("air_temperature", 20.0, "Celsius", False, dt_attributes),
+        ("relative_humidity", 50.0, "1", False, dt_attributes),
+        ("iterative_cube", 50.0, "1", False, dt_attributes),
+    ]
+    cubes = make_input_cubes(cube_args, shape=(5, 5))
+    result = plugin.process(*cubes)
+    assert isinstance(result, Cube)
+
+
+def test_process_unpacked_cubes_and_kwargs() -> None:
+    """
+    Verify that the plugin runs successfully when given an unpacked list of
+    cubes in its arguments, in addition to keyword arguments.
+    """
+    dt_attributes = {"start_date": str(datetime(2025, 1, 10, 13, 14, 31))}
+    cube_args = [
+        ("air_temperature", 20.0, "Celsius", False, dt_attributes),
+        ("relative_humidity", 50.0, "1", False, dt_attributes),
+        ("iterative_cube", 50.0, "1", False, dt_attributes),
+    ]
+    cubes = make_input_cubes(cube_args, shape=(5, 5))
+    result = plugin.process(*cubes, month=1, initialise=False)
+    assert isinstance(result, Cube)
