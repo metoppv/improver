@@ -481,7 +481,9 @@ class Test_process(ImproverTest):
         )
         expected_data = np.array([[[0.85]], [[0.45]], [[0.1]]], dtype=np.float32)
         result = plugin.process(
-            [self.ukv_cube, self.enukx_cube, self.nowcast_cube],
+            self.ukv_cube,
+            self.enukx_cube,
+            self.nowcast_cube,
             model_id_attr="mosg__model_configuration",
             record_run_attr="mosg__model_run",
             cycletime=self.cycletime,
@@ -505,7 +507,8 @@ class Test_process(ImproverTest):
         )
         expected_data = self.nowcast_cube.data.copy()
         result = plugin.process(
-            [self.ukv_cube, self.nowcast_cube],
+            self.ukv_cube,
+            self.nowcast_cube,
             model_id_attr="mosg__model_configuration",
             record_run_attr="mosg__model_run",
             cycletime=self.cycletime,
@@ -556,8 +559,29 @@ class Test_process(ImproverTest):
             )
 
     def test_one_cube(self):
-        """Test the plugin returns a single input cube with updated attributes
-        and time coordinates"""
+        """Test that given a single cube the plugin returns a single input
+        cube with updated attributes and time coordinates."""
+        expected_coords = {coord.name() for coord in self.enukx_cube.coords()}
+        expected_coords.update({"blend_time"})
+        result = self.plugin_model.process(
+            self.enukx_cube,
+            model_id_attr="mosg__model_configuration",
+            record_run_attr="mosg__model_run",
+            cycletime=self.cycletime,
+            attributes_dict={"source": "IMPROVER"},
+        )
+        np.testing.assert_array_almost_equal(result.data, self.enukx_cube.data)
+        self.assertSetEqual(
+            {coord.name() for coord in result.coords()}, expected_coords
+        )
+        self.assertEqual(result.attributes["source"], "IMPROVER")
+        self.assertEqual(
+            result.attributes["mosg__model_run"], "uk_ens:20180910T0300Z:1.000"
+        )
+
+    def test_one_cube_as_list(self):
+        """Test that given a list containing a single cube the plugin returns a single
+        input cube with updated attributes and time coordinates."""
         expected_coords = {coord.name() for coord in self.enukx_cube.coords()}
         expected_coords.update({"blend_time"})
         result = self.plugin_model.process(

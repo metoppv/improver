@@ -67,7 +67,10 @@ def check_if_grid_is_equal_area(
 
 
 def calculate_grid_spacing(
-    cube: Cube, units: Union[Unit, str], axis: str = "x", rtol: float = 1.0e-5
+    cube: Cube,
+    units: Union[Unit, str],
+    axis: str = "x",
+    rtol: float = 1.0e-5,
 ) -> float:
     """
     Returns the grid spacing of a given spatial axis. This will be positive for
@@ -87,8 +90,21 @@ def calculate_grid_spacing(
         Grid spacing in required unit
 
     Raises:
-        ValueError: If points are not equally spaced
+        ValueError: If points are not equally spaced, or if
+            supplied rtol is negative.
+
+    Warns:
+        UserWarning: If rtol exceeds 0.01, as this may allow non-uniform grids
+        to pass validation.
     """
+    if rtol < 0:
+        raise ValueError(f"rtol must be non-negative, got {rtol}")
+    if rtol > 0.01:
+        warnings.warn(
+            f"rtol={rtol} exceeds recommended maximum of 0.01."
+            "Large tolerance values may allow non-uniform grids to pass validation.",
+        )
+
     coord = cube.coord(axis=axis).copy()
     coord.convert_units(units)
     diffs = np.abs(np.diff(coord.points))
@@ -98,8 +114,7 @@ def calculate_grid_spacing(
         raise ValueError(
             "Coordinate {} points are not equally spaced".format(coord.name())
         )
-    else:
-        return diffs_mean
+    return diffs_mean
 
 
 def distance_to_number_of_grid_cells(
@@ -138,7 +153,7 @@ def distance_to_number_of_grid_cells(
     grid_cells = distance / abs(grid_spacing_metres)
 
     if return_int:
-        grid_cells = int(grid_cells)
+        grid_cells = int(np.asarray(grid_cells).item())
         if grid_cells == 0:
             zero_distance_error = f"{d_error} gives zero cell extent"
             raise ValueError(zero_distance_error)
