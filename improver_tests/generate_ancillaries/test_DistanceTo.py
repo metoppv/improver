@@ -516,3 +516,61 @@ def test_distance_to_with_unsuitable_projection(single_site_cube, geometry_point
     )
     with pytest.raises(ValueError, match=msg):
         DistanceTo(3112)(single_site_cube, geometry_point_laea)
+
+
+def test_distance_to_with_angle_pairs(single_site_cube):
+    """Test that sector-based distances are returned with a leading sector dimension."""
+
+    single_site_cube.coord("latitude").points = 49.543481633
+    single_site_cube.coord("longitude").points = -1.387510304
+
+    data = [
+        Point(3500500, 3000800),  # north, 300 m
+        Point(3500900, 3000500),  # east, 400 m
+        Point(3500500, 3000400),  # south, 100 m
+        Point(3500300, 3000500),  # west, 200 m
+    ]
+    geometry = GeoDataFrame(geometry=data, crs="EPSG:3035")
+
+    angle_pairs = [(315, 45), (45, 135), (135, 225), (225, 315)]
+    output_cube = DistanceTo(3035, angle_pairs=angle_pairs)(single_site_cube, geometry)
+
+    expected = np.array([[300], [400], [100], [200]])
+    np.testing.assert_allclose(output_cube.data, expected)
+    assert output_cube.shape == (4, 1)
+    np.testing.assert_allclose(output_cube.coord("sector").points, [0, 1, 2, 3])
+    np.testing.assert_allclose(
+        output_cube.coord("sector_angle_from_true_north").points,
+        [0, 90, 180, 270],
+    )
+    np.testing.assert_allclose(
+        output_cube.coord("sector_angle_from_true_north").bounds,
+        [
+            [315, 45], [45, 135], [135, 225], [225, 315]
+        ],
+    )
+
+
+def test_distance_to_with_angle_pairs_no_feature_in_sector(single_site_cube):
+    """Test sectors with no geometry intersection return NaN."""
+
+    single_site_cube.coord("latitude").points = 49.543481633
+    single_site_cube.coord("longitude").points = -1.387510304
+
+    geometry = GeoDataFrame(geometry=[Point(3500900, 3000500)], crs="EPSG:3035")
+
+    angle_pairs = [(315, 45), (45, 135)]
+    output_cube = DistanceTo(3035, angle_pairs=angle_pairs)(single_site_cube, geometry)
+
+    assert np.isnan(output_cube.data[0, 0])
+    assert output_cube.data[1, 0] == 400
+
+
+def test_distance_to_invalid_angle_pairs(single_site_cube, geometry_point_laea):
+    """Test invalid sector definitions raise a ValueError."""
+
+    with pytest.raises(
+        ValueError,
+        match=r"Identical start and end angles are invalid unless using \[0, 360\].",
+    ):
+        DistanceTo(3035, angle_pairs=[(90, 90)])(single_site_cube, geometry_point_laea)
