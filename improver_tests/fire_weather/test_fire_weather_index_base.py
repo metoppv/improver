@@ -691,8 +691,8 @@ def test_process_unpacked_cubes_and_kwargs() -> None:
 @pytest.mark.parametrize(
     "cubes, expected_match",
     [
-        ((None, None), r"as it is not a Cube."),
-        (("Foobar", "Spam"), r"as it is not a Cube."),
+        ((None, None), r"Object .* cannot be put in a cubelist"),
+        (("Foobar", "Spam"), r"Object .* cannot be put in a cubelist"),
         ((Cube,), r"Expected .* cubes, found 1"),
         ((), r"One or more cubes should be provided."),
     ],
