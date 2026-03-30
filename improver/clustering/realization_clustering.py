@@ -7,7 +7,7 @@
 import json
 import warnings
 from collections import defaultdict
-from typing import Any
+from typing import Any, Optional
 
 import iris
 import numpy as np
@@ -559,7 +559,6 @@ class RealizationClusterAndMatch(BasePlugin):
             clustering_result: The result of the clustering.
         Returns:
             cube_clustered: The clustered cube.
-
         Raises:
             ValueError: If the number of clusters is greater than the number of
                 realizations in the input cube.
@@ -1356,10 +1355,7 @@ class RealizationSelection(BasePlugin):
     To use this plugin, provide as input the same forecast cubes as were
     supplied to RealizationClusterAndMatch (but strictly only at a single
     forecast period), together with the cluster cube output from
-    RealizationClusterAndMatch. The plugin will select the appropriate
-    realizations for the requested forecast period, using the cluster mapping
-    attributes, and relabel them so that the realization indices match the
-    cluster indices.
+    RealizationClusterAndMatch.
     """
 
     def __init__(
@@ -1371,21 +1367,25 @@ class RealizationSelection(BasePlugin):
         Initialise the RealizationSelection plugin.
 
         Args:
+            forecast_period: The forecast period (in seconds) to use for interrogating
+                the cluster mapping attributes in order to select the appropriate
+                realizations.
             model_id_attr: The name of the cube attribute used to identify the model
                 source.
-            forecast_period: The forecast period (in seconds) to use for selection.
+
         """
         self.forecast_period = forecast_period
         self.model_id_attr = model_id_attr
 
     def split_cubes_forecast_and_cluster(
-        self, cubes: iris.cube.CubeList
-    ) -> tuple[iris.cube.CubeList, iris.cube.Cube]:
+        self, cubes: CubeList
+    ) -> tuple[CubeList, Cube]:
         """
         Split a CubeList into forecast cubes and the cluster cube.
 
         The cluster cube is identified by the presence of the
         "primary_input_realization_to_cluster_medoid" attribute.
+        The forecast cube is assumed to be the cube without such an attribute.
 
         Args:
             cubes: CubeList of input cubes.
@@ -1398,9 +1398,9 @@ class RealizationSelection(BasePlugin):
         Raises:
             ValueError: If no cluster cube is found.
         """
-        cubes = iris.cube.CubeList(cubes)
+        cubes = CubeList(cubes)
         cluster_cube = None
-        forecast_cubes = iris.cube.CubeList()
+        forecast_cubes = CubeList()
         for cube in cubes:
             if "primary_input_realization_to_cluster_medoid" in cube.attributes:
                 cluster_cube = cube
@@ -1445,7 +1445,7 @@ class RealizationSelection(BasePlugin):
         return primary_map, secondary_map
 
     def find_nearest_secondary_mapping_fp(
-        self, mapping_fps: set[int], fp: int
+        self, mapping_fps: Optional[set[int]], fp: int
     ) -> tuple[int, bool]:
         """
         Find the nearest forecast period in the secondary mapping to the requested
@@ -1488,14 +1488,16 @@ class RealizationSelection(BasePlugin):
             nearest_fp: The forecast period (in seconds) from the secondary mapping
                 closest to the requested forecast period.
             use_secondary: Whether to use the secondary mapping (True) or fall back
-                to the primary mapping (False).
+                to the primary mapping (False). Determined by
+                find_nearest_secondary_mapping_fp method.
             secondary_map: Dictionary mapping secondary input names to cluster mappings,
                 where each cluster index maps to a list of dicts with "realization"
                 and "forecast_periods".
             primary_map: Dictionary mapping cluster index (as string) to medoid
                 realization index (int).
-            cluster_cube: The cluster cube, used to extract model name for
-                primary input.
+            cluster_cube: The cluster cube output from RealizationClusterAndMatch,
+                containing the cluster mapping attributes. Used to determine the model
+                name for the primary input when assigning realizations to clusters.
 
         Returns:
             Dictionary mapping cluster index (int) to a tuple of
@@ -1563,13 +1565,10 @@ class RealizationSelection(BasePlugin):
             selected_cubes.append(selected)
         return selected_cubes
 
-    def process(
-        self,
-        cubes: iris.cube.CubeList,
-    ) -> iris.cube.Cube:
+    def process(self, cubes: CubeList) -> Cube:
         """
         Select realizations from input forecast cubes according to cluster assignments
-        defined by the cluster_cube attributes.
+        defined by the cluster_cube's attributes.
 
         Args:
             cubes  (list of iris.cube.Cube): List of input cubes, including forecast
@@ -1603,5 +1602,5 @@ class RealizationSelection(BasePlugin):
         selected_cubes = self.select_realizations_for_clusters(
             cluster_to_selection, forecast_cubes
         )
-        result_cube = MergeCubes()(iris.cube.CubeList(selected_cubes))
+        result_cube = MergeCubes()(CubeList(selected_cubes))
         return result_cube
