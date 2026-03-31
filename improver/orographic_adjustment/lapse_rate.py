@@ -24,6 +24,7 @@ class OrogLapseRate(BasePlugin):
     orography_windows = None
     diagnostic_windows = None
     weighted = False
+    _pygam_function = None
 
     def __init__(
         self,
@@ -61,8 +62,13 @@ class OrogLapseRate(BasePlugin):
 
         self._calc_function = lapse_rate_function
         if not callable(self._calc_function):
-            msg = "The provided lapse rate function is not callable."
-            raise ValueError(msg)
+            if callable(getattr(self._calc_function, "fit")):
+                # We probably have a pygam method
+                self._pygam_function = self._calc_function
+                self._calc_function = self._calc_function.fit
+            else:
+                msg = "The provided lapse rate function is not callable."
+                raise ValueError(msg)
         self._calc_function_kwargs = lapse_rate_function_kwargs
         if lam is not None:
             self._calc_function_kwargs["lam"] = lam
@@ -124,26 +130,33 @@ class OrogLapseRate(BasePlugin):
         """
 
         def _fit_function(diag_window, orog_window):
-            if len(orog_window.shape) != 1:
-                raise ValueError(
-                    "The innermost dimension of the input windows must be 1-dimensional."
-                )
             if np.allclose(diag_window, 0.0, atol=1e-5):
                 return lambda x: 0.0
+            if np.allclose(orog_window, 0.0, atol=1e-5):
+                return lambda x: diag_window[self.central_idx]
             sort_idx = np.argsort(orog_window)
             sort_idx = sort_idx[np.isfinite(diag_window[sort_idx])]
             sort_idx = sort_idx[self.weights[sort_idx] > 0]
+            if len(sort_idx) < 5:
+                return lambda x: diag_window[self.central_idx]
+            weights_kwarg = (
+                {"weights" if self._pygam_function else "w": self.weights[sort_idx]}
+                if self.weighted
+                else {}
+            )
             try:
                 result = self._calc_function(
                     orog_window[sort_idx],
                     diag_window[sort_idx],
-                    w=self.weights[sort_idx],
-                    **self._calc_function_kwargs,
+                    **self._calc_function_kwargs | weights_kwarg,
                 )
             except Exception as e:
                 warnings.warn(f"{e}")
                 # Central point of the flattened window array is n + n(2n+1) where n is the neighbourhood radius.
                 result = lambda x: diag_window[self.central_idx]
+            else:
+                if self._pygam_function:
+                    result = self._pygam_function.predict
             return result
 
         vectorized_fit = np.vectorize(_fit_function, signature="(n),(n)->()")
@@ -161,7 +174,10 @@ class OrogLapseRate(BasePlugin):
         Returns:
             2D array of the same shape as new_orography, containing the expected value of the variable at each point.
         """
-        vectorized_apply = np.vectorize(lambda func, orog: func(orog))
+        if self._pygam_function:
+            vectorized_apply = np.vectorize(lambda func, orog: func(orog)[0])
+        else:
+            vectorized_apply = np.vectorize(lambda func, orog: func(orog))
         return vectorized_apply(self._local_functions, new_orography)
 
     def _clip_to_local_range(self, adjusted_data: ndarray) -> ndarray:
@@ -193,6 +209,11 @@ class OrogLapseRate(BasePlugin):
             Cube of the diagnostic data adjusted to the new orography, with the same metadata as the input diagnostic cube.
         """
         orography.convert_units(new_orography.units)
+        # Add random moise to orography to avoid duplicate points which cause issues for the spline fit. The noise is small enough to not impact the results but ensures that all points are unique.
+        orography.data = orography.data + np.random.normal(
+            0, 1e-6, size=orography.data.shape
+        )
+
         self.orography_windows = self._create_windows(orography.data)
         self._adjust_duplicate_orography_points()
         xy_coords = [orography.coord(axis="y"), orography.coord(axis="x")]

@@ -22,7 +22,7 @@ dependencies:
   - statsmodels
   - lightgbm
   - numba
-  - pygam<0.11
+  - pygam
   - pysteps
   - treelite
   - tl2cgen
@@ -42,6 +42,7 @@ dependencies:
   - sphinx-book-theme
   - sphinx-gallery
   - threadpoolctl
+  - ipykernel
   - pip
   - pip:
     - git+https://github.com/metoppv/improver_example_data.git@${BRANCH_NAME}

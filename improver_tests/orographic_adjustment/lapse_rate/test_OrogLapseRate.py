@@ -8,6 +8,7 @@ import cf_units
 import numpy as np
 import pytest
 from iris.cube import Cube
+from pygam import LinearGAM, s
 
 from improver.orographic_adjustment.lapse_rate import OrogLapseRate
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
@@ -89,6 +90,48 @@ def test_basic(snow_depth, orography, new_orography):
         [0.0001, 0.0000, 0.0000, 0.0004, 0.0032, 0.0053, 0.0529],
     ]
     lapse_rate_plugin = OrogLapseRate()
+    lapse_rate_plugin.orography_windows = lapse_rate_plugin._create_windows(
+        orography_cube.data
+    )
+    lapse_rate_plugin.diagnostic_windows = lapse_rate_plugin._create_windows(
+        snow_depth_cube.data
+    )
+    result = lapse_rate_plugin.process(
+        snow_depth_cube, orography_cube, new_orography_cube
+    )
+    assert isinstance(result, Cube)
+    assert result.units == cf_units.Unit("m")
+    assert np.allclose(result.data, expected_data, equal_nan=True, atol=1e-4)
+
+
+def test_pygam(snow_depth, orography, new_orography):
+    """Test that the plugin can be run and produces expected results."""
+    snow_depth_cube = set_up_variable_cube(
+        snow_depth, name="snow_depth", units="m", spatial_grid="equalarea"
+    )
+    orography_cube = set_up_variable_cube(
+        orography, name="orography", units="m", spatial_grid="equalarea"
+    )
+    new_orography_cube = set_up_variable_cube(
+        new_orography, name="orography", units="m", spatial_grid="equalarea"
+    )
+    # There are examples of reaching the upper and lower local limits.
+    # I don't like these answers - they are very different to the previous test.
+    expected_data = [
+        [0.1587, 0.1550, 0.1562, 0.1557, 0.1550, 0.1561, 0.1490],
+        [0.1529, 0.1550, 0.1550, 0.1550, 0.1550, 0.1559, 0.1562],
+        [0.1123, 0.1490, 0.1551, 0.1550, 0.1550, 0.1550, 0.1585],
+        [0.0775, 0.1608, 0.1495, 0.1592, 0.1550, 0.1617, 0.1647],
+        [0.0000, 0.0490, 0.1873, 0.1800, 0.1570, 0.1490, 0.1555],
+        [0.0000, 0.0000, 0.0000, 0.0058, 0.1496, 0.1742, 0.1623],
+        [0.0000, 0.0000, 0.0000, 0.0247, 0.0617, 0.0733, 0.1492],
+    ]
+    lapse_rate_plugin = OrogLapseRate(
+        lapse_rate_function=LinearGAM(
+            s(0, n_splines=20, lam=0.6, constraints="monotonic_inc")
+        ),
+        lam=None,
+    )
     lapse_rate_plugin.orography_windows = lapse_rate_plugin._create_windows(
         orography_cube.data
     )
