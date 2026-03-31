@@ -11,10 +11,6 @@ import pytest
 
 from . import acceptance as acc
 
-# lightgbm = pytest.importorskip("lightgbm")
-# tl2cgen = pytest.importorskip("tl2cgen")
-# treelite = pytest.importorskip("treelite")
-
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
 CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
