@@ -74,12 +74,16 @@ def test_deterministic_realization(forecast_cube, cluster_cube):
     assert result == output_cube
 
 
-def test_missing_control_member(forecast_cube, cluster_cube):
+def test_missing_target_realization(forecast_cube, cluster_cube):
     """Test the deterministic realization selector function raises an attribute error,
     when provided a realization that doesn't exist."""
     input_cubelist = create_input_cubelist(forecast_cube, cluster_cube)
-    with pytest.raises(AttributeError):
-        DeterministicRealizationSelector(target_realization_id=1).process(
+    error_message = (
+        "Target realization not found in the "
+        "primary_input_realizations_to_clusters attribute."
+    )
+    with pytest.raises(AttributeError, match=error_message):
+        DeterministicRealizationSelector(target_realization_number=1).process(
             input_cubelist
         )
 
@@ -91,7 +95,8 @@ def test_missing_attribute(forecast_cube, cluster_cube):
     cluster_cube_no_attribute = cluster_cube.copy()
     cluster_cube_no_attribute.attributes.pop("primary_input_realizations_to_clusters")
     input_cubelist = create_input_cubelist(forecast_cube, cluster_cube_no_attribute)
-    with pytest.raises(AttributeError):
+    error_message = "Forecast and/or cluster cubes were not found in the input."
+    with pytest.raises(AttributeError, match=error_message):
         DeterministicRealizationSelector().process(input_cubelist)
 
 
@@ -99,5 +104,6 @@ def test_incorrect_cubelist(forecast_cube, cluster_cube):
     """Test the deterministic realization selector function raises an attribute error,
     when provided an input_cubelist with more than 2 cubes."""
     input_cubelist = CubeList([forecast_cube, forecast_cube, cluster_cube])
-    with pytest.raises(AttributeError):
+    error_message = "Expected 2 cubes but found 3 cubes."
+    with pytest.raises(AttributeError, match=error_message):
         DeterministicRealizationSelector().process(input_cubelist)
