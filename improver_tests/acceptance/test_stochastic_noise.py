@@ -17,6 +17,7 @@ run_cli = acc.run_cli(CLI)
 
 def test_basic(tmp_path):
     """Test basic stochastic noise addition."""
+    pytest.importorskip("pysteps")
     kgo_dir = acc.kgo_root() / "stochastic_noise"
     kgo_path = kgo_dir / "unscaled/kgo.nc"
     dependence_template_path = kgo_dir / "input.nc"
@@ -39,6 +40,7 @@ def test_basic(tmp_path):
 
 
 def test_scale_non_positive_noise(tmp_path):
+    pytest.importorskip("pysteps")
     """Test stochastic noise addition with scale_non_positive_noise=True"""
     kgo_dir = acc.kgo_root() / "stochastic_noise"
     kgo_path = kgo_dir / "scaled/kgo.nc"

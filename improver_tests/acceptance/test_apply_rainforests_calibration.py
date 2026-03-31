@@ -11,9 +11,9 @@ import pytest
 
 from . import acceptance as acc
 
-lightgbm = pytest.importorskip("lightgbm")
-tl2cgen = pytest.importorskip("tl2cgen")
-treelite = pytest.importorskip("treelite")
+# lightgbm = pytest.importorskip("lightgbm")
+# tl2cgen = pytest.importorskip("tl2cgen")
+# treelite = pytest.importorskip("treelite")
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
 CLI = acc.cli_name_with_dashes(__file__)
@@ -36,6 +36,16 @@ class TestApplyRainforestsCalibration:
                 monkeypatch.setitem(sys.modules, "lightgbm", None)
             case _:
                 raise NotImplementedError("Unknown value for model_key")
+        yield
+
+    @pytest.fixture(autouse=True)
+    def skip_test_on_missing_import(self, model_key):
+        match model_key:
+            case "lightgbm_model":
+                pytest.importorskip("lightgbm")
+            case "treelite_model":
+                pytest.importorskip("tl2cgen")
+                pytest.importorskip("treelite")
         yield
 
     @pytest.fixture
