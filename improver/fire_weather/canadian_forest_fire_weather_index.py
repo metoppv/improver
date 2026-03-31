@@ -29,8 +29,10 @@ class CanadianForestFireWeatherIndex(FireWeatherIndexBase):
         - Build Up Index (BUI): dimensionless
     """
 
-    INPUT_CUBE_NAMES = ["initial_spread_index", "build_up_index"]
+    START_DATE_CUBE_NAME = "build_up_index"
+    INPUT_CUBE_NAMES = ["initial_spread_index", START_DATE_CUBE_NAME]
     OUTPUT_CUBE_NAME = "canadian_forest_fire_weather_index"
+
     # Valid output ranges for warning checks (output_name: (min, max))
     # Minimum and maximum feasible values for each output index are drawn from
     # values reported in:

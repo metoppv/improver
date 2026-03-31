@@ -11,11 +11,14 @@ from iris.cube import Cube, CubeList
 from improver.fire_weather import FireWeatherIndexBase
 from improver_tests.fire_weather import make_cube, make_input_cubes
 
+START_DATE = {"start_date": "2025-03-17"}
+
 
 class ConcreteFireWeatherIndex(FireWeatherIndexBase):
     """Concrete implementation of FireWeatherIndexBase for testing purposes."""
 
-    INPUT_CUBE_NAMES = ["air_temperature", "relative_humidity"]
+    START_DATE_CUBE_NAME = "air_temperature"
+    INPUT_CUBE_NAMES = [START_DATE_CUBE_NAME, "relative_humidity"]
     OUTPUT_CUBE_NAME = "test_index"
     REQUIRES_MONTH = False
 
@@ -31,7 +34,8 @@ class ConcreteFireWeatherIndex(FireWeatherIndexBase):
 class ConcreteFireWeatherIndexWithMonth(FireWeatherIndexBase):
     """Concrete implementation that requires a month parameter."""
 
-    INPUT_CUBE_NAMES = ["air_temperature", "lwe_thickness_of_precipitation_amount"]
+    START_DATE_CUBE_NAME = "air_temperature"
+    INPUT_CUBE_NAMES = [START_DATE_CUBE_NAME, "lwe_thickness_of_precipitation_amount"]
     OUTPUT_CUBE_NAME = "test_index_with_month"
     REQUIRES_MONTH = True
 
@@ -47,8 +51,9 @@ class ConcreteFireWeatherIndexWithMonth(FireWeatherIndexBase):
 class ConcreteFireWeatherIndexWithPrecipitation(FireWeatherIndexBase):
     """Concrete implementation with precipitation (for time coord testing)."""
 
+    START_DATE_CUBE_NAME = "air_temperature"
     INPUT_CUBE_NAMES = [
-        "air_temperature",
+        START_DATE_CUBE_NAME,
         "lwe_thickness_of_precipitation_amount",
         "relative_humidity",
     ]
@@ -69,10 +74,28 @@ class ConcreteFireWeatherIndexWithPrecipitation(FireWeatherIndexBase):
         )
 
 
+class ConcreteFWIWithoutStartDateCubeName(FireWeatherIndexBase):
+    """Concrete implementation with undefined START_DATE_CUBE_NAME."""
+
+    INPUT_CUBE_NAMES = ["air_temperature", "relative_humidity"]
+    OUTPUT_CUBE_NAME = "undefined_output"
+    REQUIRES_MONTH = False
+    VALID_OUTPUT_RANGE = None  # No validation defined
+
+    # Type hints for dynamically created attributes
+    temperature: Cube
+    relative_humidity: Cube
+
+    def _calculate(self) -> np.ndarray:
+        """Simple test calculation."""
+        return self.temperature.data + self.relative_humidity.data
+
+
 class ConcreteFireWeatherIndexWithMappings(FireWeatherIndexBase):
     """Concrete implementation with INPUT_ATTRIBUTE_MAPPINGS for disambiguation."""
 
-    INPUT_CUBE_NAMES = ["air_temperature", "test_index"]
+    START_DATE_CUBE_NAME = "air_temperature"
+    INPUT_CUBE_NAMES = [START_DATE_CUBE_NAME, "test_index"]
     OUTPUT_CUBE_NAME = "test_index"
     REQUIRES_MONTH = False
     INPUT_ATTRIBUTE_MAPPINGS = {"test_index": "input_test_index"}
@@ -106,7 +129,7 @@ def input_cubes_basic(
     """
     return make_input_cubes(
         [
-            ("air_temperature", temp_val, "Celsius", False, {}),
+            ("air_temperature", temp_val, "Celsius", False, START_DATE),
             ("relative_humidity", rh_val, "1", False, {}),
         ],
         shape=shape,
@@ -136,7 +159,7 @@ def input_cubes_with_precip(
     """
     return make_input_cubes(
         [
-            ("air_temperature", temp_val, "Celsius", False, {}),
+            ("air_temperature", temp_val, "Celsius", False, START_DATE),
             ("lwe_thickness_of_precipitation_amount", precip_val, "mm", True, {}),
             ("relative_humidity", rh_val, "1", False, {}),
         ],
@@ -281,7 +304,7 @@ def test_load_input_cubes_with_month_parameter() -> None:
     """Test load_input_cubes with REQUIRES_MONTH=True."""
     cubes = make_input_cubes(
         [
-            ("air_temperature", 20.0, "Celsius", False, {}),
+            ("air_temperature", 20.0, "Celsius", False, START_DATE),
             ("lwe_thickness_of_precipitation_amount", 1.0, "mm", True, {}),
         ],
         shape=(5, 5),
@@ -302,7 +325,7 @@ def test_load_input_cubes_missing_month_raises_error() -> None:
     """Test that missing month parameter raises ValueError when required."""
     cubes = make_input_cubes(
         [
-            ("air_temperature", 20.0, "Celsius", False, {}),
+            ("air_temperature", 20.0, "Celsius", False, START_DATE),
             ("lwe_thickness_of_precipitation_amount", 1.0, "mm", False, {}),
         ],
         shape=(5, 5),
@@ -348,7 +371,7 @@ def test_load_input_cubes_month_validation(
     """
     cubes = make_input_cubes(
         [
-            ("air_temperature", 20.0, "Celsius", False, {}),
+            ("air_temperature", 20.0, "Celsius", False, START_DATE),
             ("lwe_thickness_of_precipitation_amount", 1.0, "mm", False, {}),
         ],
         shape=(5, 5),
@@ -410,7 +433,7 @@ def test_input_attribute_mappings_disambiguation() -> None:
     """Test INPUT_ATTRIBUTE_MAPPINGS allows input/output name disambiguation."""
     cubes = make_input_cubes(
         [
-            ("air_temperature", 20.0, "Celsius", False, {}),
+            ("air_temperature", 20.0, "Celsius", False, START_DATE),
             ("test_index", 10.0, "1", False, {}),
         ],
         shape=(5, 5),
@@ -587,7 +610,7 @@ def test_process_with_month_parameter() -> None:
     """Test process method with month parameter."""
     cubes = make_input_cubes(
         [
-            ("air_temperature", 10.0, "Celsius", False, {}),
+            ("air_temperature", 10.0, "Celsius", False, START_DATE),
             ("lwe_thickness_of_precipitation_amount", 1.0, "mm", True, {}),
         ],
         shape=(5, 5),
@@ -620,13 +643,11 @@ def test_process_with_precipitation_time_coords() -> None:
 def test_process_with_unit_conversion() -> None:
     """Test that process correctly handles unit conversion."""
     # Create cubes with non-standard units
-    cubes = make_input_cubes(
-        [
-            ("air_temperature", 293.15, "K", False, {}),
-            ("relative_humidity", 50.0, "%", False, {}),
-        ],
-        shape=(5, 5),
-    )
+    args = [
+        ("air_temperature", 293.15, "K", False, START_DATE),
+        ("relative_humidity", 50.0, "%", False, {}),
+    ]
+    cubes = make_input_cubes(args, shape=(5, 5))
     plugin = ConcreteFireWeatherIndex()
 
     result = plugin.process(cubes)
@@ -639,15 +660,61 @@ def test_process_with_unit_conversion() -> None:
     assert np.allclose(cubes[0].data, 293.15)  # air_temperature
 
 
-def test_input_attribute_mappings_in_process() -> None:
-    """Test INPUT_ATTRIBUTE_MAPPINGS works in full process workflow."""
+def test_process_unpacked_cubes() -> None:
+    """
+    Verify that the plugin runs successfully when given an unpacked list of
+    cubes in its arguments.
+    """
+    cubes = input_cubes_basic()
+    plugin = ConcreteFireWeatherIndex()
+    result = plugin.process(*cubes)
+    assert isinstance(result, Cube)
+
+
+def test_process_unpacked_cubes_and_kwargs() -> None:
+    """
+    Verify that the plugin runs successfully when given an unpacked list of
+    cubes in its arguments, in addition to keyword arguments.
+    """
     cubes = make_input_cubes(
         [
-            ("air_temperature", 15.0, "Celsius", False, {}),
-            ("test_index", 25.0, "1", False, {}),
+            ("air_temperature", 20.0, "Celsius", False, START_DATE),
+            ("lwe_thickness_of_precipitation_amount", 1.0, "mm", True, {}),
         ],
         shape=(5, 5),
     )
+    plugin = ConcreteFireWeatherIndexWithMonth()
+    result = plugin.process(*cubes, month=1)
+    assert isinstance(result, Cube)
+
+
+@pytest.mark.parametrize(
+    "cubes, expected_match",
+    [
+        ((None, None), r"Object .* cannot be put in a cubelist"),
+        (("Foobar", "Spam"), r"Object .* cannot be put in a cubelist"),
+        ((Cube,), r"Expected .* cubes, found 1"),
+        ((), r"One or more cubes should be provided."),
+    ],
+)
+def test_process_invalid_cubes_raises_error(cubes, expected_match: str) -> None:
+    """
+    Verify that the plugin produces the expected error and message when given
+    invalid inputs instead of cubes.
+    """
+    plugin = ConcreteFireWeatherIndexWithMonth()
+    with pytest.raises(ValueError, match=expected_match):
+        plugin.process(*cubes, month=1)
+        plugin.process(cubes, month=1)
+
+
+def test_input_attribute_mappings_in_process() -> None:
+    """Test INPUT_ATTRIBUTE_MAPPINGS works in full process workflow."""
+    args = [
+        ("air_temperature", 15.0, "Celsius", False, START_DATE),
+        ("test_index", 25.0, "1", False, {}),
+    ]
+    cubes = make_input_cubes(args, shape=(5, 5))
     plugin = ConcreteFireWeatherIndexWithMappings()
 
     result = plugin.process(cubes)
@@ -789,7 +856,8 @@ def test_validate_input_range_skips_undefined_parameters() -> None:
 class ConcreteFireWeatherIndexForOutputValidation(FireWeatherIndexBase):
     """Concrete implementation for testing output validation."""
 
-    INPUT_CUBE_NAMES = ["air_temperature", "relative_humidity"]
+    START_DATE_CUBE_NAME = "air_temperature"
+    INPUT_CUBE_NAMES = [START_DATE_CUBE_NAME, "relative_humidity"]
     OUTPUT_CUBE_NAME = "fine_fuel_moisture_content"
     REQUIRES_MONTH = False
     VALID_OUTPUT_RANGE = (0.0, 101.0)  # FFMC range for validation testing
@@ -881,7 +949,8 @@ def test_validate_output_range_warns_for_negative_inf() -> None:
 class ConcreteFireWeatherIndexWithUndefinedOutput(FireWeatherIndexBase):
     """Concrete implementation with undefined output range."""
 
-    INPUT_CUBE_NAMES = ["air_temperature", "relative_humidity"]
+    START_DATE_CUBE_NAME = "air_temperature"
+    INPUT_CUBE_NAMES = [START_DATE_CUBE_NAME, "relative_humidity"]
     OUTPUT_CUBE_NAME = "undefined_output"
     REQUIRES_MONTH = False
     VALID_OUTPUT_RANGE = None  # No validation defined
@@ -1060,7 +1129,8 @@ def test_validate_output_range_warns_for_defined_outputs(
 class DummyPluginWithPartialRange(FireWeatherIndexBase):
     """Dummy plugin for testing output validation with partial ranges."""
 
-    INPUT_CUBE_NAMES = ["air_temperature", "relative_humidity"]
+    START_DATE_CUBE_NAME = "air_temperature"
+    INPUT_CUBE_NAMES = [START_DATE_CUBE_NAME, "relative_humidity"]
     OUTPUT_CUBE_NAME = "test_output_partial"
     REQUIRES_MONTH = False
     VALID_OUTPUT_RANGE = (0.0, None)  # Will be overridden in tests
@@ -1070,8 +1140,8 @@ class DummyPluginWithPartialRange(FireWeatherIndexBase):
     relative_humidity: Cube
 
     def _calculate(self) -> np.ndarray:
-        """Simple calculation for testing."""
-        return self.temperature.data + self.relative_humidity.data
+        """Dummy calculation to allow class instantiation."""
+        return 1 + 1  # pragma: no cover
 
 
 @pytest.mark.parametrize(
@@ -1134,3 +1204,52 @@ def test_output_validation_with_partial_ranges(
             result = plugin.process(cubes)
         assert isinstance(result, Cube)
         assert np.allclose(result.data, output_value)
+
+
+@pytest.mark.parametrize(
+    "plugin_class, plugin_input_cube_names",
+    [
+        (ConcreteFireWeatherIndexWithMappings, ["air_temperature", "test_index"]),
+        (ConcreteFireWeatherIndex, ["air_temperature", "relative_humidity"]),
+    ],
+)
+def test__set_start_date(plugin_class, plugin_input_cube_names) -> None:
+    """Test _set_start_date via process.
+
+    Test confirms that the expected start_date attributes are added to the
+    output cube when run via the process function."""
+    args = [
+        (plugin_input_cube_names[0], 15.0, "Celsius", False, START_DATE),
+        (plugin_input_cube_names[1], 25.0, "1", False, {}),
+    ]
+    cubes = make_input_cubes(args, shape=(5, 5))
+    plugin = plugin_class()
+
+    output_cube = plugin.process(cubes)
+    assert output_cube.attributes == START_DATE
+
+
+@pytest.mark.parametrize(
+    "plugin, err_msg, start_date_dict",
+    [
+        (
+            ConcreteFWIWithoutStartDateCubeName,
+            r"START_DATE_CUBE_NAME is required",
+            START_DATE,
+        ),
+        (
+            ConcreteFireWeatherIndex,
+            r"match an available input cube with a `start_date`",
+            {},
+        ),
+    ],
+)
+def test__set_start_date_raise(plugin, err_msg, start_date_dict) -> None:
+    """Test _set_start_date raises NotImplementError when START_DATE_CUBE_NAME is not set."""
+    args = [
+        ("relative_humidity", 25.0, "1", False, {}),
+        ("air_temperature", 15.0, "Celsius", False, start_date_dict),
+    ]
+    cubes = make_input_cubes(args, shape=(5, 5))
+    with pytest.raises(NotImplementedError, match=err_msg):
+        plugin().process(cubes)
