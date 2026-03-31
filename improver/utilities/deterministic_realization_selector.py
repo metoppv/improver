@@ -28,8 +28,8 @@ class DeterministicRealizationSelector(PostProcessingPlugin):
             target_realization_number:
                 The number of the realization of interest. Default value = 0.
             attribute:
-                The attribute of the cluster cube,
-                used to identify target realization, and it's associated cluster.
+                The attribute of the cluster cube, used to identify target realization,
+                and it's associated cluster.
                 Default value = "primary_input_realizations_to_clusters".
         """
         self.target_realization_number = target_realization_number
@@ -38,6 +38,7 @@ class DeterministicRealizationSelector(PostProcessingPlugin):
     def split_input_cubelist(self, input_cubelist: CubeList) -> tuple[Cube, Cube]:
         """Splits the input cubelist into two cubes, depending on whether they contain
         the attribute:"primary_input_realizations_to_clusters".
+
         Args:
             input_cubelist:
                 A list of cubes containing two cubes with only one which contains
@@ -85,9 +86,6 @@ class DeterministicRealizationSelector(PostProcessingPlugin):
                 to be searched through for the target realization.
         Returns:
             - Key (cluster) that contains the target realization.
-        Raises:
-            KeyError: If the attribute does not exist, or cannot be converted
-            into a dictionary.
         """
         # Extract the attribute and convert it into a dictionary
         try:
@@ -115,11 +113,11 @@ class DeterministicRealizationSelector(PostProcessingPlugin):
 
         Args:
             target_key:
-                The key corresponding to the cluster,
-                 that contains the target realization.
+                The key corresponding to the cluster, that contains the target
+                realization.
             forecast_cube:
-                The cube with the clusters
-                 containing the target realization to be extracted.
+                The cube with the clusters containing the target realization to be
+                extracted.
 
         Returns:
             - Cube containing only the cluster with the target realization.
@@ -135,7 +133,7 @@ class DeterministicRealizationSelector(PostProcessingPlugin):
         Identifies the cluster cube, (containing the attribute:
         "primary_input_realizations_to_clusters") and the
         forecast cube from the input cubelist. Determines the target realization,
-        and it's cluster, extracts this from the forecast cube and
+        and its cluster, extracts this from the forecast cube and
         returns the deterministic_realization_cube.
 
         Args:
