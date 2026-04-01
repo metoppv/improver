@@ -9,8 +9,10 @@ from copy import deepcopy
 import numpy as np
 from iris.cube import Cube, CubeList
 
+from improver import PostProcessingPlugin
 
-class PollenHourlyIndex:
+
+class PollenHourlyIndex(PostProcessingPlugin):
     """Plugin to calculate the Pollen Hourly Index.
 
     The input cubelist has Pollen Hourly Values for all pollen species

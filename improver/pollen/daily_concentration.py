@@ -10,8 +10,10 @@ from copy import deepcopy
 import numpy as np
 from iris.cube import Cube, CubeList
 
+from improver import PostProcessingPlugin
 
-class PollenDailyConcentration:
+
+class PollenDailyConcentration(PostProcessingPlugin):
     """Plugin to calculate the Pollen Daily Concentration.
 
     The input cube for this plugin comes from the output of the

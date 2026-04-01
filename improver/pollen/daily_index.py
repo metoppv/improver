@@ -9,8 +9,10 @@ from copy import deepcopy
 import numpy as np
 from iris.cube import Cube, CubeList
 
+from improver import PostProcessingPlugin
 
-class PollenDailyIndex:
+
+class PollenDailyIndex(PostProcessingPlugin):
     # The output cube is a deepcopy of the first input cube (to keep metadata) and is then manipulated in place
     _output_cube = None
 

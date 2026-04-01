@@ -7,10 +7,11 @@
 import numpy as np
 from iris.cube import Cube
 
+from improver import PostProcessingPlugin
 from improver.pollen import build_output_cube_with_new_units
 
 
-class PollenIndexForPeriod:
+class PollenIndexForPeriod(PostProcessingPlugin):
     """Plugin to calculate a Pollen Index cube for either Daily or Hourly.
 
     Pollen Concentration values in the input cube are compared with threshold

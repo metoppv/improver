@@ -7,10 +7,11 @@
 import numpy as np
 from iris.cube import Cube
 
+from improver import PostProcessingPlugin
 from improver.pollen import build_output_cube_with_new_units
 
 
-class PollenHourlyConcentration:
+class PollenHourlyConcentration(PostProcessingPlugin):
     """Plugin to calculate the Pollen Hourly Concentration.
 
     The input cube for this plugin comes from the output of the
