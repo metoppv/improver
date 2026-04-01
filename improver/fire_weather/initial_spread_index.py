@@ -28,7 +28,8 @@ class InitialSpreadIndex(FireWeatherIndexBase):
         - Fine Fuel Moisture Code (FFMC): dimensionless (0-101)
     """
 
-    INPUT_CUBE_NAMES = ["wind_speed", "fine_fuel_moisture_content"]
+    START_DATE_CUBE_NAME = "fine_fuel_moisture_content"
+    INPUT_CUBE_NAMES = ["wind_speed", START_DATE_CUBE_NAME]
     OUTPUT_CUBE_NAME = "initial_spread_index"
     # Valid output ranges for warning checks (output_name: (min, max))
     # Minimum and maximum feasible values for each output index are drawn from
