@@ -4,30 +4,27 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Tests for the HumidityMixingRatio plugin"""
 
+from copy import deepcopy
+from typing import List, Tuple
 from unittest.mock import patch, sentinel
 
+import iris
+import iris.cube as icube
+import numpy as np
 import pytest
 from iris.coords import AncillaryVariable
 from iris.cube import Cube
-import iris
-import numpy as np
-import iris.cube as icube
 
-from typing import List, Tuple
-from copy import deepcopy
-
+from improver.constants import EARTH_SURFACE_GRAVITY_ACCELERATION, WATER_DENSITY
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTES
-from improver.psychrometric_calculations.psychrometric_calculations import (
-    HumidityMixingRatio,
-    get_pressure_points,
-    flip_cube_in_place
-
-)
 from improver.psychrometric_calculations.precipitable_water import (
     PrecipitableWater,
 )
-
-from improver.constants import EARTH_SURFACE_GRAVITY_ACCELERATION, WATER_DENSITY
+from improver.psychrometric_calculations.psychrometric_calculations import (
+    HumidityMixingRatio,
+    flip_cube_in_place,
+    get_pressure_points,
+)
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 LOCAL_MANDATORY_ATTRIBUTES = {
@@ -192,14 +189,14 @@ def make_pressure_cube(temp_cube: Cube) -> Cube:
     # ----------------------------------------
     # 1. Extract the 1D pressure coordinate
     # ----------------------------------------
-    p_coord = temp_cube.coord("pressure")   # DimCoord
-    p_vals = p_coord.points                 # 1D array (nz,)
+    p_coord = temp_cube.coord("pressure")  # DimCoord
+    p_vals = p_coord.points  # 1D array (nz,)
 
     # ----------------------------------------
     # 2. Broadcast pressure to match the cube grid
     # ----------------------------------------
 
-    p_3d = p_vals[:, None, None]                   # (nz, 1, 1)
+    p_3d = p_vals[:, None, None]  # (nz, 1, 1)
     p_3d = np.broadcast_to(p_3d, temp_cube.shape)  # (nz, ny, nx)
 
     # ----------------------------------------
@@ -211,16 +208,19 @@ def make_pressure_cube(temp_cube: Cube) -> Cube:
         long_name="air_pressure unit test",
         units=p_coord.units,
         dim_coords_and_dims=[
-            (p_coord, 0),                      # vertical dimension
-            (temp_cube.coord(axis='y'), 1),    # y coordinate
-            (temp_cube.coord(axis='x'), 2),    # x coordinate
+            (p_coord, 0),  # vertical dimension
+            (temp_cube.coord(axis="y"), 1),  # y coordinate
+            (temp_cube.coord(axis="x"), 2),  # x coordinate
         ],
-        attributes = temp_cube.attributes,
+        attributes=temp_cube.attributes,
     )
 
     return pressure_cube
 
-def set_up_temperature_cube(shape: Tuple[int], temperature_value: float, vertical_levels: List[float]) -> Cube:
+
+def set_up_temperature_cube(
+    shape: Tuple[int], temperature_value: float, vertical_levels: List[float]
+) -> Cube:
     """
     Create a temperature on pressure cube.
     :param: shape: Shape of the temperature cube
@@ -233,15 +233,18 @@ def set_up_temperature_cube(shape: Tuple[int], temperature_value: float, vertica
         np.full(shape, temperature_value, dtype=np.float32),
         "latlon",
         name="air_temperature",
-        x_grid_spacing = 1.0,
-        y_grid_spacing = 1.0,
-        vertical_levels = vertical_levels,
-        pressure = True
+        x_grid_spacing=1.0,
+        y_grid_spacing=1.0,
+        vertical_levels=vertical_levels,
+        pressure=True,
     )
     add_attribute_dictionary(temperature)
     return temperature
 
-def set_up_rel_humidity_cube(shape: Tuple[int], rel_humidity_value: float, vertical_levels: List[float]) -> Cube:
+
+def set_up_rel_humidity_cube(
+    shape: Tuple[int], rel_humidity_value: float, vertical_levels: List[float]
+) -> Cube:
     """
     Create a relative humidity on pressure cube.
     :param: shape: Shape of the relative humidity cube
@@ -257,10 +260,11 @@ def set_up_rel_humidity_cube(shape: Tuple[int], rel_humidity_value: float, verti
         x_grid_spacing=1.0,
         y_grid_spacing=1.0,
         vertical_levels=vertical_levels,
-        pressure=True
+        pressure=True,
     )
     add_attribute_dictionary(rel_humidity)
     return rel_humidity
+
 
 def test_get_pressure_points() -> None:
     """
@@ -270,27 +274,31 @@ def test_get_pressure_points() -> None:
 
     :return: None
     """
-    temperature_value, pressure_value, rel_humidity_value, expected = (293, 100000, 0.1, 1.459832e-3)
+    temperature_value, rel_humidity_value = (
+        293,
+        0.1,
+    )
 
     # set up cubes
     vertical_levels = [100000.0, 50000.0, 100.0]
-    shape = (len(vertical_levels),3,3)
+    shape = (len(vertical_levels), 3, 3)
 
     temperature = set_up_temperature_cube(shape, temperature_value, vertical_levels)
     pressure = make_pressure_cube(temperature)
     rel_humidity = set_up_rel_humidity_cube(shape, rel_humidity_value, vertical_levels)
 
-    assert np.allclose( get_pressure_points(temperature),  np.array(vertical_levels) )
-    assert np.allclose( get_pressure_points(pressure),     np.array(vertical_levels) )
-    assert np.allclose( get_pressure_points(rel_humidity), np.array(vertical_levels) )
+    assert np.allclose(get_pressure_points(temperature), np.array(vertical_levels))
+    assert np.allclose(get_pressure_points(pressure), np.array(vertical_levels))
+    assert np.allclose(get_pressure_points(rel_humidity), np.array(vertical_levels))
 
     # check captialisation has no affect
-    rel_humidity.coord('pressure').rename("Pressure")
+    rel_humidity.coord("pressure").rename("Pressure")
     assert np.allclose(get_pressure_points(rel_humidity), np.array(vertical_levels))
 
     # check null result when no "pressure" dimension
-    rel_humidity.coord('Pressure').rename("Pr3ssure")
+    rel_humidity.coord("Pressure").rename("Pr3ssure")
     assert np.allclose(get_pressure_points(rel_humidity), np.array([]))
+
 
 def add_attribute_dictionary(cube: Cube) -> None:
     """
@@ -303,13 +311,14 @@ def add_attribute_dictionary(cube: Cube) -> None:
     """
     # set up meta-data required by testing
     attributes_dictionary = {
-        "title":"unit test data",
-        "source":"unit test",
-        "institution":"somewhere",
-        "least_significant_digit": 4
+        "title": "unit test data",
+        "source": "unit test",
+        "institution": "somewhere",
+        "least_significant_digit": 4,
     }
     for k, v in attributes_dictionary.items():
         cube.attributes[k] = v
+
 
 def test_mixing_ratio_without_pressure_parameter() -> None:
     """
@@ -331,12 +340,16 @@ def test_mixing_ratio_without_pressure_parameter() -> None:
     The improver calculation is then compared against a DIY calculation as a sanity check.
 
     """
-    iris.FUTURE.save_split_attrs = True   # to stop Iris warning
-    temperature_value, pressure_value, rel_humidity_value, expected = (293, 100000, 0.1, 1.459832e-3)
+    iris.FUTURE.save_split_attrs = True  # to stop Iris warning
+    temperature_value, rel_humidity_value, expected = (
+        293,
+        0.1,
+        1.459832e-3,
+    )
 
     # set up input cubes
     vertical_levels = [100000.0, 50000.0, 100.0]
-    shape = (len(vertical_levels),3,3)
+    shape = (len(vertical_levels), 3, 3)
 
     temperature = set_up_temperature_cube(shape, temperature_value, vertical_levels)
     pressure = make_pressure_cube(temperature)
@@ -344,13 +357,13 @@ def test_mixing_ratio_without_pressure_parameter() -> None:
 
     # mixing ratio calculation with 3 parameters
     w3 = HumidityMixingRatio()([temperature, pressure, rel_humidity])
-    metadata_ok(w3, temperature) # asserts in function call
+    metadata_ok(w3, temperature)  # asserts in function call
     # check results on single layer are as expected where pressure is 100000 Pa
     assert np.isclose(w3.data[0], expected, atol=1e-7).all()
 
     # mixing ratio calculation with 2 parameters
     w2 = HumidityMixingRatio()([temperature, rel_humidity])
-    metadata_ok(w2, temperature) # asserts in function call
+    metadata_ok(w2, temperature)  # asserts in function call
 
     # check 2 parameter calculation gives same results as 3 parameter calculation
     assert np.isclose(w3.data, w2.data).all()
@@ -362,12 +375,16 @@ def test_mixing_ratio_without_pressure_parameter() -> None:
     improver_tpw = np.sum(pw.data, axis=0)
 
     # perform DIY TPW calculation
-    delta = pressure.data[1:,:,:] - pressure.data[:-1,:,:]
-    mid_w = ( w3.data[1:,:,:] + w3.data[:-1,:,:] ) / 2.0
-    integral_terms = (delta * mid_w)
-    unit_test_tpw_1 = -np.sum(integral_terms, axis=0) / (EARTH_SURFACE_GRAVITY_ACCELERATION * WATER_DENSITY)
+    delta = pressure.data[1:, :, :] - pressure.data[:-1, :, :]
+    mid_w = (w3.data[1:, :, :] + w3.data[:-1, :, :]) / 2.0
+    integral_terms = delta * mid_w
+    unit_test_tpw_1 = -np.sum(integral_terms, axis=0) / (
+        EARTH_SURFACE_GRAVITY_ACCELERATION * WATER_DENSITY
+    )
     # numpy's trapezium rule integration
-    unit_test_tpw_2 = -np.trapezoid(w3.data, x=pressure.data, axis=0) / (EARTH_SURFACE_GRAVITY_ACCELERATION * WATER_DENSITY)
+    unit_test_tpw_2 = -np.trapezoid(w3.data, x=pressure.data, axis=0) / (
+        EARTH_SURFACE_GRAVITY_ACCELERATION * WATER_DENSITY
+    )
 
     # verify DIY TPW integrations produce same results
     # N.B. Improver uses np.trapezoid
@@ -381,7 +398,7 @@ def test_mixing_ratio_without_pressure_parameter() -> None:
     assert np.isclose(improver_tpw, unit_test_tpw_1, rtol=2).all()
 
 
-def generate_cube_bounds_for_axis(cube : Cube, axis: int) -> np.ndarray:
+def generate_cube_bounds_for_axis(cube: Cube, axis: int) -> np.ndarray:
     """
     automatically generates a suitable set of cube bounds for an axis
     support function to test "flip_cube_in_place" when the cube has bounds
@@ -392,15 +409,16 @@ def generate_cube_bounds_for_axis(cube : Cube, axis: int) -> np.ndarray:
     """
     points = cube.dim_coords[axis].points
     delta = points[1:] - points[:-1]
-    delta = np.concatenate((delta[:1], delta, delta[-1:] ))
+    delta = np.concatenate((delta[:1], delta, delta[-1:]))
     # N.B. delta can be negative so "low" and "high" are nominal
-    low_bounds  = points - delta[:-1] / 2
-    high_bounds = points + delta[1: ] / 2
+    low_bounds = points - delta[:-1] / 2
+    high_bounds = points + delta[1:] / 2
     np_bounds = np.transpose(np.vstack((low_bounds, high_bounds)))
     # N.B. bounds are not necessarily [low,high] but will be rectified by Iris to follow ordering of points so can be [high, low]
     # i.e. the following line to give a genuine [low, high] ordering is not required and may be confusingly over-ridden in any case
     # np_bounds = np.sort(np_bounds, axis=-1)
     return np_bounds
+
 
 @pytest.mark.parametrize(
     "bounds",
@@ -430,9 +448,9 @@ def test_flip_cube_in_place(bounds: bool) -> None:
     iris.FUTURE.date_microseconds = True
 
     axis = 0
-    temperature_value, pressure_value, rel_humidity_value, expected = (293, 100000, 0.1, 1.459832e-3)
+    temperature_value = (293,)
     vertical_levels = [100000.0, 50000.0, 100.0]
-    shape = (len(vertical_levels),3,3)
+    shape = (len(vertical_levels), 3, 3)
     temperature = set_up_temperature_cube(shape, temperature_value, vertical_levels)
     temperature.data[:] = np.random.uniform(273, 280, size=temperature.data.shape)
     if bounds:
@@ -445,10 +463,14 @@ def test_flip_cube_in_place(bounds: bool) -> None:
     flip_cube_in_place(temperature)
 
     # check data flipped
-    np.allclose(np.flip(temperature_before_first_flip.data, axis=axis), temperature.data)
+    np.allclose(
+        np.flip(temperature_before_first_flip.data, axis=axis), temperature.data
+    )
 
     # check coordinate points flipped
-    assert list(reversed(temperature.dim_coords[axis].points)) == list(temperature_before_first_flip.dim_coords[axis].points)
+    assert list(reversed(temperature.dim_coords[axis].points)) == list(
+        temperature_before_first_flip.dim_coords[axis].points
+    )
 
     # check bounds flipped
     if bounds:
@@ -457,9 +479,9 @@ def test_flip_cube_in_place(bounds: bool) -> None:
         b = temperature.dim_coords[axis].bounds
         # note that the bounds flip is unexpectedly complex
         # flipping on both axes is required.
-        a_f = np.flip( np.flip(a, axis=0), axis= 1)
+        a_f = np.flip(np.flip(a, axis=0), axis=1)
 
-        assert np.allclose( a_f, b  )
+        assert np.allclose(a_f, b)
 
     # second flip
     flip_cube_in_place(temperature)
