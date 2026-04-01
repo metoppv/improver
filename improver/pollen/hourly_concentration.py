@@ -8,6 +8,7 @@ import numpy as np
 from iris.cube import Cube
 
 from improver import PostProcessingPlugin
+from improver.metadata.constants import FLOAT_DTYPE
 from improver.pollen import build_output_cube_with_new_units
 
 
@@ -87,7 +88,7 @@ class PollenHourlyConcentration(PostProcessingPlugin):
         # (then apply scaling factor)
         # and convert to grains/m3
         new_data = self._output_cube.data / 1000.0 * scaling_factor / mass_per_grain
-        self._output_cube.data = new_data
+        self._output_cube.data = new_data.astype(FLOAT_DTYPE)
 
     def _metadata(self, species: str):
         """Change the cube name and other metadata.

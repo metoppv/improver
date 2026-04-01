@@ -8,6 +8,7 @@ import numpy as np
 from iris.cube import Cube
 
 from improver import PostProcessingPlugin
+from improver.metadata.constants import FLOAT_DTYPE
 from improver.pollen import build_output_cube_with_new_units
 
 
@@ -22,7 +23,7 @@ class PollenIndexForPeriod(PostProcessingPlugin):
     #: Threshold index levels - minimum value (grains/m3) for each index.
     _POLLEN_INDEX = {  # 0=No pollen, 1=Low, 2=Moderate, 3=High, 4=Very High
         # (5=extra level just for contour levels)
-        "index": np.array([0, 1, 2, 3, 4, 5]),
+        "index": np.array([0, 1, 2, 3, 4, 5]).astype(np.int32),
         "grass_pollen": np.array([0.0, 0.01, 30.0, 50.0, 150.0, 5000.0]),
         "birch_pollen": np.array([0.0, 0.01, 40.0, 80.0, 200.0, 5000.0]),
         "oak_pollen": np.array([0.0, 0.01, 30.0, 50.0, 200.0, 5000.0]),
@@ -52,7 +53,7 @@ class PollenIndexForPeriod(PostProcessingPlugin):
         # Use np.digitize to find the index of the first threshold that is greater than the data value
         self._output_cube.data = (
             np.digitize(self._output_cube.data, thresholds) - 1
-        )  # Subtract 1 to get 0-based index
+        ).astype(FLOAT_DTYPE)  # Subtract 1 to get 0-based index
 
     def _metadata(self, species: str):
         """Change the cube name and other metadata.

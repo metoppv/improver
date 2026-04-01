@@ -8,6 +8,7 @@ import numpy as np
 from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube
 
+from improver.metadata.constants import FLOAT_DTYPE
 from improver.pollen.hourly_concentration import PollenHourlyConcentration
 
 pollen_data = {
@@ -24,10 +25,10 @@ pollen_data = {
 EXPECTED = {
     "weed_pollen": np.array(
         [[0.0, 190.484086385, 95.623361348], [63.459139804, 48.680983959, 38.24934454]]
-    ),
+    ).astype(FLOAT_DTYPE),
     "alder_pollen": np.array(
         [[0.0, 0.000143524, 0.072829732], [0.0, 0.000198288, 0.0]]
-    ),
+    ).astype(FLOAT_DTYPE),
 }
 
 
@@ -112,5 +113,7 @@ def test_scaling_factor():
         cube = get_input_cubes(species)
         plugin = PollenHourlyConcentration()
         output_cube = plugin.process(cube, scaling_factors_dict)
-        expected_scaled_data = EXPECTED[species] * scaling_factor[1]
+        expected_scaled_data = (EXPECTED[species] * scaling_factor[1]).astype(
+            FLOAT_DTYPE
+        )
         np.testing.assert_array_almost_equal(output_cube.data, expected_scaled_data)

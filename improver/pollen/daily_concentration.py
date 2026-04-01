@@ -11,6 +11,7 @@ import numpy as np
 from iris.cube import Cube, CubeList
 
 from improver import PostProcessingPlugin
+from improver.metadata.constants import FLOAT_DTYPE
 
 
 class PollenDailyConcentration(PostProcessingPlugin):
@@ -35,10 +36,12 @@ class PollenDailyConcentration(PostProcessingPlugin):
         if cube_count >= 23:
             # Stack the cubes along a new time dimension and calculate the mean and apply the scaling factor
             stacked_data = np.stack([cube.data for cube in cubes], axis=0)
-            self._output_cube.data = np.mean(stacked_data, axis=0)
+            self._output_cube.data = np.mean(stacked_data, axis=0).astype(FLOAT_DTYPE)
         else:
             # Warning message if not 24 cubes, and set average data values to NaN
-            self._output_cube.data = np.full_like(cubes[0].data, np.nan)
+            self._output_cube.data = np.full_like(
+                cubes[0].data, np.nan, dtype=FLOAT_DTYPE
+            )
             warnings.warn(
                 f"Expected 24 cubes for hourly data, but got {cube_count}. Output values set to NaN.",
                 UserWarning,

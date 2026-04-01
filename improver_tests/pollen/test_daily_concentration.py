@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 from iris.cube import Cube, CubeList
 
+from improver.metadata.constants import FLOAT_DTYPE
 from improver.pollen.daily_concentration import PollenDailyConcentration
 
 pollen_hourly_concentrations_dict = {
@@ -53,8 +54,12 @@ pollen_hourly_concentrations_dict = {
     },
 }
 
-WEED_AVERAGE = np.array([[0.0, 0.01, 29.0], [50.0, 129.9, 400.29166667]])
-INSUFFICIENT_AVERAGE = np.array([[np.nan, np.nan, np.nan], [np.nan, np.nan, np.nan]])
+WEED_AVERAGE = np.array([[0.0, 0.01, 29.0], [50.0, 129.9, 400.29166667]]).astype(
+    FLOAT_DTYPE
+)
+INSUFFICIENT_AVERAGE = np.array(
+    [[np.nan, np.nan, np.nan], [np.nan, np.nan, np.nan]]
+).astype(FLOAT_DTYPE)
 
 
 def get_input_cubes(pollen_name: str) -> CubeList:
