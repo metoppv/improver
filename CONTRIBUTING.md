@@ -60,6 +60,7 @@ below:
  - Timothy Hume (Bureau of Meteorology, Australia)
  - Katharine Hurst (Met Office, UK)
  - Simon Jackson (Met Office, UK)
+ - David Johnston (Met Office, UK) 
  - Caroline Jones (Met Office, UK)
  - Peter Jordan (Met Office, UK)
  - Anzer Khan (Met Office, UK)
