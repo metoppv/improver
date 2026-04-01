@@ -7,6 +7,7 @@
 import functools
 from typing import List, Optional, Tuple, Union
 
+import iris
 import iris._constraints
 import numpy as np
 from iris.cube import Cube, CubeList
@@ -460,6 +461,42 @@ def adjust_for_latent_heat(
     humidity[sub_saturated] = humidity_in[sub_saturated]
     return temperature, humidity
 
+def get_pressure_points(cube: Cube) -> np.ndarray:
+    """
+    Get the pressure points from a <diagnostic>_on_pressure_levels cube.
+    :param cube: input cube
+    :return: pressure points
+    """
+    for coord in cube.dim_coords:
+        if "pressure" in coord.name().lower():
+            return coord.points
+    return np.array([])
+
+def flip_cube_in_place(cube: Cube, axis:int=0) -> None:
+    """
+     flip an Iris cube in-place along the specified axis
+     flips bounds if present
+
+    :param cube: input cube to modify in-place
+    :param axis: axis along which to flip the cube
+    :return: None
+
+    """
+    # ---- Flip data in-place ----
+    cube.data[:] = np.flip(cube.data, axis=axis)
+
+    # ---- Find the dimension coord for the axis ----
+    coord = cube.dim_coords[axis]
+
+    # ---- Flip coord points in-place ----
+    coord.points = coord.points[::-1]  # 1D reversal
+
+    # ---- Flip coord bounds if present ----
+    if coord.bounds is not None:
+        # bounds flip is more complex than expected - flip on both axes
+        # as iris bounds are [low, high] or [high, low]
+        # depending on direction of points
+        coord.bounds = np.flip(np.flip(coord.bounds,axis=0),axis=1)
 
 class HumidityMixingRatio(BasePlugin):
     """Returns the humidity mass mixing ratio from temperature, pressure and relative humidity"""
@@ -535,6 +572,17 @@ class HumidityMixingRatio(BasePlugin):
 
         try:
             pressure_cube = expanded_pressure_list.concatenate_cube()
+            """
+            the Iris concatenate_cube function can reverse the list order when forming the cube
+            so the pressure cube is flipped vertically compared to the temperature cube
+            check if this is the case and then re-flip   
+            """
+            pressure_points_for_pressure    = get_pressure_points(pressure_cube)
+            pressure_points_for_temperature = get_pressure_points(temperature_cube)
+            flip_required = np.array_equal(np.flip(pressure_points_for_pressure), pressure_points_for_temperature)
+            if flip_required:
+                flip_cube_in_place(pressure_cube, axis=0)
+
         except iris.exceptions.ConcatenateError as error:
             raise RuntimeError(
                 "Unable to concatenate pressure cubelist with input ",
