@@ -92,7 +92,7 @@ def test_insufficient_data():
     plugin = PollenDailyConcentration()
     with pytest.warns(
         UserWarning,
-        match="Expected 24 cubes for hourly data, but got 12. Output values set to NaN.",
+        match="Expected at least 23 cubes for hourly data, but got 12. Output values set to NaN.",
     ):
         output_cube = plugin.process(cubes)
     np.testing.assert_array_almost_equal(output_cube.data, INSUFFICIENT_AVERAGE)

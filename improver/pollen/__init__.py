@@ -18,7 +18,7 @@ def build_output_cube_with_new_units(self, cube: Cube, new_units) -> Cube:
     The places where this is required are:
     - In the PollenHourlyConcentration plugin, the input cube has units of g/m3 and
       the output cube needs to have units of grains/m3 after a conversion.
-    - In the PollenValueForPeriod plugin, the input cube has units grains/m3 and
+    - In the PollenIndexForPeriod plugin, the input cube has units grains/m3 and
       the output cube has unitless index values (0 to 4) that are derived from
       the input cube data values.
     Args:

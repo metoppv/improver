@@ -29,21 +29,26 @@ class PollenDailyConcentration(PostProcessingPlugin):
     def _calculate(self, cubes: tuple[Cube, ...] | CubeList):
         """Perform calculations on input cubes.
 
-        Applies the scaling factor to the raw data for the relevant pollen species,
-        and converts from g/m3 to grains/m3 using pollen diameter and density.
+        For each grid point, calculate the mean pollen concentration across all hours,
+        and use this as the daily pollen concentration for that grid point. If there are
+        not enough hours of data, set the output values to NaN and issue a warning.
+
+        Args:
+            cubes:
+                Input cubes for hourly pollen concentrations
         """
         cube_count = len(cubes)
         if cube_count >= 23:
-            # Stack the cubes along a new time dimension and calculate the mean and apply the scaling factor
+            # Stack the cubes along a new time dimension and calculate the mean across that dimension
             stacked_data = np.stack([cube.data for cube in cubes], axis=0)
             self._output_cube.data = np.mean(stacked_data, axis=0).astype(FLOAT_DTYPE)
         else:
-            # Warning message if not 24 cubes, and set average data values to NaN
+            # Warning message if not at least 23 cubes, and set average data values to NaN
             self._output_cube.data = np.full_like(
                 cubes[0].data, np.nan, dtype=FLOAT_DTYPE
             )
             warnings.warn(
-                f"Expected 24 cubes for hourly data, but got {cube_count}. Output values set to NaN.",
+                f"Expected at least 23 cubes for hourly data, but got {cube_count}. Output values set to NaN.",
                 UserWarning,
             )
 

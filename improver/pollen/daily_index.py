@@ -13,6 +13,13 @@ from improver import PostProcessingPlugin
 
 
 class PollenDailyIndex(PostProcessingPlugin):
+    """Plugin to calculate the Pollen Daily Index.
+
+    The input cubelist has Pollen Daily Concentration values for all pollen species
+    for a day as specified in the cubes. The maximum value across all
+    species at a location is saved as the Index for that location.
+    """
+
     # The output cube is a deepcopy of the first input cube (to keep metadata) and is then manipulated in place
     _output_cube = None
 
