@@ -4,7 +4,6 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Tests for the HumidityMixingRatio plugin"""
 
-from copy import deepcopy
 from typing import List, Tuple
 from unittest.mock import patch, sentinel
 
@@ -22,7 +21,6 @@ from improver.psychrometric_calculations.precipitable_water import (
 )
 from improver.psychrometric_calculations.psychrometric_calculations import (
     HumidityMixingRatio,
-    flip_cube_in_place,
     get_pressure_points,
 )
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
@@ -396,99 +394,6 @@ def test_mixing_ratio_without_pressure_parameter() -> None:
     # give a 200% latitude for testing
 
     assert np.isclose(improver_tpw, unit_test_tpw_1, rtol=2).all()
-
-
-def generate_cube_bounds_for_axis(cube: Cube, axis: int) -> np.ndarray:
-    """
-    automatically generates a suitable set of cube bounds for an axis
-    support function to test "flip_cube_in_place" when the cube has bounds
-
-    :param cube: Cube to generate bounds for
-    :param axis: axis to generate bounds for
-    :return: numpy array of bounds of shape (Nz,2)
-    """
-    points = cube.dim_coords[axis].points
-    delta = points[1:] - points[:-1]
-    delta = np.concatenate((delta[:1], delta, delta[-1:]))
-    # N.B. delta can be negative so "low" and "high" are nominal
-    low_bounds = points - delta[:-1] / 2
-    high_bounds = points + delta[1:] / 2
-    np_bounds = np.transpose(np.vstack((low_bounds, high_bounds)))
-    # N.B. bounds are not necessarily [low,high] but will be rectified by Iris to follow ordering of points so can be [high, low]
-    # i.e. the following line to give a genuine [low, high] ordering is not required and may be confusingly over-ridden in any case
-    # np_bounds = np.sort(np_bounds, axis=-1)
-    return np_bounds
-
-
-@pytest.mark.parametrize(
-    "bounds",
-    (
-        (False),
-        (True),
-    ),
-)
-def test_flip_cube_in_place(bounds: bool) -> None:
-    """
-    this tests support function "flip_cube_in_place" for implementation of
-    Improver's PrecipitableWater. It is used when a pressure cube
-    is found to be inadvertantly flipped in the Z-dimension.
-
-    In this test, a cube is flipped once to check the data, and other components
-    have individually been flipped.
-
-    Then the cube is flipped again to check we come back to the starting point
-    i.e. the operation is its own inverse.
-
-    :param bounds: if True then the cube tested will have bounds
-                   if False then the cube tested will not have bounds
-
-    :return: None
-    """
-    # to pacify an Iris warning
-    iris.FUTURE.date_microseconds = True
-
-    axis = 0
-    temperature_value = (293,)
-    vertical_levels = [100000.0, 50000.0, 100.0]
-    shape = (len(vertical_levels), 3, 3)
-    temperature = set_up_temperature_cube(shape, temperature_value, vertical_levels)
-    temperature.data[:] = np.random.uniform(273, 280, size=temperature.data.shape)
-    if bounds:
-        # set up pressure bounds for temperature on pressure cube
-        b = generate_cube_bounds_for_axis(temperature, axis)
-        temperature.dim_coords[axis].bounds = b
-
-    # first flip
-    temperature_before_first_flip = deepcopy(temperature)
-    flip_cube_in_place(temperature)
-
-    # check data flipped
-    np.allclose(
-        np.flip(temperature_before_first_flip.data, axis=axis), temperature.data
-    )
-
-    # check coordinate points flipped
-    assert list(reversed(temperature.dim_coords[axis].points)) == list(
-        temperature_before_first_flip.dim_coords[axis].points
-    )
-
-    # check bounds flipped
-    if bounds:
-        # performing an a, b comparison
-        a = temperature_before_first_flip.dim_coords[axis].bounds
-        b = temperature.dim_coords[axis].bounds
-        # note that the bounds flip is unexpectedly complex
-        # flipping on both axes is required.
-        a_f = np.flip(np.flip(a, axis=0), axis=1)
-
-        assert np.allclose(a_f, b)
-
-    # second flip
-    flip_cube_in_place(temperature)
-
-    # cube equality is generally not a good idea - but the flip transform is simple
-    exactly_equal = temperature == temperature_before_first_flip
-    assert exactly_equal
 
 
 def test_height_levels():

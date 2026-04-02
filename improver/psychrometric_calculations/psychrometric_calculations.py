@@ -474,33 +474,6 @@ def get_pressure_points(cube: Cube) -> np.ndarray:
     return np.array([])
 
 
-def flip_cube_in_place(cube: Cube, axis: int = 0) -> None:
-    """
-     flip an Iris cube in-place along the specified axis
-     flips bounds if present
-
-    :param cube: input cube to modify in-place
-    :param axis: axis along which to flip the cube
-    :return: None
-
-    """
-    # ---- Flip data in-place ----
-    cube.data[:] = np.flip(cube.data, axis=axis)
-
-    # ---- Find the dimension coord for the axis ----
-    coord = cube.dim_coords[axis]
-
-    # ---- Flip coord points in-place ----
-    coord.points = coord.points[::-1]  # 1D reversal
-
-    # ---- Flip coord bounds if present ----
-    if coord.bounds is not None:
-        # bounds flip is more complex than expected - flip on both axes
-        # as iris bounds are [low, high] or [high, low]
-        # depending on direction of points
-        coord.bounds = np.flip(np.flip(coord.bounds, axis=0), axis=1)
-
-
 class HumidityMixingRatio(BasePlugin):
     """Returns the humidity mass mixing ratio from temperature, pressure and relative humidity"""
 
@@ -586,7 +559,7 @@ class HumidityMixingRatio(BasePlugin):
                 np.flip(pressure_points_for_pressure), pressure_points_for_temperature
             )
             if flip_required:
-                flip_cube_in_place(pressure_cube, axis=0)
+                pressure_cube = iris.util.reverse(pressure_cube, "pressure")
 
         except iris.exceptions.ConcatenateError as error:
             raise RuntimeError(
