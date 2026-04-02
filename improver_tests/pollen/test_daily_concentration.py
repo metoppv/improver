@@ -63,7 +63,7 @@ INSUFFICIENT_AVERAGE = np.array(
 
 
 def get_input_cubes(pollen_name: str) -> CubeList:
-    """Get a CubeList of hourly concentration Cubes for a Pollen species."""
+    """Get a CubeList of hourly concentration Cubes for a Pollen taxa."""
 
     cubes = CubeList()
     pollen_values_dict = pollen_hourly_concentrations_dict[pollen_name]
@@ -74,7 +74,7 @@ def get_input_cubes(pollen_name: str) -> CubeList:
             pollen_values,
             units=1,
         )
-        cube.attributes.update({"species": pollen_name, "quantity": "Concentration"})
+        cube.attributes.update({"taxa": pollen_name, "quantity": "Concentration"})
         cubes.append(cube)
 
     return cubes

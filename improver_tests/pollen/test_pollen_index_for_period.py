@@ -31,7 +31,7 @@ BAD_POLLEN_NAME_HOUR_DATA = {
 }
 
 
-def get_test_cube(pollen_cube_data, species) -> CubeList:
+def get_test_cube(pollen_cube_data, taxa) -> CubeList:
     """Get a simple Cube for Pollen Daily Value tests.
 
     Returns:
@@ -43,27 +43,27 @@ def get_test_cube(pollen_cube_data, species) -> CubeList:
         pollen_cube_data,
         units=1,
     )
-    cube.attributes.update({"species": species, "quantity": "Concentration"})
+    cube.attributes.update({"taxa": taxa, "quantity": "Concentration"})
     return cube
 
 
 def test_process():
-    for species in INPUT_DATA:
-        input_cube = get_test_cube(INPUT_DATA[species], species)
-        expected_cube = get_test_cube(EXPECTED_DATA[species], species)
+    for taxa in INPUT_DATA:
+        input_cube = get_test_cube(INPUT_DATA[taxa], taxa)
+        expected_cube = get_test_cube(EXPECTED_DATA[taxa], taxa)
         plugin = PollenIndexForPeriod()
         cube = plugin.process(input_cube)
         assert cube.data.all() == expected_cube.data.all()
 
 
 def test_invalid_pollen_name():
-    species = "foo_pollen"
+    taxa = "foo_pollen"
     input_pollen_data = np.array(
         [[200.0, 79.2, 49.999999999], [30.00000001, 0.5, 0.00000]]
     )
-    input_cube = get_test_cube(input_pollen_data, species)
+    input_cube = get_test_cube(input_pollen_data, taxa)
     plugin = PollenIndexForPeriod()
 
-    msg = f"Pollen species {species} not handled"
+    msg = f"Pollen taxa {taxa} not handled"
     with pytest.raises(ValueError, match=msg):
         plugin.process(input_cube)

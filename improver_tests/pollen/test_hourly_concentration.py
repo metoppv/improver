@@ -39,7 +39,7 @@ def get_input_cubes(pollen_name: str) -> Cube:
     code being tested.
     Args:
         pollen_name:
-            The name of the pollen species to be used in the cube metadata.
+            The name of the pollen taxa to be used in the cube metadata.
     Returns:
         Cube:
             An iris Cube with the structure and metadata expected by the plugin.
@@ -81,7 +81,7 @@ def get_input_cubes(pollen_name: str) -> Cube:
         units="g / m3",
         dim_coords_and_dims=[(latitude_coord, 0), (longitude_coord, 1)],
     )
-    cube.attributes.update({"species": pollen_name, "quantity": "Concentration"})
+    cube.attributes.update({"taxa": pollen_name, "quantity": "Concentration"})
     cube.add_aux_coord(height_coord)
     return cube
 
@@ -94,14 +94,14 @@ def test_process():
         np.testing.assert_array_almost_equal(output_cube.data, EXPECTED[pollen_name])
 
 
-def test_invalid_species():
+def test_invalid_taxa():
     cube = get_input_cubes("weed_pollen")
-    cube.attributes["species"] = "invalid_pollen"
+    cube.attributes["taxa"] = "invalid_pollen"
     plugin = PollenHourlyConcentration()
     try:
         plugin.process(cube)
     except ValueError as err:
-        assert str(err) == "Pollen species invalid_pollen not handled"
+        assert str(err) == "Pollen taxa invalid_pollen not handled"
 
 
 def test_scaling_factor():
@@ -109,11 +109,9 @@ def test_scaling_factor():
         "weed_pollen": [1.0, 213.0],
         "alder_pollen": [1.0, 14.6],
     }
-    for species, scaling_factor in scaling_factors_dict.items():
-        cube = get_input_cubes(species)
+    for taxa, scaling_factor in scaling_factors_dict.items():
+        cube = get_input_cubes(taxa)
         plugin = PollenHourlyConcentration()
         output_cube = plugin.process(cube, scaling_factors_dict)
-        expected_scaled_data = (EXPECTED[species] * scaling_factor[1]).astype(
-            FLOAT_DTYPE
-        )
+        expected_scaled_data = (EXPECTED[taxa] * scaling_factor[1]).astype(FLOAT_DTYPE)
         np.testing.assert_array_almost_equal(output_cube.data, expected_scaled_data)

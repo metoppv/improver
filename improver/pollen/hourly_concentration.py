@@ -65,22 +65,22 @@ class PollenHourlyConcentration(PostProcessingPlugin):
     # The output cube is a deepcopy of the input cube (to keep metadata) and is then manipulated in place
     _output_cube = None
 
-    def _calculate(self, species: str):
+    def _calculate(self, taxa: str):
         """Perform calculations on input cube.
 
-        Applies the scaling factor to the raw data for the relevant pollen species,
+        Applies the scaling factor to the raw data for the relevant pollen taxa,
         and converts from g/m3 to grains/m3 using pollen diameter and density.
 
         Args:
-            species:
-                The pollen species being processed, used to update the cube name and metadata
+            taxa:
+                The pollen taxa being processed, used to update the cube name and metadata
         """
         if self._scaling_factors_dict is not None:
-            scaling_factor = self._scaling_factors_dict[species][1]
+            scaling_factor = self._scaling_factors_dict[taxa][1]
         else:
             scaling_factor = 1.0
-        diameter = self._POLLEN_DIAMETER[species]
-        density = self._POLLEN_DENSITY[species]
+        diameter = self._POLLEN_DIAMETER[taxa]
+        density = self._POLLEN_DENSITY[taxa]
         volume = (4 / 3) * np.pi * (diameter / 2) ** 3
         mass_per_grain = volume * density
 
@@ -90,13 +90,13 @@ class PollenHourlyConcentration(PostProcessingPlugin):
         new_data = self._output_cube.data / 1000.0 * scaling_factor / mass_per_grain
         self._output_cube.data = new_data.astype(FLOAT_DTYPE)
 
-    def _metadata(self, species: str):
+    def _metadata(self, taxa: str):
         """Change the cube name and other metadata.
         Args:
-            species:
-                The pollen species being processed, used to update the cube name and metadata
+            taxa:
+                The pollen taxa being processed, used to update the cube name and metadata
         """
-        self._output_cube.rename(f"{species}_concentration_PT01H")
+        self._output_cube.rename(f"{taxa}_concentration_PT01H")
         # self._output_cube.convert_units("grains / m3")
 
     def process(
@@ -118,11 +118,11 @@ class PollenHourlyConcentration(PostProcessingPlugin):
         self._scaling_factors_dict = scaling_factors_dict
         self._output_cube = build_output_cube_with_new_units(self, cube, "grains / m3")
 
-        # Check that the pollen species is one that is handled by the class
-        species = self._output_cube.attributes.get("species").lower()
-        if species not in self._POLLEN_NAMES:
-            raise ValueError(f"Pollen species {species} not handled")
+        # Check that the pollen taxa is one that is handled by the class
+        taxa = self._output_cube.attributes.get("taxa").lower()
+        if taxa not in self._POLLEN_NAMES:
+            raise ValueError(f"Pollen taxa {taxa} not handled")
 
-        self._calculate(species)
-        self._metadata(species)
+        self._calculate(taxa)
+        self._metadata(taxa)
         return self._output_cube

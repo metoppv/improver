@@ -16,7 +16,7 @@ class PollenIndexForPeriod(PostProcessingPlugin):
     """Plugin to calculate a Pollen Index cube for either Daily or Hourly.
 
     Pollen Concentration values in the input cube are compared with threshold
-    values appropriate for the pollen species represented by the cube, and
+    values appropriate for the pollen taxa represented by the cube, and
     categorized as indexes 0 to 4 for each grid point.
     """
 
@@ -38,32 +38,32 @@ class PollenIndexForPeriod(PostProcessingPlugin):
     # The output cube is a deepcopy of the input cube (to keep metadata) and is then manipulated in place
     _output_cube = None
 
-    def _calculate(self, species: str):
+    def _calculate(self, taxa: str):
         """Calculate the Pollen Index.
 
         Use values in _POLLEN_INDEX to determine the pollen index for each grid point.
 
         Args:
-            species:
-                The pollen species being processed, used to update the cube name and metadata
+            taxa:
+                The pollen taxa being processed, used to update the cube name and metadata
         """
-        if species not in self._POLLEN_INDEX:
-            raise ValueError(f"Pollen species {species} not handled")
-        thresholds = self._POLLEN_INDEX[species]
+        if taxa not in self._POLLEN_INDEX:
+            raise ValueError(f"Pollen taxa {taxa} not handled")
+        thresholds = self._POLLEN_INDEX[taxa]
         # Use np.digitize to find the index of the first threshold that is greater than the data value
         self._output_cube.data = (
             np.digitize(self._output_cube.data, thresholds) - 1
         ).astype(FLOAT_DTYPE)  # Subtract 1 to get 0-based index
 
-    def _metadata(self, species: str):
+    def _metadata(self, taxa: str):
         """Change the cube name and other metadata.
         Args:
-            species:
-                The pollen species being processed, used to update the cube name and metadata
+            taxa:
+                The pollen taxa being processed, used to update the cube name and metadata
         """
         # The 1-hour (PT01H) or 1-day (PT24H) period to use in the new cube name
         period = self._output_cube.name()[-5:]
-        self._output_cube.rename(f"{species}_index_{period}")
+        self._output_cube.rename(f"{taxa}_index_{period}")
 
         cube_attrbutes = self._output_cube.attributes
         # Change the following Attributes in the output cube if the key and old value
@@ -93,8 +93,8 @@ class PollenIndexForPeriod(PostProcessingPlugin):
             UserWarning:
                 If output values fall outside typical expected ranges
         """
-        species = cube.attributes.get("species").lower()
+        taxa = cube.attributes.get("taxa").lower()
         self._output_cube = build_output_cube_with_new_units(self, cube, 1)
-        self._calculate(species)
-        self._metadata(species)
+        self._calculate(taxa)
+        self._metadata(taxa)
         return self._output_cube

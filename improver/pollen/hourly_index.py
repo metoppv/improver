@@ -15,9 +15,9 @@ from improver import PostProcessingPlugin
 class PollenHourlyIndex(PostProcessingPlugin):
     """Plugin to calculate the Pollen Hourly Index.
 
-    The input cubelist has Pollen Hourly Values for all pollen species
+    The input cubelist has Pollen Hourly Values for all pollen taxa
     for a hour as specified in the cubes. The maximum value across all
-    species at a location is saved as the Index for that location.
+    taxa at a location is saved as the Index for that location.
     """
 
     # The output cube is a deepcopy of the first input cube (to keep metadata) and is then manipulated in place
@@ -26,25 +26,25 @@ class PollenHourlyIndex(PostProcessingPlugin):
     def _calculate(self, cubes: tuple[Cube, ...] | CubeList):
         """Calculate the Pollen Hourly Index.
 
-        For each grid point, determine the maximum pollen value across all species,
+        For each grid point, determine the maximum pollen value across all taxa,
         and use this as the pollen index for that grid point.
 
         Args:
             cubes:
                 Input cubes for all pollen types
         """
-        # Stack the cubes along a new species dimension and calculate the maximum across that dimension
+        # Stack the cubes along a new taxa dimension and calculate the maximum across that dimension
         stacked_data = np.stack([cube.data for cube in cubes], axis=0)
 
         cube_shape = cubes[0].data.shape
         # Create a new numpy array with this shape to hold the pollen index values, and fill it
-        # with the maximum values across the species dimension
+        # with the maximum values across the taxa dimension
         pollen_index_data = np.full(cube_shape, np.nan)  # Initialize with NaN values
         for i in range(cube_shape[0]):
             for j in range(cube_shape[1]):
                 pollen_index_data[i, j] = np.max(
                     stacked_data[:, i, j]
-                )  # Max across species dimension for each grid point
+                )  # Max across taxa dimension for each grid point
         self._output_cube.data = pollen_index_data.astype(np.int32)
 
     def _metadata(self, cubes: tuple[Cube, ...] | CubeList):
