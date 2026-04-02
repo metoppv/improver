@@ -53,7 +53,7 @@ class PollenHourlyIndex(PostProcessingPlugin):
             cubes:
                 Input cubes for all pollen types, used to update the cube name and metadata
         """
-        self._output_cube.rename("pollen_index_PT01H")
+        self._output_cube.rename("pollen_index")
 
     def process(self, cubes: tuple[Cube, ...] | CubeList) -> Cube:
         """Calculate the Pollen Hourly Index.

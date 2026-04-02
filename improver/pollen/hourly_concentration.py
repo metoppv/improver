@@ -96,7 +96,7 @@ class PollenHourlyConcentration(PostProcessingPlugin):
             taxa:
                 The pollen taxa being processed, used to update the cube name and metadata
         """
-        self._output_cube.rename(f"{taxa}_concentration_PT01H")
+        self._output_cube.rename(f"{taxa}_concentration")
         # self._output_cube.convert_units("grains / m3")
 
     def process(
