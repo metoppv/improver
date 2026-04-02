@@ -4,7 +4,7 @@
 # See LICENSE in the root of the repository for full licensing details.
 
 import warnings
-from datetime import datetime, timedelta
+from datetime import timedelta
 from unittest.mock import patch
 
 import numpy as np
@@ -13,14 +13,26 @@ from dateutil.parser import parse
 from iris.cube import Cube
 
 from improver.fire_weather import IterativeFireWeatherIndexBase
-from improver_tests.fire_weather import make_input_cubes
+from improver_tests.fire_weather import (
+    DEFAULT_START_DATE,
+    DEFAULT_TIME,
+    INPUT_ATTRIBUTES,
+    make_cube,
+    make_input_cubes,
+)
+
+LAG_TIME = 10
 
 
 class ConcreteIterativeFireWeatherIndex(IterativeFireWeatherIndexBase):
     """Concrete implementation of IterativeFireWeatherIndexBase for testing."""
 
-    START_DATE_CUBE_NAME = "iterative_cube"
-    INPUT_CUBE_NAMES = ["air_temperature", "relative_humidity", "iterative_cube"]
+    METADATA_SOURCE_CUBE = "iterative_cube"
+    INPUT_CUBE_NAMES = [
+        "air_temperature",
+        "lwe_thickness_of_precipitation_amount",
+        "iterative_cube",
+    ]
     REFERENCE_CUBE_NAME = "air_temperature"
     OUTPUT_CUBE_NAME = "iterative_cube"
 
@@ -29,15 +41,15 @@ class ConcreteIterativeFireWeatherIndex(IterativeFireWeatherIndexBase):
     }
 
     STARTING_VALUE = 25
-    LAG_TIME = 10
+    LAG_TIME = LAG_TIME
 
     # Type hints for dynamically created attributes
     temperature: Cube
-    relative_humidity: Cube
+    precipitation: Cube
 
     def _calculate(self) -> np.ndarray:
         """Simple test calculation: sum temperature and relative humidity."""
-        return self.temperature.data + self.relative_humidity.data
+        return self.temperature.data + self.precipitation.data
 
 
 plugin = ConcreteIterativeFireWeatherIndex()
@@ -49,7 +61,7 @@ def input_cubes_no_start_date() -> tuple[Cube]:
     return make_input_cubes(
         [
             ("air_temperature", 20.0, "Celsius", False, {}),
-            ("relative_humidity", 50.0, "1", False, {}),
+            ("lwe_thickness_of_precipitation_amount", 50.0, "mm", False, {}),
             ("iterative_cube", 50.0, "1", False, {}),
         ],
         shape=(5, 5),
@@ -62,64 +74,112 @@ def initialisation_input_cubes() -> tuple[Cube]:
     return make_input_cubes(
         [
             ("air_temperature", 20.0, "Celsius", False, {}),
-            ("relative_humidity", 50.0, "1", False, {}),
+            ("lwe_thickness_of_precipitation_amount", 50.0, "mm", False, {}),
         ],
         shape=(5, 5),
     )
 
 
-def test_raise_value_error_if_state_no_start_date_attribute(
-    input_cubes_no_start_date: tuple[Cube],
-) -> None:
-    """Confirm ValueError raised if no start_date attribute in output cube."""
-    with pytest.raises(ValueError, match=r"no start_date attribute"):
-        plugin.process(input_cubes_no_start_date)
+@pytest.mark.parametrize(
+    "attributes",
+    (
+        {"start_date": DEFAULT_START_DATE, "cycle_count": 55},
+        {"start_date": DEFAULT_START_DATE, "analysis_ready": True},
+        {"cycle_count": 55, "analysis_ready": True},
+        {},
+    ),
+)
+def test_raise_value_error_if_metadata_incomplete_on_output_cube(attributes) -> None:
+    """Confirm ValueError raised if missing metadata in output cube."""
+    with pytest.raises(ValueError, match=r"missing metadata attributes"):
+        plugin._record_lag_time_state(
+            make_cube(np.full((5, 5), 50.0), "iterative_cube", "1", False, attributes),
+        )
 
 
-def test_warning_for_start_dates_inside_lag_time() -> None:
-    """When start_date + 9 days runtime < LAG_TIME so warning is created."""
-    under_lag_time = str(datetime.now() - timedelta(days=9))
+def test_warning_for_metadata_inside_lag_time() -> None:
+    """When cycle_count is 9 runtime < LAG_TIME so a warning is created."""
+    cycle_count = 9
+    under_lag_time = str(DEFAULT_TIME - timedelta(days=cycle_count))
+    attributes = {
+        "start_date": under_lag_time,
+        "analysis_ready": 0,
+        "cycle_count": cycle_count,
+    }
     cube_args = [
         ("air_temperature", 20.0, "Celsius", False, {}),
-        ("relative_humidity", 50.0, "1", False, {}),
-        ("iterative_cube", 50.0, "1", False, {"start_date": under_lag_time}),
+        ("lwe_thickness_of_precipitation_amount", 50.0, "mm", False, {}),
+        ("iterative_cube", 50.0, "1", False, attributes),
     ]
     cubes = make_input_cubes(cube_args, shape=(5, 5))
 
-    msg = r"iterative_cube is 9 days in to it's initialisation"
+    msg = r"iterative_cube is 9 cycles in to its initialisation"
     with pytest.warns(UserWarning, match=msg):
         plugin.process(cubes)
 
     cube = plugin.process(cubes)
+
     assert cube.attributes["start_date"] == under_lag_time
+    assert cube.attributes["cycle_count"] == cycle_count + 1
+    assert cube.attributes["analysis_ready"] == "False"
 
 
-def test_no_warning_for_start_dates_outside_lag_time(
+def test_no_warning_for_metadata_outside_lag_time(
     recwarn: list[warnings.WarningMessage],
 ) -> None:
-    """When start_date + 11 days runtime > LAG_TIME so no warning is created."""
-    over_lag_time = str(datetime.now() - timedelta(days=11))
+    """When cycle_count is 11 runtime > LAG_TIME so no warning created."""
+    cycle_count = 11
+    over_lag_time = str(DEFAULT_TIME - timedelta(days=cycle_count))
+    attributes = {
+        "start_date": over_lag_time,
+        "analysis_ready": 1,
+        "cycle_count": cycle_count,
+    }
     cube_args = [
         ("air_temperature", 20.0, "Celsius", False, {}),
-        ("relative_humidity", 50.0, "1", False, {}),
-        ("iterative_cube", 50.0, "1", False, {"start_date": over_lag_time}),
+        ("lwe_thickness_of_precipitation_amount", 50.0, "mm", False, {}),
+        ("iterative_cube", 50.0, "1", False, attributes),
     ]
     cubes = make_input_cubes(cube_args, shape=(5, 5))
     cube = plugin.process(cubes)
 
     assert len(recwarn) == 0
     assert cube.attributes["start_date"] == over_lag_time
+    assert cube.attributes["cycle_count"] == cycle_count + 1
+    assert cube.attributes["analysis_ready"] == "True"
+
+
+def test_anaylsis_ready_marked_true_when_cycle_count_passes_lag_time() -> None:
+    """When cycle_count equals LAG_TIME analysis_ready changes from False to True."""
+    cycle_count = LAG_TIME
+    equal_to_lag_time = str(DEFAULT_TIME - timedelta(days=cycle_count))
+    attributes = {
+        "start_date": equal_to_lag_time,
+        "analysis_ready": 0,
+        "cycle_count": cycle_count,
+    }
+    cube_args = [
+        ("air_temperature", 20.0, "Celsius", False, {}),
+        ("lwe_thickness_of_precipitation_amount", 50.0, "mm", False, {}),
+        ("iterative_cube", 50.0, "1", False, attributes),
+    ]
+    cubes = make_input_cubes(cube_args, shape=(5, 5))
+    cube = plugin.process(cubes)
+
+    assert cube.attributes["start_date"] == equal_to_lag_time
+    assert cube.attributes["cycle_count"] == cycle_count + 1
+    assert cube.attributes["analysis_ready"] == "True"
 
 
 def test_initialise_true_leads_to_user_warning(
     initialisation_input_cubes: tuple[Cube],
 ) -> None:
-    """When initialise=True start_date=now, so runtime < LAG_TIME and warning created."""
-    msg = r"iterative_cube is 0 days in to it's initialisation"
+    """When initialise=True then cycle_count < LAG_TIME so a warning is created."""
+    msg = r"iterative_cube is 0 cycles in to its initialisation"
     with pytest.warns(UserWarning, match=msg):
         cube = plugin.process(initialisation_input_cubes, initialise=True)
 
-    diff = abs((parse(cube.attributes["start_date"]) - datetime.now()).total_seconds())
+    diff = abs((parse(cube.attributes["start_date"]) - DEFAULT_TIME).total_seconds())
     assert diff < 0.1, f"Difference is {diff}s"
 
 
@@ -148,14 +208,13 @@ def test_reference_cube_not_found(initialisation_input_cubes):
 
 def test_reference_cube_has_start_date_attribute() -> None:
     """Test ValueError raised if start_date set on reference_cube."""
-    dt_attributes = {"start_date": str(datetime(2025, 1, 10, 13, 14, 31))}
     cube_args = [
-        ("air_temperature", 20.0, "Celsius", False, dt_attributes),
-        ("relative_humidity", 50.0, "1", False, {}),
+        ("air_temperature", 20.0, "Celsius", False, INPUT_ATTRIBUTES),
+        ("lwe_thickness_of_precipitation_amount", 50.0, "mm", False, {}),
     ]
     cubes = make_input_cubes(cube_args, shape=(5, 5))
 
-    msg = r"Unexpected start_date in reference_cube attributes"
+    msg = r"Unexpected metadata on reference_cube"
     with pytest.raises(ValueError, match=msg):
         plugin.process(cubes, initialise=True)
 
@@ -165,11 +224,10 @@ def test_process_unpacked_cubes() -> None:
     Verify that the plugin runs successfully when given an unpacked list of
     cubes in its arguments.
     """
-    dt_attributes = {"start_date": str(datetime(2025, 1, 10, 13, 14, 31))}
     cube_args = [
-        ("air_temperature", 20.0, "Celsius", False, dt_attributes),
-        ("relative_humidity", 50.0, "1", False, dt_attributes),
-        ("iterative_cube", 50.0, "1", False, dt_attributes),
+        ("air_temperature", 20.0, "Celsius", 0, INPUT_ATTRIBUTES),
+        ("lwe_thickness_of_precipitation_amount", 50.0, "mm", 0, INPUT_ATTRIBUTES),
+        ("iterative_cube", 50.0, "1", 0, INPUT_ATTRIBUTES),
     ]
     cubes = make_input_cubes(cube_args, shape=(5, 5))
     result = plugin.process(*cubes)
@@ -181,11 +239,10 @@ def test_process_unpacked_cubes_and_kwargs() -> None:
     Verify that the plugin runs successfully when given an unpacked list of
     cubes in its arguments, in addition to keyword arguments.
     """
-    dt_attributes = {"start_date": str(datetime(2025, 1, 10, 13, 14, 31))}
     cube_args = [
-        ("air_temperature", 20.0, "Celsius", False, dt_attributes),
-        ("relative_humidity", 50.0, "1", False, dt_attributes),
-        ("iterative_cube", 50.0, "1", False, dt_attributes),
+        ("air_temperature", 20.0, "Celsius", 0, INPUT_ATTRIBUTES),
+        ("lwe_thickness_of_precipitation_amount", 50.0, "mm", 0, INPUT_ATTRIBUTES),
+        ("iterative_cube", 50.0, "1", 0, INPUT_ATTRIBUTES),
     ]
     cubes = make_input_cubes(cube_args, shape=(5, 5))
     result = plugin.process(*cubes, month=1, initialise=False)

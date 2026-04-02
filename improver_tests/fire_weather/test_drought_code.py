@@ -4,14 +4,19 @@
 # See LICENSE in the root of the repository for full licensing details.
 
 import warnings
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import numpy as np
 import pytest
 from iris.cube import Cube, CubeList
 
 from improver.fire_weather.drought_code import DroughtCode
-from improver_tests.fire_weather import START_DATE_DICT, make_cube, make_input_cubes
+from improver_tests.fire_weather import (
+    DEFAULT_TIME,
+    INPUT_ATTRIBUTES,
+    make_cube,
+    make_input_cubes,
+)
 
 
 def input_cubes(
@@ -50,7 +55,7 @@ def input_cubes(
     cube_args = [
         ("air_temperature", temp_val, temp_units, False, {}),
         ("lwe_thickness_of_precipitation_amount", precip_val, precip_units, True, {}),
-        ("drought_code", dc_val, dc_units, True, START_DATE_DICT),
+        ("drought_code", dc_val, dc_units, True, INPUT_ATTRIBUTES),
     ]
     return make_input_cubes(cube_args, shape=shape)
 
@@ -132,7 +137,7 @@ def test__perform_rainfall_adjustment_spatially_varying() -> None:
 
     cube_1 = make_cube(np.full(shape, 20.0), "air_temperature", "Celsius")
     cube_2 = make_cube(precip_data, "lwe_thickness_of_precipitation_amount", "mm", True)
-    cube_3 = make_cube(dc_data, "drought_code", "1", True, START_DATE_DICT)
+    cube_3 = make_cube(dc_data, "drought_code", "1", True, INPUT_ATTRIBUTES)
 
     plugin = DroughtCode()
     plugin.load_input_cubes(CubeList([cube_1, cube_2, cube_3]), month=7)
@@ -347,7 +352,7 @@ def test_process_spatially_varying() -> None:
     precip_cube = make_cube(
         precip_data, "lwe_thickness_of_precipitation_amount", "mm", True
     )
-    dc_cube = make_cube(dc_data, "drought_code", "1", True, START_DATE_DICT)
+    dc_cube = make_cube(dc_data, "drought_code", "1", True, INPUT_ATTRIBUTES)
 
     result = DroughtCode().process(CubeList([temp_cube, precip_cube, dc_cube]), month=7)
 
@@ -385,42 +390,52 @@ def test_dc_day_length_factors_table() -> None:
 
 
 def test_warning_for_start_dates_inside_lag_time() -> None:
-    """When start_date + 9 days runtime < LAG_TIME so warning is created."""
-    under_lag_time = str(datetime.now() - timedelta(days=9))
+    """When cycle_count is 9 runtime < LAG_TIME so a warning is created."""
+    attributes = {
+        "start_date": str(DEFAULT_TIME - timedelta(days=9)),
+        "analysis_ready": False,
+        "cycle_count": 9,
+    }
     cube_args = [
         ("air_temperature", 20.0, "Celsius", False, {}),
         ("lwe_thickness_of_precipitation_amount", 1.0, "mm", False, {}),
-        ("drought_code", 20.0, "1", False, {"start_date": under_lag_time}),
+        ("drought_code", 20.0, "1", False, attributes),
     ]
     cubes = make_input_cubes(cube_args, shape=(5, 5))
 
-    msg = r"drought_code is 9 days in to it's initialisation"
+    msg = r"drought_code is 9 cycles in to its initialisation"
     with pytest.warns(UserWarning, match=msg):
         DroughtCode().process(cubes, month=4)
 
 
-@pytest.mark.filterwarnings("ignore:numpy.ndarray size changed:RuntimeWarning")
-def test_no_warning_for_start_dates_outside_lag_time(
+def test_no_warning_for_metadata_outside_lag_time(
     recwarn: list[warnings.WarningMessage],
 ) -> None:
-    """When start_date + 55 days runtime > LAG_TIME so no warning is created."""
-    over_lag_time = str(datetime.now() - timedelta(days=55))
+    """When cycle_count is 55 runtime > LAG_TIME so no warning created."""
+    attributes = {
+        "start_date": str(DEFAULT_TIME - timedelta(days=55)),
+        "analysis_ready": True,
+        "cycle_count": 55,
+    }
     cube_args = [
         ("air_temperature", 20.0, "Celsius", False, {}),
         ("lwe_thickness_of_precipitation_amount", 1.0, "mm", False, {}),
-        ("drought_code", 20.0, "1", False, {"start_date": over_lag_time}),
+        ("drought_code", 20.0, "1", False, attributes),
     ]
     cubes = make_input_cubes(cube_args, shape=(5, 5))
 
-    DroughtCode().process(cubes, month=1)
+    result = DroughtCode().process(cubes, month=1)
 
     np_warning = "numpy.ndarray size changed"
     relevant_warnings = [w for w in recwarn if np_warning not in str(w.message)]
     assert len(relevant_warnings) == 0
 
+    assert result.attributes["cycle_count"] == attributes["cycle_count"] + 1
+    assert result.attributes["analysis_ready"] == "True"
+
 
 def test_initialise_true_leads_to_user_warning() -> None:
-    """When initialise=True start_date=now, so runtime < LAG_TIME and warning created."""
+    """When initialise=True then cycle_count < LAG_TIME so a warning is created."""
     initialisation_input_cubes = make_input_cubes(
         [
             ("air_temperature", 20.0, "Celsius", False, {}),
@@ -429,6 +444,10 @@ def test_initialise_true_leads_to_user_warning() -> None:
         shape=(5, 5),
     )
 
-    msg = r"drought_code is 0 days in to it's initialisation"
+    msg = r"drought_code is 0 cycles in to its initialisation"
     with pytest.warns(UserWarning, match=msg):
-        DroughtCode().process(initialisation_input_cubes, month=12, initialise=True)
+        result = DroughtCode().process(
+            initialisation_input_cubes, month=12, initialise=True
+        )
+    assert result.attributes["cycle_count"] == 1
+    assert result.attributes["analysis_ready"] == "False"

@@ -28,8 +28,8 @@ class BuildUpIndex(FireWeatherIndexBase):
         - Drought Code (DC): dimensionless
     """
 
-    START_DATE_CUBE_NAME = "drought_code"
-    INPUT_CUBE_NAMES = ["duff_moisture_code", START_DATE_CUBE_NAME]
+    METADATA_SOURCE_CUBE = "drought_code"
+    INPUT_CUBE_NAMES = ["duff_moisture_code", METADATA_SOURCE_CUBE]
     OUTPUT_CUBE_NAME = "build_up_index"
 
     # Valid output ranges for warning checks (output_name: (min, max))

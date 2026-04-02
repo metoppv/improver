@@ -5,14 +5,19 @@
 
 
 import warnings
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import numpy as np
 import pytest
 from iris.cube import Cube, CubeList
 
 from improver.fire_weather.fine_fuel_moisture_content import FineFuelMoistureContent
-from improver_tests.fire_weather import START_DATE_DICT, make_cube, make_input_cubes
+from improver_tests.fire_weather import (
+    DEFAULT_TIME,
+    INPUT_ATTRIBUTES,
+    make_cube,
+    make_input_cubes,
+)
 
 
 def input_cubes(
@@ -65,7 +70,7 @@ def input_cubes(
         ("lwe_thickness_of_precipitation_amount", precip_val, precip_units, True, {}),
         ("relative_humidity", rh_val, rh_units, False, {}),
         ("wind_speed", wind_val, wind_units, False, {}),
-        ("fine_fuel_moisture_content", ffmc_val, ffmc_units, True, START_DATE_DICT),
+        ("fine_fuel_moisture_content", ffmc_val, ffmc_units, True, INPUT_ATTRIBUTES),
     ]
     return make_input_cubes(cube_args, shape=shape)
 
@@ -672,7 +677,7 @@ def test_process_spatially_varying() -> None:
     humidity_cube = make_cube(rh_data, "relative_humidity", "1")
     wind_cube = make_cube(wind_data, "wind_speed", "km/h")
     ffmc_cube = make_cube(
-        ffmc_data, "fine_fuel_moisture_content", "1", True, START_DATE_DICT
+        ffmc_data, "fine_fuel_moisture_content", "1", True, INPUT_ATTRIBUTES
     )
 
     cubes = [temp_cube, precip_cube, humidity_cube, wind_cube, ffmc_cube]
@@ -694,46 +699,56 @@ def test_process_spatially_varying() -> None:
 
 
 def test_warning_for_start_dates_inside_lag_time() -> None:
-    """When start_date + 2 days runtime < LAG_TIME so warning is created."""
-    under_lag_time = str(datetime.now() - timedelta(days=2))
+    """When cycle_count is 2 runtime < LAG_TIME so a warning is created."""
+    attributes = {
+        "start_date": str(DEFAULT_TIME - timedelta(days=2)),
+        "analysis_ready": False,
+        "cycle_count": 2,
+    }
     cube_args = [
         ("air_temperature", 20.0, "Celsius", False, {}),
         ("lwe_thickness_of_precipitation_amount", 1.0, "mm", False, {}),
         ("relative_humidity", 50.0, "1", False, {}),
-        ("fine_fuel_moisture_content", 20, "1", False, {"start_date": under_lag_time}),
+        ("fine_fuel_moisture_content", 20, "1", False, attributes),
         ("wind_speed", 50.0, "km/h", False, {}),
     ]
     cubes = make_input_cubes(cube_args, shape=(5, 5))
 
-    msg = r"fine_fuel_moisture_content is 2 days in to it's initialisation"
+    msg = r"fine_fuel_moisture_content is 2 cycles in to its initialisation"
     with pytest.warns(UserWarning, match=msg):
         FineFuelMoistureContent().process(cubes, month=4)
 
 
-@pytest.mark.filterwarnings("ignore:numpy.ndarray size changed:RuntimeWarning")
-def test_no_warning_for_start_dates_outside_lag_time(
+def test_no_warning_for_metadata_outside_lag_time(
     recwarn: list[warnings.WarningMessage],
 ) -> None:
-    """When start_date + 3 days runtime > LAG_TIME so no warning is created."""
-    over_lag_time = str(datetime.now() - timedelta(days=3))
+    """When cycle_count is 3 runtime > LAG_TIME so no warning created."""
+    attributes = {
+        "start_date": str(DEFAULT_TIME - timedelta(days=3)),
+        "analysis_ready": True,
+        "cycle_count": 3,
+    }
     cube_args = [
         ("air_temperature", 20.0, "Celsius", False, {}),
         ("lwe_thickness_of_precipitation_amount", 1.0, "mm", False, {}),
         ("relative_humidity", 50.0, "1", False, {}),
         ("wind_speed", 50.0, "km/h", False, {}),
-        ("fine_fuel_moisture_content", 20.0, "1", False, {"start_date": over_lag_time}),
+        ("fine_fuel_moisture_content", 20.0, "1", False, attributes),
     ]
     cubes = make_input_cubes(cube_args, shape=(5, 5))
 
-    FineFuelMoistureContent().process(cubes, month=1)
+    result = FineFuelMoistureContent().process(cubes, month=1)
 
     np_warning = "numpy.ndarray size changed"
     relevant_warnings = [w for w in recwarn if np_warning not in str(w.message)]
     assert len(relevant_warnings) == 0
 
+    assert result.attributes["cycle_count"] == attributes["cycle_count"] + 1
+    assert result.attributes["analysis_ready"] == "True"
+
 
 def test_initialise_true_leads_to_user_warning() -> None:
-    """When initialise=True start_date=now, so runtime < LAG_TIME and warning created."""
+    """When initialise=True then cycle_count < LAG_TIME so a warning is created."""
     initialisation_input_cubes = make_input_cubes(
         [
             ("air_temperature", 20.0, "Celsius", False, {}),
@@ -744,8 +759,10 @@ def test_initialise_true_leads_to_user_warning() -> None:
         shape=(5, 5),
     )
 
-    msg = r"fine_fuel_moisture_content is 0 days in to it's initialisation"
+    msg = r"fine_fuel_moisture_content is 0 cycles in to its initialisation"
     with pytest.warns(UserWarning, match=msg):
-        FineFuelMoistureContent().process(
+        result = FineFuelMoistureContent().process(
             initialisation_input_cubes, month=12, initialise=True
         )
+    assert result.attributes["cycle_count"] == 1
+    assert result.attributes["analysis_ready"] == "False"

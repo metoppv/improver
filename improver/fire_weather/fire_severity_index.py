@@ -29,8 +29,8 @@ class FireSeverityIndex(FireWeatherIndexBase):
         - Fire Weather Index (FWI): dimensionless
     """
 
-    START_DATE_CUBE_NAME = "canadian_forest_fire_weather_index"
-    INPUT_CUBE_NAMES = [START_DATE_CUBE_NAME]
+    METADATA_SOURCE_CUBE = "canadian_forest_fire_weather_index"
+    INPUT_CUBE_NAMES = [METADATA_SOURCE_CUBE]
     OUTPUT_CUBE_NAME = "fire_severity_index"
     # Valid output ranges for warning checks (output_name: (min, max))
     # Minimum and maximum feasible values for each output index are drawn from

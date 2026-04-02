@@ -13,9 +13,7 @@ from iris.cube import Cube, CubeList
 from improver.fire_weather.canadian_forest_fire_weather_index import (
     CanadianForestFireWeatherIndex,
 )
-from improver_tests.fire_weather import make_input_cubes
-
-START_DATE = {"start_date": "2025-03-17"}
+from improver_tests.fire_weather import INPUT_ATTRIBUTES, make_input_cubes
 
 
 def input_cubes(
@@ -46,8 +44,8 @@ def input_cubes(
     """
     return make_input_cubes(
         [
-            ("initial_spread_index", isi_val, isi_units, True, START_DATE),
-            ("build_up_index", bui_val, bui_units, False, START_DATE),
+            ("initial_spread_index", isi_val, isi_units, True, INPUT_ATTRIBUTES),
+            ("build_up_index", bui_val, bui_units, False, INPUT_ATTRIBUTES),
         ],
         shape=shape,
     )
