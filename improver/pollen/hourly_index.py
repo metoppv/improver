@@ -5,11 +5,13 @@
 """Calculations to produce Pollen Hourly Index values."""
 
 from copy import deepcopy
+from typing import Union
 
 import numpy as np
 from iris.cube import Cube, CubeList
 
 from improver import PostProcessingPlugin
+from improver.utilities.common_input_handle import as_cubelist
 
 
 class PollenHourlyIndex(PostProcessingPlugin):
@@ -55,11 +57,11 @@ class PollenHourlyIndex(PostProcessingPlugin):
         """
         self._output_cube.rename("pollen_index")
 
-    def process(self, cubes: tuple[Cube, ...] | CubeList) -> Cube:
+    def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
         """Calculate the Pollen Hourly Index.
 
         Args:
-            cubes:
+            cubes (iris.cube.CubeList or list of iris.cube.Cube):
                 Input cubes for all pollen types for Pollen Value for 1 hour.
 
         Returns:
@@ -69,6 +71,8 @@ class PollenHourlyIndex(PostProcessingPlugin):
             UserWarning:
                 If output values fall outside typical expected ranges
         """
+        cubes = as_cubelist(*cubes)
+
         # Create output_cube ready to take data from calculations, using the first cube as a template
         template_cube = cubes[0]
         self._output_cube = deepcopy(template_cube)

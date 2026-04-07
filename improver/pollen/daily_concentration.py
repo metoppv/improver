@@ -62,13 +62,10 @@ class PollenDailyConcentration(PostProcessingPlugin):
         """
         self._output_cube.rename(f"{taxa.lower()}_concentration")
 
-    # def process(self, cubes: tuple[Cube, ...] | CubeList) -> Cube:
     def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
         """Calculate the Pollen Daily Concentration.
 
         Args:
-            cubes:
-                Input cubes for hourly pollen concentrations
             cubes (iris.cube.CubeList or list of iris.cube.Cube):
                 An iris CubeList of hourly pollen concentrations be combined as a mean.
 
