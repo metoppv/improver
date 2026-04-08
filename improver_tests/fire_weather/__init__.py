@@ -15,16 +15,16 @@ from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 DEFAULT_FRT = datetime(2017, 11, 10, 0, 0)
 DEFAULT_TIME = datetime(2017, 11, 10, 12, 0)
 DEFAULT_TIME_BOUNDS = (datetime(2017, 11, 10, 0, 0), datetime(2017, 11, 10, 12, 0))
-DEFAULT_CYCLE_COUNT = 55
-DEFAULT_START_DATE = str(DEFAULT_TIME - timedelta(days=DEFAULT_CYCLE_COUNT))
+DEFAULT_ITERATION_COUNT = 55
+DEFAULT_START_DATE = str(DEFAULT_TIME - timedelta(days=DEFAULT_ITERATION_COUNT))
 INPUT_ATTRIBUTES = {
     "iteration_start_date": DEFAULT_START_DATE,
-    "cycle_count": DEFAULT_CYCLE_COUNT,
+    "iteration_count": DEFAULT_ITERATION_COUNT,
     "analysis_ready": True,
 }
 OUTPUT_ATTRIBUTES = {
     "iteration_start_date": DEFAULT_START_DATE,
-    "cycle_count": DEFAULT_CYCLE_COUNT,
+    "iteration_count": DEFAULT_ITERATION_COUNT,
     "analysis_ready": "True",
 }
 

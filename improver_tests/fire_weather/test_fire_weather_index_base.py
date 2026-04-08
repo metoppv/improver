@@ -10,7 +10,7 @@ from iris.cube import Cube, CubeList
 
 from improver.fire_weather import FireWeatherIndexBase
 from improver_tests.fire_weather import (
-    DEFAULT_CYCLE_COUNT,
+    DEFAULT_ITERATION_COUNT,
     INPUT_ATTRIBUTES,
     OUTPUT_ATTRIBUTES,
     make_cube,
@@ -612,7 +612,7 @@ def test_process_complete_workflow() -> None:
     assert result.long_name == "test_index"
     assert result.units == "1"
     # Assert cycle point has NOT incremented for base classes
-    assert result.attributes["cycle_count"] == DEFAULT_CYCLE_COUNT
+    assert result.attributes["iteration_count"] == DEFAULT_ITERATION_COUNT
     assert result.coord("forecast_reference_time") is not None
     assert result.attributes["analysis_ready"] == "True"
 

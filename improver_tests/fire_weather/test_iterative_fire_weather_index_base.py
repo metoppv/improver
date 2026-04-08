@@ -83,9 +83,9 @@ def initialisation_input_cubes() -> tuple[Cube]:
 @pytest.mark.parametrize(
     "attributes",
     (
-        {"iteration_start_date": DEFAULT_START_DATE, "cycle_count": 55},
+        {"iteration_start_date": DEFAULT_START_DATE, "iteration_count": 55},
         {"iteration_start_date": DEFAULT_START_DATE, "analysis_ready": True},
-        {"cycle_count": 55, "analysis_ready": True},
+        {"iteration_count": 55, "analysis_ready": True},
         {},
     ),
 )
@@ -98,13 +98,13 @@ def test_raise_value_error_if_metadata_incomplete_on_output_cube(attributes) -> 
 
 
 def test_warning_for_metadata_inside_lag_time() -> None:
-    """When cycle_count is 9 runtime < LAG_TIME so a warning is created."""
-    cycle_count = 9
-    under_lag_time = str(DEFAULT_TIME - timedelta(days=cycle_count))
+    """When iteration_count is 9 runtime < LAG_TIME so a warning is created."""
+    iteration_count = 9
+    under_lag_time = str(DEFAULT_TIME - timedelta(days=iteration_count))
     attributes = {
         "iteration_start_date": under_lag_time,
         "analysis_ready": 0,
-        "cycle_count": cycle_count,
+        "iteration_count": iteration_count,
     }
     cube_args = [
         ("air_temperature", 20.0, "Celsius", False, {}),
@@ -113,27 +113,27 @@ def test_warning_for_metadata_inside_lag_time() -> None:
     ]
     cubes = make_input_cubes(cube_args, shape=(5, 5))
 
-    msg = r"iterative_cube is 9 cycles in to its initialisation"
+    msg = r"iterative_cube is 9 iterations in to its initialisation"
     with pytest.warns(UserWarning, match=msg):
         plugin.process(cubes)
 
     cube = plugin.process(cubes)
 
     assert cube.attributes["iteration_start_date"] == under_lag_time
-    assert cube.attributes["cycle_count"] == cycle_count + 1
+    assert cube.attributes["iteration_count"] == iteration_count + 1
     assert cube.attributes["analysis_ready"] == "False"
 
 
 def test_no_warning_for_metadata_outside_lag_time(
     recwarn: list[warnings.WarningMessage],
 ) -> None:
-    """When cycle_count is 11 runtime > LAG_TIME so no warning created."""
-    cycle_count = 11
-    over_lag_time = str(DEFAULT_TIME - timedelta(days=cycle_count))
+    """When iteration_count is 11 runtime > LAG_TIME so no warning created."""
+    iteration_count = 11
+    over_lag_time = str(DEFAULT_TIME - timedelta(days=iteration_count))
     attributes = {
         "iteration_start_date": over_lag_time,
         "analysis_ready": 1,
-        "cycle_count": cycle_count,
+        "iteration_count": iteration_count,
     }
     cube_args = [
         ("air_temperature", 20.0, "Celsius", False, {}),
@@ -145,18 +145,18 @@ def test_no_warning_for_metadata_outside_lag_time(
 
     assert len(recwarn) == 0
     assert cube.attributes["iteration_start_date"] == over_lag_time
-    assert cube.attributes["cycle_count"] == cycle_count + 1
+    assert cube.attributes["iteration_count"] == iteration_count + 1
     assert cube.attributes["analysis_ready"] == "True"
 
 
-def test_anaylsis_ready_marked_true_when_cycle_count_passes_lag_time() -> None:
-    """When cycle_count equals LAG_TIME analysis_ready changes from False to True."""
-    cycle_count = LAG_TIME
-    equal_to_lag_time = str(DEFAULT_TIME - timedelta(days=cycle_count))
+def test_anaylsis_ready_marked_true_when_iteration_count_passes_lag_time() -> None:
+    """When iteration_count equals LAG_TIME analysis_ready changes from False to True."""
+    iteration_count = LAG_TIME
+    equal_to_lag_time = str(DEFAULT_TIME - timedelta(days=iteration_count))
     attributes = {
         "iteration_start_date": equal_to_lag_time,
         "analysis_ready": 0,
-        "cycle_count": cycle_count,
+        "iteration_count": iteration_count,
     }
     cube_args = [
         ("air_temperature", 20.0, "Celsius", False, {}),
@@ -167,15 +167,15 @@ def test_anaylsis_ready_marked_true_when_cycle_count_passes_lag_time() -> None:
     cube = plugin.process(cubes)
 
     assert cube.attributes["iteration_start_date"] == equal_to_lag_time
-    assert cube.attributes["cycle_count"] == cycle_count + 1
+    assert cube.attributes["iteration_count"] == iteration_count + 1
     assert cube.attributes["analysis_ready"] == "True"
 
 
 def test_initialise_true_leads_to_user_warning(
     initialisation_input_cubes: tuple[Cube],
 ) -> None:
-    """When initialise=True then cycle_count < LAG_TIME so a warning is created."""
-    msg = r"iterative_cube is 0 cycles in to its initialisation"
+    """When initialise=True then iteration_count < LAG_TIME so a warning is created."""
+    msg = r"iterative_cube is 0 iterations in to its initialisation"
     with pytest.warns(UserWarning, match=msg):
         cube = plugin.process(initialisation_input_cubes, initialise=True)
 

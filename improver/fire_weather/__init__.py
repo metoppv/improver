@@ -438,16 +438,16 @@ class FireWeatherIndexBase(BasePlugin):
         try:
             start_date_cube = getattr(self, attr_name)
             start_date = start_date_cube.attributes["iteration_start_date"]
-            cycle_count = start_date_cube.attributes["cycle_count"]
+            iteration_count = start_date_cube.attributes["iteration_count"]
             analysis_ready = str(start_date_cube.attributes["analysis_ready"])
         except (AttributeError, KeyError):
             raise NotImplementedError(
                 "METADATA_SOURCE_CUBE must match an available input cube with all the "
-                "required attributes: `iteration_start_date`, `cycle_count` and `analysis_ready`."
+                "required attributes: `iteration_start_date`, `iteration_count` and `analysis_ready`."
             )
 
         output_cube.attributes["iteration_start_date"] = start_date
-        output_cube.attributes["cycle_count"] = cycle_count
+        output_cube.attributes["iteration_count"] = iteration_count
         output_cube.attributes["analysis_ready"] = analysis_ready
         return output_cube
 
@@ -568,7 +568,7 @@ class IterativeFireWeatherIndexBase(FireWeatherIndexBase):
         cube.attributes["iteration_start_date"] = str(
             time_coord.units.num2pydate(time_coord.points)[0]
         )
-        cube.attributes["cycle_count"] = 0
+        cube.attributes["iteration_count"] = 0
         cube.attributes["analysis_ready"] = "False"
 
         return cube
@@ -590,7 +590,7 @@ class IterativeFireWeatherIndexBase(FireWeatherIndexBase):
         """
         metadata_in_cube_attributes = [
             "iteration_start_date" in cube.attributes,
-            "cycle_count" in cube.attributes,
+            "iteration_count" in cube.attributes,
             "analysis_ready" in cube.attributes,
         ]
         if not all(metadata_in_cube_attributes):
@@ -599,17 +599,17 @@ class IterativeFireWeatherIndexBase(FireWeatherIndexBase):
                 f"initialise process set `initialise=True`."
             )
 
-        cycle_count = cube.attributes["cycle_count"]
-        if cycle_count < self.LAG_TIME:
+        iteration_count = cube.attributes["iteration_count"]
+        if iteration_count < self.LAG_TIME:
             cube.attributes["analysis_ready"] = "False"
             warnings.warn(
-                f"{cube.name()} is {cycle_count} cycles in to its "
-                f"initialisation period of {self.LAG_TIME} cycles.",
+                f"{cube.name()} is {iteration_count} iterations in "
+                f"to its initialisation period of {self.LAG_TIME}.",
                 UserWarning,
                 stacklevel=3,
             )
         else:
             cube.attributes["analysis_ready"] = "True"
 
-        cube.attributes["cycle_count"] = cycle_count + 1
+        cube.attributes["iteration_count"] = iteration_count + 1
         return cube

@@ -409,11 +409,11 @@ def test_dmc_day_length_factors_table() -> None:
 
 
 def test_warning_for_iteration_counts_inside_lag_time() -> None:
-    """When cycle_count is 14 runtime < LAG_TIME so a warning is created."""
+    """When iteration_count is 14 runtime < LAG_TIME so a warning is created."""
     attributes = {
         "iteration_start_date": str(DEFAULT_TIME - timedelta(days=14)),
         "analysis_ready": False,
-        "cycle_count": 14,
+        "iteration_count": 14,
     }
     cube_args = [
         ("air_temperature", 20.0, "Celsius", False, {}),
@@ -423,7 +423,7 @@ def test_warning_for_iteration_counts_inside_lag_time() -> None:
     ]
     cubes = make_input_cubes(cube_args, shape=(5, 5))
 
-    msg = r"duff_moisture_code is 14 cycles in to its initialisation"
+    msg = r"duff_moisture_code is 14 iterations in to its initialisation"
     with pytest.warns(UserWarning, match=msg):
         DuffMoistureCode().process(cubes, month=4)
 
@@ -431,11 +431,11 @@ def test_warning_for_iteration_counts_inside_lag_time() -> None:
 def test_no_warning_for_metadata_outside_lag_time(
     recwarn: list[warnings.WarningMessage],
 ) -> None:
-    """When cycle_count is 15 runtime > LAG_TIME so no warning created."""
+    """When iteration_count is 15 runtime > LAG_TIME so no warning created."""
     attributes = {
         "iteration_start_date": str(DEFAULT_TIME - timedelta(days=15)),
         "analysis_ready": True,
-        "cycle_count": 15,
+        "iteration_count": 15,
     }
     cube_args = [
         ("air_temperature", 20.0, "Celsius", False, {}),
@@ -451,12 +451,12 @@ def test_no_warning_for_metadata_outside_lag_time(
     relevant_warnings = [w for w in recwarn if np_warning not in str(w.message)]
     assert len(relevant_warnings) == 0
 
-    assert result.attributes["cycle_count"] == attributes["cycle_count"] + 1
+    assert result.attributes["iteration_count"] == attributes["iteration_count"] + 1
     assert result.attributes["analysis_ready"] == "True"
 
 
 def test_initialise_true_leads_to_user_warning() -> None:
-    """When initialise=True then cycle_count < LAG_TIME so a warning is created."""
+    """When initialise=True then iteration_count < LAG_TIME so a warning is created."""
     initialisation_input_cubes = make_input_cubes(
         [
             ("air_temperature", 20.0, "Celsius", False, {}),
@@ -466,10 +466,10 @@ def test_initialise_true_leads_to_user_warning() -> None:
         shape=(5, 5),
     )
 
-    msg = r"duff_moisture_code is 0 cycles in to its initialisation"
+    msg = r"duff_moisture_code is 0 iterations in to its initialisation"
     with pytest.warns(UserWarning, match=msg):
         result = DuffMoistureCode().process(
             initialisation_input_cubes, month=12, initialise=True
         )
-    assert result.attributes["cycle_count"] == 1
+    assert result.attributes["iteration_count"] == 1
     assert result.attributes["analysis_ready"] == "False"
