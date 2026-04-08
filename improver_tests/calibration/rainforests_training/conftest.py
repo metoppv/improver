@@ -15,6 +15,7 @@ from ..rainforests_calibration.conftest import (
     ensemble_features,
     ensemble_forecast,
     lead_times,
+    model_config,
     prepare_dummy_training_data,
     thresholds,
 )
@@ -26,6 +27,7 @@ _ = (
     ensemble_features,
     ensemble_forecast,
     lead_times,
+    model_config,
     prepare_dummy_training_data,
     thresholds,
 )

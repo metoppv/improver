@@ -22,40 +22,62 @@ class TrainRainForestsModel(BasePlugin):
 
     def __init__(
         self,
+        model_config_dict: dict[int, dict[str, dict[str, str]]],
         training_data,
         observation_column,
         training_columns,
-        output_dir,
         lightgbm_params=None,
-        compiler=None,
     ):
-        """Initialise the options used when compiling models.
+        """Initialise the options used when training models.
 
         Args:
+            model_config_dict:
+                Dictionary containing Rainforests model configuration variables.
             training_data (pandas.DataFrame):
                 Combined data set used to train models.
             observation_column (str):
                 The column in the data set to be trained for.
             training_columns (List(str)):
                 Set of columns from the data set to be trained from.
-            output_dir (str or Path):
-                Directory path where model files will be saved.
-                Filenames will be generated based on threshold.
             lightgbm_params (Dict):
                 Optional. Parameters passed into training library.
-            compiler (CompileRainForestsModel):
-                Optional. Object used to compile trained models.
+
+        Dictionary is of format::
+
+        {
+        "24": {
+            "0.000010": {
+                "lightgbm_model": "<path_to_lightgbm_model_object>",
+                "treelite_model": "<path_to_treelite_model_object>"
+            },
+            "0.000050": {
+                "lightgbm_model": "<path_to_lightgbm_model_object>",
+                "treelite_model": "<path_to_treelite_model_object>"
+            },
+            "0.000100": {
+                "lightgbm_model": "<path_to_lightgbm_model_object>",
+                "treelite_model": "<path_to_treelite_model_object>"
+            },
+        }
+
+        The keys specify the lead times and model threshold values, while the
+        associated values are the path to the corresponding tree-model objects
+        for that lead time and threshold.
         """
-        self.lightgbm_available = lightgbm_package_available()
-        if not self.lightgbm_available:
+        lightgbm_available = lightgbm_package_available()
+        if not lightgbm_available:
             raise ModuleNotFoundError("Could not find LightGBM module")
 
-        expected_columns = training_columns + [observation_column]
+        self.config = model_config_dict
 
         # Check all specified columns exist in the data.
-        for col in expected_columns:
+        for col in training_columns:
             if col not in training_data:
-                raise KeyError(f"Column '{col}' not found in training data.")
+                raise KeyError(f"Training column '{col}' not found in training data.")
+        if observation_column not in training_data:
+            raise KeyError(
+                f"Target column '{observation_column}' not found in training data."
+            )
 
         # Check the observation column is not also a training column.
         if observation_column in training_columns:
@@ -67,54 +89,35 @@ class TrainRainForestsModel(BasePlugin):
         self.training_columns = training_columns
 
         # Keep only the columns relevant for training.
-        self.training_data = training_data[expected_columns]
-
-        self.output_dir = Path(output_dir)
+        self.training_data = training_data[training_columns + [observation_column]]
 
         # Merge default params with optional params.
         lightgbm_params = lightgbm_params or {}
         self.lightgbm_params = self.lightgbm_params | lightgbm_params
 
-        self.compiler = compiler
-
-        # Set a default filename formatter
-        self._model_file_name = lambda threshold: (
-            f"lgb_model-threshold_{threshold:04.2f}.txt"
-        )
-
-    @property
-    def model_file_name_formatter(self):
-        return self._model_file_name
-
-    @model_file_name_formatter.setter
-    def model_file_name_formatter(self, file_name_fn):
-        """Return elapsed time in seconds."""
-        self._model_file_name = file_name_fn
-
-    def process(self, thresholds, compile=False):
+    def process(self, lead_time, thresholds):
         """Train models for a set of threshold values.
 
         Args:
+            lead_time (int):
+                Lead time in hours of training data. Used to get retreive model paths
+                from config data.
             thresholds (list of float):
-                Thresholds for which the observation column is trained.
-            compile (Bool):
-                Whether to also compile the model.
-                Defaults to False.
+                Threshold values for which the observation column is trained.
         """
-
-        if compile and not self.compiler:
-            raise ValueError("Compile option used when compiler not present.")
+        if lead_time not in self.config:
+            raise KeyError(f"Lead time {lead_time} not found in model config.")
 
         for threshold in thresholds:
-            threshold_path = self.output_dir / self._model_file_name(threshold)
+            if threshold not in self.config[lead_time]:
+                raise KeyError(
+                    f"Threshold '{threshold}' not found in model config for lead time {lead_time}."
+                )
 
-            model = self._train_model(threshold)
-            model.save_model(threshold_path)
+            model_path = Path(self.config[lead_time][threshold]["lightgbm_model"])
+            self._train_model(threshold, model_path)
 
-            if compile:
-                self.compiler.process(threshold_path, self.output_dir)
-
-    def _train_model(self, threshold):
+    def _train_model(self, threshold, model_path):
         """Train a model for a particular threshold.
 
         Args:
@@ -126,12 +129,15 @@ class TrainRainForestsModel(BasePlugin):
         """
         import lightgbm
 
-        threshold_met = (
-            self.training_data[self.observation_column] >= threshold
+        threshold_met_label = (
+            self.training_data[self.observation_column] >= float(threshold)
         ).astype(int)
 
         dataset = lightgbm.Dataset(
-            self.training_data[self.training_columns], label=threshold_met
+            self.training_data[self.training_columns], label=threshold_met_label
         )
 
-        return lightgbm.train(self.lightgbm_params, dataset)
+        model = lightgbm.train(self.lightgbm_params, dataset)
+
+        Path.mkdir(model_path.parent, parents=True, exist_ok=True)
+        model.save_model(model_path)
