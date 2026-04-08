@@ -101,7 +101,6 @@ def test_process(model_config, deterministic_training_data):
     trainer.process(lead_time, thresholds)
 
     for threshold in thresholds:
-        # Should format unique filename for each threshold
         expected_path = model_config[lead_time][threshold]["lightgbm_model"]
         assert Path(expected_path).exists()
 

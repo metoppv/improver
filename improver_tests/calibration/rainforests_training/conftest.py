@@ -3,6 +3,7 @@
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 import sys
+from pathlib import Path
 
 import pytest
 
@@ -11,7 +12,6 @@ from improver.calibration import lightgbm_package_available, treelite_packages_a
 from ..rainforests_calibration.conftest import (
     deterministic_features,
     deterministic_forecast,
-    dummy_lightgbm_models,
     ensemble_features,
     ensemble_forecast,
     lead_times,
@@ -23,7 +23,6 @@ from ..rainforests_calibration.conftest import (
 _ = (
     deterministic_features,
     deterministic_forecast,
-    dummy_lightgbm_models,
     ensemble_features,
     ensemble_forecast,
     lead_times,
@@ -31,8 +30,6 @@ _ = (
     prepare_dummy_training_data,
     thresholds,
 )
-
-dummy_lightgbm_models = dummy_lightgbm_models
 
 
 @pytest.fixture(params=[True, False])
@@ -56,36 +53,44 @@ def treelite_available(request, monkeypatch):
 
 
 @pytest.fixture
-def deterministic_training_data(
-    deterministic_features, deterministic_forecast, lead_times
-):
-    training_data, fcst_column, observation_column, training_columns = (
+def deterministic_training_data(deterministic_features, deterministic_forecast):
+    """Make some dummy training data for one lead time"""
+    lead_time = 24
+    training_data, _, observation_column, training_columns = (
         prepare_dummy_training_data(
-            deterministic_features, deterministic_forecast, lead_times
+            deterministic_features, deterministic_forecast, [lead_time]
         )
     )
 
-    # This data contains several lead times. Filter the data to one leadtime.
-    lead_time = 24
-    curr_training_data = training_data.loc[
-        training_data["lead_time_hours"] == lead_time
-    ]
-
-    return curr_training_data, observation_column, training_columns
+    return training_data, observation_column, training_columns
 
 
 @pytest.fixture
-def rainforests_model_files(dummy_lightgbm_models, tmp_path):
-    """Export some LightGBM Boosters to file"""
+def model_config_with_trained_models(
+    model_config, ensemble_features, ensemble_forecast, thresholds, lead_times
+):
+    pytest.importorskip("lightgbm")
+    """Return the RainForests model config, first performing the lightgbm training step
+    so that the models are available for compiling with the compiler plugin."""
+    training_data, _, obs_column, train_columns = prepare_dummy_training_data(
+        ensemble_features, ensemble_forecast, lead_times
+    )
 
-    tree_models, lead_times, thresholds = dummy_lightgbm_models
+    lightgbm = pytest.importorskip("lightgbm")
 
-    output_dir = tmp_path / "models"
-    output_dir.mkdir(exist_ok=True)
+    params = {"objective": "binary", "num_leaves": 5, "verbose": -1, "seed": 0}
+    for lead_time, thresholds in model_config.items():
+        for threshold in thresholds:
+            curr_training_data = training_data.loc[
+                training_data["lead_time_hours"] == int(lead_time)
+            ]
+            data = lightgbm.Dataset(
+                curr_training_data[train_columns],
+                label=(curr_training_data[obs_column] >= float(threshold)).astype(int),
+            )
+            booster = lightgbm.train(params, data, num_boost_round=10)
+            model_path = model_config[lead_time][threshold]["lightgbm_model"]
+            Path(model_path).parent.mkdir(parents=True, exist_ok=True)
+            booster.save_model(model_path)
 
-    def saved_path(lead_time, threshold):
-        path = output_dir / f"model_{lead_time:0}_{threshold:06.4f}.txt"
-        tree_models[lead_time, threshold].save_model(path)
-        return path
-
-    return [saved_path(l, t) for l in lead_times for t in thresholds]
+    return model_config
