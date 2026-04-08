@@ -4,6 +4,8 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Calculations to produce Pollen Indexes for a period (Hourly or Daily)."""
 
+from copy import deepcopy
+
 import numpy as np
 from iris.cube import Cube
 
@@ -50,10 +52,15 @@ class PollenIndexForPeriod(PostProcessingPlugin):
         if taxa not in self._POLLEN_INDEX:
             raise ValueError(f"Pollen taxa {taxa} not handled")
         thresholds = self._POLLEN_INDEX[taxa]
+        input_data = deepcopy(self._output_cube.data)
         # Use np.digitize to find the index of the first threshold that is greater than the data value
         self._output_cube.data = (
             np.digitize(self._output_cube.data, thresholds) - 1
         ).astype(FLOAT_DTYPE)  # Subtract 1 to get 0-based index
+        # Set values which are masked in _output_cube to nan
+        self._output_cube.data = np.where(
+            np.isnan(input_data), np.nan, self._output_cube.data
+        )
 
     def _metadata(self, taxa: str):
         """Change the cube name and other metadata.
