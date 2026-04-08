@@ -175,12 +175,13 @@ def test_zero_humidity(
 
 
 def make_pressure_cube(temp_cube: Cube) -> Cube:
-    """
-    Create a 3D pressure cube from a temperature_on_pressure_levels cube.
+    """Create a 3D pressure cube from a temperature_on_pressure_levels cube.
     The resulting cube has shape (levels, y, x).
 
-    :param temp_cube: input temperature on pressure cube
-    :return: a 3D pressure cube
+    Args:
+        temp_cube: input temperature on pressure cube
+
+    Returns: a 3D pressure cube
 
     """
 
@@ -219,14 +220,17 @@ def make_pressure_cube(temp_cube: Cube) -> Cube:
 def set_up_temperature_cube(
     shape: Tuple[int], temperature_value: float, vertical_levels: List[float]
 ) -> Cube:
-    """
-    Create a temperature on pressure cube.
-    :param: shape: Shape of the temperature cube
-    :param: temperature_value: temperature value
-    :param: vertical_levels: List of vertical levels
-    :return: a temperature cube
+    """Create a temperature on pressure cube.
+
+    Args:
+        shape: Shape of the temperature cube
+        temperature_value: temperature value
+        vertical_levels: List of vertical levels
+
+    Returns: a temperature cube
 
     """
+
     temperature = set_up_variable_cube(
         np.full(shape, temperature_value, dtype=np.float32),
         "latlon",
@@ -243,13 +247,17 @@ def set_up_temperature_cube(
 def set_up_rel_humidity_cube(
     shape: Tuple[int], rel_humidity_value: float, vertical_levels: List[float]
 ) -> Cube:
+    """Create a relative humidity on pressure cube.
+
+    Args:
+        shape:  shape of the relative humidity cube
+        rel_humidity_value:  relative humidity value
+        vertical_levels:  list of vertical levels
+
+    Returns: a relative humidity cube
+
     """
-    Create a relative humidity on pressure cube.
-    :param: shape: Shape of the relative humidity cube
-    :param: rel_humidity_value: relative humidity value
-    :param: vertical_levels: List of vertical levels
-    :return: a relative humidity cube
-    """
+
     rel_humidity = set_up_variable_cube(
         np.full(shape, rel_humidity_value, dtype=np.float32),
         "latlon",
@@ -265,10 +273,9 @@ def set_up_rel_humidity_cube(
 
 
 def test_get_pressure_points() -> None:
-    """
-    tests function "get_pressure_points" which is a support function
+    """Tests for function "get_pressure_points" which is a support function
     written to check if a pressure cube has been inadvertantly flipped
-    within the Improver implementation of PrecipitableWater
+    within the Improver implementation of PrecipitableWater.
 
     :return: None
     """
@@ -289,24 +296,28 @@ def test_get_pressure_points() -> None:
     assert np.allclose(get_pressure_points(pressure), np.array(vertical_levels))
     assert np.allclose(get_pressure_points(rel_humidity), np.array(vertical_levels))
 
-    # check captialisation has no affect
+    # check captialisation has an effect (i.e. the function gives a null result)
+    # the meta-data should be CF compliant and not be capitalised in any way
     rel_humidity.coord("pressure").rename("Pressure")
-    assert np.allclose(get_pressure_points(rel_humidity), np.array(vertical_levels))
+    assert np.allclose(get_pressure_points(rel_humidity), np.array([]))
 
     # check null result when no "pressure" dimension
-    rel_humidity.coord("Pressure").rename("Pr3ssure")
+    rel_humidity.coord("Pressure").rename("pr3ssure")
     assert np.allclose(get_pressure_points(rel_humidity), np.array([]))
 
 
 def add_attribute_dictionary(cube: Cube) -> None:
-    """
-    Adds attributes dictionary to cube attributes
+    """Adds attributes dictionary to cube attributes
     to allow pre-existing checking function "metadata_ok"
     to be used.
 
-    :param cube: Cube to add attributes to
-    :return: None
+    Args:
+        cube:  Cube to add attributes to
+
+    Returns: None
+
     """
+
     # set up meta-data required by testing
     attributes_dictionary = {
         "title": "unit test data",
@@ -319,8 +330,7 @@ def add_attribute_dictionary(cube: Cube) -> None:
 
 
 def test_mixing_ratio_without_pressure_parameter() -> None:
-    """
-    the HumidityMixingRatio calculation will generate its own pressure cube
+    """The HumidityMixingRatio calculation will generate its own pressure cube
     if one is not supplied. This unit tests verifies that the results are the
     same with/without an explicit pressure parameter.
 
@@ -330,7 +340,7 @@ def test_mixing_ratio_without_pressure_parameter() -> None:
 
     The reason was that HumidityMixingRadio generated a pressure cube that was wrongly
     flipped veritically. This unit test re-creates the failing scenario to test and
-    exercise the bug fix
+    exercise the bug fix.
 
     The unit test then does a very simple total precipitable water calculation
     ensuring the output from HumidityMixingRadio is suitable.

@@ -465,11 +465,17 @@ def adjust_for_latent_heat(
 def get_pressure_points(cube: Cube) -> np.ndarray:
     """
     Get the pressure points from a <diagnostic>_on_pressure_levels cube.
-    :param cube: input cube
-    :return: pressure points
+    If no pressure coordinate is found, an empty array is returned.
+
+    Args:
+        cube: input cube
+
+    Returns:
+        array of presssure points
     """
+
     for coord in cube.dim_coords:
-        if "pressure" in coord.name().lower():
+        if "pressure" == coord.name():
             return coord.points
     return np.array([])
 
@@ -549,13 +555,22 @@ class HumidityMixingRatio(BasePlugin):
         try:
             pressure_cube = expanded_pressure_list.concatenate_cube()
             """
-            the Iris concatenate_cube function can reverse the list order when forming the cube
-            so the pressure cube is flipped vertically compared to the temperature cube
-            check if this is the case and then re-flip
+            The Iris concatenate_cube function can reverse the list order when forming the cube
+            so the pressure cube is flipped vertically compared to the temperature cube.
+            Check if this is the case and then re-flip.
             """
             pressure_points_for_pressure = get_pressure_points(pressure_cube)
             pressure_points_for_temperature = get_pressure_points(temperature_cube)
-            flip_required = np.array_equal(
+            """
+            To stop flipping occurring if there are no pressure coordinates,
+            check that one array is not empty via the size test, also testing
+            if a flip is worthwhile (i.e. at least 2 elements).
+
+            However, the input (temperature_on_pressure cube) argument is
+            preconditioned to have pressure points, so this test should not be
+            required so it also serves as defensive programming.
+            """
+            flip_required = (pressure_points_for_pressure.size > 1) and np.allclose(
                 np.flip(pressure_points_for_pressure), pressure_points_for_temperature
             )
             if flip_required:
