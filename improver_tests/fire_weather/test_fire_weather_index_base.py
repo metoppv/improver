@@ -1230,7 +1230,7 @@ def test_output_validation_with_partial_ranges(
 def test__set_metadata(plugin_class, plugin_input_cube_names) -> None:
     """Test _set_metadata via process.
 
-    Test confirms that the expected start_date attributes are added to the
+    Test confirms that the expected metadata attributes are added to the
     output cube when run via the process function."""
     args = [
         (plugin_input_cube_names[0], 15.0, "Celsius", False, INPUT_ATTRIBUTES),

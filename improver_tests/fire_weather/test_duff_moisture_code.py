@@ -408,10 +408,10 @@ def test_dmc_day_length_factors_table() -> None:
     assert DuffMoistureCode.DMC_DAY_LENGTH_FACTORS == expected_factors
 
 
-def test_warning_for_start_dates_inside_lag_time() -> None:
+def test_warning_for_iteration_counts_inside_lag_time() -> None:
     """When cycle_count is 14 runtime < LAG_TIME so a warning is created."""
     attributes = {
-        "start_date": str(DEFAULT_TIME - timedelta(days=14)),
+        "iteration_start_date": str(DEFAULT_TIME - timedelta(days=14)),
         "analysis_ready": False,
         "cycle_count": 14,
     }
@@ -433,7 +433,7 @@ def test_no_warning_for_metadata_outside_lag_time(
 ) -> None:
     """When cycle_count is 15 runtime > LAG_TIME so no warning created."""
     attributes = {
-        "start_date": str(DEFAULT_TIME - timedelta(days=15)),
+        "iteration_start_date": str(DEFAULT_TIME - timedelta(days=15)),
         "analysis_ready": True,
         "cycle_count": 15,
     }

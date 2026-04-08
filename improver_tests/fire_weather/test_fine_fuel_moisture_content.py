@@ -698,10 +698,10 @@ def test_process_spatially_varying() -> None:
     assert not np.allclose(result.data[0, 0], result.data[2, 2], atol=0.01)
 
 
-def test_warning_for_start_dates_inside_lag_time() -> None:
+def test_warning_for_iteration_counts_inside_lag_time() -> None:
     """When cycle_count is 2 runtime < LAG_TIME so a warning is created."""
     attributes = {
-        "start_date": str(DEFAULT_TIME - timedelta(days=2)),
+        "iteration_start_date": str(DEFAULT_TIME - timedelta(days=2)),
         "analysis_ready": False,
         "cycle_count": 2,
     }
@@ -724,7 +724,7 @@ def test_no_warning_for_metadata_outside_lag_time(
 ) -> None:
     """When cycle_count is 3 runtime > LAG_TIME so no warning created."""
     attributes = {
-        "start_date": str(DEFAULT_TIME - timedelta(days=3)),
+        "iteration_start_date": str(DEFAULT_TIME - timedelta(days=3)),
         "analysis_ready": True,
         "cycle_count": 3,
     }

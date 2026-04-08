@@ -56,8 +56,8 @@ plugin = ConcreteIterativeFireWeatherIndex()
 
 
 @pytest.fixture
-def input_cubes_no_start_date() -> tuple[Cube]:
-    """Input cubes with start_date missing from attributes on output cube."""
+def input_cubes_no_metadata() -> tuple[Cube]:
+    """Input cubes with metadata missing from output cube."""
     return make_input_cubes(
         [
             ("air_temperature", 20.0, "Celsius", False, {}),
@@ -83,8 +83,8 @@ def initialisation_input_cubes() -> tuple[Cube]:
 @pytest.mark.parametrize(
     "attributes",
     (
-        {"start_date": DEFAULT_START_DATE, "cycle_count": 55},
-        {"start_date": DEFAULT_START_DATE, "analysis_ready": True},
+        {"iteration_start_date": DEFAULT_START_DATE, "cycle_count": 55},
+        {"iteration_start_date": DEFAULT_START_DATE, "analysis_ready": True},
         {"cycle_count": 55, "analysis_ready": True},
         {},
     ),
@@ -102,7 +102,7 @@ def test_warning_for_metadata_inside_lag_time() -> None:
     cycle_count = 9
     under_lag_time = str(DEFAULT_TIME - timedelta(days=cycle_count))
     attributes = {
-        "start_date": under_lag_time,
+        "iteration_start_date": under_lag_time,
         "analysis_ready": 0,
         "cycle_count": cycle_count,
     }
@@ -119,7 +119,7 @@ def test_warning_for_metadata_inside_lag_time() -> None:
 
     cube = plugin.process(cubes)
 
-    assert cube.attributes["start_date"] == under_lag_time
+    assert cube.attributes["iteration_start_date"] == under_lag_time
     assert cube.attributes["cycle_count"] == cycle_count + 1
     assert cube.attributes["analysis_ready"] == "False"
 
@@ -131,7 +131,7 @@ def test_no_warning_for_metadata_outside_lag_time(
     cycle_count = 11
     over_lag_time = str(DEFAULT_TIME - timedelta(days=cycle_count))
     attributes = {
-        "start_date": over_lag_time,
+        "iteration_start_date": over_lag_time,
         "analysis_ready": 1,
         "cycle_count": cycle_count,
     }
@@ -144,7 +144,7 @@ def test_no_warning_for_metadata_outside_lag_time(
     cube = plugin.process(cubes)
 
     assert len(recwarn) == 0
-    assert cube.attributes["start_date"] == over_lag_time
+    assert cube.attributes["iteration_start_date"] == over_lag_time
     assert cube.attributes["cycle_count"] == cycle_count + 1
     assert cube.attributes["analysis_ready"] == "True"
 
@@ -154,7 +154,7 @@ def test_anaylsis_ready_marked_true_when_cycle_count_passes_lag_time() -> None:
     cycle_count = LAG_TIME
     equal_to_lag_time = str(DEFAULT_TIME - timedelta(days=cycle_count))
     attributes = {
-        "start_date": equal_to_lag_time,
+        "iteration_start_date": equal_to_lag_time,
         "analysis_ready": 0,
         "cycle_count": cycle_count,
     }
@@ -166,7 +166,7 @@ def test_anaylsis_ready_marked_true_when_cycle_count_passes_lag_time() -> None:
     cubes = make_input_cubes(cube_args, shape=(5, 5))
     cube = plugin.process(cubes)
 
-    assert cube.attributes["start_date"] == equal_to_lag_time
+    assert cube.attributes["iteration_start_date"] == equal_to_lag_time
     assert cube.attributes["cycle_count"] == cycle_count + 1
     assert cube.attributes["analysis_ready"] == "True"
 
@@ -179,18 +179,19 @@ def test_initialise_true_leads_to_user_warning(
     with pytest.warns(UserWarning, match=msg):
         cube = plugin.process(initialisation_input_cubes, initialise=True)
 
-    diff = abs((parse(cube.attributes["start_date"]) - DEFAULT_TIME).total_seconds())
+    iteration_start_date = parse(cube.attributes["iteration_start_date"])
+    diff = abs(iteration_start_date - DEFAULT_TIME).total_seconds()
     assert diff < 0.1, f"Difference is {diff}s"
 
 
 def test_raise_value_error_if_output_cube_present_for_initialisation(
-    input_cubes_no_start_date: tuple[Cube],
+    input_cubes_no_metadata: tuple[Cube],
 ) -> None:
     """Confirm ValueError raised if output cube given during initialisation."""
     with pytest.raises(
         ValueError, match=r"Unexpected output cube .* when attempting init"
     ):
-        plugin.process(input_cubes_no_start_date, initialise=True)
+        plugin.process(input_cubes_no_metadata, initialise=True)
 
 
 def test_reference_cube_not_found(initialisation_input_cubes):
@@ -206,8 +207,8 @@ def test_reference_cube_not_found(initialisation_input_cubes):
             plugin.process(initialisation_input_cubes, initialise=True)
 
 
-def test_reference_cube_has_start_date_attribute() -> None:
-    """Test ValueError raised if start_date set on reference_cube."""
+def test_reference_cube_has_metadata_attribute() -> None:
+    """Test ValueError raised if metadata set on reference_cube."""
     cube_args = [
         ("air_temperature", 20.0, "Celsius", False, INPUT_ATTRIBUTES),
         ("lwe_thickness_of_precipitation_amount", 50.0, "mm", False, {}),

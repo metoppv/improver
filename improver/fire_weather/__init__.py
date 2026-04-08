@@ -437,16 +437,16 @@ class FireWeatherIndexBase(BasePlugin):
         attr_name = self._get_attribute_name(self.METADATA_SOURCE_CUBE)
         try:
             start_date_cube = getattr(self, attr_name)
-            start_date = start_date_cube.attributes["start_date"]
+            start_date = start_date_cube.attributes["iteration_start_date"]
             cycle_count = start_date_cube.attributes["cycle_count"]
             analysis_ready = str(start_date_cube.attributes["analysis_ready"])
         except (AttributeError, KeyError):
             raise NotImplementedError(
                 "METADATA_SOURCE_CUBE must match an available input cube with all the "
-                "required attributes: `start_date`, `cycle_count` and `analysis_ready`."
+                "required attributes: `iteration_start_date`, `cycle_count` and `analysis_ready`."
             )
 
-        output_cube.attributes["start_date"] = start_date
+        output_cube.attributes["iteration_start_date"] = start_date
         output_cube.attributes["cycle_count"] = cycle_count
         output_cube.attributes["analysis_ready"] = analysis_ready
         return output_cube
@@ -535,7 +535,7 @@ class IterativeFireWeatherIndexBase(FireWeatherIndexBase):
         return self._record_lag_time_state(output_cube)
 
     def _initialise_baseline_cube(self, cubes: tuple[Cube, ...] | CubeList) -> Cube:
-        """Create a baseline cube from the reference cube and set start_date=now.
+        """Create a baseline cube from the reference cube and set iteration_start_date.
 
         Args:
             cubes:
@@ -543,7 +543,7 @@ class IterativeFireWeatherIndexBase(FireWeatherIndexBase):
 
         Raises:
             ValueError: If the REFERENCE_CUBE is not present in cubes
-            ValueError: If the REFERENCE_CUBE has a start_date attribute
+            ValueError: If the REFERENCE_CUBE has a iteration_start_date attribute
 
         """
         try:
@@ -561,11 +561,11 @@ class IterativeFireWeatherIndexBase(FireWeatherIndexBase):
             self.OUTPUT_CUBE_NAME,
             self._REQUIRED_UNITS[self.OUTPUT_CUBE_NAME],
         )
-        if "start_date" in cube.attributes:
+        if "iteration_start_date" in cube.attributes:
             raise ValueError("Unexpected metadata on reference_cube")
 
         time_coord = self.precipitation.coord("time").copy()
-        cube.attributes["start_date"] = str(
+        cube.attributes["iteration_start_date"] = str(
             time_coord.units.num2pydate(time_coord.points)[0]
         )
         cube.attributes["cycle_count"] = 0
@@ -582,7 +582,6 @@ class IterativeFireWeatherIndexBase(FireWeatherIndexBase):
 
         Raises:
             ValueError: If cube has missing metadata attributes
-            ValueError: If the REFERENCE_CUBE has a start_date attribute
 
         Warns:
             UserWarning:
@@ -590,7 +589,7 @@ class IterativeFireWeatherIndexBase(FireWeatherIndexBase):
 
         """
         metadata_in_cube_attributes = [
-            "start_date" in cube.attributes,
+            "iteration_start_date" in cube.attributes,
             "cycle_count" in cube.attributes,
             "analysis_ready" in cube.attributes,
         ]
@@ -598,7 +597,7 @@ class IterativeFireWeatherIndexBase(FireWeatherIndexBase):
             raise ValueError(
                 f"{cube.name()} has missing metadata attributes. To start "
                 f"initialise process set `initialise=True`."
-            )  # Consider moving 595 to 604
+            )
 
         cycle_count = cube.attributes["cycle_count"]
         if cycle_count < self.LAG_TIME:

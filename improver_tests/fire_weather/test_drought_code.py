@@ -389,10 +389,10 @@ def test_dc_day_length_factors_table() -> None:
     assert DroughtCode.DC_DAY_LENGTH_FACTORS == expected_factors
 
 
-def test_warning_for_start_dates_inside_lag_time() -> None:
+def test_warning_for_iteration_count_inside_lag_time() -> None:
     """When cycle_count is 9 runtime < LAG_TIME so a warning is created."""
     attributes = {
-        "start_date": str(DEFAULT_TIME - timedelta(days=9)),
+        "iteration_start_date": str(DEFAULT_TIME - timedelta(days=9)),
         "analysis_ready": False,
         "cycle_count": 9,
     }
@@ -413,7 +413,7 @@ def test_no_warning_for_metadata_outside_lag_time(
 ) -> None:
     """When cycle_count is 55 runtime > LAG_TIME so no warning created."""
     attributes = {
-        "start_date": str(DEFAULT_TIME - timedelta(days=55)),
+        "iteration_start_date": str(DEFAULT_TIME - timedelta(days=55)),
         "analysis_ready": True,
         "cycle_count": 55,
     }
