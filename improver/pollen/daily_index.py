@@ -11,6 +11,7 @@ import numpy as np
 from iris.cube import Cube, CubeList
 
 from improver import PostProcessingPlugin
+from improver.metadata.constants import FLOAT_DTYPE
 from improver.utilities.common_input_handle import as_cubelist
 
 
@@ -39,6 +40,8 @@ class PollenDailyIndex(PostProcessingPlugin):
         stacked_data = np.stack([cube.data for cube in cubes], axis=0)
 
         cube_shape = cubes[0].data.shape
+        # Keep a copy of one of the input cubes' data to use for masking the output data later
+        input_data = deepcopy(cubes[0].data)
         # Create a new numpy array with this shape to hold the pollen index values, and fill it
         # with the maximum values across the taxa dimension
         pollen_index_data = np.full(cube_shape, np.nan)  # Initialize with NaN values
@@ -47,7 +50,11 @@ class PollenDailyIndex(PostProcessingPlugin):
                 pollen_index_data[i, j] = np.max(
                     stacked_data[:, i, j]
                 )  # Max across taxa dimension for each grid point
-        self._output_cube.data = pollen_index_data.astype(np.int32)
+        self._output_cube.data = pollen_index_data.astype(FLOAT_DTYPE)
+        # Set values which are masked in _output_cube to nan
+        self._output_cube.data = np.where(
+            np.isnan(input_data), np.nan, self._output_cube.data
+        )
 
     def _metadata(self, cubes: tuple[Cube, ...] | CubeList):
         """Change the cube name and other metadata.
@@ -55,7 +62,7 @@ class PollenDailyIndex(PostProcessingPlugin):
             cubes:
                 Input cubes for all pollen types, used to update the cube name and metadata
         """
-        self._output_cube.rename("pollen_index")
+        self._output_cube.rename("pollen_index_PT24H")
 
     def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
         """Calculate the Pollen Daily Index.

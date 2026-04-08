@@ -60,7 +60,7 @@ class PollenDailyConcentration(PostProcessingPlugin):
             taxa:
                 The pollen taxa being processed, used to update the cube name and metadata
         """
-        self._output_cube.rename(f"{taxa.lower()}_concentration")
+        self._output_cube.rename(f"{taxa.lower()}_concentration_PT24H")
 
     def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
         """Calculate the Pollen Daily Concentration.

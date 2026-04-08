@@ -40,6 +40,9 @@ class PollenIndexForPeriod(PostProcessingPlugin):
     # The output cube is a deepcopy of the input cube (to keep metadata) and is then manipulated in place
     _output_cube = None
 
+    # This will be set to the period (e.g. PT01H or PT24H) based on the input cube name
+    _cube_period = None
+
     def _calculate(self, taxa: str):
         """Calculate the Pollen Index.
 
@@ -68,7 +71,7 @@ class PollenIndexForPeriod(PostProcessingPlugin):
             taxa:
                 The pollen taxa being processed, used to update the cube name and metadata
         """
-        self._output_cube.rename(f"{taxa}_index")
+        self._output_cube.rename(f"{taxa}_index_{self._cube_period}")
 
         cube_attrbutes = self._output_cube.attributes
         # Change the following Attributes in the output cube if the key and old value
@@ -99,6 +102,9 @@ class PollenIndexForPeriod(PostProcessingPlugin):
                 If output values fall outside typical expected ranges
         """
         taxa = cube.attributes.get("taxa").lower()
+        self._cube_period = cube.name().split("_")[
+            -1
+        ]  # Get the period (e.g. PT01H or PT24H)
         self._output_cube = build_output_cube_with_new_units(self, cube, 1)
         self._calculate(taxa)
         self._metadata(taxa)
