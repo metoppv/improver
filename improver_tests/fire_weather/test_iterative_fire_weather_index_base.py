@@ -113,7 +113,7 @@ def test_warning_for_metadata_inside_lag_time() -> None:
     ]
     cubes = make_input_cubes(cube_args, shape=(5, 5))
 
-    msg = r"iterative_cube is 9 iterations in to its initialisation"
+    msg = r"iterative_cube is 9 iterations in to its spin-up period"
     with pytest.warns(UserWarning, match=msg):
         plugin.process(cubes)
 
@@ -175,7 +175,7 @@ def test_initialise_true_leads_to_user_warning(
     initialisation_input_cubes: tuple[Cube],
 ) -> None:
     """When initialise=True then iteration_count < LAG_TIME so a warning is created."""
-    msg = r"iterative_cube is 0 iterations in to its initialisation"
+    msg = r"iterative_cube is 0 iterations in to its spin-up period"
     with pytest.warns(UserWarning, match=msg):
         cube = plugin.process(initialisation_input_cubes, initialise=True)
 

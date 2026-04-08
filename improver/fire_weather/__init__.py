@@ -604,7 +604,7 @@ class IterativeFireWeatherIndexBase(FireWeatherIndexBase):
             cube.attributes["analysis_ready"] = "False"
             warnings.warn(
                 f"{cube.name()} is {iteration_count} iterations in "
-                f"to its initialisation period of {self.LAG_TIME}.",
+                f"to its spin-up period of {self.LAG_TIME}.",
                 UserWarning,
                 stacklevel=3,
             )

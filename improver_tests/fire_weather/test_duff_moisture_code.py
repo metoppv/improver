@@ -423,7 +423,7 @@ def test_warning_for_iteration_counts_inside_lag_time() -> None:
     ]
     cubes = make_input_cubes(cube_args, shape=(5, 5))
 
-    msg = r"duff_moisture_code is 14 iterations in to its initialisation"
+    msg = r"duff_moisture_code is 14 iterations in to its spin-up period"
     with pytest.warns(UserWarning, match=msg):
         DuffMoistureCode().process(cubes, month=4)
 
@@ -466,7 +466,7 @@ def test_initialise_true_leads_to_user_warning() -> None:
         shape=(5, 5),
     )
 
-    msg = r"duff_moisture_code is 0 iterations in to its initialisation"
+    msg = r"duff_moisture_code is 0 iterations in to its spin-up period"
     with pytest.warns(UserWarning, match=msg):
         result = DuffMoistureCode().process(
             initialisation_input_cubes, month=12, initialise=True

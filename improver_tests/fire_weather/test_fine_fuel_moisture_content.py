@@ -714,7 +714,7 @@ def test_warning_for_iteration_counts_inside_lag_time() -> None:
     ]
     cubes = make_input_cubes(cube_args, shape=(5, 5))
 
-    msg = r"fine_fuel_moisture_content is 2 iterations in to its initialisation"
+    msg = r"fine_fuel_moisture_content is 2 iterations in to its spin-up period"
     with pytest.warns(UserWarning, match=msg):
         FineFuelMoistureContent().process(cubes, month=4)
 
@@ -759,7 +759,7 @@ def test_initialise_true_leads_to_user_warning() -> None:
         shape=(5, 5),
     )
 
-    msg = r"fine_fuel_moisture_content is 0 iterations in to its initialisation"
+    msg = r"fine_fuel_moisture_content is 0 iterations in to its spin-up period"
     with pytest.warns(UserWarning, match=msg):
         result = FineFuelMoistureContent().process(
             initialisation_input_cubes, month=12, initialise=True
