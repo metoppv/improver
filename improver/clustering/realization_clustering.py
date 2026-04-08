@@ -1571,7 +1571,7 @@ class RealizationSelection(BasePlugin):
         defined by the cluster_cube's attributes.
 
         Args:
-            cubes  (list of iris.cube.Cube): List of input cubes, including forecast
+            cubes  (list of Cube): List of input cubes, including forecast
                 cubes and a cluster cube. The forecast cubes are from all source models
                 for a common validity time and with each containing a "realization"
                 coordinate that contributed to the clustering. Each cube must have the

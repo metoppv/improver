@@ -10,6 +10,7 @@ from datetime import datetime
 import iris
 import numpy as np
 import pytest
+from iris.cube import Cube, CubeList
 from iris.util import promote_aux_coord_to_dim_coord
 
 from improver.clustering.realization_clustering import (
@@ -83,7 +84,7 @@ def _create_4d_realization_cube(
     else:
         n_forecast_periods = len(forecast_periods)
 
-    cubes = iris.cube.CubeList()
+    cubes = CubeList()
     for i, fp_hours in enumerate(forecast_periods):
         if realization_values is not None:
             # Use per-realization values without forecast period offset
@@ -846,7 +847,7 @@ def test_matcher_process_4d_multiple_candidates():
     cluster_0_data = np.full((2, 3, 3), 10.0, dtype=np.float32)
     cluster_1_data = np.full((2, 3, 3), 100.0, dtype=np.float32)
 
-    clustered_cubes = iris.cube.CubeList()
+    clustered_cubes = CubeList()
     for fp_idx in range(2):
         data = np.array(
             [cluster_0_data[fp_idx], cluster_1_data[fp_idx]], dtype=np.float32
@@ -876,7 +877,7 @@ def test_matcher_process_4d_multiple_candidates():
     candidate_2_data = np.full((2, 3, 3), 55.0, dtype=np.float32)  # Middle
     candidate_3_data = np.full((2, 3, 3), 200.0, dtype=np.float32)  # Far from both
 
-    candidate_cubes = iris.cube.CubeList()
+    candidate_cubes = CubeList()
     for fp_idx in range(2):
         data = np.array(
             [
@@ -1077,7 +1078,7 @@ def test_clusterandmatch_process_basic():
     pytest.importorskip("esmf_regrid")
 
     # Create cubes with distinct, verifiable values
-    cubes = iris.cube.CubeList()
+    cubes = CubeList()
     spatial_shape = (5, 5)
 
     # Primary input with 6 realizations, value 100
@@ -1142,7 +1143,7 @@ def test_clusterandmatch_process_basic():
     result = plugin.process(cubes)
 
     # Check basic structure
-    assert isinstance(result, iris.cube.Cube)
+    assert isinstance(result, Cube)
     assert result.name() == "air_temperature"
     assert result.units == "K"
 
@@ -1255,7 +1256,7 @@ def test_clusterandmatch_cluster_primary_input(
     pytest.importorskip("kmedoids")
     pytest.importorskip("esmf_regrid")
 
-    cubes = iris.cube.CubeList()
+    cubes = CubeList()
     spatial_shape = (5, 5)
 
     # Primary input with 6 realizations, value 100
@@ -1313,7 +1314,7 @@ def test_clusterandmatch_cluster_primary_input(
     )
 
     # Check basic structure
-    assert isinstance(result, iris.cube.Cube)
+    assert isinstance(result, Cube)
     assert result.name() == "air_temperature"
 
     # Check data values for each forecast period
@@ -1330,7 +1331,7 @@ def test_clusterandmatch_cluster_primary_input(
 def test_clusterandmatch_process_no_primary_cube():
     """Test that ValueError is raised if no primary cube is found with the specified model_id_attr."""
     # Only secondary input cubes, no primary input
-    cubes = iris.cube.CubeList()
+    cubes = CubeList()
     spatial_shape = (5, 5)
     # Add a secondary input cube with model_id 'secondary_model_1'
     cubes.extend(
@@ -1386,7 +1387,7 @@ def test_clusterandmatch_precedence_order(
     pytest.importorskip("esmf_regrid")
 
     # Create cubes with distinct patterns
-    cubes = iris.cube.CubeList()
+    cubes = CubeList()
     spatial_shape = (5, 5)
 
     # Primary input with 6 realizations at fp=0, value 100
@@ -1493,7 +1494,7 @@ def test_clusterandmatch_overlapping_forecast_periods():
     pytest.importorskip("kmedoids")
     pytest.importorskip("esmf_regrid")
 
-    cubes = iris.cube.CubeList()
+    cubes = CubeList()
     spatial_shape = (5, 5)
 
     # Primary input with 6 realizations, value 100
@@ -1586,7 +1587,7 @@ def test_clusterandmatch_single_secondary_input():
     pytest.importorskip("kmedoids")
     pytest.importorskip("esmf_regrid")
 
-    cubes = iris.cube.CubeList()
+    cubes = CubeList()
     spatial_shape = (5, 5)
 
     # Primary input with value 100
@@ -1635,7 +1636,7 @@ def test_clusterandmatch_single_secondary_input():
     result = plugin.process(cubes)
 
     # Check structure
-    assert isinstance(result, iris.cube.Cube)
+    assert isinstance(result, Cube)
     assert len(result.coord("realization").points) == 3
 
     # Should have all 3 forecast periods (0, 6 from secondary, 12 from primary)
@@ -1720,7 +1721,7 @@ def test_clusterandmatch_categorise_full_realizations(
     pytest.importorskip("kmedoids")
     pytest.importorskip("esmf_regrid")
 
-    cubes = iris.cube.CubeList()
+    cubes = CubeList()
     spatial_shape = (5, 5)
 
     # Primary input with value 100
@@ -1807,7 +1808,7 @@ def test_clusterandmatch_categorise_partial_realizations():
     pytest.importorskip("kmedoids")
     pytest.importorskip("esmf_regrid")
 
-    cubes = iris.cube.CubeList()
+    cubes = CubeList()
     spatial_shape = (5, 5)
 
     # Primary input with value 100
@@ -1934,7 +1935,7 @@ def test_clusterandmatch_multiple_partial_secondary_same_forecast_period():
     pytest.importorskip("kmedoids")
     pytest.importorskip("esmf_regrid")
 
-    cubes = iris.cube.CubeList()
+    cubes = CubeList()
     spatial_shape = (5, 5)
 
     # Primary input with 6 realizations at fp=0 with varying values
@@ -2060,7 +2061,7 @@ def test_clusterandmatch_categorise_mixed_realizations():
     pytest.importorskip("kmedoids")
     pytest.importorskip("esmf_regrid")
 
-    cubes = iris.cube.CubeList()
+    cubes = CubeList()
     spatial_shape = (5, 5)
 
     # Primary input with value 100
@@ -2174,7 +2175,7 @@ def test_clusterandmatch_regrid_for_clustering_false():
     pytest.importorskip("kmedoids")
     pytest.importorskip("esmf_regrid")
 
-    cubes = iris.cube.CubeList()
+    cubes = CubeList()
     spatial_shape = (5, 5)
 
     # Primary input with 6 realizations, value 100
@@ -2239,7 +2240,7 @@ def test_clusterandmatch_regrid_for_clustering_false():
     result = plugin.process(cubes)
 
     # Check basic structure
-    assert isinstance(result, iris.cube.Cube)
+    assert isinstance(result, Cube)
     assert result.name() == "air_temperature"
     assert result.units == "K"
 
@@ -2349,7 +2350,7 @@ def test_clusterandmatch_regrid_for_clustering_and_target_grid_name(
         "secondary_inputs": {"model_b": [0, 6]},
     }
 
-    cubes = iris.cube.CubeList()
+    cubes = CubeList()
     cubes.extend(
         _create_4d_realization_cube(
             n_realizations=2,
@@ -2405,7 +2406,7 @@ def test_clusterandmatch_full_realization_input_missing_forecast_period():
     pytest.importorskip("kmedoids")
     pytest.importorskip("esmf_regrid")
 
-    cubes = iris.cube.CubeList()
+    cubes = CubeList()
     spatial_shape = (4, 4)
 
     # Primary input with 3 forecast periods: 0, 6, 12
@@ -2499,7 +2500,7 @@ def test_clusterandmatch_secondary_input_missing_primary_forecast_period(
     pytest.importorskip("kmedoids")
     pytest.importorskip("esmf_regrid")
 
-    cubes = iris.cube.CubeList()
+    cubes = CubeList()
     spatial_shape = (5, 5)
 
     # Primary input with parameterized forecast periods
@@ -2624,7 +2625,7 @@ def _make_cluster_cube_for_selection(
 
 def _make_forecast_cubes(model_id, realization_vals, forecast_period, shape=(5, 5)):
     """Helper to create a CubeList of forecast cubes for a single forecast period."""
-    cubes = iris.cube.CubeList()
+    cubes = CubeList()
     data = np.array([np.full(shape, val, dtype=np.float32) for val in realization_vals])
     cube = set_up_variable_cube(
         data,

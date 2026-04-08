@@ -19,7 +19,7 @@ def process(
     """Select realizations from input forecast cubes according to cluster assignments.
 
     Args:
-        cubes (list of iris.cube.Cube):
+        cubes (list of Cube):
             List of input cubes, including forecast cubes and a cluster cube.
             The cluster cube is identified by the presence of the
             "primary_input_realization_to_cluster_medoid" attribute.
@@ -30,7 +30,7 @@ def process(
             The name of the cube attribute used to identify the model source.
 
     Returns:
-        iris.cube.Cube:
+        Cube:
             A merged Cube containing the selected realizations, with realization
             indices matching the cluster indices.
     """
