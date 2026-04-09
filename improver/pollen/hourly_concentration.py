@@ -65,6 +65,15 @@ class PollenHourlyConcentration(PostProcessingPlugin):
     # The output cube is a deepcopy of the input cube (to keep metadata) and is then manipulated in place
     _output_cube = None
 
+    def __init__(self, scaling_factors_dict: dict = None) -> None:
+        """Initialise class.
+
+        Args:
+            scaling_factors_dict:
+                Optional scaling factors to use per pollen type
+        """
+        self._scaling_factors_dict = scaling_factors_dict
+
     def _calculate(self, taxa: str):
         """Perform calculations on input cube.
 
@@ -102,7 +111,6 @@ class PollenHourlyConcentration(PostProcessingPlugin):
     def process(
         self,
         cube: Cube,
-        scaling_factors_dict: dict = None,
     ) -> Cube:
         """Calculate the Pollen Concentrations.
 
@@ -115,7 +123,6 @@ class PollenHourlyConcentration(PostProcessingPlugin):
         Returns:
             The calculated output cube.
         """
-        self._scaling_factors_dict = scaling_factors_dict
         self._output_cube = build_output_cube_with_new_units(self, cube, "grains / m3")
 
         # Check that the pollen taxa is one that is handled by the class

@@ -111,7 +111,7 @@ def test_scaling_factor():
     }
     for taxa, scaling_factor in scaling_factors_dict.items():
         cube = get_input_cubes(taxa)
-        plugin = PollenHourlyConcentration()
-        output_cube = plugin.process(cube, scaling_factors_dict)
+        plugin = PollenHourlyConcentration(scaling_factors_dict)
+        output_cube = plugin.process(cube)
         expected_scaled_data = (EXPECTED[taxa] * scaling_factor[1]).astype(FLOAT_DTYPE)
         np.testing.assert_array_almost_equal(output_cube.data, expected_scaled_data)
