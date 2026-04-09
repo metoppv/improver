@@ -4,11 +4,10 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Tests for the HumidityMixingRatio plugin"""
 
-from typing import List, Tuple
+from typing import Tuple
 from unittest.mock import patch, sentinel
 
 import iris
-import iris.cube as icube
 import numpy as np
 import pytest
 from iris.coords import AncillaryVariable
@@ -201,24 +200,15 @@ def make_pressure_cube(temp_cube: Cube) -> Cube:
     # ----------------------------------------
     # 3. Build a new pressure cube
     # ----------------------------------------
-    pressure_cube = icube.Cube(
-        p_3d,
-        standard_name="air_pressure",
-        long_name="air_pressure unit test",
-        units=p_coord.units,
-        dim_coords_and_dims=[
-            (p_coord, 0),  # vertical dimension
-            (temp_cube.coord(axis="y"), 1),  # y coordinate
-            (temp_cube.coord(axis="x"), 2),  # x coordinate
-        ],
-        attributes=temp_cube.attributes,
-    )
+    pressure_cube = temp_cube.copy(p_3d)
+    pressure_cube.rename("air_pressure")
+    pressure_cube.units = p_coord.units
 
     return pressure_cube
 
 
 def set_up_temperature_cube(
-    shape: Tuple[int], temperature_value: float, vertical_levels: List[float]
+    shape: Tuple[int, int, int], temperature_value: float, vertical_levels: np.ndarray
 ) -> Cube:
     """Create a temperature on pressure cube.
 
@@ -235,8 +225,6 @@ def set_up_temperature_cube(
         np.full(shape, temperature_value, dtype=np.float32),
         "latlon",
         name="air_temperature",
-        x_grid_spacing=1.0,
-        y_grid_spacing=1.0,
         vertical_levels=vertical_levels,
         pressure=True,
     )
@@ -245,7 +233,7 @@ def set_up_temperature_cube(
 
 
 def set_up_rel_humidity_cube(
-    shape: Tuple[int], rel_humidity_value: float, vertical_levels: List[float]
+    shape: Tuple[int, int, int], rel_humidity_value: float, vertical_levels: np.ndarray
 ) -> Cube:
     """Create a relative humidity on pressure cube.
 
@@ -263,8 +251,6 @@ def set_up_rel_humidity_cube(
         "latlon",
         name="relative_humidity",
         units="1",
-        x_grid_spacing=1.0,
-        y_grid_spacing=1.0,
         vertical_levels=vertical_levels,
         pressure=True,
     )
@@ -272,29 +258,29 @@ def set_up_rel_humidity_cube(
     return rel_humidity
 
 
-def test_get_pressure_points() -> None:
+@pytest.fixture
+def cubes_on_pressure_levels() -> Tuple[Cube, Cube, Cube, np.ndarray]:
+    """Set up temperature, pressure and relative humidity cubes on pressure levels."""
+    vertical_levels = np.array([100000.0, 50000.0, 100.0])
+    shape = (len(vertical_levels), 3, 3)
+    temperature = set_up_temperature_cube(shape, 293, vertical_levels)
+    pressure = make_pressure_cube(temperature)
+    rel_humidity = set_up_rel_humidity_cube(shape, 0.1, vertical_levels)
+    return temperature, pressure, rel_humidity, vertical_levels
+
+
+def test_get_pressure_points(cubes_on_pressure_levels) -> None:
     """Tests for function "get_pressure_points" which is a support function
     written to check if a pressure cube has been inadvertantly flipped
     within the Improver implementation of PrecipitableWater.
 
     :return: None
     """
-    temperature_value, rel_humidity_value = (
-        293,
-        0.1,
-    )
+    temperature, pressure, rel_humidity, vertical_levels = cubes_on_pressure_levels
 
-    # set up cubes
-    vertical_levels = [100000.0, 50000.0, 100.0]
-    shape = (len(vertical_levels), 3, 3)
-
-    temperature = set_up_temperature_cube(shape, temperature_value, vertical_levels)
-    pressure = make_pressure_cube(temperature)
-    rel_humidity = set_up_rel_humidity_cube(shape, rel_humidity_value, vertical_levels)
-
-    assert np.allclose(get_pressure_points(temperature), np.array(vertical_levels))
-    assert np.allclose(get_pressure_points(pressure), np.array(vertical_levels))
-    assert np.allclose(get_pressure_points(rel_humidity), np.array(vertical_levels))
+    assert np.allclose(get_pressure_points(temperature), vertical_levels)
+    assert np.allclose(get_pressure_points(pressure), vertical_levels)
+    assert np.allclose(get_pressure_points(rel_humidity), vertical_levels)
 
     # check captialisation has an effect (i.e. the function gives a null result)
     # the meta-data should be CF compliant and not be capitalised in any way
@@ -329,7 +315,7 @@ def add_attribute_dictionary(cube: Cube) -> None:
         cube.attributes[k] = v
 
 
-def test_mixing_ratio_without_pressure_parameter() -> None:
+def test_mixing_ratio_without_pressure_parameter(cubes_on_pressure_levels) -> None:
     """The HumidityMixingRatio calculation will generate its own pressure cube
     if one is not supplied. This unit tests verifies that the results are the
     same with/without an explicit pressure parameter.
@@ -349,19 +335,9 @@ def test_mixing_ratio_without_pressure_parameter() -> None:
 
     """
     iris.FUTURE.save_split_attrs = True  # to stop Iris warning
-    temperature_value, rel_humidity_value, expected = (
-        293,
-        0.1,
-        1.459832e-3,
-    )
+    expected = 1.459832e-3
 
-    # set up input cubes
-    vertical_levels = [100000.0, 50000.0, 100.0]
-    shape = (len(vertical_levels), 3, 3)
-
-    temperature = set_up_temperature_cube(shape, temperature_value, vertical_levels)
-    pressure = make_pressure_cube(temperature)
-    rel_humidity = set_up_rel_humidity_cube(shape, rel_humidity_value, vertical_levels)
+    temperature, pressure, rel_humidity, vertical_levels = cubes_on_pressure_levels
 
     # mixing ratio calculation with 3 parameters
     w3 = HumidityMixingRatio()([temperature, pressure, rel_humidity])
