@@ -8,16 +8,15 @@ import os
 import numpy as np
 from iris.cube import Cube
 
-from improver.fire_weather import IterativeFireWeatherIndexBase
+from improver.fire_weather import IterativeFireWeatherBase
 
 DMC_START_VALUE = os.environ.get("DMC_START_VALUE", 6)
 DMC_LAG_TIME = os.environ.get("DMC_LAG_TIME", 15)
 
 
-class DuffMoistureCode(IterativeFireWeatherIndexBase):
+class DuffMoistureCode(IterativeFireWeatherBase):
     """
-    Plugin to calculate the Duff Moisture Code (DMC) following
-    the Canadian Forest Fire Weather Index System.
+    Plugin to calculate the Duff Moisture Code (DMC).
 
     The DMC is a numerical rating of the average moisture content of loosely
     compacted organic layers of moderate depth. It indicates fuel consumption

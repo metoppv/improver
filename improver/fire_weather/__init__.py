@@ -2,7 +2,7 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""Fire Weather Index System components."""
+"""Canadian Forest Fire Weather Index System components."""
 
 import warnings
 from abc import abstractmethod
@@ -19,11 +19,12 @@ from improver.utilities.common_input_handle import as_cubelist
 from improver.utilities.load import load_baseline_cube
 
 
-class FireWeatherIndexBase(BasePlugin):
+class FireWeatherBase(BasePlugin):
     """
-    Abstract base class for Fire Weather Index System calculations.
+    Abstract base class for the Canadian Forest Fire Weather Index (CFFWI) System
+    calculations.
 
-    This class provides common functionality for all fire weather index
+    This class provides common functionality for all fire weather
     components, including:
 
     - Standardised cube loading and validation
@@ -31,7 +32,7 @@ class FireWeatherIndexBase(BasePlugin):
     - Output cube creation
     - Process orchestration
 
-    The Canadian Forest Fire Weather Index System requires specific units
+    The CFFWI system requires specific units
     for all calculations. These are fixed and cannot be overridden:
 
     - Temperature: degrees Celsius (Celsius)
@@ -56,19 +57,19 @@ class FireWeatherIndexBase(BasePlugin):
     """
 
     # Fixed unit conversions for all cube types used in fire weather calculations
-    # These units are required by the Canadian FWI System and cannot be changed
+    # These units are required by the CFFWI system and cannot be changed
     _REQUIRED_UNITS: dict[str, str] = {
         "temperature": "Celsius",
         "precipitation": "mm",
         "relative_humidity": "1",
         "wind_speed": "km/h",
         # Fire weather indices are dimensionless
-        "fine_fuel_moisture_content": "1",
+        "fine_fuel_moisture_code": "1",
         "duff_moisture_code": "1",
         "drought_code": "1",
         "initial_spread_index": "1",
         "build_up_index": "1",
-        "canadian_forest_fire_weather_index": "1",
+        "fire_weather_index": "1",
         "fire_severity_index": "1",
         # Disambiguated input indices (used by FFMC, DMC, DC, and ISI calculations)
         "input_ffmc": "1",
@@ -99,7 +100,7 @@ class FireWeatherIndexBase(BasePlugin):
         "input_dc": (0.0, None),  # DC is non-negative
         "initial_spread_index": (0.0, 100.0),  # ISI valid range
         "build_up_index": (0.0, 500.0),  # BUI valid range
-        "canadian_forest_fire_weather_index": (0.0, 100.0),  # FWI valid range
+        "fire_weather_index": (0.0, 100.0),  # FWI valid range
     }
 
     def load_input_cubes(
@@ -174,7 +175,7 @@ class FireWeatherIndexBase(BasePlugin):
         Examples:
             "air_temperature" -> "temperature"
             "lwe_thickness_of_precipitation_amount" -> "precipitation"
-            "fine_fuel_moisture_content" -> "input_ffmc" (if INPUT_ATTRIBUTE_MAPPINGS is set)
+            "fine_fuel_moisture_code" -> "input_ffmc" (if INPUT_ATTRIBUTE_MAPPINGS is set)
         """
         # Check class-specific mappings first (for disambiguation)
         if standard_name in self.INPUT_ATTRIBUTE_MAPPINGS:
@@ -290,7 +291,7 @@ class FireWeatherIndexBase(BasePlugin):
 
     @abstractmethod
     def _calculate(self) -> np.ndarray:
-        """Perform the fire weather index calculation.
+        """Perform the fire weather calculation.
 
         This method must be implemented by subclasses to perform
         the specific calculation logic for that component.
@@ -302,7 +303,7 @@ class FireWeatherIndexBase(BasePlugin):
         raise NotImplementedError("Subclasses must implement the _calculate method.")
 
     def process(self, *cubes: Union[Cube, CubeList], month: int | None = None) -> Cube:
-        """Calculate the fire weather index component.
+        """Calculate the fire weather component.
 
         Args:
             cubes:
@@ -418,8 +419,8 @@ class FireWeatherIndexBase(BasePlugin):
               or the named cube does not contain the necessary metadata
 
         Note:
-            Metadata is required on all Fire Severity Index datasets to monitor the
-            build up period of the iterative datasets (Fine Fuel Moisture Content,
+            Metadata is required on all fire weather datasets to monitor the
+            build up period of the iterative datasets (Fine Fuel Moisture Code,
             Duff Moisture Code and Drought Code).
 
             These values are also added to datasets which are not iterative but which
@@ -452,11 +453,11 @@ class FireWeatherIndexBase(BasePlugin):
         return output_cube
 
 
-class IterativeFireWeatherIndexBase(FireWeatherIndexBase):
+class IterativeFireWeatherBase(FireWeatherBase):
     """
     Iterative abstract base class for Iterative Fire Weather calculations.
 
-    Extends common functionality provided by FireWeatherIndexBase to provide
+    Extends common functionality provided by FireWeatherBase to provide
     iterative functionality for Fire Weather values that take the previous
     days outputs as an input to the current days calculation.
 

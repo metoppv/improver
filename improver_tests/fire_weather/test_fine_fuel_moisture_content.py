@@ -11,7 +11,7 @@ import numpy as np
 import pytest
 from iris.cube import Cube, CubeList
 
-from improver.fire_weather.fine_fuel_moisture_content import FineFuelMoistureContent
+from improver.fire_weather.fine_fuel_moisture_code import FineFuelMoistureCode
 from improver_tests.fire_weather import (
     DEFAULT_TIME,
     INPUT_ATTRIBUTES,
@@ -70,7 +70,7 @@ def input_cubes(
         ("lwe_thickness_of_precipitation_amount", precip_val, precip_units, True, {}),
         ("relative_humidity", rh_val, rh_units, False, {}),
         ("wind_speed", wind_val, wind_units, False, {}),
-        ("fine_fuel_moisture_content", ffmc_val, ffmc_units, True, INPUT_ATTRIBUTES),
+        ("fine_fuel_moisture_code", ffmc_val, ffmc_units, True, INPUT_ATTRIBUTES),
     ]
     return make_input_cubes(cube_args, shape=shape)
 
@@ -112,7 +112,7 @@ def test__calculate_moisture_content(
             FFMC value for all grid points.
     """
     cubes = input_cubes(temp_val, precip_val, rh_val, wind_val, ffmc_val)
-    plugin = FineFuelMoistureContent()
+    plugin = FineFuelMoistureCode()
     plugin.load_input_cubes(CubeList(cubes))
     plugin._calculate_moisture_content()
 
@@ -173,7 +173,7 @@ def test__perform_rainfall_adjustment(
     cubes = input_cubes(
         precip_val=precip_val,
     )
-    plugin = FineFuelMoistureContent()
+    plugin = FineFuelMoistureCode()
     plugin.load_input_cubes(CubeList(cubes))
     # Overwrite moisture_content and initial_moisture_content for explicit test control
     plugin.moisture_content = np.full(plugin.precipitation.data.shape, initial_mc_val)
@@ -213,11 +213,11 @@ def test__perform_rainfall_adjustment_spatially_varying() -> None:
     )
     humidity_cube = make_cube(np.full(shape, 50.0), "relative_humidity", "1")
     wind_cube = make_cube(np.full(shape, 10.0), "wind_speed", "km/h")
-    ffmc_cube = make_cube(np.full(shape, 85.0), "fine_fuel_moisture_content", "1", True)
+    ffmc_cube = make_cube(np.full(shape, 85.0), "fine_fuel_moisture_code", "1", True)
 
     cubes = [temp_cube, precip_cube, humidity_cube, wind_cube, ffmc_cube]
 
-    plugin = FineFuelMoistureContent()
+    plugin = FineFuelMoistureCode()
     plugin.load_input_cubes(CubeList(cubes))
     plugin.moisture_content = mc_data.copy()
     plugin.initial_moisture_content = mc_data.copy()
@@ -264,7 +264,7 @@ def test__calculate_EMC_for_drying_phase(
             Expected drying phase value.
     """
     cubes = input_cubes(temp_val=temp_val, rh_val=rh_val)
-    plugin = FineFuelMoistureContent()
+    plugin = FineFuelMoistureCode()
     plugin.load_input_cubes(CubeList(cubes))
     E_d = plugin._calculate_EMC_for_drying_phase()
     # Check output type and shape
@@ -350,7 +350,7 @@ def test__calculate_moisture_content_through_drying_rate(
         expected_output:
             Expected output moisture content values.
     """
-    plugin = FineFuelMoistureContent()
+    plugin = FineFuelMoistureCode()
     plugin.initial_moisture_content = moisture_content.copy()
     plugin.moisture_content = moisture_content.copy()
     # For these unit tests, create simple cubes without spatial coordinates
@@ -406,7 +406,7 @@ def test__calculate_EMC_for_wetting_phase(
             Expected wetting phase value.
     """
     cubes = input_cubes(temp_val=temp_val, rh_val=rh_val)
-    plugin = FineFuelMoistureContent()
+    plugin = FineFuelMoistureCode()
     plugin.load_input_cubes(CubeList(cubes))
     E_w = plugin._calculate_EMC_for_wetting_phase()
     # Check output type and shape
@@ -492,7 +492,7 @@ def test__calculate_moisture_content_through_wetting_equilibrium(
         expected_output:
             Expected output moisture content values.
     """
-    plugin = FineFuelMoistureContent()
+    plugin = FineFuelMoistureCode()
     plugin.initial_moisture_content = moisture_content.copy()
     plugin.moisture_content = moisture_content.copy()
     # For these unit tests, create simple cubes without spatial coordinates
@@ -561,7 +561,7 @@ def test__calculate_ffmc_from_moisture_content(
         expected_output:
             Expected FFMC output values.
     """
-    plugin = FineFuelMoistureContent()
+    plugin = FineFuelMoistureCode()
     plugin.moisture_content = moisture_content.copy()
     ffmc = plugin._calculate_ffmc_from_moisture_content()
     # Check output type and shape
@@ -583,7 +583,7 @@ def test__calculate_ffmc_from_moisture_content(
 )
 def test_moisture_conversion_without_clip(moisture_content_val, expected_array_val):
     """Test a range of moisture content values with clip_ffmc=False."""
-    plugin = FineFuelMoistureContent()
+    plugin = FineFuelMoistureCode()
 
     plugin.moisture_content = np.full(5, moisture_content_val)
     expected_array = np.full(5, expected_array_val)
@@ -598,7 +598,7 @@ def test_moisture_conversion_without_clip(moisture_content_val, expected_array_v
 )
 def test_moisture_conversion_with_clip(moisture_content_val, expected_array_val):
     """Test a range of moisture content values with clip_ffmc=True."""
-    plugin = FineFuelMoistureContent()
+    plugin = FineFuelMoistureCode()
 
     plugin.moisture_content = np.full(5, moisture_content_val)
     expected_array = np.full(5, expected_array_val)
@@ -649,7 +649,7 @@ def test_process(
             Expected FFMC output value for all grid points.
     """
     cubes = input_cubes(temp_val, precip_val, rh_val, wind_val, ffmc_val)
-    plugin = FineFuelMoistureContent()
+    plugin = FineFuelMoistureCode()
     result = plugin.process(cubes, clip_ffmc=True)
     # Check output type and shape
     assert hasattr(result, "data")
@@ -677,11 +677,11 @@ def test_process_spatially_varying() -> None:
     humidity_cube = make_cube(rh_data, "relative_humidity", "1")
     wind_cube = make_cube(wind_data, "wind_speed", "km/h")
     ffmc_cube = make_cube(
-        ffmc_data, "fine_fuel_moisture_content", "1", True, INPUT_ATTRIBUTES
+        ffmc_data, "fine_fuel_moisture_code", "1", True, INPUT_ATTRIBUTES
     )
 
     cubes = [temp_cube, precip_cube, humidity_cube, wind_cube, ffmc_cube]
-    result = FineFuelMoistureContent().process(cubes)
+    result = FineFuelMoistureCode().process(cubes)
 
     # Verify shape, type, and all values in valid range (0-101)
     assert (
@@ -709,14 +709,14 @@ def test_warning_for_iteration_counts_inside_lag_time() -> None:
         ("air_temperature", 20.0, "Celsius", False, {}),
         ("lwe_thickness_of_precipitation_amount", 1.0, "mm", False, {}),
         ("relative_humidity", 50.0, "1", False, {}),
-        ("fine_fuel_moisture_content", 20, "1", False, attributes),
+        ("fine_fuel_moisture_code", 20, "1", False, attributes),
         ("wind_speed", 50.0, "km/h", False, {}),
     ]
     cubes = make_input_cubes(cube_args, shape=(5, 5))
 
-    msg = r"fine_fuel_moisture_content is 2 iterations in to its spin-up period"
+    msg = r"fine_fuel_moisture_code is 2 iterations in to its spin-up period"
     with pytest.warns(UserWarning, match=msg):
-        FineFuelMoistureContent().process(cubes, month=4)
+        FineFuelMoistureCode().process(cubes, month=4)
 
 
 def test_no_warning_for_metadata_outside_lag_time(
@@ -733,11 +733,11 @@ def test_no_warning_for_metadata_outside_lag_time(
         ("lwe_thickness_of_precipitation_amount", 1.0, "mm", False, {}),
         ("relative_humidity", 50.0, "1", False, {}),
         ("wind_speed", 50.0, "km/h", False, {}),
-        ("fine_fuel_moisture_content", 20.0, "1", False, attributes),
+        ("fine_fuel_moisture_code", 20.0, "1", False, attributes),
     ]
     cubes = make_input_cubes(cube_args, shape=(5, 5))
 
-    result = FineFuelMoistureContent().process(cubes, month=1)
+    result = FineFuelMoistureCode().process(cubes, month=1)
 
     np_warning = "numpy.ndarray size changed"
     relevant_warnings = [w for w in recwarn if np_warning not in str(w.message)]
@@ -759,9 +759,9 @@ def test_initialise_true_leads_to_user_warning() -> None:
         shape=(5, 5),
     )
 
-    msg = r"fine_fuel_moisture_content is 0 iterations in to its spin-up period"
+    msg = r"fine_fuel_moisture_code is 0 iterations in to its spin-up period"
     with pytest.warns(UserWarning, match=msg):
-        result = FineFuelMoistureContent().process(
+        result = FineFuelMoistureCode().process(
             initialisation_input_cubes, month=12, initialise=True
         )
     assert result.attributes["iteration_count"] == 1

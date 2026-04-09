@@ -2,7 +2,7 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""Common test utilities for fire weather index tests."""
+"""Common utilities for Canadian Forest Fire Weather Index System tests."""
 
 from datetime import datetime, timedelta
 
@@ -36,7 +36,7 @@ def make_cube(
     add_time_coord: bool = False,
     attributes: dict[any] | None = None,
 ) -> Cube:
-    """Create a test cube for fire weather index tests.
+    """Create a test cube for fire weather tests.
 
     This is a wrapper around set_up_variable_cube for concise cube creation
     with consistent time coordinates across all fire weather tests.
@@ -73,7 +73,7 @@ def make_input_cubes(
     cube_specs: list[tuple[str, float | np.ndarray, str, bool]],
     shape: tuple[int, ...] = (5, 5),
 ) -> tuple[Cube, ...]:
-    """Create a tuple of test cubes for fire weather index tests.
+    """Create a tuple of test cubes for fire weather tests.
 
     This is a convenience function for creating multiple input cubes with
     a consistent shape and default values.

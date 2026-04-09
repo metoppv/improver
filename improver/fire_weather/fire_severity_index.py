@@ -7,12 +7,12 @@
 import numpy as np
 from iris.cube import Cube
 
-from improver.fire_weather import FireWeatherIndexBase
+from improver.fire_weather import FireWeatherBase
 
 
-class FireSeverityIndex(FireWeatherIndexBase):
+class FireSeverityIndex(FireWeatherBase):
     """
-    Plugin to calculate the Fire Severity Index, also known as the
+    Plugin to calculate the Fire Severity Index (FSI), also known as the
     Daily Severity Rating (DSR).
 
     The DSR provides a numerical rating of the difficulty of controlling fires.
@@ -29,7 +29,7 @@ class FireSeverityIndex(FireWeatherIndexBase):
         - Fire Weather Index (FWI): dimensionless
     """
 
-    METADATA_SOURCE_CUBE = "canadian_forest_fire_weather_index"
+    METADATA_SOURCE_CUBE = "fire_weather_index"
     INPUT_CUBE_NAMES = [METADATA_SOURCE_CUBE]
     OUTPUT_CUBE_NAME = "fire_severity_index"
     # Valid output ranges for warning checks (output_name: (min, max))
@@ -40,7 +40,7 @@ class FireSeverityIndex(FireWeatherIndexBase):
     # days in Canada. Science of the total environment, 869, p.161831.
     VALID_OUTPUT_RANGE = (0.0, 100)
 
-    canadian_forest_fire_weather_index: Cube
+    fire_weather_index: Cube
 
     def _calculate(self) -> np.ndarray:
         """Calculates the Daily Severity Rating (DSR) from FWI.
@@ -50,7 +50,7 @@ class FireSeverityIndex(FireWeatherIndexBase):
         Returns:
             The calculated DSR values.
         """
-        fwi_data = self.canadian_forest_fire_weather_index.data
+        fwi_data = self.fire_weather_index.data
 
         # Equation 31: DSR = 0.0272 * FWI^1.77
         dsr = 0.0272 * fwi_data**1.77

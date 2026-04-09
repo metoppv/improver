@@ -12,7 +12,7 @@ import pytest
 from dateutil.parser import parse
 from iris.cube import Cube
 
-from improver.fire_weather import IterativeFireWeatherIndexBase
+from improver.fire_weather import IterativeFireWeatherBase
 from improver_tests.fire_weather import (
     DEFAULT_START_DATE,
     DEFAULT_TIME,
@@ -24,8 +24,8 @@ from improver_tests.fire_weather import (
 LAG_TIME = 10
 
 
-class ConcreteIterativeFireWeatherIndex(IterativeFireWeatherIndexBase):
-    """Concrete implementation of IterativeFireWeatherIndexBase for testing."""
+class ConcreteIterativeFireWeather(IterativeFireWeatherBase):
+    """Concrete implementation of IterativeFireWeatherBase for testing."""
 
     METADATA_SOURCE_CUBE = "iterative_cube"
     INPUT_CUBE_NAMES = [
@@ -36,9 +36,7 @@ class ConcreteIterativeFireWeatherIndex(IterativeFireWeatherIndexBase):
     REFERENCE_CUBE_NAME = "air_temperature"
     OUTPUT_CUBE_NAME = "iterative_cube"
 
-    _REQUIRED_UNITS = IterativeFireWeatherIndexBase._REQUIRED_UNITS | {
-        OUTPUT_CUBE_NAME: 1
-    }
+    _REQUIRED_UNITS = IterativeFireWeatherBase._REQUIRED_UNITS | {OUTPUT_CUBE_NAME: 1}
 
     STARTING_VALUE = 25
     LAG_TIME = LAG_TIME
@@ -52,7 +50,7 @@ class ConcreteIterativeFireWeatherIndex(IterativeFireWeatherIndexBase):
         return self.temperature.data + self.precipitation.data
 
 
-plugin = ConcreteIterativeFireWeatherIndex()
+plugin = ConcreteIterativeFireWeather()
 
 
 @pytest.fixture
@@ -197,7 +195,7 @@ def test_raise_value_error_if_output_cube_present_for_initialisation(
 def test_reference_cube_not_found(initialisation_input_cubes):
     """Raise ValueError if reference cube not found during initialisation."""
     patch_args = (
-        ConcreteIterativeFireWeatherIndex,
+        ConcreteIterativeFireWeather,
         "REFERENCE_CUBE_NAME",
         "test_missing",
     )
