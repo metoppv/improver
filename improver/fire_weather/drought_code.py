@@ -8,16 +8,15 @@ import os
 import numpy as np
 from iris.cube import Cube
 
-from improver.fire_weather import IterativeFireWeatherIndexBase
+from improver.fire_weather import IterativeFireWeatherBase
 
 DC_START_VALUE = os.environ.get("DC_START_VALUE", 15)
 DC_LAG_TIME = os.environ.get("DC_LAG_TIME", 53)
 
 
-class DroughtCode(IterativeFireWeatherIndexBase):
+class DroughtCode(IterativeFireWeatherBase):
     """
-    Plugin to calculate the Drought Code (DC) following
-    the Canadian Forest Fire Weather Index System.
+    Plugin to calculate the Drought Code (DC).
 
     The DC is a numerical rating of the average moisture content of deep,
     compact organic layers. It is a useful indicator of seasonal drought

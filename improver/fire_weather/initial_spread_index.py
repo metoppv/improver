@@ -5,13 +5,12 @@
 import numpy as np
 from iris.cube import Cube
 
-from improver.fire_weather import FireWeatherIndexBase
+from improver.fire_weather import FireWeatherBase
 
 
-class InitialSpreadIndex(FireWeatherIndexBase):
+class InitialSpreadIndex(FireWeatherBase):
     """
-    Plugin to calculate the Initial Spread Index (ISI) following
-    the Canadian Forest Fire Weather Index System.
+    Plugin to calculate the Initial Spread Index (ISI).
 
     The ISI is a numerical rating of the expected rate of fire spread.
     It combines the effects of wind and the Fine Fuel Moisture Code (FFMC)
@@ -28,7 +27,7 @@ class InitialSpreadIndex(FireWeatherIndexBase):
         - Fine Fuel Moisture Code (FFMC): dimensionless (0-101)
     """
 
-    METADATA_SOURCE_CUBE = "fine_fuel_moisture_content"
+    METADATA_SOURCE_CUBE = "fine_fuel_moisture_code"
     INPUT_CUBE_NAMES = ["wind_speed", METADATA_SOURCE_CUBE]
     OUTPUT_CUBE_NAME = "initial_spread_index"
     # Valid output ranges for warning checks (output_name: (min, max))
@@ -39,7 +38,7 @@ class InitialSpreadIndex(FireWeatherIndexBase):
     # days in Canada. Science of the total environment, 869, p.161831.
     VALID_OUTPUT_RANGE = (0.0, 100)
     # Disambiguate input FFMC from the output (ISI doesn't output FFMC, but uses naming consistency)
-    INPUT_ATTRIBUTE_MAPPINGS = {"fine_fuel_moisture_content": "input_ffmc"}
+    INPUT_ATTRIBUTE_MAPPINGS = {"fine_fuel_moisture_code": "input_ffmc"}
 
     wind_speed: Cube
     input_ffmc: Cube
@@ -53,7 +52,7 @@ class InitialSpreadIndex(FireWeatherIndexBase):
         Returns:
             The calculated ISI values.
         """
-        # Calculate fine fuel moisture content from FFMC
+        # Calculate fine fuel moisture code from FFMC
         self._calculate_fine_fuel_moisture()
 
         # Step 1: Calculate wind function and spread factor
