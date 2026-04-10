@@ -187,7 +187,13 @@ def probability_is_above_or_below(cube: Cube) -> Optional[str]:
         threshold_attribute = "above"
     elif thresh in ("below", "less_than", "less_than_or_equal_to"):
         threshold_attribute = "below"
-
+    # TL (Triggered Lightning) use case:
+    # For TL risk, we want to support the "equal_to" operator so that
+    # the Threshold plugin can generate boolean masks for exact risk levels
+    # (e.g., probability of risk == 2). This enables direct extraction of
+    # category-specific masks from categorical cubes using the "==" operator.
+    elif thresh == "equal_to":
+        threshold_attribute = "equal_to"
     return threshold_attribute
 
 

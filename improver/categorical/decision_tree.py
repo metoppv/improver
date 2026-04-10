@@ -84,6 +84,7 @@ class ApplyDecisionTree(BasePlugin):
         record_run_attr: Optional[str] = None,
         target_period: Optional[int] = None,
         title: Optional[str] = None,
+        allow_time_mismatch: bool = False,
     ) -> None:
         """
         Define a decision tree for determining a category based upon
@@ -120,6 +121,7 @@ class ApplyDecisionTree(BasePlugin):
         """
 
         self.model_id_attr = model_id_attr
+        self.allow_time_mismatch = allow_time_mismatch
         self.record_run_attr = record_run_attr
         node_names = list(decision_tree.keys())
         self.start_node = node_names[1] if node_names[0] == "meta" else node_names[0]
@@ -167,8 +169,11 @@ class ApplyDecisionTree(BasePlugin):
         """
         cubes = as_cubelist(*cubes)
 
+        self.template_cube = cubes[0]
+
         # Check that all cubes are valid at or over the same periods
-        self.check_coincidence(cubes)
+        if not getattr(self, "allow_time_mismatch", False):
+            self.check_coincidence(cubes)
 
         used_cubes = iris.cube.CubeList()
         optional_node_data_missing = []
@@ -620,6 +625,7 @@ class ApplyDecisionTree(BasePlugin):
     def _set_reference_time(cube: Cube, cubes: CubeList):
         """Replace the forecast_reference_time and/or blend_time if present coord point on cube
         with the latest value from cubes. Forecast_period is also updated."""
+
         coord_names = ["forecast_reference_time", "blend_time"]
         coords_found = []
         for coord_name in coord_names:
@@ -635,6 +641,7 @@ class ApplyDecisionTree(BasePlugin):
         for coord_name in coords_found:
             new_coord = cube.coord(coord_name).copy(reference_time)
             cube.replace_coord(new_coord)
+        # print("Categorical cube after replacing forecast reference time:", cube)
         cube.replace_coord(
             forecast_period_coord(cube, force_lead_time_calculation=True)
         )
