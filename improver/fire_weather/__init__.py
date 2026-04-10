@@ -2,12 +2,11 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""Fire Weather Index System components."""
+"""Canadian Forest Fire Weather Index System components."""
 
 import warnings
 from abc import abstractmethod
 from copy import deepcopy
-from datetime import datetime
 from typing import Union, cast
 
 import iris.exceptions
@@ -20,11 +19,12 @@ from improver.utilities.common_input_handle import as_cubelist
 from improver.utilities.load import load_baseline_cube
 
 
-class FireWeatherIndexBase(BasePlugin):
+class FireWeatherBase(BasePlugin):
     """
-    Abstract base class for Fire Weather Index System calculations.
+    Abstract base class for the Canadian Forest Fire Weather Index (CFFWI) System
+    calculations.
 
-    This class provides common functionality for all fire weather index
+    This class provides common functionality for all fire weather
     components, including:
 
     - Standardised cube loading and validation
@@ -32,7 +32,7 @@ class FireWeatherIndexBase(BasePlugin):
     - Output cube creation
     - Process orchestration
 
-    The Canadian Forest Fire Weather Index System requires specific units
+    The CFFWI system requires specific units
     for all calculations. These are fixed and cannot be overridden:
 
     - Temperature: degrees Celsius (Celsius)
@@ -43,10 +43,10 @@ class FireWeatherIndexBase(BasePlugin):
 
     Subclasses must define class attributes:
 
-    - START_DATE_CUBE_NAME: The name of the input cube from which the
-        start_date attribute will be sourced for the output_cube. For
-        downstream datasets that take iterative datasets as input this
-        should be the iterative dataset.
+    - METADATA_SOURCE_CUBE: The name of the input cube from which the
+        metadata will be sourced for the output_cube. For downstream
+        datasets that take iterative datasets as input this should
+        be the iterative dataset.
     - INPUT_CUBE_NAMES: List of standard names for required input cubes
     - OUTPUT_CUBE_NAME: Standard name for the output cube
     - REQUIRES_MONTH: Boolean indicating if month parameter is required
@@ -57,19 +57,19 @@ class FireWeatherIndexBase(BasePlugin):
     """
 
     # Fixed unit conversions for all cube types used in fire weather calculations
-    # These units are required by the Canadian FWI System and cannot be changed
+    # These units are required by the CFFWI system and cannot be changed
     _REQUIRED_UNITS: dict[str, str] = {
         "temperature": "Celsius",
         "precipitation": "mm",
         "relative_humidity": "1",
         "wind_speed": "km/h",
         # Fire weather indices are dimensionless
-        "fine_fuel_moisture_content": "1",
+        "fine_fuel_moisture_code": "1",
         "duff_moisture_code": "1",
         "drought_code": "1",
         "initial_spread_index": "1",
         "build_up_index": "1",
-        "canadian_forest_fire_weather_index": "1",
+        "fire_weather_index": "1",
         "fire_severity_index": "1",
         # Disambiguated input indices (used by FFMC, DMC, DC, and ISI calculations)
         "input_ffmc": "1",
@@ -78,7 +78,7 @@ class FireWeatherIndexBase(BasePlugin):
     }
 
     # Class attributes to be overridden by subclasses
-    START_DATE_CUBE_NAME: str = ""
+    METADATA_SOURCE_CUBE: str = ""
     INPUT_CUBE_NAMES: list[str] = []
     OUTPUT_CUBE_NAME: str = ""
     REQUIRES_MONTH: bool = False
@@ -100,11 +100,14 @@ class FireWeatherIndexBase(BasePlugin):
         "input_dc": (0.0, None),  # DC is non-negative
         "initial_spread_index": (0.0, 100.0),  # ISI valid range
         "build_up_index": (0.0, 500.0),  # BUI valid range
-        "canadian_forest_fire_weather_index": (0.0, 100.0),  # FWI valid range
+        "fire_weather_index": (0.0, 100.0),  # FWI valid range
     }
 
     def load_input_cubes(
-        self, cubes: tuple[Cube, ...] | CubeList, month: int | None = None
+        self,
+        cubes: tuple[Cube, ...] | CubeList,
+        month: int | None = None,
+        input_cube_names: list[str] = None,
     ):
         """Loads the required input cubes for the calculation. These are stored
         internally as Cube objects.
@@ -115,15 +118,21 @@ class FireWeatherIndexBase(BasePlugin):
             month:
                 Month of the year (1-12), required only if REQUIRES_MONTH is True.
                 Defaults to None.
+            input_cube_names:
+                A list of input_cube_names if different from self.INPUT_CUBE_NAMES
+                Defaults to None.
 
         Raises:
             ValueError:
                 If the number of cubes does not match the expected number, if
                 month is required but not provided, or if month is out of range.
         """
-        if len(cubes) != len(self.INPUT_CUBE_NAMES):
+        if input_cube_names is None:
+            input_cube_names = self.INPUT_CUBE_NAMES
+
+        if len(cubes) != len(input_cube_names):
             raise ValueError(
-                f"Expected {len(self.INPUT_CUBE_NAMES)} cubes, found {len(cubes)}"
+                f"Expected {len(input_cube_names)} cubes, found {len(cubes)}"
             )
 
         if self.REQUIRES_MONTH:
@@ -137,11 +146,11 @@ class FireWeatherIndexBase(BasePlugin):
 
         # Load cubes by extracting them using their standard names
         loaded_cubes = tuple(
-            cast(Cube, CubeList(cubes).extract_cube(n)) for n in self.INPUT_CUBE_NAMES
+            cast(Cube, CubeList(cubes).extract_cube(n)) for n in input_cube_names
         )
 
         # Assign cubes to instance attributes and convert units in a single loop
-        for loaded_cube, cube_name in zip(loaded_cubes, self.INPUT_CUBE_NAMES):
+        for loaded_cube, cube_name in zip(loaded_cubes, input_cube_names):
             attr_name = self._get_attribute_name(cube_name)
             cube = deepcopy(loaded_cube)  # Avoid modifying input cubes in-place
             setattr(self, attr_name, cube)
@@ -166,7 +175,7 @@ class FireWeatherIndexBase(BasePlugin):
         Examples:
             "air_temperature" -> "temperature"
             "lwe_thickness_of_precipitation_amount" -> "precipitation"
-            "fine_fuel_moisture_content" -> "input_ffmc" (if INPUT_ATTRIBUTE_MAPPINGS is set)
+            "fine_fuel_moisture_code" -> "input_ffmc" (if INPUT_ATTRIBUTE_MAPPINGS is set)
         """
         # Check class-specific mappings first (for disambiguation)
         if standard_name in self.INPUT_ATTRIBUTE_MAPPINGS:
@@ -278,11 +287,11 @@ class FireWeatherIndexBase(BasePlugin):
             except iris.exceptions.CoordinateNotFoundError:
                 output_cube.add_aux_coord(time_coord)
 
-        return output_cube
+        return self._set_metadata(output_cube)
 
     @abstractmethod
     def _calculate(self) -> np.ndarray:
-        """Perform the fire weather index calculation.
+        """Perform the fire weather calculation.
 
         This method must be implemented by subclasses to perform
         the specific calculation logic for that component.
@@ -294,7 +303,7 @@ class FireWeatherIndexBase(BasePlugin):
         raise NotImplementedError("Subclasses must implement the _calculate method.")
 
     def process(self, *cubes: Union[Cube, CubeList], month: int | None = None) -> Cube:
-        """Calculate the fire weather index component.
+        """Calculate the fire weather component.
 
         Args:
             cubes:
@@ -314,7 +323,6 @@ class FireWeatherIndexBase(BasePlugin):
         self.load_input_cubes(cubes, month)
         output_data = self._calculate()
         output_cube = self._make_output_cube(output_data)
-        self._set_start_date(output_cube)
 
         # Check if output values are within expected ranges
         self._validate_output_range(output_cube)
@@ -395,11 +403,11 @@ class FireWeatherIndexBase(BasePlugin):
                     stacklevel=3,
                 )
 
-    def _set_start_date(self, output_cube: Cube) -> None:
+    def _set_metadata(self, output_cube: Cube) -> None:
         """
-        Add a start_date attribute to the output_cube, sourced from either
-        the INPUT_ATTRIBUTE_MAPPING of the START_DATE_CUBE_NAME, the
-        START_DATE_CUBE_NAME attribute itself, or a standard name
+        Add metadata to the output_cube, sourced from either the
+        INPUT_ATTRIBUTE_MAPPING of the METADATA_SOURCE_CUBE, the
+        METADATA_SOURCE_CUBE attribute itself, or a standard name
         stripped of common prefixes and suffixes.
 
         Args:
@@ -407,43 +415,49 @@ class FireWeatherIndexBase(BasePlugin):
                 The output cube
 
         Raise:
-            NotImplementedError: If START_DATE_CUBE_NAME is not defined
-              or the named cube has no start_date attribute
+            NotImplementedError: If METADATA_SOURCE_CUBE is not defined
+              or the named cube does not contain the necessary metadata
 
         Note:
-            A start_date attribute is required on all Fire Severity Index datasets.
-            This value records the date when the build up period of the iterative datasets
-            (Fine Fuel Moisture Content, Duff Moisture Code and Drought Code) was begun.
+            Metadata is required on all fire weather datasets to monitor the
+            build up period of the iterative datasets (Fine Fuel Moisture Code,
+            Duff Moisture Code and Drought Code).
 
-            The start_date value is also added to datasets which are not iterative but which
-            take iterative datasets as inputs as the context of when the build up period was
-            begun may still be relevant to stakeholders.  These downstream datasets include
-            the Initial Spread Index, the Build Up Index, the Fire Weather Index and the
-            Fire Severity Index.
+            These values are also added to datasets which are not iterative but which
+            take iterative datasets as inputs, because the context of when the build up
+            period was begun and whether the data is ready is important for stakeholders.
+            These downstream datasets include the Initial Spread Index, the Build Up Index,
+            the Fire Weather Index and the Fire Severity Index.
 
         """
-        if not self.START_DATE_CUBE_NAME:
+        if not self.METADATA_SOURCE_CUBE:
             raise NotImplementedError(
-                "A START_DATE_CUBE_NAME is required for fire weather metadata handling."
+                "A METADATA_SOURCE_CUBE is required for fire weather metadata handling."
             )
 
-        attr_name = self._get_attribute_name(self.START_DATE_CUBE_NAME)
+        attr_name = self._get_attribute_name(self.METADATA_SOURCE_CUBE)
         try:
             start_date_cube = getattr(self, attr_name)
-            start_date = start_date_cube.attributes["start_date"]
+            start_date = start_date_cube.attributes["iteration_start_date"]
+            iteration_count = start_date_cube.attributes["iteration_count"]
+            analysis_ready = str(start_date_cube.attributes["analysis_ready"])
         except (AttributeError, KeyError):
             raise NotImplementedError(
-                "START_DATE_CUBE_NAME must match an available input cube with a `start_date` attribute."
+                "METADATA_SOURCE_CUBE must match an available input cube with all the "
+                "required attributes: `iteration_start_date`, `iteration_count` and `analysis_ready`."
             )
 
-        output_cube.attributes["start_date"] = start_date
+        output_cube.attributes["iteration_start_date"] = start_date
+        output_cube.attributes["iteration_count"] = iteration_count
+        output_cube.attributes["analysis_ready"] = analysis_ready
+        return output_cube
 
 
-class IterativeFireWeatherIndexBase(FireWeatherIndexBase):
+class IterativeFireWeatherBase(FireWeatherBase):
     """
     Iterative abstract base class for Iterative Fire Weather calculations.
 
-    Extends common functionality provided by FireWeatherIndexBase to provide
+    Extends common functionality provided by FireWeatherBase to provide
     iterative functionality for Fire Weather values that take the previous
     days outputs as an input to the current days calculation.
 
@@ -457,9 +471,9 @@ class IterativeFireWeatherIndexBase(FireWeatherIndexBase):
     - LAG_TIME: Integer representing the number of days needed after
         starting calculations from the STARTING_VALUE, before outputs
         should be considered scientifically valid.
-    - START_DATE_CUBE_NAME: The name of the input cube from which the
-        start_date attribute will be sourced for the output_cube. For
-        iterative fire weather clases this must match the OUTPUT_CUBE_NAME.
+    - METADATA_SOURCE_CUBE: The name of the input cube from which the
+        metadata will be sourced for the output_cube. For iterative
+        fire weather classes this must match the OUTPUT_CUBE_NAME.
 
     Subclasses must implement:
 
@@ -511,15 +525,18 @@ class IterativeFireWeatherIndexBase(FireWeatherIndexBase):
                 raise ValueError(
                     f"Unexpected output cube '{self.OUTPUT_CUBE_NAME}' supplied when attempting initialisation"
                 )
+            input_only_cube_names = [
+                c for c in self.INPUT_CUBE_NAMES if c not in self.OUTPUT_CUBE_NAME
+            ]
+            self.load_input_cubes(cubes, month, input_only_cube_names)
             output_cube = self._initialise_baseline_cube(cubes)
-            cubes = (*cubes, output_cube)
+            cubes = as_cubelist(*cubes, output_cube)
 
-        self._report_lag_time_state(output_cube)
-
-        return super().process(cubes, month=month)
+        output_cube = super().process(cubes, month=month)
+        return self._record_lag_time_state(output_cube)
 
     def _initialise_baseline_cube(self, cubes: tuple[Cube, ...] | CubeList) -> Cube:
-        """Create a baseline cube from the reference cube and set start_date=now.
+        """Create a baseline cube from the reference cube and set iteration_start_date.
 
         Args:
             cubes:
@@ -527,7 +544,7 @@ class IterativeFireWeatherIndexBase(FireWeatherIndexBase):
 
         Raises:
             ValueError: If the REFERENCE_CUBE is not present in cubes
-            ValueError: If the REFERENCE_CUBE has a start_date attribute
+            ValueError: If the REFERENCE_CUBE has a iteration_start_date attribute
 
         """
         try:
@@ -545,43 +562,55 @@ class IterativeFireWeatherIndexBase(FireWeatherIndexBase):
             self.OUTPUT_CUBE_NAME,
             self._REQUIRED_UNITS[self.OUTPUT_CUBE_NAME],
         )
-        if "start_date" in cube.attributes:
-            raise ValueError("Unexpected start_date in reference_cube attributes.")
+        if "iteration_start_date" in cube.attributes:
+            raise ValueError("Unexpected metadata on reference_cube")
 
-        cube.attributes["start_date"] = str(datetime.now())
+        time_coord = self.precipitation.coord("time").copy()
+        cube.attributes["iteration_start_date"] = str(
+            time_coord.units.num2pydate(time_coord.points)[0]
+        )
+        cube.attributes["iteration_count"] = 0
+        cube.attributes["analysis_ready"] = "False"
 
         return cube
 
-    def _report_lag_time_state(self, cube: Cube) -> None:
-        """Check for start_date attribute and warn if LAG_TIME has not been exceeded.
+    def _record_lag_time_state(self, cube: Cube) -> None:
+        """Check metadata attributes and warn if LAG_TIME has not been exceeded.
 
         Args:
             cube:
-                The output cube with start_date to compare to LAG_TIME
+                The output cube with metadata values to compare to LAG_TIME
 
         Raises:
-            ValueError: If cube has no start_date attribute
-            ValueError: If the REFERENCE_CUBE has a start_date attribute
+            ValueError: If cube has missing metadata attributes
 
         Warns:
             UserWarning:
                 If runtime is less than LAG_TIME
 
         """
-        if "start_date" not in cube.attributes:
+        metadata_in_cube_attributes = [
+            "iteration_start_date" in cube.attributes,
+            "iteration_count" in cube.attributes,
+            "analysis_ready" in cube.attributes,
+        ]
+        if not all(metadata_in_cube_attributes):
             raise ValueError(
-                f"{cube.name()} has no start_date attribute. To start "
+                f"{cube.name()} has missing metadata attributes. To start "
                 f"initialise process set `initialise=True`."
             )
 
-        start_date = datetime.fromisoformat(cube.attributes["start_date"])
-        now = datetime.now()
-        runtime = now - start_date
-
-        if runtime.days < self.LAG_TIME:
+        iteration_count = cube.attributes["iteration_count"]
+        if iteration_count < self.LAG_TIME:
+            cube.attributes["analysis_ready"] = "False"
             warnings.warn(
-                f"{cube.name()} is {runtime.days} days in to it's "
-                f"initialisation period of {self.LAG_TIME}.",
+                f"{cube.name()} is {iteration_count} iterations in "
+                f"to its spin-up period of {self.LAG_TIME}.",
                 UserWarning,
                 stacklevel=3,
             )
+        else:
+            cube.attributes["analysis_ready"] = "True"
+
+        cube.attributes["iteration_count"] = iteration_count + 1
+        return cube
