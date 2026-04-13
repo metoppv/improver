@@ -537,6 +537,24 @@ class HumidityMixingRatio(BasePlugin):
 
         See https://scitools-iris.readthedocs.io/en/stable/further_topics/controlling_merge.html
         for more information
+
+        Note that the underlying Iris function concatenate_cube, which constructs the pressure
+        cube from a list of component layers, can have the unexpected behaviour of effectively
+        reversing the supplied list order when forming the cube. The result is that the pressure
+        cube is flipped vertically compared to the temperature cube. The function iris.util.reverse
+        is used to reflip the cube back to its expected configuration.
+
+        As security, the presence of the unexpected flip is checked for before the reflip is executed.
+
+        To stop flipping occurring if there are no pressure coordinates,
+        check that one coordinate array is not empty via a size test, which
+        also tests if a flip is worthwhile (i.e. at least 2 elements).
+
+        However, the input (temperature_on_pressure cube) argument is
+        preconditioned to have pressure points, so the size test should not be
+        required as defensive programming but it does serve a useful purpose
+        in the single layer case to avoid unnecessary processing.
+
         """
 
         coord_list = [coord.name() for coord in temperature_cube.coords()]
@@ -553,27 +571,17 @@ class HumidityMixingRatio(BasePlugin):
             )
 
         try:
+            # the cube constructed here may be unexpectedly flipped vertically
             pressure_cube = expanded_pressure_list.concatenate_cube()
-            """
-            The Iris concatenate_cube function can reverse the list order when forming the cube
-            so the pressure cube is flipped vertically compared to the temperature cube.
-            Check if this is the case and then re-flip.
-            """
+
             pressure_points_for_pressure = get_pressure_points(pressure_cube)
             pressure_points_for_temperature = get_pressure_points(temperature_cube)
-            """
-            To stop flipping occurring if there are no pressure coordinates,
-            check that one array is not empty via the size test, also testing
-            if a flip is worthwhile (i.e. at least 2 elements).
 
-            However, the input (temperature_on_pressure cube) argument is
-            preconditioned to have pressure points, so this test should not be
-            required so it also serves as defensive programming.
-            """
             flip_required = (pressure_points_for_pressure.size > 1) and np.allclose(
                 np.flip(pressure_points_for_pressure), pressure_points_for_temperature
             )
             if flip_required:
+                # reflip the cube to its correct configuration
                 pressure_cube = iris.util.reverse(pressure_cube, "pressure")
 
         except iris.exceptions.ConcatenateError as error:

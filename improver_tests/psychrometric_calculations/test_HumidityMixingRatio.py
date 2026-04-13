@@ -7,18 +7,12 @@
 from typing import List, Tuple
 from unittest.mock import patch, sentinel
 
-import iris
-import iris.cube as icube
 import numpy as np
 import pytest
 from iris.coords import AncillaryVariable
 from iris.cube import Cube
 
-from improver.constants import EARTH_SURFACE_GRAVITY_ACCELERATION, WATER_DENSITY
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTES
-from improver.psychrometric_calculations.precipitable_water import (
-    PrecipitableWater,
-)
 from improver.psychrometric_calculations.psychrometric_calculations import (
     HumidityMixingRatio,
     get_pressure_points,
@@ -185,34 +179,13 @@ def make_pressure_cube(temp_cube: Cube) -> Cube:
 
     """
 
-    # ----------------------------------------
-    # 1. Extract the 1D pressure coordinate
-    # ----------------------------------------
     p_coord = temp_cube.coord("pressure")  # DimCoord
     p_vals = p_coord.points  # 1D array (nz,)
+    p_3d = np.broadcast_to(p_vals[:, None, None], temp_cube.shape)  # (nz, ny, nx)
 
-    # ----------------------------------------
-    # 2. Broadcast pressure to match the cube grid
-    # ----------------------------------------
-
-    p_3d = p_vals[:, None, None]  # (nz, 1, 1)
-    p_3d = np.broadcast_to(p_3d, temp_cube.shape)  # (nz, ny, nx)
-
-    # ----------------------------------------
-    # 3. Build a new pressure cube
-    # ----------------------------------------
-    pressure_cube = icube.Cube(
-        p_3d,
-        standard_name="air_pressure",
-        long_name="air_pressure unit test",
-        units=p_coord.units,
-        dim_coords_and_dims=[
-            (p_coord, 0),  # vertical dimension
-            (temp_cube.coord(axis="y"), 1),  # y coordinate
-            (temp_cube.coord(axis="x"), 2),  # x coordinate
-        ],
-        attributes=temp_cube.attributes,
-    )
+    pressure_cube = temp_cube.copy(p_3d)
+    pressure_cube.rename("air_pressure")
+    pressure_cube.units = p_coord.units
 
     return pressure_cube
 
@@ -235,8 +208,6 @@ def set_up_temperature_cube(
         np.full(shape, temperature_value, dtype=np.float32),
         "latlon",
         name="air_temperature",
-        x_grid_spacing=1.0,
-        y_grid_spacing=1.0,
         vertical_levels=vertical_levels,
         pressure=True,
     )
@@ -263,8 +234,6 @@ def set_up_rel_humidity_cube(
         "latlon",
         name="relative_humidity",
         units="1",
-        x_grid_spacing=1.0,
-        y_grid_spacing=1.0,
         vertical_levels=vertical_levels,
         pressure=True,
     )
@@ -348,17 +317,20 @@ def test_mixing_ratio_without_pressure_parameter() -> None:
     The improver calculation is then compared against a DIY calculation as a sanity check.
 
     """
-    iris.FUTURE.save_split_attrs = True  # to stop Iris warning
-    temperature_value, rel_humidity_value, expected = (
+
+    temperature_value, rel_humidity_value = (
         293,
         0.1,
-        1.459832e-3,
     )
 
-    # set up input cubes
     vertical_levels = [100000.0, 50000.0, 100.0]
-    shape = (len(vertical_levels), 3, 3)
+    shape = (len(vertical_levels), 4, 5)
 
+    # create expected result as a numpy array
+    w_data_col_expected = np.array([0.0014598317, 0.0029387323, 0.1])
+    w_data_expected = np.broadcast_to(w_data_col_expected[:, None, None], shape)
+
+    # set up input cubes
     temperature = set_up_temperature_cube(shape, temperature_value, vertical_levels)
     pressure = make_pressure_cube(temperature)
     rel_humidity = set_up_rel_humidity_cube(shape, rel_humidity_value, vertical_levels)
@@ -367,43 +339,14 @@ def test_mixing_ratio_without_pressure_parameter() -> None:
     w3 = HumidityMixingRatio()([temperature, pressure, rel_humidity])
     metadata_ok(w3, temperature)  # asserts in function call
     # check results on single layer are as expected where pressure is 100000 Pa
-    assert np.isclose(w3.data[0], expected, atol=1e-7).all()
+    assert np.isclose(w3.data, w_data_expected, atol=1e-7).all()
 
     # mixing ratio calculation with 2 parameters
     w2 = HumidityMixingRatio()([temperature, rel_humidity])
     metadata_ok(w2, temperature)  # asserts in function call
 
     # check 2 parameter calculation gives same results as 3 parameter calculation
-    assert np.isclose(w3.data, w2.data).all()
-
-    # use w3 to calculate precipitable water
-    pw = PrecipitableWater().process(w3)
-
-    # perform integration step (summing water in vertical atmosphere column) for Improver
-    improver_tpw = np.sum(pw.data, axis=0)
-
-    # perform DIY TPW calculation
-    delta = pressure.data[1:, :, :] - pressure.data[:-1, :, :]
-    mid_w = (w3.data[1:, :, :] + w3.data[:-1, :, :]) / 2.0
-    integral_terms = delta * mid_w
-    unit_test_tpw_1 = -np.sum(integral_terms, axis=0) / (
-        EARTH_SURFACE_GRAVITY_ACCELERATION * WATER_DENSITY
-    )
-    # numpy's trapezium rule integration
-    unit_test_tpw_2 = -np.trapezoid(w3.data, x=pressure.data, axis=0) / (
-        EARTH_SURFACE_GRAVITY_ACCELERATION * WATER_DENSITY
-    )
-
-    # verify DIY TPW integrations produce same results
-    # N.B. Improver uses np.trapezoid
-    assert np.isclose(unit_test_tpw_1.data, unit_test_tpw_2.data).all()
-
-    # note for such a small cube the DIY and Improver calculations
-    # for TPW are somewhat different.
-    # one presumes they will converge for cubes with more cells
-    # give a 200% latitude for testing
-
-    assert np.isclose(improver_tpw, unit_test_tpw_1, rtol=2).all()
+    assert np.isclose(w2.data, w_data_expected).all()
 
 
 def test_height_levels():
