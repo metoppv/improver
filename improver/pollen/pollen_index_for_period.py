@@ -11,7 +11,8 @@ from iris.cube import Cube
 
 from improver import PostProcessingPlugin
 from improver.metadata.constants import FLOAT_DTYPE
-from improver.pollen import build_output_cube_with_new_units
+
+from .utilities import build_output_cube_with_new_units
 
 
 class PollenIndexForPeriod(PostProcessingPlugin):
