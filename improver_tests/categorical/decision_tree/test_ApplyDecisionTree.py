@@ -1494,6 +1494,9 @@ class Test_check_coincidence(Test_WXCode):
             maximum_time_discrepancy=3600,
         )
         # Shift one cube's time by 900 seconds (within 3600s tolerance)
+        # "lightning" is a period diagnostic (i.e., it has time bounds and represents an accumulation or average over a period, not an instantaneous value).
+        # Including both period and instantaneous cubes in the same test can make the test ambiguous or cause it to fail for reasons unrelated to the logic being tested.
+        # We skip lightning cubes to ensure the test only checks the logic for instantaneous diagnostics.
         cubes = [cube for cube in self.cubes if "lightning" not in cube.name()]
         cubes[-1] = cubes[-1].copy()
         cubes[-1].coord("time").points = cubes[-1].coord("time").points + 900
