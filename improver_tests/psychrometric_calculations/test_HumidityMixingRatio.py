@@ -179,9 +179,9 @@ def make_pressure_cube(temp_cube: Cube) -> Cube:
 
     """
 
-    p_coord = temp_cube.coord("pressure")  # DimCoord
-    p_vals = p_coord.points  # 1D array (nz,)
-    p_3d = np.broadcast_to(p_vals[:, None, None], temp_cube.shape)  # (nz, ny, nx)
+    p_coord = temp_cube.coord("pressure")
+    p_vals = p_coord.points
+    p_3d = np.broadcast_to(p_vals[:, None, None], temp_cube.shape)
 
     pressure_cube = temp_cube.copy(p_3d)
     pressure_cube.rename("air_pressure")
@@ -300,22 +300,8 @@ def add_attribute_dictionary(cube: Cube) -> None:
 
 def test_mixing_ratio_without_pressure_parameter() -> None:
     """The HumidityMixingRatio calculation will generate its own pressure cube
-    if one is not supplied. This unit tests verifies that the results are the
+    if one is not supplied. This unit test verifies that the results are the
     same with/without an explicit pressure parameter.
-
-    This ticket reports values for the total precipitable water (TPW) being far too high.
-
-    https://metoffice.atlassian.net/browse/EPPT-3209
-
-    The reason was that HumidityMixingRadio generated a pressure cube that was wrongly
-    flipped veritically. This unit test re-creates the failing scenario to test and
-    exercise the bug fix.
-
-    The unit test then does a very simple total precipitable water calculation
-    ensuring the output from HumidityMixingRadio is suitable.
-
-    The improver calculation is then compared against a DIY calculation as a sanity check.
-
     """
 
     temperature_value, rel_humidity_value = (

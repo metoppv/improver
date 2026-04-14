@@ -527,7 +527,7 @@ class HumidityMixingRatio(BasePlugin):
 
         If there is a pressure coordinate in the temperature and relative humidity cubes, and
         no pressure cube has been provided (as is the case for calculating virtual temperature
-        on pressure levels, for example) the pressure cube is generated from the from the
+        on pressure levels, for example) the pressure cube is generated from the
         pressure coordinate on the temperature cube. The temperature cube has a status flag
         that indicates where the data were derived by StaGE for data points that fell below
         the model orography, the flag meaning is above_surface_pressure below_surface_pressure.
