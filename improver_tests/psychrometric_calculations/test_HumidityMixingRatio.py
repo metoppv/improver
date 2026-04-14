@@ -246,7 +246,7 @@ def test_get_pressure_points() -> None:
     written to check if a pressure cube has been inadvertantly flipped
     within the Improver implementation of PrecipitableWater.
 
-    :return: None
+    Returns: None
     """
     temperature_value, rel_humidity_value = (
         293,
