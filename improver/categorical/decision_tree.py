@@ -84,6 +84,7 @@ class ApplyDecisionTree(BasePlugin):
         record_run_attr: Optional[str] = None,
         target_period: Optional[int] = None,
         title: Optional[str] = None,
+        maximum_time_discrepancy: Optional[int] = 0,
     ) -> None:
         """
         Define a decision tree for determining a category based upon
@@ -125,6 +126,7 @@ class ApplyDecisionTree(BasePlugin):
         self.start_node = node_names[1] if node_names[0] == "meta" else node_names[0]
         self.target_period = target_period
         self.title = title
+        self.maximum_time_discrepancy = maximum_time_discrepancy
         self.meta = decision_tree["meta"]
         self.queries = update_tree_thresholds(
             {k: v for k, v in decision_tree.items() if k != "meta"}, target_period
@@ -295,15 +297,31 @@ class ApplyDecisionTree(BasePlugin):
                 bounds.extend(time_bounds.tolist())
                 self.template_cube = cube
 
-        # Check that all validity times are the same
-        if len(set(times)) != 1:
-            diagnostic_times = [
-                f"{diagnostic.name()}: {time}" for diagnostic, time in zip(cubes, times)
-            ]
-            raise ValueError(
-                "Decision Tree input cubes are valid at different times; "
-                f"\n{diagnostic_times}"
-            )
+        # Allow time discrepancy in validity times if set
+        if self.maximum_time_discrepancy and self.maximum_time_discrepancy > 0:
+            min_time = min(times)
+            max_time = max(times)
+            if (max_time - min_time) > self.maximum_time_discrepancy:
+                diagnostic_times = [
+                    f"{diagnostic.name()}: {time}"
+                    for diagnostic, time in zip(cubes, times)
+                ]
+                raise ValueError(
+                    f"Decision Tree input cubes have validity times differing by more than "
+                    f"{self.maximum_time_discrepancy} seconds; "
+                    f"\n{diagnostic_times}"
+                )
+        else:
+            # Check that all validity times are the same
+            if len(set(times)) != 1:
+                diagnostic_times = [
+                    f"{diagnostic.name()}: {time}"
+                    for diagnostic, time in zip(cubes, times)
+                ]
+                raise ValueError(
+                    "Decision Tree input cubes are valid at different times; "
+                    f"\n{diagnostic_times}"
+                )
         # Check that if multiple bounds have been returned, they are all identical.
         if bounds and not bounds.count(bounds[0]) == len(bounds):
             diagnostic_bounds = [
