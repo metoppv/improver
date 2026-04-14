@@ -131,12 +131,6 @@ class Combine(BasePlugin):
         """
         cubes = as_cubelist(*cubes)
 
-        #  # --- DEBUG: Print time points and bounds for each cube being combined ---
-        # print(f"[DEBUG] Combine.process: Combining {len(cubes)} cubes:")
-        # for i, cube in enumerate(cubes):
-        #     time_coord = cube.coord("time")
-        # print(f"  Cube {i}: time point = {time_coord.points}, bounds = {getattr(time_coord, 'bounds', None)}")
-
         if self.new_name is None:
             self.new_name = cubes[0].name()
 
