@@ -1,0 +1,112 @@
+# (C) Crown Copyright, Met Office. All rights reserved.
+#
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
+# See LICENSE in the root of the repository for full licensing details.
+"""Calculations to produce Pollen Indexes for a period (Hourly or Daily)."""
+
+from copy import deepcopy
+
+import numpy as np
+from iris.cube import Cube
+
+from improver import PostProcessingPlugin
+from improver.metadata.constants import FLOAT_DTYPE
+
+from .utilities import build_output_cube_with_new_units
+
+
+class PollenIndexForPeriod(PostProcessingPlugin):
+    """Plugin to calculate a Pollen Index cube for either Daily or Hourly.
+
+    Pollen Concentration values in the input cube are compared with threshold
+    values appropriate for the pollen taxa represented by the cube, and
+    categorized as indexes 0 to 4 for each grid point.
+    """
+
+    #: Threshold index levels - minimum value (grains/m3) for each index.
+    _POLLEN_INDEX = {  # 0=No pollen, 1=Low, 2=Moderate, 3=High, 4=Very High
+        # (5=extra level just for contour levels)
+        "index": np.array([0, 1, 2, 3, 4, 5]).astype(np.int32),
+        "grass_pollen": np.array([0.0, 0.01, 30.0, 50.0, 150.0, 5000.0]),
+        "birch_pollen": np.array([0.0, 0.01, 40.0, 80.0, 200.0, 5000.0]),
+        "oak_pollen": np.array([0.0, 0.01, 30.0, 50.0, 200.0, 5000.0]),
+        "hazel_pollen": np.array([0.0, 0.01, 30.0, 50.0, 80.0, 5000.0]),
+        "alder_pollen": np.array([0.0, 0.01, 30.0, 50.0, 80.0, 5000.0]),
+        "ash_pollen": np.array([0.0, 0.01, 30.0, 50.0, 200.0, 5000.0]),
+        "plane_pollen": np.array([0.0, 0.01, 30.0, 50.0, 200.0, 5000.0]),
+        "nettle_pollen": np.array([0.0, 0.01, 40.0, 80.0, 200.0, 5000.0]),
+        "weed_pollen": np.array([0.0, 0.01, 40.0, 80.0, 200.0, 5000.0]),
+    }
+
+    # The output cube is a deepcopy of the input cube (to keep metadata) and is then manipulated in place
+    _output_cube = None
+
+    # This will be set to the period (e.g. PT01H or PT24H) based on the input cube name
+    _cube_period = None
+
+    def _calculate(self, taxa: str):
+        """Calculate the Pollen Index.
+
+        Use values in _POLLEN_INDEX to determine the pollen index for each grid point.
+
+        Args:
+            taxa:
+                The pollen taxa being processed, used to update the cube name and metadata
+        """
+        if taxa not in self._POLLEN_INDEX:
+            raise ValueError(f"Pollen taxa {taxa} not handled")
+        thresholds = self._POLLEN_INDEX[taxa]
+        input_data = deepcopy(self._output_cube.data)
+        # Use np.digitize to find the index of the first threshold that is greater than the data value
+        self._output_cube.data = (
+            np.digitize(self._output_cube.data, thresholds) - 1
+        ).astype(FLOAT_DTYPE)  # Subtract 1 to get 0-based index
+        # Set values which are masked in _output_cube to nan
+        self._output_cube.data = np.where(
+            np.isnan(input_data), np.nan, self._output_cube.data
+        )
+
+    def _metadata(self, taxa: str):
+        """Change the cube name and other metadata.
+        Args:
+            taxa:
+                The pollen taxa being processed, used to update the cube name and metadata
+        """
+        self._output_cube.rename(f"{taxa}_index_{self._cube_period}")
+
+        cube_attrbutes = self._output_cube.attributes
+        # Change the following Attributes in the output cube if the key and old value
+        # match, then change the value to the new value specified in the dictionary:
+        attr_to_change_dict = {
+            # key: [old value, new value]
+            "quantity": ["Concentration", "Pollen Index"],
+        }
+        for attr, (old_value, new_value) in attr_to_change_dict.items():
+            if attr in cube_attrbutes and cube_attrbutes[attr] == old_value:
+                cube_attrbutes[attr] = new_value
+
+    def process(self, cube: Cube) -> Cube:
+        """Calculate the Pollen Index.
+
+        Use values in _POLLEN_INDEX to determine the pollen index for each grid point,
+        based on the pollen concentration values in the input cube.
+
+        Args:
+            cube:
+                Input cube of hourly or daily pollen concentrations for a specific pollen type
+
+        Returns:
+            The calculated output cube.
+
+        Warns:
+            UserWarning:
+                If output values fall outside typical expected ranges
+        """
+        taxa = cube.attributes.get("taxa").lower()
+        self._cube_period = cube.name().split("_")[
+            -1
+        ]  # Get the period (e.g. PT01H or PT24H)
+        self._output_cube = build_output_cube_with_new_units(self, cube, 1)
+        self._calculate(taxa)
+        self._metadata(taxa)
+        return self._output_cube
