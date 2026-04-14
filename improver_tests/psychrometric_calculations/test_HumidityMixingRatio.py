@@ -4,6 +4,7 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Tests for the HumidityMixingRatio plugin"""
 
+from typing import List, Tuple
 from unittest.mock import patch, sentinel
 
 import numpy as np
@@ -14,6 +15,7 @@ from iris.cube import Cube
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTES
 from improver.psychrometric_calculations.psychrometric_calculations import (
     HumidityMixingRatio,
+    get_pressure_points,
 )
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
@@ -164,6 +166,173 @@ def test_zero_humidity(
     result = HumidityMixingRatio()([temperature, pressure, rel_humidity])
     metadata_ok(result, temperature)
     assert np.isclose(result.data, expected, atol=1e-7).all()
+
+
+def make_pressure_cube(temp_cube: Cube) -> Cube:
+    """Create a 3D pressure cube from a temperature_on_pressure_levels cube.
+    The resulting cube has shape (levels, y, x).
+
+    Args:
+        temp_cube: input temperature on pressure cube
+
+    Returns: a 3D pressure cube
+
+    """
+
+    p_coord = temp_cube.coord("pressure")
+    p_vals = p_coord.points
+    p_3d = np.broadcast_to(p_vals[:, None, None], temp_cube.shape)
+
+    pressure_cube = temp_cube.copy(p_3d)
+    pressure_cube.rename("air_pressure")
+    pressure_cube.units = p_coord.units
+
+    return pressure_cube
+
+
+def set_up_temperature_cube(
+    shape: Tuple[int], temperature_value: float, vertical_levels: List[float]
+) -> Cube:
+    """Create a temperature on pressure cube.
+
+    Args:
+        shape: Shape of the temperature cube
+        temperature_value: temperature value
+        vertical_levels: List of vertical levels
+
+    Returns: a temperature cube
+
+    """
+
+    temperature = set_up_variable_cube(
+        np.full(shape, temperature_value, dtype=np.float32),
+        "latlon",
+        name="air_temperature",
+        vertical_levels=vertical_levels,
+        pressure=True,
+    )
+    add_attribute_dictionary(temperature)
+    return temperature
+
+
+def set_up_rel_humidity_cube(
+    shape: Tuple[int], rel_humidity_value: float, vertical_levels: List[float]
+) -> Cube:
+    """Create a relative humidity on pressure cube.
+
+    Args:
+        shape:  shape of the relative humidity cube
+        rel_humidity_value:  relative humidity value
+        vertical_levels:  list of vertical levels
+
+    Returns: a relative humidity cube
+
+    """
+
+    rel_humidity = set_up_variable_cube(
+        np.full(shape, rel_humidity_value, dtype=np.float32),
+        "latlon",
+        name="relative_humidity",
+        units="1",
+        vertical_levels=vertical_levels,
+        pressure=True,
+    )
+    add_attribute_dictionary(rel_humidity)
+    return rel_humidity
+
+
+def test_get_pressure_points() -> None:
+    """Tests for function "get_pressure_points" which is a support function
+    written to check if a pressure cube has been inadvertantly flipped
+    within the Improver implementation of PrecipitableWater.
+
+    Returns: None
+    """
+    temperature_value, rel_humidity_value = (
+        293,
+        0.1,
+    )
+
+    # set up cubes
+    vertical_levels = [100000.0, 50000.0, 100.0]
+    shape = (len(vertical_levels), 3, 3)
+
+    temperature = set_up_temperature_cube(shape, temperature_value, vertical_levels)
+    pressure = make_pressure_cube(temperature)
+    rel_humidity = set_up_rel_humidity_cube(shape, rel_humidity_value, vertical_levels)
+
+    assert np.allclose(get_pressure_points(temperature), np.array(vertical_levels))
+    assert np.allclose(get_pressure_points(pressure), np.array(vertical_levels))
+    assert np.allclose(get_pressure_points(rel_humidity), np.array(vertical_levels))
+
+    # check captialisation has an effect (i.e. the function gives a null result)
+    # the meta-data should be CF compliant and not be capitalised in any way
+    rel_humidity.coord("pressure").rename("Pressure")
+    assert np.allclose(get_pressure_points(rel_humidity), np.array([]))
+
+    # check null result when no "pressure" dimension
+    rel_humidity.coord("Pressure").rename("pr3ssure")
+    assert np.allclose(get_pressure_points(rel_humidity), np.array([]))
+
+
+def add_attribute_dictionary(cube: Cube) -> None:
+    """Adds attributes dictionary to cube attributes
+    to allow pre-existing checking function "metadata_ok"
+    to be used.
+
+    Args:
+        cube:  Cube to add attributes to
+
+    Returns: None
+
+    """
+
+    # set up meta-data required by testing
+    attributes_dictionary = {
+        "title": "unit test data",
+        "source": "unit test",
+        "institution": "somewhere",
+        "least_significant_digit": 4,
+    }
+    for k, v in attributes_dictionary.items():
+        cube.attributes[k] = v
+
+
+def test_mixing_ratio_without_pressure_parameter() -> None:
+    """The HumidityMixingRatio calculation will generate its own pressure cube
+    if one is not supplied. This unit test verifies that the results are the
+    same with/without an explicit pressure parameter.
+    """
+
+    temperature_value, rel_humidity_value = (
+        293,
+        0.1,
+    )
+
+    vertical_levels = [100000.0, 50000.0, 100.0]
+    shape = (len(vertical_levels), 4, 5)
+
+    # create expected result as a numpy array
+    w_data_col_expected = np.array([0.0014598317, 0.0029387323, 0.1])
+    w_data_expected = np.broadcast_to(w_data_col_expected[:, None, None], shape)
+
+    # set up input cubes
+    temperature = set_up_temperature_cube(shape, temperature_value, vertical_levels)
+    pressure = make_pressure_cube(temperature)
+    rel_humidity = set_up_rel_humidity_cube(shape, rel_humidity_value, vertical_levels)
+
+    # mixing ratio calculation with 3 parameters
+    w3 = HumidityMixingRatio()([temperature, pressure, rel_humidity])
+    metadata_ok(w3, temperature)  # asserts in function call
+    # check results on single layer are as expected where pressure is 100000 Pa
+    assert np.isclose(w3.data, w_data_expected, atol=1e-7).all()
+
+    # mixing ratio calculation with 2 parameters
+    w2 = HumidityMixingRatio()([temperature, rel_humidity])
+    metadata_ok(w2, temperature)  # asserts in function call
+
+    # check 2 parameter calculation gives same results as 3 parameter calculation
+    assert np.isclose(w2.data, w_data_expected).all()
 
 
 def test_height_levels():
