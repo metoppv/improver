@@ -299,9 +299,7 @@ class ApplyDecisionTree(BasePlugin):
 
         # Allow time discrepancy in validity times if set
         if self.maximum_time_discrepancy and self.maximum_time_discrepancy > 0:
-            min_time = min(times)
-            max_time = max(times)
-            if (max_time - min_time) > self.maximum_time_discrepancy:
+            if (max(times) - min(times)) > self.maximum_time_discrepancy:
                 diagnostic_times = [
                     f"{diagnostic.name()}: {time}"
                     for diagnostic, time in zip(cubes, times)
