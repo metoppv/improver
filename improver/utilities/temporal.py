@@ -368,6 +368,8 @@ def reset_forecast_reference_time(cube: Cube, cycletime: str) -> None:
         cycletime:
             New forecast reference time in YYYYMMDDTHHmmZ format.
     """
+    if not cube.coords("forecast_reference_time"):
+        return
     frt_coord = cube.coord("forecast_reference_time")
     cycletime_point = round_close(
         cycletime_to_number(
