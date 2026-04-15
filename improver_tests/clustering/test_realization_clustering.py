@@ -1070,6 +1070,59 @@ def test_clusterandmatch_init_invalid_clustering_method():
         )
 
 
+def test_clusterandmatch_cycletime():
+    """Test that the cycletime argument correctly resets the forecast_reference_time."""
+    pytest.importorskip("kmedoids")
+    pytest.importorskip("esmf_regrid")
+
+    # Create minimal cubes for this focused test
+    cubes = iris.cube.CubeList()
+    spatial_shape = (3, 3)
+
+    # Primary input with 2 realizations and 2 forecast periods
+    cubes.extend(
+        _create_4d_realization_cube(
+            n_realizations=2,
+            forecast_periods=[0, 6],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            base_value=100.0,
+            model_id="primary_model",
+            merge=False
+        )
+    )
+
+    # Target grid
+    cubes.append(_create_target_grid_cube(spatial_shape=spatial_shape))
+
+    hierarchy = {
+        "primary_input": "primary_model",
+        "secondary_inputs": {},
+    }
+
+    plugin = RealizationClusterAndMatch(
+        hierarchy=hierarchy,
+        model_id_attr="model_id",
+        clustering_method="KMedoids",
+        target_grid_name="target_grid",
+        n_clusters=1,
+        random_state=42,
+        cycletime="20170110T0900Z",
+    )
+
+    result = plugin.process(cubes)
+
+    # Check that cycletime has been applied: forecast_reference_time should match cycletime
+    from improver.utilities.temporal import cycletime_to_number
+    result_frt = result.coord("forecast_reference_time")
+    expected_frt_point = cycletime_to_number(
+        "20170110T0900Z",
+        time_unit=result_frt.units.origin,
+        calendar=result_frt.units.calendar,
+    )
+    assert result_frt.points[0] == np.int64(expected_frt_point)
+
+
 def test_clusterandmatch_process_basic():
     """Test basic end-to-end processing with simple hierarchy."""
     pytest.importorskip("kmedoids")

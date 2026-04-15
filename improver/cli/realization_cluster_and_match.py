@@ -15,6 +15,7 @@ def process(
     hierarchy: cli.inputjson,
     n_clusters: int,
     model_id_attr: str = "mosg__model_configuration",
+    cycletime: str = None,
     target_grid_name: str = "target_grid",
     clustering_method: str = "KMedoids",
     regrid_mode: str = "esmf-area-weighted",
@@ -61,6 +62,12 @@ def process(
             Name of the attribute used to identify different models within
             the input cubes.
             Default: "mosg__model_configuration"
+        cycletime (str):
+            The forecast reference time on the input cubes will be reset to
+            this value. The forecast periods will be adjusted accordingly with
+            the validity times kept fixed. cycletime should be provided in the format
+            YYYYMMDDTHHMMZ (e.g., 20240101T0000Z). If not provided, the forecast
+            reference time on the input cubes will be left unchanged.
         target_grid_name (str):
             Name of the target grid cube for regridding. The input cubes
             must include a cube with this name.
@@ -136,6 +143,7 @@ def process(
         regrid_mode=regrid_mode,
         regrid_for_clustering=regrid_for_clustering,
         regrid_kwargs=regrid_kw,
+        cycletime=cycletime,
         **clustering_kw,
     )
 

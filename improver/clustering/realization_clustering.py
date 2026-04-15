@@ -23,6 +23,7 @@ from improver.utilities.cube_manipulation import (
     enforce_coordinate_ordering,
     get_dim_coord_names,
 )
+from improver.utilities.temporal import reset_forecast_reference_time
 
 try:
     import kmedoids
@@ -395,6 +396,7 @@ class RealizationClusterAndMatch(BasePlugin):
         regrid_mode: str = "esmf-area-weighted",
         regrid_for_clustering: bool = True,
         regrid_kwargs: dict[str, Any] | None = None,
+        cycletime: str | None = None,
         **kwargs: Any,
     ) -> None:
         """Initialise the clustering and matching class.
@@ -444,6 +446,12 @@ class RealizationClusterAndMatch(BasePlugin):
                 - extrapolation_mode (str): Mode to fill regions outside domain.
                 - landmask (Cube): Land-sea mask for mask-aware regridding.
                 - landmask_vicinity (float): Radius for coastline search.
+            cycletime:
+                The forecast reference time on the input cubes will be reset to
+                this value. The forecast periods will be adjusted accordingly with
+                the validity times kept fixed. cycletime should be provided in the format
+                YYYYMMDDTHHMMZ (e.g., 20240101T0000Z). If not provided, the forecast
+                reference time on the input cubes will be left unchanged.
 
             **kwargs: Additional arguments for the clustering method.
 
@@ -459,6 +467,7 @@ class RealizationClusterAndMatch(BasePlugin):
         self.regrid_mode = regrid_mode
         self.regrid_for_clustering = regrid_for_clustering
         self.regrid_kwargs = regrid_kwargs if regrid_kwargs is not None else {}
+        self.cycletime = cycletime
         self.kwargs = kwargs
 
         if regrid_for_clustering and target_grid_name is None:
@@ -1198,6 +1207,10 @@ class RealizationClusterAndMatch(BasePlugin):
                 ValueError: If no primary cube is found with the specified
                     model_id_attr.
         """
+        if self.cycletime is not None:
+            for cube in cubes:
+                reset_forecast_reference_time(cube, self.cycletime)
+
         constr = iris.AttributeConstraint(
             **{self.model_id_attr: self.hierarchy["primary_input"]}
         )
