@@ -84,7 +84,7 @@ class ApplyDecisionTree(BasePlugin):
         record_run_attr: Optional[str] = None,
         target_period: Optional[int] = None,
         title: Optional[str] = None,
-        allow_time_mismatch: bool = False,
+        maximum_time_discrepancy: Optional[int] = 0,
     ) -> None:
         """
         Define a decision tree for determining a category based upon
@@ -121,12 +121,12 @@ class ApplyDecisionTree(BasePlugin):
         """
 
         self.model_id_attr = model_id_attr
-        self.allow_time_mismatch = allow_time_mismatch
         self.record_run_attr = record_run_attr
         node_names = list(decision_tree.keys())
         self.start_node = node_names[1] if node_names[0] == "meta" else node_names[0]
         self.target_period = target_period
         self.title = title
+        self.maximum_time_discrepancy = maximum_time_discrepancy
         self.meta = decision_tree["meta"]
         self.queries = update_tree_thresholds(
             {k: v for k, v in decision_tree.items() if k != "meta"}, target_period
@@ -169,11 +169,8 @@ class ApplyDecisionTree(BasePlugin):
         """
         cubes = as_cubelist(*cubes)
 
-        self.template_cube = cubes[0]
-
         # Check that all cubes are valid at or over the same periods
-        if not getattr(self, "allow_time_mismatch", False):
-            self.check_coincidence(cubes)
+        self.check_coincidence(cubes)
 
         used_cubes = iris.cube.CubeList()
         optional_node_data_missing = []
@@ -300,15 +297,29 @@ class ApplyDecisionTree(BasePlugin):
                 bounds.extend(time_bounds.tolist())
                 self.template_cube = cube
 
-        # Check that all validity times are the same
-        if len(set(times)) != 1:
-            diagnostic_times = [
-                f"{diagnostic.name()}: {time}" for diagnostic, time in zip(cubes, times)
-            ]
-            raise ValueError(
-                "Decision Tree input cubes are valid at different times; "
-                f"\n{diagnostic_times}"
-            )
+        # Allow time discrepancy in validity times if set
+        if self.maximum_time_discrepancy and self.maximum_time_discrepancy > 0:
+            if (max(times) - min(times)) > self.maximum_time_discrepancy:
+                diagnostic_times = [
+                    f"{diagnostic.name()}: {time}"
+                    for diagnostic, time in zip(cubes, times)
+                ]
+                raise ValueError(
+                    f"Decision Tree input cubes have validity times differing by more than "
+                    f"{self.maximum_time_discrepancy} seconds; "
+                    f"\n{diagnostic_times}"
+                )
+        else:
+            # Check that all validity times are the same
+            if len(set(times)) != 1:
+                diagnostic_times = [
+                    f"{diagnostic.name()}: {time}"
+                    for diagnostic, time in zip(cubes, times)
+                ]
+                raise ValueError(
+                    "Decision Tree input cubes are valid at different times; "
+                    f"\n{diagnostic_times}"
+                )
         # Check that if multiple bounds have been returned, they are all identical.
         if bounds and not bounds.count(bounds[0]) == len(bounds):
             diagnostic_bounds = [
@@ -625,7 +636,6 @@ class ApplyDecisionTree(BasePlugin):
     def _set_reference_time(cube: Cube, cubes: CubeList):
         """Replace the forecast_reference_time and/or blend_time if present coord point on cube
         with the latest value from cubes. Forecast_period is also updated."""
-
         coord_names = ["forecast_reference_time", "blend_time"]
         coords_found = []
         for coord_name in coord_names:
@@ -641,7 +651,6 @@ class ApplyDecisionTree(BasePlugin):
         for coord_name in coords_found:
             new_coord = cube.coord(coord_name).copy(reference_time)
             cube.replace_coord(new_coord)
-        # print("Categorical cube after replacing forecast reference time:", cube)
         cube.replace_coord(
             forecast_period_coord(cube, force_lead_time_calculation=True)
         )
