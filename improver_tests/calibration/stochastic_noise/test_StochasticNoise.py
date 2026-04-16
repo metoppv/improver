@@ -201,8 +201,17 @@ def test_allow_seeded_parallel_processing_warning():
         ssft_generate_params={"seed": 0},
         allow_seeded_parallel_processing=True,
     )
+    # Create a cube with some non-positive values to trigger the warning
+    data = np.array(
+        [
+            [[0.0, 1.0], [0.0, 2.0]],
+            [[0.0, 1.1], [0.0, 2.1]],
+        ],
+        dtype=np.float32,
+    )
+    cube = set_up_variable_cube(data=data, name="precipitation_rate", units="mm/hr")
     with pytest.warns(
         UserWarning,
-        match="Using a seeded plugin with parallel processing may lead to non-deterministic results.",
+        match="Using multiple workers with a fixed seed may introduce run-to-run",
     ):
-        plugin.process(set_up_variable_cube(name="precipitation_rate", units="mm/hr"))
+        plugin.process(cube)
