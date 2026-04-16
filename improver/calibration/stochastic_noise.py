@@ -39,8 +39,8 @@ class StochasticNoise(BasePlugin):
 
     def __init__(
         self,
-        ssft_init_params: Optional[dict] = None,
-        ssft_generate_params: Optional[dict] = None,
+        ssft_init_params: Optional[dict] = {},
+        ssft_generate_params: Optional[dict] = {},
         db_threshold: float = 0.03,
         db_threshold_units: str = "mm/hr",
         num_workers: Optional[int] = len(os.sched_getaffinity(0)),
@@ -95,8 +95,8 @@ class StochasticNoise(BasePlugin):
         if db_threshold <= 0:
             raise ValueError("db_threshold must be a positive value.")
 
-        self.ssft_init_params = ssft_init_params or {}
-        self.ssft_generate_params = ssft_generate_params or {}
+        self.ssft_init_params = ssft_init_params
+        self.ssft_generate_params = ssft_generate_params
         self.db_threshold = db_threshold
         self.db_threshold_units = db_threshold_units
         self.num_workers = num_workers
