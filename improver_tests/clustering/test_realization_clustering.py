@@ -1079,18 +1079,23 @@ def test_clusterandmatch_process_basic():
     cubes = iris.cube.CubeList()
     spatial_shape = (5, 5)
 
-    # Primary input with 6 realizations, value 100
-    cubes.extend(
-        _create_4d_realization_cube(
-            n_realizations=6,
-            forecast_periods=[0, 6, 12, 18],
-            y_dim=spatial_shape[0],
-            x_dim=spatial_shape[1],
-            base_value=100.0,
-            model_id="primary_model",
-            merge=False
-        )
+    # Primary input with 6 realizations, value 100.
+    # Use non-contiguous realization numbering per forecast period to mirror
+    # real-data behaviour where cycle inputs can carry different realization IDs.
+    primary_cubes = _create_4d_realization_cube(
+        n_realizations=6,
+        forecast_periods=[0, 6, 12, 18],
+        y_dim=spatial_shape[0],
+        x_dim=spatial_shape[1],
+        base_value=100.0,
+        model_id="primary_model",
+        merge=False,
     )
+    for i, primary_cube in enumerate(primary_cubes):
+        start = 100 + (i * 10)
+        n_realizations = primary_cube.coord("realization").points.size
+        primary_cube.coord("realization").points = np.arange(start, start + n_realizations)
+    cubes.extend(primary_cubes)
 
     # Secondary input 1 for fp=[0, 6] with value 200
     cubes.extend(
@@ -1148,6 +1153,8 @@ def test_clusterandmatch_process_basic():
     # Check that we have the expected number of clusters
     n_clusters = len(result.coord("realization").points)
     assert n_clusters == 3
+    assert len(result.coord_dims("realization")) == 1
+    assert "realization" in [coord.name() for coord in result.dim_coords]
 
     # Check that all forecast periods are present (in seconds)
     forecast_periods = result.coord("forecast_period").points
@@ -1234,6 +1241,72 @@ def test_clusterandmatch_process_basic():
     }
     _assert_primary_input_realizations_to_clusters(result, expected_primary_mapping)
     _assert_secondary_input_realizations_to_clusters(result, expected_secondary_mapping)
+
+
+def test_clusterandmatch_realization_slicing_with_full_matching():
+    """Test full-realization matching with non-monotonic selected realizations.
+
+    This unit test engineers the data so matching naturally chooses candidate indices
+    in non-monotonic order. Indexing iris cubes using non-monotonic indices seems to
+    result in the dimension coordinate for the dimension being indexed to be
+    demoted to an auxiliary coordinate. This unit test therefore ensures that this
+    coordinate is promoted back to a dimension coordinate when the secondary input
+    contains more realizations than the primary input.
+    """
+    pytest.importorskip("kmedoids")
+
+    # Primary values designed to cluster around 4 distinct anchors.
+    primary_values = [0.0, 0.2, 100.0, 100.2, 200.0, 200.2, 300.0, 300.2]
+
+    # Candidate values mostly far away, with 4 engineered strong matches at
+    # non-monotonic indices [11, 10, 2, 8]. Small decimal tags encode index.
+    candidate_values = [1000.0 + i for i in range(12)]
+    candidate_values[11] = 0.023
+    candidate_values[10] = 100.022
+    candidate_values[2] = 200.004
+    candidate_values[8] = 300.017
+
+    cubes = iris.cube.CubeList()
+    cubes.extend(
+        _create_4d_realization_cube(
+            n_realizations=8,
+            forecast_periods=[0, 6],
+            y_dim=5,
+            x_dim=5,
+            model_id="primary_model",
+            realization_values=primary_values,
+            merge=False,
+        )
+    )
+    cubes.extend(
+        _create_4d_realization_cube(
+            n_realizations=12,
+            forecast_periods=[0, 6],
+            y_dim=5,
+            x_dim=5,
+            model_id="secondary_model_1",
+            realization_values=candidate_values,
+            merge=False,
+        )
+    )
+
+    result = RealizationClusterAndMatch(
+        hierarchy={
+            "primary_input": "primary_model",
+            "secondary_inputs": {"secondary_model_1": [0, 6]},
+        },
+        model_id_attr="model_id",
+        clustering_method="KMedoids",
+        regrid_for_clustering=False,
+        n_clusters=4,
+        random_state=42,
+    ).process(cubes)
+
+    assert "realization" in [coord.name() for coord in result.dim_coords]
+    np.testing.assert_array_almost_equal(
+        result[0, :, 0, 0].data,
+        np.array([100.022, 200.004, 0.023, 300.017], dtype=np.float32), decimal=3
+    )
 
 
 @pytest.mark.parametrize(
@@ -2012,6 +2085,8 @@ def test_clusterandmatch_multiple_partial_secondary_same_forecast_period():
 
     # Should have 3 clusters
     assert len(result.coord("realization").points) == 3
+    assert len(result.coord_dims("realization")) == 1
+    assert "realization" in [coord.name() for coord in result.dim_coords]
 
     # Check data: Both secondary inputs are processed (lowest precedence first).
     # With the chosen data values (primary clusters ~90, ~100, ~110;
