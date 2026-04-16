@@ -252,11 +252,11 @@ class StochasticNoise(BasePlugin):
         # If requested, scale noise in non-positive regions to prevent increasing values
         # where there should be no signal
         if self.scale_non_positive_noise:
-            max_noise_non_positiveregions = np.nanmax(
+            max_noise_non_positive_regions = np.nanmax(
                 noise_linear.data[non_positive_mask]
             )
             noise_linear.data[non_positive_mask] = (
-                noise_linear.data[non_positive_mask] - max_noise_non_positiveregions
+                noise_linear.data[non_positive_mask] - max_noise_non_positive_regions
             )
 
         # Add noise only to non-positive regions, leave positive regions
