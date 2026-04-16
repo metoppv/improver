@@ -30,7 +30,11 @@ class SpotExtraction(BasePlugin):
     data.
     """
 
-    def __init__(self, neighbour_selection_method: str = "nearest") -> None:
+    def __init__(
+        self,
+        neighbour_selection_method: str = "nearest",
+        ignore_grid_match: bool = False,
+    ) -> None:
         """
         Args:
             neighbour_selection_method:
@@ -38,8 +42,20 @@ class SpotExtraction(BasePlugin):
                 coordinates that match a spot site. These are determined by
                 the neighbour finding method employed. This keyword is used to
                 extract the desired set of coordinates from the neighbour cube.
+            ignore_grid_match:
+                If True, the grid match check between the diagnostic cube and
+                the neighbour cube will be ignored. This is not recommended, but is
+                included as an option to allow the use of a different version of iris
+                having been used when the neighbour cube was generated, compared with the
+                iris version being used in the environment making use of this plugin.
+                This can lead to the grid match check failing.
+                If False, the grid match check will be performed and an error raised if the
+                cubes do not match. The default is False, and it is recommended to ensure
+                that the neighbour cube is generated on the same grid as the diagnostic cube
+                to avoid any potential issues with incorrect coordinate extraction.
         """
         self.neighbour_selection_method = neighbour_selection_method
+        self.ignore_grid_match = ignore_grid_match
 
     def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
@@ -276,7 +292,8 @@ class SpotExtraction(BasePlugin):
             as information about the sites themselves.
         """
         # Check we are using a matched neighbour/diagnostic cube pair
-        check_grid_match([neighbour_cube, diagnostic_cube])
+        if not self.ignore_grid_match:
+            check_grid_match([neighbour_cube, diagnostic_cube])
 
         # Get the unique_site_id if it is present on the neighbour cbue
         unique_site_id_data = self.check_for_unique_id(neighbour_cube)
