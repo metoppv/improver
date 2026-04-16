@@ -7,6 +7,7 @@
 """
 
 import os
+import warnings
 from typing import Optional
 
 import numpy as np
@@ -44,6 +45,7 @@ class StochasticNoise(BasePlugin):
         db_threshold_units: str = "mm/hr",
         num_workers: Optional[int] = len(os.sched_getaffinity(0)),
         scale_non_positive_noise: bool = False,
+        allow_seeded_parallel_processing: bool = False,
     ):
         """
         Initialise the plugin.
@@ -76,6 +78,12 @@ class StochasticNoise(BasePlugin):
                 positive noise to non-positive regions, which could artificially
                 increase values where the input cube indicates no signal should occur.
                 Default is False.
+            allow_seeded_parallel_processing:
+                If True, allows multiple workers to be used even when a seed is
+                provided in ssft_generate_params. This may improve computation speed,
+                but can introduce run-to-run variation because pySTEPS uses global RNG
+                seeding. If False, seeded runs are forced to a single worker for
+                reproducibility. Default is False.
 
         Example dictionaries for initializing and generating SSFT filter::
 
@@ -93,6 +101,7 @@ class StochasticNoise(BasePlugin):
         self.db_threshold_units = db_threshold_units
         self.num_workers = num_workers
         self.scale_non_positive_noise = scale_non_positive_noise
+        self.allow_seeded_parallel_processing = allow_seeded_parallel_processing
 
     def _to_dB(self, cube: Cube) -> Cube:
         """Convert cube data to dB scale and apply thresholding using db_threshold
@@ -176,6 +185,12 @@ class StochasticNoise(BasePlugin):
                 Cube to which stochastic noise will be added.
         Returns:
             Cube with added stochastic noise.
+        Raises:
+            UserWarning:
+                If a seed is provided in ssft_generate_params and allow_seeded_parallel_processing
+                is True, a warning is raised to indicate that using multiple workers
+                with a fixed seed may introduce run-to-run variation because pySTEPS
+                uses global RNG seeding.
         """
         # Check that input cube has the expected dimensions for processing
         validate_cube_dimensions(
@@ -222,10 +237,23 @@ class StochasticNoise(BasePlugin):
             len(template.coord("realization").points),
         )
 
-        # pySTEPS uses numpy.random.seed when a seed kwarg is passed. Restrict to a
-        # single worker in that case to avoid concurrent global RNG mutations.
-        if "seed" in self.ssft_generate_params:
+        # pySTEPS uses numpy.random.seed when a seed kwarg is passed. By default,
+        # restrict to a single worker in that case to avoid concurrent global RNG
+        # mutations and preserve reproducibility.
+        if (
+            "seed" in self.ssft_generate_params
+            and not self.allow_seeded_parallel_processing
+        ):
             num_workers = 1
+        elif (
+            "seed" in self.ssft_generate_params
+            and self.allow_seeded_parallel_processing
+        ):
+            warnings.warn(
+                "Using multiple workers with a fixed seed may introduce run-to-run "
+                "variation because pySTEPS uses global RNG seeding.",
+                UserWarning,
+            )
 
         # Compute all SSFT noise arrays (in dB scale) in parallel
         results = compute(*tasks, scheduler="threads", num_workers=num_workers)
@@ -247,16 +275,21 @@ class StochasticNoise(BasePlugin):
                     neginf=sub_threshold_dB,
                 )
             lin_noise = self._from_dB(data=result_db)
+            # Ensure no non-finite values propagate into downstream scaling.
+            lin_noise = np.nan_to_num(lin_noise, nan=0.0, posinf=0.0, neginf=0.0)
             noise_linear.data[k] = lin_noise
 
         # If requested, scale noise in non-positive regions to prevent increasing values
         # where there should be no signal
         if self.scale_non_positive_noise:
-            max_noise_non_positive_regions = np.nanmax(
-                noise_linear.data[non_positive_mask]
+            noise_in_non_positive_regions = np.nan_to_num(
+                noise_linear.data[non_positive_mask],
+                nan=0.0,
+                posinf=0.0,
+                neginf=0.0,
             )
             noise_linear.data[non_positive_mask] = (
-                noise_linear.data[non_positive_mask] - max_noise_non_positive_regions
+                noise_in_non_positive_regions - np.max(noise_in_non_positive_regions)
             )
 
         # Add noise only to non-positive regions, leave positive regions

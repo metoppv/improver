@@ -193,3 +193,16 @@ def test_non_positive_threshold():
     """Test that ValueError is raised for non-positive db_threshold."""
     with pytest.raises(ValueError, match="db_threshold must be a positive value."):
         StochasticNoise(db_threshold=0)
+
+
+def test_allow_seeded_parallel_processing_warning():
+    """Test that a warning is raised when using a seeded plugin with parallel processing."""
+    plugin = StochasticNoise(
+        ssft_generate_params={"seed": 0},
+        allow_seeded_parallel_processing=True,
+    )
+    with pytest.warns(
+        UserWarning,
+        match="Using a seeded plugin with parallel processing may lead to non-deterministic results.",
+    ):
+        plugin.process(set_up_variable_cube(name="precipitation_rate", units="mm/hr"))
