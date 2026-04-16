@@ -1024,6 +1024,7 @@ class RealizationClusterAndMatch(BasePlugin):
             # Index the candidate cube using the realization indices
             matched_cube = candidate_cube[realization_indices]
             matched_cube.coord("realization").points = cluster_indices
+            promote_aux_coord_to_dim_coord(matched_cube, "realization")
 
             matched_cube.attributes.pop(self.model_id_attr)
 
@@ -1227,6 +1228,10 @@ class RealizationClusterAndMatch(BasePlugin):
         )
         primary_cubes = cubes.extract(constr)
         if primary_cubes:
+            for cube in primary_cubes:
+                cube.coord("realization").points = range(
+                    len(cube.coord("realization").points)
+                )
             primary_cube = MergeCubes()(primary_cubes)
             enforce_coordinate_ordering(primary_cube, ["realization"])
         else:
