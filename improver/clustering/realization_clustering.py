@@ -1385,10 +1385,12 @@ class RealizationSelection(BasePlugin):
 
         The cluster cube is identified by the presence of the
         "primary_input_realization_to_cluster_medoid" attribute.
-        The forecast cube is assumed to be the cube without such an attribute.
+        The forecast cubes are assumed to be the cubes without such an attribute and
+        that share a common validity time.
 
         Args:
-            cubes: CubeList of input cubes.
+            cubes: CubeList of input cubes expected to contain forecast
+                cubes and a cluster cube.
 
         Returns:
             Tuple of (forecast_cubes, cluster_cube):
@@ -1398,7 +1400,6 @@ class RealizationSelection(BasePlugin):
         Raises:
             ValueError: If no cluster cube is found.
         """
-        cubes = CubeList(cubes)
         cluster_cube = None
         forecast_cubes = CubeList()
         for cube in cubes:
@@ -1430,6 +1431,10 @@ class RealizationSelection(BasePlugin):
                 - secondary_map: Dictionary mapping secondary input names to
                     cluster mappings, where each cluster index maps to a list of
                     dicts with "realizations" and "forecast_periods".
+
+        Raises:
+            TypeError: If the mapping attributes are not in the expected format
+                (str or dict).
         """
         primary_map = cluster_cube.attributes.get(
             "primary_input_realization_to_cluster_medoid"
@@ -1437,12 +1442,39 @@ class RealizationSelection(BasePlugin):
         secondary_map = cluster_cube.attributes.get(
             "secondary_input_realizations_to_clusters"
         )
-
         if isinstance(primary_map, str):
             primary_map = json.loads(primary_map)
+        elif not isinstance(primary_map, dict):
+            raise TypeError(
+                f"Expected primary_map to be str or dict, got {type(primary_map)}"
+            )
+
         if isinstance(secondary_map, str):
             secondary_map = json.loads(secondary_map)
+        elif secondary_map is not None and not isinstance(secondary_map, dict):
+            raise TypeError(
+                "Expected secondary_map to be str, dict, or None, "
+                f"got {type(secondary_map)}"
+            )
         return primary_map, secondary_map
+
+    def validate_common_validity_time(self, forecast_cubes: CubeList) -> None:
+        """
+        Validate that all forecast cubes share a common validity time.
+
+        Args:
+            forecast_cubes: CubeList of forecast cubes.
+
+        Raises:
+            ValueError: If forecast cubes do not share a common validity time.
+        """
+        unique_validity_times = {
+            cube.coord("time").cell(0).point for cube in forecast_cubes
+        }
+        if len(unique_validity_times) > 1:
+            raise ValueError(
+                "Forecast cubes must share a common validity time (time coordinate)."
+            )
 
     def find_nearest_secondary_mapping_fp(
         self, mapping_fps: Optional[set[int]], fp: int
@@ -1585,6 +1617,7 @@ class RealizationSelection(BasePlugin):
             indices matching the cluster indices in cluster_cube.
         """
         forecast_cubes, cluster_cube = self.split_cubes_forecast_and_cluster(cubes)
+        self.validate_common_validity_time(forecast_cubes)
 
         primary_map, secondary_map = self.parse_mapping_attributes(cluster_cube)
         mapping_fps = set()

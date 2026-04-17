@@ -2746,3 +2746,49 @@ def test_realizationselection_missing_cluster_cube_raises():
     with pytest.raises(ValueError, match="No cluster cube found in input cubes"):
         # Provide only forecast cubes (no cluster cube)
         plugin.process(forecast_cubes)
+
+
+def test_realizationselection_invalid_primary_map_type_raises():
+    """Test TypeError when primary mapping attribute is not str or dict."""
+    cluster_cube = _make_cluster_cube_for_selection({"0": 0, "1": 1})
+    cluster_cube.attributes["primary_input_realization_to_cluster_medoid"] = [0, 1]
+
+    forecast_cubes = _make_forecast_cubes("primary_model", [10, 20], 3600)
+    cubes = forecast_cubes.copy()
+    cubes.append(cluster_cube)
+
+    plugin = RealizationSelection(forecast_period=3600)
+    with pytest.raises(TypeError, match="Expected primary_map to be str or dict"):
+        plugin.process(cubes)
+
+
+def test_realizationselection_invalid_secondary_map_type_raises():
+    """Test TypeError when secondary mapping attribute is not str, dict or None."""
+    cluster_cube = _make_cluster_cube_for_selection({"0": 0, "1": 1})
+    cluster_cube.attributes["secondary_input_realizations_to_clusters"] = 123
+
+    forecast_cubes = _make_forecast_cubes("primary_model", [10, 20], 3600)
+    cubes = forecast_cubes.copy()
+    cubes.append(cluster_cube)
+
+    plugin = RealizationSelection(forecast_period=3600)
+    with pytest.raises(
+        TypeError, match="Expected secondary_map to be str, dict, or None"
+    ):
+        plugin.process(cubes)
+
+
+def test_realizationselection_mismatched_validity_time_raises():
+    """Test ValueError when forecast cubes do not share a common validity time."""
+    cluster_cube = _make_cluster_cube_for_selection({"0": 0, "1": 1})
+
+    primary_forecast_cube = _make_forecast_cubes("primary_model", [10, 20], 3600)[0]
+    secondary_forecast_cube = _make_forecast_cubes("secondary_model", [30, 40], 7200)[
+        0
+    ]
+
+    cubes = CubeList([primary_forecast_cube, secondary_forecast_cube, cluster_cube])
+
+    plugin = RealizationSelection(forecast_period=3600)
+    with pytest.raises(ValueError, match="Forecast cubes must share a common validity time"):
+        plugin.process(cubes)

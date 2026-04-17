@@ -56,10 +56,8 @@ def test_single_lead_time(tmp_path):
 
 def test_two_lead_times(tmp_path):
     """Test with two lead times and four input cubes."""
-    kgo_dir = (
-        acc.kgo_root() / "realization-cluster-and-match" / "two_forecast_period_input"
-    )
     central_dir = acc.kgo_root() / "realization-cluster-and-match"
+    kgo_dir = central_dir / "two_forecast_period_input"
     kgo_path = kgo_dir / "two_lead_times_kgo.nc"
     coarse_resolution_primary_6H_input = (
         kgo_dir / "coarse_resolution_primary_subdomain_PT0006H00M.nc"
@@ -102,10 +100,8 @@ def test_two_lead_times(tmp_path):
 
 def test_three_lead_times(tmp_path):
     """Test with three lead times and six input cubes."""
-    kgo_dir = (
-        acc.kgo_root() / "realization-cluster-and-match" / "three_forecast_period_input"
-    )
     central_dir = acc.kgo_root() / "realization-cluster-and-match"
+    kgo_dir = central_dir / "three_forecast_period_input"
     kgo_path = kgo_dir / "three_lead_times_kgo.nc"
     coarse_resolution_primary_78H_input = (
         kgo_dir / "coarse_resolution_primary_subdomain_PT0078H00M.nc"

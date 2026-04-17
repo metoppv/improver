@@ -36,6 +36,7 @@ def process(
     """
     from improver.clustering.realization_clustering import RealizationSelection
 
-    return RealizationSelection(
+    selector = RealizationSelection(
         forecast_period=forecast_period, model_id_attr=model_id_attr
-    )(cubes)
+    )
+    return selector(cubes)
