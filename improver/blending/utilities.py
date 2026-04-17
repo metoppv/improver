@@ -26,7 +26,7 @@ from improver.metadata.constants.attributes import (
 from improver.metadata.constants.time_types import DT_FORMAT, TIME_COORDS
 from improver.metadata.forecast_times import add_blend_time
 from improver.utilities.temporal import (
-    reset_forecast_reference_time,
+    reset_forecast_reference_time_and_period,
 )
 
 
@@ -158,7 +158,7 @@ def update_blended_metadata(
             cube.attributes[attr] = MANDATORY_ATTRIBUTE_DEFAULTS[attr]
 
 
-def _set_blended_time_coords(blended_cube: Cube, cycletime: Optional[str]) -> None:
+def _set_blended_time_coords(blended_cube: Cube, cycletime: str) -> None:
     """
     For cycle and model blending:
 
@@ -176,12 +176,14 @@ def _set_blended_time_coords(blended_cube: Cube, cycletime: Optional[str]) -> No
         blended_cube
         cycletime:
             Current cycletime in YYYYMMDDTHHmmZ format
+    Raises:
+        ValueError: If cycletime is not provided for cycle or model blending.
     """
     if cycletime is None:
         raise ValueError("Current cycle time is required for cycle and model blending")
 
     add_blend_time(blended_cube, cycletime)
-    reset_forecast_reference_time(blended_cube, cycletime)
+    reset_forecast_reference_time_and_period(blended_cube, cycletime)
     for coord in ["forecast_period", "forecast_reference_time"]:
         msg = f"{coord} will be removed in future and should not be used"
         try:

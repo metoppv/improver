@@ -1124,7 +1124,9 @@ def test_clusterandmatch_cycletime():
 
 
 def test_clusterandmatch_process_basic():
-    """Test basic end-to-end processing with simple hierarchy."""
+    """Test basic end-to-end processing with simple hierarchy. The handling of a
+    target grid cube without time coordinates (forecast_period,
+    forecast_reference_time, time) is also demonstrated."""
     pytest.importorskip("kmedoids")
     pytest.importorskip("esmf_regrid")
 
@@ -1172,7 +1174,10 @@ def test_clusterandmatch_process_basic():
     )
 
     # Target grid
-    cubes.append(_create_target_grid_cube())
+    target_grid_cube = _create_target_grid_cube()
+    for coord in ["forecast_period", "forecast_reference_time", "time"]:
+        target_grid_cube.remove_coord(coord)
+    cubes.append(target_grid_cube)
 
     hierarchy = {
         "primary_input": "primary_model",

@@ -63,11 +63,11 @@ def process(
             the input cubes.
             Default: "mosg__model_configuration"
         cycletime (str):
-            The forecast reference time on the input cubes will be reset to
+            The forecast_reference_time on the input cubes will be reset to
             this value. The forecast periods will be adjusted accordingly with
             the validity times kept fixed. cycletime should be provided in the format
-            YYYYMMDDTHHMMZ (e.g., 20240101T0000Z). If not provided, the forecast
-            reference time on the input cubes will be left unchanged.
+            YYYYMMDDTHHMMZ (e.g., 20240101T0000Z). If not provided, the
+            forecast_reference_time on the input cubes will be left unchanged.
         target_grid_name (str):
             Name of the target grid cube for regridding. The input cubes
             must include a cube with this name.

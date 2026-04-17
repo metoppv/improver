@@ -32,7 +32,7 @@ from improver.utilities.temporal import (
     integrate_time,
     iris_time_to_datetime,
     relabel_to_period,
-    reset_forecast_reference_time,
+    reset_forecast_reference_time_and_period,
 )
 
 
@@ -630,7 +630,7 @@ def test_reset_forecast_reference_time(frt_cube):
         frt_cube.coord("forecast_reference_time").points[0] - 3600,
         frt_cube.coord("forecast_reference_time").points[0],
     ]
-    reset_forecast_reference_time(frt_cube, "20170217T0900Z")
+    reset_forecast_reference_time_and_period(frt_cube, "20170217T0900Z")
     result_frt = frt_cube.coord("forecast_reference_time")
     expected_point = cycletime_to_number(
         "20170217T0900Z",
@@ -643,20 +643,11 @@ def test_reset_forecast_reference_time(frt_cube):
     assert frt_cube.coord("forecast_period").points[0] == 0
 
 
-def test_reset_forecast_reference_time_no_forecast_reference_time(frt_cube):
-    """Test that the function works correctly when there is no forecast_reference_time
-    coordinate on the cube."""
-    frt_cube.remove_coord("forecast_reference_time")
-    reset_forecast_reference_time(frt_cube, "20170217T0900Z")
-    # forecast_reference_time should not be re-added if it was not present
-    assert not frt_cube.coords("forecast_reference_time")
-
-
 def test_reset_forecast_reference_time_no_forecast_period(frt_cube):
     """Test that the function works correctly when there is no forecast_period
     coordinate on the cube."""
     frt_cube.remove_coord("forecast_period")
-    reset_forecast_reference_time(frt_cube, "20170217T0900Z")
+    reset_forecast_reference_time_and_period(frt_cube, "20170217T0900Z")
     # forecast_period should not be re-added if it was not present
     assert not frt_cube.coords("forecast_period")
 
@@ -675,7 +666,7 @@ def test_reset_forecast_reference_time_parametrized(
 ):
     """Test that forecast_period is correctly recalculated for a range of
     new forecast_reference_times relative to the fixed time coordinate."""
-    reset_forecast_reference_time(frt_cube, new_cycletime)
+    reset_forecast_reference_time_and_period(frt_cube, new_cycletime)
     result_fp_seconds = frt_cube.coord("forecast_period").points[0]
     assert result_fp_seconds == expected_forecast_period_hours * 3600
 
