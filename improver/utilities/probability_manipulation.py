@@ -84,6 +84,7 @@ def to_threshold_inequality(cube: Cube, above: bool = True) -> Cube:
         above:
             Targets an above (gt, ge) threshold inequality if True, otherwise
             targets a below (lt, le) threshold inequality if False.
+            Has no effect for 'equal_to' (==) thresholds, which are always returned unchanged.
 
     Returns:
         A cube with the probabilities relative to the threshold values with
