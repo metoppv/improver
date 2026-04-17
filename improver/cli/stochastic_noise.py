@@ -19,6 +19,7 @@ def process(
     db_threshold_units: str = "mm/hr",
     num_workers: int = None,
     scale_non_positive_noise=False,
+    allow_seeded_parallel_processing: bool = False,
 ):
     """
     Class to apply spatially-structured stochastic noise to non-positive regions of a
@@ -75,6 +76,12 @@ def process(
             noise to non-positive regions, which could artificially increase values
             where the input cube indicates no signal should occur.
             Default is False.
+        allow_seeded_parallel_processing:
+            If True, allows multiple workers to be used even when a seed is
+            provided in ssft_generate_params. This may improve computation speed,
+            but can introduce run-to-run variation because pySTEPS uses global RNG
+            seeding. If False, seeded runs are forced to a single worker for
+            reproducibility. Default is False.
 
     Returns:
         Cube with added stochastic noise.
@@ -101,6 +108,7 @@ def process(
         "db_threshold": db_threshold,
         "db_threshold_units": db_threshold_units,
         "scale_non_positive_noise": scale_non_positive_noise,
+        "allow_seeded_parallel_processing": allow_seeded_parallel_processing,
     }
     if num_workers is not None:
         plugin_kwargs["num_workers"] = num_workers
