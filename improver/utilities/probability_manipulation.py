@@ -53,6 +53,16 @@ def comparison_operator_dict() -> Dict[str, namedtuple]:
             inequality(function=operator.lt, spp_string="less_than", inverse="ge"),
         )
     )
+    comparison_operator_dict.update(
+        dict.fromkeys(
+            ["eq", "EQ", "=="],
+            inequality(
+                function=operator.eq,
+                spp_string="equal_to",
+                inverse="ne",
+            ),
+        )
+    )
     return comparison_operator_dict
 
 
