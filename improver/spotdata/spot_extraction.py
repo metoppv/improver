@@ -59,8 +59,8 @@ class SpotExtraction(BasePlugin):
 
     def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
-        return "<SpotExtraction: neighbour_selection_method: {}>".format(
-            self.neighbour_selection_method
+        return "<SpotExtraction: neighbour_selection_method: {}, ignore_grid_match: {}>".format(
+            self.neighbour_selection_method, self.ignore_grid_match
         )
 
     def extract_coordinates(self, neighbour_cube: Cube) -> Cube:
