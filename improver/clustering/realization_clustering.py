@@ -394,6 +394,7 @@ class RealizationClusterAndMatch(BasePlugin):
         target_grid_name: str | None = None,
         regrid_mode: str = "esmf-area-weighted",
         regrid_for_clustering: bool = True,
+        renumber_primary_realizations: bool = True,
         regrid_kwargs: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> None:
@@ -437,6 +438,15 @@ class RealizationClusterAndMatch(BasePlugin):
                 most relevant broad patterns rather than being dominated by
                 fine-scale noise. If False, clustering and matching are performed
                 on the original grids without regridding. Default is True.
+            renumber_primary_realizations: If True (default), primary input cubes
+                will have their realization coordinates renumbered to contiguous
+                integers (0 to n_realizations-1) after clustering and matching.
+                This allows seamless merging of primary cubes with different
+                realization numbering schemes. If False, original realization
+                numbering is preserved. When False, a UserWarning is issued if
+                primary input cubes have differing realization numbering, as this
+                may cause merge failures. Defaults to True for automatic renumbering
+                behaviour.
             regrid_kwargs: Additional keyword arguments to pass to RegridLandSea.
                 Common options include:
 
@@ -458,6 +468,7 @@ class RealizationClusterAndMatch(BasePlugin):
         self.clustering_method = clustering_method
         self.regrid_mode = regrid_mode
         self.regrid_for_clustering = regrid_for_clustering
+        self.renumber_primary_realizations = renumber_primary_realizations
         self.regrid_kwargs = regrid_kwargs if regrid_kwargs is not None else {}
         self.kwargs = kwargs
 
@@ -1204,10 +1215,26 @@ class RealizationClusterAndMatch(BasePlugin):
         )
         primary_cubes = cubes.extract(constr)
         if primary_cubes:
-            for cube in primary_cubes:
-                cube.coord("realization").points = range(
-                    len(cube.coord("realization").points)
-                )
+            if self.renumber_primary_realizations:
+                for cube in primary_cubes:
+                    cube.coord("realization").points = range(
+                        len(cube.coord("realization").points)
+                    )
+            else:
+                # Check if primary cubes have mismatched realization coordinates
+                # when renumbering is disabled
+                realization_points_list = [
+                    tuple(cube.coord("realization").points) for cube in primary_cubes
+                ]
+                if len(set(realization_points_list)) > 1:
+                    msg = (
+                        "Primary input cubes have different realization numbering "
+                        "schemes. With renumber_primary_realizations=False, this may "
+                        "cause merge failures. Consider enabling "
+                        "renumber_primary_realizations or harmonising realization "
+                        "coordinates across primary cubes."
+                    )
+                    warnings.warn(msg, UserWarning)
             primary_cube = MergeCubes()(primary_cubes)
             enforce_coordinate_ordering(primary_cube, ["realization"])
         else:

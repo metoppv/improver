@@ -19,6 +19,7 @@ def process(
     clustering_method: str = "KMedoids",
     regrid_mode: str = "esmf-area-weighted",
     regrid_for_clustering: bool = True,
+    renumber_primary_realizations: bool = True,
     clustering_kwargs: cli.inputjson = None,
     regrid_kwargs: cli.inputjson = None,
 ):
@@ -79,6 +80,15 @@ def process(
             large-scale spatial features for clustering. If False, clustering and
             matching are performed on the original grids without regridding.
             Default: True
+        renumber_primary_realizations (bool):
+            If True (default), primary input cubes will have their realization
+            coordinates renumbered to contiguous integers (0 to n_realizations-1)
+            after clustering and matching. This allows seamless merging of primary
+            cubes with different realization numbering schemes. If False, original
+            realization numbering is preserved. When False, a UserWarning is issued
+            if primary input cubes have differing realization numbering, as this
+            may cause merge failures.
+            Default: True
         clustering_kwargs (dict):
             Additional keyword arguments to pass to the clustering method.
             Can be provided as a JSON file path or a JSON string. Common
@@ -135,6 +145,7 @@ def process(
         target_grid_name=target_grid_name,
         regrid_mode=regrid_mode,
         regrid_for_clustering=regrid_for_clustering,
+        renumber_primary_realizations=renumber_primary_realizations,
         regrid_kwargs=regrid_kw,
         **clustering_kw,
     )

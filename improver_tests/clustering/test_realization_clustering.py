@@ -1139,6 +1139,7 @@ def test_clusterandmatch_process_basic():
         model_id_attr="model_id",
         clustering_method="KMedoids",
         target_grid_name="target_grid",
+        renumber_primary_realizations=True,
         n_clusters=3,
         random_state=42,
     )
@@ -1241,6 +1242,87 @@ def test_clusterandmatch_process_basic():
     }
     _assert_primary_input_realizations_to_clusters(result, expected_primary_mapping)
     _assert_secondary_input_realizations_to_clusters(result, expected_secondary_mapping)
+
+
+def test_clusterandmatch_mismatched_realization_coordinates_warning():
+    """Test UserWarning issued when renumber_primary_realizations=False with
+    mismatched coords.
+
+    When primary input cubes have different realization numbering and
+    renumber_primary_realizations=False, a UserWarning should be issued to alert
+    the user of potential merge failures.
+    """
+    pytest.importorskip("kmedoids")
+    pytest.importorskip("esmf_regrid")
+
+    cubes = iris.cube.CubeList()
+    spatial_shape = (5, 5)
+
+    # Create primary input cubes with DIFFERENT realization numbering
+    # This simulates the real-world scenario where different forecast cycles
+    # carry different realization IDs
+    primary_cube_1 = _create_4d_realization_cube(
+        n_realizations=3,
+        forecast_periods=[0, 6],
+        y_dim=spatial_shape[0],
+        x_dim=spatial_shape[1],
+        base_value=100.0,
+        model_id="primary_model",
+        merge=False,
+    )[0]
+    # Set realizations to [0, 1, 2]
+    primary_cube_1.coord("realization").points = np.array([0, 1, 2])
+
+    primary_cube_2 = _create_4d_realization_cube(
+        n_realizations=3,
+        forecast_periods=[0, 6],
+        y_dim=spatial_shape[0],
+        x_dim=spatial_shape[1],
+        base_value=100.0,
+        model_id="primary_model",
+        merge=False,
+    )[0]
+    # Set realizations to [10, 11, 12] - DIFFERENT from primary_cube_1
+    primary_cube_2.coord("realization").points = np.array([10, 11, 12])
+
+    cubes.extend([primary_cube_1, primary_cube_2])
+
+    # Add secondary input
+    cubes.extend(
+        _create_4d_realization_cube(
+            n_realizations=3,
+            forecast_periods=[0, 6],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            base_value=200.0,
+            model_id="secondary_model",
+            merge=False,
+        )
+    )
+
+    # Add target grid
+    cubes.append(_create_target_grid_cube())
+
+    hierarchy = {
+        "primary_input": "primary_model",
+        "secondary_inputs": {"secondary_model": [0, 6]},
+    }
+
+    plugin = RealizationClusterAndMatch(
+        hierarchy=hierarchy,
+        model_id_attr="model_id",
+        clustering_method="KMedoids",
+        target_grid_name="target_grid",
+        renumber_primary_realizations=False,
+        n_clusters=2,
+        random_state=42,
+    )
+
+    # Should issue UserWarning about mismatched realization coordinates
+    # and then fail during merge because iris requires matching coordinates
+    with pytest.warns(UserWarning, match="different realization numbering"):
+        with pytest.raises(iris.exceptions.MergeError):
+            plugin.process(cubes)
 
 
 def test_clusterandmatch_realization_slicing_with_full_matching():
