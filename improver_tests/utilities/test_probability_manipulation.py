@@ -21,7 +21,23 @@ def test_comparison_operator_keys():
     operator dictionary, and that each contains a namedtuple containing
     the expected elements."""
     expected_keys = sorted(
-        ["ge", "GE", ">=", "gt", "GT", ">", "le", "LE", "<=", "lt", "LT", "<"]
+        [
+            "ge",
+            "GE",
+            ">=",
+            "gt",
+            "GT",
+            ">",
+            "le",
+            "LE",
+            "<=",
+            "lt",
+            "LT",
+            "<",
+            "eq",
+            "EQ",
+            "==",
+        ]
     )
     expected_items = ("function", "spp_string", "inverse")
     result = comparison_operator_dict()
