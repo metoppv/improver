@@ -20,13 +20,13 @@ def comparison_operator_dict() -> Dict[str, namedtuple]:
     - 'inverse': The inverse operator, i.e. ge has an inverse of lt.
     """
 
-    inequality = namedtuple("inequality", "function, spp_string, inverse")
+    comparison = namedtuple("inequality", "function, spp_string, inverse")
 
     comparison_operator_dict = {}
     comparison_operator_dict.update(
         dict.fromkeys(
             ["ge", "GE", ">="],
-            inequality(
+            comparison(
                 function=operator.ge,
                 spp_string="greater_than_or_equal_to",
                 inverse="lt",
@@ -36,13 +36,13 @@ def comparison_operator_dict() -> Dict[str, namedtuple]:
     comparison_operator_dict.update(
         dict.fromkeys(
             ["gt", "GT", ">"],
-            inequality(function=operator.gt, spp_string="greater_than", inverse="le"),
+            comparison(function=operator.gt, spp_string="greater_than", inverse="le"),
         )
     )
     comparison_operator_dict.update(
         dict.fromkeys(
             ["le", "LE", "<="],
-            inequality(
+            comparison(
                 function=operator.le, spp_string="less_than_or_equal_to", inverse="gt"
             ),
         )
@@ -50,13 +50,13 @@ def comparison_operator_dict() -> Dict[str, namedtuple]:
     comparison_operator_dict.update(
         dict.fromkeys(
             ["lt", "LT", "<"],
-            inequality(function=operator.lt, spp_string="less_than", inverse="ge"),
+            comparison(function=operator.lt, spp_string="less_than", inverse="ge"),
         )
     )
     comparison_operator_dict.update(
         dict.fromkeys(
             ["eq", "EQ", "=="],
-            inequality(
+            comparison(
                 function=operator.eq,
                 spp_string="equal_to",
                 inverse="ne",
@@ -136,6 +136,10 @@ def invert_probabilities(cube: Cube) -> Cube:
 
     comparison_operator_lookup = comparison_operator_dict()
     inequality = threshold.attributes["spp__relative_to_threshold"]
+    if inequality == "equal_to":
+        raise ValueError(
+            "invert_probabilities does not support 'equal_to' (==) thresholds."
+        )
     (inverse,) = set(
         [
             value.inverse
