@@ -43,16 +43,16 @@ class SpotExtraction(BasePlugin):
                 the neighbour finding method employed. This keyword is used to
                 extract the desired set of coordinates from the neighbour cube.
             ignore_grid_match:
-                If True, the grid match check between the diagnostic cube and
-                the neighbour cube will be ignored. This is not recommended, but is
-                included as an option to allow the use of a different version of iris
-                having been used when the neighbour cube was generated, compared with the
-                iris version being used in the environment making use of this plugin.
-                This can lead to the grid match check failing.
+                If True, the coordinate hash comparison between the diagnostic cube and
+                the neighbour cube will be ignored. This is not recommended, but
+                allows the version of Iris and/or Numpy in the plug-in execution
+                environment to be different from those that generated the neighbour cube.
                 If False, the grid match check will be performed and an error raised if the
                 cubes do not match. The default is False, and it is recommended to ensure
                 that the neighbour cube is generated on the same grid as the diagnostic cube
                 to avoid any potential issues with incorrect coordinate extraction.
+                @TODO: Remove this option once the hash calculation is more robust and can
+                be reliably used across different versions of Iris and Numpy.
         """
         self.neighbour_selection_method = neighbour_selection_method
         self.ignore_grid_match = ignore_grid_match
