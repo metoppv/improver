@@ -1154,14 +1154,14 @@ def test_clusterandmatch_process_basic():
     assert result.units == "K"
 
     # Check that we have the expected number of clusters
-    n_clusters = len(result.coord("realization").points)
+    n_clusters = result.coord("realization").points.size
     assert n_clusters == 3
     assert len(result.coord_dims("realization")) == 1
     assert result.coords("realization", dim_coords=True)
 
     # Check that all forecast periods are present (in seconds)
     forecast_periods = result.coord("forecast_period").points
-    assert len(forecast_periods) == 4
+    assert forecast_periods.size == 4
     np.testing.assert_array_equal(forecast_periods, [0, 6 * 3600, 12 * 3600, 18 * 3600])
 
     # Check cluster_sources attribute validates correctly
@@ -1450,7 +1450,7 @@ def test_clusterandmatch_cluster_primary_input(
     result = plugin.process(cubes)
 
     # Check that clustering produced the expected number of clusters
-    assert len(result.coord("realization").points) == 3
+    assert result.coord("realization").points.size == 3
 
     # Check that forecast periods are present (in seconds)
     assert result.coord("forecast_period") is not None
@@ -1705,12 +1705,12 @@ def test_clusterandmatch_overlapping_forecast_periods():
 
     # Check all forecast periods present
     forecast_periods = result.coord("forecast_period").points
-    assert len(forecast_periods) == 3
+    assert forecast_periods.size == 3
     np.testing.assert_array_equal(forecast_periods, [0, 6 * 3600, 12 * 3600])
 
     # At fp=6, secondary_model_1 should have overwritten secondary_model_2
     # (secondary_model_1 is listed first, so has higher precedence)
-    assert result.coord("realization").shape[0] == 3
+    assert result.coord("realization").points.size == 3
 
     # Check data values to verify precedence
     fp_0_data = result.extract(iris.Constraint(forecast_period=0)).data
@@ -1782,11 +1782,11 @@ def test_clusterandmatch_single_secondary_input():
 
     # Check structure
     assert isinstance(result, Cube)
-    assert len(result.coord("realization").points) == 3
+    assert result.coord("realization").points.size == 3
 
     # Should have all 3 forecast periods (0, 6 from secondary, 12 from primary)
     forecast_periods = result.coord("forecast_period").points
-    assert len(forecast_periods) == 3
+    assert forecast_periods.size == 3
     np.testing.assert_array_equal(forecast_periods, [0, 6 * 3600, 12 * 3600])
 
     # Check data values: fp=12 should use primary (value ~112),
@@ -1929,11 +1929,11 @@ def test_clusterandmatch_categorise_full_realizations(
 
     # Both forecast periods should be present
     forecast_periods = result.coord("forecast_period").points
-    assert len(forecast_periods) == 2
+    assert forecast_periods.size == 2
     np.testing.assert_array_equal(forecast_periods, [0, 6 * 3600])
 
     # Should have correct number of clusters
-    assert len(result.coord("realization").points) == 3
+    assert result.coord("realization").points.size == 3
 
     # Check data for each forecast period
     fp_0_data = result.extract(iris.Constraint(forecast_period=0)).data
@@ -2021,11 +2021,11 @@ def test_clusterandmatch_categorise_partial_realizations():
     # fp=6 uses secondary_model_2 (2 realizations) merged with primary
     # fp=12 uses primary only
     forecast_periods = result.coord("forecast_period").points
-    assert len(forecast_periods) == 3
+    assert forecast_periods.size == 3
     np.testing.assert_array_equal(forecast_periods, [0, 6 * 3600, 12 * 3600])
 
     # Should still have 3 clusters
-    assert len(result.coord("realization").points) == 3
+    assert result.coord("realization").points.size == 3
 
     # Check data: With random_state=42 and uniform input data,
     # the matching is deterministic.
@@ -2154,7 +2154,7 @@ def test_clusterandmatch_multiple_partial_secondary_same_forecast_period():
 
     # Should have 1 forecast period
     forecast_periods = result.coord("forecast_period").points
-    assert len(forecast_periods) == 1
+    assert forecast_periods.size == 1
     np.testing.assert_array_equal(forecast_periods, [0])
 
     # Should have 3 clusters
@@ -2277,11 +2277,11 @@ def test_clusterandmatch_categorise_mixed_realizations():
     # fp=6 uses secondary_model_2 (2 realizations) merged with primary
     # fp=12 uses primary only
     forecast_periods = result.coord("forecast_period").points
-    assert len(forecast_periods) == 3
+    assert forecast_periods.size == 3
     np.testing.assert_array_equal(forecast_periods, [0, 6 * 3600, 12 * 3600])
 
     # Should have 3 clusters
-    assert len(result.coord("realization").points) == 3
+    assert result.coord("realization").points.size == 3
 
     # Check data:
     # fp=0 should be entirely from secondary_model_1
@@ -2397,7 +2397,7 @@ def test_clusterandmatch_regrid_for_clustering_false():
 
     # Check that all forecast periods are present (in seconds)
     forecast_periods = result.coord("forecast_period").points
-    assert len(forecast_periods) == 3
+    assert forecast_periods.size == 3
     np.testing.assert_array_equal(forecast_periods, [0, 6 * 3600, 12 * 3600])
 
     # Check cluster_sources attribute exists even when regrid_for_clustering=False
