@@ -1017,7 +1017,10 @@ class RealizationClusterAndMatch(BasePlugin):
             # Index the candidate cube using the realization indices
             matched_cube = candidate_cube[realization_indices]
             matched_cube.coord("realization").points = cluster_indices
-            promote_aux_coord_to_dim_coord(matched_cube, "realization")
+            # Handle iris demoting the realization coordinate following slicing with
+            # a non-monotonic index (e.g. [2, 0, 1])
+            if matched_cube.coord("realization") in matched_cube.aux_coords:
+                promote_aux_coord_to_dim_coord(matched_cube, "realization")
 
             matched_cube.attributes.pop(self.model_id_attr)
 
@@ -1206,9 +1209,19 @@ class RealizationClusterAndMatch(BasePlugin):
             - 'cluster_sources': tracks which input model provided the final data for
                 each cluster-forecast_period pairing.
 
-            Raises:
-                ValueError: If no primary cube is found with the specified
-                    model_id_attr.
+        Raises:
+            ValueError: If no primary cube is found with the specified
+                model_id_attr.
+
+        Warnings:
+            UserWarning: If primary cubes have different realization numbering schemes
+                when renumber_primary_realizations=False, which may cause merge
+                failures.
+            UserWarning: If no secondary inputs have forecast periods that overlap with
+                the primary input, in which case only the clustered primary input will
+                be returned.
+            UserWarning: If secondary inputs have forecast periods not present in the
+                primary input, which will be ignored.
         """
         constr = iris.AttributeConstraint(
             **{self.model_id_attr: self.hierarchy["primary_input"]}

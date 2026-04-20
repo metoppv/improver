@@ -1155,7 +1155,7 @@ def test_clusterandmatch_process_basic():
     n_clusters = len(result.coord("realization").points)
     assert n_clusters == 3
     assert len(result.coord_dims("realization")) == 1
-    assert "realization" in [coord.name() for coord in result.dim_coords]
+    assert result.coords("realization", dim_coords=True)
 
     # Check that all forecast periods are present (in seconds)
     forecast_periods = result.coord("forecast_period").points
@@ -1258,34 +1258,24 @@ def test_clusterandmatch_mismatched_realization_coordinates_warning():
     cubes = iris.cube.CubeList()
     spatial_shape = (5, 5)
 
-    # Create primary input cubes with DIFFERENT realization numbering
+    # Create primary input cubes with different realization numbering.
     # This simulates the real-world scenario where different forecast cycles
-    # carry different realization IDs
-    primary_cube_1 = _create_4d_realization_cube(
-        n_realizations=3,
-        forecast_periods=[0, 6],
-        y_dim=spatial_shape[0],
-        x_dim=spatial_shape[1],
-        base_value=100.0,
-        model_id="primary_model",
-        merge=False,
-    )[0]
-    # Set realizations to [0, 1, 2]
-    primary_cube_1.coord("realization").points = np.array([0, 1, 2])
-
-    primary_cube_2 = _create_4d_realization_cube(
-        n_realizations=3,
-        forecast_periods=[0, 6],
-        y_dim=spatial_shape[0],
-        x_dim=spatial_shape[1],
-        base_value=100.0,
-        model_id="primary_model",
-        merge=False,
-    )[0]
-    # Set realizations to [10, 11, 12] - DIFFERENT from primary_cube_1
-    primary_cube_2.coord("realization").points = np.array([10, 11, 12])
-
-    cubes.extend([primary_cube_1, primary_cube_2])
+    # carry different realization numbers.
+    primary_cube_setup = {
+        "n_realizations": 3,
+        "forecast_periods": [0, 6],
+        "y_dim": spatial_shape[0],
+        "x_dim": spatial_shape[1],
+        "base_value": 100.0,
+        "model_id": "primary_model",
+        "merge": False,
+    }
+    primary_cubes = []
+    for realization_points in ([0, 1, 2], [10, 11, 12]):
+        primary_cube = _create_4d_realization_cube(**primary_cube_setup)[0]
+        primary_cube.coord("realization").points = np.array(realization_points)
+        primary_cubes.append(primary_cube)
+    cubes.extend(primary_cubes)
 
     # Add secondary input
     cubes.extend(
@@ -1384,7 +1374,7 @@ def test_clusterandmatch_realization_slicing_with_full_matching():
         random_state=42,
     ).process(cubes)
 
-    assert "realization" in [coord.name() for coord in result.dim_coords]
+    assert result.coords("realization", dim_coords=True)
     np.testing.assert_array_almost_equal(
         result[0, :, 0, 0].data,
         np.array([100.022, 200.004, 0.023, 300.017], dtype=np.float32), decimal=3
@@ -2166,9 +2156,9 @@ def test_clusterandmatch_multiple_partial_secondary_same_forecast_period():
     np.testing.assert_array_equal(forecast_periods, [0])
 
     # Should have 3 clusters
-    assert len(result.coord("realization").points) == 3
+    assert result.coord("realization").points.size == 3
     assert len(result.coord_dims("realization")) == 1
-    assert "realization" in [coord.name() for coord in result.dim_coords]
+    assert result.coords("realization", dim_coords=True)
 
     # Check data: Both secondary inputs are processed (lowest precedence first).
     # With the chosen data values (primary clusters ~90, ~100, ~110;
