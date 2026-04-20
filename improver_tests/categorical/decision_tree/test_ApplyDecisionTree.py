@@ -1488,20 +1488,19 @@ class Test_check_coincidence(Test_WXCode):
 
     def test_time_discrepancy_within_tolerance(self):
         """Test that no error is raised if validity times differ by less than
-        maximum_time_discrepancy."""
+        maximum_time_discrepancy. Lightning and other period diagnostics are
+        excluded as their time coordinate represents the end of a period rather
+        than an instantaneous validity time, which would conflate the period
+        end-time with the instantaneous validity time check being tested here"""
+
         plugin = ApplyDecisionTree(
             decision_tree=wxcode_decision_tree(),
             maximum_time_discrepancy=3600,
         )
-        # Shift one cube's time by 900 seconds (within 3600s tolerance)
-        # "lightning" is a period diagnostic (i.e., it has time bounds and represents an accumulation or average over a period, not an instantaneous value).
-        # Including both period and instantaneous cubes in the same test can make the test ambiguous or cause it to fail for reasons unrelated to the logic being tested.
-        # We skip lightning cubes to ensure the test only checks the logic for instantaneous diagnostics.
         cubes = [cube for cube in self.cubes if "lightning" not in cube.name()]
         cubes[-1] = cubes[-1].copy()
         cubes[-1].coord("time").points = cubes[-1].coord("time").points + 900
-        # Should not raise
-        plugin.check_coincidence(cubes)
+        assert plugin.check_coincidence(cubes) is None
 
     def test_time_discrepancy_exceeds_tolerance(self):
         """Test that an error is raised if validity times differ by more than
@@ -1534,6 +1533,16 @@ class Test_check_coincidence(Test_WXCode):
         msg = "Decision Tree input cubes are valid at different times"
         with pytest.raises(ValueError, match=msg):
             plugin.check_coincidence(cubes)
+
+    def test_negative_maximum_time_discrepancy_raises(self):
+        """Test that a negative maximum_time_discrepancy raises a ValueError."""
+        with pytest.raises(
+            ValueError, match="maximum_time_discrepancy must be a positive integer"
+        ):
+            ApplyDecisionTree(
+                decision_tree=wxcode_decision_tree(),
+                maximum_time_discrepancy=-3600,
+            )
 
 
 class Test_create_categorical_cube(unittest.TestCase):

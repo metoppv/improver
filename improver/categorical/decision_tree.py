@@ -84,7 +84,7 @@ class ApplyDecisionTree(BasePlugin):
         record_run_attr: Optional[str] = None,
         target_period: Optional[int] = None,
         title: Optional[str] = None,
-        maximum_time_discrepancy: Optional[int] = 0,
+        maximum_time_discrepancy: int = 0,
     ) -> None:
         """
         Define a decision tree for determining a category based upon
@@ -112,6 +112,12 @@ class ApplyDecisionTree(BasePlugin):
                 output. This will override the title generated from
                 the inputs, where this generated title is only set if all of the
                 inputs share a common title.
+            maximum_time_discrepancy:
+                The maximum allowable difference in seconds between the validity
+                times of the input cubes. If set to 0 (default), all input cubes
+                must have exactly the same validity time. If set to a positive
+                integer, cubes with validity times differing by up to this value
+                will be accepted. Must be a non-negative integer.
 
         float_tolerance defines the tolerance when matching thresholds to allow
         for the difficulty of float comparisons.
@@ -119,7 +125,11 @@ class ApplyDecisionTree(BasePlugin):
         is zero. It has to be sufficiently small that a valid rainfall rate
         or snowfall rate could not trigger it.
         """
-
+        if maximum_time_discrepancy < 0:
+            raise ValueError(
+                f"maximum_time_discrepancy must be a positive integer "
+                f"(got {maximum_time_discrepancy})."
+            )
         self.model_id_attr = model_id_attr
         self.record_run_attr = record_run_attr
         node_names = list(decision_tree.keys())
@@ -296,9 +306,8 @@ class ApplyDecisionTree(BasePlugin):
                 diagnostics.append(cube.name())
                 bounds.extend(time_bounds.tolist())
                 self.template_cube = cube
-
         # Allow time discrepancy in validity times if set
-        if self.maximum_time_discrepancy and self.maximum_time_discrepancy > 0:
+        if self.maximum_time_discrepancy > 0:
             if (max(times) - min(times)) > self.maximum_time_discrepancy:
                 diagnostic_times = [
                     f"{diagnostic.name()}: {time}"
