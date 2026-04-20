@@ -184,6 +184,59 @@ def test_scale_non_positive_noise():
     ), "Noise in non-positive regions should be <= 0"
 
 
+def test_process_scalar_realization_coord():
+    """Test processing a cube with scalar realization coordinate.
+
+    The input has no realization dimension.
+    """
+    plugin = StochasticNoise(
+        ssft_init_params={"domain_size": [2, 2], "overlap": 0},
+        ssft_generate_params={"seed": 0},
+        db_threshold=0.03,
+        db_threshold_units="mm/hr",
+    )
+
+    data = np.array(
+        [
+            [[0.0, 3.0], [0.0, 4.0]],
+            [[0.0, 3.2], [0.0, 4.2]],
+        ],
+        dtype=np.float32,
+    )
+    cube = set_up_variable_cube(data=data, name="precipitation_rate", units="mm/hr")
+    single_realization_cube = cube[0, :, :]
+
+    result = plugin.process(single_realization_cube)
+
+    assert isinstance(result, Cube)
+    assert result.shape == single_realization_cube.shape
+
+
+def test_process_multirealization_warns():
+    """Test multi-realization inputs are supported via slice iteration."""
+    plugin = StochasticNoise(
+        ssft_init_params={"domain_size": [2, 2], "overlap": 0},
+        ssft_generate_params={"seed": 0},
+        db_threshold=0.03,
+        db_threshold_units="mm/hr",
+    )
+
+    data = np.array(
+        [
+            [[0.0, 3.0], [0.0, 4.0]],
+            [[0.0, 3.2], [0.0, 4.2]],
+        ],
+        dtype=np.float32,
+    )
+    cube = set_up_variable_cube(data=data, name="precipitation_rate", units="mm/hr")
+
+    with pytest.warns(UserWarning, match="multi-realization dimension"):
+        result = plugin.process(cube)
+
+    assert isinstance(result, Cube)
+    assert result.shape == cube.shape
+
+
 def test_non_positive_threshold():
     """Test that ValueError is raised for non-positive db_threshold."""
     with pytest.raises(ValueError, match="db_threshold must be a positive value."):
