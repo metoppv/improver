@@ -136,24 +136,24 @@ def test_no_threshold_coordinate(probability_cube):
         invert_probabilities(cube)
 
 
+@pytest.mark.parametrize("inequality", ["greater_than"])
+def test_invert_probabilities_eq_raises(probability_cube):
+    """Test that invert_probabilities raises for equality operator."""
+    threshold = probability_cube.coord(var_name="threshold")
+    threshold.attributes["spp__relative_to_threshold"] = "equal_to"
+    with pytest.raises(
+        ValueError,
+        match=r"invert_probabilities does not support 'equal_to' \(==\) thresholds\.",
+    ):
+        invert_probabilities(probability_cube)
+
+
+@pytest.mark.parametrize("inequality", ["greater_than"])
 @pytest.mark.parametrize("above", [True, False])
 def test_to_threshold_inequality_eq_returns_cube(probability_cube, above):
     """Test to_threshold_inequality returns cube unchanged for equality operator."""
     threshold = probability_cube.coord(var_name="threshold")
     threshold.attributes["spp__relative_to_threshold"] = "equal_to"
     result = to_threshold_inequality(probability_cube, above=above)
-    # Should be the same object or at least identical data and attributes
     assert result is probability_cube or np.allclose(result.data, probability_cube.data)
     assert threshold.attributes == result.coord(var_name="threshold").attributes
-
-
-@pytest.mark.parametrize("inequality", ["equal_to"])
-def test_invert_probabilities_eq_raises(probability_cube, inequality):
-    """Test that invert_probabilities raises for equality operator."""
-    # Set the threshold attribute to equality
-    threshold = probability_cube.coord(var_name="threshold")
-    threshold.attributes["spp__relative_to_threshold"] = "equal_to"
-    with pytest.raises(
-        ValueError, match="Cannot invert probabilities for equality operator"
-    ):
-        invert_probabilities(probability_cube)
