@@ -164,15 +164,23 @@ class Test__repr__(unittest.TestCase):
         """Test that the __repr__ returns the expected string with defaults."""
         plugin = SpotExtraction()
         result = str(plugin)
-        msg = "<SpotExtraction: neighbour_selection_method: nearest>"
+        msg = "<SpotExtraction: neighbour_selection_method: nearest, ignore_grid_match: False>"
         self.assertEqual(result, msg)
 
-    def test_non_default(self):
+    def test_non_default_neighbour_selection_method(self):
         """Test that the __repr__ returns the expected string with non-default
         options."""
         plugin = SpotExtraction(neighbour_selection_method="nearest_land")
         result = str(plugin)
-        msg = "<SpotExtraction: neighbour_selection_method: nearest_land>"
+        msg = "<SpotExtraction: neighbour_selection_method: nearest_land, ignore_grid_match: False>"
+        self.assertEqual(result, msg)
+
+    def test_non_default_ignore_grid_match(self):
+        """Test that the __repr__ returns the expected string with non-default
+        options."""
+        plugin = SpotExtraction(ignore_grid_match=True)
+        result = str(plugin)
+        msg = "<SpotExtraction: neighbour_selection_method: nearest, ignore_grid_match: True>"
         self.assertEqual(result, msg)
 
 
