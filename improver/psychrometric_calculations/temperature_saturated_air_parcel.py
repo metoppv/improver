@@ -37,7 +37,7 @@ class TemperatureSaturatedAirParcel(BasePlugin):
     The default is set at 500 hPa for the Lifted Index (LI) calculations.
     """
 
-    def __init__(self, pressure_level: float = 50000.0):
+    def __init__(self):
         """
         Set up class
 
@@ -46,7 +46,7 @@ class TemperatureSaturatedAirParcel(BasePlugin):
                 The pressure level that the air parcel is lifted to adiabatically
                 from the cloud condensation level. (Pa)
         """
-        self.pressure_level = pressure_level
+        self.pressure_level = 50000.0
         self.temperature: Cube = None
         self.pressure: Cube = None
 
