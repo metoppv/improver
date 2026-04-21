@@ -112,6 +112,12 @@ class ApplyDecisionTree(BasePlugin):
                 output. This will override the title generated from
                 the inputs, where this generated title is only set if all of the
                 inputs share a common title.
+            maximum_time_discrepancy:
+                The maximum allowable difference in seconds between the validity
+                times of the input cubes. If set to 0 (default), all input cubes
+                must have exactly the same validity time. If set to a positive
+                integer, cubes with validity times differing by up to this value
+                will be accepted. Must be a non-negative integer.
 
         float_tolerance defines the tolerance when matching thresholds to allow
         for the difficulty of float comparisons.
