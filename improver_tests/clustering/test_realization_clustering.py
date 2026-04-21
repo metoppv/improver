@@ -2758,6 +2758,22 @@ def test_realizationselection_no_forecast_cubes_raises():
         plugin.process(cubes)
 
 
+def test_realizationselection_realization_index_out_of_bounds_raises():
+    """Test error when mapped realization index is out of bounds."""
+    cluster_cube = _make_cluster_cube_for_selection({"0": 5})
+
+    forecast_cubes = _make_forecast_cubes("primary_model", [10, 20, 30], 3600)
+    cubes = forecast_cubes.copy()
+    cubes.append(cluster_cube)
+
+    plugin = RealizationSelection(forecast_period=3600)
+    with pytest.raises(
+        ValueError,
+        match="Realization index 5 is out of bounds for model 'primary_model'",
+    ):
+        plugin.process(cubes)
+
+
 def test_realizationselection_invalid_primary_map_type_raises():
     """Test TypeError when primary mapping attribute is not str or dict."""
     cluster_cube = _make_cluster_cube_for_selection({"0": 0, "1": 1})

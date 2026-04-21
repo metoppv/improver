@@ -1582,6 +1582,8 @@ class RealizationSelection(BasePlugin):
 
         Raises:
             ValueError: If no forecast cube is found for a specified model name.
+            ValueError: If a specified realization index is out of bounds for the
+                corresponding model cube.
         """
         selected_cubes = []
         for cluster_idx in sorted(cluster_to_selection):
@@ -1591,10 +1593,18 @@ class RealizationSelection(BasePlugin):
             )
             if not model_cubes:
                 raise ValueError(f"No forecast cube found for model '{model_name}'")
-            model_cube = model_cubes[0]
-            selected = model_cube.extract(
-                iris.Constraint(realization=realization_index)
-            )
+            model_cube = model_cubes[0].copy()
+            enforce_coordinate_ordering(model_cube, ["realization"])
+
+            realization_index = int(realization_index)
+            n_realizations = len(model_cube.coord("realization").points)
+            if realization_index < 0 or realization_index >= n_realizations:
+                raise ValueError(
+                    f"Realization index {realization_index} is out of bounds for "
+                    f"model '{model_name}' with {n_realizations} realizations"
+                )
+
+            selected = model_cube[realization_index]
             selected.coord("realization").points = [cluster_idx]
             selected_cubes.append(selected)
         return selected_cubes
