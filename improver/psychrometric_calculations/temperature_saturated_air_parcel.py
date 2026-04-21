@@ -87,7 +87,7 @@ class TemperatureSaturatedAirParcel(BasePlugin):
 
     def make_saturated_relative_humidity_cube(self, new_temperature) -> Cube:
         """Creates a cube of relative humidity at the cloud condensation level (CCL)
-        with a value of 1.0, as by definition the relative humidity is 100
+        with a mask of values of 1, as by definition the relative humidity is 100
         percent at the CCL.
 
         The temperature cube is used as a template for the metadata of the relative humidity cube.
@@ -101,6 +101,7 @@ class TemperatureSaturatedAirParcel(BasePlugin):
             np.ones_like(new_temperature.data)
         )
         relative_humidity_cube.rename("relative_humidity")
+        relative_humidity_cube.least_significant_digit = "1"
         relative_humidity_cube.units = "1"
         return relative_humidity_cube
 
