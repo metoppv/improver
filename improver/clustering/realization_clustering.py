@@ -1412,6 +1412,8 @@ class RealizationSelection(BasePlugin):
                 "No cluster cube found in input cubes "
                 "(missing 'primary_input_realization_to_cluster_medoid' attribute)."
             )
+        if not forecast_cubes:
+            raise ValueError("No forecast cubes found in input cubes.")
         return forecast_cubes, cluster_cube
 
     def parse_mapping_attributes(

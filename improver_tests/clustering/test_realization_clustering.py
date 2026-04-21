@@ -2748,6 +2748,16 @@ def test_realizationselection_missing_cluster_cube_raises():
         plugin.process(forecast_cubes)
 
 
+def test_realizationselection_no_forecast_cubes_raises():
+    """Test error when input contains a cluster cube but no forecast cubes."""
+    cluster_cube = _make_cluster_cube_for_selection({"0": 0, "1": 1})
+    cubes = CubeList([cluster_cube])
+
+    plugin = RealizationSelection(forecast_period=3600)
+    with pytest.raises(ValueError, match="No forecast cubes found in input cubes."):
+        plugin.process(cubes)
+
+
 def test_realizationselection_invalid_primary_map_type_raises():
     """Test TypeError when primary mapping attribute is not str or dict."""
     cluster_cube = _make_cluster_cube_for_selection({"0": 0, "1": 1})
