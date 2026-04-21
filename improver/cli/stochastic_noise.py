@@ -52,12 +52,14 @@ def process(
             Provide as Python dict string,
             e.g., "{'win_size': (100, 100), 'overlap': 0.3}".
             Recommended keys: win_size, overlap, war_thr.
+            Default is an empty dict, which will use the pysteps defaults.
         ssft_generate_params:
             Keyword arguments for generating stochastic noise using
             `pysteps.noise.fftgenerators.generate_noise_2d_ssft_filter
             <https://pysteps.readthedocs.io/en/stable/generated/pysteps.noise.fftgenerators.generate_noise_2d_ssft_filter.html>`_.
             Provide as Python dict string, e.g., "{'overlap': 0.3, 'seed': 0}".
             Recommended keys: overlap, seed.
+            Default is an empty dict, which will use the pysteps defaults.
         db_threshold:
             Threshold value below which data will be set to a constant in dB scale
             to avoid issues with log(0). Value provided in units of

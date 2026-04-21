@@ -39,8 +39,8 @@ class StochasticNoise(BasePlugin):
 
     def __init__(
         self,
-        ssft_init_params: Optional[dict] = {},
-        ssft_generate_params: Optional[dict] = {},
+        ssft_init_params: Optional[dict] = None,
+        ssft_generate_params: Optional[dict] = None,
         db_threshold: float = 0.03,
         db_threshold_units: str = "mm/hr",
         num_workers: Optional[int] = len(os.sched_getaffinity(0)),
@@ -57,9 +57,11 @@ class StochasticNoise(BasePlugin):
             ssft_init_params:
                 Keyword arguments for initializing SSFT filter using
                 pysteps.noise.fftgenerators.initialize_nonparam_2d_ssft_filter.
+                Default is an empty dict, which will use the pysteps defaults.
             ssft_generate_params:
                 Keyword arguments for generating stochastic noise using
                 pysteps.noise.fftgenerators.generate_noise_2d_ssft_filter.
+                Default is an empty dict, which will use the pysteps defaults.
             db_threshold:
                 Threshold value below which data will be set to a constant in dB scale
                 to avoid issues with log(0). Value provided in units of
@@ -95,8 +97,8 @@ class StochasticNoise(BasePlugin):
         if db_threshold <= 0:
             raise ValueError("db_threshold must be a positive value.")
 
-        self.ssft_init_params = ssft_init_params
-        self.ssft_generate_params = ssft_generate_params
+        self.ssft_init_params = ssft_init_params or {}
+        self.ssft_generate_params = ssft_generate_params or {}
         self.db_threshold = db_threshold
         self.db_threshold_units = db_threshold_units
         self.num_workers = num_workers
