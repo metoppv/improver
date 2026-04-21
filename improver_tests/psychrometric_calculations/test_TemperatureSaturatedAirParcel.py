@@ -46,10 +46,6 @@ def pressure_cube_fixture() -> Cube:
     return pressure_cube
 
 
-class HaltExecution(Exception):
-    pass
-
-
 def test_initialisation():
     # Test init requires no params
     result = TemperatureSaturatedAirParcel()
