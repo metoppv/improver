@@ -146,6 +146,21 @@ def metadata_ok(air_parcel: Cube, baseline: Cube, model_id_attr=None) -> None:
     assert sorted(mandatory_attr_keys) == sorted(MANDATORY_ATTRIBUTES)
 
 
+def test_initialisation():
+    """Test init requires no params."""
+    result = TemperatureSaturatedAirParcel()
+    assert type(result) is TemperatureSaturatedAirParcel
+
+
+def test_process(temperature, pressure):
+    """Test init will process cubes when provided as standard improver-type plugin."""
+    test_class = TemperatureSaturatedAirParcel()([temperature, pressure])
+    assert (
+        test_class.name()
+        == "parcel_temperature_after_saturated_ascent_from_ccl_to_pressure_level"
+    )
+
+
 def test_basic(temperature, pressure, air_parcel):
     """Check that for each pair of values, we get the expected result
     and that the metadata are as expected."""
@@ -173,8 +188,8 @@ def test_masked(temperature, pressure, air_parcel):
 def test_different_pressure(temperature, pressure, air_parcel_diff_pressure):
     """Check that we get the expected result from the plugin when we use
     a different pressure (600hPa)."""
-    result = TemperatureSaturatedAirParcel(pressure_level=60000.0)(
-        [temperature, pressure]
+    result = TemperatureSaturatedAirParcel()(
+        [temperature, pressure], pressure_level=60000.0
     )
     metadata_ok(result, air_parcel_diff_pressure)
     assert np.isclose(result.data, air_parcel_diff_pressure.data, atol=1e-2).all()

@@ -38,8 +38,7 @@ class TemperatureSaturatedAirParcel(BasePlugin):
 
     def __init__(self):
         """
-        Set up class object
-
+        Set up class object.
         """
 
     def parcel_temp_after_ascent(
@@ -48,6 +47,15 @@ class TemperatureSaturatedAirParcel(BasePlugin):
         """Calculates the temperature of a saturated air parcel when it has been lifted
         from the CCL to a pressure level. This has been set at 500 hPa for the easy
         calculation of Lifted Index (LI).
+        Args:
+            new_temperature (Cube):
+                An iris cube processed to update the units to Kelvin (K).
+            new_pressure (Cube):
+                An iris cube processed to update the units to Pascals (Pa).
+            pressure_level (float):
+                The pressure level for the calculation, default is 50000.0 Pa
+                unless otherwise set by the keyword argument for the initial
+                class object.
 
         Returns:
             Array of temperature of an air parcel at a pressure level (K)
@@ -133,7 +141,7 @@ class TemperatureSaturatedAirParcel(BasePlugin):
         )
         return temp_cube
 
-    def process(self, temperature: Cube, pressure: Cube, pressure_level=None) -> Cube:
+    def process(self, cubelist: CubeList, pressure_level=50000.0) -> Cube:
         """
         Main entry point
         Calculates the temperature of a saturated air parcel that has risen adiabatically
@@ -152,9 +160,9 @@ class TemperatureSaturatedAirParcel(BasePlugin):
             Cube of parcel_temperature_after_saturated_ascent_from_ccl_to_pressure_level
 
         """
-        if pressure_level is None:
-            pressure_level = float(50000.0)
-        cubes = as_cubelist(temperature, pressure)
+        if pressure_level:
+            pressure_level = pressure_level
+        cubes = as_cubelist(cubelist)
         (new_temperature, new_pressure) = CubeList(cubes).extract(
             [
                 "air_temperature_at_condensation_level",
