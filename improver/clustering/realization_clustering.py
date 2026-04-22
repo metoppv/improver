@@ -1482,25 +1482,31 @@ class RealizationSelection(BasePlugin):
         self, mapping_fps: Optional[set[int]], fp: int
     ) -> tuple[int, bool]:
         """
-        Find the nearest forecast period in the secondary mapping to the requested
-        forecast period.
+        Find the nearest forecast period in the secondary mapping that is greater
+        than or equal to the requested forecast period.
 
         Args:
             mapping_fps: Set of forecast periods (in seconds) available in the
                 secondary mapping.
-            fp: The forecast period (in seconds) for which to find the nearest mapping.
+            fp: The forecast period (in seconds) for which to find the nearest
+                greater-than-or-equal mapping.
 
         Returns:
             A tuple containing:
-                - nearest_fp: The forecast period from mapping_fps closest to fp
-                (or fp if mapping_fps is empty).
+                - nearest_fp: The smallest forecast period from mapping_fps that is
+                greater than or equal to fp (or fp if mapping_fps is empty).
                 - use_secondary: Boolean indicating whether the secondary mapping
-                    should be used (True if fp is less than or equal to the maximum
-                    in mapping_fps, else False).
+                    should be used (True if at least one forecast period in
+                    mapping_fps is greater than or equal to fp, else False).
         """
         if mapping_fps:
-            nearest_fp = min(mapping_fps, key=lambda x: abs(x - fp))
-            use_secondary = fp <= max(mapping_fps)
+            valid_fps = [mapping_fp for mapping_fp in mapping_fps if mapping_fp >= fp]
+            if valid_fps:
+                nearest_fp = min(valid_fps)
+                use_secondary = True
+            else:
+                nearest_fp = fp
+                use_secondary = False
         else:
             nearest_fp = fp
             use_secondary = False
@@ -1520,7 +1526,8 @@ class RealizationSelection(BasePlugin):
 
         Args:
             nearest_fp: The forecast period (in seconds) from the secondary mapping
-                closest to the requested forecast period.
+                that is nearest while being greater than or equal to the requested
+                forecast period.
             use_secondary: Whether to use the secondary mapping (True) or fall back
                 to the primary mapping (False). Determined by
                 find_nearest_secondary_mapping_fp method.

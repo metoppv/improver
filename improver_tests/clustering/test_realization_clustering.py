@@ -2703,23 +2703,29 @@ def test_realizationselection_secondary_fallback_to_primary():
     np.testing.assert_array_equal(result.data[:, 0, 0], expected)
     assert list(result.coord("realization").points) == [0, 1]
 
-def test_realizationselection_secondary_nearest_fp():
-    """Test nearest forecast period is used from secondary mapping."""
+def test_realizationselection_secondary_nearest_greater_or_equal_fp():
+    """Test nearest greater-or-equal forecast period is used from secondary mapping."""
     primary_map = {"0": 0, "1": 1}
     secondary_map = {
         "secondary_model": {
-            "0": [{"realization": 2, "forecast_periods": [3600, 5400]}],
-            "1": [{"realization": 1, "forecast_periods": [3600, 5400]}],
+            "0": [
+                {"realization": 0, "forecast_periods": [3600]},
+                {"realization": 2, "forecast_periods": [5400]},
+            ],
+            "1": [
+                {"realization": 1, "forecast_periods": [3600]},
+                {"realization": 0, "forecast_periods": [5400]},
+            ],
         }
     }
     cluster_cube = _make_cluster_cube_for_selection(primary_map, secondary_map)
-    # Forecast cubes: secondary model, fp=4000 (nearest is 3600)
+    # Forecast cubes: secondary model, fp=4000 (nearest greater-or-equal is 5400)
     forecast_cubes = _make_forecast_cubes("secondary_model", [100, 200, 300], 4000)
     cubes = forecast_cubes.copy()
     cubes.append(cluster_cube)
     plugin = RealizationSelection(forecast_period=4000)
     result = plugin.process(cubes)
-    expected = np.array([300, 200])
+    expected = np.array([300, 100])
     np.testing.assert_array_equal(result.data[:, 0, 0], expected)
     assert list(result.coord("realization").points) == [0, 1]
 
