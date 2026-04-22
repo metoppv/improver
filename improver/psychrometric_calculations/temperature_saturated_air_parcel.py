@@ -41,9 +41,7 @@ class TemperatureSaturatedAirParcel(BasePlugin):
         Set up class object.
         """
 
-    def parcel_temp_after_ascent(
-        self, new_temperature, new_pressure, pressure_level
-    ) -> np.array:
+    def parcel_temp_after_ascent(self, parcel_temperature_after_ascent) -> np.array:
         """Calculates the temperature of a saturated air parcel when it has been lifted
         from the CCL to a pressure level. This has been set at 500 hPa for the easy
         calculation of Lifted Index (LI).
@@ -60,30 +58,7 @@ class TemperatureSaturatedAirParcel(BasePlugin):
         Returns:
             Array of temperature of an air parcel at a pressure level (K)
         """
-        relative_humidity_cube = self.make_saturated_relative_humidity_cube(
-            new_temperature
-        )
-        humidity_cube = HumidityMixingRatio()(
-            [new_temperature, new_pressure, relative_humidity_cube]
-        )
-        ccl_temperature_cube, ccl_pressure_cube = CloudCondensationLevel()(
-            [new_temperature, new_pressure, humidity_cube]
-        )
-        humidity_mixing_ratio_at_ccl = saturated_humidity(
-            ccl_temperature_cube.data, ccl_pressure_cube.data
-        )
-        dry_parcel_temperature_after_ascent = dry_adiabatic_temperature(
-            ccl_temperature_cube.data, ccl_pressure_cube.data, pressure_level
-        )
-        parcel_temperature_after_ascent, _ = adjust_for_latent_heat(
-            dry_parcel_temperature_after_ascent,
-            humidity_mixing_ratio_at_ccl,
-            pressure_level,
-        )
-        parcel_temperature_after_ascent = np.ma.masked_invalid(
-            parcel_temperature_after_ascent
-        ).astype(np.float32)
-        return parcel_temperature_after_ascent
+        return np.ma.masked_invalid(parcel_temperature_after_ascent).astype(np.float32)
 
     def make_saturated_relative_humidity_cube(self, new_temperature) -> Cube:
         """Creates a cube of relative humidity at the cloud condensation level (CCL)
@@ -101,8 +76,8 @@ class TemperatureSaturatedAirParcel(BasePlugin):
             np.ones_like(new_temperature.data)
         )
         relative_humidity_cube.rename("relative_humidity")
-        relative_humidity_cube.least_significant_digit = "1"
         relative_humidity_cube.units = "1"
+        relative_humidity_cube.attributes.update({"least_significant_digit": "1"})
         return relative_humidity_cube
 
     def make_temperature_cube(
@@ -140,7 +115,7 @@ class TemperatureSaturatedAirParcel(BasePlugin):
                 attributes={"positive": "down"},
             )
         )
-        temp_cube.least_significant_digit = "1"
+        temp_cube.least_significant_digit = "0.0000001"
         return temp_cube
 
     def process(self, cubelist: CubeList, pressure_level=50000.0) -> Cube:
@@ -171,12 +146,52 @@ class TemperatureSaturatedAirParcel(BasePlugin):
                 "air_pressure_at_condensation_level",
             ]
         )
+        print("new_temperature before conversion:", new_temperature.data)
+        print("new_pressure before conversion:", new_pressure.data)
         new_temperature.convert_units("K")
         new_pressure.convert_units("Pa")
-        parcel_temp_at_pressure_level = self.parcel_temp_after_ascent(
-            new_temperature, new_pressure, pressure_level
+        print("new_temperature after conversion data:", new_temperature.data)
+        print("new_pressure after conversion data:", new_pressure.data)
+        relative_humidity_cube = self.make_saturated_relative_humidity_cube(
+            new_temperature
         )
+
+        print("relative_humidity_cube: ", relative_humidity_cube)
+        print("relative_humidity_cube attributes: ", relative_humidity_cube.attributes)
+        humidity_cube = HumidityMixingRatio()(
+            [new_temperature, new_pressure, relative_humidity_cube]
+        )
+        print("humidity cube: ", humidity_cube)
+        ccl_temperature_cube, ccl_pressure_cube = CloudCondensationLevel()(
+            [new_temperature, new_pressure, humidity_cube]
+        )
+        print("ccl_pressure_cube: ", ccl_pressure_cube)
+        print("ccl_temperature_cube: ", ccl_temperature_cube)
+        print("ccl_pressure_cube: ", ccl_pressure_cube.data)
+        print("ccl_temperature_cube: ", ccl_temperature_cube.data)
+        humidity_mixing_ratio_at_ccl = saturated_humidity(
+            ccl_temperature_cube.data, ccl_pressure_cube.data
+        )
+        print("humidity_mixing_ratio_at_ccl", humidity_mixing_ratio_at_ccl.data)
+        dry_parcel_temperature_after_ascent = dry_adiabatic_temperature(
+            ccl_temperature_cube.data, ccl_pressure_cube.data, pressure_level
+        )
+        print(
+            "dry_parcel_temperature_after_ascent data",
+            dry_parcel_temperature_after_ascent.data,
+        )
+        parcel_temperature_after_ascent, _ = adjust_for_latent_heat(
+            dry_parcel_temperature_after_ascent,
+            humidity_mixing_ratio_at_ccl,
+            pressure_level,
+        )
+        print("parcel_temperature_after_ascent", parcel_temperature_after_ascent.data)
+        parcel_temp_at_pressure_level = self.parcel_temp_after_ascent(
+            parcel_temperature_after_ascent
+        )
+        print("parcel_temp_at_pressure_level", parcel_temp_at_pressure_level.data)
         temp_cube = self.make_temperature_cube(
             parcel_temp_at_pressure_level, new_temperature, pressure_level
         )
+        print("temp_cube", temp_cube.data)
         return temp_cube
