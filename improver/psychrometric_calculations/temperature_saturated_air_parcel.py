@@ -140,6 +140,7 @@ class TemperatureSaturatedAirParcel(BasePlugin):
                 attributes={"positive": "down"},
             )
         )
+        temp_cube.least_significant_digit = "1"
         return temp_cube
 
     def process(self, cubelist: CubeList, pressure_level=50000.0) -> Cube:
