@@ -291,6 +291,8 @@ def minimum_increment(cube: Cube, default: float = None) -> Union[float, int]:
         ValueError:
             If the 'least_significant_digit' attribute is not present and no default is provided.
     """
+    if type(cube) is CubeList:
+        cube = cube[0]
     try:
         least_significant_digit = int(cube.attributes["least_significant_digit"])
     except KeyError:
