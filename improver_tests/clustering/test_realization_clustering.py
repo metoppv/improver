@@ -2719,6 +2719,10 @@ def test_realizationselection_primary_only():
     expected = np.array([30, 10, 20])
     np.testing.assert_array_equal(result.data[:, 0, 0], expected)
     assert list(result.coord("realization").points) == [0, 1, 2]
+    assert "cluster_sources" in result.attributes
+    assert result.attributes["cluster_sources"] == cluster_cube.attributes[
+        "cluster_sources"
+    ]
 
 
 def test_realizationselection_cycletime():

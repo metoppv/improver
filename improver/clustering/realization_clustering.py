@@ -1728,4 +1728,8 @@ class RealizationSelection(BasePlugin):
             cluster_to_selection, forecast_cubes
         )
         result_cube = MergeCubes()(CubeList(selected_cubes))
+        if "cluster_sources" in cluster_cube.attributes:
+            result_cube.attributes["cluster_sources"] = cluster_cube.attributes[
+                "cluster_sources"
+            ]
         return result_cube
