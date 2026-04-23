@@ -451,7 +451,7 @@ def adjust_for_latent_heat(
         humidity_in.copy(),
         args=(temperature_in, humidity_in, pressure),
         tol=1e-6,
-        maxiter=12 if humidity_in.size > 100 else 10,
+        maxiter=15 if humidity_in.size > 100 else 10,
         disp=True,
     ).astype(np.float32)
     temperature = temperature_in + _latent_heat_release(
