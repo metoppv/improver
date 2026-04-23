@@ -411,9 +411,10 @@ def adjust_for_latent_heat(
 
     Subsaturated values will be returned unaltered.
 
-    This method uses the scipy newton solver with a limit of 12 iterations.
+    This method uses the scipy newton solver with a limit of 15 iterations.
+    https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.newton.html
     This was 6 iterations but was continually giving errors so attempting updating it
-    to 12 for lifted index in epp calculations.
+    to 1 for lifted index in epp calculations.
     The deepest convection needs more iterations to converge. This is only important
     if we reach the position that all points in an array fail to converge at the same
     pressure level, because the solver raises an exception (although docs say it shouldn't).
@@ -451,7 +452,7 @@ def adjust_for_latent_heat(
         humidity_in.copy(),
         args=(temperature_in, humidity_in, pressure),
         tol=1e-6,
-        maxiter=15 if humidity_in.size > 100 else 10,
+        maxiter=50,
         disp=True,
     ).astype(np.float32)
     temperature = temperature_in + _latent_heat_release(
