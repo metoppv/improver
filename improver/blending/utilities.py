@@ -7,12 +7,10 @@
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Union
 
-import numpy as np
 from iris import Constraint
 from iris.coords import AuxCoord
 from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
-from numpy import int64
 
 from improver.blending import (
     MODEL_BLEND_COORD,
@@ -26,9 +24,10 @@ from improver.metadata.constants.attributes import (
     MANDATORY_ATTRIBUTES,
 )
 from improver.metadata.constants.time_types import DT_FORMAT, TIME_COORDS
-from improver.metadata.forecast_times import add_blend_time, forecast_period_coord
-from improver.utilities.round import round_close
-from improver.utilities.temporal import cycletime_to_number
+from improver.metadata.forecast_times import add_blend_time
+from improver.utilities.temporal import (
+    reset_forecast_reference_time_and_period,
+)
 
 
 def find_blend_dim_coord(cube: Cube, blend_coord: str) -> str:
@@ -130,7 +129,7 @@ def update_blended_metadata(
         coords_to_remove:
             Name of scalar coordinates to be removed from the blended cube
         cycletime:
-            Current cycletime in YYYYMMDDTHHmmZ format
+            Current cycletime in YYYYMMDDTHHMMZ format
         model_id_attr:
             Name of attribute for use in model blending, to record the names of
             contributing models on the blended output
@@ -159,7 +158,7 @@ def update_blended_metadata(
             cube.attributes[attr] = MANDATORY_ATTRIBUTE_DEFAULTS[attr]
 
 
-def _set_blended_time_coords(blended_cube: Cube, cycletime: Optional[str]) -> None:
+def _set_blended_time_coords(blended_cube: Cube, cycletime: str) -> None:
     """
     For cycle and model blending:
 
@@ -176,51 +175,21 @@ def _set_blended_time_coords(blended_cube: Cube, cycletime: Optional[str]) -> No
     Args:
         blended_cube
         cycletime:
-            Current cycletime in YYYYMMDDTHHmmZ format
+            Current cycletime in YYYYMMDDTHHMMZ format
+    Raises:
+        ValueError: If cycletime is not provided for cycle or model blending.
     """
-    try:
-        cycletime_point = _get_cycletime_point(blended_cube, cycletime)
-    except TypeError:
+    if cycletime is None:
         raise ValueError("Current cycle time is required for cycle and model blending")
 
     add_blend_time(blended_cube, cycletime)
-    blended_cube.coord("forecast_reference_time").points = [cycletime_point]
-    blended_cube.coord("forecast_reference_time").bounds = None
-    if blended_cube.coords("forecast_period"):
-        blended_cube.remove_coord("forecast_period")
-        new_forecast_period = forecast_period_coord(blended_cube)
-        time_dim = blended_cube.coord_dims("time")
-        blended_cube.add_aux_coord(new_forecast_period, data_dims=time_dim)
+    reset_forecast_reference_time_and_period(blended_cube, cycletime)
     for coord in ["forecast_period", "forecast_reference_time"]:
         msg = f"{coord} will be removed in future and should not be used"
         try:
             blended_cube.coord(coord).attributes.update({"deprecation_message": msg})
         except CoordinateNotFoundError:
             pass
-
-
-def _get_cycletime_point(cube: Cube, cycletime: str) -> int64:
-    """
-    For cycle and model blending, establish the current cycletime to set on
-    the cube after blending.
-
-    Args:
-        blended_cube
-        cycletime:
-            Current cycletime in YYYYMMDDTHHmmZ format
-
-    Returns:
-        Cycle time point in units matching the input cube forecast reference
-        time coordinate
-    """
-    frt_coord = cube.coord("forecast_reference_time")
-    frt_units = frt_coord.units.origin
-    frt_calendar = frt_coord.units.calendar
-    # raises TypeError if cycletime is None
-    cycletime_point = cycletime_to_number(
-        cycletime, time_unit=frt_units, calendar=frt_calendar
-    )
-    return round_close(cycletime_point, dtype=np.int64)
 
 
 def store_record_run_as_coord(
