@@ -58,9 +58,7 @@ class TemperatureSaturatedAirParcel(BasePlugin):
         )
         relative_humidity_cube.rename("relative_humidity")
         relative_humidity_cube.units = "1"
-        relative_humidity_cube.attributes.update(
-            {"least_significant_digit": 0.00000001}
-        )
+        relative_humidity_cube.attributes.update({"least_significant_digit": 0})
         return relative_humidity_cube
 
     def make_temperature_cube(
@@ -98,7 +96,7 @@ class TemperatureSaturatedAirParcel(BasePlugin):
                 attributes={"positive": "down"},
             )
         )
-        temp_cube.least_significant_digit = 0.00000001
+        temp_cube.least_significant_digit = 0
         return temp_cube
 
     def process(self, cubelist: CubeList, pressure_level=50000.0) -> Cube:
