@@ -2620,7 +2620,11 @@ def _make_cluster_cube_for_selection(
     if secondary_map is not None:
         cube.attributes["secondary_input_realizations_to_clusters"] = json.dumps(
             secondary_map)
-    cube.attributes["mosg__model_configuration"] = model_id
+    cluster_sources = {
+        str(cluster_idx): {model_id: [0]}
+        for cluster_idx in primary_map.keys()
+    }
+    cube.attributes["cluster_sources"] = json.dumps(cluster_sources)
     return cube
 
 def _make_forecast_cubes(model_id, realization_vals, forecast_period, shape=(5, 5)):
@@ -2823,4 +2827,44 @@ def test_realizationselection_mismatched_validity_time_raises():
 
     plugin = RealizationSelection(forecast_period=3600)
     with pytest.raises(ValueError, match="Forecast cubes must share a common validity time"):
+        plugin.process(cubes)
+
+
+def test_realizationselection_missing_cluster_sources_attribute_raises():
+    """Test ValueError when cluster_sources attribute is missing."""
+    cluster_cube = _make_cluster_cube_for_selection({"0": 0, "1": 1})
+    cluster_cube.attributes.pop("cluster_sources")
+
+    forecast_cubes = _make_forecast_cubes("primary_model", [10, 20], 3600)
+    cubes = forecast_cubes.copy()
+    cubes.append(cluster_cube)
+
+    plugin = RealizationSelection(forecast_period=3600)
+    with pytest.raises(
+        ValueError,
+        match=(
+            "cluster_sources attribute not found in cluster cube. "
+            "Cannot determine primary model name."
+        ),
+    ):
+        plugin.process(cubes)
+
+
+def test_realizationselection_cluster_sources_with_no_models_raises():
+    """Test ValueError when cluster_sources has no model entries."""
+    cluster_cube = _make_cluster_cube_for_selection({"0": 0, "1": 1})
+    cluster_cube.attributes["cluster_sources"] = json.dumps({"0": {}, "1": {}})
+
+    forecast_cubes = _make_forecast_cubes("primary_model", [10, 20], 3600)
+    cubes = forecast_cubes.copy()
+    cubes.append(cluster_cube)
+
+    plugin = RealizationSelection(forecast_period=3600)
+    with pytest.raises(
+        ValueError,
+        match=(
+            "No models found in cluster_sources attribute. "
+            "Cannot determine primary model name."
+        ),
+    ):
         plugin.process(cubes)

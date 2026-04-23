@@ -1512,6 +1512,47 @@ class RealizationSelection(BasePlugin):
             use_secondary = False
         return nearest_fp, use_secondary
 
+    def _extract_primary_model_from_cluster_sources(self, cluster_cube: Cube) -> str:
+        """Extract the primary model name from the cluster_sources attribute.
+
+        The primary model is identified as the model that appears in the most
+        clusters, which corresponds to the model used for initial clustering.
+
+        Args:
+            cluster_cube: The cluster cube output from RealizationClusterAndMatch,
+                containing the cluster_sources attribute as a JSON string.
+
+        Returns:
+            The primary model name.
+
+        Raises:
+            ValueError: If cluster_sources attribute is not found in the cube.
+        """
+        cluster_sources_str = cluster_cube.attributes.get("cluster_sources")
+        if cluster_sources_str is None:
+            raise ValueError(
+                "cluster_sources attribute not found in cluster cube. "
+                "Cannot determine primary model name."
+            )
+
+        cluster_sources = json.loads(cluster_sources_str)
+
+        # Count how many clusters each model appears in
+        model_counts = {}
+        for _, models_dict in cluster_sources.items():
+            for model_name in models_dict.keys():
+                model_counts[model_name] = model_counts.get(model_name, 0) + 1
+
+        # Return the model that appears in the most clusters
+        if not model_counts:
+            raise ValueError(
+                "No models found in cluster_sources attribute. "
+                "Cannot determine primary model name."
+            )
+
+        primary_model = max(model_counts, key=model_counts.get)
+        return primary_model
+
     def build_cluster_to_selection(
         self,
         nearest_fp: int,
@@ -1556,14 +1597,17 @@ class RealizationSelection(BasePlugin):
                                 model_name,
                                 entry["realization"],
                             )
-        # Fill in any clusters not covered by secondary inputs using the medoid mapping
+        # Fill in any clusters not covered by secondary inputs using the medoid
+        # mapping from the primary model identified in cluster_sources.
+        primary_model_name = self._extract_primary_model_from_cluster_sources(
+            cluster_cube
+        )
+
         for cluster_idx_str, realization in primary_map.items():
             cluster_idx = int(cluster_idx_str)
             if cluster_idx not in cluster_to_selection:
                 cluster_to_selection[cluster_idx] = (
-                    cluster_cube.attributes.get(
-                        "mosg__model_configuration", "primary_input"
-                    ),
+                    primary_model_name,
                     realization,
                 )
         return cluster_to_selection
