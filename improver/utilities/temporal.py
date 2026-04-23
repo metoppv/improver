@@ -366,7 +366,7 @@ def reset_forecast_reference_time_and_period(cube: Cube, cycletime: str) -> None
         cube:
             Cube whose forecast reference time is to be reset.
         cycletime:
-            New forecast reference time in YYYYMMDDTHHmmZ format.
+            New forecast reference time in YYYYMMDDTHHMMZ format.
     """
     # Forecast reference time modifications.
     frt_coord = cube.coord("forecast_reference_time")
@@ -381,10 +381,9 @@ def reset_forecast_reference_time_and_period(cube: Cube, cycletime: str) -> None
     cube.coord("forecast_reference_time").points = [cycletime_point]
     cube.coord("forecast_reference_time").bounds = None
     # Forecast period modifications.
-    if cube.coords("forecast_period"):
-        from improver.metadata.forecast_times import forecast_period_coord
+    from improver.metadata.forecast_times import forecast_period_coord
 
-        cube.remove_coord("forecast_period")
-        new_forecast_period = forecast_period_coord(cube)
-        time_dim = cube.coord_dims("time")
-        cube.add_aux_coord(new_forecast_period, data_dims=time_dim)
+    cube.remove_coord("forecast_period")
+    new_forecast_period = forecast_period_coord(cube)
+    time_dim = cube.coord_dims("time")
+    cube.add_aux_coord(new_forecast_period, data_dims=time_dim)

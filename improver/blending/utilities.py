@@ -129,7 +129,7 @@ def update_blended_metadata(
         coords_to_remove:
             Name of scalar coordinates to be removed from the blended cube
         cycletime:
-            Current cycletime in YYYYMMDDTHHmmZ format
+            Current cycletime in YYYYMMDDTHHMMZ format
         model_id_attr:
             Name of attribute for use in model blending, to record the names of
             contributing models on the blended output
@@ -175,7 +175,7 @@ def _set_blended_time_coords(blended_cube: Cube, cycletime: str) -> None:
     Args:
         blended_cube
         cycletime:
-            Current cycletime in YYYYMMDDTHHmmZ format
+            Current cycletime in YYYYMMDDTHHMMZ format
     Raises:
         ValueError: If cycletime is not provided for cycle or model blending.
     """

@@ -643,15 +643,6 @@ def test_reset_forecast_reference_time(frt_cube):
     assert frt_cube.coord("forecast_period").points[0] == 0
 
 
-def test_reset_forecast_reference_time_no_forecast_period(frt_cube):
-    """Test that the function works correctly when there is no forecast_period
-    coordinate on the cube."""
-    frt_cube.remove_coord("forecast_period")
-    reset_forecast_reference_time_and_period(frt_cube, "20170217T0900Z")
-    # forecast_period should not be re-added if it was not present
-    assert not frt_cube.coords("forecast_period")
-
-
 @pytest.mark.parametrize(
     "new_cycletime, expected_forecast_period_hours",
     [
