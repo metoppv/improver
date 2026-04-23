@@ -1379,6 +1379,7 @@ class RealizationSelection(BasePlugin):
         self,
         forecast_period: int,
         model_id_attr: str = "mosg__model_configuration",
+        cycletime: Optional[str] = None,
     ):
         """
         Initialise the RealizationSelection plugin.
@@ -1389,10 +1390,15 @@ class RealizationSelection(BasePlugin):
                 realizations.
             model_id_attr: The name of the cube attribute used to identify the model
                 source.
-
+            cycletime: The forecast_reference_time on the input forecast cubes will be
+                reset to this value. The forecast periods will be adjusted accordingly
+                with the validity times kept fixed. cycletime should be provided in the
+                format YYYYMMDDTHHMMZ (e.g., 20240101T0000Z). If not provided, the
+                forecast_reference_time on the input cubes will be left unchanged.
         """
         self.forecast_period = forecast_period
         self.model_id_attr = model_id_attr
+        self.cycletime = cycletime
 
     def split_cubes_forecast_and_cluster(
         self, cubes: CubeList
@@ -1698,6 +1704,12 @@ class RealizationSelection(BasePlugin):
         """
         forecast_cubes, cluster_cube = self.split_cubes_forecast_and_cluster(cubes)
         self.validate_common_validity_time(forecast_cubes)
+
+        if self.cycletime is not None:
+            for cube in cubes:
+                if not cube.coords("forecast_reference_time"):
+                    continue
+                reset_forecast_reference_time_and_period(cube, self.cycletime)
 
         primary_map, secondary_map = self.parse_mapping_attributes(cluster_cube)
         mapping_fps = set()

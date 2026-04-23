@@ -2720,6 +2720,28 @@ def test_realizationselection_primary_only():
     np.testing.assert_array_equal(result.data[:, 0, 0], expected)
     assert list(result.coord("realization").points) == [0, 1, 2]
 
+
+def test_realizationselection_cycletime():
+    """Test that cycletime resets forecast_reference_time and forecast_period."""
+    primary_map = {"0": 2, "1": 0, "2": 1}
+    cluster_cube = _make_cluster_cube_for_selection(primary_map)
+
+    # Initial forecast period is 7200s with forecast reference time at 03:00
+    # and validity at 05:00. Setting cycletime to 04:00 should keep validity fixed
+    # and update period to 3600s.
+    forecast_cubes = _make_forecast_cubes("primary_model", [10, 20, 30], 7200)
+    cubes = forecast_cubes.copy()
+    cubes.append(cluster_cube)
+
+    plugin = RealizationSelection(
+        forecast_period=3600,
+        cycletime="20170110T0400Z",
+    )
+    result = plugin.process(cubes)
+
+    assert result.coord("forecast_reference_time").cell(0).point._to_real_datetime() == datetime.strptime("20170110T0400Z", "%Y%m%dT%H%MZ")
+    assert result.coord("forecast_period").points[0] == 3600
+
 def test_realizationselection_secondary_precedence():
     """Test RealizationSelection uses secondary mapping when available."""
     # Cluster cube: 2 clusters, medoids are 0, 1
