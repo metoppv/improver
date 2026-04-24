@@ -123,6 +123,7 @@ class TemporalInterpolation(BasePlugin):
         accumulation: bool = False,
         max: bool = False,
         min: bool = False,
+        treat_period_as_instantaneous: bool = False,
         model_path: Optional[str] = None,
         scaling: str = "minmax",
         clipping_bounds: Optional[Tuple[float, float]] = None,
@@ -167,6 +168,10 @@ class TemporalInterpolation(BasePlugin):
                 period minimum. Trends between adjacent input periods will be used
                 to provide variation across the interpolated periods where these
                 are consistent with the inputs.
+            treat_period_as_instantaneous:
+                If True, period diagnostics (inputs with time bounds) are treated
+                as instantaneous values for interpolation. No period-specific
+                renormalisation or max/min constraints are applied.
             model_path:
                 Path to the TensorFlow Hub module for the Google FILM model.
                 Required if interpolation_method is "google_film".
@@ -210,6 +215,8 @@ class TemporalInterpolation(BasePlugin):
             ValueError: If interpolation_method is "google_film" but model_path
                         is not provided.
             ValueError: If multiple period diagnostic kwargs are set True.
+            ValueError: If treat_period_as_instantaneous is combined with one
+                        of accumulation, max, or min.
             ValueError: A period diagnostic is being interpolated with a method
                         not found in the period_interpolation_methods list.
         """
@@ -256,9 +263,15 @@ class TemporalInterpolation(BasePlugin):
                 f"accumulation = {accumulation}, max = {max}, "
                 f"min = {min}"
             )
+        if treat_period_as_instantaneous and any([accumulation, max, min]):
+            raise ValueError(
+                "treat_period_as_instantaneous cannot be combined with "
+                "accumulation, max, or min."
+            )
         self.accumulation = accumulation
         self.max = max
         self.min = min
+        self.treat_period_as_instantaneous = treat_period_as_instantaneous
         self.max_batch = max_batch
         self.parallel_backend = parallel_backend
         self.n_workers = n_workers
@@ -676,6 +689,18 @@ class TemporalInterpolation(BasePlugin):
                 " temporal interpolation."
             )
 
+        if (
+            cube_t0_bounds
+            and self.treat_period_as_instantaneous
+            and not self.period_inputs
+        ):
+            cube_t0 = cube_t0.copy()
+            cube_t1 = cube_t1.copy()
+            for crd in ["time", "forecast_period"]:
+                cube_t0.coord(crd).bounds = None
+                cube_t1.coord(crd).bounds = None
+            cube_t0_bounds = False
+
         if cube_t0_bounds and not self.period_inputs:
             raise ValueError(
                 "Interpolation of period diagnostics should be done using "
@@ -889,6 +914,14 @@ class ForecastTrajectoryGapFiller(BasePlugin):
         self.interpolation_window_in_minutes = interpolation_window_in_minutes
         self.model_path = model_path
         self.scaling = scaling
+        self.interval_in_seconds = (
+            None if self.interval_in_minutes is None else self.interval_in_minutes * 60
+        )
+        self.interpolation_window_in_seconds = (
+            None
+            if self.interpolation_window_in_minutes is None
+            else self.interpolation_window_in_minutes * 60
+        )
         # Ensure clipping_bounds is a tuple if needed
         self.clipping_bounds = _as_tuple_if_list(clipping_bounds)
         self.clip_in_scaled_space = clip_in_scaled_space
@@ -900,34 +933,33 @@ class ForecastTrajectoryGapFiller(BasePlugin):
         self.kwargs = kwargs
 
     def _get_forecast_periods(self, cubelist: CubeList) -> List[int]:
-        """Extract forecast periods from cubes in minutes since the reference time.
+        """Extract forecast periods from cubes in seconds since the reference time.
 
         Args:
             cubelist: List of cubes to extract forecast periods from.
 
         Returns:
-            Sorted list of unique forecast periods in minutes.
+            Sorted list of unique forecast periods in seconds.
         """
         periods = set()
         for cube in cubelist:
-            period_seconds = cube.coord("forecast_period").points[0]
-            period_minutes = int(round(period_seconds / 60))
-            periods.add(period_minutes)
+            period_seconds = int(round(cube.coord("forecast_period").points[0]))
+            periods.add(period_seconds)
         return sorted(periods)
 
     def _extract_cube_for_period(self, cubelist: CubeList, period: int) -> Cube:
-        """Extract a cube for a specific forecast period (in minutes).
+        """Extract a cube for a specific forecast period (in seconds).
 
         Args:
             cubelist: List of cubes to extract from.
-            period: Forecast period in minutes.
+            period: Forecast period in seconds.
 
         Returns:
             Cube corresponding to the specified forecast period.
         """
         # <0.01 included to avoid floating point issues.
         constraint = iris.Constraint(
-            forecast_period=lambda fp: abs((fp.point / 60) - period) < 0.01
+            forecast_period=lambda fp: abs(fp.point - period) < 0.01
         )
         return cubelist.extract_cube(constraint)
 
@@ -938,12 +970,12 @@ class ForecastTrajectoryGapFiller(BasePlugin):
             cubelist: List of input cubes.
 
         Returns:
-            List of forecast_periods (in minutes) that are missing.
+            List of forecast periods (in seconds) that are missing.
 
         Raises:
             ValueError: If interval_in_minutes is not set.
         """
-        if self.interval_in_minutes is None:
+        if self.interval_in_seconds is None:
             raise ValueError(
                 "interval_in_minutes must be set to identify gaps in forecast period."
             )
@@ -954,12 +986,35 @@ class ForecastTrajectoryGapFiller(BasePlugin):
         min_period = existing_periods[0]
         max_period = existing_periods[-1]
         missing_periods = []
-        current = min_period + self.interval_in_minutes
+        current = min_period + self.interval_in_seconds
         while current < max_period:
             if current not in existing_periods:
                 missing_periods.append(current)
-            current += self.interval_in_minutes
+            current += self.interval_in_seconds
         return missing_periods
+
+    @staticmethod
+    def _remove_time_bounds(cubelist: CubeList) -> CubeList:
+        """Return copies of cubes with time-related bounds removed.
+
+        This is used when inputs should be treated as instantaneous even if
+        period bounds are present.
+
+        Args:
+            cubelist:
+                Input cubes.
+
+        Returns:
+            A CubeList of copied cubes with bounds removed from time and
+            forecast_period coordinates.
+        """
+        result = CubeList()
+        for cube in cubelist:
+            new_cube = cube.copy()
+            for coord_name in ("time", "forecast_period"):
+                new_cube.coord(coord_name).bounds = None
+            result.append(new_cube)
+        return result
 
     def _parse_cluster_sources(self, cube: Cube) -> dict:
         """Parse the cluster sources dictionary from a cube attribute.
@@ -1074,7 +1129,7 @@ class ForecastTrajectoryGapFiller(BasePlugin):
         """
         if (
             self.cluster_sources_attribute is None
-            or self.interpolation_window_in_minutes is None
+            or self.interpolation_window_in_seconds is None
             or not cubelist
         ):
             return []
@@ -1101,8 +1156,8 @@ class ForecastTrajectoryGapFiller(BasePlugin):
             )
             for trans_period in transitions:
                 if trans_period not in seen_transitions:
-                    expected_t0 = trans_period - self.interpolation_window_in_minutes
-                    expected_t1 = trans_period + self.interpolation_window_in_minutes
+                    expected_t0 = trans_period - self.interpolation_window_in_seconds
+                    expected_t1 = trans_period + self.interpolation_window_in_seconds
                     periods_to_regenerate.append(
                         (trans_period, expected_t0, expected_t1)
                     )
@@ -1175,7 +1230,7 @@ class ForecastTrajectoryGapFiller(BasePlugin):
         """Create interpolation tasks for missing forecast periods.
 
         Args:
-            missing_periods: List of forecast periods (in minutes) that are missing.
+            missing_periods: List of forecast periods (in seconds) that are missing.
             sorted_cubelist: Sorted list of cubes by forecast period.
 
         Returns:
@@ -1232,14 +1287,14 @@ class ForecastTrajectoryGapFiller(BasePlugin):
 
         Args:
             cube_t0: The cube at the earlier forecast period.
-            target_period: The target forecast period in minutes.
-            t0_period: The earlier forecast period in minutes.
+            target_period: The target forecast period in seconds.
+            t0_period: The earlier forecast period in seconds.
 
         Returns:
             The target time as a datetime object.
         """
         time_t0 = iris_time_to_datetime(cube_t0.coord("time"))[0]
-        target_offset = (target_period - t0_period) * 60
+        target_offset = target_period - t0_period
         target_time = time_t0 + timedelta(seconds=target_offset)
         return target_time
 
@@ -1257,9 +1312,9 @@ class ForecastTrajectoryGapFiller(BasePlugin):
         Args:
             interpolator: The TemporalInterpolation plugin to use.
             sorted_cubelist: Sorted list of cubes by forecast period.
-            target_periods: List of target forecast periods (in minutes).
-            t0_period: The earlier forecast period in minutes.
-            t1_period: The later forecast period in minutes.
+            target_periods: List of target forecast periods (in seconds).
+            t0_period: The earlier forecast period in seconds.
+            t1_period: The later forecast period in seconds.
 
         Returns:
             CubeList of interpolated cubes for the target periods.
@@ -1275,6 +1330,15 @@ class ForecastTrajectoryGapFiller(BasePlugin):
 
         # Perform interpolation (batched)
         interpolated = interpolator.process(cube_t0, cube_t1)
+
+        if (
+            self.kwargs.get("treat_period_as_instantaneous", False)
+            and cube_t0.coord("time").has_bounds()
+            and cube_t1.coord("time").has_bounds()
+        ):
+            interpolated_cube = MergeCubes()(interpolated)
+            TemporalInterpolation.add_bounds(cube_t0, interpolated_cube)
+            interpolated = CubeList(interpolated_cube.slices_over("time"))
 
         # Extract cubes for each target period
         result_cubes = CubeList()
@@ -1300,9 +1364,8 @@ class ForecastTrajectoryGapFiller(BasePlugin):
         """
         # Add original cubes that aren't being regenerated
         for cube in sorted_cubelist:
-            cube_period = cube.coord("forecast_period").points[0] / 3600
-            period_hours = int(round(cube_period))
-            if period_hours not in periods_to_exclude:
+            cube_period = int(round(cube.coord("forecast_period").points[0]))
+            if cube_period not in periods_to_exclude:
                 result_cubes.append(cube)
 
         # Sort final result by forecast period
@@ -1784,11 +1847,9 @@ class GoogleFilmInterpolation(BasePlugin):
             results = Parallel(n_jobs=n_workers, backend=self.parallel_backend)(
                 delayed(_run_film_chunk_mp)(args) for args in chunks
             )
-
             return np.concatenate(results, axis=0)
         elif self.max_batch is None or self.max_batch >= n_times:
-            result = _run_film_chunk(arr1, arr2, times, model, 0, n_times)
-            return result
+            return _run_film_chunk(arr1, arr2, times, model, 0, n_times)
         else:
             results = []
             for start in range(0, n_times, self.max_batch):

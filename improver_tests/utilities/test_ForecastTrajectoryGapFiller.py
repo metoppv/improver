@@ -498,3 +498,96 @@ def test_process_various_input_forms(input_type):
         for c in result.slices_over("time")
     ]
     assert result_periods == expected_periods
+
+
+def test_process_period_diagnostic_treated_as_instantaneous():
+    """Test ForecastTrajectoryGapFiller can fill gaps with period-bounded
+    accumulation inputs using treat_period_as_instantaneous mode."""
+    # Create cubes for T+3 and T+9, then add period bounds, missing T+6.
+    times = [3, 9]
+    npoints = 10
+    cubelist = setup_cubes_with_gaps(
+        hours=times, data_values=[1.0, 7.0], npoints=npoints
+    )
+
+    # Add one-hour period bounds to represent accumulation periods.
+    one_hour = 3600
+    for cube in cubelist:
+        time_coord = cube.coord("time")
+        time_point = int(time_coord.points[0])
+        time_coord.bounds = np.array(
+            [[time_point - one_hour, time_point]], dtype=np.int64
+        )
+
+        fp_coord = cube.coord("forecast_period")
+        fp_point = int(fp_coord.points[0])
+        fp_coord.bounds = np.array([[fp_point - one_hour, fp_point]], dtype=np.int32)
+
+    # Use treat_period_as_instantaneous to fill gap without period-specifier requirement
+    plugin = ForecastTrajectoryGapFiller(
+        interval_in_minutes=180, treat_period_as_instantaneous=True
+    )
+    result = plugin.process(cubelist)
+
+    # Should now have 3 time points: T+3, T+6 (filled), T+9.
+    assert result.shape[0] == 3
+
+    # Check forecast periods are correct
+    result_periods = [
+        int(round(cube.coord("forecast_period").points[0] / 3600))
+        for cube in result.slices_over("time")
+    ]
+    assert result_periods == [3, 6, 9]
+
+    # Check interpolated data is the midpoint (linear interpolation)
+    assert np.allclose(list(result.slices_over("time"))[1].data, 4.0)
+
+    # Check output bounds are present.
+    # Original cubes keep their original one-hour trailing bounds, while the
+    # interpolated cube has bounds reconstructed from adjacent output times.
+    expected_time_bounds = [
+        [1509501600, 1509505200],
+        [1509505200, 1509516000],
+        [1509523200, 1509526800],
+    ]
+    expected_fp_bounds = [[7200, 10800], [10800, 21600], [28800, 32400]]
+    for cube in result.slices_over("time"):
+        assert cube.coord("time").has_bounds()
+        assert cube.coord("forecast_period").has_bounds()
+
+    output_cubes = list(result.slices_over("time"))
+    np.testing.assert_array_equal(
+        [cube.coord("time").bounds[0] for cube in output_cubes], expected_time_bounds
+    )
+    np.testing.assert_array_equal(
+        [cube.coord("forecast_period").bounds[0] for cube in output_cubes],
+        expected_fp_bounds,
+    )
+
+
+def test_process_no_gaps_with_treat_period_as_instantaneous_preserves_bounds():
+    """Test no-gap path preserves existing bounds with treat_period_as_instantaneous."""
+    cubelist = setup_cubes_with_gaps(hours=[3, 6, 9], data_values=[1.0, 2.0, 3.0])
+
+    one_hour = 3600
+    for cube in cubelist:
+        time_coord = cube.coord("time")
+        time_point = int(time_coord.points[0])
+        time_coord.bounds = np.array(
+            [[time_point - one_hour, time_point]], dtype=np.int64
+        )
+
+        fp_coord = cube.coord("forecast_period")
+        fp_point = int(fp_coord.points[0])
+        fp_coord.bounds = np.array([[fp_point - one_hour, fp_point]], dtype=np.int32)
+
+    plugin = ForecastTrajectoryGapFiller(
+        interval_in_minutes=180, treat_period_as_instantaneous=True
+    )
+    with pytest.warns(UserWarning, match="No gaps or regenerations identified"):
+        result = plugin.process(cubelist)
+
+    assert result.shape[0] == 3
+    for cube in result.slices_over("time"):
+        assert cube.coord("time").has_bounds()
+        assert cube.coord("forecast_period").has_bounds()
