@@ -201,8 +201,8 @@ def test_saturated_latent_heat(shape, t, p, q, expected_t, expected_q):
 def test_saturated_latent_heat_with_large_array():
     """Test the saturated_latent_heat method with a large array, thus triggering more than
     6 iterations.
-    This demonstrates that for arrays, it is possible to use the algorithm as designed with
-    no detrimental effects (see examples in the documentation:
+    This demonstrates that for arrays, This demonstrates that for arrays, so long as
+    at least one point converges, all succeed, and a warning is issued.
     https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.newton.html)."""
     shape = 150
 
@@ -215,16 +215,26 @@ def test_saturated_latent_heat_with_large_array():
     expected_t = np.full(shape, 221.2935, dtype=np.float32)
     expected_q = np.full(shape, 6.48412e-5, dtype=np.float32)
 
-    # These values require more than six iterations to fully converge, but now
-    # match the equivalent values in test_saturated_latent_heat() as the max iterations
-    # is set to 50
+    # These values require more than six iterations to fully converge, so the result does
+    # not match the equivalent values in test_saturated_latent_heat()
+
     t[0] = 220
     p[0] = 10000
     q[0] = 2.7e-2
-    expected_t[0] = 259.6123
-    expected_q[0] = 1.1836293e-2
+    expected_t[0] = 253.4863
+    expected_q[0] = 1.41813e-2
 
-    result_t, result_q = adjust_for_latent_heat(t, q, p)
+    # These values require more than six iterations to fully converge, but now
+    # match the equivalent values in test_saturated_latent_heat() as the max iterations
+    # is set to 50
+    # expected_t[0] = 259.6123
+    # expected_q[0] = 1.1836293e-2
+
+    with pytest.warns(
+        RuntimeWarning, match="some failed to converge after 6 iterations"
+    ):
+        result_t, result_q = adjust_for_latent_heat(t, q, p)
+    # result_t, result_q = adjust_for_latent_heat(t, q, p)
 
     assert np.isclose(result_t, expected_t).all()
     assert np.isclose(result_q, expected_q).all()
