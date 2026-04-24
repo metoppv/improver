@@ -274,6 +274,7 @@ class FireWeatherBase(BasePlugin):
         if hasattr(self, "precipitation"):
             copy = CopyMetadata(aux_coord=["forecast_reference_time", "time"])
             output_cube = copy.process(output_cube, self.precipitation)
+            output_cube.coord("time").bounds = None
 
         return self._set_metadata(output_cube)
 
