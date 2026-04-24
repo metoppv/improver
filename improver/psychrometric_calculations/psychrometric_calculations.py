@@ -271,6 +271,8 @@ def dry_adiabatic_pressure(
 def saturated_humidity(temperature: ndarray, pressure: ndarray) -> ndarray:
     """
     Calculate specific humidity mixing ratio of saturated air of given temperature and pressure.
+    This has been updated to test the Lifted Index values if this calculation is made for "water"
+    only.
 
     Invalid and masked values are filtered and result in NaN outputs.
 
@@ -279,6 +281,8 @@ def saturated_humidity(temperature: ndarray, pressure: ndarray) -> ndarray:
             Air temperature (K)
         pressure:
             Air pressure (Pa)
+        phase:
+            String: "water"
 
     Returns:
         Array of specific humidity values (kg kg-1) representing saturated air. NaN is returned
@@ -295,7 +299,7 @@ def saturated_humidity(temperature: ndarray, pressure: ndarray) -> ndarray:
     )
 
     # Calculate saturated humidity
-    svp = calculate_svp_in_air(temperature_allvalid, pressure_allvalid)
+    svp = calculate_svp_in_air(temperature_allvalid, pressure_allvalid, phase="water")
     numerator = consts.EARTH_REPSILON * svp
     denominator = np.maximum(svp, pressure_allvalid) - (
         (1.0 - consts.EARTH_REPSILON) * svp
