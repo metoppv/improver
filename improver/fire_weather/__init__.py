@@ -247,8 +247,8 @@ class FireWeatherBase(BasePlugin):
         """Creates an output cube with specified data and metadata.
 
         For classes that use precipitation data (FFMC, DMC, DC), automatically
-        updates the time coordinates from the precipitation cube to reflect the
-        24-hour accumulation period.
+        updates the 'forecast_reference_time' and 'time' coordinates from the
+        precipitation cube to reflect the 24-hour accumulation period.
 
         Args:
             data:
