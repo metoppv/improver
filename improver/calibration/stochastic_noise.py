@@ -46,6 +46,7 @@ class StochasticNoise(BasePlugin):
         num_workers: Optional[int] = len(os.sched_getaffinity(0)),
         scale_non_positive_noise: bool = False,
         allow_seeded_parallel_processing: bool = False,
+        arbitrary_offset: float = 5.0,
     ):
         """
         Initialise the plugin.
@@ -86,6 +87,17 @@ class StochasticNoise(BasePlugin):
                 but can introduce run-to-run variation because pySTEPS uses global RNG
                 seeding. If False, seeded runs are forced to a single worker for
                 reproducibility. Default is False.
+            arbitrary_offset:
+                An arbitrary offset value to add to the dB values of sub-threshold
+                pixels. This is used to ensure that all sub-threshold pixels have a
+                distinct value in dB space, which allows them to be handled
+                appropriately in the _from_dB method. The default value of 5 was chosen
+                to provide a clear separation from the threshold value in dB space, but
+                can be adjusted if needed.
+
+        Raises:
+            ValueError:
+                If db_threshold is not a positive value.
 
         Example dictionaries for initializing and generating SSFT filter::
 
@@ -104,6 +116,7 @@ class StochasticNoise(BasePlugin):
         self.num_workers = num_workers
         self.scale_non_positive_noise = scale_non_positive_noise
         self.allow_seeded_parallel_processing = allow_seeded_parallel_processing
+        self.arbitrary_offset = arbitrary_offset
 
     def _to_dB(self, cube: Cube) -> Cube:
         """Convert cube data to dB scale and apply thresholding using db_threshold
@@ -124,7 +137,9 @@ class StochasticNoise(BasePlugin):
         # The below offsets sub-threshold values. The choice to subtract 5 is arbitrary,
         # and ensures masked values have a distinct value, which is later handled in
         # _from_dB by setting values below the threshold to zero.
-        cube.data[mask] = threshold_dB - 5  # Offset sub-threshold values
+        cube.data[mask] = (
+            threshold_dB - self.arbitrary_offset
+        )  # Offset sub-threshold values
         return cube
 
     def _from_dB(
@@ -187,7 +202,7 @@ class StochasticNoise(BasePlugin):
                 Cube to which stochastic noise will be added.
         Returns:
             Cube with added stochastic noise.
-        Raises:
+        Warnings:
             UserWarning:
                 If a seed is provided in ssft_generate_params and allow_seeded_parallel_processing
                 is True, a warning is raised to indicate that using multiple workers
@@ -269,7 +284,9 @@ class StochasticNoise(BasePlugin):
             if not np.all(np.isfinite(result_db)):
                 # Repeat scaling from _to_dB to get a sub-threshold dB value for
                 # non-finite outputs.
-                sub_threshold_dB = 10.0 * np.log10(self.db_threshold) - 5
+                sub_threshold_dB = (
+                    10.0 * np.log10(self.db_threshold) - self.arbitrary_offset
+                )
                 result_db = np.nan_to_num(
                     result_db,
                     nan=sub_threshold_dB,
