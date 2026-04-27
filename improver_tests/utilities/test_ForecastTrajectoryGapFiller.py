@@ -428,28 +428,40 @@ def test_parse_cluster_sources(cluster_sources, expected_exception, expected_mes
 
 
 @pytest.mark.parametrize(
-    "cluster_sources,expected_regenerated_periods",
+    "input_hours,cluster_sources,expected_regenerated_periods",
     [
-        # No transitions (single source)
-        ({"0": {"sourceA": [3, 6, 9]}}, []),
-        # One transition for realization 0: sourceA -> sourceB at period 6
-        ({"0": {"sourceA": [3, 6], "sourceB": [9]}}, [6]),
+        # No transitions (single source) - all periods present
+        ([3, 6, 9, 12], {"0": {"sourceA": [3, 6, 9]}}, []),
+        # One transition for realization 0: sourceA -> sourceB at period 6 - all periods present
+        ([3, 6, 9, 12], {"0": {"sourceA": [3, 6], "sourceB": [9]}}, [6]),
         # Two transitions for realization 0: sourceA -> sourceB at 6, sourceB -> sourceC at 9
-        ({"0": {"sourceA": [3, 6], "sourceB": [9], "sourceC": [12]}}, [6, 9]),
+        ([3, 6, 9, 12], {"0": {"sourceA": [3, 6], "sourceB": [9], "sourceC": [12]}}, [6, 9]),
         # Multiple realizations, transitions for both
         (
+            [3, 6, 9, 12],
             {
                 "0": {"sourceA": [3, 6], "sourceB": [9]},
                 "1": {"sourceA": [3], "sourceB": [6, 9]},
             },
             [6, 6],  # Both realizations have a transition at 6
         ),
+        # Transition period is also a gap (missing T+6 from input, but transition at T+6)
+        # This tests that gap and regeneration tasks don't produce duplicate cubes
+        (
+            [3, 9, 12],
+            {"0": {"sourceA": [3, 6], "sourceB": [9]}},
+            [6],
+        ),
     ],
 )
-def test_process_triggers_source_transitions(cluster_sources, expected_regenerated_periods):
-    """Test that process triggers regeneration at source transitions."""
-    # Setup cubes for periods 3, 6, 9, 12
-    cubelist = setup_cubes_with_gaps(hours=[3, 6, 9, 12])
+def test_process_triggers_source_transitions(input_hours, cluster_sources, expected_regenerated_periods):
+    """Test that process triggers regeneration at source transitions.
+
+    Includes a test case where a transition period is also identified as a gap,
+    verifying that gap and regeneration tasks are properly deduplicated to avoid
+    creating duplicate cubes with the same forecast_period.
+    """
+    cubelist = setup_cubes_with_gaps(hours=input_hours)
     for cube in cubelist:
         cube.attributes["cluster_sources"] = json.dumps(cluster_sources)
 
@@ -469,6 +481,21 @@ def test_process_triggers_source_transitions(cluster_sources, expected_regenerat
     # Check that expected regenerated periods are present
     for period in expected_regenerated_periods:
         assert period in result_periods
+
+    # Verify all periods are unique (no duplicates from overlapping gap/regeneration tasks)
+    assert len(result_periods) == len(set(result_periods)), (
+        f"Duplicate forecast periods detected: {result_periods}. "
+        "This indicates gap and regeneration tasks were not properly deduplicated."
+    )
+
+    # Verify forecast_period is a dimension coordinate (monotonically increasing)
+    assert result.coord("forecast_period").ndim == 1, (
+        "forecast_period should be a dimension coordinate, but it is not. "
+        "This occurs when forecast_period values are not unique."
+    )
+    assert (np.diff(result.coord("forecast_period").points) > 0).all(), (
+        "forecast_period should be monotonically increasing"
+    )
 
 
 @pytest.mark.parametrize(
