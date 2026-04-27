@@ -456,7 +456,6 @@ def adjust_for_latent_heat(
         args=(temperature_in, humidity_in, pressure),
         tol=1e-6,
         maxiter=6 if humidity_in.size > 100 else 10,
-        # maxiter=50,
         disp=True,
     ).astype(np.float32)
     temperature = temperature_in + _latent_heat_release(
