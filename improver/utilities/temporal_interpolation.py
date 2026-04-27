@@ -1439,12 +1439,18 @@ class ForecastTrajectoryGapFiller(BasePlugin):
         periods_to_regenerate = self._identify_periods_to_regenerate(sorted_cubelist)
 
         # Create interpolation tasks
-        interpolation_tasks = self._create_gap_filling_tasks(
-            missing_periods, sorted_cubelist
+        gap_tasks = self._create_gap_filling_tasks(missing_periods, sorted_cubelist)
+        regen_tasks = self._create_regeneration_tasks(
+            periods_to_regenerate, sorted_cubelist
         )
-        interpolation_tasks.extend(
-            self._create_regeneration_tasks(periods_to_regenerate, sorted_cubelist)
-        )
+        # A source-transition period may also be a gap (missing from the input). In
+        # that case both task lists would target the same period, producing duplicate
+        # cubes and preventing forecast_period from becoming a dimension coordinate.
+        # Regeneration tasks take priority: drop any gap task for a period that is
+        # already handled by a regeneration task.
+        regen_target_periods = {t[1] for t in regen_tasks}
+        gap_tasks = [t for t in gap_tasks if t[1] not in regen_target_periods]
+        interpolation_tasks = gap_tasks + regen_tasks
 
         # If no interpolation needed, merge and return original
         if not interpolation_tasks:
