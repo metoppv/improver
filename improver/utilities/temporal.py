@@ -19,6 +19,7 @@ from iris.time import PartialDateTime
 from numpy import int64
 
 from improver.metadata.constants.time_types import DT_FORMAT, TIME_COORDS
+from improver.utilities.round import round_close
 
 
 def cycletime_to_datetime(
@@ -352,3 +353,38 @@ def integrate_time(cube: Cube, new_name: str = None) -> Cube:
     integrated_cube.cell_methods = new_cell_methods
 
     return integrated_cube
+
+
+def reset_forecast_reference_time_and_period(cube: Cube, cycletime: str) -> None:
+    """
+    Reset the forecast_reference_time coordinate to the given cycletime and
+    update the forecast_period coordinate to match.
+
+    Modifies cube in place.
+
+    Args:
+        cube:
+            Cube whose forecast reference time is to be reset.
+        cycletime:
+            New forecast reference time in YYYYMMDDTHHMMZ format.
+    """
+    # Forecast reference time modifications.
+    frt_coord = cube.coord("forecast_reference_time")
+    cycletime_point = round_close(
+        cycletime_to_number(
+            cycletime,
+            time_unit=frt_coord.units.origin,
+            calendar=frt_coord.units.calendar,
+        ),
+        dtype=np.int64,
+    )
+    cube.coord("forecast_reference_time").points = [cycletime_point]
+    cube.coord("forecast_reference_time").bounds = None
+    # Forecast period modifications.
+    if cube.coords("forecast_period"):
+        from improver.metadata.forecast_times import forecast_period_coord
+
+        cube.remove_coord("forecast_period")
+        new_forecast_period = forecast_period_coord(cube)
+        time_dim = cube.coord_dims("time")
+        cube.add_aux_coord(new_forecast_period, data_dims=time_dim)
