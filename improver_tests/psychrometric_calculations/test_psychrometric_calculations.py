@@ -224,17 +224,10 @@ def test_saturated_latent_heat_with_large_array():
     expected_t[0] = 253.4863
     expected_q[0] = 1.41813e-2
 
-    # These values require more than six iterations to fully converge, but now
-    # match the equivalent values in test_saturated_latent_heat() as the max iterations
-    # is set to 50
-    # expected_t[0] = 259.6123
-    # expected_q[0] = 1.1836293e-2
-
     with pytest.warns(
         RuntimeWarning, match="some failed to converge after 6 iterations"
     ):
         result_t, result_q = adjust_for_latent_heat(t, q, p)
-    # result_t, result_q = adjust_for_latent_heat(t, q, p)
 
     assert np.isclose(result_t, expected_t).all()
     assert np.isclose(result_q, expected_q).all()
