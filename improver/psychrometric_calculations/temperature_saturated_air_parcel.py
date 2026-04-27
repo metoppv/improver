@@ -139,7 +139,7 @@ class TemperatureSaturatedAirParcel(BasePlugin):
             [new_temperature, new_pressure, humidity_cube]
         )
         humidity_mixing_ratio_at_ccl = saturated_humidity(
-            ccl_temperature_cube.data, ccl_pressure_cube.data
+            ccl_temperature_cube.data, ccl_pressure_cube.data, "water"
         )
         dry_parcel_temperature_after_ascent = dry_adiabatic_temperature(
             ccl_temperature_cube.data, ccl_pressure_cube.data, pressure_level
