@@ -7,6 +7,7 @@
 """
 
 import os
+import warnings
 from typing import Optional
 
 import numpy as np
@@ -38,12 +39,14 @@ class StochasticNoise(BasePlugin):
 
     def __init__(
         self,
-        ssft_init_params: dict = {},
-        ssft_generate_params: dict = {},
+        ssft_init_params: Optional[dict] = None,
+        ssft_generate_params: Optional[dict] = None,
         db_threshold: float = 0.03,
         db_threshold_units: str = "mm/hr",
         num_workers: Optional[int] = len(os.sched_getaffinity(0)),
         scale_non_positive_noise: bool = False,
+        allow_seeded_parallel_processing: bool = False,
+        arbitrary_offset: float = 5.0,
     ):
         """
         Initialise the plugin.
@@ -55,9 +58,11 @@ class StochasticNoise(BasePlugin):
             ssft_init_params:
                 Keyword arguments for initializing SSFT filter using
                 pysteps.noise.fftgenerators.initialize_nonparam_2d_ssft_filter.
+                Default is an empty dict, which will use the pysteps defaults.
             ssft_generate_params:
                 Keyword arguments for generating stochastic noise using
                 pysteps.noise.fftgenerators.generate_noise_2d_ssft_filter.
+                Default is an empty dict, which will use the pysteps defaults.
             db_threshold:
                 Threshold value below which data will be set to a constant in dB scale
                 to avoid issues with log(0). Value provided in units of
@@ -76,6 +81,23 @@ class StochasticNoise(BasePlugin):
                 positive noise to non-positive regions, which could artificially
                 increase values where the input cube indicates no signal should occur.
                 Default is False.
+            allow_seeded_parallel_processing:
+                If True, allows multiple workers to be used even when a seed is
+                provided in ssft_generate_params. This may improve computation speed,
+                but can introduce run-to-run variation because pySTEPS uses global RNG
+                seeding. If False, seeded runs are forced to a single worker for
+                reproducibility. Default is False.
+            arbitrary_offset:
+                An arbitrary offset value to add to the dB values of sub-threshold
+                pixels. This is used to ensure that all sub-threshold pixels have a
+                distinct value in dB space, which allows them to be handled
+                appropriately in the _from_dB method. The default value of 5 was chosen
+                to provide a clear separation from the threshold value in dB space, but
+                can be adjusted if needed.
+
+        Raises:
+            ValueError:
+                If db_threshold is not a positive value.
 
         Example dictionaries for initializing and generating SSFT filter::
 
@@ -87,12 +109,14 @@ class StochasticNoise(BasePlugin):
         if db_threshold <= 0:
             raise ValueError("db_threshold must be a positive value.")
 
-        self.ssft_init_params = ssft_init_params
-        self.ssft_generate_params = ssft_generate_params
+        self.ssft_init_params = ssft_init_params or {}
+        self.ssft_generate_params = ssft_generate_params or {}
         self.db_threshold = db_threshold
         self.db_threshold_units = db_threshold_units
         self.num_workers = num_workers
         self.scale_non_positive_noise = scale_non_positive_noise
+        self.allow_seeded_parallel_processing = allow_seeded_parallel_processing
+        self.arbitrary_offset = arbitrary_offset
 
     def _to_dB(self, cube: Cube) -> Cube:
         """Convert cube data to dB scale and apply thresholding using db_threshold
@@ -113,7 +137,9 @@ class StochasticNoise(BasePlugin):
         # The below offsets sub-threshold values. The choice to subtract 5 is arbitrary,
         # and ensures masked values have a distinct value, which is later handled in
         # _from_dB by setting values below the threshold to zero.
-        cube.data[mask] = threshold_dB - 5  # Offset sub-threshold values
+        cube.data[mask] = (
+            threshold_dB - self.arbitrary_offset
+        )  # Offset sub-threshold values
         return cube
 
     def _from_dB(
@@ -176,6 +202,12 @@ class StochasticNoise(BasePlugin):
                 Cube to which stochastic noise will be added.
         Returns:
             Cube with added stochastic noise.
+        Warnings:
+            UserWarning:
+                If a seed is provided in ssft_generate_params and allow_seeded_parallel_processing
+                is True, a warning is raised to indicate that using multiple workers
+                with a fixed seed may introduce run-to-run variation because pySTEPS
+                uses global RNG seeding.
         """
         # Check that input cube has the expected dimensions for processing
         validate_cube_dimensions(
@@ -222,6 +254,24 @@ class StochasticNoise(BasePlugin):
             len(template.coord("realization").points),
         )
 
+        # pySTEPS uses numpy.random.seed when a seed kwarg is passed. By default,
+        # restrict to a single worker in that case to avoid concurrent global RNG
+        # mutations and preserve reproducibility.
+        if (
+            "seed" in self.ssft_generate_params
+            and not self.allow_seeded_parallel_processing
+        ):
+            num_workers = 1
+        elif (
+            "seed" in self.ssft_generate_params
+            and self.allow_seeded_parallel_processing
+        ):
+            warnings.warn(
+                "Using multiple workers with a fixed seed may introduce run-to-run "
+                "variation because pySTEPS uses global RNG seeding.",
+                UserWarning,
+            )
+
         # Compute all SSFT noise arrays (in dB scale) in parallel
         results = compute(*tasks, scheduler="threads", num_workers=num_workers)
 
@@ -229,15 +279,36 @@ class StochasticNoise(BasePlugin):
         noise_linear = template.copy()
         noise_linear.data = np.zeros_like(template.data, dtype=np.float32)
         for k, result_db in enumerate(results):
+            # Guard against occasional non-finite outputs from SSFT generation on
+            # degenerate fields by mapping them to a sub-threshold dB value.
+            if not np.all(np.isfinite(result_db)):
+                # Repeat scaling from _to_dB to get a sub-threshold dB value for
+                # non-finite outputs.
+                sub_threshold_dB = (
+                    10.0 * np.log10(self.db_threshold) - self.arbitrary_offset
+                )
+                result_db = np.nan_to_num(
+                    result_db,
+                    nan=sub_threshold_dB,
+                    posinf=sub_threshold_dB,
+                    neginf=sub_threshold_dB,
+                )
             lin_noise = self._from_dB(data=result_db)
+            # Ensure no non-finite values propagate into downstream scaling.
+            lin_noise = np.nan_to_num(lin_noise, nan=0.0, posinf=0.0, neginf=0.0)
             noise_linear.data[k] = lin_noise
 
         # If requested, scale noise in non-positive regions to prevent increasing values
         # where there should be no signal
         if self.scale_non_positive_noise:
-            max_noise_non_positiveregions = np.max(noise_linear.data[non_positive_mask])
+            noise_in_non_positive_regions = np.nan_to_num(
+                noise_linear.data[non_positive_mask],
+                nan=0.0,
+                posinf=0.0,
+                neginf=0.0,
+            )
             noise_linear.data[non_positive_mask] = (
-                noise_linear.data[non_positive_mask] - max_noise_non_positiveregions
+                noise_in_non_positive_regions - np.max(noise_in_non_positive_regions)
             )
 
         # Add noise only to non-positive regions, leave positive regions
