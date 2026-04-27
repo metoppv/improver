@@ -191,7 +191,8 @@ def test_non_positive_threshold():
 
 
 def test_allow_seeded_parallel_processing_warning():
-    """Test that a warning is raised when using a seeded plugin with parallel processing."""
+    """Test that a warning is raised when using a seeded plugin with parallel
+    processing."""
     plugin = StochasticNoise(
         ssft_generate_params={"seed": 0},
         allow_seeded_parallel_processing=True,
