@@ -750,10 +750,10 @@ class RoughnessCorrection(PostProcessingPlugin):
 
     def __init__(
         self,
-        silhouette_roughness_cube: Cube,
-        orog_stddev_cube: Cube,
-        orog_pp_cube: Cube,
-        orog_model_cube: Cube,
+        model_silhouette_roughness_cube: Cube,
+        model_orog_stddev_cube: Cube,
+        target_orog_cube: Cube,
+        model_orog_cube: Cube,
         res_model: float,
         z0_cube: Optional[Cube] = None,
         height_levels_cube: Optional[Cube] = None,
@@ -761,13 +761,13 @@ class RoughnessCorrection(PostProcessingPlugin):
         """Initialise the RoughnessCorrection plugin.
 
         Args:
-            silhouette_roughness_cube (Cube):
+            model_silhouette_roughness_cube (Cube):
                 2D silhouette-roughness field on the PP grid (dimensionless).
-            orog_stddev_cube (Cube):
+            model_orog_stddev_cube (Cube):
                 2D standard deviation of model orography on the PP grid (m).
-            orog_pp_cube (Cube):
+            target_orog_cube (Cube):
                 2D post-processing grid orography (m).
-            orog_model_cube (Cube):
+            model_orog_cube (Cube):
                 2D model orography interpolated to the PP grid (m).
             res_model (float):
                 Native horizontal model-grid resolution (m).
@@ -777,34 +777,34 @@ class RoughnessCorrection(PostProcessingPlugin):
                 1D or 3D height levels of the input wind field (m).
         """
         res_model = np.float32(res_model)
-        x_name, y_name, _, _ = self.find_coord_names(orog_pp_cube)
+        x_name, y_name, _, _ = self.find_coord_names(target_orog_cube)
 
         # Check grid consistency
         if not self.check_ancils(
-            silhouette_roughness_cube,
-            orog_stddev_cube,
+            model_silhouette_roughness_cube,
+            model_orog_stddev_cube,
             z0_cube,
-            orog_pp_cube,
-            orog_model_cube,
+            target_orog_cube,
+            model_orog_cube,
         ):
             raise ValueError("Ancillary grids are not consistent.")
 
         # Extract 2D [y, x] slices
         self.silhouette_roughness = next(
-            silhouette_roughness_cube.slices([y_name, x_name])
+            model_silhouette_roughness_cube.slices([y_name, x_name])
         )
-        self.orog_stddev = next(orog_stddev_cube.slices([y_name, x_name]))
+        self.orog_stddev = next(model_orog_stddev_cube.slices([y_name, x_name]))
 
         try:
             self.roughness_length_z0 = next(z0_cube.slices([y_name, x_name]))
         except AttributeError:
             self.roughness_length_z0 = z0_cube
 
-        self.orog_pp = next(orog_pp_cube.slices([y_name, x_name]))
-        self.orog_model = next(orog_model_cube.slices([y_name, x_name]))
+        self.orog_pp = next(target_orog_cube.slices([y_name, x_name]))
+        self.orog_model = next(model_orog_cube.slices([y_name, x_name]))
 
         # Grid resolutions
-        self.res_pp = self.calc_av_ppgrid_res(orog_pp_cube)
+        self.res_pp = self.calc_av_ppgrid_res(target_orog_cube)
         self.res_model = res_model
 
         # Optional height levels
@@ -903,11 +903,11 @@ class RoughnessCorrection(PostProcessingPlugin):
 
     @staticmethod
     def check_ancils(
-        silhouette_roughness_cube: Cube,
-        orog_stddev_cube: Cube,
+        model_silhouette_roughness_cube: Cube,
+        model_orog_stddev_cube: Cube,
         z0_cube: Optional[Cube],
-        orog_pp_cube: Cube,
-        orog_model_cube: Cube,
+        target_orog_cube: Cube,
+        model_orog_cube: Cube,
     ) -> bool:
         """Check ancils grid and units.
 
@@ -916,20 +916,20 @@ class RoughnessCorrection(PostProcessingPlugin):
         if there is a general utils function made for it or so.
 
         Args:
-            silhouette_roughness_cube (Cube): Cube holding the silhouette roughness field
-            orog_stddev_cube (Cube): Cube holding the standard deviation of height in a grid cell
+            model_silhouette_roughness_cube (Cube): Cube holding the silhouette roughness field
+            model_orog_stddev_cube (Cube): Cube holding the standard deviation of height in a grid cell
             z0_cube (Optional[Cube]): Cube holding the vegetative roughness field
-            orog_pp_cube (Cube): Cube holding the post processing grid orography
-            orog_model_cube (Cube): Cube holding the model orography on post processing grid
+            target_orog_cube (Cube): Cube holding the post processing grid orography
+            model_orog_cube (Cube): Cube holding the model orography on post processing grid
 
         Returns:
             bool: True if all ancillary fields share identical x/y grids; False otherwise
         """
         required = [
-            silhouette_roughness_cube,
-            orog_stddev_cube,
-            orog_pp_cube,
-            orog_model_cube,
+            model_silhouette_roughness_cube,
+            model_orog_stddev_cube,
+            target_orog_cube,
+            model_orog_cube,
         ]
         required_units = [1, Unit("m"), Unit("m"), Unit("m")]
 
