@@ -188,8 +188,8 @@ def test_masked(temperature, pressure, air_parcel):
 def test_different_pressure(temperature, pressure, air_parcel_diff_pressure):
     """Check that we get the expected result from the plugin when we use
     a different pressure (600hPa)."""
-    result = TemperatureSaturatedAirParcel()(
-        [temperature, pressure], pressure_level=60000.0
+    result = TemperatureSaturatedAirParcel(pressure_level=60000.0)(
+        [temperature, pressure],
     )
     metadata_ok(result, air_parcel_diff_pressure)
     assert np.isclose(result.data, air_parcel_diff_pressure.data, atol=1e-2).all()
