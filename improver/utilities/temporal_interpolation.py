@@ -1257,7 +1257,11 @@ class ForecastTrajectoryGapFiller(BasePlugin):
         periods_to_regenerate: List[Tuple[int, int, int]],
         sorted_cubelist: CubeList,
     ) -> List[Tuple[str, int, int, int]]:
-        """Create interpolation tasks for periods to regenerate.
+        """Create interpolation tasks for periods to regenerate at regular intervals.
+
+        Instead of regenerating only at the transition point, generates forecasts
+        at regular intervals (specified by interval_in_minutes) across the entire
+        regeneration window.
 
         Args:
             periods_to_regenerate: List of tuples (transition_period, expected_t0,
@@ -1274,9 +1278,20 @@ class ForecastTrajectoryGapFiller(BasePlugin):
         for trans_period, expected_t0, expected_t1 in periods_to_regenerate:
             # Check if the required boundary cubes exist
             if expected_t0 in existing_periods and expected_t1 in existing_periods:
-                interpolation_tasks.append(
-                    ("regenerate", trans_period, expected_t0, expected_t1)
-                )
+                # Generate target periods at regular intervals between expected_t0
+                # and expected_t1 if interval is specified
+                if self.interval_in_seconds is not None:
+                    current_period = expected_t0
+                    while current_period <= expected_t1:
+                        interpolation_tasks.append(
+                            ("regenerate", current_period, expected_t0, expected_t1)
+                        )
+                        current_period += self.interval_in_seconds
+                else:
+                    # Fallback: just use the transition point if no interval specified
+                    interpolation_tasks.append(
+                        ("regenerate", trans_period, expected_t0, expected_t1)
+                    )
 
         return interpolation_tasks
 

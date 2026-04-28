@@ -498,6 +498,68 @@ def test_process_triggers_source_transitions(input_hours, cluster_sources, expec
     )
 
 
+def test_regeneration_produces_regular_intervals_at_fine_resolution():
+    """Test that regeneration produces all intermediate timesteps at interval_in_minutes spacing.
+
+    This test verifies the key behavior change: regeneration now generates forecasts
+    at regular intervals across the entire regeneration window, not just at the
+    transition point.
+
+    Setup:
+    - Input cubes at hours: 3, 9, 12
+    - interval_in_minutes=60 (1-hour intervals)
+    - Transition at 6 hours with interpolation_window_in_minutes=180 (±3 hours)
+    - Regeneration window: [3, 9] hours
+
+    Expected behavior:
+    - Regeneration fills 1-hour intervals in window: 3, 4, 5, 6, 7, 8, 9
+    - Gap filling fills remaining missing intervals: 10, 11
+    - Original cubes included: 3, 9, 12
+
+    Result: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    """
+    # Setup cubes at 3, 9, 12 hours
+    cubelist = setup_cubes_with_gaps(hours=[3, 9, 12])
+    for cube in cubelist:
+        cube.attributes["cluster_sources"] = json.dumps(
+            {"0": {"sourceA": [3, 6], "sourceB": [9, 12]}}
+        )
+
+    plugin = ForecastTrajectoryGapFiller(
+        interval_in_minutes=60,  # 1-hour intervals
+        cluster_sources_attribute="cluster_sources",
+        interpolation_window_in_minutes=180,  # ±3 hours = [3, 9]
+    )
+    result = plugin.process(cubelist)
+
+    # Extract forecast periods from result
+    result_periods = sorted([
+        int(round(cube.coord("forecast_period").points[0] / 3600))
+        for cube in result.slices_over("time")
+    ])
+
+    # Verify all 1-hour intervals in regeneration window [3, 9] are present
+    expected_regenerated = [3, 4, 5, 6, 7, 8, 9]
+    for period in expected_regenerated:
+        assert period in result_periods, (
+            f"Expected period {period}h to be regenerated in window [3, 9]h "
+            f"at 1-hour intervals, but got periods: {result_periods}"
+        )
+
+    # Verify gap-filled periods outside regeneration window
+    expected_gap_filled = [10, 11]
+    for period in expected_gap_filled:
+        assert period in result_periods, (
+            f"Expected period {period}h to be gap-filled, "
+            f"but got periods: {result_periods}"
+        )
+
+    # Verify the full expected output
+    assert result_periods == [3, 4, 5, 6, 7, 8, 9, 10, 11, 12], (
+        f"Expected [3, 4, 5, 6, 7, 8, 9, 10, 11, 12], got {result_periods}"
+    )
+
+
 @pytest.mark.parametrize(
     "input_type",
     [
