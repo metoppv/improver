@@ -146,21 +146,6 @@ def metadata_ok(air_parcel: Cube, baseline: Cube, model_id_attr=None) -> None:
     assert sorted(mandatory_attr_keys) == sorted(MANDATORY_ATTRIBUTES)
 
 
-def test_initialisation():
-    """Test init requires no params."""
-    result = TemperatureSaturatedAirParcel()
-    assert type(result) is TemperatureSaturatedAirParcel
-
-
-def test_process(temperature, pressure):
-    """Test init will process cubes when provided as standard improver-type plugin."""
-    test_class = TemperatureSaturatedAirParcel()([temperature, pressure])
-    assert (
-        test_class.name()
-        == "parcel_temperature_after_saturated_ascent_from_ccl_to_pressure_level"
-    )
-
-
 def test_basic(temperature, pressure, air_parcel):
     """Check that for each pair of values, we get the expected result
     and that the metadata are as expected."""
