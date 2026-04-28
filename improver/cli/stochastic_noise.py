@@ -19,6 +19,7 @@ def process(
     db_threshold_units: str = "mm/hr",
     num_workers: int = None,
     scale_non_positive_noise=False,
+    allow_seeded_parallel_processing: bool = False,
 ):
     """
     Class to apply spatially-structured stochastic noise to non-positive regions of a
@@ -51,12 +52,14 @@ def process(
             Provide as Python dict string,
             e.g., "{'win_size': (100, 100), 'overlap': 0.3}".
             Recommended keys: win_size, overlap, war_thr.
+            Default is an empty dict, which will use the pysteps defaults.
         ssft_generate_params:
             Keyword arguments for generating stochastic noise using
             `pysteps.noise.fftgenerators.generate_noise_2d_ssft_filter
             <https://pysteps.readthedocs.io/en/stable/generated/pysteps.noise.fftgenerators.generate_noise_2d_ssft_filter.html>`_.
             Provide as Python dict string, e.g., "{'overlap': 0.3, 'seed': 0}".
             Recommended keys: overlap, seed.
+            Default is an empty dict, which will use the pysteps defaults.
         db_threshold:
             Threshold value below which data will be set to a constant in dB scale
             to avoid issues with log(0). Value provided in units of
@@ -75,6 +78,12 @@ def process(
             noise to non-positive regions, which could artificially increase values
             where the input cube indicates no signal should occur.
             Default is False.
+        allow_seeded_parallel_processing:
+            If True, allows multiple workers to be used even when a seed is
+            provided in ssft_generate_params. This may improve computation speed,
+            but can introduce run-to-run variation because pySTEPS uses global RNG
+            seeding. If False, seeded runs are forced to a single worker for
+            reproducibility. Default is False.
 
     Returns:
         Cube with added stochastic noise.
@@ -101,6 +110,7 @@ def process(
         "db_threshold": db_threshold,
         "db_threshold_units": db_threshold_units,
         "scale_non_positive_noise": scale_non_positive_noise,
+        "allow_seeded_parallel_processing": allow_seeded_parallel_processing,
     }
     if num_workers is not None:
         plugin_kwargs["num_workers"] = num_workers
