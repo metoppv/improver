@@ -226,10 +226,10 @@ class RoughnessCorrectionUtilities:
         corresponding orography values are not).
         """
         self.hc_mask[
-            np.equal(self.orog_pp, RMDI)
-            | np.equal(self.orog_model, RMDI)
-            | np.isnan(self.orog_pp)
-            | np.isnan(self.orog_model)
+            np.equal(self.target_orog, RMDI)
+            | np.equal(self.model_orog, RMDI)
+            | np.isnan(self.target_orog)
+            | np.isnan(self.model_orog)
         ] = False
 
     def _setmask(self) -> Tuple[ndarray, ndarray]:
