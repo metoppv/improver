@@ -115,8 +115,8 @@ class PollenHourlyConcentration(PostProcessingPlugin):
         # (then apply scaling factor)
         # and convert to grains/m3
         new_data = (
-            self._output_cube.data / 1000.0 * self._scaling_factor / mass_per_grain
-        )
+            (self._output_cube.data / 1000.0) * self._scaling_factor
+        ) / mass_per_grain
         self._output_cube.data = new_data.astype(FLOAT_DTYPE)
 
     def _metadata(self, taxa: str):
