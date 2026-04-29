@@ -230,24 +230,14 @@ def test_non_positive_threshold():
         StochasticNoise(db_threshold=0)
 
 
-def test_allow_seeded_parallel_processing_warning():
-    """Test that a warning is raised when using a seeded plugin with parallel
-    processing."""
-    plugin = StochasticNoise(
-        ssft_generate_params={"seed": 0},
-        allow_seeded_parallel_processing=True,
-    )
-    # Create a cube with some non-positive values to trigger the warning
-    data = np.array(
-        [
-            [[0.0, 1.0], [0.0, 2.0]],
-            [[0.0, 1.1], [0.0, 2.1]],
-        ],
-        dtype=np.float32,
-    )
-    cube = set_up_variable_cube(data=data, name="precipitation_rate", units="mm/hr")
+def test_init_warning():
+    """Test that a warning is raised when using a seeded plugin with
+    allow_seeded_parallel_processing."""
     with pytest.warns(
         UserWarning,
-        match="Using multiple workers with a fixed seed may introduce run-to-run",
+        match="Using multiple workers with a fixed seed",
     ):
-        plugin.process(cube)
+        StochasticNoise(
+            ssft_generate_params={"seed": 0},
+            allow_seeded_parallel_processing=True,
+        )

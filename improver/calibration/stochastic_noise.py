@@ -117,6 +117,16 @@ class StochasticNoise(BasePlugin):
         self.allow_seeded_parallel_processing = allow_seeded_parallel_processing
         self.arbitrary_offset = arbitrary_offset
 
+        if (
+            "seed" in self.ssft_generate_params
+        ) and self.allow_seeded_parallel_processing:
+            warnings.warn(
+                "Using multiple workers with a fixed seed may introduce run-to-run "
+                "variation because pySTEPS uses global RNG seeding. Set "
+                "allow_seeded_parallel_processing to False for reproducibility.",
+                UserWarning,
+            )
+
     def _process_single_realization(self, input_cube: Cube) -> Cube:
         """Process a cube containing a single realization (or no realization coord).
 
