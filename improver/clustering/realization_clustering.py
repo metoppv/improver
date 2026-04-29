@@ -1379,6 +1379,7 @@ class RealizationSelection(BasePlugin):
         self,
         forecast_period: int,
         model_id_attr: str = "mosg__model_configuration",
+        cycletime: Optional[str] = None,
     ):
         """
         Initialise the RealizationSelection plugin.
@@ -1389,10 +1390,15 @@ class RealizationSelection(BasePlugin):
                 realizations.
             model_id_attr: The name of the cube attribute used to identify the model
                 source.
-
+            cycletime: The forecast_reference_time on the input forecast cubes will be
+                reset to this value. The forecast periods will be adjusted accordingly
+                with the validity times kept fixed. cycletime should be provided in the
+                format YYYYMMDDTHHMMZ (e.g., 20240101T0000Z). If not provided, the
+                forecast_reference_time on the input cubes will be left unchanged.
         """
         self.forecast_period = forecast_period
         self.model_id_attr = model_id_attr
+        self.cycletime = cycletime
 
     def split_cubes_forecast_and_cluster(
         self, cubes: CubeList
@@ -1429,6 +1435,8 @@ class RealizationSelection(BasePlugin):
                 "No cluster cube found in input cubes "
                 "(missing 'primary_input_realization_to_cluster_medoid' attribute)."
             )
+        if not forecast_cubes:
+            raise ValueError("No forecast cubes found in input cubes.")
         return forecast_cubes, cluster_cube
 
     def parse_mapping_attributes(
@@ -1497,29 +1505,76 @@ class RealizationSelection(BasePlugin):
         self, mapping_fps: Optional[set[int]], fp: int
     ) -> tuple[int, bool]:
         """
-        Find the nearest forecast period in the secondary mapping to the requested
-        forecast period.
+        Find the nearest forecast period in the secondary mapping that is greater
+        than or equal to the requested forecast period.
 
         Args:
             mapping_fps: Set of forecast periods (in seconds) available in the
                 secondary mapping.
-            fp: The forecast period (in seconds) for which to find the nearest mapping.
+            fp: The forecast period (in seconds) for which to find the nearest
+                greater-than-or-equal mapping.
 
         Returns:
             A tuple containing:
-                - nearest_fp: The forecast period from mapping_fps closest to fp
-                (or fp if mapping_fps is empty).
+                - nearest_fp: The smallest forecast period from mapping_fps that is
+                greater than or equal to fp (or fp if mapping_fps is empty).
                 - use_secondary: Boolean indicating whether the secondary mapping
-                    should be used (True if fp is less than or equal to the maximum
-                    in mapping_fps, else False).
+                    should be used (True if at least one forecast period in
+                    mapping_fps is greater than or equal to fp, else False).
         """
         if mapping_fps:
-            nearest_fp = min(mapping_fps, key=lambda x: abs(x - fp))
-            use_secondary = fp <= max(mapping_fps)
+            valid_fps = [mapping_fp for mapping_fp in mapping_fps if mapping_fp >= fp]
+            if valid_fps:
+                nearest_fp = min(valid_fps)
+                use_secondary = True
+            else:
+                nearest_fp = fp
+                use_secondary = False
         else:
             nearest_fp = fp
             use_secondary = False
         return nearest_fp, use_secondary
+
+    def _extract_primary_model_from_cluster_sources(self, cluster_cube: Cube) -> str:
+        """Extract the primary model name from the cluster_sources attribute.
+
+        The primary model is identified as the model that appears in the most
+        clusters, which corresponds to the model used for initial clustering.
+
+        Args:
+            cluster_cube: The cluster cube output from RealizationClusterAndMatch,
+                containing the cluster_sources attribute as a JSON string.
+
+        Returns:
+            The primary model name.
+
+        Raises:
+            ValueError: If cluster_sources attribute is not found in the cube.
+        """
+        cluster_sources_str = cluster_cube.attributes.get("cluster_sources")
+        if cluster_sources_str is None:
+            raise ValueError(
+                "cluster_sources attribute not found in cluster cube. "
+                "Cannot determine primary model name."
+            )
+
+        cluster_sources = json.loads(cluster_sources_str)
+
+        # Count how many clusters each model appears in
+        model_counts = {}
+        for _, models_dict in cluster_sources.items():
+            for model_name in models_dict.keys():
+                model_counts[model_name] = model_counts.get(model_name, 0) + 1
+
+        # Return the model that appears in the most clusters
+        if not model_counts:
+            raise ValueError(
+                "No models found in cluster_sources attribute. "
+                "Cannot determine primary model name."
+            )
+
+        primary_model = max(model_counts, key=model_counts.get)
+        return primary_model
 
     def build_cluster_to_selection(
         self,
@@ -1535,7 +1590,8 @@ class RealizationSelection(BasePlugin):
 
         Args:
             nearest_fp: The forecast period (in seconds) from the secondary mapping
-                closest to the requested forecast period.
+                that is nearest while being greater than or equal to the requested
+                forecast period.
             use_secondary: Whether to use the secondary mapping (True) or fall back
                 to the primary mapping (False). Determined by
                 find_nearest_secondary_mapping_fp method.
@@ -1564,14 +1620,17 @@ class RealizationSelection(BasePlugin):
                                 model_name,
                                 entry["realization"],
                             )
-        # Fill in any clusters not covered by secondary inputs using the medoid mapping
+        # Fill in any clusters not covered by secondary inputs using the medoid
+        # mapping from the primary model identified in cluster_sources.
+        primary_model_name = self._extract_primary_model_from_cluster_sources(
+            cluster_cube
+        )
+
         for cluster_idx_str, realization in primary_map.items():
             cluster_idx = int(cluster_idx_str)
             if cluster_idx not in cluster_to_selection:
                 cluster_to_selection[cluster_idx] = (
-                    cluster_cube.attributes.get(
-                        "mosg__model_configuration", "primary_input"
-                    ),
+                    primary_model_name,
                     realization,
                 )
         return cluster_to_selection
@@ -1597,6 +1656,8 @@ class RealizationSelection(BasePlugin):
 
         Raises:
             ValueError: If no forecast cube is found for a specified model name.
+            ValueError: If a specified realization index is out of bounds for the
+                corresponding model cube.
         """
         selected_cubes = []
         for cluster_idx in sorted(cluster_to_selection):
@@ -1606,11 +1667,20 @@ class RealizationSelection(BasePlugin):
             )
             if not model_cubes:
                 raise ValueError(f"No forecast cube found for model '{model_name}'")
-            model_cube = model_cubes[0]
-            selected = model_cube.extract(
-                iris.Constraint(realization=realization_index)
-            )
+            model_cube = model_cubes[0].copy()
+            enforce_coordinate_ordering(model_cube, ["realization"])
+
+            realization_index = int(realization_index)
+            n_realizations = len(model_cube.coord("realization").points)
+            if realization_index < 0 or realization_index >= n_realizations:
+                raise ValueError(
+                    f"Realization index {realization_index} is out of bounds for "
+                    f"model '{model_name}' with {n_realizations} realizations"
+                )
+
+            selected = model_cube[realization_index]
             selected.coord("realization").points = [cluster_idx]
+            selected.coord("realization").units = "1"
             selected_cubes.append(selected)
         return selected_cubes
 
@@ -1636,6 +1706,12 @@ class RealizationSelection(BasePlugin):
         forecast_cubes, cluster_cube = self.split_cubes_forecast_and_cluster(cubes)
         self.validate_common_validity_time(forecast_cubes)
 
+        if self.cycletime is not None:
+            for cube in cubes:
+                if not cube.coords("forecast_reference_time"):
+                    continue
+                reset_forecast_reference_time_and_period(cube, self.cycletime)
+
         primary_map, secondary_map = self.parse_mapping_attributes(cluster_cube)
         mapping_fps = set()
         if secondary_map:
@@ -1653,4 +1729,8 @@ class RealizationSelection(BasePlugin):
             cluster_to_selection, forecast_cubes
         )
         result_cube = MergeCubes()(CubeList(selected_cubes))
+        if "cluster_sources" in cluster_cube.attributes:
+            result_cube.attributes["cluster_sources"] = cluster_cube.attributes[
+                "cluster_sources"
+            ]
         return result_cube

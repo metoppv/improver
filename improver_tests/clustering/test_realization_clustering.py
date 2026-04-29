@@ -2678,7 +2678,11 @@ def _make_cluster_cube_for_selection(
     if secondary_map is not None:
         cube.attributes["secondary_input_realizations_to_clusters"] = json.dumps(
             secondary_map)
-    cube.attributes["mosg__model_configuration"] = model_id
+    cluster_sources = {
+        str(cluster_idx): {model_id: [0]}
+        for cluster_idx in primary_map.keys()
+    }
+    cube.attributes["cluster_sources"] = json.dumps(cluster_sources)
     return cube
 
 def _make_forecast_cubes(model_id, realization_vals, forecast_period, shape=(5, 5)):
@@ -2715,6 +2719,32 @@ def test_realizationselection_primary_only():
     expected = np.array([30, 10, 20])
     np.testing.assert_array_equal(result.data[:, 0, 0], expected)
     assert list(result.coord("realization").points) == [0, 1, 2]
+    assert "cluster_sources" in result.attributes
+    assert result.attributes["cluster_sources"] == cluster_cube.attributes[
+        "cluster_sources"
+    ]
+
+
+def test_realizationselection_cycletime():
+    """Test that cycletime resets forecast_reference_time and forecast_period."""
+    primary_map = {"0": 2, "1": 0, "2": 1}
+    cluster_cube = _make_cluster_cube_for_selection(primary_map)
+
+    # Initial forecast period is 7200s with forecast reference time at 03:00
+    # and validity at 05:00. Setting cycletime to 04:00 should keep validity fixed
+    # and update period to 3600s.
+    forecast_cubes = _make_forecast_cubes("primary_model", [10, 20, 30], 7200)
+    cubes = forecast_cubes.copy()
+    cubes.append(cluster_cube)
+
+    plugin = RealizationSelection(
+        forecast_period=3600,
+        cycletime="20170110T0400Z",
+    )
+    result = plugin.process(cubes)
+
+    assert result.coord("forecast_reference_time").cell(0).point._to_real_datetime() == datetime.strptime("20170110T0400Z", "%Y%m%dT%H%MZ")
+    assert result.coord("forecast_period").points[0] == 3600
 
 def test_realizationselection_secondary_precedence():
     """Test RealizationSelection uses secondary mapping when available."""
@@ -2761,23 +2791,29 @@ def test_realizationselection_secondary_fallback_to_primary():
     np.testing.assert_array_equal(result.data[:, 0, 0], expected)
     assert list(result.coord("realization").points) == [0, 1]
 
-def test_realizationselection_secondary_nearest_fp():
-    """Test nearest forecast period is used from secondary mapping."""
+def test_realizationselection_secondary_nearest_greater_or_equal_fp():
+    """Test nearest greater-or-equal forecast period is used from secondary mapping."""
     primary_map = {"0": 0, "1": 1}
     secondary_map = {
         "secondary_model": {
-            "0": [{"realization": 2, "forecast_periods": [3600, 5400]}],
-            "1": [{"realization": 1, "forecast_periods": [3600, 5400]}],
+            "0": [
+                {"realization": 0, "forecast_periods": [3600]},
+                {"realization": 2, "forecast_periods": [5400]},
+            ],
+            "1": [
+                {"realization": 1, "forecast_periods": [3600]},
+                {"realization": 0, "forecast_periods": [5400]},
+            ],
         }
     }
     cluster_cube = _make_cluster_cube_for_selection(primary_map, secondary_map)
-    # Forecast cubes: secondary model, fp=4000 (nearest is 3600)
+    # Forecast cubes: secondary model, fp=4000 (nearest greater-or-equal is 5400)
     forecast_cubes = _make_forecast_cubes("secondary_model", [100, 200, 300], 4000)
     cubes = forecast_cubes.copy()
     cubes.append(cluster_cube)
     plugin = RealizationSelection(forecast_period=4000)
     result = plugin.process(cubes)
-    expected = np.array([300, 200])
+    expected = np.array([300, 100])
     np.testing.assert_array_equal(result.data[:, 0, 0], expected)
     assert list(result.coord("realization").points) == [0, 1]
 
@@ -2804,6 +2840,32 @@ def test_realizationselection_missing_cluster_cube_raises():
     with pytest.raises(ValueError, match="No cluster cube found in input cubes"):
         # Provide only forecast cubes (no cluster cube)
         plugin.process(forecast_cubes)
+
+
+def test_realizationselection_no_forecast_cubes_raises():
+    """Test error when input contains a cluster cube but no forecast cubes."""
+    cluster_cube = _make_cluster_cube_for_selection({"0": 0, "1": 1})
+    cubes = CubeList([cluster_cube])
+
+    plugin = RealizationSelection(forecast_period=3600)
+    with pytest.raises(ValueError, match="No forecast cubes found in input cubes."):
+        plugin.process(cubes)
+
+
+def test_realizationselection_realization_index_out_of_bounds_raises():
+    """Test error when mapped realization index is out of bounds."""
+    cluster_cube = _make_cluster_cube_for_selection({"0": 5})
+
+    forecast_cubes = _make_forecast_cubes("primary_model", [10, 20, 30], 3600)
+    cubes = forecast_cubes.copy()
+    cubes.append(cluster_cube)
+
+    plugin = RealizationSelection(forecast_period=3600)
+    with pytest.raises(
+        ValueError,
+        match="Realization index 5 is out of bounds for model 'primary_model'",
+    ):
+        plugin.process(cubes)
 
 
 def test_realizationselection_invalid_primary_map_type_raises():
@@ -2849,4 +2911,44 @@ def test_realizationselection_mismatched_validity_time_raises():
 
     plugin = RealizationSelection(forecast_period=3600)
     with pytest.raises(ValueError, match="Forecast cubes must share a common validity time"):
+        plugin.process(cubes)
+
+
+def test_realizationselection_missing_cluster_sources_attribute_raises():
+    """Test ValueError when cluster_sources attribute is missing."""
+    cluster_cube = _make_cluster_cube_for_selection({"0": 0, "1": 1})
+    cluster_cube.attributes.pop("cluster_sources")
+
+    forecast_cubes = _make_forecast_cubes("primary_model", [10, 20], 3600)
+    cubes = forecast_cubes.copy()
+    cubes.append(cluster_cube)
+
+    plugin = RealizationSelection(forecast_period=3600)
+    with pytest.raises(
+        ValueError,
+        match=(
+            "cluster_sources attribute not found in cluster cube. "
+            "Cannot determine primary model name."
+        ),
+    ):
+        plugin.process(cubes)
+
+
+def test_realizationselection_cluster_sources_with_no_models_raises():
+    """Test ValueError when cluster_sources has no model entries."""
+    cluster_cube = _make_cluster_cube_for_selection({"0": 0, "1": 1})
+    cluster_cube.attributes["cluster_sources"] = json.dumps({"0": {}, "1": {}})
+
+    forecast_cubes = _make_forecast_cubes("primary_model", [10, 20], 3600)
+    cubes = forecast_cubes.copy()
+    cubes.append(cluster_cube)
+
+    plugin = RealizationSelection(forecast_period=3600)
+    with pytest.raises(
+        ValueError,
+        match=(
+            "No models found in cluster_sources attribute. "
+            "Cannot determine primary model name."
+        ),
+    ):
         plugin.process(cubes)
