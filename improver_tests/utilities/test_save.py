@@ -391,7 +391,7 @@ def test_save_netcdf_fails_with_float_time_dtype(tmp_path):
         "forecast_reference_time"
     ).points.astype(np.float32)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="does not have required dtype"):
         save_netcdf(result_cube, filepath)
 
 
@@ -408,15 +408,13 @@ def test_save_netcdf_succeeds_with_int_time_dtype(tmp_path):
     cubelist = iris.cube.CubeList()
     for tpoint, tbounds in zip(time_points, time_bounds):
         cube = set_up_variable_cube(data, frt=frt, time=tpoint, time_bounds=tbounds)
-        cube.coord("time").points = cube.coord("time").points.astype(
-            TIME_COORDS["time"].dtype
-        )
-        cube.coord("time").bounds = cube.coord("time").bounds.astype(
-            TIME_COORDS["time"].dtype
-        )
+        time_dtype = TIME_COORDS["time"].dtype
+        cube.coord("time").points = cube.coord("time").points.astype(time_dtype)
+        cube.coord("time").bounds = cube.coord("time").bounds.astype(time_dtype)
+        frt_dtype = TIME_COORDS["forecast_reference_time"].dtype
         cube.coord("forecast_reference_time").points = cube.coord(
             "forecast_reference_time"
-        ).points.astype(TIME_COORDS["forecast_reference_time"].dtype)
+        ).points.astype(frt_dtype)
         cubelist.append(cube)
 
     result_cube = expand_bounds(
