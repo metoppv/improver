@@ -5,31 +5,23 @@
 import sys
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 from improver.calibration import lightgbm_package_available, treelite_packages_available
 
 from ..rainforests_calibration.conftest import (
-    deterministic_features,
-    deterministic_forecast,
-    ensemble_features,
-    ensemble_forecast,
-    lead_times,
-    model_config,
+    generate_aligned_feature_cubes,
+    generate_forecast_cubes,
     prepare_dummy_training_data,
-    thresholds,
 )
 
-_ = (
-    deterministic_features,
-    deterministic_forecast,
-    ensemble_features,
-    ensemble_forecast,
-    lead_times,
-    model_config,
-    prepare_dummy_training_data,
-    thresholds,
-)
+
+ATTRIBUTES = {
+    "title": "Test forecast",
+    "source": "IMPROVER",
+    "institution": "Australian Bureau of Meteorology",
+}
 
 
 @pytest.fixture(params=[True, False])
@@ -53,8 +45,31 @@ def treelite_available(request, monkeypatch):
 
 
 @pytest.fixture
-def deterministic_training_data(deterministic_features, deterministic_forecast):
+def model_config(tmp_path):
+    """Make a dummy model config object with valid file paths"""
+    lead_times = np.array([24, 48], dtype=np.int32)
+    thresholds = np.array([0.0000, 0.0001, 0.0010, 0.0100], dtype=np.float32)
+    
+    lightgbm_model_dir = tmp_path / "lightgbm_model_dir"
+    treelite_model_dir = tmp_path / "treelite_model_dir"
+    return {
+        str(lead_time): {
+            f"{threshold:06.4f}": {
+                "lightgbm_model": f"{lightgbm_model_dir}/test_model_{lead_time:03d}H_{threshold:06.4f}.txt",  # noqa: E501
+                "treelite_model": f"{treelite_model_dir}/test_model_{lead_time:03d}H_{threshold:06.4f}.so",  # noqa: E501
+            }
+            for threshold in thresholds
+        }
+        for lead_time in lead_times
+    }
+
+
+@pytest.fixture
+def deterministic_training_data():
     """Make some dummy training data for one lead time"""
+
+    deterministic_features = generate_aligned_feature_cubes(realizations=np.arange(1))
+    deterministic_forecast = generate_forecast_cubes(realizations=np.arange(1))
     lead_time = 24
     training_data, _, observation_column, training_columns = (
         prepare_dummy_training_data(
@@ -62,21 +77,22 @@ def deterministic_training_data(deterministic_features, deterministic_forecast):
         )
     )
 
-    return training_data, observation_column, training_columns
+    return str(lead_time), training_data, observation_column, training_columns
 
 
 @pytest.fixture
-def model_config_with_trained_models(
-    model_config, ensemble_features, ensemble_forecast, thresholds, lead_times
-):
-    pytest.importorskip("lightgbm")
+def model_config_with_trained_models(model_config):
     """Return the RainForests model config, first performing the lightgbm training step
     so that the models are available for compiling with the compiler plugin."""
-    training_data, _, obs_column, train_columns = prepare_dummy_training_data(
-        ensemble_features, ensemble_forecast, lead_times
-    )
-
     lightgbm = pytest.importorskip("lightgbm")
+
+    lead_times = [int(l) for l in model_config.keys()]
+
+    deterministic_features = generate_aligned_feature_cubes(realizations=np.arange(1))
+    deterministic_forecast = generate_forecast_cubes(realizations=np.arange(1))
+    training_data, _, obs_column, train_columns = prepare_dummy_training_data(
+        deterministic_features, deterministic_forecast, lead_times
+    )
 
     params = {"objective": "binary", "num_leaves": 5, "verbose": -1, "seed": 0}
     for lead_time, thresholds in model_config.items():
