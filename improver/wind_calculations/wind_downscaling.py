@@ -755,7 +755,7 @@ class RoughnessCorrection(PostProcessingPlugin):
         target_orog_cube: Cube,
         model_orog_cube: Cube,
         res_model: float,
-        z0_cube: Optional[Cube] = None,
+        model_z0_cube: Optional[Cube] = None,
         height_levels_cube: Optional[Cube] = None,
     ) -> None:
         """Initialise the RoughnessCorrection plugin.
@@ -771,7 +771,7 @@ class RoughnessCorrection(PostProcessingPlugin):
                 2D model orography interpolated to the PP grid (m).
             res_model (float):
                 Native horizontal model-grid resolution (m).
-            z0_cube (Optional[Cube]):
+            model_z0_cube (Optional[Cube]):
                 2D vegetative roughness length z0 (m). If None, no RC applied.
             height_levels_cube (Optional[Cube]):
                 1D or 3D height levels of the input wind field (m).
@@ -783,7 +783,7 @@ class RoughnessCorrection(PostProcessingPlugin):
         if not self.check_ancils(
             model_silhouette_roughness_cube,
             model_orog_stddev_cube,
-            z0_cube,
+            model_z0_cube,
             target_orog_cube,
             model_orog_cube,
         ):
@@ -796,9 +796,9 @@ class RoughnessCorrection(PostProcessingPlugin):
         self.orog_stddev = next(model_orog_stddev_cube.slices([y_name, x_name]))
 
         try:
-            self.roughness_length_z0 = next(z0_cube.slices([y_name, x_name]))
+            self.roughness_length_z0 = next(model_z0_cube.slices([y_name, x_name]))
         except AttributeError:
-            self.roughness_length_z0 = z0_cube
+            self.roughness_length_z0 = model_z0_cube
 
         self.orog_pp = next(target_orog_cube.slices([y_name, x_name]))
         self.orog_model = next(model_orog_cube.slices([y_name, x_name]))
@@ -905,7 +905,7 @@ class RoughnessCorrection(PostProcessingPlugin):
     def check_ancils(
         model_silhouette_roughness_cube: Cube,
         model_orog_stddev_cube: Cube,
-        z0_cube: Optional[Cube],
+        model_z0_cube: Optional[Cube],
         target_orog_cube: Cube,
         model_orog_cube: Cube,
     ) -> bool:
@@ -918,7 +918,7 @@ class RoughnessCorrection(PostProcessingPlugin):
         Args:
             model_silhouette_roughness_cube (Cube): Cube holding the silhouette roughness field
             model_orog_stddev_cube (Cube): Cube holding the standard deviation of height in a grid cell
-            z0_cube (Optional[Cube]): Cube holding the vegetative roughness field
+            model_z0_cube (Optional[Cube]): Cube holding the vegetative roughness field
             target_orog_cube (Cube): Cube holding the post processing grid orography
             model_orog_cube (Cube): Cube holding the model orography on post processing grid
 
@@ -956,17 +956,17 @@ class RoughnessCorrection(PostProcessingPlugin):
                 )
 
         # Clean and check z0 if supplied
-        if z0_cube is not None:
+        if model_z0_cube is not None:
             for name in drop_coords:
                 try:
-                    z0_cube.remove_coord(name)
+                    model_z0_cube.remove_coord(name)
                 except CoordinateNotFoundError:
                     pass
-            if z0_cube.units != Unit("m"):
+            if model_z0_cube.units != Unit("m"):
                 raise ValueError(
-                    f"z0 ancillary has unexpected unit: expected m, got {z0_cube.units}"
+                    f"z0 ancillary has unexpected unit: expected m, got {model_z0_cube.units}"
                 )
-            required.append(z0_cube)
+            required.append(model_z0_cube)
 
         # Pairwise x/y grid compatibility check across all ancils
         ok_pairs: list[bool] = []
