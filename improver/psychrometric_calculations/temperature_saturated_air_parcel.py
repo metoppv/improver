@@ -32,14 +32,15 @@ from improver.utilities.common_input_handle import as_cubelist
 
 class TemperatureSaturatedAirParcel(BasePlugin):
     """
-    Plugin to calculate the temperature of a saturated air parcel as it rises
-    adiabatically from the cloud condensation level (CCL) to a pressure level.
-    The default is set at 500 hPa for the Lifted Index (LI) calculations.
-    The default phase used in the calculation of the saturated humidity is
-    "water".
+    Plugin to calculate the temperature of a saturated air parcel with respect to liquid
+    (water) as it rises adiabatically from the cloud condensation level (CCL) to a
+    pressure level.
+    The default pressure level is set at 500 hPa for the Lifted Index (LI) calculations.
     """
 
-    def __init__(self, pressure_level: float = 50000.0, phase: str = "water"):
+    phase: str = "water"
+
+    def __init__(self, pressure_level: float = 50000.0):
         """
         Set up class
 
@@ -47,13 +48,8 @@ class TemperatureSaturatedAirParcel(BasePlugin):
             pressure_level:
                 The pressure level that the air parcel is lifted to adiabatically
                 from the cloud condensation level. (Pa)
-            phase:
-                The phase argument to use in the calculation of the saturated
-                humidity. Valid values are "water" or "ice"; for the Lifted
-                Index calculation the default is "water".
         """
         self.pressure_level = pressure_level
-        self.phase = phase
         self.temperature: Cube = None
         self.pressure: Cube = None
 
