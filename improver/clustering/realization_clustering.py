@@ -1680,6 +1680,7 @@ class RealizationSelection(BasePlugin):
 
             selected = model_cube[realization_index]
             selected.coord("realization").points = [cluster_idx]
+            selected.coord("realization").units = "1"
             selected_cubes.append(selected)
         return selected_cubes
 
