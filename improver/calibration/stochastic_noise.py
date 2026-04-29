@@ -93,6 +93,12 @@ class StochasticNoise(BasePlugin):
             ValueError:
                 If db_threshold is not a positive value.
 
+        Warnings:
+            If a seed is provided in ssft_generate_params and
+            allow_seeded_parallel_processing is True, a warning is raised to indicate
+            that using multiple workers with a fixed seed may introduce run-to-run
+            variation because pySTEPS uses global RNG seeding.
+
         Example dictionaries for initializing and generating SSFT filter::
 
             ssft_init_params = {"win_size": (100, 100), "overlap": 0.3, "war_thr": 0.1}
@@ -274,11 +280,9 @@ class StochasticNoise(BasePlugin):
         Returns:
             Cube with added stochastic noise.
         Warnings:
-            UserWarning:
-                If a seed is provided in ssft_generate_params and allow_seeded_parallel_processing
-                is True, a warning is raised to indicate that using multiple workers
-                with a fixed seed may introduce run-to-run variation because pySTEPS
-                uses global RNG seeding.
+                If the input cube contains a "realization" dimension, a warning is
+                raised to indicate that processing will be slower than necessary, and
+                that it is recommended to process each realization separately.
         """
         # Check if input_cube has a realization dimension. If so, process each
         # realization slice separately and merge results.
