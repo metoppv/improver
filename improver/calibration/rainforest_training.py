@@ -82,7 +82,7 @@ class TrainRainForestsModel(BasePlugin):
         # Check the observation column is not also a training column.
         if observation_column in training_columns:
             raise KeyError(
-                f"Observation column '{observation_column}' appears in training data."
+                f"Observation column '{observation_column}' is also in training columns."
             )
 
         self.observation_column = observation_column
@@ -102,8 +102,9 @@ class TrainRainForestsModel(BasePlugin):
             lead_time (int):
                 Lead time in hours of training data. Used to get retreive model paths
                 from config data.
-            thresholds (list of float):
+            thresholds (list of str):
                 Threshold values for which the observation column is trained.
+                Formatted to match the keys used in the model_config object.
         """
         if lead_time not in self.config:
             raise KeyError(f"Lead time {lead_time} not found in model config.")
@@ -115,7 +116,7 @@ class TrainRainForestsModel(BasePlugin):
                 )
 
             model_path = Path(self.config[lead_time][threshold]["lightgbm_model"])
-            self._train_model(threshold, model_path)
+            self._train_model(float(threshold), model_path)
 
     def _train_model(self, threshold, model_path):
         """Train a model for a particular threshold.
@@ -130,7 +131,7 @@ class TrainRainForestsModel(BasePlugin):
         import lightgbm
 
         threshold_met_label = (
-            self.training_data[self.observation_column] >= float(threshold)
+            self.training_data[self.observation_column] >= threshold
         ).astype(int)
 
         dataset = lightgbm.Dataset(
