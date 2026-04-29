@@ -106,12 +106,12 @@ def test_invalid_taxa():
 
 def test_scaling_factor():
     scaling_factors_dict = {
-        "weed": [1.0, 213.0],
-        "alder": [1.0, 14.6],
+        "weed": 213.0,
+        "alder": 14.6,
     }
     for taxa, scaling_factor in scaling_factors_dict.items():
         cube = get_input_cubes(taxa)
         plugin = PollenHourlyConcentration(scaling_factors_dict)
         output_cube = plugin.process(cube)
-        expected_scaled_data = (EXPECTED[taxa] * scaling_factor[1]).astype(FLOAT_DTYPE)
+        expected_scaled_data = (EXPECTED[taxa] * scaling_factor).astype(FLOAT_DTYPE)
         np.testing.assert_array_almost_equal(output_cube.data, expected_scaled_data)

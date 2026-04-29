@@ -103,7 +103,7 @@ class PollenHourlyConcentration(PostProcessingPlugin):
                 The pollen taxa being processed, used to update the cube name and metadata
         """
         if self._scaling_factors_dict is not None:
-            self._scaling_factor = self._scaling_factors_dict[taxa][1]
+            self._scaling_factor = self._scaling_factors_dict[taxa]
         else:
             self._scaling_factor = 1.0
         diameter = self._POLLEN_DIAMETER[taxa]
