@@ -146,7 +146,7 @@ class TemperatureSaturatedAirParcel(BasePlugin):
 
         """
         cubes = as_cubelist(cubes)
-        (self.temperature, self.pressure) = CubeList(cubes).extract(
+        self.temperature, self.pressure = CubeList(cubes).extract(
             [
                 "air_temperature_at_condensation_level",
                 "air_pressure_at_condensation_level",

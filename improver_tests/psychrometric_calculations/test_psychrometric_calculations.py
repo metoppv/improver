@@ -203,7 +203,7 @@ def test_saturated_latent_heat_with_large_array():
     6 iterations.
     This demonstrates that for arrays, so long as at least one point converges, all succeed
     and a warning is issued.
-    https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.newton.html)."""
+    https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.newton.html"""
     shape = 150
 
     # These values converge in six iterations
