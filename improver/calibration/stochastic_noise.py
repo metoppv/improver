@@ -6,13 +6,11 @@
 (SSFT).
 """
 
-import os
 import warnings
 from typing import Optional
 
 import numpy as np
-from dask import compute, delayed
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 
 from improver import BasePlugin
 from improver.utilities.cube_checker import validate_cube_dimensions
@@ -25,7 +23,7 @@ class StochasticNoise(BasePlugin):
 
     This plugin is intended for use with positive zero-bounded diagnostics only, and is
     a particularly useful tool for Ensemble Copula Coupling-Quantile (ECC-Q) realization
-    generation. While EEC-Q is used to improve the accuracy of forecasts by calibrating
+    generation. While ECC-Q is used to improve the accuracy of forecasts by calibrating
     ensemble members to better represent the true distribution of the forecast variable,
     the rank-based reordering (sorting) of ensemble members at each grid point can lead
     to unrealistic individual members (e.g. single-pixel precipitation artifacts) when
@@ -43,7 +41,6 @@ class StochasticNoise(BasePlugin):
         ssft_generate_params: Optional[dict] = None,
         db_threshold: float = 0.03,
         db_threshold_units: str = "mm/hr",
-        num_workers: Optional[int] = len(os.sched_getaffinity(0)),
         scale_non_positive_noise: bool = False,
         allow_seeded_parallel_processing: bool = False,
         arbitrary_offset: float = 5.0,
@@ -69,11 +66,8 @@ class StochasticNoise(BasePlugin):
                 `db_threshold_units`.
                 Default is 0.03 mm/hr.
             db_threshold_units:
-                Units of the db_threshold value. Default is "mm/hr".
-            num_workers:
-                Number of worker threads for parallel FFT computation.
-                If not specified, uses the smaller of the plugin's default (number of
-                available CPUs) or the number of realizations in the input cube.
+                Units of the db_threshold value.
+                Default is "mm/hr".
             scale_non_positive_noise:
                 If True, noise in non-positive regions (where template.data <= 0) will
                 be scaled such that the maximum noise value in those regions is zero and
@@ -99,6 +93,12 @@ class StochasticNoise(BasePlugin):
             ValueError:
                 If db_threshold is not a positive value.
 
+        Warnings:
+            If a seed is provided in ssft_generate_params and
+            allow_seeded_parallel_processing is True, a warning is raised to indicate
+            that using multiple workers with a fixed seed may introduce run-to-run
+            variation because pySTEPS uses global RNG seeding.
+
         Example dictionaries for initializing and generating SSFT filter::
 
             ssft_init_params = {"win_size": (100, 100), "overlap": 0.3, "war_thr": 0.1}
@@ -113,10 +113,89 @@ class StochasticNoise(BasePlugin):
         self.ssft_generate_params = ssft_generate_params or {}
         self.db_threshold = db_threshold
         self.db_threshold_units = db_threshold_units
-        self.num_workers = num_workers
         self.scale_non_positive_noise = scale_non_positive_noise
         self.allow_seeded_parallel_processing = allow_seeded_parallel_processing
         self.arbitrary_offset = arbitrary_offset
+
+        if (
+            "seed" in self.ssft_generate_params
+        ) and self.allow_seeded_parallel_processing:
+            warnings.warn(
+                "Using multiple workers with a fixed seed may introduce run-to-run "
+                "variation because pySTEPS uses global RNG seeding. Set "
+                "allow_seeded_parallel_processing to False for reproducibility.",
+                UserWarning,
+            )
+
+    def _process_single_realization(self, input_cube: Cube) -> Cube:
+        """Process a cube containing a single realization (or no realization coord).
+
+        Args:
+            input_cube:
+                Cube to which stochastic noise will be added.
+
+        Returns:
+            Cube with added stochastic noise.
+        """
+        validate_cube_dimensions(
+            cube=input_cube,
+            required_dimensions=["x", "y"],
+            exact_match=False,
+        )
+
+        # Store original cube units and mask
+        original_units = input_cube.units
+        original_mask = None
+        if np.ma.isMaskedArray(input_cube.data):
+            original_mask = input_cube.data.mask.copy()
+
+        # Convert to db_threshold_units for processing
+        template = input_cube.copy()
+        template.convert_units(self.db_threshold_units)
+
+        # Fill masked values with 0 for processing
+        if np.ma.isMaskedArray(template.data):
+            template.data = np.ma.filled(template.data, 0.0).astype(np.float32)
+
+        # Identify non-positive regions where noise should be added
+        non_positive_mask = template.data <= 0
+
+        # If no non-positive values, return input unchanged (output would be
+        # unchanged with SSFT noise addition only to non-positive regions)
+        if not np.any(non_positive_mask):
+            return input_cube
+
+        # Create a copy of the template in dB scale to use for SSFT processing
+        template_dB = self._to_dB(template.copy())
+
+        # Compute SSFT noise
+        result = self.do_fft(template_dB.data)
+
+        # Convert generated noise from dB to linear scale
+        noise_linear = self._from_dB(data=result).astype(np.float32, copy=False)
+
+        # If requested, scale noise in non-positive regions to prevent increasing values
+        # where there should be no signal
+        if self.scale_non_positive_noise:
+            max_noise_non_positiveregions = np.max(noise_linear[non_positive_mask])
+            noise_linear[non_positive_mask] = (
+                noise_linear[non_positive_mask] - max_noise_non_positiveregions
+            )
+
+        # Add noise only to non-positive regions, leave positive regions unchanged
+        output_cube = template.copy()
+        output_cube.data[non_positive_mask] = (
+            template.data[non_positive_mask] + noise_linear[non_positive_mask]
+        )
+
+        # Restore original mask
+        if original_mask is not None:
+            output_cube.data = np.ma.masked_array(output_cube.data, mask=original_mask)
+
+        # Convert back to original units
+        output_cube.convert_units(original_units)
+
+        return output_cube
 
     def _to_dB(self, cube: Cube) -> Cube:
         """Convert cube data to dB scale and apply thresholding using db_threshold
@@ -197,132 +276,41 @@ class StochasticNoise(BasePlugin):
         Add locally-conditioned stochastic noise to a cube object using Short-Space
         Fourier Transform (SSFT).
 
+        While this plugin accepts any cube with "x" and "y" dimensions, it is
+        recommended to first slice the cube over the realization dimension and
+        parallelize the processing of individual realizations using the plugin on each
+        slice, to improve performance. This extraction and later merging of realization
+        slices can be easily achieved using the improver CLI `extract` and
+        `merge` functionality, respectively.
+
         Args:
             input_cube:
-                Cube to which stochastic noise will be added.
+                Cube to which stochastic noise will be added. Must contain "x" and "y"
+                dimensions, and may optionally contain a "realization" dimension.
         Returns:
             Cube with added stochastic noise.
         Warnings:
-            UserWarning:
-                If a seed is provided in ssft_generate_params and allow_seeded_parallel_processing
-                is True, a warning is raised to indicate that using multiple workers
-                with a fixed seed may introduce run-to-run variation because pySTEPS
-                uses global RNG seeding.
+                If the input cube contains a "realization" dimension, a warning is
+                raised to indicate that processing will be slower than necessary, and
+                that it is recommended to process each realization separately.
         """
-        # Check that input cube has the expected dimensions for processing
-        validate_cube_dimensions(
-            cube=input_cube,
-            required_dimensions=["realization", "x", "y"],
-            exact_match=True,
+        # Check if input_cube has a realization dimension. If so, process each
+        # realization slice separately and merge results.
+        # If not, process the cube directly.
+        realization_dim_coords = input_cube.coords("realization", dim_coords=True)
+        if not realization_dim_coords:
+            return self._process_single_realization(input_cube)
+
+        warnings.warn(
+            "Input cube has a multi-realization dimension. For best performance, "
+            "prefer passing single-realization cubes and processing "
+            "each realization separately. Processing will continue by iterating over "
+            "realization slices.",
+            UserWarning,
         )
 
-        # Store original cube units and mask
-        original_units = input_cube.units
-        original_mask = None
-        if np.ma.isMaskedArray(input_cube.data):
-            original_mask = input_cube.data.mask.copy()
-
-        # Convert to db_threshold_units for processing
-        template = input_cube.copy()
-        template.convert_units(self.db_threshold_units)
-
-        # Fill masked values with 0 for processing (dask does not support native numpy
-        # masked arrays)
-        if np.ma.isMaskedArray(template.data):
-            template.data = np.ma.filled(template.data, 0.0).astype(np.float32)
-
-        # Identify non-positive regions where noise should be added
-        non_positive_mask = template.data <= 0
-
-        # If no non-positive values, return input unchanged (output would be
-        # unchanged with SSFT noise addition only to non-positive regions)
-        if not np.any(non_positive_mask):
-            return input_cube
-
-        # Create a copy of the template in dB scale to use for SSFT processing
-        template_dB = self._to_dB(template.copy())
-
-        # Build delayed processing tasks for each realization
-        tasks = []
-        for slice in template_dB.slices_over("realization"):
-            data_slice = slice.data.astype(np.float32)
-            tasks.append(delayed(self.do_fft)(data_slice))
-
-        # Set number of workers for parallel processing
-        num_workers = min(
-            self.num_workers,
-            len(template.coord("realization").points),
+        output_slices = CubeList(
+            self._process_single_realization(slc)
+            for slc in input_cube.slices_over("realization")
         )
-
-        # pySTEPS uses numpy.random.seed when a seed kwarg is passed. By default,
-        # restrict to a single worker in that case to avoid concurrent global RNG
-        # mutations and preserve reproducibility.
-        if (
-            "seed" in self.ssft_generate_params
-            and not self.allow_seeded_parallel_processing
-        ):
-            num_workers = 1
-        elif (
-            "seed" in self.ssft_generate_params
-            and self.allow_seeded_parallel_processing
-        ):
-            warnings.warn(
-                "Using multiple workers with a fixed seed may introduce run-to-run "
-                "variation because pySTEPS uses global RNG seeding.",
-                UserWarning,
-            )
-
-        # Compute all SSFT noise arrays (in dB scale) in parallel
-        results = compute(*tasks, scheduler="threads", num_workers=num_workers)
-
-        # Convert dB to linear scale
-        noise_linear = template.copy()
-        noise_linear.data = np.zeros_like(template.data, dtype=np.float32)
-        for k, result_db in enumerate(results):
-            # Guard against occasional non-finite outputs from SSFT generation on
-            # degenerate fields by mapping them to a sub-threshold dB value.
-            if not np.all(np.isfinite(result_db)):
-                # Repeat scaling from _to_dB to get a sub-threshold dB value for
-                # non-finite outputs.
-                sub_threshold_dB = (
-                    10.0 * np.log10(self.db_threshold) - self.arbitrary_offset
-                )
-                result_db = np.nan_to_num(
-                    result_db,
-                    nan=sub_threshold_dB,
-                    posinf=sub_threshold_dB,
-                    neginf=sub_threshold_dB,
-                )
-            lin_noise = self._from_dB(data=result_db)
-            # Ensure no non-finite values propagate into downstream scaling.
-            lin_noise = np.nan_to_num(lin_noise, nan=0.0, posinf=0.0, neginf=0.0)
-            noise_linear.data[k] = lin_noise
-
-        # If requested, scale noise in non-positive regions to prevent increasing values
-        # where there should be no signal
-        if self.scale_non_positive_noise:
-            noise_in_non_positive_regions = np.nan_to_num(
-                noise_linear.data[non_positive_mask],
-                nan=0.0,
-                posinf=0.0,
-                neginf=0.0,
-            )
-            noise_linear.data[non_positive_mask] = (
-                noise_in_non_positive_regions - np.max(noise_in_non_positive_regions)
-            )
-
-        # Add noise only to non-positive regions, leave positive regions
-        # unchanged
-        output_cube = template.copy()
-        output_cube.data[non_positive_mask] = (
-            template.data[non_positive_mask] + noise_linear.data[non_positive_mask]
-        )
-
-        # Restore original mask
-        if original_mask is not None:
-            output_cube.data = np.ma.masked_array(output_cube.data, mask=original_mask)
-
-        # Convert back to original units
-        output_cube.convert_units(original_units)
-
-        return output_cube
+        return output_slices.merge_cube()
