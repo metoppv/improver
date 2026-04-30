@@ -95,12 +95,12 @@ def process(
     wind_speed_list = iris.cube.CubeList()
     for wind_speed_slice in wind_speed_iterator:
         result = wind_downscaling.RoughnessCorrection(
-            silhouette_roughness_cube=silhouette_roughness,
-            orog_stddev_cube=sigma,
-            orog_pp_cube=target_orography,
-            orog_model_cube=standard_orography,
-            res_model=model_resolution,
-            z0_cube=vegetative_roughness,
+            model_silhouette_roughness_cube=silhouette_roughness,
+            model_orog_stddev_cube=sigma,
+            target_orog_cube=target_orography,
+            model_orog_cube=standard_orography,
+            model_res=model_resolution,
+            model_z0_cube=vegetative_roughness,
             height_levels_cube=None,
         )(wind_speed_slice)
         wind_speed_list.append(result)
