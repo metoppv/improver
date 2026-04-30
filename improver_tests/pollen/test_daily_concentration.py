@@ -12,7 +12,7 @@ from improver.metadata.constants import FLOAT_DTYPE
 from improver.pollen.daily_concentration import PollenDailyConcentration
 
 pollen_hourly_concentrations_dict = {
-    "weed_pollen": {
+    "weed": {
         1: np.array([[0.0, 0.01, 29.0], [50.0, 131.2, 409.0]]),
         2: np.array([[0.0, 0.01, 29.0], [50.0, 131.2, 409.0]]),
         3: np.array([[0.0, 0.01, 29.0], [50.0, 131.2, 409.0]]),
@@ -81,7 +81,7 @@ def get_input_cubes(pollen_name: str) -> CubeList:
 
 
 def test_process():
-    cubes = get_input_cubes("weed_pollen")
+    cubes = get_input_cubes("weed")
     plugin = PollenDailyConcentration()
     output_cube = plugin.process(cubes)
     np.testing.assert_array_almost_equal(output_cube.data, WEED_AVERAGE)

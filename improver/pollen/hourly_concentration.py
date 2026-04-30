@@ -25,40 +25,57 @@ class PollenHourlyConcentration(PostProcessingPlugin):
 
     # The names of pollen types that are expected by this class
     _POLLEN_NAMES = [
-        "grass_pollen",
-        "birch_pollen",
-        "oak_pollen",
-        "hazel_pollen",
-        "alder_pollen",
-        "nettle_pollen",
-        "ash_pollen",
-        "plane_pollen",
-        "weed_pollen",
+        "grass",
+        "birch",
+        "oak",
+        "hazel",
+        "alder",
+        "nettle",
+        "ash",
+        "plane",
+        "weed",
     ]
     # Diameter of pollen grains for each pollen type in metres
     _POLLEN_DIAMETER = {
-        "grass_pollen": 35e-6,
-        "birch_pollen": 22e-6,
-        "oak_pollen": 29e-6,
-        "hazel_pollen": 28e-6,
-        "alder_pollen": 25e-6,
-        "nettle_pollen": 13e-6,
-        "ash_pollen": 23e-6,
-        "plane_pollen": 19e-6,
-        "weed_pollen": 13e-6,
+        "grass": 35e-6,
+        "birch": 22e-6,
+        "oak": 29e-6,
+        "hazel": 28e-6,
+        "alder": 25e-6,
+        "nettle": 13e-6,
+        "ash": 23e-6,
+        "plane": 19e-6,
+        "weed": 13e-6,
     }  # meters
     # Density of each pollen type in kg per cubic metre
     _POLLEN_DENSITY = {
-        "grass_pollen": 1000.0,
-        "birch_pollen": 800.0,
-        "oak_pollen": 800.0,
-        "hazel_pollen": 800.0,
-        "alder_pollen": 800.0,
-        "nettle_pollen": 1000.0,
-        "ash_pollen": 800.0,
-        "plane_pollen": 920.0,
-        "weed_pollen": 1000.0,
+        "grass": 1000.0,
+        "birch": 800.0,
+        "oak": 800.0,
+        "hazel": 800.0,
+        "alder": 800.0,
+        "nettle": 1000.0,
+        "ash": 800.0,
+        "plane": 920.0,
+        "weed": 1000.0,
     }  # kg/m3
+    _POLLEN_SHORTNAME_2_LATIN = {
+        "grass": "Poaceae",
+        # Trees
+        "birch": "Betula",
+        "oak": "Quercus",
+        "hazel": "Corylus",
+        "alder": "Alnus",
+        "ash": "Fraxinus",
+        "plane": "Platanus",
+        # Weeds
+        "nettle": "Urticaceae",
+        "weed": "Urticaceae",
+    }
+    _POLLEN_SHORTNAME_2_LONGNAME = {
+        k: "number_concentration_of_" + v.lower() + "_pollen_grains_in_air"
+        for k, v in _POLLEN_SHORTNAME_2_LATIN.items()
+    }
 
     # Scaling factors can change, so need to be passed in
     _scaling_factors_dict = None
@@ -86,9 +103,9 @@ class PollenHourlyConcentration(PostProcessingPlugin):
                 The pollen taxa being processed, used to update the cube name and metadata
         """
         if self._scaling_factors_dict is not None:
-            scaling_factor = self._scaling_factors_dict[taxa][1]
+            self._scaling_factor = self._scaling_factors_dict[taxa]
         else:
-            scaling_factor = 1.0
+            self._scaling_factor = 1.0
         diameter = self._POLLEN_DIAMETER[taxa]
         density = self._POLLEN_DENSITY[taxa]
         volume = (4 / 3) * np.pi * (diameter / 2) ** 3
@@ -97,7 +114,9 @@ class PollenHourlyConcentration(PostProcessingPlugin):
         # Data is in g/m3, so convert to kg/m3 by dividing by 1000,
         # (then apply scaling factor)
         # and convert to grains/m3
-        new_data = self._output_cube.data / 1000.0 * scaling_factor / mass_per_grain
+        new_data = (
+            (self._output_cube.data / 1000.0) * self._scaling_factor
+        ) / mass_per_grain
         self._output_cube.data = new_data.astype(FLOAT_DTYPE)
 
     def _metadata(self, taxa: str):
@@ -106,8 +125,12 @@ class PollenHourlyConcentration(PostProcessingPlugin):
             taxa:
                 The pollen taxa being processed, used to update the cube name and metadata
         """
-        self._output_cube.rename(f"{taxa}_concentration_PT01H")
-        # self._output_cube.convert_units("grains / m3")
+        self._output_cube.attributes["biological_taxon_name"] = (
+            self._POLLEN_SHORTNAME_2_LATIN[taxa]
+        )
+        self._output_cube.attributes["forecast_period"] = np.int32(3600)
+        self._output_cube.attributes["scaling_factor"] = self._scaling_factor
+        self._output_cube.rename(self._POLLEN_SHORTNAME_2_LONGNAME[taxa])
 
     def process(
         self,
@@ -124,10 +147,12 @@ class PollenHourlyConcentration(PostProcessingPlugin):
         Returns:
             The calculated output cube.
         """
-        self._output_cube = build_output_cube_with_new_units(self, cube, "grains / m3")
+        self._output_cube = build_output_cube_with_new_units(self, cube, "m-3")
 
         # Check that the pollen taxa is one that is handled by the class
         taxa = self._output_cube.attributes.get("taxa").lower()
+        # Remove "_pollen" from the taxa name if it is present, to match the keys in the dictionaries
+        taxa = taxa.lower().replace("_pollen", "")
         if taxa not in self._POLLEN_NAMES:
             raise ValueError(f"Pollen taxa {taxa} not handled")
 

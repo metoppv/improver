@@ -11,22 +11,22 @@ from iris.cube import Cube, CubeList
 from improver.pollen.pollen_index_for_period import PollenIndexForPeriod
 
 INPUT_DATA = {
-    "grass_pollen": np.array([[0.0, 0.0999999, 29.0], [50.0, 131.2, 409.0]]),
-    "alder_pollen": np.array([[0.01, 0.010000000001, 31.0], [100.0, 50.0, 80.0]]),
-    "plane_pollen": np.array([[345.0, 42.0, 25.01], [200.0, 0.0002, 100.3]]),
-    "weed_pollen": np.array([[2, 3, 3], [2, 2, 4]]),
+    "grass": np.array([[0.0, 0.0999999, 29.0], [50.0, 131.2, 409.0]]),
+    "alder": np.array([[0.01, 0.010000000001, 31.0], [100.0, 50.0, 80.0]]),
+    "plane": np.array([[345.0, 42.0, 25.01], [200.0, 0.0002, 100.3]]),
+    "weed": np.array([[2, 3, 3], [2, 2, 4]]),
 }
 
 EXPECTED_DATA = {
-    "grass_pollen": np.array([[0, 0, 1], [2, 3, 4]]),
-    "alder_pollen": np.array([[1, 1, 2], [4, 2, 3]]),
-    "plane_pollen": np.array([[4, 2, 1], [3, 0, 3]]),
-    "weed_pollen": np.array([[5.4, 103.0, 80.0], [45.82, 0.01, 200.00000000001]]),
+    "grass": np.array([[0, 0, 1], [2, 3, 4]]),
+    "alder": np.array([[1, 1, 2], [4, 2, 3]]),
+    "plane": np.array([[4, 2, 1], [3, 0, 3]]),
+    "weed": np.array([[5.4, 103.0, 80.0], [45.82, 0.01, 200.00000000001]]),
 }
 
 BAD_POLLEN_NAME_HOUR_DATA = {
     "2026-03-22 01:00:00+00:00": {
-        "foo_pollen": np.array([[0.0, 0.0999999, 29.0], [50.0, 131.2, 409.0]]),
+        "foo": np.array([[0.0, 0.0999999, 29.0], [50.0, 131.2, 409.0]]),
     },
 }
 
@@ -57,7 +57,7 @@ def test_process():
 
 
 def test_invalid_pollen_name():
-    taxa = "foo_pollen"
+    taxa = "foo"
     input_pollen_data = np.array(
         [[200.0, 79.2, 49.999999999], [30.00000001, 0.5, 0.00000]]
     )

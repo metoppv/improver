@@ -27,15 +27,15 @@ class PollenIndexForPeriod(PostProcessingPlugin):
     _POLLEN_INDEX = {  # 0=No pollen, 1=Low, 2=Moderate, 3=High, 4=Very High
         # (5=extra level just for contour levels)
         "index": np.array([0, 1, 2, 3, 4, 5]).astype(np.int32),
-        "grass_pollen": np.array([0.0, 0.01, 30.0, 50.0, 150.0, 5000.0]),
-        "birch_pollen": np.array([0.0, 0.01, 40.0, 80.0, 200.0, 5000.0]),
-        "oak_pollen": np.array([0.0, 0.01, 30.0, 50.0, 200.0, 5000.0]),
-        "hazel_pollen": np.array([0.0, 0.01, 30.0, 50.0, 80.0, 5000.0]),
-        "alder_pollen": np.array([0.0, 0.01, 30.0, 50.0, 80.0, 5000.0]),
-        "ash_pollen": np.array([0.0, 0.01, 30.0, 50.0, 200.0, 5000.0]),
-        "plane_pollen": np.array([0.0, 0.01, 30.0, 50.0, 200.0, 5000.0]),
-        "nettle_pollen": np.array([0.0, 0.01, 40.0, 80.0, 200.0, 5000.0]),
-        "weed_pollen": np.array([0.0, 0.01, 40.0, 80.0, 200.0, 5000.0]),
+        "grass": np.array([0.0, 0.01, 30.0, 50.0, 150.0, 5000.0]),
+        "birch": np.array([0.0, 0.01, 40.0, 80.0, 200.0, 5000.0]),
+        "oak": np.array([0.0, 0.01, 30.0, 50.0, 200.0, 5000.0]),
+        "hazel": np.array([0.0, 0.01, 30.0, 50.0, 80.0, 5000.0]),
+        "alder": np.array([0.0, 0.01, 30.0, 50.0, 80.0, 5000.0]),
+        "ash": np.array([0.0, 0.01, 30.0, 50.0, 200.0, 5000.0]),
+        "plane": np.array([0.0, 0.01, 30.0, 50.0, 200.0, 5000.0]),
+        "nettle": np.array([0.0, 0.01, 40.0, 80.0, 200.0, 5000.0]),
+        "weed": np.array([0.0, 0.01, 40.0, 80.0, 200.0, 5000.0]),
     }
 
     # The output cube is a deepcopy of the input cube (to keep metadata) and is then manipulated in place

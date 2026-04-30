@@ -12,10 +12,10 @@ from improver.metadata.constants import FLOAT_DTYPE
 from improver.pollen.hourly_concentration import PollenHourlyConcentration
 
 pollen_data = {
-    "weed_pollen": np.array(
+    "weed": np.array(
         [[0.0, 2.191227039816113e-07, 0.00000011], [0.000000073, 5.6e-08, 4.4e-08]]
     ),
-    "alder_pollen": np.array(
+    "alder": np.array(
         [
             [0.0, 9.3936263e-13, 4.766694816638051e-10],
             [1.5695971e-29, 1.2977890e-12, 4.6269901e-22],
@@ -23,10 +23,10 @@ pollen_data = {
     ),
 }
 EXPECTED = {
-    "weed_pollen": np.array(
+    "weed": np.array(
         [[0.0, 190.484086385, 95.623361348], [63.459139804, 48.680983959, 38.24934454]]
     ).astype(FLOAT_DTYPE),
-    "alder_pollen": np.array(
+    "alder": np.array(
         [[0.0, 0.000143524, 0.072829732], [0.0, 0.000198288, 0.0]]
     ).astype(FLOAT_DTYPE),
 }
@@ -95,23 +95,23 @@ def test_process():
 
 
 def test_invalid_taxa():
-    cube = get_input_cubes("weed_pollen")
+    cube = get_input_cubes("weed")
     cube.attributes["taxa"] = "invalid_pollen"
     plugin = PollenHourlyConcentration()
     try:
         plugin.process(cube)
     except ValueError as err:
-        assert str(err) == "Pollen taxa invalid_pollen not handled"
+        assert str(err) == "Pollen taxa invalid not handled"
 
 
 def test_scaling_factor():
     scaling_factors_dict = {
-        "weed_pollen": [1.0, 213.0],
-        "alder_pollen": [1.0, 14.6],
+        "weed": 213.0,
+        "alder": 14.6,
     }
     for taxa, scaling_factor in scaling_factors_dict.items():
         cube = get_input_cubes(taxa)
         plugin = PollenHourlyConcentration(scaling_factors_dict)
         output_cube = plugin.process(cube)
-        expected_scaled_data = (EXPECTED[taxa] * scaling_factor[1]).astype(FLOAT_DTYPE)
+        expected_scaled_data = (EXPECTED[taxa] * scaling_factor).astype(FLOAT_DTYPE)
         np.testing.assert_array_almost_equal(output_cube.data, expected_scaled_data)
