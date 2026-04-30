@@ -684,7 +684,10 @@ class WindTerrainAdjustmentUtilities:
             valid[missing_h] = False
 
         # Disable RC/HC wherever the vertical wind profile is missing
-        missing_w = (wspeed_original == RMDI).any(axis=2)
+        if wspeed_original.ndim == 3:
+            missing_w = (wspeed_original == RMDI).any(axis=2)
+        else:
+            missing_w = wspeed_original == RMDI
         valid[missing_w] = False
 
         return valid
@@ -713,12 +716,18 @@ class WindTerrainAdjustmentUtilities:
 
         # Height correction
         # Requires wind speed at the reference height, so interpolate first
-        uhref_orig = self._interpolate_wspeed_to_height(
-            wspeed_original,
-            height_above_orog,
-            1.0 / self.wavenumber,
-            mask_hc,
-        )
+        z_ref = 1.0 / self.wavenumber
+
+        if wspeed_original.ndim == 3 and wspeed_original.shape[2] > 1:
+            uhref_orig = self._interpolate_wspeed_to_height(
+                wspeed_original,
+                height_above_orog,
+                z_ref,
+                mask_hc,
+            )
+        else:
+            # Single level (e.g. 10m wind) so no interpolation possible
+            uhref_orig = np.copy(wspeed_original)
 
         # HC only where u(h_ref) is positive
         mask_hc[uhref_orig <= 0.0] = False
@@ -731,6 +740,10 @@ class WindTerrainAdjustmentUtilities:
         hc_add = self._calc_height_corr(
             uhref_orig, height_above_orog, mask_hc, onemfrac
         )
+
+        # Ensure hc_add has same dimensionality as wspeed_original
+        if hc_add.ndim == 3 and hc_add.shape[2] == 1:
+            hc_add = hc_add[:, :, 0]
 
         # Apply HC additively
         wspeed_out = wspeed_original + hc_add
@@ -1148,11 +1161,18 @@ class WindTerrainAdjustment(PostProcessingPlugin):
         )
         xwp, ywp, zwp, twp = self.find_coord_order(input_cube)
 
-        # Reorder wind cube so dimensions are consistently (y, x, z [, t])
-        if np.isnan(twp):
-            input_cube.transpose([ywp, xwp, zwp])
+        if np.isnan(zwp):
+            # Reorder wind cube so dimensions are consistently (y, x, [, t])
+            if np.isnan(twp):
+                input_cube.transpose([ywp, xwp])
+            else:
+                input_cube.transpose([ywp, xwp, twp])
         else:
-            input_cube.transpose([ywp, xwp, zwp, twp])
+            # Reorder wind cube so dimensions are consistently (y, x, z [, t])
+            if np.isnan(twp):
+                input_cube.transpose([ywp, xwp, zwp])
+            else:
+                input_cube.transpose([ywp, xwp, zwp, twp])
 
         z0_data = None if self.model_z0 is None else self.model_z0.data
         rc_utils = WindTerrainAdjustmentUtilities(
@@ -1187,12 +1207,15 @@ class WindTerrainAdjustment(PostProcessingPlugin):
         output_cube = corrected_list.merge_cube()
 
         # Restore the original dimension ordering of both input and output
-        if np.isnan(twp):
-            order = np.argsort([ywp, xwp, zwp])
-            input_cube.transpose(order)
-            output_cube.transpose(order)
-        else:
-            input_cube.transpose(np.argsort([ywp, xwp, zwp, twp]))
-            output_cube.transpose(np.argsort([twp, ywp, xwp, zwp]))
+        dims = [ywp, xwp]
+        if not np.isnan(zwp):
+            dims.append(zwp)
+        input_dims = dims.copy()
+        output_dims = dims.copy()
+        if not np.isnan(twp):
+            input_dims.append(twp)
+            output_dims.insert(0, twp)
+        input_cube.transpose(np.argsort(input_dims))
+        output_cube.transpose(np.argsort(output_dims))
 
         return output_cube
