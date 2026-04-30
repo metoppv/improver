@@ -87,15 +87,25 @@ class CompileRainForestsModel(BasePlugin):
         and compiles the corresponding LightGBM models to Treelite predictors.
         """
 
-        for lead_time_config in self.config.values():
-            for threshold_data in lead_time_config.values():
+        if not allow_missing:
+            # Validate models have been trained before compiling any.
+            missing_model_paths = [
+                model_path
+                for lead_time in self.config.values()
+                for threshold in lead_time.values()
+                if not (Path(model_path := threshold["lightgbm_model"])).is_file()
+            ]
+            if missing_model_paths:
+                raise ValueError(f"Model file(s) not found: {missing_model_paths}")
+
+        for lead_time in self.config.values():
+            for threshold in lead_time.values():
                 self._compile_model(
-                    Path(threshold_data["lightgbm_model"]),
-                    Path(threshold_data["treelite_model"]),
-                    allow_missing,
+                    Path(threshold["lightgbm_model"]),
+                    Path(threshold["treelite_model"]),
                 )
 
-    def _compile_model(self, lightgbm_path, output_path, allow_missing=False):
+    def _compile_model(self, lightgbm_path, output_path):
         """Compile a lightgbm model with Treelite.
 
         Args:
@@ -110,11 +120,7 @@ class CompileRainForestsModel(BasePlugin):
 
         # Validate both paths
         if not lightgbm_path.is_file():
-            if allow_missing:
-                return
-            else:
-                raise ValueError(f"Model file not found: {lightgbm_path}")
-
+            return
         if lightgbm_path.suffix.lower() != LIGHTGBM_EXTENSION:
             raise ValueError(f"Input path must have extension {LIGHTGBM_EXTENSION}")
         if output_path.suffix.lower() != TREELITE_EXTENSION:

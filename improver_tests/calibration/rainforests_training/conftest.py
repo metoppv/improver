@@ -16,7 +16,6 @@ from ..rainforests_calibration.conftest import (
     prepare_dummy_training_data,
 )
 
-
 ATTRIBUTES = {
     "title": "Test forecast",
     "source": "IMPROVER",
@@ -49,7 +48,7 @@ def model_config(tmp_path):
     """Make a dummy model config object with valid file paths"""
     lead_times = np.array([24, 48], dtype=np.int32)
     thresholds = np.array([0.0000, 0.0001, 0.0010, 0.0100], dtype=np.float32)
-    
+
     lightgbm_model_dir = tmp_path / "lightgbm_model_dir"
     treelite_model_dir = tmp_path / "treelite_model_dir"
     return {
