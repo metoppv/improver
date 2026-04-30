@@ -62,6 +62,10 @@ class PollenDailyIndex(PostProcessingPlugin):
             cubes:
                 Input cubes for all pollen types, used to update the cube name and metadata
         """
+        self._output_cube.attributes.pop("scaling_factor", None)
+        self._output_cube.attributes.pop("taxa", None)
+        self._output_cube.attributes.pop("taxa_category", None)
+        self._output_cube.attributes.pop("biological_taxon_name", None)
         self._output_cube.rename("pollen_index_PT24H")
 
     def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
