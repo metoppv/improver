@@ -728,7 +728,6 @@ class WindTerrainAdjustmentUtilities:
         # Example usage if the Bessel function was not set to 1 is:
         # onemfrac = 1.0 - BfuncFrac(nx,ny,nz,heightvec,z_0,waveno, Ustar, UI)
         onemfrac = 1.0
-
         hc_add = self._calc_height_corr(
             uhref_orig, height_above_orog, mask_hc, onemfrac
         )
