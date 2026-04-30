@@ -115,7 +115,7 @@ PROCESSING_MODULES = {
     "RegridWithLandSeaMask": "improver.regrid.landsea2",
     "ResamplePercentiles": "improver.ensemble_copula_coupling.ensemble_copula_coupling",
     "ResolveWindComponents": "improver.wind_calculations.wind_components",
-    "RoughnessCorrection": "improver.wind_calculations.wind_downscaling",
+    "WindTerrainAdjustment": "improver.wind_calculations.wind_downscaling",
     "SaturatedVapourPressureTable": "improver.generate_ancillaries.generate_svp_table",
     "ShowerConditionProbability": "improver.precipitation.shower_condition_probability",
     "SignificantPhaseMask": "improver.psychrometric_calculations.significant_phase_mask",
