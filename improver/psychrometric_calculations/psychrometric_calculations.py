@@ -268,9 +268,12 @@ def dry_adiabatic_pressure(
     )
 
 
-def saturated_humidity(temperature: ndarray, pressure: ndarray) -> ndarray:
+def saturated_humidity(
+    temperature: ndarray, pressure: ndarray, phase: Optional[str] = None
+) -> ndarray:
     """
     Calculate specific humidity mixing ratio of saturated air of given temperature and pressure.
+    If a "phase" argument is provided, the humidity will be calculated with respect to this value.
 
     Invalid and masked values are filtered and result in NaN outputs.
 
@@ -279,6 +282,8 @@ def saturated_humidity(temperature: ndarray, pressure: ndarray) -> ndarray:
             Air temperature (K)
         pressure:
             Air pressure (Pa)
+        phase:
+            Optional String: "water" or "ice" are valid values - default is None
 
     Returns:
         Array of specific humidity values (kg kg-1) representing saturated air. NaN is returned
@@ -295,7 +300,7 @@ def saturated_humidity(temperature: ndarray, pressure: ndarray) -> ndarray:
     )
 
     # Calculate saturated humidity
-    svp = calculate_svp_in_air(temperature_allvalid, pressure_allvalid)
+    svp = calculate_svp_in_air(temperature_allvalid, pressure_allvalid, phase=phase)
     numerator = consts.EARTH_REPSILON * svp
     denominator = np.maximum(svp, pressure_allvalid) - (
         (1.0 - consts.EARTH_REPSILON) * svp
@@ -412,6 +417,7 @@ def adjust_for_latent_heat(
     Subsaturated values will be returned unaltered.
 
     This method uses the scipy newton solver with a limit of 6 iterations.
+    https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.newton.html
     The deepest convection needs more iterations to converge. This is only important
     if we reach the position that all points in an array fail to converge at the same
     pressure level, because the solver raises an exception (although docs say it shouldn't).
