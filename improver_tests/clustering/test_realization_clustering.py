@@ -1136,18 +1136,23 @@ def test_clusterandmatch_process_basic():
     cubes = CubeList()
     spatial_shape = (5, 5)
 
-    # Primary input with 6 realizations, value 100
-    cubes.extend(
-        _create_4d_realization_cube(
-            n_realizations=6,
-            forecast_periods=[0, 6, 12, 18],
-            y_dim=spatial_shape[0],
-            x_dim=spatial_shape[1],
-            base_value=100.0,
-            model_id="primary_model",
-            merge=False
-        )
+    # Primary input with 6 realizations, value 100.
+    # Use non-contiguous realization numbering per forecast period to mirror
+    # real-data behaviour where cycle inputs can carry different realization IDs.
+    primary_cubes = _create_4d_realization_cube(
+        n_realizations=6,
+        forecast_periods=[0, 6, 12, 18],
+        y_dim=spatial_shape[0],
+        x_dim=spatial_shape[1],
+        base_value=100.0,
+        model_id="primary_model",
+        merge=False,
     )
+    for i, primary_cube in enumerate(primary_cubes):
+        start = 100 + (i * 10)
+        n_realizations = primary_cube.coord("realization").points.size
+        primary_cube.coord("realization").points = np.arange(start, start + n_realizations)
+    cubes.extend(primary_cubes)
 
     # Secondary input 1 for fp=[0, 6] with value 200
     cubes.extend(
@@ -1194,6 +1199,7 @@ def test_clusterandmatch_process_basic():
         model_id_attr="model_id",
         clustering_method="KMedoids",
         target_grid_name="target_grid",
+        renumber_primary_realizations=True,
         n_clusters=3,
         random_state=42,
     )
@@ -1206,12 +1212,14 @@ def test_clusterandmatch_process_basic():
     assert result.units == "K"
 
     # Check that we have the expected number of clusters
-    n_clusters = len(result.coord("realization").points)
+    n_clusters = result.coord("realization").points.size
     assert n_clusters == 3
+    assert len(result.coord_dims("realization")) == 1
+    assert result.coords("realization", dim_coords=True)
 
     # Check that all forecast periods are present (in seconds)
     forecast_periods = result.coord("forecast_period").points
-    assert len(forecast_periods) == 4
+    assert forecast_periods.size == 4
     np.testing.assert_array_equal(forecast_periods, [0, 6 * 3600, 12 * 3600, 18 * 3600])
 
     # Check cluster_sources attribute validates correctly
@@ -1296,6 +1304,143 @@ def test_clusterandmatch_process_basic():
     _assert_secondary_input_realizations_to_clusters(result, expected_secondary_mapping)
 
 
+def test_clusterandmatch_mismatched_realization_coordinates_warning():
+    """Test UserWarning issued when renumber_primary_realizations=False with
+    mismatched coords.
+
+    When primary input cubes have different realization numbering and
+    renumber_primary_realizations=False, a UserWarning should be issued to alert
+    the user of potential merge failures.
+    """
+    pytest.importorskip("kmedoids")
+    pytest.importorskip("esmf_regrid")
+
+    cubes = iris.cube.CubeList()
+    spatial_shape = (5, 5)
+
+    # Create primary input cubes with different realization numbering.
+    # This simulates the real-world scenario where different forecast cycles
+    # carry different realization numbers.
+    primary_cube_setup = {
+        "n_realizations": 3,
+        "forecast_periods": [0, 6],
+        "y_dim": spatial_shape[0],
+        "x_dim": spatial_shape[1],
+        "base_value": 100.0,
+        "model_id": "primary_model",
+        "merge": False,
+    }
+    primary_cubes = []
+    for realization_points in ([0, 1, 2], [10, 11, 12]):
+        primary_cube = _create_4d_realization_cube(**primary_cube_setup)[0]
+        primary_cube.coord("realization").points = np.array(realization_points)
+        primary_cubes.append(primary_cube)
+    cubes.extend(primary_cubes)
+
+    # Add secondary input
+    cubes.extend(
+        _create_4d_realization_cube(
+            n_realizations=3,
+            forecast_periods=[0, 6],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            base_value=200.0,
+            model_id="secondary_model",
+            merge=False,
+        )
+    )
+
+    # Add target grid
+    cubes.append(_create_target_grid_cube())
+
+    hierarchy = {
+        "primary_input": "primary_model",
+        "secondary_inputs": {"secondary_model": [0, 6]},
+    }
+
+    plugin = RealizationClusterAndMatch(
+        hierarchy=hierarchy,
+        model_id_attr="model_id",
+        clustering_method="KMedoids",
+        target_grid_name="target_grid",
+        renumber_primary_realizations=False,
+        n_clusters=2,
+        random_state=42,
+    )
+
+    # Should issue UserWarning about mismatched realization coordinates
+    # and then fail during merge because iris requires matching coordinates
+    with pytest.warns(UserWarning, match="different realization numbering"):
+        with pytest.raises(iris.exceptions.MergeError):
+            plugin.process(cubes)
+
+
+def test_clusterandmatch_realization_slicing_with_full_matching():
+    """Test full-realization matching with non-monotonic selected realizations.
+
+    This unit test engineers the data so matching naturally chooses candidate indices
+    in non-monotonic order. Indexing iris cubes using non-monotonic indices seems to
+    result in the dimension coordinate for the dimension being indexed to be
+    demoted to an auxiliary coordinate. This unit test therefore ensures that this
+    coordinate is promoted back to a dimension coordinate when the secondary input
+    contains more realizations than the primary input.
+    """
+    pytest.importorskip("kmedoids")
+
+    # Primary values designed to cluster around 4 distinct anchors.
+    primary_values = [0.0, 0.2, 100.0, 100.2, 200.0, 200.2, 300.0, 300.2]
+
+    # Candidate values mostly far away, with 4 engineered strong matches at
+    # non-monotonic indices [11, 10, 2, 8]. Small decimal tags encode index.
+    candidate_values = [1000.0 + i for i in range(12)]
+    candidate_values[11] = 0.023
+    candidate_values[10] = 100.022
+    candidate_values[2] = 200.004
+    candidate_values[8] = 300.017
+
+    cubes = iris.cube.CubeList()
+    cubes.extend(
+        _create_4d_realization_cube(
+            n_realizations=8,
+            forecast_periods=[0, 6],
+            y_dim=5,
+            x_dim=5,
+            model_id="primary_model",
+            realization_values=primary_values,
+            merge=False,
+        )
+    )
+    cubes.extend(
+        _create_4d_realization_cube(
+            n_realizations=12,
+            forecast_periods=[0, 6],
+            y_dim=5,
+            x_dim=5,
+            model_id="secondary_model_1",
+            realization_values=candidate_values,
+            merge=False,
+        )
+    )
+
+    result = RealizationClusterAndMatch(
+        hierarchy={
+            "primary_input": "primary_model",
+            "secondary_inputs": {"secondary_model_1": [0, 6]},
+        },
+        model_id_attr="model_id",
+        clustering_method="KMedoids",
+        regrid_for_clustering=False,
+        n_clusters=4,
+        random_state=42,
+    ).process(cubes)
+
+    assert result.coords("realization", dim_coords=True)
+    np.testing.assert_array_almost_equal(
+        result[0, :, 0, 0].data,
+        np.array([100.022, 200.004, 0.023, 300.017], dtype=np.float32), decimal=3
+    )
+
+
 @pytest.mark.parametrize(
     "secondary_fps,expected_fp0,expected_fp6,expected_fp12,desc",
     [
@@ -1363,7 +1508,7 @@ def test_clusterandmatch_cluster_primary_input(
     result = plugin.process(cubes)
 
     # Check that clustering produced the expected number of clusters
-    assert len(result.coord("realization").points) == 3
+    assert result.coord("realization").points.size == 3
 
     # Check that forecast periods are present (in seconds)
     assert result.coord("forecast_period") is not None
@@ -1618,12 +1763,12 @@ def test_clusterandmatch_overlapping_forecast_periods():
 
     # Check all forecast periods present
     forecast_periods = result.coord("forecast_period").points
-    assert len(forecast_periods) == 3
+    assert forecast_periods.size == 3
     np.testing.assert_array_equal(forecast_periods, [0, 6 * 3600, 12 * 3600])
 
     # At fp=6, secondary_model_1 should have overwritten secondary_model_2
     # (secondary_model_1 is listed first, so has higher precedence)
-    assert result.coord("realization").shape[0] == 3
+    assert result.coord("realization").points.size == 3
 
     # Check data values to verify precedence
     fp_0_data = result.extract(iris.Constraint(forecast_period=0)).data
@@ -1695,11 +1840,11 @@ def test_clusterandmatch_single_secondary_input():
 
     # Check structure
     assert isinstance(result, Cube)
-    assert len(result.coord("realization").points) == 3
+    assert result.coord("realization").points.size == 3
 
     # Should have all 3 forecast periods (0, 6 from secondary, 12 from primary)
     forecast_periods = result.coord("forecast_period").points
-    assert len(forecast_periods) == 3
+    assert forecast_periods.size == 3
     np.testing.assert_array_equal(forecast_periods, [0, 6 * 3600, 12 * 3600])
 
     # Check data values: fp=12 should use primary (value ~112),
@@ -1842,11 +1987,11 @@ def test_clusterandmatch_categorise_full_realizations(
 
     # Both forecast periods should be present
     forecast_periods = result.coord("forecast_period").points
-    assert len(forecast_periods) == 2
+    assert forecast_periods.size == 2
     np.testing.assert_array_equal(forecast_periods, [0, 6 * 3600])
 
     # Should have correct number of clusters
-    assert len(result.coord("realization").points) == 3
+    assert result.coord("realization").points.size == 3
 
     # Check data for each forecast period
     fp_0_data = result.extract(iris.Constraint(forecast_period=0)).data
@@ -1934,11 +2079,11 @@ def test_clusterandmatch_categorise_partial_realizations():
     # fp=6 uses secondary_model_2 (2 realizations) merged with primary
     # fp=12 uses primary only
     forecast_periods = result.coord("forecast_period").points
-    assert len(forecast_periods) == 3
+    assert forecast_periods.size == 3
     np.testing.assert_array_equal(forecast_periods, [0, 6 * 3600, 12 * 3600])
 
     # Should still have 3 clusters
-    assert len(result.coord("realization").points) == 3
+    assert result.coord("realization").points.size == 3
 
     # Check data: With random_state=42 and uniform input data,
     # the matching is deterministic.
@@ -2067,11 +2212,13 @@ def test_clusterandmatch_multiple_partial_secondary_same_forecast_period():
 
     # Should have 1 forecast period
     forecast_periods = result.coord("forecast_period").points
-    assert len(forecast_periods) == 1
+    assert forecast_periods.size == 1
     np.testing.assert_array_equal(forecast_periods, [0])
 
     # Should have 3 clusters
-    assert len(result.coord("realization").points) == 3
+    assert result.coord("realization").points.size == 3
+    assert len(result.coord_dims("realization")) == 1
+    assert result.coords("realization", dim_coords=True)
 
     # Check data: Both secondary inputs are processed (lowest precedence first).
     # With the chosen data values (primary clusters ~90, ~100, ~110;
@@ -2188,11 +2335,11 @@ def test_clusterandmatch_categorise_mixed_realizations():
     # fp=6 uses secondary_model_2 (2 realizations) merged with primary
     # fp=12 uses primary only
     forecast_periods = result.coord("forecast_period").points
-    assert len(forecast_periods) == 3
+    assert forecast_periods.size == 3
     np.testing.assert_array_equal(forecast_periods, [0, 6 * 3600, 12 * 3600])
 
     # Should have 3 clusters
-    assert len(result.coord("realization").points) == 3
+    assert result.coord("realization").points.size == 3
 
     # Check data:
     # fp=0 should be entirely from secondary_model_1
@@ -2308,7 +2455,7 @@ def test_clusterandmatch_regrid_for_clustering_false():
 
     # Check that all forecast periods are present (in seconds)
     forecast_periods = result.coord("forecast_period").points
-    assert len(forecast_periods) == 3
+    assert forecast_periods.size == 3
     np.testing.assert_array_equal(forecast_periods, [0, 6 * 3600, 12 * 3600])
 
     # Check cluster_sources attribute exists even when regrid_for_clustering=False
