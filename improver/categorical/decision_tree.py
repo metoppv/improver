@@ -629,7 +629,7 @@ class ApplyDecisionTree(BasePlugin):
             template_cube,
             mandatory_attributes,
             optional_attributes=optional_attributes,
-            data=np.ma.masked_all_like(template_cube.data).astype(np.int32),
+            data=np.ma.masked_all_like(template_cube.data).astype(np.int8),
         )
         if self.record_run_attr and self.model_id_attr is not None:
             # Use set(cubes) here as the prepare_input_cubes method returns a list
