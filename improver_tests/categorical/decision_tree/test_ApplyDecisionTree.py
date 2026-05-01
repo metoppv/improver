@@ -1762,7 +1762,7 @@ class Test_process(Test_WXCode):
         result = self.plugin.process(self.cubes)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAndMaskEqual(result.data, self.expected_wxcode)
-        self.assertEqual(result.dtype, np.int32)
+        self.assertEqual(result.dtype, np.int8)
         self.assertEqual(
             result.coord("blend_time").cell(0).point, dt(2017, 10, 9, 12, 0)
         )
