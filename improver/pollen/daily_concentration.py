@@ -61,7 +61,7 @@ class PollenDailyConcentration(PostProcessingPlugin):
                 The pollen taxa being processed, used to update the cube name and metadata
         """
         self._output_cube.attributes["forecast_period"] = np.int32(86400)
-        self._output_cube.rename(f"{taxa.lower()}_concentration_PT24H")
+        # self._output_cube.rename(POLLEN_CONCENTRATION_SHORTNAME_2_LONGNAME[taxa])
 
     def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
         """Calculate the Pollen Daily Concentration.

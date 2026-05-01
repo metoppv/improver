@@ -58,6 +58,10 @@ class PollenDailyIndex(PostProcessingPlugin):
 
     def _metadata(self, cubes: tuple[Cube, ...] | CubeList):
         """Change the cube name and other metadata.
+
+        Some attributes are removed because they are not relevant to this aggregated
+        cube data which is no longer specific to one pollen taxon.
+
         Args:
             cubes:
                 Input cubes for all pollen types, used to update the cube name and metadata
@@ -66,7 +70,7 @@ class PollenDailyIndex(PostProcessingPlugin):
         self._output_cube.attributes.pop("taxa", None)
         self._output_cube.attributes.pop("taxa_category", None)
         self._output_cube.attributes.pop("biological_taxon_name", None)
-        self._output_cube.rename("pollen_index_PT24H")
+        self._output_cube.rename(f"pollen_index")
 
     def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
         """Calculate the Pollen Daily Index.
