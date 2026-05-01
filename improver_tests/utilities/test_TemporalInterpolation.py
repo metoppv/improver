@@ -284,6 +284,14 @@ def setup_google_film_mock(monkeypatch):
             },
             "model_path must be provided when using google_film",
         ),  # Missing model path for google_film
+        (
+            {
+                "interval_in_minutes": 60,
+                "accumulation": True,
+                "treat_period_as_instantaneous": True,
+            },
+            "treat_period_as_instantaneous cannot be combined",
+        ),  # Conflicting period handling modes
     ],
 )
 # fmt: on
@@ -750,6 +758,32 @@ def test_period_unequal_to_interval_exception():
         TemporalInterpolation(interval_in_minutes=180, accumulation=True).process(
             cube[0], cube[1]
         )
+
+
+def test_period_diagnostic_treated_as_instantaneous():
+    """Test period diagnostics can be interpolated like instantaneous values
+    when treat_period_as_instantaneous is enabled."""
+
+    times = [datetime.datetime(2017, 11, 1, hour) for hour in [3, 9]]
+    npoints = 5
+    data = np.stack(
+        [
+            np.ones((npoints, npoints), dtype=np.float32),
+            np.ones((npoints, npoints), dtype=np.float32) * 7,
+        ]
+    )
+    cube = multi_time_cube(times, data, "latlon", bounds=True)
+
+    result = TemporalInterpolation(
+        interval_in_minutes=180, treat_period_as_instantaneous=True
+    ).process(cube[0], cube[1])
+
+    assert isinstance(result, CubeList)
+    assert len(result) == 2
+    np.testing.assert_almost_equal(result[0].data, 4.0)
+    np.testing.assert_almost_equal(result[1].data, 7.0)
+    assert not result[0].coord("time").has_bounds()
+    assert not result[0].coord("forecast_period").has_bounds()
 
 
 @pytest.mark.parametrize(

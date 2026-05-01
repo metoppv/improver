@@ -428,28 +428,40 @@ def test_parse_cluster_sources(cluster_sources, expected_exception, expected_mes
 
 
 @pytest.mark.parametrize(
-    "cluster_sources,expected_regenerated_periods",
+    "input_hours,cluster_sources,expected_regenerated_periods",
     [
-        # No transitions (single source)
-        ({"0": {"sourceA": [3, 6, 9]}}, []),
-        # One transition for realization 0: sourceA -> sourceB at period 6
-        ({"0": {"sourceA": [3, 6], "sourceB": [9]}}, [6]),
+        # No transitions (single source) - all periods present
+        ([3, 6, 9, 12], {"0": {"sourceA": [3, 6, 9]}}, []),
+        # One transition for realization 0: sourceA -> sourceB at period 6 - all periods present
+        ([3, 6, 9, 12], {"0": {"sourceA": [3, 6], "sourceB": [9]}}, [6]),
         # Two transitions for realization 0: sourceA -> sourceB at 6, sourceB -> sourceC at 9
-        ({"0": {"sourceA": [3, 6], "sourceB": [9], "sourceC": [12]}}, [6, 9]),
+        ([3, 6, 9, 12], {"0": {"sourceA": [3, 6], "sourceB": [9], "sourceC": [12]}}, [6, 9]),
         # Multiple realizations, transitions for both
         (
+            [3, 6, 9, 12],
             {
                 "0": {"sourceA": [3, 6], "sourceB": [9]},
                 "1": {"sourceA": [3], "sourceB": [6, 9]},
             },
             [6, 6],  # Both realizations have a transition at 6
         ),
+        # Transition period is also a gap (missing T+6 from input, but transition at T+6)
+        # This tests that gap and regeneration tasks don't produce duplicate cubes
+        (
+            [3, 9, 12],
+            {"0": {"sourceA": [3, 6], "sourceB": [9]}},
+            [6],
+        ),
     ],
 )
-def test_process_triggers_source_transitions(cluster_sources, expected_regenerated_periods):
-    """Test that process triggers regeneration at source transitions."""
-    # Setup cubes for periods 3, 6, 9, 12
-    cubelist = setup_cubes_with_gaps(hours=[3, 6, 9, 12])
+def test_process_triggers_source_transitions(input_hours, cluster_sources, expected_regenerated_periods):
+    """Test that process triggers regeneration at source transitions.
+
+    Includes a test case where a transition period is also identified as a gap,
+    verifying that gap and regeneration tasks are properly deduplicated to avoid
+    creating duplicate cubes with the same forecast_period.
+    """
+    cubelist = setup_cubes_with_gaps(hours=input_hours)
     for cube in cubelist:
         cube.attributes["cluster_sources"] = json.dumps(cluster_sources)
 
@@ -469,6 +481,83 @@ def test_process_triggers_source_transitions(cluster_sources, expected_regenerat
     # Check that expected regenerated periods are present
     for period in expected_regenerated_periods:
         assert period in result_periods
+
+    # Verify all periods are unique (no duplicates from overlapping gap/regeneration tasks)
+    assert len(result_periods) == len(set(result_periods)), (
+        f"Duplicate forecast periods detected: {result_periods}. "
+        "This indicates gap and regeneration tasks were not properly deduplicated."
+    )
+
+    # Verify forecast_period is a dimension coordinate (monotonically increasing)
+    assert result.coord("forecast_period").ndim == 1, (
+        "forecast_period should be a dimension coordinate, but it is not. "
+        "This occurs when forecast_period values are not unique."
+    )
+    assert (np.diff(result.coord("forecast_period").points) > 0).all(), (
+        "forecast_period should be monotonically increasing"
+    )
+
+
+def test_regeneration_produces_regular_intervals_at_fine_resolution():
+    """Test that regeneration produces all intermediate timesteps at interval_in_minutes spacing.
+
+    This test verifies the key behavior change: regeneration now generates forecasts
+    at regular intervals across the entire regeneration window, not just at the
+    transition point.
+
+    Setup:
+    - Input cubes at hours: 3, 9, 12
+    - interval_in_minutes=60 (1-hour intervals)
+    - Transition at 6 hours with interpolation_window_in_minutes=180 (±3 hours)
+    - Regeneration window: [3, 9] hours
+
+    Expected behavior:
+    - Regeneration fills 1-hour intervals in window: 3, 4, 5, 6, 7, 8, 9
+    - Gap filling fills remaining missing intervals: 10, 11
+    - Original cubes included: 3, 9, 12
+
+    Result: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    """
+    # Setup cubes at 3, 9, 12 hours
+    cubelist = setup_cubes_with_gaps(hours=[3, 9, 12])
+    for cube in cubelist:
+        cube.attributes["cluster_sources"] = json.dumps(
+            {"0": {"sourceA": [3, 6], "sourceB": [9, 12]}}
+        )
+
+    plugin = ForecastTrajectoryGapFiller(
+        interval_in_minutes=60,  # 1-hour intervals
+        cluster_sources_attribute="cluster_sources",
+        interpolation_window_in_minutes=180,  # ±3 hours = [3, 9]
+    )
+    result = plugin.process(cubelist)
+
+    # Extract forecast periods from result
+    result_periods = sorted([
+        int(round(cube.coord("forecast_period").points[0] / 3600))
+        for cube in result.slices_over("time")
+    ])
+
+    # Verify all 1-hour intervals in regeneration window [3, 9] are present
+    expected_regenerated = [3, 4, 5, 6, 7, 8, 9]
+    for period in expected_regenerated:
+        assert period in result_periods, (
+            f"Expected period {period}h to be regenerated in window [3, 9]h "
+            f"at 1-hour intervals, but got periods: {result_periods}"
+        )
+
+    # Verify gap-filled periods outside regeneration window
+    expected_gap_filled = [10, 11]
+    for period in expected_gap_filled:
+        assert period in result_periods, (
+            f"Expected period {period}h to be gap-filled, "
+            f"but got periods: {result_periods}"
+        )
+
+    # Verify the full expected output
+    assert result_periods == [3, 4, 5, 6, 7, 8, 9, 10, 11, 12], (
+        f"Expected [3, 4, 5, 6, 7, 8, 9, 10, 11, 12], got {result_periods}"
+    )
 
 
 @pytest.mark.parametrize(
@@ -498,3 +587,96 @@ def test_process_various_input_forms(input_type):
         for c in result.slices_over("time")
     ]
     assert result_periods == expected_periods
+
+
+def test_process_period_diagnostic_treated_as_instantaneous():
+    """Test ForecastTrajectoryGapFiller can fill gaps with period-bounded
+    accumulation inputs using treat_period_as_instantaneous mode."""
+    # Create cubes for T+3 and T+9, then add period bounds, missing T+6.
+    times = [3, 9]
+    npoints = 10
+    cubelist = setup_cubes_with_gaps(
+        hours=times, data_values=[1.0, 7.0], npoints=npoints
+    )
+
+    # Add one-hour period bounds to represent accumulation periods.
+    one_hour = 3600
+    for cube in cubelist:
+        time_coord = cube.coord("time")
+        time_point = int(time_coord.points[0])
+        time_coord.bounds = np.array(
+            [[time_point - one_hour, time_point]], dtype=np.int64
+        )
+
+        fp_coord = cube.coord("forecast_period")
+        fp_point = int(fp_coord.points[0])
+        fp_coord.bounds = np.array([[fp_point - one_hour, fp_point]], dtype=np.int32)
+
+    # Use treat_period_as_instantaneous to fill gap without period-specifier requirement
+    plugin = ForecastTrajectoryGapFiller(
+        interval_in_minutes=180, treat_period_as_instantaneous=True
+    )
+    result = plugin.process(cubelist)
+
+    # Should now have 3 time points: T+3, T+6 (filled), T+9.
+    assert result.shape[0] == 3
+
+    # Check forecast periods are correct
+    result_periods = [
+        int(round(cube.coord("forecast_period").points[0] / 3600))
+        for cube in result.slices_over("time")
+    ]
+    assert result_periods == [3, 6, 9]
+
+    # Check interpolated data is the midpoint (linear interpolation)
+    assert np.allclose(list(result.slices_over("time"))[1].data, 4.0)
+
+    # Check output bounds are present.
+    # Original cubes keep their original one-hour trailing bounds, while the
+    # interpolated cube has bounds reconstructed from adjacent output times.
+    expected_time_bounds = [
+        [1509501600, 1509505200],
+        [1509505200, 1509516000],
+        [1509523200, 1509526800],
+    ]
+    expected_fp_bounds = [[7200, 10800], [10800, 21600], [28800, 32400]]
+    for cube in result.slices_over("time"):
+        assert cube.coord("time").has_bounds()
+        assert cube.coord("forecast_period").has_bounds()
+
+    output_cubes = list(result.slices_over("time"))
+    np.testing.assert_array_equal(
+        [cube.coord("time").bounds[0] for cube in output_cubes], expected_time_bounds
+    )
+    np.testing.assert_array_equal(
+        [cube.coord("forecast_period").bounds[0] for cube in output_cubes],
+        expected_fp_bounds,
+    )
+
+
+def test_process_no_gaps_with_treat_period_as_instantaneous_preserves_bounds():
+    """Test no-gap path preserves existing bounds with treat_period_as_instantaneous."""
+    cubelist = setup_cubes_with_gaps(hours=[3, 6, 9], data_values=[1.0, 2.0, 3.0])
+
+    one_hour = 3600
+    for cube in cubelist:
+        time_coord = cube.coord("time")
+        time_point = int(time_coord.points[0])
+        time_coord.bounds = np.array(
+            [[time_point - one_hour, time_point]], dtype=np.int64
+        )
+
+        fp_coord = cube.coord("forecast_period")
+        fp_point = int(fp_coord.points[0])
+        fp_coord.bounds = np.array([[fp_point - one_hour, fp_point]], dtype=np.int32)
+
+    plugin = ForecastTrajectoryGapFiller(
+        interval_in_minutes=180, treat_period_as_instantaneous=True
+    )
+    with pytest.warns(UserWarning, match="No gaps or regenerations identified"):
+        result = plugin.process(cubelist)
+
+    assert result.shape[0] == 3
+    for cube in result.slices_over("time"):
+        assert cube.coord("time").has_bounds()
+        assert cube.coord("forecast_period").has_bounds()
