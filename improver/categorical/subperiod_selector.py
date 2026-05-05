@@ -19,18 +19,26 @@ class SubperiodSelector(PostProcessingPlugin):
     the selection of a wet symbol.
     """
 
-    def __init__(self, percentile: float, **threshold_kwargs):
+    def __init__(
+        self,
+        percentile: float,
+        new_name: str = "selected_subperiods",
+        **threshold_kwargs,
+    ):
         """
         Initialise the plugin.
 
         Args:
             percentile: The percentile of the main period diagnostic to select.
+            new_name:
+                Name of output cube.
             **threshold_kwargs: Keyword arguments specifying the names and values of threshold coords
                 associated with the main period diagnostic to select. One of these will also match the
                 threshold coord on the subperiod diagnostic, which will be used to identify which subperiods to select.
         """
         self.percentile = percentile
         self.threshold_kwargs = threshold_kwargs
+        self.new_name = new_name
 
     @staticmethod
     def _pick_subperiods(
@@ -117,6 +125,6 @@ class SubperiodSelector(PostProcessingPlugin):
         )
         # Create a new cube to hold the selected subperiods, using the metadata from the subperiod slice
         selected_subperiods_cube = subperiod_slice.copy(data=selected_periods)
-        selected_subperiods_cube.rename("selected_subperiods")
+        selected_subperiods_cube.rename(self.new_name)
         selected_subperiods_cube.units = "1"
         return selected_subperiods_cube

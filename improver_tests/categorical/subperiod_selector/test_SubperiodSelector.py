@@ -52,11 +52,12 @@ def subperiod_cube():
     return cubes.merge_cube()
 
 
+@pytest.mark.parametrize("new_name", [None, "period_is_wet"])
 @pytest.mark.parametrize(
     "wet_fraction, wet_periods",
     [[0.0, []], [0.25, [3]], [0.5, [1, 3]], [0.75, [1, 2, 3]], [1.0, [0, 1, 2, 3]]],
 )
-def test_basic(main_period_cube, subperiod_cube, wet_fraction, wet_periods):
+def test_basic(main_period_cube, subperiod_cube, wet_fraction, wet_periods, new_name):
     """Test that the plugin selects the correct subperiods for varying wet_fraction values."""
     main_period_cube.data *= wet_fraction
 
@@ -64,6 +65,7 @@ def test_basic(main_period_cube, subperiod_cube, wet_fraction, wet_periods):
         percentile=50,
         lwe_thickness_of_precipitation_amount=0.003,
         lwe_precipitation_rate=5.56e-07,
+        **{"new_name": new_name} if new_name is not None else {},
     )
     result = plugin(main_period_cube, subperiod_cube)
 
@@ -72,7 +74,7 @@ def test_basic(main_period_cube, subperiod_cube, wet_fraction, wet_periods):
     for wp in wet_periods:
         expected_data[wp, :] = True
     assert np.array_equal(result.data, expected_data)
-    assert result.name() == "selected_subperiods"
+    assert result.name() == "selected_subperiods" if new_name is None else new_name
     assert result.units == "1"
     assert result.dtype is np.dtype(bool)
 
