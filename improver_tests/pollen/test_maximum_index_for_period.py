@@ -76,3 +76,4 @@ def test_process():
         plugin = PollenMaximumIndexForPeriod()
         cube = plugin.process(cubes)
         assert cube.data.all() == EXPECTED_DATA[datetime_key].all()
+        assert cube.name() == "pollen_index"
