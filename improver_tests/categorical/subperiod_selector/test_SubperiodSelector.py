@@ -76,7 +76,7 @@ def test_basic(main_period_cube, subperiod_cube, wet_fraction, wet_periods, new_
     assert np.array_equal(result.data, expected_data)
     assert result.name() == "selected_subperiods" if new_name is None else new_name
     assert result.units == "1"
-    assert result.dtype is np.dtype(bool)
+    assert result.dtype is np.dtype("i1")
 
 
 @pytest.mark.parametrize(

@@ -67,7 +67,7 @@ class SubperiodSelector(PostProcessingPlugin):
                 1,
                 selected_subperiods[subperiods_to_select],
             )
-        return selected_subperiods.astype(bool)
+        return selected_subperiods.astype(np.dtype("i1"))
 
     def _apply_constraints(
         self, main_period_cube: Cube, subperiod_cube: Cube
