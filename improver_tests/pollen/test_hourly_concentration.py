@@ -31,6 +31,11 @@ EXPECTED = {
     ).astype(FLOAT_DTYPE),
 }
 
+EXPECTED_CUBE_NAME = {
+    "alder": "number_concentration_of_alnus_pollen_grains_in_air",
+    "weed": "number_concentration_of_urticaceae_pollen_grains_in_air",
+}
+
 
 def get_input_cubes(pollen_name: str) -> Cube:
     """Get a test Cube of "raw" hourly concentration for weed Pollen.
@@ -92,6 +97,7 @@ def test_process():
         plugin = PollenHourlyConcentration()
         output_cube = plugin.process(cube)
         np.testing.assert_array_almost_equal(output_cube.data, EXPECTED[pollen_name])
+        assert output_cube.name() == EXPECTED_CUBE_NAME[pollen_name]
 
 
 def test_invalid_taxa():

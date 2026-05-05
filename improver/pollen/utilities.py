@@ -7,6 +7,24 @@ from copy import deepcopy
 from iris.coords import AuxCoord
 from iris.cube import Cube
 
+POLLEN_SHORTNAME_2_LATIN = {
+    "grass": "Poaceae",
+    # Trees
+    "birch": "Betula",
+    "oak": "Quercus",
+    "hazel": "Corylus",
+    "alder": "Alnus",
+    "ash": "Fraxinus",
+    "plane": "Platanus",
+    # Weeds
+    "nettle": "Urticaceae",
+    "weed": "Urticaceae",
+}
+POLLEN_CONCENTRATION_SHORTNAME_2_LONGNAME = {
+    k: "number_concentration_of_" + v.lower() + "_pollen_grains_in_air"
+    for k, v in POLLEN_SHORTNAME_2_LATIN.items()
+}
+
 
 def build_output_cube_with_new_units(self, cube: Cube, new_units) -> Cube:
     """Build the output cube as a copy of the input cube, adjusting units.

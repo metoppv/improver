@@ -7,7 +7,7 @@
 import numpy as np
 from iris.cube import Cube, CubeList
 
-from improver.pollen.hourly_index import PollenHourlyIndex
+from improver.pollen.pollen_maximum_index_for_period import PollenMaximumIndexForPeriod
 
 INPUT_DATA = {
     "2026-03-22 01:00:00+00:00": {
@@ -49,7 +49,7 @@ EXPECTED_DATA = {
 
 
 def get_input_cubes(pollen_values_dict: dict) -> CubeList:
-    """Create a CubeList of simple input cubes for Pollen Hourly Index tests.
+    """Create a CubeList of simple input cubes for Pollen Index tests.
 
     All cubes have 2-D arrays of integers, with values from 0 to 5.
 
@@ -73,6 +73,7 @@ def get_input_cubes(pollen_values_dict: dict) -> CubeList:
 def test_process():
     for datetime_key, pollen_values_dict in INPUT_DATA.items():
         cubes = get_input_cubes(pollen_values_dict)
-        plugin = PollenHourlyIndex()
+        plugin = PollenMaximumIndexForPeriod()
         cube = plugin.process(cubes)
         assert cube.data.all() == EXPECTED_DATA[datetime_key].all()
+        assert cube.name() == "pollen_index"

@@ -2,7 +2,7 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""Calculations to produce Pollen Hourly Index values."""
+"""Calculations to produce overall Pollen Index values for a period, Hourly or Daily."""
 
 from copy import deepcopy
 from typing import Union
@@ -15,11 +15,11 @@ from improver.metadata.constants import FLOAT_DTYPE
 from improver.utilities.common_input_handle import as_cubelist
 
 
-class PollenHourlyIndex(PostProcessingPlugin):
-    """Plugin to calculate the Pollen Hourly Index.
+class PollenMaximumIndexForPeriod(PostProcessingPlugin):
+    """Plugin to calculate the overall Pollen Index for either a Daily or Hourly period.
 
-    The input cubelist has Pollen Hourly Values for all pollen taxa
-    for a hour as specified in the cubes. The maximum value across all
+    The input cubelist has Pollen Index Values for all pollen taxa
+    for the period as specified in the cubes. The maximum value across all
     taxa at a location is saved as the Index for that location.
     """
 
@@ -27,7 +27,11 @@ class PollenHourlyIndex(PostProcessingPlugin):
     _output_cube = None
 
     def _calculate(self, cubes: tuple[Cube, ...] | CubeList):
-        """Calculate the Pollen Hourly Index.
+        """Calculate the overall Pollen Index for the period.
+
+        The period, either Hourly or Daily, can be determined by the value in the
+        cube attribute "forecast_period" which has the period in seconds. i.e.
+        3600 for Hourly and 86400 for Daily.
 
         For each grid point, determine the maximum pollen value across all taxa,
         and use this as the pollen index for that grid point.
@@ -58,6 +62,10 @@ class PollenHourlyIndex(PostProcessingPlugin):
 
     def _metadata(self, cubes: tuple[Cube, ...] | CubeList):
         """Change the cube name and other metadata.
+
+        Some attributes are removed because they are not relevant to this aggregated
+        cube data which is no longer specific to one pollen taxon.
+
         Args:
             cubes:
                 Input cubes for all pollen types, used to update the cube name and metadata
@@ -66,7 +74,7 @@ class PollenHourlyIndex(PostProcessingPlugin):
         self._output_cube.attributes.pop("taxa", None)
         self._output_cube.attributes.pop("taxa_category", None)
         self._output_cube.attributes.pop("biological_taxon_name", None)
-        self._output_cube.rename("pollen_index_PT01H")
+        self._output_cube.rename("pollen_index")
 
     def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
         """Calculate the Pollen Hourly Index.

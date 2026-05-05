@@ -10,7 +10,11 @@ from iris.cube import Cube
 from improver import PostProcessingPlugin
 from improver.metadata.constants import FLOAT_DTYPE
 
-from .utilities import build_output_cube_with_new_units
+from .utilities import (
+    POLLEN_CONCENTRATION_SHORTNAME_2_LONGNAME,
+    POLLEN_SHORTNAME_2_LATIN,
+    build_output_cube_with_new_units,
+)
 
 
 class PollenHourlyConcentration(PostProcessingPlugin):
@@ -59,23 +63,6 @@ class PollenHourlyConcentration(PostProcessingPlugin):
         "plane": 920.0,
         "weed": 1000.0,
     }  # kg/m3
-    _POLLEN_SHORTNAME_2_LATIN = {
-        "grass": "Poaceae",
-        # Trees
-        "birch": "Betula",
-        "oak": "Quercus",
-        "hazel": "Corylus",
-        "alder": "Alnus",
-        "ash": "Fraxinus",
-        "plane": "Platanus",
-        # Weeds
-        "nettle": "Urticaceae",
-        "weed": "Urticaceae",
-    }
-    _POLLEN_SHORTNAME_2_LONGNAME = {
-        k: "number_concentration_of_" + v.lower() + "_pollen_grains_in_air"
-        for k, v in _POLLEN_SHORTNAME_2_LATIN.items()
-    }
 
     # Scaling factors can change, so need to be passed in
     _scaling_factors_dict = None
@@ -126,11 +113,11 @@ class PollenHourlyConcentration(PostProcessingPlugin):
                 The pollen taxa being processed, used to update the cube name and metadata
         """
         self._output_cube.attributes["biological_taxon_name"] = (
-            self._POLLEN_SHORTNAME_2_LATIN[taxa]
+            POLLEN_SHORTNAME_2_LATIN[taxa]
         )
         self._output_cube.attributes["forecast_period"] = np.int32(3600)
         self._output_cube.attributes["scaling_factor"] = self._scaling_factor
-        self._output_cube.rename(self._POLLEN_SHORTNAME_2_LONGNAME[taxa])
+        self._output_cube.rename(POLLEN_CONCENTRATION_SHORTNAME_2_LONGNAME[taxa])
 
     def process(
         self,
