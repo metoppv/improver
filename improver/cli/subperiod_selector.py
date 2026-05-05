@@ -13,7 +13,9 @@ from improver import cli
 def process(
     main_period_cube: cli.inputcube,
     subperiod_cube: cli.inputcube,
+    *,
     percentile: float = 50.0,
+    new_name: str = "selected_subperiods",
     **threshold_kwargs: cli.inputjson,
 ):
     """
@@ -31,6 +33,8 @@ def process(
             Cube containing the subperiod diagnostic, with a time coordinate and one or more threshold coordinates that match those on the main period cube.
         percentile (float):
             The percentile of the main period diagnostic to select.
+        new_name (str):
+            Name of output cube.
         **threshold_kwargs:
             Keyword arguments specifying the names and values of threshold coords associated with the main period diagnostic to select. One of these will also match the threshold coord on the subperiod diagnostic, which will be used to identify which subperiods to select.
 
@@ -39,6 +43,6 @@ def process(
     """
     from improver.categorical.subperiod_selector import SubperiodSelector
 
-    return SubperiodSelector(percentile=percentile, **threshold_kwargs)(
-        main_period_cube, subperiod_cube
-    )
+    return SubperiodSelector(
+        percentile=percentile, new_name=new_name, **threshold_kwargs
+    )(main_period_cube, subperiod_cube)
