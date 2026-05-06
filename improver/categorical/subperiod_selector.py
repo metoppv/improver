@@ -53,19 +53,26 @@ class SubperiodSelector(PostProcessingPlugin):
         """
         number_of_subperiods = subperiod_data.shape[0]
         selected_subperiods = np.zeros_like(subperiod_data)
+        # The use of np.meshgrid comes from Copilot and prevents Numpy broadcasting issues when indexing
+        # selected_subperiods with subperiods_to_select, which has a different shape to main_period_data.
+        idx_y, idx_x = np.meshgrid(
+            np.arange(subperiod_data.shape[1]),
+            np.arange(subperiod_data.shape[2]),
+            indexing="ij",
+        )
         for period_rank, period in enumerate(range(number_of_subperiods + 1)):
             if period == 0:
                 continue
             # Identify which subperiods to select for this period rank. The leading dimension is time, so argpartition
             # is used to identify the indices of the subperiods with the highest likelihood.
             subperiods_to_select = np.argpartition(
-                subperiod_data, number_of_subperiods - 1, axis=0
+                subperiod_data, range(number_of_subperiods), axis=0
             )[-period_rank:]
             # Where the main_period_data indicates at least this many periods, set the selected_subperiods to 1
-            selected_subperiods[subperiods_to_select] = np.where(
+            selected_subperiods[subperiods_to_select, idx_y, idx_x] = np.where(
                 main_period_data >= period / number_of_subperiods,
                 1,
-                selected_subperiods[subperiods_to_select],
+                selected_subperiods[subperiods_to_select, idx_y, idx_x],
             )
         return selected_subperiods.astype(np.dtype("i1"))
 
