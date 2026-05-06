@@ -2,7 +2,7 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""Common test utilities for fire weather index tests."""
+"""Common utilities for Canadian Forest Fire Weather Index System tests."""
 
 from datetime import datetime, timedelta
 
@@ -15,7 +15,18 @@ from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 DEFAULT_FRT = datetime(2017, 11, 10, 0, 0)
 DEFAULT_TIME = datetime(2017, 11, 10, 12, 0)
 DEFAULT_TIME_BOUNDS = (datetime(2017, 11, 10, 0, 0), datetime(2017, 11, 10, 12, 0))
-START_DATE_DICT = {"start_date": str(datetime.now() - timedelta(days=55))}
+DEFAULT_ITERATION_COUNT = 55
+DEFAULT_START_DATE = str(DEFAULT_TIME - timedelta(days=DEFAULT_ITERATION_COUNT))
+INPUT_ATTRIBUTES = {
+    "iteration_start_date": DEFAULT_START_DATE,
+    "iteration_count": DEFAULT_ITERATION_COUNT,
+    "analysis_ready": True,
+}
+OUTPUT_ATTRIBUTES = {
+    "iteration_start_date": DEFAULT_START_DATE,
+    "iteration_count": DEFAULT_ITERATION_COUNT,
+    "analysis_ready": "True",
+}
 
 
 def make_cube(
@@ -25,7 +36,7 @@ def make_cube(
     add_time_coord: bool = False,
     attributes: dict[any] | None = None,
 ) -> Cube:
-    """Create a test cube for fire weather index tests.
+    """Create a test cube for fire weather tests.
 
     This is a wrapper around set_up_variable_cube for concise cube creation
     with consistent time coordinates across all fire weather tests.
@@ -62,7 +73,7 @@ def make_input_cubes(
     cube_specs: list[tuple[str, float | np.ndarray, str, bool]],
     shape: tuple[int, ...] = (5, 5),
 ) -> tuple[Cube, ...]:
-    """Create a tuple of test cubes for fire weather index tests.
+    """Create a tuple of test cubes for fire weather tests.
 
     This is a convenience function for creating multiple input cubes with
     a consistent shape and default values.

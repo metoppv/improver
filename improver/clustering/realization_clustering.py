@@ -7,7 +7,7 @@
 import json
 import warnings
 from collections import defaultdict
-from typing import Any
+from typing import Any, Optional
 
 import iris
 import numpy as np
@@ -22,6 +22,9 @@ from improver.utilities.cube_manipulation import (
     MergeCubes,
     enforce_coordinate_ordering,
     get_dim_coord_names,
+)
+from improver.utilities.temporal import (
+    reset_forecast_reference_time_and_period,
 )
 
 try:
@@ -395,6 +398,7 @@ class RealizationClusterAndMatch(BasePlugin):
         regrid_mode: str = "esmf-area-weighted",
         regrid_for_clustering: bool = True,
         regrid_kwargs: dict[str, Any] | None = None,
+        cycletime: str | None = None,
         **kwargs: Any,
     ) -> None:
         """Initialise the clustering and matching class.
@@ -444,6 +448,12 @@ class RealizationClusterAndMatch(BasePlugin):
                 - extrapolation_mode (str): Mode to fill regions outside domain.
                 - landmask (Cube): Land-sea mask for mask-aware regridding.
                 - landmask_vicinity (float): Radius for coastline search.
+            cycletime:
+                The forecast_reference_time on the input cubes will be reset to
+                this value. The forecast periods will be adjusted accordingly with
+                the validity times kept fixed. cycletime should be provided in the
+                format YYYYMMDDTHHMMZ (e.g., 20240101T0000Z). If not provided, the
+                forecast_reference_time on the input cubes will be left unchanged.
 
             **kwargs: Additional arguments for the clustering method.
 
@@ -459,6 +469,7 @@ class RealizationClusterAndMatch(BasePlugin):
         self.regrid_mode = regrid_mode
         self.regrid_for_clustering = regrid_for_clustering
         self.regrid_kwargs = regrid_kwargs if regrid_kwargs is not None else {}
+        self.cycletime = cycletime
         self.kwargs = kwargs
 
         if regrid_for_clustering and target_grid_name is None:
@@ -559,7 +570,6 @@ class RealizationClusterAndMatch(BasePlugin):
             clustering_result: The result of the clustering.
         Returns:
             cube_clustered: The clustered cube.
-
         Raises:
             ValueError: If the number of clusters is greater than the number of
                 realizations in the input cube.
@@ -593,6 +603,14 @@ class RealizationClusterAndMatch(BasePlugin):
         }
         cube_clustered.attributes["primary_input_realizations_to_clusters"] = (
             cluster_to_realizations
+        )
+        # Store which realization is the medoid for each cluster
+        cluster_primary_map = {
+            int(cluster_idx): int(primary_cube.coord("realization").points[medoid_idx])
+            for cluster_idx, medoid_idx in enumerate(clustering_result.medoid_indices_)
+        }
+        cube_clustered.attributes["primary_input_realization_to_cluster_medoid"] = (
+            cluster_primary_map
         )
         return cube_clustered
 
@@ -809,6 +827,126 @@ class RealizationClusterAndMatch(BasePlugin):
         else:
             return candidate_cube
 
+    def compact_secondary_mapping(
+        self,
+        secondary_input_realizations_to_clusters: dict[
+            str, dict[int, dict[int, list[int]]]
+        ],
+    ) -> dict[str, dict[int, list[dict[str, list[list[int]] | list[int]]]]]:
+        """
+        Compact the mapping of secondary input realizations to clusters by grouping
+        forecast periods for each unique realization assignment per cluster.
+
+        Args:
+            secondary_input_realizations_to_clusters: A nested dictionary mapping
+                secondary input names to forecast periods, then to cluster indices,
+                then to lists of realization indices:
+                {
+                    secondary_input_name: {
+                        forecast_period: {
+                            cluster_idx: [realization_index]
+                        }
+                    }
+                }
+
+        Returns:
+            A compacted dictionary mapping each secondary input name to a dictionary
+            of cluster indices, each containing a list of dicts with:
+                - "realization": the realization index assigned.
+                - "forecast_periods": a sorted list of forecast periods.
+            Example:
+                {
+                    secondary_input_name: {
+                        cluster_idx: [
+                            {
+                                "realization": 3,
+                                "forecast_periods": [3600, 7200, 10800]
+                            }
+                        ]
+                    }
+                }
+            Note:
+                Only one realization is assigned to each cluster for each forecast
+                period.
+        """
+        compact = {}
+        for sec_name, fp_dict in secondary_input_realizations_to_clusters.items():
+            cluster_map = {}
+            # (cluster_idx, realization) -> list of forecast_periods
+            temp = {}
+            for fp, cluster_dict in fp_dict.items():
+                for cluster_idx, realizations in cluster_dict.items():
+                    realization = tuple(realizations)
+                    key = (cluster_idx, realization)
+                    temp.setdefault(key, []).append(fp)
+            for (cluster_idx, realization), fps in temp.items():
+                cluster_map.setdefault(cluster_idx, []).append(
+                    {
+                        "realization": realization[0],
+                        "forecast_periods": sorted(fps),
+                    }
+                )
+            compact[sec_name] = cluster_map
+        return compact
+
+    def track_secondary_realizations_to_clusters(
+        self,
+        secondary_input_realizations_to_clusters: dict[
+            str, dict[int, dict[int, list[int]]]
+        ],
+        cluster_indices: list[int],
+        realization_indices: list[int],
+        candidate_name: str,
+        fp: int,
+        candidate_cube: Cube,
+    ) -> None:
+        """
+        Track which secondary realizations contributed to each cluster for a given
+        secondary input, forecast period, and candidate cube.
+
+        This updates the provided dictionary in-place, ensuring all keys and values
+        are native Python ints for serialization compatibility.
+
+        Args:
+            secondary_input_realizations_to_clusters: Nested dictionary to update,
+                mapping secondary input names to forecast periods, then to cluster
+                indices, then to lists of realization indices:
+                {
+                    secondary_input_name: {
+                        forecast_period: {
+                            cluster_idx: [realization_indices]
+                        }
+                    }
+                }
+            cluster_indices: List of cluster indices assigned for this forecast period.
+            realization_indices: List of realization indices from the candidate cube
+                that were assigned to each cluster.
+            candidate_name: Name of the secondary input/model.
+            fp: Forecast period (in seconds).
+            candidate_cube: The candidate Cube from which realization indices are drawn.
+
+        Returns:
+            None. The dictionary is updated in-place.
+        """
+        fp = int(fp)
+        if candidate_name not in secondary_input_realizations_to_clusters:
+            secondary_input_realizations_to_clusters[candidate_name] = {}
+        if fp not in secondary_input_realizations_to_clusters[candidate_name]:
+            secondary_input_realizations_to_clusters[candidate_name][fp] = {}
+        for cluster_idx, realization_idx in zip(cluster_indices, realization_indices):
+            # Ensure cluster_idx is a native int
+            cluster_idx = int(cluster_idx)
+            if (
+                cluster_idx
+                not in secondary_input_realizations_to_clusters[candidate_name][fp]
+            ):
+                secondary_input_realizations_to_clusters[candidate_name][fp][
+                    cluster_idx
+                ] = []
+            secondary_input_realizations_to_clusters[candidate_name][fp][
+                cluster_idx
+            ].append(int(candidate_cube.coord("realization").points[realization_idx]))
+
     def _process_full_realization_inputs(
         self,
         full_realization_inputs: list[tuple[str, list[int]]],
@@ -818,6 +956,7 @@ class RealizationClusterAndMatch(BasePlugin):
         replaced_realizations: dict[int, set[int]],
         matched_cubes: CubeList,
         cluster_sources: dict[int, dict[str, list[int]]],
+        secondary_input_realizations_to_clusters: dict[str, dict[int, list[int]]],
     ) -> None:
         """Process full realization inputs in reverse precedence order.
 
@@ -838,6 +977,11 @@ class RealizationClusterAndMatch(BasePlugin):
             cluster_sources: Dictionary tracking which input was used for each cluster
                 at each forecast period. Modified in-place.
                 Format: {cluster_idx: {model_name: [fp1, fp2, ...]}}
+            secondary_input_realizations_to_clusters: Dictionary tracking which
+                realizations from secondary inputs correspond to which clusters.
+                Modified in-place.
+                Format: {secondary_input_name:
+                {forecast_period: {cluster_index: [realization_indices]}}}
         """
         inputs_list = list(reversed(full_realization_inputs))
 
@@ -910,6 +1054,15 @@ class RealizationClusterAndMatch(BasePlugin):
                 self._update_cluster_sources(
                     cluster_sources, cluster_indices, candidate_name, fp
                 )
+                # Track which secondary realizations contributed to each cluster
+                self.track_secondary_realizations_to_clusters(
+                    secondary_input_realizations_to_clusters,
+                    cluster_indices,
+                    realization_indices,
+                    candidate_name,
+                    fp,
+                    candidate_cube,
+                )
 
     def _process_partial_realization_inputs(
         self,
@@ -920,6 +1073,7 @@ class RealizationClusterAndMatch(BasePlugin):
         replaced_realizations: dict[int, set[int]],
         matched_cubes: CubeList,
         cluster_sources: dict[int, dict[str, list[int]]],
+        secondary_input_realizations_to_clusters: dict[str, dict[int, list[int]]],
     ) -> None:
         """Process partial realization inputs in reverse precedence order.
 
@@ -943,6 +1097,11 @@ class RealizationClusterAndMatch(BasePlugin):
             cluster_sources: Dictionary tracking which input was used for each cluster
                 at each forecast period. Modified in-place.
                 Format: {cluster_idx: {model_name: [fp1, fp2, ...]}}
+            secondary_input_realizations_to_clusters: Dictionary tracking which
+                realizations from secondary inputs correspond to which clusters.
+                Modified in-place.
+                Format: {secondary_input_name:
+                {forecast_period: {cluster_index: [realization_indices]}}}
         """
         # Process in reverse order (lowest precedence first)
         for candidate_name, forecast_periods in reversed(partial_realization_inputs):
@@ -1005,6 +1164,15 @@ class RealizationClusterAndMatch(BasePlugin):
                 self._update_cluster_sources(
                     cluster_sources, cluster_indices, candidate_name, fp
                 )
+                # Track which secondary realizations contributed to each cluster
+                self.track_secondary_realizations_to_clusters(
+                    secondary_input_realizations_to_clusters,
+                    cluster_indices,
+                    realization_indices,
+                    candidate_name,
+                    fp,
+                    candidate_cube,
+                )
 
     def process(self, cubes: CubeList) -> Cube:
         """Cluster and match the data.
@@ -1036,17 +1204,24 @@ class RealizationClusterAndMatch(BasePlugin):
             The matched cube containing all secondary inputs matched to clusters.
             The output cube will have realization and forecast_period as leading
             dimensions (if present in the input), followed by spatial dimensions (y, x).
-            The cube includes a 'cluster_sources' attribute (JSON string) that
-            tracks which input source was used for each cluster at each
-            forecast period. Format: {cluster_idx: {model_name: [fp1, fp2, ...]}},
-            where cluster_idx is the cluster index (int), model_name is the value
-            from model_id_attr (str), and the list contains forecast period values in
-            seconds (int). Use json.loads() to parse the attribute value.
+            The returned cube includes the following JSON string attributes:
+            - 'primary_input_realizations_to_clusters': tracks which primary input
+                realizations were assigned to each cluster.
+            - 'secondary_input_realizations_to_clusters': tracks which secondary input
+                realization was assigned to each cluster per forecast period.
+            - 'cluster_sources': tracks which input model provided the final data for
+                each cluster-forecast_period pairing.
 
             Raises:
                 ValueError: If no primary cube is found with the specified
                     model_id_attr.
         """
+        if self.cycletime is not None:
+            for cube in cubes:
+                if not cube.coords("forecast_reference_time"):
+                    continue
+                reset_forecast_reference_time_and_period(cube, self.cycletime)
+
         constr = iris.AttributeConstraint(
             **{self.model_id_attr: self.hierarchy["primary_input"]}
         )
@@ -1077,6 +1252,9 @@ class RealizationClusterAndMatch(BasePlugin):
         # Store mapping for re-application to result.
         primary_input_realizations_to_clusters = clustered_primary_cube.attributes[
             "primary_input_realizations_to_clusters"
+        ]
+        primary_input_realization_to_cluster_medoid = clustered_primary_cube.attributes[
+            "primary_input_realization_to_cluster_medoid"
         ]
 
         n_clusters = len(clustered_primary_cube.coord("realization").points)
@@ -1119,6 +1297,10 @@ class RealizationClusterAndMatch(BasePlugin):
                 clustered_primary_cube.coord("forecast_period").points
             )
 
+        # Create a mapping to track which realizations from secondary inputs correspond
+        # to which clusters.
+        secondary_input_realizations_to_clusters = {}
+
         # First pass: Process full realization inputs
         # These will replace entire forecast period cubes
         self._process_full_realization_inputs(
@@ -1129,6 +1311,7 @@ class RealizationClusterAndMatch(BasePlugin):
             replaced_realizations,
             matched_cubes,
             cluster_sources,
+            secondary_input_realizations_to_clusters,
         )
 
         # Second pass: Process partial realization inputs
@@ -1141,6 +1324,7 @@ class RealizationClusterAndMatch(BasePlugin):
             replaced_realizations,
             matched_cubes,
             cluster_sources,
+            secondary_input_realizations_to_clusters,
         )
 
         result_cube = MergeCubes()(
@@ -1151,6 +1335,13 @@ class RealizationClusterAndMatch(BasePlugin):
         result_cube.attributes["primary_input_realizations_to_clusters"] = json.dumps(
             primary_input_realizations_to_clusters
         )
+        result_cube.attributes["primary_input_realization_to_cluster_medoid"] = (
+            json.dumps(primary_input_realization_to_cluster_medoid)
+        )
+        result_cube.attributes["secondary_input_realizations_to_clusters"] = json.dumps(
+            self.compact_secondary_mapping(secondary_input_realizations_to_clusters)
+        )
+
         # Store cluster_sources as a cube attribute (as JSON string)
         # Format: {cluster_idx: {model_name: [fp1, fp2, ...]}}
         # Convert numpy int32 to native Python int for JSON serialization
@@ -1162,4 +1353,304 @@ class RealizationClusterAndMatch(BasePlugin):
             cluster_sources_serialisable
         )
 
+        return result_cube
+
+
+class RealizationSelection(BasePlugin):
+    """Plugin to select realizations based on clustering results.
+
+    This plugin is intended to be used with the output from the
+    RealizationClusterAndMatch plugin. A typical use case is where
+    RealizationClusterAndMatch has performed clustering and matching using a
+    subset of forecast periods (for computational efficiency or other reasons),
+    but you wish to apply the resulting cluster assignments to any forecast
+    period. The RealizationSelection plugin enables this by selecting and
+    relabelling realizations from the original forecast cubes according to the
+    cluster mapping attributes stored in the cluster cube output by
+    RealizationClusterAndMatch.
+
+    To use this plugin, provide as input the same forecast cubes as were
+    supplied to RealizationClusterAndMatch (but strictly only at a single
+    forecast period), together with the cluster cube output from
+    RealizationClusterAndMatch.
+    """
+
+    def __init__(
+        self,
+        forecast_period: int,
+        model_id_attr: str = "mosg__model_configuration",
+    ):
+        """
+        Initialise the RealizationSelection plugin.
+
+        Args:
+            forecast_period: The forecast period (in seconds) to use for interrogating
+                the cluster mapping attributes in order to select the appropriate
+                realizations.
+            model_id_attr: The name of the cube attribute used to identify the model
+                source.
+
+        """
+        self.forecast_period = forecast_period
+        self.model_id_attr = model_id_attr
+
+    def split_cubes_forecast_and_cluster(
+        self, cubes: CubeList
+    ) -> tuple[CubeList, Cube]:
+        """
+        Split a CubeList into forecast cubes and the cluster cube.
+
+        The cluster cube is identified by the presence of the
+        "primary_input_realization_to_cluster_medoid" attribute.
+        The forecast cubes are assumed to be the cubes without such an attribute and
+        that share a common validity time.
+
+        Args:
+            cubes: CubeList of input cubes expected to contain forecast
+                cubes and a cluster cube.
+
+        Returns:
+            Tuple of (forecast_cubes, cluster_cube):
+                - forecast_cubes: CubeList of forecast cubes.
+                - cluster_cube: The cluster cube.
+
+        Raises:
+            ValueError: If no cluster cube is found.
+        """
+        cluster_cube = None
+        forecast_cubes = CubeList()
+        for cube in cubes:
+            if "primary_input_realization_to_cluster_medoid" in cube.attributes:
+                cluster_cube = cube
+            else:
+                forecast_cubes.append(cube)
+        if cluster_cube is None:
+            raise ValueError(
+                "No cluster cube found in input cubes "
+                "(missing 'primary_input_realization_to_cluster_medoid' attribute)."
+            )
+        return forecast_cubes, cluster_cube
+
+    def parse_mapping_attributes(
+        self, cluster_cube: Cube
+    ) -> tuple[dict[str, int], dict[str, dict[int, list[dict[str, list[int]]]]]]:
+        """
+        Parse and decode the mapping attributes from the cluster cube.
+
+        Args:
+            cluster_cube: The cube output from RealizationClusterAndMatch, containing
+                the mapping attributes as JSON-encoded strings.
+
+        Returns:
+            A tuple containing:
+                - primary_map: Dictionary mapping cluster index (as string)
+                    to medoid realization index (int).
+                - secondary_map: Dictionary mapping secondary input names to
+                    cluster mappings, where each cluster index maps to a list of
+                    dicts with "realizations" and "forecast_periods".
+
+        Raises:
+            TypeError: If the mapping attributes are not in the expected format
+                (str or dict).
+        """
+        primary_map = cluster_cube.attributes.get(
+            "primary_input_realization_to_cluster_medoid"
+        )
+        secondary_map = cluster_cube.attributes.get(
+            "secondary_input_realizations_to_clusters"
+        )
+        if isinstance(primary_map, str):
+            primary_map = json.loads(primary_map)
+        elif not isinstance(primary_map, dict):
+            raise TypeError(
+                f"Expected primary_map to be str or dict, got {type(primary_map)}"
+            )
+
+        if isinstance(secondary_map, str):
+            secondary_map = json.loads(secondary_map)
+        elif secondary_map is not None and not isinstance(secondary_map, dict):
+            raise TypeError(
+                "Expected secondary_map to be str, dict, or None, "
+                f"got {type(secondary_map)}"
+            )
+        return primary_map, secondary_map
+
+    def validate_common_validity_time(self, forecast_cubes: CubeList) -> None:
+        """
+        Validate that all forecast cubes share a common validity time.
+
+        Args:
+            forecast_cubes: CubeList of forecast cubes.
+
+        Raises:
+            ValueError: If forecast cubes do not share a common validity time.
+        """
+        unique_validity_times = {
+            cube.coord("time").cell(0).point for cube in forecast_cubes
+        }
+        if len(unique_validity_times) > 1:
+            raise ValueError(
+                "Forecast cubes must share a common validity time (time coordinate)."
+            )
+
+    def find_nearest_secondary_mapping_fp(
+        self, mapping_fps: Optional[set[int]], fp: int
+    ) -> tuple[int, bool]:
+        """
+        Find the nearest forecast period in the secondary mapping to the requested
+        forecast period.
+
+        Args:
+            mapping_fps: Set of forecast periods (in seconds) available in the
+                secondary mapping.
+            fp: The forecast period (in seconds) for which to find the nearest mapping.
+
+        Returns:
+            A tuple containing:
+                - nearest_fp: The forecast period from mapping_fps closest to fp
+                (or fp if mapping_fps is empty).
+                - use_secondary: Boolean indicating whether the secondary mapping
+                    should be used (True if fp is less than or equal to the maximum
+                    in mapping_fps, else False).
+        """
+        if mapping_fps:
+            nearest_fp = min(mapping_fps, key=lambda x: abs(x - fp))
+            use_secondary = fp <= max(mapping_fps)
+        else:
+            nearest_fp = fp
+            use_secondary = False
+        return nearest_fp, use_secondary
+
+    def build_cluster_to_selection(
+        self,
+        nearest_fp: int,
+        use_secondary: bool,
+        secondary_map: dict[str, dict[int, list[dict[str, list[int]]]]],
+        primary_map: dict[str, int],
+        cluster_cube: Cube,
+    ) -> dict[int, tuple[str, int]]:
+        """
+        Build a mapping from cluster index to (model name, realization index)
+        for selection.
+
+        Args:
+            nearest_fp: The forecast period (in seconds) from the secondary mapping
+                closest to the requested forecast period.
+            use_secondary: Whether to use the secondary mapping (True) or fall back
+                to the primary mapping (False). Determined by
+                find_nearest_secondary_mapping_fp method.
+            secondary_map: Dictionary mapping secondary input names to cluster mappings,
+                where each cluster index maps to a list of dicts with "realization"
+                and "forecast_periods".
+            primary_map: Dictionary mapping cluster index (as string) to medoid
+                realization index (int).
+            cluster_cube: The cluster cube output from RealizationClusterAndMatch,
+                containing the cluster mapping attributes. Used to determine the model
+                name for the primary input when assigning realizations to clusters.
+
+        Returns:
+            Dictionary mapping cluster index (int) to a tuple of
+            (model name, realization index).
+        """
+        cluster_to_selection = {}
+        # Use secondary mapping if appropriate
+        if use_secondary and secondary_map:
+            for model_name, cluster_dict in secondary_map.items():
+                for cluster_idx_str, cluster_list in cluster_dict.items():
+                    cluster_idx = int(cluster_idx_str)
+                    for entry in cluster_list:
+                        if nearest_fp in entry["forecast_periods"]:
+                            cluster_to_selection[cluster_idx] = (
+                                model_name,
+                                entry["realization"],
+                            )
+        # Fill in any clusters not covered by secondary inputs using the medoid mapping
+        for cluster_idx_str, realization in primary_map.items():
+            cluster_idx = int(cluster_idx_str)
+            if cluster_idx not in cluster_to_selection:
+                cluster_to_selection[cluster_idx] = (
+                    cluster_cube.attributes.get(
+                        "mosg__model_configuration", "primary_input"
+                    ),
+                    realization,
+                )
+        return cluster_to_selection
+
+    def select_realizations_for_clusters(
+        self,
+        cluster_to_selection: dict[int, tuple[str, int]],
+        forecast_cubes: CubeList,
+    ) -> list[Cube]:
+        """
+        Select and relabel realizations from the input cubes according to the
+        cluster-to-selection mapping.
+
+        Args:
+            cluster_to_selection: Dictionary mapping cluster index (int) to a
+                tuple of (model name, realization index).
+            forecast_cubes: CubeList of input forecast cubes, each for a single
+                forecast period.
+
+        Returns:
+            A list of Cube objects, each containing a single realization relabelled
+            to the cluster index.
+
+        Raises:
+            ValueError: If no forecast cube is found for a specified model name.
+        """
+        selected_cubes = []
+        for cluster_idx in sorted(cluster_to_selection):
+            model_name, realization_index = cluster_to_selection[cluster_idx]
+            model_cubes = forecast_cubes.extract(
+                iris.AttributeConstraint(**{self.model_id_attr: model_name})
+            )
+            if not model_cubes:
+                raise ValueError(f"No forecast cube found for model '{model_name}'")
+            model_cube = model_cubes[0]
+            selected = model_cube.extract(
+                iris.Constraint(realization=realization_index)
+            )
+            selected.coord("realization").points = [cluster_idx]
+            selected_cubes.append(selected)
+        return selected_cubes
+
+    def process(self, cubes: CubeList) -> Cube:
+        """
+        Select realizations from input forecast cubes according to cluster assignments
+        defined by the cluster_cube's attributes.
+
+        Args:
+            cubes  (list of Cube): List of input cubes, including forecast
+                cubes and a cluster cube. The forecast cubes are from all source models
+                for a common validity time and with each containing a "realization"
+                coordinate that contributed to the clustering. Each cube must have the
+                model_id_attr attribute set to identify its source model. The cluster
+                cube is output from RealizationClusterAndMatch, containing
+                the cluster mapping attributes. The cluster cube is identified by the
+                presence of the "primary_input_realization_to_cluster_medoid" attribute.
+
+        Returns:
+            A merged Cube containing the selected realizations, with realization
+            indices matching the cluster indices in cluster_cube.
+        """
+        forecast_cubes, cluster_cube = self.split_cubes_forecast_and_cluster(cubes)
+        self.validate_common_validity_time(forecast_cubes)
+
+        primary_map, secondary_map = self.parse_mapping_attributes(cluster_cube)
+        mapping_fps = set()
+        if secondary_map:
+            for cluster_dict in secondary_map.values():
+                for cluster_list in cluster_dict.values():
+                    for entry in cluster_list:
+                        mapping_fps.update(entry["forecast_periods"])
+        nearest_fp, use_secondary = self.find_nearest_secondary_mapping_fp(
+            mapping_fps, self.forecast_period
+        )
+        cluster_to_selection = self.build_cluster_to_selection(
+            nearest_fp, use_secondary, secondary_map, primary_map, cluster_cube
+        )
+        selected_cubes = self.select_realizations_for_clusters(
+            cluster_to_selection, forecast_cubes
+        )
+        result_cube = MergeCubes()(CubeList(selected_cubes))
         return result_cube

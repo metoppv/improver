@@ -4,14 +4,19 @@
 # See LICENSE in the root of the repository for full licensing details.
 
 import warnings
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import numpy as np
 import pytest
 from iris.cube import Cube, CubeList
 
 from improver.fire_weather.duff_moisture_code import DuffMoistureCode
-from improver_tests.fire_weather import START_DATE_DICT, make_cube, make_input_cubes
+from improver_tests.fire_weather import (
+    DEFAULT_TIME,
+    INPUT_ATTRIBUTES,
+    make_cube,
+    make_input_cubes,
+)
 
 
 def input_cubes(
@@ -57,7 +62,7 @@ def input_cubes(
         ("air_temperature", temp_val, temp_units, False, {}),
         ("lwe_thickness_of_precipitation_amount", precip_val, precip_units, True, {}),
         ("relative_humidity", rh_val, rh_units, False, {}),
-        ("duff_moisture_code", dmc_val, dmc_units, True, START_DATE_DICT),
+        ("duff_moisture_code", dmc_val, dmc_units, True, INPUT_ATTRIBUTES),
     ]
     return make_input_cubes(cube_args, shape=shape)
 
@@ -142,7 +147,7 @@ def test__perform_rainfall_adjustment_spatially_varying() -> None:
         precip_data, "lwe_thickness_of_precipitation_amount", "mm", True
     )
     humidity_cube = make_cube(np.full(shape, 50.0), "relative_humidity", "1")
-    dmc_cube = make_cube(dmc_data, "duff_moisture_code", "1", True, START_DATE_DICT)
+    dmc_cube = make_cube(dmc_data, "duff_moisture_code", "1", True, INPUT_ATTRIBUTES)
     cubes = [temp_cube, precip_cube, humidity_cube, dmc_cube]
 
     plugin = DuffMoistureCode()
@@ -363,7 +368,7 @@ def test_process_spatially_varying() -> None:
             "duff_moisture_code",
             "1",
             add_time_coord=True,
-            attributes=START_DATE_DICT,
+            attributes=INPUT_ATTRIBUTES,
         ),
     ]
 
@@ -403,45 +408,55 @@ def test_dmc_day_length_factors_table() -> None:
     assert DuffMoistureCode.DMC_DAY_LENGTH_FACTORS == expected_factors
 
 
-def test_warning_for_start_dates_inside_lag_time() -> None:
-    """When start_date + 14 days runtime < LAG_TIME so warning is created."""
-    under_lag_time = str(datetime.now() - timedelta(days=14))
+def test_warning_for_iteration_counts_inside_lag_time() -> None:
+    """When iteration_count is 14 runtime < LAG_TIME so a warning is created."""
+    attributes = {
+        "iteration_start_date": str(DEFAULT_TIME - timedelta(days=14)),
+        "analysis_ready": False,
+        "iteration_count": 14,
+    }
     cube_args = [
         ("air_temperature", 20.0, "Celsius", False, {}),
         ("lwe_thickness_of_precipitation_amount", 1.0, "mm", False, {}),
         ("relative_humidity", 50.0, "1", False, {}),
-        ("duff_moisture_code", 20.0, "1", False, {"start_date": under_lag_time}),
+        ("duff_moisture_code", 20.0, "1", False, attributes),
     ]
     cubes = make_input_cubes(cube_args, shape=(5, 5))
 
-    msg = r"duff_moisture_code is 14 days in to it's initialisation"
+    msg = r"duff_moisture_code is 14 iterations in to its spin-up period"
     with pytest.warns(UserWarning, match=msg):
         DuffMoistureCode().process(cubes, month=4)
 
 
-@pytest.mark.filterwarnings("ignore:numpy.ndarray size changed:RuntimeWarning")
-def test_no_warning_for_start_dates_outside_lag_time(
+def test_no_warning_for_metadata_outside_lag_time(
     recwarn: list[warnings.WarningMessage],
 ) -> None:
-    """When start_date + 15 days runtime > LAG_TIME so no warning is created."""
-    over_lag_time = str(datetime.now() - timedelta(days=15))
+    """When iteration_count is 15 runtime > LAG_TIME so no warning created."""
+    attributes = {
+        "iteration_start_date": str(DEFAULT_TIME - timedelta(days=15)),
+        "analysis_ready": True,
+        "iteration_count": 15,
+    }
     cube_args = [
         ("air_temperature", 20.0, "Celsius", False, {}),
         ("lwe_thickness_of_precipitation_amount", 1.0, "mm", False, {}),
         ("relative_humidity", 50.0, "1", False, {}),
-        ("duff_moisture_code", 20.0, "1", False, {"start_date": over_lag_time}),
+        ("duff_moisture_code", 20.0, "1", False, attributes),
     ]
     cubes = make_input_cubes(cube_args, shape=(5, 5))
 
-    DuffMoistureCode().process(cubes, month=1)
+    result = DuffMoistureCode().process(cubes, month=1)
 
     np_warning = "numpy.ndarray size changed"
     relevant_warnings = [w for w in recwarn if np_warning not in str(w.message)]
     assert len(relevant_warnings) == 0
 
+    assert result.attributes["iteration_count"] == attributes["iteration_count"] + 1
+    assert result.attributes["analysis_ready"] == "True"
+
 
 def test_initialise_true_leads_to_user_warning() -> None:
-    """When initialise=True start_date=now, so runtime < LAG_TIME and warning created."""
+    """When initialise=True then iteration_count < LAG_TIME so a warning is created."""
     initialisation_input_cubes = make_input_cubes(
         [
             ("air_temperature", 20.0, "Celsius", False, {}),
@@ -451,8 +466,10 @@ def test_initialise_true_leads_to_user_warning() -> None:
         shape=(5, 5),
     )
 
-    msg = r"duff_moisture_code is 0 days in to it's initialisation"
+    msg = r"duff_moisture_code is 0 iterations in to its spin-up period"
     with pytest.warns(UserWarning, match=msg):
-        DuffMoistureCode().process(
+        result = DuffMoistureCode().process(
             initialisation_input_cubes, month=12, initialise=True
         )
+    assert result.attributes["iteration_count"] == 1
+    assert result.attributes["analysis_ready"] == "False"
