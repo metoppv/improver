@@ -122,6 +122,12 @@ class SubperiodSelector(PostProcessingPlugin):
 
         Returns:
             Cube indicating the selected subperiods.
+
+        Raises:
+            ValueError: If no data is found in the main period cube matching the percentile and threshold constraints.
+            ValueError: If no matching threshold coordinate is found on the subperiod cube.
+            ValueError: If no data is found in the subperiod cube matching the threshold constraints.
+            ValueError: If the subperiod cube does not have exactly one more dimension than the main period cube.
         """
         main_period_slice, subperiod_slice = self._apply_constraints(
             main_period_cube, subperiod_cube
