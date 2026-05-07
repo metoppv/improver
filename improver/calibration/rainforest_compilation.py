@@ -30,7 +30,10 @@ class CompileRainForestsModel(BasePlugin):
 
         Args:
             model_config_dict:
-                Dictionary containing Rainforests model configuration variables.
+                Dictionary describing the high-level RainForests model structure;
+                - top level key describes the lead-hour, 
+                - next level key describes the threshold,
+                - corresponding values locate the associated model file.
             toolchain (str):
                 Toolchain to use for Treelite model compilation.
                 'gcc' (default), 'msvc', 'clang' or a specific variation of clang or gcc
@@ -78,10 +81,10 @@ class CompileRainForestsModel(BasePlugin):
     def process(self, allow_missing=False):
         """Compile all configured LightGBM models with Treelite.
 
-            Args:
-                allow_missing (bool):
-                    If False (default), throws if any LightGBM models are missing.
-                    If True, any missing LightGBM files will be ignored.
+        Args:
+            allow_missing (bool):
+                If False (default), throws an error if any LightGBM models are missing.
+                If True, any missing LightGBM files will be ignored.
 
         Iterates through all lead times and thresholds in the model config dictionary
         and compiles the corresponding LightGBM models to Treelite predictors.

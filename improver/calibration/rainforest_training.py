@@ -32,7 +32,10 @@ class TrainRainForestsModel(BasePlugin):
 
         Args:
             model_config_dict:
-                Dictionary containing Rainforests model configuration variables.
+                Dictionary describing the high-level RainForests model structure;
+                - top level key describes the lead-hour, 
+                - next level key describes the threshold,
+                - corresponding values locate the associated model file.
             training_data (pandas.DataFrame):
                 Combined data set used to train models.
             observation_column (str):
@@ -72,9 +75,9 @@ class TrainRainForestsModel(BasePlugin):
 
         # Check all specified columns exist in the data.
         for col in training_columns:
-            if col not in training_data:
+            if col not in training_data.columns:
                 raise KeyError(f"Training column '{col}' not found in training data.")
-        if observation_column not in training_data:
+        if observation_column not in training_data.columns:
             raise KeyError(
                 f"Target column '{observation_column}' not found in training data."
             )
