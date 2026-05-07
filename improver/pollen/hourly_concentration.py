@@ -11,7 +11,6 @@ from improver import PostProcessingPlugin
 from improver.metadata.constants import FLOAT_DTYPE
 
 from .utilities import (
-    POLLEN_CONCENTRATION_SHORTNAME_2_LONGNAME,
     POLLEN_SHORTNAME_2_LATIN,
     build_output_cube_with_new_units,
 )
@@ -117,7 +116,8 @@ class PollenHourlyConcentration(PostProcessingPlugin):
         )
         self._output_cube.attributes["forecast_period"] = np.int32(3600)
         self._output_cube.attributes["scaling_factor"] = self._scaling_factor
-        self._output_cube.rename(POLLEN_CONCENTRATION_SHORTNAME_2_LONGNAME[taxa])
+        new_cube_name = f"number_concentration_of_{POLLEN_SHORTNAME_2_LATIN[taxa].lower()}_pollen_grains_in_air"
+        self._output_cube.rename(new_cube_name)
 
     def process(
         self,

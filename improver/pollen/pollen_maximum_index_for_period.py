@@ -43,32 +43,22 @@ class PollenMaximumIndexForPeriod(PostProcessingPlugin):
         # Stack the cubes along a new taxa dimension and calculate the maximum across that dimension
         stacked_data = np.stack([cube.data for cube in cubes], axis=0)
 
-        cube_shape = cubes[0].data.shape
         # Keep a copy of one of the input cubes' data to use for masking the output data later
         input_data = deepcopy(cubes[0].data)
         # Create a new numpy array with this shape to hold the pollen index values, and fill it
         # with the maximum values across the taxa dimension
-        pollen_index_data = np.full(cube_shape, np.nan)  # Initialize with NaN values
-        for i in range(cube_shape[0]):
-            for j in range(cube_shape[1]):
-                pollen_index_data[i, j] = np.max(
-                    stacked_data[:, i, j]
-                )  # Max across taxa dimension for each grid point
+        pollen_index_data = np.max(stacked_data, axis=0)
         self._output_cube.data = pollen_index_data.astype(FLOAT_DTYPE)
         # Set values which are masked in _output_cube to nan
         self._output_cube.data = np.where(
             np.isnan(input_data), np.nan, self._output_cube.data
         )
 
-    def _metadata(self, cubes: tuple[Cube, ...] | CubeList):
+    def _metadata(self):
         """Change the cube name and other metadata.
 
         Some attributes are removed because they are not relevant to this aggregated
         cube data which is no longer specific to one pollen taxon.
-
-        Args:
-            cubes:
-                Input cubes for all pollen types, used to update the cube name and metadata
         """
         self._output_cube.attributes.pop("scaling_factor", None)
         self._output_cube.attributes.pop("taxa", None)
@@ -96,5 +86,5 @@ class PollenMaximumIndexForPeriod(PostProcessingPlugin):
         template_cube = cubes[0]
         self._output_cube = deepcopy(template_cube)
         self._calculate(cubes)
-        self._metadata(cubes)
+        self._metadata()
         return self._output_cube

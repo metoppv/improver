@@ -8,6 +8,7 @@ from iris.coords import AuxCoord
 from iris.cube import Cube
 
 POLLEN_SHORTNAME_2_LATIN = {
+    # Grasses
     "grass": "Poaceae",
     # Trees
     "birch": "Betula",
@@ -17,12 +18,10 @@ POLLEN_SHORTNAME_2_LATIN = {
     "ash": "Fraxinus",
     "plane": "Platanus",
     # Weeds
+    # Nettle is renamed to weed in the output cubes but kept here for
+    # understanding how the input cubes for Nettle map to the output cubes as Weed
     "nettle": "Urticaceae",
     "weed": "Urticaceae",
-}
-POLLEN_CONCENTRATION_SHORTNAME_2_LONGNAME = {
-    k: "number_concentration_of_" + v.lower() + "_pollen_grains_in_air"
-    for k, v in POLLEN_SHORTNAME_2_LATIN.items()
 }
 
 
