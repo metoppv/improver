@@ -25,7 +25,8 @@ def cube_from_dict(d: dict) -> Cube:
     Args:
         d: dictionary containing a description of a cube
 
-    Returns: cube
+    Returns:
+        cube constructed from a dictionary
 
     """
     # Rebuild data
@@ -100,7 +101,7 @@ def generate_dfactors_input_dict() -> dict:
     20260325T1200Z-PT0144H00M-geopotential_height_on_pressure_levels.nc
 
     Returns:
-             dict
+             dictionary definition of a cube
     """
     return {
         "attributes_globals": {
@@ -261,7 +262,7 @@ def pressure_to_layer(pressure: float) -> str:
         pressure (Pa)
 
     Returns:
-
+        one of { "Troposphere", "Stratosphere", "Mesosphere", "Thermosphere" }
     """
     # lower pressurw boundaries
     layer_to_pressure = {
@@ -289,7 +290,7 @@ def masked_layer_count(cube: Cube) -> int:
     for testing purposes.
 
     Args:
-        cube:
+        cube: cube whose fully masked horizontal layers are to be counted
 
     Returns:
         the count
@@ -302,7 +303,7 @@ def masked_layer_count(cube: Cube) -> int:
     n_layers = mask.shape[0]
     layer_count = 0
     for layer in range(n_layers):
-        if np.all(mask[layer, :, :]):  # all True:
+        if np.all(mask[layer, :, :]):  # layer all True
             layer_count += 1
     return layer_count
 
@@ -312,7 +313,7 @@ def reference_standard_geopotential_height_calculation(
     pressure_min_hpa: float = 10.0,
     pressure_max_hpa: float = 1000.0,
 ) -> Cube:
-    """referenbce implementation for standard geopotential height
+    """reference implementation for standard geopotential height
 
     Args:
         incube_arg: input pressure cube (Pa)
@@ -356,20 +357,17 @@ def reference_standard_geopotential_height_calculation(
 def generate_dfactors_input_cube() -> Cube:
     """generates an input cube for testing D-factors computation
     Returns:
-             cube
+             input cube for testing
     """
     dfactors_cube_dict = generate_dfactors_input_dict()
     dfactors_cube = cube_from_dict(dfactors_cube_dict)
     return dfactors_cube
 
 
-def test_input_and_processing_masking():
+def test_input_and_processing_masking() -> None:
     """tests the masking set-up in the input cube is
     preserved in the output cube, where the D-factors
     calculation does additional masking.
-
-    Returns:
-            None
     """
     input_cube = generate_dfactors_input_cube()
 
@@ -406,13 +404,10 @@ def test_input_and_processing_masking():
     assert np.all(squashed_layer == expected_squashed_layer)  # detect the single column
 
 
-def test_input_and_process_mask():
+def test_input_and_process_mask() -> None:
     """tests the masking set-up in the input cube is
     preserved in the output cube, where the D-factors
     calculation does no additional masking.
-
-    Returns:
-           None
     """
     input_cube = generate_dfactors_input_cube()
 
@@ -438,14 +433,10 @@ def test_input_and_process_mask():
     assert np.all(input_cube.data.mask == improver_result.data.mask)  # mask preserved
 
 
-def test_no_mask():
-    """The input cube to StandardGeopotentialHeight can contain
+def test_no_mask() -> None:
+    """The input cube to the geopotential height plugin can contain
     a masked or non-masked array. This test passes a non-masked
-    array to check if things still wo
-    rk, but expects masked output.
-
-    Returns:
-            None
+    array to check if things still work, but expects masked output.
     """
     input_cube = generate_dfactors_input_cube()
 
@@ -464,15 +455,11 @@ def test_no_mask():
     assert np.ma.isMaskedArray(improver_result.core_data())
 
 
-def test_broadcast_to_template_two_pressure_dimensions():
-    """test to achieve 100% code coverage
-    i.e. passing function _broadcast_to_template
-    parameters to cause an error
-    i.e. 2 pressure dimensions
-
-    Returns:
-            None
+def test_broadcast_to_template_two_pressure_dimensions() -> None:
+    """test that broadcasting to a template cube raises an error
+    when the pressure coordinate has more than one dimension
     """
+
     data = np.random.rand(3, 4)
 
     cube = iris.cube.Cube(data, long_name="example_data", units="1")
@@ -500,15 +487,9 @@ def test_broadcast_to_template_two_pressure_dimensions():
         geo._broadcast_to_template(pressures, cube, name)
 
 
-def test_broadcast_to_template_pressure_dims_zero():
-    """test to achieve 100% code coverage
-    by passing function _broadcast_to_template
-    parameters to cover all code paths
-    i.e. 0 "pressure" dimensions
-
-    Returns:
-        None
-
+def test_broadcast_to_template_pressure_dims_zero() -> None:
+    """test that broadcasting to a template cube succeeds when the
+    pressure coordinate has zero dimensions
     """
 
     input_cube = generate_dfactors_input_cube()
@@ -520,14 +501,9 @@ def test_broadcast_to_template_pressure_dims_zero():
     geo._broadcast_to_template(pressure_coord.points[0:1], input_cube, "time")
 
 
-def test_broadcast_to_template():
-    """test to achieve 100% code coverage
-    standard use of function _broadcast_to_template
+def test_broadcast_to_template() -> None:
+    """test that broadcasting behaves as expected"""
 
-    Returns:
-        None
-
-    """
     input_cube = generate_dfactors_input_cube()
 
     geo = StandardGeopotentialHeight(pressure_max_hpa=200000, pressure_min_hpa=0.1)
@@ -535,12 +511,9 @@ def test_broadcast_to_template():
     geo._broadcast_to_template(pressure_coord.points, input_cube, pressure_coord)
 
 
-def test_bad_pressure_units():
-    """test to trigger a bad pressure unit error path
+def test_bad_pressure_units() -> None:
+    """test to raise an error when the pressure units are not compatible with hPa"""
 
-    Returns:
-        None
-    """
     input_cube = generate_dfactors_input_cube()
     input_cube.coord("air_pressure").units = "millibar2"
     with pytest.raises(ValueError, match="are not convertible to hPa"):
@@ -549,13 +522,9 @@ def test_bad_pressure_units():
         )
 
 
-def test_no_pressure_coord():
-    """test to achieve 100% code coverage
-    by exercising error path for no pressure coordinate
+def test_no_pressure_coord() -> None:
+    """test to raise an error when there is no pressure coordinate in the d-factors input cube"""
 
-    Returns:
-            None
-    """
     input_cube = generate_dfactors_input_cube()
 
     names_to_censor = ["air_pressure", "pressure"]
@@ -571,16 +540,14 @@ def test_no_pressure_coord():
         )
 
 
-def test_basic_dfactors_calculations():
+def test_basic_dfactors_calculations() -> None:
     """This test compares the basic standard geopotential height calculation
-    in Pmprover against an independent implmentation written for testing
+    in IMPROVER against an independent implementation written for testing
     and assurance purposes.
 
     The calculation is performed within pressure bounds to ensure that the
-    results that are computed within a valid range.
-
-    Results outside this valid range are masked out. As well as testing the
-    computation. the masking is also being tested.
+    results that are computed within a valid range. Results outside this
+    valid range are masked out.
 
     For reference the pressure levels (Pa) in the input cube are:
 
@@ -590,11 +557,8 @@ def test_basic_dfactors_calculations():
     15000.0, 12500.0, 10000.0, 7000.0, 5000.0, 4000.0, 3000.0, 2000.0, 1000.0,
     500.0, 200.0, 100.0, 40.0]
 
-    For different values of the pressure bounds (hPa), different levels in the output
-    cube will be masked-in/masked-oy.
-
-    Returns:
-             None
+    For different values of the pressure bounds (hPa), different pressure levels in the output
+    cube will be masked in or out.
     """
 
     max_min_pairs_to_n_expected_masked_layers = {

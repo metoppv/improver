@@ -2,23 +2,7 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""Module containing plugin to calculate standard geopotential height on pressure levels.
-
-The standard geopotential height is calculated using the ICAO standard atmosphere
-lookup table and barometric formulae described in the D-Factors workflow design.
-
-Pressure handling:
-    Only pressure levels within the configured range (default 10–1000 hPa) are
-    processed and included in the output cube. Any levels outside this range are
-    excluded from the returned cube (i.e. the pressure dimension is reduced).
-
-Equations:
-    If β = 0:
-        Zstd(p) = Zb - (R Tb / g) ln(p / Pb)
-
-    If β ≠ 0:
-        Zstd(p) = Zb + (Tb / β) [ (p / Pb)^(-β R / g) - 1 ]
-"""
+"""Module containing plugin to calculate standard geopotential height on pressure levels."""
 
 from __future__ import annotations
 
@@ -68,14 +52,32 @@ class StandardGeopotentialHeight(PostProcessingPlugin):
 
     Any pressure levels outside the configured range are excluded from the output.
 
-    Args:
-        model_id_attr:
-            Name of the attribute used to identify the source model. If provided,
-            mandatory attributes will be generated consistently.
-        pressure_min_hpa:
-            Minimum pressure processed (hPa). Defaults to 10 hPa.
-        pressure_max_hpa:
-            Maximum pressure processed (hPa). Defaults to 1000 hPa.
+    .. include:: extended_documentation/standard_geopotential_height/standard_geopotential_height/standard_geopotential_height.rst
+
+    The standard geopotential height is calculated using the ICAO standard atmosphere
+    lookup table and barometric formulae described in the D-Factors workflow design.
+
+    Pressure handling:
+        Only pressure levels within the configured range (default 10–1000 hPa) are
+        processed and included in the output cube. Any levels outside this range are
+        excluded from the returned cube (i.e. the pressure dimension is reduced).
+
+    Equations:
+        If β = 0:
+            Zstd(p) = Zb - (R Tb / g) ln(p / Pb)
+
+        If β ≠ 0:
+            Zstd(p) = Zb + (Tb / β) [ (p / Pb)^(-β R / g) - 1 ]
+
+        where
+
+        Pb is the pressure at base (hPa)
+
+        Zb is the geopotential height at base (m)
+
+        Tb is the temperature at base (K)
+
+        β is the vertical temperature gradient (K m-1)
     """
 
     def __init__(
@@ -84,6 +86,17 @@ class StandardGeopotentialHeight(PostProcessingPlugin):
         pressure_min_hpa: float = 10.0,
         pressure_max_hpa: float = 1000.0,
     ) -> None:
+        """Initialise the class
+        Args:
+            model_id_attr:
+                Name of the attribute used to identify the source model. If provided,
+                mandatory attributes will be generated consistently.
+            pressure_min_hpa:
+                Minimum pressure processed (hPa). Defaults to 10 hPa.
+            pressure_max_hpa:
+                Maximum pressure processed (hPa). Defaults to 1000 hPa.
+
+        """
         self.model_id_attr = model_id_attr
         self.pressure_min_hpa = float(pressure_min_hpa)
         self.pressure_max_hpa = float(pressure_max_hpa)
@@ -107,7 +120,7 @@ class StandardGeopotentialHeight(PostProcessingPlugin):
 
     @staticmethod
     def _to_hpa(pressure_coord: Coord) -> np.ndarray:
-        """Convert pressure coordinate points to hPa without mutating the cube."""
+        """Return a copy of the pressure coordinate points converted to hPa."""
         points = np.array(pressure_coord.points, dtype=np.float64)
         in_units = pressure_coord.units
         out_units = Unit("hPa")
@@ -129,6 +142,13 @@ class StandardGeopotentialHeight(PostProcessingPlugin):
             p <= 54.75  -> mesosphere
             p <= 226.32 -> stratosphere
             else        -> troposphere
+
+            Args:
+                p_hpa: array of input pressure levels
+
+            Returns:
+                pb, Zb, Tb, beta corresponding to each pressure level
+
         """
         p_hpa = np.asarray(p_hpa, dtype=np.float64)
 
@@ -171,7 +191,12 @@ class StandardGeopotentialHeight(PostProcessingPlugin):
 
     @staticmethod
     def _standard_geopotential_height_1d(p_hpa: np.ndarray) -> np.ndarray:
-        """Compute 1D standard geopotential height (m) for pressure levels (hPa)."""
+        """Compute 1D standard geopotential height (m) for pressure levels (hPa).
+            Args:
+                p_hpa: array of pressure levels (hPa)
+            Returns:
+                corresponding array of standard geopotential height (m)
+        """
         pb, zb, tb, beta = StandardGeopotentialHeight._layer_params_for_pressure(p_hpa)
 
         r = float(R_DRY_AIR)
@@ -197,7 +222,14 @@ class StandardGeopotentialHeight(PostProcessingPlugin):
     def _broadcast_to_template(
         z_1d: np.ndarray, template: Cube, pressure_coord: Coord
     ) -> np.ndarray:
-        """Broadcast 1D values along the pressure dimension to match template shape."""
+        """Broadcast 1D values along the pressure dimension to match template shape.
+            Args:
+                z_1d: 1D array of values to broadcast
+                template: template cube
+                pressure_coord: pressure coordinates
+            Returns:
+                broadcast 1D array of values
+        """
         pressure_dims = template.coord_dims(pressure_coord)
 
         if len(pressure_dims) == 0:
@@ -229,7 +261,6 @@ class StandardGeopotentialHeight(PostProcessingPlugin):
             p_hpa_max:  maximum valid pressure for D-factors computation
 
         Returns:
-
             masked cube (same as input cube)
 
         """
@@ -262,10 +293,15 @@ class StandardGeopotentialHeight(PostProcessingPlugin):
         return geopotential_height_cube
 
     def process(self, geopotential_height_cube: Cube) -> Cube:
-        """Create standard geopotential height cube using pressure-filtered template.
+        """Create standard geopotential height cube using a pressure-filtered template.
 
         Pressure levels within the configured expected range are included in
         the output cube. Out-of-range pressure levels are masked out.
+
+            Args:
+                geopotential_height_cube: cube filled with geopotential heights
+            Returns:
+                standard geopotential height cube: cube filled with standard geopotential heights
         """
 
         # Take a deep copy as the masking of the cube may be altered.
