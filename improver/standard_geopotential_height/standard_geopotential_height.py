@@ -192,10 +192,10 @@ class StandardGeopotentialHeight(PostProcessingPlugin):
     @staticmethod
     def _standard_geopotential_height_1d(p_hpa: np.ndarray) -> np.ndarray:
         """Compute 1D standard geopotential height (m) for pressure levels (hPa).
-            Args:
-                p_hpa: array of pressure levels (hPa)
-            Returns:
-                corresponding array of standard geopotential height (m)
+        Args:
+            p_hpa: array of pressure levels (hPa)
+        Returns:
+            corresponding array of standard geopotential height (m)
         """
         pb, zb, tb, beta = StandardGeopotentialHeight._layer_params_for_pressure(p_hpa)
 
@@ -223,12 +223,12 @@ class StandardGeopotentialHeight(PostProcessingPlugin):
         z_1d: np.ndarray, template: Cube, pressure_coord: Coord
     ) -> np.ndarray:
         """Broadcast 1D values along the pressure dimension to match template shape.
-            Args:
-                z_1d: 1D array of values to broadcast
-                template: template cube
-                pressure_coord: pressure coordinates
-            Returns:
-                broadcast 1D array of values
+        Args:
+            z_1d: 1D array of values to broadcast
+            template: template cube
+            pressure_coord: pressure coordinates
+        Returns:
+            broadcast 1D array of values
         """
         pressure_dims = template.coord_dims(pressure_coord)
 
