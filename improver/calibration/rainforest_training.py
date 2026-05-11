@@ -119,6 +119,7 @@ class TrainRainForestsModel(BasePlugin):
                     f"Threshold '{threshold}' not found in model config for lead time {lead_time}."
                 )
 
+        for threshold in thresholds:
             model_path = Path(self.config[lead_time][threshold]["lightgbm_model"])
             self._train_model(float(threshold), model_path)
 

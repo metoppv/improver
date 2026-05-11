@@ -208,6 +208,12 @@ def test_process_missing_lead_time(model_config, deterministic_training_data):
     with pytest.raises(KeyError):
         trainer.process(invalid_lead_time, thresholds)
 
+    # Check that none of the models were trained
+    for lead_time, thresholds in model_config.items():
+        for threshold in thresholds:
+            lightgbm_path = Path(model_config[lead_time][threshold]["lightgbm_model"])
+            assert not lightgbm_path.exists()
+
 
 def test_process_missing_threshold(model_config, deterministic_training_data):
     """Test lightgbm models are not created for invalid threshold."""
@@ -224,3 +230,9 @@ def test_process_missing_threshold(model_config, deterministic_training_data):
 
     with pytest.raises(KeyError):
         trainer.process(lead_time, invalid_thresholds)
+
+    # Check that none of the models were trained
+    for lead_time, thresholds in model_config.items():
+        for threshold in thresholds:
+            lightgbm_path = Path(model_config[lead_time][threshold]["lightgbm_model"])
+            assert not lightgbm_path.exists()
