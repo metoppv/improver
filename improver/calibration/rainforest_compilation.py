@@ -31,7 +31,7 @@ class CompileRainForestsModel(BasePlugin):
         Args:
             model_config_dict:
                 Dictionary describing the high-level RainForests model structure;
-                - top level key describes the lead-hour, 
+                - top level key describes the lead-hour,
                 - next level key describes the threshold,
                 - corresponding values locate the associated model file.
             toolchain (str):

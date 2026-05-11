@@ -26,14 +26,14 @@ class TrainRainForestsModel(BasePlugin):
         training_data,
         observation_column,
         training_columns,
-        lightgbm_params=None,
+        parameters=None,
     ):
         """Initialise the options used when training models.
 
         Args:
             model_config_dict:
                 Dictionary describing the high-level RainForests model structure;
-                - top level key describes the lead-hour, 
+                - top level key describes the lead-hour,
                 - next level key describes the threshold,
                 - corresponding values locate the associated model file.
             training_data (pandas.DataFrame):
@@ -42,8 +42,9 @@ class TrainRainForestsModel(BasePlugin):
                 The column in the data set to be trained for.
             training_columns (List(str)):
                 Set of columns from the data set to be trained from.
-            lightgbm_params (Dict):
-                Optional. Parameters passed into training library.
+            parameters (Dict):
+                Optional. Parameters passed into training library. Any parameters
+                here will override the default parameters.
 
         Dictionary is of format::
 
@@ -94,9 +95,9 @@ class TrainRainForestsModel(BasePlugin):
         # Keep only the columns relevant for training.
         self.training_data = training_data[training_columns + [observation_column]]
 
-        # Merge default params with optional params.
-        lightgbm_params = lightgbm_params or {}
-        self.lightgbm_params = self.lightgbm_params | lightgbm_params
+        # Merge default params with overrides from constructor argument.
+        if parameters:
+            self.lightgbm_params = self.lightgbm_params | parameters
 
     def process(self, lead_time, thresholds):
         """Train models for a set of threshold values.

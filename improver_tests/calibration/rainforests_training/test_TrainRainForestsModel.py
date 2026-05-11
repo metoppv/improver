@@ -4,6 +4,7 @@
 # See LICENSE in the root of the repository for full licensing details.
 
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -104,6 +105,90 @@ def test_process(model_config, deterministic_training_data):
     for threshold in thresholds:
         expected_path = model_config[lead_time][threshold]["lightgbm_model"]
         assert Path(expected_path).exists()
+
+
+@patch("lightgbm.train")
+def test_process_calls_train(mock_train, model_config, deterministic_training_data):
+    """Test lightgbm models are created at specified path."""
+
+    lead_time, training_data, observation_column, training_columns = (
+        deterministic_training_data
+    )
+
+    trainer = TrainRainForestsModel(
+        model_config, training_data, observation_column, training_columns
+    )
+
+    thresholds = model_config[lead_time].keys()
+
+    trainer.process(lead_time, thresholds)
+    assert mock_train.call_count == len(thresholds)
+
+
+@patch("lightgbm.train")
+def test_process_calls_train_with_default_params(
+    mock_train, model_config, deterministic_training_data
+):
+    """Test lightgbm models are created at specified path."""
+
+    lead_time, training_data, observation_column, training_columns = (
+        deterministic_training_data
+    )
+
+    trainer = TrainRainForestsModel(
+        model_config, training_data, observation_column, training_columns
+    )
+
+    # Process just one threshold
+    trainer.process(lead_time, ["0.0000"])
+
+    # Test the parameters actually used in the train call.
+    params = mock_train.call_args.args[0]
+    assert params == {
+        "objective": "binary",
+        "num_leaves": 5,
+        "seed": 0,
+    }
+
+
+@patch("lightgbm.train")
+def test_process_calls_train_with_override_params(
+    mock_train, model_config, deterministic_training_data
+):
+    """Test lightgbm models are created at specified path."""
+
+    lead_time, training_data, observation_column, training_columns = (
+        deterministic_training_data
+    )
+
+    override_params = {
+        # Override a param already in the defaults
+        "objective": "regression",
+        # Add a param not in the defaults
+        "num_threads": 48,
+    }
+
+    # Pass the override params into constructor.
+    trainer = TrainRainForestsModel(
+        model_config,
+        training_data,
+        observation_column,
+        training_columns,
+        override_params,
+    )
+
+    # Process just one threshold
+    trainer.process(lead_time, ["0.0000"])
+
+    # Test the parameters actually used in the train call.
+    params = mock_train.call_args.args[0]
+
+    # Default params not present in constructor args should be retained.
+    assert params["num_leaves"] == 5
+    # Params that are only in the constructor arg should be included.
+    assert params["num_threads"] == 48
+    # Where there is a clash, param in constructor argument is used.
+    assert params["objective"] == "regression"
 
 
 def test_process_missing_lead_time(model_config, deterministic_training_data):
