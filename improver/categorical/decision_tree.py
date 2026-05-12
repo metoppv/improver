@@ -136,7 +136,7 @@ class ApplyDecisionTree(BasePlugin):
         self.queries = update_tree_thresholds(
             {k: v for k, v in decision_tree.items() if k != "meta"}, target_period
         )
-        self.float_tolerance = 0.01
+        self.float_tolerance = 0.001
         self.float_abs_tolerance = 1e-12
         # flag to indicate whether to expect "threshold" as a coordinate name
         # (defaults to False, checked on reading input cubes)
@@ -237,13 +237,14 @@ class ApplyDecisionTree(BasePlugin):
                     if threshold_name == "threshold" and not self.coord_named_threshold:
                         self.coord_named_threshold = True
 
-                    # Check threshold == 0.0
+                    # Special case - if threshold is ~ 0.0 - use an absolute tolerance for close values
                     if abs(threshold) < self.float_abs_tolerance:
                         coord_constraint = {
                             threshold_name: lambda cell: np.isclose(
                                 cell.point, 0, rtol=0, atol=self.float_abs_tolerance
                             )
                         }
+                    # General case - if threshold is non-zero - use a relative tolerance for close values
                     else:
                         coord_constraint = {
                             threshold_name: lambda cell: np.isclose(
@@ -264,6 +265,11 @@ class ApplyDecisionTree(BasePlugin):
                         missing_data.append(
                             f"name: {diagnostic}, threshold: {threshold}, "
                             f"spp__relative_to_threshold: {condition}\n"
+                        )
+                    elif len(matched_threshold[0].coord(threshold_name).points) > 1:
+                        raise ValueError(
+                            f"Multiple ({len(matched_threshold[0].coord(threshold_name).points)}) matching thresholds found "
+                            f"for name: {diagnostic}, threshold {threshold}"
                         )
                     else:
                         used_cubes.extend(matched_threshold)
