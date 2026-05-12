@@ -498,7 +498,12 @@ def test_broadcast_to_template_pressure_dims_zero() -> None:
     pressure_coord = geo._get_pressure_coord(input_cube)
     # looking for "time" to fake finding 0 pressure dimensions
     # not meaningful semantically, but will trigger obscure code path
-    geo._broadcast_to_template(pressure_coord.points[0:1], input_cube, "time")
+
+    result = geo._broadcast_to_template(pressure_coord.points[0:1], input_cube, "time")
+
+    assert result.shape == input_cube.shape
+    assert np.allclose(result, pressure_coord.points[0])
+
 
 
 def test_broadcast_to_template() -> None:
@@ -508,7 +513,12 @@ def test_broadcast_to_template() -> None:
 
     geo = StandardGeopotentialHeight(pressure_max_hpa=200000, pressure_min_hpa=0.1)
     pressure_coord = geo._get_pressure_coord(input_cube)
-    geo._broadcast_to_template(pressure_coord.points, input_cube, pressure_coord)
+    result = geo._broadcast_to_template(pressure_coord.points, input_cube, pressure_coord)
+
+    expected_result = np.broadcast_to( pressure_coord.points[:,None,None], input_cube.shape)
+
+    assert result.shape == input_cube.shape
+    assert np.allclose(result, expected_result)
 
 
 def test_bad_pressure_units() -> None:
