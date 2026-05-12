@@ -36,7 +36,7 @@ def test_basic(
     history_path = kgo_dir / "spot_calibration_tables"
     truth_path = kgo_dir / "spot_observation_tables"
     config_path = kgo_dir / "config.json"
-    kwargs_path = kgo_dir / "kwargs.json"
+    qrf_kwargs_path = kgo_dir / "qrf_kwargs.json"
     output_path = tmp_path / "output.pickle"
     compulsory_args = [history_path, truth_path]
     named_args = [
@@ -62,8 +62,8 @@ def test_basic(
         "42",
         "--compression-level",
         "5",
-        "--kwargs",
-        kwargs_path,
+        "--qrf-kwargs",
+        qrf_kwargs_path,
         "--output",
         output_path,
     ]
@@ -87,7 +87,7 @@ def test_missing_inputs(
     """
     kgo_dir = acc.kgo_root() / CLI
     config_path = kgo_dir / "config.json"
-    kwargs_path = kgo_dir / "kwargs.json"
+    qrf_kwargs_path = kgo_dir / "qrf_kwargs.json"
     output_path = tmp_path / "output.pickle"
     compulsory_args = []
     named_args = [
@@ -113,8 +113,8 @@ def test_missing_inputs(
         "42",
         "--compression-level",
         "5",
-        "--kwargs",
-        kwargs_path,
+        "--qrf-kwargs",
+        qrf_kwargs_path,
         "--output",
         output_path,
     ]
@@ -134,7 +134,7 @@ def test_invalid_cycletime(
     """
     kgo_dir = acc.kgo_root() / CLI
     config_path = kgo_dir / "config.json"
-    kwargs_path = kgo_dir / "kwargs.json"
+    qrf_kwargs_path = kgo_dir / "qrf_kwargs.json"
     output_path = tmp_path / "output.pickle"
     history_path = kgo_dir / "spot_calibration_tables"
     truth_path = kgo_dir / "spot_observation_tables"
@@ -162,8 +162,8 @@ def test_invalid_cycletime(
         "42",
         "--compression-level",
         "5",
-        "--kwargs",
-        kwargs_path,
+        "--qrf-kwargs",
+        qrf_kwargs_path,
         "--output",
         output_path,
     ]
