@@ -15,7 +15,7 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
-ATTRIBUTES_PATH = acc.kgo_root() / "subperiod-selector/metadata/metadata.json"
+THRESHOLDS_JSON = acc.kgo_root() / "threshold_kwargs.json"
 
 
 def test_basic(tmp_path):
@@ -42,7 +42,7 @@ def test_basic(tmp_path):
     args = input_paths + [
         "--percentile=50",
         "--threshold-kwargs",
-        input_dir / "threshold_kwargs.json",
+        THRESHOLDS_JSON,
         "--output",
         output_path,
     ]

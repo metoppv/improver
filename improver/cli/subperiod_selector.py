@@ -35,7 +35,9 @@ def process(
         new_name (str):
             Name of output cube.
         threshold_kwargs:
-            Keyword arguments specifying the names and values of threshold coords associated with the main period diagnostic to select. One of these will also match the threshold coord on the subperiod diagnostic, which will be used to identify which subperiods to select.
+            Keyword arguments specifying the names and values of threshold coords associated with the main period
+            diagnostic to select. One of these will also match the threshold coord on the subperiod diagnostic,
+            which will be used to identify which subperiods to select.
 
     Returns:
         iris.cube.Cube

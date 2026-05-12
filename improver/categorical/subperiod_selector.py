@@ -7,6 +7,7 @@ import numpy as np
 from iris.cube import Cube
 
 from improver import PostProcessingPlugin
+from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 
 class SubperiodSelector(PostProcessingPlugin):
@@ -30,8 +31,7 @@ class SubperiodSelector(PostProcessingPlugin):
 
         Args:
             percentile: The percentile of the main period diagnostic to select.
-            new_name:
-                Name of output cube.
+            new_name: Name of output cube.
             **threshold_kwargs: Keyword arguments specifying the names and values of threshold coords
                 associated with the main period diagnostic to select. One of these will also match the
                 threshold coord on the subperiod diagnostic, which will be used to identify which subperiods to select.
@@ -50,6 +50,18 @@ class SubperiodSelector(PostProcessingPlugin):
         subperiod data indicate the likelihood of the phenomenon occurring in each subperiod.
         The subperiods with the highest likelihood are selected until the number of selected subperiods
         matches the value from the main period data.
+
+        Args:
+            main_period_data:
+                2D array containing the main period diagnostic slice, with values indicating the fraction of
+                subperiods to select.
+            subperiod_data:
+                3D array containing the subperiod diagnostic slice, with values indicating the likelihood of
+                the phenomenon occurring in each subperiod.
+
+        Returns:
+            3D array with the same shape as subperiod_data, where the selected subperiods are indicated by 1
+            and the non-selected subperiods are indicated by 0.
         """
         number_of_subperiods = subperiod_data.shape[0]
         selected_subperiods = np.zeros_like(subperiod_data)
@@ -74,12 +86,40 @@ class SubperiodSelector(PostProcessingPlugin):
                 1,
                 selected_subperiods[subperiods_to_select, idx_y, idx_x],
             )
-        return selected_subperiods.astype(np.dtype("i1"))
+        return selected_subperiods.astype(np.int8)
 
     def _apply_constraints(
         self, main_period_cube: Cube, subperiod_cube: Cube
-    ) -> (Cube, Cube):
-        """Select the required cube slices"""
+    ) -> tuple[Cube, Cube]:
+        """
+        Select the required cube slices
+
+        The main period cube is expected to have a percentile coordinate and one or more threshold coordinates,
+        and the subperiod cube is expected to have a time coordinate and one or more threshold coordinates that
+        match those on the main period cube.
+        The required slice is selected from the main period cube using the percentile and threshold constraints,
+        and the required slice is selected from the subperiod cube using whichever of the threshold constraints
+        matches a coordinate on the subperiod cube.
+
+        Args:
+            main_period_cube:
+                Cube containing the main period diagnostic to select, with a percentile coordinate and one or
+                more threshold coordinates.
+            subperiod_cube:
+                Cube containing the subperiod diagnostic to select, with a time coordinate and one or more
+                threshold coordinates that match those on the main period cube.
+
+        Returns:
+            main_period_slice: The selected slice from the main period cube.
+            subperiod_slice: The selected slice from the subperiod cube.
+
+        Raises:
+            ValueError: If no data is found in the main period cube matching the percentile and threshold constraints.
+            ValueError: If no matching threshold coordinate is found on the subperiod cube.
+            ValueError: If no data is found in the subperiod cube matching the threshold constraints.
+            ValueError: If the subperiod cube does not have exactly one more dimension than the main period cube.
+
+        """
         # Select the required main period diagnostic slice
         constraints = iris.Constraint(percentile=self.percentile)
         for key, value in self.threshold_kwargs.items():
@@ -122,16 +162,12 @@ class SubperiodSelector(PostProcessingPlugin):
 
         Returns:
             Cube indicating the selected subperiods.
-
-        Raises:
-            ValueError: If no data is found in the main period cube matching the percentile and threshold constraints.
-            ValueError: If no matching threshold coordinate is found on the subperiod cube.
-            ValueError: If no data is found in the subperiod cube matching the threshold constraints.
-            ValueError: If the subperiod cube does not have exactly one more dimension than the main period cube.
         """
         main_period_slice, subperiod_slice = self._apply_constraints(
             main_period_cube, subperiod_cube
         )
+        coord_names = ["time"] + [c.name() for c in main_period_slice.dim_coords]
+        enforce_coordinate_ordering(subperiod_slice, coord_names)
 
         selected_periods = self._pick_subperiods(
             main_period_slice.data, subperiod_slice.data
