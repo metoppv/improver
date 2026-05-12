@@ -27,6 +27,7 @@ def process(
     transformation: str = None,
     pre_transform_addition: float = 0,
     unique_site_id_keys: cli.comma_separated_list = "wmo_id",
+    kwargs: cli.inputjson = None,
 ):
     """Training a model using Quantile Regression Random Forest.
 
@@ -147,7 +148,8 @@ def process(
     if forecast_df is None or truth_df is None or cube_inputs is None:
         return None
 
-    kwargs = {}
+    if kwargs is None:
+        kwargs = {}
     if max_features is not None:
         kwargs["max_features"] = max_features
     result = PrepareAndTrainQRF(
