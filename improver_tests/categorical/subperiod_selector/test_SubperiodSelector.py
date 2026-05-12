@@ -70,13 +70,13 @@ def test_basic(main_period_cube, subperiod_cube, wet_fraction, wet_periods, new_
     result = plugin(main_period_cube, subperiod_cube)
 
     assert isinstance(result, Cube)
-    expected_data = np.zeros_like(subperiod_cube.data[:, 0, ...], dtype="i1")
+    expected_data = np.zeros_like(subperiod_cube.data[:, 0, ...], dtype=np.int8)
     for wp in wet_periods:
         expected_data[wp, :] = 1
     assert np.array_equal(result.data, expected_data)
     assert result.name() == "selected_subperiods" if new_name is None else new_name
     assert result.units == "1"
-    assert result.dtype is np.dtype("i1")
+    assert result.dtype is np.dtype(np.int8)
 
 
 @pytest.mark.parametrize(
