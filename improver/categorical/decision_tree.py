@@ -275,15 +275,17 @@ class ApplyDecisionTree(BasePlugin):
                             f"name: {diagnostic}, threshold: {threshold}, "
                             f"spp__relative_to_threshold: {condition}\n"
                         )
-                    elif len(matched_threshold[0].coord(threshold_name).points) > 1:
-                        raise ValueError(
-                            f"Multiple ({
-                            len(matched_threshold[0].coord(threshold_name).points)
-                            }) matching thresholds found "
-                            f"for name: {diagnostic}, threshold {threshold}"
-                        )
                     else:
-                        used_cubes.extend(matched_threshold)
+                        num_thresholds = len(
+                            matched_threshold[0].coord(threshold_name).points
+                        )
+                        if num_thresholds > 1:
+                            raise ValueError(
+                                f"Multiple ({num_thresholds}) matching thresholds found"
+                                f" for name: {diagnostic}, threshold {threshold}"
+                            )
+                        else:
+                            used_cubes.extend(matched_threshold)
 
         if missing_data:
             msg = (

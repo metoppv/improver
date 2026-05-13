@@ -591,9 +591,7 @@ class Test_prepare_input_cubes(Test_WXCode):
     def test_raises_error_matching_threshold(self):
         """Test prepare_input_cubes method raises error for matching thresholds in a
         diagnostic."""
-        cubes = self.cubes
-        cube = cubes[0]
-        threshold_coord = find_threshold_coordinate(cube)
+        threshold_coord = find_threshold_coordinate(self.cubes[0])
         additional_threshold = threshold_coord.points[0] * (
             1 + 0.5 * self.plugin.float_tolerance
         )
@@ -611,7 +609,7 @@ class Test_prepare_input_cubes(Test_WXCode):
         )
 
         with self.assertRaisesRegex(ValueError, msg):
-            self.plugin.prepare_input_cubes(cubes)
+            self.plugin.prepare_input_cubes(self.cubes)
 
     def test_zero_threshold_uses_absolute_tolerance(self):
         """Test prepare_input_cubes method uses absolute tolerance when the threshold
@@ -625,7 +623,7 @@ class Test_prepare_input_cubes(Test_WXCode):
         threshold_coord.points = np.array(
             [0.1 * self.plugin.float_abs_tolerance], dtype=np.float32
         )
-        used_cubes, optional_node_data_missing = self.plugin.prepare_input_cubes(cubes)
+        used_cubes, _ = self.plugin.prepare_input_cubes(cubes)
         self.assertIn(lightning_cube, used_cubes)
 
 
