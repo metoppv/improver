@@ -50,7 +50,7 @@ class StandardGeopotentialHeight(PostProcessingPlugin):
     The input cube is used as a template. The output values depend only on the
     pressure coordinate points and are broadcast across the remaining dimensions.
 
-    Any pressure levels outside the configured range (default 10–1000 hPa) are excluded from 
+    Any pressure levels outside the configured range (default 10–1000 hPa) are excluded from
     the output cube (i.e. the pressure dimension is reduced).
 
     .. include:: extended_documentation/standard_geopotential_height/standard_geopotential_height/standard_geopotential_height.rst
