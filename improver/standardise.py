@@ -204,13 +204,13 @@ class StandardiseMetadata(BasePlugin):
             if cube.coords(coord_name):
                 if cube.coords(coord_name, dim_coords=True):
                     raise ValueError(
-                        f"Modifying attributes of dimension coordinate "
+                        "Modifying attributes of dimension coordinate "
                         f"'{coord_name}' is not allowed due to the risk of "
-                        f"introducing errors."
+                        "introducing errors."
                     )
                 if _is_time_coord(cube.coord(coord_name)):
                     raise ValueError(
-                        f"Modifying attributes of time coordinate "
+                        "Modifying attributes of time coordinate "
                         f"'{coord_name}' is not allowed."
                     )
                 cube.coord(coord_name).attributes.update(attrs_dict)
