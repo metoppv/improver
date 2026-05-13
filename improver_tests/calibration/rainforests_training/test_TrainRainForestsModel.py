@@ -129,7 +129,7 @@ def test_process_calls_train(mock_train, model_config, deterministic_training_da
 def test_process_calls_train_with_default_params(
     mock_train, model_config, deterministic_training_data
 ):
-    """Test lightgbm models are created at specified path."""
+    """Test default lightgbm params are used if none are specified."""
 
     lead_time, training_data, observation_column, training_columns = (
         deterministic_training_data
@@ -155,7 +155,7 @@ def test_process_calls_train_with_default_params(
 def test_process_calls_train_with_override_params(
     mock_train, model_config, deterministic_training_data
 ):
-    """Test lightgbm models are created at specified path."""
+    """Test default lightgbm params can be overridden."""
 
     lead_time, training_data, observation_column, training_columns = (
         deterministic_training_data
@@ -189,6 +189,33 @@ def test_process_calls_train_with_override_params(
     assert params["num_threads"] == 48
     # Where there is a clash, param in constructor argument is used.
     assert params["objective"] == "regression"
+
+
+@patch("lightgbm.train")
+def test_process_calls_train_with_all_columns(
+    mock_train, model_config, deterministic_training_data
+):
+    """Test lightgbm training is provided with only the specified training columns."""
+
+    lead_time, training_data, observation_column, training_columns = (
+        deterministic_training_data
+    )
+
+    # Pass the override params into constructor.
+    trainer = TrainRainForestsModel(
+        model_config,
+        training_data,
+        observation_column,
+        training_columns,
+    )
+
+    # Process just one threshold
+    trainer.process(lead_time, ["0.0000"])
+
+    # Check the data actually used in the train call (a lightgbm.Dataset) has only
+    # the training columns.
+    dataset = mock_train.call_args.args[1]
+    assert set(dataset.data.columns) == set(training_columns)
 
 
 def test_process_missing_lead_time(model_config, deterministic_training_data):
