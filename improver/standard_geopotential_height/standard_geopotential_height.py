@@ -50,34 +50,10 @@ class StandardGeopotentialHeight(PostProcessingPlugin):
     The input cube is used as a template. The output values depend only on the
     pressure coordinate points and are broadcast across the remaining dimensions.
 
-    Any pressure levels outside the configured range are excluded from the output.
+    Any pressure levels outside the configured range (default 10–1000 hPa) are excluded from 
+    the output cube (i.e. the pressure dimension is reduced).
 
     .. include:: extended_documentation/standard_geopotential_height/standard_geopotential_height/standard_geopotential_height.rst
-
-    The standard geopotential height is calculated using the ICAO standard atmosphere
-    lookup table and barometric formulae described in the D-Factors workflow design.
-
-    Pressure handling:
-        Only pressure levels within the configured range (default 10–1000 hPa) are
-        processed and included in the output cube. Any levels outside this range are
-        excluded from the returned cube (i.e. the pressure dimension is reduced).
-
-    Equations:
-        If β = 0:
-            Zstd(p) = Zb - (R Tb / g) ln(p / Pb)
-
-        If β ≠ 0:
-            Zstd(p) = Zb + (Tb / β) [ (p / Pb)^(-β R / g) - 1 ]
-
-        where
-
-        Pb is the pressure at base (hPa)
-
-        Zb is the geopotential height at base (m)
-
-        Tb is the temperature at base (K)
-
-        β is the vertical temperature gradient (K m-1)
     """
 
     def __init__(
