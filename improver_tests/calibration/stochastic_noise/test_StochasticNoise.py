@@ -129,7 +129,18 @@ def test_process(
         )
         cube = set_up_variable_cube(data=data, name="precipitation_rate", units="mm/hr")
 
-    result = plugin.process(cube)
+        # Noise will be added only to zero values; non-zero values should remain
+        # unchanged
+        expected = np.array(
+            [
+                [[1.1456498, 3.0], [0.8874278, 4.0]],
+                [[1.1456498, 3.2], [0.8874278, 4.2]],
+            ],
+            dtype=np.float32,
+        )
+
+    with pytest.warns(UserWarning, match="multi-realization dimension"):
+        result = plugin.process(cube)
 
     if test_case == "with_zero_values":
         # SSFT output for this tiny field can vary. We thus test with stable invariants
@@ -171,7 +182,8 @@ def test_scale_non_positive_noise():
     )
     cube = set_up_variable_cube(data=data, name="precipitation_rate", units="mm/hr")
 
-    result = plugin.process(cube)
+    with pytest.warns(UserWarning, match="multi-realization dimension"):
+        result = plugin.process(cube)
 
     # Non-zero values should remain unchanged
     non_zero_mask = data > 0
@@ -184,30 +196,48 @@ def test_scale_non_positive_noise():
     ), "Noise in non-positive regions should be <= 0"
 
 
+def test_process_scalar_realization_coord():
+    """Test processing a cube with scalar realization coordinate.
+
+    The input has no realization dimension.
+    """
+    plugin = StochasticNoise(
+        ssft_init_params={"domain_size": [2, 2], "overlap": 0},
+        ssft_generate_params={"seed": 0},
+        db_threshold=0.03,
+        db_threshold_units="mm/hr",
+    )
+
+    data = np.array(
+        [
+            [[0.0, 3.0], [0.0, 4.0]],
+            [[0.0, 3.2], [0.0, 4.2]],
+        ],
+        dtype=np.float32,
+    )
+    cube = set_up_variable_cube(data=data, name="precipitation_rate", units="mm/hr")
+    single_realization_cube = cube[0, :, :]
+
+    result = plugin.process(single_realization_cube)
+
+    assert isinstance(result, Cube)
+    assert result.shape == single_realization_cube.shape
+
+
 def test_non_positive_threshold():
     """Test that ValueError is raised for non-positive db_threshold."""
     with pytest.raises(ValueError, match="db_threshold must be a positive value."):
         StochasticNoise(db_threshold=0)
 
 
-def test_allow_seeded_parallel_processing_warning():
-    """Test that a warning is raised when using a seeded plugin with parallel
-    processing."""
-    plugin = StochasticNoise(
-        ssft_generate_params={"seed": 0},
-        allow_seeded_parallel_processing=True,
-    )
-    # Create a cube with some non-positive values to trigger the warning
-    data = np.array(
-        [
-            [[0.0, 1.0], [0.0, 2.0]],
-            [[0.0, 1.1], [0.0, 2.1]],
-        ],
-        dtype=np.float32,
-    )
-    cube = set_up_variable_cube(data=data, name="precipitation_rate", units="mm/hr")
+def test_init_warning():
+    """Test that a warning is raised when using a seeded plugin with
+    allow_seeded_parallel_processing."""
     with pytest.warns(
         UserWarning,
-        match="Using multiple workers with a fixed seed may introduce run-to-run",
+        match="Using multiple workers with a fixed seed",
     ):
-        plugin.process(cube)
+        StochasticNoise(
+            ssft_generate_params={"seed": 0},
+            allow_seeded_parallel_processing=True,
+        )
