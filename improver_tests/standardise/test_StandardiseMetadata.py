@@ -336,6 +336,81 @@ class Test_process(ImproverTest):
         ).process(cube)
         self.assertEqual(len(result.ancillary_variables()), 0)
 
+    def test_modify_scalar_coord_attributes_single_attr(self):
+        """Test modifying a single attribute on a scalar coordinate."""
+        cube = self.cube.copy()
+        # Add scalar height coordinate without attributes
+        cube.add_aux_coord(DimCoord([1.5], standard_name="height", units="m"))
+
+        coord_attribute_modification = {"height": {"positive": "up"}}
+        plugin = StandardiseMetadata(
+            coord_attribute_modification=coord_attribute_modification
+        )
+        result = plugin.process(cube)
+
+        self.assertEqual(result.coord("height").attributes["positive"], "up")
+
+    def test_modify_scalar_coord_attributes_nonexistent_coord(self):
+        """Test that non-existent coordinates are silently skipped."""
+        cube = self.cube.copy()
+        # Add scalar height coordinate
+        cube.add_aux_coord(DimCoord([1.5], standard_name="height", units="m"))
+
+        # Try to modify attributes on non-existent coordinate
+        coord_attribute_modification = {
+            "height": {"positive": "up"},
+            "nonexistent": {"some_attr": "value"},
+        }
+        plugin = StandardiseMetadata(
+            coord_attribute_modification=coord_attribute_modification
+        )
+        # Should not raise an error
+        result = plugin.process(cube)
+
+        self.assertEqual(result.coord("height").attributes["positive"], "up")
+        self.assertFalse(cube.coords("nonexistent"))
+
+    def test_attempt_modify_dimension_coord_attributes(self):
+        """Test that an exception is raised if trying to modify attributes
+        of a dimension coordinate."""
+        coord_attribute_modification = {"latitude": {"positive": "north"}}
+        msg = "Modifying attributes of dimension coordinate"
+        plugin = StandardiseMetadata(
+            coord_attribute_modification=coord_attribute_modification
+        )
+
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin.process(self.cube)
+
+    def test_attempt_modify_time_coord_attributes(self):
+        """Test that an exception is raised if trying to modify attributes
+        of time coordinates."""
+        msg = "Modifying attributes of time coordinate"
+        for coord in ["time", "forecast_period", "forecast_reference_time"]:
+            coord_attribute_modification = {coord: {"positive": "up"}}
+            plugin = StandardiseMetadata(
+                coord_attribute_modification=coord_attribute_modification
+            )
+
+            with self.assertRaisesRegex(ValueError, msg):
+                plugin.process(self.cube)
+
+    def test_modify_both_coord_value_and_attributes(self):
+        """Test using coord_modification and coord_attribute_modification
+        together."""
+        cube = self.cube.copy()
+        # Add scalar height coordinate
+        cube.add_aux_coord(DimCoord([1.5], standard_name="height", units="m"))
+
+        plugin = StandardiseMetadata(
+            coord_modification={"height": 2.0},
+            coord_attribute_modification={"height": {"positive": "up"}},
+        )
+        result = plugin.process(cube)
+
+        self.assertEqual(result.coord("height").points, 2.0)
+        self.assertEqual(result.coord("height").attributes["positive"], "up")
+
 
 if __name__ == "__main__":
     unittest.main()

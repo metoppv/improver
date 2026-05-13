@@ -35,6 +35,7 @@ class StandardiseMetadata(BasePlugin):
         new_units: Optional[str] = None,
         coords_to_remove: Optional[List[str]] = None,
         coord_modification: Optional[Dict[str, float]] = None,
+        coord_attribute_modification: Optional[Dict[str, Dict[str, Any]]] = None,
         attributes_dict: Optional[Dict[str, Any]] = None,
         ancillary_variables_to_remove: Optional[List[str]] = None,
     ):
@@ -59,6 +60,15 @@ class StandardiseMetadata(BasePlugin):
                 enough to ignore. Type is inferred, so providing a value of 2
                 will result in an integer type, whilst a value of 2.0 will
                 result in a float type.
+            coord_attribute_modification:
+                Optional dictionary used to modify attributes of scalar
+                coordinates. Takes the form:
+                {"coord_name": {"attr_key": "attr_value", ...}, ...}
+                For example: {"height": {"positive": "up"}} to set the
+                positive attribute on the height coordinate. Multiple
+                attributes can be set on a single coordinate, and multiple
+                coordinates can be modified. If the coordinate does not exist,
+                the modification is silently skipped.
             attributes_dict:
                 Optional dictionary of required attribute updates. Keys are
                 attribute names, and values are the required changes.
@@ -71,6 +81,7 @@ class StandardiseMetadata(BasePlugin):
         self._new_units = new_units
         self._coords_to_remove = coords_to_remove
         self._coord_modification = coord_modification
+        self._coord_attribute_modification = coord_attribute_modification
         self._attributes_dict = attributes_dict
         self._ancillary_variables_to_remove = ancillary_variables_to_remove
 
@@ -140,6 +151,11 @@ class StandardiseMetadata(BasePlugin):
             coord_modification:
                 Dictionary defining the coordinates (keys) to be modified
                 and the values (values) to which they should be set.
+
+        Raises:
+            ValueError:
+                If attempting to modify a dimension coordinate, a
+                multi-valued coordinate, or a time coordinate.
         """
         for coord, value in coord_modification.items():
             if cube.coords(coord):
@@ -157,6 +173,47 @@ class StandardiseMetadata(BasePlugin):
                 if _is_time_coord(cube.coord(coord)):
                     raise ValueError("Modifying time coordinates is not allowed.")
                 cube.coord(coord).points = np.array([value])
+
+    @staticmethod
+    def _modify_scalar_coord_attributes(
+        cube: Cube, coord_attribute_modification: Dict[str, Dict[str, Any]]
+    ) -> None:
+        """Modifies the attributes of each specified scalar coordinate.
+        Modifying attributes of dimension coordinates or time coordinates is
+        specifically prevented as there is greater scope to harm data
+        integrity.
+
+        If the coordinate does not exist the modification request is silently
+        skipped.
+
+        Args:
+            cube:
+                Cube to be updated in place
+            coord_attribute_modification:
+                Dictionary defining the coordinates (keys) and attributes
+                (nested dict values) to be modified. For example:
+                {"height": {"positive": "up"}}
+
+        Raises:
+            ValueError:
+                If attempting to modify attributes on a dimension
+                coordinate, a time coordinate, or if prohibited
+                coordinate attributes are provided.
+        """
+        for coord_name, attrs_dict in coord_attribute_modification.items():
+            if cube.coords(coord_name):
+                if cube.coords(coord_name, dim_coords=True):
+                    raise ValueError(
+                        f"Modifying attributes of dimension coordinate "
+                        f"'{coord_name}' is not allowed due to the risk of "
+                        f"introducing errors."
+                    )
+                if _is_time_coord(cube.coord(coord_name)):
+                    raise ValueError(
+                        f"Modifying attributes of time coordinate "
+                        f"'{coord_name}' is not allowed."
+                    )
+                cube.coord(coord_name).attributes.update(attrs_dict)
 
     @staticmethod
     def _standardise_dtypes_and_units(cube: Cube) -> None:
@@ -255,6 +312,10 @@ class StandardiseMetadata(BasePlugin):
             cube.convert_units(self._new_units)
         if self._coord_modification:
             self._modify_scalar_coord_value(cube, self._coord_modification)
+        if self._coord_attribute_modification:
+            self._modify_scalar_coord_attributes(
+                cube, self._coord_attribute_modification
+            )
         if self._attributes_dict:
             amend_attributes(cube, self._attributes_dict)
         self._discard_redundant_cell_methods(cube)
