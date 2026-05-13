@@ -5,13 +5,12 @@
 import numpy as np
 from iris.cube import Cube
 
-from improver.fire_weather import FireWeatherIndexBase
+from improver.fire_weather import FireWeatherBase
 
 
-class BuildUpIndex(FireWeatherIndexBase):
+class BuildUpIndex(FireWeatherBase):
     """
-    Plugin to calculate the Build Up Index (BUI) following
-    the Canadian Forest Fire Weather Index System.
+    Plugin to calculate the Build Up Index (BUI).
 
     The BUI is a numerical rating of the total amount of fuel available
     for combustion. It combines the Duff Moisture Code (DMC) and the
@@ -28,8 +27,8 @@ class BuildUpIndex(FireWeatherIndexBase):
         - Drought Code (DC): dimensionless
     """
 
-    START_DATE_CUBE_NAME = "drought_code"
-    INPUT_CUBE_NAMES = ["duff_moisture_code", START_DATE_CUBE_NAME]
+    METADATA_SOURCE_CUBE = "drought_code"
+    INPUT_CUBE_NAMES = ["duff_moisture_code", METADATA_SOURCE_CUBE]
     OUTPUT_CUBE_NAME = "build_up_index"
 
     # Valid output ranges for warning checks (output_name: (min, max))

@@ -46,6 +46,20 @@ def test_as_cubelist_called(mock_as_cubelist):
     mock_as_cubelist.assert_called_once_with(sentinel.precip_cube, sentinel.hail_cube)
 
 
+def test_maximum_time_discrepancy_default():
+    """Test that maximum_time_discrepancy defaults to 0."""
+    plugin = ApplyDecisionTree(decision_tree=wxcode_decision_tree())
+    assert plugin.maximum_time_discrepancy == 0
+
+
+def test_maximum_time_discrepancy_set():
+    """Test that maximum_time_discrepancy is set correctly."""
+    plugin = ApplyDecisionTree(
+        decision_tree=wxcode_decision_tree(), maximum_time_discrepancy=3600
+    )
+    assert plugin.maximum_time_discrepancy == 3600
+
+
 @pytest.fixture()
 def precip_cube() -> Cube:
     """
@@ -1471,6 +1485,64 @@ class Test_check_coincidence(Test_WXCode):
         expected = cubes[0]
         self.plugin.check_coincidence(cubes)
         self.assertEqual(self.plugin.template_cube, expected)
+
+    def test_time_discrepancy_within_tolerance(self):
+        """Test that no error is raised if validity times differ by less than
+        maximum_time_discrepancy. Lightning and other period diagnostics are
+        excluded as their time coordinate represents the end of a period rather
+        than an instantaneous validity time, which would conflate the period
+        end-time with the instantaneous validity time check being tested here"""
+
+        plugin = ApplyDecisionTree(
+            decision_tree=wxcode_decision_tree(),
+            maximum_time_discrepancy=3600,
+        )
+        cubes = [cube for cube in self.cubes if "lightning" not in cube.name()]
+        cubes[-1] = cubes[-1].copy()
+        cubes[-1].coord("time").points = cubes[-1].coord("time").points + 900
+        assert plugin.check_coincidence(cubes) is None
+
+    def test_time_discrepancy_exceeds_tolerance(self):
+        """Test that an error is raised if validity times differ by more than
+        maximum_time_discrepancy."""
+        plugin = ApplyDecisionTree(
+            decision_tree=wxcode_decision_tree(),
+            maximum_time_discrepancy=3600,
+        )
+        cubes = [cube for cube in self.cubes if "lightning" not in cube.name()]
+        cubes[-1] = cubes[-1].copy()
+        # Shift one cube's time by 7200 seconds (exceeds 3600s tolerance)
+        cubes[-1].coord("time").points = cubes[-1].coord("time").points + 7200
+        msg = (
+            "Decision Tree input cubes have validity times differing by more than "
+            "3600 seconds"
+        )
+        with pytest.raises(ValueError, match=msg):
+            plugin.check_coincidence(cubes)
+
+    def test_zero_maximum_time_discrepancy_falls_back_to_strict(self):
+        """Test that when maximum_time_discrepancy is 0, the strict time
+        coincidence check is used instead."""
+        plugin = ApplyDecisionTree(
+            decision_tree=wxcode_decision_tree(),
+            maximum_time_discrepancy=0,
+        )
+        cubes = [cube for cube in self.cubes if "lightning" not in cube.name()]
+        cubes[-1] = cubes[-1].copy()
+        cubes[-1].coord("time").points = cubes[-1].coord("time").points + 3600
+        msg = "Decision Tree input cubes are valid at different times"
+        with pytest.raises(ValueError, match=msg):
+            plugin.check_coincidence(cubes)
+
+    def test_negative_maximum_time_discrepancy_raises(self):
+        """Test that a negative maximum_time_discrepancy raises a ValueError."""
+        with pytest.raises(
+            ValueError, match="maximum_time_discrepancy must be a positive integer"
+        ):
+            ApplyDecisionTree(
+                decision_tree=wxcode_decision_tree(),
+                maximum_time_discrepancy=-3600,
+            )
 
 
 class Test_create_categorical_cube(unittest.TestCase):

@@ -84,6 +84,7 @@ class ApplyDecisionTree(BasePlugin):
         record_run_attr: Optional[str] = None,
         target_period: Optional[int] = None,
         title: Optional[str] = None,
+        maximum_time_discrepancy: int = 0,
     ) -> None:
         """
         Define a decision tree for determining a category based upon
@@ -111,6 +112,12 @@ class ApplyDecisionTree(BasePlugin):
                 output. This will override the title generated from
                 the inputs, where this generated title is only set if all of the
                 inputs share a common title.
+            maximum_time_discrepancy:
+                The maximum allowable difference in seconds between the validity
+                times of the input cubes. If set to 0 (default), all input cubes
+                must have exactly the same validity time. If set to a positive
+                integer, cubes with validity times differing by up to this value
+                will be accepted. Must be a non-negative integer.
 
         float_tolerance defines the tolerance when matching thresholds to allow
         for the difficulty of float comparisons.
@@ -134,6 +141,12 @@ class ApplyDecisionTree(BasePlugin):
         # flag to indicate whether to expect "threshold" as a coordinate name
         # (defaults to False, checked on reading input cubes)
         self.coord_named_threshold = False
+        if maximum_time_discrepancy < 0:
+            raise ValueError(
+                f"maximum_time_discrepancy must be a positive integer "
+                f"(got {maximum_time_discrepancy})."
+            )
+        self.maximum_time_discrepancy = maximum_time_discrepancy
 
     def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
@@ -295,15 +308,29 @@ class ApplyDecisionTree(BasePlugin):
                 bounds.extend(time_bounds.tolist())
                 self.template_cube = cube
 
-        # Check that all validity times are the same
-        if len(set(times)) != 1:
-            diagnostic_times = [
-                f"{diagnostic.name()}: {time}" for diagnostic, time in zip(cubes, times)
-            ]
-            raise ValueError(
-                "Decision Tree input cubes are valid at different times; "
-                f"\n{diagnostic_times}"
-            )
+        # Allow time discrepancy in validity times if set
+        if self.maximum_time_discrepancy and self.maximum_time_discrepancy > 0:
+            if (max(times) - min(times)) > self.maximum_time_discrepancy:
+                diagnostic_times = [
+                    f"{diagnostic.name()}: {time}"
+                    for diagnostic, time in zip(cubes, times)
+                ]
+                raise ValueError(
+                    f"Decision Tree input cubes have validity times differing by more than "
+                    f"{self.maximum_time_discrepancy} seconds; "
+                    f"\n{diagnostic_times}"
+                )
+        else:
+            # Check that all validity times are the same
+            if len(set(times)) != 1:
+                diagnostic_times = [
+                    f"{diagnostic.name()}: {time}"
+                    for diagnostic, time in zip(cubes, times)
+                ]
+                raise ValueError(
+                    "Decision Tree input cubes are valid at different times; "
+                    f"\n{diagnostic_times}"
+                )
         # Check that if multiple bounds have been returned, they are all identical.
         if bounds and not bounds.count(bounds[0]) == len(bounds):
             diagnostic_bounds = [

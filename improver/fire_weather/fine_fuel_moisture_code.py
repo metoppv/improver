@@ -8,16 +8,15 @@ from typing import Union
 import numpy as np
 from iris.cube import Cube, CubeList
 
-from improver.fire_weather import IterativeFireWeatherIndexBase
+from improver.fire_weather import IterativeFireWeatherBase
 
 FFMC_START_VALUE = os.environ.get("FFMC_START_VALUE", 85)
 FFMC_LAG_TIME = os.environ.get("FFMC_LAG_TIME", 3)
 
 
-class FineFuelMoistureContent(IterativeFireWeatherIndexBase):
+class FineFuelMoistureCode(IterativeFireWeatherBase):
     """
-    Plugin to calculate the Fine Fuel Moisture Code (FFMC) following
-    the Canadian Forest Fire Weather Index System.
+    Plugin to calculate the Fine Fuel Moisture Code (FFMC).
 
     The FFMC is a numerical rating of the moisture content of litter and other
     fine fuels, representing the relative ease of ignition and flammability of fine fuel.
@@ -40,15 +39,15 @@ class FineFuelMoistureContent(IterativeFireWeatherIndexBase):
     STARTING_VALUE = FFMC_START_VALUE
     LAG_TIME = FFMC_LAG_TIME
 
-    START_DATE_CUBE_NAME = "fine_fuel_moisture_content"
+    METADATA_SOURCE_CUBE = "fine_fuel_moisture_code"
     INPUT_CUBE_NAMES = [
         "air_temperature",
         "lwe_thickness_of_precipitation_amount",
         "relative_humidity",
         "wind_speed",
-        START_DATE_CUBE_NAME,
+        METADATA_SOURCE_CUBE,
     ]
-    OUTPUT_CUBE_NAME = "fine_fuel_moisture_content"
+    OUTPUT_CUBE_NAME = "fine_fuel_moisture_code"
     # Valid output ranges for warning checks (output_name: (min, max))
     # Minimum and maximum feasible values for each output index are drawn from
     # values reported in:
@@ -57,7 +56,7 @@ class FineFuelMoistureContent(IterativeFireWeatherIndexBase):
     # days in Canada. Science of the total environment, 869, p.161831.
     VALID_OUTPUT_RANGE = (0.0, 101.0)
     # Disambiguate input FFMC (yesterday's value) from output FFMC (today's calculated value)
-    INPUT_ATTRIBUTE_MAPPINGS = {"fine_fuel_moisture_content": "input_ffmc"}
+    INPUT_ATTRIBUTE_MAPPINGS = {"fine_fuel_moisture_code": "input_ffmc"}
 
     temperature: Cube
     precipitation: Cube
@@ -84,7 +83,7 @@ class FineFuelMoistureContent(IterativeFireWeatherIndexBase):
             initialise:
                 True when starting the iterative process else False
             clip_ffmc:
-                If true Fine Fuel Moisture Content values will be clipped to
+                If true fine fuel moisture code values will be clipped to
                     a minimum of 0 and a maximum of 101.
 
         Returns:
@@ -154,14 +153,14 @@ class FineFuelMoistureContent(IterativeFireWeatherIndexBase):
             ),
         )
 
-        # Step 9: Calculate Fine Fuel Moisture Content (FFMC) from moisture content
+        # Step 9: Calculate fine fuel moisture code (FFMC) from moisture content
         ffmc = self._calculate_ffmc_from_moisture_content(self.clip_ffmc)
 
         return ffmc
 
     def _calculate_moisture_content(self):
         """Calculates the previous day's moisture content for a given input value
-        of the Fine Fuel Moisture Content, and initialises the moisture_content
+        of the fine fuel moisture code, and initialises the moisture_content
         attribute to that value.
 
         From Van Wagner and Pickett (1985), Page 5: Equation 1, Steps 1 & 2.
@@ -339,14 +338,14 @@ class FineFuelMoistureContent(IterativeFireWeatherIndexBase):
     def _calculate_ffmc_from_moisture_content(
         self, clip_ffmc: bool = False
     ) -> np.ndarray:
-        """Calculates the Fine Fuel Moisture Content (FFMC) from the moisture
+        """Calculates the fine fuel moisture code (FFMC) from the moisture
         content.
 
         From Van Wagner and Pickett (1985), Page 5: Equation 10, and Step 9.
 
         Args:
             clip_ffmc:
-                If true Fine Fuel Moisture Content values will be clipped to
+                If true fine fuel moisture code values will be clipped to
                     a minimum of 0 and a maximum of 101.
 
         Returns:

@@ -8,16 +8,15 @@ import os
 import numpy as np
 from iris.cube import Cube
 
-from improver.fire_weather import IterativeFireWeatherIndexBase
+from improver.fire_weather import IterativeFireWeatherBase
 
 DC_START_VALUE = os.environ.get("DC_START_VALUE", 15)
 DC_LAG_TIME = os.environ.get("DC_LAG_TIME", 53)
 
 
-class DroughtCode(IterativeFireWeatherIndexBase):
+class DroughtCode(IterativeFireWeatherBase):
     """
-    Plugin to calculate the Drought Code (DC) following
-    the Canadian Forest Fire Weather Index System.
+    Plugin to calculate the Drought Code (DC).
 
     The DC is a numerical rating of the average moisture content of deep,
     compact organic layers. It is a useful indicator of seasonal drought
@@ -40,11 +39,11 @@ class DroughtCode(IterativeFireWeatherIndexBase):
     STARTING_VALUE = DC_START_VALUE
     LAG_TIME = DC_LAG_TIME
 
-    START_DATE_CUBE_NAME = "drought_code"
+    METADATA_SOURCE_CUBE = "drought_code"
     INPUT_CUBE_NAMES = [
         "air_temperature",
         "lwe_thickness_of_precipitation_amount",
-        START_DATE_CUBE_NAME,
+        METADATA_SOURCE_CUBE,
     ]
     OUTPUT_CUBE_NAME = "drought_code"
     # Valid output ranges for warning checks (output_name: (min, max))
