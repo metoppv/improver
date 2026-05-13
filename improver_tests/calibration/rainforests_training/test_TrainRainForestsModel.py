@@ -106,6 +106,10 @@ def test_process(model_config, deterministic_training_data):
         expected_path = model_config[lead_time][threshold]["lightgbm_model"]
         assert Path(expected_path).exists()
 
+        # Check that the file is a valid model
+        booster = lightgbm.Booster(model_file=expected_path)
+        assert set(booster.feature_name()) == set(training_columns)
+
 
 @patch("lightgbm.train")
 def test_process_calls_train(mock_train, model_config, deterministic_training_data):

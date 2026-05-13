@@ -41,8 +41,12 @@ def test_process(model_config_with_trained_models):
     # Check that all models were compiled
     for lead_time, thresholds in model_config.items():
         for threshold in thresholds:
-            path = model_config[lead_time][threshold]["treelite_model"]
-            assert Path(path).exists()
+            expected_path = model_config[lead_time][threshold]["treelite_model"]
+            assert Path(expected_path).exists()
+
+            # Check the resulting file is a valid model
+            predictor = tl2cgen.Predictor(libpath=expected_path)
+            assert predictor.num_feature == 5
 
 
 def test_process_fails_with_missing_models(model_config_with_trained_models):
