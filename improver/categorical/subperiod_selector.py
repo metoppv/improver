@@ -12,12 +12,12 @@ from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 class SubperiodSelector(PostProcessingPlugin):
     """
-    Plugin to select which subperiods contain the phenomenon identified over the main period.
+    Plugin to deaggregate a fraction-of-period-that-is-xxx diagnostic into this-subperiod-is-xxx.
 
-    For example, if the 50th percentile of hours of light rain over a 24 hour period is 0.25 (6 hours),
-    then this plugin can be used to identify which 6 hours of the 24 hour period are most likely
-    to contain light rain. The result can be used in the weather symbol decision tree to force
-    the selection of a wet symbol.
+    For example, if light rain is expected for 6 hours within a 24 hour period (e.g. the 50th
+    percentile of light rain over a 24 hour period is 0.25), this plugin selects the 6 hours
+    most likely to contain that light rain. The result can be used in the weather symbol
+    decision tree to force the selection of a wet symbol.
     """
 
     def __init__(
@@ -30,11 +30,15 @@ class SubperiodSelector(PostProcessingPlugin):
         Initialise the plugin.
 
         Args:
-            percentile: The percentile of the main period diagnostic to select.
-            new_name: Name of output cube.
-            **threshold_kwargs: Keyword arguments specifying the names and values of threshold coords
-                associated with the main period diagnostic to select. One of these will also match the
-                threshold coord on the subperiod diagnostic, which will be used to identify which subperiods to select.
+            percentile:
+                The percentile of the main period diagnostic to select.
+            new_name:
+                Name of output cube.
+            **threshold_kwargs:
+                Keyword arguments specifying the names and values of threshold coords
+                associated with the main period diagnostic to select. One of these will also
+                match the threshold coord on the subperiod diagnostic, which will be used to
+                identify which subperiods to select.
         """
         self.percentile = percentile
         self.threshold_kwargs = threshold_kwargs
@@ -44,12 +48,14 @@ class SubperiodSelector(PostProcessingPlugin):
     def _pick_subperiods(
         main_period_data: np.ndarray, subperiod_data: np.ndarray
     ) -> np.ndarray:
-        """Identify which subperiods to select based on the selected main period diagnostic slice.
+        """Identify the subperiods most likely to contain the phenomenon.
 
-        The value at each grid point in the main period data indicates the fraction of subperiods to select, and the values in the
-        subperiod data indicate the likelihood of the phenomenon occurring in each subperiod.
+        At each grid point, the main period data specifies the fraction of subperiods to select, and the
+        subperiod data is the likelihood of the phenomenon occurring in each subperiod.
         The subperiods with the highest likelihood are selected until the number of selected subperiods
         matches the value from the main period data.
+
+        Where multiple subperiods have equal likelihood, the selection between them is random.
 
         Args:
             main_period_data:
@@ -110,14 +116,17 @@ class SubperiodSelector(PostProcessingPlugin):
                 threshold coordinates that match those on the main period cube.
 
         Returns:
-            main_period_slice: The selected slice from the main period cube.
-            subperiod_slice: The selected slice from the subperiod cube.
+            main_period_slice:
+                The selected slice from the main period cube.
+            subperiod_slice:
+                The selected slice from the subperiod cube.
 
         Raises:
-            ValueError: If no data is found in the main period cube matching the percentile and threshold constraints.
-            ValueError: If no matching threshold coordinate is found on the subperiod cube.
-            ValueError: If no data is found in the subperiod cube matching the threshold constraints.
-            ValueError: If the subperiod cube does not have exactly one more dimension than the main period cube.
+            ValueError:
+                - If no data is found in the main period cube matching the percentile and threshold constraints.
+                - If no matching threshold coordinate is found on the subperiod cube.
+                - If no data is found in the subperiod cube matching the threshold constraints.
+                - If the subperiod cube does not have exactly one more dimension than the main period cube.
 
         """
         # Select the required main period diagnostic slice
@@ -161,7 +170,7 @@ class SubperiodSelector(PostProcessingPlugin):
             subperiod_cube: Cube containing the subperiod diagnostic to select.
 
         Returns:
-            Cube indicating the selected subperiods.
+            A cube of subperiods marked as 1 (is) or 0 (is not) representative of the phenomenon.
         """
         main_period_slice, subperiod_slice = self._apply_constraints(
             main_period_cube, subperiod_cube
