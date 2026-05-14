@@ -166,8 +166,10 @@ class SubperiodSelector(PostProcessingPlugin):
         Select the subperiods most likely to contain the phenomenon identified over the main period.
 
         Args:
-            main_period_cube: Cube containing the main period diagnostic to select.
-            subperiod_cube: Cube containing the subperiod diagnostic to select.
+            main_period_cube:
+                Cube containing the main period diagnostic to select.
+            subperiod_cube:
+                Cube containing the subperiod diagnostic to select.
 
         Returns:
             A cube of subperiods marked as 1 (is) or 0 (is not) representative of the phenomenon.
