@@ -394,15 +394,28 @@ def _create_ancil_file(tmp_path, site_ids):
 
 
 def filter_forecast_periods(forecast_df, forecast_periods):
-    """Filter the forecast DataFrame to only include the requested forecast periods."""
-    if ":" in forecast_periods:
-        forecast_periods = [
-            fp * 3600 for fp in range(*map(int, forecast_periods.split(":")))
-        ]
-    else:
-        forecast_periods = [int(forecast_periods) * 3600]
+    """Filter the forecast DataFrame to only include the requested forecast periods.
+
+    Supports both single ranges (e.g. "6:18:6") and multi-range syntax with
+    semicolon separation (e.g. "6:12:6;12:18:6").
+    """
+    all_periods = []
+
+    # Support semicolon-separated ranges
+    tokens = forecast_periods.split(";")
+
+    for token in tokens:
+        token = token.strip()
+        if ":" in token:
+            all_periods.extend(range(*map(int, token.split(":"))))
+        else:
+            all_periods.append(int(token))
+
+    # Convert to seconds and deduplicate
+    forecast_periods_s = sorted(set([fp * 3600 for fp in all_periods]))
+
     return forecast_df[
-        forecast_df["forecast_period"].isin(np.array(forecast_periods) * 1e9)
+        forecast_df["forecast_period"].isin(np.array(forecast_periods_s) * 1e9)
     ].reset_index(drop=True)
 
 
@@ -487,6 +500,11 @@ def amend_expected_truth_df(truth_df, parquet_diagnostic_name):
             _create_multi_forecast_period_forecast_parquet_file,
             _create_multi_forecast_period_truth_parquet_file,
             "12",
+        ),
+        (
+            _create_multi_forecast_period_forecast_parquet_file,
+            _create_multi_forecast_period_truth_parquet_file,
+            "6:12:6;12:18:6",
         ),
     ],
 )
@@ -734,6 +752,20 @@ def test_load_for_qrf_mismatches(
             "percentile",
         ),
         (
+            "forecast_period_range_too_few_parts",
+            _create_multi_site_forecast_parquet_file,
+            _create_multi_site_truth_parquet_file,
+            "1:2",
+            "percentile",
+        ),
+        (
+            "forecast_period_range_too_many_parts",
+            _create_multi_site_forecast_parquet_file,
+            _create_multi_site_truth_parquet_file,
+            "1:2:3:4",
+            "percentile",
+        ),
+        (
             "no_quantile_forest_package",
             _create_multi_site_forecast_parquet_file,
             _create_multi_site_truth_parquet_file,
@@ -825,6 +857,12 @@ def test_unexpected_loading(
             plugin(file_paths)
     elif exception == "alternative_forecast_period":
         with pytest.raises(ValueError, match="The forecast_periods argument"):
+            plugin(file_paths)
+    elif exception == "forecast_period_range_too_few_parts":
+        with pytest.raises(ValueError, match="exactly 3 parts"):
+            plugin(file_paths)
+    elif exception == "forecast_period_range_too_many_parts":
+        with pytest.raises(ValueError, match="exactly 3 parts"):
             plugin(file_paths)
     elif exception == "no_quantile_forest_package":
         plugin.quantile_forest_installed = False
