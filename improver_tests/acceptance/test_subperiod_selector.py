@@ -15,7 +15,7 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
-THRESHOLDS_JSON = acc.kgo_root() / "threshold_kwargs.json"
+THRESHOLDS_JSON = acc.kgo_root() / "subperiod-selector" / "threshold_kwargs.json"
 
 
 def test_basic(tmp_path):

@@ -18,12 +18,12 @@ def process(
     threshold_kwargs: cli.inputjson = None,
 ):
     """
-    Select which subperiods contain the phenomenon identified over the main period.
+    Deaggregate a fraction-of-period-that-is-xxx diagnostic into this-subperiod-is-xxx.
 
-    For example, if the 50th percentile of hours of light rain over a 24 hour period is 0.25 (6 hours),
-    then this plugin can be used to identify which 6 hours of the 24 hour period are most likely
-    to contain light rain. The result can be used in the weather symbol decision tree to force
-    the selection of a wet symbol.
+    For example, if light rain is expected for 6 hours within a 24 hour period (e.g. the 50th
+    percentile of light rain over a 24 hour period is 0.25), this plugin selects the 6 hours
+    most likely to contain that light rain. The result can be used in the weather symbol
+    decision tree to force the selection of a wet symbol.
 
     Args:
         main_period_cube (iris.cube.Cube):
@@ -40,7 +40,8 @@ def process(
             which will be used to identify which subperiods to select.
 
     Returns:
-        iris.cube.Cube
+        iris.cube.Cube:
+            A cube of subperiods marked as 1 (is) or 0 (is not) representative of the phenomenon.
     """
     from improver.categorical.subperiod_selector import SubperiodSelector
     from improver.utilities.cube_manipulation import MergeCubes
