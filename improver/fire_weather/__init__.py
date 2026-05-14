@@ -9,13 +9,13 @@ from abc import abstractmethod
 from copy import deepcopy
 from typing import Union, cast
 
-import iris.exceptions
 import numpy as np
 from iris.cube import Cube, CubeList
 from iris.exceptions import ConstraintMismatchError
 
 from improver import BasePlugin
 from improver.utilities.common_input_handle import as_cubelist
+from improver.utilities.copy_metadata import CopyMetadata
 from improver.utilities.load import load_baseline_cube
 
 
@@ -247,8 +247,8 @@ class FireWeatherBase(BasePlugin):
         """Creates an output cube with specified data and metadata.
 
         For classes that use precipitation data (FFMC, DMC, DC), automatically
-        updates the time coordinates from the precipitation cube to reflect the
-        24-hour accumulation period.
+        updates the 'forecast_reference_time' and 'time' coordinates from the
+        precipitation cube to reflect the 24-hour accumulation period.
 
         Args:
             data:
@@ -272,20 +272,10 @@ class FireWeatherBase(BasePlugin):
 
         # If this class uses precipitation, update time coordinates from precipitation cube
         if hasattr(self, "precipitation"):
-            # Update forecast_reference_time from precipitation cube
-            frt_coord = self.precipitation.coord("forecast_reference_time").copy()
-            try:
-                output_cube.replace_coord(frt_coord)
-            except iris.exceptions.CoordinateNotFoundError:
-                output_cube.add_aux_coord(frt_coord)
-
-            # Update time coordinate from precipitation cube (without bounds)
-            time_coord = self.precipitation.coord("time").copy()
-            time_coord.bounds = None
-            try:
-                output_cube.replace_coord(time_coord)
-            except iris.exceptions.CoordinateNotFoundError:
-                output_cube.add_aux_coord(time_coord)
+            copy = CopyMetadata(aux_coord=["forecast_reference_time", "time"])
+            output_cube = copy.process(output_cube, self.precipitation)
+            output_cube.coord("forecast_reference_time").bounds = None
+            output_cube.coord("time").bounds = None
 
         return self._set_metadata(output_cube)
 
