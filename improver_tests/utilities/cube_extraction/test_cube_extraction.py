@@ -6,6 +6,7 @@
 
 import collections
 import unittest
+from datetime import datetime
 
 import iris
 import numpy as np
@@ -284,6 +285,14 @@ class Test_parse_constraint_list(unittest.TestCase):
         _, _, longitude_constraint, thinning_dict = parse_constraint_list(constraint)
         self.assertEqual(longitude_constraint, [0, 20])
         self.assertEqual(thinning_dict, {"longitude": 2})
+
+    def test_time_constraint(self):
+        """Test that a formatted time string is parsed correctly into a datetime object"""
+        constraint = ["time=20240101T0000Z"]
+        result, _, _, _ = parse_constraint_list(constraint)
+        cdict = result._coord_values
+        self.assertFalse(islambda(cdict["time"]))
+        self.assertEqual(cdict["time"], datetime(2024, 1, 1, 0, 0))
 
 
 class Test_apply_extraction(unittest.TestCase):
