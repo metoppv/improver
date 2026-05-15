@@ -412,7 +412,7 @@ def filter_forecast_periods(forecast_df, forecast_periods):
             all_periods.append(int(token))
 
     # Convert to seconds and deduplicate
-    forecast_periods_s = sorted(set([fp * 3600 for fp in all_periods]))
+    forecast_periods_s = [fp * 3600 for fp in sorted(set(all_periods))]
 
     return forecast_df[
         forecast_df["forecast_period"].isin(np.array(forecast_periods_s) * 1e9)
@@ -505,6 +505,16 @@ def amend_expected_truth_df(truth_df, parquet_diagnostic_name):
             _create_multi_forecast_period_forecast_parquet_file,
             _create_multi_forecast_period_truth_parquet_file,
             "6:12:6;12:18:6",
+        ),
+        (
+            _create_multi_forecast_period_forecast_parquet_file,
+            _create_multi_forecast_period_truth_parquet_file,
+            "6:12:3;12:18:6",
+        ),
+        (
+            _create_multi_forecast_period_forecast_parquet_file,
+            _create_multi_forecast_period_truth_parquet_file,
+            "6:12:6;6:18:6",
         ),
     ],
 )

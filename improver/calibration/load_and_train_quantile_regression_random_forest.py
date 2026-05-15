@@ -130,25 +130,15 @@ class LoadForTrainQRF(PostProcessingPlugin):
         for token in tokens:
             token = token.strip()
             if ":" in token:
-                try:
-                    parts = list(map(int, token.split(":")))
-                    if len(parts) != 3:
-                        msg = (
-                            "Each forecast_periods range must be in the form "
-                            "'start:end:interval' with exactly 3 parts. "
-                            f"Invalid range provided: {token}"
-                        )
-                        raise ValueError(msg)
-                    all_periods.extend(range(*parts))
-                except (ValueError, TypeError) as e:
-                    if isinstance(e, ValueError):
-                        raise
+                parts = list(map(int, token.split(":")))
+                if len(parts) != 3:
                     msg = (
                         "Each forecast_periods range must be in the form "
-                        "'start:end:interval'. "
+                        "'start:end:interval' with exactly 3 parts. "
                         f"Invalid range provided: {token}"
                     )
                     raise ValueError(msg)
+                all_periods.extend(range(*parts))
             else:
                 try:
                     all_periods.append(int(token))
