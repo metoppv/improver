@@ -10,6 +10,7 @@ from datetime import datetime
 
 import iris
 import numpy as np
+from iris.coords import AuxCoord
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.metadata.probabilistic import find_threshold_coordinate
@@ -291,8 +292,12 @@ class Test_parse_constraint_list(unittest.TestCase):
         constraint = ["time=20240101T0000Z"]
         result, _, _, _ = parse_constraint_list(constraint)
         cdict = result._coord_values
-        self.assertFalse(islambda(cdict["time"]))
-        self.assertEqual(cdict["time"], datetime(2024, 1, 1, 0, 0))
+        self.assertTrue(islambda(cdict["time"]))
+        self.assertTrue(
+            cdict["time"](
+                AuxCoord([datetime(2024, 1, 1, 0, 0)], long_name="time").cell(0)
+            )
+        )
 
 
 class Test_apply_extraction(unittest.TestCase):
