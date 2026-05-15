@@ -27,6 +27,7 @@ def process(
     transformation: str = None,
     pre_transform_addition: float = 0,
     unique_site_id_keys: cli.comma_separated_list = "wmo_id",
+    qrf_kwargs: cli.inputjson = None,
 ):
     """Training a model using Quantile Regression Random Forest.
 
@@ -123,7 +124,7 @@ def process(
         unique_site_id_keys (str):
             The names of the coordinates that uniquely identify each site,
             e.g. "wmo_id" or "latitude,longitude".
-        kwargs: Additional keyword arguments for the quantile regression model.
+        qrf_kwargs: Additional keyword arguments for the quantile regression model.
     Returns:
         A quantile regression random forest model with associated transformation and
         pre-transformation addition that will be stored as a pickle file.
@@ -147,9 +148,10 @@ def process(
     if forecast_df is None or truth_df is None or cube_inputs is None:
         return None
 
-    kwargs = {}
+    if qrf_kwargs is None:
+        qrf_kwargs = {}
     if max_features is not None:
-        kwargs["max_features"] = max_features
+        qrf_kwargs["max_features"] = max_features
     result = PrepareAndTrainQRF(
         feature_config=feature_config,
         target_cf_name=cf_names[0],
@@ -160,7 +162,7 @@ def process(
         transformation=transformation,
         pre_transform_addition=pre_transform_addition,
         unique_site_id_keys=unique_site_id_keys,
-        **kwargs,
+        **qrf_kwargs,
     )(forecast_df, truth_df, cube_inputs)
     if result == (None, None, None):
         return None
