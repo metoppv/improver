@@ -137,12 +137,11 @@ def parse_constraint_list(
                 typed_value = literal_eval(value)
             except (ValueError, SyntaxError):
                 try:
-                    simple_constraints_dict[key] = (
-                        lambda cell: cell.point
-                        == datetime.strptime(value, "%Y%m%dT%H%MZ")
-                    )
+                    value_dt = datetime.strptime(value, "%Y%m%dT%H%MZ")
                 except ValueError:
                     simple_constraints_dict[key] = value
+                else:
+                    simple_constraints_dict[key] = lambda cell: cell.point == value_dt
             else:
                 simple_constraints_dict[key] = create_constraint(typed_value)
 
