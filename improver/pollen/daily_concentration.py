@@ -54,14 +54,6 @@ class PollenDailyConcentration(PostProcessingPlugin):
                 UserWarning,
             )
 
-    def _metadata(self, taxa: str):
-        """Change the cube name and other metadata.
-        Args:
-            taxa:
-                The pollen taxa being processed, used to update the cube name and metadata
-        """
-        self._output_cube.attributes["forecast_period"] = np.int32(86400)
-
     def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
         """Calculate the Pollen Daily Concentration.
 
@@ -81,8 +73,6 @@ class PollenDailyConcentration(PostProcessingPlugin):
         # Create output_cube ready to take data from calculations, using the first cube as a template
         template_cube = cubes[0]
         self._output_cube = deepcopy(template_cube)
-        taxa = template_cube.attributes.get("taxa").lower()
 
         self._calculate(cubes)
-        self._metadata(taxa)
         return self._output_cube

@@ -114,7 +114,6 @@ class PollenHourlyConcentration(PostProcessingPlugin):
         self._output_cube.attributes["biological_taxon_name"] = (
             POLLEN_SHORTNAME_2_LATIN[taxa]
         )
-        self._output_cube.attributes["forecast_period"] = np.int32(3600)
         self._output_cube.attributes["scaling_factor"] = self._scaling_factor
         new_cube_name = f"number_concentration_of_{POLLEN_SHORTNAME_2_LATIN[taxa].lower()}_pollen_grains_in_air"
         self._output_cube.rename(new_cube_name)
