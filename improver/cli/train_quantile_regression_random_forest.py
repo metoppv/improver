@@ -87,6 +87,9 @@ def process(
             Range of forecast periods to be calibrated in hours in the form:
             "start:end:interval" e.g. "6:18:6" or a single forecast period e.g. "6".
             The end value is exclusive, so "6:18:6" will calibrate the 6 and 12 hours.
+            Multiple ranges can be specified using semicolon separation,
+            e.g. "1:133:1;135:199:3" for hourly T+1 to T+132 and
+            3-hourly T+135 to T+198.
         cycletime (str):
             Cycletime of a format similar to 20170109T0000Z used to filter the
             correct blendtimes from the dataframe on load.
