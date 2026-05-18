@@ -47,7 +47,6 @@ below:
  - Ryan Cocking (Met Office, UK)
  - Andrew Creswick (Met Office, UK)
  - Neil Crosswaite (Met Office, UK)
- - Jonathan Davies (Met Office, UK)
  - Shafiat Dewan (Met Office, UK)
  - Rachael Esler (Bureau of Meteorology, Australia)
  - Gavin Evans (Met Office, UK)
