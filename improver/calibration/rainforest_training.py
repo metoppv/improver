@@ -14,7 +14,8 @@ from improver.calibration import (
 
 
 class TrainRainForestsModel(BasePlugin):
-    lightgbm_params = {
+    # Default parameters to be passed to lightGBM library
+    params = {
         "objective": "binary",
         "num_leaves": 5,
         "seed": 0,
@@ -26,7 +27,7 @@ class TrainRainForestsModel(BasePlugin):
         training_data,
         observation_column,
         training_columns,
-        parameters=None,
+        lightgbm_params=None,
     ):
         """Initialise the options used when training models.
 
@@ -42,7 +43,7 @@ class TrainRainForestsModel(BasePlugin):
                 The column in the data set to be trained for.
             training_columns (List(str)):
                 Set of columns from the data set to be trained from.
-            parameters (Dict):
+            lightgbm_params (Dict):
                 Optional. Parameters passed into training library. Any parameters
                 here will override the default parameters.
 
@@ -93,11 +94,11 @@ class TrainRainForestsModel(BasePlugin):
         self.training_columns = training_columns
 
         # Keep only the columns relevant for training.
-        self.training_data = training_data[training_columns + [observation_column]]
+        self.training_data = training_data[[*training_columns, observation_column]]
 
         # Merge default params with overrides from constructor argument.
-        if parameters:
-            self.lightgbm_params = self.lightgbm_params | parameters
+        if lightgbm_params:
+            self.params = self.params | lightgbm_params
 
     def process(self, lead_time, thresholds):
         """Train models for a set of threshold values.
@@ -143,7 +144,7 @@ class TrainRainForestsModel(BasePlugin):
             self.training_data[self.training_columns], label=threshold_met_label
         )
 
-        model = lightgbm.train(self.lightgbm_params, dataset)
+        model = lightgbm.train(self.params, dataset)
 
         Path.mkdir(model_path.parent, parents=True, exist_ok=True)
         model.save_model(model_path)
