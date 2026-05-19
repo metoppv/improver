@@ -373,14 +373,15 @@ class Test_process(ImproverTest):
     def test_attempt_modify_dimension_coord_attributes(self):
         """Test that an exception is raised if trying to modify attributes
         of a dimension coordinate."""
-        coord_attribute_modification = {"latitude": {"positive": "north"}}
         msg = "Modifying attributes of dimension coordinate"
-        plugin = StandardiseMetadata(
-            coord_attribute_modification=coord_attribute_modification
-        )
+        for coord in ["latitude", "longitude"]:
+            coord_attribute_modification = {coord: {"positive": "up"}}
+            plugin = StandardiseMetadata(
+                coord_attribute_modification=coord_attribute_modification
+            )
 
-        with self.assertRaisesRegex(ValueError, msg):
-            plugin.process(self.cube)
+            with self.assertRaisesRegex(ValueError, msg):
+                plugin.process(self.cube)
 
     def test_attempt_modify_time_coord_attributes(self):
         """Test that an exception is raised if trying to modify attributes
@@ -410,6 +411,28 @@ class Test_process(ImproverTest):
 
         self.assertEqual(result.coord("height").points, 2.0)
         self.assertEqual(result.coord("height").attributes["positive"], "up")
+
+    def test_modify_multiple_coord_values_and_attributes(self):
+        """Test using coord_modification and coord_attribute_modification
+        together for modifying multiple coordinates."""
+        cube = self.cube.copy()
+        # Add scalar height coordinate
+        cube.add_aux_coord(DimCoord([1.5], standard_name="height", units="m"))
+        cube.add_aux_coord(DimCoord([0], standard_name="realization", units="1"))
+
+        plugin = StandardiseMetadata(
+            coord_modification={"height": 2.0, "realization": 1},
+            coord_attribute_modification={
+                "height": {"positive": "up"},
+                "realization": {"positive": "up"},
+            },
+        )
+        result = plugin.process(cube)
+
+        self.assertEqual(result.coord("height").points, 2.0)
+        self.assertEqual(result.coord("height").attributes["positive"], "up")
+        self.assertEqual(result.coord("realization").points, 1)
+        self.assertEqual(result.coord("realization").attributes["positive"], "up")
 
 
 if __name__ == "__main__":
