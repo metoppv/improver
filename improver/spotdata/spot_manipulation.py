@@ -260,13 +260,15 @@ class SpotManipulation(BasePlugin):
         if self.apply_lapse_rate_correction:
             if len(cubes) == 3:
                 plugin = SpotLapseRateAdjust(
-                    neighbour_selection_method=self.neighbour_selection_method
+                    neighbour_selection_method=self.neighbour_selection_method,
+                    ignore_grid_match=self.ignore_grid_match,
                 )
                 result = plugin(result, neighbour_cube, cubes[-2])
             elif self.fixed_lapse_rate is not None:
                 plugin = SpotLapseRateAdjust(
                     neighbour_selection_method=self.neighbour_selection_method,
                     fixed_lapse_rate=self.fixed_lapse_rate,
+                    ignore_grid_match=self.ignore_grid_match,
                 )
                 result = plugin(result, neighbour_cube)
             elif not self.suppress_warnings:
