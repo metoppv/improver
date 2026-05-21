@@ -127,6 +127,18 @@ class SpotManipulation(BasePlugin):
                 spot forecast is passed in, the entire spot cube will be processed and
                 returned. The neighbour selection method options have no impact if a
                 spot cube is passed in.
+            ignore_grid_match (str):
+                If True, the coordinate hash comparison between the diagnostic cube and
+                the neighbour cube will be ignored. This is not recommended, but allows
+                the version of Iris and/or Numpy in the plug-in execution environment
+                to be different from those that generated the neighbour cube.
+                If False, the grid match check will be performed and an error raised if
+                the cubes do not match. The default is False, and it is recommended to
+                ensure that the neighbour cube is generated on the same grid as the
+                diagnostic cube to avoid any potential issues with incorrect coordinate
+                extraction.
+                @TODO: Remove this option once the hash calculation is more robust and
+                can be reliably used across different versions of Iris and Numpy.
         """
         self.neighbour_selection_method = get_neighbour_finding_method_name(
             land_constraint, similar_altitude
