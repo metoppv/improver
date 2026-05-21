@@ -80,6 +80,63 @@ def test_basic(main_period_cube, subperiod_cube, wet_fraction, wet_periods, new_
 
 
 @pytest.mark.parametrize(
+    "main_attrs, sub_attrs, expected_model_id, expected_record_run",
+    [
+        # Only subperiod_cube has attributes
+        (
+            {},
+            {"model_id": "sub_model", "record_run": "sub_run"},
+            "sub_model",
+            "sub_run",
+        ),
+        # Only main_period_cube has attributes
+        (
+            {"model_id": "main_model", "record_run": "main_run"},
+            {},
+            "main_model",
+            "main_run",
+        ),
+        # Both have attributes, subperiod_cube takes precedence
+        (
+            {"model_id": "main_model", "record_run": "main_run"},
+            {"model_id": "sub_model", "record_run": "sub_run"},
+            "sub_model",
+            "sub_run",
+        ),
+        # Neither has attributes
+        ({}, {}, None, None),
+    ],
+)
+def test_model_and_record_run_attr(
+    main_period_cube,
+    subperiod_cube,
+    main_attrs,
+    sub_attrs,
+    expected_model_id,
+    expected_record_run,
+):
+    # Set attributes
+    main_period_cube.attributes.update(main_attrs)
+    subperiod_cube.attributes.update(sub_attrs)
+    plugin = SubperiodSelector(
+        percentile=50,
+        model_id_attr="model_id",
+        record_run_attr="record_run",
+        lwe_thickness_of_precipitation_amount=0.003,
+        lwe_precipitation_rate=5.56e-07,
+    )
+    result = plugin(main_period_cube, subperiod_cube)
+    if expected_model_id is not None:
+        assert result.attributes["model_id"] == expected_model_id
+    else:
+        assert "model_id" not in result.attributes
+    if expected_record_run is not None:
+        assert result.attributes["record_run"] == expected_record_run
+    else:
+        assert "record_run" not in result.attributes
+
+
+@pytest.mark.parametrize(
     "kwargs, expected_error, expected_message",
     [
         [{"percentile": 50}, ValueError, "No matching threshold coordinate found"],

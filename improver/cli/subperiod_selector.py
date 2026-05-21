@@ -15,6 +15,8 @@ def process(
     *subperiod_cubes: cli.inputcube,
     percentile: float = 50.0,
     new_name: str = "selected_subperiods",
+    model_id_attr: str = None,
+    record_run_attr: str = None,
     threshold_kwargs: cli.inputjson = None,
 ):
     """
@@ -34,6 +36,12 @@ def process(
             The percentile of the main period diagnostic to select.
         new_name (str):
             Name of output cube.
+        model_id_attr (str):
+            Name of attribute recording source models to be copied to the
+            output cube.
+        record_run_attr:
+            Name of attribute used to record models and cycles to be copied to
+            the output cube.
         threshold_kwargs:
             Keyword arguments specifying the names and values of threshold coords associated with the main period
             diagnostic to select. One of these will also match the threshold coord on the subperiod diagnostic,
@@ -50,5 +58,9 @@ def process(
     subperiod_cube = MergeCubes()(subperiod_cubes)
 
     return SubperiodSelector(
-        percentile=percentile, new_name=new_name, **threshold_kwargs
+        percentile=percentile,
+        new_name=new_name,
+        model_id_attr=model_id_attr,
+        record_run_attr=record_run_attr,
+        **threshold_kwargs,
     )(main_period_cube, subperiod_cube)
