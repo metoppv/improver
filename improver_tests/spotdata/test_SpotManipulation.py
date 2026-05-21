@@ -570,10 +570,11 @@ def test_spot_subset_lapse_rate_exception(neighbour_cube):
         )
 
 
+@pytest.mark.parametrize("apply_lapse_rate_correction", [True, False])
 @pytest.mark.parametrize(
     "neighbour_data", [np.array([[[0, 1, 2], [0, 1, 2], [0, 1, 2]]])]
 )
-def test_ignore_grid_match_argument(neighbour_cube):
+def test_ignore_grid_match_argument(neighbour_cube, apply_lapse_rate_correction):
     """Test that when the ignore_grid_match argument is set to True, that the function
     still runs as expected, even when the grids do not match."""
 
@@ -581,7 +582,7 @@ def test_ignore_grid_match_argument(neighbour_cube):
         np.array([[273, 274, 275], [276, 277, 278], [279, 280, 281]])
     )
     expected = np.array([273, 277, 281])
-    kwargs = {"extract_percentiles": [20, 80]}
+    kwargs = {"apply_lapse_rate_correction": apply_lapse_rate_correction}
     # Force mismatched grid hashes
     add_grid_hash(forecast, forecast)
     add_grid_hash(neighbour_cube, neighbour_cube)
