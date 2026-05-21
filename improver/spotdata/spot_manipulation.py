@@ -49,6 +49,7 @@ class SpotManipulation(BasePlugin):
         suppress_warnings: bool = False,
         realization_collapse: bool = False,
         subset_coord: str = None,
+        ignore_grid_match: bool = False,
     ) -> None:
         """
         Initialise the wrapper plugin using the selected options.
@@ -139,6 +140,7 @@ class SpotManipulation(BasePlugin):
         self.suppress_warnings = suppress_warnings
         self.realization_collapse = realization_collapse
         self.subset_coord = subset_coord
+        self.ignore_grid_match = ignore_grid_match
 
     def process(self, cubes: CubeList) -> Cube:
         """
@@ -193,7 +195,8 @@ class SpotManipulation(BasePlugin):
                     raise ValueError("No spot sites retained after subsetting.")
         else:
             result = SpotExtraction(
-                neighbour_selection_method=self.neighbour_selection_method
+                neighbour_selection_method=self.neighbour_selection_method,
+                ignore_grid_match=self.ignore_grid_match,
             )(neighbour_cube, cube, new_title=self.new_title)
 
         if self.realization_collapse:
