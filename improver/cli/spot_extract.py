@@ -114,7 +114,7 @@ def process(
             spot forecast is passed in, the entire spot cube will be processed and
             returned. The neighbour selection method options have no impact if a
             spot cube is passed in.
-        ignore_grid_match (str):
+        ignore_grid_match (bool):
             If True, the coordinate hash comparison between the diagnostic cube and
             the neighbour cube will be ignored. This is not recommended, but
             allows the version of Iris and/or Numpy in the plug-in execution

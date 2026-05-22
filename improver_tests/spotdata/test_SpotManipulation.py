@@ -587,11 +587,11 @@ def test_ignore_grid_match_argument(neighbour_cube, apply_lapse_rate_correction)
     add_grid_hash(forecast, forecast)
     add_grid_hash(neighbour_cube, neighbour_cube)
 
-    # Test that it would fail when ignore_grid_match = False
+    # Demonstrate that the plugin fails when ignore_grid_match = False
     with pytest.raises(ValueError):
         SpotManipulation(**kwargs)([forecast, neighbour_cube])
 
-    # Test that it would pass when ignore_grid_match = True
+    # Demonstrate that the plugin passes when ignore_grid_match = True
     result = SpotManipulation(**kwargs, ignore_grid_match=True)(
         [forecast, neighbour_cube]
     )

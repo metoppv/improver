@@ -56,7 +56,7 @@ class SpotLapseRateAdjust(PostProcessingPlugin):
                 cube. Value is given in Kelvin / metre of temperature change
                 with ascent. For example a dry adiabatic lapse rate would be
                 given as -0.0098.
-            ignore_grid_match (str):
+            ignore_grid_match (bool):
                 If True, the coordinate hash comparison between the diagnostic cube and
                 the neighbour cube will be ignored. This is not recommended, but allows
                 the version of Iris and/or Numpy in the plug-in execution environment
