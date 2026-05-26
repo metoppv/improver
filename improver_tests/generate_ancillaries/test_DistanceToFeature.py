@@ -326,8 +326,10 @@ def test_distance_to_with_points_geometry(
     single_site_cube.coord("latitude").points = site_latitude
     single_site_cube.coord("longitude").points = site_longitude
 
-    output_cube = DistanceToFeature(target_projection)(single_site_cube, geometry)
-    assert output_cube.name() == "rain_rate"
+    output_cube = DistanceToFeature(target_projection, "distance_to_thing")(
+        single_site_cube, geometry
+    )
+    assert output_cube.name() == "distance_to_thing"
     assert output_cube.units == "m"
     assert output_cube.coord("latitude").points == site_latitude
     assert output_cube.coord("longitude").points == site_longitude
@@ -395,8 +397,10 @@ def test_distance_to_with_line_geometry(
     single_site_cube.coord("latitude").points = site_latitude
     single_site_cube.coord("longitude").points = site_longitude
 
-    output_cube = DistanceToFeature(target_projection)(single_site_cube, geometry)
-    assert output_cube.name() == "rain_rate"
+    output_cube = DistanceToFeature(target_projection, "distance_to_thing")(
+        single_site_cube, geometry
+    )
+    assert output_cube.name() == "distance_to_thing"
     assert output_cube.units == "m"
     assert output_cube.coord("latitude").points == site_latitude
     assert output_cube.coord("longitude").points == site_longitude
@@ -467,8 +471,10 @@ def test_distance_to_with_polygon_geometry(
     single_site_cube.coord("latitude").points = site_latitude
     single_site_cube.coord("longitude").points = site_longitude
 
-    output_cube = DistanceToFeature(target_projection)(single_site_cube, geometry)
-    assert output_cube.name() == "rain_rate"
+    output_cube = DistanceToFeature(target_projection, "distance_to_thing")(
+        single_site_cube, geometry
+    )
+    assert output_cube.name() == "distance_to_thing"
     assert output_cube.units == "m"
     assert output_cube.coord("latitude").points == site_latitude
     assert output_cube.coord("longitude").points == site_longitude
@@ -530,12 +536,14 @@ def test_distance_to_with_multiple_sites(
     if len(os.sched_getaffinity(0)) > 1:
         n_jobs = 2
 
-    plugin = DistanceToFeature(3035, parallel=if_parallel, n_parallel_jobs=n_jobs)
+    plugin = DistanceToFeature(
+        3035, new_name="distance_to_thing", parallel=if_parallel, n_parallel_jobs=n_jobs
+    )
 
     assert plugin.parallel == if_parallel
     assert plugin.n_parallel_jobs == n_jobs
     output_cube = plugin(multiple_site_cube, geometry)
-    assert output_cube.name() == "rain_rate"
+    assert output_cube.name() == "distance_to_thing"
     assert output_cube.units == "m"
 
     np.testing.assert_allclose(output_cube.data, expected_distance)
@@ -585,13 +593,15 @@ def test_distance_to_clipping_loss_of_data(
     geometry = GeoDataFrame(geometry=data, crs="EPSG:3035")
 
     if clip:
-        output_cube = DistanceToFeature(3035, clip_geometry=True, buffer=buffer)(
-            site_cubes, geometry
-        )
+        output_cube = DistanceToFeature(
+            3035, new_name="distance_to_thing", clip_geometry=True, buffer=buffer
+        )(site_cubes, geometry)
     else:
-        output_cube = DistanceToFeature(3035, clip_geometry=False)(site_cubes, geometry)
+        output_cube = DistanceToFeature(
+            3035, new_name="distance_to_thing", clip_geometry=False
+        )(site_cubes, geometry)
 
-    assert output_cube.name() == "rain_rate"
+    assert output_cube.name() == "distance_to_thing"
     assert output_cube.units == "m"
     np.testing.assert_allclose(output_cube.data, expected)
 
@@ -603,9 +613,9 @@ def test_distance_to_with_empty_geometry(single_site_cube, geometry_point_laea):
     with pytest.raises(
         ValueError, match="Clipping the geometry with a buffer size of 100m"
     ):
-        DistanceToFeature(3035, clip_geometry=True, buffer=100)(
-            single_site_cube, geometry_point_laea
-        )
+        DistanceToFeature(
+            3035, new_name="distance_to_thing", clip_geometry=True, buffer=100
+        )(single_site_cube, geometry_point_laea)
 
 
 def test_distance_to_with_unsuitable_projection(single_site_cube, geometry_point_laea):
@@ -620,4 +630,6 @@ def test_distance_to_with_unsuitable_projection(single_site_cube, geometry_point
         "x: -1.386459578 to -1.386459578, y: 49.539047274 to 49.539047274."
     )
     with pytest.raises(ValueError, match=msg):
-        DistanceToFeature(3112)(single_site_cube, geometry_point_laea)
+        DistanceToFeature(3112, new_name="distance_to_thing")(
+            single_site_cube, geometry_point_laea
+        )
