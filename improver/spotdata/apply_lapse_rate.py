@@ -181,7 +181,8 @@ class SpotLapseRateAdjust(PostProcessingPlugin):
         spot data shape.
         """
         spot_lapse_rate = SpotExtraction(
-            neighbour_selection_method=self.neighbour_selection_method
+            neighbour_selection_method=self.neighbour_selection_method,
+            ignore_grid_match=self.ignore_grid_match,
         )(neighbour_cube, gridded_lapse_rate_cube)
         return iris.util.broadcast_to_shape(
             spot_lapse_rate.data, spot_data_cube.shape, [-1]
