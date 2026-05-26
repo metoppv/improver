@@ -588,6 +588,44 @@ class Test_prepare_input_cubes(Test_WXCode):
         for constraint in unexpected:
             self.assertEqual(len(result.extract(constraint)), 0)
 
+    def test_raises_error_matching_threshold(self):
+        """Test prepare_input_cubes method raises error for matching thresholds in a
+        diagnostic."""
+        threshold_coord = find_threshold_coordinate(self.cubes[0])
+        additional_threshold = threshold_coord.points[0] * (
+            1 + 0.5 * self.plugin.float_tolerance
+        )
+        threshold_coord.points = np.array(
+            [
+                threshold_coord.points[0],
+                additional_threshold,
+                threshold_coord.points[2],
+            ],
+            dtype=np.float32,
+        )
+        msg = (
+            r"Multiple \(2\) matching thresholds found for name: "
+            "probability_of_lwe_snowfall_rate_above_threshold"
+        )
+
+        with self.assertRaisesRegex(ValueError, msg):
+            self.plugin.prepare_input_cubes(self.cubes)
+
+    def test_zero_threshold_uses_absolute_tolerance(self):
+        """Test prepare_input_cubes method uses absolute tolerance when the threshold
+        is ~ 0.0"""
+        cubes = self.cubes
+        lightning_cube = cubes.extract_cube(
+            "probability_of_number_of_lightning_flashes"
+            "_per_unit_area_in_vicinity_above_threshold"
+        )
+        threshold_coord = find_threshold_coordinate(lightning_cube)
+        threshold_coord.points = np.array(
+            [0.1 * self.plugin.float_abs_tolerance], dtype=np.float32
+        )
+        used_cubes, _ = self.plugin.prepare_input_cubes(cubes)
+        self.assertIn(lightning_cube, used_cubes)
+
 
 class Test_invert_condition(unittest.TestCase):
     """Test the invert condition method."""

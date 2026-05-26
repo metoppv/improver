@@ -136,6 +136,7 @@ PROCESSING_MODULES = {
     "StandardiseMetadata": "improver.standardise",
     "StandardGeopotentialHeight": "improver.standard_geopotential_height.standard_geopotential_height",
     "StochasticNoise": "improver.calibration.stochastic_noise",
+    "SubperiodSelector": "improver.categorical.subperiod_selector",
     "TemperatureSaturatedAirParcel": "improver.psychrometric_calculations.temperature_saturated_air_parcel",
     "TemporalInterpolation": "improver.utilities.temporal_interpolation",
     "Threshold": "improver.threshold",
