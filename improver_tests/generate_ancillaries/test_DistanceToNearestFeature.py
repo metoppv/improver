@@ -48,7 +48,8 @@ def distance_cube_template():
 
 
 def test_distance_to_nearest_feature(distance_cube_template):
-    """Test the DistanceToNearestFeature class calculates the distance to closest feature correctly."""
+    """Test the DistanceToNearestFeature class calculates the distance to closest
+    feature correctly."""
 
     river_cube = distance_cube_template.copy()
     river_cube.data = np.array([100, 200, 300, 400])
@@ -58,9 +59,41 @@ def test_distance_to_nearest_feature(distance_cube_template):
     ocean_cube.data = np.array([200, 200, 200, 10])
     water_cubes = CubeList([river_cube, lake_cube, ocean_cube])
 
-    combiner = DistanceToNearestFeature()
-    output_cube = combiner.process(water_cubes, "distance_to_water")
+    plugin = DistanceToNearestFeature()
+    output_cube = plugin.process(water_cubes, "distance_to_water")
 
     assert output_cube.name() == "distance_to_water"
     assert output_cube.units == "m"
     assert_array_equal(output_cube.data, [100, 200, 200, 10])
+
+
+# Test test cases and errors match
+@pytest.mark.parametrize(
+    "test_case, error_msg_part",
+    [
+        (
+            "empty cubelist",
+            "The input CubeList distance_to_features cannot be empty.",
+        ),
+        ("unmatched_coords", "Input cube coordinates"),
+    ],
+)
+def test_errors_raised(test_case, error_msg_part, distance_cube_template):
+    """Test the DistanceToNearestFeature class raises errors correctly."""
+
+    if test_case == "empty cubelist":
+        water_cubes = CubeList([])
+    elif test_case == "unmatched_coords":
+        river_cube = distance_cube_template.copy()
+        river_cube.data = np.array([100, 200, 300, 400])
+        ocean_cube = distance_cube_template.copy()
+        lake_cube = distance_cube_template.copy()
+        lake_cube.data = np.array([400, 300, 200, 100])
+        ocean_cube.data = np.array([200, 200, 200, 10])
+        # Change one of the site indices to create a mismatch in the site coordinates
+        ocean_cube.coord("wmo_id").points[0] = "20202020"
+        water_cubes = CubeList([river_cube, lake_cube, ocean_cube])
+
+    plugin = DistanceToNearestFeature()
+    with pytest.raises(ValueError, match=error_msg_part):
+        plugin.process(water_cubes, "distance_to_water")

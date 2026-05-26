@@ -482,7 +482,7 @@ def test_distance_to_feature_with_exclusion(site_locations, coastline, land):
     # Instantiate the DistanceToFeature plugin
     calculator = DistanceToFeature(
         epsg_projection=3035,
-        output_name="distance_to_ocean",
+        new_name="distance_to_ocean",
     )
 
     # Generate the distance to feature with exclusion
@@ -541,13 +541,13 @@ def test_distance_to_with_multiple_sites(
     np.testing.assert_allclose(output_cube.data, expected_distance)
 
 
-def test_distance_to_with_output_name(single_site_cube, geometry_point_laea):
+def test_distance_to_with_new_name(single_site_cube, geometry_point_laea):
     """Test the DistanceTo plugin correctly sets a new name."""
 
     single_site_cube.coord("latitude").points = 49.539047274
     single_site_cube.coord("longitude").points = -1.386459578
 
-    output_cube = DistanceToFeature(3035, output_name="distance_to_river")(
+    output_cube = DistanceToFeature(3035, new_name="distance_to_river")(
         single_site_cube, geometry_point_laea
     )
     assert output_cube.name() == "distance_to_river"
