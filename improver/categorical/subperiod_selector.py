@@ -24,6 +24,8 @@ class SubperiodSelector(PostProcessingPlugin):
         self,
         percentile: float,
         new_name: str = "selected_subperiods",
+        model_id_attr: str = None,
+        record_run_attr: str = None,
         **threshold_kwargs,
     ):
         """
@@ -34,6 +36,12 @@ class SubperiodSelector(PostProcessingPlugin):
                 The percentile of the main period diagnostic to select.
             new_name:
                 Name of output cube.
+            model_id_attr:
+                Name of attribute recording source models to be copied to the
+                output cube.
+            record_run_attr:
+                Name of attribute used to record models and cycles to be copied to
+                the output cube.
             **threshold_kwargs:
                 Keyword arguments specifying the names and values of threshold coords
                 associated with the main period diagnostic to select. One of these will also
@@ -43,6 +51,8 @@ class SubperiodSelector(PostProcessingPlugin):
         self.percentile = percentile
         self.threshold_kwargs = threshold_kwargs
         self.new_name = new_name
+        self.model_id_attr = model_id_attr
+        self.record_run_attr = record_run_attr
 
     @staticmethod
     def _pick_subperiods(
@@ -187,4 +197,17 @@ class SubperiodSelector(PostProcessingPlugin):
         selected_subperiods_cube = subperiod_slice.copy(data=selected_periods)
         selected_subperiods_cube.rename(self.new_name)
         selected_subperiods_cube.units = "1"
+
+        # Set model_id_attr and record_run_attr if requested
+        for attr_name in [self.model_id_attr, self.record_run_attr]:
+            if attr_name is not None:
+                # Try subperiod_cube first, then main_period_cube
+                attr_value = None
+                if attr_name in subperiod_cube.attributes:
+                    attr_value = subperiod_cube.attributes[attr_name]
+                elif attr_name in main_period_cube.attributes:
+                    attr_value = main_period_cube.attributes[attr_name]
+                if attr_value is not None:
+                    selected_subperiods_cube.attributes[attr_name] = attr_value
+
         return selected_subperiods_cube

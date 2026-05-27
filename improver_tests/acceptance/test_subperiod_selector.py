@@ -25,7 +25,7 @@ def test_basic(tmp_path):
     kgo_dir = input_dir / "basic"
     kgo_path = kgo_dir / "kgo.nc"
     input_paths = [
-        input_dir / f
+        kgo_dir / f
         for f in [
             "20250128T0900Z-daily_precipitation.nc",
             "20250127T1200Z-precipitation_accumulation.nc",
@@ -41,6 +41,38 @@ def test_basic(tmp_path):
     output_path = tmp_path / "output.nc"
     args = input_paths + [
         "--percentile=50",
+        "--threshold-kwargs",
+        THRESHOLDS_JSON,
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_attributes(tmp_path):
+    """Test example where model_id_attr is missing from the subperiod inputs."""
+    input_dir = acc.kgo_root() / "subperiod-selector"
+    kgo_dir = input_dir / "attributes"
+    kgo_path = kgo_dir / "kgo.nc"
+    input_paths = [
+        kgo_dir / f
+        for f in [
+            "20250128T0900Z-daily_precipitation.nc",
+            "20250127T1200Z-precipitation_accumulation.nc",
+            "20250127T1500Z-precipitation_accumulation.nc",
+            "20250127T1800Z-precipitation_accumulation.nc",
+            "20250127T2100Z-precipitation_accumulation.nc",
+            "20250128T0000Z-precipitation_accumulation.nc",
+            "20250128T0300Z-precipitation_accumulation.nc",
+            "20250128T0600Z-precipitation_accumulation.nc",
+            "20250128T0900Z-precipitation_accumulation.nc",
+        ]
+    ]
+    output_path = tmp_path / "output.nc"
+    args = input_paths + [
+        "--percentile=50",
+        "--model-id-attr=mosg__model_configuration",
         "--threshold-kwargs",
         THRESHOLDS_JSON,
         "--output",
