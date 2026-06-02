@@ -68,8 +68,7 @@ def generate_land_area_fraction_at_sites(
     Args:
         land_cover_cube:
             A cube containing the Corine Land cover data. The data values should be
-            integers representing
-            different land cover types.
+            integers representing different land cover types.
         neighbour_cube:
             A cube containing information about the spot data sites. We use this rather
             than a site list as it contains a completed set of altitudes which have
@@ -151,4 +150,7 @@ def generate_land_area_fraction_at_sites(
             site_frac.coord(crd).points = site.coord(crd).points.astype(crd_type)
         land_fraction.append(site_frac)
 
-    return land_fraction.concatenate_cube()
+    land_fraction = land_fraction.concatenate_cube()
+    land_fraction.rename("land_area_fraction")
+
+    return land_fraction
