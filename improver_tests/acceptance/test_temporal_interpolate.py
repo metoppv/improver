@@ -118,7 +118,7 @@ def test_accumulation(tmp_path):
     kgo_dir = acc.kgo_root() / "temporal-interpolate/accumulation"
     kgo_path = kgo_dir / "kgo.nc"
     input_paths = [
-        kgo_dir / f"20260612T{v:04}Z-PT{l:04}H00M-precipitation_accumulation-PT03H.nc"
+        kgo_dir / f"20260612T{v:04}Z-PT{l:04}H00M-precipitation_accumulation.nc"
         for v, l in ((0, 228), (600, 234), (1200, 240))
     ]
     output_path = tmp_path / "output.nc"
