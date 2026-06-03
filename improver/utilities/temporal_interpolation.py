@@ -597,7 +597,7 @@ class TemporalInterpolation(BasePlugin):
         start_rate = 0.5 * (cube_t0.data + cube_t1.data)
         start_point, end_point = cube_t1.coord("time").bounds[0]
         end_rate = 0.5 * (cube_t1.data + cube_t2.data)
-        mid_rate = cube_t1.data - 0.5 * (start_rate + end_rate - 2 * cube_t1.data)
+        mid_rate = 2 * cube_t1.data - 0.5 * (start_rate + end_rate)
         mid_point = 0.5 * (end_point + start_point)
 
         self._truncate_rates_at_zero(start_rate, mid_rate)
@@ -615,33 +615,33 @@ class TemporalInterpolation(BasePlugin):
 
             if straddles_mid:
                 # Split calculation at mid-point
-                quarter_point_start = 0.5 * (
+                mid_point_before = 0.5 * (
                     interpolated_midpoint + interpolated_bounds[0]
                 )
-                quarter_point_end = 0.5 * (
-                    interpolated_midpoint + interpolated_bounds[1]
-                )
+                mid_point_after = 0.5 * (interpolated_midpoint + interpolated_bounds[1])
 
-                first_half_rate = start_rate + (mid_rate - start_rate) * (
-                    quarter_point_start - start_point
-                ) / (mid_point - start_point)
-                second_half_rate = mid_rate + (end_rate - mid_rate) * (
-                    quarter_point_end - mid_point
-                ) / (end_point - mid_point)
+                first_half_rate = self._interpolate_rate(
+                    start_point, start_rate, mid_point, mid_rate, mid_point_before
+                )
+                second_half_rate = self._interpolate_rate(
+                    mid_point, mid_rate, end_point, end_rate, mid_point_after
+                )
                 period_rate = 0.5 * (first_half_rate + second_half_rate)
             else:
                 # Use appropriate rate segment based on position relative to mid-point
                 is_before_mid = interpolated_midpoint < mid_point
                 period_rate = np.where(
                     is_before_mid,
-                    start_rate
-                    + (mid_rate - start_rate)
-                    * (interpolated_midpoint - start_point)
-                    / (mid_point - start_point),
-                    mid_rate
-                    + (end_rate - mid_rate)
-                    * (interpolated_midpoint - mid_point)
-                    / (end_point - mid_point),
+                    self._interpolate_rate(
+                        start_point,
+                        start_rate,
+                        mid_point,
+                        mid_rate,
+                        interpolated_midpoint,
+                    ),
+                    self._interpolate_rate(
+                        mid_point, mid_rate, end_point, end_rate, interpolated_midpoint
+                    ),
                 )
             period_rates.append(period_rate)
         interpolated_cube.data = period_rates
@@ -669,13 +669,41 @@ class TemporalInterpolation(BasePlugin):
         interpolated_cube.data = interpolated_cube.data.astype(FLOAT_DTYPE)
 
     @staticmethod
+    def _interpolate_rate(
+        start_point: int,
+        start_rate: np.ndarray,
+        end_point: int,
+        end_rate: np.ndarray,
+        target_point: int,
+    ) -> np.ndarray:
+        """Interpolate rate gradient to target point.
+
+        Assumes that the units of both rates and all three points are the same, and that the target point is between the start and end points.
+
+        Args:
+            start_point: The time point corresponding to the start rate.
+            start_rate: Array of rate data at the start point.
+            end_point: The time point corresponding to the end rate.
+            end_rate: Array of rate data at the end point.
+            target_point: The time point to which to interpolate.
+        Returns:
+            The interpolated average rate at the target point.
+        """
+        return start_rate + (end_rate - start_rate) * (target_point - start_point) / (
+            end_point - start_point
+        )
+
+    @staticmethod
     def _truncate_rates_at_zero(bound_rate: np.ndarray, mid_rate: np.ndarray):
         """Adjust bound rate to account for neighbouring period never having negative value.
 
         If the slope from mid_rate to bound_rate results in a negative value at the adjacent period's mid-point,
         we adjust both values so the new slope would give a zero value at the adjacent period's mid-point.
-        The mid point has half the adjustment of the bound point to ensure the integral under the slope is unchanged
+        The mid-point has half the adjustment of the bound point to ensure the integral under the slope is unchanged
         across the whole time period.
+        This means that the pivot point of the slope is closer to the mid-point and much further from the adjaceent mid-point.
+        The ratio of distances is 5:2:-1 for adjacent mid-point:bound:mid-point.
+        Therefore the bound_rate is adjusted by -2/5 and the mid_rate by +1/5 to ensure the adjacent mid-point is at zero.
         This ensures that we do not introduce trends into the data that are inconsistent with the original period maximum or minimum
         and that the integral under the slope does not change.
 
@@ -683,11 +711,10 @@ class TemporalInterpolation(BasePlugin):
             bound_rate: The rate at the bound (start or end) of the period (modified in place).
             mid_rate: The rate at the mid-point of the period (modified in place).
         """
-        slope = mid_rate - bound_rate
-        adjacent_mid_value = bound_rate - slope
-        adjustment = np.where(adjacent_mid_value < 0, adjacent_mid_value / 3, 0)
-        bound_rate += adjustment
-        mid_rate -= 0.5 * adjustment
+        adjacent_mid_value = 2 * bound_rate - mid_rate
+        adjustment = np.where(adjacent_mid_value < 0, adjacent_mid_value, 0)
+        bound_rate -= adjustment * 0.4
+        mid_rate += adjustment * 0.2
 
     def process(self, cube_t0: Cube, cube_t1: Cube, cube_t2: Cube = None) -> CubeList:
         """

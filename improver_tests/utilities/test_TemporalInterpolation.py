@@ -924,6 +924,22 @@ def test_add_bounds(input_times, expected_time_bounds, expected_fp_bounds):
             [1, 6],
             [1.0986, 1.9014],
         ),
+        # Trend of decreasing accumulations with time which triggers the adjacent-below-zero logic.
+        # Coupled with hourly outputs showing that accumulations increase gently to the mid-point,
+        # then drop towards the end of the period.
+        (
+            {"interval_in_minutes": 60, "accumulation": True},
+            [3, 3, 0],
+            [1, 2, 3, 4, 5, 6],
+            [0.5167, 0.55, 0.5833, 0.55, 0.45, 0.35],
+        ),
+        # Trend of decreasing accumulations with time which triggers the adjacent-below-zero logic.
+        (
+            {"times": [datetime.datetime(2017, 11, 1, 4)], "accumulation": True},
+            [3, 3, 0],
+            [1, 6],
+            [0.5138, 2.4862],
+        ),
         # No accumulation in input data, output are zero.
         (
             {"times": [datetime.datetime(2017, 11, 1, 4)], "accumulation": True},
