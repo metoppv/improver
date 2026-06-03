@@ -5,6 +5,7 @@
 """Unit tests for temporal utilities."""
 
 import datetime
+from copy import deepcopy
 from datetime import datetime as dt
 from typing import List, Optional, Tuple
 
@@ -724,20 +725,20 @@ def test_period_method_non_period_diagnostics(kwargs):
     """Test that declaring a period type for the interpolation and then
     passing in non-period diagnostics raises an exception."""
 
-    times = [datetime.datetime(2017, 11, 1, hour) for hour in [3, 9]]
+    times = [datetime.datetime(2017, 11, 1, hour) for hour in [3, 9, 15]]
     data = np.ones((5, 5), dtype=np.float32)
     cube = multi_time_cube(times, data, "latlon")
 
     msg = "A period method has been declared for temporal"
     with pytest.raises(ValueError, match=msg):
-        TemporalInterpolation(**kwargs).process(cube[0], cube[1])
+        TemporalInterpolation(**kwargs).process(cube[0], cube[1], cube[2] if kwargs.get("accumulation") else None)
 
 
 def test_period_unequal_to_interval_exception():
     """Test that providing a period diagnostic where the represented
     periods overlap raises an exception."""
 
-    times = [datetime.datetime(2017, 11, 1, hour) for hour in [3, 9]]
+    times = [datetime.datetime(2017, 11, 1, hour) for hour in [3, 9, 15]]
     data = np.ones((5, 5), dtype=np.float32)
     cube = multi_time_cube(times, data, "latlon", bounds=True)
     for crd in ["time", "forecast_period"]:
@@ -748,7 +749,19 @@ def test_period_unequal_to_interval_exception():
     msg = "The diagnostic provided represents the period"
     with pytest.raises(ValueError, match=msg):
         TemporalInterpolation(interval_in_minutes=180, accumulation=True).process(
-            cube[0], cube[1]
+            *cube.slices_over("time")
+        )
+
+def test_accumulation_no_cube2():
+    """Test that requesting accumulation interpolation from two input cubes raises an error."""
+
+    times = [datetime.datetime(2017, 11, 1, hour) for hour in [3, 9]]
+    data = np.ones((5, 5), dtype=np.float32)
+    cube = multi_time_cube(times, data, "latlon", bounds=True)
+    msg = "Inputs to TemporalInterpolation are not of type iris.cube.Cube"
+    with pytest.raises(TypeError, match=msg):
+        TemporalInterpolation(interval_in_minutes=180, accumulation=True).process(
+            *cube.slices_over("time")
         )
 
 
@@ -978,12 +991,13 @@ def test_process_return_input(kwargs):
     """Test the process method returns an unmodified cube when the
     target time is identical to that of the trailing input."""
 
-    times = [datetime.datetime(2017, 11, 1, hour) for hour in [3, 9]]
+    times = [datetime.datetime(2017, 11, 1, hour) for hour in [3, 9, 15]]
     npoints = 5
     data = np.stack(
         [
             np.full((npoints, npoints), 3, dtype=np.float32),
             np.full((npoints, npoints), 4, dtype=np.float32),
+            np.full((npoints, npoints), 5, dtype=np.float32),
         ]
     )
     cube = multi_time_cube(times, data, "latlon", bounds=True)
@@ -991,8 +1005,9 @@ def test_process_return_input(kwargs):
     # Slice here to keep memory addresses consistent when passed in to
     # plugin.
     cube_0 = cube[0]
-    cube_1 = cube[1]
-    result = TemporalInterpolation(**kwargs).process(cube_0, cube_1)
+    cube_1 = deepcopy(cube[1])
+    cube_2 = cube[2]
+    result = TemporalInterpolation(**kwargs).process(cube_0, cube_1, cube_2)
 
     # assert that the object returned is the same one in memory that was
     # passed in.
@@ -1004,42 +1019,42 @@ def test_process_return_input(kwargs):
     "kwargs,values,offsets,expected",
     [
         # Unequal input periods and accumulations give effective rates of
-        # 1 mm/hr and 2 mm/hr at the start and end of the period. This gives
-        # a gradient of 1/6 mm/hr across the period which results in the
-        # expected 3-hour accumulations returned across the period.
-        ({"interval_in_minutes": 180, "accumulation": True}, [3, 12], [3, 6], [5, 7]),
+        # 1 mm/hr at the start and 2 mm/hr at the end of the period. The mid-point rate is calculated as 2.5mm/hr.
+        # This gives a gradient of 1.5/3 mm/hr across the first half of the period and -0.5/3 in the second,
+        # which results in the expected 3-hour accumulations returned across the period.
+        ({"interval_in_minutes": 180, "accumulation": True}, [3, 12, 12], [3, 6], [5.625, 6.375]),
         # Unequal input periods and accumulations give effective rates of
-        # 2 mm/hr and 1 mm/hr at the start and end of the period. This gives
-        # a gradient of -1/6 mm/hr across the period which results in the
+        # 2 mm/hr and 1 mm/hr at the start and end of the period. The mid-point is calculated as 2.5 mm/hr. This gives
+        # a gradient of +0.5/3 mm/hr across the first half period and -1.5/3 mm/hr in the second, which results in the
         # expected 3-hour accumulations returned across the period.
         (
             {"interval_in_minutes": 180, "accumulation": True},
-            [6, 6],
+            [6, 6, 6],
             [3, 6],
-            [3.5, 2.5],
+            [3.375, 2.625],
         ),
         # Unequal input periods and accumulations give a consistent effective
-        # rate of 1 mm/hr across the the period. This results in equal
+        # rate of 1 mm/hr across the period. This results in equal
         # accumulations across the two returned 3-hour periods.
-        ({"interval_in_minutes": 180, "accumulation": True}, [3, 6], [3, 6], [3, 3]),
+        ({"interval_in_minutes": 180, "accumulation": True}, [3, 6, 6], [3, 6], [3, 3]),
         # Unequal input periods and accumulations give a consistent effective
-        # rate of 1 mm/hr across the the period. The unequal output periods
+        # rate of 1 mm/hr across the period. The unequal output periods
         # split the total accumulation as expected.
         (
             {"times": [datetime.datetime(2017, 11, 1, 4)], "accumulation": True},
-            [3, 6],
+            [3, 6, 6],
             [1, 6],
             [1, 5],
         ),
         # Unequal input periods and accumulations give effective rates of
-        # 1 mm/hr and 1.5 mm/hr at the start and end of the period. This gives
+        # start: 1 mm/hr, mid: 1.5 mm/hr and end: 2.0 mm/hr. This gives
         # a gradient of 1/12 mm/hr across the period. The unequal output periods
         # divide up the total accumulation in line with this as expected.
         (
             {"times": [datetime.datetime(2017, 11, 1, 5)], "accumulation": True},
-            [3, 9],
+            [3, 9, 12],
             [2, 6],
-            [2.6, 6.4],
+            [2.6667, 6.3333],
         ),
     ],
 )
@@ -1050,12 +1065,11 @@ def test_process_accumulation_unequal_inputs(
     are of different periods. The accumulations are converted to rates using
     each input cube's period prior to interpolation which allows for this."""
 
-    times = [datetime.datetime(2017, 11, 1, hour) for hour in [3, 9]]
+    times = [datetime.datetime(2017, 11, 1, hour) for hour in [3, 9, 15]]
     npoints = 5
     data = np.stack(
         [
-            np.full((npoints, npoints), values[0], dtype=np.float32),
-            np.full((npoints, npoints), values[1], dtype=np.float32),
+            np.full((npoints, npoints), value, dtype=np.float32) for value in values
         ]
     )
     cube = multi_time_cube(
@@ -1063,13 +1077,14 @@ def test_process_accumulation_unequal_inputs(
     )
     cube_0 = cube[0]
     cube_1 = cube[1]
+    cube_2 = cube[2]
 
     for crd in ["time", "forecast_period"]:
         bounds = cube_0.coord(crd).bounds
         bounds = [[lower + 10800, upper] for lower, upper in bounds]
         cube_0.coord(crd).bounds = bounds
 
-    result = TemporalInterpolation(**kwargs).process(cube_0, cube_1)
+    result = TemporalInterpolation(**kwargs).process(cube_0, cube_1, cube_2)
 
     for i, (offset, value) in enumerate(zip(offsets, expected)):
         if realizations:
@@ -1096,7 +1111,7 @@ def test_process_accumulation_unequal_inputs(
         assert result[i].coord("time").points.dtype == "int64"
         assert result[i].coord("forecast_period").points.dtype == "int32"
         if value is not None:
-            np.testing.assert_almost_equal(result[i].data, expected_data)
+            np.testing.assert_almost_equal(result[i].data, expected_data, decimal=4)
 
 
 @pytest.mark.parametrize(
