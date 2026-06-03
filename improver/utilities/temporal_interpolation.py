@@ -597,12 +597,9 @@ class TemporalInterpolation(BasePlugin):
         start_rate = 0.5 * (cube_t0.data + cube_t1.data)
         start_point, end_point = cube_t1.coord("time").bounds[0]
         end_rate = 0.5 * (cube_t1.data + cube_t2.data)
-        mid_rate = (
-            cube_t1.data
-            - 0.5 * (start_rate - cube_t1.data)
-            - 0.5 * (end_rate - cube_t1.data)
-        )
+        mid_rate = cube_t1.data - 0.5 * (start_rate + end_rate - 2 * cube_t1.data)
         mid_point = 0.5 * (end_point + start_point)
+
         self._truncate_rates_at_zero(start_rate, mid_rate)
         self._truncate_rates_at_zero(end_rate, mid_rate)
         # Calculate an average rate for the period between start and mid, or mid and end.
@@ -611,23 +608,31 @@ class TemporalInterpolation(BasePlugin):
             interpolated_midpoint = 0.5 * (
                 interpolated_bounds[0] + interpolated_bounds[1]
             )
-            if (
-                interpolated_bounds[0] < mid_point
-                and mid_point < interpolated_bounds[1]
-            ):
-                # If we straddle the mid-point, calculate the rate for the first half of the period using the start and mid rates, and the second half using the mid and end rates.
-                quarter_point = 0.5 * (interpolated_midpoint + interpolated_bounds[0])
+
+            # Determine  which half of the period we're in
+            straddles_mid = interpolated_bounds[0] < mid_point < interpolated_bounds[1]
+
+            if straddles_mid:
+                # Split calculation at mid-point
+                quarter_point_start = 0.5 * (
+                    interpolated_midpoint + interpolated_bounds[0]
+                )
+                quarter_point_end = 0.5 * (
+                    interpolated_midpoint + interpolated_bounds[1]
+                )
+
                 first_half_rate = start_rate + (mid_rate - start_rate) * (
-                    quarter_point - start_point
+                    quarter_point_start - start_point
                 ) / (mid_point - start_point)
-                quarter_point = 0.5 * (interpolated_midpoint + interpolated_bounds[1])
                 second_half_rate = mid_rate + (end_rate - mid_rate) * (
-                    quarter_point - mid_point
+                    quarter_point_end - mid_point
                 ) / (end_point - mid_point)
                 period_rate = 0.5 * (first_half_rate + second_half_rate)
             else:
+                # Use appropriate rate segment based on position relative to mid-point
+                is_before_mid = interpolated_midpoint < mid_point
                 period_rate = np.where(
-                    interpolated_midpoint < mid_point,
+                    is_before_mid,
                     start_rate
                     + (mid_rate - start_rate)
                     * (interpolated_midpoint - start_point)
