@@ -809,7 +809,7 @@ def test_add_bounds(input_times, expected_time_bounds, expected_fp_bounds):
         # Equal adjacent accumulations, divided into equal shorter periods.
         (
             {"interval_in_minutes": 180, "accumulation": True},
-            [5, 5],
+            [5, 5, 5],
             [3, 6],
             [2.5, 2.5],
         ),
@@ -822,9 +822,9 @@ def test_add_bounds(input_times, expected_time_bounds, expected_fp_bounds):
         # in the shorter periods generated.
         (
             {"interval_in_minutes": 180, "accumulation": True},
-            [3, 9],
+            [3, 9, 15],
             [3, 6],
-            [3.375, 5.625],
+            [3.75, 5.25],
         ),
         # Trend of increasing maxes with time, which is reflected in the
         # shorter periods generated.
@@ -835,9 +835,17 @@ def test_add_bounds(input_times, expected_time_bounds, expected_fp_bounds):
         # in the shorter periods generated.
         (
             {"interval_in_minutes": 120, "accumulation": True},
-            [0, 9],
+            [6, 9, 6],
             [2, 4, 6],
-            [1, 3, 5],
+            [2.83, 3.33, 2.83],
+        ),
+        # Trend of increasing accumulations with time, which is reflected
+        # in the shorter periods generated.
+        (
+            {"interval_in_minutes": 90, "accumulation": True},
+            [6, 9, 6],
+            [1.5, 3, 4.5, 6],
+            [2.06, 2.44, 2.44, 2.06],
         ),
         # Trend of increasing maxes with time, which is reflected in the
         # shorter periods generated.
@@ -845,10 +853,10 @@ def test_add_bounds(input_times, expected_time_bounds, expected_fp_bounds):
         # Trend of increasing maxes with time, which is reflected in the
         # shorter periods generated.
         ({"interval_in_minutes": 120, "min": True}, [0, 9], [2, 4, 6], [9, 9, 9]),
-        # Later input period is 0, expect all new periods to be 0
+        # Later input period is 0, expect all new periods to be 0. Normalisation avoids zero-divide.
         (
             {"interval_in_minutes": 120, "accumulation": True},
-            [9, 0],
+            [9, 0, 9],
             [2, 4, 6],
             [0, 0, 0],
         ),
@@ -859,7 +867,7 @@ def test_add_bounds(input_times, expected_time_bounds, expected_fp_bounds):
         # Equal adjacent accumulations, divided into unequal shorter periods.
         (
             {"times": [datetime.datetime(2017, 11, 1, 4)], "accumulation": True},
-            [6, 6],
+            [6, 6, 6],
             [1, 6],
             [1, 5],
         ),
@@ -867,7 +875,7 @@ def test_add_bounds(input_times, expected_time_bounds, expected_fp_bounds):
         # same max.
         (
             {"times": [datetime.datetime(2017, 11, 1, 4)], "max": True},
-            [6, 6],
+            [6, 6, 6],
             [1, 6],
             [6, 6],
         ),
@@ -875,7 +883,7 @@ def test_add_bounds(input_times, expected_time_bounds, expected_fp_bounds):
         # the same min.
         (
             {"times": [datetime.datetime(2017, 11, 1, 4)], "min": True},
-            [6, 6],
+            [6, 6, 6],
             [1, 6],
             [6, 6],
         ),
@@ -883,17 +891,24 @@ def test_add_bounds(input_times, expected_time_bounds, expected_fp_bounds):
         # in the unequal shorter periods generated.
         (
             {"times": [datetime.datetime(2017, 11, 1, 4)], "accumulation": True},
-            [0, 9],
+            [0, 9, 18],
             [1, 6],
-            [0.25, 8.75],
+            [0.88, 8.12],
         ),
         # Trend of decreasing accumulations with time, which is reflected
         # in the unequal shorter periods generated.
         (
             {"times": [datetime.datetime(2017, 11, 1, 4)], "accumulation": True},
-            [12, 3],
+            [12, 3, 0],
             [1, 6],
-            [0.75, 2.25],
+            [1.1, 1.9],
+        ),
+        # No accumulation in input data, output are zero.
+        (
+                {"times": [datetime.datetime(2017, 11, 1, 4)], "accumulation": True},
+                [0, 0, 0],
+                [1, 6],
+                [0, 0],
         ),
     ],
 )
@@ -901,19 +916,18 @@ def test_process_periods(kwargs, values, offsets, expected, realizations):
     """Test the process method when applied to period diagnostics, some
     accumlations and some not. Test with and without multiple realizations."""
 
-    times = [datetime.datetime(2017, 11, 1, hour) for hour in [3, 9]]
+    times = [datetime.datetime(2017, 11, 1, hour) for hour in [3, 9, 15]][:len(values)]
     npoints = 5
     data = np.stack(
         [
-            np.full((npoints, npoints), values[0], dtype=np.float32),
-            np.full((npoints, npoints), values[1], dtype=np.float32),
+            np.full((npoints, npoints), v, dtype=np.float32) for v in values
         ]
     )
     cube = multi_time_cube(
         times, data, "latlon", bounds=True, realizations=realizations
     )
 
-    result = TemporalInterpolation(**kwargs).process(cube[0], cube[1])
+    result = TemporalInterpolation(**kwargs).process(*cube.slices_over("time"))
 
     for i, (offset, value) in enumerate(zip(offsets, expected)):
         if realizations:
@@ -940,7 +954,7 @@ def test_process_periods(kwargs, values, offsets, expected, realizations):
         assert result[i].coord("time").points.dtype == "int64"
         assert result[i].coord("forecast_period").points.dtype == "int32"
         if value is not None:
-            np.testing.assert_almost_equal(result[i].data, expected_data)
+            np.testing.assert_almost_equal(result[i].data, expected_data, decimal=2)
 
 
 @pytest.mark.parametrize(

@@ -560,37 +560,84 @@ class TemporalInterpolation(BasePlugin):
                 all_bounds.append([start, end])
             interpolated_cube.coord(crd).bounds = all_bounds
 
-    @staticmethod
     def _calculate_accumulation(
-        cube_t0: Cube, period_reference: Cube, interpolated_cube: Cube
+        self, cube_t0: Cube, cube_t1: Cube, cube_t2: Cube, interpolated_cube: Cube
     ):
         """If the input is an accumulation we use the trapezium rule to
         calculate a new accumulation for each output period from the rates
-        we converted the accumulations to prior to interpolating. We then
-        renormalise to ensure the total accumulation across the period is
+        we converted the accumulations to prior to interpolating.
+        The mean rate between cubes t0 and t1 is the start rate for the period,
+        and the mean rate between cubes t1 and t2 is the end rate for the period.
+        The mid-point rate is the mean rate for period t1, adjusted with half the difference
+        between the mid rate and the start and end rates so that the trapezium rule will return
+        the same total quantity for the t1 period.
+        The mean rate for each output period is calculated by interpolating between the
+        start and mid-point rates, or the mid-point and end rates, to the mid time point
+        of the output period.
+
+        Rather than adjusting the start, mid and end points further when the mid-point is below zero,
+        which would require knowledge of two further accumulation periods,
+        we renormalise to ensure the total accumulation across the period is
         unchanged by expressing it as a series of shorter periods.
 
         The interpolated cube is modified in place.
 
         Args:
             cube_t0:
-                The input cube corresponding to the earlier time.
-            period_reference:
-                The input cube corresponding to the later time, with the
-                values prior to conversion to rates.
+                The input cube containing the average rate of the previous time window.
+            cube_t1:
+                The input cube containing the average rate of the current time window.
+            cube_t2:
+                The input cube containing the average rate of the next time window.
             interpolated_cube:
                 The cube containing the interpolated times, which includes
                 the data corresponding to the time of the later of the two
                 input cubes.
         """
-        # Calculate an average rate for the period from the edges
-        accumulation_edges = [cube_t0, *interpolated_cube.slices_over("time")]
-        period_rates = np.array(
-            [
-                (a.data + b.data) / 2
-                for a, b in zip(accumulation_edges[:-1], accumulation_edges[1:])
-            ]
+        start_rate = 0.5 * (cube_t0.data + cube_t1.data)
+        start_point, end_point = cube_t1.coord("time").bounds[0]
+        end_rate = 0.5 * (cube_t1.data + cube_t2.data)
+        mid_rate = (
+            cube_t1.data
+            - 0.5 * (start_rate - cube_t1.data)
+            - 0.5 * (end_rate - cube_t1.data)
         )
+        mid_point = 0.5 * (end_point + start_point)
+        self._truncate_rates_at_zero(start_rate, mid_rate)
+        self._truncate_rates_at_zero(end_rate, mid_rate)
+        # Calculate an average rate for the period between start and mid, or mid and end.
+        period_rates = []
+        for interpolated_bounds in interpolated_cube.coord("time").bounds:
+            interpolated_midpoint = 0.5 * (
+                interpolated_bounds[0] + interpolated_bounds[1]
+            )
+            if (
+                interpolated_bounds[0] < mid_point
+                and mid_point < interpolated_bounds[1]
+            ):
+                # If we straddle the mid-point, calculate the rate for the first half of the period using the start and mid rates, and the second half using the mid and end rates.
+                quarter_point = 0.5 * (interpolated_midpoint + interpolated_bounds[0])
+                first_half_rate = start_rate + (mid_rate - start_rate) * (
+                    quarter_point - start_point
+                ) / (mid_point - start_point)
+                quarter_point = 0.5 * (interpolated_midpoint + interpolated_bounds[1])
+                second_half_rate = mid_rate + (end_rate - mid_rate) * (
+                    quarter_point - mid_point
+                ) / (end_point - mid_point)
+                period_rate = 0.5 * (first_half_rate + second_half_rate)
+            else:
+                period_rate = np.where(
+                    interpolated_midpoint < mid_point,
+                    start_rate
+                    + (mid_rate - start_rate)
+                    * (interpolated_midpoint - start_point)
+                    / (mid_point - start_point),
+                    mid_rate
+                    + (end_rate - mid_rate)
+                    * (interpolated_midpoint - mid_point)
+                    / (end_point - mid_point),
+                )
+            period_rates.append(period_rate)
         interpolated_cube.data = period_rates
 
         # Multiply the average rate by the length of each period to get a new
@@ -604,11 +651,39 @@ class TemporalInterpolation(BasePlugin):
         # total expressed in the longer original period.
         (time_coord,) = interpolated_cube.coord_dims("time")
         interpolated_total = np.sum(interpolated_cube.data, axis=time_coord)
-        renormalisation = period_reference.data / interpolated_total
+        original_total = (
+            cube_t1.data * np.diff(cube_t1.coord("forecast_period").bounds[0])[0]
+        )
+        renormalisation = np.where(
+            original_total == 0,
+            0,
+            np.where(interpolated_total == 0, 1, original_total / interpolated_total),
+        )
         interpolated_cube.data *= renormalisation
         interpolated_cube.data = interpolated_cube.data.astype(FLOAT_DTYPE)
 
-    def process(self, cube_t0: Cube, cube_t1: Cube) -> CubeList:
+    @staticmethod
+    def _truncate_rates_at_zero(bound_rate: np.ndarray, mid_rate: np.ndarray):
+        """Adjust bound rate to account for neighbouring period never having negative value.
+
+        If the slope from mid_rate to bound_rate results in a negative value at the adjacent period's mid-point,
+        we adjust both values so the new slope would give a zero value at the adjacent period's mid-point.
+        The mid point has half the adjustment of the bound point to ensure the integral under the slope is unchanged
+        across the whole time period.
+        This ensures that we do not introduce trends into the data that are inconsistent with the original period maximum or minimum
+        and that the integral under the slope does not change.
+
+        Args:
+            bound_rate: The rate at the bound (start or end) of the period (modified in place).
+            mid_rate: The rate at the mid-point of the period (modified in place).
+        """
+        slope = mid_rate - bound_rate
+        adjacent_mid_value = bound_rate - slope
+        adjustment = np.where(adjacent_mid_value < 0, adjacent_mid_value / 3, 0)
+        bound_rate += adjustment
+        mid_rate -= 0.5 * adjustment
+
+    def process(self, cube_t0: Cube, cube_t1: Cube, cube_t2: Cube = None) -> CubeList:
         """
         Interpolate data to intermediate times between validity times of
         cube_t0 and cube_t1.
@@ -616,10 +691,12 @@ class TemporalInterpolation(BasePlugin):
         Args:
             cube_t0:
                 A diagnostic cube valid at the beginning of the period within
-                which interpolation is to be permitted.
+                which interpolation is to be permitted. (or previous window for accumulations)
             cube_t1:
                 A diagnostic cube valid at the end of the period within which
-                interpolation is to be permitted.
+                interpolation is to be permitted. (or current window for accumulations)
+            cube_t2:
+                A diagnostic cube valid for the next period (accumulations only)
 
         Returns:
             A list of cubes interpolated to the desired times.
@@ -637,13 +714,20 @@ class TemporalInterpolation(BasePlugin):
             ValueError: The input cubes are ordered such that the initial time
                         cube has a later validity time than the final cube.
         """
-        if not isinstance(cube_t0, iris.cube.Cube) or not isinstance(
-            cube_t1, iris.cube.Cube
+        if (
+            not isinstance(cube_t0, iris.cube.Cube)
+            or not isinstance(cube_t1, iris.cube.Cube)
+            or not isinstance(cube_t2, iris.cube.Cube)
+            and self.accumulation
         ):
             msg = (
                 "Inputs to TemporalInterpolation are not of type "
                 "iris.cube.Cube, first input is type "
                 "{}, second input is type {}".format(type(cube_t0), type(cube_t1))
+            ) + (
+                " and third input is type {}".format(type(cube_t2))
+                if self.accumulation
+                else ""
             )
             raise TypeError(msg)
 
@@ -732,8 +816,8 @@ class TemporalInterpolation(BasePlugin):
         # in an NWP model's output.
         if self.accumulation:
             cube_t0.data /= np.diff(cube_t0.coord("forecast_period").bounds[0])[0]
-            period_reference = cube_t1.copy()
             cube_t1.data /= np.diff(cube_t1.coord("forecast_period").bounds[0])[0]
+            cube_t2.data /= np.diff(cube_t2.coord("forecast_period").bounds[0])[0]
 
         cubes = CubeList([cube_t0, cube_t1])
         cube = MergeCubes()(cubes)
@@ -756,7 +840,7 @@ class TemporalInterpolation(BasePlugin):
             #   minimum that occurred across the whole longer period.
             if self.accumulation:
                 self._calculate_accumulation(
-                    cube_t0, period_reference, interpolated_cube
+                    cube_t0, cube_t1, cube_t2, interpolated_cube
                 )
             elif self.max:
                 interpolated_cube.data = np.minimum(
