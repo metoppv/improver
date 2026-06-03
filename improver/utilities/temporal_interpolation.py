@@ -576,8 +576,8 @@ class TemporalInterpolation(BasePlugin):
         of the output period.
 
         Rather than adjusting the start, mid and end points further when the mid-point is below zero,
-        which would require knowledge of two further accumulation periods,
-        we renormalise to ensure the total accumulation across the period is
+        which would require knowledge of two further accumulation periods, the mid-point is set to
+        zero and the output data are renormalised to ensure the total accumulation across the period is
         unchanged by expressing it as a series of shorter periods.
 
         The interpolated cube is modified in place.
@@ -602,6 +602,7 @@ class TemporalInterpolation(BasePlugin):
 
         self._truncate_rates_at_zero(start_rate, mid_rate)
         self._truncate_rates_at_zero(end_rate, mid_rate)
+        mid_rate = np.clip(mid_rate, a_min=0, a_max=None)
         # Calculate an average rate for the period between start and mid, or mid and end.
         period_rates = []
         for interpolated_bounds in interpolated_cube.coord("time").bounds:

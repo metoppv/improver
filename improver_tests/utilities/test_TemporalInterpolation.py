@@ -853,12 +853,20 @@ def test_add_bounds(input_times, expected_time_bounds, expected_fp_bounds):
         # Trend of increasing maxes with time, which is reflected in the
         # shorter periods generated.
         ({"interval_in_minutes": 120, "min": True}, [0, 9], [2, 4, 6], [9, 9, 9]),
-        # Later input period is 0, expect all new periods to be 0. Normalisation avoids zero-divide.
+        # Input period is 0, expect all new periods to be 0. Normalisation avoids zero-divide.
         (
             {"interval_in_minutes": 120, "accumulation": True},
             [9, 0, 9],
             [2, 4, 6],
             [0, 0, 0],
+        ),
+        # Input period is tiny, expect all new periods to be non-negative with the precipitation
+        # assigned to the outer periods. The mid-period is non-zero, but has less than 0.01.
+        (
+            {"interval_in_minutes": 120, "accumulation": True},
+            [9, 0.1, 9],
+            [2, 4, 6],
+            [0.05, 0, 0.05],
         ),
         # Later input period max is 0, expect all new periods to be 0
         ({"interval_in_minutes": 120, "max": True}, [9, 0], [2, 4, 6], [0, 0, 0]),
