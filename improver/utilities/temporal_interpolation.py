@@ -724,10 +724,10 @@ class TemporalInterpolation(BasePlugin):
         Args:
             cube_t0:
                 A diagnostic cube valid at the beginning of the period within
-                which interpolation is to be permitted. (or previous window for accumulations)
+                which interpolation is to be permitted (or previous window for accumulations)
             cube_t1:
                 A diagnostic cube valid at the end of the period within which
-                interpolation is to be permitted. (or current window for accumulations)
+                interpolation is to be permitted (or current window for accumulations)
             cube_t2:
                 A diagnostic cube valid for the next period (accumulations only)
 
