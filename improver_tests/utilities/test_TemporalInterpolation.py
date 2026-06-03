@@ -837,7 +837,7 @@ def test_add_bounds(input_times, expected_time_bounds, expected_fp_bounds):
             {"interval_in_minutes": 120, "accumulation": True},
             [6, 9, 6],
             [2, 4, 6],
-            [2.83, 3.33, 2.83],
+            [2.8333, 3.3333, 2.8333],
         ),
         # Trend of increasing accumulations with time, which is reflected
         # in the shorter periods generated.
@@ -845,7 +845,7 @@ def test_add_bounds(input_times, expected_time_bounds, expected_fp_bounds):
             {"interval_in_minutes": 90, "accumulation": True},
             [6, 9, 6],
             [1.5, 3, 4.5, 6],
-            [2.06, 2.44, 2.44, 2.06],
+            [2.0625, 2.4375, 2.4375, 2.0625],
         ),
         # Trend of increasing maxes with time, which is reflected in the
         # shorter periods generated.
@@ -861,12 +861,12 @@ def test_add_bounds(input_times, expected_time_bounds, expected_fp_bounds):
             [0, 0, 0],
         ),
         # Input period is tiny, expect all new periods to be non-negative with the precipitation
-        # assigned to the outer periods. The mid-period is non-zero, but has less than 0.01.
+        # mostly assigned to the outer periods.
         (
             {"interval_in_minutes": 120, "accumulation": True},
             [9, 0.1, 9],
             [2, 4, 6],
-            [0.05, 0, 0.05],
+            [0.0444, 0.0111, 0.0444],
         ),
         # Later input period max is 0, expect all new periods to be 0
         ({"interval_in_minutes": 120, "max": True}, [9, 0], [2, 4, 6], [0, 0, 0]),
@@ -901,7 +901,7 @@ def test_add_bounds(input_times, expected_time_bounds, expected_fp_bounds):
             {"times": [datetime.datetime(2017, 11, 1, 4)], "accumulation": True},
             [0, 9, 18],
             [1, 6],
-            [0.88, 8.12],
+            [0.875, 8.125],
         ),
         # Trend of decreasing accumulations with time, which is reflected
         # in the unequal shorter periods generated.
@@ -909,14 +909,14 @@ def test_add_bounds(input_times, expected_time_bounds, expected_fp_bounds):
             {"times": [datetime.datetime(2017, 11, 1, 4)], "accumulation": True},
             [12, 3, 0],
             [1, 6],
-            [1.1, 1.9],
+            [1.0986, 1.9014],
         ),
         # No accumulation in input data, output are zero.
         (
-                {"times": [datetime.datetime(2017, 11, 1, 4)], "accumulation": True},
-                [0, 0, 0],
-                [1, 6],
-                [0, 0],
+            {"times": [datetime.datetime(2017, 11, 1, 4)], "accumulation": True},
+            [0, 0, 0],
+            [1, 6],
+            [0, 0],
         ),
     ],
 )
@@ -962,7 +962,7 @@ def test_process_periods(kwargs, values, offsets, expected, realizations):
         assert result[i].coord("time").points.dtype == "int64"
         assert result[i].coord("forecast_period").points.dtype == "int32"
         if value is not None:
-            np.testing.assert_almost_equal(result[i].data, expected_data, decimal=2)
+            np.testing.assert_almost_equal(result[i].data, expected_data, decimal=4)
 
 
 @pytest.mark.parametrize(
