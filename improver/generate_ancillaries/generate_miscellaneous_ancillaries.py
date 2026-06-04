@@ -19,7 +19,7 @@ from improver.utilities.spatial import (
 
 
 def generate_roughness_length_at_sites(
-    roughness_length: Cube, neighbour_cube: Cube
+    roughness_length_cube: Cube, neighbour_cube: Cube, ignore_grid_match: bool = False
 ) -> Cube:
     """Generate a roughness length ancillary cube at the site locations. This performs a
     spot extraction of the roughness length data at the site locations and removes time
@@ -31,12 +31,16 @@ def generate_roughness_length_at_sites(
         neighbour_cube:
             A cube containing information about the spot data sites and
             their grid point neighbours.
+        ignore_grid_match:
+            If True, the coordinate hash comparison between the diagnostic cube and
+            the neighbour cube will be ignored. This allows the version of Iris and/or
+            Numpy to be different from those that generated the neighbour cube.
     Returns:
         A cube containing the roughness length at the site locations.
     """
-    roughness_length_spot = SpotExtraction(neighbour_selection_method="nearest")(
-        neighbour_cube, roughness_length
-    )
+    roughness_length_spot = SpotExtraction(
+        neighbour_selection_method="nearest", ignore_grid_match=ignore_grid_match
+    )(neighbour_cube, roughness_length_cube)
 
     # Update metadata to remove any time coordinates
     cube_coord = [coord.name() for coord in roughness_length_spot.coords()]
