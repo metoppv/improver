@@ -710,7 +710,7 @@ class TemporalInterpolation(BasePlugin):
         we adjust both values so the new slope would give a zero value at the adjacent period's mid-point.
         The mid-point has half the adjustment of the bound point to ensure the integral under the slope is unchanged
         across the whole time period.
-        This means that the pivot point of the slope is closer to the mid-point and much further from the adjaceent mid-point.
+        This means that the pivot point of the slope is closer to the mid-point and much further from the adjacent mid-point.
         The ratio of distances is 5:2:-1 for adjacent mid-point:bound:mid-point.
         Therefore the bound_rate is adjusted by -2/5 and the mid_rate by +1/5 to ensure the adjacent mid-point is at zero.
         This ensures that we do not introduce trends into the data that are inconsistent with the original period maximum or minimum
