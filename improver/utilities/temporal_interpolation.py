@@ -121,6 +121,7 @@ class TemporalInterpolation(BasePlugin):
         times: Optional[List[datetime]] = None,
         interpolation_method: str = "linear",
         accumulation: bool = False,
+        is_last_timestep: bool = False,
         max: bool = False,
         min: bool = False,
         model_path: Optional[str] = None,
@@ -157,6 +158,9 @@ class TemporalInterpolation(BasePlugin):
                 that the total across the period constructed from the shorter
                 intervals matches the total across the period from the coarser
                 intervals.
+            is_last_timestep:
+                When True and accumulation is True, the second input is duplicated as
+                the third input to the interpolation.
             max:
                 Set True if the diagnostic being temporally interpolated is a
                 period maximum. Trends between adjacent input periods will be used
@@ -257,6 +261,11 @@ class TemporalInterpolation(BasePlugin):
                 f"min = {min}"
             )
         self.accumulation = accumulation
+        self.is_last_timestep = is_last_timestep
+        if not self.accumulation and self.is_last_timestep:
+            warnings.warn(
+                "Ignoring 'is_last_timestep=True' for non-accumulation interpolation."
+            )
         self.max = max
         self.min = min
         self.max_batch = max_batch
@@ -747,6 +756,20 @@ class TemporalInterpolation(BasePlugin):
             ValueError: The input cubes are ordered such that the initial time
                         cube has a later validity time than the final cube.
         """
+        if self.accumulation and self.is_last_timestep:
+            if cube_t2:
+                raise ValueError(
+                    "Unexpected third cube provided for accumulation interpolation with is_last_timestep=True."
+                )
+            # Repeat cube_t1 as cube_t2 with times adjusted to represent the next period.
+            cube_t2 = cube_t1.copy()
+            period_window_duration = np.diff(cube_t2.coord("time").bounds[0])
+            cube_t2.coord("time").points = (
+                cube_t2.coord("time").points + period_window_duration
+            )
+            cube_t2.coord("time").bounds = (
+                cube_t2.coord("time").bounds + period_window_duration
+            )
         if (
             not isinstance(cube_t0, iris.cube.Cube)
             or not isinstance(cube_t1, iris.cube.Cube)

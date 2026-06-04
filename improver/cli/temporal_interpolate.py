@@ -16,6 +16,7 @@ def process(
     times: cli.comma_separated_list = None,
     interpolation_method="linear",
     accumulation: bool = False,
+    is_last_timestep: bool = False,
     max: bool = False,
     min: bool = False,
     model_path: str = None,
@@ -65,6 +66,9 @@ def process(
             intervals matches the total across the period from the coarser
             intervals. Trends between adjacent input periods will be used
             to provide variation across the interpolated periods.
+        is_last_timestep:
+            When True and accumulation is True, the second input is duplicated as
+            the third input to the interpolation.
         max:
             Set True if the diagnostic being temporally interpolated is a
             period maximum. Trends between adjacent input periods will be used
@@ -132,6 +136,7 @@ def process(
         times=times,
         interpolation_method=interpolation_method,
         accumulation=accumulation,
+        is_last_timestep=is_last_timestep,
         max=max,
         min=min,
         model_path=model_path,

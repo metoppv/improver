@@ -765,6 +765,40 @@ def test_accumulation_no_cube2():
         )
 
 
+def test_accumulation_last_timestep():
+    """Test that requesting accumulation interpolation from two input cubes with the last timestep option works."""
+
+    times = [datetime.datetime(2017, 11, 1, hour) for hour in [3, 9]]
+    data = np.full((5, 5), dtype=np.float32, fill_value=5.)
+    cube = multi_time_cube(times, data, "latlon", bounds=True)
+    offsets = [3, 6]
+    expected = [2.5, 2.5]
+    result = TemporalInterpolation(interval_in_minutes=180, accumulation=True, is_last_timestep=True).process(
+                 *cube.slices_over("time")
+             )
+    for i, (offset, value) in enumerate(zip(offsets, expected)):
+        expected_time = 1509505200 + (offset * 3600)
+        expected_lower_bound_time = 1509505200 + [0, *offsets][i] * 3600
+        expected_upper_bound_time = expected_time
+        expected_fp = (6 + offset) * 3600
+        expected_lower_bound_fp = (6 + [0, *offsets][i]) * 3600
+        expected_upper_bound_fp = expected_fp
+
+        assert result[i].coord("time").points[0] == expected_time
+        np.testing.assert_array_equal(
+            result[i].coord("time").bounds,
+            [[expected_lower_bound_time, expected_upper_bound_time]],
+        )
+        assert result[i].coord("forecast_period").points[0] == expected_fp
+        np.testing.assert_array_equal(
+            result[i].coord("forecast_period").bounds,
+            [[expected_lower_bound_fp, expected_upper_bound_fp]],
+        )
+        assert result[i].coord("time").points.dtype == "int64"
+        assert result[i].coord("forecast_period").points.dtype == "int32"
+
+        np.testing.assert_almost_equal(result[i].data, value, decimal=4)
+
 @pytest.mark.parametrize(
     "input_times,expected_time_bounds,expected_fp_bounds",
     [

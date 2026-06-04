@@ -113,14 +113,22 @@ def test_period_max(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-def test_accumulation(tmp_path):
-    """Test interpolation of an accumulation."""
+@pytest.mark.parametrize("last_timestep", [False, True])
+def test_accumulation(tmp_path, last_timestep):
+    """Test interpolation of an accumulation, with and without the is-last-timestep option."""
     kgo_dir = acc.kgo_root() / "temporal-interpolate/accumulation"
-    kgo_path = kgo_dir / "kgo.nc"
-    input_paths = [
-        kgo_dir / f"20260612T{v:04}Z-PT{l:04}H00M-precipitation_accumulation.nc"
-        for v, l in ((0, 228), (600, 234), (1200, 240))
-    ]
+    if last_timestep:
+        kgo_path = kgo_dir / "kgo_last_timestep.nc"
+        input_paths = [
+            kgo_dir / f"20260612T{v:04}Z-PT{l:04}H00M-precipitation_accumulation.nc"
+            for v, l in ((0, 228), (600, 234))
+        ]
+    else:
+        kgo_path = kgo_dir / "kgo.nc"
+        input_paths = [
+            kgo_dir / f"20260612T{v:04}Z-PT{l:04}H00M-precipitation_accumulation.nc"
+            for v, l in ((0, 228), (600, 234), (1200, 240))
+        ]
     output_path = tmp_path / "output.nc"
     args = [
         *input_paths,
@@ -132,6 +140,8 @@ def test_accumulation(tmp_path):
         "--output",
         output_path,
     ]
+    if last_timestep:
+        args.extend(["--is-last-timestep"])
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
