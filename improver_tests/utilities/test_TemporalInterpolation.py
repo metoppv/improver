@@ -878,16 +878,18 @@ def test_add_bounds(input_times, expected_time_bounds, expected_fp_bounds):
         ({"interval_in_minutes": 180, "max": True}, [3, 9], [3, 6], [6, 9]),
         # Later input period minimum is 9, expect all new periods to be >= 9
         ({"interval_in_minutes": 180, "min": True}, [3, 9], [3, 6], [9, 9]),
-        # Trend of increasing accumulations with time, which is reflected
-        # in the shorter periods generated.
+        # Lower accumulations in bounding periods resulting in peak accumulations
+        # near the centre of the three output period, where middle period straddles
+        # the mid-point.
         (
             {"interval_in_minutes": 120, "accumulation": True},
             [6, 9, 6],
             [2, 4, 6],
             [2.8333, 3.3333, 2.8333],
         ),
-        # Trend of increasing accumulations with time, which is reflected
-        # in the shorter periods generated.
+        # Lower accumulations in bounding periods resulting in peak accumulations
+        # near the centre of the four output period, none of which straddle the
+        # mid-point.
         (
             {"interval_in_minutes": 90, "accumulation": True},
             [6, 9, 6],
