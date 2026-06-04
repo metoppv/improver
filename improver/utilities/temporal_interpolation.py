@@ -572,24 +572,31 @@ class TemporalInterpolation(BasePlugin):
     def _calculate_accumulation(
         self, cube_t0: Cube, cube_t1: Cube, cube_t2: Cube, interpolated_cube: Cube
     ):
-        """If the input is an accumulation we use the trapezium rule to
-        calculate a new accumulation for each output period from the rates
-        we converted the accumulations to prior to interpolating.
-        The mean rate between cubes t0 and t1 is the start rate for the period,
-        and the mean rate between cubes t1 and t2 is the end rate for the period.
-        The mid-point rate is the mean rate for period t1, adjusted with half the difference
-        between the mid rate and the start and end rates so that the trapezium rule will return
-        the same total quantity for the t1 period.
-        The mean rate for each output period is calculated by interpolating between the
-        start and mid-point rates, or the mid-point and end rates, to the mid time point
-        of the output period.
+        """Reconstruct sub-period accumulations from interpolated rates using a piecewise-linear (trapezoidal) representation.
 
-        Rather than adjusting the start, mid and end points further when the mid-point is below zero,
-        which would require knowledge of two further accumulation periods, the mid-point is set to
-        zero and the output data are renormalised to ensure the total accumulation across the period is
-        unchanged by expressing it as a series of shorter periods.
+        Starting from three consecutive accumulation periods (t0, t1, t2), we:
+            - Convert accumulations to mean rates.
+            - Define:
+                - start_rate: mean of t0 and t1
+                - end_rate: mean of t1 and t2
+                - mid_rate: adjusted rate at the centre of t1, such that integrating the piecewise-linear profile over
+                  t1 reproduces the original t1 total.
 
-        The interpolated cube is modified in place.
+        The mid-point in time is taken as the centre of the t1 bounds. Rates are then assumed to vary linearly:
+            - from start_rate to mid_rate over the first half
+            - from mid_rate to end_rate over the second half
+
+        For each output period, the mean rate is obtained by evaluating this piecewise-linear profile at the midpoint
+        of the output interval. If an interval straddles the mid-point, the rate is computed as the average of the two
+        halves.
+
+        To prevent non-physical negative values, the mid-point is truncated to zero and the final sub-period
+        accumulations are later renormalised to conserve the total accumulation over t1.
+
+        To account for this mid-point truncation in neighbouring periods, the start/mid and end/mid slopes are
+        adjusted using _truncate_rates_at_zero.
+
+        The input interpolated_cube is modified in place.
 
         Args:
             cube_t0:
