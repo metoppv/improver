@@ -1194,7 +1194,8 @@ class RealizationClusterAndMatch(BasePlugin):
 
         This method clusters the primary input realizations and matches secondary input
         realizations to the resulting clusters, according to the specified hierarchy
-        and precedence.
+        and precedence. The realizations in the primary input can be renumbered
+        if desired.
 
         Args:
             cubes: The input CubeList containing all primary and secondary input

@@ -1375,7 +1375,7 @@ def test_clusterandmatch_mismatched_realization_coordinates_warning():
             plugin.process(cubes)
 
 
-def test_clusterandmatch_realization_slicing_with_full_matching():
+def test_clusterandmatch_nonmonotonic_realization_slicing_with_full_matching():
     """Test full-realization matching with non-monotonic selected realizations.
 
     This unit test engineers the data so matching naturally chooses candidate indices
