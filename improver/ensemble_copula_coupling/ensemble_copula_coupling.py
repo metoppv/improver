@@ -212,12 +212,9 @@ class RebadgePercentilesAsRealizations(BasePlugin):
             realization_numbers:
                 Array of realization numbers to assign.
         """
-        cube.coord(percentile_coord_name).points = realization_numbers
         cube.coord(percentile_coord_name).rename("realization")
+        cube.coord("realization").points = realization_numbers.astype(np.int32)
         cube.coord("realization").units = "1"
-        cube.coord("realization").points = cube.coord("realization").points.astype(
-            np.int32
-        )
 
     def process(self, cube: Cube) -> Cube:
         """
@@ -583,6 +580,11 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
         self.ecc_bounds_warning = ecc_bounds_warning
         self.mask_percentiles = mask_percentiles
         self.skip_ecc_bounds = skip_ecc_bounds
+        if distribution != "gamma":
+            raise ValueError(
+                f"Unsupported distribution: {distribution}. "
+                "Currently only 'gamma' is supported."
+            )
         self.distribution = distribution
         self.nan_mask_value = nan_mask_value
         self.scale_percentiles_to_probability_lower_bound = (
@@ -1487,9 +1489,9 @@ class EnsembleReordering(BasePlugin):
                 values generated are not reproducible.
             tie_break:
                 The method of tie breaking to use when the first ordering method
-                contains ties. The available methods are "random", to tie-break
-                randomly, and "realization", to tie-break by assigning values to the
-                highest numbered realizations first. Tie breaking using the
+                contains ties. The available methods are the default - "random", to
+                tie-break randomly, and "realization", to tie-break by assigning values
+                to the highest numbered realizations first. Tie breaking using the
                 "realization" option is deterministic, and provides a simple
                 approach for tie breaking (based on the realization number) without
                 introducing spatial arfefacts that can occur with "random" tie breaking.

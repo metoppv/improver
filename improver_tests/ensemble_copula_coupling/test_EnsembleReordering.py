@@ -122,7 +122,8 @@ def test_recycle_fewer_percentiles(cubes_for_recycle):
 
 
 def test_rank_ecc_returns_cube(cubes_for_rank):
-    """Test that rank_ecc returns a Cube."""
+    """Test that rank_ecc returns a Cube and the order is preserved when the input
+    is already sorted."""
     cube, _ = cubes_for_rank
     raw = np.ones_like(cube.data)
     for i in range(raw.shape[0]):
@@ -132,18 +133,7 @@ def test_rank_ecc_returns_cube(cubes_for_rank):
     cal_cube = cube.copy(data=cal)
     result = Plugin().rank_ecc(cal_cube, raw_cube)
     assert isinstance(result, Cube)
-
-
-def test_rank_ecc_preserves_order(cubes_for_rank):
-    """Test that rank_ecc preserves order when input is already sorted."""
-    cube, _ = cubes_for_rank
-    arr = np.ones_like(cube.data)
-    for i in range(arr.shape[0]):
-        arr[i] *= i + 1
-    raw_cube = cube.copy(data=arr)
-    cal_cube = cube.copy(data=arr)
-    result = Plugin().rank_ecc(cal_cube, raw_cube)
-    np.testing.assert_array_almost_equal(result.data, arr)
+    np.testing.assert_array_almost_equal(result.data, raw)
 
 
 def test_rank_ecc_reorders(cubes_for_rank):

@@ -3,7 +3,7 @@
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """
-Unit tests for the
+Pytest-based tests for the
 `ensemble_copula_coupling.ConvertProbabilitiesToPercentiles` class.
 """
 
@@ -86,6 +86,13 @@ def expected_percentiles_arrays():
         dtype=np.float32,
     )
     return percentile_25, percentile_50, percentile_75
+
+
+def test_init_unsupported_distribution():
+    """Test unsupported distribution raises ValueError at initialization."""
+    msg = "Unsupported distribution: normal"
+    with pytest.raises(ValueError, match=msg):
+        Plugin(distribution="normal")
 
 
 # Tests for the _add_bounds_to_thresholds_and_probabilities method

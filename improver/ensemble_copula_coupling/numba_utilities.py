@@ -27,6 +27,8 @@ def fast_interp_same_x(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndar
     Returns:
         2-D array with shape (len(fp), len(x)), with each row i equal to
             np.interp(x, xp, fp[i, :])
+    Raises:
+        ValueError: if the input arrays do not have the expected dimensions.
     """
     # check inputs
     if len(x.shape) != 1:
@@ -61,6 +63,8 @@ def fast_interp_same_y(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndar
         fp: 1-d array with length m
     Returns:
         n * len(x) array where each row i is equal to np.interp(x, xp[i], fp)
+    Raises:
+        ValueError: if the input arrays do not have the expected dimensions.
     """
     # check inputs
     if len(x.shape) != 1:
@@ -129,6 +133,8 @@ def fast_interp_same_y_2d(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.n
         fp: 1-D array with length m
     Returns:
         n * k array where each row i is equal to np.interp(x[i], xp[i], fp)
+    Raises:
+        ValueError: if the input arrays do not have the expected dimensions.
     """
     # checks
     if len(x.shape) != 2:
