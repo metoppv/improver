@@ -2894,8 +2894,8 @@ def test_realizationselection_cycletime():
     assert result.coord("forecast_period").points[0] == 3600
 
 
-def test_realizationselection_blend_time_propagated_and_aligned_with_cycletime():
-    """Test blend_time is added to all selected cubes and aligned to cycletime."""
+def test_realizationselection_blend_time_removed_from_selected_cubes():
+    """Test blend_time is removed from all selected cubes when present on any input."""
     primary_map = {"0": 0, "1": 0}
     secondary_map = {
         "model_with_blend": {
@@ -2920,18 +2920,10 @@ def test_realizationselection_blend_time_propagated_and_aligned_with_cycletime()
 
     cubes.append(cluster_cube)
 
-    plugin = RealizationSelection(
-        forecast_period=3600,
-        cycletime="20170110T0400Z",
-    )
+    plugin = RealizationSelection(forecast_period=3600)
     result = plugin.process(cubes)
 
-    assert result.coords("blend_time")
-    np.testing.assert_array_equal(
-        result.coord("blend_time").points,
-        result.coord("forecast_reference_time").points,
-    )
-    assert result.coord("forecast_reference_time").cell(0).point._to_real_datetime() == datetime.strptime("20170110T0400Z", "%Y%m%dT%H%MZ")
+    assert not result.coords("blend_time")
 
 def test_realizationselection_secondary_precedence():
     """Test RealizationSelection uses secondary mapping when available."""

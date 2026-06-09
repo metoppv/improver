@@ -12,7 +12,7 @@ from typing import Any, Optional
 import iris
 import numpy as np
 import pandas as pd
-from iris.coords import AuxCoord
+from iris.coords import DimCoord
 from iris.cube import Cube, CubeList
 from iris.util import new_axis, promote_aux_coord_to_dim_coord
 
@@ -1721,7 +1721,7 @@ class RealizationSelection(BasePlugin):
             if not model_cube.coords("realization"):
                 selected = model_cube
                 selected.add_aux_coord(
-                    AuxCoord(cluster_idx, standard_name="realization", units="1")
+                    DimCoord(cluster_idx, standard_name="realization", units="1")
                 )
                 selected_cubes.append(selected)
                 continue
@@ -1743,28 +1743,21 @@ class RealizationSelection(BasePlugin):
             selected_cubes.append(selected)
         return selected_cubes
 
-    def _ensure_blend_time_on_selected_cubes(self, selected_cubes: list[Cube]) -> None:
-        """Ensure blend_time is present on all selected cubes if present on any.
+    def _remove_blend_time_from_selected_cubes(
+        self, selected_cubes: list[Cube]
+    ) -> None:
+        """Remove blend_time coordinate from all selected cubes if present on any.
 
-        If blend_time exists on at least one selected cube, any selected cube
-        without blend_time is given one copied from forecast_reference_time. If
-        cycletime is provided, reset_forecast_reference_time_and_period is applied
-        so blend_time and forecast_reference_time are aligned.
+        blend_time is removed to avoid ambiguity in the merged output, as selected
+        cubes may come from different source models with differing blend_time values.
 
         Args:
             selected_cubes:
                 Realization-selected cubes, modified in place.
         """
-        if not any(cube.coords("blend_time") for cube in selected_cubes):
-            return
-
         for cube in selected_cubes:
-            if not cube.coords("blend_time"):
-                frt_coord = cube.coord("forecast_reference_time").copy()
-                frt_coord.rename("blend_time")
-                frt_coord.bounds = None
-                frt_dims = cube.coord_dims("forecast_reference_time")
-                cube.add_aux_coord(frt_coord, data_dims=frt_dims if frt_dims else None)
+            if cube.coords("blend_time"):
+                cube.remove_coord("blend_time")
 
     def process(self, cubes: CubeList) -> Cube:
         """
@@ -1810,7 +1803,12 @@ class RealizationSelection(BasePlugin):
         selected_cubes = self.select_realizations_for_clusters(
             cluster_to_selection, forecast_cubes
         )
-        self._ensure_blend_time_on_selected_cubes(selected_cubes)
+        # Remove blend time and sanitise forecast_reference_time attributes to
+        # support merging.
+        self._remove_blend_time_from_selected_cubes(selected_cubes)
+        for cube in selected_cubes:
+            if cube.coords("forecast_reference_time"):
+                cube.coord("forecast_reference_time").attributes = {}
 
         result_cube = MergeCubes()(CubeList(selected_cubes))
         if "cluster_sources" in cluster_cube.attributes:
