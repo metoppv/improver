@@ -91,3 +91,21 @@ def test_change_scalar_coord(tmp_path):
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
+
+
+def test_modify_coord_attributes(tmp_path):
+    """Test applying coordinate attribute modifications"""
+    kgo_dir = acc.kgo_root() / "standardise/coord_attributes"
+    kgo_path = kgo_dir / "kgo.nc"
+    input_path = acc.kgo_root() / "standardise/metadata" / "input.nc"
+    attributes_path = kgo_dir / "coord_attributes.json"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        "--output",
+        output_path,
+        "--coord-attribute-modification",
+        attributes_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)

@@ -12,7 +12,7 @@ from improver.metadata.constants import FLOAT_DTYPE
 from improver.pollen.daily_concentration import PollenDailyConcentration
 
 pollen_hourly_concentrations_dict = {
-    "weed_pollen": {
+    "weed": {
         1: np.array([[0.0, 0.01, 29.0], [50.0, 131.2, 409.0]]),
         2: np.array([[0.0, 0.01, 29.0], [50.0, 131.2, 409.0]]),
         3: np.array([[0.0, 0.01, 29.0], [50.0, 131.2, 409.0]]),
@@ -54,6 +54,11 @@ pollen_hourly_concentrations_dict = {
     },
 }
 
+EXPECTED_CUBE_NAME = {
+    "weed": "number_concentration_of_urticaceae_pollen_grains_in_air",
+    "insufficient_pollen": "number_concentration_foo_pollen_grains_in_air",
+}
+
 WEED_AVERAGE = np.array([[0.0, 0.01, 29.0], [50.0, 129.9, 400.29166667]]).astype(
     FLOAT_DTYPE
 )
@@ -75,16 +80,18 @@ def get_input_cubes(pollen_name: str) -> CubeList:
             units=1,
         )
         cube.attributes.update({"taxa": pollen_name, "quantity": "Concentration"})
+        cube.rename(EXPECTED_CUBE_NAME[pollen_name])
         cubes.append(cube)
 
     return cubes
 
 
 def test_process():
-    cubes = get_input_cubes("weed_pollen")
+    cubes = get_input_cubes("weed")
     plugin = PollenDailyConcentration()
     output_cube = plugin.process(cubes)
     np.testing.assert_array_almost_equal(output_cube.data, WEED_AVERAGE)
+    assert output_cube.name() == EXPECTED_CUBE_NAME["weed"]
 
 
 def test_insufficient_data():
