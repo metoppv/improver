@@ -358,7 +358,8 @@ def integrate_time(cube: Cube, new_name: str = None) -> Cube:
 def reset_forecast_reference_time_and_period(cube: Cube, cycletime: str) -> None:
     """
     Reset the forecast_reference_time coordinate to the given cycletime and
-    update the forecast_period coordinate to match.
+    update the forecast_period coordinate to match. If a blend_time coordinate
+    is present, it is also reset to the same cycletime.
 
     Modifies cube in place.
 
