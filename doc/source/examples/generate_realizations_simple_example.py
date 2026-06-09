@@ -3,17 +3,19 @@
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """
-=============================================================================================
-Example: Convert probabilities to percentiles and perform reordering to generate realizations
-=============================================================================================
+===============================================================================
+Example: Convert probabilities to percentiles and perform reordering to
+generate realizations
+===============================================================================
 This example demonstrates how to use the ConvertProbabilitiesToPercentiles and
 EnsembleReordering plugins on a synthetic precipitation probability cube.
 
-It provides a worked example of the Ensemble Copula Coupling (ECC) approach,
-showing how to convert probabilities of exceeding thresholds into percentiles,
-and then reorder these percentiles to generate ensemble realizations. The example
-illustrates both the "quantile" (ECC-Q) and "transformation" (ECC-T) sampling options
-available within ECC, highlighting the differences in the resulting percentiles and
+It provides a worked example of the Ensemble Copula Coupling (ECC)
+approach, showing how to convert probabilities of exceeding thresholds
+into percentiles, and then reorder these percentiles to generate
+ensemble realizations. The example illustrates both the "quantile"
+(ECC-Q) and "transformation" (ECC-T) sampling options available within
+ECC, highlighting the differences in the resulting percentiles and
 realizations produced by each method.
 """
 
@@ -83,9 +85,10 @@ raw_cube = set_up_variable_cube(
 # %%
 # Visualise the input probability cube and the raw realization cube
 # -----------------------------------------------------------------
-# The probability plots show higher probabilities for the lower left grid point.
-# Within the raw realizations, the highest precipitation rates are in the bottom right
-# grid point (i.e. not aligned with the location of the highest probabilities).
+# The probability plots show higher probabilities for the lower-left grid
+# point. Within the raw realizations, the highest precipitation rates are
+# in the bottom-right grid point (i.e. not aligned with the location of
+# the highest probabilities).
 
 
 def annotate_values_on_axes(cube, ax):
@@ -148,8 +151,9 @@ plt.show()
 # %%
 # Convert probabilities to percentiles using "quantile" sampling
 # --------------------------------------------------------------
-# The distribution, nan_mask_value, and scale_percentiles_to_probability_lower_bound
-# options are set to here, but are only used for the "transformation" sampling option.
+# The distribution, nan_mask_value, and
+# scale_percentiles_to_probability_lower_bound options are set to here,
+# but are only used for the "transformation" sampling option.
 
 plugin = ConvertProbabilitiesToPercentiles(
     distribution="gamma",
@@ -167,7 +171,10 @@ plugin = ConvertProbabilitiesToPercentiles(
     scale_percentiles_to_probability_lower_bound=True,
 )
 percentile_cube_transformation = plugin(
-    prob_cube, intensity_cube=raw_cube, no_of_percentiles=3, sampling="transformation"
+    prob_cube,
+    intensity_cube=raw_cube,
+    no_of_percentiles=3,
+    sampling="transformation",
 )
 plugin = ConvertProbabilitiesToPercentiles(
     distribution="gamma",
@@ -175,39 +182,45 @@ plugin = ConvertProbabilitiesToPercentiles(
     scale_percentiles_to_probability_lower_bound=False,
 )
 percentile_cube_transformation_unscaled = plugin(
-    prob_cube, intensity_cube=raw_cube, no_of_percentiles=3, sampling="transformation"
+    prob_cube,
+    intensity_cube=raw_cube,
+    no_of_percentiles=3,
+    sampling="transformation",
 )
 
 # %%
 # Single grid point examples
 # --------------------------
 # To understand the differences between quantile and transformation sampling,
-# we can examine the percentiles generated at specific grid points and the resulting
-# precipitation rates.
+# we can examine the percentiles generated at specific grid points and
+# the resulting precipitation rates.
 #
 # **Quantile sampling:**
 #
-# - Generates the same percentiles at each grid point (equally spaced in percentile
-#   space).
+# - Generates the same percentiles at each grid point (equally spaced in
+#   percentile space).
 # - Here, for a 3 member ensemble, the 25th, 50th and 75th percentiles.
 #
 # **Transformation sampling:**
 #
-# - Generates different percentiles at each grid point based on the local distribution
-#   of probabilities.
+# - Generates different percentiles at each grid point based on the local
+#   distribution of probabilities.
 #
-# Transformation sampling without scaling in this example, generates percentiles
-# that are more widely spaced. Applying the scaling pulls the non-zero percentiles
-# further from zero. When the transformation sampling is applied without scaling,
-# the precipitation rates are as expected, relative to quantile sampling with lower
-# and higher precipitation rates given the wider percentiles being sampled at. When
-# scaling is applied, the non-zero precipitation rates are increased.
+# Transformation sampling without scaling in this example generates
+# percentiles that are more widely spaced. Applying the scaling pulls
+# the non-zero percentiles further from zero. When the transformation
+# sampling is applied without scaling, the precipitation rates are as
+# expected, relative to quantile sampling with lower and higher
+# precipitation rates given the wider percentiles being sampled at.
+# When scaling is applied, the non-zero precipitation rates are
+# increased.
 #
 # Example: At the bottom-left grid point (probability 0.8 of exceeding 1 mm/h):
 #
 # - Quantile sampling (25th percentile): produces values above 1 mm/h
 # - Transformation unscaled: 0.103 percentile produces values below 1 mm/h
-# - Transformation scaled: rescales to the (0.2, 1.0) range, yielding 1.414 mm/h
+# - Transformation scaled: rescales to the (0.2, 1.0) range,
+#   yielding 1.414 mm/h
 #
 
 
@@ -234,10 +247,18 @@ grid_points = {
 
 # Prepare DataFrames for percentiles and sampled values
 percentiles_df = pd.DataFrame(
-    columns=["Quantile", "Transformation (unscaled)", "Transformation (scaled)"]
+    columns=[
+        "Quantile",
+        "Transformation (unscaled)",
+        "Transformation (scaled)",
+    ]
 )
 sampled_values_df = pd.DataFrame(
-    columns=["Quantile", "Transformation (unscaled)", "Transformation (scaled)"]
+    columns=[
+        "Quantile",
+        "Transformation (unscaled)",
+        "Transformation (scaled)",
+    ]
 )
 
 for label, (i, j) in grid_points.items():
@@ -279,12 +300,15 @@ print("Precipitation rates obtained by sampling at these percentiles:")
 print(sampled_values_df.map(lambda arr: np.round(arr, 3)))
 
 # %%
-# Visualise the percentile cubes side-by-side for quantile and transformation sampling
-# ------------------------------------------------------------------------------------
-# Percentiles generated using quantile sampling have the highest precipitation rate
-# in the bottom left grid point, which is consistent with the highest probabilities
-# in the input. Percentiles generated using transformation sampling have the highest
-# precipitation rates in the bottom left, bottom right and centre left grid points.
+# Visualise the percentile cubes side-by-side for quantile and
+# transformation sampling
+# ------------------------------------------------------------------
+# Percentiles generated using quantile sampling have the highest
+# precipitation rate in the bottom-left grid point, which is
+# consistent with the highest probabilities in the input. Percentiles
+# generated using transformation sampling have the highest
+# precipitation rates in the bottom-left, bottom-right and centre-left
+# grid points.
 plt.figure(figsize=(12, 6))
 
 perc_min = np.min([percentile_cube_quantile.data, percentile_cube_transformation.data])
@@ -324,14 +348,18 @@ realization_cube_transformation = reordering_plugin(
 )
 
 # %%
-# Visualise the realization cubes side-by-side for quantile and transformation sampling
-# -------------------------------------------------------------------------------------
-# Quantile sampling leads to realization 0 having the highest precipitation rates
+# Visualise the realization cubes side-by-side for quantile and
+# transformation sampling
+# -------------------------------------------------------------------
+# Quantile sampling leads to realization 0 having the highest
+# precipitation rates
 # in the bottom left grid point, matching the probabilities in the input.
-# Transformation sampling leads to realization 0 having the highest precipitation rates
-# in the bottom left and right grid point, and realization 2 having a
+# Transformation sampling leads to realization 0 having the highest
+# precipitation rates in the bottom-left and bottom-right grid point,
+# and realization 2 having a
 # high precipitation rate in the centre left grid point.
-# Transformation sampling has retained zero values that were present in the raw cube.
+# Transformation sampling has retained zero values that were present in
+# the raw cube.
 #
 plt.figure(figsize=(12, 6))
 
