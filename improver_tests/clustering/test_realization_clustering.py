@@ -3031,22 +3031,6 @@ def test_realizationselection_no_forecast_cubes_raises():
         plugin.process(cubes)
 
 
-def test_realizationselection_realization_index_out_of_bounds_raises():
-    """Test error when mapped realization index is out of bounds."""
-    cluster_cube = _make_cluster_cube_for_selection({"0": 5})
-
-    forecast_cubes = _make_forecast_cubes("primary_model", [10, 20, 30], 3600)
-    cubes = forecast_cubes.copy()
-    cubes.append(cluster_cube)
-
-    plugin = RealizationSelection(forecast_period=3600)
-    with pytest.raises(
-        ValueError,
-        match="Realization index 5 is out of bounds for model 'primary_model'",
-    ):
-        plugin.process(cubes)
-
-
 def test_realizationselection_deterministic_input_no_realization_coord():
     """Test deterministic forecast input is handled without a realization coord."""
     cluster_cube = _make_cluster_cube_for_selection({"0": 7, "1": 99})
@@ -3155,3 +3139,48 @@ def test_realizationselection_cluster_sources_with_no_models_raises():
         ),
     ):
         plugin.process(cubes)
+
+
+def test_realizationselection_selection_attr_added():
+    """Test that selection_attr is correctly added to output cube when specified."""
+    primary_map = {"0": 0, "1": 1}
+    cluster_cube = _make_cluster_cube_for_selection(primary_map)
+
+    forecast_cubes = _make_forecast_cubes("primary_model", [10, 20, 30], 3600)
+    cubes = forecast_cubes.copy()
+    cubes.append(cluster_cube)
+
+    # Test with selection_attr specified
+    plugin = RealizationSelection(
+        forecast_period=3600,
+        selection_attr="realization_selection_method",
+        selection_attr_value="cluster_medoid"
+    )
+    result = plugin.process(cubes)
+
+    # Verify attribute is present and has correct value
+    assert "realization_selection_method" in result.attributes
+    assert result.attributes["realization_selection_method"] == "cluster_medoid"
+
+
+def test_realizationselection_selection_attr_custom_value():
+    """Test that selection_attr can have custom values."""
+    primary_map = {"0": 0, "1": 1}
+    cluster_cube = _make_cluster_cube_for_selection(primary_map)
+
+    forecast_cubes = _make_forecast_cubes("primary_model", [10, 20, 30], 3600)
+    cubes = forecast_cubes.copy()
+    cubes.append(cluster_cube)
+
+    # Test with custom selection_attr_value
+    custom_value = "custom_selection_method_v1"
+    plugin = RealizationSelection(
+        forecast_period=3600,
+        selection_attr="selection_source",
+        selection_attr_value=custom_value
+    )
+    result = plugin.process(cubes)
+
+    # Verify custom value is stored correctly
+    assert "selection_source" in result.attributes
+    assert result.attributes["selection_source"] == custom_value

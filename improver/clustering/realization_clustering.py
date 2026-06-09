@@ -1427,6 +1427,8 @@ class RealizationSelection(BasePlugin):
         forecast_period: int,
         model_id_attr: str = "mosg__model_configuration",
         cycletime: Optional[str] = None,
+        selection_attr: Optional[str] = None,
+        selection_attr_value: str = "cluster_medoid",
     ):
         """
         Initialise the RealizationSelection plugin.
@@ -1442,10 +1444,18 @@ class RealizationSelection(BasePlugin):
                 with the validity times kept fixed. cycletime should be provided in the
                 format YYYYMMDDTHHMMZ (e.g., 20240101T0000Z). If not provided, the
                 forecast_reference_time on the input cubes will be left unchanged.
+            selection_attr: Optional name of a cube attribute to add to the output
+                to identify that these realizations were selected using this plugin.
+                If not provided (None), no attribute is added. Example:
+                "realization_selection_method".
+            selection_attr_value: The value to assign to the selection_attr attribute.
+                Default is "cluster_medoid". Only used if selection_attr is provided.
         """
         self.forecast_period = forecast_period
         self.model_id_attr = model_id_attr
         self.cycletime = cycletime
+        self.selection_attr = selection_attr
+        self.selection_attr_value = selection_attr_value
 
     def split_cubes_forecast_and_cluster(
         self, cubes: CubeList
@@ -1709,7 +1719,7 @@ class RealizationSelection(BasePlugin):
         """
         selected_cubes = []
         for cluster_idx in sorted(cluster_to_selection):
-            model_name, realization_index = cluster_to_selection[cluster_idx]
+            model_name, realization_value = cluster_to_selection[cluster_idx]
             model_cubes = forecast_cubes.extract(
                 iris.AttributeConstraint(**{self.model_id_attr: model_name})
             )
@@ -1728,16 +1738,8 @@ class RealizationSelection(BasePlugin):
 
             enforce_coordinate_ordering(model_cube, ["realization"])
 
-            realization_index = int(realization_index)
-            n_realizations = len(model_cube.coord("realization").points)
-            if realization_index < 0 or realization_index >= n_realizations:
-                raise ValueError(
-                    f"Realization index {realization_index} is out of bounds for "
-                    f"model '{model_name}' with {n_realizations} realizations"
-                )
-            realization_index = realization_index % n_realizations
-
-            selected = model_cube[realization_index]
+            constr = iris.Constraint(realization=realization_value)
+            selected = model_cube.extract(constr)
             selected.coord("realization").points = [cluster_idx]
             selected.coord("realization").units = "1"
             selected_cubes.append(selected)
@@ -1815,4 +1817,7 @@ class RealizationSelection(BasePlugin):
             result_cube.attributes["cluster_sources"] = cluster_cube.attributes[
                 "cluster_sources"
             ]
+        # Add selection attribute if specified
+        if self.selection_attr is not None:
+            result_cube.attributes[self.selection_attr] = self.selection_attr_value
         return result_cube
