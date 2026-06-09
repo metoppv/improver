@@ -624,12 +624,20 @@ def frt_cube():
 
 def test_reset_forecast_reference_time(frt_cube):
     """Test that the forecast_reference_time coordinate is updated to the
-    supplied cycletime, any bounds are removed, and the forecast_period
-    coordinate is recalculated relative to the new forecast_reference_time."""
+    supplied cycletime, any bounds are removed, blend_time is aligned to the
+    same value, and the forecast_period coordinate is recalculated relative to
+    the new forecast_reference_time."""
     frt_cube.coord("forecast_reference_time").bounds = [
         frt_cube.coord("forecast_reference_time").points[0] - 3600,
         frt_cube.coord("forecast_reference_time").points[0],
     ]
+    blend_time = frt_cube.coord("forecast_reference_time").copy()
+    blend_time.rename("blend_time")
+    blend_time.bounds = [
+        blend_time.points[0] - 3600,
+        blend_time.points[0],
+    ]
+    frt_cube.add_aux_coord(blend_time)
     reset_forecast_reference_time_and_period(frt_cube, "20170217T0900Z")
     result_frt = frt_cube.coord("forecast_reference_time")
     expected_point = cycletime_to_number(
@@ -639,6 +647,9 @@ def test_reset_forecast_reference_time(frt_cube):
     )
     assert result_frt.points[0] == np.int64(expected_point)
     assert result_frt.bounds is None
+    result_blend_time = frt_cube.coord("blend_time")
+    assert result_blend_time.points[0] == np.int64(expected_point)
+    assert result_blend_time.bounds is None
     # time is 09:00, new frt is 09:00, so forecast_period should be 0
     assert frt_cube.coord("forecast_period").points[0] == 0
 
