@@ -512,7 +512,8 @@ def test_regeneration_produces_regular_intervals_at_fine_resolution():
     - Regeneration window: [3, 9] hours
 
     Expected behavior:
-    - Regeneration fills 1-hour intervals in window: 3, 4, 5, 6, 7, 8, 9
+        - Regeneration fills only interior 1-hour intervals in window: 4, 5, 6, 7, 8
+            (3 and 9 are boundary inputs and are not regenerated)
     - Gap filling fills remaining missing intervals: 10, 11
     - Original cubes included: 3, 9, 12
 
@@ -558,6 +559,23 @@ def test_regeneration_produces_regular_intervals_at_fine_resolution():
     assert result_periods == [3, 4, 5, 6, 7, 8, 9, 10, 11, 12], (
         f"Expected [3, 4, 5, 6, 7, 8, 9, 10, 11, 12], got {result_periods}"
     )
+
+
+def test_create_regeneration_tasks_excludes_boundary_periods():
+    """Test regeneration tasks include interior periods only, not t0/t1 boundaries."""
+    cubelist = setup_cubes_with_gaps(hours=[3, 9, 12])
+    plugin = ForecastTrajectoryGapFiller(
+        interval_in_minutes=60,
+        interpolation_window_in_minutes=180,
+    )
+
+    tasks = plugin._create_regeneration_tasks(
+        periods_to_regenerate=[(6 * 3600, 3 * 3600, 9 * 3600)],
+        sorted_cubelist=cubelist,
+    )
+
+    target_periods = [task[1] for task in tasks]
+    assert target_periods == [4 * 3600, 5 * 3600, 6 * 3600, 7 * 3600, 8 * 3600]
 
 
 @pytest.mark.parametrize(

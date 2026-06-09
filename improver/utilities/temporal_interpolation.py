@@ -1428,8 +1428,10 @@ class ForecastTrajectoryGapFiller(BasePlugin):
                 # Generate target periods at regular intervals between expected_t0
                 # and expected_t1 if interval is specified
                 if self.interval_in_seconds is not None:
-                    current_period = expected_t0
-                    while current_period <= expected_t1:
+                    # Interpolate only interior periods. Boundary periods are
+                    # existing inputs and should not be regenerated.
+                    current_period = expected_t0 + self.interval_in_seconds
+                    while current_period < expected_t1:
                         interpolation_tasks.append(
                             ("regenerate", current_period, expected_t0, expected_t1)
                         )
@@ -1499,6 +1501,7 @@ class ForecastTrajectoryGapFiller(BasePlugin):
             and cube_t1.coord("time").has_bounds()
         ):
             interpolated_cube = MergeCubes()(interpolated)
+
             TemporalInterpolation.add_bounds(cube_t0, interpolated_cube)
             interpolated = CubeList(interpolated_cube.slices_over("time"))
 
