@@ -16,16 +16,31 @@ pytest.importorskip("esmf_regrid")
 pytest.importorskip("kmedoids")
 
 
-def test_single_lead_time(tmp_path):
+@pytest.mark.parametrize(
+    "renumber_primary_realizations,coarse_resolution_filename,kgo_filename",
+    [
+        (
+            True,
+            "coarse_resolution_primary_subdomain_PT0006H00M_renumbered.nc",
+            "single_lead_time_renumbered_kgo.nc",
+        ),
+        (
+            False,
+            "coarse_resolution_primary_subdomain_PT0006H00M.nc",
+            "single_lead_time_kgo.nc",
+        ),
+    ],
+)
+def test_single_lead_time(
+    tmp_path, renumber_primary_realizations, coarse_resolution_filename, kgo_filename
+):
     """Test with a single lead time and two input cubes."""
     kgo_dir = (
         acc.kgo_root() / "realization-cluster-and-match" / "two_forecast_period_input"
     )
     central_dir = acc.kgo_root() / "realization-cluster-and-match"
-    kgo_path = kgo_dir / "single_lead_time_kgo.nc"
-    coarse_resolution_primary_input = (
-        kgo_dir / "coarse_resolution_primary_subdomain_PT0006H00M.nc"
-    )
+    kgo_path = kgo_dir / kgo_filename
+    coarse_resolution_primary_input = kgo_dir / coarse_resolution_filename
     high_resolution_secondary_input = (
         kgo_dir / "high_resolution_secondary_subdomain_PT0006H00M.nc"
     )
@@ -45,6 +60,8 @@ def test_single_lead_time(tmp_path):
         "mosg__model_configuration",
         "--target-grid-name",
         "target_grid",
+        "--renumber-primary-realizations",
+        str(renumber_primary_realizations),
         "--clustering-kwargs",
         clustering_kwargs_input,
         "--output",
@@ -89,6 +106,8 @@ def test_two_lead_times(tmp_path):
         "mosg__model_configuration",
         "--target-grid-name",
         "target_grid",
+        "--renumber-primary-realizations",
+        "False",
         "--clustering-kwargs",
         clustering_kwargs_input,
         "--output",
