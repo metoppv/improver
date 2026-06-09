@@ -8,7 +8,7 @@ This module defines the plugins required for Ensemble Copula Coupling.
 """
 
 import warnings
-from typing import List, Optional, Tuple, Union
+from typing import Iterable, List, Optional, Tuple, Union
 
 import iris
 import numpy as np
@@ -128,7 +128,7 @@ class RebadgePercentilesAsRealizations(BasePlugin):
 
     def __init__(
         self,
-        ensemble_realization_numbers: Optional[np.ndarray] = None,
+        ensemble_realization_numbers: Optional[Iterable[int]] = None,
         ensure_evenly_spaced_percentiles: bool = True,
     ):
         """
@@ -199,7 +199,10 @@ class RebadgePercentilesAsRealizations(BasePlugin):
             )
 
     def _rebadge_percentile_coord(
-        self, cube: Cube, percentile_coord_name: str, realization_numbers: np.ndarray
+        self,
+        cube: Cube,
+        percentile_coord_name: str,
+        realization_numbers: Iterable[int],
     ):
         """
         Rename percentile coord to realization and set points/units.
@@ -210,10 +213,10 @@ class RebadgePercentilesAsRealizations(BasePlugin):
             percentile_coord_name:
                 Name of the percentile coordinate.
             realization_numbers:
-                Array of realization numbers to assign.
+                Iterable of realization numbers to assign.
         """
         cube.coord(percentile_coord_name).rename("realization")
-        cube.coord("realization").points = realization_numbers.astype(np.int32)
+        cube.coord("realization").points = np.array(realization_numbers, dtype=np.int32)
         cube.coord("realization").units = "1"
 
     def process(self, cube: Cube) -> Cube:

@@ -38,14 +38,17 @@ def test_basic(percentile_cube):
     assert result.coord("realization").units == "1"
 
 
-def test_specify_realization_numbers(percentile_cube):
-    """Test specifying particular values for the ensemble realization numbers."""
-    ensemble_realization_numbers = [12, 13, 14]
+@pytest.mark.parametrize(
+    "ensemble_realization_numbers",
+    ([12, 13, 14], (12, 13, 14), np.array([12, 13, 14], dtype=np.int32)),
+)
+def test_specify_realization_numbers(percentile_cube, ensemble_realization_numbers):
+    """Test iterable values can be provided for realization numbers."""
     result = Plugin(ensemble_realization_numbers=ensemble_realization_numbers).process(
         percentile_cube
     )
     np.testing.assert_array_equal(
-        result.coord("realization").points, ensemble_realization_numbers
+        result.coord("realization").points, np.array([12, 13, 14], dtype=np.int32)
     )
 
 
