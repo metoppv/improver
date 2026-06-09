@@ -2,7 +2,7 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""RainForests calibration Plugins.
+"""Plugins to apply RainForests calibration.
 
 .. Further information is available in:
 .. include:: extended_documentation/calibration/rainforests_calibration/
@@ -78,23 +78,25 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
                 models. Limits the calculation of common feature values by only calculating
                 them once. Defaults to False.
 
-        Dictionary is of format::
+        Dictionary is of format:
 
-        {
-        "24": {
-            "0.000010": {
-                "lightgbm_model": "<path_to_lightgbm_model_object>",
-                "treelite_model": "<path_to_treelite_model_object>"
-            },
-            "0.000050": {
-                "lightgbm_model": "<path_to_lightgbm_model_object>",
-                "treelite_model": "<path_to_treelite_model_object>"
-            },
-            "0.000100": {
-                "lightgbm_model": "<path_to_lightgbm_model_object>",
-                "treelite_model": "<path_to_treelite_model_object>"
-            },
-        }
+        .. code-block:: json
+
+            {
+            "24": {
+                "0.000010": {
+                    "lightgbm_model": "<path_to_lightgbm_model_object>",
+                    "treelite_model": "<path_to_treelite_model_object>"
+                },
+                "0.000050": {
+                    "lightgbm_model": "<path_to_lightgbm_model_object>",
+                    "treelite_model": "<path_to_treelite_model_object>"
+                },
+                "0.000100": {
+                    "lightgbm_model": "<path_to_lightgbm_model_object>",
+                    "treelite_model": "<path_to_treelite_model_object>"
+                },
+            }
 
         The keys specify the lead times and model threshold values, while the
         associated values are the path to the corresponding tree-model objects
