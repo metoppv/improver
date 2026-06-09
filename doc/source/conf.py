@@ -461,6 +461,9 @@ sphinx_gallery_conf = {
     "gallery_dirs": "auto_examples",  # Path where to save gallery generated examples
     "filename_pattern": r"/*\.py",  # Pattern to match example files (all .py files)
     "doc_module": "improver",  # Module name for cross-referencing
+    "reference_url": {
+        "improver": None,  # force links to local IMPROVER docs
+    },
     "backreferences_dir": None,  # Disable automatic backreferences generation
     "matplotlib_animations": False,  # Disable matplotlib animation support
     "expected_failing_examples": {},  # Examples that are expected to fail
