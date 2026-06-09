@@ -2893,6 +2893,46 @@ def test_realizationselection_cycletime():
     assert result.coord("forecast_reference_time").cell(0).point._to_real_datetime() == datetime.strptime("20170110T0400Z", "%Y%m%dT%H%MZ")
     assert result.coord("forecast_period").points[0] == 3600
 
+
+def test_realizationselection_blend_time_propagated_and_aligned_with_cycletime():
+    """Test blend_time is added to all selected cubes and aligned to cycletime."""
+    primary_map = {"0": 0, "1": 0}
+    secondary_map = {
+        "model_with_blend": {
+            "0": [{"realization": 0, "forecast_periods": [3600]}],
+        },
+        "model_without_blend": {
+            "1": [{"realization": 0, "forecast_periods": [3600]}],
+        },
+    }
+    cluster_cube = _make_cluster_cube_for_selection(primary_map, secondary_map)
+
+    cubes = CubeList()
+    cubes.extend(_make_forecast_cubes("model_with_blend", [100], 3600))
+    cubes.extend(_make_forecast_cubes("model_without_blend", [200], 3600))
+
+    with_blend_cube = cubes.extract(
+        iris.AttributeConstraint(mosg__model_configuration="model_with_blend")
+    )[0]
+    blend_time_coord = with_blend_cube.coord("forecast_reference_time").copy()
+    blend_time_coord.rename("blend_time")
+    with_blend_cube.add_aux_coord(blend_time_coord, data_dims=None)
+
+    cubes.append(cluster_cube)
+
+    plugin = RealizationSelection(
+        forecast_period=3600,
+        cycletime="20170110T0400Z",
+    )
+    result = plugin.process(cubes)
+
+    assert result.coords("blend_time")
+    np.testing.assert_array_equal(
+        result.coord("blend_time").points,
+        result.coord("forecast_reference_time").points,
+    )
+    assert result.coord("forecast_reference_time").cell(0).point._to_real_datetime() == datetime.strptime("20170110T0400Z", "%Y%m%dT%H%MZ")
+
 def test_realizationselection_secondary_precedence():
     """Test RealizationSelection uses secondary mapping when available."""
     # Cluster cube: 2 clusters, medoids are 0, 1

@@ -1743,6 +1743,29 @@ class RealizationSelection(BasePlugin):
             selected_cubes.append(selected)
         return selected_cubes
 
+    def _ensure_blend_time_on_selected_cubes(self, selected_cubes: list[Cube]) -> None:
+        """Ensure blend_time is present on all selected cubes if present on any.
+
+        If blend_time exists on at least one selected cube, any selected cube
+        without blend_time is given one copied from forecast_reference_time. If
+        cycletime is provided, reset_forecast_reference_time_and_period is applied
+        so blend_time and forecast_reference_time are aligned.
+
+        Args:
+            selected_cubes:
+                Realization-selected cubes, modified in place.
+        """
+        if not any(cube.coords("blend_time") for cube in selected_cubes):
+            return
+
+        for cube in selected_cubes:
+            if not cube.coords("blend_time"):
+                frt_coord = cube.coord("forecast_reference_time").copy()
+                frt_coord.rename("blend_time")
+                frt_coord.bounds = None
+                frt_dims = cube.coord_dims("forecast_reference_time")
+                cube.add_aux_coord(frt_coord, data_dims=frt_dims if frt_dims else None)
+
     def process(self, cubes: CubeList) -> Cube:
         """
         Select realizations from input forecast cubes according to cluster assignments
@@ -1787,6 +1810,8 @@ class RealizationSelection(BasePlugin):
         selected_cubes = self.select_realizations_for_clusters(
             cluster_to_selection, forecast_cubes
         )
+        self._ensure_blend_time_on_selected_cubes(selected_cubes)
+
         result_cube = MergeCubes()(CubeList(selected_cubes))
         if "cluster_sources" in cluster_cube.attributes:
             result_cube.attributes["cluster_sources"] = cluster_cube.attributes[
