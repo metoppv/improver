@@ -2868,6 +2868,30 @@ def test_realizationselection_realization_index_out_of_bounds_raises():
         plugin.process(cubes)
 
 
+def test_realizationselection_deterministic_input_no_realization_coord():
+    """Test deterministic forecast input is handled without a realization coord."""
+    cluster_cube = _make_cluster_cube_for_selection({"0": 7, "1": 99})
+
+    deterministic_cube = set_up_variable_cube(
+        np.full((5, 5), 42.0, dtype=np.float32),
+        name="air_temperature",
+        units="K",
+        spatial_grid="equalarea",
+        time=datetime(2017, 1, 10, 4),
+        frt=datetime(2017, 1, 10, 3),
+    )
+    deterministic_cube.coord("forecast_period").points = [3600]
+    deterministic_cube.attributes["mosg__model_configuration"] = "primary_model"
+
+    cubes = CubeList([deterministic_cube, cluster_cube])
+
+    plugin = RealizationSelection(forecast_period=3600)
+    result = plugin.process(cubes)
+
+    np.testing.assert_array_equal(result.coord("realization").points, [0, 1])
+    np.testing.assert_array_equal(result.data[:, 0, 0], [42.0, 42.0])
+
+
 def test_realizationselection_invalid_primary_map_type_raises():
     """Test TypeError when primary mapping attribute is not str or dict."""
     cluster_cube = _make_cluster_cube_for_selection({"0": 0, "1": 1})

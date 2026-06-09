@@ -12,6 +12,7 @@ from typing import Any, Optional
 import iris
 import numpy as np
 import pandas as pd
+from iris.coords import AuxCoord
 from iris.cube import Cube, CubeList
 from iris.util import new_axis, promote_aux_coord_to_dim_coord
 
@@ -1652,7 +1653,8 @@ class RealizationSelection(BasePlugin):
 
         Returns:
             A list of Cube objects, each containing a single realization relabelled
-            to the cluster index.
+            to the cluster index. Forecast cubes without a realization coordinate
+            are treated as deterministic inputs and selected directly.
 
         Raises:
             ValueError: If no forecast cube is found for a specified model name.
@@ -1668,6 +1670,16 @@ class RealizationSelection(BasePlugin):
             if not model_cubes:
                 raise ValueError(f"No forecast cube found for model '{model_name}'")
             model_cube = model_cubes[0].copy()
+
+            # Deterministic input has no realization coordinate to index.
+            if not model_cube.coords("realization"):
+                selected = model_cube
+                selected.add_aux_coord(
+                    AuxCoord(cluster_idx, standard_name="realization", units="1")
+                )
+                selected_cubes.append(selected)
+                continue
+
             enforce_coordinate_ordering(model_cube, ["realization"])
 
             realization_index = int(realization_index)
@@ -1677,6 +1689,7 @@ class RealizationSelection(BasePlugin):
                     f"Realization index {realization_index} is out of bounds for "
                     f"model '{model_name}' with {n_realizations} realizations"
                 )
+            realization_index = realization_index % n_realizations
 
             selected = model_cube[realization_index]
             selected.coord("realization").points = [cluster_idx]
