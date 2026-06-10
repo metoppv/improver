@@ -128,7 +128,8 @@ class StochasticNoise(BasePlugin):
             )
 
     def _process_single_realization(self, input_cube: Cube) -> Cube:
-        """Process a cube containing a single realization (or no realization coord).
+        """Add stochastic noise to a cube containing a single realization
+        (or no realization coord).
 
         Args:
             input_cube:
