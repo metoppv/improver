@@ -5,14 +5,13 @@
 
 """RainForests model training plugin."""
 
-import pandas
 import pathlib
 from pathlib import Path
 
+import pandas
+
 from improver import BasePlugin
-from improver.calibration import (
-    lightgbm_package_available,
-)
+from improver.calibration import lightgbm_package_available
 
 
 class TrainRainForestsModel(BasePlugin):

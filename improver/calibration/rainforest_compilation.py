@@ -9,9 +9,7 @@ import pathlib
 from pathlib import Path
 
 from improver import BasePlugin
-from improver.calibration import (
-    treelite_packages_available,
-)
+from improver.calibration import treelite_packages_available
 
 LIGHTGBM_EXTENSION = ".txt"
 TREELITE_EXTENSION = ".so"
