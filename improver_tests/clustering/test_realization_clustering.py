@@ -5,6 +5,7 @@
 """Unit tests for the improver.clustering.realization_clustering module."""
 
 import json
+import re
 from datetime import datetime
 
 import iris
@@ -2850,6 +2851,13 @@ def _make_forecast_cubes(model_id, realization_vals, forecast_period, shape=(5, 
     cube.coord("forecast_period").points = [forecast_period]
     cubes.append(cube)
     return cubes
+
+def test_misspecified_cycletime():
+    """Test that an error is raised if cycletime is not in the expected format."""
+    expected = ("cycletime '2024-01-01 00:00' is not in the expected format "
+                "YYYYMMDDTHHMMZ (e.g., 20240101T0000Z)")
+    with pytest.raises(ValueError, match=re.escape(expected)):
+        RealizationSelection(forecast_period=3600, cycletime="2024-01-01 00:00")
 
 def test_realizationselection_primary_only():
     """Test RealizationSelection with only primary mapping (no secondary)."""

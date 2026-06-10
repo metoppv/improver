@@ -26,6 +26,7 @@ from improver.utilities.cube_manipulation import (
 )
 from improver.utilities.temporal import (
     reset_forecast_reference_time_and_period,
+    validate_cycletime_format,
 )
 
 try:
@@ -1454,6 +1455,8 @@ class RealizationSelection(BasePlugin):
         self.forecast_period = forecast_period
         self.model_id_attr = model_id_attr
         self.cycletime = cycletime
+        if self.cycletime is not None:
+            validate_cycletime_format(self.cycletime)
         self.selection_attr = selection_attr
         self.selection_attr_value = selection_attr_value
 
