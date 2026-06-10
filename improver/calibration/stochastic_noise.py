@@ -17,9 +17,10 @@ from improver.utilities.cube_checker import validate_cube_dimensions
 
 
 class StochasticNoise(BasePlugin):
-    """Class to apply spatially-structured stochastic noise to non-positive regions of a
-    field, building on the Short-Space Fourier Transform (SSFT) approach from
-    Nerini et al. (2017).
+    """Class to apply spatially-structured stochastic noise (randomly generated noise
+    with specific statistical properties) to non-positive regions of a field, building
+    on the Short-Space Fourier Transform (SSFT) approach from Nerini et al. (2017),
+    as implemented in the pySTEPS library.
 
     This plugin is intended for use with positive zero-bounded diagnostics only, and is
     a particularly useful tool for Ensemble Copula Coupling-Quantile (ECC-Q) realization
@@ -29,10 +30,10 @@ class StochasticNoise(BasePlugin):
     to unrealistic individual members (e.g. single-pixel precipitation artifacts) when
     multiple raw ensemble members have identical values ('ties') of zero (very common
     in precipitation forecasts) and the post-processed calibrated probabilities
-    indicate a non-zero value should occur. By adding spatially-structured noise to
-    break ties in these non-positive regions, more realistic spatial structures can be
-    generated in the final ECC-Q realizations, while still respecting the calibrated
-    probabilities.
+    indicate a non-zero value should occur. By adding spatially-structured stochastic*
+    noise to break ties in these non-positive regions, more realistic spatial structures
+    can be generated in the final ECC-Q realizations, while still respecting the
+    calibrated probabilities.
     """
 
     def __init__(
