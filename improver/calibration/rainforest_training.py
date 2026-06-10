@@ -5,6 +5,8 @@
 
 """RainForests model training plugin."""
 
+import pandas
+import pathlib
 from pathlib import Path
 
 from improver import BasePlugin
@@ -24,10 +26,10 @@ class TrainRainForestsModel(BasePlugin):
     def __init__(
         self,
         model_config_dict: dict[int, dict[str, dict[str, str]]],
-        training_data,
-        observation_column,
-        training_columns,
-        lightgbm_params=None,
+        training_data: pandas.DataFrame,
+        observation_column: str,
+        training_columns: list[str],
+        lightgbm_params: dict | None = None,
     ):
         """Initialise the options used when training models.
 
@@ -37,13 +39,13 @@ class TrainRainForestsModel(BasePlugin):
                 - top level key describes the lead-hour,
                 - next level key describes the threshold,
                 - corresponding values locate the associated model file.
-            training_data (pandas.DataFrame):
+            training_data:
                 Combined data set used to train models.
-            observation_column (str):
+            observation_column:
                 The column in the data set to be trained for.
-            training_columns (List(str)):
+            training_columns:
                 Set of columns from the data set to be trained from.
-            lightgbm_params (Dict):
+            lightgbm_params:
                 Optional. Parameters passed into training library. Any parameters
                 here will override the default parameters.
 
@@ -100,14 +102,14 @@ class TrainRainForestsModel(BasePlugin):
         if lightgbm_params:
             self.params = self.params | lightgbm_params
 
-    def process(self, lead_time, thresholds):
+    def process(self, lead_time: int, thresholds: list[str]):
         """Train models for a set of threshold values.
 
         Args:
-            lead_time (int):
+            lead_time:
                 Lead time in hours of training data. Used to get retreive model paths
                 from config data.
-            thresholds (list of str):
+            thresholds:
                 Threshold values for which the observation column is trained.
                 Formatted to match the keys used in the model_config object.
         """
@@ -124,15 +126,14 @@ class TrainRainForestsModel(BasePlugin):
             model_path = Path(self.config[lead_time][threshold]["lightgbm_model"])
             self._train_model(float(threshold), model_path)
 
-    def _train_model(self, threshold, model_path):
-        """Train a model for a particular threshold.
+    def _train_model(self, threshold: float, model_path: pathlib.Path):
+        """Train a model for a particular threshold and saves it to disk.
 
         Args:
-            threshold (float):
+            threshold:
                 Threshold for which the observation column is trained.
-
-        Returns:
-            The model object (lightgbm.Booster)
+            model_path:
+                Full file path where the model should be saved.
         """
         import lightgbm
 

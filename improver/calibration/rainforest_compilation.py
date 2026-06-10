@@ -5,6 +5,7 @@
 
 """RainForests model compilation plugin."""
 
+import pathlib
 from pathlib import Path
 
 from improver import BasePlugin
@@ -22,9 +23,9 @@ class CompileRainForestsModel(BasePlugin):
     def __init__(
         self,
         model_config_dict: dict[int, dict[str, dict[str, str]]],
-        toolchain="gcc",
-        verbose=False,
-        parallel_comp=0,
+        toolchain: str = "gcc",
+        verbose: bool = False,
+        parallel_comp: int = 0,
     ):
         """Initialise the options used when compiling models.
 
@@ -34,13 +35,13 @@ class CompileRainForestsModel(BasePlugin):
                 - top level key describes the lead-hour,
                 - next level key describes the threshold,
                 - corresponding values locate the associated model file.
-            toolchain (str):
+            toolchain:
                 Toolchain to use for Treelite model compilation.
                 'gcc' (default), 'msvc', 'clang' or a specific variation of clang or gcc
                 (e.g. 'gcc-7').
-            verbose (bool):
+            verbose:
                 Print verbose output during compilation
-            parallel_comp (int):
+            parallel_comp:
                 Enables parallel compilation to reduce time and memory consumption.
                 Value is the number of processes to use.
                 Defaults to 0 (no parallel compilation)
@@ -78,11 +79,11 @@ class CompileRainForestsModel(BasePlugin):
         self.verbose = verbose
         self.treelight_params = {"parallel_comp": parallel_comp, "quantize": 1}
 
-    def process(self, allow_missing=False):
+    def process(self, allow_missing: bool = False):
         """Compile all configured LightGBM models with Treelite.
 
         Args:
-            allow_missing (bool):
+            allow_missing:
                 If False (default), throws an error if any LightGBM models are missing.
                 If True, any missing LightGBM files will be ignored.
 
@@ -108,13 +109,13 @@ class CompileRainForestsModel(BasePlugin):
                     Path(threshold["treelite_model"]),
                 )
 
-    def _compile_model(self, lightgbm_path, output_path):
+    def _compile_model(self, lightgbm_path: pathlib.Path, output_path: pathlib.Path):
         """Compile a lightgbm model with Treelite.
 
         Args:
-            lightgbm_path (pathlib.Path):
+            lightgbm_path:
                 Path to LightGBM Booster file.
-            output_path (pathlib.Path):
+            output_path:
                 Path where the compiled Treelite predictor file will be created.
         """
 
