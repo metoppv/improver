@@ -6,8 +6,11 @@
 
 import unittest
 
+import iris
 import numpy as np
 from iris.cube import Cube, CubeList
+
+iris.FUTURE.date_microseconds = True
 
 
 class ImproverTest(unittest.TestCase):

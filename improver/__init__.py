@@ -9,6 +9,10 @@ from collections.abc import Iterable
 from importlib.metadata import PackageNotFoundError, version
 from typing import Any
 
+import iris
+
+iris.FUTURE.date_microseconds = True
+
 try:
     __version__ = version("improver")
 except PackageNotFoundError:
