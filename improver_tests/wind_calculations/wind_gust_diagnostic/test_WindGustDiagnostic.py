@@ -11,7 +11,6 @@ import iris
 import numpy as np
 import pytest
 from iris.cube import Cube
-from iris.tests import IrisTest
 
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
@@ -43,7 +42,7 @@ def create_wind_percentile_cube(data=None, perc_values=None, name="wind_speed_of
     return cube
 
 
-class Test__init__(IrisTest):
+class Test__init__(unittest.TestCase):
     """Test the __init__ method."""
 
     def test_basic(self):
@@ -53,7 +52,7 @@ class Test__init__(IrisTest):
         self.assertEqual(plugin.percentile_windspeed, 95.0)
 
 
-class Test__repr__(IrisTest):
+class Test__repr__(unittest.TestCase):
     """Test the repr method."""
 
     def test_basic(self):
@@ -63,7 +62,7 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, msg)
 
 
-class Test_add_metadata(IrisTest):
+class Test_add_metadata(unittest.TestCase):
     """Test the add_metadata method."""
 
     def setUp(self):
@@ -85,7 +84,7 @@ class Test_add_metadata(IrisTest):
         self.assertEqual(result.attributes["wind_gust_diagnostic"], msg)
 
 
-class Test_extract_percentile_data(IrisTest):
+class Test_extract_percentile_data(unittest.TestCase):
     """Test the extract_percentile_data method."""
 
     def setUp(self):
@@ -147,7 +146,7 @@ class Test_extract_percentile_data(IrisTest):
         self.assertEqual(result.coord("percentile").points, [self.wg_perc])
 
 
-class Test_process(IrisTest):
+class Test_process(unittest.TestCase):
     """Test the creation of wind-gust diagnostic by the plugin."""
 
     def setUp(self):
@@ -239,7 +238,7 @@ class Test_process(IrisTest):
         expected_data = np.zeros((2, 2, 2), dtype=np.float32)
         expected_data[0, :, :] = 3.0
         expected_data[1, :, :] = 2.0
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
         msg = "<WindGustDiagnostic: wind-gust perc=50.0, wind-speed perc=95.0>"
         self.assertEqual(result.attributes["wind_gust_diagnostic"], msg)
 

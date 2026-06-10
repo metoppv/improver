@@ -11,7 +11,6 @@ import iris
 import numpy as np
 import numpy.ma as ma
 import pytest
-from iris.tests import IrisTest
 
 from improver.constants import SECONDS_IN_HOUR
 from improver.metadata.utilities import generate_mandatory_attributes
@@ -25,6 +24,7 @@ from improver.utilities.mathematical_operations import (
     fast_linear_fit,
     verify_time_coords_match,
 )
+from improver_tests import ImproverTest
 
 
 def _set_up_height_cube(height_points, ascending=True):
@@ -46,7 +46,7 @@ def _set_up_height_cube(height_points, ascending=True):
     return cube
 
 
-class Test__repr__(IrisTest):
+class Test__repr__(unittest.TestCase):
     """Test the repr method."""
 
     def test_basic(self):
@@ -61,7 +61,7 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, msg)
 
 
-class Test_ensure_monotonic_increase_in_chosen_direction(IrisTest):
+class Test_ensure_monotonic_increase_in_chosen_direction(unittest.TestCase):
     """Test the ensure_monotonic_increase_in_chosen_direction method."""
 
     def setUp(self):
@@ -83,7 +83,7 @@ class Test_ensure_monotonic_increase_in_chosen_direction(IrisTest):
             self.ascending_cube
         )
         self.assertIsInstance(cube, iris.cube.Cube)
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             cube.coord("height").points, self.ascending_height_points
         )
 
@@ -95,7 +95,7 @@ class Test_ensure_monotonic_increase_in_chosen_direction(IrisTest):
             self.ascending_cube
         )
         self.assertIsInstance(cube, iris.cube.Cube)
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             cube.coord("height").points, self.descending_height_points
         )
 
@@ -107,7 +107,7 @@ class Test_ensure_monotonic_increase_in_chosen_direction(IrisTest):
             self.descending_cube
         )
         self.assertIsInstance(cube, iris.cube.Cube)
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             cube.coord("height").points, self.ascending_height_points
         )
 
@@ -119,12 +119,12 @@ class Test_ensure_monotonic_increase_in_chosen_direction(IrisTest):
             self.descending_cube
         )
         self.assertIsInstance(cube, iris.cube.Cube)
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             cube.coord("height").points, self.descending_height_points
         )
 
 
-class Test_prepare_for_integration(IrisTest):
+class Test_prepare_for_integration(unittest.TestCase):
     """Test the prepare_for_integration method."""
 
     def setUp(self):
@@ -149,10 +149,10 @@ class Test_prepare_for_integration(IrisTest):
         """Test that the expected coordinate points are returned for each
         cube when the direction of integration is positive."""
         result = self.plugin_positive.prepare_for_integration()
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result[0].coord("height").points, np.array([10.0, 20.0])
         )
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result[1].coord("height").points, np.array([5.0, 10.0])
         )
 
@@ -163,15 +163,15 @@ class Test_prepare_for_integration(IrisTest):
             [20.0, 10.0, 5.0]
         )
         result = self.plugin_negative.prepare_for_integration()
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result[0].coord("height").points, np.array([20.0, 10.0])
         )
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result[1].coord("height").points, np.array([10.0, 5.0])
         )
 
 
-class Test_perform_integration(IrisTest):
+class Test_perform_integration(unittest.TestCase):
     """Test the perform_integration method."""
 
     def setUp(self):
@@ -222,10 +222,10 @@ class Test_perform_integration(IrisTest):
             self.negative_upper_bounds_cube, self.negative_lower_bounds_cube
         )
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.coord("height").points, np.array([10.0, 5.0])
         )
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.coord("height").bounds, np.array([[20.0, 10.0], [10.0, 5.0]])
         )
 
@@ -241,10 +241,10 @@ class Test_perform_integration(IrisTest):
         result = self.plugin_negative.perform_integration(
             self.negative_upper_bounds_cube, self.negative_lower_bounds_cube
         )
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.coord("height").points, np.array([10.0, 5.0])
         )
-        self.assertArrayAlmostEqual(result.data, expected)
+        np.testing.assert_array_almost_equal(result.data, expected)
 
     def test_zero_values_in_data(self):
         """Test that the resulting cube contains the expected data following
@@ -256,10 +256,12 @@ class Test_perform_integration(IrisTest):
         result = self.plugin_negative.perform_integration(
             self.negative_upper_bounds_cube, self.negative_lower_bounds_cube
         )
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.coord("height").points, np.array([10.0, 5.0])
         )
-        self.assertArrayAlmostEqual(result.data, self.expected_data_zero_or_negative)
+        np.testing.assert_array_almost_equal(
+            result.data, self.expected_data_zero_or_negative
+        )
 
     def test_negative_and_positive_values_in_data(self):
         """Test that the resulting cube contains the expected data following
@@ -272,10 +274,12 @@ class Test_perform_integration(IrisTest):
         result = self.plugin_negative.perform_integration(
             self.negative_upper_bounds_cube, self.negative_lower_bounds_cube
         )
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.coord("height").points, np.array([10.0, 5.0])
         )
-        self.assertArrayAlmostEqual(result.data, self.expected_data_zero_or_negative)
+        np.testing.assert_array_almost_equal(
+            result.data, self.expected_data_zero_or_negative
+        )
 
     def test_start_point_positive_direction(self):
         """Test that the resulting cube contains the expected data when a
@@ -291,8 +295,10 @@ class Test_perform_integration(IrisTest):
         result = self.plugin_positive.perform_integration(
             self.positive_upper_bounds_cube, self.positive_lower_bounds_cube
         )
-        self.assertArrayAlmostEqual(result.coord("height").points, np.array([20.0]))
-        self.assertArrayAlmostEqual(result.data, expected)
+        np.testing.assert_array_almost_equal(
+            result.coord("height").points, np.array([20.0])
+        )
+        np.testing.assert_array_almost_equal(result.data, expected)
 
     def test_start_point_negative_direction(self):
         """Test that the resulting cube contains the expected data when a
@@ -308,8 +314,10 @@ class Test_perform_integration(IrisTest):
         result = self.plugin_negative.perform_integration(
             self.negative_upper_bounds_cube, self.negative_lower_bounds_cube
         )
-        self.assertArrayAlmostEqual(result.coord("height").points, np.array([5.0]))
-        self.assertArrayAlmostEqual(result.data, expected)
+        np.testing.assert_array_almost_equal(
+            result.coord("height").points, np.array([5.0])
+        )
+        np.testing.assert_array_almost_equal(result.data, expected)
 
     def test_end_point_positive_direction(self):
         """Test that the resulting cube contains the expected data when a
@@ -325,8 +333,10 @@ class Test_perform_integration(IrisTest):
         result = self.plugin_positive.perform_integration(
             self.positive_upper_bounds_cube, self.positive_lower_bounds_cube
         )
-        self.assertArrayAlmostEqual(result.coord("height").points, np.array([10.0]))
-        self.assertArrayAlmostEqual(result.data, expected)
+        np.testing.assert_array_almost_equal(
+            result.coord("height").points, np.array([10.0])
+        )
+        np.testing.assert_array_almost_equal(result.data, expected)
 
     def test_end_point_negative_direction(self):
         """Test that the resulting cube contains the expected data when a
@@ -342,8 +352,10 @@ class Test_perform_integration(IrisTest):
         result = self.plugin_negative.perform_integration(
             self.negative_upper_bounds_cube, self.negative_lower_bounds_cube
         )
-        self.assertArrayAlmostEqual(result.coord("height").points, np.array([10.0]))
-        self.assertArrayAlmostEqual(result.data, expected)
+        np.testing.assert_array_almost_equal(
+            result.coord("height").points, np.array([10.0])
+        )
+        np.testing.assert_array_almost_equal(result.data, expected)
 
     def test_start_point_at_bound_positive_direction(self):
         """Test that the resulting cube contains the expected data when a
@@ -366,8 +378,10 @@ class Test_perform_integration(IrisTest):
         result = self.plugin_positive.perform_integration(
             self.positive_upper_bounds_cube, self.positive_lower_bounds_cube
         )
-        self.assertArrayAlmostEqual(result.coord("height").points, np.array([20.0]))
-        self.assertArrayAlmostEqual(result.data, expected)
+        np.testing.assert_array_almost_equal(
+            result.coord("height").points, np.array([20.0])
+        )
+        np.testing.assert_array_almost_equal(result.data, expected)
 
     def test_end_point_at_bound_negative_direction(self):
         """Test that the resulting cube contains the expected data when a
@@ -389,8 +403,10 @@ class Test_perform_integration(IrisTest):
         result = self.plugin_negative.perform_integration(
             self.negative_upper_bounds_cube, self.negative_lower_bounds_cube
         )
-        self.assertArrayAlmostEqual(result.coord("height").points, np.array([10.0]))
-        self.assertArrayAlmostEqual(result.data, expected)
+        np.testing.assert_array_almost_equal(
+            result.coord("height").points, np.array([10.0])
+        )
+        np.testing.assert_array_almost_equal(result.data, expected)
 
     def test_integration_not_performed(self):
         """Test that the expected exception is raise if no integration
@@ -404,7 +420,7 @@ class Test_perform_integration(IrisTest):
             )
 
 
-class Test_process(IrisTest):
+class Test_process(ImproverTest):
     """Test the process method."""
 
     def setUp(self):
@@ -425,10 +441,10 @@ class Test_process(IrisTest):
         in the expected order."""
         result = self.plugin.process(self.cube)
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.coord("height").points, np.array([10.0, 5.0])
         )
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.coord("height").bounds, np.array([[20.0, 10.0], [10.0, 5.0]])
         )
 
@@ -450,10 +466,10 @@ class Test_process(IrisTest):
             ]
         )
         result = self.plugin.process(self.cube)
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.coord("height").points, np.array([10.0, 5.0])
         )
-        self.assertArrayAlmostEqual(result.data, expected)
+        np.testing.assert_array_almost_equal(result.data, expected)
 
     def test_dimension_preservation(self):
         """Test the result preserves input dimension order when the coordinate
@@ -472,7 +488,7 @@ class Test_process(IrisTest):
         self.assertListEqual(result_coord_order, expected_coord_order)
 
 
-class Test_fast_linear_fit(IrisTest):
+class Test_fast_linear_fit(unittest.TestCase):
     """Test the fast_linear_fit method"""
 
     def setUp(self):
@@ -495,7 +511,7 @@ class Test_fast_linear_fit(IrisTest):
         x_data = self.x_data.reshape(shape)
         y_data = self.y_data.reshape(shape)
         result = np.array(fast_linear_fit(x_data, y_data, axis=axis, with_nan=with_nan))
-        self.assertArrayAlmostEqual(expected_out, result)
+        np.testing.assert_array_almost_equal(expected_out, result)
 
     def test_basic_linear_fit(self):
         """Tests fast_linear_fit with 1D data."""

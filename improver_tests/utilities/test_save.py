@@ -7,16 +7,18 @@
 import copy
 import os
 import unittest
+from datetime import datetime
 from tempfile import mkdtemp
 
 import iris
 import numpy as np
 import pytest
 from iris.coords import CellMethod
-from iris.tests import IrisTest
 from netCDF4 import Dataset
 
+from improver.metadata.constants.time_types import TIME_COORDS
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
+from improver.utilities.cube_manipulation import expand_bounds
 from improver.utilities.load import load_cube
 from improver.utilities.save import _order_cell_methods, save_netcdf
 
@@ -40,7 +42,7 @@ def set_up_test_cube():
     return cube
 
 
-class Test_save_netcdf(IrisTest):
+class Test_save_netcdf(unittest.TestCase):
     """Test function to save iris cubes as NetCDF files."""
 
     def setUp(self):
@@ -145,7 +147,7 @@ class Test_save_netcdf(IrisTest):
         save_netcdf(self.cube, self.filepath)
         cube = load_cube(self.filepath)
         self.assertTrue(isinstance(cube, iris.cube.Cube))
-        self.assertArrayEqual(cube.data, self.cube.data)
+        np.testing.assert_array_equal(cube.data, self.cube.data)
 
     def test_cube_dimensions(self):
         """Test cube dimension coordinates are preserved"""
@@ -185,7 +187,7 @@ class Test_save_netcdf(IrisTest):
         # OrderedDict as subscriptable
         cf_data_dict = dict(Dataset(self.filepath, mode="r").variables)
         self.assertTrue("test_attribute" in cf_data_dict["air_temperature"].ncattrs())
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             cf_data_dict["air_temperature"].getncattr("test_attribute"), np.arange(12)
         )
 
@@ -306,7 +308,7 @@ def test_least_significant_digit(bitshaving_cube, tmp_path, lsd, compress):
     assert np.max(abs_diff) < 10 ** (-1.0 * lsd)
 
 
-class Test__order_cell_methods(IrisTest):
+class Test__order_cell_methods(unittest.TestCase):
     """Test function that sorts cube cell_methods before saving."""
 
     def setUp(self):
@@ -361,6 +363,66 @@ class Test__order_cell_methods(IrisTest):
         self.cube.cell_methods = copy.copy(cell_methods)
         _order_cell_methods(self.cube)
         self.assertEqual(self.cube.cell_methods, cell_methods)
+
+
+def test_save_netcdf_fails_with_float_time_dtype(tmp_path):
+    """Test that saving a cube with float dtype for time/forecast_reference_time fails as expected."""
+    filepath = tmp_path / "temp.nc"
+    data = np.ones((3, 3), dtype=np.float32)
+    frt = datetime(2015, 11, 19, 0)
+    time_points = [datetime(2015, 11, 19, 1), datetime(2015, 11, 19, 3)]
+    time_bounds = [
+        [datetime(2015, 11, 19, 0), datetime(2015, 11, 19, 2)],
+        [datetime(2015, 11, 19, 1), datetime(2015, 11, 19, 3)],
+    ]
+    cubelist = iris.cube.CubeList()
+    for tpoint, tbounds in zip(time_points, time_bounds):
+        cube = set_up_variable_cube(data, frt=frt, time=tpoint, time_bounds=tbounds)
+        cubelist.append(cube)
+
+    result_cube = expand_bounds(
+        cubelist[0], cubelist, ["time", "forecast_reference_time"], midpoint_bound=True
+    )
+
+    result_cube.coord("time").points = result_cube.coord("time").points.astype(
+        np.float32
+    )
+    result_cube.coord("forecast_reference_time").points = result_cube.coord(
+        "forecast_reference_time"
+    ).points.astype(np.float32)
+
+    with pytest.raises(ValueError, match="does not have required dtype"):
+        save_netcdf(result_cube, filepath)
+
+
+def test_save_netcdf_succeeds_with_int_time_dtype(tmp_path):
+    """Test that saving a cube with int dtype for time/forecast_reference_time passes after fix."""
+    filepath = tmp_path / "temp.nc"
+    data = np.ones((3, 3), dtype=np.float32)
+    frt = datetime(2015, 11, 19, 0)
+    time_points = [datetime(2015, 11, 19, 1), datetime(2015, 11, 19, 3)]
+    time_bounds = [
+        [datetime(2015, 11, 19, 0), datetime(2015, 11, 19, 2)],
+        [datetime(2015, 11, 19, 1), datetime(2015, 11, 19, 3)],
+    ]
+    cubelist = iris.cube.CubeList()
+    for tpoint, tbounds in zip(time_points, time_bounds):
+        cube = set_up_variable_cube(data, frt=frt, time=tpoint, time_bounds=tbounds)
+        time_dtype = TIME_COORDS["time"].dtype
+        cube.coord("time").points = cube.coord("time").points.astype(time_dtype)
+        cube.coord("time").bounds = cube.coord("time").bounds.astype(time_dtype)
+        frt_dtype = TIME_COORDS["forecast_reference_time"].dtype
+        cube.coord("forecast_reference_time").points = cube.coord(
+            "forecast_reference_time"
+        ).points.astype(frt_dtype)
+        cubelist.append(cube)
+
+    result_cube = expand_bounds(
+        cubelist[0], cubelist, ["time", "forecast_reference_time"], midpoint_bound=True
+    )
+
+    save_netcdf(result_cube, filepath)
+    assert filepath.exists()
 
 
 if __name__ == "__main__":

@@ -215,7 +215,7 @@ class MergeCubesForWeightedBlending(BasePlugin):
             self._create_model_coordinates(cubelist)
 
         # merge resulting cubelist
-        result = MergeCubes()(cubelist, check_time_bounds_ranges=True)
+        result = MergeCubes(check_time_bounds_ranges=True)(cubelist)
         return result
 
 

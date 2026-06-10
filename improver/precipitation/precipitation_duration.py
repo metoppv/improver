@@ -222,7 +222,7 @@ class PrecipitationDuration(PostProcessingPlugin):
 
         try:
             cube = MergeCubes()(cubes.extract(diagnostic_constraint))
-        except IndexError:
+        except ValueError:
             msg = (
                 "The requested diagnostic or threshold is not available. "
                 f"Requested diagnostic: {diagnostic}, threshold: {threshold_values}"

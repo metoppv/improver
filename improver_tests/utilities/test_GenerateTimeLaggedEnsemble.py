@@ -9,13 +9,12 @@ from datetime import datetime as dt
 
 import iris
 import numpy as np
-from iris.tests import IrisTest
 
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.time_lagging import GenerateTimeLaggedEnsemble
 
 
-class Test_process(IrisTest):
+class Test_process(unittest.TestCase):
     """Test interpolation of cubes to intermediate times using the plugin."""
 
     def setUp(self):
@@ -53,13 +52,13 @@ class Test_process(IrisTest):
         """Test that the expected metadata is correct after a simple test"""
         result = GenerateTimeLaggedEnsemble().process(self.input_cubelist)
         expected_realizations = [0, 1, 2, 3, 4, 5]
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.coord("forecast_period").points, self.expected_fp
         )
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.coord("forecast_reference_time").points, self.expected_frt
         )
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.coord("realization").points, expected_realizations
         )
         self.assertEqual(result.coord("realization").dtype, np.int32)
@@ -72,14 +71,27 @@ class Test_process(IrisTest):
         )
         result = GenerateTimeLaggedEnsemble().process(self.input_cubelist)
         expected_realizations = [0, 1, 2, 6, 7, 8]
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.coord("forecast_period").points, self.expected_fp
         )
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.coord("forecast_reference_time").points, self.expected_frt
         )
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.coord("realization").points, expected_realizations
+        )
+        self.assertEqual(result.coord("realization").dtype, np.int32)
+
+    def test_rebadge_realizations_option(self):
+        """Test optional rebadging of final output realizations to 0..N-1."""
+        self.input_cube2.coord("realization").points = np.array(
+            [6, 7, 8], dtype=np.int32
+        )
+        result = GenerateTimeLaggedEnsemble(rebadge_realizations=True).process(
+            self.input_cubelist
+        )
+        np.testing.assert_array_equal(
+            result.coord("realization").points, [0, 1, 2, 3, 4, 5]
         )
         self.assertEqual(result.coord("realization").dtype, np.int32)
 
@@ -90,13 +102,13 @@ class Test_process(IrisTest):
         self.input_cube2.coord("realization").points = np.array([0, 7, 8])
         result = GenerateTimeLaggedEnsemble().process(self.input_cubelist)
         expected_realizations = [0, 1, 2, 3, 4, 5]
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.coord("forecast_period").points, self.expected_fp
         )
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.coord("forecast_reference_time").points, self.expected_frt
         )
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.coord("realization").points, expected_realizations
         )
         self.assertEqual(result.coord("realization").dtype, np.int32)
@@ -121,13 +133,13 @@ class Test_process(IrisTest):
         expected_forecast_period = self.expected_fp - 3600
         expected_forecast_ref_time = self.expected_frt + 3600
         expected_realizations = [0, 1, 2, 3, 4, 5, 6, 7, 8]
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.coord("forecast_period").points, expected_forecast_period
         )
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.coord("forecast_reference_time").points, expected_forecast_ref_time
         )
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.coord("realization").points, expected_realizations
         )
         self.assertEqual(result.coord("realization").dtype, np.int32)
@@ -146,12 +158,43 @@ class Test_process(IrisTest):
         expected_attributes = {"institution": "Met Office"}
         self.assertEqual(result.attributes, expected_attributes)
 
-    def test_single_cube(self):
-        """Test only one input cube returns cube unchanged"""
+    def test_single_cube_ensemble(self):
+        """Test only one input cube returns the cube unchanged and raises a warning."""
         input_cubelist = iris.cube.CubeList([self.input_cube])
         expected_cube = self.input_cube.copy()
-        result = GenerateTimeLaggedEnsemble().process(input_cubelist)
+        with self.assertWarnsRegex(
+            UserWarning,
+            "Only one ensemble cube provided, so time lagging will have no effect.",
+        ):
+            result = GenerateTimeLaggedEnsemble().process(input_cubelist)
         self.assertEqual(result, expected_cube)
+
+    def test_single_cube_deterministic(self):
+        """Test only one input cube returns the cube unchanged, apart from adding a
+        realization coordinate, and raises a warning."""
+        input_cube = self.input_cube.copy()
+        input_cube.remove_coord("realization")
+        input_cubelist = iris.cube.CubeList([input_cube[0]])
+        expected_cube = self.input_cube[0].copy()
+        with self.assertWarnsRegex(
+            UserWarning,
+            "Only one deterministic cube provided, so realization coordinate "
+            "added but time lagging will have no effect.",
+        ):
+            result = GenerateTimeLaggedEnsemble().process(input_cubelist)
+        self.assertEqual(result, expected_cube)
+
+    def test_mismatched_validity_times_raises(self):
+        """Test mismatched validity times raise a ValueError."""
+        cube_with_different_time = self.input_cube2.copy()
+        cube_with_different_time.coord("time").points = (
+            cube_with_different_time.coord("time").points + 3600
+        )
+        input_cubelist = iris.cube.CubeList([self.input_cube, cube_with_different_time])
+        with self.assertRaisesRegex(
+            ValueError, "Cubes with mismatched validity times are not compatible."
+        ):
+            GenerateTimeLaggedEnsemble().process(input_cubelist)
 
     def test_non_monotonic_realizations(self):
         """Test handling of case where realization coordinates cannot be
@@ -182,6 +225,30 @@ class Test_process(IrisTest):
         result = GenerateTimeLaggedEnsemble().process(input_cubelist)
         self.assertEqual(result, expected_cube)
         self.assertEqual(result.coord("realization").dtype, np.int32)
+
+    def test_multiple_cubes_without_realization(self):
+        """Test multiple input cubes without realization coordinates get unique ones
+        added."""
+        cube1 = next(self.input_cube.slices_over("realization")).copy()
+        cube2 = next(self.input_cube.slices_over("realization")).copy()
+        cube1.remove_coord("realization")
+        cube2.remove_coord("realization")
+        input_cubelist = iris.cube.CubeList([cube1, cube2])
+        result = GenerateTimeLaggedEnsemble().process(input_cubelist)
+        self.assertIn("realization", [coord.name() for coord in result.coords()])
+        np.testing.assert_array_equal(result.coord("realization").points, [0, 1])
+
+    def test_mixed_cubes_with_and_without_realization(self):
+        """Test mixing cubes with and without realization coordinates.
+        Cubes without realization coordinates should have unique ones added, and
+        the final output should have all realizations renumbered to a unique set."""
+        cube1 = next(self.input_cube.slices_over("realization")).copy()
+        cube2 = self.input_cube2.copy()
+        cube1.remove_coord("realization")
+        input_cubelist = iris.cube.CubeList([cube1, cube2])
+        result = GenerateTimeLaggedEnsemble().process(input_cubelist)
+        self.assertIn("realization", [coord.name() for coord in result.coords()])
+        np.testing.assert_array_equal(result.coord("realization").points, [0, 3, 4, 5])
 
 
 if __name__ == "__main__":

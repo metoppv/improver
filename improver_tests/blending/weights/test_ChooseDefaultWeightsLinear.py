@@ -10,7 +10,6 @@ from datetime import datetime as dt
 import iris
 import numpy as np
 from iris.coords import AuxCoord
-from iris.tests import IrisTest
 
 from improver.blending.weights import ChooseDefaultWeightsLinear as LinearWeights
 from improver.synthetic_data.set_up_test_cubes import (
@@ -19,7 +18,7 @@ from improver.synthetic_data.set_up_test_cubes import (
 )
 
 
-class Test__init__(IrisTest):
+class Test__init__(unittest.TestCase):
     """Test the __init__ method."""
 
     def test_basic(self):
@@ -35,7 +34,7 @@ class Test__init__(IrisTest):
             LinearWeights(y0val=-10.0, ynval=2.0)
 
 
-class Test_linear_weights(IrisTest):
+class Test_linear_weights(unittest.TestCase):
     """Test the linear weights function."""
 
     def test_basic(self):
@@ -47,7 +46,7 @@ class Test_linear_weights(IrisTest):
         """Test it returns the correct values, method is proportional"""
         result = LinearWeights(y0val=20.0, ynval=2.0).linear_weights(1)
         expected_result = np.array([1.0])
-        self.assertArrayAlmostEqual(result, expected_result)
+        np.testing.assert_array_almost_equal(result, expected_result)
 
     def test_returns_correct_values_y0val_ynval_set(self):
         """Test it returns the correct values when y0val and ynval set"""
@@ -55,13 +54,13 @@ class Test_linear_weights(IrisTest):
         expected_result = np.array(
             [0.22222222, 0.2, 0.17777778, 0.15555556, 0.13333333, 0.11111111]
         )
-        self.assertArrayAlmostEqual(result, expected_result)
+        np.testing.assert_array_almost_equal(result, expected_result)
 
     def test_returns_correct_values_y0val_is_0_ynval_set(self):
         """Test it returns the correct values when y0val=0 and ynval set"""
         result = LinearWeights(y0val=0.0, ynval=5.0).linear_weights(5)
         expected_result = np.array([0.0, 0.1, 0.2, 0.3, 0.4])
-        self.assertArrayAlmostEqual(result, expected_result)
+        np.testing.assert_array_almost_equal(result, expected_result)
 
     def test_fails_if_total_weights_zero(self):
         """Test it raises an error when y0val=0 and ynval=0"""
@@ -70,7 +69,7 @@ class Test_linear_weights(IrisTest):
             LinearWeights(y0val=0.0, ynval=0.0).linear_weights(5)
 
 
-class Test_process(IrisTest):
+class Test_process(unittest.TestCase):
     """Test the Default Linear Weights plugin."""
 
     def setUp(self):
@@ -116,21 +115,21 @@ class Test_process(IrisTest):
         coord = self.cube.coord("scalar_coord")
         plugin = LinearWeights(y0val=20.0, ynval=2.0)
         result = plugin.process(self.cube, coord)
-        self.assertArrayAlmostEqual(result.data, np.array([1.0]))
+        np.testing.assert_array_almost_equal(result.data, np.array([1.0]))
 
     def test_works_defaults_used(self):
         """Test it works if defaults used."""
         plugin = LinearWeights(y0val=20.0, ynval=2.0)
         result = plugin.process(self.cube, self.coord_name)
         expected_result = np.array([0.90909091, 0.09090909])
-        self.assertArrayAlmostEqual(result.data, expected_result)
+        np.testing.assert_array_almost_equal(result.data, expected_result)
 
     def test_works_y0val_and_ynval_set(self):
         """Test it works if y0val and ynval set."""
         plugin = LinearWeights(y0val=10.0, ynval=5.0)
         result = plugin.process(self.cube, self.coord_name)
         expected_result = np.array([0.66666667, 0.33333333])
-        self.assertArrayAlmostEqual(result.data, expected_result)
+        np.testing.assert_array_almost_equal(result.data, expected_result)
 
     def test_works_with_larger_num(self):
         """Test it works with larger num_of_vals."""
@@ -141,7 +140,7 @@ class Test_process(IrisTest):
         expected_result = np.array(
             [0.22222222, 0.2, 0.17777778, 0.15555556, 0.13333333, 0.11111111]
         )
-        self.assertArrayAlmostEqual(result.data, expected_result)
+        np.testing.assert_array_almost_equal(result.data, expected_result)
 
 
 if __name__ == "__main__":

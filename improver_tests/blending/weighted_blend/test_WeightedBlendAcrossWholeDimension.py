@@ -13,7 +13,6 @@ import numpy as np
 from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
-from iris.tests import IrisTest
 
 from improver.blending.weighted_blend import WeightedBlendAcrossWholeDimension
 from improver.synthetic_data.set_up_test_cubes import (
@@ -53,7 +52,7 @@ def percentile_cube(frt_points, time, frt):
     return cube
 
 
-class Test__init__(IrisTest):
+class Test__init__(unittest.TestCase):
     """Test the __init__ method."""
 
     def test_basic(self):
@@ -69,7 +68,7 @@ class Test__init__(IrisTest):
             WeightedBlendAcrossWholeDimension("threshold")
 
 
-class Test__repr__(IrisTest):
+class Test__repr__(unittest.TestCase):
     """Test the repr method."""
 
     def test_basic(self):
@@ -79,7 +78,7 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, msg)
 
 
-class Test_weighted_blend(IrisTest):
+class Test_weighted_blend(unittest.TestCase):
     """A shared setup for tests in the WeightedBlendAcrossWholeDimension
     plugin."""
 
@@ -233,14 +232,14 @@ class Test_shape_weights(Test_weighted_blend):
         same shape as the data cube."""
         result = self.plugin.shape_weights(self.cube, self.weights1d)
         self.assertEqual(self.cube.shape, result.shape)
-        self.assertArrayEqual(self.weights1d.data, result[:, 0, 0])
+        np.testing.assert_array_equal(self.weights1d.data, result[:, 0, 0])
 
     def test_3D_weights_3D_cube_weighted_mean(self):
         """Test a 3D cube of weights results in a 3D array of weights of the
         same shape as the data cube."""
         result = self.plugin.shape_weights(self.cube, self.weights3d)
         self.assertEqual(self.cube.shape, result.shape)
-        self.assertArrayEqual(self.weights3d.data, result)
+        np.testing.assert_array_equal(self.weights3d.data, result)
 
     def test_3D_weights_3D_cube_weighted_mean_wrong_order(self):
         """Test a 3D cube of weights results in a 3D array of weights of the
@@ -251,7 +250,7 @@ class Test_shape_weights(Test_weighted_blend):
         self.weights3d.transpose([1, 0, 2])
         result = self.plugin.shape_weights(self.cube, self.weights3d)
         self.assertEqual(expected.shape, result.shape)
-        self.assertArrayEqual(expected.data, result)
+        np.testing.assert_array_equal(expected.data, result)
 
     def test_3D_weights_4D_cube_weighted_mean_wrong_order(self):
         """Test a 4D cube of weights results in a 3D array of weights of the
@@ -268,7 +267,7 @@ class Test_shape_weights(Test_weighted_blend):
         expected = np.expand_dims(expected.data, axis=2)
         result = self.plugin.shape_weights(cube, self.weights3d)
         self.assertEqual(expected.shape, result.shape)
-        self.assertArrayEqual(expected, result)
+        np.testing.assert_array_equal(expected, result)
 
     def test_3D_weights_3D_cube_weighted_mean_unmatched_coordinate(self):
         """Test a 3D cube of weights results in a 3D array of weights of the
@@ -316,7 +315,7 @@ class Test_get_weights_array(Test_weighted_blend):
             np.float32
         )
         self.assertEqual(self.cube.shape, result.shape)
-        self.assertArrayEqual(expected, result[:, 0, 0])
+        np.testing.assert_array_equal(expected, result[:, 0, 0])
 
     def test_1D_weights(self):
         """Test a 1D cube of weights results in a 3D array of weights of an
@@ -324,7 +323,7 @@ class Test_get_weights_array(Test_weighted_blend):
         expected = np.empty_like(self.cube.data)
         result = self.plugin.get_weights_array(self.cube, self.weights1d)
         self.assertEqual(expected.shape, result.shape)
-        self.assertArrayEqual(self.weights1d.data, result[:, 0, 0])
+        np.testing.assert_array_equal(self.weights1d.data, result[:, 0, 0])
 
     def test_3D_weights(self):
         """Test a 3D cube of weights results in a 3D array of weights of the
@@ -332,7 +331,7 @@ class Test_get_weights_array(Test_weighted_blend):
         expected = np.empty_like(self.cube.data)
         result = self.plugin.get_weights_array(self.cube, self.weights3d)
         self.assertEqual(expected.shape, result.shape)
-        self.assertArrayEqual(self.weights3d.data, result[:, :, :])
+        np.testing.assert_array_equal(self.weights3d.data, result[:, :, :])
 
 
 class Test__normalise_weights(Test_weighted_blend):
@@ -344,7 +343,7 @@ class Test__normalise_weights(Test_weighted_blend):
         leading blend dimension."""
         expected_data = self.weights3d.data.copy()
         result = self.plugin._normalise_weights(self.weights3d.data)
-        self.assertArrayAlmostEqual(result, expected_data)
+        np.testing.assert_array_almost_equal(result, expected_data)
 
     def test_noop_with_zero(self):
         """Test the function has no impact if a weights cube is provided
@@ -354,7 +353,7 @@ class Test__normalise_weights(Test_weighted_blend):
         )
         expected_data = weights.copy()
         result = self.plugin._normalise_weights(weights)
-        self.assertArrayAlmostEqual(result, expected_data)
+        np.testing.assert_array_almost_equal(result, expected_data)
 
     def test_normalisation(self):
         """Test that if a weights cube is provided which is not properly
@@ -369,7 +368,7 @@ class Test__normalise_weights(Test_weighted_blend):
             ]
         )
         result = self.plugin._normalise_weights(weights)
-        self.assertArrayAlmostEqual(result, expected_data)
+        np.testing.assert_array_almost_equal(result, expected_data)
 
 
 class Test_percentile_weighted_mean(Test_weighted_blend):
@@ -381,7 +380,7 @@ class Test_percentile_weighted_mean(Test_weighted_blend):
             self.reordered_perc_cube, self.weights1d
         )
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayAlmostEqual(result.data, BLENDED_PERCENTILE_DATA)
+        np.testing.assert_array_almost_equal(result.data, BLENDED_PERCENTILE_DATA)
 
     def test_with_spatially_varying_weights(self):
         """Test function when a data cube and a multi dimensional weights cube
@@ -392,7 +391,7 @@ class Test_percentile_weighted_mean(Test_weighted_blend):
             self.reordered_perc_cube, self.weights3d
         )
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result.data, BLENDED_PERCENTILE_DATA_SPATIAL_WEIGHTS
         )
 
@@ -401,7 +400,9 @@ class Test_percentile_weighted_mean(Test_weighted_blend):
         which should result in equal weightings."""
         result = self.plugin.percentile_weighted_mean(self.reordered_perc_cube, None)
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayAlmostEqual(result.data, BLENDED_PERCENTILE_DATA_EQUAL_WEIGHTS)
+        np.testing.assert_array_almost_equal(
+            result.data, BLENDED_PERCENTILE_DATA_EQUAL_WEIGHTS
+        )
 
 
 class Test_weighted_mean(Test_weighted_blend):
@@ -413,7 +414,7 @@ class Test_weighted_mean(Test_weighted_blend):
         expected = np.full((2, 2), 1.5)
 
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayAlmostEqual(result.data, expected)
+        np.testing.assert_array_almost_equal(result.data, expected)
 
     def test_with_spatially_varying_weights(self):
         """Test function when a data cube and a multi dimensional weights cube
@@ -424,7 +425,7 @@ class Test_weighted_mean(Test_weighted_blend):
         expected = np.array([[2.7, 2.1], [2.4, 1.8]])
 
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayAlmostEqual(result.data, expected)
+        np.testing.assert_array_almost_equal(result.data, expected)
 
     def test_without_weights(self):
         """Test function when a data cube is provided, but no weights cube
@@ -433,7 +434,7 @@ class Test_weighted_mean(Test_weighted_blend):
         expected = np.full((2, 2), 2.0)
 
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayAlmostEqual(result.data, expected)
+        np.testing.assert_array_almost_equal(result.data, expected)
 
     def test_wind_directions(self):
         """Test function when a wind direction data cube is provided, and
@@ -455,7 +456,7 @@ class Test_weighted_mean(Test_weighted_blend):
         cube.data[1] = 30.0
         expected = np.full((2, 2), 20.0)
         result = self.plugin.weighted_mean(cube, weights=None)
-        self.assertArrayAlmostEqual(result.data, expected, decimal=4)
+        np.testing.assert_array_almost_equal(result.data, expected, decimal=4)
 
     def test_wind_directions_over_north(self):
         """Test function when a wind direction data cube is provided, and
@@ -477,7 +478,7 @@ class Test_weighted_mean(Test_weighted_blend):
         cube.data[1] = 30.0
         expected = np.full((2, 2), 10.0)
         result = self.plugin.weighted_mean(cube, weights=None)
-        self.assertArrayAlmostEqual(result.data, expected, decimal=4)
+        np.testing.assert_array_almost_equal(result.data, expected, decimal=4)
 
     def test_collapse_dims_with_weights(self):
         """Test function matches when the blend coordinate is first or second."""
@@ -489,7 +490,7 @@ class Test_weighted_mean(Test_weighted_blend):
         expected = np.full((2, 2), 1.5)
         result_blend_coord_first = self.plugin.weighted_mean(new_cube, self.weights1d)
         self.assertIsInstance(result_blend_coord_first, iris.cube.Cube)
-        self.assertArrayAlmostEqual(result_blend_coord_first.data, expected)
+        np.testing.assert_array_almost_equal(result_blend_coord_first.data, expected)
 
 
 class Test_process(Test_weighted_blend):
@@ -564,7 +565,7 @@ class Test_process(Test_weighted_blend):
         result = self.plugin(self.cube_threshold, self.weights1d)
         expected_result_array = np.ones((2, 2, 2)) * 0.3
         expected_result_array[1, :, :] = 0.5
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
+        np.testing.assert_array_almost_equal(result.data, expected_result_array)
 
 
 if __name__ == "__main__":

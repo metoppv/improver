@@ -161,8 +161,47 @@ class GAMFit(BasePlugin):
 class GAMPredict(BasePlugin):
     """Class for predicting new outputs from a fitted GAM given new input predictors."""
 
-    def __init__(self):
-        """Initialize class"""
+    def __init__(self, constant_extrapolation: bool = False):
+        """Initialize class
+
+        Args:
+            constant_extrapolation:
+                If True, predictor values outside the range of those used to fit the GAM
+                will be predicted using constant extrapolation (i.e. the nearest
+                boundary value). If False, extrapolation extends the trend of each
+                GAM term beyond the range of the training data. Default is False.
+        """
+        self.constant_extrapolation = constant_extrapolation
+
+    @staticmethod
+    def clip_predictors(gam, predictors: np.ndarray):
+        """
+        Clip predictor values to be within the minimum and maximum values in the
+        training data used to fit the GAM. This enables constant extrapolation when
+        predicting new values.
+
+        Args:
+            gam: A fitted pyGAM GAM model.
+            predictors: A 2-D array of inputs to use to predict new values. Each
+                feature (column) should have the same index as in the training dataset.
+                The array is modified in place.
+        """
+        # Create dictionary with keys corresponding to each column index and values
+        # corresponding to the min and max values of that feature column in the training
+        # data.
+        bounds_dict = {}
+        for term in gam.terms:
+            if term.isintercept:
+                continue
+            if term.istensor:
+                for tensor_term in term:
+                    bounds_dict[tensor_term.info["feature"]] = tensor_term.edge_knots_
+            else:
+                bounds_dict[term.info["feature"]] = term.edge_knots_
+
+        for i in bounds_dict.keys():
+            col_min, col_max = bounds_dict[i]
+            predictors[:, i] = np.clip(predictors[:, i], col_min, col_max)
 
     def process(self, gam, predictors: np.ndarray) -> np.ndarray:
         """
@@ -177,5 +216,7 @@ class GAMPredict(BasePlugin):
             A 1-D array of values predicted by the GAM with each value in the array
             corresponding to one row in the input predictors.
         """
+        if self.constant_extrapolation:
+            self.clip_predictors(gam, predictors)
 
         return gam.predict(predictors)

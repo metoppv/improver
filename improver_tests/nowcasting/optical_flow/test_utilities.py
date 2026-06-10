@@ -10,7 +10,6 @@ import iris
 import numpy as np
 from iris.coords import DimCoord
 from iris.exceptions import InvalidCubeError
-from iris.tests import IrisTest
 
 from improver.nowcasting.optical_flow import (
     _perturb_background_flow,
@@ -21,7 +20,7 @@ from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from ..forecasting.test_AdvectField import set_up_xy_velocity_cube
 
 
-class Test_check_input_coords(IrisTest):
+class Test_check_input_coords(unittest.TestCase):
     """Tests for the check_input_coords function"""
 
     def setUp(self):
@@ -61,7 +60,7 @@ class Test_check_input_coords(IrisTest):
             check_input_coords(cube, require_time=True)
 
 
-class Test__perturb_background_flow(IrisTest):
+class Test__perturb_background_flow(unittest.TestCase):
     """Test for the _perturb_background_flow private utility"""
 
     def setUp(self):
@@ -123,8 +122,8 @@ class Test__perturb_background_flow(IrisTest):
     def test_values(self):
         """Test function returns expected values"""
         result = _perturb_background_flow(self.background_flow, self.perturbations)
-        self.assertArrayAlmostEqual(result[0].data, self.expected_u)
-        self.assertArrayAlmostEqual(result[1].data, self.expected_v)
+        np.testing.assert_array_almost_equal(result[0].data, self.expected_u)
+        np.testing.assert_array_almost_equal(result[1].data, self.expected_v)
 
     def test_units(self):
         """Test values are returned in units of perturbations"""
@@ -133,16 +132,16 @@ class Test__perturb_background_flow(IrisTest):
         result = _perturb_background_flow(self.background_flow, self.perturbations)
         for cube in result:
             self.assertEqual(cube.units, "m s-1")
-        self.assertArrayAlmostEqual(result[0].data, self.expected_u)
-        self.assertArrayAlmostEqual(result[1].data, self.expected_v)
+        np.testing.assert_array_almost_equal(result[0].data, self.expected_u)
+        np.testing.assert_array_almost_equal(result[1].data, self.expected_v)
 
     def test_nans_values(self):
         """Test correct values are returned when an input contains nan values"""
         result = _perturb_background_flow(
             self.background_flow, self.perturbations_with_nans
         )
-        self.assertArrayAlmostEqual(result[0].data, self.expected_u)
-        self.assertArrayAlmostEqual(result[1].data, self.expected_v)
+        np.testing.assert_array_almost_equal(result[0].data, self.expected_u)
+        np.testing.assert_array_almost_equal(result[1].data, self.expected_v)
 
 
 if __name__ == "__main__":

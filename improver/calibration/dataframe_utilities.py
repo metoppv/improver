@@ -272,7 +272,7 @@ def _define_height_coord(height) -> AuxCoord:
 
 
 def _training_dates_for_calibration(
-    cycletime: str, forecast_period: int, training_length: int
+    cycletime: str, forecast_period: int, training_length: int, adjacent_range: int = 0
 ) -> DatetimeIndex:
     """Compute the date range required for extracting the required training
     dataset. The final validity time within the training dataset is
@@ -292,6 +292,20 @@ def _training_dates_for_calibration(
     as the final validity time giving 20170719T0600Z, 20170718T0600Z
     and 20170717T0600Z.
 
+    An adjacent_range in hours can be provided so that adjacent validity
+    times may be used in the training dataset. Note that the training_times
+    are not adjusted to ensure that the adjacent validity times are in
+    the past relative to the cycletime; the adjacent_range is expected to be
+    small (<< 24 hours). For example, for a cycletime of 20170720T0000Z with a
+    forecast period of T+1 the validity time is 20170720T0100Z. For a training
+    length of 3 days the training_times are calculated here as 20170719T0100Z,
+    20170718T0100Z and 20170717T0100Z. If an adjacent_range of 24-hours is
+    requested the validity times for the training dataset would include
+    20170720T0100Z which falls in the future relative to the cycle and can have
+    no matching observation. Should such an extreme range be requested the data
+    falling in the future would simply not be found in the tables and would be
+    ignored in any case.
+
     Args:
         cycletime:
             Cycletime of a format similar to 20170109T0000Z.
@@ -301,19 +315,35 @@ def _training_dates_for_calibration(
             Forecast period in seconds as an integer.
         training_length:
             Training length in days as an integer.
+        adjacent_range:
+            A period in hours that should be used either side of the
+            defined forecast_period to allow for the inclusion of forecasts and
+            observations that are close to the validity time being calibrated.
 
     Returns:
         Datetimes defining the training dataset. The number of datetimes
         is equal to the training length.
     """
     forecast_period = pd.Timedelta(int(forecast_period), unit="seconds")
-    validity_time = pd.Timestamp(cycletime) + forecast_period
-    return pd.date_range(
-        end=validity_time - pd.Timedelta(1, unit="days") - forecast_period.floor("D"),
-        periods=int(training_length),
-        freq="D",
-        tz="UTC",
-    )
+    validity_times = [
+        pd.Timestamp(cycletime) + forecast_period + pd.Timedelta(hours=offset)
+        for offset in range(-adjacent_range, adjacent_range + 1)
+    ]
+    training_times = []
+    for validity_time in validity_times:
+        training_times.extend(
+            list(
+                pd.date_range(
+                    end=validity_time
+                    - pd.Timedelta(1, unit="days")
+                    - forecast_period.floor("D"),
+                    periods=int(training_length),
+                    freq="D",
+                    tz="UTC",
+                )
+            )
+        )
+    return pd.DatetimeIndex(sorted(training_times))
 
 
 def _drop_duplicates(df: DataFrame, cols: Sequence[str]) -> DataFrame:
@@ -367,6 +397,7 @@ def _prepare_dataframes(
     forecast_period: int,
     percentiles: Optional[List[float]] = None,
     experiment: Optional[str] = None,
+    adjacent_range: int = 0,
 ) -> Tuple[DataFrame, DataFrame]:
     """Prepare DataFrames for conversion to cubes by: 1) checking which forecast
     representation is present, 2) checking that the expected columns are present,
@@ -397,6 +428,10 @@ def _prepare_dataframes(
         experiment:
             A value within the experiment column to select from the forecast
             table.
+        adjacent_range:
+            A period in hours that should be used either side of the
+            defined forecast_period to allow for the inclusion of forecasts and
+            observations that are close to the validity time being calibrated.
 
     Returns:
         A sanitised version of the forecasts and truth DataFrames that
@@ -428,9 +463,12 @@ def _prepare_dataframes(
     if experiment:
         forecast_df = forecast_df.loc[forecast_df["experiment"] == experiment]
 
-    # Filter to select forecast period.
+    # Filter to forecast periods around target point within the adjacent_range.
+    tolerance = pd.Timedelta(adjacent_range, unit="hours")
     fp_point = pd.Timedelta(int(forecast_period), unit="seconds")
-    forecast_df = forecast_df[forecast_df["forecast_period"] == fp_point]
+    fp_start = fp_point - tolerance
+    fp_end = fp_point + tolerance
+    forecast_df = forecast_df[forecast_df["forecast_period"].between(fp_start, fp_end)]
 
     if forecast_df["experiment"].nunique() > 1:
         unique_exps = forecast_df["experiment"].unique()
@@ -524,6 +562,13 @@ def _prepare_dataframes(
         forecast_df, ["altitude", "latitude", "longitude"], site_id_col
     )
 
+    # Here we corrupt the forecast_periods of adjacent validity times to have a
+    # consistent value with the target forecast period. This allows the
+    # construction of cubes without multi-dimensional time coordinates.
+    # The important value is the validity time to allow matching to observations.
+    if adjacent_range > 0:
+        forecast_df["forecast_period"] = fp_point
+
     combi_cols = [site_id_col, "time"]
     static_cols = ["latitude", "longitude", "altitude", "diagnostic"]
     if include_station_id:
@@ -589,17 +634,15 @@ def forecast_dataframe_to_cube(
     """
 
     representation_type = get_forecast_representation(df)
-
     fp_point = pd.Timedelta(int(forecast_period), unit="seconds")
-
     cubelist = CubeList()
 
     for adate in training_dates:
         time_df = df.loc[(df["time"] == adate) & (df["forecast_period"] == fp_point)]
 
-        time_df = _preprocess_temporal_columns(time_df)
         if time_df.empty:
             continue
+        time_df = _preprocess_temporal_columns(time_df)
 
         # The following columns are expected to contain one unique value
         # per column.
@@ -763,6 +806,7 @@ def forecast_and_truth_dataframes_to_cubes(
     training_length: int,
     percentiles: Optional[List[float]] = None,
     experiment: Optional[str] = None,
+    adjacent_range: int = 0,
 ) -> Tuple[Cube, Cube]:
     """Convert a forecast DataFrame into an iris Cube and a
     truth DataFrame into an iris Cube.
@@ -792,12 +836,16 @@ def forecast_and_truth_dataframes_to_cubes(
         experiment:
             A value within the experiment column to select from the forecast
             table.
+        adjacent_range:
+            A period in hours that should be used to either side of the
+            defined forecast_period to allow for the inclusion of forecasts and
+            observations that are close to the validity time being calibrated.
 
     Returns:
         Forecasts and truths for the training period in Cube format.
     """
     training_dates = _training_dates_for_calibration(
-        cycletime, forecast_period, training_length
+        cycletime, forecast_period, training_length, adjacent_range
     )
 
     forecast_df, truth_df = _prepare_dataframes(
@@ -806,6 +854,7 @@ def forecast_and_truth_dataframes_to_cubes(
         forecast_period,
         percentiles=percentiles,
         experiment=experiment,
+        adjacent_range=adjacent_range,
     )
 
     forecast_cube = forecast_dataframe_to_cube(

@@ -4,15 +4,13 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Utilities to support weighted blending"""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional, Union
 
-import numpy as np
 from iris import Constraint
 from iris.coords import AuxCoord
 from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
-from numpy import int64
 
 from improver.blending import (
     MODEL_BLEND_COORD,
@@ -20,15 +18,16 @@ from improver.blending import (
     RECORD_COORD,
     WEIGHT_FORMAT,
 )
-from improver.metadata.amend import amend_attributes
+from improver.metadata.amend import amend_attributes, get_unique_attributes
 from improver.metadata.constants.attributes import (
     MANDATORY_ATTRIBUTE_DEFAULTS,
     MANDATORY_ATTRIBUTES,
 )
 from improver.metadata.constants.time_types import DT_FORMAT, TIME_COORDS
-from improver.metadata.forecast_times import add_blend_time, forecast_period_coord
-from improver.utilities.round import round_close
-from improver.utilities.temporal import cycletime_to_number
+from improver.metadata.forecast_times import add_blend_time
+from improver.utilities.temporal import (
+    reset_forecast_reference_time_and_period,
+)
 
 
 def find_blend_dim_coord(cube: Cube, blend_coord: str) -> str:
@@ -130,7 +129,7 @@ def update_blended_metadata(
         coords_to_remove:
             Name of scalar coordinates to be removed from the blended cube
         cycletime:
-            Current cycletime in YYYYMMDDTHHmmZ format
+            Current cycletime in YYYYMMDDTHHMMZ format
         model_id_attr:
             Name of attribute for use in model blending, to record the names of
             contributing models on the blended output
@@ -159,7 +158,7 @@ def update_blended_metadata(
             cube.attributes[attr] = MANDATORY_ATTRIBUTE_DEFAULTS[attr]
 
 
-def _set_blended_time_coords(blended_cube: Cube, cycletime: Optional[str]) -> None:
+def _set_blended_time_coords(blended_cube: Cube, cycletime: str) -> None:
     """
     For cycle and model blending:
 
@@ -176,21 +175,15 @@ def _set_blended_time_coords(blended_cube: Cube, cycletime: Optional[str]) -> No
     Args:
         blended_cube
         cycletime:
-            Current cycletime in YYYYMMDDTHHmmZ format
+            Current cycletime in YYYYMMDDTHHMMZ format
+    Raises:
+        ValueError: If cycletime is not provided for cycle or model blending.
     """
-    try:
-        cycletime_point = _get_cycletime_point(blended_cube, cycletime)
-    except TypeError:
+    if cycletime is None:
         raise ValueError("Current cycle time is required for cycle and model blending")
 
     add_blend_time(blended_cube, cycletime)
-    blended_cube.coord("forecast_reference_time").points = [cycletime_point]
-    blended_cube.coord("forecast_reference_time").bounds = None
-    if blended_cube.coords("forecast_period"):
-        blended_cube.remove_coord("forecast_period")
-        new_forecast_period = forecast_period_coord(blended_cube)
-        time_dim = blended_cube.coord_dims("time")
-        blended_cube.add_aux_coord(new_forecast_period, data_dims=time_dim)
+    reset_forecast_reference_time_and_period(blended_cube, cycletime)
     for coord in ["forecast_period", "forecast_reference_time"]:
         msg = f"{coord} will be removed in future and should not be used"
         try:
@@ -199,32 +192,11 @@ def _set_blended_time_coords(blended_cube: Cube, cycletime: Optional[str]) -> No
             pass
 
 
-def _get_cycletime_point(cube: Cube, cycletime: str) -> int64:
-    """
-    For cycle and model blending, establish the current cycletime to set on
-    the cube after blending.
-
-    Args:
-        blended_cube
-        cycletime:
-            Current cycletime in YYYYMMDDTHHmmZ format
-
-    Returns:
-        Cycle time point in units matching the input cube forecast reference
-        time coordinate
-    """
-    frt_coord = cube.coord("forecast_reference_time")
-    frt_units = frt_coord.units.origin
-    frt_calendar = frt_coord.units.calendar
-    # raises TypeError if cycletime is None
-    cycletime_point = cycletime_to_number(
-        cycletime, time_unit=frt_units, calendar=frt_calendar
-    )
-    return round_close(cycletime_point, dtype=np.int64)
-
-
 def store_record_run_as_coord(
-    cubelist: CubeList, record_run_attr: str, model_id_attr: Optional[str]
+    cubelist: CubeList,
+    record_run_attr: str,
+    model_id_attr: Optional[str],
+    unify_record_run_attr: bool = False,
 ) -> None:
     """Stores model identifiers and forecast_reference_times on the input
     cubes as auxiliary coordinates. These are used to construct record_run
@@ -275,6 +247,12 @@ def store_record_run_as_coord(
             The name of the record_run attribute that may exist on the input cubes.
         model_id_attr:
             The name of the model_id attribute that may exist on the input cubes.
+        unify_record_run_attr:
+            If True, unify the record_run attributes across all cubes before
+            constructing the RECORD_COORD. This ensures that all input cubes have
+            the same superset of record_run entries. This can be useful to avoid
+            issues with differing coordinate shapes when the cubes are merged, but
+            should only be used when the superset of entries is the desired outcome.
 
     Raises:
         ValueError: If model_id_attr is not set and is required to construct a
@@ -291,6 +269,13 @@ def store_record_run_as_coord(
             f"of a new {record_run_attr} attribute."
         )
 
+    # Note that this unification functionality will only work if the record_run_attr
+    # is present on all cubes.
+    if unify_record_run_attr:
+        superset = get_unique_attributes(cubelist, record_run_attr, separator="\n")
+        for cube in cubelist:
+            cube.attributes[record_run_attr] = superset[record_run_attr]
+
     for cube in cubelist:
         if record_run_attr in cube.attributes:
             run_attr = cube.attributes[record_run_attr]
@@ -305,8 +290,8 @@ def store_record_run_as_coord(
                 f"Cube attributes: {cube.attributes}"
             )
 
-        cycle = datetime.utcfromtimestamp(
-            cube.coord("forecast_reference_time").points[0]
+        cycle = datetime.fromtimestamp(
+            cube.coord("forecast_reference_time").points[0], tz=timezone.utc
         )
         cycle_str = cycle.strftime(DT_FORMAT)
 

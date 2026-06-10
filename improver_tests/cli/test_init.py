@@ -197,13 +197,14 @@ class Test_with_output(unittest.TestCase):
         m.assert_called_with(save_object, "foo", 1, None)
         self.assertEqual(result, None)
 
+    @patch("os.rename")
     @patch("joblib.dump")
-    @patch("builtins.open", unittest.mock.mock_open())
-    def test_with_output_pickle(self, m):
+    def test_with_output_pickle(self, mock_dump, mock_rename):
         """Tests that joblib.dump is called for a non-cube object"""
         save_object = {"a": 1}
         result = wrapped_with_output.cli("argv[0]", [save_object], "--output=foo")
-        m.assert_called_with(save_object, "foo", compress=1)
+        mock_dump.assert_called_with(save_object, "foo.tmp", compress=1)
+        mock_rename.assert_called_with("foo.tmp", "foo")
         self.assertEqual(result, None)
 
     @patch("improver.utilities.save.save_netcdf")

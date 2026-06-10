@@ -12,7 +12,7 @@ from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
 
 from improver import PostProcessingPlugin
-from improver.metadata.amend import update_model_id_attr_attribute
+from improver.metadata.amend import get_unique_attributes
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
@@ -214,7 +214,7 @@ class FreezingRain(PostProcessingPlugin):
             # may be diagnosed from a different model when creating a nowcast forecast.
             # The output in such a case is fundamentally a nowcast product, so we exclude
             # the temperature diagnostic when determining the model_id_attr.
-            optional_attributes = update_model_id_attr_attribute(
+            optional_attributes = get_unique_attributes(
                 CubeList([self.rain, self.sleet]), self.model_id_attr
             )
         freezing_rain_cube = create_new_diagnostic_cube(

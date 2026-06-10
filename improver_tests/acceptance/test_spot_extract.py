@@ -218,6 +218,25 @@ def test_multiple_constraints(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
+def test_ignore_grid_match_check(tmp_path):
+    """Test that the spot extraction passes when ignore_grid_match is set to True and
+    the grids are mismatched."""
+    kgo_dir = acc.kgo_root() / "spot-extract"
+    neighbour_path = kgo_dir / "inputs/all_methods_uk_different_model_grid_hash.nc"
+    diag_path = kgo_dir / "inputs/ukvx_temperature.nc"
+    kgo_path = kgo_dir / "outputs/ignore_grid_match_kgo.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        diag_path,
+        neighbour_path,
+        "--output",
+        output_path,
+        "--ignore-grid-match",
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
 @pytest.mark.parametrize(
     "bounds_option, kgo",
     (
@@ -313,7 +332,7 @@ def test_percentile_deterministic(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-def test_percentile_deterministic_quiet(tmp_path):
+def test_percentile_deterministic_quiet(tmp_path, recwarn):
     """Test extracting percentiles from deterministic input. In this case the
     --suppress-warnings flag is enabled. This excludes the warning raised when
     spot-extract is set to extract percentiles and used with deterministic data.
@@ -335,11 +354,10 @@ def test_percentile_deterministic_quiet(tmp_path):
         UK_SPOT_TITLE,
         "--suppress-warnings",
     ]
-    with pytest.warns(UserWarning) as collected_warns:
-        run_cli(args)
 
-    msg = "Diagnostic cube is not a known probabilistic type."
-    assert all([msg not in str(warning.message) for warning in collected_warns])
+    run_cli(args)
+    msg = "Blending masked data without spatial"
+    assert all([msg not in str(warning.message) for warning in recwarn])
     acc.compare(output_path, kgo_path)
 
 

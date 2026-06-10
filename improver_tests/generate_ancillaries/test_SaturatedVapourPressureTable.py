@@ -12,7 +12,6 @@ import warnings
 
 import numpy as np
 from cf_units import Unit
-from iris.tests import IrisTest
 
 from improver.generate_ancillaries.generate_svp_table import (
     SaturatedVapourPressureTable,
@@ -28,7 +27,7 @@ class Test__init__(unittest.TestCase):
             SaturatedVapourPressureTable(water_only=True, ice_only=True)
 
 
-class Test__repr__(IrisTest):
+class Test__repr__(unittest.TestCase):
     """Test the repr method."""
 
     def test_basic(self):
@@ -41,7 +40,7 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, msg)
 
 
-class Test_saturation_vapour_pressure_goff_gratch(IrisTest):
+class Test_saturation_vapour_pressure_goff_gratch(unittest.TestCase):
     """Test calculations of the saturated vapour pressure using the Goff-Gratch
     method."""
 
@@ -51,7 +50,7 @@ class Test_saturation_vapour_pressure_goff_gratch(IrisTest):
         plugin = SaturatedVapourPressureTable()
         result = plugin.saturation_vapour_pressure_goff_gratch(data)
         expected = np.array([[1.956417, 4.696705, 9.909414]], dtype=np.float32)
-        self.assertArrayAlmostEqual(expected, result)
+        np.testing.assert_array_almost_equal(expected, result)
 
 
 class Test_temperature_data_limits(unittest.TestCase):
@@ -115,7 +114,7 @@ class Test_temperature_data_limits(unittest.TestCase):
                 self.assertFalse(any(message in str(warn.message) for warn in w))
 
 
-class Test_process(IrisTest):
+class Test_process(unittest.TestCase):
     """Test that the plugin functions as expected."""
 
     def test_cube_attributes(self):
@@ -154,7 +153,7 @@ class Test_process(IrisTest):
             t_min=t_min, t_max=t_max, t_increment=t_increment
         ).process()
 
-        self.assertArrayAlmostEqual(result.data, expected)
+        np.testing.assert_array_almost_equal(result.data, expected)
 
     def test_cube_values_water_only(self):
         """
@@ -184,7 +183,7 @@ class Test_process(IrisTest):
             t_min=t_min, t_max=t_max, t_increment=t_increment, water_only=True
         ).process()
 
-        self.assertArrayAlmostEqual(result.data, expected)
+        np.testing.assert_array_almost_equal(result.data, expected)
 
     def test_cube_values_ice_only(self):
         """
@@ -214,7 +213,7 @@ class Test_process(IrisTest):
             t_min=t_min, t_max=t_max, t_increment=t_increment, ice_only=True
         ).process()
 
-        self.assertArrayAlmostEqual(result.data, expected)
+        np.testing.assert_array_almost_equal(result.data, expected)
 
     def test_coordinate_values(self):
         """Test that returned cube temperature coordinate has expected
@@ -225,7 +224,9 @@ class Test_process(IrisTest):
             t_min=t_min, t_max=t_max, t_increment=t_increment
         ).process()
 
-        self.assertArrayAlmostEqual(result.coord("air_temperature").points, expected)
+        np.testing.assert_array_almost_equal(
+            result.coord("air_temperature").points, expected
+        )
 
 
 if __name__ == "__main__":

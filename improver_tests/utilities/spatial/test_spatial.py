@@ -5,6 +5,7 @@
 """Unit tests for the distance_to_number_of_grid_cells function from
 spatial.py."""
 
+import unittest
 from copy import copy
 from datetime import datetime as dt
 
@@ -16,7 +17,6 @@ from iris import Constraint, coord_systems
 from iris.coord_systems import GeogCS
 from iris.coords import AuxCoord, CellMethod, DimCoord
 from iris.cube import Cube, CubeList
-from iris.tests import IrisTest
 from iris.time import PartialDateTime
 from numpy.testing import assert_almost_equal, assert_array_equal
 
@@ -43,7 +43,7 @@ from improver.utilities.spatial import (
 )
 
 
-class Test_common_functions(IrisTest):
+class Test_common_functions(unittest.TestCase):
     """A class originally written for testing spot-data functionality that no
     longer exists. It was also used in this set of tests, so upon deletion of
     the old spot-data code, the class was moved here."""
@@ -153,7 +153,7 @@ class Test_common_functions(IrisTest):
         self.additional_data = additional_data
 
 
-class GridSpacingTest(IrisTest):
+class GridSpacingTest(unittest.TestCase):
     """Base class for testing the calculate_grid_spacing function"""
 
     def setUp(self):
@@ -272,7 +272,7 @@ class Test_calculate_grid_spacing_with_tolerance(GridSpacingTest):
         self.assertAlmostEqual(result, self.expected_thirds, places=5)
 
 
-class Test_convert_distance_into_number_of_grid_cells(IrisTest):
+class Test_convert_distance_into_number_of_grid_cells(unittest.TestCase):
     """Test conversion of distance in metres into number of grid cells."""
 
     def setUp(self):
@@ -342,7 +342,7 @@ class Test_convert_distance_into_number_of_grid_cells(IrisTest):
             distance_to_number_of_grid_cells(cube, radius)
 
 
-class Test_number_of_grid_cells_to_distance(IrisTest):
+class Test_number_of_grid_cells_to_distance(unittest.TestCase):
     """Test the number_of_grid_cells_to_distance method"""
 
     def setUp(self):
@@ -389,7 +389,7 @@ class Test_number_of_grid_cells_to_distance(IrisTest):
         self.assertIs(type(expected_result), float)
 
 
-class Test_check_if_grid_is_equal_area(IrisTest):
+class Test_check_if_grid_is_equal_area(unittest.TestCase):
     """Test that the grid is an equal area grid."""
 
     def setUp(self):
@@ -487,7 +487,7 @@ class Test_lat_lon_determine(Test_common_functions):
         self.assertEqual(expected, result)
 
 
-class Test_get_grid_y_x_values(IrisTest):
+class Test_get_grid_y_x_values(unittest.TestCase):
     """Test function that extract the points in the cube into
     grid of y and x coordinate values."""
 
@@ -532,7 +532,7 @@ class Test_get_grid_y_x_values(IrisTest):
         assert_almost_equal(result_y_points, self.expected_proj_y)
 
 
-class Test_transform_grid_to_lat_lon(IrisTest):
+class Test_transform_grid_to_lat_lon(unittest.TestCase):
     """Test function that transforms the points in the cube
     into grid of latitudes and longitudes."""
 

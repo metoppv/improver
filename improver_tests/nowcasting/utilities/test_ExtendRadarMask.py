@@ -9,13 +9,12 @@ import unittest
 
 import iris
 import numpy as np
-from iris.tests import IrisTest
 
 from improver.nowcasting.utilities import ExtendRadarMask
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 
-class Test__init_(IrisTest):
+class Test__init_(unittest.TestCase):
     """Test the _init_ method"""
 
     def test_basic(self):
@@ -24,7 +23,7 @@ class Test__init_(IrisTest):
         self.assertSequenceEqual(plugin.coverage_valid, [1, 2])
 
 
-class Test_process(IrisTest):
+class Test_process(unittest.TestCase):
     """Test the process method"""
 
     def setUp(self):
@@ -96,8 +95,8 @@ class Test_process(IrisTest):
         """Test output cube has expected mask and underlying data is
         unchanged"""
         result = ExtendRadarMask().process(self.rainrate, self.coverage)
-        self.assertArrayEqual(result.data.mask, self.expected_mask)
-        self.assertArrayEqual(result.data.data, self.rainrate.data.data)
+        np.testing.assert_array_equal(result.data.mask, self.expected_mask)
+        np.testing.assert_array_equal(result.data.data, self.rainrate.data.data)
 
     def test_inputs_unmodified(self):
         """Test the rainrate cube is not modified in place"""

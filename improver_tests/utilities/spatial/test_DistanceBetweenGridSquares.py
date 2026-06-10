@@ -12,7 +12,6 @@ import pytest
 from iris.coord_systems import CoordSystem, GeogCS, TransverseMercator
 from iris.coords import DimCoord
 from iris.cube import Cube
-from iris.tests import IrisTest
 
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.spatial import DistanceBetweenGridSquares
@@ -257,10 +256,7 @@ def test_degrees_cube_with_no_coordinate_system_information():
     )
     input_cube.coord(axis="x").coord_system = None
     input_cube.coord(axis="y").coord_system = None
-    with IrisTest().assertRaisesRegex(
-        expected_exception=ValueError,
-        expected_regex="Unsupported cube coordinate system.*",
-    ):
+    with pytest.raises(ValueError, match="Unsupported cube coordinate system.*"):
         DistanceBetweenGridSquares()(input_cube)
 
 

@@ -522,7 +522,7 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
                 )
             reliability_tables.append(reliability_entry)
 
-        return MergeCubes()(reliability_tables, copy=False)
+        return MergeCubes(copy=False)(reliability_tables)
 
 
 class AggregateReliabilityCalibrationTables(BasePlugin):

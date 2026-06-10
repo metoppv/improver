@@ -48,6 +48,7 @@ class Combine(BasePlugin):
         cell_method_coordinate: str = None,
         expand_bound: bool = True,
         midpoint_bound: bool = False,
+        replace_masked_values_with: float = None,
         use_latest_frt: bool = False,
     ):
         r"""
@@ -98,6 +99,7 @@ class Combine(BasePlugin):
         self.expand_bound = expand_bound
         self.midpoint_bound = midpoint_bound
         self.use_latest_frt = use_latest_frt
+        self.replace_masked_values_with = replace_masked_values_with
 
         self.plugin = CubeCombiner(
             operation,
@@ -105,6 +107,7 @@ class Combine(BasePlugin):
             broadcast=self.broadcast,
             expand_bound=self.expand_bound,
             midpoint_bound=self.midpoint_bound,
+            replace_masked_values_with=self.replace_masked_values_with,
         )
 
     def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
@@ -170,6 +173,11 @@ def masked_add(
     Returns:
         numpy.ma.MaskedArray:
             The sum of the two masked arrays with masked points treated as 0.
+
+    Warning:
+        The masked_add function will retain the mask wherever the input masks
+        are overlapping.
+
     """
     new_array_1 = np.ma.filled(masked_array, 0)
     new_array_2 = np.ma.filled(masked_array_2, 0)
@@ -182,7 +190,14 @@ def masked_add(
 
 
 class CubeCombiner(BasePlugin):
-    """Plugin for combining cubes using linear operators"""
+    """Plugin for combining cubes using linear operators
+
+    Warning:
+        The `masked_add` operator will retain the mask wherever the input masks are overlapping.
+        If this is not the masking behaviour you require consider using the `add` operator
+        with the `replace_masked_values_with` parameter.
+
+    """
 
     COMBINE_OPERATORS = {
         "+": np.add,
@@ -204,6 +219,7 @@ class CubeCombiner(BasePlugin):
         broadcast: str = None,
         expand_bound: bool = True,
         midpoint_bound: bool = False,
+        replace_masked_values_with: float = None,
     ) -> None:
         """Create a CubeCombiner plugin
 
@@ -228,6 +244,11 @@ class CubeCombiner(BasePlugin):
             midpoint_bound:
                 If True, set the coordinate point to the midpoint of the bounds;
                 otherwise, use the upper bound. This is only used if expand_bound is also True.
+            replace_masked_values_with:
+                If given, masked values in the input datasets will be replaced by the
+                given value when used to calculate the output datasets. In this scenario
+                masked areas in the input datasets will not persist into the outputs.
+
         Raises:
             ValueError: if operation is not recognised in dictionary
         """
@@ -242,6 +263,7 @@ class CubeCombiner(BasePlugin):
         self.normalise = operation == "mean"
         self.expand_bound = expand_bound
         self.midpoint_bound = midpoint_bound
+        self.replace_masked_values_with = replace_masked_values_with
 
     @staticmethod
     def _check_dimensions_match(
@@ -342,6 +364,25 @@ class CubeCombiner(BasePlugin):
             )
             raise ValueError(msg)
 
+    def _replace_mask_values(
+        self, cube_list: Union[List[Cube], CubeList]
+    ) -> List[Cube]:
+        """Replace all masked values in masked cube datasets with 0.0.
+
+        Args:
+            cube_list
+
+        Returns:
+            List
+
+        """
+        new_cube_list = []
+        for cube in cube_list:
+            if np.ma.isMaskedArray(cube.data):
+                cube.data = cube.data.filled(self.replace_masked_values_with)
+            new_cube_list.append(cube)
+        return new_cube_list
+
     def _combine_cube_data(self, cube_list: Union[List[Cube], CubeList]) -> Cube:
         """
         Perform cumulative operation to combine cube data
@@ -355,6 +396,8 @@ class CubeCombiner(BasePlugin):
         Raises:
             TypeError: if the operation results in an escalated datatype
         """
+        if self.replace_masked_values_with is not None:
+            cube_list = self._replace_mask_values(cube_list)
         result = cube_list[0].copy()
 
         # Slice over realization if possible to reduce memory usage.

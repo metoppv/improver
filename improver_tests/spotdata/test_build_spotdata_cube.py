@@ -11,7 +11,6 @@ import iris
 import numpy as np
 from cf_units import Unit
 from iris.coords import AuxCoord, DimCoord
-from iris.tests import IrisTest
 
 from improver.metadata.constants.time_types import TIME_COORDS
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
@@ -19,7 +18,7 @@ from improver.synthetic_data.set_up_test_cubes import construct_scalar_time_coor
 from improver.utilities.round import round_close
 
 
-class Test_build_spotdata_cube(IrisTest):
+class Test_build_spotdata_cube(unittest.TestCase):
     """Tests for the build_spotdata_cube function"""
 
     def setUp(self):
@@ -51,7 +50,7 @@ class Test_build_spotdata_cube(IrisTest):
         self.assertIsInstance(result, iris.cube.Cube)
 
         # check data
-        self.assertArrayAlmostEqual(result.data, np.array([1.6]))
+        np.testing.assert_array_almost_equal(result.data, np.array([1.6]))
         self.assertEqual(result.name(), "air_temperature")
         self.assertEqual(result.units, "degC")
 
@@ -70,11 +69,17 @@ class Test_build_spotdata_cube(IrisTest):
         data = np.array([1.6, 1.3, 1.4, 1.1])
         result = build_spotdata_cube(data, *self.args)
 
-        self.assertArrayAlmostEqual(result.data, data)
-        self.assertArrayAlmostEqual(result.coord("altitude").points, self.altitude)
-        self.assertArrayAlmostEqual(result.coord("latitude").points, self.latitude)
-        self.assertArrayAlmostEqual(result.coord("longitude").points, self.longitude)
-        self.assertArrayEqual(result.coord("wmo_id").points, self.wmo_id)
+        np.testing.assert_array_almost_equal(result.data, data)
+        np.testing.assert_array_almost_equal(
+            result.coord("altitude").points, self.altitude
+        )
+        np.testing.assert_array_almost_equal(
+            result.coord("latitude").points, self.latitude
+        )
+        np.testing.assert_array_almost_equal(
+            result.coord("longitude").points, self.longitude
+        )
+        np.testing.assert_array_equal(result.coord("wmo_id").points, self.wmo_id)
 
     def test_site_list_with_unique_id_coordinate(self):
         """Test output for a list of sites with a unique_id_coordinate."""
@@ -86,7 +91,7 @@ class Test_build_spotdata_cube(IrisTest):
             unique_site_id_key="met_office_site_id",
         )
 
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             result.coord("met_office_site_id").points, self.unique_site_id
         )
         self.assertEqual(
@@ -110,12 +115,12 @@ class Test_build_spotdata_cube(IrisTest):
             data, *self.args, neighbour_methods=self.neighbour_methods
         )
 
-        self.assertArrayAlmostEqual(result.data, data)
+        np.testing.assert_array_almost_equal(result.data, data)
         self.assertEqual(result.coord_dims("neighbour_selection_method")[0], 0)
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             result.coord("neighbour_selection_method").points, np.arange(2)
         )
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             result.coord("neighbour_selection_method_name").points,
             self.neighbour_methods,
         )
@@ -130,10 +135,12 @@ class Test_build_spotdata_cube(IrisTest):
             data, *self.args, grid_attributes=self.grid_attributes
         )
 
-        self.assertArrayAlmostEqual(result.data, data)
+        np.testing.assert_array_almost_equal(result.data, data)
         self.assertEqual(result.coord_dims("grid_attributes")[0], 0)
-        self.assertArrayEqual(result.coord("grid_attributes").points, np.arange(3))
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
+            result.coord("grid_attributes").points, np.arange(3)
+        )
+        np.testing.assert_array_equal(
             result.coord("grid_attributes_key").points, self.grid_attributes
         )
 
@@ -147,7 +154,7 @@ class Test_build_spotdata_cube(IrisTest):
             grid_attributes=self.grid_attributes,
         )
 
-        self.assertArrayAlmostEqual(result.data, data)
+        np.testing.assert_array_almost_equal(result.data, data)
         self.assertEqual(result.coord_dims("neighbour_selection_method")[0], 0)
         self.assertEqual(result.coord_dims("grid_attributes")[0], 1)
 
@@ -192,7 +199,7 @@ class Test_build_spotdata_cube(IrisTest):
             additional_dims_aux=[[fp_coord]],
         )
 
-        self.assertArrayAlmostEqual(result.data, data)
+        np.testing.assert_array_almost_equal(result.data, data)
         self.assertEqual(result.coord_dims("grid_attributes")[0], 0)
         self.assertEqual(result.coord_dims("time")[0], 1)
         self.assertEqual(result.coord_dims("forecast_period")[0], 1)
@@ -231,7 +238,7 @@ class Test_build_spotdata_cube(IrisTest):
             auxiliary_coords=[time_coord],
             neighbour_methods=self.neighbour_methods,
         )
-        self.assertArrayEqual(result.coord("time").points, times)
+        np.testing.assert_array_equal(result.coord("time").points, times)
         self.assertEqual(result.coord_dims("time"), result.coord_dims("spot_index"))
 
     def test_renaming_to_set_standard_name(self):

@@ -10,7 +10,6 @@ from datetime import timedelta
 import iris
 import numpy as np
 from iris.cube import Cube
-from iris.tests import IrisTest
 
 from improver.nbhood.recursive_filter import RecursiveFilter
 from improver.synthetic_data.set_up_test_cubes import (
@@ -27,7 +26,7 @@ def _mean_points(points):
     return np.array((points[:-1] + points[1:]) / 2, dtype=np.float32)
 
 
-class Test_RecursiveFilter(IrisTest):
+class Test_RecursiveFilter(unittest.TestCase):
     """Test class for the RecursiveFilter tests, setting up cubes."""
 
     def setUp(self):
@@ -239,8 +238,8 @@ class Test__pad_coefficients(Test_RecursiveFilter):
         )
         self.assertIsInstance(result_x.data, np.ndarray)
         self.assertIsInstance(result_y.data, np.ndarray)
-        self.assertArrayEqual(result_x.data, expected_result_x)
-        self.assertArrayEqual(result_y.data, expected_result_y)
+        np.testing.assert_array_equal(result_x.data, expected_result_x)
+        np.testing.assert_array_equal(result_y.data, expected_result_y)
         self.assertEqual(result_x.shape, expected_shape_x)
         self.assertEqual(result_y.shape, expected_shape_y)
 
@@ -258,8 +257,8 @@ class Test__pad_coefficients(Test_RecursiveFilter):
         result_x, result_y = RecursiveFilter(edge_width=1)._pad_coefficients(
             *self.smoothing_coefficients
         )
-        self.assertArrayEqual(result_x.data, expected_result_x)
-        self.assertArrayEqual(result_y.data, expected_result_y)
+        np.testing.assert_array_equal(result_x.data, expected_result_x)
+        np.testing.assert_array_equal(result_y.data, expected_result_y)
         self.assertEqual(result_x.shape, expected_shape_x)
         self.assertEqual(result_y.shape, expected_shape_y)
 
@@ -278,7 +277,7 @@ class Test__pad_coefficients(Test_RecursiveFilter):
         result, _ = RecursiveFilter(edge_width=1)._pad_coefficients(
             *self.smoothing_coefficients
         )
-        self.assertArrayEqual(result.data, expected_result)
+        np.testing.assert_array_equal(result.data, expected_result)
         self.assertEqual(result.shape, expected_shape)
 
 
@@ -301,7 +300,7 @@ class Test__recurse_forward(Test_RecursiveFilter):
             self.cube.data[0, :], self.smoothing_coefficients[1].data, 0
         )
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, expected_result)
+        np.testing.assert_array_almost_equal(result, expected_result)
 
     def test_second_axis(self):
         """Test that the returned _recurse_forward array has the expected
@@ -319,7 +318,7 @@ class Test__recurse_forward(Test_RecursiveFilter):
             self.cube.data[0, :], self.smoothing_coefficients[0].data, 1
         )
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, expected_result)
+        np.testing.assert_array_almost_equal(result, expected_result)
 
 
 class Test__recurse_backward(Test_RecursiveFilter):
@@ -341,7 +340,7 @@ class Test__recurse_backward(Test_RecursiveFilter):
             self.cube.data[0, :], self.smoothing_coefficients[1].data, 0
         )
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, expected_result)
+        np.testing.assert_array_almost_equal(result, expected_result)
 
     def test_second_axis(self):
         """Test that the returned _recurse_backward array has the expected
@@ -359,7 +358,7 @@ class Test__recurse_backward(Test_RecursiveFilter):
             self.cube.data[0, :], self.smoothing_coefficients[0].data, 1
         )
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, expected_result)
+        np.testing.assert_array_almost_equal(result, expected_result)
 
 
 class Test__run_recursion(Test_RecursiveFilter):
@@ -442,7 +441,7 @@ class Test__run_recursion(Test_RecursiveFilter):
             ],
             dtype=np.float32,
         )
-        self.assertArrayAlmostEqual(unpadded_result, expected_result)
+        np.testing.assert_array_almost_equal(unpadded_result, expected_result)
 
 
 class Test_process(Test_RecursiveFilter):
@@ -490,7 +489,7 @@ class Test_process(Test_RecursiveFilter):
         result = plugin(self.cube, smoothing_coefficients=self.smoothing_coefficients)
         expected = 0.184375
         self.assertAlmostEqual(result.data[0][2][2], expected)
-        self.assertArrayEqual(result.data.mask, mask)
+        np.testing.assert_array_equal(result.data.mask, mask)
 
     def test_coordinate_reordering_with_different_smoothing_coefficients(self):
         """Test that x and y smoothing_coefficients still apply to the right
@@ -519,7 +518,7 @@ class Test_process(Test_RecursiveFilter):
             [x.name() for x in result.coords(dim_coords=True)],
             ["realization", "longitude", "latitude"],
         )
-        self.assertArrayAlmostEqual(result.data[0], expected_result)
+        np.testing.assert_array_almost_equal(result.data[0], expected_result)
 
     def test_mask_zeros(self):
         """Test that any zeros in the data are the same at the beginning and
@@ -534,7 +533,7 @@ class Test_process(Test_RecursiveFilter):
             mask_zeros=True,
         )
         result_zeros = result.data == 0.0
-        self.assertArrayEqual(zeros, result_zeros)
+        np.testing.assert_array_equal(zeros, result_zeros)
 
     def test_mask_zeros_same_mask(self):
         """Test that if mask_zeros is applied to a cube that already
@@ -552,7 +551,7 @@ class Test_process(Test_RecursiveFilter):
             mask_zeros=True,
         )
         mask_of_result = np.ma.getmaskarray(result.data)
-        self.assertArrayEqual(mask_of_cube, mask_of_result)
+        np.testing.assert_array_equal(mask_of_cube, mask_of_result)
 
     def test_mask_zeros_result(self):
         """Test that if mask_zeros is applied to a cube that contains zeros,
@@ -578,7 +577,7 @@ class Test_process(Test_RecursiveFilter):
             ]
         )
 
-        self.assertArrayAlmostEqual(result.data, expected)
+        np.testing.assert_array_almost_equal(result.data, expected)
 
     def test_multiple_thresholds_masked(self):
         """Test that recursive filter is applied correctly when each threshold slice of
@@ -598,7 +597,7 @@ class Test_process(Test_RecursiveFilter):
 
         expected = [0.14994797, 0.22903226]
         for i in range(result.shape[0]):
-            self.assertArrayEqual(result.data[i, :, :].mask, mask[i, :, :])
+            np.testing.assert_array_equal(result.data[i, :, :].mask, mask[i, :, :])
             self.assertAlmostEqual(result.data[i][2][2], expected[i])
 
     def test_error_different_masks(self):

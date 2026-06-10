@@ -9,7 +9,6 @@ import unittest
 import iris
 import numpy as np
 from iris.cube import Cube
-from iris.tests import IrisTest
 
 from improver.constants import DEFAULT_PERCENTILES
 from improver.nbhood.nbhood import GeneratePercentilesFromANeighbourhood
@@ -19,7 +18,7 @@ from improver.synthetic_data.set_up_test_cubes import (
 )
 
 
-class Test_make_percentile_cube(IrisTest):
+class Test_make_percentile_cube(unittest.TestCase):
     """Test the make_percentile_cube method from
     GeneratePercentilesFromANeighbourhood."""
 
@@ -47,8 +46,10 @@ class Test_make_percentile_cube(IrisTest):
         expected_data = self.cube.data.copy()
 
         self.assertIsInstance(result.coord("percentile"), iris.coords.Coord)
-        self.assertArrayEqual(result.coord("percentile").points, DEFAULT_PERCENTILES)
-        self.assertArrayEqual(result[0].data, expected_data)
+        np.testing.assert_array_equal(
+            result.coord("percentile").points, DEFAULT_PERCENTILES
+        )
+        np.testing.assert_array_equal(result[0].data, expected_data)
         self.assertDictEqual(self.cube.metadata._asdict(), result.metadata._asdict())
 
     def test_coord_is_dim_vector(self):
@@ -70,7 +71,7 @@ class Test_make_percentile_cube(IrisTest):
         self.assertEqual(result.coord_dims("percentile")[0], 0)
 
 
-class Test_pad_and_unpad_cube(IrisTest):
+class Test_pad_and_unpad_cube(unittest.TestCase):
     """Test the padding and unpadding of the data within a cube."""
 
     def setUp(self):
@@ -113,7 +114,7 @@ class Test_pad_and_unpad_cube(IrisTest):
         plugin.percentiles = np.array([10, 50, 90])
         result = plugin.pad_and_unpad_cube(self.cube, kernel)
         self.assertIsInstance(result, Cube)
-        self.assertArrayAlmostEqual(result.data, expected)
+        np.testing.assert_array_almost_equal(result.data, expected)
 
     def test_irregular_kernel(self):
         """Test a 2d slice."""
@@ -149,7 +150,7 @@ class Test_pad_and_unpad_cube(IrisTest):
         result = plugin.pad_and_unpad_cube(self.cube, kernel)
 
         self.assertIsInstance(result, Cube)
-        self.assertArrayAlmostEqual(result.data, expected)
+        np.testing.assert_array_almost_equal(result.data, expected)
 
     def test_single_point_almost_edge(self):
         """Test behaviour for a non-zero grid cell quite near the edge."""
@@ -180,7 +181,7 @@ class Test_pad_and_unpad_cube(IrisTest):
         result = GeneratePercentilesFromANeighbourhood(
             2000, percentiles=percentiles
         ).pad_and_unpad_cube(cube, kernel)
-        self.assertArrayAlmostEqual(result.data, expected)
+        np.testing.assert_array_almost_equal(result.data, expected)
 
     def test_single_point_adjacent_edge(self):
         """Test behaviour for a single non-zero grid cell near the edge."""
@@ -219,7 +220,7 @@ class Test_pad_and_unpad_cube(IrisTest):
         result = GeneratePercentilesFromANeighbourhood(
             2000, percentiles=percentiles
         ).pad_and_unpad_cube(self.cube, kernel)
-        self.assertArrayAlmostEqual(result.data, expected)
+        np.testing.assert_array_almost_equal(result.data, expected)
 
     def test_single_point_on_edge(self):
         """Test behaviour for a non-zero grid cell on the edge."""
@@ -257,7 +258,7 @@ class Test_pad_and_unpad_cube(IrisTest):
         result = GeneratePercentilesFromANeighbourhood(
             2000, percentiles=percentiles
         ).pad_and_unpad_cube(self.cube, kernel)
-        self.assertArrayAlmostEqual(result.data, expected)
+        np.testing.assert_array_almost_equal(result.data, expected)
 
     def test_single_point_on_corner(self):
         """Test behaviour for a single non-zero grid cell on the corner."""
@@ -296,10 +297,10 @@ class Test_pad_and_unpad_cube(IrisTest):
         result = GeneratePercentilesFromANeighbourhood(
             2000, percentiles=percentiles
         ).pad_and_unpad_cube(self.cube, kernel)
-        self.assertArrayAlmostEqual(result.data, expected)
+        np.testing.assert_array_almost_equal(result.data, expected)
 
 
-class Test_process(IrisTest):
+class Test_process(unittest.TestCase):
     """Test the process method within the plugin to calculate percentile values
     from a neighbourhood."""
 
@@ -354,7 +355,7 @@ class Test_process(IrisTest):
         result = GeneratePercentilesFromANeighbourhood(
             radius, percentiles=percentiles
         ).process(cube)
-        self.assertArrayAlmostEqual(result.data, expected)
+        np.testing.assert_array_almost_equal(result.data, expected)
 
     def test_single_point_single_percentile(self):
         """Test behaviour for a single non-zero grid cell."""
@@ -377,7 +378,7 @@ class Test_process(IrisTest):
         result = GeneratePercentilesFromANeighbourhood(
             radius, percentiles=percentiles
         ).process(cube)
-        self.assertArrayAlmostEqual(result.data, expected)
+        np.testing.assert_array_almost_equal(result.data, expected)
 
     def test_multi_point_multireals(self):
         """Test behaviour for points over multiple realizations."""
@@ -444,7 +445,7 @@ class Test_process(IrisTest):
         result = GeneratePercentilesFromANeighbourhood(
             radius, percentiles=percentiles
         ).process(cube)
-        self.assertArrayAlmostEqual(result.data, expected)
+        np.testing.assert_array_almost_equal(result.data, expected)
 
     def test_multi_point_single_real(self):
         """Test behaviour for points over a single realization."""
@@ -486,7 +487,7 @@ class Test_process(IrisTest):
             radius, percentiles=percentiles
         ).process(cube)
 
-        self.assertArrayAlmostEqual(result.data, expected)
+        np.testing.assert_array_almost_equal(result.data, expected)
 
     def test_single_point_lat_long(self):
         """Test behaviour for a single grid cell on lat long grid."""
@@ -554,7 +555,7 @@ class Test_process(IrisTest):
         result = GeneratePercentilesFromANeighbourhood(
             radius, percentiles=percentiles
         ).process(self.cube)
-        self.assertArrayAlmostEqual(result.data, expected)
+        np.testing.assert_array_almost_equal(result.data, expected)
 
     def test_point_pair(self):
         """Test behaviour for two nearby non-zero grid cells."""
@@ -592,7 +593,7 @@ class Test_process(IrisTest):
         result = GeneratePercentilesFromANeighbourhood(
             radius, percentiles=percentiles
         ).process(self.cube)
-        self.assertArrayAlmostEqual(result.data, expected)
+        np.testing.assert_array_almost_equal(result.data, expected)
 
     def test_number_of_percentiles_equals_number_of_points(self):
         """Test when the number of percentiles is equal to the number of points
@@ -656,7 +657,7 @@ class Test_process(IrisTest):
         result = GeneratePercentilesFromANeighbourhood(
             radius, percentiles=percentiles
         ).process(cube)
-        self.assertArrayAlmostEqual(result.data, expected)
+        np.testing.assert_array_almost_equal(result.data, expected)
 
     def test_number_of_points_half_of_number_of_percentiles(self):
         """Test when the number of points is half the number of percentiles."""
@@ -765,7 +766,7 @@ class Test_process(IrisTest):
         result = GeneratePercentilesFromANeighbourhood(
             radius, percentiles=percentiles
         ).process(cube)
-        self.assertArrayAlmostEqual(result.data, expected)
+        np.testing.assert_array_almost_equal(result.data, expected)
 
     def test_circle_bigger_than_domain(self):
         """Test that an exception is raised if the circle requested is bigger

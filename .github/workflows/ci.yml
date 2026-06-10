@@ -1,13 +1,175 @@
 name: CI Tests
 
-on:
-  pull_request:
-  push:
-    branches:
-      - master  # Run tests only when changes are pushed to 'default'
-  workflow_dispatch:
+
+on: [pull_request]
+# on:
+#   push:
+#     branches:
+#       - master  # Run tests only when changes are pushed to 'default' branch
+
 jobs:
-  Sphinx-Pytest-Coverage:
+  Test-Coverage:
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Checkout dev branch
+      uses: actions/checkout@v6
+      with:
+        fetch-depth: 1
+
+    - name: Substitute branch name in environment file
+      run: |
+        # For PRs, use PR number if matching branch exists in improver_example_data; otherwise use master
+        if [ "${{ github.event_name }}" = "pull_request" ]; then
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          if git ls-remote --heads https://github.com/metoppv/improver_example_data.git ${PR_NUMBER} | grep -q ${PR_NUMBER}; then
+            BRANCH_NAME=$PR_NUMBER
+          else
+            BRANCH_NAME=master
+          fi
+        else
+          # Extract branch name from GITHUB_REF (e.g. for situation
+          # where a PR is merged into master, so refs/heads/master -> master)
+          BRANCH_NAME=${GITHUB_REF#refs/heads/}
+        fi
+        echo "Using BRANCH_NAME: $BRANCH_NAME"
+        # Replace BRANCH_NAME placeholder in all environment files
+        sed -i "s/\${BRANCH_NAME}/$BRANCH_NAME/g" envs/latest.yml
+      shell: bash
+
+    - name: Checkout reference coverage report
+      uses: actions/checkout@v6
+      with:
+        fetch-depth: 1
+        path: covref
+        ref: coverage-reference
+
+    - name: Branch name
+      run: |
+        branch=$(echo "${GITHUB_HEAD_REF#refs/heads/}")
+        echo "BRANCH=$branch" | tee -a $GITHUB_ENV
+
+    - name: Restore cached coverage report
+      uses: actions/cache/restore@v5
+      id: report-cache-restore
+      with:
+        path: |
+          coverage_output.txt
+          htmlcov/
+        key: coverage_report_${{ hashFiles('envs/latest.yml', 'improver/**/*.py', 'improver_tests/**/*.py') }}
+
+    - name: Environment creation
+      if: steps.report-cache-restore.outputs.cache-hit != 'true'
+      uses: mamba-org/setup-micromamba@v3
+      with:
+        environment-file: envs/latest.yml
+        init-shell: bash
+        cache-environment: true
+
+    - name: Environment info
+      if: steps.report-cache-restore.outputs.cache-hit != 'true'
+      run: |
+        micromamba info
+        micromamba list
+      shell: bash -el {0}
+
+    - name: pytest
+      if: steps.report-cache-restore.outputs.cache-hit != 'true'
+      run: |
+          DUMMY=0  # set to 1 to use dummy report, 0 to run actual tests
+          if [ $DUMMY -eq 1 ]; then
+              # dummy report
+              echo "TOTAL 1000 500 50%" >> coverage_output.txt
+              mkdir -p htmlcov
+              touch htmlcov/index.html
+          else
+              pytest --cov=improver --cov-report=term --cov-report=html | tee coverage_output.txt; test ${PIPESTATUS[0]} -eq 0
+          fi
+      shell: micromamba-shell {0}
+
+    - name: Save cached coverage report
+      uses: actions/cache/save@v5
+      id: report-cache-save
+      with:
+        path: |
+          coverage_output.txt
+          htmlcov/
+        key: ${{ steps.report-cache-restore.outputs.cache-primary-key }}
+
+    - name: Compare coverage
+      id: comp-coverage
+      run: |
+        set -e
+        # ----- USER SETTINGS -------------------------------------------------
+        CHECK_MISS_TOL=1      # 1 = evaluate the miss‑count difference, 0 = ignore it
+        CHECK_PERC_TOL=0      # 1 = evaluate the percentage difference, 0 = ignore it
+
+        # Tolerances
+        miss_tol=0          # miss integer tolerance
+        perc_tol=0.0        # percentage float tolerance
+        # --------------------------------------------------------------------
+
+        read pr_tot_stmts pr_tot_miss <<< $(awk '/^[[:space:]]*TOTAL/ {print $2, $3}' coverage_output.txt)
+        pr_perc_total=$(echo "scale=4; ($pr_tot_stmts-$pr_tot_miss)/$pr_tot_stmts"'*100' | bc)
+        echo "pr_perc_total=$pr_perc_total" | tee -a $GITHUB_OUTPUT
+        echo "pr_tot_stmts=$pr_tot_stmts" | tee -a $GITHUB_OUTPUT
+        echo "pr_tot_miss=$pr_tot_miss" | tee -a $GITHUB_OUTPUT
+
+        if [ ! -f covref/master/coverage_output.txt ]; then
+            echo "Warning: covref/master/coverage_output.txt does not exist, reporting coverage."
+            echo "coverage_decreased=true" | tee -a $GITHUB_OUTPUT
+            echo "ref_perc_total=--" | tee -a $GITHUB_OUTPUT
+            echo "ref_tot_stmts=--" | tee -a $GITHUB_OUTPUT
+            echo "ref_tot_miss=--" | tee -a $GITHUB_OUTPUT
+            exit 0
+        else
+            read ref_tot_stmts ref_tot_miss <<< $(awk '/^[[:space:]]*TOTAL/ {print $2, $3}' covref/master/coverage_output.txt)
+            ref_perc_total=$(echo "scale=4; ($ref_tot_stmts-$ref_tot_miss)/$ref_tot_stmts"'*100' | bc)
+            echo "ref_perc_total=$ref_perc_total" | tee -a $GITHUB_OUTPUT
+            echo "ref_tot_stmts=$ref_tot_stmts" | tee -a $GITHUB_OUTPUT
+            echo "ref_tot_miss=$ref_tot_miss" | tee -a $GITHUB_OUTPUT
+
+            trigger=0
+
+            miss_diff=$(( ref_tot_miss_b - pr_tot_miss_a ))               # integer diff
+            perc_diff=$(bc <<< "scale=4; $ref_perc_total - $pr_perc_total")       # float diff
+
+            if (( CHECK_MISS_TOL == 1 )) && (( miss_diff > miss_tol )); then
+                trigger=1
+            fi
+            if (( CHECK_PERC_TOL == 1 )) && (( $(bc <<< "$perc_diff > $perc_tol") )); then
+                trigger=1
+            fi
+            if (( trigger == 1 )); then
+                echo "coverage_decreased=true" | tee -a $GITHUB_OUTPUT
+            else
+                echo "coverage_decreased=false" | tee -a $GITHUB_OUTPUT
+            fi
+        fi
+
+    - name: Upload coverage report
+      id: artifact-coverage-upload
+      if: steps.comp-coverage.outputs.coverage_decreased == 'true'
+      uses: actions/upload-artifact@v7
+      with:
+        name: coverage-report-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
+        path: |
+          coverage_output.txt
+          htmlcov/
+
+    - name: Reduced coverage failure
+      if: steps.comp-coverage.outputs.coverage_decreased == 'true'
+      run:  |
+          echo "Code coverage has decreased"
+          echo "-----------------------------------------------"
+          echo -e "Coverage totals\tstatements\tmissed\n\
+          PR\t${{ steps.comp-coverage.outputs.pr_tot_stmts }}\t${{ steps.comp-coverage.outputs.pr_tot_miss }}\t${{ steps.comp-coverage.outputs.pr_perc_total }}%\n\
+          Reference\t${{ steps.comp-coverage.outputs.ref_tot_stmts }}\t${{ steps.comp-coverage.outputs.ref_tot_miss }}\t${{ steps.comp-coverage.outputs.ref_perc_total }}%" \
+          | column -t -s $'\t'
+          exit 1
+
+
+  Pytest:
     runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
@@ -15,10 +177,30 @@ jobs:
         env: [environment_a, environment_b, conda-forge]
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
+
+    - name: Substitute branch name in environment files
+      run: |
+        # For PRs, use PR number if matching branch exists in improver_example_data; otherwise use master
+        if [ "${{ github.event_name }}" = "pull_request" ]; then
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          if git ls-remote --heads https://github.com/metoppv/improver_example_data.git ${PR_NUMBER} | grep -q ${PR_NUMBER}; then
+            BRANCH_NAME=$PR_NUMBER
+          else
+            BRANCH_NAME=master
+          fi
+        else
+          # Extract branch name from GITHUB_REF (e.g. for situation
+          # where a PR is merged into master, so refs/heads/master -> master)
+          BRANCH_NAME=${GITHUB_REF#refs/heads/}
+        fi
+        echo "Using BRANCH_NAME: $BRANCH_NAME"
+        # Replace BRANCH_NAME placeholder in all environment files
+        sed -i "s/\${BRANCH_NAME}/$BRANCH_NAME/g" envs/*.yml
+      shell: bash
 
     - name: Environment creation
-      uses: mamba-org/setup-micromamba@v2
+      uses: mamba-org/setup-micromamba@v3
       with:
         environment-file: envs/${{ matrix.env }}.yml
         init-shell: bash
@@ -36,36 +218,11 @@ jobs:
         safety check || true
       shell: micromamba-shell {0}
 
-    - name: sphinx documentation
-      run: |
-        make -C doc html SPHINXOPTS="-W --keep-going"
-      shell: micromamba-shell {0}
-
-    - name: pytest without coverage
-      if: matrix.env == 'conda-forge'
+    - name: pytest
       run: |
         pytest
       shell: micromamba-shell {0}
 
-    - name: pytest with coverage
-      if: matrix.env != 'conda-forge'
-      run: |
-        pytest --cov=improver --cov-report xml:coverage.xml
-      shell: micromamba-shell {0}
-
-    - name: codacy upload
-      if: env.CODACY_PROJECT_TOKEN && matrix.env == 'environment_a'
-      run: |
-        python-codacy-coverage -v -r coverage.xml
-      env:
-        CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
-      shell: micromamba-shell {0}
-
-    - name: codecov upload
-      uses: codecov/codecov-action@v5
-      with:
-        name:  ${{ matrix.env }}
-      if: matrix.env != 'conda_forge'
 
   pre-commit-checks:
     runs-on: ubuntu-22.04
@@ -74,7 +231,7 @@ jobs:
     steps:
 
     - name: improver checkout
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
       with:
         fetch-depth: 0
 
@@ -92,7 +249,7 @@ jobs:
       run: echo "PYSHA=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
 
     - name: Cache pre-commit
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       id: pre-commit-cache
       with:
         path: ~/.cache/pre-commit
@@ -112,7 +269,7 @@ jobs:
     steps:
 
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 

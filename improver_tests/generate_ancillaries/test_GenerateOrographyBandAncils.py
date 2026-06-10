@@ -9,7 +9,6 @@ import unittest
 import numpy as np
 from cf_units import Unit
 from iris.cube import Cube
-from iris.tests import IrisTest
 
 from improver.generate_ancillaries.generate_ancillary import (
     GenerateOrographyBandAncils as GenOrogMasks,
@@ -32,7 +31,7 @@ def set_up_orography_cube(orog_data=None):
     return Cube(orog_data, long_name="test orog", units="m")
 
 
-class Test_sea_mask(IrisTest):
+class Test_sea_mask(unittest.TestCase):
     """Test the masking out of sea points with the sea_mask method."""
 
     def setUp(self):
@@ -51,8 +50,8 @@ class Test_sea_mask(IrisTest):
         )
         result = GenOrogMasks().sea_mask(self.landmask.data, self.orography.data)
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result.data, expected_data)
-        self.assertArrayAlmostEqual(result.mask, expected_mask)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.mask, expected_mask)
 
     def test_basic_sea_fill_value(self):
         """Test that the expected data is returned when the landmask specifies
@@ -62,7 +61,7 @@ class Test_sea_mask(IrisTest):
             self.landmask.data, self.orography.data, sea_fill_value=0
         )
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, expected_data)
+        np.testing.assert_array_almost_equal(result, expected_data)
         self.assertEqual(np.ma.is_masked(result), False)
 
     def test_all_land_points(self):
@@ -75,10 +74,10 @@ class Test_sea_mask(IrisTest):
         landmask = set_up_landmask_cube(landmask_data=landmask_data)
         result = GenOrogMasks().sea_mask(landmask.data, self.orography.data)
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, expected)
+        np.testing.assert_array_almost_equal(result, expected)
 
 
-class Test_gen_orography_masks(IrisTest):
+class Test_gen_orography_masks(unittest.TestCase):
     """
     Test the gen_orography_masks method orography band mask
     ancillary generation plugin.
@@ -104,7 +103,7 @@ class Test_gen_orography_masks(IrisTest):
         result = GenOrogMasks().gen_orography_masks(
             self.orography, self.landmask, self.valley_threshold
         )
-        self.assertArrayAlmostEqual(result.data, self.exp_valleymask)
+        np.testing.assert_array_almost_equal(result.data, self.exp_valleymask)
 
     def test_valleyband_cube(self):
         """test correct cube data is produced for land bands < 0m"""
@@ -129,7 +128,7 @@ class Test_gen_orography_masks(IrisTest):
         result = GenOrogMasks().gen_orography_masks(
             self.orography, self.landmask, self.land_threshold
         )
-        self.assertArrayAlmostEqual(result.data, self.exp_landmask)
+        np.testing.assert_array_almost_equal(result.data, self.exp_landmask)
 
     def test_landband_cube(self):
         """test correct cube data is produced for land bands > 0m"""
@@ -155,7 +154,7 @@ class Test_gen_orography_masks(IrisTest):
         result = GenOrogMasks().gen_orography_masks(
             self.orography, self.landmask, self.nonzero_land_threshold
         )
-        self.assertArrayAlmostEqual(result.data, self.exp_nonzero_landmask)
+        np.testing.assert_array_almost_equal(result.data, self.exp_nonzero_landmask)
 
     def test_nonzero_landband_cube(self):
         """test that a correct cube is produced when neither landband
@@ -184,7 +183,7 @@ class Test_gen_orography_masks(IrisTest):
         result = GenOrogMasks().gen_orography_masks(
             self.orography, self.landmask, self.high_land_threshold
         )
-        self.assertArrayAlmostEqual(result.data, self.exp_high_landmask)
+        np.testing.assert_array_almost_equal(result.data, self.exp_high_landmask)
 
     def test_all_land_points(self):
         """Test that a correct mask is produced when the landsea mask only has
@@ -195,7 +194,7 @@ class Test_gen_orography_masks(IrisTest):
             self.orography, land_mask_cube, self.valley_threshold
         )
         expected_data = np.array([[[1.0, 1.0, 1.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]])
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
 
     def test_any_surface_type_mask(self):
         """Test that the correct mask is produced when no landsea mask is
@@ -204,7 +203,7 @@ class Test_gen_orography_masks(IrisTest):
             self.orography, None, self.valley_threshold
         )
         expected_data = np.array([[[1.0, 1.0, 1.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]])
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
         self.assertEqual(
             result.attributes["topographic_zones_include_seapoints"], "True"
         )
@@ -216,11 +215,11 @@ class Test_gen_orography_masks(IrisTest):
         result = GenOrogMasks().gen_orography_masks(
             self.orography, self.landmask, land_threshold, units=threshold_units
         )
-        self.assertArrayAlmostEqual(result.data, self.exp_landmask)
+        np.testing.assert_array_almost_equal(result.data, self.exp_landmask)
         self.assertEqual(result.coord("topographic_zone").units, Unit("m"))
 
 
-class Test_process(IrisTest):
+class Test_process(unittest.TestCase):
     """
     Test the process method orography zone mask ancillary generation plugin.
     """

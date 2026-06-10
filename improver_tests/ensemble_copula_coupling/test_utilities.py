@@ -15,13 +15,14 @@ from unittest.case import skipIf
 from unittest.mock import patch
 
 import numpy as np
+import pytest
 from cf_units import Unit
 from iris.coords import DimCoord
 from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
-from iris.tests import IrisTest
 
 from improver.ensemble_copula_coupling.utilities import (
+    CalculatePercentilesFromIntensityDistribution,
     choose_set_of_percentiles,
     concatenate_2d_array_with_2d_array_endpoints,
     create_cube_with_percentiles,
@@ -32,16 +33,20 @@ from improver.ensemble_copula_coupling.utilities import (
     restore_non_percentile_dimensions,
     slow_interp_same_x,
     slow_interp_same_y,
+    slow_interp_same_y_2d,
 )
 from improver.synthetic_data.set_up_test_cubes import (
     set_up_percentile_cube,
+    set_up_probability_cube,
+    set_up_spot_probability_cube,
+    set_up_spot_variable_cube,
     set_up_variable_cube,
 )
 
 from .ecc_test_data import ECC_TEMPERATURE_REALIZATIONS, set_up_spot_test_cube
 
 
-class Test_concatenate_2d_array_with_2d_array_endpoints(IrisTest):
+class Test_concatenate_2d_array_with_2d_array_endpoints(unittest.TestCase):
     """Test the concatenate_2d_array_with_2d_array_endpoints."""
 
     def test_basic(self):
@@ -50,7 +55,7 @@ class Test_concatenate_2d_array_with_2d_array_endpoints(IrisTest):
         input_array = np.array([[20, 50, 80]])
         result = concatenate_2d_array_with_2d_array_endpoints(input_array, 0, 100)
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, expected)
+        np.testing.assert_array_almost_equal(result, expected)
 
     def test_1d_input(self):
         """Test 1D input results in the expected error"""
@@ -67,51 +72,104 @@ class Test_concatenate_2d_array_with_2d_array_endpoints(IrisTest):
             concatenate_2d_array_with_2d_array_endpoints(input_array, -100, 10000)
 
 
-class Test_choose_set_of_percentiles(IrisTest):
-    """Test the choose_set_of_percentiles plugin."""
-
-    def test_basic(self):
-        """
-        Test that the plugin returns a list with the expected number of
-        percentiles.
-        """
-        no_of_percentiles = 3
-        result = choose_set_of_percentiles(no_of_percentiles)
-        self.assertIsInstance(result, list)
-        self.assertEqual(len(result), no_of_percentiles)
-
-    def test_data(self):
-        """
-        Test that the plugin returns a list with the expected data values
-        for the percentiles.
-        """
-        data = np.array([25, 50, 75])
-        no_of_percentiles = 3
-        result = choose_set_of_percentiles(no_of_percentiles)
-        self.assertArrayAlmostEqual(result, data)
-
-    def test_random(self):
-        """
-        Test that the plugin returns a list with the expected number of
-        percentiles, if the random sampling option is selected.
-        """
-        no_of_percentiles = 3
-        result = choose_set_of_percentiles(no_of_percentiles, sampling="random")
-        self.assertIsInstance(result, list)
-        self.assertEqual(len(result), no_of_percentiles)
-
-    def test_unknown_sampling_option(self):
-        """
-        Test that the plugin returns the expected error message,
-        if an unknown sampling option is selected.
-        """
-        no_of_percentiles = 3
-        msg = "Unrecognised sampling option"
-        with self.assertRaisesRegex(ValueError, msg):
-            choose_set_of_percentiles(no_of_percentiles, sampling="unknown")
+# Tests for choose_set_of_percentiles function
 
 
-class Test_create_cube_with_percentiles(IrisTest):
+def test_choose_set_of_percentiles_basic():
+    """Test that the plugin returns a numpy array with the expected number of percentiles."""
+    no_of_percentiles = 3
+    result = choose_set_of_percentiles(no_of_percentiles)
+    assert isinstance(result, np.ndarray)
+    assert len(result) == no_of_percentiles
+
+
+def test_choose_set_of_percentiles_data():
+    """Test that the plugin returns a numpy array with the expected data values for the percentiles."""
+    data = np.array([25, 50, 75])
+    no_of_percentiles = 3
+    result = choose_set_of_percentiles(no_of_percentiles)
+    np.testing.assert_array_almost_equal(result, data)
+
+
+def test_choose_set_of_percentiles_random():
+    """Test that the plugin returns a numpy array with the expected number of percentiles for random sampling."""
+    no_of_percentiles = 3
+    result = choose_set_of_percentiles(no_of_percentiles, sampling="random")
+    assert isinstance(result, np.ndarray)
+    assert len(result) == no_of_percentiles
+
+
+@pytest.mark.parametrize("nan_mask_value", [0.0, None])
+@pytest.mark.parametrize("scale_percentiles_to_probability_lower_bound", [True, False])
+def test_choose_set_of_percentiles_transformation(
+    nan_mask_value, scale_percentiles_to_probability_lower_bound
+):
+    """Test choose_set_of_percentiles with 'transformation' sampling option, parameterised."""
+    intensity_data = np.array(
+        [[[0.0, 2.0], [3.0, 4.0]], [[0.0, 2.0], [3.0, 4.0]]], dtype=np.float32
+    )
+    probability_data = np.array(
+        [[[0.8, 0.6], [0.4, 0.2]], [[0.8, 0.6], [0.4, 0.2]]], dtype=np.float32
+    )
+    thresholds = [0.5, 1.0]
+
+    intensity_cube = set_up_variable_cube(
+        intensity_data,
+        name="precipitation_rate",
+        units="mm h-1",
+    )
+    probability_cube = set_up_probability_cube(
+        probability_data,
+        thresholds=thresholds,
+        variable_name="precipitation_rate",
+        threshold_units="mm h-1",
+        spp__relative_to_threshold="above",
+    )
+
+    no_of_percentiles = 2
+    result = choose_set_of_percentiles(
+        no_of_percentiles,
+        sampling="transformation",
+        probability_cube=probability_cube,
+        intensity_cube=intensity_cube,
+        nan_mask_value=nan_mask_value,
+        scale_percentiles_to_probability_lower_bound=scale_percentiles_to_probability_lower_bound,
+    )
+
+    if scale_percentiles_to_probability_lower_bound and nan_mask_value == 0.0:
+        expected = np.array(
+            [[[0.0, 70.199], [80.089, 90.033]], [[0.0, 70.199], [80.089, 90.033]]],
+            dtype=np.float32,
+        )
+    elif not scale_percentiles_to_probability_lower_bound and nan_mask_value == 0.0:
+        expected = np.array(
+            [[[0.0, 50.332], [50.222, 50.166]], [[0.0, 50.332], [50.222, 50.166]]],
+            dtype=np.float32,
+        )
+    elif scale_percentiles_to_probability_lower_bound and nan_mask_value is None:
+        expected = np.array(
+            [[[20.0, 70.199], [80.089, 90.033]], [[20.0, 70.199], [80.089, 90.033]]],
+            dtype=np.float32,
+        )
+    elif not scale_percentiles_to_probability_lower_bound and nan_mask_value is None:
+        expected = np.array(
+            [[[0.0, 50.332], [50.222, 50.166]], [[0.0, 50.332], [50.222, 50.166]]],
+            dtype=np.float32,
+        )
+
+    assert isinstance(result, np.ndarray)
+    assert result.shape == intensity_data.shape
+    np.testing.assert_array_almost_equal(result, expected, decimal=3)
+
+
+def test_choose_set_of_percentiles_unknown_sampling_option():
+    """Test that the plugin raises the expected error message for an unknown sampling option."""
+    no_of_percentiles = 3
+    with pytest.raises(ValueError, match="Unrecognised sampling option"):
+        choose_set_of_percentiles(no_of_percentiles, sampling="unknown")
+
+
+class Test_create_cube_with_percentiles(unittest.TestCase):
     """Test the _create_cube_with_percentiles plugin."""
 
     def setUp(self):
@@ -175,7 +233,9 @@ class Test_create_cube_with_percentiles(IrisTest):
         percentiles = [10, 50, 90]
         result = create_cube_with_percentiles(percentiles, self.cube, cube_data)
         self.assertIsInstance(result.coord("percentile"), DimCoord)
-        self.assertArrayAlmostEqual(result.coord("percentile").points, percentiles)
+        np.testing.assert_array_almost_equal(
+            result.coord("percentile").points, percentiles
+        )
 
     def test_spot_forecasts_percentile_points(self):
         """
@@ -192,7 +252,9 @@ class Test_create_cube_with_percentiles(IrisTest):
         result = create_cube_with_percentiles(percentiles, spot_cube, spot_data)
         self.assertIsInstance(result, Cube)
         self.assertIsInstance(result.coord("percentile"), DimCoord)
-        self.assertArrayAlmostEqual(result.coord("percentile").points, percentiles)
+        np.testing.assert_array_almost_equal(
+            result.coord("percentile").points, percentiles
+        )
 
     def test_percentile_length_too_short(self):
         """
@@ -243,7 +305,7 @@ class Test_create_cube_with_percentiles(IrisTest):
                 raise CoordinateNotFoundError(msg)
 
 
-class Test_get_bounds_of_distribution(IrisTest):
+class Test_get_bounds_of_distribution(unittest.TestCase):
     """Test the get_bounds_of_distribution plugin."""
 
     def test_basic(self):
@@ -261,7 +323,7 @@ class Test_get_bounds_of_distribution(IrisTest):
         cube_units = Unit("degreesC")
         bounds_pairing = (-100, 60)
         result = get_bounds_of_distribution(cube_name, cube_units)
-        self.assertArrayAlmostEqual(result, bounds_pairing)
+        np.testing.assert_array_almost_equal(result, bounds_pairing)
 
     def test_check_unit_conversion(self):
         """
@@ -273,7 +335,7 @@ class Test_get_bounds_of_distribution(IrisTest):
         cube_units = Unit("fahrenheit")
         bounds_pairing = (-148, 140)  # In fahrenheit
         result = get_bounds_of_distribution(cube_name, cube_units)
-        self.assertArrayAlmostEqual(result, bounds_pairing)
+        np.testing.assert_array_almost_equal(result, bounds_pairing)
 
     def test_check_exception_is_raised(self):
         """
@@ -286,7 +348,7 @@ class Test_get_bounds_of_distribution(IrisTest):
             get_bounds_of_distribution(cube_name, cube_units)
 
 
-class Test_insert_lower_and_upper_endpoint_to_1d_array(IrisTest):
+class Test_insert_lower_and_upper_endpoint_to_1d_array(unittest.TestCase):
     """Test the insert_lower_and_upper_endpoint_to_1d_array."""
 
     def test_basic(self):
@@ -295,7 +357,7 @@ class Test_insert_lower_and_upper_endpoint_to_1d_array(IrisTest):
         percentiles = np.array([20, 50, 80])
         result = insert_lower_and_upper_endpoint_to_1d_array(percentiles, 0, 100)
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, expected)
+        np.testing.assert_array_almost_equal(result, expected)
 
     def test_2d_example(self):
         """Test 2D input results in expected error"""
@@ -305,7 +367,7 @@ class Test_insert_lower_and_upper_endpoint_to_1d_array(IrisTest):
             insert_lower_and_upper_endpoint_to_1d_array(percentiles, -100, 10000)
 
 
-class Test_restore_non_percentile_dimensions(IrisTest):
+class Test_restore_non_percentile_dimensions(unittest.TestCase):
     """Test the restore_non_percentile_dimensions."""
 
     def setUp(self):
@@ -325,7 +387,7 @@ class Test_restore_non_percentile_dimensions(IrisTest):
             self.input_data, self.cube, 3
         )
         self.assertIsInstance(reshaped_array, np.ndarray)
-        self.assertArrayAlmostEqual(reshaped_array, self.expected_data)
+        np.testing.assert_array_almost_equal(reshaped_array, self.expected_data)
 
     def test_single_percentile(self):
         """
@@ -338,7 +400,7 @@ class Test_restore_non_percentile_dimensions(IrisTest):
         reshaped_array = restore_non_percentile_dimensions(
             self.input_data[0], self.cube, 1
         )
-        self.assertArrayAlmostEqual(reshaped_array, expected)
+        np.testing.assert_array_almost_equal(reshaped_array, expected)
 
     def test_multiple_timesteps(self):
         """
@@ -371,7 +433,7 @@ class Test_restore_non_percentile_dimensions(IrisTest):
             next(percentile_cube.slices_over("percentile")),
             1,
         )
-        self.assertArrayAlmostEqual(reshaped_array, expected)
+        np.testing.assert_array_almost_equal(reshaped_array, expected)
 
 
 numba_installed = True
@@ -385,7 +447,7 @@ except ImportError:
     numba_installed = False
 
 
-class Test_interpolate_multiple_rows_same_y(IrisTest):
+class Test_interpolate_multiple_rows_same_y(unittest.TestCase):
     """Test interpolate_multiple_rows_same_y"""
 
     def setUp(self):
@@ -404,8 +466,30 @@ class Test_interpolate_multiple_rows_same_y(IrisTest):
         result = slow_interp_same_y(x, xp, fp)
         np.testing.assert_allclose(result, expected)
 
+    def test_slow_2d(self):
+        """Check slow 2D interpolation produces expected results."""
+        # Two rows, three columns for x, matching xp rows
+        x = np.array([[0.5, 2.0, 3.5], [1.0, 2.5, 4.0]], dtype=np.float32)
+        xp = np.array([[0, 1, 2, 3, 4], [1, 2, 3, 4, 5]], dtype=np.float32)
+        fp = np.array([10, 20, 30, 40, 50], dtype=np.float32)
+        # Calculate expected using numpy for each row
+        expected = np.vstack(
+            [np.interp(x[0], xp[0], fp), np.interp(x[1], xp[1], fp)]
+        ).astype(np.float32)
+
+        result = slow_interp_same_y_2d(x, xp, fp)
+        np.testing.assert_allclose(result, expected)
+
+    def test_invalid_x_ndim(self):
+        """Test that ValueError is raised if x is not 1D or 2D."""
+        x = np.zeros((2, 2, 2), dtype=np.float32)  # 3D input
+        xp = np.zeros((2, 2), dtype=np.float32)
+        fp = np.zeros(2, dtype=np.float32)
+        with self.assertRaises(ValueError, msg="x must be 1D or 2D."):
+            interpolate_multiple_rows_same_y(x, xp, fp)
+
     @patch.dict("sys.modules", numba=None)
-    @patch("improver.ensemble_copula_coupling.utilities.slow_interp_same_y")
+    @patch("improver.ensemble_copula_coupling.utilities.slow_interp_same_y_nd")
     def test_slow_interp_same_y_called(self, interp_imp):
         """Test that slow_interp_same_y is called if numba is not installed."""
         interpolate_multiple_rows_same_y(
@@ -416,7 +500,7 @@ class Test_interpolate_multiple_rows_same_y(IrisTest):
         )
 
     @skipIf(not (numba_installed), "numba not installed")
-    @patch("improver.ensemble_copula_coupling.numba_utilities.fast_interp_same_y")
+    @patch("improver.ensemble_copula_coupling.numba_utilities.fast_interp_same_y_nd")
     def test_fast_interp_same_y_called(self, interp_imp):
         """Test that fast_interp_same_y is called if numba is installed."""
         interpolate_multiple_rows_same_y(
@@ -472,7 +556,7 @@ class Test_interpolate_multiple_rows_same_y(IrisTest):
         np.testing.assert_allclose(result_slow, result_multiple)
 
 
-class TestInterpolateMultipleRowsSameX(IrisTest):
+class TestInterpolateMultipleRowsSameX(unittest.TestCase):
     """Test interpolate_multiple_rows"""
 
     def setUp(self):
@@ -557,6 +641,274 @@ class TestInterpolateMultipleRowsSameX(IrisTest):
         interp_imp.assert_called_once_with(
             mock.sentinel.x, mock.sentinel.xp, mock.sentinel.fp
         )
+
+
+def _create_intensity_and_probability_cubes(
+    intensity_data,
+    thresholds,
+    probability_data,
+):
+    """Helper function to create intensity and probability cubes for testing.
+
+    Args:
+        intensity_data: 3D array (realization, y, x) of intensity values.
+        thresholds: List of threshold values for probability cube.
+        probability_data: 3D array (threshold, y, x) of probability values.
+
+    Returns:
+        Tuple of (intensity_cube, probability_cube)
+    """
+    intensity_cube = set_up_variable_cube(
+        intensity_data,
+        name="precipitation_rate",
+        units="mm h-1",
+    )
+
+    probability_cube = set_up_probability_cube(
+        probability_data,
+        thresholds=thresholds,
+        variable_name="precipitation_rate",
+        threshold_units="mm h-1",
+        spp__relative_to_threshold="above",
+    )
+
+    return intensity_cube, probability_cube
+
+
+# Tests for CalculatePercentilesFromIntensityDistribution initialisation
+
+
+def test_init_valid_distribution():
+    """Test initialisation with valid distribution."""
+    plugin = CalculatePercentilesFromIntensityDistribution(distribution="gamma")
+    assert plugin.distribution == "gamma"
+    assert plugin.nan_mask_value == 0.0
+
+
+@pytest.mark.parametrize("distribution", ["normal", "exponential", "invalid"])
+def test_init_invalid_distribution(distribution):
+    """Test initialisation raises error for invalid distributions."""
+    with pytest.raises(ValueError, match="Unrecognised distribution option"):
+        CalculatePercentilesFromIntensityDistribution(distribution=distribution)
+
+
+@pytest.mark.parametrize("nan_mask_value", [0.0, None, 1.0, -999.0])
+def test_init_nan_mask_value(nan_mask_value):
+    """Test initialisation with different nan_mask_values."""
+    plugin = CalculatePercentilesFromIntensityDistribution(
+        nan_mask_value=nan_mask_value
+    )
+    assert plugin.nan_mask_value == nan_mask_value
+
+
+# Tests for CalculatePercentilesFromIntensityDistribution.process method
+
+
+@pytest.mark.parametrize("rescale", [True, False])
+@pytest.mark.parametrize("nan_mask_value", [0.0, None])
+def test_process_3d(rescale, nan_mask_value):
+    """Test percentile calculation with 3D gamma distribution, with and without
+    rescaling the percentiles, and with and without NaN masking."""
+    # Create test data: 3 realizations, 3x3 grid, 4 thresholds.
+    intensity_data = np.array(
+        [
+            [[0.5, 2.0, 2.0], [0.0, 0.0, 2.0], [1.0, 2.0, 0.0]],
+            [[4.0, 8.0, 4.0], [2.0, 8.0, 2.0], [4.0, 2.0, 1.0]],
+            [[6.0, 10.0, 6.0], [2.0, 2.0, 6.0], [6.0, 6.0, 2.0]],
+        ],
+        dtype=np.float32,
+    )
+    thresholds = [0.5, 1.0, 2.0, 4.0]
+
+    probability_data = np.array(
+        [
+            [[0.6, 0.9, 1.0], [0.4, 0.7, 1.0], [0.9, 1.0, 0.6]],
+            [[0.5, 0.6, 0.6], [0.3, 0.5, 0.9], [0.6, 0.6, 0.3]],
+            [[0.4, 0.4, 0.4], [0.2, 0.4, 0.5], [0.4, 0.4, 0.1]],
+            [[0.3, 0.3, 0.2], [0.0, 0.1, 0.2], [0.1, 0.1, 0.0]],
+        ],
+        dtype=np.float32,
+    )
+
+    # Expected results for each combination of rescale and nan_mask_value.
+    if rescale and nan_mask_value == 0.0:
+        # Focusing on with and without rescaling, for the top left corner, the intensity
+        # values are [0.5, 4.0, 6.0] with probabilities [0.6, 0.5, 0.4, 0.3].
+        # Without rescaling, this maps the 0.5 value to a percentile value of 0.021
+        # when using a gamma distribution. With rescaling, the percentiles are scaled
+        # between the min and max percentiles i.e. (1 - max_probability (0.6)) = 0.4 to
+        # give the min percentile and a max percentile of 1. This gives a rescaled
+        # percentile value of 0.413.
+        expected = np.array(
+            [
+                [[0.413, 0.133, 0.084], [0.000, 0.000, 0.263], [0.140, 0.263, 0.000]],
+                [[0.799, 0.734, 0.554], [0.801, 0.393, 0.263], [0.671, 0.263, 0.492]],
+                [[0.921, 0.861, 0.884], [0.801, 0.896, 0.909], [0.885, 0.909, 0.907]],
+            ],
+            dtype=np.float32,
+        )
+    elif not rescale and nan_mask_value == 0.0:
+        expected = np.array(
+            [
+                [[0.021, 0.037, 0.084], [0.000, 0.000, 0.263], [0.044, 0.263, 0.000]],
+                [[0.665, 0.704, 0.554], [0.503, 0.133, 0.263], [0.635, 0.263, 0.153]],
+                [[0.869, 0.846, 0.884], [0.503, 0.852, 0.909], [0.872, 0.909, 0.845]],
+            ],
+            dtype=np.float32,
+        )
+    elif rescale and nan_mask_value is None:
+        # Expected results when no NaN masking is applied (i.e., zeros are included in
+        # calculations). For the middle left position in realization 0, when zero
+        # values are included, the intensity values are [0., 2.0, 2.0] with
+        # probabilities [0.4, 0.3, 0.2, 0.0]. Previously, the masking of zeros meant
+        # that the mapping of a 0.0 intensity value to a percentile resulted in a
+        # percentile value of 0.0. However, when zeros are included, the rescaling means
+        # that the min percentile is now (1 - max_probability (0.4)) = 0.6 and the max
+        # percentile is 1. This gives a rescaled percentile value of 0.600.
+        expected = np.array(
+            [
+                [[0.413, 0.133, 0.084], [0.600, 0.300, 0.263], [0.140, 0.263, 0.400]],
+                [[0.799, 0.734, 0.554], [0.920, 0.620, 0.263], [0.671, 0.263, 0.765]],
+                [[0.921, 0.861, 0.884], [0.920, 0.935, 0.909], [0.885, 0.909, 0.933]],
+            ],
+            dtype=np.float32,
+        )
+    elif not rescale and nan_mask_value is None:
+        # Expected results when no NaN masking is applied and no rescaling. For the
+        # central grid point in realization 1, when zero values are included, the
+        # intensity values are [0., 8.0, 2.0] with probabilities [0.7, 0.5, 0.4, 0.1].
+        # Previously, the masking of zeros meant that the percentile creation using the
+        # gamma distribution only included the [8.0, 2.0] intensity values. If rescaling
+        # is applied the percentiles are restricted to between 0.3 and 1. This results
+        # in the central grid point being scaled to 0.620. Withoutout rescaling, this
+        # results in a percentile value of 0.458.
+        expected = np.array(
+            [
+                [[0.021, 0.037, 0.084], [0.000, 0.000, 0.263], [0.044, 0.263, 0.000]],
+                [[0.665, 0.704, 0.554], [0.801, 0.458, 0.263], [0.635, 0.263, 0.608]],
+                [[0.869, 0.846, 0.884], [0.801, 0.907, 0.909], [0.872, 0.909, 0.888]],
+            ],
+            dtype=np.float32,
+        )
+
+    intensity_cube, probability_cube = _create_intensity_and_probability_cubes(
+        intensity_data, thresholds, probability_data
+    )
+
+    plugin = CalculatePercentilesFromIntensityDistribution(
+        scale_percentiles_to_probability_lower_bound=rescale,
+        nan_mask_value=nan_mask_value,
+    )
+    result = plugin.process(probability_cube, intensity_cube)
+    assert isinstance(result, np.ndarray)
+    assert result.shape == intensity_data.shape
+    assert result.dtype == np.float32
+    # Check that the calculation has handled zeros appropriately
+    assert np.all(np.isfinite(result))
+    np.testing.assert_array_almost_equal(result, expected, decimal=3)
+
+
+@pytest.mark.parametrize("rescale", [True, False])
+@pytest.mark.parametrize("nan_mask_value", [0.0, None])
+def test_process_2d_spot_data(rescale, nan_mask_value):
+    """Test process method with 2D input (e.g., spot data), with and without
+    rescaling the percentiles, and with and without NaN masking."""
+    # 2D input: 3 realizations, 5 sites
+    intensity_data = np.array(
+        [
+            [0.0, 4.0, 3.0, 4.0, 5.0],
+            [2.0, 2.0, 4.0, 0.0, 0.0],
+            [8.0, 1.0, 1.0, 6.0, 7.0],
+        ],
+        dtype=np.float32,
+    )
+
+    thresholds = [0.5, 2.0, 4.0]
+    probability_data = np.array(
+        [
+            [0.8, 0.9, 1.0, 0.6, 0.7],
+            [0.6, 0.8, 0.8, 0.4, 0.6],
+            [0.5, 0.3, 0.2, 0.3, 0.5],
+        ],
+        dtype=np.float32,
+    )
+
+    intensity_cube = set_up_spot_variable_cube(
+        intensity_data,
+        name="precipitation_rate",
+        units="mm h-1",
+    )
+
+    probability_cube = set_up_spot_probability_cube(
+        probability_data,
+        thresholds=thresholds,
+        variable_name="precipitation_rate",
+        threshold_units="mm h-1",
+        spp__relative_to_threshold="above",
+    )
+
+    if rescale and nan_mask_value == 0.0:
+        expected = np.array(
+            [
+                [0.0, 0.203, 0.051, 0.0, 0.0],
+                [0.306, 0.514, 0.66, 0.494, 0.41],
+                [0.881, 0.909, 0.86, 0.906, 0.89],
+            ],
+            dtype=np.float32,
+        )
+    elif not rescale and nan_mask_value == 0.0:
+        expected = np.array(
+            [
+                [0.0, 0.115, 0.051, 0.0, 0.0],
+                [0.133, 0.46, 0.66, 0.157, 0.157],
+                [0.852, 0.899, 0.86, 0.843, 0.842],
+            ],
+            dtype=np.float32,
+        )
+    elif rescale and nan_mask_value is None:
+        expected = np.array(
+            [
+                [0.2, 0.203, 0.051, 0.4, 0.3],
+                [0.566, 0.514, 0.66, 0.815, 0.798],
+                [0.926, 0.909, 0.86, 0.92, 0.901],
+            ],
+            dtype=np.float32,
+        )
+    elif not rescale and nan_mask_value is None:
+        expected = np.array(
+            [
+                [0.0, 0.115, 0.051, 0.0, 0.0],
+                [0.458, 0.46, 0.66, 0.691, 0.712],
+                [0.907, 0.899, 0.86, 0.866, 0.859],
+            ],
+            dtype=np.float32,
+        )
+
+    plugin = CalculatePercentilesFromIntensityDistribution(
+        scale_percentiles_to_probability_lower_bound=rescale,
+        nan_mask_value=nan_mask_value,
+    )
+    result = plugin.process(probability_cube, intensity_cube)
+    assert isinstance(result, np.ndarray)
+    assert result.shape == intensity_data.shape
+    assert result.dtype == np.float32
+    np.testing.assert_array_almost_equal(result, expected, decimal=3)
+
+
+def test_process_1d_input_raises_error():
+    """Test that process method with 1D input raises appropriate error."""
+    from iris.cube import Cube
+
+    intensity_data = np.ones(3, dtype=np.float32)
+    probability_data = np.ones(2, dtype=np.float32)
+
+    intensity_cube = Cube(intensity_data, units="mm h-1")
+    probability_cube = Cube(probability_data, units="1")
+
+    plugin = CalculatePercentilesFromIntensityDistribution()
+
+    with pytest.raises(ValueError, match="Expected at least 2D input"):
+        plugin.process(probability_cube, intensity_cube)
 
 
 if __name__ == "__main__":

@@ -10,7 +10,6 @@ import unittest
 
 import iris
 import numpy as np
-from iris.tests import IrisTest
 
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     ConvertLocationAndScaleParametersToProbabilities as Plugin,
@@ -21,20 +20,19 @@ from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from .ecc_test_data import ECC_TEMPERATURE_PROBABILITIES, ECC_TEMPERATURE_THRESHOLDS
 
 
-class Test__repr__(IrisTest):
+class Test__repr__(unittest.TestCase):
     """Test string representation of plugin."""
 
     def test_basic(self):
         """Test string representation"""
         expected_string = (
-            "<ConvertLocationAndScaleParametersToProbabilities: "
-            "distribution: norm; shape_parameters: []>"
+            "<ConvertLocationAndScaleParametersToProbabilities: distribution: norm>"
         )
         result = str(Plugin())
         self.assertEqual(result, expected_string)
 
 
-class Test__check_template_cube(IrisTest):
+class Test__check_template_cube(unittest.TestCase):
     """Test the _check_template_cube function."""
 
     def setUp(self):
@@ -78,7 +76,7 @@ class Test__check_template_cube(IrisTest):
             Plugin()._check_template_cube(cube)
 
 
-class Test__check_unit_compatibility(IrisTest):
+class Test__check_unit_compatibility(unittest.TestCase):
     """Test the _check_unit_compatibility function."""
 
     def setUp(self):
@@ -122,7 +120,7 @@ class Test__check_unit_compatibility(IrisTest):
             )
 
 
-class Test__location_and_scale_parameters_to_probabilities(IrisTest):
+class Test__location_and_scale_parameters_to_probabilities(unittest.TestCase):
     """Test the _location_and_scale_parameters_to_probabilities function."""
 
     def setUp(self):
@@ -150,6 +148,7 @@ class Test__location_and_scale_parameters_to_probabilities(IrisTest):
         which they are calculated above the thresholds."""
 
         result = Plugin()._location_and_scale_parameters_to_probabilities(
+            iris.cube.CubeList([]),
             self.location_parameter_values,
             self.scale_parameter_values,
             self.template_cube,
@@ -166,6 +165,7 @@ class Test__location_and_scale_parameters_to_probabilities(IrisTest):
         )
         expected_with_mask = np.ma.masked_array(self.expected, mask=expected_mask)
         result = Plugin()._location_and_scale_parameters_to_probabilities(
+            iris.cube.CubeList([]),
             self.location_parameter_values,
             self.scale_parameter_values,
             self.template_cube,
@@ -182,6 +182,7 @@ class Test__location_and_scale_parameters_to_probabilities(IrisTest):
         )
         expected_with_mask = np.ma.masked_array(self.expected, mask=expected_mask)
         result = Plugin()._location_and_scale_parameters_to_probabilities(
+            iris.cube.CubeList([]),
             self.location_parameter_values,
             self.scale_parameter_values,
             self.template_cube,
@@ -202,6 +203,7 @@ class Test__location_and_scale_parameters_to_probabilities(IrisTest):
         )
         expected_with_mask = np.ma.masked_array(self.expected, mask=expected_mask)
         result = Plugin()._location_and_scale_parameters_to_probabilities(
+            iris.cube.CubeList([]),
             self.location_parameter_values,
             self.scale_parameter_values,
             self.template_cube,
@@ -215,9 +217,33 @@ class Test__location_and_scale_parameters_to_probabilities(IrisTest):
         expected = (np.ones((3, 3, 3)) * [0.8914245, 0.5942867, 0.2971489]).T
         plugin = Plugin(
             distribution="truncnorm",
-            shape_parameters=np.array([0, np.inf], dtype=np.float32),
         )
+
+        truncnorm_shape_parameters = iris.cube.CubeList(
+            [
+                self.location_parameter_values.copy(
+                    data=np.full_like(
+                        self.location_parameter_values.data, 0, dtype=np.float32
+                    )
+                ),
+                self.location_parameter_values.copy(
+                    data=np.full_like(
+                        self.location_parameter_values.data, np.inf, dtype=np.float32
+                    )
+                ),
+            ]
+        )
+        # Rescale the shape parameters for the truncated normal distribution, so that
+        # they are in the form expected by the underlying scipy function. This rescaling
+        # happens in the .process() method.
+        rescaled_shape_parameter = truncnorm_shape_parameters.copy()
+        for i, cube in enumerate(rescaled_shape_parameter.copy()):
+            rescaled_shape_parameter[i].data = (
+                cube.data - self.location_parameter_values.data
+            ) / self.scale_parameter_values.data
+
         result = plugin._location_and_scale_parameters_to_probabilities(
+            rescaled_shape_parameter,
             self.location_parameter_values,
             self.scale_parameter_values,
             self.template_cube,
@@ -232,6 +258,7 @@ class Test__location_and_scale_parameters_to_probabilities(IrisTest):
         ] = "below"
         expected = (np.ones((3, 3, 3)) * [0.25, 0.5, 0.75]).T
         result = Plugin()._location_and_scale_parameters_to_probabilities(
+            iris.cube.CubeList([]),
             self.location_parameter_values,
             self.scale_parameter_values,
             self.template_cube,
@@ -239,7 +266,7 @@ class Test__location_and_scale_parameters_to_probabilities(IrisTest):
         np.testing.assert_allclose(result.data, expected, rtol=1.0e-4)
 
 
-class Test_process(IrisTest):
+class Test_process(unittest.TestCase):
     """Test the process function."""
 
     def setUp(self):
@@ -263,6 +290,7 @@ class Test_process(IrisTest):
     def test_metadata_matches_template(self):
         """Test that the returned cube's metadata matches the template cube."""
         result = Plugin().process(
+            iris.cube.CubeList([]),
             self.location_parameter_values,
             self.scale_parameter_values,
             self.template_cube,
@@ -275,6 +303,7 @@ class Test_process(IrisTest):
         cube."""
         self.template_cube.data = np.ones((3, 3, 3))
         result = Plugin().process(
+            iris.cube.CubeList([]),
             self.location_parameter_values,
             self.scale_parameter_values,
             self.template_cube,

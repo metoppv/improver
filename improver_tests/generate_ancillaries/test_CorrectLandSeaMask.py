@@ -8,14 +8,13 @@ import unittest
 
 import numpy as np
 from iris.cube import Cube
-from iris.tests import IrisTest
 
 from improver.generate_ancillaries.generate_ancillary import (
     CorrectLandSeaMask as CorrectLand,
 )
 
 
-class Test_process(IrisTest):
+class Test_process(unittest.TestCase):
     """Test the land-sea mask correction plugin."""
 
     def setUp(self):
@@ -31,7 +30,7 @@ class Test_process(IrisTest):
         enforced to reflect the change that has been made."""
         result = CorrectLand().process(self.landmask)
         self.assertEqual(result.name(), "land_binary_mask")
-        self.assertArrayEqual(result.data, self.expected_mask)
+        np.testing.assert_array_equal(result.data, self.expected_mask)
         self.assertTrue(result.dtype == np.int8)
 
 

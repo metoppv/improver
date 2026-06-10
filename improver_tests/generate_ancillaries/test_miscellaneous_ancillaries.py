@@ -9,14 +9,9 @@ Unit tests for the the miscellaneous ancillary generation functions.
 import cartopy.crs as ccrs
 import numpy as np
 import pytest
-from geopandas import GeoDataFrame
-from iris.cube import CubeList
-from numpy.testing import assert_array_almost_equal, assert_array_equal
-from shapely.geometry import LineString, Polygon
+from numpy.testing import assert_array_almost_equal
 
 from improver.generate_ancillaries.generate_miscellaneous_ancillaries import (
-    generate_distance_to_ocean,
-    generate_distance_to_water,
     generate_land_area_fraction_at_sites,
     generate_roughness_length_at_sites,
 )
@@ -54,83 +49,6 @@ def distance_cube_template():
         longitude=longitude,
     )
     return prob_cube
-
-
-@pytest.fixture()
-def coastline():
-    """Create a GeoDataFrame representing a simple coastline.
-    x-------x
-    |       |
-    |       |
-    |       |
-    x-------x
-    """
-
-    data = [
-        LineString(
-            [
-                [3500000, 3000000],
-                [3500000, 3001000],
-                [3501000, 3001000],
-                [3501000, 3000000],
-                [3500000, 3000000],
-            ]
-        )
-    ]
-    return GeoDataFrame(geometry=data, crs="EPSG:3035")
-
-
-@pytest.fixture()
-def land():
-    """Create a simple polygon representing a land area surrounded
-    by the coastline defined in the coastline fixture.
-
-    The polygon looks like:
-             x-------x
-             ---------
-             ---------
-             x-------x
-    """
-    data = [
-        Polygon(
-            [
-                [3500000, 3000000],
-                [3500000, 3001000],
-                [3501000, 3001000],
-                [3501000, 3000000],
-                [3500000, 3000000],
-            ]
-        )
-    ]
-    return GeoDataFrame(geometry=data, crs="EPSG:3035")
-
-
-@pytest.fixture()
-def site_locations():
-    """Set up a site cube containing data at multiple sites."""
-    latitude = np.array([49.543481633, 49.551655272])
-    longitude = np.array([-1.387510304, -1.3964531])
-
-    altitude = np.array(
-        [-99999, -99999]
-    )  # These values are not used but are required for cube creation.
-    data = np.array(
-        [-99999, -99999]
-    )  # These values are not used but are required for cube creation.
-    wmo_id = [
-        "00000",
-        "00001",
-    ]  # These values are not used but are required for cube creation.
-    site_cube = build_spotdata_cube(
-        data,
-        name="site_locations",
-        units="m",
-        altitude=altitude,
-        wmo_id=wmo_id,
-        latitude=latitude,
-        longitude=longitude,
-    )
-    return site_cube
 
 
 def neighbour_cube(neighbours, altitudes, latitudes, longitudes, wmo_ids):
@@ -217,38 +135,6 @@ def gridded_template_cube():
         y_grid_spacing=2500,
     )
     return cube
-
-
-def test_distance_to_water(distance_cube_template):
-    """Test the distance to water ancillary is generated correctly."""
-
-    river_cube = distance_cube_template.copy()
-    river_cube.data = np.array([100, 200, 300, 400])
-    lake_cube = distance_cube_template.copy()
-    lake_cube.data = np.array([400, 300, 200, 100])
-    ocean_cube = distance_cube_template.copy()
-    ocean_cube.data = np.array([200, 200, 200, 10])
-    water_cubes = CubeList([river_cube, lake_cube, ocean_cube])
-
-    output_cube = generate_distance_to_water(water_cubes)
-
-    assert output_cube.name() == "distance_to_water"
-    assert output_cube.units == "m"
-    assert_array_equal(output_cube.data, [100, 200, 200, 10])
-
-
-def test_distance_to_ocean(site_locations, coastline, land):
-    """Test the distance to ocean ancillary is generated correctly."""
-
-    # Generate the distance to ocean ancillary
-    distance_to_ocean = generate_distance_to_ocean(
-        3035, coastline, land, site_locations
-    )
-
-    # Ensure the cube has the correct metadata
-    assert distance_to_ocean.name() == "distance_to_ocean"
-    assert distance_to_ocean.units == "m"
-    assert_array_equal(distance_to_ocean.data, [500, 0])
 
 
 @pytest.mark.parametrize(

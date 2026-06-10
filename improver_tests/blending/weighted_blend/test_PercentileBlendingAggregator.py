@@ -7,7 +7,6 @@
 import unittest
 
 import numpy as np
-from iris.tests import IrisTest
 
 from improver.blending.weighted_blend import PercentileBlendingAggregator
 
@@ -158,7 +157,7 @@ def generate_matching_weights_array(weights, other_dim_length):
     return weights_array.astype(np.float32).T
 
 
-class Test_aggregate(IrisTest):
+class Test_aggregate(unittest.TestCase):
     """Test the aggregate method"""
 
     def test_blend_percentile_aggregate(self):
@@ -168,7 +167,7 @@ class Test_aggregate(IrisTest):
         result = PercentileBlendingAggregator.aggregate(
             PERCENTILE_DATA, 1, percentiles, weights
         )
-        self.assertArrayAlmostEqual(result, BLENDED_PERCENTILE_DATA)
+        np.testing.assert_array_almost_equal(result, BLENDED_PERCENTILE_DATA)
 
     def test_2D_simple_case(self):
         """Test that for a simple case with only one point in the resulting
@@ -180,7 +179,7 @@ class Test_aggregate(IrisTest):
             perc_data, 1, percentiles, weights
         )
         expected_result = np.array([1.0, 5.0, 10.0])
-        self.assertArrayAlmostEqual(result, expected_result)
+        np.testing.assert_array_almost_equal(result, expected_result)
 
     def test_3D_simple_case(self):
         """Test that for a simple case with only one point and an extra
@@ -192,7 +191,7 @@ class Test_aggregate(IrisTest):
             perc_data, 1, percentiles, weights
         )
         expected_result = np.array([[1.0], [5.555555], [10.0]])
-        self.assertArrayAlmostEqual(result, expected_result)
+        np.testing.assert_array_almost_equal(result, expected_result)
 
     def test_4D_simple_case(self):
         """Test that for a simple case with only one point and 4D input data
@@ -207,7 +206,7 @@ class Test_aggregate(IrisTest):
         )
         expected_result = np.array([[[1.0]], [[3.5]], [[6.0]]])
         expected_result_shape = (3, 1, 1)
-        self.assertArrayAlmostEqual(result, expected_result)
+        np.testing.assert_array_almost_equal(result, expected_result)
         self.assertEqual(result.shape, expected_result_shape)
 
     def test_error_unmatched_weights(self):
@@ -220,7 +219,7 @@ class Test_aggregate(IrisTest):
             PercentileBlendingAggregator.aggregate(perc_data, 1, percentiles, weights)
 
 
-class Test_blend_percentiles(IrisTest):
+class Test_blend_percentiles(unittest.TestCase):
     """Test the blend_percentiles method"""
 
     def test_blend_percentiles(self):
@@ -247,7 +246,7 @@ class Test_blend_percentiles(IrisTest):
                 24.64542338,
             ]
         )
-        self.assertArrayAlmostEqual(result, expected_result_array)
+        np.testing.assert_array_almost_equal(result, expected_result_array)
 
     def test_two_percentiles(self):
         """Test that when two percentiles are provided, the extreme values in
@@ -259,7 +258,7 @@ class Test_blend_percentiles(IrisTest):
             percentile_values, percentiles, weights
         )
         expected_result = np.array([5.0, 8.0])
-        self.assertArrayAlmostEqual(result, expected_result)
+        np.testing.assert_array_almost_equal(result, expected_result)
 
     def test_three_percentiles_symmetric_case(self):
         """Test that when three percentiles are provided the correct values
@@ -271,7 +270,7 @@ class Test_blend_percentiles(IrisTest):
             percentile_values, percentiles, weights
         )
         expected_result = np.array([5.0, 6.2, 7.0])
-        self.assertArrayAlmostEqual(result, expected_result)
+        np.testing.assert_array_almost_equal(result, expected_result)
 
     def test_only_one_point_to_blend(self):
         """Test case where there is only one point in the coordinate we are
@@ -283,7 +282,7 @@ class Test_blend_percentiles(IrisTest):
             percentile_values, percentiles, weights
         )
         expected_result = np.array([5.0, 6.0, 7.0])
-        self.assertArrayAlmostEqual(result, expected_result)
+        np.testing.assert_array_almost_equal(result, expected_result)
 
 
 if __name__ == "__main__":

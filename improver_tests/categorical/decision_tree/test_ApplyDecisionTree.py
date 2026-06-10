@@ -16,7 +16,6 @@ from cf_units import Unit
 from iris.coords import AuxCoord
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
-from iris.tests import IrisTest
 
 from improver.categorical.decision_tree import ApplyDecisionTree
 from improver.metadata.probabilistic import (
@@ -45,6 +44,20 @@ def test_as_cubelist_called(mock_as_cubelist):
     except HaltExecution:
         pass
     mock_as_cubelist.assert_called_once_with(sentinel.precip_cube, sentinel.hail_cube)
+
+
+def test_maximum_time_discrepancy_default():
+    """Test that maximum_time_discrepancy defaults to 0."""
+    plugin = ApplyDecisionTree(decision_tree=wxcode_decision_tree())
+    assert plugin.maximum_time_discrepancy == 0
+
+
+def test_maximum_time_discrepancy_set():
+    """Test that maximum_time_discrepancy is set correctly."""
+    plugin = ApplyDecisionTree(
+        decision_tree=wxcode_decision_tree(), maximum_time_discrepancy=3600
+    )
+    assert plugin.maximum_time_discrepancy == 3600
 
 
 @pytest.fixture()
@@ -247,7 +260,7 @@ def test_deterministic_complex_diagnostic_fields(precip_cube, hail_cube):
     assert np.all(expression_result == 315)
 
 
-class Test_WXCode(IrisTest):
+class Test_WXCode(unittest.TestCase):
     """Test class for the WX code tests, setting up inputs."""
 
     def setUp(self):
@@ -456,7 +469,7 @@ class Test_WXCode(IrisTest):
 
     def assertArrayAndMaskEqual(self, array_a, array_b, **kwargs):
         """
-        Checks test output and expected array are equal, using self.assertArrayEqual
+        Checks test output and expected array are equal, using np.testing.assert_array_equal
         and then checks that if a mask is present on the test array, it matches the
         expected mask.
 
@@ -471,7 +484,7 @@ class Test_WXCode(IrisTest):
                 if a mask is present on only one argument or masks do not match
 
         """
-        self.assertArrayEqual(array_a, array_b, **kwargs)
+        np.testing.assert_array_equal(array_a, array_b, **kwargs)
         if not np.ma.is_masked(array_a) and not np.ma.is_masked(array_b):
             # Neither array is masked. Test passes.
             return
@@ -489,7 +502,7 @@ class Test_WXCode(IrisTest):
         raise AssertionError(msg)
 
 
-class Test__repr__(IrisTest):
+class Test__repr__(unittest.TestCase):
     """Test the repr method."""
 
     def test_basic(self):
@@ -575,8 +588,46 @@ class Test_prepare_input_cubes(Test_WXCode):
         for constraint in unexpected:
             self.assertEqual(len(result.extract(constraint)), 0)
 
+    def test_raises_error_matching_threshold(self):
+        """Test prepare_input_cubes method raises error for matching thresholds in a
+        diagnostic."""
+        threshold_coord = find_threshold_coordinate(self.cubes[0])
+        additional_threshold = threshold_coord.points[0] * (
+            1 + 0.5 * self.plugin.float_tolerance
+        )
+        threshold_coord.points = np.array(
+            [
+                threshold_coord.points[0],
+                additional_threshold,
+                threshold_coord.points[2],
+            ],
+            dtype=np.float32,
+        )
+        msg = (
+            r"Multiple \(2\) matching thresholds found for name: "
+            "probability_of_lwe_snowfall_rate_above_threshold"
+        )
 
-class Test_invert_condition(IrisTest):
+        with self.assertRaisesRegex(ValueError, msg):
+            self.plugin.prepare_input_cubes(self.cubes)
+
+    def test_zero_threshold_uses_absolute_tolerance(self):
+        """Test prepare_input_cubes method uses absolute tolerance when the threshold
+        is ~ 0.0"""
+        cubes = self.cubes
+        lightning_cube = cubes.extract_cube(
+            "probability_of_number_of_lightning_flashes"
+            "_per_unit_area_in_vicinity_above_threshold"
+        )
+        threshold_coord = find_threshold_coordinate(lightning_cube)
+        threshold_coord.points = np.array(
+            [0.1 * self.plugin.float_abs_tolerance], dtype=np.float32
+        )
+        used_cubes, _ = self.plugin.prepare_input_cubes(cubes)
+        self.assertIn(lightning_cube, used_cubes)
+
+
+class Test_invert_condition(unittest.TestCase):
     """Test the invert condition method."""
 
     def test_basic(self):
@@ -694,7 +745,7 @@ class Test_create_condition_chain(Test_WXCode):
         for i in range(2):
             constraint_exp = expected[0][i][0]
             constraint_res = result[0][i][0]
-            self.assertArrayEqual(
+            np.testing.assert_array_equal(
                 self.cubes.extract(constraint_res)[0].data,
                 self.cubes.extract(constraint_exp)[0].data,
             )
@@ -845,7 +896,7 @@ class Test_create_condition_chain(Test_WXCode):
             for k in [0, 2]:
                 constraint_exp = expected[0][i][0][k]
                 constraint_res = result[0][i][0][k]
-                self.assertArrayEqual(
+                np.testing.assert_array_equal(
                     self.cubes.extract(constraint_res)[0].data,
                     self.cubes.extract(constraint_exp)[0].data,
                 )
@@ -873,7 +924,7 @@ class Test_construct_extract_constraint(Test_WXCode):
             ),
         )
         self.assertIsInstance(result, iris.Constraint)
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             self.cubes.extract(result)[0].data, self.cubes.extract(expected)[0].data
         )
 
@@ -904,7 +955,7 @@ class Test_construct_extract_constraint(Test_WXCode):
             ),
         )
         self.assertIsInstance(result, iris.Constraint)
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             self.cubes.extract(result)[0].data, self.cubes.extract(expected)[0].data
         )
 
@@ -939,7 +990,7 @@ class Test_evaluate_extract_expression(Test_WXCode):
             self.cubes.extract(expression[0])[0].data
             - 0.5 * self.cubes.extract(expression[4])[0].data
         )
-        self.assertArrayEqual(result, expected)
+        np.testing.assert_array_equal(result, expected)
 
     def test_sub_expresssions(self):
         """Test evaluating an expression containing sub-expressions."""
@@ -982,7 +1033,7 @@ class Test_evaluate_extract_expression(Test_WXCode):
             - self.cubes.extract(expression[4][2])[0].data
         )
         result = self.plugin.evaluate_extract_expression(self.cubes, expression)
-        self.assertArrayEqual(result, expected)
+        np.testing.assert_array_equal(result, expected)
 
 
 class Test_evaluate_condition_chain(Test_WXCode):
@@ -1029,7 +1080,7 @@ class Test_evaluate_condition_chain(Test_WXCode):
         expected = (self.cubes.extract(c1)[0].data >= 0.5) | (
             self.cubes.extract(c2)[0].data >= 0.5
         )
-        self.assertArrayEqual(result, expected)
+        np.testing.assert_array_equal(result, expected)
 
     def test_error(self):
         """Test that we get an error if first element of the chain has length > 1
@@ -1128,7 +1179,7 @@ class Test_evaluate_condition_chain(Test_WXCode):
         expected = (
             self.cubes.extract(c1)[0].data - self.cubes.extract(c2)[0].data >= 0.5
         ) | (self.cubes.extract(c3)[0].data >= 0.5)
-        self.assertArrayEqual(result, expected)
+        np.testing.assert_array_equal(result, expected)
 
     def test_with_subconditions(self):
         """Test "AND" condition chain with sub-chain containing "OR"."""
@@ -1191,7 +1242,7 @@ class Test_evaluate_condition_chain(Test_WXCode):
             (self.cubes.extract(c1)[0].data >= 0.5)
             | (self.cubes.extract(c2)[0].data >= 0.5)
         ) & (self.cubes.extract(c3)[0].data >= 0.5)
-        self.assertArrayEqual(result, expected)
+        np.testing.assert_array_equal(result, expected)
 
     def test_blank_condition(self):
         """Test a condition chain where the combination condition is ""."""
@@ -1235,10 +1286,10 @@ class Test_evaluate_condition_chain(Test_WXCode):
             self.cubes.extract(expression[0])[0].data
             - 0.5 * self.cubes.extract(expression[4])[0].data
         ) >= 0.0
-        self.assertArrayEqual(result, expected)
+        np.testing.assert_array_equal(result, expected)
 
 
-class Test_remove_optional_missing(IrisTest):
+class Test_remove_optional_missing(unittest.TestCase):
     """Test the rewriting of the decision tree on-the-fly to take into account
     allowed missing diagnostics."""
 
@@ -1328,7 +1379,7 @@ class Test_remove_optional_missing(IrisTest):
         self.assertEqual(test_node["if_false"], "precipitation_in_vicinity")
 
 
-class Test_find_all_routes(IrisTest):
+class Test_find_all_routes(unittest.TestCase):
     """Test the find_all_routes method ."""
 
     def setUp(self):
@@ -1473,8 +1524,66 @@ class Test_check_coincidence(Test_WXCode):
         self.plugin.check_coincidence(cubes)
         self.assertEqual(self.plugin.template_cube, expected)
 
+    def test_time_discrepancy_within_tolerance(self):
+        """Test that no error is raised if validity times differ by less than
+        maximum_time_discrepancy. Lightning and other period diagnostics are
+        excluded as their time coordinate represents the end of a period rather
+        than an instantaneous validity time, which would conflate the period
+        end-time with the instantaneous validity time check being tested here"""
 
-class Test_create_categorical_cube(IrisTest):
+        plugin = ApplyDecisionTree(
+            decision_tree=wxcode_decision_tree(),
+            maximum_time_discrepancy=3600,
+        )
+        cubes = [cube for cube in self.cubes if "lightning" not in cube.name()]
+        cubes[-1] = cubes[-1].copy()
+        cubes[-1].coord("time").points = cubes[-1].coord("time").points + 900
+        assert plugin.check_coincidence(cubes) is None
+
+    def test_time_discrepancy_exceeds_tolerance(self):
+        """Test that an error is raised if validity times differ by more than
+        maximum_time_discrepancy."""
+        plugin = ApplyDecisionTree(
+            decision_tree=wxcode_decision_tree(),
+            maximum_time_discrepancy=3600,
+        )
+        cubes = [cube for cube in self.cubes if "lightning" not in cube.name()]
+        cubes[-1] = cubes[-1].copy()
+        # Shift one cube's time by 7200 seconds (exceeds 3600s tolerance)
+        cubes[-1].coord("time").points = cubes[-1].coord("time").points + 7200
+        msg = (
+            "Decision Tree input cubes have validity times differing by more than "
+            "3600 seconds"
+        )
+        with pytest.raises(ValueError, match=msg):
+            plugin.check_coincidence(cubes)
+
+    def test_zero_maximum_time_discrepancy_falls_back_to_strict(self):
+        """Test that when maximum_time_discrepancy is 0, the strict time
+        coincidence check is used instead."""
+        plugin = ApplyDecisionTree(
+            decision_tree=wxcode_decision_tree(),
+            maximum_time_discrepancy=0,
+        )
+        cubes = [cube for cube in self.cubes if "lightning" not in cube.name()]
+        cubes[-1] = cubes[-1].copy()
+        cubes[-1].coord("time").points = cubes[-1].coord("time").points + 3600
+        msg = "Decision Tree input cubes are valid at different times"
+        with pytest.raises(ValueError, match=msg):
+            plugin.check_coincidence(cubes)
+
+    def test_negative_maximum_time_discrepancy_raises(self):
+        """Test that a negative maximum_time_discrepancy raises a ValueError."""
+        with pytest.raises(
+            ValueError, match="maximum_time_discrepancy must be a positive integer"
+        ):
+            ApplyDecisionTree(
+                decision_tree=wxcode_decision_tree(),
+                maximum_time_discrepancy=-3600,
+            )
+
+
+class Test_create_categorical_cube(unittest.TestCase):
     """Test the create_categorical_cube method ."""
 
     def setUp(self):
@@ -1520,7 +1629,7 @@ class Test_create_categorical_cube(IrisTest):
         self.plugin.model_id_attr = "mosg__model_configuration"
         result = self.plugin.create_categorical_cube([self.cube])
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             result.attributes["mosg__model_configuration"], "uk_det uk_ens"
         )
         self.assertNotIn("mosg__model_run", result.attributes)
@@ -1535,11 +1644,11 @@ class Test_create_categorical_cube(IrisTest):
         self.plugin.record_run_attr = "mosg__model_run"
         result = self.plugin.create_categorical_cube([self.cube])
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             result.attributes["mosg__model_run"],
             "uk_det:20171109T2300Z:\nuk_ens:20171109T2100Z:",
         )
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             result.attributes["mosg__model_configuration"], "uk_det uk_ens"
         )
         self.assertTrue((result.data.mask).all())
@@ -1556,11 +1665,11 @@ class Test_create_categorical_cube(IrisTest):
 
         result = self.plugin.create_categorical_cube([self.cube, cube1])
 
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             result.attributes["mosg__model_run"],
             "gl_ens:20171109T1800Z:\nuk_det:20171109T2300Z:\nuk_ens:20171109T2100Z:",
         )
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             result.attributes["mosg__model_configuration"], "gl_ens uk_det uk_ens"
         )
         self.assertTrue((result.data.mask).all())
@@ -1642,7 +1751,7 @@ class Test_create_categorical_cube(IrisTest):
             self.plugin.create_categorical_cube([self.cube, cube1])
 
 
-class Test_compare_to_threshold(IrisTest):
+class Test_compare_to_threshold(unittest.TestCase):
     """Test the compare_to_threshold method ."""
 
     def test_array(self):
@@ -1658,7 +1767,7 @@ class Test_compare_to_threshold(IrisTest):
         }
         for item in test_case_map:
             result = plugin.compare_array_to_threshold(arr, item, 1)
-            self.assertArrayEqual(result, test_case_map[item])
+            np.testing.assert_array_equal(result, test_case_map[item])
 
     def test_error_on_unexpected_comparison(self):
         """Test that an error is raised if the comparison operator is not

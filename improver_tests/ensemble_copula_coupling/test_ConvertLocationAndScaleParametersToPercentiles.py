@@ -12,7 +12,6 @@ import unittest
 import iris
 import numpy as np
 from iris.cube import Cube
-from iris.tests import IrisTest
 
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     ConvertLocationAndScaleParametersToPercentiles as Plugin,
@@ -22,20 +21,19 @@ from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from .ecc_test_data import ECC_TEMPERATURE_REALIZATIONS, set_up_spot_test_cube
 
 
-class Test__repr__(IrisTest):
+class Test__repr__(unittest.TestCase):
     """Test string representation of plugin."""
 
     def test_basic(self):
         """Test string representation"""
         expected_string = (
-            "<ConvertLocationAndScaleParametersToPercentiles: "
-            "distribution: norm; shape_parameters: []>"
+            "<ConvertLocationAndScaleParametersToPercentiles: distribution: norm>"
         )
         result = str(Plugin())
         self.assertEqual(result, expected_string)
 
 
-class Test__location_and_scale_parameters_to_percentiles(IrisTest):
+class Test__location_and_scale_parameters_to_percentiles(unittest.TestCase):
     """Test the _location_and_scale_parameters_to_percentiles plugin."""
 
     def setUp(self):
@@ -70,6 +68,18 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         self.scale_parameter = self.temperature_cube.collapsed(
             "realization", iris.analysis.STD_DEV
         )
+        self.truncnorm_shape_parameters = iris.cube.CubeList(
+            [
+                self.location_parameter.copy(
+                    data=np.full_like(self.location_parameter.data, 0, dtype=np.float32)
+                ),
+                self.location_parameter.copy(
+                    data=np.full_like(
+                        self.location_parameter.data, np.inf, dtype=np.float32
+                    )
+                ),
+            ]
+        )
         self.percentiles = [10, 50, 90]
 
     def test_check_data(self):
@@ -81,6 +91,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         have been generated.
         """
         result = Plugin()._location_and_scale_parameters_to_percentiles(
+            iris.cube.CubeList([]),
             self.location_parameter,
             self.scale_parameter,
             self.temperature_cube,
@@ -101,6 +112,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
             self.location_parameter.data, mask=mask
         )
         result = Plugin()._location_and_scale_parameters_to_percentiles(
+            iris.cube.CubeList([]),
             self.location_parameter,
             self.scale_parameter,
             self.temperature_cube,
@@ -120,6 +132,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
             self.scale_parameter.data, mask=mask
         )
         result = Plugin()._location_and_scale_parameters_to_percentiles(
+            iris.cube.CubeList([]),
             self.location_parameter,
             self.scale_parameter,
             self.temperature_cube,
@@ -143,6 +156,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
             self.scale_parameter.data, mask=mask2
         )
         result = Plugin()._location_and_scale_parameters_to_percentiles(
+            iris.cube.CubeList([]),
             self.location_parameter,
             self.scale_parameter,
             self.temperature_cube,
@@ -200,15 +214,25 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
             "realization", iris.analysis.STD_DEV
         )
         current_forecast_stddev.data = current_forecast_stddev.data + 1
+
+        # Rescale the shape parameters for the truncated normal distribution, so that
+        # they are in the form expected by the underlying scipy function. This rescaling
+        # happens in the .process() method.
+        rescaled_shape_parameter = self.truncnorm_shape_parameters.copy()
+        for i, cube in enumerate(rescaled_shape_parameter.copy()):
+            rescaled_shape_parameter[i].data = (
+                cube.data - current_forecast_predictor.data
+            ) / current_forecast_stddev.data
+
         plugin = Plugin(
             distribution="truncnorm",
-            shape_parameters=np.array([0, np.inf], dtype=np.float32),
         )
         result = plugin._location_and_scale_parameters_to_percentiles(
-            current_forecast_predictor,
-            current_forecast_stddev,
-            self.temperature_cube,
-            self.percentiles,
+            shape_parameter=rescaled_shape_parameter,
+            location_parameter=current_forecast_predictor,
+            scale_parameter=current_forecast_stddev,
+            template_cube=self.temperature_cube,
+            percentiles=self.percentiles,
         )
         self.assertIsInstance(result, Cube)
         np.testing.assert_allclose(result.data, expected_data, rtol=1.0e-4)
@@ -252,6 +276,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
             "realization", iris.analysis.STD_DEV
         )
         result = Plugin()._location_and_scale_parameters_to_percentiles(
+            iris.cube.CubeList([]),
             current_forecast_predictor,
             current_forecast_stddev,
             self.temperature_cube,
@@ -287,6 +312,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
             "realization", iris.analysis.STD_DEV
         )
         result = Plugin()._location_and_scale_parameters_to_percentiles(
+            iris.cube.CubeList([]),
             current_forecast_predictor,
             current_forecast_stddev,
             self.temperature_cube,
@@ -326,6 +352,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
             "realization", iris.analysis.STD_DEV
         )
         result = Plugin()._location_and_scale_parameters_to_percentiles(
+            iris.cube.CubeList([]),
             current_forecast_predictor,
             current_forecast_stddev,
             self.temperature_cube,
@@ -340,6 +367,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         """
         percentiles = np.linspace(1, 99, num=1000, endpoint=True)
         result = Plugin()._location_and_scale_parameters_to_percentiles(
+            iris.cube.CubeList([]),
             self.location_parameter,
             self.scale_parameter,
             self.temperature_cube,
@@ -356,6 +384,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         msg = "NaNs are present within the result for the"
         with self.assertRaisesRegex(ValueError, msg):
             Plugin()._location_and_scale_parameters_to_percentiles(
+                iris.cube.CubeList([]),
                 self.location_parameter,
                 self.scale_parameter,
                 self.temperature_cube,
@@ -375,7 +404,11 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         current_forecast_predictor = cube.collapsed("realization", iris.analysis.MEAN)
         current_forecast_stddev = cube.collapsed("realization", iris.analysis.STD_DEV)
         result = Plugin()._location_and_scale_parameters_to_percentiles(
-            current_forecast_predictor, current_forecast_stddev, cube, self.percentiles
+            iris.cube.CubeList([]),
+            current_forecast_predictor,
+            current_forecast_stddev,
+            cube,
+            self.percentiles,
         )
         self.assertIsInstance(result, Cube)
         np.testing.assert_allclose(result.data, data, rtol=1.0e-4)
@@ -387,6 +420,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         """
 
         result = Plugin()._location_and_scale_parameters_to_percentiles(
+            iris.cube.CubeList([]),
             self.location_parameter,
             self.scale_parameter,
             self.temperature_cube[0],
@@ -395,7 +429,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         self.assertIsInstance(result, Cube)
 
 
-class Test_process(IrisTest):
+class Test_process(unittest.TestCase):
     """Test the process plugin."""
 
     def setUp(self):
@@ -408,6 +442,7 @@ class Test_process(IrisTest):
     def test_basic(self):
         """Test that the plugin returns an Iris.cube.Cube."""
         result = Plugin().process(
+            iris.cube.CubeList([]),
             self.forecast_predictor,
             self.forecast_stddev,
             self.cube,
@@ -441,6 +476,7 @@ class Test_process(IrisTest):
         )
 
         result = Plugin().process(
+            iris.cube.CubeList([]),
             self.forecast_predictor,
             self.forecast_stddev,
             self.cube,
@@ -448,7 +484,7 @@ class Test_process(IrisTest):
         )
 
         self.assertEqual(len(result.coord("percentile").points), self.no_of_percentiles)
-        self.assertArrayAlmostEqual(expected, result.data, decimal=4)
+        np.testing.assert_array_almost_equal(expected, result.data, decimal=4)
 
     def test_list_of_percentiles(self):
         """
@@ -477,6 +513,7 @@ class Test_process(IrisTest):
         )
 
         result = Plugin().process(
+            iris.cube.CubeList([]),
             self.forecast_predictor,
             self.forecast_stddev,
             self.cube,
@@ -484,8 +521,10 @@ class Test_process(IrisTest):
         )
 
         self.assertEqual(len(percentiles), len(result.coord("percentile").points))
-        self.assertArrayAlmostEqual(percentiles, result.coord("percentile").points)
-        self.assertArrayAlmostEqual(expected, result.data, decimal=4)
+        np.testing.assert_array_almost_equal(
+            percentiles, result.coord("percentile").points
+        )
+        np.testing.assert_array_almost_equal(expected, result.data, decimal=4)
 
     def test_multiple_keyword_arguments_error(self):
         """
@@ -496,6 +535,7 @@ class Test_process(IrisTest):
         msg = "Please specify either the number of percentiles or"
         with self.assertRaisesRegex(ValueError, msg):
             Plugin().process(
+                iris.cube.CubeList([]),
                 self.forecast_predictor,
                 self.forecast_stddev,
                 self.cube,

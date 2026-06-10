@@ -5,17 +5,20 @@
 """Unit tests for the standardise.RegridLandSea plugin."""
 
 import unittest
+from unittest.mock import patch
 
 import numpy as np
 import pytest
-from iris.tests import IrisTest
 
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.regrid.landsea import RegridLandSea
-from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
+from improver.synthetic_data.set_up_test_cubes import (
+    set_up_variable_cube,
+)
+from improver_tests import ImproverTest
 
 
-class Test__init__(IrisTest):
+class Test__init__(unittest.TestCase):
     """Test initialisation"""
 
     def test_error_unrecognised_regrid_mode(self):
@@ -31,7 +34,7 @@ class Test__init__(IrisTest):
             RegridLandSea(regrid_mode="nearest-with-mask")
 
 
-class Test_process(IrisTest):
+class Test_process(ImproverTest):
     """Test the process method for the RegridLandSea plugin. Regridded values
     are not tested here as this is covered by unit tests for the regridding
     routines (iris.cube.Cube.regrid and improver.standardise.AdjustLandSeaPoints).
@@ -82,7 +85,7 @@ class Test_process(IrisTest):
         for attr in ["mosg__grid_domain", "mosg__grid_type", "mosg__grid_version"]:
             expected_attributes[attr] = self.target_grid.attributes[attr]
         result = RegridLandSea()(self.cube, self.target_grid.copy())
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
         for axis in ["x", "y"]:
             self.assertEqual(result.coord(axis=axis), self.target_grid.coord(axis=axis))
         self.assertDictEqual(result.attributes, expected_attributes)
@@ -113,7 +116,7 @@ class Test_process(IrisTest):
             landmask=self.landmask,
             landmask_vicinity=90000,
         )(self.cube, self.target_grid.copy())
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
         for axis in ["x", "y"]:
             self.assertEqual(result.coord(axis=axis), self.target_grid.coord(axis=axis))
         self.assertDictEqual(result.attributes, expected_attributes)
@@ -141,7 +144,7 @@ class Test_process(IrisTest):
                 landmask_vicinity=90000,
             )(self.cube, self.target_grid)
 
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
 
     def test_warning_target_not_landmask(self):
         """Test warning is raised if target_grid is not a landmask"""
@@ -156,7 +159,7 @@ class Test_process(IrisTest):
                 landmask_vicinity=90000,
             ).process(self.cube, self.target_grid)
 
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
 
     def test_attribute_changes_with_regridding(self):
         """Test attributes inherited on regridding"""
@@ -165,7 +168,7 @@ class Test_process(IrisTest):
         for attr in ["mosg__grid_domain", "mosg__grid_type", "mosg__grid_version"]:
             expected_attributes[attr] = self.target_grid.attributes[attr]
         result = RegridLandSea()(self.cube, self.target_grid)
-        self.assertDictEqual(result.attributes, expected_attributes)
+        self.assertDictEqual(expected_attributes, result.attributes)
 
     def test_new_title(self):
         """Test new title can be set on regridding"""
@@ -175,7 +178,7 @@ class Test_process(IrisTest):
         for attr in ["mosg__grid_domain", "mosg__grid_type", "mosg__grid_version"]:
             expected_attributes[attr] = self.target_grid.attributes[attr]
         result = RegridLandSea()(self.cube, self.target_grid, regridded_title=new_title)
-        self.assertDictEqual(result.attributes, expected_attributes)
+        self.assertDictEqual(expected_attributes, result.attributes)
 
     def test_incorrect_grid_attributes_removed(self):
         """Test grid attributes not present on the target cube are removed
@@ -183,6 +186,106 @@ class Test_process(IrisTest):
         self.target_grid.attributes.pop("mosg__grid_domain")
         result = RegridLandSea()(self.cube, self.target_grid)
         self.assertNotIn("mosg__grid_domain", result.attributes)
+
+    def test_area_weighted_regrid(self):
+        """Test esmf-area-weighted regridding returns expected dimensionality
+        and updated grid-defining attributes, with characteristic area-weighted
+        averaging behavior"""
+        pytest.importorskip("esmf_regrid")
+
+        # Create a checkerboard pattern to demonstrate area-weighted averaging
+        # This will produce distinct results compared to nearest-neighbor
+        checkerboard = np.zeros((15, 15), dtype=np.float32)
+        checkerboard[::2, ::2] = 300.0  # High values
+        checkerboard[1::2, 1::2] = 300.0
+        checkerboard[::2, 1::2] = 260.0  # Low values
+        checkerboard[1::2, ::2] = 260.0
+        self.cube.data = checkerboard
+
+        expected_attributes = {
+            "mosg__model_configuration": "gl_det",
+            "title": MANDATORY_ATTRIBUTE_DEFAULTS["title"],
+        }
+        for attr in ["mosg__grid_domain", "mosg__grid_type", "mosg__grid_version"]:
+            expected_attributes[attr] = self.target_grid.attributes[attr]
+
+        result = RegridLandSea(regrid_mode="esmf-area-weighted")(
+            self.cube, self.target_grid.copy()
+        )
+
+        # With area-weighted regridding, the checkerboard should average to ~280
+        # (not exactly due to grid cell overlap), demonstrating conservative regridding
+        self.assertEqual(result.shape, (12, 12))
+        self.assertAlmostEqual(result.data.mean(), 280.0, delta=5.0)
+        # Check that we get averaging, not just nearest values
+        self.assertTrue(np.any((result.data > 260.0) & (result.data < 300.0)))
+
+        for axis in ["x", "y"]:
+            self.assertEqual(result.coord(axis=axis), self.target_grid.coord(axis=axis))
+        self.assertDictEqual(result.attributes, expected_attributes)
+
+    def test_run_regrid_with_tolerance_specified(self):
+        """Test masked regridding with non-default relative grid tolerance specified."""
+        expected_data = 282 * np.ones((12, 12), dtype=np.float32)
+        rtol = 0.0007
+        result = RegridLandSea(
+            regrid_mode="nearest-with-mask-2",
+            landmask=self.landmask,
+            landmask_vicinity=90000,
+            rtol_grid_spacing=rtol,
+        )(self.cube, self.target_grid.copy())
+        np.testing.assert_array_almost_equal(result.data, expected_data)
+
+    def test_configurable_rtol_allows_irregular_grid_spacing(self):
+        """Test that a custom grid spacing relative tolerance allows
+        regridding of a cube with slightly irregular spacing, when the
+        default relative tolerance does not allow regridding."""
+        regrid_mode = "nearest-2"
+        input_cube = self.cube.copy()
+
+        # Set up irregularly spaced y points.
+        # This is set up so that `mean(grid_spacing)` is the same as the
+        # grid spacing for most points, but that one or more grid_spacing
+        # values exceed the rtol.
+        rtol_orig = 4.0e-5
+        lat_coord = input_cube.coord("latitude")
+        y_array = lat_coord.points.copy()
+        y_mean_diff = np.diff(y_array).mean()
+        delta = rtol_orig * y_mean_diff + 4e-7  # delta > rtol * mean(grid_spacing)
+        y_array[1] += delta
+        y_array[2] -= delta
+        # Update input cube with new y values
+        input_cube.coord("latitude").points = y_array
+
+        # Regrid should fail with default rtol
+        msg = "Coordinate latitude points are not equally spaced"
+        with self.assertRaisesRegex(ValueError, msg):
+            RegridLandSea(regrid_mode=regrid_mode)(input_cube, self.target_grid)
+
+        # More lenient rtol should allow regrid to pass without errors
+        RegridLandSea(regrid_mode=regrid_mode, rtol_grid_spacing=4.0e-4)(
+            input_cube, self.target_grid
+        )
+
+    def test_args_passed_to_regrid_with_land_sea_mask(self):
+        """Test that the correct arguments are passed to the
+        RegridWithLandSeaMask class when using a relevant regrid mode."""
+        regrid_mode = "nearest-with-mask-2"
+        landmask_vicinity = 90000
+        rtol = 0.00412
+        with patch("improver.regrid.landsea.RegridWithLandSeaMask") as mock_class:
+            RegridLandSea(
+                regrid_mode=regrid_mode,
+                landmask=self.landmask,
+                landmask_vicinity=landmask_vicinity,
+                rtol_grid_spacing=rtol,
+            )(self.cube, self.target_grid.copy())
+
+            mock_class.assert_called_once_with(
+                regrid_mode=regrid_mode,
+                vicinity_radius=landmask_vicinity,
+                rtol_grid_spacing=rtol,
+            )
 
 
 if __name__ == "__main__":

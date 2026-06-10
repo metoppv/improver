@@ -14,7 +14,6 @@ import iris
 import numpy as np
 import pytest
 from iris.cube import CubeList
-from iris.tests import IrisTest
 
 from improver.calibration.emos_calibration import (
     ContinuousRankedProbabilityScoreMinimisers as Plugin,
@@ -24,7 +23,7 @@ from improver.calibration.utilities import convert_cube_data_to_2d
 from .helper_functions import EnsembleCalibrationAssertions, SetupCubes
 
 
-class SetupInputs(IrisTest):
+class SetupInputs(unittest.TestCase):
     """Set up inputs for testing."""
 
     def setUp(self):
@@ -453,7 +452,7 @@ class Test_process_normal_distribution(
             self.forecast_variance,
             distribution,
         )
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             result, self.expected_realizations_coefficients_point_by_point, decimal=2
         )
 

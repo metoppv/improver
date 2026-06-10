@@ -14,7 +14,6 @@ import pytest
 from cf_units import Unit
 from iris.coords import CellMethod
 from iris.cube import Cube, CubeList
-from iris.tests import IrisTest
 from iris.time import PartialDateTime
 
 from improver.metadata.constants.time_types import TIME_COORDS
@@ -33,10 +32,11 @@ from improver.utilities.temporal import (
     integrate_time,
     iris_time_to_datetime,
     relabel_to_period,
+    reset_forecast_reference_time_and_period,
 )
 
 
-class Test_cycletime_to_datetime(IrisTest):
+class Test_cycletime_to_datetime(unittest.TestCase):
     """Test that a cycletime of a format such as YYYYMMDDTHHMMZ is converted
     into a datetime object."""
 
@@ -56,7 +56,7 @@ class Test_cycletime_to_datetime(IrisTest):
         self.assertEqual(result, dt)
 
 
-class Test_datetime_to_cycletime(IrisTest):
+class Test_datetime_to_cycletime(unittest.TestCase):
     """Test that a datetime object can be converted into a cycletime
     of a format such as YYYYMMDDTHHMMZ."""
 
@@ -83,7 +83,7 @@ class Test_datetime_to_cycletime(IrisTest):
         self.assertEqual(result, cycletime)
 
 
-class Test_cycletime_to_number(IrisTest):
+class Test_cycletime_to_number(unittest.TestCase):
     """Test that a cycletime of a format such as YYYYMMDDTHHMMZ is converted
     into a numeric time value."""
 
@@ -122,7 +122,7 @@ class Test_cycletime_to_number(IrisTest):
         self.assertAlmostEqual(result, dt)
 
 
-class Test_iris_time_to_datetime(IrisTest):
+class Test_iris_time_to_datetime(unittest.TestCase):
     """Test iris_time_to_datetime"""
 
     def setUp(self):
@@ -165,12 +165,16 @@ class Test_iris_time_to_datetime(IrisTest):
         self.cube.coord("time").points = self.cube.coord("time").points.astype(np.int64)
         reference_coord = self.cube.coord("time").copy()
         iris_time_to_datetime(self.cube.coord("time"))
-        self.assertArrayEqual(self.cube.coord("time").points, reference_coord.points)
-        self.assertArrayEqual(self.cube.coord("time").units, reference_coord.units)
+        np.testing.assert_array_equal(
+            self.cube.coord("time").points, reference_coord.points
+        )
+        np.testing.assert_array_equal(
+            self.cube.coord("time").units, reference_coord.units
+        )
         self.assertEqual(self.cube.coord("time").dtype, np.int64)
 
 
-class Test_datetime_to_iris_time(IrisTest):
+class Test_datetime_to_iris_time(unittest.TestCase):
     """Test the datetime_to_iris_time function."""
 
     def setUp(self):
@@ -194,7 +198,7 @@ class Test_datetime_to_iris_time(IrisTest):
         self.assertEqual(result, self.expected)
 
 
-class Test_datetime_constraint(IrisTest):
+class Test_datetime_constraint(unittest.TestCase):
     """
     Test construction of an iris.Constraint from a python datetime object.
     """
@@ -224,7 +228,7 @@ class Test_datetime_constraint(IrisTest):
         dt_constraint = plugin(time_start, time_max=time_limit)
         result = self.cube.extract(dt_constraint)
         self.assertEqual(result.shape, (12, 12, 12))
-        self.assertArrayEqual(result.coord("time").points, self.time_points)
+        np.testing.assert_array_equal(result.coord("time").points, self.time_points)
 
     def test_constraint_type(self):
         """Check type is iris.Constraint."""
@@ -247,7 +251,7 @@ class Test_datetime_constraint(IrisTest):
         self.assertNotIsInstance(result, Cube)
 
 
-class Test_extract_cube_at_time(IrisTest):
+class Test_extract_cube_at_time(unittest.TestCase):
     """
     Test wrapper for iris cube extraction at desired times.
     """
@@ -270,12 +274,14 @@ class Test_extract_cube_at_time(IrisTest):
         )
         self.time_dt = datetime(2017, 2, 17, 6, 0)
         self.time_constraint = iris.Constraint(
-            time=lambda cell: cell.point
-            == PartialDateTime(
-                self.time_dt.year,
-                self.time_dt.month,
-                self.time_dt.day,
-                self.time_dt.hour,
+            time=lambda cell: (
+                cell.point
+                == PartialDateTime(
+                    self.time_dt.year,
+                    self.time_dt.month,
+                    self.time_dt.day,
+                    self.time_dt.hour,
+                )
             )
         )
 
@@ -309,7 +315,7 @@ class Test_extract_cube_at_time(IrisTest):
             plugin(cubes, time_dt, time_constraint)
 
 
-class Test_extract_nearest_time_point(IrisTest):
+class Test_extract_nearest_time_point(unittest.TestCase):
     """Test the extract_nearest_time_point function."""
 
     def setUp(self):
@@ -587,7 +593,7 @@ def test_integrate_non_second_units(period_cube):
     differing input units."""
 
     expected = np.full(period_cube.shape, 3600)
-    expected_units = Unit(f"{1./60} m-2")
+    expected_units = Unit(f"{1.0 / 60} m-2")
     period_cube.units = Unit("m-2 minute-1")
 
     result = integrate_time(period_cube.copy())
@@ -604,6 +610,76 @@ def test_integrate_time_exception(period_cube):
     period_cube.coord("time").bounds = None
     with pytest.raises(ValueError, match="time coordinate must have bounds"):
         integrate_time(period_cube.copy())
+
+
+@pytest.fixture
+def frt_cube():
+    """A simple cube with a forecast_reference_time and forecast_period."""
+    return set_up_variable_cube(
+        np.ones((3, 3), dtype=np.float32),
+        time=datetime(2017, 2, 17, 9, 0),
+        frt=datetime(2017, 2, 17, 6, 0),
+    )
+
+
+def test_reset_forecast_reference_time(frt_cube):
+    """Test that the forecast_reference_time coordinate is updated to the
+    supplied cycletime, any bounds are removed, blend_time is aligned to the
+    same value, and the forecast_period coordinate is recalculated relative to
+    the new forecast_reference_time."""
+    frt_cube.coord("forecast_reference_time").bounds = [
+        frt_cube.coord("forecast_reference_time").points[0] - 3600,
+        frt_cube.coord("forecast_reference_time").points[0],
+    ]
+    blend_time = frt_cube.coord("forecast_reference_time").copy()
+    blend_time.rename("blend_time")
+    blend_time.bounds = [
+        blend_time.points[0] - 3600,
+        blend_time.points[0],
+    ]
+    frt_cube.add_aux_coord(blend_time)
+    reset_forecast_reference_time_and_period(frt_cube, "20170217T0900Z")
+    result_frt = frt_cube.coord("forecast_reference_time")
+    expected_point = cycletime_to_number(
+        "20170217T0900Z",
+        time_unit=result_frt.units.origin,
+        calendar=result_frt.units.calendar,
+    )
+    assert result_frt.points[0] == np.int64(expected_point)
+    assert result_frt.bounds is None
+    result_blend_time = frt_cube.coord("blend_time")
+    assert result_blend_time.points[0] == np.int64(expected_point)
+    assert result_blend_time.bounds is None
+    # time is 09:00, new frt is 09:00, so forecast_period should be 0
+    assert frt_cube.coord("forecast_period").points[0] == 0
+
+
+def test_reset_forecast_reference_time_no_forecast_period(frt_cube):
+    """Test that the function works correctly when there is no forecast_period
+    coordinate on the cube."""
+    frt_cube.remove_coord("forecast_period")
+    reset_forecast_reference_time_and_period(frt_cube, "20170217T0900Z")
+    # forecast_period should not be re-added if it was not present
+    assert not frt_cube.coords("forecast_period")
+
+
+@pytest.mark.parametrize(
+    "new_cycletime, expected_forecast_period_hours",
+    [
+        ("20170217T0600Z", 3),  # original frt; forecast_period unchanged at 3h
+        ("20170217T0700Z", 2),  # frt moved forward 1h; forecast_period decreases
+        ("20170217T0300Z", 6),  # frt moved back 3h; forecast_period increases
+        ("20170217T0900Z", 0),  # frt equals time; forecast_period is 0
+    ],
+)
+def test_reset_forecast_reference_time_parametrized(
+    frt_cube, new_cycletime, expected_forecast_period_hours
+):
+    """Test that forecast_period is correctly recalculated for a range of
+    new forecast_reference_times relative to the fixed time coordinate."""
+    reset_forecast_reference_time_and_period(frt_cube, new_cycletime)
+    result_fp_seconds = frt_cube.coord("forecast_period").points[0]
+    assert result_fp_seconds == expected_forecast_period_hours * 3600
 
 
 if __name__ == "__main__":

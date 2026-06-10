@@ -38,6 +38,7 @@ below:
  - Benjamin Ayliffe (Met Office, UK)
  - Mark Baker (Met Office, UK)
  - Laurence Beard (Met Office, UK)
+ - Jasmine Beaver (Met Office, UK)
  - Tim Bonin (MIT Lincoln Laboratory, USA)
  - Anna Booton (Met Office, UK)
  - Prajwal Borkar
@@ -47,6 +48,7 @@ below:
  - Andrew Creswick (Met Office, UK)
  - Neil Crosswaite (Met Office, UK)
  - Shafiat Dewan (Met Office, UK)
+ - Rachael Esler (Bureau of Meteorology, Australia)
  - Gavin Evans (Met Office, UK)
  - Zhiliang Fan (Bureau of Meteorology, Australia)
  - Ben Fitzpatrick (Met Office, UK)
@@ -59,10 +61,12 @@ below:
  - Timothy Hume (Bureau of Meteorology, Australia)
  - Katharine Hurst (Met Office, UK)
  - Simon Jackson (Met Office, UK)
+ - David Johnston (Met Office, UK)
  - Caroline Jones (Met Office, UK)
  - Peter Jordan (Met Office, UK)
  - Anzer Khan (Met Office, UK)
  - Bruno P. Kinoshita (NIWA, NZ)
+ - Alice Lake (Met Office, UK)
  - Phoebe Lambert (Met Office, UK)
  - Lucy Liu (Bureau of Meteorology, Australia)
  - Daniel Mentiplay (Bureau of Meteorology, Australia)
@@ -88,6 +92,7 @@ below:
  - Mark Worsfold (Met Office, UK)
  - Bruce Wright (Met Office, UK)
  - Ying Zhao (Bureau of Meteorology, Australia)
+ - Robert Platt (Met Office, UK)
 <!-- end-shortlog -->
  - Martina Friedrich (Met Office, UK, pre-GitHub)
 

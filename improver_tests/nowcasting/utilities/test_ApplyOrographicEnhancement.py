@@ -11,7 +11,6 @@ from datetime import datetime
 import iris
 import numpy as np
 from cf_units import Unit
-from iris.tests import IrisTest
 
 from improver.nowcasting.utilities import ApplyOrographicEnhancement
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
@@ -79,7 +78,7 @@ def set_up_orographic_enhancement_cube():
     return iris.cube.CubeList([cube1, cube2]).merge_cube()
 
 
-class Test__init__(IrisTest):
+class Test__init__(unittest.TestCase):
     """Test the __init__ method."""
 
     def test_basic(self):
@@ -88,7 +87,7 @@ class Test__init__(IrisTest):
         self.assertEqual(plugin.operation, "add")
 
 
-class Test__repr__(IrisTest):
+class Test__repr__(unittest.TestCase):
     """Test the __repr__ method."""
 
     def test_basic(self):
@@ -98,7 +97,7 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, msg)
 
 
-class Test__select_orographic_enhancement_cube(IrisTest):
+class Test__select_orographic_enhancement_cube(unittest.TestCase):
     """Test the _select_orographic_enhancement method."""
 
     def setUp(self):
@@ -167,7 +166,7 @@ class Test__select_orographic_enhancement_cube(IrisTest):
         self.assertEqual(result.coord("time"), self.second_slice.coord("time"))
 
 
-class Test__apply_orographic_enhancement(IrisTest):
+class Test__apply_orographic_enhancement(unittest.TestCase):
     """Test the _apply_orographic_enhancement method."""
 
     def setUp(self):
@@ -187,7 +186,7 @@ class Test__apply_orographic_enhancement(IrisTest):
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(result.metadata, self.precip_cube.metadata)
         result.convert_units("mm/hr")
-        self.assertArrayAlmostEqual(result.data, expected)
+        np.testing.assert_array_almost_equal(result.data, expected)
 
     def test_check_expected_values_subtract(self):
         """Test the expected values are returned when one cube is subtracted
@@ -200,7 +199,7 @@ class Test__apply_orographic_enhancement(IrisTest):
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(result.metadata, self.precip_cube.metadata)
         result.convert_units("mm/hr")
-        self.assertArrayAlmostEqual(result.data, expected)
+        np.testing.assert_array_almost_equal(result.data, expected)
 
     def test_check_expected_values_for_different_units(self):
         """Test the expected values are returned when cubes are combined when
@@ -214,7 +213,7 @@ class Test__apply_orographic_enhancement(IrisTest):
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(result.metadata, self.precip_cube.metadata)
         result.convert_units("mm/hr")
-        self.assertArrayAlmostEqual(result.data, expected)
+        np.testing.assert_array_almost_equal(result.data, expected)
 
     def test_check_unchanged_oe_cube_for_subtract(self):
         """Test the expected values are returned when one cube is subtracted
@@ -227,7 +226,7 @@ class Test__apply_orographic_enhancement(IrisTest):
         self.assertEqual(orig_oe_cube, self.sliced_oe_cube)
 
 
-class Test__apply_minimum_precip_rate(IrisTest):
+class Test__apply_minimum_precip_rate(unittest.TestCase):
     """Test the _apply_minimum_precip_rate method."""
 
     def setUp(self):
@@ -259,7 +258,7 @@ class Test__apply_minimum_precip_rate(IrisTest):
         self.assertEqual(result.units, Unit("m/s"))
         self.assertEqual(result.metadata, added_cube.metadata)
         result.convert_units("mm/hr")
-        self.assertArrayAlmostEqual(result.data, expected)
+        np.testing.assert_array_almost_equal(result.data, expected)
 
     def test_basic_subtract(self):
         """Test a minimum precipitation rate is applied, when the orographic
@@ -281,7 +280,7 @@ class Test__apply_minimum_precip_rate(IrisTest):
         self.assertEqual(result.units, Unit("m/s"))
         self.assertEqual(result.metadata, subtracted_cube.metadata)
         result.convert_units("mm/hr")
-        self.assertArrayAlmostEqual(result.data, expected)
+        np.testing.assert_array_almost_equal(result.data, expected)
 
     def test_no_min_precip_rate_applied_no_input_precip(self):
         """Test no minimum precipitation rate is applied, when the input
@@ -300,7 +299,7 @@ class Test__apply_minimum_precip_rate(IrisTest):
         self.assertEqual(result.units, Unit("m/s"))
         self.assertEqual(result.metadata, subtracted_cube.metadata)
         result.convert_units("mm/hr")
-        self.assertArrayAlmostEqual(result.data, expected)
+        np.testing.assert_array_almost_equal(result.data, expected)
 
     def test_no_min_precip_rate_applied_no_negative_rates(self):
         """Test no minimum precipitation rate is applied, when the cube
@@ -321,7 +320,7 @@ class Test__apply_minimum_precip_rate(IrisTest):
         self.assertEqual(result.units, Unit("m/s"))
         self.assertEqual(result.metadata, subtracted_cube.metadata)
         result.convert_units("mm/hr")
-        self.assertArrayAlmostEqual(result.data, expected)
+        np.testing.assert_array_almost_equal(result.data, expected)
 
     def test_no_unit_conversion(self):
         """Test that the minimum precipitation rate is applied correctly,
@@ -344,7 +343,7 @@ class Test__apply_minimum_precip_rate(IrisTest):
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(result.units, Unit("mm/hr"))
         self.assertEqual(result.metadata, subtracted_cube.metadata)
-        self.assertArrayAlmostEqual(result.data, expected)
+        np.testing.assert_array_almost_equal(result.data, expected)
 
     def test_differing_units(self):
         """Test that the minimum precipitation rate is applied correctly,
@@ -370,7 +369,7 @@ class Test__apply_minimum_precip_rate(IrisTest):
         self.assertEqual(result.units, Unit("ft/s"))
         self.assertEqual(result.metadata, subtracted_cube.metadata)
         result.convert_units("mm/hr")
-        self.assertArrayAlmostEqual(result.data, expected)
+        np.testing.assert_array_almost_equal(result.data, expected)
 
     def test_NaN_values(self):
         """Test that NaN values are preserved when they are contained within
@@ -397,10 +396,10 @@ class Test__apply_minimum_precip_rate(IrisTest):
         self.assertEqual(result.units, Unit("m/s"))
         self.assertEqual(result.metadata, subtracted_cube.metadata)
         result.convert_units("mm/hr")
-        self.assertArrayAlmostEqual(result.data, expected)
+        np.testing.assert_array_almost_equal(result.data, expected)
 
 
-class Test_process(IrisTest):
+class Test_process(unittest.TestCase):
     """Test the apply_orographic_enhancement method."""
 
     def setUp(self):
@@ -420,8 +419,8 @@ class Test_process(IrisTest):
             self.assertEqual(aresult.metadata, precip_cube.metadata)
         for cube in result:
             cube.convert_units("mm/hr")
-        self.assertArrayAlmostEqual(result[0].data, expected0)
-        self.assertArrayAlmostEqual(result[1].data, expected1)
+        np.testing.assert_array_almost_equal(result[0].data, expected0)
+        np.testing.assert_array_almost_equal(result[1].data, expected1)
 
     def test_basic_subtract(self):
         """Test the subtraction of a cube of orographic
@@ -451,8 +450,8 @@ class Test_process(IrisTest):
             self.assertEqual(aresult.metadata, precip_cube.metadata)
         for cube in result:
             cube.convert_units("mm/hr")
-        self.assertArrayAlmostEqual(result[0].data, expected0)
-        self.assertArrayAlmostEqual(result[1].data, expected1)
+        np.testing.assert_array_almost_equal(result[0].data, expected0)
+        np.testing.assert_array_almost_equal(result[1].data, expected1)
 
     def test_exception(self):
         """Test that an exception is raised if the operation requested is
@@ -491,8 +490,8 @@ class Test_process(IrisTest):
             self.assertEqual(aresult.metadata, precip_cube.metadata)
         for cube in result:
             cube.convert_units("mm/hr")
-        self.assertArrayAlmostEqual(result[0].data.data, expected0)
-        self.assertArrayAlmostEqual(result[1].data.data, expected1)
+        np.testing.assert_array_almost_equal(result[0].data.data, expected0)
+        np.testing.assert_array_almost_equal(result[1].data.data, expected1)
 
     def test_subtract_with_mask(self):
         """Test the subtraction of cubelists containing cubes of orographic
@@ -537,8 +536,8 @@ class Test_process(IrisTest):
             self.assertEqual(aresult.metadata, precip_cube.metadata)
         for cube in result:
             cube.convert_units("mm/hr")
-        self.assertArrayAlmostEqual(result[0].data.data, expected0)
-        self.assertArrayAlmostEqual(result[1].data.data, expected1)
+        np.testing.assert_array_almost_equal(result[0].data.data, expected0)
+        np.testing.assert_array_almost_equal(result[1].data.data, expected1)
 
     def test_one_input_cube(self):
         """Test the addition of precipitation rate and orographic enhancement,
@@ -551,7 +550,7 @@ class Test_process(IrisTest):
             self.assertEqual(aresult.metadata, precip_cube.metadata)
         for cube in result:
             cube.convert_units("mm/hr")
-        self.assertArrayAlmostEqual(result[0].data, expected)
+        np.testing.assert_array_almost_equal(result[0].data, expected)
 
     def test_only_one_orographic_enhancement_cube(self):
         """Test where is an orographic enhancement cube with a single time
@@ -587,8 +586,8 @@ class Test_process(IrisTest):
             self.assertEqual(aresult.metadata, precip_cube.metadata)
         for cube in result:
             cube.convert_units("mm/hr")
-        self.assertArrayAlmostEqual(result[0].data, expected0)
-        self.assertArrayAlmostEqual(result[1].data, expected1)
+        np.testing.assert_array_almost_equal(result[0].data, expected0)
+        np.testing.assert_array_almost_equal(result[1].data, expected1)
 
 
 if __name__ == "__main__":

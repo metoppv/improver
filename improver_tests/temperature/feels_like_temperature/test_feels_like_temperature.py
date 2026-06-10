@@ -8,7 +8,6 @@ import unittest
 
 import numpy as np
 import pytest
-from iris.tests import IrisTest
 
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.temperature.feels_like_temperature import (
@@ -16,6 +15,7 @@ from improver.temperature.feels_like_temperature import (
     _calculate_apparent_temperature,
     calculate_feels_like_temperature,
 )
+from improver_tests import ImproverTest
 
 MANDATORY_ATTRIBUTES = {
     "source": "Met Office Unified Model",
@@ -85,7 +85,7 @@ def test_process_outputs_expected_cube(temperature_cube, wind_speed_cube):
     np.testing.assert_allclose(result.data, expected_data, rtol=1e-6)
 
 
-class Test__calculate_apparent_temperature(IrisTest):
+class Test__calculate_apparent_temperature(unittest.TestCase):
     """Test the apparent temperature function."""
 
     def test_values(self):
@@ -98,10 +98,10 @@ class Test__calculate_apparent_temperature(IrisTest):
         result = _calculate_apparent_temperature(
             temperature, wind_speed, relh, pressure
         )
-        self.assertArrayAlmostEqual(result, expected_result, decimal=4)
+        np.testing.assert_array_almost_equal(result, expected_result, decimal=4)
 
 
-class Test_calculate_feels_like_temperature(IrisTest):
+class Test_calculate_feels_like_temperature(ImproverTest):
     """Test the feels like temperature function."""
 
     def setUp(self):
@@ -193,7 +193,7 @@ class Test_calculate_feels_like_temperature(IrisTest):
             self.relative_humidity_cube,
             self.pressure_cube,
         )
-        self.assertArrayAlmostEqual(result[0, 0].data, expected_result)
+        np.testing.assert_array_almost_equal(result[0, 0].data, expected_result)
 
     def test_temperature_between_10_and_20(self):
         """Test values of feels like temperature when temperature is between 10
@@ -209,7 +209,7 @@ class Test_calculate_feels_like_temperature(IrisTest):
             self.relative_humidity_cube,
             self.pressure_cube,
         )
-        self.assertArrayAlmostEqual(result[0, 0].data, expected_result)
+        np.testing.assert_array_almost_equal(result[0, 0].data, expected_result)
 
     def test_temperature_greater_than_20(self):
         """Test values of feels like temperature when temperature > 20
@@ -225,7 +225,7 @@ class Test_calculate_feels_like_temperature(IrisTest):
             self.relative_humidity_cube,
             self.pressure_cube,
         )
-        self.assertArrayAlmostEqual(result[0, 0].data, expected_result)
+        np.testing.assert_array_almost_equal(result[0, 0].data, expected_result)
 
     def test_temperature_range_and_bounds(self):
         """Test temperature values across the full range including boundary
@@ -249,7 +249,7 @@ class Test_calculate_feels_like_temperature(IrisTest):
             self.relative_humidity_cube[0],
             self.pressure_cube[0],
         )
-        self.assertArrayAlmostEqual(result.data, expected_result)
+        np.testing.assert_array_almost_equal(result.data, expected_result)
 
     def test_name_and_units(self):
         """Test correct outputs for name and units."""
@@ -289,7 +289,7 @@ class Test_calculate_feels_like_temperature(IrisTest):
             self.relative_humidity_cube[0],
             self.pressure_cube[0],
         )
-        self.assertArrayAlmostEqual(result.data, expected_result, decimal=4)
+        np.testing.assert_array_almost_equal(result.data, expected_result, decimal=4)
         # check inputs are unmodified
         self.assertEqual(self.temperature_cube.units, "fahrenheit")
         self.assertEqual(self.wind_speed_cube.units, "knots")

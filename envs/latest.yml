@@ -12,10 +12,11 @@ dependencies:
   - cartopy
   - clize
   - iris
+  - joblib
   - numpy
   - pytz
   - scipy
-  - sphinx
+  - sphinx<9.0.0  # https://github.com/tox-dev/sphinx-autodoc-typehints/issues/586
   # Optional
   - python-stratify
   - geopandas
@@ -26,15 +27,23 @@ dependencies:
   - pysteps
   - treelite
   - tl2cgen
+  - tensorflow
+  - tensorflow-hub
   # Development
   - astroid
   - codacy-coverage
   - filelock
   - mock
   - mypy
+  - pandas<3  # https://github.com/SciTools/iris/issues/6761
+  - proj=9.7.1  # https://github.com/metoppv/improver/issues/2325
   - pytest
   - pytest-cov
   - pytest-xdist
   - sphinx-autodoc-typehints
-  - sphinx_rtd_theme
+  - sphinx-book-theme
+  - sphinx-gallery
   - threadpoolctl
+  - pip
+  - pip:
+    - git+https://github.com/metoppv/improver_example_data.git@${BRANCH_NAME}
