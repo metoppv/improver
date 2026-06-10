@@ -1449,8 +1449,9 @@ class RealizationSelection(BasePlugin):
                 to identify that these realizations were selected using this plugin.
                 If not provided (None), no attribute is added. Example:
                 "realization_selection_method".
-            selection_attr_value: The value to assign to the selection_attr attribute.
-                Default is "cluster_medoid". Only used if selection_attr is provided.
+            selection_attr_value: The value (e.g. a description of the selection
+                method) to assign to the selection_attr attribute. Default is
+                "cluster_medoid". Only used if selection_attr is provided.
         """
         self.forecast_period = forecast_period
         self.model_id_attr = model_id_attr
@@ -1482,6 +1483,7 @@ class RealizationSelection(BasePlugin):
 
         Raises:
             ValueError: If no cluster cube is found.
+            ValueError: If no forecast cubes are found.
         """
         cluster_cube = None
         forecast_cubes = CubeList()
