@@ -29,7 +29,7 @@ class TrainRainForestsModel(BasePlugin):
         observation_column: str,
         training_columns: list[str],
         lightgbm_params: dict | None = None,
-    ):
+    ) -> None:
         """Initialise the options used when training models.
 
         Args:
@@ -101,7 +101,7 @@ class TrainRainForestsModel(BasePlugin):
         if lightgbm_params:
             self.params = self.params | lightgbm_params
 
-    def process(self, lead_time: int, thresholds: list[str]):
+    def process(self, lead_time: int, thresholds: list[str]) -> None:
         """Train models for a set of threshold values.
 
         Args:
@@ -125,7 +125,7 @@ class TrainRainForestsModel(BasePlugin):
             model_path = Path(self.config[lead_time][threshold]["lightgbm_model"])
             self._train_model(float(threshold), model_path)
 
-    def _train_model(self, threshold: float, model_path: pathlib.Path):
+    def _train_model(self, threshold: float, model_path: pathlib.Path) -> None:
         """Train a model for a particular threshold and saves it to disk.
 
         Args:

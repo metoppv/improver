@@ -24,7 +24,7 @@ class CompileRainForestsModel(BasePlugin):
         toolchain: str = "gcc",
         verbose: bool = False,
         parallel_comp: int = 0,
-    ):
+    ) -> None:
         """Initialise the options used when compiling models.
 
         Args:
@@ -77,7 +77,7 @@ class CompileRainForestsModel(BasePlugin):
         self.verbose = verbose
         self.treelight_params = {"parallel_comp": parallel_comp, "quantize": 1}
 
-    def process(self, allow_missing: bool = False):
+    def process(self, allow_missing: bool = False) -> None:
         """Compile all configured LightGBM models with Treelite.
 
         Args:
@@ -107,7 +107,9 @@ class CompileRainForestsModel(BasePlugin):
                     Path(threshold["treelite_model"]),
                 )
 
-    def _compile_model(self, lightgbm_path: pathlib.Path, output_path: pathlib.Path):
+    def _compile_model(
+        self, lightgbm_path: pathlib.Path, output_path: pathlib.Path
+    ) -> None:
         """Compile a lightgbm model with Treelite.
 
         Args:
