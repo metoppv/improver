@@ -33,6 +33,7 @@ from improver.utilities.temporal import (
     iris_time_to_datetime,
     relabel_to_period,
     reset_forecast_reference_time_and_period,
+    validate_cycletime_format,
 )
 
 
@@ -680,6 +681,22 @@ def test_reset_forecast_reference_time_parametrized(
     reset_forecast_reference_time_and_period(frt_cube, new_cycletime)
     result_fp_seconds = frt_cube.coord("forecast_period").points[0]
     assert result_fp_seconds == expected_forecast_period_hours * 3600
+
+
+def test_validate_cycletime_format_raise_error():
+    """Test that a ValueError is raised if an invalid cycletime format is
+    supplied to the datetime_to_cycletime function."""
+    with pytest.raises(ValueError):
+        validate_cycletime_format("2017/11/22 01:00")
+
+
+def test_validate_cycletime_format_valid():
+    """Test that no error is raised if a valid cycletime format is supplied to
+    the validate_cycletime_format function."""
+    try:
+        validate_cycletime_format("20171122T0100Z")
+    except ValueError:
+        pytest.fail("validate_cycletime_format raised ValueError unexpectedly")
 
 
 if __name__ == "__main__":
