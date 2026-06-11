@@ -30,7 +30,7 @@ class StochasticNoise(BasePlugin):
     to unrealistic individual members (e.g. single-pixel precipitation artifacts) when
     multiple raw ensemble members have identical values ('ties') of zero (very common
     in precipitation forecasts) and the post-processed calibrated probabilities
-    indicate a non-zero value should occur. By adding spatially-structured stochastic*
+    indicate a non-zero value should occur. By adding spatially-structured stochastic
     noise to break ties in these non-positive regions, more realistic spatial structures
     can be generated in the final ECC-Q realizations, while still respecting the
     calibrated probabilities.
