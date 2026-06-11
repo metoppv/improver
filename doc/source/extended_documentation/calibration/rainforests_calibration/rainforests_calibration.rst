@@ -94,12 +94,15 @@ Implementation details
 Model training
 ===========================
 
-..
-    TODO: Add more specific details when model training Plugin is incorporated into IMPROVER.
-
 The model training process is relatively simple and involves collating a series of
 forecast-observation pairs with the associated feature variables into a single pandas
-dataframe. In general, each ensemble member yields a separate row of the dataframe, although for 
+dataframe.
+
+.. csv-table:: Example training data frame (truncated)
+    :file: ./rainforests_training_dataframe_example.csv
+    :header-rows: 1
+
+In general, each ensemble member yields a separate row of the dataframe, although for 
 reasons of computational efficiency it may be desirable to only use a subset of members, for example 
 by using only the control realization in each ensemble. 
 As each model predicts the probability that rainfall will exceed a particular threshold, 
