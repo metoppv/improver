@@ -7,6 +7,23 @@ from copy import deepcopy
 from iris.coords import AuxCoord
 from iris.cube import Cube
 
+POLLEN_SHORTNAME_2_LATIN = {
+    # Grasses
+    "grass": "Poaceae",
+    # Trees
+    "birch": "Betula",
+    "oak": "Quercus",
+    "hazel": "Corylus",
+    "alder": "Alnus",
+    "ash": "Fraxinus",
+    "plane": "Platanus",
+    # Weeds
+    # Nettle is renamed to weed in the output cubes but kept here for
+    # understanding how the input cubes for Nettle map to the output cubes as Weed
+    "nettle": "Urticaceae",
+    "weed": "Urticaceae",
+}
+
 
 def build_output_cube_with_new_units(self, cube: Cube, new_units) -> Cube:
     """Build the output cube as a copy of the input cube, adjusting units.

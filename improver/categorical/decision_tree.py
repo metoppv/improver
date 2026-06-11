@@ -87,8 +87,8 @@ class ApplyDecisionTree(BasePlugin):
         maximum_time_discrepancy: int = 0,
     ) -> None:
         """
-        Define a decision tree for determining a category based upon
-        the input diagnostics. Use this decision tree to allocate a category to each location.
+        Define a decision tree for determining a category based upon the input
+        diagnostics. Use this decision tree to allocate a category to each location.
 
         Args:
             decision_tree:
@@ -118,9 +118,12 @@ class ApplyDecisionTree(BasePlugin):
                 must have exactly the same validity time. If set to a positive
                 integer, cubes with validity times differing by up to this value
                 will be accepted. Must be a non-negative integer.
+        Raises:
+            ValueError:
+                If the maximum_time_discrepancy is a negative integer.
 
-        float_tolerance defines the tolerance when matching thresholds to allow
-        for the difficulty of float comparisons.
+        float_tolerance defines the tolerance, set at 0.001, for matching thresholds to
+        accommodate the difficulty of float comparisons.
         float_abs_tolerance defines the tolerance for when the threshold
         is zero. It has to be sufficiently small that a valid rainfall rate
         or snowfall rate could not trigger it.
@@ -136,7 +139,7 @@ class ApplyDecisionTree(BasePlugin):
         self.queries = update_tree_thresholds(
             {k: v for k, v in decision_tree.items() if k != "meta"}, target_period
         )
-        self.float_tolerance = 0.01
+        self.float_tolerance = 0.001
         self.float_abs_tolerance = 1e-12
         # flag to indicate whether to expect "threshold" as a coordinate name
         # (defaults to False, checked on reading input cubes)
@@ -172,8 +175,12 @@ class ApplyDecisionTree(BasePlugin):
             - A list of node names where the diagnostic data is missing and
               this is indicated as allowed by the presence of the if_diagnostic_missing
               key.
+            - A list of node names where the diagnostic data is missing which is
+              indicated as allowed by the if_diagnostic_missing key.
 
         Raises:
+            ValueError:
+                Raises a ValueError if multiple matching thresholds are found.
             IOError:
                 Raises an IOError if any of the required input data is missing.
                 The error includes details of which fields are missing.
@@ -237,13 +244,16 @@ class ApplyDecisionTree(BasePlugin):
                     if threshold_name == "threshold" and not self.coord_named_threshold:
                         self.coord_named_threshold = True
 
-                    # Check threshold == 0.0
+                    # Special case - if threshold is ~ 0.0
+                    # use an absolute tolerance for close values
                     if abs(threshold) < self.float_abs_tolerance:
                         coord_constraint = {
                             threshold_name: lambda cell: np.isclose(
                                 cell.point, 0, rtol=0, atol=self.float_abs_tolerance
                             )
                         }
+                    # General case - if threshold is non-zero
+                    # use a relative tolerance for close values
                     else:
                         coord_constraint = {
                             threshold_name: lambda cell: np.isclose(
@@ -252,7 +262,7 @@ class ApplyDecisionTree(BasePlugin):
                         }
 
                     # Checks whether the spp__relative_to_threshold attribute is above
-                    # or below a threshold and and compares to the diagnostic_condition.
+                    # or below a threshold and compares to the diagnostic_condition.
                     test_condition = iris.Constraint(
                         coord_values=coord_constraint,
                         cube_func=lambda cube: (
@@ -266,10 +276,22 @@ class ApplyDecisionTree(BasePlugin):
                             f"spp__relative_to_threshold: {condition}\n"
                         )
                     else:
-                        used_cubes.extend(matched_threshold)
+                        num_thresholds = len(
+                            matched_threshold[0].coord(threshold_name).points
+                        )
+                        if num_thresholds > 1:
+                            raise ValueError(
+                                f"Multiple ({num_thresholds}) matching thresholds found"
+                                f" for name: {diagnostic}, threshold {threshold}"
+                            )
+                        else:
+                            used_cubes.extend(matched_threshold)
 
         if missing_data:
-            msg = "Decision Tree input cubes are missing the following required input fields:\n"
+            msg = (
+                "Decision Tree input cubes are missing the following required "
+                "input fields:\n"
+            )
             for dyn_msg in missing_data:
                 msg += dyn_msg
             raise IOError(msg)
@@ -471,7 +493,7 @@ class ApplyDecisionTree(BasePlugin):
                 original cubes, just constructs to associate units with values.
             coord_named_threshold:
                 If true, use old naming convention for threshold coordinates
-                (coord.long_name=threshold).  Otherwise extract threshold
+                (coord.long_name=threshold). Otherwise, extract threshold
                 coordinate name from diagnostic name
 
         Returns:
@@ -512,7 +534,7 @@ class ApplyDecisionTree(BasePlugin):
         input diagnostic. This code modifies the tree in the following ways:
 
            - Rewrites the decision tree to skip the missing nodes by connecting
-             nodes that proceed them to the node targetted by "if_diagnostic_missing"
+             nodes that proceed them to the node targeted by "if_diagnostic_missing"
            - If the node(s) missing are those at the start of the decision
              tree, the start_node is modified to find the first available node.
 
