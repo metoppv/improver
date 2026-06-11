@@ -24,6 +24,7 @@ def process(
     max_batch: int = 1,
     parallel_backend: str = None,
     n_workers: int = 1,
+    treat_period_as_instantaneous: bool = False,
 ):
     """Fill gaps in the forecast trajectory using temporal interpolation.
 
@@ -107,6 +108,12 @@ def process(
             If using parallel_backend, the number of workers to use for
             parallel processing. Default is None, which results in the use of
             1 core.
+        treat_period_as_instantaneous (bool):
+            If True, period diagnostics (inputs with time bounds) are treated
+            as instantaneous values for interpolation. No period-specific
+            renormalisation or max/min constraints are applied. Cannot be
+            combined with accumulation, max, or min period-type specifiers.
+            Default is False.
 
     Returns:
         iris.cube.Cube:
@@ -132,6 +139,7 @@ def process(
         max_batch=max_batch,
         parallel_backend=parallel_backend,
         n_workers=n_workers,
+        treat_period_as_instantaneous=treat_period_as_instantaneous,
     )
 
     result = plugin.process(*cubes)
