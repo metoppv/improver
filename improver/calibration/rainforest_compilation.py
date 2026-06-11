@@ -2,8 +2,12 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
+"""Plugin to compile RainForests models.
 
-"""RainForests model compilation plugin."""
+A detailed description of RainForests appears under the
+:doc:`rainforest_calibration module <improver.calibration.rainforest_calibration>`
+
+"""
 
 import pathlib
 from pathlib import Path
@@ -42,25 +46,27 @@ class CompileRainForestsModel(BasePlugin):
             parallel_comp:
                 Enables parallel compilation to reduce time and memory consumption.
                 Value is the number of processes to use.
-                Defaults to 0 (no parallel compilation)
+                Defaults to 0 (no parallel compilation).
 
-        Dictionary is of format::
+        Dictionary is of format
 
-        {
-        "24": {
-            "0.000010": {
-                "lightgbm_model": "<path_to_lightgbm_model_object>",
-                "treelite_model": "<path_to_treelite_model_object>"
-            },
-            "0.000050": {
-                "lightgbm_model": "<path_to_lightgbm_model_object>",
-                "treelite_model": "<path_to_treelite_model_object>"
-            },
-            "0.000100": {
-                "lightgbm_model": "<path_to_lightgbm_model_object>",
-                "treelite_model": "<path_to_treelite_model_object>"
-            },
-        }
+        .. code-block:: json
+
+            {
+            "24": {
+                "0.000010": {
+                    "lightgbm_model": "<path_to_lightgbm_model_object>",
+                    "treelite_model": "<path_to_treelite_model_object>"
+                },
+                "0.000050": {
+                    "lightgbm_model": "<path_to_lightgbm_model_object>",
+                    "treelite_model": "<path_to_treelite_model_object>"
+                },
+                "0.000100": {
+                    "lightgbm_model": "<path_to_lightgbm_model_object>",
+                    "treelite_model": "<path_to_treelite_model_object>"
+                },
+            }
 
         The keys specify the lead times and model threshold values, while the
         associated values are the path to the corresponding tree-model objects

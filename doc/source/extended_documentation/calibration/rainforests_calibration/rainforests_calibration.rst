@@ -15,7 +15,7 @@ Sub-grid variability as a means of calibration
 Like ECPoint, RainForests aims to calibrate grid-scale rainfall forecasts by accounting 
 for sub-grid variability. Sub-grid variability in this context describes the relationship 
 between the point observations one would expect to measure within a grid box and the
-areal average grid-scale NWP forecast value. This relationship is represented by a mapping that 
+real average grid-scale NWP forecast value. This relationship is represented by a mapping that 
 takes each NWP forecast value and maps it to a distribution of expected observed values.
 
 Naturally the relationship between this distribution and the forecast value is contingent
@@ -36,7 +36,7 @@ the final calibrated probability output.
 One advantage of the ECPoint approach is that the calibration is inherently non-local. As the calibration is done by
 identifying distinct weather types, the model bias and scale difference should be independent of any given location and time as 
 the underlying physical process should be identical. Thus a grid-point can be calibrated using data from any location, provided the 
-underlying weather type is the consistent. This enables effective calibration to be applied to areas that are typically lacking 
+underlying weather type is consistent. This enables effective calibration to be applied to areas that are typically lacking 
 sufficient cases to calibrate against.
 
 
@@ -76,7 +76,7 @@ some advantages, but at the expense of some trade-offs:
   chosen to be optimal relative to the loss function. In principle this gives better
   accuracy, and makes it easier to retrain on new data.
 
-**trade-offs:**
+**Trade-offs:**
 
 * By using an ensemble of trees, the intuitive connection between weather type and feature
   variables becomes obscured.
@@ -94,12 +94,15 @@ Implementation details
 Model training
 ===========================
 
-..
-    TODO: Add more specific details when model training Plugin is incorporated into IMPROVER.
-
 The model training process is relatively simple and involves collating a series of
 forecast-observation pairs with the associated feature variables into a single pandas
-dataframe. In general, each ensemble member yields a separate row of the dataframe, although for 
+dataframe.
+
+.. csv-table:: Example training data frame (truncated)
+    :file: ./rainforests_training_dataframe_example.csv
+    :header-rows: 1
+
+In general, each ensemble member yields a separate row of the dataframe, although for 
 reasons of computational efficiency it may be desirable to only use a subset of members, for example 
 by using only the control realization in each ensemble. 
 As each model predicts the probability that rainfall will exceed a particular threshold, 
