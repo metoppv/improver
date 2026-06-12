@@ -85,6 +85,9 @@ def process(
             "associated height level has been provided. These units "
             "will have no effect."
         )
+
+    # Attempt to iterate over the wind data by 'realization', and apply corrections to each member.
+    # If the cube has no realization coordinate (e.g. deterministic model data), treat the entire cube as a single member.
     try:
         wind_speed_iterator = wind_speed.slices_over("realization")
     except CoordinateNotFoundError:
@@ -92,20 +95,25 @@ def process(
     wind_speed_list = iris.cube.CubeList()
     for wind_speed_slice in wind_speed_iterator:
         result = wind_downscaling.RoughnessCorrection(
-            silhouette_roughness,
-            sigma,
-            target_orography,
-            standard_orography,
-            model_resolution,
-            z0_cube=vegetative_roughness,
+            model_silhouette_roughness_cube=silhouette_roughness,
+            model_orog_stddev_cube=sigma,
+            target_orog_cube=target_orography,
+            model_orog_cube=standard_orography,
+            model_res=model_resolution,
+            model_z0_cube=vegetative_roughness,
             height_levels_cube=None,
         )(wind_speed_slice)
         wind_speed_list.append(result)
-
     wind_speed = wind_speed_list.merge_cube()
+
+    # Check whether 'realization' exists as a non-dimension coordinate.
+    # If so, reinsert it as a proper dimension axis so the cube has the expected shape.
     non_dim_coords = [x.name() for x in wind_speed.coords(dim_coords=False)]
     if "realization" in non_dim_coords:
         wind_speed = iris.util.new_axis(wind_speed, "realization")
+
+    # If a specific output height is requested, use apply_extraction to select
+    # the corresponding height level from the processed wind cube.
     if output_height_level is not None:
         constraints = {"height": output_height_level}
         units = {"height": output_height_level_units}
@@ -121,4 +129,5 @@ def process(
                 )
             )
         wind_speed = single_level
+
     return wind_speed
