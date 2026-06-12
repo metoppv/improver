@@ -7,7 +7,7 @@ import pytest
 from iris.cube import Cube, CubeList
 
 from improver.fire_weather.initial_spread_index import InitialSpreadIndex
-from improver_tests.fire_weather import START_DATE_DICT, make_input_cubes
+from improver_tests.fire_weather import INPUT_ATTRIBUTES, make_input_cubes
 
 
 def input_cubes(
@@ -36,8 +36,8 @@ def input_cubes(
         Tuple of Iris Cubes for wind speed and FFMC.
     """
     cube_args = [
-        ("wind_speed", wind_val, wind_units, False, START_DATE_DICT),
-        ("fine_fuel_moisture_content", ffmc_val, ffmc_units, True, START_DATE_DICT),
+        ("wind_speed", wind_val, wind_units, False, INPUT_ATTRIBUTES),
+        ("fine_fuel_moisture_code", ffmc_val, ffmc_units, True, INPUT_ATTRIBUTES),
     ]
     return make_input_cubes(cube_args, shape=shape)
 
@@ -71,7 +71,7 @@ def test__calculate_fine_fuel_moisture(
         ffmc_val:
             FFMC value to test.
         expected_fm:
-            Expected fine fuel moisture content.
+            Expected fine fuel moisture code.
     """
     cubes = input_cubes(wind_val=10.0, ffmc_val=ffmc_val)
     plugin = InitialSpreadIndex()

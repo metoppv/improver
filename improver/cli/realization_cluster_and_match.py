@@ -15,10 +15,12 @@ def process(
     hierarchy: cli.inputjson,
     n_clusters: int,
     model_id_attr: str = "mosg__model_configuration",
+    cycletime: str = None,
     target_grid_name: str = "target_grid",
     clustering_method: str = "KMedoids",
     regrid_mode: str = "esmf-area-weighted",
     regrid_for_clustering: bool = True,
+    renumber_primary_realizations: bool = True,
     clustering_kwargs: cli.inputjson = None,
     regrid_kwargs: cli.inputjson = None,
 ):
@@ -61,6 +63,12 @@ def process(
             Name of the attribute used to identify different models within
             the input cubes.
             Default: "mosg__model_configuration"
+        cycletime (str):
+            The forecast_reference_time on the input cubes will be reset to
+            this value. The forecast periods will be adjusted accordingly with
+            the validity times kept fixed. cycletime should be provided in the format
+            YYYYMMDDTHHMMZ (e.g., 20240101T0000Z). If not provided, the
+            forecast_reference_time on the input cubes will be left unchanged.
         target_grid_name (str):
             Name of the target grid cube for regridding. The input cubes
             must include a cube with this name.
@@ -78,6 +86,15 @@ def process(
             before clustering and matching. This can speed up computation and emphasise
             large-scale spatial features for clustering. If False, clustering and
             matching are performed on the original grids without regridding.
+            Default: True
+        renumber_primary_realizations (bool):
+            If True (default), primary input cubes will have their realization
+            coordinates renumbered to contiguous integers (0 to n_realizations-1)
+            after clustering and matching. This allows seamless merging of primary
+            cubes with different realization numbering schemes. If False, original
+            realization numbering is preserved. When False, a UserWarning is issued
+            if primary input cubes have differing realization numbering, as this
+            may cause merge failures.
             Default: True
         clustering_kwargs (dict):
             Additional keyword arguments to pass to the clustering method.
@@ -135,7 +152,9 @@ def process(
         target_grid_name=target_grid_name,
         regrid_mode=regrid_mode,
         regrid_for_clustering=regrid_for_clustering,
+        renumber_primary_realizations=renumber_primary_realizations,
         regrid_kwargs=regrid_kw,
+        cycletime=cycletime,
         **clustering_kw,
     )
 

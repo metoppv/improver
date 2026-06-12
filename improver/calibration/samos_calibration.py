@@ -327,7 +327,7 @@ class TrainGAMsForSAMOS(BasePlugin):
                 "The window_length input must be an integer greater than 1 when "
                 f"using a trailing rolling window. Received: {window_length}."
             )
-        elif raise_window_warning or window_length % 2 != 0:
+        elif (raise_window_warning or window_length % 2 != 0) and not trailing_window:
             # Additionally, check if window_length is even when using a centred window.
             raise ValueError(
                 "The window_length input must be an even integer greater than 1 "

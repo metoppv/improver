@@ -8,6 +8,7 @@ dependencies:
   - cartopy
   - clize
   - iris=3.12
+  - joblib
   - numpy=2.2
   - pandas<3  # https://github.com/SciTools/iris/issues/6761
   - proj=9.7.1  # https://github.com/metoppv/improver/issues/2325
