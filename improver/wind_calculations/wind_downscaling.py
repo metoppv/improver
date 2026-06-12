@@ -16,6 +16,7 @@ from numpy import ndarray
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.constants import RMDI
+from improver.utilities.cube_extraction import apply_extraction
 
 # Fractional tolerance used when deciding whether an absolute correction to
 # the computed reference height is significant. Corrections smaller than this
@@ -1219,3 +1220,130 @@ class WindTerrainAdjustment(PostProcessingPlugin):
         output_cube.transpose(np.argsort(output_dims))
 
         return output_cube
+
+
+class ApplyWindDownscaling(PostProcessingPlugin):
+    """High-level plugin wrapper for applying wind downscaling corrections.
+
+    This plugin provides a simple external interface around
+    WindTerrainAdjustment, to apply this to a given wind-speed cube, which may
+    contain multiple realizations.
+
+    The plugin can also optionally extract a single height level from the corrected wind cube.
+
+    Notes:
+        - Realizations are processed independently and then merged.
+        - If 'output_height_level' is provided, the returned cube is
+          constrained to that height.
+    """
+
+    def __init__(
+        self,
+        model_resolution: float,
+        output_height_level: Optional[float] = None,
+        output_height_level_units: str = "m",
+        mode: str = "hc_and_rc",
+    ) -> None:
+        """Initialise the wind-downscaling application plugin.
+
+        Args:
+            model_resolution:
+                Native horizontal resolution of the model grid (metres).
+            output_height_level:
+                Optional target height for extraction from the corrected wind
+                cube. If None, all available height levels are returned.
+            output_height_level_units:
+                Units for output_height_level when extracting a single
+                level (for example "m").
+            mode:
+                Which correction(s) to apply: "hc_and_rc" (default), "hc",
+                or "rc". Passed to the WindTerrainAdjustment plugin.
+        """
+        self.model_resolution = model_resolution
+        self.output_height_level = output_height_level
+        self.output_height_level_units = output_height_level_units
+
+    def process(
+        self,
+        wind_speed: Cube,
+        model_orog_stddev: Cube,
+        target_orog: Cube,
+        model_orog: Cube,
+        model_silhouette_roughness: Cube,
+        model_z0: Optional[Cube] = None,
+    ) -> Cube:
+        """Apply wind downscaling, and optionally extract one height level.
+
+        The method applies WindTerrainAdjustment to each realization in the
+        input wind field. If no realization coordinate is present, the input
+        is treated as a single deterministic field.
+
+        Args:
+            wind_speed:
+                Input wind-speed cube to be corrected. May be deterministic,
+                or contain a realization coordinate.
+            model_orog_stddev:
+                Ancillary cube of model orography standard deviation (m).
+            target_orog:
+                Ancillary cube of target (post-processing grid) orography (m).
+            model_orog:
+                Ancillary cube of model-grid orography (m), regridded to the
+                post-processing grid.
+            model_silhouette_roughness:
+                Ancillary cube of model silhouette roughness (dimensionless).
+            model_z0:
+                Optional ancillary cube of roughness length (m). Required for
+                roughness correction.
+
+        Returns:
+            Corrected wind-speed cube. If output_height_level was set, this
+            is constrained to that single height.
+
+        Raises:
+            ValueError:
+                If a requested single output height cannot be extracted from
+                the corrected wind cube.
+        """
+        try:
+            wind_speed_iterator = wind_speed.slices_over("realization")
+        except CoordinateNotFoundError:
+            wind_speed_iterator = [wind_speed]
+
+        wind_speed_list = iris.cube.CubeList()
+        for wind_speed_slice in wind_speed_iterator:
+            result = WindTerrainAdjustment(
+                model_silhouette_roughness_cube=model_silhouette_roughness,
+                model_orog_stddev_cube=model_orog_stddev,
+                target_orog_cube=target_orog,
+                model_orog_cube=model_orog,
+                model_res=self.model_resolution,
+                model_z0_cube=model_z0,
+                height_levels_cube=None,
+                mode="hc_and_rc",
+            )(wind_speed_slice)
+            wind_speed_list.append(result)
+
+        wind_speed = wind_speed_list.merge_cube()
+
+        non_dim_coords = [coord.name() for coord in wind_speed.coords(dim_coords=False)]
+        if "realization" in non_dim_coords:
+            wind_speed = iris.util.new_axis(wind_speed, "realization")
+
+        if self.output_height_level is not None:
+            single_level = apply_extraction(
+                wind_speed,
+                iris.Constraint(height=self.output_height_level),
+                {"height": self.output_height_level_units},
+            )
+            if not single_level:
+                raise ValueError(
+                    "Requested height level not found, no cube "
+                    "returned. Available height levels are:\n"
+                    "{0:}\nin units of {1:}".format(
+                        wind_speed.coord("height").points,
+                        wind_speed.coord("height").units,
+                    )
+                )
+            wind_speed = single_level
+
+        return wind_speed
