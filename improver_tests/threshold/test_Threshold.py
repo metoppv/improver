@@ -654,6 +654,30 @@ def test_expected_values(default_cube, kwargs, collapse, comparator, expected_re
             np.r_[[2] * 9, [1] * 9, [4] * 9, [5] * 9].reshape((2, 2, 3, 3)),
             np.full((2, 3, 3), 0.5).astype(np.float32),
         ),
+        # Data with some values equal to 3.0, threshold is 3.0, expect 1.0 where data==3.0, else 0.0
+        (
+            {"threshold_values": 3.0, "comparison_operator": "eq"},
+            1,
+            1,
+            np.array([[1, 2, 3], [3, 4, 5], [3, 3, 0]]),
+            np.array([[0, 0, 1], [1, 0, 0], [1, 1, 0]], dtype=np.float32),
+        ),
+        # Data with no values equal to 4.0, threshold is 4.0, expect all zeros
+        (
+            {"threshold_values": 4.0, "comparison_operator": "eq"},
+            1,
+            1,
+            np.array([[1, 2, 3], [3, 2, 5], [3, 3, 0]]),
+            np.zeros((3, 3), dtype=np.float32),
+        ),
+        # Symbolic alias "==" works identically to "eq"
+        (
+            {"threshold_values": 3.0, "comparison_operator": "=="},
+            1,
+            1,
+            np.array([[1, 2, 3], [3, 4, 5], [3, 3, 0]]),
+            np.array([[0, 0, 1], [1, 0, 0], [1, 1, 0]], dtype=np.float32),
+        ),
     ],
 )
 def test_bespoke_expected_values(custom_cube, kwargs, expected_result):

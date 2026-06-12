@@ -9,12 +9,19 @@
 # the regridding reference results are manually checked for different methods
 # not using "set_up_variable_cube" because of different spacing at lat/lon
 
+from unittest.mock import patch
+
 import numpy as np
 import pytest
 
 from improver.regrid.bilinear import basic_indexes
-from improver.regrid.grid import calculate_input_grid_spacing, latlon_from_cube
+from improver.regrid.grid import (
+    calculate_input_grid_spacing,
+    ensure_ascending_coord,
+    latlon_from_cube,
+)
 from improver.regrid.landsea import RegridLandSea
+from improver.regrid.landsea2 import RegridWithLandSeaMask
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.pad_spatial import pad_cube_with_halo
 
@@ -331,3 +338,18 @@ def test_target_domain_bigger_than_source_domain(regridder, landmask, maskedinpu
         np.testing.assert_array_equal(
             regrid_out_pad.data, np.full_like(regrid_out_pad.data, np.nan)
         )
+
+
+def test_correct_args_passed_to_calculate_input_grid_spacing():
+    """Test that the correct arguments are passed to the
+    calculate_input_grid_spacing() function."""
+    cube_in, cube_out_mask, cube_in_mask = define_source_target_grid_data()
+    cube_in = ensure_ascending_coord(cube_in)
+    rtol = 0.0123
+
+    with patch("improver.regrid.landsea2.calculate_input_grid_spacing") as mock_fn:
+        mock_fn.return_value = (5.0, 10.0)
+        RegridWithLandSeaMask(regrid_mode="bilinear-2", rtol_grid_spacing=rtol)(
+            cube_in=cube_in, cube_in_mask=cube_in_mask, cube_out_mask=cube_out_mask
+        )
+        mock_fn.assert_called_once_with(cube_in=cube_in, rtol=rtol)

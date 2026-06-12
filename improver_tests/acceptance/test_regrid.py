@@ -292,3 +292,37 @@ def test_regrid_bilinear_landmask_2_multi_realization(tmp_path):
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path, atol=0.05)
+
+
+def test_regrid_bilinear_2_irregular_input(tmp_path):
+    """Test bilinear-2 regridding with an irregular input grid.
+
+    The intention is to demonstrate/verify that, for an input grid with
+    a minor aberration in its latitudes, the default relative tolerance
+    value used by the regrid CLI should cause an exception, but a more
+    generous rtol will allow the CLI to run and produce correct outputs.
+    """
+    kgo_dir = acc.kgo_root() / "regrid"
+    kgo_path = kgo_dir / "basic/kgo.nc"
+    # Note use of irregular global cutout test data here
+    input_path = kgo_dir / "irregular_global_cutout.nc"
+    target_path = kgo_dir / "ukvx_grid.nc"
+    output_path = tmp_path / "output.nc"
+
+    args = [
+        input_path,
+        target_path,
+        "--output",
+        output_path,
+        "--regrid-mode",
+        "bilinear-2",
+    ]
+    with pytest.raises(
+        ValueError, match="Coordinate latitude points are not equally spaced"
+    ):
+        run_cli(args)
+
+    # Now use more generous rtol than default
+    args.append("--rtol-grid-spacing=4.0e-3")
+    run_cli(args)
+    acc.compare(output_path, kgo_path)

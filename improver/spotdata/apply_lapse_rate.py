@@ -30,6 +30,7 @@ class SpotLapseRateAdjust(PostProcessingPlugin):
         self,
         neighbour_selection_method: str = "nearest",
         fixed_lapse_rate: float = None,
+        ignore_grid_match: bool = False,
     ) -> None:
         """
         Args:
@@ -55,10 +56,23 @@ class SpotLapseRateAdjust(PostProcessingPlugin):
                 cube. Value is given in Kelvin / metre of temperature change
                 with ascent. For example a dry adiabatic lapse rate would be
                 given as -0.0098.
+            ignore_grid_match (bool):
+                If True, the coordinate hash comparison between the diagnostic cube and
+                the neighbour cube will be ignored. This is not recommended, but allows
+                the version of Iris and/or Numpy in the plug-in execution environment
+                to be different from those that generated the neighbour cube.
+                If False, the grid match check will be performed and an error raised if
+                the cubes do not match. The default is False, and it is recommended to
+                ensure that the neighbour cube is generated on the same grid as the
+                diagnostic cube to avoid any potential issues with incorrect coordinate
+                extraction.
+                @TODO: Remove this option once the hash calculation is more robust and
+                can be reliably used across different versions of Iris and Numpy.
         """
         self.neighbour_selection_method = neighbour_selection_method
         self.fixed_lapse_rate = fixed_lapse_rate
         self.use_fixed_lr = self.fixed_lapse_rate is not None
+        self.ignore_grid_match = ignore_grid_match
 
     def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
@@ -153,7 +167,8 @@ class SpotLapseRateAdjust(PostProcessingPlugin):
                 )
 
         # Check the cubes are compatible.
-        check_grid_match(cubes_to_check)
+        if not self.ignore_grid_match:
+            check_grid_match(cubes_to_check)
 
     def get_gridded_lapse_rate(
         self,
@@ -166,7 +181,8 @@ class SpotLapseRateAdjust(PostProcessingPlugin):
         spot data shape.
         """
         spot_lapse_rate = SpotExtraction(
-            neighbour_selection_method=self.neighbour_selection_method
+            neighbour_selection_method=self.neighbour_selection_method,
+            ignore_grid_match=self.ignore_grid_match,
         )(neighbour_cube, gridded_lapse_rate_cube)
         return iris.util.broadcast_to_shape(
             spot_lapse_rate.data, spot_data_cube.shape, [-1]

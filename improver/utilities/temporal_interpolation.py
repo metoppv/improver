@@ -121,6 +121,7 @@ class TemporalInterpolation(BasePlugin):
         times: Optional[List[datetime]] = None,
         interpolation_method: str = "linear",
         accumulation: bool = False,
+        is_last_timestep: bool = False,
         max: bool = False,
         min: bool = False,
         model_path: Optional[str] = None,
@@ -157,6 +158,9 @@ class TemporalInterpolation(BasePlugin):
                 that the total across the period constructed from the shorter
                 intervals matches the total across the period from the coarser
                 intervals.
+            is_last_timestep:
+                When True and accumulation is True, the second input is duplicated as
+                the third input to the interpolation.
             max:
                 Set True if the diagnostic being temporally interpolated is a
                 period maximum. Trends between adjacent input periods will be used
@@ -257,6 +261,11 @@ class TemporalInterpolation(BasePlugin):
                 f"min = {min}"
             )
         self.accumulation = accumulation
+        self.is_last_timestep = is_last_timestep
+        if not self.accumulation and self.is_last_timestep:
+            warnings.warn(
+                "Ignoring 'is_last_timestep=True' for non-accumulation interpolation."
+            )
         self.max = max
         self.min = min
         self.max_batch = max_batch
@@ -560,37 +569,97 @@ class TemporalInterpolation(BasePlugin):
                 all_bounds.append([start, end])
             interpolated_cube.coord(crd).bounds = all_bounds
 
-    @staticmethod
     def _calculate_accumulation(
-        cube_t0: Cube, period_reference: Cube, interpolated_cube: Cube
+        self, cube_t0: Cube, cube_t1: Cube, cube_t2: Cube, interpolated_cube: Cube
     ):
-        """If the input is an accumulation we use the trapezium rule to
-        calculate a new accumulation for each output period from the rates
-        we converted the accumulations to prior to interpolating. We then
-        renormalise to ensure the total accumulation across the period is
-        unchanged by expressing it as a series of shorter periods.
+        """Reconstruct sub-period accumulations from interpolated rates using a piecewise-linear (trapezoidal) representation.
 
-        The interpolated cube is modified in place.
+        Starting from three consecutive accumulation periods (t0, t1, t2), we:
+            - Convert accumulations to mean rates.
+            - Define:
+                - start_rate: mean of t0 and t1
+                - end_rate: mean of t1 and t2
+                - mid_rate: adjusted rate at the centre of t1, such that integrating the piecewise-linear profile over
+                  t1 reproduces the original t1 total.
+
+        The mid-point in time is taken as the centre of the t1 bounds. Rates are then assumed to vary linearly:
+            - from start_rate to mid_rate over the first half
+            - from mid_rate to end_rate over the second half
+
+        For each output period, the mean rate is obtained by evaluating this piecewise-linear profile at the midpoint
+        of the output interval. If an interval straddles the mid-point, the rate is computed as the average of the two
+        halves.
+
+        To prevent non-physical negative values, the mid-point is truncated to zero and the final sub-period
+        accumulations are later renormalised to conserve the total accumulation over t1.
+
+        To account for this mid-point truncation in neighbouring periods, the start/mid and end/mid slopes are
+        adjusted using _truncate_rates_at_zero.
+
+        The input interpolated_cube is modified in place.
 
         Args:
             cube_t0:
-                The input cube corresponding to the earlier time.
-            period_reference:
-                The input cube corresponding to the later time, with the
-                values prior to conversion to rates.
+                The input cube containing the average rate of the previous time window.
+            cube_t1:
+                The input cube containing the average rate of the current time window.
+            cube_t2:
+                The input cube containing the average rate of the next time window.
             interpolated_cube:
                 The cube containing the interpolated times, which includes
                 the data corresponding to the time of the later of the two
                 input cubes.
         """
-        # Calculate an average rate for the period from the edges
-        accumulation_edges = [cube_t0, *interpolated_cube.slices_over("time")]
-        period_rates = np.array(
-            [
-                (a.data + b.data) / 2
-                for a, b in zip(accumulation_edges[:-1], accumulation_edges[1:])
-            ]
-        )
+        start_rate = 0.5 * (cube_t0.data + cube_t1.data)
+        start_point, end_point = cube_t1.coord("time").bounds[0]
+        end_rate = 0.5 * (cube_t1.data + cube_t2.data)
+        mid_rate = 2 * cube_t1.data - 0.5 * (start_rate + end_rate)
+        mid_point = 0.5 * (end_point + start_point)
+
+        self._truncate_rates_at_zero(start_rate, mid_rate)
+        self._truncate_rates_at_zero(end_rate, mid_rate)
+        mid_rate = np.clip(mid_rate, a_min=0, a_max=None)
+        # Calculate an average rate for the period between start and mid, or mid and end.
+        period_rates = []
+        for interpolated_bounds in interpolated_cube.coord("time").bounds:
+            interpolated_midpoint = 0.5 * (
+                interpolated_bounds[0] + interpolated_bounds[1]
+            )
+
+            # Determine  which half of the period we're in
+            straddles_mid = interpolated_bounds[0] < mid_point < interpolated_bounds[1]
+
+            if straddles_mid:
+                # Split calculation at mid-point
+                mid_point_before = 0.5 * (
+                    interpolated_midpoint + interpolated_bounds[0]
+                )
+                mid_point_after = 0.5 * (interpolated_midpoint + interpolated_bounds[1])
+
+                first_half_rate = self._interpolate_rate(
+                    start_point, start_rate, mid_point, mid_rate, mid_point_before
+                )
+                second_half_rate = self._interpolate_rate(
+                    mid_point, mid_rate, end_point, end_rate, mid_point_after
+                )
+                period_rate = 0.5 * (first_half_rate + second_half_rate)
+            else:
+                # Use appropriate rate segment based on position relative to mid-point
+                is_before_mid = interpolated_midpoint < mid_point
+                period_rate = np.where(
+                    is_before_mid,
+                    self._interpolate_rate(
+                        start_point,
+                        start_rate,
+                        mid_point,
+                        mid_rate,
+                        interpolated_midpoint,
+                    ),
+                    self._interpolate_rate(
+                        mid_point, mid_rate, end_point, end_rate, interpolated_midpoint
+                    ),
+                )
+            period_rates.append(period_rate)
         interpolated_cube.data = period_rates
 
         # Multiply the average rate by the length of each period to get a new
@@ -604,11 +673,66 @@ class TemporalInterpolation(BasePlugin):
         # total expressed in the longer original period.
         (time_coord,) = interpolated_cube.coord_dims("time")
         interpolated_total = np.sum(interpolated_cube.data, axis=time_coord)
-        renormalisation = period_reference.data / interpolated_total
+        original_total = (
+            cube_t1.data * np.diff(cube_t1.coord("forecast_period").bounds[0])[0]
+        )
+        renormalisation = np.where(
+            original_total == 0,
+            0,
+            np.where(interpolated_total == 0, 1, original_total / interpolated_total),
+        )
         interpolated_cube.data *= renormalisation
         interpolated_cube.data = interpolated_cube.data.astype(FLOAT_DTYPE)
 
-    def process(self, cube_t0: Cube, cube_t1: Cube) -> CubeList:
+    @staticmethod
+    def _interpolate_rate(
+        start_point: int,
+        start_rate: np.ndarray,
+        end_point: int,
+        end_rate: np.ndarray,
+        target_point: int,
+    ) -> np.ndarray:
+        """Interpolate rate gradient to target point.
+
+        Assumes that the units of both rates and all three points are the same, and that the target point is between the start and end points.
+
+        Args:
+            start_point: The time point corresponding to the start rate.
+            start_rate: Array of rate data at the start point.
+            end_point: The time point corresponding to the end rate.
+            end_rate: Array of rate data at the end point.
+            target_point: The time point to which to interpolate.
+        Returns:
+            The interpolated average rate at the target point.
+        """
+        return start_rate + (end_rate - start_rate) * (target_point - start_point) / (
+            end_point - start_point
+        )
+
+    @staticmethod
+    def _truncate_rates_at_zero(bound_rate: np.ndarray, mid_rate: np.ndarray):
+        """Adjust bound rate to account for neighbouring period never having negative value.
+
+        If the slope from mid_rate to bound_rate results in a negative value at the adjacent period's mid-point,
+        we adjust both values so the new slope would give a zero value at the adjacent period's mid-point.
+        The mid-point has half the adjustment of the bound point to ensure the integral under the slope is unchanged
+        across the whole time period.
+        This means that the pivot point of the slope is closer to the mid-point and much further from the adjacent mid-point.
+        The ratio of distances is 5:2:-1 for adjacent mid-point:bound:mid-point.
+        Therefore the bound_rate is adjusted by -2/5 and the mid_rate by +1/5 to ensure the adjacent mid-point is at zero.
+        This ensures that we do not introduce trends into the data that are inconsistent with the original period maximum or minimum
+        and that the integral under the slope does not change.
+
+        Args:
+            bound_rate: The rate at the bound (start or end) of the period (modified in place).
+            mid_rate: The rate at the mid-point of the period (modified in place).
+        """
+        adjacent_mid_value = 2 * bound_rate - mid_rate
+        adjustment = np.where(adjacent_mid_value < 0, adjacent_mid_value, 0)
+        bound_rate -= adjustment * 0.4
+        mid_rate += adjustment * 0.2
+
+    def process(self, cube_t0: Cube, cube_t1: Cube, cube_t2: Cube = None) -> CubeList:
         """
         Interpolate data to intermediate times between validity times of
         cube_t0 and cube_t1.
@@ -616,10 +740,12 @@ class TemporalInterpolation(BasePlugin):
         Args:
             cube_t0:
                 A diagnostic cube valid at the beginning of the period within
-                which interpolation is to be permitted.
+                which interpolation is to be permitted (or previous window for accumulations)
             cube_t1:
                 A diagnostic cube valid at the end of the period within which
-                interpolation is to be permitted.
+                interpolation is to be permitted (or current window for accumulations)
+            cube_t2:
+                A diagnostic cube valid for the next period (accumulations only)
 
         Returns:
             A list of cubes interpolated to the desired times.
@@ -637,13 +763,34 @@ class TemporalInterpolation(BasePlugin):
             ValueError: The input cubes are ordered such that the initial time
                         cube has a later validity time than the final cube.
         """
-        if not isinstance(cube_t0, iris.cube.Cube) or not isinstance(
-            cube_t1, iris.cube.Cube
+        if self.accumulation and self.is_last_timestep:
+            if cube_t2:
+                raise ValueError(
+                    "Unexpected third cube provided for accumulation interpolation with is_last_timestep=True."
+                )
+            # Repeat cube_t1 as cube_t2 with times adjusted to represent the next period.
+            cube_t2 = cube_t1.copy()
+            period_window_duration = np.diff(cube_t2.coord("time").bounds[0])
+            cube_t2.coord("time").points = (
+                cube_t2.coord("time").points + period_window_duration
+            )
+            cube_t2.coord("time").bounds = (
+                cube_t2.coord("time").bounds + period_window_duration
+            )
+        if (
+            not isinstance(cube_t0, iris.cube.Cube)
+            or not isinstance(cube_t1, iris.cube.Cube)
+            or not isinstance(cube_t2, iris.cube.Cube)
+            and self.accumulation
         ):
             msg = (
                 "Inputs to TemporalInterpolation are not of type "
                 "iris.cube.Cube, first input is type "
                 "{}, second input is type {}".format(type(cube_t0), type(cube_t1))
+            ) + (
+                " and third input is type {}".format(type(cube_t2))
+                if self.accumulation
+                else ""
             )
             raise TypeError(msg)
 
@@ -732,8 +879,8 @@ class TemporalInterpolation(BasePlugin):
         # in an NWP model's output.
         if self.accumulation:
             cube_t0.data /= np.diff(cube_t0.coord("forecast_period").bounds[0])[0]
-            period_reference = cube_t1.copy()
             cube_t1.data /= np.diff(cube_t1.coord("forecast_period").bounds[0])[0]
+            cube_t2.data /= np.diff(cube_t2.coord("forecast_period").bounds[0])[0]
 
         cubes = CubeList([cube_t0, cube_t1])
         cube = MergeCubes()(cubes)
@@ -756,7 +903,7 @@ class TemporalInterpolation(BasePlugin):
             #   minimum that occurred across the whole longer period.
             if self.accumulation:
                 self._calculate_accumulation(
-                    cube_t0, period_reference, interpolated_cube
+                    cube_t0, cube_t1, cube_t2, interpolated_cube
                 )
             elif self.max:
                 interpolated_cube.data = np.minimum(
@@ -2022,7 +2169,7 @@ class DurationSubdivision:
     def __init__(
         self,
         target_period: int,
-        fidelity: int,
+        fidelity: Optional[int] = None,
         night_mask: bool = True,
         day_mask: bool = False,
     ):
@@ -2038,11 +2185,13 @@ class DurationSubdivision:
                 The data will be reconstructed into non-overlapping periods.
                 The target_period must be a factor of the original period.
             fidelity:
-                The shortest increment in seconds into which the input periods are
-                divided and to which the night mask is applied. The
-                target periods are reconstructed from these shorter periods.
-                Shorter fidelity periods better capture where the day / night
-                discriminator falls.
+                If provided, the shortest increment in seconds into which the input
+                periods are divided and to which the night mask is applied. The target
+                periods are reconstructed from these shorter periods. Shorter fidelity
+                periods better capture where the day / night discriminator falls.
+                Setting fidelity either to None or equal to target_period will result in
+                a simple subdivision of the original period into the specified target
+                periods with no intermediate fidelity period processing.
             night_mask:
                 If true, points that fall at night are zeroed and duration
                 reallocated to day time periods as much as possible.
@@ -2054,16 +2203,19 @@ class DurationSubdivision:
             ValueError: If target_period and / or fidelity are not positive integers.
             ValueError: If day and night mask options are both set True.
         """
-        for item in [target_period, fidelity]:
+        self.target_period = target_period
+        self.fidelity = fidelity
+        if self.fidelity is None:
+            self.fidelity = self.target_period
+
+        for item in [self.target_period, self.fidelity]:
             if item <= 0:
                 raise ValueError(
                     "Target period and fidelity must be a positive integer "
                     "numbers of seconds. Currently set to "
-                    f"target_period: {target_period}, fidelity: {fidelity}"
+                    f"target_period: {self.target_period}, fidelity: {self.fidelity}"
                 )
 
-        self.target_period = target_period
-        self.fidelity = fidelity
         if night_mask and day_mask:
             raise ValueError(
                 "Only one or neither of night_mask and day_mask may be set to True"
@@ -2088,12 +2240,56 @@ class DurationSubdivision:
         (period,) = np.diff(cube.coord("time").bounds[0])
         return period
 
-    def allocate_data(self, cube: Cube, period: int) -> Cube:
+    def _make_fidelity_cube(
+        self,
+        cube: Cube,
+        interval_data: np.ndarray,
+        interval_start: int,
+        interval_end: int,
+    ) -> Cube:
+        """Create a single fidelity period cube with masking applied.
+
+        Args:
+            cube:
+                The original period cube, used as a template for metadata.
+            interval_data:
+                The data array already divided by the total number of
+                fidelity intervals.
+            interval_start:
+                The start time of the fidelity interval in seconds since epoch.
+            interval_end:
+                The end time of the fidelity interval in seconds since epoch.
+
+        Returns:
+            A single fidelity period cube with the time coordinate set to
+            the interval bounds and any day or night masking applied.
+        """
+        interval_cube = cube.copy(data=interval_data.copy())
+        interval_cube.coord("time").points = np.array([interval_end], dtype=np.int64)
+        interval_cube.coord("time").bounds = np.array(
+            [[interval_start, interval_end]], dtype=np.int64
+        )
+
+        if self.mask_value is not None:
+            daynight_mask = DayNightMask()(interval_cube).data
+            daynight_mask = np.broadcast_to(daynight_mask, interval_cube.shape)
+            interval_cube.data[daynight_mask == self.mask_value] = 0.0
+
+        return interval_cube
+
+    def allocate_data_for_target_period(
+        self,
+        cube: Cube,
+        period: int,
+        target_start: int,
+    ) -> iris.cube.CubeList:
         """Allocate fractions of the original cube duration diagnostic to
-        shorter fidelity periods with metadata that describes these shorter
-        periods appropriately. The fidelity period cubes will be merged to
-        form a cube with a longer time dimension. This cube will be returned
-        and used elsewhere to construct the target period cubes.
+        the fidelity periods within a single target period, optionally
+        applying a day or night mask to zero out the appropriate periods.
+
+        By processing one target period at a time, only the fidelity cubes
+        for that target period are held in memory simultaneously, reducing
+        peak memory usage.
 
         Args:
             cube:
@@ -2101,66 +2297,65 @@ class DurationSubdivision:
                 taken and divided up.
             period:
                 The period of the input cube in seconds.
+            target_start:
+                The start time of the target period in seconds since epoch.
 
         Returns:
-            A cube, with a time dimension, that contains the subdivided data.
+            A CubeList of fidelity period cubes for this target period, with
+            the duration data evenly allocated across fidelity periods and
+            any day or night masking applied.
         """
-        # Split the whole period duration into allocations for each fidelity
-        # period.
-        intervals = period // self.fidelity
+        total_intervals = period // self.fidelity
+        intervals_per_period = self.target_period // self.fidelity
+        interval_data = (cube.data / total_intervals).astype(cube.data.dtype)
 
-        interval_data = (cube.data / intervals).astype(cube.data.dtype)
+        return iris.cube.CubeList(
+            [
+                self._make_fidelity_cube(
+                    cube,
+                    interval_data,
+                    target_start + i * self.fidelity,
+                    target_start + (i + 1) * self.fidelity,
+                )
+                for i in range(intervals_per_period)
+            ]
+        )
 
-        daynightplugin = DayNightMask()
-        start_time, _ = cube.coord("time").bounds.flatten()
+    def _compute_renormalisation_factor(self, cube: Cube, period: int) -> np.ndarray:
+        """Compute the renormalisation factor by streaming through all fidelity
+        periods with masking applied, without storing all fidelity cubes
+        simultaneously.
 
-        interpolated_cubes = iris.cube.CubeList()
-
-        for i in range(intervals):
-            interval_cube = cube.copy(data=interval_data.copy())
-            interval_start = start_time + i * self.fidelity
-            interval_end = start_time + (i + 1) * self.fidelity
-
-            interval_cube.coord("time").points = np.array(
-                [interval_end], dtype=np.int64
-            )
-            interval_cube.coord("time").bounds = np.array(
-                [[interval_start, interval_end]], dtype=np.int64
-            )
-
-            if self.mask_value is not None:
-                daynight_mask = daynightplugin(interval_cube).data
-                daynight_mask = np.broadcast_to(daynight_mask, interval_cube.shape)
-                interval_cube.data[daynight_mask == self.mask_value] = 0.0
-            interpolated_cubes.append(interval_cube)
-
-        return interpolated_cubes.merge_cube()
-
-    @staticmethod
-    def renormalisation_factor(cube: Cube, fidelity_period_cube: Cube) -> np.ndarray:
-        """Sum up the total of the durations distributed amongst the fidelity
-        period cubes following the application of any masking. These are
-        then used with the durations in the unsubdivided original data to
-        calculate a factor to restore the correct totals; note that where
-        clipping plays a role the original totals may not be restored.
+        This is used to compute the factor needed to renormalise the fidelity
+        period data so that the total across all fidelity periods matches the
+        original period total after masking.
 
         Args:
             cube:
                 The original period cube of duration data.
-            fidelity_period_cube:
-                The cube of fidelity period durations (the original durations
-                divided up into shorter fidelity periods).
+            period:
+                The period of the input cube in seconds.
 
         Returns:
             factor:
-                An array of factors that can be used to multiply up the
-                fidelity period durations such that when the are summed up
-                they are equal to the original durations.
+                An array of renormalisation factors.
         """
-        retotal = fidelity_period_cube.collapsed("time", iris.analysis.SUM)
-        factor = cube.data / retotal.data
-        # Masked points indicate divide by 0, set these points to 0. Also handle
-        # a case in which there is no masking on the factor array.
+        total_intervals = period // self.fidelity
+        interval_data = (cube.data / total_intervals).astype(cube.data.dtype)
+        start_time, _ = cube.coord("time").bounds.flatten()
+
+        retotal = np.zeros_like(cube.data, dtype=np.float64)
+        for i in range(total_intervals):
+            interval_cube = self._make_fidelity_cube(
+                cube,
+                interval_data,
+                start_time + i * self.fidelity,
+                start_time + (i + 1) * self.fidelity,
+            )
+            retotal += interval_cube.data
+            del interval_cube
+
+        factor = cube.data / retotal
         try:
             factor = factor.filled(0)
         except AttributeError:
@@ -2168,45 +2363,88 @@ class DurationSubdivision:
 
         return factor
 
-    def construct_target_periods(self, fidelity_period_cube: Cube) -> Cube:
-        """Combine the short fidelity period cubes into cubes that describe
-        the target period.
+    def _process_target_period(
+        self,
+        cube: Cube,
+        period: int,
+        n_target_periods: int,
+        target_start: int,
+        target_end: int,
+        factor: np.ndarray,
+    ) -> Cube:
+        """Process a single target period, constructing, masking, renormalising,
+        and collapsing the fidelity cubes into a single target period cube.
 
         Args:
-            fidelity_period_cube:
-                The short fidelity period cubes from which the target periods
-                are constructed.
+            cube:
+                The original duration diagnostic cube.
+            period:
+                The period of the input cube in seconds.
+            n_target_periods:
+                The total number of target periods.
+            target_start:
+                The start time of the target period in seconds since epoch.
+            target_end:
+                The end time of the target period in seconds since epoch.
+            factor:
+                An array of renormalisation factors.
 
         Returns:
-            A cube containing the target period data with a time dimension
-            with an entry for each target period. These periods combined span
-            the original cube's period.
+            A single cube representing the target period.
         """
-        new_period_cubes = iris.cube.CubeList()
-
-        interval = timedelta(seconds=self.target_period)
-        start_time = fidelity_period_cube.coord("time").cell(0).bound[0]
-        end_time = fidelity_period_cube.coord("time").cell(-1).bound[-1]
-        while start_time < end_time:
-            period_constraint = iris.Constraint(
-                time=lambda cell: start_time <= cell.bound[0] < start_time + interval
+        if self.fidelity == self.target_period:
+            # No intermediate fidelity processing needed. Construct a single
+            # cube for this target period directly from the original data,
+            # applying masking, renormalisation, and clipping.
+            target_cube = cube.copy(
+                data=(cube.data / n_target_periods).astype(cube.data.dtype)
             )
-            components = fidelity_period_cube.extract(period_constraint)
-            component_cube = components.collapsed("time", iris.analysis.SUM)
-            enforce_time_point_standard(component_cube)
-            new_period_cubes.append(component_cube)
-            start_time += interval
-        # The cycle times are already the same. This code will recalculate
-        # the forecasts periods relative to the cycletime for each of our
-        # extracted shorter duration cubes.
-        cycle_time = fidelity_period_cube.coord("forecast_reference_time").cell(0).point
+            target_cube.coord("time").points = np.array([target_end], dtype=np.int64)
+            target_cube.coord("time").bounds = np.array(
+                [[target_start, target_end]], dtype=np.int64
+            )
 
-        new_period_cubes = unify_cycletime(new_period_cubes, cycle_time)
-        return new_period_cubes.merge_cube()
+            if self.mask_value is not None:
+                daynightplugin = DayNightMask()
+                daynight_mask = daynightplugin(target_cube).data
+                daynight_mask = np.broadcast_to(daynight_mask, target_cube.shape)
+                target_cube.data[daynight_mask == self.mask_value] = 0.0
+
+            target_cube.data = np.clip(
+                target_cube.data * factor, 0, self.target_period
+            ).astype(cube.data.dtype)
+
+        else:
+            # Construct, mask, renormalise, and collapse the fidelity cubes
+            # for this target period immediately, without retaining them.
+            fidelity_cubes = self.allocate_data_for_target_period(
+                cube, period, target_start
+            )
+
+            # Apply renormalisation and clipping to each fidelity cube.
+            for fidelity_cube in fidelity_cubes:
+                fidelity_cube.data = np.clip(
+                    fidelity_cube.data * factor, 0, self.fidelity
+                ).astype(cube.data.dtype)
+
+            # Immediately collapse the fidelity cubes into the target period.
+            fidelity_merged = fidelity_cubes.merge_cube()
+            target_cube = fidelity_merged.collapsed("time", iris.analysis.SUM)
+            del fidelity_cubes, fidelity_merged
+
+        enforce_time_point_standard(target_cube)
+        return target_cube
 
     def process(self, cube: Cube) -> Cube:
         """Create target period duration diagnostics from the original duration
         diagnostic data.
+
+        Rather than constructing all fidelity period cubes upfront and storing
+        them in memory, this method pipelines the fidelity construction and
+        collapse steps. For each target period, the fidelity cubes are
+        constructed, masked, renormalised, clipped, and immediately collapsed
+        into a single target period cube before moving on to the next target
+        period. This significantly reduces peak memory usage.
 
         Args:
             cube:
@@ -2219,8 +2457,8 @@ class DurationSubdivision:
 
         Raises:
             ValueError: The target period is not a factor of the input period.
-            ValueError: The fidelity period is not less than or equal to the
-                        target period.
+            ValueError: The fidelity period is supplied but is not less than or equal to
+            the target period.
         """
         period = self.cube_period(cube)
 
@@ -2235,22 +2473,51 @@ class DurationSubdivision:
                 "period. "
                 f"Input period: {period}, target period: {self.target_period}"
             )
-        if self.fidelity > self.target_period:
+        if self.fidelity is not None and self.fidelity > self.target_period:
             raise ValueError(
                 "The fidelity period must be less than or equal to the target period."
             )
+
         # Ensure that the cube is already self-consistent and does not include
         # any durations that exceed the period described. This is mostly to
         # handle grib packing errors for ECMWF data.
         cube.data = np.clip(cube.data, 0, period, dtype=cube.data.dtype)
 
-        fidelity_period_cube = self.allocate_data(cube, period)
-        factor = self.renormalisation_factor(cube, fidelity_period_cube)
+        cycle_time = cube.coord("forecast_reference_time").cell(0).point
+        start_time, _ = cube.coord("time").bounds.flatten()
+        n_target_periods = period // self.target_period
 
-        # Apply clipping to limit these values to the maximum possible
-        # duration that can be contained within the period.
-        fidelity_period_cube = fidelity_period_cube.copy(
-            data=np.clip(fidelity_period_cube.data * factor, 0, self.fidelity)
-        )
+        # Compute the renormalisation factor once across the full period.
+        # This requires one pass through all fidelity periods with masking applied.
+        # No intermediate cubes are retained after this step.
+        if self.mask_value is not None:
+            factor = self._compute_renormalisation_factor(cube, period)
+        else:
+            # Without masking, every fidelity period retains its full allocation,
+            # so the sum of all fidelity periods equals the original and the
+            # factor is uniformly 1.
+            factor = np.ones_like(cube.data, dtype=np.float64)
 
-        return self.construct_target_periods(fidelity_period_cube)
+        new_period_cubes = iris.cube.CubeList()
+
+        for i in range(n_target_periods):
+            target_start = start_time + i * self.target_period
+            target_end = target_start + self.target_period
+
+            target_cube = self._process_target_period(
+                cube, period, n_target_periods, target_start, target_end, factor
+            )
+            new_period_cubes.append(target_cube)
+
+        del cube
+
+        new_period_cubes = unify_cycletime(new_period_cubes, cycle_time)
+
+        for i, cube in enumerate(new_period_cubes):
+            cube = iris.util.new_axis(cube, "time")
+            fp_coord = cube.coord("forecast_period")
+            cube.remove_coord(fp_coord.name())
+            cube.add_aux_coord(fp_coord, data_dims=cube.coord_dims("time")[0])
+            new_period_cubes[i] = cube
+
+        return new_period_cubes.concatenate_cube()
