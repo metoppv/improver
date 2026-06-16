@@ -394,7 +394,7 @@ class HailSize(BasePlugin):
             wet_bulb_zero:
                 Cube of the height of the wet-bulb freezing level
         Returns:
-            An n dimensional array of diameter of hail stones (m)
+            An n dimensional array of diameter of hail stones (mm)
         """
 
         # temperature_at_268 is big-B in Hand (2011).
@@ -423,9 +423,10 @@ class HailSize(BasePlugin):
         hail_size = self.get_hail_size(
             vertical_masked, horizontal_masked, wet_bulb_zero.data
         )
-        hail_size = hail_size / 1000
-        hail_size = hail_size.astype("float32")
+        # hail_size = hail_size / 1000
+        # hail_size = hail_size.astype("float32")
 
+        # data in mm at this point
         return hail_size
 
     @staticmethod
@@ -453,7 +454,7 @@ class HailSize(BasePlugin):
 
         hail_size_cube = create_new_diagnostic_cube(
             name="diameter_of_hail_stones",
-            units="m",
+            units="mm",
             template_cube=ccl_temperature,
             data=hail_size,
             mandatory_attributes=generate_mandatory_attributes(
@@ -461,6 +462,7 @@ class HailSize(BasePlugin):
             ),
             optional_attributes=attributes,
         )
+        hail_size_cube.convert_units("m")
         return hail_size_cube
 
     def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
