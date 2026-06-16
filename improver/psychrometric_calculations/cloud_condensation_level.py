@@ -152,8 +152,8 @@ class CloudCondensationLevel(PostProcessingPlugin):
                 and humidity mixing ratio (kg kg-1)
 
         Returns:
-            Cubes of air_temperature_at_cloud_condensation_level and
-            air_pressure_at_cloud_condensation_level
+            Cubes of air_temperature_at_cloud_condensation_level (K) and
+            air_pressure_at_cloud_condensation_level (Pa)
 
         """
         cubes = as_cubelist(cubes)
