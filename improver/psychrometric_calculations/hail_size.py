@@ -422,11 +422,8 @@ class HailSize(BasePlugin):
 
         hail_size = self.get_hail_size(
             vertical_masked, horizontal_masked, wet_bulb_zero.data
-        )
-        # hail_size = hail_size / 1000
-        # hail_size = hail_size.astype("float32")
+        ).astype("float32")
 
-        # data in mm at this point
         return hail_size
 
     @staticmethod
