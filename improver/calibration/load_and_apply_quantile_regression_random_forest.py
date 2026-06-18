@@ -340,4 +340,6 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
             data=np.broadcast_to(calibrated_forecast.T, template_forecast_cube.shape)
         )
 
-        return calibrated_forecast_cube
+        output_cube.data = np.broadcast_to(calibrated_forecast.T, output_cube.shape)
+
+        return output_cube
