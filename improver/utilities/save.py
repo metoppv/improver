@@ -5,6 +5,7 @@
 """Module for saving netcdf cubes with desired attribute types."""
 
 import os
+import tempfile
 import warnings
 from typing import Optional, Union
 
@@ -127,20 +128,25 @@ def save_netcdf(
             "Compression level must be an integer value between 0 and 9 (0 to disable compression)"
         )
 
-    # save atomically by writing to a temporary file and then renaming
-    ftmp = str(filename) + ".tmp"
-    with iris.FUTURE.context(save_split_attrs=True):
-        iris.fileformats.netcdf.save(
-            cubelist,
-            ftmp,
-            complevel=compression_level,
-            shuffle=True,
-            zlib=compression_level > 0,
-            chunksizes=chunksizes,
-            least_significant_digit=least_significant_digit,
-            fill_value=fill_value,
-        )
-    os.rename(ftmp, filename)
+    # save atomically by writing to a unique temporary file of the form <filename>-<unique>.tmp
+    with tempfile.NamedTemporaryFile(
+        dir=os.path.dirname(filename),
+        prefix=os.path.basename(filename) + "-",
+        suffix=".tmp",
+    ) as tmp_file:
+        tmp_filename = tmp_file.name
+        with iris.FUTURE.context(save_split_attrs=True):
+            iris.fileformats.netcdf.save(
+                cubelist,
+                tmp_filename,
+                complevel=compression_level,
+                shuffle=True,
+                zlib=compression_level > 0,
+                chunksizes=chunksizes,
+                least_significant_digit=least_significant_digit,
+                fill_value=fill_value,
+            )
+        os.rename(tmp_filename, filename)
 
 
 def _cube_attributes_for_save(cube: Cube):
