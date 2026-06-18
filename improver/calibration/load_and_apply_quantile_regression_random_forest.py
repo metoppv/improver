@@ -336,10 +336,6 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
         )(qrf_model, df)
         del df
 
-        calibrated_forecast_cube = template_forecast_cube.copy(
-            data=np.broadcast_to(calibrated_forecast.T, template_forecast_cube.shape)
-        )
-
         output_cube.data = np.broadcast_to(calibrated_forecast.T, output_cube.shape)
 
         return output_cube
