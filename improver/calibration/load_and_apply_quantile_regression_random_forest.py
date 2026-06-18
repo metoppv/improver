@@ -311,7 +311,9 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
             warnings.warn(msg)
             return forecast_cube
 
-        template_forecast_cube = forecast_cube.copy()
+        output_cube = (
+            forecast_cube.copy()
+        )  # Used later to store the calibrated forecast.
         if forecast_cube.coords("realization"):
             quantile_list = self._compute_quantile_list(forecast_cube, "realization")
         elif forecast_cube.coords("percentile"):
