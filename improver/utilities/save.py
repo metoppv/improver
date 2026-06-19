@@ -147,6 +147,7 @@ def save_netcdf(
                 fill_value=fill_value,
             )
         os.rename(tmp_filename, filename)
+        os.chmod(filename, 0o644)
 
 
 def _cube_attributes_for_save(cube: Cube):
