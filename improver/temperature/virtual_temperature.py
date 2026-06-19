@@ -87,7 +87,7 @@ class VirtualTemperatureFromSpecificHumidity(BasePlugin):
     The data on the mixing ratios of liquid water (qcl) and ice (qcf) are available
     so a slightly improved estimate of Tv, accounting for this weight, is:
 
-    Tv = T [(q / epsilon) + (1 - q - qcl - qcf - qR) ].
+    Tv = T [(q / epsilon) + (1 - q - qcl - qcf - qR) ].
 
     This is only significant lower down in the atmosphere, and where there is cloud,
     and in most cases a very small adjustment. Given the densest clouds have condensate
