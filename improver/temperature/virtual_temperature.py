@@ -9,6 +9,7 @@ from typing import Union
 from iris.cube import Cube, CubeList
 
 from improver import BasePlugin
+from improver.constants import EARTH_REPSILON
 from improver.utilities.common_input_handle import as_cubelist
 
 
@@ -76,7 +77,6 @@ class VirtualTemperatureFromSpecificHumidity(BasePlugin):
 
     @staticmethod
     def get_virtual_temperature_specific_humidity(
-        self,
         temperature: Cube,
         specific_humidity: Cube,
         cloud_water_mixing_ratio: Cube = None,
@@ -98,9 +98,23 @@ class VirtualTemperatureFromSpecificHumidity(BasePlugin):
                     Cube of cloud ice mixing ratio on pressure levels.
 
         Returns:
-            Cube of virtual_temperature.
+            Cube of virtual_temperature (K).
         """
-        pass
+        condensates = cloud_water_mixing_ratio - cloud_ice_mixing_ratio
+        water_vapour_in_air = specific_humidity - condensates
+        ratio_of_water_vapour_in_air = 1 - water_vapour_in_air
+        ratio_of_gas_constants_of_dry_to_moist_air = specific_humidity / EARTH_REPSILON
+        virtual_temperature = temperature * (
+            ratio_of_gas_constants_of_dry_to_moist_air + ratio_of_water_vapour_in_air
+        )
+
+        virtual_temperature.units = str(virtual_temperature.units)
+
+        # Update the cube metadata
+        virtual_temperature.rename("virtual_temperature")
+        virtual_temperature.attributes["units_metadata"] = "on_scale"
+
+        return virtual_temperature
 
     def __init__(self):
         self.temperature = None
@@ -126,13 +140,16 @@ class VirtualTemperatureFromSpecificHumidity(BasePlugin):
                     cloud_ice_mixing_ratio_on_pressure_levels
 
         Returns:
-            Cube: virtual_temperature.
+            Cube: virtual_temperature (K).
         """
         # Get the cubes into the correct format and extract the relevant cubes,
         cubes = as_cubelist(*cubes)
 
         # Extract the temperature cube.
         self.temperature = cubes.extract_cube("air_temperature")
+
+        # Ensure air_temperature is in Kelvin.
+        self.temperature.convert_units("K")
 
         # Extract the specific humidity cube.
         self.specific_humidity = cubes.extract_cube(
