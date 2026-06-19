@@ -176,7 +176,7 @@ class StochasticNoise(BasePlugin):
         # Convert generated noise from dB to linear scale
         noise_linear = self._from_dB(data=result).astype(np.float32, copy=False)
 
-        # Guard against non-finite values from SSFT output fiels.
+        # Guard against non-finite values from SSFT output fields.
         # Treat these as zero-noise contributions.
         if not np.all(np.isfinite(noise_linear)):
             noise_linear = np.where(np.isfinite(noise_linear), noise_linear, 0.0)
