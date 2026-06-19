@@ -89,7 +89,7 @@ class VirtualTemperatureFromSpecificHumidity(BasePlugin):
             Required:
                 air_temperature:
                     Cube of temperature.
-                specific_humidity_on_pressure_levels:
+                specific_humidity:
                     Cube of specific humidity on pressure levels.
             Optional:
                 cloud_water_mixing_ratio_on_pressure_levels:
@@ -100,14 +100,20 @@ class VirtualTemperatureFromSpecificHumidity(BasePlugin):
         Returns:
             Cube of virtual_temperature (K).
         """
-        condensates = cloud_water_mixing_ratio - cloud_ice_mixing_ratio
+        condensates = 0
+        if cloud_water_mixing_ratio and cloud_ice_mixing_ratio:
+            condensates = cloud_water_mixing_ratio - cloud_ice_mixing_ratio
         water_vapour_in_air = specific_humidity - condensates
         ratio_of_water_vapour_in_air = 1 - water_vapour_in_air
         ratio_of_gas_constants_of_dry_to_moist_air = specific_humidity / EARTH_REPSILON
         virtual_temperature = temperature * (
             ratio_of_gas_constants_of_dry_to_moist_air + ratio_of_water_vapour_in_air
         )
-
+        # Workaround as cf-units id not correctly pickleable:
+        # https://github.com/SciTools/iris/issues/6378
+        # The units get lost when being calculated as part of running a graph
+        # using the multiprocessing scheduler in dagrunner and so need to be
+        # added back after the calculation on line 33.
         virtual_temperature.units = str(virtual_temperature.units)
 
         # Update the cube metadata
@@ -132,12 +138,12 @@ class VirtualTemperatureFromSpecificHumidity(BasePlugin):
                 cube:
                     air_temperature
                 cube:
-                    specific_humidity_on_pressure_levels
+                    specific_humidity
             Optional:
                 cube:
-                    cloud_water_mixing_ratio_on_pressure_levels
+                    cloud_liquid_water_mixing_ratio
                 cube:
-                    cloud_ice_mixing_ratio_on_pressure_levels
+                    cloud_ice_mixing_ratio
 
         Returns:
             Cube: virtual_temperature (K).
@@ -152,19 +158,17 @@ class VirtualTemperatureFromSpecificHumidity(BasePlugin):
         self.temperature.convert_units("K")
 
         # Extract the specific humidity cube.
-        self.specific_humidity = cubes.extract_cube(
-            "specific_humidity_on_pressure_levels"
-        )
+        self.specific_humidity = cubes.extract_cube("specific_humidity")
 
         # If condensates have been given, extract them.
         for cube in cubes:
-            if "cloud_water_mixing_ratio" in cube.name():
+            if "cloud_liquid_water_mixing_ratio" in cube.name():
                 self.cloud_water_mixing_ratio = cubes.extract_cube(
-                    "cloud_water_mixing_ratio_on_pressure_levels"
+                    "cloud_liquid_water_mixing_ratio"
                 )
             if "cloud_ice_mixing_ratio" in cube.name():
                 self.cloud_ice_mixing_ratio = cubes.extract_cube(
-                    "cloud_ice_mixing_ratio_on_pressure_levels"
+                    "cloud_ice_mixing_ratio"
                 )
 
         # Calculate the Virtual Temperature using the given inputs.
