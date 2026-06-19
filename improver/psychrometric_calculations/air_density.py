@@ -1,11 +1,11 @@
 """Plugin to calculate air density from virtual temperature."""
 
 from typing import Union
-from improver import BasePlugin
-from iris.cube import Cube, CubeList
-import iris
-import numpy as np
 
+import iris
+from iris.cube import Cube, CubeList
+
+from improver import BasePlugin
 from improver.constants import R_DRY_AIR
 
 
@@ -26,10 +26,6 @@ class AirDensity(BasePlugin):
                 return cube
         raise ValueError("No virtual_temperature cube provided.")
 
-    def _to_pressure_cube(self, cube: Cube) -> Cube:
-        pressure_coord = cube.coord("air_pressure")
-
-
     def process(self, inputs: Union[Cube, CubeList]) -> Cube:
         """
         Calculate air density from virtual temperature.
@@ -38,7 +34,6 @@ class AirDensity(BasePlugin):
         Otherwise the virtual temperature cube needs to be on pressure levels.
         The cube arguments are not checked explicitly for conformant dimensions
         but must have the same shape.
-
 
         Args:
             inputs:
