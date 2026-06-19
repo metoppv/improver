@@ -82,6 +82,8 @@ class Test_save_netcdf(unittest.TestCase):
         self.assertFalse(os.path.exists(self.filepath))
         save_netcdf(self.cube, self.filepath)
         self.assertTrue(os.path.exists(self.filepath))
+        # check permissions are set to 644
+        self.assertEqual(oct(os.stat(self.filepath).st_mode)[-3:], "644")
 
     def test_compression(self):
         """Test data gets compressed with default complevel 1 when saved"""

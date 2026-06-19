@@ -196,6 +196,44 @@ def test_scale_non_positive_noise():
     ), "Noise in non-positive regions should be <= 0"
 
 
+@pytest.mark.parametrize("scale_non_positive_noise", [False, True])
+def test_process_non_finite_noise_is_sanitized(scale_non_positive_noise: bool):
+    """Non-finite values from SSFT should not leak into output data."""
+
+    plugin = StochasticNoise(
+        ssft_init_params={"win_size": (2, 2), "overlap": 0},
+        ssft_generate_params={"seed": 0},
+        db_threshold=0.03,
+        db_threshold_units="mm/hr",
+        scale_non_positive_noise=scale_non_positive_noise,
+    )
+
+    data = np.array(
+        [
+            [[0.0, 3.0], [0.0, 4.0]],
+            [[0.0, 3.2], [0.0, 4.2]],
+        ],
+        dtype=np.float32,
+    )
+    cube = set_up_variable_cube(data=data, name="precipitation_rate", units="mm/hr")
+
+    # Force problematic SSFT output that includes non-finite values.
+    plugin.do_fft = lambda _: np.array(
+        [[np.nan, 0.0], [np.inf, -np.inf]], dtype=np.float32
+    )
+
+    with pytest.warns(UserWarning, match="multi-realization dimension"):
+        result = plugin.process(cube)
+
+    non_zero_mask = data > 0
+    np.testing.assert_array_equal(result.data[non_zero_mask], data[non_zero_mask])
+
+    non_positive_mask = data <= 0
+    assert np.all(np.isfinite(result.data[non_positive_mask]))
+    if scale_non_positive_noise:
+        assert np.all(result.data[non_positive_mask] <= 0)
+
+
 def test_process_scalar_realization_coord():
     """Test processing a cube with scalar realization coordinate.
 
