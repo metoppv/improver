@@ -2,7 +2,7 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""Calculate the virtual temperature from temperature and humidity mixing ratio."""
+"""Calculate the virtual temperature."""
 
 from typing import Union
 
@@ -13,7 +13,7 @@ from improver.utilities.common_input_handle import as_cubelist
 
 
 class VirtualTemperature(BasePlugin):
-    """Plugin class to handle virtual temperature calculations."""
+    """Plugin class to handle virtual temperature calculations from humidity mixing ratio."""
 
     @staticmethod
     def get_virtual_temperature(temperature: Cube, humidity_mixing_ratio: Cube) -> Cube:
@@ -68,4 +68,92 @@ class VirtualTemperature(BasePlugin):
         # Calculate the virtual temperature
         return self.get_virtual_temperature(
             self.temperature, self.humidity_mixing_ratio
+        )
+
+
+class VirtualTemperatureFromSpecificHumidity(BasePlugin):
+    """Plugin class to handle virtual temperature calculations from specific humidity."""
+
+    @staticmethod
+    def get_virtual_temperature_specific_humidity(
+        self,
+        temperature: Cube,
+        specific_humidity: Cube,
+        cloud_water_mixing_ratio: Cube = None,
+        cloud_ice_mixing_ratio: Cube = None,
+    ):
+        """
+        Calculate the virtual temperature from temperature, specific humidity and condensates, if provided.
+
+        Args:
+            Required:
+                air_temperature:
+                    Cube of temperature.
+                specific_humidity_on_pressure_levels:
+                    Cube of specific humidity on pressure levels.
+            Optional:
+                cloud_water_mixing_ratio_on_pressure_levels:
+                    Cube of cloud water mixing ratio on pressure levels.
+                cloud_ice_mixing_ratio_on_pressure_levels:
+                    Cube of cloud ice mixing ratio on pressure levels.
+
+        Returns:
+            Cube of virtual_temperature.
+        """
+        pass
+
+    def __init__(self):
+        self.temperature = None
+        self.specific_humidity = None
+        self.cloud_water_mixing_ratio = None
+        self.cloud_ice_mixing_ratio = None
+
+    def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
+        """Main entry point for this class.
+        Use Specific Humidity and optional condensate cubes to calculate
+          the Virtual Temperature cube.
+
+        Args:
+            Required:
+                cube:
+                    air_temperature
+                cube:
+                    specific_humidity_on_pressure_levels
+            Optional:
+                cube:
+                    cloud_water_mixing_ratio_on_pressure_levels
+                cube:
+                    cloud_ice_mixing_ratio_on_pressure_levels
+
+        Returns:
+            Cube: virtual_temperature.
+        """
+        # Get the cubes into the correct format and extract the relevant cubes,
+        cubes = as_cubelist(*cubes)
+
+        # Extract the temperature cube.
+        self.temperature = cubes.extract_cube("air_temperature")
+
+        # Extract the specific humidity cube.
+        self.specific_humidity = cubes.extract_cube(
+            "specific_humidity_on_pressure_levels"
+        )
+
+        # If condensates have been given, extract them.
+        for cube in cubes:
+            if "cloud_water_mixing_ratio" in cube.name():
+                self.cloud_water_mixing_ratio = cubes.extract_cube(
+                    "cloud_water_mixing_ratio_on_pressure_levels"
+                )
+            if "cloud_ice_mixing_ratio" in cube.name():
+                self.cloud_ice_mixing_ratio = cubes.extract_cube(
+                    "cloud_ice_mixing_ratio_on_pressure_levels"
+                )
+
+        # Calculate the Virtual Temperature using the given inputs.
+        return self.get_virtual_temperature_specific_humidity(
+            self.temperature,
+            self.specific_humidity,
+            cloud_water_mixing_ratio=self.cloud_water_mixing_ratio,
+            cloud_ice_mixing_ratio=self.cloud_ice_mixing_ratio,
         )
