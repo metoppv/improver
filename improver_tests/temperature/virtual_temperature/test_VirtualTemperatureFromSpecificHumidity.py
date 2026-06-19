@@ -16,8 +16,6 @@ from improver.temperature.virtual_temperature import (
     VirtualTemperatureFromSpecificHumidity,
 )
 
-# Set up fixtures for test cubes
-
 
 @pytest.fixture(name="temperature_cube")
 def temperature_cube_fixture() -> Cube:

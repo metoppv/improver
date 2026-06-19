@@ -73,7 +73,28 @@ class VirtualTemperature(BasePlugin):
 
 
 class VirtualTemperatureFromSpecificHumidity(BasePlugin):
-    """Plugin class to handle virtual temperature calculations from specific humidity."""
+    """Plugin class to handle virtual temperature calculations from specific humidity.
+
+    This calculates virtual temperature using the specific humidity output from StaGE
+    as an input, which is desirable in the calculation of Air Density.
+
+    This virtual temperature (Tv) calculation also uses condensates, if provided.
+
+    Condensed water (rain, snow and liquid cloud droplets) add weight to a volume of air
+    without contributing to the pressure.
+    Their effect can be included in the calculation of virtual temperature.
+
+    The data on the mixing ratios of liquid water (qcl) and ice (qcf) are available
+    so a slightly improved estimate of Tv, accounting for this weight, is:
+
+    Tv = T [(q / epsilon) + (1 - q - qcl - qcf - qR) ].
+
+    This is only significant lower down in the atmosphere, and where there is cloud,
+    and in most cases a very small adjustment. Given the densest clouds have condensate
+    specific humidities typically no higher than 5 g kg-1, the adjustment is unlikely
+    to ever be more than 0.5%.
+
+    """
 
     @staticmethod
     def get_virtual_temperature_specific_humidity(
@@ -83,7 +104,8 @@ class VirtualTemperatureFromSpecificHumidity(BasePlugin):
         cloud_ice_mixing_ratio: Cube = None,
     ):
         """
-        Calculate the virtual temperature from temperature, specific humidity and condensates, if provided.
+        Calculate the virtual temperature from temperature,
+        specific humidity and condensates, if provided.
 
         Args:
             Required:
