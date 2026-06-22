@@ -4,11 +4,14 @@
 # See LICENSE in the root of the repository for full licensing details.
 import sys
 from pathlib import Path
+from typing import List
 
 import numpy as np
+from pandas import DataFrame
 import pytest
 
 from improver.calibration import lightgbm_package_available, treelite_packages_available
+from improver.calibration.rainforest_model_config import RainForestsModelConfig
 
 from ..rainforests_calibration.conftest import (
     generate_aligned_feature_cubes,
@@ -24,7 +27,7 @@ ATTRIBUTES = {
 
 
 @pytest.fixture(params=[True, False])
-def lightgbm_available(request, monkeypatch):
+def lightgbm_available(request, monkeypatch) -> bool:
     """Make lightgbm module available or unavailable"""
 
     available = request.param and lightgbm_package_available()
@@ -34,7 +37,7 @@ def lightgbm_available(request, monkeypatch):
 
 
 @pytest.fixture(params=[True, False])
-def treelite_available(request, monkeypatch):
+def treelite_available(request, monkeypatch) -> bool:
     """Make treelite module available or unavailable"""
 
     available = request.param and treelite_packages_available()
@@ -44,14 +47,15 @@ def treelite_available(request, monkeypatch):
 
 
 @pytest.fixture
-def model_config(tmp_path):
+def model_config(tmp_path) -> RainForestsModelConfig:
     """Make a dummy model config object with valid file paths"""
     lead_times = np.array([24, 48], dtype=np.int32)
     thresholds = np.array([0.0000, 0.0001, 0.0010, 0.0100], dtype=np.float32)
 
     lightgbm_model_dir = tmp_path / "lightgbm_model_dir"
     treelite_model_dir = tmp_path / "treelite_model_dir"
-    return {
+
+    return RainForestsModelConfig({
         str(lead_time): {
             f"{threshold:06.4f}": {
                 "lightgbm_model": f"{lightgbm_model_dir}/test_model_{lead_time:03d}H_{threshold:06.4f}.txt",  # noqa: E501
@@ -60,11 +64,11 @@ def model_config(tmp_path):
             for threshold in thresholds
         }
         for lead_time in lead_times
-    }
+    })
 
 
 @pytest.fixture
-def deterministic_training_data():
+def deterministic_training_data() -> tuple[str, DataFrame, str, List[str]]:
     """Make some dummy training data for one lead time"""
 
     deterministic_features = generate_aligned_feature_cubes(realizations=np.arange(1))
@@ -80,7 +84,7 @@ def deterministic_training_data():
 
 
 @pytest.fixture
-def model_config_with_trained_models(model_config):
+def model_config_with_trained_models(model_config: RainForestsModelConfig) -> RainForestsModelConfig:
     """Return the RainForests model config, first performing the lightgbm training step
     so that the models are available for compiling with the compiler plugin."""
     lightgbm = pytest.importorskip("lightgbm")

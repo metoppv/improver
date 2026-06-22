@@ -4,10 +4,13 @@
 # See LICENSE in the root of the repository for full licensing details.
 
 from pathlib import Path
-from unittest.mock import patch
+from typing import List
+from unittest.mock import MagicMock, patch
 
+from pandas import DataFrame
 import pytest
 
+from improver.calibration.rainforest_model_config import RainForestsModelConfig
 from improver.calibration.rainforest_training import (
     TrainRainForestsModel,
 )
@@ -16,7 +19,9 @@ lightgbm = pytest.importorskip("lightgbm")
 
 
 def test__init__lightgmb_available(
-    lightgbm_available, model_config, deterministic_training_data
+    lightgbm_available: bool,
+    model_config: RainForestsModelConfig,
+    deterministic_training_data: tuple[str, DataFrame, str, List[str]]
 ):
     """Test class is created if lightgbm library is available.
     Test class is not created if lightgbm library not available."""
@@ -36,7 +41,10 @@ def test__init__lightgmb_available(
             )
 
 
-def test__init__(model_config, deterministic_training_data):
+def test__init__(
+    model_config: RainForestsModelConfig,
+    deterministic_training_data: tuple[str, DataFrame, str, List[str]]
+):
     """Test class is created with training data."""
     _, training_data, observation_column, training_columns = deterministic_training_data
 
@@ -47,7 +55,10 @@ def test__init__(model_config, deterministic_training_data):
     assert result.observation_column == observation_column
 
 
-def test__init__missing_obs_column(model_config, deterministic_training_data):
+def test__init__missing_obs_column(
+    model_config: RainForestsModelConfig,
+    deterministic_training_data: tuple[str, DataFrame, str, List[str]]
+):
     """Test class creation fails when observation column isn't present in the training data."""
     _, training_data, _, training_columns = deterministic_training_data
 
@@ -60,7 +71,10 @@ def test__init__missing_obs_column(model_config, deterministic_training_data):
     assert dummy_obs_column in str(e)
 
 
-def test__init__missing_train_column(model_config, deterministic_training_data):
+def test__init__missing_train_column(
+    model_config: RainForestsModelConfig,
+    deterministic_training_data: tuple[str, DataFrame, str, List[str]]
+):
     """Test class creation fails when one of the training columns isn't present in the training data."""
     _, training_data, observation_column, training_columns = deterministic_training_data
 
@@ -74,7 +88,10 @@ def test__init__missing_train_column(model_config, deterministic_training_data):
     assert dummy_train_column in str(e)
 
 
-def test__init__obs_column_is_train_column(model_config, deterministic_training_data):
+def test__init__obs_column_is_train_column(
+    model_config: RainForestsModelConfig,
+    deterministic_training_data: tuple[str, DataFrame, str, List[str]]
+):
     """Test class creation fails when the observation column is one of the training columns."""
     _, training_data, _, training_columns = deterministic_training_data
 
@@ -87,7 +104,10 @@ def test__init__obs_column_is_train_column(model_config, deterministic_training_
     assert dummy_obs_column in str(e)
 
 
-def test_process(model_config, deterministic_training_data):
+def test_process(
+    model_config: RainForestsModelConfig,
+    deterministic_training_data: tuple[str, DataFrame, str, List[str]]
+):
     """Test lightgbm models are created at specified path."""
 
     lead_time, training_data, observation_column, training_columns = (
@@ -98,7 +118,7 @@ def test_process(model_config, deterministic_training_data):
         model_config, training_data, observation_column, training_columns
     )
 
-    thresholds = model_config[lead_time].keys()
+    thresholds = list(model_config[lead_time].keys())
 
     trainer.process(lead_time, thresholds)
 
@@ -112,7 +132,11 @@ def test_process(model_config, deterministic_training_data):
 
 
 @patch("lightgbm.train")
-def test_process_calls_train(mock_train, model_config, deterministic_training_data):
+def test_process_calls_train(
+    mock_train: MagicMock,
+    model_config: RainForestsModelConfig,
+    deterministic_training_data: tuple[str, DataFrame, str, List[str]]
+):
     """Test lightgbm models are created at specified path."""
 
     lead_time, training_data, observation_column, training_columns = (
@@ -123,7 +147,7 @@ def test_process_calls_train(mock_train, model_config, deterministic_training_da
         model_config, training_data, observation_column, training_columns
     )
 
-    thresholds = model_config[lead_time].keys()
+    thresholds = list(model_config[lead_time].keys())
 
     trainer.process(lead_time, thresholds)
     assert mock_train.call_count == len(thresholds)
@@ -131,7 +155,10 @@ def test_process_calls_train(mock_train, model_config, deterministic_training_da
 
 @patch("lightgbm.train")
 def test_process_calls_train_with_default_params(
-    mock_train, model_config, deterministic_training_data
+    mock_train: MagicMock,
+    model_config: RainForestsModelConfig,
+    deterministic_training_data: tuple[str, DataFrame, str, List[str]]
+
 ):
     """Test default lightgbm params are used if none are specified."""
 
@@ -157,7 +184,10 @@ def test_process_calls_train_with_default_params(
 
 @patch("lightgbm.train")
 def test_process_calls_train_with_override_params(
-    mock_train, model_config, deterministic_training_data
+    mock_train: MagicMock,
+    model_config: RainForestsModelConfig,
+    deterministic_training_data: tuple[str, DataFrame, str, List[str]]
+
 ):
     """Test default lightgbm params can be overridden."""
 
@@ -197,7 +227,9 @@ def test_process_calls_train_with_override_params(
 
 @patch("lightgbm.train")
 def test_process_calls_train_with_all_columns(
-    mock_train, model_config, deterministic_training_data
+    mock_train: MagicMock,
+    model_config: RainForestsModelConfig,
+    deterministic_training_data: tuple[str, DataFrame, str, List[str]],
 ):
     """Test lightgbm training is provided with only the specified training columns."""
 
@@ -222,7 +254,10 @@ def test_process_calls_train_with_all_columns(
     assert set(dataset.data.columns) == set(training_columns)
 
 
-def test_process_missing_lead_time(model_config, deterministic_training_data):
+def test_process_missing_lead_time(
+    model_config: RainForestsModelConfig,
+    deterministic_training_data: tuple[str, DataFrame, str, List[str]],
+):
     """Test lightgbm models are not created for invalid lead time."""
 
     lead_time, training_data, observation_column, training_columns = (
@@ -233,8 +268,8 @@ def test_process_missing_lead_time(model_config, deterministic_training_data):
         model_config, training_data, observation_column, training_columns
     )
 
-    thresholds = model_config[lead_time].keys()
-    invalid_lead_time = 1
+    thresholds = list(model_config[lead_time].keys())
+    invalid_lead_time = "1"
 
     with pytest.raises(KeyError):
         trainer.process(invalid_lead_time, thresholds)
@@ -246,7 +281,10 @@ def test_process_missing_lead_time(model_config, deterministic_training_data):
             assert not lightgbm_path.exists()
 
 
-def test_process_missing_threshold(model_config, deterministic_training_data):
+def test_process_missing_threshold(
+    model_config: RainForestsModelConfig,
+    deterministic_training_data: tuple[str, DataFrame, str, List[str]],
+):
     """Test lightgbm models are not created for invalid threshold."""
 
     lead_time, training_data, observation_column, training_columns = (
