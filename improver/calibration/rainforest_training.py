@@ -16,6 +16,7 @@ import pandas
 
 from improver import BasePlugin
 from improver.calibration import lightgbm_package_available
+from improver.calibration.rainforest_model_config import RainForestsModelConfig
 
 
 class TrainRainForestsModel(BasePlugin):
@@ -28,7 +29,7 @@ class TrainRainForestsModel(BasePlugin):
 
     def __init__(
         self,
-        model_config_dict: dict[int, dict[str, dict[str, str]]],
+        model_config_dict: RainForestsModelConfig,
         training_data: pandas.DataFrame,
         observation_column: str,
         training_columns: list[str],
@@ -52,7 +53,7 @@ class TrainRainForestsModel(BasePlugin):
                 Optional. Parameters passed into training library. Any parameters
                 here will override the default parameters.
 
-        Dictionary is of format:
+        RainForestsModelConfig dictionary is of format:
 
         .. code-block:: json
 
@@ -107,7 +108,7 @@ class TrainRainForestsModel(BasePlugin):
         if lightgbm_params:
             self.params = self.params | lightgbm_params
 
-    def process(self, lead_time: int, thresholds: list[str]) -> None:
+    def process(self, lead_time: str, thresholds: list[str]) -> None:
         """Train models for a set of threshold values.
 
         Args:

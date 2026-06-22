@@ -14,6 +14,7 @@ from pathlib import Path
 
 from improver import BasePlugin
 from improver.calibration import treelite_packages_available
+from improver.calibration.rainforest_model_config import RainForestsModelConfig
 
 LIGHTGBM_EXTENSION = ".txt"
 TREELITE_EXTENSION = ".so"
@@ -24,7 +25,7 @@ class CompileRainForestsModel(BasePlugin):
 
     def __init__(
         self,
-        model_config_dict: dict[int, dict[str, dict[str, str]]],
+        model_config_dict: RainForestsModelConfig,
         toolchain: str = "gcc",
         verbose: bool = False,
         parallel_comp: int = 0,
@@ -48,7 +49,7 @@ class CompileRainForestsModel(BasePlugin):
                 Value is the number of processes to use.
                 Defaults to 0 (no parallel compilation).
 
-        Dictionary is of format
+        RainForestsModelConfig dictionary is of format
 
         .. code-block:: json
 
