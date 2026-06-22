@@ -131,7 +131,7 @@ class VirtualTemperatureFromSpecificHumidity(BasePlugin):
         elif cloud_ice_mixing_ratio:
             condensates = cloud_ice_mixing_ratio
         water_vapour_in_air = specific_humidity - condensates
-        ratio_of_water_vapour_in_air = 1 - water_vapour_in_air
+        ratio_of_water_vapour_in_air = 1.0 - water_vapour_in_air
         ratio_of_gas_constants_of_dry_to_moist_air = specific_humidity / EARTH_REPSILON
         virtual_temperature = temperature * (
             ratio_of_gas_constants_of_dry_to_moist_air + ratio_of_water_vapour_in_air
