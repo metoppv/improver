@@ -46,7 +46,7 @@ def specific_humidity_cube_fixture() -> Cube:
         Cube: named "specific_humidity"
     """
     coord = AuxCoord(0, standard_name="forecast_period")
-    data = np.full((1, 2, 3), dtype=np.int64, fill_value=1)
+    data = np.full((1, 2, 3), dtype=np.float32, fill_value=1)
     cube = Cube(data, standard_name="specific_humidity", units="kg kg-1")
     cube.add_aux_coord(coord)
     return cube
@@ -61,7 +61,7 @@ def cloud_liquid_water_mixing_ratio_cube_fixture() -> Cube:
         Cube: named "cloud_water_mixing_ratio"
     """
     coord = AuxCoord(0, standard_name="forecast_period")
-    data = np.full((1, 2, 3), dtype=np.int64, fill_value=1)
+    data = np.full((1, 2, 3), dtype=np.float32, fill_value=1)
     cube = Cube(data, standard_name="cloud_liquid_water_mixing_ratio", units="kg kg-1")
     cube.add_aux_coord(coord)
     return cube
@@ -76,7 +76,7 @@ def cloud_ice_mixing_ratio_cube_fixture() -> Cube:
         Cube: named "cloud_ice_mixing_ratio"
     """
     coord = AuxCoord(0, standard_name="forecast_period")
-    data = np.full((1, 2, 3), dtype=np.int64, fill_value=1)
+    data = np.full((1, 2, 3), dtype=np.float32, fill_value=1)
     cube = Cube(data, standard_name="cloud_ice_mixing_ratio", units="kg kg-1")
     cube.add_aux_coord(coord)
     return cube
@@ -91,7 +91,7 @@ def incorrect_cube_fixture() -> Cube:
         Cube: named "humidity_mixing_ratio", which is incorrect for this plugin.
     """
     coord = AuxCoord(0, standard_name="forecast_period")
-    data = np.full((1, 2, 3), dtype=np.int64, fill_value=1)
+    data = np.full((1, 2, 3), dtype=np.float32, fill_value=1)
     cube = Cube(data, standard_name="humidity_mixing_ratio", units="kg kg-1")
     cube.add_aux_coord(coord)
     return cube
@@ -116,7 +116,7 @@ class TestProcess:
         self, temperature_cube, specific_humidity_cube
     ):
         """Test the plugin with valid required inputs only."""
-        expected_data = np.ndarray(shape=(2, 7, 3), dtype=np.float64)
+        expected_data = np.ndarray(shape=(2, 7, 3), dtype=np.float32)
         cubes = [temperature_cube, specific_humidity_cube]
         plugin = VirtualTemperatureFromSpecificHumidity()
         result = plugin.process(cubes)
@@ -125,7 +125,7 @@ class TestProcess:
         assert type(result.data) == type(expected_data)
         assert result.data.shape == expected_data.shape
         assert result.data.dtype == expected_data.dtype
-        assert result.data[0][0][0] == np.float64(439.1620211204289)
+        assert result.data[0][0][0] == np.float32(439.162)
 
     def test_process_with_condensates(
         self,
@@ -135,7 +135,7 @@ class TestProcess:
         cloud_ice_mixing_ratio,
     ):
         """Test the plugin with valid required and both optional inputs."""
-        expected_data = np.ndarray(shape=(2, 7, 3), dtype=np.float64)
+        expected_data = np.ndarray(shape=(2, 7, 3), dtype=np.float32)
         cubes = [
             temperature_cube,
             specific_humidity_cube,
@@ -149,7 +149,7 @@ class TestProcess:
         assert type(result.data) == type(expected_data)
         assert result.data.shape == expected_data.shape
         assert result.data.dtype == expected_data.dtype
-        assert result.data[0][0][0] == np.float64(439.1620211204289)
+        assert result.data[0][0][0] == np.float32(439.162)
 
     def test_process_with_water_condensate(
         self,
@@ -158,7 +158,7 @@ class TestProcess:
         cloud_liquid_water_mixing_ratio,
     ):
         """Test the plugin with only water as an optional input."""
-        expected_data = np.ndarray(shape=(2, 7, 3), dtype=np.float64)
+        expected_data = np.ndarray(shape=(2, 7, 3), dtype=np.float32)
         cubes = [
             temperature_cube,
             specific_humidity_cube,
@@ -171,7 +171,7 @@ class TestProcess:
         assert type(result.data) == type(expected_data)
         assert result.data.shape == expected_data.shape
         assert result.data.dtype == expected_data.dtype
-        assert result.data[0][0][0] == np.float64(712.3120150169133)
+        assert result.data[0][0][0] == np.float32(712.31195)
 
     def test_process_with_only_ice_condensate(
         self,
@@ -180,7 +180,7 @@ class TestProcess:
         cloud_ice_mixing_ratio,
     ):
         """Test the plugin with only ice as an optional input."""
-        expected_data = np.ndarray(shape=(2, 7, 3), dtype=np.float64)
+        expected_data = np.ndarray(shape=(2, 7, 3), dtype=np.float32)
         cubes = [
             temperature_cube,
             specific_humidity_cube,
@@ -193,7 +193,7 @@ class TestProcess:
         assert type(result.data) == type(expected_data)
         assert result.data.shape == expected_data.shape
         assert result.data.dtype == expected_data.dtype
-        assert result.data[0][0][0] == np.float64(712.3120150169133)
+        assert result.data[0][0][0] == np.float32(712.31195)
 
     def test_process_cubes_incorrect(self, temperature_cube, incorrect_cube):
         """Test the plugin does not calculate the result if given the incorrect input."""

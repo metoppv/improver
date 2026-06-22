@@ -6,6 +6,7 @@
 
 from typing import Union
 
+import numpy as np
 from iris.cube import Cube, CubeList
 
 from improver import BasePlugin
@@ -135,6 +136,7 @@ class VirtualTemperatureFromSpecificHumidity(BasePlugin):
         virtual_temperature = temperature * (
             ratio_of_gas_constants_of_dry_to_moist_air + ratio_of_water_vapour_in_air
         )
+        virtual_temperature.data.astype(np.float32)
         # Workaround as cf-units id not correctly pickleable:
         # https://github.com/SciTools/iris/issues/6378
         # The units get lost when being calculated as part of running a graph
