@@ -141,7 +141,7 @@ class VirtualTemperatureFromSpecificHumidity(BasePlugin):
         # https://github.com/SciTools/iris/issues/6378
         # The units get lost when being calculated as part of running a graph
         # using the multiprocessing scheduler in dagrunner and so need to be
-        # added back after the calculation on line 33.
+        # added back after the calculation of "virtual_temperature" above.
         virtual_temperature.units = str(virtual_temperature.units)
 
         # Update the cube metadata
