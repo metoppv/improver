@@ -588,28 +588,35 @@ class Test_prepare_input_cubes(Test_WXCode):
         for constraint in unexpected:
             self.assertEqual(len(result.extract(constraint)), 0)
 
-    def test_raises_error_matching_threshold(self):
-        """Test prepare_input_cubes method raises error for matching thresholds in a
-        diagnostic."""
+    def test_selects_closest_threshold_when_multiple_matches(self):
+        """Test prepare_input_cubes method raises a warning for matching thresholds
+        in a diagnostic and selects the closest threshold."""
+
         threshold_coord = find_threshold_coordinate(self.cubes[0])
-        additional_threshold = threshold_coord.points[0] * (
+        original_threshold_coord = threshold_coord.points[0]
+        additional_threshold = original_threshold_coord * (
             1 + 0.5 * self.plugin.float_tolerance
         )
         threshold_coord.points = np.array(
             [
-                threshold_coord.points[0],
+                original_threshold_coord,
                 additional_threshold,
                 threshold_coord.points[2],
             ],
             dtype=np.float32,
         )
-        msg = (
-            r"Multiple \(2\) matching thresholds found for name: "
-            "probability_of_lwe_snowfall_rate_above_threshold"
-        )
-
-        with self.assertRaisesRegex(ValueError, msg):
-            self.plugin.prepare_input_cubes(self.cubes)
+        # Check warning is raised
+        msg = r"Multiple \(2\) matching thresholds found.*Using closest match"
+        with self.assertWarnsRegex(UserWarning, msg):
+            result, _ = self.plugin.prepare_input_cubes(self.cubes)
+        # Check thresholds extracted
+        extracted_thresholds = [
+            cube.coord(threshold_coord.name()).points[0]
+            for cube in result
+            if threshold_coord.name() in [coord.name() for coord in cube.coords()]
+        ]
+        self.assertIn(original_threshold_coord, extracted_thresholds)
+        self.assertNotIn(additional_threshold, extracted_thresholds)
 
     def test_zero_threshold_uses_absolute_tolerance(self):
         """Test prepare_input_cubes method uses absolute tolerance when the threshold

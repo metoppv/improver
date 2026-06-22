@@ -6,6 +6,7 @@
 
 import copy
 import operator
+import warnings
 from typing import Dict, List, Optional, Tuple, Union
 
 import iris
@@ -179,11 +180,13 @@ class ApplyDecisionTree(BasePlugin):
               indicated as allowed by the if_diagnostic_missing key.
 
         Raises:
-            ValueError:
-                Raises a ValueError if multiple matching thresholds are found.
             IOError:
                 Raises an IOError if any of the required input data is missing.
                 The error includes details of which fields are missing.
+
+        Warnings:
+            - If multiple thresholds have been found and the closest matching threshold
+            will be used.
         """
         cubes = as_cubelist(*cubes)
 
@@ -276,14 +279,39 @@ class ApplyDecisionTree(BasePlugin):
                             f"spp__relative_to_threshold: {condition}\n"
                         )
                     else:
-                        num_thresholds = len(
+                        threshold_points = (
                             matched_threshold[0].coord(threshold_name).points
                         )
+                        num_thresholds = len(threshold_points)
+
                         if num_thresholds > 1:
-                            raise ValueError(
+                            diff = [
+                                abs(point - threshold) for point in threshold_points
+                            ]
+                            diff_index = diff.index(min(diff))
+                            closest_point = threshold_points[diff_index]
+
+                            warnings.warn(
                                 f"Multiple ({num_thresholds}) matching thresholds found"
-                                f" for name: {diagnostic}, threshold {threshold}"
+                                f" for name: {diagnostic}, threshold {threshold}. "
+                                f"Using closest match: {closest_point}"
                             )
+
+                            closest_point_constraint = iris.Constraint(
+                                coord_values={threshold_name: closest_point}
+                            )
+                            closest_cube = matched_threshold[0].extract(
+                                closest_point_constraint
+                            )
+
+                            if closest_cube:
+                                used_cubes.append(closest_cube)
+                            else:
+                                missing_data.append(
+                                    f"name: {diagnostic}, threshold: {threshold}, "
+                                    f"(closest match extraction failed)\n"
+                                )
+
                         else:
                             used_cubes.extend(matched_threshold)
 
