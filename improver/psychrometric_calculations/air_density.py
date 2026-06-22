@@ -1,3 +1,7 @@
+# (C) Crown Copyright, Met Office. All rights reserved.
+#
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
+# See LICENSE in the root of the repository for full licensing details.
 """Plugin to calculate air density from virtual temperature."""
 
 from typing import Union
@@ -15,7 +19,7 @@ class AirDensity(BasePlugin):
     def _get_pressure_cube(self, cubes: CubeList) -> Cube:
         """Extract pressure cube if present."""
         for cube in cubes:
-            if cube.standard_name == "air_pressure":
+            if cube.standard_name == "pressure":
                 return cube
         return None
 
@@ -68,7 +72,7 @@ class AirDensity(BasePlugin):
         else:
             # Try to infer from temperature cube (pressure levels case)
             try:
-                pressure_coord = Tv_cube.coord("air_pressure")
+                pressure_coord = Tv_cube.coord("pressure")
             except iris.exceptions.CoordinateNotFoundError:
                 raise ValueError(
                     "No pressure information supplied: "
@@ -82,7 +86,7 @@ class AirDensity(BasePlugin):
             pressure_data = iris.util.broadcast_to_shape(
                 pressure.points,
                 Tv_cube.shape,
-                Tv_cube.coord_dims("air_pressure"),
+                Tv_cube.coord_dims("pressure"),
             )
 
         # --- Ensure temperature is in Kelvin ---
