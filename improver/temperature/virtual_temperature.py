@@ -125,7 +125,7 @@ class VirtualTemperatureFromSpecificHumidity(BasePlugin):
         """
         condensates = 0
         if cloud_water_mixing_ratio and cloud_ice_mixing_ratio:
-            condensates = cloud_water_mixing_ratio - cloud_ice_mixing_ratio
+            condensates = cloud_water_mixing_ratio + cloud_ice_mixing_ratio
         elif cloud_water_mixing_ratio:
             condensates = cloud_water_mixing_ratio
         elif cloud_ice_mixing_ratio:
