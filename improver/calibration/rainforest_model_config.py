@@ -1,3 +1,7 @@
+# (C) Crown Copyright, Met Office. All rights reserved.
+#
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
+# See LICENSE in the root of the repository for full licensing details.
 from typing import Literal
 
 
@@ -19,7 +23,7 @@ class RainForestsModelConfig(
 ):
     """Define the config structure used to describe the high-level RainForests model structure.
 
-    RainForestsModelConfig is a nested dictionar of format:
+    RainForestsModelConfig is a nested dictionary of format:
 
     .. code-block:: json
 
