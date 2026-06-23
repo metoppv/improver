@@ -50,7 +50,7 @@ jobs:
         echo "BRANCH=$branch" | tee -a $GITHUB_ENV
 
     - name: Restore cached coverage report
-      uses: actions/cache/restore@v5
+      uses: actions/cache/restore@v6
       id: report-cache-restore
       with:
         path: |
@@ -88,7 +88,7 @@ jobs:
       shell: micromamba-shell {0}
 
     - name: Save cached coverage report
-      uses: actions/cache/save@v5
+      uses: actions/cache/save@v6
       id: report-cache-save
       with:
         path: |
@@ -249,7 +249,7 @@ jobs:
       run: echo "PYSHA=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
 
     - name: Cache pre-commit
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       id: pre-commit-cache
       with:
         path: ~/.cache/pre-commit
