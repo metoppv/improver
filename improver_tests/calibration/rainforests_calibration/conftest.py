@@ -9,12 +9,12 @@ from datetime import datetime
 from pathlib import Path
 
 import numpy as np
-from numpy.typing import NDArray
 import pandas as pd
 import pytest
 from iris import Constraint
 from iris.analysis import MEAN, STD_DEV
 from iris.cube import Cube, CubeList
+from numpy.typing import NDArray
 
 from improver.calibration.rainforest_calibration import (
     ApplyRainForestsCalibrationLightGBM,

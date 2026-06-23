@@ -7,8 +7,8 @@ from pathlib import Path
 from typing import List
 
 import numpy as np
-from pandas import DataFrame
 import pytest
+from pandas import DataFrame
 
 from improver.calibration import lightgbm_package_available, treelite_packages_available
 from improver.calibration.rainforest_model_config import RainForestsModelConfig
@@ -55,16 +55,18 @@ def model_config(tmp_path) -> RainForestsModelConfig:
     lightgbm_model_dir = tmp_path / "lightgbm_model_dir"
     treelite_model_dir = tmp_path / "treelite_model_dir"
 
-    return RainForestsModelConfig({
-        str(lead_time): {
-            f"{threshold:06.4f}": {
-                "lightgbm_model": f"{lightgbm_model_dir}/test_model_{lead_time:03d}H_{threshold:06.4f}.txt",  # noqa: E501
-                "treelite_model": f"{treelite_model_dir}/test_model_{lead_time:03d}H_{threshold:06.4f}.so",  # noqa: E501
+    return RainForestsModelConfig(
+        {
+            str(lead_time): {
+                f"{threshold:06.4f}": {
+                    "lightgbm_model": f"{lightgbm_model_dir}/test_model_{lead_time:03d}H_{threshold:06.4f}.txt",  # noqa: E501
+                    "treelite_model": f"{treelite_model_dir}/test_model_{lead_time:03d}H_{threshold:06.4f}.so",  # noqa: E501
+                }
+                for threshold in thresholds
             }
-            for threshold in thresholds
+            for lead_time in lead_times
         }
-        for lead_time in lead_times
-    })
+    )
 
 
 @pytest.fixture
@@ -84,7 +86,9 @@ def deterministic_training_data() -> tuple[str, DataFrame, str, List[str]]:
 
 
 @pytest.fixture
-def model_config_with_trained_models(model_config: RainForestsModelConfig) -> RainForestsModelConfig:
+def model_config_with_trained_models(
+    model_config: RainForestsModelConfig,
+) -> RainForestsModelConfig:
     """Return the RainForests model config, first performing the lightgbm training step
     so that the models are available for compiling with the compiler plugin."""
     lightgbm = pytest.importorskip("lightgbm")
