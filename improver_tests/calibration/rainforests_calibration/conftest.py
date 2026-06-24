@@ -6,18 +6,21 @@
 
 import os
 from datetime import datetime
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pytest
 from iris import Constraint
 from iris.analysis import MEAN, STD_DEV
-from iris.cube import CubeList
+from iris.cube import Cube, CubeList
+from numpy.typing import NDArray
 
 from improver.calibration.rainforest_calibration import (
     ApplyRainForestsCalibrationLightGBM,
     ApplyRainForestsCalibrationTreelite,
 )
+from improver.calibration.rainforest_model_config import RainForestsModelConfig
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
@@ -36,17 +39,19 @@ ATTRIBUTES = {
 
 
 @pytest.fixture
-def thresholds():
+def thresholds() -> NDArray[np.float32]:
     return np.array([0.0000, 0.0001, 0.0010, 0.0100], dtype=np.float32)
 
 
 @pytest.fixture
-def lead_times():
+def lead_times() -> NDArray[np.int32]:
     return np.array([24, 48], dtype=np.int32)
 
 
 @pytest.fixture
-def model_config(lead_times, thresholds, tmp_path):
+def model_config(
+    lead_times: NDArray[np.float32], thresholds: NDArray[np.int32], tmp_path: Path
+) -> RainForestsModelConfig:
     lightgbm_model_dir = tmp_path / "lightgbm_model_dir"
     treelite_model_dir = tmp_path / "treelite_model_dir"
     return {
@@ -61,7 +66,7 @@ def model_config(lead_times, thresholds, tmp_path):
     }
 
 
-def generate_forecast_cubes(realizations):
+def generate_forecast_cubes(realizations) -> Cube:
     rng = np.random.default_rng(0)
     data_shape = (len(realizations), 10, 10)
     return set_up_variable_cube(
