@@ -96,7 +96,7 @@ class InitialSpreadIndex(FireWeatherBase):
         spread_factor = (
             91.9
             * np.exp(self.moisture_content * -0.1386)
-            * (1.0 + (self.moisture_content**5.31) / 4.93e7)
+            * (1.0 + (np.abs(self.moisture_content) ** 5.31) / 4.93e7)
         )
         return spread_factor
 
