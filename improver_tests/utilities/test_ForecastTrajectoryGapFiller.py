@@ -7,6 +7,7 @@
 import copy
 import datetime
 import json
+import re
 
 import numpy as np
 import pytest
@@ -378,7 +379,10 @@ def test_process_raises_if_interval_in_minutes_not_set():
     plugin = ForecastTrajectoryGapFiller(interval_in_minutes=None)
     with pytest.raises(
         ValueError,
-        match="interval_in_minutes must be set to identify gaps in forecast period.",
+        match=re.escape(
+            "interval_in_seconds (which is computed from interval_in_minutes) "
+            "must be set to identify gaps in forecast period."
+        ),
     ):
         plugin.process(cubelist)
 
@@ -511,7 +515,7 @@ def test_regeneration_produces_regular_intervals_at_fine_resolution():
     - Transition at 6 hours with interpolation_window_in_minutes=180 (±3 hours)
     - Regeneration window: [3, 9] hours
 
-    Expected behavior:
+    Expected behaviour:
         - Regeneration fills only interior 1-hour intervals in window: 4, 5, 6, 7, 8
             (3 and 9 are boundary inputs and are not regenerated)
     - Gap filling fills remaining missing intervals: 10, 11

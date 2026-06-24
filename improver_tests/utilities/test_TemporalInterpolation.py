@@ -292,7 +292,23 @@ def setup_google_film_mock(monkeypatch):
                 "treat_period_as_instantaneous": True,
             },
             "treat_period_as_instantaneous cannot be combined",
-        ),  # Conflicting period handling modes
+        ),  # Conflicting period handling modes (accumulation)
+        (
+            {
+                "interval_in_minutes": 60,
+                "max": True,
+                "treat_period_as_instantaneous": True,
+            },
+            "treat_period_as_instantaneous cannot be combined",
+        ),  # Conflicting period handling modes (max)
+        (
+            {
+                "interval_in_minutes": 60,
+                "min": True,
+                "treat_period_as_instantaneous": True,
+            },
+            "treat_period_as_instantaneous cannot be combined",
+        ),  # Conflicting period handling modes (min)
     ],
 )
 # fmt: on
@@ -827,6 +843,11 @@ def test_period_diagnostic_treated_as_instantaneous():
 
     assert isinstance(result, CubeList)
     assert len(result) == 2
+    # The result from temporal interpolation of period diagnostics, with
+    # the treat_period_as_instantaneous flag, gives the same data as if they were
+    # instantaneous diagnostics. The first cube has data of 4.0
+    # (midpoint between 1 and 7), and the second cube has data of 7.0
+    # (the value at the later time).
     np.testing.assert_almost_equal(result[0].data, 4.0)
     np.testing.assert_almost_equal(result[1].data, 7.0)
     assert not result[0].coord("time").has_bounds()

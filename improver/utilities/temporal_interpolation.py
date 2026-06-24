@@ -155,10 +155,14 @@ class TemporalInterpolation(BasePlugin):
                 Only methods in known_interpolation_methods can be used.
             accumulation:
                 Set True if the diagnostic being temporally interpolated is a
-                period accumulation. The output will be renormalised to ensure
-                that the total across the period constructed from the shorter
-                intervals matches the total across the period from the coarser
-                intervals.
+                period accumulation. The output will be renormalised to ensure that the
+                total across the period constructed from the shorter intervals matches
+                the total across the period from the coarser intervals. Enabling this
+                option will result in the period accumulation being disaggregated into
+                shorter periods e.g. a 6h accumulation being split into 1h intervals.
+                If the intention is to interpolate a 1h period accumulation at e.g. T+4
+                and T+6 to create a 1h period accumulation at T+5, then this can be
+                achieved using the treat_period_as_instantaneous option.
             is_last_timestep:
                 When True and accumulation is True, the second input is duplicated as
                 the third input to the interpolation.
@@ -175,7 +179,14 @@ class TemporalInterpolation(BasePlugin):
             treat_period_as_instantaneous:
                 If True, period diagnostics (inputs with time bounds) are treated
                 as instantaneous values for interpolation. No period-specific
-                renormalisation or max/min constraints are applied.
+                renormalisation or max/min constraints are applied. For a period
+                accumulation, this option is intended for use when interpolating a
+                1h period accumulation at e.g. T+4 and T+6 to create a 1h period
+                accumulation at T+5, rather than the temporal disaggregation of a
+                longer period accumulation into shorter periods. If the intention is
+                to perform temporal disaggregation, then please see the `accumulation`
+                option. Note that this option is not compatible with the
+                `accumulation`, `max`, or `min` options.
             model_path:
                 Path to the TensorFlow Hub module for the Google FILM model.
                 Required if interpolation_method is "google_film".
@@ -979,6 +990,21 @@ class ForecastTrajectoryGapFiller(BasePlugin):
     (e.g. when transitioning between forecast sources) even if they exist in the input
     forecast.
 
+    Example expected behaviour from this plugin:
+    Inputs:
+    - Input cubes at hours: 3, 9, 12
+    - interval_in_minutes=60 (1-hour intervals)
+    - Transition at 6 hours with interpolation_window_in_minutes=180 (±3 hours)
+    - Regeneration window: [3, 9] hours
+
+    Expected behaviour:
+    - Regeneration fills only interior 1-hour intervals in window: 4, 5, 6, 7, 8
+        (3 and 9 are boundary inputs and are not regenerated)
+    - Gap filling fills remaining missing intervals: 10, 11
+    - Original cubes included: 3, 9, 12
+
+    Result: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+
     The plugin will:
     1. Sort input cubes by validity time
     2. Identify missing validity times (gaps)
@@ -1008,8 +1034,11 @@ class ForecastTrajectoryGapFiller(BasePlugin):
 
         Args:
             interval_in_minutes:
-                The expected interval between validity times in minutes.
-                Used to identify gaps in the sequence.
+                The expected interval between points in the forecast trajectory (in
+                minutes). Used to identify gaps in the sequence. For example, if
+                the forecast trajectory is expected to be hourly, this should be set
+                to 60. If not provided, gaps will not be filled, but points can still
+                be regenerated if cluster_sources_attribute is set.
             interpolation_method:
                 Method of interpolation to use.
                 Options: linear, solar, daynight, google_film.
@@ -1020,7 +1049,18 @@ class ForecastTrajectoryGapFiller(BasePlugin):
                 When provided with interpolation_window_in_minutes, enables
                 identification of validity times to regenerate at source transitions.
             interpolation_window_in_minutes:
-                Time window (in minutes) as +/- range around forecast source transitions.
+                Time window (in hours) to use as a +/- range around forecast source
+                transition points. Used with cluster_sources_attribute to identify
+                which forecast periods should be regenerated. For example, if set to
+                3 hours and a transition occurs at a given period, periods 3 hours
+                before, at, and after the transition will be regenerated if they
+                fall within the sequence. In summary, the interval_in_minutes is used
+                to identify gaps in the forecast trajectory, while
+                interpolation_window_in_minutes is used to identify which forecast
+                periods should be regenerated at source transitions. This means that
+                forecasts within the interpolation window around a transition will be
+                regenerated, even if they already exist in the input forecast
+                trajectory.
             model_path:
                 Path to TensorFlow Hub module for Google FILM model
                 (if using google_film).
@@ -1120,24 +1160,26 @@ class ForecastTrajectoryGapFiller(BasePlugin):
             List of forecast periods (in seconds) that are missing.
 
         Raises:
-            ValueError: If interval_in_minutes is not set.
+            ValueError: If interval_in_minutes and interval_in_seconds are not set.
         """
         if self.interval_in_seconds is None:
             raise ValueError(
-                "interval_in_minutes must be set to identify gaps in forecast period."
+                "interval_in_seconds (which is computed from interval_in_minutes) "
+                "must be set to identify gaps in forecast period."
             )
 
-        existing_periods = self._get_forecast_periods(cubelist)
+        existing_periods = set(self._get_forecast_periods(cubelist))
+        min_period = min(existing_periods)
+        max_period = max(existing_periods)
 
-        # Find all periods that should exist
-        min_period = existing_periods[0]
-        max_period = existing_periods[-1]
-        missing_periods = []
-        current = min_period + self.interval_in_seconds
-        while current < max_period:
-            if current not in existing_periods:
-                missing_periods.append(current)
-            current += self.interval_in_seconds
+        possible_periods_given_interval = set(
+            range(
+                min_period + self.interval_in_seconds,
+                max_period,
+                self.interval_in_seconds,
+            )
+        )
+        missing_periods = sorted(possible_periods_given_interval - existing_periods)
         return missing_periods
 
     @staticmethod
@@ -1407,7 +1449,7 @@ class ForecastTrajectoryGapFiller(BasePlugin):
         """Create interpolation tasks for periods to regenerate at regular intervals.
 
         Instead of regenerating only at the transition point, generates forecasts
-        at regular intervals (specified by interval_in_minutes) across the entire
+        at regular intervals (specified by interval_in_seconds) across the entire
         regeneration window.
 
         Args:
@@ -1603,6 +1645,15 @@ class ForecastTrajectoryGapFiller(BasePlugin):
         missing_periods = self._identify_gaps(sorted_cubelist)
         periods_to_regenerate = self._identify_periods_to_regenerate(sorted_cubelist)
 
+        # If no gap filling or regeneration is required, return early.
+        if not missing_periods and not periods_to_regenerate:
+            msg = (
+                f"{self.__class__.__name__}: No gaps or regenerations identified. "
+                "Returning original cubelist merged into a single cube."
+            )
+            warnings.warn(msg)
+            return MergeCubes()(sorted_cubelist)
+
         # Create interpolation tasks
         gap_tasks = self._create_gap_filling_tasks(missing_periods, sorted_cubelist)
         regen_tasks = self._create_regeneration_tasks(
@@ -1616,15 +1667,6 @@ class ForecastTrajectoryGapFiller(BasePlugin):
         regen_target_periods = {t[1] for t in regen_tasks}
         gap_tasks = [t for t in gap_tasks if t[1] not in regen_target_periods]
         interpolation_tasks = gap_tasks + regen_tasks
-
-        # If no interpolation needed, merge and return original
-        if not interpolation_tasks:
-            msg = (
-                f"{self.__class__.__name__}: No gaps or regenerations identified. "
-                "Returning original cubelist merged into a single cube."
-            )
-            warnings.warn(msg)
-            return MergeCubes()(sorted_cubelist)
 
         # Create TemporalInterpolation plugin
         interpolator = TemporalInterpolation(
@@ -1725,7 +1767,12 @@ class GoogleFilmInterpolation(BasePlugin):
                 When provided with interpolation_window_in_minutes, enables
                 identification of validity times to regenerate at source transitions.
             interpolation_window_in_minutes:
-                Time window (in minutes) as +/- range around forecast source transitions.
+                Time window (in hours) to use as a +/- range around forecast source
+                transition points. Used with cluster_sources_attribute to identify
+                which forecast periods should be regenerated. For example, if set to
+                3 hours and a transition occurs at a given period, periods 3 hours
+                before, at, and after the transition will be regenerated if they
+                fall within the sequence.
             max_batch:
                 If using google_film interpolation, the maximum batch size for model
                 inference. This limits memory usage by processing the data in smaller

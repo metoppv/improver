@@ -111,9 +111,11 @@ def process(
         treat_period_as_instantaneous (bool):
             If True, period diagnostics (inputs with time bounds) are treated
             as instantaneous values for interpolation. No period-specific
-            renormalisation or max/min constraints are applied. Cannot be
-            combined with accumulation, max, or min period-type specifiers.
-            Default is False.
+            renormalisation or max/min constraints are applied. For a period
+            accumulation, this option is intended for use when interpolating a
+            1h period accumulation at e.g. T+4 and T+6 to create a 1h period
+            accumulation at T+5, rather than the temporal disaggregation of a
+            longer period accumulation into shorter periods.
 
     Returns:
         iris.cube.Cube:
