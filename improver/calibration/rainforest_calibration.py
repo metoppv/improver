@@ -25,6 +25,10 @@ from iris.cube import Cube, CubeList
 from numpy import ndarray
 
 from improver import PostProcessingPlugin
+from improver.calibration import (
+    lightgbm_package_available,
+    treelite_packages_available,
+)
 from improver.constants import MINUTES_IN_HOUR, SECONDS_IN_MINUTE
 from improver.ensemble_copula_coupling.utilities import (
     get_bounds_of_distribution,
@@ -37,25 +41,6 @@ from improver.metadata.utilities import (
 from improver.utilities.cube_manipulation import add_coordinate_to_cube, compare_coords
 
 Model = Literal["lightgbm_model", "treelite_model"]
-
-
-def treelite_packages_available():
-    """Return True if treelite packages are available, False otherwise."""
-    try:
-        import tl2cgen  # noqa: F401
-        import treelite  # noqa: F401
-    except ModuleNotFoundError:
-        return False
-    return True
-
-
-def lightgbm_package_available():
-    """Return True if LightGBM package is available, False otherwise."""
-    try:
-        import lightgbm  # noqa: F401
-    except ModuleNotFoundError:
-        return False
-    return True
 
 
 class ModelFileNotFoundError(Exception):

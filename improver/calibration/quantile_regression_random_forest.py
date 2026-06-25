@@ -88,19 +88,16 @@ def prep_feature(
             "forecast_period",
             *unique_site_id_keys,
         ]
-        subset_cols = [*groupby_cols] + [
-            representation_name,
-            variable_name,
-        ]
-
         if representation_name == "percentile":
             quantile_check(df)
 
         # For a subset of the input DataFrame compute the mean or standard deviation
         # over the representation column, grouped by the groupby columns.
+        subset_col = f"{variable_name}_{feature_name}"
         if feature_name in ["min", "max", "mean", "std"]:
-            subset_grouped = df[subset_cols].groupby(groupby_cols)
-            subset_df = getattr(subset_grouped, feature_name)()
+            df[subset_col] = df.groupby(groupby_cols)[variable_name].transform(
+                feature_name
+            )
         elif feature_name.startswith("members_below"):
             threshold = float(feature_name.split("_")[2])
             if transformation is not None:
@@ -108,14 +105,11 @@ def prep_feature(
                     threshold, transformation, pre_transform_addition
                 )
             orig_dtype = df[variable_name].dtype
-            subset_df = (
-                df[subset_cols]
-                .assign(below_threshold=lambda x: x[variable_name] < threshold)
-                .groupby(groupby_cols)["below_threshold"]
-                .sum()
+            df[subset_col] = (
+                df.groupby(groupby_cols)[variable_name]
+                .transform(lambda x: (x < threshold).sum())
+                .astype(orig_dtype)
             )
-            subset_df.rename(variable_name, inplace=True)
-            subset_df = subset_df.astype(orig_dtype)
         elif feature_name.startswith("members_above"):
             threshold = float(feature_name.split("_")[2])
             if transformation is not None:
@@ -123,60 +117,50 @@ def prep_feature(
                     threshold, transformation, pre_transform_addition
                 )
             orig_dtype = df[variable_name].dtype
-            subset_df = (
-                df[subset_cols]
-                .assign(above_threshold=lambda x: x[variable_name] > threshold)
-                .groupby(groupby_cols)["above_threshold"]
-                .sum()
+            df[subset_col] = (
+                df.groupby(groupby_cols)[variable_name]
+                .transform(lambda x: (x > threshold).sum())
+                .astype(orig_dtype)
             )
-            subset_df.rename(variable_name, inplace=True)
-            subset_df = subset_df.astype(orig_dtype)
         elif feature_name.startswith("percentile_"):
             perc = float(feature_name.split("_")[1])
             orig_dtype = df[variable_name].dtype
-            subset_df = df[subset_cols].groupby(groupby_cols).quantile(perc / 100.0)
-            subset_df[variable_name] = subset_df[variable_name].astype(orig_dtype)
-
-        subset_df = subset_df.reset_index()
+            df[subset_col] = (
+                df.groupby(groupby_cols)[variable_name]
+                .transform(lambda x: x.quantile(perc / 100.0))
+                .astype(orig_dtype)
+            )
 
         if feature_name == "std":
             # If all values are identical for a group, std will be NaN.
             # Replace these NaNs with 0.
-            subset_df[variable_name] = subset_df[variable_name].fillna(value=0)
+            df[subset_col] = df[subset_col].fillna(value=0)
 
-        if subset_df[variable_name].isnull().all():
+        if df[subset_col].isnull().all():
             msg = (
                 f"All computed values for feature '{feature_name}' "
                 f"and variable '{variable_name}' are NaN."
             )
             raise ValueError(msg)
-        # Rename the column to distinguish the computed feature from the original.
-        subset_df.rename(
-            columns={variable_name: f"{variable_name}_{feature_name}"}, inplace=True
-        )
-        # Merge the computed feature back into the original DataFrame.
-        df = df.merge(
-            subset_df[groupby_cols + [f"{variable_name}_{feature_name}"]],
-            on=groupby_cols,
-            how="left",
-        )
 
     elif feature_name in ["day_of_year", "day_of_year_sin", "day_of_year_cos"]:
         # For a large DataFrame, the strftime("%j") computation can take a noticeable
-        # amount of time, so this computation is done once for each unique time
-        # and then merged back into the DataFrame.
-        doy_df = pd.DataFrame({"time": df["time"].unique()})
-        doy_df["day_of_year"] = np.array(doy_df["time"].dt.strftime("%j"), np.int32)
+        # amount of time, so this computation is done once for each unique time.
+        unique_times = df["time"].drop_duplicates()
+        doy_values = np.array(unique_times.dt.strftime("%j"), np.int32)
+        doy_map = pd.Series(doy_values, index=unique_times.values)
+        day_of_year = df["time"].map(doy_map)
 
-        if feature_name == "day_of_year_sin":
-            doy_df[feature_name] = np.sin(
-                2 * np.pi * doy_df["day_of_year"].values / (DAYS_IN_YEAR + 1)
+        if feature_name == "day_of_year":
+            df[feature_name] = day_of_year
+        elif feature_name == "day_of_year_sin":
+            df[feature_name] = np.sin(
+                2 * np.pi * day_of_year.values / (DAYS_IN_YEAR + 1)
             ).astype(np.float32)
         elif feature_name == "day_of_year_cos":
-            doy_df[feature_name] = np.cos(
-                2 * np.pi * doy_df["day_of_year"].values / (DAYS_IN_YEAR + 1)
+            df[feature_name] = np.cos(
+                2 * np.pi * day_of_year.values / (DAYS_IN_YEAR + 1)
             ).astype(np.float32)
-        df = df.merge(doy_df[["time", feature_name]], on="time", how="left")
     elif feature_name in ["hour_of_day", "hour_of_day_sin", "hour_of_day_cos"]:
         # For hour_of_day, unlike day_of_year, the hour attribute doesn't require
         # computation, therefore there is no benefit to creating the separate DataFrame
@@ -232,8 +216,9 @@ def sanitise_forecast_dataframe(
     # and drop the representation column and any features where the original variable
     # is no longer required. This reduces the size of the DataFrame e.g. if there are
     # 3 percentiles initially, the subsetted dataframe will be 1/3 of the size.
-    df = df[df[representation_name] == df[representation_name].iloc[0]]
-    df = df.drop(columns=[representation_name, *collapsed_features])
+    cols_to_drop = {representation_name, *collapsed_features}
+    keep_cols = [c for c in df.columns if c not in cols_to_drop]
+    df = df.loc[df[representation_name] == df[representation_name].iloc[0], keep_cols]
     return df
 
 
@@ -529,6 +514,7 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
         )
         feature_values = np.array(combined_df[feature_column_names])
         target_values = combined_df["ob_value"].values
+        del combined_df
 
         # Fit the quantile regression model
         return self.fit_qrf(feature_values, target_values)
@@ -619,8 +605,6 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
             Calibrated forecast as a numpy array.
 
         """
-        feature_values = []
-
         for variable_name in self.feature_config.keys():
             # Transform the feature cube data if a transformation is specified.
             if (
@@ -647,10 +631,12 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
         forecast_df = sanitise_forecast_dataframe(forecast_df, self.feature_config)
 
         feature_values = np.array(forecast_df[feature_column_names])
+        del forecast_df
+
         calibrated_forecast = qrf_model.predict(
             feature_values, quantiles=self.quantiles
         )
         calibrated_forecast = self._reverse_transformation(calibrated_forecast)
-        calibrated_forecast = np.float32(calibrated_forecast)
+        calibrated_forecast = calibrated_forecast.astype(np.float32, copy=False)
 
         return calibrated_forecast
