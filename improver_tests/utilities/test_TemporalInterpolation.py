@@ -285,6 +285,30 @@ def setup_google_film_mock(monkeypatch):
             },
             "model_path must be provided when using google_film",
         ),  # Missing model path for google_film
+        (
+            {
+                "interval_in_minutes": 60,
+                "accumulation": True,
+                "treat_period_as_instantaneous": True,
+            },
+            "treat_period_as_instantaneous cannot be combined",
+        ),  # Conflicting period handling modes (accumulation)
+        (
+            {
+                "interval_in_minutes": 60,
+                "max": True,
+                "treat_period_as_instantaneous": True,
+            },
+            "treat_period_as_instantaneous cannot be combined",
+        ),  # Conflicting period handling modes (max)
+        (
+            {
+                "interval_in_minutes": 60,
+                "min": True,
+                "treat_period_as_instantaneous": True,
+            },
+            "treat_period_as_instantaneous cannot be combined",
+        ),  # Conflicting period handling modes (min)
     ],
 )
 # fmt: on
@@ -798,6 +822,37 @@ def test_accumulation_last_timestep():
         assert result[i].coord("forecast_period").points.dtype == "int32"
 
         np.testing.assert_almost_equal(result[i].data, value, decimal=4)
+
+def test_period_diagnostic_treated_as_instantaneous():
+    """Test period diagnostics can be interpolated like instantaneous values
+    when treat_period_as_instantaneous is enabled."""
+
+    times = [datetime.datetime(2017, 11, 1, hour) for hour in [3, 9]]
+    npoints = 5
+    data = np.stack(
+        [
+            np.ones((npoints, npoints), dtype=np.float32),
+            np.ones((npoints, npoints), dtype=np.float32) * 7,
+        ]
+    )
+    cube = multi_time_cube(times, data, "latlon", bounds=True)
+
+    result = TemporalInterpolation(
+        interval_in_minutes=180, treat_period_as_instantaneous=True
+    ).process(cube[0], cube[1])
+
+    assert isinstance(result, CubeList)
+    assert len(result) == 2
+    # The result from temporal interpolation of period diagnostics, with
+    # the treat_period_as_instantaneous flag, gives the same data as if they were
+    # instantaneous diagnostics. The first cube has data of 4.0
+    # (midpoint between 1 and 7), and the second cube has data of 7.0
+    # (the value at the later time).
+    np.testing.assert_almost_equal(result[0].data, 4.0)
+    np.testing.assert_almost_equal(result[1].data, 7.0)
+    assert not result[0].coord("time").has_bounds()
+    assert not result[0].coord("forecast_period").has_bounds()
+
 
 @pytest.mark.parametrize(
     "input_times,expected_time_bounds,expected_fp_bounds",
