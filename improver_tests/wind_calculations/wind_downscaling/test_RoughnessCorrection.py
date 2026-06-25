@@ -86,61 +86,79 @@ class TestMultiPoint:
     """Test (typically) 3x1 or 3x3 point tests.
 
     It constructs cubes for the ancillary fields:
-    Silhouette roughness (AoS), standard deviation of model height grid
-    cell (Sigma), vegetative roughness (z_0), post-processing grid
-    orography (pporog) and model orography (modelorog). If no values
+    Silhouette roughness (silhouette_roughness), standard deviation of model height grid
+    cell (model_orog_stddev), vegetative roughness (model_z0), post-processing grid
+    orography (target_orog) and model orography (model_orog). If no values
     are supplied, the grids that are set up have equal values at all
-    x-y points: AoS = 0.2, Sigma = 20, z_0 = 0.2, pporog = 250,
-    modelorog = 230.
+    x-y points: silhouette_roughness = 0.2, model_orog_stddev = 20, model_z0 = 0.2, target_orog = 250,
+    model_orog = 230.
 
     """
 
     def __init__(
-        self, shape=(3, 3), AoS=None, Sigma=None, z_0=0.2, pporog=None, modelorog=None
+        self,
+        shape=(3, 3),
+        silhouette_roughness=None,
+        model_orog_stddev=None,
+        model_z0=0.2,
+        target_orog=None,
+        model_orog=None,
     ):
         """Set up multi-point tests.
 
         Args:
             shape (tuple):
                 Required data shape.
-            AoS (float or 1D or 2D numpy.ndarray):
+            silhouette_roughness (float or 1D or 2D numpy.ndarray):
                 Silhouette roughness field
-            Sigma (float or 1D or 2D numpy.ndarray):
+            model_orog_stddev (float or 1D or 2D numpy.ndarray):
                 Standard deviation field of height in grid cell
-            z_0 (float or 1D or 2D numpy.ndarray):
+            model_z0 (float or 1D or 2D numpy.ndarray):
                 Vegetative roughness field
-            pporog (float or 1D or 2D numpy.ndarray):
+            target_orog (float or 1D or 2D numpy.ndarray):
                 Unsmoothed orography field on post-processing grid
-            modelorog (float or 1D or 2D numpy.ndarray):
+            model_orog (float or 1D or 2D numpy.ndarray):
                 Model orography field on post-processing grid
 
         """
         self.shape = shape
-        if AoS is None:
-            AoS = np.full(shape, 0.2, dtype=np.float32)
-        if Sigma is None:
-            Sigma = np.full(shape, 20.0, dtype=np.float32)
-        if pporog is None:
-            pporog = np.full(shape, 250.0, dtype=np.float32)
-        if modelorog is None:
-            modelorog = np.full(shape, 230.0, dtype=np.float32)
+        if silhouette_roughness is None:
+            silhouette_roughness = np.full(shape, 0.2, dtype=np.float32)
+        if model_orog_stddev is None:
+            model_orog_stddev = np.full(shape, 20.0, dtype=np.float32)
+        if target_orog is None:
+            target_orog = np.full(shape, 250.0, dtype=np.float32)
+        if model_orog is None:
+            model_orog = np.full(shape, 230.0, dtype=np.float32)
         self.w_cube = None
-        self.aos_cube = make_ancil_cube(AoS, "silhouette_roughness", 1, shape=shape)
-        self.s_cube = make_ancil_cube(
-            Sigma, "standard_deviation_of_height_in_grid_cell", "m", shape=shape
+        self.model_silhouette_roughness_cube = make_ancil_cube(
+            silhouette_roughness, "silhouette_roughness", 1, shape=shape
         )
-        if z_0 is None:
-            self.z0_cube = None
-        elif isinstance(z_0, float):
-            z_0 = np.full(shape, z_0, dtype=np.float32)
-            self.z0_cube = make_ancil_cube(z_0, "vegetative_roughness_length", "m")
-        elif isinstance(z_0, list):
-            self.z0_cube = make_ancil_cube(
-                np.array(z_0), "vegetative_roughness_length", "m", shape=shape
+        self.s_cube = make_ancil_cube(
+            model_orog_stddev,
+            "standard_deviation_of_height_in_grid_cell",
+            "m",
+            shape=shape,
+        )
+        if model_z0 is None:
+            self.model_z0_cube = None
+        elif isinstance(model_z0, float):
+            model_z0 = np.full(shape, model_z0, dtype=np.float32)
+            self.model_z0_cube = make_ancil_cube(
+                model_z0, "vegetative_roughness_length", "m"
             )
-        self.poro_cube = make_ancil_cube(pporog, "surface_altitude", "m", shape=shape)
-        self.moro_cube = make_ancil_cube(
-            modelorog, "surface_altitude", "m", shape=shape
+        elif isinstance(model_z0, list):
+            self.model_z0_cube = make_ancil_cube(
+                np.array(model_z0),
+                "vegetative_roughness_length",
+                "m",
+                shape=shape,
+            )
+        self.target_orog_cube = make_ancil_cube(
+            target_orog, "surface_altitude", "m", shape=shape
+        )
+        self.model_orog_cube = make_ancil_cube(
+            model_orog, "surface_altitude", "m", shape=shape
         )
 
     def run_hc_rc(self, wind, dtime=1, height=None, aslist=False):
@@ -193,12 +211,12 @@ class TestMultiPoint:
                 )
 
         plugin = RoughnessCorrection(
-            self.aos_cube,
+            self.model_silhouette_roughness_cube,
             self.s_cube,
-            self.poro_cube,
-            self.moro_cube,
+            self.target_orog_cube,
+            self.model_orog_cube,
             1500.0,
-            self.z0_cube,
+            self.model_z0_cube,
         )
         return plugin(self.w_cube)
 
@@ -208,11 +226,11 @@ class TestSinglePoint:
 
     A cube is a single 1x x 1y grid, however, the z dimension is not 1.
     It constructs 1x1 cubes for the ancillary fields Silhouette
-    roughness (AoS) and standard deviation of model height grid cell
-    (Sigma), vegetative roughness (z_0), post-processing grid orography
-    (pporog) and model orography(modelorog). If no values are supplied,
-    the values are: AoS = 0.2, Sigma = 20, z_0 = 0.2, pporog = 250,
-    modelorog = 230.
+    roughness (silhouette_roughness) and standard deviation of model height grid cell
+    (model_orog_stddev), vegetative roughness (model_z0), post-processing grid orography
+    (target_orog) and model orography(model_orog). If no values are supplied,
+    the values are: silhouette_roughness = 0.2, model_orog_stddev = 20, model_z0 = 0.2, target_orog = 250,
+    model_orog = 230.
 
     The height level grid (heightlevels) can be supplied as an 1D
     array. If nothing is supplied, the height level grid is [0.2, 3,
@@ -222,44 +240,51 @@ class TestSinglePoint:
 
     def __init__(
         self,
-        AoS=0.2,
-        Sigma=20.0,
-        z_0=0.2,
-        pporog=250.0,
-        modelorog=230.0,
+        silhouette_roughness=0.2,
+        model_orog_stddev=20.0,
+        model_z0=0.2,
+        target_orog=250.0,
+        model_orog=230.0,
         heightlevels=np.array([0.2, 3.0, 13.0, 33.0, 133.0, 333.0, 1133.0]),
     ):
         """Set up the single point test for RoughnessCorrection.
 
         Args:
-            AoS (float):
+            silhouette_roughness (float):
                 Silhouette roughness field
-            Sigma (float):
+            model_orog_stddev (float):
                 Standard deviation field of height in grid cell
-            z_0 (float):
+            model_z0 (float):
                 Vegetative roughness field
-            pporog (float):
+            target_orog (float):
                 Unsmoothed orography on post-processing grid
-            modelorog (float):
+            model_orog (float):
                 Model orography on post-processing grid
             heightlevels (1D numpy.ndarray):
                 Height level array
 
         """
         self.w_cube = None
-        self.aos_cube = make_ancil_cube(AoS, "silhouette_roughness", 1, shape=(1, 1))
-        self.s_cube = make_ancil_cube(
-            Sigma, "standard_deviation_of_height_in_grid_cell", "m", shape=(1, 1)
+        self.model_silhouette_roughness_cube = make_ancil_cube(
+            silhouette_roughness, "silhouette_roughness", 1, shape=(1, 1)
         )
-        if z_0 is None:
-            self.z0_cube = None
+        self.s_cube = make_ancil_cube(
+            model_orog_stddev,
+            "standard_deviation_of_height_in_grid_cell",
+            "m",
+            shape=(1, 1),
+        )
+        if model_z0 is None:
+            self.model_z0_cube = None
         else:
-            self.z0_cube = make_ancil_cube(
-                z_0, "vegetative_roughness_length", "m", shape=(1, 1)
+            self.model_z0_cube = make_ancil_cube(
+                model_z0, "vegetative_roughness_length", "m", shape=(1, 1)
             )
-        self.poro_cube = make_ancil_cube(pporog, "surface_altitude", "m", shape=(1, 1))
-        self.moro_cube = make_ancil_cube(
-            modelorog, "surface_altitude", "m", shape=(1, 1)
+        self.target_orog_cube = make_ancil_cube(
+            target_orog, "surface_altitude", "m", shape=(1, 1)
+        )
+        self.model_orog_cube = make_ancil_cube(
+            model_orog, "surface_altitude", "m", shape=(1, 1)
         )
         if heightlevels is not None:
             self.hl_cube = make_point_height_ancil_cube(heightlevels)
@@ -281,13 +306,13 @@ class TestSinglePoint:
         """
         self.w_cube = make_point_data_cube(wind, "wind_speed", "m s-1")
         plugin = RoughnessCorrection(
-            self.aos_cube,
-            self.s_cube,
-            self.poro_cube,
-            self.moro_cube,
-            1500.0,
-            self.z0_cube,
-            self.hl_cube,
+            model_silhouette_roughness_cube=self.model_silhouette_roughness_cube,
+            model_orog_stddev_cube=self.s_cube,
+            target_orog_cube=self.target_orog_cube,
+            model_orog_cube=self.model_orog_cube,
+            model_res=1500.0,
+            model_z0_cube=self.model_z0_cube,
+            height_levels_cube=self.hl_cube,
         )
         return plugin(self.w_cube)
 
@@ -299,7 +324,7 @@ class Test1D(unittest.TestCase):
     passed, as well as testing the general behaviour of points that
     should not have a height corretion (equal height in model and pp
     orography) and the correct behaviour of doing roughness correction,
-    depending on whether or not a vegetative roughness (z_0) cube is
+    depending on whether or not a vegetative roughness (model_z0) cube is
     provided.
 
     Section 0 are tests where RMDI or np.nan values are passed.
@@ -311,73 +336,81 @@ class Test1D(unittest.TestCase):
     hls = np.array([0.2, 3, 13, 33, 133, 333, 1133], dtype=np.float32)
 
     def test_section0a(self):
-        """Test AoS is RMDI, point should not do anything, uin = uout."""
-        landpointtests_hc_rc = TestSinglePoint(AoS=RMDI, heightlevels=self.hls)
+        """Test silhouette_roughness is RMDI, point should not do anything, uin = uout."""
+        landpointtests_hc_rc = TestSinglePoint(
+            silhouette_roughness=RMDI, heightlevels=self.hls
+        )
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         np.testing.assert_array_equal(landpointtests_hc_rc.w_cube, land_hc_rc)
 
     def test_section0b(self):
-        """Test AoS is np.nan, point should not do anything, uin = uout."""
-        landpointtests_hc_rc = TestSinglePoint(AoS=np.nan, heightlevels=self.hls)
+        """Test silhouette_roughness is np.nan, point should not do anything, uin = uout."""
+        landpointtests_hc_rc = TestSinglePoint(
+            silhouette_roughness=np.nan, heightlevels=self.hls
+        )
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         np.testing.assert_array_equal(landpointtests_hc_rc.w_cube, land_hc_rc)
 
     def test_section0c(self):
-        """Test Sigma is RMDI, point should not do anything, uin = uout."""
-        landpointtests_hc_rc = TestSinglePoint(Sigma=RMDI, heightlevels=self.hls)
+        """Test model_orog_stddev is RMDI, point should not do anything, uin = uout."""
+        landpointtests_hc_rc = TestSinglePoint(
+            model_orog_stddev=RMDI, heightlevels=self.hls
+        )
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         np.testing.assert_array_equal(landpointtests_hc_rc.w_cube, land_hc_rc)
 
     def test_section0d(self):
-        """Test Sigma is np.nan, point should not do anything, uin = uout."""
-        landpointtests_hc_rc = TestSinglePoint(Sigma=np.nan, heightlevels=self.hls)
+        """Test model_orog_stddev is np.nan, point should not do anything, uin = uout."""
+        landpointtests_hc_rc = TestSinglePoint(
+            model_orog_stddev=np.nan, heightlevels=self.hls
+        )
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         np.testing.assert_array_equal(landpointtests_hc_rc.w_cube, land_hc_rc)
 
     def test_section0e(self):
-        """Test z_0 is RMDI, point should not do RC.
+        """Test model_z0 is RMDI, point should not do RC.
 
         modeloro = pporo, so point should not do HC, uin = uout.
 
         """
         landpointtests_hc_rc = TestSinglePoint(
-            z_0=RMDI, pporog=230.0, heightlevels=self.hls
+            model_z0=RMDI, target_orog=230.0, heightlevels=self.hls
         )
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         np.testing.assert_array_equal(landpointtests_hc_rc.w_cube, land_hc_rc)
 
     def test_section0f(self):
-        """Test z_0 is np.nan, point should not do RC.
+        """Test model_z0 is np.nan, point should not do RC.
 
         modeloro = pporo, so point should not do HC, uin = uout.
 
         """
         landpointtests_hc_rc = TestSinglePoint(
-            z_0=np.nan, pporog=230.0, heightlevels=self.hls
+            model_z0=np.nan, target_orog=230.0, heightlevels=self.hls
         )
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         np.testing.assert_array_equal(landpointtests_hc_rc.w_cube, land_hc_rc)
 
     def test_section0g(self):
-        """Test z_0 is RMDI, point should not do RC.
+        """Test model_z0 is RMDI, point should not do RC.
 
         modeloro < pporo, so point should do positive HC, uin < uout.
 
         """
-        landpointtests_hc_rc = TestSinglePoint(z_0=RMDI, heightlevels=self.hls)
+        landpointtests_hc_rc = TestSinglePoint(model_z0=RMDI, heightlevels=self.hls)
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertTrue((land_hc_rc.data > landpointtests_hc_rc.w_cube.data).all())
 
     def test_section0h(self):
-        """Test pporog is RMDI (QUESTION: or should this fail???)
+        """Test target_orog is RMDI (QUESTION: or should this fail???)
 
         RC could be done for this point, HC cannot.
         uin >= uout
-        and since z_0=height[0]
+        and since model_z0=height[0]
         uout[0] = 0
 
         """
-        landpointtests_hc_rc = TestSinglePoint(pporog=RMDI, heightlevels=self.hls)
+        landpointtests_hc_rc = TestSinglePoint(target_orog=RMDI, heightlevels=self.hls)
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertTrue(
             (land_hc_rc.data <= landpointtests_hc_rc.w_cube.data).all()
@@ -385,15 +418,17 @@ class Test1D(unittest.TestCase):
         )
 
     def test_section0i(self):
-        """Test pporog is np.nan (QUESTION: or should this fail???)
+        """Test target_orog is np.nan (QUESTION: or should this fail???)
 
         RC could be done for this point, HC cannot.
         uin >= uout
-        and since z_0=height[0]
+        and since model_z0=height[0]
         uout[0] = 0
 
         """
-        landpointtests_hc_rc = TestSinglePoint(pporog=np.nan, heightlevels=self.hls)
+        landpointtests_hc_rc = TestSinglePoint(
+            target_orog=np.nan, heightlevels=self.hls
+        )
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertTrue(
             (land_hc_rc.data <= landpointtests_hc_rc.w_cube.data).all()
@@ -401,15 +436,15 @@ class Test1D(unittest.TestCase):
         )
 
     def test_section0j(self):
-        """Test modelorog is RMDI (QUESTION: or should this fail???).
+        """Test model_orog is RMDI (QUESTION: or should this fail???).
 
         RC could be done for this point, HC cannot.
         uin >= uout
-        and since z_0=height[0]
+        and since model_z0=height[0]
         uout[0] = 0
 
         """
-        landpointtests_hc_rc = TestSinglePoint(modelorog=RMDI, heightlevels=self.hls)
+        landpointtests_hc_rc = TestSinglePoint(model_orog=RMDI, heightlevels=self.hls)
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertTrue(
             (land_hc_rc.data <= landpointtests_hc_rc.w_cube.data).all()
@@ -467,24 +502,24 @@ class Test1D(unittest.TestCase):
     def test_section1a(self):
         """Test HC only, HC = 0.
 
-        z_0 passed as None, hence RC not performed.
-        modelorg = pporog, hence HC = 0.
+        model_z0 passed as None, hence RC not performed.
+        modelorg = target_orog, hence HC = 0.
         uin = uout
 
         """
-        landpointtests_hc = TestSinglePoint(z_0=None, modelorog=250.0)
+        landpointtests_hc = TestSinglePoint(model_z0=None, model_orog=250.0)
         land_hc_rc = landpointtests_hc.run_hc_rc(self.uin)
         np.testing.assert_array_equal(landpointtests_hc.w_cube, land_hc_rc)
 
     def test_section1b(self):
         """Test HC only.
 
-        z_0 passed as None, hence RC not performed.
-        modelorg < pporog, hence positive HC.
+        model_z0 passed as None, hence RC not performed.
+        modelorg < target_orog, hence positive HC.
         uin <= uout, at least one height has uin < uout.
 
         """
-        landpointtests_hc = TestSinglePoint(z_0=None)
+        landpointtests_hc = TestSinglePoint(model_z0=None)
         land_hc_rc = landpointtests_hc.run_hc_rc(self.uin)
         self.assertTrue(
             (land_hc_rc.data >= landpointtests_hc.w_cube.data).all()
@@ -494,12 +529,12 @@ class Test1D(unittest.TestCase):
     def test_section1c(self):
         """Test RC and HC, HC=0.
 
-        z_0 passed, hence RC performed.
-        modelorg == pporog, hence no HC.
+        model_z0 passed, hence RC performed.
+        modelorg == target_orog, hence no HC.
         uin >= uout, at least one height has uin > uout, uout[0] = 0.
 
         """
-        landpointtests_rc = TestSinglePoint(modelorog=250.0)
+        landpointtests_rc = TestSinglePoint(model_orog=250.0)
         land_hc_rc = landpointtests_rc.run_hc_rc(self.uin)
         self.assertTrue(
             (land_hc_rc.data <= landpointtests_rc.w_cube.data).all()
@@ -510,15 +545,15 @@ class Test1D(unittest.TestCase):
     def test_section1d(self):
         """Test RC and HC.
 
-        z_0 passed, hence RC performed.
-        modelorg >> pporog, hence negative HC.
+        model_z0 passed, hence RC performed.
+        modelorg >> target_orog, hence negative HC.
         uin >= uout, at least one height has uin > uout
-        z_0 = height[0] hence RC[0] results in 0.
+        model_z0 = height[0] hence RC[0] results in 0.
         uout[0] RC is 0. HC is negative, negative speeds not allowed.
         Must be 0.
 
         """
-        landpointtests_hc_rc = TestSinglePoint(pporog=230.0, modelorog=250.0)
+        landpointtests_hc_rc = TestSinglePoint(target_orog=230.0, model_orog=250.0)
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertTrue(
             (land_hc_rc.data <= landpointtests_hc_rc.w_cube.data).all()
@@ -528,26 +563,26 @@ class Test1D(unittest.TestCase):
         )
 
     def test_section1e(self):
-        """Test RC and HC, but sea point masked out (AoS).
+        """Test RC and HC, but sea point masked out (silhouette_roughness).
 
-        Sea point according to (AoS=0) => masked out.
-        z_0 passed, hence RC performed in theory.
+        Sea point according to (silhouette_roughness=0) => masked out.
+        model_z0 passed, hence RC performed in theory.
         uin = uout.
 
         """
-        landpointtests_hc_rc = TestSinglePoint(AoS=0.0)
+        landpointtests_hc_rc = TestSinglePoint(silhouette_roughness=0.0)
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         np.testing.assert_array_equal(landpointtests_hc_rc.w_cube, land_hc_rc)
 
     def test_section1f(self):
-        """Test RC and HC, but sea point masked out (Sigma).
+        """Test RC and HC, but sea point masked out (model_orog_stddev).
 
-        Sea point according to (Sigma=0) => masked out
-        z_0 passed, hence RC performed in theory.
+        Sea point according to (model_orog_stddev=0) => masked out
+        model_z0 passed, hence RC performed in theory.
         uin = uout.
 
         """
-        landpointtests_hc_rc = TestSinglePoint(Sigma=0.0)
+        landpointtests_hc_rc = TestSinglePoint(model_orog_stddev=0.0)
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         np.testing.assert_array_equal(landpointtests_hc_rc.w_cube, land_hc_rc)
 
@@ -599,9 +634,9 @@ class Test2D(unittest.TestCase):
         heights = ((np.arange(10) + 1) ** 2.0) * 12
         multip_hc_rc = TestMultiPoint(
             shape=(3, 1),
-            AoS=[0, 0.2, 0.2],
-            pporog=[0, 250, 250],
-            modelorog=[0, 250, 230],
+            silhouette_roughness=[0, 0.2, 0.2],
+            target_orog=[0, 250, 250],
+            model_orog=[0, 250, 230],
         )
         land_hc_rc = multip_hc_rc.run_hc_rc(uin, dtime=2, height=heights)
         tidx = land_hc_rc.shape.index(2)
@@ -638,11 +673,11 @@ class Test2D(unittest.TestCase):
         heights = ((np.arange(10) + 1) ** 2.0) * 12
         multip_hc_rc = TestMultiPoint(
             shape=(3, 1),
-            AoS=[0, 0.2, 0.2],
-            pporog=[0, 250, 250],
-            modelorog=[0, 250, 230],
+            silhouette_roughness=[0, 0.2, 0.2],
+            target_orog=[0, 250, 250],
+            model_orog=[0, 250, 230],
         )
-        msg = "wind input is not a cube, but <class 'iris.cube.CubeList'>"
+        msg = "Wind input is not a cube, but <class 'iris.cube.CubeList'>"
         with self.assertRaisesRegex(TypeError, msg):
             _ = multip_hc_rc.run_hc_rc([uin, uin], dtime=2, height=heights, aslist=True)
 
@@ -656,53 +691,62 @@ class Test2D(unittest.TestCase):
         self.assertEqual(land_hc_rc.dtype, np.float32)
 
     def test_section3a(self):
-        """As test 1c, however with manipulated z_0 cube.
+        """As test 1c, however with manipulated model_z0 cube.
 
-        All ancillary fields have 1x1 dim, z_0 is on a different grid.
+        All ancillary fields have 1x1 dim, model_z0 is on a different grid.
         This should fail with ValueError("ancillary grids are not
         consistent").
 
         """
-        landpointtests_rc = TestSinglePoint(z_0=0.2, pporog=250.0, modelorog=250.0)
-        z0_data = np.array(
-            [landpointtests_rc.z0_cube.data, landpointtests_rc.z0_cube.data]
+        landpointtests_rc = TestSinglePoint(
+            model_z0=0.2, target_orog=250.0, model_orog=250.0
         )
-        landpointtests_rc.z0_cube = make_ancil_cube(
+        z0_data = np.array(
+            [landpointtests_rc.model_z0_cube.data, landpointtests_rc.model_z0_cube.data]
+        )
+        landpointtests_rc.model_z0_cube = make_ancil_cube(
             z0_data, "vegetative_roughness_length", "m", shape=(1, 2)
         )
-        msg = "ancillary grids are not consistent"
+        msg = "Ancillary grids are not consistent."
         with self.assertRaisesRegex(ValueError, msg):
             _ = landpointtests_rc.run_hc_rc(self.uin)
 
     def test_section3b(self):
-        """As test 3a, however with manipulated modelorog cube instead.
+        """As test 3a, however with manipulated model_orog cube instead.
 
         This should fail with ValueError("ancillary grids are not
         consistent").
 
         """
-        landpointtests_rc = TestSinglePoint(z_0=0.2, pporog=250.0, modelorog=250.0)
-        moro_data = np.array(
-            [landpointtests_rc.moro_cube.data, landpointtests_rc.moro_cube.data]
+        landpointtests_rc = TestSinglePoint(
+            model_z0=0.2, target_orog=250.0, model_orog=250.0
         )
-        landpointtests_rc.moro_cube = make_ancil_cube(
+        moro_data = np.array(
+            [
+                landpointtests_rc.model_orog_cube.data,
+                landpointtests_rc.model_orog_cube.data,
+            ]
+        )
+        landpointtests_rc.model_orog_cube = make_ancil_cube(
             moro_data, "surface_altitude", "m", shape=(1, 2)
         )
-        msg = "ancillary grids are not consistent"
+        msg = "Ancillary grids are not consistent."
         with self.assertRaisesRegex(ValueError, msg):
             _ = landpointtests_rc.run_hc_rc(self.uin)
 
     def test_section3c(self):
-        """As test 3a, however with manipulated z_0 units.
+        """As test 3a, however with manipulated model_z0 units.
 
         This should fail with a wrong units error.
 
         """
-        landpointtests_rc = TestSinglePoint(z_0=0.2, pporog=250.0, modelorog=250.0)
-        landpointtests_rc.z0_cube.units = Unit("s")
-        msg = "z0 ancil has unexpected unit: should be {} is {}"
+        landpointtests_rc = TestSinglePoint(
+            model_z0=0.2, target_orog=250.0, model_orog=250.0
+        )
+        landpointtests_rc.model_z0_cube.units = Unit("s")
+        msg = "z0 ancillary has unexpected unit: expected {}, got {}"
         with self.assertRaisesRegex(
-            ValueError, msg.format(Unit("m"), landpointtests_rc.z0_cube.units)
+            ValueError, msg.format(Unit("m"), landpointtests_rc.model_z0_cube.units)
         ):
             _ = landpointtests_rc.run_hc_rc(self.uin)
 
