@@ -61,11 +61,11 @@ def process(
             learning model for frame interpolation.
         accumulation:
             Set True if the diagnostic being temporally interpolated is a
-            period accumulation. The output will be renormalised to ensure
-            that the total across the period constructed from the shorter
-            intervals matches the total across the period from the coarser
-            intervals. Trends between adjacent input periods will be used
-            to provide variation across the interpolated periods.
+            period accumulation. Enabling this option will result in the period
+            accumulation being disaggregated into shorter periods. The output
+            will be renormalised to ensure that the total across the period
+            constructed from the shorter intervals matches the total across the
+            period from the coarser intervals.
         is_last_timestep:
             When True and accumulation is True, the second input is duplicated as
             the third input to the interpolation.
