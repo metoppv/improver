@@ -10,7 +10,6 @@ import pytest
 from iris.coords import AuxCoord
 from iris.cube import Cube, CubeList
 
-import improver.calibration.load_and_apply_quantile_regression_random_forest as qrf_module
 from improver.calibration.load_and_apply_quantile_regression_random_forest import (
     PrepareAndApplyQRF,
 )
@@ -596,6 +595,41 @@ def test_no_quantile_forest_package(set_up_for_unexpected):
     assert np.allclose(result.data, forecast_cube.data)
 
 
+def _set_up_for_quantile_width_cap_tests(quantiles):
+    """Set up common elements for quantile-width cap tests."""
+    feature_config = {"wind_speed_at_10m": ["mean", "std", "latitude", "longitude"]}
+    transformation = None
+    pre_transform_addition = 0
+    qrf_model = object()
+
+    frt = "20170103T0000Z"
+    vt = "20170103T1200Z"
+    data = np.arange(6, (len(quantiles) * 6) + 1, 6)
+    forecast_cube = _create_forecasts(frt, vt, data, return_cube=True)
+    forecast_cube = _add_day_of_training_period_to_cube(
+        forecast_cube, 2, "forecast_reference_time"
+    )
+    cube_inputs = CubeList([forecast_cube])
+    qrf_descriptors = (qrf_model, transformation, pre_transform_addition)
+    return feature_config, cube_inputs, qrf_descriptors
+
+
+def _set_dummy_qrf_predictions(monkeypatch, prediction):
+    """Patch QRF application class to return deterministic predictions."""
+
+    class DummyApplyQRF:
+        def __init__(self, *args, **kwargs):
+            self.quantiles = kwargs["quantiles"]
+
+        def __call__(self, _model, _df):
+            return np.full((2, len(self.quantiles)), prediction, dtype=np.float32)
+
+    monkeypatch.setattr(
+        "improver.calibration.load_and_apply_quantile_regression_random_forest.ApplyQuantileRegressionRandomForests",
+        DummyApplyQRF,
+    )
+
+
 @pytest.mark.parametrize(
     "dummy_prediction,expected_boundary",
     [(100, "upper"), (-100, "lower")],
@@ -604,36 +638,11 @@ def test_quantile_width_cap_clips_output(
     monkeypatch, dummy_prediction, expected_boundary
 ):
     """Test quantile-width capping clips calibrated output as expected."""
-    feature_config = {"wind_speed_at_10m": ["mean", "std", "latitude", "longitude"]}
-    transformation = None
-    pre_transform_addition = 0
-    qrf_model = object()
-
-    cube_inputs = CubeList(
-        [
-            _add_day_of_training_period_to_cube(
-                _create_forecasts(
-                    "20170103T0000Z",
-                    "20170103T1200Z",
-                    np.array([6, 12, 18], dtype=np.float32),
-                    return_cube=True,
-                ),
-                2,
-                "forecast_reference_time",
-            )
-        ]
+    quantiles = [1 / 3, 2 / 3]
+    feature_config, cube_inputs, qrf_descriptors = _set_up_for_quantile_width_cap_tests(
+        quantiles
     )
-
-    class DummyApplyQRF:
-        def __init__(self, *args, **kwargs):
-            self.quantiles = kwargs["quantiles"]
-
-        def __call__(self, _model, _df):
-            return np.full(
-                (2, len(self.quantiles)), dummy_prediction, dtype=np.float32
-            )
-
-    monkeypatch.setattr(qrf_module, "ApplyQuantileRegressionRandomForests", DummyApplyQRF)
+    _set_dummy_qrf_predictions(monkeypatch, dummy_prediction)
 
     plugin = PrepareAndApplyQRF(
         feature_config,
@@ -642,7 +651,7 @@ def test_quantile_width_cap_clips_output(
         width_lower_percentile=10,
         width_upper_percentile=90,
     )
-    result = plugin(cube_inputs, (qrf_model, transformation, pre_transform_addition))
+    result = plugin(cube_inputs, qrf_descriptors=qrf_descriptors)
 
     uncalibrated = cube_inputs[0].data.T
     lower = np.percentile(uncalibrated, 10, axis=1)
@@ -658,76 +667,30 @@ def test_quantile_width_cap_clips_output(
 
 def test_quantile_width_cap_can_be_disabled(monkeypatch):
     """Test that setting width factor to None disables clipping."""
-    feature_config = {"wind_speed_at_10m": ["mean", "std", "latitude", "longitude"]}
-    transformation = None
-    pre_transform_addition = 0
-    qrf_model = object()
-
-    cube_inputs = CubeList(
-        [
-            _add_day_of_training_period_to_cube(
-                _create_forecasts(
-                    "20170103T0000Z",
-                    "20170103T1200Z",
-                    np.array([6, 12, 18], dtype=np.float32),
-                    return_cube=True,
-                ),
-                2,
-                "forecast_reference_time",
-            )
-        ]
+    quantiles = [1 / 3, 2 / 3]
+    feature_config, cube_inputs, qrf_descriptors = _set_up_for_quantile_width_cap_tests(
+        quantiles
     )
-
-    class DummyApplyQRF:
-        def __init__(self, *args, **kwargs):
-            self.quantiles = kwargs["quantiles"]
-
-        def __call__(self, _model, _df):
-            return np.full((2, len(self.quantiles)), 100, dtype=np.float32)
-
-    monkeypatch.setattr(qrf_module, "ApplyQuantileRegressionRandomForests", DummyApplyQRF)
+    _set_dummy_qrf_predictions(monkeypatch, 100)
 
     plugin = PrepareAndApplyQRF(
         feature_config,
         "wind_speed_at_10m",
         max_adjustment_width_factor=None,
     )
-    result = plugin(cube_inputs, (qrf_model, transformation, pre_transform_addition))
+    result = plugin(cube_inputs, qrf_descriptors=qrf_descriptors)
 
     assert np.allclose(result.data, 100)
 
 
 def test_quantile_width_cap_handles_partial_nans(monkeypatch):
     """Test NaNs in a subset of members do not contaminate whole rows."""
-    feature_config = {"wind_speed_at_10m": ["mean", "std", "latitude", "longitude"]}
-    transformation = None
-    pre_transform_addition = 0
-    qrf_model = object()
-
-    cube_inputs = CubeList(
-        [
-            _add_day_of_training_period_to_cube(
-                _create_forecasts(
-                    "20170103T0000Z",
-                    "20170103T1200Z",
-                    np.array([6, 12, 18], dtype=np.float32),
-                    return_cube=True,
-                ),
-                2,
-                "forecast_reference_time",
-            )
-        ]
+    quantiles = [1 / 3, 2 / 3]
+    feature_config, cube_inputs, qrf_descriptors = _set_up_for_quantile_width_cap_tests(
+        quantiles
     )
     cube_inputs[0].data[0, 0] = np.nan
-
-    class DummyApplyQRF:
-        def __init__(self, *args, **kwargs):
-            self.quantiles = kwargs["quantiles"]
-
-        def __call__(self, _model, _df):
-            return np.full((2, len(self.quantiles)), 100, dtype=np.float32)
-
-    monkeypatch.setattr(qrf_module, "ApplyQuantileRegressionRandomForests", DummyApplyQRF)
+    _set_dummy_qrf_predictions(monkeypatch, 100)
 
     plugin = PrepareAndApplyQRF(
         feature_config,
@@ -736,7 +699,7 @@ def test_quantile_width_cap_handles_partial_nans(monkeypatch):
         width_lower_percentile=10,
         width_upper_percentile=90,
     )
-    result = plugin(cube_inputs, (qrf_model, transformation, pre_transform_addition))
+    result = plugin(cube_inputs, qrf_descriptors=qrf_descriptors)
 
     uncalibrated = cube_inputs[0].data.T
     assert np.array_equal(np.isnan(result.data.T), np.isnan(uncalibrated))
