@@ -47,7 +47,7 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
         unique_site_id_keys: list[str] = ["wmo_id"],
         cycletime: Optional[str] = None,
         forecast_period: Optional[int] = None,
-        max_adjustment_width_factor: Optional[float] = None,
+        max_adjustment_width_factor: Optional[float] = 1.0,
         width_lower_percentile: float = 10.0,
         width_upper_percentile: float = 90.0,
     ):
@@ -92,7 +92,7 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
                 width between width_lower_percentile and width_upper_percentile of the
                 uncalibrated forecast values. Calibrated values are constrained to
                 lie within +/- this cap from the uncalibrated forecast values.
-                Defaults to None, which disables capping.
+                Defaults to 1.0 (one full width from P10 to P90).
             width_lower_percentile (float):
                 Lower percentile used to define forecast width for the cap.
                 Defaults to 10.
