@@ -47,6 +47,9 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
         unique_site_id_keys: list[str] = ["wmo_id"],
         cycletime: Optional[str] = None,
         forecast_period: Optional[int] = None,
+        max_adjustment_width_factor: Optional[float] = None,
+        width_lower_percentile: float = 10.0,
+        width_upper_percentile: float = 90.0,
     ):
         """Initialise the plugin.
 
@@ -83,12 +86,34 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
                 The forecast period of the forecast to be calibrated in seconds. If not
                 provided, the forecast period found in the first forecast cube
                 will be used.
+            max_adjustment_width_factor (float):
+                Optional scaling factor for a quantile-width cap on the adjustment
+                applied by calibration. The cap is calculated per site/time from the
+                width between width_lower_percentile and width_upper_percentile of the
+                uncalibrated forecast values. Calibrated values are constrained to
+                lie within +/- this cap from the uncalibrated forecast values.
+                Defaults to None, which disables capping.
+            width_lower_percentile (float):
+                Lower percentile used to define forecast width for the cap.
+                Defaults to 10.
+            width_upper_percentile (float):
+                Upper percentile used to define forecast width for the cap.
+                Defaults to 90.
         """
         self.feature_config = feature_config
         self.target_cf_name = target_cf_name
         self.unique_site_id_keys = unique_site_id_keys
         self.cycletime = cycletime
         self.forecast_period = forecast_period
+        if max_adjustment_width_factor is not None and max_adjustment_width_factor < 0:
+            raise ValueError("max_adjustment_width_factor must be non-negative.")
+        if not 0 <= width_lower_percentile < width_upper_percentile <= 100:
+            raise ValueError(
+                "Width percentiles must satisfy 0 <= lower < upper <= 100."
+            )
+        self.max_adjustment_width_factor = max_adjustment_width_factor
+        self.width_lower_percentile = width_lower_percentile
+        self.width_upper_percentile = width_upper_percentile
         self.quantile_forest_installed = quantile_forest_package_available()
 
     def _get_inputs(
@@ -335,6 +360,17 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
             unique_site_id_keys=self.unique_site_id_keys,
         )(qrf_model, df)
         del df
+
+        if self.max_adjustment_width_factor is not None:
+            uncalibrated = output_cube.data.T
+            lower = np.nanpercentile(uncalibrated, self.width_lower_percentile, axis=1)
+            upper = np.nanpercentile(uncalibrated, self.width_upper_percentile, axis=1)
+            cap = self.max_adjustment_width_factor * (upper - lower)[:, np.newaxis]
+            calibrated_forecast = np.clip(
+                calibrated_forecast,
+                uncalibrated - cap,
+                uncalibrated + cap,
+            )
 
         output_cube.data = np.broadcast_to(calibrated_forecast.T, output_cube.shape)
 
