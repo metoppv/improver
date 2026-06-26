@@ -588,28 +588,38 @@ class Test_prepare_input_cubes(Test_WXCode):
         for constraint in unexpected:
             self.assertEqual(len(result.extract(constraint)), 0)
 
-    def test_raises_error_matching_threshold(self):
-        """Test prepare_input_cubes method raises error for matching thresholds in a
-        diagnostic."""
+    def test_selects_closest_threshold_when_multiple_matches(self):
+        """Test prepare_input_cubes method raises a warning for matching thresholds
+        in a diagnostic and selects the closest threshold."""
+
+        # Modify the cube snowfall_rate to add an additional threshold
         threshold_coord = find_threshold_coordinate(self.cubes[0])
-        additional_threshold = threshold_coord.points[0] * (
+        original_threshold = threshold_coord.points[0]
+        additional_threshold = original_threshold * (
             1 + 0.5 * self.plugin.float_tolerance
         )
         threshold_coord.points = np.array(
             [
-                threshold_coord.points[0],
+                original_threshold,
                 additional_threshold,
                 threshold_coord.points[2],
             ],
             dtype=np.float32,
         )
-        msg = (
-            r"Multiple \(2\) matching thresholds found for name: "
-            "probability_of_lwe_snowfall_rate_above_threshold"
-        )
-
-        with self.assertRaisesRegex(ValueError, msg):
-            self.plugin.prepare_input_cubes(self.cubes)
+        # Check warning is raised
+        msg = r"Multiple \(2\) matching thresholds found.*Using closest match"
+        with self.assertWarnsRegex(UserWarning, msg):
+            result, _ = self.plugin.prepare_input_cubes(self.cubes)
+        # Check thresholds extracted for modified_cube
+        expected_thresholds = {original_threshold, threshold_coord.points[2]}
+        modified_cube = [cube for cube in result if "lwe_snowfall_rate" in cube.name()]
+        for cube in modified_cube:
+            self.assertGreater(len(modified_cube), 0)
+            cube_thresholds = cube.coord(find_threshold_coordinate(cube).name()).points
+            self.assertEqual(len(cube_thresholds), 1)
+            cube_threshold_value = cube_thresholds[0]
+            self.assertIn(cube_threshold_value, expected_thresholds)
+            self.assertNotEqual(cube_threshold_value, additional_threshold)
 
     def test_zero_threshold_uses_absolute_tolerance(self):
         """Test prepare_input_cubes method uses absolute tolerance when the threshold
