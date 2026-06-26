@@ -284,12 +284,13 @@ class ApplyDecisionTree(BasePlugin):
                         )
                         num_thresholds = len(threshold_points)
 
+                        # If multiple thresholds are found, the closest threshold to the
+                        # desired threshold, is chosen.
                         if num_thresholds > 1:
                             diff = [
                                 abs(point - threshold) for point in threshold_points
                             ]
-                            diff_index = diff.index(min(diff))
-                            closest_point = threshold_points[diff_index]
+                            closest_point = threshold_points[diff.index(min(diff))]
 
                             warnings.warn(
                                 f"Multiple ({num_thresholds}) matching thresholds found"
@@ -303,14 +304,7 @@ class ApplyDecisionTree(BasePlugin):
                             closest_cube = matched_threshold[0].extract(
                                 closest_point_constraint
                             )
-
-                            if closest_cube:
-                                used_cubes.append(closest_cube)
-                            else:
-                                missing_data.append(
-                                    f"name: {diagnostic}, threshold: {threshold}, "
-                                    f"(closest match extraction failed)\n"
-                                )
+                            used_cubes.append(closest_cube)
 
                         else:
                             used_cubes.extend(matched_threshold)
