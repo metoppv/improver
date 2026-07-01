@@ -358,7 +358,8 @@ def integrate_time(cube: Cube, new_name: str = None) -> Cube:
 def reset_forecast_reference_time_and_period(cube: Cube, cycletime: str) -> None:
     """
     Reset the forecast_reference_time coordinate to the given cycletime and
-    update the forecast_period coordinate to match.
+    update the forecast_period coordinate to match. If a blend_time coordinate
+    is present, it is also reset to the same cycletime.
 
     Modifies cube in place.
 
@@ -380,6 +381,9 @@ def reset_forecast_reference_time_and_period(cube: Cube, cycletime: str) -> None
     )
     cube.coord("forecast_reference_time").points = [cycletime_point]
     cube.coord("forecast_reference_time").bounds = None
+    if cube.coords("blend_time"):
+        cube.coord("blend_time").points = [cycletime_point]
+        cube.coord("blend_time").bounds = None
     # Forecast period modifications.
     if cube.coords("forecast_period"):
         from improver.metadata.forecast_times import forecast_period_coord
@@ -388,3 +392,20 @@ def reset_forecast_reference_time_and_period(cube: Cube, cycletime: str) -> None
         new_forecast_period = forecast_period_coord(cube)
         time_dim = cube.coord_dims("time")
         cube.add_aux_coord(new_forecast_period, data_dims=time_dim)
+
+
+def validate_cycletime_format(cycletime: str) -> None:
+    """Validate that a cycletime string is in the expected format of YYYYMMDDTHHMMZ.
+
+    Args:
+        cycletime: The cycletime string to validate.
+    Raises:
+        ValueError: If the cycletime string is not in the expected format.
+    """
+    try:
+        datetime.strptime(cycletime, DT_FORMAT)
+    except ValueError:
+        raise ValueError(
+            f"cycletime '{cycletime}' is not in the expected format "
+            "YYYYMMDDTHHMMZ (e.g., 20240101T0000Z)"
+        )

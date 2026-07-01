@@ -12,6 +12,7 @@ from typing import Any, Optional
 import iris
 import numpy as np
 import pandas as pd
+from iris.coords import DimCoord
 from iris.cube import Cube, CubeList
 from iris.util import new_axis, promote_aux_coord_to_dim_coord
 
@@ -25,6 +26,7 @@ from improver.utilities.cube_manipulation import (
 )
 from improver.utilities.temporal import (
     reset_forecast_reference_time_and_period,
+    validate_cycletime_format,
 )
 
 try:
@@ -397,6 +399,7 @@ class RealizationClusterAndMatch(BasePlugin):
         target_grid_name: str | None = None,
         regrid_mode: str = "esmf-area-weighted",
         regrid_for_clustering: bool = True,
+        renumber_primary_realizations: bool = True,
         regrid_kwargs: dict[str, Any] | None = None,
         cycletime: str | None = None,
         **kwargs: Any,
@@ -441,6 +444,15 @@ class RealizationClusterAndMatch(BasePlugin):
                 most relevant broad patterns rather than being dominated by
                 fine-scale noise. If False, clustering and matching are performed
                 on the original grids without regridding. Default is True.
+            renumber_primary_realizations: If True (default), primary input cubes
+                will have their realization coordinates renumbered to contiguous
+                integers (0 to n_realizations-1) after clustering and matching.
+                This allows seamless merging of primary cubes with different
+                realization numbering schemes. If False, original realization
+                numbering is preserved. When False, a UserWarning is issued if
+                primary input cubes have differing realization numbering, as this
+                may cause merge failures. Defaults to True for automatic renumbering
+                behaviour.
             regrid_kwargs: Additional keyword arguments to pass to RegridLandSea.
                 Common options include:
 
@@ -468,6 +480,7 @@ class RealizationClusterAndMatch(BasePlugin):
         self.clustering_method = clustering_method
         self.regrid_mode = regrid_mode
         self.regrid_for_clustering = regrid_for_clustering
+        self.renumber_primary_realizations = renumber_primary_realizations
         self.regrid_kwargs = regrid_kwargs if regrid_kwargs is not None else {}
         self.cycletime = cycletime
         self.kwargs = kwargs
@@ -1024,6 +1037,10 @@ class RealizationClusterAndMatch(BasePlugin):
             # Index the candidate cube using the realization indices
             matched_cube = candidate_cube[realization_indices]
             matched_cube.coord("realization").points = cluster_indices
+            # Handle iris demoting the realization coordinate following slicing with
+            # a non-monotonic index (e.g. [2, 0, 1])
+            if matched_cube.coord("realization") in matched_cube.aux_coords:
+                promote_aux_coord_to_dim_coord(matched_cube, "realization")
 
             matched_cube.attributes.pop(self.model_id_attr)
 
@@ -1179,7 +1196,8 @@ class RealizationClusterAndMatch(BasePlugin):
 
         This method clusters the primary input realizations and matches secondary input
         realizations to the resulting clusters, according to the specified hierarchy
-        and precedence.
+        and precedence. The realizations in the primary input can be renumbered
+        if desired.
 
         Args:
             cubes: The input CubeList containing all primary and secondary input
@@ -1212,9 +1230,19 @@ class RealizationClusterAndMatch(BasePlugin):
             - 'cluster_sources': tracks which input model provided the final data for
                 each cluster-forecast_period pairing.
 
-            Raises:
-                ValueError: If no primary cube is found with the specified
-                    model_id_attr.
+        Raises:
+            ValueError: If no primary cube is found with the specified
+                model_id_attr.
+
+        Warnings:
+            UserWarning: If primary cubes have different realization numbering schemes
+                when renumber_primary_realizations=False, which may cause merge
+                failures.
+            UserWarning: If no secondary inputs have forecast periods that overlap with
+                the primary input, in which case only the clustered primary input will
+                be returned.
+            UserWarning: If secondary inputs have forecast periods not present in the
+                primary input, which will be ignored.
         """
         if self.cycletime is not None:
             for cube in cubes:
@@ -1227,6 +1255,26 @@ class RealizationClusterAndMatch(BasePlugin):
         )
         primary_cubes = cubes.extract(constr)
         if primary_cubes:
+            if self.renumber_primary_realizations:
+                for cube in primary_cubes:
+                    cube.coord("realization").points = range(
+                        len(cube.coord("realization").points)
+                    )
+            else:
+                # Check if primary cubes have mismatched realization coordinates
+                # when renumbering is disabled
+                realization_points_list = [
+                    tuple(cube.coord("realization").points) for cube in primary_cubes
+                ]
+                if len(set(realization_points_list)) > 1:
+                    msg = (
+                        "Primary input cubes have different realization numbering "
+                        "schemes. With renumber_primary_realizations=False, this may "
+                        "cause merge failures. Consider enabling "
+                        "renumber_primary_realizations or harmonising realization "
+                        "coordinates across primary cubes."
+                    )
+                    warnings.warn(msg, UserWarning)
             primary_cube = MergeCubes()(primary_cubes)
             enforce_coordinate_ordering(primary_cube, ["realization"])
         else:
@@ -1379,6 +1427,9 @@ class RealizationSelection(BasePlugin):
         self,
         forecast_period: int,
         model_id_attr: str = "mosg__model_configuration",
+        cycletime: Optional[str] = None,
+        selection_attr: Optional[str] = None,
+        selection_attr_value: str = "cluster_medoid",
     ):
         """
         Initialise the RealizationSelection plugin.
@@ -1389,10 +1440,26 @@ class RealizationSelection(BasePlugin):
                 realizations.
             model_id_attr: The name of the cube attribute used to identify the model
                 source.
-
+            cycletime: The forecast_reference_time on the input forecast cubes will be
+                reset to this value. The forecast periods will be adjusted accordingly
+                with the validity times kept fixed. cycletime should be provided in the
+                format YYYYMMDDTHHMMZ (e.g., 20240101T0000Z). If not provided, the
+                forecast_reference_time on the input cubes will be left unchanged.
+            selection_attr: Optional name of a cube attribute to add to the output
+                to identify that these realizations were selected using this plugin.
+                If not provided (None), no attribute is added. Example:
+                "realization_selection_method".
+            selection_attr_value: The value (e.g. a description of the selection
+                method) to assign to the selection_attr attribute. Default is
+                "cluster_medoid". Only used if selection_attr is provided.
         """
         self.forecast_period = forecast_period
         self.model_id_attr = model_id_attr
+        self.cycletime = cycletime
+        if self.cycletime is not None:
+            validate_cycletime_format(self.cycletime)
+        self.selection_attr = selection_attr
+        self.selection_attr_value = selection_attr_value
 
     def split_cubes_forecast_and_cluster(
         self, cubes: CubeList
@@ -1416,6 +1483,7 @@ class RealizationSelection(BasePlugin):
 
         Raises:
             ValueError: If no cluster cube is found.
+            ValueError: If no forecast cubes are found.
         """
         cluster_cube = None
         forecast_cubes = CubeList()
@@ -1429,6 +1497,8 @@ class RealizationSelection(BasePlugin):
                 "No cluster cube found in input cubes "
                 "(missing 'primary_input_realization_to_cluster_medoid' attribute)."
             )
+        if not forecast_cubes:
+            raise ValueError("No forecast cubes found in input cubes.")
         return forecast_cubes, cluster_cube
 
     def parse_mapping_attributes(
@@ -1497,29 +1567,76 @@ class RealizationSelection(BasePlugin):
         self, mapping_fps: Optional[set[int]], fp: int
     ) -> tuple[int, bool]:
         """
-        Find the nearest forecast period in the secondary mapping to the requested
-        forecast period.
+        Find the nearest forecast period in the secondary mapping that is greater
+        than or equal to the requested forecast period.
 
         Args:
             mapping_fps: Set of forecast periods (in seconds) available in the
                 secondary mapping.
-            fp: The forecast period (in seconds) for which to find the nearest mapping.
+            fp: The forecast period (in seconds) for which to find the nearest
+                greater-than-or-equal mapping.
 
         Returns:
             A tuple containing:
-                - nearest_fp: The forecast period from mapping_fps closest to fp
-                (or fp if mapping_fps is empty).
+                - nearest_fp: The smallest forecast period from mapping_fps that is
+                greater than or equal to fp (or fp if mapping_fps is empty).
                 - use_secondary: Boolean indicating whether the secondary mapping
-                    should be used (True if fp is less than or equal to the maximum
-                    in mapping_fps, else False).
+                    should be used (True if at least one forecast period in
+                    mapping_fps is greater than or equal to fp, else False).
         """
         if mapping_fps:
-            nearest_fp = min(mapping_fps, key=lambda x: abs(x - fp))
-            use_secondary = fp <= max(mapping_fps)
+            valid_fps = [mapping_fp for mapping_fp in mapping_fps if mapping_fp >= fp]
+            if valid_fps:
+                nearest_fp = min(valid_fps)
+                use_secondary = True
+            else:
+                nearest_fp = fp
+                use_secondary = False
         else:
             nearest_fp = fp
             use_secondary = False
         return nearest_fp, use_secondary
+
+    def _extract_primary_model_from_cluster_sources(self, cluster_cube: Cube) -> str:
+        """Extract the primary model name from the cluster_sources attribute.
+
+        The primary model is identified as the model that appears in the most
+        clusters, which corresponds to the model used for initial clustering.
+
+        Args:
+            cluster_cube: The cluster cube output from RealizationClusterAndMatch,
+                containing the cluster_sources attribute as a JSON string.
+
+        Returns:
+            The primary model name.
+
+        Raises:
+            ValueError: If cluster_sources attribute is not found in the cube.
+        """
+        cluster_sources_str = cluster_cube.attributes.get("cluster_sources")
+        if cluster_sources_str is None:
+            raise ValueError(
+                "cluster_sources attribute not found in cluster cube. "
+                "Cannot determine primary model name."
+            )
+
+        cluster_sources = json.loads(cluster_sources_str)
+
+        # Count how many clusters each model appears in
+        model_counts = {}
+        for _, models_dict in cluster_sources.items():
+            for model_name in models_dict.keys():
+                model_counts[model_name] = model_counts.get(model_name, 0) + 1
+
+        # Return the model that appears in the most clusters
+        if not model_counts:
+            raise ValueError(
+                "No models found in cluster_sources attribute. "
+                "Cannot determine primary model name."
+            )
+
+        primary_model = max(model_counts, key=model_counts.get)
+        return primary_model
 
     def build_cluster_to_selection(
         self,
@@ -1535,7 +1652,8 @@ class RealizationSelection(BasePlugin):
 
         Args:
             nearest_fp: The forecast period (in seconds) from the secondary mapping
-                closest to the requested forecast period.
+                that is nearest while being greater than or equal to the requested
+                forecast period.
             use_secondary: Whether to use the secondary mapping (True) or fall back
                 to the primary mapping (False). Determined by
                 find_nearest_secondary_mapping_fp method.
@@ -1564,14 +1682,17 @@ class RealizationSelection(BasePlugin):
                                 model_name,
                                 entry["realization"],
                             )
-        # Fill in any clusters not covered by secondary inputs using the medoid mapping
+        # Fill in any clusters not covered by secondary inputs using the medoid
+        # mapping from the primary model identified in cluster_sources.
+        primary_model_name = self._extract_primary_model_from_cluster_sources(
+            cluster_cube
+        )
+
         for cluster_idx_str, realization in primary_map.items():
             cluster_idx = int(cluster_idx_str)
             if cluster_idx not in cluster_to_selection:
                 cluster_to_selection[cluster_idx] = (
-                    cluster_cube.attributes.get(
-                        "mosg__model_configuration", "primary_input"
-                    ),
+                    primary_model_name,
                     realization,
                 )
         return cluster_to_selection
@@ -1593,26 +1714,57 @@ class RealizationSelection(BasePlugin):
 
         Returns:
             A list of Cube objects, each containing a single realization relabelled
-            to the cluster index.
+            to the cluster index. Forecast cubes without a realization coordinate
+            are treated as deterministic inputs and selected directly.
 
         Raises:
             ValueError: If no forecast cube is found for a specified model name.
+            ValueError: If a specified realization index is out of bounds for the
+                corresponding model cube.
         """
         selected_cubes = []
         for cluster_idx in sorted(cluster_to_selection):
-            model_name, realization_index = cluster_to_selection[cluster_idx]
+            model_name, realization_value = cluster_to_selection[cluster_idx]
             model_cubes = forecast_cubes.extract(
                 iris.AttributeConstraint(**{self.model_id_attr: model_name})
             )
             if not model_cubes:
                 raise ValueError(f"No forecast cube found for model '{model_name}'")
-            model_cube = model_cubes[0]
-            selected = model_cube.extract(
-                iris.Constraint(realization=realization_index)
-            )
+            model_cube = model_cubes[0].copy()
+
+            # Deterministic input has no realization coordinate to index.
+            if not model_cube.coords("realization"):
+                selected = model_cube
+                selected.add_aux_coord(
+                    DimCoord(cluster_idx, standard_name="realization", units="1")
+                )
+                selected_cubes.append(selected)
+                continue
+
+            enforce_coordinate_ordering(model_cube, ["realization"])
+
+            constr = iris.Constraint(realization=realization_value)
+            selected = model_cube.extract(constr)
             selected.coord("realization").points = [cluster_idx]
+            selected.coord("realization").units = "1"
             selected_cubes.append(selected)
         return selected_cubes
+
+    def _remove_blend_time_from_selected_cubes(
+        self, selected_cubes: list[Cube]
+    ) -> None:
+        """Remove blend_time coordinate from all selected cubes if present on any.
+
+        blend_time is removed to avoid ambiguity in the merged output, as selected
+        cubes may come from different source models with differing blend_time values.
+
+        Args:
+            selected_cubes:
+                Realization-selected cubes, modified in place.
+        """
+        for cube in selected_cubes:
+            if cube.coords("blend_time"):
+                cube.remove_coord("blend_time")
 
     def process(self, cubes: CubeList) -> Cube:
         """
@@ -1636,6 +1788,12 @@ class RealizationSelection(BasePlugin):
         forecast_cubes, cluster_cube = self.split_cubes_forecast_and_cluster(cubes)
         self.validate_common_validity_time(forecast_cubes)
 
+        if self.cycletime is not None:
+            for cube in cubes:
+                if not cube.coords("forecast_reference_time"):
+                    continue
+                reset_forecast_reference_time_and_period(cube, self.cycletime)
+
         primary_map, secondary_map = self.parse_mapping_attributes(cluster_cube)
         mapping_fps = set()
         if secondary_map:
@@ -1652,5 +1810,19 @@ class RealizationSelection(BasePlugin):
         selected_cubes = self.select_realizations_for_clusters(
             cluster_to_selection, forecast_cubes
         )
+        # Remove blend time and sanitise forecast_reference_time attributes to
+        # support merging.
+        self._remove_blend_time_from_selected_cubes(selected_cubes)
+        for cube in selected_cubes:
+            if cube.coords("forecast_reference_time"):
+                cube.coord("forecast_reference_time").attributes = {}
+
         result_cube = MergeCubes()(CubeList(selected_cubes))
+        if "cluster_sources" in cluster_cube.attributes:
+            result_cube.attributes["cluster_sources"] = cluster_cube.attributes[
+                "cluster_sources"
+            ]
+        # Add selection attribute if specified
+        if self.selection_attr is not None:
+            result_cube.attributes[self.selection_attr] = self.selection_attr_value
         return result_cube
