@@ -137,7 +137,7 @@ def generate_land_area_fraction_at_sites(
     x_index_con = Constraint(grid_attributes_key="x_index")
     y_index_con = Constraint(grid_attributes_key="y_index")
 
-    land_area_fraction = CubeList()
+    land_area_fraction_cubelist = CubeList()
     for site in neighbours.slices_over("spot_index"):
         ix, iy = (
             site.extract(x_index_con).data.astype(int).item(),
@@ -152,9 +152,9 @@ def generate_land_area_fraction_at_sites(
         site_frac = template.copy(data=np.array([fraction], dtype=np.float32))
         for crd, crd_type in crd_types.items():
             site_frac.coord(crd).points = site.coord(crd).points.astype(crd_type)
-        land_area_fraction.append(site_frac)
+        land_area_fraction_cubelist.append(site_frac)
 
-    land_area_fraction = land_area_fraction.concatenate_cube()
+    land_area_fraction = land_area_fraction_cubelist.concatenate_cube()
     land_area_fraction.rename("land_area_fraction")
 
     return land_area_fraction
