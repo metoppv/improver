@@ -195,9 +195,9 @@ def test_land_area_fraction_ancillary(corine_land_cover, radius, expected):
     assert_array_almost_equal(land_area_fraction.data, expected)
 
 
-@pytest.mark.parametrize("choice", (True, False))
+@pytest.mark.parametrize("ignore_grid_match", (True, False))
 def test_roughness_length_ancillary(
-    default_neighbour_cube, gridded_template_cube, choice
+    default_neighbour_cube, gridded_template_cube, ignore_grid_match
 ):
     """Test that the roughness length ancillary is generated correctly, with and without
     ignoring the grid match between the diagnostic cube and the spot neighbour cube."""
@@ -210,7 +210,7 @@ def test_roughness_length_ancillary(
 
     # Generate the roughness length ancillary
     result = generate_roughness_length_at_sites(
-        roughness_cube, default_neighbour_cube, ignore_grid_match=choice
+        roughness_cube, default_neighbour_cube, ignore_grid_match=ignore_grid_match
     )
 
     # Ensure the cube has the correct metadata
