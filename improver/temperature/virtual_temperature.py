@@ -177,7 +177,6 @@ class VirtualTemperatureFromSpecificHumidity(BasePlugin):
         Returns:
             Cube: virtual_temperature (K).
         """
-
         # Get the cubes into the correct format and extract the relevant cubes,
         cubes = as_cubelist(*cubes)
 
