@@ -30,7 +30,7 @@ def make_temperature_cube(on_pressure_levels=True):
     if on_pressure_levels:
         vertical = DimCoord(
             np.array([1000, 900]),  # hPa
-            standard_name="air_pressure",
+            standard_name="pressure",
             units="hPa",
         )
     else:
@@ -66,7 +66,7 @@ def make_pressure_cube(on_pressure_levels=True):
     if on_pressure_levels:
         vertical = DimCoord(
             np.array([1000, 900]),  # hPa
-            standard_name="air_pressure",
+            standard_name="pressure",
             units="hPa",
         )
     else:
@@ -81,7 +81,7 @@ def make_pressure_cube(on_pressure_levels=True):
 
     cube = Cube(
         data,
-        standard_name="air_pressure",
+        standard_name="pressure",
         units="Pa",
         dim_coords_and_dims=[(vertical, 0), (y, 1), (x, 2)],
     )
