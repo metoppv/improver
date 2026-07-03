@@ -25,7 +25,7 @@ class VirtualTemperature(BasePlugin):
         Args:
             temperature:
                 Cube of temperature.
-            specific_humidity:
+            humidity_mixing_ratio:
                 Cube of humidity mixing ratio.
 
         Returns:
@@ -54,7 +54,7 @@ class VirtualTemperature(BasePlugin):
             cubes:
                 air_temperature:
                     Cube of temperature.
-                specific_humidity:
+                humidity_mixing_ratio:
                     Cube of humidity mixing ratios.
 
         Returns:
@@ -62,7 +62,6 @@ class VirtualTemperature(BasePlugin):
         """
 
         # Get the cubes into the correct format and extract the relevant cubes
-        print("Using local improver")
         cubes = as_cubelist(*cubes)
         (self.temperature, self.humidity_mixing_ratio) = cubes.extract_cubes(
             ["air_temperature", "humidity_mixing_ratio"]
@@ -142,7 +141,7 @@ class VirtualTemperatureFromSpecificHumidity(BasePlugin):
         # https://github.com/SciTools/iris/issues/6378
         # The units get lost when being calculated as part of running a graph
         # using the multiprocessing scheduler in dagrunner and so need to be
-        # added back after the calculation on line 33.
+        # added back after the calculation of "virtual_temperature" above.
         virtual_temperature.units = str(virtual_temperature.units)
 
         # Update the cube metadata
