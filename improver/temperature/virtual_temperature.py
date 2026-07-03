@@ -18,7 +18,7 @@ class VirtualTemperature(BasePlugin):
     """Plugin class to handle virtual temperature calculations from humidity mixing ratio."""
 
     @staticmethod
-    def get_virtual_temperature(temperature: Cube, specific_humidity: Cube) -> Cube:
+    def get_virtual_temperature(temperature: Cube, humidity_mixing_ratio: Cube) -> Cube:
         """
         Calculate the virtual temperature from temperature and humidity mixing ratio.
 
@@ -32,7 +32,7 @@ class VirtualTemperature(BasePlugin):
             Cube of virtual_temperature.
         """
         # Calculate the virtual temperature
-        virtual_temperature = temperature * (1 + 0.61 * specific_humidity)
+        virtual_temperature = temperature * (1 + 0.61 * humidity_mixing_ratio)
         # Workaround as cf-units id not correctly pickleable:
         # https://github.com/SciTools/iris/issues/6378
         # The units get lost when being calculated as part of running a graph
@@ -64,8 +64,8 @@ class VirtualTemperature(BasePlugin):
         # Get the cubes into the correct format and extract the relevant cubes
         print("Using local improver")
         cubes = as_cubelist(*cubes)
-        (self.temperature, self.specific_humidity) = cubes.extract_cubes(
-            ["air_temperature", "specific_humidity"]
+        (self.temperature, self.humidity_mixing_ratio) = cubes.extract_cubes(
+            ["air_temperature", "humidity_mixing_ratio"]
         )
 
         # Calculate the virtual temperature
