@@ -610,11 +610,12 @@ class Test_prepare_input_cubes(Test_WXCode):
         msg = r"Multiple \(2\) matching thresholds found.*Using closest match"
         with self.assertWarnsRegex(UserWarning, msg):
             result, _ = self.plugin.prepare_input_cubes(self.cubes)
-        # Check thresholds extracted for modified_cube
+        # Check thresholds extracted for snowfall_cubes
+        # We expect the original_threshold to be selected over the additional_threshold
         expected_thresholds = {original_threshold, threshold_coord.points[2]}
-        modified_cube = [cube for cube in result if "lwe_snowfall_rate" in cube.name()]
-        for cube in modified_cube:
-            self.assertGreater(len(modified_cube), 0)
+        snowfall_cubes = [cube for cube in result if "lwe_snowfall_rate" in cube.name()]
+        self.assertGreater(len(snowfall_cubes), 0)
+        for cube in snowfall_cubes:
             cube_thresholds = cube.coord(find_threshold_coordinate(cube).name()).points
             self.assertEqual(len(cube_thresholds), 1)
             cube_threshold_value = cube_thresholds[0]
