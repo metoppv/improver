@@ -25,8 +25,6 @@ class PollenIndexForPeriod(PostProcessingPlugin):
 
     #: Threshold index levels - minimum value (grains/m3) for each index.
     _POLLEN_INDEX = {  # 0=No pollen, 1=Low, 2=Moderate, 3=High, 4=Very High
-        # (5=extra level just for contour levels)
-        "index": np.array([0, 1, 2, 3, 4, 5]).astype(np.int32),
         "grass": np.array([0.0, 0.01, 30.0, 50.0, 150.0, np.inf]),
         "birch": np.array([0.0, 0.01, 40.0, 80.0, 200.0, np.inf]),
         "oak": np.array([0.0, 0.01, 30.0, 50.0, 200.0, np.inf]),
