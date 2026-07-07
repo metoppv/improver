@@ -599,7 +599,8 @@ def test_moisture_conversion(moisture_content_val, expected_array_val):
         (10.0, 15.0, 95.0, 5.0, 85.0, 20.70),
         # Case 4: Precipitation just below threshold (should not adjust)
         (20.0, 0.4, 50.0, 10.0, 85.0, 86.82),
-        # Case 5: Extreme values should should be clipped to maximum (edge case)
+        # Case 5: Extreme values of FFMC must be clipped to maximum of 101 to avoid
+        # negative values in the moisture content (edge case)
         (40.0, 0.0, 0.0, 60.0, 100.0, 101),
     ],
 )
