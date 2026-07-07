@@ -19,7 +19,7 @@ class AirDensity(BasePlugin):
     def _get_pressure_cube(self, cubes: CubeList) -> Cube:
         """Extract pressure cube if present."""
         for cube in cubes:
-            if cube.standard_name == "air_pressure":
+            if "pressure" in cube.name():
                 return cube
         return None
 
@@ -72,13 +72,18 @@ class AirDensity(BasePlugin):
         else:
             # Try to infer from temperature cube (pressure levels case)
             try:
-                pressure_coord = Tv_cube.coord("air_pressure")
+                pressure_coord = Tv_cube.coord("pressure")
+                coord_dims = Tv_cube.coord_dims("pressure")
             except iris.exceptions.CoordinateNotFoundError:
-                raise ValueError(
-                    "No pressure information supplied: "
-                    "provide an air_pressure cube or use a temperature cube "
-                    "on pressure levels."
-                )
+                try:
+                    pressure_coord = Tv_cube.coord("air_pressure")
+                    coord_dims = Tv_cube.coord_dims("air_pressure")
+                except iris.exceptions.CoordinateNotFoundError:
+                    raise ValueError(
+                        "No pressure information supplied: "
+                        "provide an air_pressure cube or use a temperature cube "
+                        "on pressure levels."
+                    )
 
             pressure = pressure_coord.copy()
             pressure.convert_units("Pa")
@@ -86,7 +91,7 @@ class AirDensity(BasePlugin):
             pressure_data = iris.util.broadcast_to_shape(
                 pressure.points,
                 Tv_cube.shape,
-                Tv_cube.coord_dims("air_pressure"),
+                coord_dims,
             )
 
         # --- Ensure temperature is in Kelvin ---
