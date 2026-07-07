@@ -5,6 +5,7 @@
 """Module for calculating the uv index using radiation flux in UV downward
 at the surface."""
 
+import warnings
 from typing import Optional
 
 import numpy as np
@@ -47,6 +48,9 @@ def calculate_uv_index(
         ValueError: If uv_downward contains values that are negative or
         not a number.
 
+    Warning:
+        - If scale_factor has been changed from the default 3.6 (m2 W-1).
+
     References:
         Turner, E.C, Manners, J. Morcrette, C. J, O'Hagan, J. B,
         & Smedley, A.R.D. (2017): Toward a New UV Index Diagnostic
@@ -70,6 +74,14 @@ def calculate_uv_index(
             "that is negative or NaN. Data should be >= 0."
         )
         raise ValueError(msg)
+
+    if scale_factor != 3.6:
+        msg = (
+            f"The scale_factor is not the default 3.6 (m2 W-1) but {scale_factor}. "
+            "This default factor has been empirically derived and should not be "
+            "changed except if there are scientific reasons to do so."
+        )
+        warnings.warn(msg)
 
     uv_downward.convert_units("W m-2")
     uv_data = (uv_downward.data * scale_factor).astype(np.float32)
