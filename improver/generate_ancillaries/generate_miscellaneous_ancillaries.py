@@ -19,24 +19,28 @@ from improver.utilities.spatial import (
 
 
 def generate_roughness_length_at_sites(
-    roughness_length: Cube, neighbour_cube: Cube
+    roughness_length_cube: Cube, neighbour_cube: Cube, ignore_grid_match: bool = False
 ) -> Cube:
     """Generate a roughness length ancillary cube at the site locations. This performs a
     spot extraction of the roughness length data at the site locations and removes time
     related coordinates.
 
     Args:
-        roughness_length:
+        roughness_length_cube:
             A cube containing the roughness length data.
         neighbour_cube:
             A cube containing information about the spot data sites and
             their grid point neighbours.
+        ignore_grid_match:
+            If True, the coordinate hash comparison between the diagnostic cube and
+            the neighbour cube will be ignored. This allows the version of Iris and/or
+            Numpy to be different from those that generated the neighbour cube.
     Returns:
         A cube containing the roughness length at the site locations.
     """
-    roughness_length_spot = SpotExtraction(neighbour_selection_method="nearest")(
-        neighbour_cube, roughness_length
-    )
+    roughness_length_spot = SpotExtraction(
+        neighbour_selection_method="nearest", ignore_grid_match=ignore_grid_match
+    )(neighbour_cube, roughness_length_cube)
 
     # Update metadata to remove any time coordinates
     cube_coord = [coord.name() for coord in roughness_length_spot.coords()]
@@ -68,8 +72,7 @@ def generate_land_area_fraction_at_sites(
     Args:
         land_cover_cube:
             A cube containing the Corine Land cover data. The data values should be
-            integers representing
-            different land cover types.
+            integers representing different land cover types.
         neighbour_cube:
             A cube containing information about the spot data sites. We use this rather
             than a site list as it contains a completed set of altitudes which have
@@ -91,12 +94,18 @@ def generate_land_area_fraction_at_sites(
     xaxis, yaxis = land_cover_cube.coord(axis="x"), land_cover_cube.coord(axis="y")
     land_cover_cube = next(land_cover_cube.slices([xaxis, yaxis]))
 
-    # 41-44 is the key for water in the Corine Land cover dataset.
-    land_mask = land_cover_cube.copy(data=np.where(land_cover_cube.data > 40, 0, 1))
-    # Oceans far from the coast have data value -128 to represent no data
-    land_mask.data = np.where(land_cover_cube.data < 0, 0, land_mask.data)
-    # 48 is the key for complex land surfaces in Corine
-    land_mask.data = np.where(land_cover_cube.data == 48, 1, land_mask.data)
+    # In the Corine Land cover dataset, keys 40-44 are for water bodies, -128 is for
+    # oceans far from the coast, and 48 is for complex land surfaces
+    # Thus, keys between 40 and 44 and below zero should be classified as non-land and
+    # all other keys as land.
+    land_mask = land_cover_cube.copy(
+        data=np.where(
+            ((land_cover_cube.data >= 40) & (land_cover_cube.data <= 44))
+            | (land_cover_cube.data < 0),
+            0,
+            1,
+        )
+    )
 
     # Extract the site definitions from the provided neighbour cube.
     site_definitions = extract_site_json(neighbour_cube)
@@ -134,7 +143,7 @@ def generate_land_area_fraction_at_sites(
     x_index_con = Constraint(grid_attributes_key="x_index")
     y_index_con = Constraint(grid_attributes_key="y_index")
 
-    land_fraction = CubeList()
+    land_area_fraction_cubelist = CubeList()
     for site in neighbours.slices_over("spot_index"):
         ix, iy = (
             site.extract(x_index_con).data.astype(int).item(),
@@ -149,6 +158,9 @@ def generate_land_area_fraction_at_sites(
         site_frac = template.copy(data=np.array([fraction], dtype=np.float32))
         for crd, crd_type in crd_types.items():
             site_frac.coord(crd).points = site.coord(crd).points.astype(crd_type)
-        land_fraction.append(site_frac)
+        land_area_fraction_cubelist.append(site_frac)
 
-    return land_fraction.concatenate_cube()
+    land_area_fraction = land_area_fraction_cubelist.concatenate_cube()
+    land_area_fraction.rename("land_area_fraction")
+
+    return land_area_fraction
