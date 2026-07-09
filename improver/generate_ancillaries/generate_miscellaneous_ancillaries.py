@@ -94,12 +94,18 @@ def generate_land_area_fraction_at_sites(
     xaxis, yaxis = land_cover_cube.coord(axis="x"), land_cover_cube.coord(axis="y")
     land_cover_cube = next(land_cover_cube.slices([xaxis, yaxis]))
 
-    # 40-44 are the keys for water bodies in the Corine Land cover dataset.
-    land_mask = land_cover_cube.copy(data=np.where(land_cover_cube.data > 39, 0, 1))
-    # Oceans far from the coast have data value -128 to represent no data
-    land_mask.data = np.where(land_cover_cube.data < 0, 0, land_mask.data)
-    # 48 is the key for complex land surfaces in Corine
-    land_mask.data = np.where(land_cover_cube.data == 48, 1, land_mask.data)
+    # In the Corine Land cover dataset, keys 40-44 are for water bodies, -128 is for
+    # oceans far from the coast, and 48 is for complex land surfaces
+    # Thus, keys between 40 and 44 and below zero should be classified as non-land and
+    # all other keys as land.
+    land_mask = land_cover_cube.copy(
+        data=np.where(
+            ((land_cover_cube.data >= 40) & (land_cover_cube.data <= 44))
+            | (land_cover_cube.data < 0),
+            0,
+            1,
+        )
+    )
 
     # Extract the site definitions from the provided neighbour cube.
     site_definitions = extract_site_json(neighbour_cube)
