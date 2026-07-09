@@ -94,8 +94,8 @@ def generate_land_area_fraction_at_sites(
     xaxis, yaxis = land_cover_cube.coord(axis="x"), land_cover_cube.coord(axis="y")
     land_cover_cube = next(land_cover_cube.slices([xaxis, yaxis]))
 
-    # 41-44 is the key for water in the Corine Land cover dataset.
-    land_mask = land_cover_cube.copy(data=np.where(land_cover_cube.data > 40, 0, 1))
+    # 40-44 are the keys for water bodies in the Corine Land cover dataset.
+    land_mask = land_cover_cube.copy(data=np.where(land_cover_cube.data > 39, 0, 1))
     # Oceans far from the coast have data value -128 to represent no data
     land_mask.data = np.where(land_cover_cube.data < 0, 0, land_mask.data)
     # 48 is the key for complex land surfaces in Corine
