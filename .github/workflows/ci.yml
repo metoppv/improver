@@ -13,7 +13,7 @@ jobs:
     steps:
 
     - name: Checkout dev branch
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
       with:
         fetch-depth: 1
 
@@ -38,7 +38,7 @@ jobs:
       shell: bash
 
     - name: Checkout reference coverage report
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
       with:
         fetch-depth: 1
         path: covref
@@ -177,7 +177,7 @@ jobs:
         env: [environment_a, environment_b, conda-forge]
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Substitute branch name in environment files
       run: |
@@ -231,7 +231,7 @@ jobs:
     steps:
 
     - name: improver checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
       with:
         fetch-depth: 0
 
@@ -269,7 +269,7 @@ jobs:
     steps:
 
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
