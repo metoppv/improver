@@ -60,6 +60,7 @@ def save_netcdf(
     compression_level: int = 1,
     least_significant_digit: Optional[int] = None,
     fill_value: Optional[float] = None,
+    **kwargs,
 ) -> None:
     """Save the input Cube or CubeList as a NetCDF file and check metadata
     where required for integrity.
@@ -113,20 +114,21 @@ def save_netcdf(
 
     # If all xy slices are the same shape, use this to determine
     # the chunksize for the netCDF (eg. 1, 1, 970, 1042)
-    chunksizes = None
-    if len({cube.shape[:2] for cube in cubelist}) == 1:
-        cube = cubelist[0]
-        if cube.ndim >= 2:
-            xy_chunksizes = [cube.shape[-2], cube.shape[-1]]
-            chunksizes = tuple([1] * (cube.ndim - 2) + xy_chunksizes)
-    else:
-        msg = "Chunksize not set as cubelist contains cubes of varying dimensions"
-        warnings.warn(msg)
-
-    if compression_level not in range(10):
-        raise ValueError(
-            "Compression level must be an integer value between 0 and 9 (0 to disable compression)"
-        )
+    chunksizes = kwargs.pop("chunksizes", None)
+    if not chunksizes:
+        if len({cube.shape[:2] for cube in cubelist}) == 1:
+            cube = cubelist[0]
+            if cube.ndim >= 2:
+                xy_chunksizes = [cube.shape[-2], cube.shape[-1]]
+                chunksizes = tuple([1] * (cube.ndim - 2) + xy_chunksizes)
+        else:
+            msg = "Chunksize not set as cubelist contains cubes of varying dimensions"
+            warnings.warn(msg)
+    
+        if compression_level not in range(10):
+            raise ValueError(
+                "Compression level must be an integer value between 0 and 9 (0 to disable compression)"
+            )
 
     # save atomically by writing to a unique temporary file of the form <filename>-<unique>.tmp
     with tempfile.NamedTemporaryFile(
@@ -145,6 +147,7 @@ def save_netcdf(
                 chunksizes=chunksizes,
                 least_significant_digit=least_significant_digit,
                 fill_value=fill_value,
+                **kwargs,
             )
         os.rename(tmp_filename, filename)
         os.chmod(filename, 0o644)
