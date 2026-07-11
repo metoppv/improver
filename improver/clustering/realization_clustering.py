@@ -1374,7 +1374,8 @@ class RealizationClusterAndMatch(BasePlugin):
             cluster_sources,
             secondary_input_realizations_to_clusters,
         )
-
+        for cube in matched_cubes:
+            cube.coord("realization").units = "1"
         result_cube = MergeCubes()(
             CubeList([iris.util.squeeze(c) for c in matched_cubes])
         )
