@@ -7,7 +7,7 @@
 import os
 import tempfile
 import warnings
-from typing import Optional, Union
+from typing import Union
 
 import cf_units
 import iris
@@ -15,6 +15,7 @@ import iris.fileformats
 from iris.cube import Cube, CubeAttrsDict, CubeList
 
 from improver.metadata.check_datatypes import check_mandatory_standards
+from improver.utilities.common_input_handle import as_cubelist
 
 
 def _order_cell_methods(cube: Cube) -> None:
@@ -57,37 +58,30 @@ def _check_metadata(cube: Cube) -> None:
 def save_netcdf(
     cubelist: Union[Cube, CubeList],
     filename: str,
-    compression_level: int = 1,
-    least_significant_digit: Optional[int] = None,
-    fill_value: Optional[float] = None,
+    **kwargs,
 ) -> None:
-    """Save the input Cube or CubeList as a NetCDF file and check metadata
+    """
+    Save the input Cube or CubeList as a NetCDF file and check metadata
     where required for integrity.
 
     Uses the functionality provided by iris.fileformats.netcdf.save with
     local_keys to record non-global attributes as data attributes rather than
-    global attributes.
+    global attributes.  The save is made with
+    iris.FUTURE.context(save_split_attrs=True).  The following argument
+    defaults for save deviate from iris.fileformats.netcdf.save defaults:
+    - chunksizes are set to (1, 1, x, y) if all cubes have the same xy shape
+      and the chunksizes are not specified in kwargs.
+    - complevel default is 1 (iris default is 4)
+    - zlib is set to True if complevel > 0 (iris default is False)
+    - shuffle is set to True (iris default is False)
 
     Args:
         cubelist:
-            Cube or list of cubes to be saved
+            Cube or CubeList to be saved.
         filename:
             Filename to save input cube(s)
-        compression_level:
-            1-9 to specify compression level, or 0 to not compress (default compress
-            with complevel 1)
-        least_significant_digit:
-            If specified will truncate the data to a precision given by
-            10**(-least_significant_digit), e.g. if least_significant_digit=2, then the data will
-            be quantized to a precision of 0.01 (10**(-2)). See
-            http://www.esrl.noaa.gov/psd/data/gridded/conventions/cdc_netcdf_standard.shtml
-            for details. When used with `compression level`, this will result in lossy
-            compression.
-        fill_value:
-            If specified, will set the fill value for missing data. If not specified,
-            the default fill value for the data type will be used. If the data is not masked then
-            the numpy array's fill value will retain the default value while the _FillValue attribute
-            in the NetCDF file will be updated.
+        **kwargs:
+            Additional keyword arguments to pass to iris.fileformats.netcdf.save.
 
     Raises:
         ValueError:
@@ -96,10 +90,27 @@ def save_netcdf(
     Warns:
         If cubelist contains cubes of varying dimensions.
     """
-    if isinstance(cubelist, iris.cube.Cube):
-        cubelist = iris.cube.CubeList([cubelist])
-    elif not isinstance(cubelist, iris.cube.CubeList):
-        cubelist = iris.cube.CubeList(cubelist)
+    cubelist = as_cubelist(cubelist)
+
+    if "compression_level" in kwargs:
+        warnings.warn(
+            "The 'compression_level' argument is deprecated and will be removed in a future release. "
+            "Please use 'complevel' instead.",
+            DeprecationWarning,
+        )
+    complevel = kwargs.pop("compression_level", None)
+    complevel = kwargs.pop("complevel", complevel)
+    if complevel is None:
+        complevel = 1
+    else:
+        complevel = int(complevel)
+        if complevel not in range(10):
+            # iris does no validation of the compression level, so we do it here
+            raise ValueError(
+                "Compression level must be an integer value between 0 and 9 (0 to disable compression)"
+            )
+    zlib = kwargs.pop("zlib", complevel > 0 if complevel is not None else False)
+    shuffle = kwargs.pop("shuffle", True)
 
     for cube in cubelist:
         _order_cell_methods(cube)
@@ -111,22 +122,18 @@ def save_netcdf(
         cube.attributes.pop("least_significant_digit", None)
         _cube_attributes_for_save(cube)
 
-    # If all xy slices are the same shape, use this to determine
-    # the chunksize for the netCDF (eg. 1, 1, 970, 1042)
-    chunksizes = None
-    if len({cube.shape[:2] for cube in cubelist}) == 1:
-        cube = cubelist[0]
-        if cube.ndim >= 2:
-            xy_chunksizes = [cube.shape[-2], cube.shape[-1]]
-            chunksizes = tuple([1] * (cube.ndim - 2) + xy_chunksizes)
-    else:
-        msg = "Chunksize not set as cubelist contains cubes of varying dimensions"
-        warnings.warn(msg)
-
-    if compression_level not in range(10):
-        raise ValueError(
-            "Compression level must be an integer value between 0 and 9 (0 to disable compression)"
-        )
+    chunksizes = kwargs.pop("chunksizes", None)
+    if chunksizes is None:
+        if len({cube.shape[:2] for cube in cubelist}) == 1:
+            cube = cubelist[0]
+            if cube.ndim >= 2:
+                # If all xy slices are the same shape, use this to determine
+                # the chunksize for the netCDF (eg. 1, 1, 970, 1042)
+                xy_chunksizes = [cube.shape[-2], cube.shape[-1]]
+                chunksizes = tuple([1] * (cube.ndim - 2) + xy_chunksizes)
+        else:
+            msg = "Chunksize not set as cubelist contains cubes of varying dimensions"
+            warnings.warn(msg)
 
     # save atomically by writing to a unique temporary file of the form <filename>-<unique>.tmp
     with tempfile.NamedTemporaryFile(
@@ -139,12 +146,11 @@ def save_netcdf(
             iris.fileformats.netcdf.save(
                 cubelist,
                 tmp_filename,
-                complevel=compression_level,
-                shuffle=True,
-                zlib=compression_level > 0,
+                complevel=complevel,
+                shuffle=shuffle,
+                zlib=zlib,
                 chunksizes=chunksizes,
-                least_significant_digit=least_significant_digit,
-                fill_value=fill_value,
+                **kwargs,
             )
         os.rename(tmp_filename, filename)
         os.chmod(filename, 0o644)
