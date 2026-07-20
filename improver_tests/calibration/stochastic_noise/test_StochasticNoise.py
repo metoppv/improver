@@ -262,6 +262,55 @@ def test_process_scalar_realization_coord():
     assert result.shape == single_realization_cube.shape
 
 
+def test_do_fft_degenerate_input_uses_fallback_noise():
+    """Degenerate SSFT input should use fallback noise generation."""
+    plugin = StochasticNoise(ssft_generate_params={"seed": 0})
+    constant_data = np.full((4, 4), -35.0, dtype=np.float32)
+
+    with pytest.warns(UserWarning, match="Degenerate input field detected"):
+        result = plugin.do_fft(constant_data)
+
+    assert result.shape == constant_data.shape
+    assert result.dtype == np.float32
+    assert np.all(np.isfinite(result))
+    threshold_db = 10.0 * np.log10(plugin.db_threshold)
+    max_noise_db = threshold_db - plugin.arbitrary_offset
+    assert np.all(result <= max_noise_db)
+
+
+def test_do_fft_degenerate_input_seeded_fallback_is_reproducible():
+    """Seeded fallback noise should be reproducible for degenerate input."""
+    plugin = StochasticNoise(ssft_generate_params={"seed": 42})
+    constant_data = np.full((3, 5), -35.0, dtype=np.float32)
+
+    with pytest.warns(UserWarning, match="Degenerate input field detected"):
+        first = plugin.do_fft(constant_data)
+    with pytest.warns(UserWarning, match="Degenerate input field detected"):
+        second = plugin.do_fft(constant_data)
+
+    np.testing.assert_array_equal(first, second)
+
+
+def test_process_all_zero_input_fallback_with_scale_non_positive_noise():
+    """All-zero input should not raise and should respect non-positive scaling."""
+    plugin = StochasticNoise(
+        ssft_generate_params={"seed": 0},
+        scale_non_positive_noise=True,
+    )
+
+    data = np.zeros((1, 4, 4), dtype=np.float32)
+    cube = set_up_variable_cube(data=data, name="precipitation_rate", units="mm/hr")
+    single_realization_cube = cube[0, :, :]
+
+    with pytest.warns(UserWarning, match="Degenerate input field detected"):
+        result = plugin.process(single_realization_cube)
+
+    assert isinstance(result, Cube)
+    assert result.shape == single_realization_cube.shape
+    assert np.all(np.isfinite(result.data))
+    assert np.all(result.data <= 0.0)
+
+
 def test_non_positive_threshold():
     """Test that ValueError is raised for non-positive db_threshold."""
     with pytest.raises(ValueError, match="db_threshold must be a positive value."):

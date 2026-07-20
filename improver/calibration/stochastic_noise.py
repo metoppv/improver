@@ -270,6 +270,16 @@ class StochasticNoise(BasePlugin):
             initialize_nonparam_2d_ssft_filter,
         )
 
+        # pySTEPS SSFT can fail on constant fields because no values are strictly
+        # above the minimum. In this case, use capped random fallback noise.
+        if not np.any(data > np.min(data)):
+            warnings.warn(
+                "Degenerate input field detected for SSFT initialization. "
+                "Using capped random fallback stochastic noise generation.",
+                UserWarning,
+            )
+            return self._fallback_noise(data.shape)
+
         nonparametric_filter = initialize_nonparam_2d_ssft_filter(
             data,
             **self.ssft_init_params,
@@ -277,8 +287,33 @@ class StochasticNoise(BasePlugin):
         stochastic_noise = generate_noise_2d_ssft_filter(
             nonparametric_filter, **self.ssft_generate_params
         )
-
         return stochastic_noise
+
+    def _fallback_noise(self, shape: tuple) -> np.ndarray:
+        """Generate capped random fallback noise for degenerate SSFT inputs.
+
+        If a seed is configured in ``ssft_generate_params``, this returns
+        reproducible noise. Noise is capped from above at
+        ``10 * log10(db_threshold) - arbitrary_offset`` in dB space.
+
+        Args:
+            shape:
+                Target 2-D output shape.
+
+        Returns:
+            Fallback 2-D noise field in dB space.
+        """
+        seed = self.ssft_generate_params.get("seed")
+        if seed is not None:
+            seed = int(seed)
+        random_state = np.random.RandomState(seed)
+
+        threshold_db = 10.0 * np.log10(self.db_threshold)
+        max_noise_db = threshold_db - self.arbitrary_offset
+
+        noise = random_state.normal(loc=max_noise_db, scale=1.0, size=shape)
+        noise = np.minimum(noise, max_noise_db)
+        return noise.astype(np.float32)
 
     def process(self, input_cube: Cube) -> Cube:
         """
