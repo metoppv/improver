@@ -622,6 +622,38 @@ class Test_prepare_input_cubes(Test_WXCode):
             self.assertIn(cube_threshold_value, expected_thresholds)
             self.assertNotEqual(cube_threshold_value, additional_threshold)
 
+    def test_selects_first_threshold_when_equidistant_thresholds(self):
+        """Test prepare_input_cubes method raises a warning for when the two matching
+        thresholds are equidistant from the requested threshold and selects the first
+        threshold, where the thresholds are monotonic."""
+
+        # Modify the cube snowfall_rate to ensure two equidistant thresholds
+        threshold_coord = find_threshold_coordinate(self.cubes[0])
+        requested_threshold = threshold_coord.points[0]
+        lower_threshold = requested_threshold * (1 - 0.5 * self.plugin.float_tolerance)
+        higher_threshold = requested_threshold * (1 + 0.5 * self.plugin.float_tolerance)
+        threshold_coord.points = np.array(
+            [
+                lower_threshold,
+                higher_threshold,
+                threshold_coord.points[2],
+            ],
+            dtype=np.float32,
+        )
+        # Check warning is raised
+        msg = r"multiple thresholds are equidistant to the desired threshold"
+        with self.assertWarnsRegex(UserWarning, msg):
+            result, _ = self.plugin.prepare_input_cubes(self.cubes)
+        # Check thresholds extracted for snowfall_cubes
+        # We expect lower_threshold to be selected over the higher_threshold
+        expected_thresholds = {lower_threshold, threshold_coord.points[2]}
+        snowfall_cubes = [cube for cube in result if "lwe_snowfall_rate" in cube.name()]
+        for cube in snowfall_cubes:
+            cube_thresholds = cube.coord(find_threshold_coordinate(cube).name()).points
+            cube_threshold_value = cube_thresholds[0]
+            self.assertIn(cube_threshold_value, expected_thresholds)
+            self.assertNotEqual(cube_threshold_value, higher_threshold)
+
     def test_zero_threshold_uses_absolute_tolerance(self):
         """Test prepare_input_cubes method uses absolute tolerance when the threshold
         is ~ 0.0"""
