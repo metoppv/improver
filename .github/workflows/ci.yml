@@ -220,8 +220,7 @@ jobs:
 
     - name: pytest
       run: |
-        #pytest
-        python -u -X faulthandler -m pytest -p no:faulthandler
+        pytest
       shell: micromamba-shell {0}
 
 

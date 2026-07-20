@@ -516,23 +516,16 @@ testdata = [
 ]
 
 
-@pytest.mark.parametrize(
-    "cube1,cube2",
-    testdata,
-    ids=[
-        "different_y_shapes",
-        "different_x_shapes",
-        "different_ndims",
-        "different_xy_mapping",
-    ],
-)
-@unittest.mock.patch("iris.fileformats.netcdf.save")
-def test_chunksizes_not_set(mock_save, cube1, cube2):
+def test_chunksizes_not_set():
     """Test that chunksizes are not set based on some condition not met."""
-    cubelist = iris.cube.CubeList([cube1, cube2])
-    with pytest.warns(UserWarning, match=r"Chunksize not set"):
-        save_netcdf(cubelist, "test.nc")
-    assert mock_save.call_args[1]["chunksizes"] is None
+    # Note that pytest.mark.parametrize causes a segmentation fault in this case with
+    # our cubes.
+    for cube1, cube2 in testdata:
+        cubelist = iris.cube.CubeList([cube1, cube2])
+        with unittest.mock.patch("iris.fileformats.netcdf.save") as mock_save:
+            with pytest.warns(UserWarning, match=r"Chunksize not set"):
+                save_netcdf(cubelist, "test.nc")
+            assert mock_save.call_args[1]["chunksizes"] is None
 
 
 @unittest.mock.patch("iris.fileformats.netcdf.save")
