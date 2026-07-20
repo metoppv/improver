@@ -4,9 +4,9 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Module for saving netcdf cubes with desired attribute types."""
 
-import os
 import tempfile
 import warnings
+from pathlib import Path
 from typing import Union
 
 import cf_units
@@ -101,7 +101,7 @@ def _derive_chunksizes(cubelist):
 
 def save_netcdf(
     cubelist: Union[Cube, CubeList],
-    filename: str,
+    filename: str | Path,
     complevel: int = 1,
     zlib: bool | None = None,
     shuffle: bool = True,
@@ -192,25 +192,27 @@ def save_netcdf(
     if chunksizes is None:
         chunksizes = _derive_chunksizes(cubelist)
 
+    filename = Path(filename)
+
     # save atomically by writing to a unique temporary file of the form <filename>-<unique>.tmp
     with tempfile.NamedTemporaryFile(
-        dir=os.path.dirname(filename),
-        prefix=os.path.basename(filename) + "-",
+        dir=filename.parent,
+        prefix=filename.name + "-",
         suffix=".tmp",
     ) as tmp_file:
-        tmp_filename = tmp_file.name
+        tmp_filename = Path(tmp_file.name)
         with iris.FUTURE.context(save_split_attrs=True):
             iris.fileformats.netcdf.save(
                 cubelist,
-                tmp_filename,
+                str(tmp_filename),
                 complevel=complevel,
                 shuffle=shuffle,
                 zlib=zlib,
                 chunksizes=chunksizes,
                 **kwargs,
             )
-        os.rename(tmp_filename, filename)
-        os.chmod(filename, 0o644)
+        tmp_filename.replace(filename)
+        filename.chmod(0o644)
 
 
 def _cube_attributes_for_save(cube: Cube):

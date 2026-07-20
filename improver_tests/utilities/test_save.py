@@ -433,10 +433,10 @@ def test_save_netcdf_succeeds_with_int_time_dtype(tmp_path):
 
 
 @unittest.mock.patch("iris.fileformats.netcdf.save")
-def test_default_values(mock_save):
+def test_default_values(mock_save, tmp_path):
     """Test default values provided to iris save function are set correctly"""
     cubes = iris.cube.CubeList([set_up_test_cube()])
-    save_netcdf(cubes, "test.nc")
+    save_netcdf(cubes, tmp_path / "test.nc")
     assert mock_save.call_args[0][0] == cubes
     assert mock_save.call_args[1] == {
         "complevel": 1,
@@ -447,7 +447,7 @@ def test_default_values(mock_save):
 
 
 @unittest.mock.patch("iris.fileformats.netcdf.save")
-def test_deviation_from_default(mock_save):
+def test_deviation_from_default(mock_save, tmp_path):
     """Test that non-default values provided to iris save function are set correctly"""
     cubes = iris.cube.CubeList([set_up_test_cube()])
     shuffle = False
@@ -456,7 +456,7 @@ def test_deviation_from_default(mock_save):
     complevel = 3
     save_netcdf(
         cubes,
-        "test.nc",
+        tmp_path / "test.nc",
         complevel=complevel,
         zlib=zlib,
         shuffle=shuffle,
@@ -516,7 +516,7 @@ testdata = [
 ]
 
 
-def test_chunksizes_not_set():
+def test_chunksizes_not_set(tmp_path):
     """Test that chunksizes are not set based on some condition not met."""
     # Note that pytest.mark.parametrize causes a segmentation fault in this case with
     # our cubes.
@@ -524,12 +524,12 @@ def test_chunksizes_not_set():
         cubelist = iris.cube.CubeList([cube1, cube2])
         with unittest.mock.patch("iris.fileformats.netcdf.save") as mock_save:
             with pytest.warns(UserWarning, match=r"Chunksize not set"):
-                save_netcdf(cubelist, "test.nc")
+                save_netcdf(cubelist, tmp_path / "test.nc")
             assert mock_save.call_args[1]["chunksizes"] is None
 
 
 @unittest.mock.patch("iris.fileformats.netcdf.save")
-def test_compression_level_deprecated(mock_save):
+def test_compression_level_deprecated(mock_save, tmp_path):
     """
     Test that compression_level deprecation warning is issues
     but overrides complevel usage
@@ -538,22 +538,22 @@ def test_compression_level_deprecated(mock_save):
     with pytest.warns(
         DeprecationWarning, match=r"The 'compression_level' argument is deprecated"
     ):
-        save_netcdf(cubes, "test.nc", complevel=2, compression_level=3)
+        save_netcdf(cubes, tmp_path / "test.nc", complevel=2, compression_level=3)
     assert mock_save.call_args[0][0] == cubes
     assert mock_save.call_args[1]["complevel"] == 3
     assert "compression_level" not in mock_save.call_args[1]
 
 
 @unittest.mock.patch("iris.fileformats.netcdf.save")
-def test_complevel_float(mock_save):
+def test_complevel_float(mock_save, tmp_path):
     """Test that complevel that is a float raises a ValueError"""
     cubes = iris.cube.CubeList([set_up_test_cube()])
     with pytest.raises(ValueError, match="Compression level must be an integer value"):
-        save_netcdf(cubes, "test.nc", complevel=2.5)
+        save_netcdf(cubes, tmp_path / "test.nc", complevel=2.5)
 
 
 @unittest.mock.patch("iris.fileformats.netcdf.save")
-def test_chunksizes_aux_xy_coord(mock_save):
+def test_chunksizes_aux_xy_coord(mock_save, tmp_path):
     """Test that chunksizes are not set when x and y are not dimension coordinates."""
     cube = set_up_variable_cube(
         np.ones((3, 4, 4), dtype=np.float32),
@@ -564,7 +564,7 @@ def test_chunksizes_aux_xy_coord(mock_save):
     y = cube.coord(axis="y")
     iris.util.demote_dim_coord_to_aux_coord(cube, y.name())
     cubes = iris.cube.CubeList([cube])
-    save_netcdf(cubes, "test.nc")
+    save_netcdf(cubes, tmp_path / "test.nc")
     assert mock_save.call_args[1]["chunksizes"] is None
 
 
