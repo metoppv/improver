@@ -96,7 +96,7 @@ def _derive_chunksizes(cubelist):
         chunksizes = [1] * rcube.ndim
         chunksizes[rxdim] = rcube.shape[rxdim]
         chunksizes[rydim] = rcube.shape[rydim]
-    return chunksizes if derive_chunksize else None
+    return tuple(chunksizes) if derive_chunksize else None
 
 
 def save_netcdf(
@@ -161,7 +161,7 @@ def save_netcdf(
             "The 'compression_level' argument is deprecated and will be removed in a future release. "
             "Please use 'complevel' instead.  Overriding 'complevel' with 'compression_level' if both "
             "are provided.",
-            DeprecationWarning,
+            FutureWarning,
             stacklevel=2,
         )
         complevel = kwargs.pop("compression_level", None)

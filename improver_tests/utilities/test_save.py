@@ -442,7 +442,7 @@ def test_default_values(mock_save, tmp_path):
         "complevel": 1,
         "shuffle": True,
         "zlib": True,
-        "chunksizes": [1, 3, 3],
+        "chunksizes": (1, 3, 3),
     }
 
 
@@ -536,7 +536,7 @@ def test_compression_level_deprecated(mock_save, tmp_path):
     """
     cubes = iris.cube.CubeList([set_up_test_cube()])
     with pytest.warns(
-        DeprecationWarning, match=r"The 'compression_level' argument is deprecated"
+        FutureWarning, match=r"The 'compression_level' argument is deprecated"
     ):
         save_netcdf(cubes, tmp_path / "test.nc", complevel=2, compression_level=3)
     assert mock_save.call_args[0][0] == cubes
