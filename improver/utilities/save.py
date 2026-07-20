@@ -58,6 +58,10 @@ def _check_metadata(cube: Cube) -> None:
 def save_netcdf(
     cubelist: Union[Cube, CubeList],
     filename: str,
+    complevel: int = 1,
+    zlib: bool | None = None,
+    shuffle: bool = True,
+    chunksizes: tuple | None = None,
     **kwargs,
 ) -> None:
     """
@@ -67,73 +71,106 @@ def save_netcdf(
     Uses the functionality provided by iris.fileformats.netcdf.save with
     local_keys to record non-global attributes as data attributes rather than
     global attributes.  The save is made with
-    iris.FUTURE.context(save_split_attrs=True).  The following argument
-    defaults for save deviate from iris.fileformats.netcdf.save defaults:
-    - chunksizes are set to (1, 1, x, y) if all cubes have the same xy shape
-      and the chunksizes are not specified in kwargs.
-    - complevel default is 1 (iris default is 4)
-    - zlib is set to True if complevel > 0 (iris default is False)
-    - shuffle is set to True (iris default is False)
+    iris.FUTURE.context(save_split_attrs=True).
+    iris.fileformats.netcdf.save will add a new "least_significant_digit"
+    attribute, but will not update an existing attribute when saving with
+    different precision. Therefore, we remove the "least_significant_digit"
+    attribute if present.
+
+    We further deviate from iris.fileformats.netcdf.save default behaviour
+    as per keyword arguments.
 
     Args:
         cubelist:
             Cube or CubeList to be saved.
         filename:
             Filename to save input cube(s)
+        complevel:
+            Compression level for the NetCDF file. Must be an integer between 0 and 9
+            where 0 disables compression. Default is 1 (iris default is 4).
+        zlib:
+            Whether to use zlib compression. If None (default), set to True
+            if complevel > 0, otherwise False. iris default is False.
+        shuffle:
+            Whether to use HDF5 shuffle filter. Default is True (iris default is False).
+        chunksizes:
+            Tuple defining chunk sizes for the output file. If None (default),
+            automatically determined as (1, 1, x, y) if all cubes have the same xy shape.
         **kwargs:
             Additional keyword arguments to pass to iris.fileformats.netcdf.save.
 
     Raises:
         ValueError:
-            If compression_level is not between 0 and 9.
+            If complevel is not between 0 and 9.
+
 
     Warns:
+        If compression_level is passed via kwargs (deprecated, use complevel instead).
         If cubelist contains cubes of varying dimensions.
     """
     cubelist = as_cubelist(cubelist)
 
+    # Handle deprecated compression_level argument
     if "compression_level" in kwargs:
         warnings.warn(
             "The 'compression_level' argument is deprecated and will be removed in a future release. "
-            "Please use 'complevel' instead.",
+            "Please use 'complevel' instead.  Overriding 'complevel' with 'compression_level' if both "
+            "are provided.",
             DeprecationWarning,
+            stacklevel=2,
         )
-    complevel = kwargs.pop("compression_level", None)
-    complevel = kwargs.pop("complevel", complevel)
+        complevel = kwargs.pop("compression_level", None)
+
     if complevel is None:
         complevel = 1
     else:
+        # iris does no validation of the compression level, so we do it here
+        old_complevel = complevel
         complevel = int(complevel)
-        if complevel not in range(10):
-            # iris does no validation of the compression level, so we do it here
+        if complevel != old_complevel or complevel not in range(10):
             raise ValueError(
                 "Compression level must be an integer value between 0 and 9 (0 to disable compression)"
             )
-    zlib = kwargs.pop("zlib", complevel > 0 if complevel is not None else False)
-    shuffle = kwargs.pop("shuffle", True)
+
+    if zlib is None:
+        zlib = complevel > 0
 
     for cube in cubelist:
         _order_cell_methods(cube)
         _check_metadata(cube)
-        # iris.fileformats.netcdf.save will add a new "least_significant_digit"
-        # attribute, but will not update an existing attribute when saving with
-        # different precision. Therefore, we remove the "least_significant_digit"
-        # attribute if present.
         cube.attributes.pop("least_significant_digit", None)
         _cube_attributes_for_save(cube)
 
-    chunksizes = kwargs.pop("chunksizes", None)
     if chunksizes is None:
-        if len({cube.shape[:2] for cube in cubelist}) == 1:
-            cube = cubelist[0]
-            if cube.ndim >= 2:
-                # If all xy slices are the same shape, use this to determine
-                # the chunksize for the netCDF (eg. 1, 1, 970, 1042)
-                xy_chunksizes = [cube.shape[-2], cube.shape[-1]]
-                chunksizes = tuple([1] * (cube.ndim - 2) + xy_chunksizes)
-        else:
-            msg = "Chunksize not set as cubelist contains cubes of varying dimensions"
-            warnings.warn(msg)
+        rcube = cubelist[0]
+        rx = rcube.coord(axis="x", dim_coords=True)
+        rxdim = rcube.coord_dims(rx)[0]
+        ry = rcube.coord(axis="y", dim_coords=True)
+        rydim = rcube.coord_dims(ry)[0]
+        apply_chunksize = True
+        if len(cubelist) > 1:
+            for cube in cubelist[1:]:
+                # check that chunksizes can apply to the full cubelist
+                xdim = cube.coord(axis="x", dim_coords=True)[0]
+                ydim = cube.coord(axis="y", dim_coords=True)[0]
+                if (
+                    cube.ndim != rcube.ndim
+                    or xdim != rxdim
+                    or ydim != rydim
+                    or cube.shape[xdim] != rcube.shape[rxdim]
+                    or cube.shape[ydim] != rcube.shape[rydim]
+                ):
+                    apply_chunksize = False
+                    msg = "Chunksize not set as cubelist contains cubes of varying x-y shape/mapping"
+                    warnings.warn(msg)
+                    break
+
+        if apply_chunksize and rcube.ndim >= 2:
+            # If all xy slices are the same shape, use this to determine
+            # the chunksize for the netCDF (eg. 1, 1, 970, 1042)
+            chunksizes = [1] * rcube.ndim
+            chunksizes[rxdim] = rcube.shape[rxdim]
+            chunksizes[rydim] = rcube.shape[rydim]
 
     # save atomically by writing to a unique temporary file of the form <filename>-<unique>.tmp
     with tempfile.NamedTemporaryFile(

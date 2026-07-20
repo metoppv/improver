@@ -7,6 +7,7 @@
 import copy
 import os
 import unittest
+import unittest.mock
 from datetime import datetime
 from tempfile import mkdtemp
 
@@ -98,7 +99,7 @@ class Test_save_netcdf(unittest.TestCase):
     def test_compression_level(self):
         """Test data gets compressed with complevel provided by compression_level
         when saved"""
-        save_netcdf(self.cube, self.filepath, compression_level=3)
+        save_netcdf(self.cube, self.filepath, complevel=3)
 
         data = Dataset(self.filepath, mode="r")
         filters = data.variables["air_temperature"].filters()
@@ -108,7 +109,7 @@ class Test_save_netcdf(unittest.TestCase):
 
     def test_no_compression(self):
         """Test data does not get compressed when saved with compression_level 0"""
-        save_netcdf(self.cube, self.filepath, compression_level=0)
+        save_netcdf(self.cube, self.filepath, complevel=0)
 
         data = Dataset(self.filepath, mode="r")
         filters = data.variables["air_temperature"].filters()
@@ -118,12 +119,14 @@ class Test_save_netcdf(unittest.TestCase):
     def test_compression_level_invalid(self):
         """Test ValueError raised when invalid compression_level"""
         with self.assertRaises(ValueError):
-            save_netcdf(self.cube, self.filepath, compression_level="one")
+            save_netcdf(self.cube, self.filepath, complevel="one")
 
     def test_compression_level_out_of_range(self):
         """Test ValueError raised when compression_level out of range"""
-        with self.assertRaises(ValueError):
-            save_netcdf(self.cube, self.filepath, compression_level=10)
+        with self.assertRaises(
+            ValueError, match="Compression level must be an integer value"
+        ):
+            save_netcdf(self.cube, self.filepath, complevel=10)
 
     def test_basic_cube_list(self):
         """
@@ -292,7 +295,7 @@ def test_least_significant_digit(bitshaving_cube, tmp_path, lsd, compress):
     save_netcdf(
         bitshaving_cube,
         filepath,
-        compression_level=compress,
+        complevel=compress,
         least_significant_digit=lsd,
     )
 
@@ -425,6 +428,125 @@ def test_save_netcdf_succeeds_with_int_time_dtype(tmp_path):
 
     save_netcdf(result_cube, filepath)
     assert filepath.exists()
+
+
+@unittest.mock.patch("iris.fileformats.netcdf.save")
+def test_default_values(mock_save):
+    """Test default values provided to iris save function are set correctly"""
+    cubes = iris.cube.CubeList([set_up_test_cube()])
+    save_netcdf(cubes, "test.nc")
+    assert mock_save.call_args[0][0] == cubes
+    assert mock_save.call_args[1] == {
+        "complevel": 1,
+        "shuffle": True,
+        "zlib": True,
+        "chunksizes": [1, 3, 3],
+    }
+
+
+@unittest.mock.patch("iris.fileformats.netcdf.save")
+def test_deviation_from_default(mock_save):
+    """Test that non-default values provided to iris save function are set correctly"""
+    cubes = iris.cube.CubeList([set_up_test_cube()])
+    shuffle = False
+    chunksizes = (1, 2, 2)
+    zlib = False
+    complevel = 3
+    save_netcdf(
+        cubes,
+        "test.nc",
+        complevel=complevel,
+        zlib=zlib,
+        shuffle=shuffle,
+        chunksizes=chunksizes,
+    )
+    assert mock_save.call_args[0][0] == cubes
+    assert mock_save.call_args[1] == {
+        "complevel": complevel,
+        "shuffle": shuffle,
+        "zlib": zlib,
+        "chunksizes": chunksizes,
+    }
+
+
+def _transpose(cube, order):
+    ncube = cube.copy()
+    ncube.transpose(order)
+    return ncube
+
+
+testdata = [
+    (
+        set_up_variable_cube(
+            np.ones((1, 4, 3), dtype=np.float32), standard_grid_metadata="uk_ens"
+        ),
+        set_up_variable_cube(
+            np.ones((2, 4, 4), dtype=np.float32), standard_grid_metadata="uk_ens"
+        ),
+    ),
+    (
+        set_up_variable_cube(
+            np.ones((1, 3, 4), dtype=np.float32), standard_grid_metadata="uk_ens"
+        ),
+        set_up_variable_cube(
+            np.ones((2, 4, 4), dtype=np.float32), standard_grid_metadata="uk_ens"
+        ),
+    ),
+    (
+        set_up_variable_cube(
+            np.ones((4, 4), dtype=np.float32), standard_grid_metadata="uk_ens"
+        ),
+        set_up_variable_cube(
+            np.ones((1, 4, 4), dtype=np.float32), standard_grid_metadata="uk_ens"
+        ),
+    ),
+    (
+        _transpose(
+            set_up_variable_cube(
+                np.ones((4, 4), dtype=np.float32), standard_grid_metadata="uk_ens"
+            ),
+            [1, 0],
+        ),
+        set_up_variable_cube(
+            np.ones((4, 4), dtype=np.float32), standard_grid_metadata="uk_ens"
+        ),
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    "cube1,cube2",
+    testdata,
+    ids=[
+        "different_y_shapes",
+        "different_x_shapes",
+        "different_ndims",
+        "different_xy_mapping",
+    ],
+)
+@unittest.mock.patch("iris.fileformats.netcdf.save")
+def test_chunksizes_not_set(mock_save, cube1, cube2):
+    """Test that chunksizes are not set based on some condition not met."""
+    cubelist = iris.cube.CubeList([cube1, cube2])
+    with pytest.warns(UserWarning, match=r"Chunksize not set"):
+        save_netcdf(cubelist, "test.nc")
+    assert mock_save.call_args[1]["chunksizes"] is None
+
+
+@unittest.mock.patch("iris.fileformats.netcdf.save")
+def test_compression_level_deprecated(mock_save):
+    """
+    Test that compression_level deprecation warning is issues
+    but overrides complevel usage
+    """
+    cubes = iris.cube.CubeList([set_up_test_cube()])
+    with pytest.warns(
+        DeprecationWarning, match=r"The 'compression_level' argument is deprecated"
+    ):
+        save_netcdf(cubes, "test.nc", complevel=2, compression_level=3)
+    assert mock_save.call_args[0][0] == cubes
+    assert mock_save.call_args[1]["complevel"] == 3
+    assert "compression_level" not in mock_save.call_args[1]
 
 
 if __name__ == "__main__":
