@@ -118,12 +118,14 @@ class Test_save_netcdf(unittest.TestCase):
 
     def test_compression_level_invalid(self):
         """Test ValueError raised when invalid compression_level"""
-        with self.assertRaises(ValueError):
+        with pytest.raises(
+            ValueError, match="Compression level must be an integer value"
+        ):
             save_netcdf(self.cube, self.filepath, complevel="one")
 
     def test_compression_level_out_of_range(self):
         """Test ValueError raised when compression_level out of range"""
-        with self.assertRaises(
+        with pytest.raises(
             ValueError, match="Compression level must be an integer value"
         ):
             save_netcdf(self.cube, self.filepath, complevel=10)
@@ -547,6 +549,14 @@ def test_compression_level_deprecated(mock_save):
     assert mock_save.call_args[0][0] == cubes
     assert mock_save.call_args[1]["complevel"] == 3
     assert "compression_level" not in mock_save.call_args[1]
+
+
+@unittest.mock.patch("iris.fileformats.netcdf.save")
+def test_complevel_float(mock_save):
+    """Test that complevel that is a float raises a ValueError"""
+    cubes = iris.cube.CubeList([set_up_test_cube()])
+    with pytest.raises(ValueError, match="Compression level must be an integer value"):
+        save_netcdf(cubes, "test.nc", complevel=2.5)
 
 
 if __name__ == "__main__":

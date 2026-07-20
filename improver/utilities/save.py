@@ -125,9 +125,12 @@ def save_netcdf(
         complevel = 1
     else:
         # iris does no validation of the compression level, so we do it here
-        old_complevel = complevel
-        complevel = int(complevel)
-        if complevel != old_complevel or complevel not in range(10):
+        try:
+            old_complevel = complevel
+            complevel = int(complevel)
+            if old_complevel != complevel or complevel not in range(10):
+                raise ValueError
+        except (ValueError, TypeError):
             raise ValueError(
                 "Compression level must be an integer value between 0 and 9 (0 to disable compression)"
             )
