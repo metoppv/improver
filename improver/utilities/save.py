@@ -55,6 +55,50 @@ def _check_metadata(cube: Cube) -> None:
         raise ValueError("{} has unknown units".format(cube.name()))
 
 
+def _horizontal_grid(cube):
+    x = cube.coord(axis="x", dim_coords=True)
+    xdim = cube.coord_dims(x)[0]
+    y = cube.coord(axis="y", dim_coords=True)
+    ydim = cube.coord_dims(y)[0]
+    return xdim, ydim, x, y
+
+
+def _derive_chunksizes(cubelist):
+    derive_chunksize = True
+    rcube = cubelist[0]
+    try:
+        rxdim, rydim, rx, ry = _horizontal_grid(rcube)
+    except iris.exceptions.CoordinateNotFoundError:
+        return None
+
+    if derive_chunksize and len(cubelist) > 1:
+        for cube in cubelist[1:]:
+            # check that chunksizes can apply to the full cubelist
+            try:
+                xdim, ydim, x, y = _horizontal_grid(cube)
+            except iris.exceptions.CoordinateNotFoundError:
+                return None
+            if (
+                cube.ndim != rcube.ndim  # same dimensionality
+                or xdim != rxdim  # same x dimension mapping
+                or ydim != rydim  # same y dimension mapping
+                or cube.shape[xdim] != rcube.shape[rxdim]  # same x dimension size
+                or cube.shape[ydim] != rcube.shape[rydim]  # same y dimension size
+            ):
+                derive_chunksize = False
+                msg = "Chunksize not set as cubelist contains cubes of varying x-y shape/mapping"
+                warnings.warn(msg)
+                break
+
+    if derive_chunksize and rcube.ndim >= 2:
+        # If all xy slices are the same shape, use this to determine
+        # the chunksize for the netCDF (eg. 1, 1, 970, 1042)
+        chunksizes = [1] * rcube.ndim
+        chunksizes[rxdim] = rcube.shape[rxdim]
+        chunksizes[rydim] = rcube.shape[rydim]
+    return chunksizes if derive_chunksize else None
+
+
 def save_netcdf(
     cubelist: Union[Cube, CubeList],
     filename: str,
@@ -95,7 +139,8 @@ def save_netcdf(
             Whether to use HDF5 shuffle filter. Default is True (iris default is False).
         chunksizes:
             Tuple defining chunk sizes for the output file. If None (default),
-            automatically determined as (1, 1, x, y) if all cubes have the same xy shape.
+            automatically determined as a 1 for all dimensions except the x and y
+            dimensions, which are set to the full size of the x and y dimensions.
         **kwargs:
             Additional keyword arguments to pass to iris.fileformats.netcdf.save.
 
@@ -145,35 +190,7 @@ def save_netcdf(
         _cube_attributes_for_save(cube)
 
     if chunksizes is None:
-        rcube = cubelist[0]
-        rx = rcube.coord(axis="x", dim_coords=True)
-        rxdim = rcube.coord_dims(rx)[0]
-        ry = rcube.coord(axis="y", dim_coords=True)
-        rydim = rcube.coord_dims(ry)[0]
-        apply_chunksize = True
-        if len(cubelist) > 1:
-            for cube in cubelist[1:]:
-                # check that chunksizes can apply to the full cubelist
-                xdim = cube.coord(axis="x", dim_coords=True)[0]
-                ydim = cube.coord(axis="y", dim_coords=True)[0]
-                if (
-                    cube.ndim != rcube.ndim
-                    or xdim != rxdim
-                    or ydim != rydim
-                    or cube.shape[xdim] != rcube.shape[rxdim]
-                    or cube.shape[ydim] != rcube.shape[rydim]
-                ):
-                    apply_chunksize = False
-                    msg = "Chunksize not set as cubelist contains cubes of varying x-y shape/mapping"
-                    warnings.warn(msg)
-                    break
-
-        if apply_chunksize and rcube.ndim >= 2:
-            # If all xy slices are the same shape, use this to determine
-            # the chunksize for the netCDF (eg. 1, 1, 970, 1042)
-            chunksizes = [1] * rcube.ndim
-            chunksizes[rxdim] = rcube.shape[rxdim]
-            chunksizes[rydim] = rcube.shape[rydim]
+        chunksizes = _derive_chunksizes(cubelist)
 
     # save atomically by writing to a unique temporary file of the form <filename>-<unique>.tmp
     with tempfile.NamedTemporaryFile(

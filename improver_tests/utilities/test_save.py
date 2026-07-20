@@ -559,5 +559,21 @@ def test_complevel_float(mock_save):
         save_netcdf(cubes, "test.nc", complevel=2.5)
 
 
+@unittest.mock.patch("iris.fileformats.netcdf.save")
+def test_chunksizes_aux_xy_coord(mock_save):
+    """Test that chunksizes are not set when x and y are not dimension coordinates."""
+    cube = set_up_variable_cube(
+        np.ones((3, 4, 4), dtype=np.float32),
+        standard_grid_metadata="uk_ens",
+    )
+    x = cube.coord(axis="x")
+    iris.util.demote_dim_coord_to_aux_coord(cube, x.name())
+    y = cube.coord(axis="y")
+    iris.util.demote_dim_coord_to_aux_coord(cube, y.name())
+    cubes = iris.cube.CubeList([cube])
+    save_netcdf(cubes, "test.nc")
+    assert mock_save.call_args[1]["chunksizes"] is None
+
+
 if __name__ == "__main__":
     unittest.main()
