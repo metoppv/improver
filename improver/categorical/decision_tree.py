@@ -294,8 +294,11 @@ class ApplyDecisionTree(BasePlugin):
 
                             warnings.warn(
                                 f"Multiple ({num_thresholds}) matching thresholds found"
-                                f" for name: {diagnostic}, threshold {threshold}. "
-                                f"Using closest match: {closest_point}"
+                                f" for name: {diagnostic}, threshold {threshold}."
+                                f" Using closest match: {closest_point}. If multiple"
+                                f" thresholds are equidistant to the desired threshold,"
+                                f" then the first threshold stated monotonically will"
+                                f" be used."
                             )
 
                             closest_point_constraint = iris.Constraint(
