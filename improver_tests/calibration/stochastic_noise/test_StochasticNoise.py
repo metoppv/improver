@@ -4,6 +4,8 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the StochasticNoise plugin"""
 
+import warnings
+
 import numpy as np
 import pytest
 from iris.cube import Cube
@@ -262,36 +264,63 @@ def test_process_scalar_realization_coord():
     assert result.shape == single_realization_cube.shape
 
 
-def test_do_fft_degenerate_input_uses_fallback_noise():
-    """Degenerate SSFT input should use fallback noise generation."""
+@pytest.mark.parametrize(
+    "constant_value, expect_degenerate_warning, expect_changed",
+    [(0.0, True, True), (1.0, False, False)],
+)
+def test_process_constant_input(
+    constant_value: float, expect_degenerate_warning: bool, expect_changed: bool
+):
+    """Constant inputs are handled. Degenerate input warning is raised for constant
+    zero input. For non-zero constant input, no warning is raised and output equals
+    input."""
     plugin = StochasticNoise(ssft_generate_params={"seed": 0})
-    constant_data = np.full((4, 4), -35.0, dtype=np.float32)
+    data = np.full((1, 4, 4), constant_value, dtype=np.float32)
+    cube = set_up_variable_cube(data=data, name="precipitation_rate", units="mm/hr")
+    single_realization_cube = cube[0, :, :]
 
-    with pytest.warns(UserWarning, match="Degenerate input field detected"):
-        result = plugin.do_fft(constant_data)
+    if expect_degenerate_warning:
+        with pytest.warns(UserWarning, match="Degenerate input field detected"):
+            result = plugin.process(single_realization_cube)
+    else:
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.simplefilter("always")
+            result = plugin.process(single_realization_cube)
+        assert not any(
+            "Degenerate input field detected" in str(w.message) for w in caught_warnings
+        )
 
-    assert result.shape == constant_data.shape
-    assert result.dtype == np.float32
-    assert np.all(np.isfinite(result))
-    threshold_db = 10.0 * np.log10(plugin.db_threshold)
-    max_noise_db = threshold_db - plugin.arbitrary_offset
-    assert np.all(result <= max_noise_db)
+    assert isinstance(result, Cube)
+    assert result.shape == single_realization_cube.shape
+    assert np.all(np.isfinite(result.data))
+    if expect_changed:
+        assert np.any(result.data != single_realization_cube.data)
+        assert np.all(result.data <= 0.0)
+    else:
+        np.testing.assert_array_equal(result.data, single_realization_cube.data)
 
 
-def test_do_fft_degenerate_input_seeded_fallback_is_reproducible():
-    """Seeded fallback noise should be reproducible for degenerate input."""
+@pytest.mark.parametrize("constant_value", [0.0, 1.0])
+def test_process_constant_input_seeded_is_reproducible(constant_value: float):
+    """Seeded processing of constant fields is reproducible via process."""
     plugin = StochasticNoise(ssft_generate_params={"seed": 42})
-    constant_data = np.full((3, 5), -35.0, dtype=np.float32)
+    data = np.full((1, 4, 4), constant_value, dtype=np.float32)
+    cube = set_up_variable_cube(data=data, name="precipitation_rate", units="mm/hr")
+    single_realization_cube = cube[0, :, :]
 
-    with pytest.warns(UserWarning, match="Degenerate input field detected"):
-        first = plugin.do_fft(constant_data)
-    with pytest.warns(UserWarning, match="Degenerate input field detected"):
-        second = plugin.do_fft(constant_data)
+    if constant_value == 0.0:
+        with pytest.warns(UserWarning, match="Degenerate input field detected"):
+            first = plugin.process(single_realization_cube)
+        with pytest.warns(UserWarning, match="Degenerate input field detected"):
+            second = plugin.process(single_realization_cube)
+    else:
+        first = plugin.process(single_realization_cube)
+        second = plugin.process(single_realization_cube)
 
-    np.testing.assert_array_equal(first, second)
+    np.testing.assert_array_equal(first.data, second.data)
 
 
-def test_process_all_zero_input_fallback_with_scale_non_positive_noise():
+def test_process_all_zero_input_with_scale_non_positive_noise():
     """All-zero input should not raise and should respect non-positive scaling."""
     plugin = StochasticNoise(
         ssft_generate_params={"seed": 0},
@@ -309,6 +338,7 @@ def test_process_all_zero_input_fallback_with_scale_non_positive_noise():
     assert result.shape == single_realization_cube.shape
     assert np.all(np.isfinite(result.data))
     assert np.all(result.data <= 0.0)
+    assert np.any(result.data < 0.0)
 
 
 def test_non_positive_threshold():

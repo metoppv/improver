@@ -170,11 +170,23 @@ class StochasticNoise(BasePlugin):
         # Create a copy of the template in dB scale to use for SSFT processing
         template_dB = self._to_dB(template.copy())
 
-        # Compute SSFT noise
-        result = self.do_fft(template_dB.data)
+        # Constant fields in dB space are degenerate for SSFT. In this case generate
+        # fallback noise directly in linear space so it can still break ties.
+        used_linear_fallback = False
+        if self._is_degenerate_field(template_dB.data):
+            warnings.warn(
+                "Degenerate input field detected for SSFT initialization. "
+                "Using linear fallback stochastic noise generation.",
+                UserWarning,
+            )
+            noise_linear = self._fallback_noise_linear(template_dB.data.shape)
+            used_linear_fallback = True
+        else:
+            # Compute SSFT noise
+            result = self.do_fft(template_dB.data)
 
-        # Convert generated noise from dB to linear scale
-        noise_linear = self._from_dB(data=result).astype(np.float32, copy=False)
+            # Convert generated noise from dB to linear scale
+            noise_linear = self._from_dB(data=result).astype(np.float32, copy=False)
 
         # Guard against non-finite values from SSFT output fields.
         # Treat these as zero-noise contributions.
@@ -188,6 +200,12 @@ class StochasticNoise(BasePlugin):
             noise_linear[non_positive_mask] = (
                 noise_linear[non_positive_mask] - max_noise_non_positiveregions
             )
+            # Keep dry-field fallback strictly non-positive after scaling.
+            if used_linear_fallback:
+                epsilon = max(np.finfo(np.float32).eps, self.db_threshold)
+                noise_linear[non_positive_mask] = (
+                    noise_linear[non_positive_mask] - epsilon
+                )
 
         # Add noise only to non-positive regions, leave positive regions unchanged
         output_cube = template.copy()
@@ -270,16 +288,6 @@ class StochasticNoise(BasePlugin):
             initialize_nonparam_2d_ssft_filter,
         )
 
-        # pySTEPS SSFT can fail on constant fields because no values are strictly
-        # above the minimum. In this case, use capped random fallback noise.
-        if not np.any(data > np.min(data)):
-            warnings.warn(
-                "Degenerate input field detected for SSFT initialization. "
-                "Using capped random fallback stochastic noise generation.",
-                UserWarning,
-            )
-            return self._fallback_noise(data.shape)
-
         nonparametric_filter = initialize_nonparam_2d_ssft_filter(
             data,
             **self.ssft_init_params,
@@ -289,30 +297,34 @@ class StochasticNoise(BasePlugin):
         )
         return stochastic_noise
 
-    def _fallback_noise(self, shape: tuple) -> np.ndarray:
-        """Generate capped random fallback noise for degenerate SSFT inputs.
+    @staticmethod
+    def _is_degenerate_field(data: np.ndarray) -> bool:
+        """Return True if field has no dynamic range for SSFT initialisation."""
+        return not np.any(data > np.min(data))
+
+    def _fallback_noise_linear(self, shape: tuple) -> np.ndarray:
+        """Generate strictly non-positive fallback noise in linear space.
 
         If a seed is configured in ``ssft_generate_params``, this returns
-        reproducible noise. Noise is capped from above at
-        ``10 * log10(db_threshold) - arbitrary_offset`` in dB space.
+        reproducible noise. The resulting field has a maximum value slightly
+        below zero so dry fields remain dry while still receiving tie-break noise.
 
         Args:
             shape:
                 Target 2-D output shape.
 
         Returns:
-            Fallback 2-D noise field in dB space.
+            Fallback 2-D noise field in linear units.
         """
         seed = self.ssft_generate_params.get("seed")
         if seed is not None:
             seed = int(seed)
         random_state = np.random.RandomState(seed)
 
-        threshold_db = 10.0 * np.log10(self.db_threshold)
-        max_noise_db = threshold_db - self.arbitrary_offset
-
-        noise = random_state.normal(loc=max_noise_db, scale=1.0, size=shape)
-        noise = np.minimum(noise, max_noise_db)
+        sigma = max(self.db_threshold * 0.1, np.finfo(np.float32).eps)
+        epsilon = max(np.finfo(np.float32).eps, self.db_threshold)
+        noise = random_state.normal(loc=0.0, scale=sigma, size=shape)
+        noise = noise - np.max(noise) - epsilon
         return noise.astype(np.float32)
 
     def process(self, input_cube: Cube) -> Cube:
