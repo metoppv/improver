@@ -1374,6 +1374,7 @@ class RealizationClusterAndMatch(BasePlugin):
             cluster_sources,
             secondary_input_realizations_to_clusters,
         )
+        # Ensure the realization coordinate has the same units to avoid merge issues.
         for cube in matched_cubes:
             cube.coord("realization").units = "1"
         result_cube = MergeCubes()(

@@ -1384,7 +1384,9 @@ def test_clusterandmatch_nonmonotonic_realization_slicing_with_full_matching():
     result in the dimension coordinate for the dimension being indexed to be
     demoted to an auxiliary coordinate. This unit test therefore ensures that this
     coordinate is promoted back to a dimension coordinate when the secondary input
-    contains more realizations than the primary input.
+    contains more realizations than the primary input. It also demonstrates that
+    input cubes can carry realization units of "unknown" while processing still
+    succeeds because output realization units are normalised prior to merging.
     """
     pytest.importorskip("kmedoids")
 
@@ -1423,6 +1425,15 @@ def test_clusterandmatch_nonmonotonic_realization_slicing_with_full_matching():
         )
     )
 
+    # Force unknown realization units on the secondary input cubes. After matching,
+    # matched_cubes contains a mix: primary-derived cubes retain units "1" while
+    # secondary-matched cubes inherit units "unknown". The normalisation loop in
+    # RealizationClusterAndMatch.process sets all realization units to "1" before
+    # the final MergeCubes call, which would otherwise fail on this mismatch.
+    for cube in cubes:
+        if cube.attributes.get("model_id") == "secondary_model_1":
+            cube.coord("realization").units = "unknown"
+
     result = RealizationClusterAndMatch(
         hierarchy={
             "primary_input": "primary_model",
@@ -1436,6 +1447,7 @@ def test_clusterandmatch_nonmonotonic_realization_slicing_with_full_matching():
     ).process(cubes)
 
     assert result.coords("realization", dim_coords=True)
+    assert str(result.coord("realization").units) == "1"
     np.testing.assert_array_almost_equal(
         result[0, :, 0, 0].data,
         np.array([100.022, 200.004, 0.023, 300.017], dtype=np.float32), decimal=3
