@@ -275,47 +275,45 @@ def test_process_constant_input(
     zero input. For non-zero constant input, no warning is raised and output equals
     input."""
     plugin = StochasticNoise(ssft_generate_params={"seed": 0})
-    data = np.full((1, 4, 4), constant_value, dtype=np.float32)
+    data = np.full((4, 4), constant_value, dtype=np.float32)
     cube = set_up_variable_cube(data=data, name="precipitation_rate", units="mm/hr")
-    single_realization_cube = cube[0, :, :]
 
     if expect_degenerate_warning:
         with pytest.warns(UserWarning, match="Degenerate input field detected"):
-            result = plugin.process(single_realization_cube)
+            result = plugin.process(cube)
     else:
         with warnings.catch_warnings(record=True) as caught_warnings:
             warnings.simplefilter("always")
-            result = plugin.process(single_realization_cube)
+            result = plugin.process(cube)
         assert not any(
             "Degenerate input field detected" in str(w.message) for w in caught_warnings
         )
 
     assert isinstance(result, Cube)
-    assert result.shape == single_realization_cube.shape
+    assert result.shape == cube.shape
     assert np.all(np.isfinite(result.data))
     if expect_changed:
-        assert np.any(result.data != single_realization_cube.data)
+        assert np.any(result.data != cube.data)
         assert np.all(result.data <= 0.0)
     else:
-        np.testing.assert_array_equal(result.data, single_realization_cube.data)
+        np.testing.assert_array_equal(result.data, cube.data)
 
 
 @pytest.mark.parametrize("constant_value", [0.0, 1.0])
 def test_process_constant_input_seeded_is_reproducible(constant_value: float):
     """Seeded processing of constant fields is reproducible via process."""
     plugin = StochasticNoise(ssft_generate_params={"seed": 42})
-    data = np.full((1, 4, 4), constant_value, dtype=np.float32)
+    data = np.full((4, 4), constant_value, dtype=np.float32)
     cube = set_up_variable_cube(data=data, name="precipitation_rate", units="mm/hr")
-    single_realization_cube = cube[0, :, :]
 
     if constant_value == 0.0:
         with pytest.warns(UserWarning, match="Degenerate input field detected"):
-            first = plugin.process(single_realization_cube)
+            first = plugin.process(cube)
         with pytest.warns(UserWarning, match="Degenerate input field detected"):
-            second = plugin.process(single_realization_cube)
+            second = plugin.process(cube)
     else:
-        first = plugin.process(single_realization_cube)
-        second = plugin.process(single_realization_cube)
+        first = plugin.process(cube)
+        second = plugin.process(cube)
 
     np.testing.assert_array_equal(first.data, second.data)
 
@@ -327,15 +325,14 @@ def test_process_all_zero_input_with_scale_non_positive_noise():
         scale_non_positive_noise=True,
     )
 
-    data = np.zeros((1, 4, 4), dtype=np.float32)
+    data = np.zeros((4, 4), dtype=np.float32)
     cube = set_up_variable_cube(data=data, name="precipitation_rate", units="mm/hr")
-    single_realization_cube = cube[0, :, :]
 
     with pytest.warns(UserWarning, match="Degenerate input field detected"):
-        result = plugin.process(single_realization_cube)
+        result = plugin.process(cube)
 
     assert isinstance(result, Cube)
-    assert result.shape == single_realization_cube.shape
+    assert result.shape == cube.shape
     assert np.all(np.isfinite(result.data))
     assert np.all(result.data <= 0.0)
     assert np.any(result.data < 0.0)
