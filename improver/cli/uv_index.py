@@ -22,10 +22,11 @@ def process(
             Cube of radiation flux in UV downwards at surface.
         scale_factor:
             The uv scale factor. Default is 3.6 (m2 W-1). This factor has
-            been empirically derived and should not be
+            been empirically derived, or Met Office UM UV data, and should not be
             changed except if there are scientific reasons to
             do so. For more information see section 2.1.1 of the paper
-            referenced below.
+            referenced below. However, for ECMWF UV data, a scale factor of 0.1 is
+            recommended based on an internal report (Schuhen, 2015) referenced below.
         model_id_attr (str):
             Name of the attribute used to identify the source model for
             blending.
@@ -39,6 +40,8 @@ def process(
         & Smedley, A.R.D. (2017): Toward a New UV Index Diagnostic
         in the Met Office's Forecast Model. Journal of Advances in
         Modeling Earth Systems 9, 2654-2671.
+        Schuhen, N. (2015). Obtaining a UV index forecast from ECMWF model output.
+        https://code.metoffice.gov.uk/trac/PostProc/attachment/ticket/1447/method.pdf
     """
     from improver.uv_index import calculate_uv_index
 
