@@ -32,11 +32,11 @@ def calculate_uv_index(
             see above or the paper referenced for more details.(W m-2)
         scale_factor:
             The uv scale factor. Default is 3.6 (m2 W-1). This factor has
-            been empirically derived, or Met Office UM UV data, and should not be
-            changed except if there are scientific reasons to
-            do so. For more information see section 2.1.1 of the paper
-            referenced below. However, for ECMWF UV data, a scale factor of 0.1 is
-            recommended based on an internal report (Schuhen, 2015) referenced below.
+            been empirically derived, for Met Office UM UV data, and should not be
+            changed except if there are scientific reasons to do so.
+            For more information see section 2.1.1 of the paper referenced below.
+            However, for ECMWF UV data, a scale factor of 0.1 is recommended based on
+            an internal report (Schuhen, 2015) referenced below.
         model_id_attr:
             Name of the attribute used to identify the source model for
             blending.
