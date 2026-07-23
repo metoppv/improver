@@ -1126,23 +1126,36 @@ class RealizationClusterAndMatch(BasePlugin):
                 **{self.model_id_attr: candidate_name}
             )
 
+            # Perform matching once across ALL forecast periods so that each
+            # realization is assigned to the same cluster at every lead time.
+            # This mirrors how _process_full_realization_inputs works.
+            fp_constr_all = iris.Constraint(forecast_period=forecast_periods)
+            all_candidate_cubes = cubes.extract(model_id_constr & fp_constr_all)
+            merged_candidate_cube = MergeCubes()(all_candidate_cubes)
+            enforce_coordinate_ordering(merged_candidate_cube, ["realization"])
+            merged_candidate_cube = self._ensure_forecast_period_is_dimension(
+                merged_candidate_cube
+            )
+            regridded_merged_candidate_cube = self._maybe_regrid_candidate_cube(
+                merged_candidate_cube, target_grid_cube
+            )
+            clustered_all_fps_cube = regridded_clustered_primary_cube.extract(
+                fp_constr_all
+            )
+            clustered_all_fps_cube = self._ensure_forecast_period_is_dimension(
+                clustered_all_fps_cube
+            )
+            cluster_indices, realization_indices = RealizationToClusterMatcher()(
+                clustered_all_fps_cube,
+                regridded_merged_candidate_cube,
+            )
+
             for fp in forecast_periods:
                 fp_constr = iris.Constraint(forecast_period=fp)
                 candidate_cube = cubes.extract_cube(model_id_constr & fp_constr)
 
-                regridded_candidate_cube = self._maybe_regrid_candidate_cube(
-                    candidate_cube, target_grid_cube
-                )
-
-                # Get the matching cluster indices from the matcher
-                clustered_fp_cube = regridded_clustered_primary_cube.extract(fp_constr)
-
-                cluster_indices, realization_indices = RealizationToClusterMatcher()(
-                    clustered_fp_cube,
-                    regridded_candidate_cube,
-                )
-
-                # Index the candidate cube using the realization indices
+                # Index the candidate cube using the realization indices determined
+                # from the combined match across all forecast periods.
                 matched_cube = candidate_cube[realization_indices]
                 matched_cube.coord("realization").points = cluster_indices
 

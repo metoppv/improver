@@ -2258,6 +2258,114 @@ def test_clusterandmatch_multiple_partial_secondary_same_forecast_period():
     )
 
 
+def test_clusterandmatch_partial_input_consistent_cluster_across_forecast_periods():
+    """Partial inputs must assign the same cluster at every lead time.
+
+    A partial secondary input (fewer realizations than n_clusters) was previously
+    matched independently per forecast period, allowing the same realization to be
+    assigned to different clusters at different lead times depending on which
+    spatial pattern was locally closest.
+
+    The primary is designed with two clusters whose spatial patterns swap between
+    forecast periods:
+    - Cluster A: value~10 at fp=0, value~100 at fp=6
+    - Cluster B: value~100 at fp=0, value~10 at fp=6
+
+    The secondary has a single realization with value 12 at fp=0 and 15 at fp=6.
+
+    Per-fp MSE:
+    - fp=0: secondary (12) vs cluster A (10) => MSE=4; vs cluster B (100) => MSE=7744
+            => old code assigns to cluster A   (consistent)
+    - fp=6: secondary (15) vs cluster A (100) => MSE=7225; vs cluster B (10) => MSE=25
+            => old code assigns to cluster B   (inconsistent)
+
+    Cross-fp avg MSE (new code):
+    - vs cluster A: (4 + 7225)/2 = 3614.5
+    - vs cluster B: (7744 + 25)/2 = 3884.5
+    => new code assigns to cluster A at both fps
+    """
+    pytest.importorskip("kmedoids")
+
+    # Primary: 4 realizations, 2 fps. Patterns A and B swap between fps.
+    primary_fp0 = _create_4d_realization_cube(
+        n_realizations=4,
+        forecast_periods=[0],
+        y_dim=3,
+        x_dim=3,
+        model_id="primary_model",
+        realization_values=[10.0, 11.0, 100.0, 101.0],
+        merge=False,
+    )
+    primary_fp6 = _create_4d_realization_cube(
+        n_realizations=4,
+        forecast_periods=[6],
+        y_dim=3,
+        x_dim=3,
+        model_id="primary_model",
+        realization_values=[100.0, 101.0, 10.0, 11.0],
+        merge=False,
+    )
+
+    # Secondary: 1 realization (< 2 clusters => partial), values differ between fps.
+    # At fp=0 value=12 is close to cluster A (value~10).
+    # At fp=6 value=15 is close to cluster B (value~10), NOT cluster A (value~100).
+    secondary_fp0 = _create_4d_realization_cube(
+        n_realizations=1,
+        forecast_periods=[0],
+        y_dim=3,
+        x_dim=3,
+        model_id="secondary_model",
+        realization_values=[12.0],
+        merge=False,
+    )
+    secondary_fp6 = _create_4d_realization_cube(
+        n_realizations=1,
+        forecast_periods=[6],
+        y_dim=3,
+        x_dim=3,
+        model_id="secondary_model",
+        realization_values=[15.0],
+        merge=False,
+    )
+
+    cubes = CubeList(primary_fp0 + primary_fp6 + secondary_fp0 + secondary_fp6)
+
+    plugin = RealizationClusterAndMatch(
+        hierarchy={
+            "primary_input": "primary_model",
+            "secondary_inputs": {"secondary_model": [0, 6]},
+        },
+        model_id_attr="model_id",
+        clustering_method="KMedoids",
+        regrid_for_clustering=False,
+        n_clusters=2,
+        random_state=42,
+    )
+
+    result = plugin.process(cubes)
+
+    secondary_map = json.loads(
+        result.attributes["secondary_input_realizations_to_clusters"]
+    )["secondary_model"]
+
+    # With consistent cross-fp matching the single secondary realization should
+    # appear in exactly one cluster key, covering both forecast periods.
+    # With the old per-fp matching it would appear in two different cluster keys
+    # (one for fp=0 and a different one for fp=6), failing this assertion.
+    assert len(secondary_map) == 1, (
+        f"Expected the secondary realization to be assigned to exactly one cluster "
+        f"across all forecast periods, but got assignments to "
+        f"{len(secondary_map)} clusters: {secondary_map}"
+    )
+    cluster_key = next(iter(secondary_map))
+    entries = secondary_map[cluster_key]
+    assert len(entries) == 1
+    assert sorted(entries[0]["forecast_periods"]) == [0, 6 * 3600], (
+        f"Expected the secondary realization to cover both forecast periods "
+        f"[0, {6 * 3600}], got: {entries[0]['forecast_periods']}"
+    )
+
+
 def test_clusterandmatch_categorise_mixed_realizations():
     """Test categorisation with mix of full and partial realizations.
 
