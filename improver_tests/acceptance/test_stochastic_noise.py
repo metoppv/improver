@@ -60,3 +60,30 @@ def test_scale_non_positive_noise(tmp_path):
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
+
+
+def test_dry_realizations(tmp_path):
+    """Test stochastic noise addition with scale_non_positive_noise=True
+    and wet_noise_floor set, and where the input realizations are completely dry."""
+    kgo_dir = acc.kgo_root() / "stochastic_noise"
+    kgo_path = kgo_dir / "dry" / "kgo.nc"
+    dependence_template_path = kgo_dir / "dry" / "input.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        dependence_template_path,
+        "--ssft-init-params",
+        "{'win_size': (100, 100), 'overlap': 0.3, 'war_thr': 0.1}",
+        "--ssft-generate-params",
+        "{'overlap': 0.3, 'seed': 0}",
+        "--db-threshold",
+        "0.03",
+        "--db-threshold-units",
+        "mm/hr",
+        "--scale-non-positive-noise",
+        "--wet-noise-floor",
+        "-10",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)

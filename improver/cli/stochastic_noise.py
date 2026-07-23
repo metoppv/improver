@@ -19,6 +19,8 @@ def process(
     db_threshold_units: str = "mm/hr",
     scale_non_positive_noise=False,
     allow_seeded_parallel_processing: bool = False,
+    wet_noise_floor: float = None,
+    dry_fallback_range: str = None,
 ):
     """
     Class to apply spatially-structured stochastic noise to non-positive regions of a
@@ -89,6 +91,17 @@ def process(
             but can introduce run-to-run variation because pySTEPS uses global RNG
             seeding. If False, seeded runs are forced to a single worker for
             reproducibility. Default is False.
+        wet_noise_floor:
+            Optional lower bound for noise in non-positive regions after scaling,
+            in linear units of db_threshold_units. Must be negative if set.
+            Required when the input field is degenerate (e.g. all-zero), to guarantee
+            separation between dry-fallback and wet-member noise. Default is None.
+        dry_fallback_range:
+            Optional range (min_value, max_value) for dry fallback noise in linear
+            units of db_threshold_units. Provide as a Python tuple string, e.g.
+            "(-10.0, -5.0)". Both values must be <= 0 and min_value < max_value.
+            Defaults to (2 * wet_noise_floor, wet_noise_floor) when wet_noise_floor
+            is set.
 
     Returns:
         Cube with added stochastic noise.
@@ -107,6 +120,10 @@ def process(
     else:
         ssft_generate_params = {}
 
+    parsed_dry_fallback_range = None
+    if dry_fallback_range and isinstance(dry_fallback_range, str):
+        parsed_dry_fallback_range = ast.literal_eval(dry_fallback_range)
+
     plugin_kwargs = {
         "ssft_init_params": ssft_init_params,
         "ssft_generate_params": ssft_generate_params,
@@ -114,6 +131,8 @@ def process(
         "db_threshold_units": db_threshold_units,
         "scale_non_positive_noise": scale_non_positive_noise,
         "allow_seeded_parallel_processing": allow_seeded_parallel_processing,
+        "wet_noise_floor": wet_noise_floor,
+        "dry_fallback_range": parsed_dry_fallback_range,
     }
 
     plugin = StochasticNoise(**plugin_kwargs)

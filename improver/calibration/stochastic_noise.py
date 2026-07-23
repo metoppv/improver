@@ -45,6 +45,8 @@ class StochasticNoise(BasePlugin):
         scale_non_positive_noise: bool = False,
         allow_seeded_parallel_processing: bool = False,
         arbitrary_offset: float = 5.0,
+        wet_noise_floor: Optional[float] = None,
+        dry_fallback_range: Optional[tuple] = None,
     ):
         """
         Initialise the plugin.
@@ -89,10 +91,34 @@ class StochasticNoise(BasePlugin):
                 appropriately in the _from_dB method. The default value of 5 was chosen
                 to provide a clear separation from the threshold value in dB space, but
                 can be adjusted if needed.
+            wet_noise_floor:
+                Optional lower bound for noise in non-positive regions after scaling,
+                in linear units of db_threshold_units. Must be negative if set.
+                This can be used to limit how negative SSFT-derived wet-member noise can
+                become. Default is None (no floor).
+            dry_fallback_range:
+                Optional range (min_value, max_value) for dry fallback noise in
+                linear units of db_threshold_units. Both values must be <= 0 and
+                (min_value < max_value). If wet_noise_floor is set and this is
+                not provided, this defaults to (2 * wet_noise_floor, wet_noise_floor)
+                to keep dry fallback below the wet floor.
 
         Raises:
             ValueError:
                 If db_threshold is not a positive value.
+            ValueError:
+                If wet_noise_floor is provided and is non-negative.
+            ValueError:
+                If wet_noise_floor is provided while
+                scale_non_positive_noise is False.
+            ValueError:
+                If dry_fallback_range does not contain exactly two values.
+            ValueError:
+                If dry_fallback_range does not satisfy
+                min_value < max_value <= 0.
+            ValueError:
+                If both wet_noise_floor and dry_fallback_range are provided
+                and dry_fallback_range max exceeds wet_noise_floor.
 
         Warnings:
             If a seed is provided in ssft_generate_params and
@@ -117,6 +143,33 @@ class StochasticNoise(BasePlugin):
         self.scale_non_positive_noise = scale_non_positive_noise
         self.allow_seeded_parallel_processing = allow_seeded_parallel_processing
         self.arbitrary_offset = arbitrary_offset
+        self.wet_noise_floor = wet_noise_floor
+
+        if self.wet_noise_floor is not None and self.wet_noise_floor >= 0:
+            raise ValueError("wet_noise_floor must be negative if provided.")
+
+        if self.wet_noise_floor is not None and not self.scale_non_positive_noise:
+            raise ValueError(
+                "scale_non_positive_noise must be True when wet_noise_floor is set, "
+                "to guarantee separation between dry-fallback and wet noise ranges."
+            )
+
+        if dry_fallback_range is None and self.wet_noise_floor is not None:
+            dry_fallback_range = (2.0 * self.wet_noise_floor, self.wet_noise_floor)
+
+        self.dry_fallback_range = dry_fallback_range
+        if self.dry_fallback_range is not None:
+            if len(self.dry_fallback_range) != 2:
+                raise ValueError("dry_fallback_range must contain exactly two values.")
+            dry_min, dry_max = self.dry_fallback_range
+            if not (dry_min < dry_max <= 0):
+                raise ValueError(
+                    "dry_fallback_range must satisfy min_value < max_value <= 0."
+                )
+            if self.wet_noise_floor is not None and dry_max > self.wet_noise_floor:
+                raise ValueError(
+                    "dry_fallback_range max must be <= wet_noise_floor when both are set."
+                )
 
         if (
             "seed" in self.ssft_generate_params
@@ -138,6 +191,12 @@ class StochasticNoise(BasePlugin):
 
         Returns:
             Cube with added stochastic noise.
+
+        Raises:
+            ValueError:
+                If a degenerate field is detected for SSFT initialisation and
+                ``wet_noise_floor`` has not been configured (which means no default
+                ``dry_fallback_range`` is available).
         """
         validate_cube_dimensions(
             cube=input_cube,
@@ -200,12 +259,35 @@ class StochasticNoise(BasePlugin):
             noise_linear[non_positive_mask] = (
                 noise_linear[non_positive_mask] - max_noise_non_positiveregions
             )
-            # Keep dry-field fallback strictly non-positive after scaling.
-            if used_linear_fallback:
-                epsilon = max(np.finfo(np.float32).eps, self.db_threshold)
-                noise_linear[non_positive_mask] = (
-                    noise_linear[non_positive_mask] - epsilon
+
+        # Apply constraints to separate dry-fallback and wet-member noise ranges.
+        if used_linear_fallback:
+            if self.dry_fallback_range is None:
+                raise ValueError(
+                    "Degenerate input field detected but wet_noise_floor is not set. "
+                    "Set wet_noise_floor to guarantee separation between dry-fallback "
+                    "and wet noise ranges."
                 )
+            dry_min, dry_max = self.dry_fallback_range
+            dry_values = noise_linear[non_positive_mask]
+            dry_vmin = np.min(dry_values)
+            dry_vmax = np.max(dry_values)
+            if dry_vmax > dry_vmin:
+                normalized = (dry_values - dry_vmin) / (dry_vmax - dry_vmin)
+                noise_linear[non_positive_mask] = dry_min + normalized * (
+                    dry_max - dry_min
+                )
+            else:
+                # Guard against zero dynamic range (all dry_values equal), where
+                # normalization would divide by zero; clamp to dry_max to keep values
+                # inside the configured dry fallback interval.
+                noise_linear[non_positive_mask] = dry_max
+        elif self.scale_non_positive_noise and self.wet_noise_floor is not None:
+            # Ensure scaled wet-member noise does not go below the configured
+            # wet_noise_floor.
+            noise_linear[non_positive_mask] = np.maximum(
+                noise_linear[non_positive_mask], self.wet_noise_floor
+            )
 
         # Add noise only to non-positive regions, leave positive regions unchanged
         output_cube = template.copy()
