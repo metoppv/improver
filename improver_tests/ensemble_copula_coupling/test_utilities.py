@@ -953,7 +953,10 @@ def test_process_negative_values_masked_with_nan_mask_value():
         result[:, 0],
         [0.0, 0.157, 0.843],
         atol=1e-3,
-        err_msg="Negative intensity value should map to zero in gamma CDF",
+        err_msg=(
+            "Negative intensity value should map to zero, and positive values "
+            "to 0.157 and 0.843 in gamma CDF"
+        ),
     )
 
     # The right column has positive values [2.0, 8.0, 10.0] and should map to quantiles
