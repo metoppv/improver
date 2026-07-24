@@ -657,6 +657,15 @@ class RealizationClusterAndMatch(BasePlugin):
                     for the relevant forecast periods. The forecast_periods are the
                     forecast periods (in seconds) that exist in the cubes within the
                     specified hour range and are present in the primary input.
+
+        Warns:
+            UserWarning: If a secondary input has forecast periods not present in
+                the primary input; those periods are ignored.
+            UserWarning: If a secondary input has no forecast periods that overlap
+                with the primary input; that input is skipped entirely.
+            UserWarning: If a secondary input has an inconsistent realization count
+                compared to its earliest valid forecast period; all forecast periods
+                from the first mismatch onwards are dropped for that input.
         """
         full_realization_inputs = []
         partial_realization_inputs = []
@@ -676,13 +685,20 @@ class RealizationClusterAndMatch(BasePlugin):
             if not model_cubes:
                 continue  # No cubes found in this range for this model
 
-            # Get all forecast periods present in the cubes
-            forecast_periods_in_range = [
-                int(cube.coord("forecast_period").points.item()) for cube in model_cubes
+            # Get forecast period and cube pairs for this model.
+            fp_cube_pairs = [
+                (int(cube.coord("forecast_period").points.item()), cube)
+                for cube in model_cubes
             ]
 
-            # Check which forecast periods from secondary are not in primary
-            secondary_fps = set(forecast_periods_in_range)
+            # Keep only forecast periods present in the primary and sort by lead time.
+            valid_fp_cube_pairs = [
+                (fp, cube) for fp, cube in fp_cube_pairs if fp in primary_fps
+            ]
+            valid_fp_cube_pairs = sorted(valid_fp_cube_pairs, key=lambda x: x[0])
+
+            # Track forecast periods in requested range but missing from primary input.
+            secondary_fps = {fp for fp, _ in fp_cube_pairs}
             missing_fps = secondary_fps - primary_fps
 
             if missing_fps:
@@ -691,12 +707,8 @@ class RealizationClusterAndMatch(BasePlugin):
                     f"{sorted(missing_fps)} not present in primary input. "
                     "These will be ignored."
                 )
-                # Filter out missing forecast periods
-                forecast_periods_in_range = [
-                    fp for fp in forecast_periods_in_range if fp not in missing_fps
-                ]
 
-            if not forecast_periods_in_range:
+            if not valid_fp_cube_pairs:
                 warnings.warn(
                     f"Secondary input '{candidate_name}' has no forecast periods "
                     "that overlap with primary input "
@@ -705,8 +717,31 @@ class RealizationClusterAndMatch(BasePlugin):
                 )
                 continue  # No valid forecast periods after filtering
 
-            # Check first forecast period to determine realization count
-            n_realizations = len(model_cubes[0].coord("realization").points)
+            # Determine the expected realization count from the earliest valid
+            # forecast period and truncate this secondary input if the count changes
+            # at later lead times. This avoids a source pulsing in/out and keeps
+            # all periods for this source mergeable for consistent multi-period
+            # matching.
+            first_fp, first_cube = valid_fp_cube_pairs[0]
+            n_realizations = len(first_cube.coord("realization").points)
+            forecast_periods_in_range = []
+            for idx, (fp, cube) in enumerate(valid_fp_cube_pairs):
+                n_realizations_at_fp = len(cube.coord("realization").points)
+                if n_realizations_at_fp != n_realizations:
+                    dropped_fps = [
+                        future_fp for future_fp, _ in valid_fp_cube_pairs[idx:]
+                    ]
+                    warnings.warn(
+                        f"Secondary input '{candidate_name}' has inconsistent "
+                        "realization counts across forecast periods. Using "
+                        f"{n_realizations} realizations based on forecast period "
+                        f"{first_fp}, but found {n_realizations_at_fp} realizations "
+                        f"at forecast period {fp}. Forecast periods "
+                        f"{dropped_fps} will be ignored for this input.",
+                        UserWarning,
+                    )
+                    break
+                forecast_periods_in_range.append(fp)
 
             if n_realizations >= n_clusters:
                 full_realization_inputs.append(
