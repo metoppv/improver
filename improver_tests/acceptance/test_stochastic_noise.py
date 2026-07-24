@@ -35,7 +35,7 @@ def test_basic(tmp_path):
         output_path,
     ]
     run_cli(args)
-    acc.compare(output_path, kgo_path)
+    acc.compare(output_path, kgo_path, atol=1e-6, rtol=1e-6)
 
 
 def test_scale_non_positive_noise(tmp_path):
@@ -59,7 +59,7 @@ def test_scale_non_positive_noise(tmp_path):
         output_path,
     ]
     run_cli(args)
-    acc.compare(output_path, kgo_path)
+    acc.compare(output_path, kgo_path, atol=1e-6, rtol=1e-6)
 
 
 def test_dry_realizations(tmp_path):
@@ -86,4 +86,4 @@ def test_dry_realizations(tmp_path):
         output_path,
     ]
     run_cli(args)
-    acc.compare(output_path, kgo_path)
+    acc.compare(output_path, kgo_path, atol=1e-6, rtol=1e-6)
