@@ -1197,7 +1197,8 @@ class RealizationClusterAndMatch(BasePlugin):
         This method clusters the primary input realizations and matches secondary input
         realizations to the resulting clusters, according to the specified hierarchy
         and precedence. The realizations in the primary input can be renumbered
-        if desired.
+        if desired. The units of the realization coordinate are enforced to be
+        dimensionless ("1") to avoid inconsistencies between different forecast sources.
 
         Args:
             cubes: The input CubeList containing all primary and secondary input
