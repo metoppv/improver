@@ -944,23 +944,30 @@ def test_process_negative_values_masked_with_nan_mask_value():
     assert result.shape == intensity_data.shape
     assert result.dtype == np.float32
 
-    # The key assertion: negative values in input produce very low percentiles (near 0)
-    # because gamma CDF on negative values returns 0. This confirms negative values
-    # are masked in mean/std calculation but still evaluated by gamma CDF.
-    # The left column has a negative value (-0.3), so its first row should be near 0.
+    # Negative values in input are masked ahead of gamma distribution fitting.
+    # The left column has negative values [-0.3, 4.0, 6.0], so only [4.0, 6.0] are used
+    # for mean/std calculation. The negative value maps to a percentile value of
+    # 0.0 (0th percentile), 4.0 maps to 0.157 (15.7th percentile) and 6 maps to 0.843
+    # (84.3rd percentile).
     np.testing.assert_allclose(
-        result[0, 0],
-        0.0,
-        atol=1e-6,
-        err_msg="Negative intensity value should map to approximately zero in gamma CDF",
-    )
-    # The right column has positive value (2.0) and should map to a percentile
-    # close to 0.037 for this test setup.
-    np.testing.assert_allclose(
-        result[0, 1],
-        0.037,
+        result[:, 0],
+        [0.0, 0.157, 0.843],
         atol=1e-3,
-        err_msg="Positive intensity value should map to approximately 0.037",
+        err_msg="Negative intensity value should map to zero in gamma CDF",
+    )
+
+    # The right column has positive values [2.0, 8.0, 10.0] and should map to quantiles
+    # close to 0.037 (3.7th percentile), 0.704 (70.4th percentile),
+    # 0.846 (84.6th percentile) for this test setup i.e. where a gamma distribution
+    # is approximated using the mean and standard deviation of [2.0, 8.0, 10.0].
+    np.testing.assert_allclose(
+        result[:, 1],
+        [0.037, 0.704, 0.846],
+        atol=1e-3,
+        err_msg=(
+            "Positive intensity values should map to approximately 0.037, 0.704, "
+            "0.846 in gamma CDF"
+        ),
     )
     # Check that all values are finite
     assert np.all(np.isfinite(result))
