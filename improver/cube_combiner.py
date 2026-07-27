@@ -4,6 +4,8 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Module containing plugins for combining cubes"""
 
+import re
+import warnings
 from operator import eq
 from typing import Callable, List, Union
 
@@ -133,6 +135,14 @@ class Combine(BasePlugin):
 
         if self.new_name is None:
             self.new_name = cubes[0].name()
+        else:
+            # Warn if the new variable name does not start with a letter
+            if re.match(r"^[^a-zA-Z]", self.new_name):
+                msg = (
+                    f"The new variable name ({self.new_name}) does not start with a letter. "
+                    "Iris will add 'var_' as a prefix to it."
+                )
+                warnings.warn(msg)
 
         if self.minimum_realizations is None:
             filtered_cubes = cubes
