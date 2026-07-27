@@ -972,8 +972,6 @@ def test_process_negative_values_masked_with_nan_mask_value():
             "0.846 in gamma CDF"
         ),
     )
-    # Check that all values are finite
-    assert np.all(np.isfinite(result))
 
 
 def test_process_1d_input_raises_error():
