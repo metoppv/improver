@@ -417,11 +417,8 @@ class WindTerrainAdjustmentUtilities:
         # Ensure broadcast correctly (expand 1D to 3D)
         if height_above_orog.ndim == 1:
             height_above_orog = height_above_orog[np.newaxis, np.newaxis, :]
-        # Broadcast 2D fields to full wind-field shape for boolean indexing.
-        # This supports both 1D and 3D height_above_orog inputs.
-        target_shape = wspeed_new.shape
-        ustar_3d = np.broadcast_to(ustar[:, :, np.newaxis], target_shape)
-        z0_3d = np.broadcast_to(self.model_z0[:, :, np.newaxis], target_shape)
+        ustar_3d = ustar[:, :, np.newaxis] * np.ones_like(height_above_orog)
+        z0_3d = self.model_z0[:, :, np.newaxis] * np.ones_like(height_above_orog)
 
         # Apply the roughness correction below the reference height
         below_href = height_above_orog < h_ref[:, :, np.newaxis]
@@ -782,9 +779,15 @@ class WindTerrainAdjustmentUtilities:
         Returns:
             3D float32 array of wind speeds corrected for both roughness and height.
         """
-        wspeed_rc = self.do_rc(height_above_orog, wspeed_original)
-        wspeed_hc = self.do_hc(height_above_orog, wspeed_rc)
-        return wspeed_hc.astype(np.float32)
+        wspeed_rc_only = self.do_rc(height_above_orog, wspeed_original)
+        wspeed_with_hc_from_original = self.do_hc(height_above_orog, wspeed_original)
+
+        hc_additive_term = wspeed_with_hc_from_original - wspeed_original
+        wspeed_rc_plus_hc = wspeed_rc_only + hc_additive_term
+
+        # Combined correction can be negative where target_orog < model_orog.
+        wspeed_rc_plus_hc[wspeed_rc_plus_hc < 0.0] = 0.0
+        return wspeed_rc_plus_hc.astype(np.float32)
 
 
 class WindTerrainAdjustment(PostProcessingPlugin):

@@ -21,12 +21,13 @@ def process(
     model_resolution: float,
     output_height_level: float = None,
     output_height_level_units="m",
+    mode: str = "hc_and_rc",
 ):
     """Wind downscaling.
 
-    Run wind downscaling to apply roughness correction and height correction
-    to wind fields as described in Howard and Clark (2007). All inputs must
-    be on the same standard grid.
+    Run wind downscaling to apply roughness correction and/or height
+    correction to wind fields as described in Howard and Clark (2007).
+    All inputs must be on the same standard grid.
 
     Args:
         wind_speed (iris.cube.Cube):
@@ -61,12 +62,14 @@ def process(
             'output_height_level', this additional argument may be used to
             specify the units of the value entered to select the level.
             e.g hPa.
+        mode (str):
+            Which correction(s) to apply: "hc_and_rc", "hc", or "rc".
 
     Returns:
         iris.cube.Cube:
             The processed Cube.
 
-    Rises:
+    Raises:
         ValueError:
             If the requested height value is not found.
 
@@ -94,7 +97,7 @@ def process(
         wind_speed_iterator = [wind_speed]
     wind_speed_list = iris.cube.CubeList()
     for wind_speed_slice in wind_speed_iterator:
-        result = wind_downscaling.RoughnessCorrection(
+        result = wind_downscaling.WindTerrainAdjustment(
             model_silhouette_roughness_cube=silhouette_roughness,
             model_orog_stddev_cube=sigma,
             target_orog_cube=target_orography,
@@ -102,6 +105,7 @@ def process(
             model_res=model_resolution,
             model_z0_cube=vegetative_roughness,
             height_levels_cube=None,
+            mode=mode,
         )(wind_speed_slice)
         wind_speed_list.append(result)
     wind_speed = wind_speed_list.merge_cube()
