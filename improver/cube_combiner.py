@@ -139,7 +139,8 @@ class Combine(BasePlugin):
             # Warn if the new variable name does not start with a letter
             if re.match(r"^[^a-zA-Z]", self.new_name):
                 msg = (
-                    f"The new variable name ({self.new_name}) does not start with a letter. "
+                    f"The new variable name ({self.new_name}) does not start with a letter, "
+                    "and so is contrary to the CF convention for variable names. "
                     "Iris will add 'var_' as a prefix to it."
                 )
                 warnings.warn(msg)
