@@ -342,10 +342,10 @@ class Test1D:
     uin = np.array([20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0], dtype=np.float32)
     hls = np.array([0.2, 3, 13, 33, 133, 333, 1133], dtype=np.float32)
 
-    def test_hc_and_rc_equivalent_to_rc_then_hc(self):
+    def test_hc_and_rc_matches_combined_mode_definition(self):
         """
-        Test that the combined mode 'hc_and_rc' produces the same result as
-        applying RC first and then HC sequentially.
+        Test that combined mode follows the defined combination rule:
+        RC(original) + [HC(original) - original].
         """
         land = SinglePointTestHelper(
             model_z0=0.1,
@@ -359,13 +359,13 @@ class Test1D:
         # mode 'hc_and_rc'
         combined = land.run_corrections(self.uin, mode="hc_and_rc")
 
-        # mode 'rc' followed by mode 'hc'
-        after_rc_cube = land.run_corrections(self.uin, mode="rc")
-        after_rc = after_rc_cube.data
-        sequential_cube = land.run_corrections(after_rc, mode="hc")
-        sequential = sequential_cube.data
+        # Combined-mode: RC plus HC additive term
+        rc_only = land.run_corrections(self.uin, mode="rc").data
+        hc_from_original = land.run_corrections(self.uin, mode="hc").data
+        expected = rc_only + (hc_from_original - land.w_cube.data)
+        expected[expected < 0.0] = 0.0
 
-        np.testing.assert_allclose(combined.data, sequential, rtol=1e-6, atol=1e-7)
+        np.testing.assert_allclose(combined.data, expected, rtol=1e-6, atol=1e-7)
 
     def test_rc_raises_error_when_z0_none(self):
         """Test that RC raises ValueError when model_z0 is None."""
