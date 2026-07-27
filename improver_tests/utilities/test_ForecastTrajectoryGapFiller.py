@@ -57,6 +57,7 @@ def test_init_default_parameters():
     assert plugin.interpolation_method == "linear"
     assert plugin.cluster_sources_attribute is None
     assert plugin.interpolation_window_in_minutes is None
+    assert plugin.interpolation_window_by_source_pair is None
     assert plugin.model_path is None
     assert plugin.scaling == "minmax"
     assert plugin.clipping_bounds is None
@@ -69,6 +70,7 @@ def test_init_custom_parameters():
         interpolation_method="google_film",
         cluster_sources_attribute="cluster_sources",
         interpolation_window_in_minutes=120,
+        interpolation_window_by_source_pair={"uk_ens|gl_ens": 360},
         model_path="/mock/path",
         scaling="log10",
         clipping_bounds=(0.0, 5.0),
@@ -78,9 +80,79 @@ def test_init_custom_parameters():
     assert plugin.interpolation_method == "google_film"
     assert plugin.cluster_sources_attribute == "cluster_sources"
     assert plugin.interpolation_window_in_minutes == 120
+    assert plugin.interpolation_window_by_source_pair == {"uk_ens|gl_ens": 360}
+    assert plugin.interpolation_window_by_source_pair_seconds == {
+        frozenset(("uk_ens", "gl_ens")): 21600
+    }
     assert plugin.model_path == "/mock/path"
     assert plugin.scaling == "log10"
     assert plugin.clipping_bounds == (0.0, 5.0)
+
+
+@pytest.mark.parametrize(
+    "window_by_pair,expected_message",
+    [
+        ("not_a_dict", "must be a dictionary"),
+        ({"uk_ens": 60}, "must contain exactly two source names"),
+        ({"uk_ens|uk_ens": 60}, "two distinct source names"),
+        ({"uk_ens|gl_ens": 0}, "positive integers in minutes"),
+    ],
+)
+def test_init_invalid_interpolation_window_by_source_pair(
+    window_by_pair, expected_message
+):
+    """Test invalid source-pair window configuration raises ValueError."""
+    with pytest.raises(ValueError, match=expected_message):
+        ForecastTrajectoryGapFiller(
+            interval_in_minutes=60,
+            interpolation_window_by_source_pair=window_by_pair,
+        )
+
+
+def test_identify_source_transitions_avoids_same_period_false_transition():
+    """Test source transition identification does not produce false transitions
+    where multiple sources share the same forecast period."""
+    plugin = ForecastTrajectoryGapFiller(interval_in_minutes=60)
+    cluster_sources = {
+        "0": {
+            "ecgl_ens": [
+                691200,
+                734400,
+                777600,
+                820800,
+                864000,
+                907200,
+                950400,
+                993600,
+                1036800,
+                1080000,
+                1123200,
+                1166400,
+                1209600,
+                1252800,
+            ],
+            "gl_ens": [475200, 518400, 561600, 604800, 648000],
+            "uk_ens": [
+                3600,
+                21600,
+                43200,
+                86400,
+                129600,
+                172800,
+                216000,
+                259200,
+                302400,
+                345600,
+                388800,
+                432000,
+            ],
+            "uk_det": [3600, 21600],
+        }
+    }
+
+    transitions = plugin._identify_source_transitions(cluster_sources, 0)
+    transition_periods = [period for period, _, _ in transitions]
+    assert transition_periods == [21600, 432000, 648000]
 
 
 def test_process_no_gaps():
@@ -502,6 +574,44 @@ def test_process_triggers_source_transitions(input_hours, cluster_sources, expec
     )
 
 
+def test_identify_periods_to_regenerate_uses_source_pair_window_override():
+    """Test source-pair window override is used when matching transition exists."""
+    cubelist = setup_cubes_with_gaps(hours=[2, 3, 4, 5], realizations=[0])
+    for cube in cubelist:
+        cube.attributes["cluster_sources"] = json.dumps(
+            {"0": {"uk_ens": [7200, 10800], "gl_ens": [14400, 18000]}}
+        )
+
+    plugin = ForecastTrajectoryGapFiller(
+        interval_in_minutes=60,
+        cluster_sources_attribute="cluster_sources",
+        interpolation_window_in_minutes=180,
+        interpolation_window_by_source_pair={"uk_ens|gl_ens": 60},
+    )
+
+    periods_to_regenerate = plugin._identify_periods_to_regenerate(cubelist)
+    assert periods_to_regenerate == [(10800, 7200, 14400)]
+
+
+def test_identify_periods_to_regenerate_falls_back_to_default_window():
+    """Test default interpolation window is used when no pair override matches."""
+    cubelist = setup_cubes_with_gaps(hours=[2, 3, 4, 5], realizations=[0])
+    for cube in cubelist:
+        cube.attributes["cluster_sources"] = json.dumps(
+            {"0": {"uk_ens": [7200, 10800], "gl_ens": [14400, 18000]}}
+        )
+
+    plugin = ForecastTrajectoryGapFiller(
+        interval_in_minutes=60,
+        cluster_sources_attribute="cluster_sources",
+        interpolation_window_in_minutes=180,
+        interpolation_window_by_source_pair={"ncuk|uk_det": 60},
+    )
+
+    periods_to_regenerate = plugin._identify_periods_to_regenerate(cubelist)
+    assert periods_to_regenerate == [(10800, 0, 21600)]
+
+
 def test_regeneration_produces_regular_intervals_at_fine_resolution():
     """Test that regeneration produces all intermediate timesteps at interval_in_minutes spacing.
 
@@ -580,6 +690,34 @@ def test_create_regeneration_tasks_excludes_boundary_periods():
 
     target_periods = [task[1] for task in tasks]
     assert target_periods == [4 * 3600, 5 * 3600, 6 * 3600, 7 * 3600, 8 * 3600]
+
+
+def test_create_regeneration_tasks_uses_nearest_periods_with_warning():
+    """Test regeneration uses nearest available boundaries and warns."""
+    cubelist = setup_cubes_with_gaps(hours=[3, 9])
+    plugin = ForecastTrajectoryGapFiller(interval_in_minutes=None)
+
+    with pytest.warns(UserWarning, match="boundary t0 not available"):
+        tasks = plugin._create_regeneration_tasks(
+            periods_to_regenerate=[(6 * 3600, 4 * 3600, 5 * 3600)],
+            sorted_cubelist=cubelist,
+        )
+
+    assert tasks == [("regenerate", 6 * 3600, 3 * 3600, 9 * 3600)]
+
+
+def test_create_regeneration_tasks_skips_if_no_t1_after_t0():
+    """Test regeneration is skipped when no valid t1 exists after selected t0."""
+    cubelist = setup_cubes_with_gaps(hours=[3])
+    plugin = ForecastTrajectoryGapFiller(interval_in_minutes=None)
+
+    with pytest.warns(UserWarning, match="No valid regeneration boundary t1"):
+        tasks = plugin._create_regeneration_tasks(
+            periods_to_regenerate=[(3 * 3600, 2 * 3600, 2 * 3600)],
+            sorted_cubelist=cubelist,
+        )
+
+    assert tasks == []
 
 
 @pytest.mark.parametrize(
