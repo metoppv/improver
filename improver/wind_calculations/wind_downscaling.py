@@ -666,7 +666,7 @@ class WindTerrainAdjustmentUtilities:
         delt_z[valid] = self.target_orog[valid] - self.model_orog[valid]
         return delt_z
 
-    def _mask_missing_data(self, height_above_orog, wspeed_original):
+    def _mask_missing_data(self, height_above_orog, wspeed_original) -> ndarray:
         """Return a boolean mask: True where either RC or HC may be applied.
 
         Args:
@@ -674,7 +674,8 @@ class WindTerrainAdjustmentUtilities:
             wspeed_original: 3D float32 array of wind speed defined on height_above_orog.
 
         Returns:
-            3D float32 array of wind speed after applying RC and HC.
+            2D boolean array: True where both height and wind speed are valid,
+                False where either is missing or invalid.
         """
         valid = np.ones_like(self.rc_mask, dtype=bool)
 
@@ -684,15 +685,24 @@ class WindTerrainAdjustmentUtilities:
             valid[missing_h] = False
 
         # Disable RC/HC wherever the vertical wind profile is missing
+        missing_w = wspeed_original == RMDI
         if wspeed_original.ndim == 3:
-            missing_w = (wspeed_original == RMDI).any(axis=2)
-        else:
-            missing_w = wspeed_original == RMDI
+            missing_w = missing_w.any(axis=2)
         valid[missing_w] = False
 
         return valid
 
-    def do_rc(self, height_above_orog, wspeed_original):
+    def do_rc(self, height_above_orog, wspeed_original) -> ndarray:
+        """
+        Apply roughness correction (RC) to the wind field.
+
+        Args:
+            height_above_orog: 1D or 3D float32 array of heights above local orography.
+            wspeed_original: 3D float32 array of wind speed defined on height_above_orog.
+
+        Returns:
+            3D float32 array of roughness-corrected wind speeds.
+        """
         if self.model_z0 is None:
             raise ValueError(
                 "Roughness correction (RC) was requested, but no roughness-length "
@@ -701,18 +711,26 @@ class WindTerrainAdjustmentUtilities:
 
         # Mask where missing data in height and wind fields
         valid = self._mask_missing_data(height_above_orog, wspeed_original)
-        mask_rc = np.copy(self.rc_mask)
-        mask_rc[~valid] = False
+        mask_rc = self.rc_mask & valid
 
         return self.calc_roughness_correction(
             height_above_orog, wspeed_original, mask_rc
         )
 
-    def do_hc(self, height_above_orog, wspeed_original):
+    def do_hc(self, height_above_orog, wspeed_original) -> ndarray:
+        """
+        Apply height correction (HC) to the wind field.
+
+        Args:
+            height_above_orog: 1D or 3D float32 array of heights above local orography.
+            wspeed_original: 3D float32 array of wind speed defined on height_above_orog.
+
+        Returns:
+            3D float32 array of height-corrected wind speeds.
+        """
         # Mask where missing data in height and wind fields
         valid = self._mask_missing_data(height_above_orog, wspeed_original)
-        mask_hc = np.copy(self.hc_mask)
-        mask_hc[~valid] = False
+        mask_hc = self.hc_mask & valid
 
         # Height correction
         # Requires wind speed at the reference height, so interpolate first
@@ -754,10 +772,16 @@ class WindTerrainAdjustmentUtilities:
 
         return wspeed_out.astype(np.float32)
 
-    def do_rc_and_hc(self, height_above_orog, wspeed_original):
+    def do_rc_and_hc(self, height_above_orog, wspeed_original) -> ndarray:
         """
-        Apply roughness correction (RC) followed by height correction (HC)
-        to the wind field.
+        Apply roughness correction (RC) followed by height correction (HC) to the wind field.
+
+        Args:
+            height_above_orog: 1D or 3D float32 array of heights above local orography.
+            wspeed_original: 3D float32 array of wind speed defined on height_above_orog.
+
+        Returns:
+            3D float32 array of wind speeds corrected for both roughness and height.
         """
         wspeed_rc = self.do_rc(height_above_orog, wspeed_original)
         wspeed_hc = self.do_hc(height_above_orog, wspeed_rc)
@@ -818,6 +842,8 @@ class WindTerrainAdjustment(PostProcessingPlugin):
 
             mode:
                 Which correction(s) to apply: "hc_and_rc" (default), "hc", or "rc".
+                "hc" applies only the height correction, "rc" applies only the roughness
+                correction, and "hc_and_rc" applies both corrections in sequence.
 
         Notes:
             All ancillary inputs must be defined on the same grid as the wind field
@@ -1109,7 +1135,7 @@ class WindTerrainAdjustment(PostProcessingPlugin):
             try:
                 hld = next(hld.slices([self.z_name]))
             except CoordinateNotFoundError:
-                raise ValueError("Height grid z‑coordinate differs from wind grid.")
+                raise ValueError("Height grid z-coordinate differs from wind grid.")
         else:
             raise ValueError(f"Height grid must be 1D or 3D, got ndim = {hld.ndim}.")
 
@@ -1161,18 +1187,13 @@ class WindTerrainAdjustment(PostProcessingPlugin):
         )
         xwp, ywp, zwp, twp = self.find_coord_order(input_cube)
 
-        if np.isnan(zwp):
-            # Reorder wind cube so dimensions are consistently (y, x, [, t])
-            if np.isnan(twp):
-                input_cube.transpose([ywp, xwp])
-            else:
-                input_cube.transpose([ywp, xwp, twp])
-        else:
-            # Reorder wind cube so dimensions are consistently (y, x, z [, t])
-            if np.isnan(twp):
-                input_cube.transpose([ywp, xwp, zwp])
-            else:
-                input_cube.transpose([ywp, xwp, zwp, twp])
+        # Reorder wind cube so that dimensions are consistently (y, x, [z, t])
+        # depending on whether z and t coordinates exist.
+        coord_order = [ywp, xwp]
+        for optional_coord in [zwp, twp]:
+            if not np.isnan(optional_coord):
+                coord_order.append(optional_coord)
+        input_cube.transpose(coord_order)
 
         z0_data = None if self.model_z0 is None else self.model_z0.data
         rc_utils = WindTerrainAdjustmentUtilities(
@@ -1207,11 +1228,11 @@ class WindTerrainAdjustment(PostProcessingPlugin):
         output_cube = corrected_list.merge_cube()
 
         # Restore the original dimension ordering of both input and output
-        dims = [ywp, xwp]
+        input_dims = [ywp, xwp]
+        output_dims = [ywp, xwp]
         if not np.isnan(zwp):
-            dims.append(zwp)
-        input_dims = dims.copy()
-        output_dims = dims.copy()
+            input_dims.append(zwp)
+            output_dims.append(zwp)
         if not np.isnan(twp):
             input_dims.append(twp)
             output_dims.insert(0, twp)
