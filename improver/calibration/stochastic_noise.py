@@ -241,11 +241,23 @@ class StochasticNoise(BasePlugin):
             noise_linear = self._fallback_noise_linear(template_dB.data.shape)
             used_linear_fallback = True
         else:
-            # Compute SSFT noise
-            result = self.do_fft(template_dB.data)
-
-            # Convert generated noise from dB to linear scale
-            noise_linear = self._from_dB(data=result).astype(np.float32, copy=False)
+            # Compute SSFT noise; may fail if individual windows are degenerate,
+            # in which case fall back to linear noise generation.
+            try:
+                result = self.do_fft(template_dB.data)
+                # Convert generated noise from dB to linear scale
+                noise_linear = self._from_dB(data=result).astype(np.float32, copy=False)
+            except ValueError:
+                # SSFT can fail when individual windows (not the whole field)
+                # are constant-valued or in other edge cases. Fall back to linear noise
+                # as a graceful degradation.
+                warnings.warn(
+                    "SSFT initialisation failed. "
+                    "Falling back to linear stochastic noise generation.",
+                    UserWarning,
+                )
+                noise_linear = self._fallback_noise_linear(template_dB.data.shape)
+                used_linear_fallback = True
 
         # Guard against non-finite values from SSFT output fields.
         # Treat these as zero-noise contributions.
@@ -357,6 +369,10 @@ class StochasticNoise(BasePlugin):
     ) -> np.ndarray:
         """
         Generate stochastic noise using SSFT for a 2-D array slice (one realization).
+
+        This may raise ValueError if individual windows within the field are
+        degenerate (constant-valued), even if the overall field has variation.
+        In such cases, the caller should fall back to linear noise generation.
 
         Args:
             data:

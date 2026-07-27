@@ -357,6 +357,36 @@ def test_process_all_zero_input_with_scale_non_positive_noise():
     assert np.isclose(np.max(result.data), -5.0)
 
 
+def test_process_window_level_degeneracy_fallback():
+    """When SSFT fails due to window-level degeneracy, fall back to linear noise."""
+    plugin = StochasticNoise(
+        ssft_generate_params={"seed": 0},
+        scale_non_positive_noise=True,
+        wet_noise_floor=-5.0,
+    )
+
+    data = np.array(
+        [[0.0, 0.1], [0.0, 0.0]],
+        dtype=np.float32,
+    )
+    cube = set_up_variable_cube(data=data, name="precipitation_rate", units="mm/hr")
+
+    def mock_do_fft(_):
+        raise ValueError("zero-size array to reduction operation minimum")
+
+    plugin.do_fft = mock_do_fft
+
+    with pytest.warns(UserWarning, match="SSFT initialisation failed"):
+        result = plugin.process(cube)
+
+    assert isinstance(result, Cube)
+    assert result.shape == cube.shape
+    assert np.all(np.isfinite(result.data))
+    non_positive_mask = data <= 0
+    assert np.all(result.data[non_positive_mask] <= -5.0)
+    assert np.all(result.data[non_positive_mask] >= -10.0)
+
+
 def test_process_all_zero_input_constant_fallback_clamps_to_dry_max():
     """Constant dry fallback values should clamp to dry_max without division by zero."""
     plugin = StochasticNoise(
