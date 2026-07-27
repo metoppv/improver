@@ -535,6 +535,27 @@ class RealizationClusterAndMatch(BasePlugin):
         """
         return [h * 3600 for h in hours]
 
+    @staticmethod
+    def _ensure_realization_coord(cube: Cube) -> Cube:
+        """Add a scalar realization dimension coordinate if absent.
+
+        Deterministic input cubes carry no realization coordinate. This method
+        adds a realization DimCoord with value 0 as the leading dimension so
+        that downstream matching code can treat deterministic and ensemble inputs
+        uniformly.
+
+        Args:
+            cube: The input cube, which may or may not have a realization coordinate.
+
+        Returns:
+            The cube with a realization dimension coordinate as the leading axis.
+            If the cube already has a realization coordinate, it is returned unchanged.
+        """
+        if not cube.coords("realization"):
+            cube.add_aux_coord(DimCoord(0, standard_name="realization", units="1"))
+            cube = new_axis(cube, "realization")
+        return cube
+
     def cluster_primary_input(
         self, primary_cube: Cube, target_grid_cube: Cube | None
     ) -> tuple[Cube, Cube]:
@@ -666,6 +687,9 @@ class RealizationClusterAndMatch(BasePlugin):
             UserWarning: If a secondary input has an inconsistent realization count
                 compared to its earliest valid forecast period; all forecast periods
                 from the first mismatch onwards are dropped for that input.
+            UserWarning: If a hierarchy secondary input has no cubes matching the
+                model_id_attr value in the specified forecast period range; that
+                input is ignored.
         """
         full_realization_inputs = []
         partial_realization_inputs = []
@@ -683,6 +707,12 @@ class RealizationClusterAndMatch(BasePlugin):
             fp_constr = iris.Constraint(forecast_period=fp_seconds_range)
             model_cubes = cubes.extract(model_id_constr & fp_constr)
             if not model_cubes:
+                warnings.warn(
+                    f"Secondary input '{candidate_name}' has no cubes matching "
+                    f"{self.model_id_attr}='{candidate_name}' in the forecast period "
+                    f"range {fp_range}. This input will be ignored.",
+                    UserWarning,
+                )
                 continue  # No cubes found in this range for this model
 
             # Get forecast period and cube pairs for this model.
@@ -721,10 +751,18 @@ class RealizationClusterAndMatch(BasePlugin):
             # all periods for this source mergeable for consistent multi-period
             # matching.
             first_fp, first_cube = valid_fp_cube_pairs[0]
-            n_realizations = len(first_cube.coord("realization").points)
+            n_realizations = (
+                len(first_cube.coord("realization").points)
+                if first_cube.coords("realization")
+                else 1
+            )
             forecast_periods_in_range = []
             for idx, (fp, cube) in enumerate(valid_fp_cube_pairs):
-                n_realizations_at_fp = len(cube.coord("realization").points)
+                n_realizations_at_fp = (
+                    len(cube.coord("realization").points)
+                    if cube.coords("realization")
+                    else 1
+                )
                 if n_realizations_at_fp != n_realizations:
                     dropped_fps = [
                         future_fp for future_fp, _ in valid_fp_cube_pairs[idx:]
@@ -1089,6 +1127,7 @@ class RealizationClusterAndMatch(BasePlugin):
         )
         fp_constr = iris.Constraint(forecast_period=fps)
         candidate_cube = MergeCubes()(cubes.extract(model_id_constr & fp_constr))
+        candidate_cube = self._ensure_realization_coord(candidate_cube)
         enforce_coordinate_ordering(candidate_cube, ["realization"])
         if ensure_fp_dim:
             candidate_cube = self._ensure_forecast_period_is_dimension(candidate_cube)
@@ -1269,6 +1308,7 @@ class RealizationClusterAndMatch(BasePlugin):
             for fp in forecast_periods:
                 fp_constr = iris.Constraint(forecast_period=fp)
                 candidate_cube = cubes.extract_cube(model_id_constr & fp_constr)
+                candidate_cube = self._ensure_realization_coord(candidate_cube)
 
                 # Index the candidate cube using the realization indices determined
                 # from the combined match across all forecast periods.
@@ -1355,7 +1395,7 @@ class RealizationClusterAndMatch(BasePlugin):
             ValueError: If no primary cube is found with the specified
                 model_id_attr.
 
-        Warnings:
+        Warns:
             UserWarning: If primary cubes have different realization numbering schemes
                 when renumber_primary_realizations=False, which may cause merge
                 failures.
@@ -1364,6 +1404,8 @@ class RealizationClusterAndMatch(BasePlugin):
                 be returned.
             UserWarning: If secondary inputs have forecast periods not present in the
                 primary input, which will be ignored.
+            UserWarning: If input cubes have model_id_attr values not referenced in
+                the hierarchy; those cubes will be ignored.
         """
         if self.cycletime is not None:
             for cube in cubes:
@@ -1402,6 +1444,23 @@ class RealizationClusterAndMatch(BasePlugin):
             raise ValueError(
                 f"No primary cube found with {self.model_id_attr}="
                 f"{self.hierarchy['primary_input']}"
+            )
+
+        # Warn about cubes with model_id_attr values not referenced in the hierarchy.
+        hierarchy_names = {self.hierarchy["primary_input"]} | set(
+            self.hierarchy["secondary_inputs"].keys()
+        )
+        input_model_ids = {
+            cube.attributes[self.model_id_attr]
+            for cube in cubes
+            if self.model_id_attr in cube.attributes
+        }
+        unreferenced = input_model_ids - hierarchy_names
+        if unreferenced:
+            warnings.warn(
+                f"Input cubes have {self.model_id_attr} values not referenced in the "
+                f"hierarchy: {sorted(unreferenced)}. These cubes will be ignored.",
+                UserWarning,
             )
 
         target_grid_cube = None
@@ -1465,7 +1524,6 @@ class RealizationClusterAndMatch(BasePlugin):
             cluster_sources[cluster_idx][primary_name] = list(
                 clustered_primary_cube.coord("forecast_period").points
             )
-
         # Create a mapping to track which realizations from secondary inputs correspond
         # to which clusters.
         secondary_input_realizations_to_clusters = {}
@@ -1499,7 +1557,6 @@ class RealizationClusterAndMatch(BasePlugin):
         result_cube = MergeCubes()(
             CubeList([iris.util.squeeze(c) for c in matched_cubes])
         )
-
         # Use json.dumps to store dictionary as attribute.
         result_cube.attributes["primary_input_realizations_to_clusters"] = json.dumps(
             primary_input_realizations_to_clusters
