@@ -160,13 +160,16 @@ def _cube_attributes_for_save(cube: Cube):
             The cube for which the attributes are to be separated.
     """
     global_keys = [
+        "Conventions",
+        "grid_id",
+        "history",
+        "institution",
+        "name_netcdf_out_vers",
+        "name_version",
+        "reference",
+        "source",
         "title",
         "um_version",
-        "grid_id",
-        "source",
-        "Conventions",
-        "institution",
-        "history",
     ]
     global_keys.extend([key for key in cube.attributes.keys() if "mosg__" in key])
     global_attributes = {k: v for k, v in cube.attributes.items() if k in global_keys}
