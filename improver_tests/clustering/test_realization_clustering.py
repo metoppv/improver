@@ -1386,7 +1386,7 @@ def test_clusterandmatch_nonmonotonic_realization_slicing_with_full_matching():
     coordinate is promoted back to a dimension coordinate when the secondary input
     contains more realizations than the primary input. It also demonstrates that
     input cubes can carry realization units of "unknown" while processing still
-    succeeds because output realization units are normalised prior to merging.
+    succeeds because output realization units are unified prior to merging.
     """
     pytest.importorskip("kmedoids")
 
