@@ -2262,7 +2262,7 @@ def test_clusterandmatch_partial_input_consistent_cluster_across_forecast_period
     """Partial inputs must assign the same cluster at every lead time.
 
     A partial secondary input (fewer realizations than n_clusters) was previously
-    matched independently per forecast period, allowing the same realization to be
+    matched independently per forecast period (fp), allowing the same realization to be
     assigned to different clusters at different lead times depending on which
     spatial pattern was locally closest.
 
@@ -2273,13 +2273,13 @@ def test_clusterandmatch_partial_input_consistent_cluster_across_forecast_period
 
     The secondary has a single realization with value 12 at fp=0 and 15 at fp=6.
 
-    Per-fp MSE:
+    Per-fp MSE (lower MSE indicates a closer match):
     - fp=0: secondary (12) vs cluster A (10) => MSE=4; vs cluster B (100) => MSE=7744
             => old code assigns to cluster A   (consistent)
     - fp=6: secondary (15) vs cluster A (100) => MSE=7225; vs cluster B (10) => MSE=25
             => old code assigns to cluster B   (inconsistent)
 
-    Cross-fp avg MSE (new code):
+    Cross-fp avg MSE (new code where lower MSE indicates a closer match):
     - vs cluster A: (4 + 7225)/2 = 3614.5
     - vs cluster B: (7744 + 25)/2 = 3884.5
     => new code assigns to cluster A at both fps
@@ -2366,15 +2366,48 @@ def test_clusterandmatch_partial_input_consistent_cluster_across_forecast_period
     )
 
 
-def test_clusterandmatch_partial_input_inconsistent_realization_counts_truncates():
-    """Partial input is truncated at first realization-count mismatch."""
+@pytest.mark.parametrize(
+    "primary_n_realizations,n_clusters,secondary_fp0_n,secondary_fp6_n,case_desc",
+    [
+        # Partial case: secondary starts below n_clusters and drops again
+        (6, 5, 4, 3, "partial"),
+        # Full case: secondary starts at/above n_clusters and then drops
+        (4, 2, 3, 2, "full"),
+    ],
+)
+def test_clusterandmatch_inconsistent_realization_counts_truncates(
+    primary_n_realizations,
+    n_clusters,
+    secondary_fp0_n,
+    secondary_fp6_n,
+    case_desc,
+):
+    """Secondary input is truncated at the first realization-count mismatch.
+
+    This parameterized test covers both:
+    - a partial-secondary case (secondary starts with fewer realizations than
+        n_clusters), and
+    - a full-secondary case (secondary starts with at least n_clusters
+        realizations).
+
+    In both cases, the secondary input has a different realization count at the
+    next forecast period. This can happen, for example, when a cycle blended forecast
+    source is reaching the end of its leadtime range. Rather than continuing to use the
+    secondary input with a different realization count, the plugin should not use it,
+    and revert to using the clustered primary data.
+    The plugin should therefore:
+    1. Issue a warning about inconsistent realization counts.
+    2. Keep only forecast periods up to (but excluding) the first mismatch for
+        that secondary input.
+    3. Fall back to clustered primary data at the mismatched and later forecast
+        periods.
+    """
     pytest.importorskip("kmedoids")
 
     cubes = CubeList()
-    # Primary with 6 realizations across two forecast periods.
     cubes.extend(
         _create_4d_realization_cube(
-            n_realizations=6,
+            n_realizations=primary_n_realizations,
             forecast_periods=[0, 6],
             y_dim=4,
             x_dim=4,
@@ -2383,11 +2416,9 @@ def test_clusterandmatch_partial_input_inconsistent_realization_counts_truncates
             merge=False,
         )
     )
-
-    # Partial secondary: 4 realizations at fp=0, then 3 at fp=6.
     cubes.extend(
         _create_4d_realization_cube(
-            n_realizations=4,
+            n_realizations=secondary_fp0_n,
             forecast_periods=[0],
             y_dim=4,
             x_dim=4,
@@ -2398,7 +2429,7 @@ def test_clusterandmatch_partial_input_inconsistent_realization_counts_truncates
     )
     cubes.extend(
         _create_4d_realization_cube(
-            n_realizations=3,
+            n_realizations=secondary_fp6_n,
             forecast_periods=[6],
             y_dim=4,
             x_dim=4,
@@ -2416,7 +2447,7 @@ def test_clusterandmatch_partial_input_inconsistent_realization_counts_truncates
         model_id_attr="model_id",
         clustering_method="KMedoids",
         regrid_for_clustering=False,
-        n_clusters=5,
+        n_clusters=n_clusters,
         random_state=42,
     )
 
@@ -2440,93 +2471,15 @@ def test_clusterandmatch_partial_input_inconsistent_realization_counts_truncates
             for fp in entry["forecast_periods"]
         }
     )
-    assert mapped_fps == [0]
+    assert mapped_fps == [0], f"{case_desc}: only fp=0 should be mapped"
 
     fp_6_data = result.extract(iris.Constraint(forecast_period=6 * 3600)).data
+    # Asserting that the result at T+6 is close to 106 demonstrates that the
+    # plugin has fallen back to using the clustered primary data (base_value + 6),
+    # rather than using the secondary input where the number of realizations at T+6
+    # has dropped relative to T+0.
     assert np.allclose(fp_6_data, 106.0, atol=5.0), (
-        "fp=6 should fall back to clustered primary when secondary is truncated"
-    )
-
-
-def test_clusterandmatch_full_input_inconsistent_realization_counts_truncates():
-    """Full input is truncated at first realization-count mismatch."""
-    pytest.importorskip("kmedoids")
-
-    cubes = CubeList()
-    # Primary with 4 realizations across two forecast periods.
-    cubes.extend(
-        _create_4d_realization_cube(
-            n_realizations=4,
-            forecast_periods=[0, 6],
-            y_dim=4,
-            x_dim=4,
-            model_id="primary_model",
-            base_value=100.0,
-            merge=False,
-        )
-    )
-
-    # Full secondary relative to n_clusters=2: 3 realizations at fp=0, then 2 at fp=6.
-    cubes.extend(
-        _create_4d_realization_cube(
-            n_realizations=3,
-            forecast_periods=[0],
-            y_dim=4,
-            x_dim=4,
-            model_id="secondary_model",
-            base_value=200.0,
-            merge=False,
-        )
-    )
-    cubes.extend(
-        _create_4d_realization_cube(
-            n_realizations=2,
-            forecast_periods=[6],
-            y_dim=4,
-            x_dim=4,
-            model_id="secondary_model",
-            base_value=200.0,
-            merge=False,
-        )
-    )
-
-    plugin = RealizationClusterAndMatch(
-        hierarchy={
-            "primary_input": "primary_model",
-            "secondary_inputs": {"secondary_model": [0, 6]},
-        },
-        model_id_attr="model_id",
-        clustering_method="KMedoids",
-        regrid_for_clustering=False,
-        n_clusters=2,
-        random_state=42,
-    )
-
-    with pytest.warns(
-        UserWarning,
-        match=(
-            r"Secondary input 'secondary_model' has inconsistent realization counts "
-            r"across forecast periods"
-        ),
-    ):
-        result = plugin.process(cubes)
-
-    secondary_map = json.loads(
-        result.attributes["secondary_input_realizations_to_clusters"]
-    )["secondary_model"]
-    mapped_fps = sorted(
-        {
-            fp
-            for entries in secondary_map.values()
-            for entry in entries
-            for fp in entry["forecast_periods"]
-        }
-    )
-    assert mapped_fps == [0]
-
-    fp_6_data = result.extract(iris.Constraint(forecast_period=6 * 3600)).data
-    assert np.allclose(fp_6_data, 106.0, atol=5.0), (
-        "fp=6 should fall back to clustered primary when secondary is truncated"
+        f"{case_desc}: fp=6 should fall back to clustered primary when truncated"
     )
 
 

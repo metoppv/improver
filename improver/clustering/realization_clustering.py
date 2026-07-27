@@ -697,6 +697,15 @@ class RealizationClusterAndMatch(BasePlugin):
             ]
             valid_fp_cube_pairs = sorted(valid_fp_cube_pairs, key=lambda x: x[0])
 
+            if not valid_fp_cube_pairs:
+                warnings.warn(
+                    f"Secondary input '{candidate_name}' has no forecast periods "
+                    "that overlap with primary input "
+                    f"'{self.hierarchy['primary_input']}'. This input will be skipped.",
+                    UserWarning,
+                )
+                continue  # No valid forecast periods after filtering
+
             # Track forecast periods in requested range but missing from primary input.
             secondary_fps = {fp for fp, _ in fp_cube_pairs}
             missing_fps = secondary_fps - primary_fps
@@ -707,15 +716,6 @@ class RealizationClusterAndMatch(BasePlugin):
                     f"{sorted(missing_fps)} not present in primary input. "
                     "These will be ignored."
                 )
-
-            if not valid_fp_cube_pairs:
-                warnings.warn(
-                    f"Secondary input '{candidate_name}' has no forecast periods "
-                    "that overlap with primary input "
-                    f"'{self.hierarchy['primary_input']}'. This input will be skipped.",
-                    UserWarning,
-                )
-                continue  # No valid forecast periods after filtering
 
             # Determine the expected realization count from the earliest valid
             # forecast period and truncate this secondary input if the count changes
@@ -853,7 +853,7 @@ class RealizationClusterAndMatch(BasePlugin):
                 cluster_sources[cluster_idx][candidate_name].append(fp)
 
     def _maybe_regrid_candidate_cube(
-        self, candidate_cube: Cube, target_grid_cube: Cube
+        self, candidate_cube: Cube, target_grid_cube: Cube | None
     ) -> Cube:
         """Regrid the candidate cube if regrid_for_clustering is True, otherwise
         return as is.
@@ -861,7 +861,7 @@ class RealizationClusterAndMatch(BasePlugin):
         Args:
             candidate_cube: The input candidate Cube to potentially regrid.
             target_grid_cube: The target grid Cube to regrid onto if regridding
-                is enabled.
+                is enabled. Can be None when regrid_for_clustering is False.
 
         Returns:
             The regridded candidate Cube if regrid_for_clustering is True, otherwise
@@ -1009,10 +1009,14 @@ class RealizationClusterAndMatch(BasePlugin):
         """Record tracking metadata after matching a secondary input at one forecast
         period.
 
-        Updates replaced_realizations, cluster_sources, and
-        secondary_input_realizations_to_clusters in-place. Called from the
-        per-forecast-period loop in both _process_full_realization_inputs and
-        _process_partial_realization_inputs.
+        Updates the following variables in-place: replaced_realizations,
+        cluster_sources, and secondary_input_realizations_to_clusters. These
+        variables are used to track which clusters have been replaced, which model
+        provided data for each cluster, and which secondary realizations correspond to
+        each cluster, respectively. This information will be added later as attributes
+        to the final output cube.
+        Called from the per-forecast-period loop in both
+        _process_full_realization_inputs and _process_partial_realization_inputs.
 
         Args:
             fp: Forecast period in seconds.
@@ -1048,7 +1052,7 @@ class RealizationClusterAndMatch(BasePlugin):
         candidate_name: str,
         fps: list[int],
         cubes: CubeList,
-        target_grid_cube: Cube,
+        target_grid_cube: Cube | None,
         regridded_clustered_primary_cube: Cube,
         ensure_fp_dim: bool = False,
     ) -> tuple[list[int], list[int], Cube]:
@@ -1063,7 +1067,8 @@ class RealizationClusterAndMatch(BasePlugin):
             candidate_name: Name of the secondary input.
             fps: Forecast period values in seconds to extract.
             cubes: CubeList containing all input cubes.
-            target_grid_cube: Target grid cube for optional regridding.
+            target_grid_cube: Target grid cube for optional regridding. Can be
+                None when regrid_for_clustering is False.
             regridded_clustered_primary_cube: The regridded clustered primary cube.
             ensure_fp_dim: If True, promote forecast_period to a dimension coordinate
                 on both the candidate and primary slices before matching. Required
@@ -1101,7 +1106,7 @@ class RealizationClusterAndMatch(BasePlugin):
         self,
         full_realization_inputs: list[tuple[str, list[int]]],
         cubes: CubeList,
-        target_grid_cube: Cube,
+        target_grid_cube: Cube | None,
         regridded_clustered_primary_cube: Cube,
         replaced_realizations: dict[int, set[int]],
         matched_cubes: CubeList,
@@ -1119,7 +1124,8 @@ class RealizationClusterAndMatch(BasePlugin):
             full_realization_inputs: List of (name, forecast_periods) tuples for
                 inputs with full realization sets.
             cubes: The input CubeList containing all data.
-            target_grid_cube: The target grid cube for regridding.
+            target_grid_cube: The target grid cube for regridding. Can be None
+                when regrid_for_clustering is False.
             regridded_clustered_primary_cube: The regridded clustered primary cube.
             replaced_realizations: Dictionary tracking which (forecast_period, cluster)
                 pairs have been replaced. Modified in-place.
@@ -1205,7 +1211,7 @@ class RealizationClusterAndMatch(BasePlugin):
         self,
         partial_realization_inputs: list[tuple[str, list[int]]],
         cubes: CubeList,
-        target_grid_cube: Cube,
+        target_grid_cube: Cube | None,
         regridded_clustered_primary_cube: Cube,
         replaced_realizations: dict[int, set[int]],
         matched_cubes: CubeList,
@@ -1226,7 +1232,8 @@ class RealizationClusterAndMatch(BasePlugin):
                 for clustering and matching. Each cube must have the model_id_attr
                 attribute set, and all relevant models, forecast periods, and
                 realizations to be processed or matched should be included.
-            target_grid_cube: The target grid cube for regridding.
+            target_grid_cube: The target grid cube for regridding. Can be None
+                when regrid_for_clustering is False.
             regridded_clustered_primary_cube: The regridded clustered primary cube.
             replaced_realizations: Dictionary tracking which (forecast_period, cluster)
                 pairs have been replaced. Modified in-place.
