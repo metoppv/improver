@@ -1353,6 +1353,3 @@ class ApplyWindDownscaling(PostProcessingPlugin):
             wind_speed = single_level
 
         return wind_speed
-
-
-WindDownscaling = ApplyWindDownscaling
