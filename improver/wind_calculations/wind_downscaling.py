@@ -122,9 +122,9 @@ class FrictionVelocity(BasePlugin):
         return ustar
 
 
-class RoughnessCorrectionUtilities:
-    """Utilities for computing wind-speed corrections due to surface roughness
-    and orographic height differences.
+class WindTerrainAdjustmentUtilities:
+    """Compute wind-speed corrections related to surface roughness and
+    height differences.
 
     Provides methods to apply roughness and height adjustments to forecast data
     using ancillary inputs:
@@ -244,14 +244,15 @@ class RoughnessCorrectionUtilities:
         points where the vegetative roughness length (model_z0)
         is missing or non-positive.
         """
-        # Height‑correction mask
-        hc_mask = np.full(self.h_half.shape, True, dtype=bool)
-        hc_mask[self.h_half <= 0] = False
-        hc_mask[self.model_silhouette_roughness <= 0] = False
-        hc_mask[np.isnan(self.h_half)] = False
-        hc_mask[np.isnan(self.model_silhouette_roughness)] = False
+        # Height-correction mask
+        hc_mask = (
+            (self.h_half > 0)
+            & (self.model_silhouette_roughness > 0)
+            & ~np.isnan(self.h_half)
+            & ~np.isnan(self.model_silhouette_roughness)
+        )
 
-        # Roughness‑correction mask
+        # Roughness-correction mask
         rc_mask = np.copy(hc_mask)
         if self.model_z0 is not None:
             rc_mask[self.model_z0 <= 0] = False
@@ -522,14 +523,14 @@ class RoughnessCorrectionUtilities:
         y_upper: ndarray,
         y_lower: ndarray,
     ) -> ndarray:
-        """Simple 1D linear interpolation for 2D grid inputs level.
+        """Simple 1D linear interpolation for 2D grid inputs.
 
         Args:
-            x_upper:Upper x-coordinates (e.g., upper heights).
-            x_lower:Lower x-coordinates (e.g., lower heights).
-            x_target:Target x-values to interpolate at.
-            y_upper:Values at x_upper.
-            y_lower:Values at x_lower.
+            x_upper: Upper x-coordinates (e.g., upper heights).
+            x_lower: Lower x-coordinates (e.g., lower heights).
+            x_target: Target x-values to interpolate at.
+            y_upper: Values at x_upper.
+            y_lower: Values at x_lower.
 
         Returns:
             Interpolated y-values at x_target. Missing-data indicator is
@@ -558,8 +559,7 @@ class RoughnessCorrectionUtilities:
         y_upper: ndarray,
         y_lower: ndarray,
     ) -> ndarray:
-        """Simple 1D log interpolation y(x), except if lowest layer is
-        ground level.
+        """Simple 1D logarithmic interpolation, except at ground-level layers.
 
         Args:
             x_upper: Upper x-coordinates (e.g., upper heights).
@@ -607,8 +607,8 @@ class RoughnessCorrectionUtilities:
             wspeed_outer: 2D float32 array of wind speed at the reference height.
             height_above_orog: 1D or 3D float32 array of heights above orography.
             valid_mask: 3D boolean array where the correction should be applied.
-            onemfrac (float or ndarray): Currently, scalar = 1. But can be a function
-                of position and height, e.g. a 3D array (float32)
+            onemfrac (float or ndarray): Currently scalar = 1, but can be a
+                function of position and height (for example, a 3D float32 array).
 
         Returns:
             3D float32 array of additive height correction.
@@ -666,46 +666,87 @@ class RoughnessCorrectionUtilities:
         delt_z[valid] = self.target_orog[valid] - self.model_orog[valid]
         return delt_z
 
-    def do_rc_hc_all(
-        self, height_above_orog: ndarray, wspeed_original: ndarray
-    ) -> ndarray:
-        """Apply roughness (RC) and height (HC) corrections to the wind field.
+    def _mask_missing_data(self, height_above_orog, wspeed_original) -> ndarray:
+        """Return a boolean mask: True where either RC or HC may be applied.
 
         Args:
             height_above_orog: 1D or 3D float32 array of heights above local orography.
             wspeed_original: 3D float32 array of wind speed defined on height_above_orog.
 
         Returns:
-            3D float32 array of wind speed after applying RC and HC.
+            2D boolean array: True where both height and wind speed are valid,
+                False where either is missing or invalid.
         """
-        # Remove RC/HC where height inputs contain missing values
+        valid = np.ones_like(self.rc_mask, dtype=bool)
+
+        # Disable RC/HC where height inputs contain missing values
         if height_above_orog.ndim == 3:
-            missing_h = (height_above_orog == RMDI).any(axis=2)
-            self.hc_mask[missing_h] = False
-            self.rc_mask[missing_h] = False
+            valid &= ~(height_above_orog == RMDI).any(axis=2)
 
         # Disable RC/HC wherever the vertical wind profile is missing
-        mask_rc = np.copy(self.rc_mask)
-        mask_hc = np.copy(self.hc_mask)
-        missing_w = (wspeed_original == RMDI).any(axis=2)
-        mask_rc[missing_w] = False
-        mask_hc[missing_w] = False
+        missing_w = wspeed_original == RMDI
+        if wspeed_original.ndim == 3:
+            missing_w = missing_w.any(axis=2)
+        valid &= ~missing_w
 
-        # 1. Roughness correction
-        if self.model_z0 is not None:
-            wspeed_rc = self.calc_roughness_correction(
-                height_above_orog, wspeed_original, mask_rc
+        return valid
+
+    def do_rc(self, height_above_orog, wspeed_original) -> ndarray:
+        """Apply roughness correction (RC) to the wind field.
+
+        Args:
+            height_above_orog: 1D or 3D float32 array of heights above local orography.
+            wspeed_original: 3D float32 array of wind speed defined on height_above_orog.
+
+        Returns:
+            3D float32 array of roughness-corrected wind speeds.
+        """
+        if self.model_z0 is None:
+            raise ValueError(
+                "Roughness correction (RC) was requested, but no roughness-length "
+                "field (z0_cube) was supplied."
+            )
+
+        # Mask where missing data in height and wind fields
+        valid = self._mask_missing_data(height_above_orog, wspeed_original)
+        mask_rc = self.rc_mask & valid
+
+        return self.calc_roughness_correction(
+            height_above_orog, wspeed_original, mask_rc
+        )
+
+    def do_hc(self, height_above_orog, wspeed_original) -> ndarray:
+        """Apply height correction (HC) to the wind field.
+
+        Args:
+            height_above_orog: 1D or 3D float32 array of heights above local orography.
+            wspeed_original: 3D float32 array of wind speed defined on height_above_orog.
+
+        Returns:
+            3D float32 array of height-corrected wind speeds.
+        """
+        # Mask where missing data in height and wind fields
+        valid = self._mask_missing_data(height_above_orog, wspeed_original)
+        mask_hc = self.hc_mask & valid
+
+        # Height correction
+        # Requires wind speed at the reference height, so interpolate first
+        z_ref = 1.0 / self.wavenumber
+
+        if wspeed_original.ndim == 3 and wspeed_original.shape[2] > 1:
+            uhref_orig = self._interpolate_wspeed_to_height(
+                wspeed_original,
+                height_above_orog,
+                z_ref,
+                mask_hc,
             )
         else:
-            wspeed_rc = wspeed_original
+            # Single level (e.g. 10m wind) so no interpolation possible
+            uhref_orig = np.copy(wspeed_original)
 
-        # 2. Height correction
-        # Requires wind speed at the reference height, so interpolate first
-        uhref_orig = self._interpolate_wspeed_to_height(
-            wspeed_original, height_above_orog, 1.0 / self.wavenumber, mask_hc
-        )
         # HC only where u(h_ref) is positive
         mask_hc[uhref_orig <= 0.0] = False
+
         # Setting this value to 1, is equivalent to setting the
         # Bessel function to 1. (Friedrich, 2016)
         # Example usage if the Bessel function was not set to 1 is:
@@ -715,8 +756,12 @@ class RoughnessCorrectionUtilities:
             uhref_orig, height_above_orog, mask_hc, onemfrac
         )
 
-        # Combine RC and HC components
-        wspeed_out = wspeed_rc + hc_add
+        # Ensure hc_add has same dimensionality as wspeed_original
+        if hc_add.ndim == 3 and hc_add.shape[2] == 1:
+            hc_add = hc_add[:, :, 0]
+
+        # Apply HC additively
+        wspeed_out = wspeed_original + hc_add
 
         # Enforce non-negative wind speeds
         # HC can be negative if target_orog < model_orog
@@ -724,12 +769,48 @@ class RoughnessCorrectionUtilities:
 
         return wspeed_out.astype(np.float32)
 
+    def do_rc_and_hc(self, height_above_orog, wspeed_original) -> ndarray:
+        """Apply roughness correction (RC) then height correction (HC).
 
-class RoughnessCorrection(PostProcessingPlugin):
+        Args:
+            height_above_orog: 1D or 3D float32 array of heights above local orography.
+            wspeed_original: 3D float32 array of wind speed defined on height_above_orog.
+
+        Returns:
+            3D float32 array of wind speeds corrected for both roughness and height.
+        """
+        wspeed_rc_only = self.do_rc(height_above_orog, wspeed_original)
+        wspeed_with_hc_from_original = self.do_hc(height_above_orog, wspeed_original)
+
+        hc_additive_term = wspeed_with_hc_from_original - wspeed_original
+        wspeed_rc_plus_hc = wspeed_rc_only + hc_additive_term
+
+        # Combined correction can be negative where target_orog < model_orog.
+        wspeed_rc_plus_hc[wspeed_rc_plus_hc < 0.0] = 0.0
+        return wspeed_rc_plus_hc.astype(np.float32)
+
+
+class WindTerrainAdjustment(PostProcessingPlugin):
     """Plugin to orographically-correct 3d wind speeds."""
 
     zcoordnames = ["height", "model_level_number"]
     tcoordnames = ["time", "forecast_time"]
+
+    @staticmethod
+    def _coord_is_present(coord_dim: float) -> bool:
+        """Return True where a coordinate dimension index is available."""
+        return not np.isnan(coord_dim)
+
+    @classmethod
+    def _build_dim_order(
+        cls, y_dim: float, x_dim: float, *optional_dims: float
+    ) -> list[int]:
+        """Build a transpose ordering as [y, x, ...optional present dims]."""
+        order = [y_dim, x_dim]
+        for coord_dim in optional_dims:
+            if cls._coord_is_present(coord_dim):
+                order.append(coord_dim)
+        return [int(dim) for dim in order]
 
     def __init__(
         self,
@@ -740,8 +821,9 @@ class RoughnessCorrection(PostProcessingPlugin):
         model_res: float,
         model_z0_cube: Optional[Cube] = None,
         height_levels_cube: Optional[Cube] = None,
+        mode: str = "hc_and_rc",
     ) -> None:
-        """Initialise the RoughnessCorrection plugin.
+        """Initialise the WindTerrainAdjustment plugin.
 
         Args:
             model_silhouette_roughness_cube:
@@ -776,6 +858,11 @@ class RoughnessCorrection(PostProcessingPlugin):
             height_levels_cube:
                 1D or 3D height levels of the input wind field (m).
 
+            mode:
+                Which correction(s) to apply: "hc_and_rc" (default), "hc", or "rc".
+                "hc" applies only the height correction, "rc" applies only the roughness
+                correction, and "hc_and_rc" applies both corrections in sequence.
+
         Notes:
             All ancillary inputs must be defined on the same grid as the wind field
             (the target / post-processed grid). Fields originating on the model grid
@@ -785,6 +872,17 @@ class RoughnessCorrection(PostProcessingPlugin):
             Howard T., Clark P. 2007. Correction and downscaling of NWP wind
             speed forecasts. Meteorological Applications 14(2), 105-116.
         """
+        valid_modes = ("hc_and_rc", "hc", "rc")
+        if mode not in valid_modes:
+            raise ValueError(f"mode must be one of {valid_modes}, got {mode!r}")
+        self.mode = mode
+
+        # Roughness correction cannot be performed without providing roughness length
+        if "rc" in self.mode and model_z0_cube is None:
+            raise ValueError(
+                f"Roughness correction (RC) requested via mode={self.mode!r}, "
+                "but no model_z0_cube was supplied. Provide a roughness-length cube or use mode='hc'."
+            )
 
         model_res = np.float32(model_res)
         x_name, y_name, _, _ = self.find_coord_names(target_orog_cube)
@@ -986,18 +1084,18 @@ class RoughnessCorrection(PostProcessingPlugin):
             required.append(model_z0_cube)
 
         # Pairwise x/y grid compatibility check across all ancils
-        ok_pairs: list[bool] = []
-        for a, b in itertools.permutations(required, 2):
+        for a, b in itertools.combinations(required, 2):
             try:
                 same_y = a.coord(axis="y") == b.coord(axis="y")
                 same_x = a.coord(axis="x") == b.coord(axis="x")
-                ok_pairs.append(bool(same_x & same_y))
             except CoordinateNotFoundError:
-                ok_pairs.append(False)
+                return False
+            if not bool(same_x and same_y):
+                return False
 
-        return all(ok_pairs)
+        return True
 
-    def find_coord_order(self, mcube: Cube) -> Tuple[int, int, int, int]:
+    def find_coord_order(self, cube: Cube) -> Tuple[int, int, int, int]:
         """Return the dimension indices of the x, y, z, and time coordinates.
 
         Use coord_dims to assess the dimension associated with a particular
@@ -1016,8 +1114,8 @@ class RoughnessCorrection(PostProcessingPlugin):
                 continue
             # Record coordinate axis number
             try:
-                if mcube.coords(coord_name, dim_coords=True):
-                    (positions[idx],) = mcube.coord_dims(coord_name)
+                if cube.coords(coord_name, dim_coords=True):
+                    (positions[idx],) = cube.coord_dims(coord_name)
             except CoordinateNotFoundError:
                 # Coordinate does not exist, so leave as NaN
                 pass
@@ -1055,7 +1153,7 @@ class RoughnessCorrection(PostProcessingPlugin):
             try:
                 hld = next(hld.slices([self.z_name]))
             except CoordinateNotFoundError:
-                raise ValueError("Height grid z‑coordinate differs from wind grid.")
+                raise ValueError("Height grid z-coordinate differs from wind grid.")
         else:
             raise ValueError(f"Height grid must be 1D or 3D, got ndim = {hld.ndim}.")
 
@@ -1107,14 +1205,12 @@ class RoughnessCorrection(PostProcessingPlugin):
         )
         xwp, ywp, zwp, twp = self.find_coord_order(input_cube)
 
-        # Reorder wind cube so dimensions are consistently (y, x, z [, t])
-        if np.isnan(twp):
-            input_cube.transpose([ywp, xwp, zwp])
-        else:
-            input_cube.transpose([ywp, xwp, zwp, twp])
+        # Reorder wind cube so that dimensions are consistently (y, x, [z, t])
+        # depending on whether z and t coordinates exist.
+        input_cube.transpose(self._build_dim_order(ywp, xwp, zwp, twp))
 
         z0_data = None if self.model_z0 is None else self.model_z0.data
-        rc_utils = RoughnessCorrectionUtilities(
+        rc_utils = WindTerrainAdjustmentUtilities(
             self.model_silhouette_roughness.data,
             self.model_orog_stddev.data,
             z0_data,
@@ -1126,25 +1222,31 @@ class RoughnessCorrection(PostProcessingPlugin):
         self.check_wind_ancil(xwp, ywp)
         height_grid = self.find_heightgrid(input_cube)
 
+        correction_method = {
+            "rc": rc_utils.do_rc,
+            "hc": rc_utils.do_hc,
+            "hc_and_rc": rc_utils.do_rc_and_hc,
+        }[self.mode]
+
         corrected_list = iris.cube.CubeList()
-        for time_slice in input_cube.slices_over("time"):
+        for time_slice in input_cube.slices_over(self.t_name):
             # Validate wind field (e.g. not contain NaNs or negative values)
             if np.isnan(time_slice.data).any() or (time_slice.data < 0.0).any():
                 tcoord = time_slice.coord(self.t_name)
                 raise ValueError(f"{tcoord} has invalid wind data")
-            # Compute RC + HC result
-            rc_hc_cube = time_slice.copy()
-            rc_hc_cube.data = rc_utils.do_rc_hc_all(height_grid, time_slice.data)
-            corrected_list.append(rc_hc_cube)
+            # Compute windspeed correction/s
+            corrected_cube = time_slice.copy()
+            corrected_cube.data = correction_method(height_grid, time_slice.data)
+            corrected_list.append(corrected_cube)
         output_cube = corrected_list.merge_cube()
 
         # Restore the original dimension ordering of both input and output
-        if np.isnan(twp):
-            order = np.argsort([ywp, xwp, zwp])
-            input_cube.transpose(order)
-            output_cube.transpose(order)
-        else:
-            input_cube.transpose(np.argsort([ywp, xwp, zwp, twp]))
-            output_cube.transpose(np.argsort([twp, ywp, xwp, zwp]))
+        input_dims = self._build_dim_order(ywp, xwp, zwp)
+        output_dims = self._build_dim_order(ywp, xwp, zwp)
+        if self._coord_is_present(twp):
+            input_dims.append(int(twp))
+            output_dims.insert(0, int(twp))
+        input_cube.transpose(np.argsort(input_dims))
+        output_cube.transpose(np.argsort(output_dims))
 
         return output_cube
