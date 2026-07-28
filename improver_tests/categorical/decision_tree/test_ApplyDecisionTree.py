@@ -650,6 +650,7 @@ class Test_prepare_input_cubes(Test_WXCode):
         snowfall_cubes = [cube for cube in result if "lwe_snowfall_rate" in cube.name()]
         for cube in snowfall_cubes:
             cube_thresholds = cube.coord(find_threshold_coordinate(cube).name()).points
+            self.assertEqual(len(cube_thresholds), 1)
             cube_threshold_value = cube_thresholds[0]
             self.assertIn(cube_threshold_value, expected_thresholds)
             self.assertNotEqual(cube_threshold_value, higher_threshold)
