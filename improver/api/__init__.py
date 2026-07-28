@@ -27,6 +27,7 @@ PROCESSING_MODULES = {
     "ApplyOrographicEnhancement": "improver.nowcasting.utilities",
     "ApplyRainForestsCalibration": "improver.calibration.rainforest_calibration",
     "ApplyReliabilityCalibration": "improver.calibration.reliability_calibration",
+    "ApplyWindDownscaling": "improver.wind_calculations.wind_downscaling",
     "BaseNeighbourhoodProcessing": "improver.nbhood.nbhood",
     "BuildUpIndex": "improver.fire_weather.build_up_index",
     "CalculateForecastBias": "improver.calibration.simple_bias_correction",
