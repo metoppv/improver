@@ -5,6 +5,7 @@
 """Module containing wind downscaling plugins."""
 
 import itertools
+import warnings
 from typing import Optional, Tuple, Union
 
 import iris
@@ -16,6 +17,7 @@ from numpy import ndarray
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.constants import RMDI
+from improver.utilities.cube_extraction import apply_extraction
 
 # Fractional tolerance used when deciding whether an absolute correction to
 # the computed reference height is significant. Corrections smaller than this
@@ -1250,3 +1252,107 @@ class WindTerrainAdjustment(PostProcessingPlugin):
         output_cube.transpose(np.argsort(output_dims))
 
         return output_cube
+
+
+class ApplyWindDownscaling(PostProcessingPlugin):
+    """Apply wind downscaling with optional realization and level handling."""
+
+    def __init__(
+        self,
+        model_orog_stddev_cube: Cube,
+        target_orog_cube: Cube,
+        model_orog_cube: Cube,
+        model_silhouette_roughness_cube: Cube,
+        model_res: float,
+        model_z0_cube: Optional[Cube] = None,
+        output_height_level: Optional[float] = None,
+        output_height_level_units: str = "m",
+        mode: str = "hc_and_rc",
+    ) -> None:
+        """Initialise plugin inputs and options for wind downscaling.
+
+        Args:
+            model_orog_stddev_cube: Standard deviation of model-orography height (m).
+            target_orog_cube: Orography cube on target grid (m).
+            model_orog_cube: Standard-grid model orography (m).
+            model_silhouette_roughness_cube: Model silhouette roughness (dimensionless).
+            model_res: Native model orography resolution (m).
+            model_z0_cube: Vegetative roughness length (m).
+            output_height_level: Optional output height value to extract.
+            output_height_level_units: Units for output_height_level.
+            mode: Which correction(s) to apply: "hc_and_rc", "hc", or "rc".
+        """
+        self.model_orog_stddev_cube = model_orog_stddev_cube
+        self.target_orog_cube = target_orog_cube
+        self.model_orog_cube = model_orog_cube
+        self.model_silhouette_roughness_cube = model_silhouette_roughness_cube
+        self.model_res = model_res
+        self.model_z0_cube = model_z0_cube
+        self.output_height_level = output_height_level
+        self.output_height_level_units = output_height_level_units
+        self.mode = mode
+
+    def process(self, input_cube: Cube) -> Cube:
+        """Run wind downscaling and optional single-level extraction.
+
+        Args:
+            input_cube: Wind speed on the standard grid.
+
+        Returns:
+            Processed wind-speed cube.
+
+        Raises:
+            ValueError: If a requested output height level cannot be found.
+        """
+        if self.output_height_level_units and self.output_height_level is None:
+            warnings.warn(
+                "output_height_level_units has been set but no "
+                "associated height level has been provided. These units "
+                "will have no effect."
+            )
+
+        try:
+            wind_speed_iterator = input_cube.slices_over("realization")
+        except CoordinateNotFoundError:
+            wind_speed_iterator = [input_cube]
+
+        wind_speed_list = iris.cube.CubeList()
+        for wind_speed_slice in wind_speed_iterator:
+            result = WindTerrainAdjustment(
+                model_silhouette_roughness_cube=self.model_silhouette_roughness_cube,
+                model_orog_stddev_cube=self.model_orog_stddev_cube,
+                target_orog_cube=self.target_orog_cube,
+                model_orog_cube=self.model_orog_cube,
+                model_res=self.model_res,
+                model_z0_cube=self.model_z0_cube,
+                height_levels_cube=None,
+                mode=self.mode,
+            )(wind_speed_slice)
+            wind_speed_list.append(result)
+        wind_speed = wind_speed_list.merge_cube()
+
+        non_dim_coords = [coord.name() for coord in wind_speed.coords(dim_coords=False)]
+        if "realization" in non_dim_coords:
+            wind_speed = iris.util.new_axis(wind_speed, "realization")
+
+        if self.output_height_level is not None:
+            constraints = {"height": self.output_height_level}
+            units = {"height": self.output_height_level_units}
+            single_level = apply_extraction(
+                wind_speed, iris.Constraint(**constraints), units
+            )
+            if not single_level:
+                raise ValueError(
+                    "Requested height level not found, no cube "
+                    "returned. Available height levels are:\n"
+                    "{0:}\nin units of {1:}".format(
+                        wind_speed.coord("height").points,
+                        wind_speed.coord("height").units,
+                    )
+                )
+            wind_speed = single_level
+
+        return wind_speed
+
+
+WindDownscaling = ApplyWindDownscaling
