@@ -62,6 +62,9 @@ def process(
             <https://pysteps.readthedocs.io/en/stable/generated/pysteps.noise.fftgenerators.initialize_nonparam_2d_ssft_filter.html>`_.
             Provide as Python dict string,
             e.g., "{'win_size': (100, 100), 'overlap': 0.3}".
+            This string will be converted to a Python dict using `ast.literal_eval`,
+            therefore please ensure that the string is a valid Python dict
+            representation.
             Recommended keys: win_size, overlap, war_thr.
             Default is an empty dict, which will use the pysteps defaults.
         ssft_generate_params:
@@ -69,6 +72,9 @@ def process(
             `pysteps.noise.fftgenerators.generate_noise_2d_ssft_filter
             <https://pysteps.readthedocs.io/en/stable/generated/pysteps.noise.fftgenerators.generate_noise_2d_ssft_filter.html>`_.
             Provide as Python dict string, e.g., "{'overlap': 0.3, 'seed': 0}".
+            This string will be converted to a Python dict using `ast.literal_eval`,
+            therefore please ensure that the string is a valid Python dict
+            representation.
             Recommended keys: overlap, seed.
             Default is an empty dict, which will use the pysteps defaults.
         db_threshold:
@@ -79,11 +85,13 @@ def process(
         db_threshold_units:
             Units of the db_threshold value. Default is "mm/hr".
         scale_non_positive_noise:
-            If True, noise in non-positive regions (where template.data <= 0) will be
-            scaled such that the maximum noise value in those regions is zero and all
-            other noise values are negative. This prevents the addition of positive
-            noise to non-positive regions, which could artificially increase values
-            where the input cube indicates no signal should occur.
+            If True, noise in non-positive regions (where template.data <= 0) will
+            be scaled such that the maximum noise value in those regions is zero and
+            all other noise values are negative. This prevents the addition of
+            positive noise to non-positive regions, which could artificially
+            increase values where the input cube indicates no signal should occur.
+            If this is true, wet_noise_floor must be set, so that totally dry fields
+            do not receive noise that exceeds noise given to fields that are wet.
             Default is False.
         allow_seeded_parallel_processing:
             If True, allows multiple workers to be used even when a seed is
@@ -97,11 +105,17 @@ def process(
             Required when the input field is degenerate (e.g. all-zero), to guarantee
             separation between dry-fallback and wet-member noise. Default is None.
         dry_fallback_range:
-            Optional range (min_value, max_value) for dry fallback noise in linear
-            units of db_threshold_units. Provide as a Python tuple string, e.g.
-            "(-10.0, -5.0)". Both values must be <= 0 and min_value < max_value.
-            Defaults to (2 * wet_noise_floor, wet_noise_floor) when wet_noise_floor
-            is set.
+            Optional range (min_value, max_value) for dry fallback noise in
+            linear units of db_threshold_units. Provide as a Python tuple string, e.g.
+            "(-10.0, -5.0)". This string will be converted to a Python tuple using
+            `ast.literal_eval`, therefore please ensure that the string is a valid
+            Python tuple representation. Both values must be <= 0 and
+            (min_value < max_value). If wet_noise_floor is set and this is
+            not provided, this defaults to (2 * wet_noise_floor, wet_noise_floor)
+            to keep dry fallback below the wet floor. If wet_noise_floor is set and
+            dry_fallback_range is provided, the max_value of dry_fallback_range
+            must be <= wet_noise_floor to ensure separation between dry-fallback
+            and wet noise ranges.
 
     Returns:
         Cube with added stochastic noise.

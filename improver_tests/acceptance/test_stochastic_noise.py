@@ -62,11 +62,14 @@ def test_scale_non_positive_noise(tmp_path):
     acc.compare(output_path, kgo_path, atol=1e-6, rtol=1e-6)
 
 
-def test_dry_realizations(tmp_path):
+@pytest.mark.parametrize("specify_fallback", [False, True])
+def test_dry_realizations(tmp_path, specify_fallback):
     """Test stochastic noise addition with scale_non_positive_noise=True
     and wet_noise_floor set, and where the input realizations are completely dry."""
     kgo_dir = acc.kgo_root() / "stochastic_noise"
     kgo_path = kgo_dir / "dry" / "kgo.nc"
+    if specify_fallback:
+        kgo_path = kgo_dir / "dry" / "kgo_with_fallback.nc"
     dependence_template_path = kgo_dir / "dry" / "input.nc"
     output_path = tmp_path / "output.nc"
     args = [
@@ -85,5 +88,7 @@ def test_dry_realizations(tmp_path):
         "--output",
         output_path,
     ]
+    if specify_fallback:
+        args += ["--dry-fallback-range", "(-200.0, -100.0)"]
     run_cli(args)
     acc.compare(output_path, kgo_path, atol=1e-6, rtol=1e-6)

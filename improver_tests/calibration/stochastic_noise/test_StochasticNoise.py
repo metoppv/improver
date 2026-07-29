@@ -265,15 +265,17 @@ def test_process_scalar_realization_coord():
 
 
 @pytest.mark.parametrize(
-    "constant_value, expect_degenerate_warning, expect_changed",
-    [(0.0, True, True), (1.0, False, False)],
+    "constant_value, expect_changed",
+    [(0.0, True), (1.0, False)],
 )
-def test_process_constant_input(
-    constant_value: float, expect_degenerate_warning: bool, expect_changed: bool
-):
-    """Constant inputs are handled. Degenerate input warning is raised for constant
-    zero input with fallback noise constrained to the dry_fallback_range. For non-zero
-    constant input, no warning is raised and output equals input."""
+def test_process_constant_input(constant_value: float, expect_changed: bool):
+    """Data within the input cubes is set to a constant value. Degenerate input
+    warning is raised for constant zero input with fallback noise constrained to the
+    dry_fallback_range. For non-zero constant input, no warning is raised and output
+    equals input."""
+    data = np.full((4, 4), constant_value, dtype=np.float32)
+    cube = set_up_variable_cube(data=data, name="precipitation_rate", units="mm/hr")
+
     if constant_value == 0.0:
         # Degenerate path requires wet_noise_floor for guaranteed separation.
         plugin = StochasticNoise(
@@ -281,15 +283,10 @@ def test_process_constant_input(
             scale_non_positive_noise=True,
             wet_noise_floor=-5.0,
         )
-    else:
-        plugin = StochasticNoise(ssft_generate_params={"seed": 0})
-    data = np.full((4, 4), constant_value, dtype=np.float32)
-    cube = set_up_variable_cube(data=data, name="precipitation_rate", units="mm/hr")
-
-    if expect_degenerate_warning:
         with pytest.warns(UserWarning, match="Degenerate input field detected"):
             result = plugin.process(cube)
     else:
+        plugin = StochasticNoise(ssft_generate_params={"seed": 0})
         with warnings.catch_warnings(record=True) as caught_warnings:
             warnings.simplefilter("always")
             result = plugin.process(cube)
@@ -311,23 +308,20 @@ def test_process_constant_input(
 @pytest.mark.parametrize("constant_value", [0.0, 1.0])
 def test_process_constant_input_seeded_is_reproducible(constant_value: float):
     """Seeded processing of constant fields is reproducible via process."""
+    data = np.full((4, 4), constant_value, dtype=np.float32)
+    cube = set_up_variable_cube(data=data, name="precipitation_rate", units="mm/hr")
     if constant_value == 0.0:
         plugin = StochasticNoise(
             ssft_generate_params={"seed": 42},
             scale_non_positive_noise=True,
             wet_noise_floor=-5.0,
         )
-    else:
-        plugin = StochasticNoise(ssft_generate_params={"seed": 42})
-    data = np.full((4, 4), constant_value, dtype=np.float32)
-    cube = set_up_variable_cube(data=data, name="precipitation_rate", units="mm/hr")
-
-    if constant_value == 0.0:
         with pytest.warns(UserWarning, match="Degenerate input field detected"):
             first = plugin.process(cube)
         with pytest.warns(UserWarning, match="Degenerate input field detected"):
             second = plugin.process(cube)
     else:
+        plugin = StochasticNoise(ssft_generate_params={"seed": 42})
         first = plugin.process(cube)
         second = plugin.process(cube)
 
@@ -374,6 +368,9 @@ def test_process_window_level_degeneracy_fallback():
     def mock_do_fft(_):
         raise ValueError("zero-size array to reduction operation minimum")
 
+    # Replace the plugin's do_fft method with a mock function that raises a ValueError.
+    # This simulates SSFT failure, so we can confirm that a warning is issued and
+    # fallback occurs.
     plugin.do_fft = mock_do_fft
 
     with pytest.warns(UserWarning, match="SSFT initialisation failed"):

@@ -77,6 +77,8 @@ class StochasticNoise(BasePlugin):
                 all other noise values are negative. This prevents the addition of
                 positive noise to non-positive regions, which could artificially
                 increase values where the input cube indicates no signal should occur.
+                If this is true, wet_noise_floor must be set, so that totally dry fields
+                do not receive noise that exceeds noise given to fields that are wet.
                 Default is False.
             allow_seeded_parallel_processing:
                 If True, allows multiple workers to be used even when a seed is
@@ -98,10 +100,13 @@ class StochasticNoise(BasePlugin):
                 become. Default is None (no floor).
             dry_fallback_range:
                 Optional range (min_value, max_value) for dry fallback noise in
-                linear units of db_threshold_units. Both values must be <= 0 and
-                (min_value < max_value). If wet_noise_floor is set and this is
-                not provided, this defaults to (2 * wet_noise_floor, wet_noise_floor)
-                to keep dry fallback below the wet floor.
+                linear units of db_threshold_units. Provide as a Python tuple string, e.g.
+                "(-10.0, -5.0)". Both values must be <= 0 and (min_value < max_value).
+                If wet_noise_floor is set and this is not provided, this defaults to
+                (2 * wet_noise_floor, wet_noise_floor) to keep dry fallback below the
+                wet floor. If wet_noise_floor is set and dry_fallback_range is provided,
+                the max_value of dry_fallback_range must be <= wet_noise_floor to ensure
+                separation between dry-fallback and wet noise ranges.
 
         Raises:
             ValueError:
@@ -154,13 +159,15 @@ class StochasticNoise(BasePlugin):
                 "to guarantee separation between dry-fallback and wet noise ranges."
             )
 
+        if dry_fallback_range is not None:
+            if len(dry_fallback_range) != 2:
+                raise ValueError("dry_fallback_range must contain exactly two values.")
+
         if dry_fallback_range is None and self.wet_noise_floor is not None:
             dry_fallback_range = (2.0 * self.wet_noise_floor, self.wet_noise_floor)
 
         self.dry_fallback_range = dry_fallback_range
         if self.dry_fallback_range is not None:
-            if len(self.dry_fallback_range) != 2:
-                raise ValueError("dry_fallback_range must contain exactly two values.")
             dry_min, dry_max = self.dry_fallback_range
             if not (dry_min < dry_max <= 0):
                 raise ValueError(
@@ -193,10 +200,15 @@ class StochasticNoise(BasePlugin):
             Cube with added stochastic noise.
 
         Raises:
-            ValueError:
-                If a degenerate field is detected for SSFT initialisation and
+            ValueError: If a degenerate field is detected for SSFT initialisation and
                 ``wet_noise_floor`` has not been configured (which means no default
                 ``dry_fallback_range`` is available).
+
+        Warns:
+            UserWarning: If a degenerate field is detected for SSFT initialisation,
+                or if SSFT initialisation fails for any reason, a warning is raised
+                to indicate that linear fallback stochastic noise generation will be
+                used instead.
         """
         validate_cube_dimensions(
             cube=input_cube,
