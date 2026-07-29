@@ -159,9 +159,8 @@ class StochasticNoise(BasePlugin):
                 "to guarantee separation between dry-fallback and wet noise ranges."
             )
 
-        if dry_fallback_range is not None:
-            if len(dry_fallback_range) != 2:
-                raise ValueError("dry_fallback_range must contain exactly two values.")
+        if dry_fallback_range is not None and len(dry_fallback_range) != 2:
+            raise ValueError("dry_fallback_range must contain exactly two values.")
 
         if dry_fallback_range is None and self.wet_noise_floor is not None:
             dry_fallback_range = (2.0 * self.wet_noise_floor, self.wet_noise_floor)
