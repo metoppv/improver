@@ -33,10 +33,12 @@ class QuantileMapping(PostProcessingPlugin):
 
             Args:
                 preservation_threshold:
-                    Optional threshold value below which (exclusive) the forecast
-                    values are not adjusted to be like the reference. Useful for
-                    variables such as precipitation, where a user may be wary of mapping
-                    0mm/hr precipitation values to non-zero values.
+                    Optional threshold value below which (exclusive) reference
+                    values are preserved in the output. The threshold mask is
+                    computed from the reference cube (not the forecast cube),
+                    which is useful for variables such as precipitation where a
+                    user may be wary of converting originally 0 mm/hr or small
+                    reference values into non-zero values.
                 method:
                     Choose from two methods of converting forecast values into quantiles
                     before mapping them onto the reference distribution: 'step' and
@@ -369,27 +371,33 @@ class QuantileMapping(PostProcessingPlugin):
         return corrected_values_flat
 
     def _apply_preservation_threshold(
-        self, output_cube: Cube, forecast_cube: Cube
+        self, output_cube: Cube, reference_cube: Cube
     ) -> None:
-        """Preserve original values below preservation threshold.
+        """Preserve reference values below preservation threshold.
+
+        The threshold comparison is applied to reference_cube.data. Where
+        reference values are below the threshold, output values are replaced
+        with reference values. This helps prevent expansion of low/zero-valued
+        regions (for example non-zero precipitation area) caused by quantile
+        mapping.
 
         Modifies output_cube.data in-place.
 
         Args:
             output_cube:
                 The cube with calibrated data to modify.
-            forecast_cube:
-                The original forecast cube with values to preserve.
+            reference_cube:
+                The original reference cube with values to preserve.
         """
         if self.preservation_threshold is None:
             return
 
         mask_below_threshold = np.ma.less(
-            forecast_cube.data, self.preservation_threshold
+            reference_cube.data, self.preservation_threshold
         )
         # np.ma.where works for both masked and non-masked arrays
         output_cube.data = np.ma.where(
-            mask_below_threshold, forecast_cube.data, output_cube.data
+            mask_below_threshold, reference_cube.data, output_cube.data
         )
 
     def _finalise_output_cube(

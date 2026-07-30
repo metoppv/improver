@@ -36,9 +36,12 @@ def process(
             which must be present on cubes to identify them as reference data.
             The remaining cubes will be treated as forecast data.
         preservation_threshold:
-            Optional threshold value below which (exclusive) the forecast values
-            are not adjusted. Useful for variables like precipitation where you
-            may want to preserve small/zero values.
+            Optional threshold value below which (exclusive) the reference values
+            are preserved in the output. This applies the threshold test to the
+            reference cube (not the forecast cube), which is useful for variables
+            like precipitation where you want to avoid converting originally
+            zero/small reference values into non-zero values and artificially
+            increasing the non-zero area.
         method:
             Choose from two methods of converting forecast values into quantiles
             before mapping them onto the reference distribution: 'step' and
