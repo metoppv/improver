@@ -42,7 +42,9 @@ class Test_uv_index(unittest.TestCase):
         """Test the uv calculation works when changing the scale factor. Make
         sure the output is a cube with the expected data."""
         expected = np.ones_like(self.cube_uv_down.data, dtype=np.float32)
-        result = calculate_uv_index(self.cube_uv_down, scale_factor=10)
+        msg = r"The scale_factor is not the default 3\.6 \(m2 W-1\) but 10\.*"
+        with self.assertWarnsRegex(UserWarning, msg):
+            result = calculate_uv_index(self.cube_uv_down, scale_factor=10)
         np.testing.assert_array_equal(result.data, expected)
 
     def test_metadata(self):
