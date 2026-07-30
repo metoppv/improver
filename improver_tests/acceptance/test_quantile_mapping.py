@@ -28,7 +28,7 @@ def test_step_no_threshold(tmp_path, method):
         "--method",
         method,
         "--reference-attribute",
-        "mosg__model_configuration=uk_det",
+        "realization_selection_method=cluster_medoid",
         "--output",
         output_path,
     ]
@@ -37,7 +37,7 @@ def test_step_no_threshold(tmp_path, method):
 
 
 @pytest.mark.parametrize("method", ["step", "continuous"])
-def test_step_with_threshold(tmp_path, method):
+def test_step_with_preservation_threshold(tmp_path, method):
     """Test quantile mapping with step method and preservation threshold."""
     kgo_dir = acc.kgo_root() / "quantile-mapping/with_preservation_threshold/"
     kgo_path = kgo_dir / f"kgo_{method}.nc"
@@ -51,9 +51,34 @@ def test_step_with_threshold(tmp_path, method):
         "--method",
         method,
         "--preservation-threshold",
-        "2.0",
+        "0.00003",
         "--reference-attribute",
-        "mosg__model_configuration=uk_det",
+        "realization_selection_method=cluster_medoid",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+@pytest.mark.parametrize("method", ["step", "continuous"])
+def test_step_with_occurrence_threshold(tmp_path, method):
+    """Test quantile mapping with step method and occurrence threshold."""
+    kgo_dir = acc.kgo_root() / "quantile-mapping/with_occurrence_threshold/"
+    kgo_path = kgo_dir / f"kgo_{method}.nc"
+    reference_path = acc.kgo_root() / "quantile-mapping/reference.nc"
+    forecast_path = acc.kgo_root() / "quantile-mapping/forecast.nc"
+    output_path = tmp_path / "output.nc"
+
+    args = [
+        reference_path,
+        forecast_path,
+        "--method",
+        method,
+        "--occurrence-threshold",
+        "0.00003",
+        "--reference-attribute",
+        "realization_selection_method=cluster_medoid",
         "--output",
         output_path,
     ]

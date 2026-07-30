@@ -27,6 +27,7 @@ class QuantileMapping(PostProcessingPlugin):
     def __init__(
         self,
         preservation_threshold: Optional[float] = None,
+        occurrence_threshold: Optional[float] = None,
         method: Literal["step", "continuous"] = "step",
     ) -> None:
         """Initialize the quantile mapping plugin.
@@ -39,6 +40,18 @@ class QuantileMapping(PostProcessingPlugin):
                     which is useful for variables such as precipitation where a
                     user may be wary of converting originally 0 mm/hr or small
                     reference values into non-zero values.
+                occurrence_threshold:
+                    Optional threshold that enables wet-fraction occurrence
+                    correction before quantile mapping. When supplied, forecast
+                    pixels are first thinned so that the proportion of
+                    "wet" forecast pixels (values strictly above this threshold)
+                    matches the wet fraction of the reference field. The lowest-
+                    intensity surplus wet forecast pixels are set to zero before
+                    quantile mapping is applied only to the remaining wet
+                    pixels against the wet reference values. This reduces
+                    excessive areas of weak precipitation ("drizzle halos") that
+                    can persist after standard quantile mapping when the forecast
+                    contains more wet pixels than the reference.
                 method:
                     Choose from two methods of converting forecast values into quantiles
                     before mapping them onto the reference distribution: 'step' and
@@ -139,6 +152,7 @@ class QuantileMapping(PostProcessingPlugin):
 
         """
         self.preservation_threshold = preservation_threshold
+        self.occurrence_threshold = occurrence_threshold
         method = method.lower()
         if method not in ["step", "continuous"]:
             raise ValueError(
@@ -318,6 +332,86 @@ class QuantileMapping(PostProcessingPlugin):
 
         return (reference_cube, forecast_cube)
 
+    def _calibrate(
+        self,
+        reference_data: np.ndarray,
+        forecast_data: np.ndarray,
+    ) -> np.ndarray:
+        """Dispatch to the appropriate calibration strategy.
+
+        When occurrence_threshold is set, applies wet-fraction occurrence
+        correction before quantile mapping (see :meth:`_apply_wet_fraction_correction`).
+        Otherwise, applies standard quantile mapping directly
+        (see :meth:`_map_quantiles`).
+
+        Args:
+            reference_data: Array of valid (non-masked) reference values.
+            forecast_data: Array of valid (non-masked) forecast values.
+
+        Returns:
+            Array of calibrated forecast values.
+        """
+        if self.occurrence_threshold is not None:
+            return self._apply_wet_fraction_correction(reference_data, forecast_data)
+        return self._map_quantiles(reference_data, forecast_data)
+
+    def _apply_wet_fraction_correction(
+        self,
+        reference_data: np.ndarray,
+        forecast_data: np.ndarray,
+    ) -> np.ndarray:
+        """Match the forecast wet fraction to the reference, then quantile-map
+        wet pixels.
+
+        This is a precipitation-specific pre-processing step applied before quantile
+        mapping when ``occurrence_threshold`` is set. It reduces excessive areas of weak
+        precipitation ("drizzle halos") by ensuring the proportion of wet forecast
+        pixels matches the reference before intensity correction is applied.
+
+        Algorithm:
+
+        1. Compute the fraction of wet pixels in the reference field (values strictly
+           above ``occurrence_threshold``).
+        2. Find the forecast value corresponding to the same exceedance fraction. This
+           is the cutoff below which surplus wet forecast pixels will be dried out.
+        3. Set forecast pixels at or below this cutoff to zero.
+        4. Apply quantile mapping using only the wet pixels from each field (those
+           still strictly above ``occurrence_threshold`` after step 3).
+        5. Return an array with zero for dry pixels and corrected values for wet pixels.
+
+        Args:
+            reference_data:
+                Array of valid (non-masked) reference values.
+            forecast_data:
+                Array of valid (non-masked) forecast values.
+
+        Returns:
+            Array of the same size as ``forecast_data`` with corrected values for
+            wet pixels and zero for dry pixels.
+        """
+        # Step 1: wet fraction of reference field
+        reference_wet_fraction = np.mean(reference_data > self.occurrence_threshold)
+
+        # Step 2: forecast value at the corresponding exceedance fraction
+        forecast_cutoff = np.quantile(forecast_data, 1.0 - reference_wet_fraction)
+
+        # Step 3: dry out surplus wet forecast pixels
+        forecast_data = forecast_data.copy()
+        forecast_data[forecast_data <= forecast_cutoff] = 0.0
+
+        # Step 4: quantile map wet pixels only
+        result = np.zeros(forecast_data.size, dtype=float)
+        forecast_wet_mask = forecast_data > self.occurrence_threshold
+        reference_wet_mask = reference_data > self.occurrence_threshold
+
+        forecast_wet = forecast_data[forecast_wet_mask]
+        reference_wet = reference_data[reference_wet_mask]
+
+        if forecast_wet.size > 0 and reference_wet.size > 0:
+            result[forecast_wet_mask] = self._map_quantiles(reference_wet, forecast_wet)
+
+        return result
+
     def _process_masked_data(
         self,
         reference_cube: Cube,
@@ -354,7 +448,7 @@ class QuantileMapping(PostProcessingPlugin):
             forecast_valid = forecast_data_flat.compressed()
 
             # Apply quantile mapping to valid data only
-            corrected_valid = self._map_quantiles(reference_valid, forecast_valid)
+            corrected_valid = self._calibrate(reference_valid, forecast_valid)
 
             # Reconstruct with forecast mask preserved
             corrected_values_flat = np.empty_like(forecast_data_flat.data)
@@ -364,9 +458,7 @@ class QuantileMapping(PostProcessingPlugin):
             )
         else:
             # No forecast masking - apply directly
-            corrected_values_flat = self._map_quantiles(
-                reference_valid, forecast_data_flat
-            )
+            corrected_values_flat = self._calibrate(reference_valid, forecast_data_flat)
 
         return corrected_values_flat
 

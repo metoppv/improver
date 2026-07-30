@@ -14,6 +14,7 @@ def process(
     *cubes: cli.inputcube,
     reference_attribute: str,
     preservation_threshold: float = None,
+    occurrence_threshold: float = None,
     method: str = "step",
 ):
     """Adjust forecast values to match the statistical distribution of reference
@@ -42,6 +43,15 @@ def process(
             like precipitation where you want to avoid converting originally
             zero/small reference values into non-zero values and artificially
             increasing the non-zero area.
+        occurrence_threshold:
+            Optional threshold that enables wet-fraction occurrence correction
+            before quantile mapping. When supplied, the proportion of "wet"
+            forecast pixels (values strictly above this threshold) is matched to
+            the wet fraction of the reference field by setting the
+            lowest-intensity surplus wet forecast pixels to zero. Quantile
+            mapping is then applied only to the remaining wet forecast pixels
+            against the wet reference values. Useful for precipitation fields
+            where the forecast contains more wet pixels than the reference.
         method:
             Choose from two methods of converting forecast values into quantiles
             before mapping them onto the reference distribution: 'step' and
@@ -82,7 +92,9 @@ def process(
         cubes, reference_attribute
     )
     plugin = QuantileMapping(
-        preservation_threshold=preservation_threshold, method=method
+        preservation_threshold=preservation_threshold,
+        occurrence_threshold=occurrence_threshold,
+        method=method,
     )
     return plugin.process(
         reference_cube,

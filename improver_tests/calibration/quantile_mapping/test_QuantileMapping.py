@@ -361,18 +361,57 @@ def test__convert_reference_cube_to_forecast_units(
             np.array(
                 [
                     [[0.1, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]],
-                    [[0.1, 1.8, 2.8], [3.8, 4.9, 5.8], [6.8, 7.7, 8.7]],
+                    [[1.0, 1.8, 2.8], [3.8, 4.9, 5.8], [6.8, 7.7, 8.7]],
                 ],
                 dtype=np.float32,
             ),
         ),
     ],
 )
-def test_quantile_mapping_process_thresholding(
+def test_quantile_mapping_process_preservation_threshold(
     reference_cube, forecast_cube, preservation_threshold, expected
 ):
     """Test quantile mapping with and without a preservation threshold."""
     plugin = QuantileMapping(preservation_threshold=preservation_threshold)
+    result = plugin.process(reference_cube, forecast_cube)
+
+    assert isinstance(result, Cube)
+    assert result.shape == forecast_cube.shape
+    assert result.data.dtype == np.float32
+    assert not np.ma.is_masked(result.data)
+    np.testing.assert_array_equal(result.data, expected)
+
+
+@pytest.mark.parametrize(
+    ["occurrence_threshold", "expected"],
+    [
+        (
+            None,
+            np.array(
+                [
+                    [[0.1, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]],
+                    [[1.0, 1.8, 2.8], [3.8, 4.9, 5.8], [6.8, 7.7, 8.7]],
+                ],
+                dtype=np.float32,
+            ),
+        ),
+        (
+            0.51,
+            np.array(
+                [
+                    [[0.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]],
+                    [[1.0, 1.8, 2.8], [3.8, 4.9, 5.8], [6.8, 7.7, 8.7]],
+                ],
+                dtype=np.float32,
+            ),
+        ),
+    ],
+)
+def test_quantile_mapping_process_occurrence_threshold(
+    reference_cube, forecast_cube, occurrence_threshold, expected
+):
+    """Test quantile mapping with and without an occurrence threshold."""
+    plugin = QuantileMapping(occurrence_threshold=occurrence_threshold)
     result = plugin.process(reference_cube, forecast_cube)
 
     assert isinstance(result, Cube)
