@@ -194,7 +194,9 @@ class Test_with_output(unittest.TestCase):
         compression_level=1 and default least_significant_digit=None"""
         save_object = Cube([0])
         result = wrapped_with_output.cli("argv[0]", [save_object], "--output=foo")
-        m.assert_called_with(save_object, "foo", 1, None)
+        m.assert_called_with(
+            save_object, "foo", complevel=1, least_significant_digit=None
+        )
         self.assertEqual(result, None)
 
     @patch("os.rename")
@@ -214,7 +216,9 @@ class Test_with_output(unittest.TestCase):
         result = wrapped_with_output.cli(
             "argv[0]", [save_object], "--output=foo", "--compression-level=9"
         )
-        m.assert_called_with(save_object, "foo", 9, None)
+        m.assert_called_with(
+            save_object, "foo", complevel=9, least_significant_digit=None
+        )
         self.assertEqual(result, None)
 
     @patch("improver.utilities.save.save_netcdf")
@@ -224,7 +228,9 @@ class Test_with_output(unittest.TestCase):
         result = wrapped_with_output.cli(
             "argv[0]", [save_object], "--output=foo", "--compression-level=0"
         )
-        m.assert_called_with(save_object, "foo", 0, None)
+        m.assert_called_with(
+            save_object, "foo", complevel=0, least_significant_digit=None
+        )
         self.assertEqual(result, None)
 
     @patch("improver.utilities.save.save_netcdf")
@@ -238,7 +244,7 @@ class Test_with_output(unittest.TestCase):
             "--compression-level=0",
             "--least-significant-digit=2",
         )
-        m.assert_called_with(save_object, "foo", 0, 2)
+        m.assert_called_with(save_object, "foo", complevel=0, least_significant_digit=2)
         self.assertEqual(result, None)
 
 
