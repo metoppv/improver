@@ -448,10 +448,8 @@ def test_no_warning_for_metadata_outside_lag_time(
     result = DuffMoistureCode().process(cubes, month=1)
 
     np_warning = "numpy.ndarray size changed"
-    relevant_warnings = [
-        str(w.message) for w in recwarn if np_warning not in str(w.message)
-    ]
-    assert len(relevant_warnings) == 0, f"Unexpected warnings: {relevant_warnings}"
+    warnings = [str(w.message) for w in recwarn if np_warning not in str(w.message)]
+    assert len(warnings) == 0, f"Unexpected warnings: {warnings}"
 
     assert result.attributes["iteration_count"] == attributes["iteration_count"] + 1
     assert result.attributes["analysis_ready"] == "True"
