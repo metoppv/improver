@@ -134,7 +134,7 @@ def input_cubes_basic(
     return make_input_cubes(
         [
             ("air_temperature", temp_val, "Celsius", False, INPUT_ATTRIBUTES),
-            ("relative_humidity", rh_val, "1", False, {}),
+            ("relative_humidity", rh_val, "Percent", False, {}),
         ],
         shape=shape,
     )
@@ -165,7 +165,7 @@ def input_cubes_with_precip(
         [
             ("air_temperature", temp_val, "Celsius", False, INPUT_ATTRIBUTES),
             ("lwe_thickness_of_precipitation_amount", precip_val, "mm", True, {}),
-            ("relative_humidity", rh_val, "1", False, {}),
+            ("relative_humidity", rh_val, "Percent", False, {}),
         ],
         shape=shape,
     )
@@ -218,11 +218,11 @@ def test_load_input_cubes_basic(temp_val: float, rh_val: float) -> None:
         # Case 0: Temperature: Kelvin -> Celsius
         ("temperature", 293.15, "K", 20.0),
         # Case 1: Temperature: Fahrenheit -> Celsius
-        ("temperature", 68.0, "fahrenheit", 20.0),
-        # Case 2: Relative humidity: percent -> dimensionless
-        ("relative_humidity", 50.0, "%", 0.5),
-        # Case 3: Relative humidity: already dimensionless
-        ("relative_humidity", 0.75, "1", 0.75),
+        ("temperature", 68.0, "Fahrenheit", 20.0),
+        # Case 2: Relative humidity: dimensionless -> percent
+        ("relative_humidity", 0.5, "1", 50.0),
+        # Case 3: Relative humidity: already percentage
+        ("relative_humidity", 75.0, "Percent", 75.0),
     ],
 )
 def test_load_input_cubes_unit_conversion(
@@ -243,7 +243,7 @@ def test_load_input_cubes_unit_conversion(
     # Create cubes with custom units
     if param == "temperature":
         temp = make_cube(np.full((5, 5), input_val), "air_temperature", input_unit)
-        rh = make_cube(np.full((5, 5), 50.0), "relative_humidity", "1")
+        rh = make_cube(np.full((5, 5), 50.0), "relative_humidity", "Percent")
         cubes = [temp, rh]
     else:  # relative_humidity
         temp = make_cube(np.full((5, 5), 20.0), "air_temperature", "Celsius")
@@ -659,16 +659,16 @@ def test_process_with_unit_conversion() -> None:
     # Create cubes with non-standard units
     args = [
         ("air_temperature", 293.15, "K", False, INPUT_ATTRIBUTES),
-        ("relative_humidity", 50.0, "%", False, {}),
+        ("relative_humidity", 0.5, "1", False, {}),
     ]
     cubes = make_input_cubes(args, shape=(5, 5))
     plugin = ConcreteFireWeather()
 
     result = plugin.process(cubes)
 
-    # Should convert Kelvin->Celsius (293.15->20) and %->1 (50->0.5)
-    # Result should be 20 + 0.5 = 20.5
-    assert np.allclose(result.data, 20.5, atol=0.01)
+    # Should convert Kelvin->Celsius (293.15->20) and 1->% (0.5->50)
+    # Result should be 20 + 50 = 70
+    assert np.allclose(result.data, 70, atol=0.01)
 
     # Check that the input cube's data has not been modified by a side-effect
     assert np.allclose(cubes[0].data, 293.15)  # air_temperature
