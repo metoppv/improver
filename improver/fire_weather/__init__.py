@@ -37,7 +37,7 @@ class FireWeatherBase(BasePlugin):
 
     - Temperature: degrees Celsius (Celsius)
     - Precipitation: millimeters (mm)
-    - Relative humidity: dimensionless fraction (1)
+    - Relative humidity: percentage (%)
     - Wind speed: kilometers per hour (km/h)
     - All fire weather indices: dimensionless (1)
 
@@ -61,7 +61,7 @@ class FireWeatherBase(BasePlugin):
     _REQUIRED_UNITS: dict[str, str] = {
         "temperature": "Celsius",
         "precipitation": "mm",
-        "relative_humidity": "1",
+        "relative_humidity": "percent",
         "wind_speed": "km/h",
         # Fire weather indices are dimensionless
         "fine_fuel_moisture_code": "1",
@@ -93,7 +93,7 @@ class FireWeatherBase(BasePlugin):
     _VALID_RANGES: dict[str, tuple[float | None, float | None]] = {
         "temperature": (-100.0, 100.0),  # Reasonable temperature range in Celsius
         "precipitation": (0.0, None),  # Must be non-negative
-        "relative_humidity": (0.0, 101.0),  # Percentage
+        "relative_humidity": (0.0, 100.0),  # Percentage
         "wind_speed": (0.0, None),  # Must be non-negative
         "input_ffmc": (0.0, 101.0),  # Valid FFMC range
         "input_dmc": (0.0, None),  # DMC is non-negative
