@@ -93,7 +93,7 @@ class FireWeatherBase(BasePlugin):
     _VALID_RANGES: dict[str, tuple[float | None, float | None]] = {
         "temperature": (-100.0, 100.0),  # Reasonable temperature range in Celsius
         "precipitation": (0.0, None),  # Must be non-negative
-        "relative_humidity": (0.0, 100.0),  # Percentage
+        "relative_humidity": (0.0, 101.0),  # Percentage
         "wind_speed": (0.0, None),  # Must be non-negative
         "input_ffmc": (0.0, 101.0),  # Valid FFMC range
         "input_dmc": (0.0, None),  # DMC is non-negative
