@@ -152,6 +152,8 @@ def test_identify_source_transitions_avoids_same_period_false_transition():
 
     transitions = plugin._identify_source_transitions(cluster_sources, 0)
     transition_periods = [period for period, _, _ in transitions]
+    # This identifies the transitions at 21600 (uk_det -> uk_ens),
+    # 432000 (uk_ens -> gl_ens), and 648000 (gl_ens -> ecgl_ens)
     assert transition_periods == [21600, 432000, 648000]
 
 
@@ -590,11 +592,16 @@ def test_identify_periods_to_regenerate_uses_source_pair_window_override():
     )
 
     periods_to_regenerate = plugin._identify_periods_to_regenerate(cubelist)
+    # Verify that the override window of 60 minutes (3600 seconds) is used for the
+    # transition from uk_ens to gl_ens at 10800 seconds (3 hours). These values
+    # represent the transition period (10800 seconds), the start of the regeneration
+    # window (7200 seconds), and the end of the regeneration window (14400 seconds)  .
     assert periods_to_regenerate == [(10800, 7200, 14400)]
 
 
-def test_identify_periods_to_regenerate_falls_back_to_default_window():
-    """Test default interpolation window is used when no pair override matches."""
+def test_identify_periods_to_regenerate_raises_if_source_pair_not_found():
+    """Test a ValueError is raised when a transition's source pair is not in
+    interpolation_window_by_source_pair."""
     cubelist = setup_cubes_with_gaps(hours=[2, 3, 4, 5], realizations=[0])
     for cube in cubelist:
         cube.attributes["cluster_sources"] = json.dumps(
@@ -608,8 +615,10 @@ def test_identify_periods_to_regenerate_falls_back_to_default_window():
         interpolation_window_by_source_pair={"ncuk|uk_det": 60},
     )
 
-    periods_to_regenerate = plugin._identify_periods_to_regenerate(cubelist)
-    assert periods_to_regenerate == [(10800, 0, 21600)]
+    with pytest.raises(
+        ValueError, match="No interpolation window configured for source pair"
+    ):
+        plugin._identify_periods_to_regenerate(cubelist)
 
 
 def test_regeneration_produces_regular_intervals_at_fine_resolution():
@@ -702,7 +711,8 @@ def test_create_regeneration_tasks_uses_nearest_periods_with_warning():
             periods_to_regenerate=[(6 * 3600, 4 * 3600, 5 * 3600)],
             sorted_cubelist=cubelist,
         )
-
+    # Verify that the task uses the nearest available boundaries (3h and 9h)
+    # instead of the requested 4h and 5h.
     assert tasks == [("regenerate", 6 * 3600, 3 * 3600, 9 * 3600)]
 
 

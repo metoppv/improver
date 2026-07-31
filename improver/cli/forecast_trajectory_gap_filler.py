@@ -76,10 +76,13 @@ def process(
             before, at, and after the transition will be regenerated if they
             fall within the sequence.
         interpolation_window_by_source_pair (str):
-            JSON dictionary mapping source-pair keys to interpolation windows in
-            minutes. Keys must identify two source names separated by "|" or
-            "," (for example, '{"uk_ens|gl_ens": 360}'). This overrides the
-            default interpolation_window_in_minutes for matching transitions.
+            Optional dictionary mapping forecast source pairs to a transition
+            interpolation window in minutes. Keys must identify two source names,
+            separated by "|" or "," (for example "uk_ens|gl_ens": 360).
+            Matching is order-insensitive. If provided, this takes precedence
+            over interpolation_window_in_minutes and a ValueError is raised if a
+            transition's source pair is not present in this dictionary. If not
+            provided, interpolation_window_in_minutes is used for all transitions.
         model_path (str):
             Path to the TensorFlow Hub module for the Google FILM model.
             Required when interpolation_method is "google_film". Can be a local
