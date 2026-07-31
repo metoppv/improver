@@ -13,13 +13,14 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
+@pytest.mark.parametrize("example", ["discrete", "overlapping"])
 @pytest.mark.parametrize("method", ["step", "continuous"])
-def test_step_no_threshold(tmp_path, method):
+def test_step_no_threshold(tmp_path, method, example):
     """Test quantile mapping with step method and no preservation threshold."""
     kgo_dir = acc.kgo_root() / "quantile-mapping/basic/"
-    kgo_path = kgo_dir / f"kgo_{method}.nc"
-    reference_path = acc.kgo_root() / "quantile-mapping/reference.nc"
-    forecast_path = acc.kgo_root() / "quantile-mapping/forecast.nc"
+    kgo_path = kgo_dir / f"kgo_{method}_{example}.nc"
+    reference_path = acc.kgo_root() / f"quantile-mapping/reference_{example}.nc"
+    forecast_path = acc.kgo_root() / f"quantile-mapping/forecast_{example}.nc"
     output_path = tmp_path / "output.nc"
 
     args = [
@@ -27,22 +28,31 @@ def test_step_no_threshold(tmp_path, method):
         forecast_path,
         "--method",
         method,
-        "--reference-attribute",
-        "realization_selection_method=cluster_medoid",
         "--output",
         output_path,
     ]
+    if example == "overlapping":
+        args += [
+            "--reference-attribute",
+            "realization_selection_method=cluster_medoid",
+        ]
+    else:
+        args += [
+            "--reference-attribute",
+            "mosg__model_configuration=uk_det",
+        ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
+@pytest.mark.parametrize("example", ["discrete", "overlapping"])
 @pytest.mark.parametrize("method", ["step", "continuous"])
-def test_step_with_preservation_threshold(tmp_path, method):
+def test_step_with_preservation_threshold(tmp_path, method, example):
     """Test quantile mapping with step method and preservation threshold."""
     kgo_dir = acc.kgo_root() / "quantile-mapping/with_preservation_threshold/"
-    kgo_path = kgo_dir / f"kgo_{method}.nc"
-    reference_path = acc.kgo_root() / "quantile-mapping/reference.nc"
-    forecast_path = acc.kgo_root() / "quantile-mapping/forecast.nc"
+    kgo_path = kgo_dir / f"kgo_{method}_{example}.nc"
+    reference_path = acc.kgo_root() / f"quantile-mapping/reference_{example}.nc"
+    forecast_path = acc.kgo_root() / f"quantile-mapping/forecast_{example}.nc"
     output_path = tmp_path / "output.nc"
 
     args = [
@@ -52,22 +62,31 @@ def test_step_with_preservation_threshold(tmp_path, method):
         method,
         "--preservation-threshold",
         "0.00003",
-        "--reference-attribute",
-        "realization_selection_method=cluster_medoid",
         "--output",
         output_path,
     ]
+    if example == "overlapping":
+        args += [
+            "--reference-attribute",
+            "realization_selection_method=cluster_medoid",
+        ]
+    else:
+        args += [
+            "--reference-attribute",
+            "mosg__model_configuration=uk_det",
+        ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
+@pytest.mark.parametrize("example", ["discrete", "overlapping"])
 @pytest.mark.parametrize("method", ["step", "continuous"])
-def test_step_with_occurrence_threshold(tmp_path, method):
+def test_step_with_occurrence_threshold(tmp_path, method, example):
     """Test quantile mapping with step method and occurrence threshold."""
     kgo_dir = acc.kgo_root() / "quantile-mapping/with_occurrence_threshold/"
-    kgo_path = kgo_dir / f"kgo_{method}.nc"
-    reference_path = acc.kgo_root() / "quantile-mapping/reference.nc"
-    forecast_path = acc.kgo_root() / "quantile-mapping/forecast.nc"
+    kgo_path = kgo_dir / f"kgo_{method}_{example}.nc"
+    reference_path = acc.kgo_root() / f"quantile-mapping/reference_{example}.nc"
+    forecast_path = acc.kgo_root() / f"quantile-mapping/forecast_{example}.nc"
     output_path = tmp_path / "output.nc"
 
     args = [
@@ -77,10 +96,18 @@ def test_step_with_occurrence_threshold(tmp_path, method):
         method,
         "--occurrence-threshold",
         "0.00003",
-        "--reference-attribute",
-        "realization_selection_method=cluster_medoid",
         "--output",
         output_path,
     ]
+    if example == "overlapping":
+        args += [
+            "--reference-attribute",
+            "realization_selection_method=cluster_medoid",
+        ]
+    else:
+        args += [
+            "--reference-attribute",
+            "mosg__model_configuration=uk_det",
+        ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
