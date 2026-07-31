@@ -1217,20 +1217,20 @@ def test_output_validation_with_partial_ranges(
 
 
 @pytest.mark.parametrize(
-    "plugin_class, plugin_input_cube_names",
+    "plugin_class, input_cube_name, input_cube_units",
     [
-        (ConcreteFireWeatherWithMappings, ["air_temperature", "test_index"]),
-        (ConcreteFireWeather, ["air_temperature", "relative_humidity"]),
+        (ConcreteFireWeatherWithMappings, "test_index", "1"),
+        (ConcreteFireWeather, "relative_humidity", "Percent"),
     ],
 )
-def test__set_metadata(plugin_class, plugin_input_cube_names) -> None:
+def test__set_metadata(plugin_class, input_cube_name, input_cube_units) -> None:
     """Test _set_metadata via process.
 
     Test confirms that the expected metadata attributes are added to the
     output cube when run via the process function."""
     args = [
-        (plugin_input_cube_names[0], 15.0, "Celsius", False, INPUT_ATTRIBUTES),
-        (plugin_input_cube_names[1], 25.0, "1", False, {}),
+        ("air_temperature", 15.0, "Celsius", False, INPUT_ATTRIBUTES),
+        (input_cube_name, 25.0, input_cube_units, False, {}),
     ]
     cubes = make_input_cubes(args, shape=(5, 5))
     plugin = plugin_class()
@@ -1257,7 +1257,7 @@ def test__set_metadata(plugin_class, plugin_input_cube_names) -> None:
 def test__set_metadata_raise(plugin, err_msg, attributes) -> None:
     """Test _set_metadata raises NotImplementError when METADATA_SOURCE_CUBE is not set."""
     args = [
-        ("relative_humidity", 25.0, "1", False, {}),
+        ("relative_humidity", 25.0, "Percent", False, {}),
         ("air_temperature", 15.0, "Celsius", False, attributes),
     ]
     cubes = make_input_cubes(args, shape=(5, 5))
