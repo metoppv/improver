@@ -146,7 +146,7 @@ def test__perform_rainfall_adjustment_spatially_varying() -> None:
     precip_cube = make_cube(
         precip_data, "lwe_thickness_of_precipitation_amount", "mm", True
     )
-    humidity_cube = make_cube(np.full(shape, 50.0), "relative_humidity", "1")
+    humidity_cube = make_cube(np.full(shape, 50.0), "relative_humidity", "Percent")
     dmc_cube = make_cube(dmc_data, "duff_moisture_code", "1", True, INPUT_ATTRIBUTES)
     cubes = [temp_cube, precip_cube, humidity_cube, dmc_cube]
 
@@ -418,7 +418,7 @@ def test_warning_for_iteration_counts_inside_lag_time() -> None:
     cube_args = [
         ("air_temperature", 20.0, "Celsius", False, {}),
         ("lwe_thickness_of_precipitation_amount", 1.0, "mm", False, {}),
-        ("relative_humidity", 50.0, "1", False, {}),
+        ("relative_humidity", 50.0, "Percent", False, {}),
         ("duff_moisture_code", 20.0, "1", False, attributes),
     ]
     cubes = make_input_cubes(cube_args, shape=(5, 5))
@@ -461,7 +461,7 @@ def test_initialise_true_leads_to_user_warning() -> None:
         [
             ("air_temperature", 20.0, "Celsius", False, {}),
             ("lwe_thickness_of_precipitation_amount", 1.0, "mm", False, {}),
-            ("relative_humidity", 50.0, "1", False, {}),
+            ("relative_humidity", 50.0, "Percent", False, {}),
         ],
         shape=(5, 5),
     )
