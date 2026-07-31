@@ -27,7 +27,7 @@ def input_cubes(
     shape: tuple[int, ...] = (5, 5),
     temp_units: str = "Celsius",
     precip_units: str = "mm",
-    rh_units: str = "1",
+    rh_units: str = "Percent",
     dmc_units: str = "1",
 ) -> tuple[Cube, ...]:
     """Create a tuple of dummy input cubes for DMC tests, with configurable units.
@@ -230,7 +230,7 @@ def test__calculate_drying_rate_spatially_varying() -> None:
             "mm",
             add_time_coord=True,
         ),
-        make_cube(rh_data, "relative_humidity", "1"),
+        make_cube(rh_data, "relative_humidity", "Percent"),
         make_cube(
             np.full((3, 3), 10.0), "duff_moisture_code", "1", add_time_coord=True
         ),
@@ -362,7 +362,7 @@ def test_process_spatially_varying() -> None:
             "mm",
             add_time_coord=True,
         ),
-        make_cube(rh_data, "relative_humidity", "1"),
+        make_cube(rh_data, "relative_humidity", "Percent"),
         make_cube(
             dmc_data,
             "duff_moisture_code",
@@ -440,7 +440,7 @@ def test_no_warning_for_metadata_outside_lag_time(
     cube_args = [
         ("air_temperature", 20.0, "Celsius", False, {}),
         ("lwe_thickness_of_precipitation_amount", 1.0, "mm", False, {}),
-        ("relative_humidity", 50.0, "1", False, {}),
+        ("relative_humidity", 50.0, "Percent", False, {}),
         ("duff_moisture_code", 20.0, "1", False, attributes),
     ]
     cubes = make_input_cubes(cube_args, shape=(5, 5))
@@ -448,8 +448,10 @@ def test_no_warning_for_metadata_outside_lag_time(
     result = DuffMoistureCode().process(cubes, month=1)
 
     np_warning = "numpy.ndarray size changed"
-    relevant_warnings = [w for w in recwarn if np_warning not in str(w.message)]
-    assert len(relevant_warnings) == 0
+    relevant_warnings = [
+        str(w.message) for w in recwarn if np_warning not in str(w.message)
+    ]
+    assert len(relevant_warnings) == 0, f"Unexpected warnings: {relevant_warnings}"
 
     assert result.attributes["iteration_count"] == attributes["iteration_count"] + 1
     assert result.attributes["analysis_ready"] == "True"
