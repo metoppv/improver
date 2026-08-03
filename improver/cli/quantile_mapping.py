@@ -15,6 +15,7 @@ def process(
     reference_attribute: str,
     preservation_threshold: float = None,
     occurrence_threshold: float = None,
+    non_occurrence_value: float = 0.0,
     method: str = "step",
 ):
     """Adjust forecast values to match the statistical distribution of reference
@@ -44,14 +45,20 @@ def process(
             zero/small reference values into non-zero values and artificially
             increasing the non-zero area.
         occurrence_threshold:
-            Optional threshold that enables wet-fraction occurrence correction
-            before quantile mapping. When supplied, the proportion of "wet"
+            Optional threshold that enables occurrence correction before
+            quantile mapping. When supplied, the proportion of "occurring"
             forecast pixels (values strictly above this threshold) is matched to
-            the wet fraction of the reference field by setting the
-            lowest-intensity surplus wet forecast pixels to zero. Quantile
-            mapping is then applied only to the remaining wet forecast pixels
-            against the wet reference values. Useful for precipitation fields
-            where the forecast contains more wet pixels than the reference.
+            the occurrence fraction of the reference field by setting the
+            lowest-intensity surplus occurring forecast pixels to
+            non_occurrence_value. Quantile mapping is then applied only to the
+            remaining occurring forecast pixels against the occurring reference
+            values. This is intended for one-sided threshold variables. For
+            precipitation, this can reduce weak "drizzle halo" artefacts where
+            the forecast wet area is too broad.
+        non_occurrence_value:
+            Value used to represent non-occurrence when occurrence_threshold is
+            set. This should typically be at or below occurrence_threshold.
+            Default is 0.0.
         method:
             Choose from two methods of converting forecast values into quantiles
             before mapping them onto the reference distribution: 'step' and
@@ -94,6 +101,7 @@ def process(
     plugin = QuantileMapping(
         preservation_threshold=preservation_threshold,
         occurrence_threshold=occurrence_threshold,
+        non_occurrence_value=non_occurrence_value,
         method=method,
     )
     return plugin.process(

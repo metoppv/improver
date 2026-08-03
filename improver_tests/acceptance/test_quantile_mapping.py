@@ -109,5 +109,33 @@ def test_step_with_occurrence_threshold(tmp_path, method, example):
             "--reference-attribute",
             "mosg__model_configuration=uk_det",
         ]
+
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_step_with_non_occurrence_value(tmp_path):
+    """Test quantile mapping with step method and non-occurrence value."""
+    kgo_dir = acc.kgo_root() / "quantile-mapping/with_non_occurrence_value/"
+    kgo_path = kgo_dir / "kgo.nc"
+    reference_path = acc.kgo_root() / "quantile-mapping/reference_overlapping.nc"
+    forecast_path = acc.kgo_root() / "quantile-mapping/forecast_overlapping.nc"
+    output_path = tmp_path / "output.nc"
+
+    args = [
+        reference_path,
+        forecast_path,
+        "--method",
+        "step",
+        "--occurrence-threshold",
+        "0.00003",
+        "--non-occurrence-value",
+        "0.00001",
+        "--reference-attribute",
+        "realization_selection_method=cluster_medoid",
+        "--output",
+        output_path,
+    ]
+
     run_cli(args)
     acc.compare(output_path, kgo_path)

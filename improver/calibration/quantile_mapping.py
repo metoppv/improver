@@ -28,6 +28,7 @@ class QuantileMapping(PostProcessingPlugin):
         self,
         preservation_threshold: Optional[float] = None,
         occurrence_threshold: Optional[float] = None,
+        non_occurrence_value: float = 0.0,
         method: Literal["step", "continuous"] = "step",
     ) -> None:
         """Initialize the quantile mapping plugin.
@@ -41,17 +42,23 @@ class QuantileMapping(PostProcessingPlugin):
                     user may be wary of converting originally 0 mm/hr or small
                     reference values into non-zero values.
                 occurrence_threshold:
-                    Optional threshold that enables wet-fraction occurrence
-                    correction before quantile mapping. When supplied, forecast
-                    pixels are first thinned so that the proportion of
-                    "wet" forecast pixels (values strictly above this threshold)
-                    matches the wet fraction of the reference field. The lowest-
-                    intensity surplus wet forecast pixels are set to zero before
-                    quantile mapping is applied only to the remaining wet
-                    pixels against the wet reference values. This reduces
-                    excessive areas of weak precipitation ("drizzle halos") that
-                    can persist after standard quantile mapping when the forecast
-                    contains more wet pixels than the reference.
+                    Optional threshold that enables occurrence correction before
+                    quantile mapping. When supplied, forecast pixels are first
+                    thinned so that the proportion of "occurring" forecast
+                    pixels (values strictly above this threshold) matches the
+                    occurrence fraction of the reference field. The lowest-
+                    intensity surplus occurring forecast pixels are set to
+                    non_occurrence_value before quantile mapping is applied only
+                    to the remaining occurring pixels against the occurring
+                    reference values. This is suited to one-sided threshold
+                    variables where the field has a clear non-occurrence state
+                    (for example precipitation occurrence). For precipitation,
+                    this can reduce weak-intensity "drizzle halos" where the
+                    forecast has an unrealistically broad wet area.
+                non_occurrence_value:
+                    Value used to represent non-occurrence when
+                    occurrence_threshold is set. This should typically be at or
+                    below occurrence_threshold. Default is 0.0.
                 method:
                     Choose from two methods of converting forecast values into quantiles
                     before mapping them onto the reference distribution: 'step' and
@@ -153,6 +160,17 @@ class QuantileMapping(PostProcessingPlugin):
         """
         self.preservation_threshold = preservation_threshold
         self.occurrence_threshold = occurrence_threshold
+        self.non_occurrence_value = non_occurrence_value
+
+        if self.occurrence_threshold is not None:
+            if not np.isfinite(self.non_occurrence_value):
+                raise ValueError("non_occurrence_value must be finite.")
+            if self.non_occurrence_value > self.occurrence_threshold:
+                raise ValueError(
+                    "non_occurrence_value must be less than or equal to "
+                    "occurrence_threshold."
+                )
+
         method = method.lower()
         if method not in ["step", "continuous"]:
             raise ValueError(
@@ -339,8 +357,8 @@ class QuantileMapping(PostProcessingPlugin):
     ) -> np.ndarray:
         """Dispatch to the appropriate calibration strategy.
 
-        When occurrence_threshold is set, applies wet-fraction occurrence
-        correction before quantile mapping (see :meth:`_apply_wet_fraction_correction`).
+        When occurrence_threshold is set, applies occurrence correction before
+        quantile mapping (see :meth:`_apply_occurrence_correction`).
         Otherwise, applies standard quantile mapping directly
         (see :meth:`_map_quantiles`).
 
@@ -352,32 +370,39 @@ class QuantileMapping(PostProcessingPlugin):
             Array of calibrated forecast values.
         """
         if self.occurrence_threshold is not None:
-            return self._apply_wet_fraction_correction(reference_data, forecast_data)
+            return self._apply_occurrence_correction(reference_data, forecast_data)
         return self._map_quantiles(reference_data, forecast_data)
 
-    def _apply_wet_fraction_correction(
+    def _apply_occurrence_correction(
         self,
         reference_data: np.ndarray,
         forecast_data: np.ndarray,
     ) -> np.ndarray:
-        """Match the forecast wet fraction to the reference, then quantile-map
-        wet pixels.
+        """Match forecast occurrence fraction to reference, then quantile-map
+        occurring pixels.
 
-        This is a precipitation-specific pre-processing step applied before quantile
-        mapping when ``occurrence_threshold`` is set. It reduces excessive areas of weak
-        precipitation ("drizzle halos") by ensuring the proportion of wet forecast
-        pixels matches the reference before intensity correction is applied.
+        This pre-processing step is applied before quantile mapping when
+        occurrence_threshold is set. It is intended for one-sided threshold
+        variables where values above the threshold indicate occurrence and
+        non-occurrence is represented by non_occurrence_value.
+
+        A common example is precipitation, where this can suppress excessive
+        areas of weak rain ("drizzle halos") by matching the forecast wet-area
+        fraction to the reference before correcting intensities.
 
         Algorithm:
 
-        1. Compute the fraction of wet pixels in the reference field (values strictly
-           above ``occurrence_threshold``).
-        2. Find the forecast value corresponding to the same exceedance fraction. This
-           is the cutoff below which surplus wet forecast pixels will be dried out.
-        3. Set forecast pixels at or below this cutoff to zero.
-        4. Apply quantile mapping using only the wet pixels from each field (those
-           still strictly above ``occurrence_threshold`` after step 3).
-        5. Return an array with zero for dry pixels and corrected values for wet pixels.
+          1. Compute the fraction of occurring pixels in the reference field (values
+            strictly above occurrence_threshold).
+          2. Find the forecast value corresponding to the same exceedance fraction. This
+            is the cutoff below which surplus occurring forecast pixels will be set
+            to non_occurrence_value.
+          3. Set forecast pixels at or below this cutoff to non_occurrence_value.
+          4. Apply quantile mapping using only the occurring pixels from each field
+            (those still strictly above occurrence_threshold after step 3) using the
+            _map_quantiles method.
+          5. Return an array with non_occurrence_value for non-occurring pixels and
+              corrected values for occurring pixels.
 
         Args:
             reference_data:
@@ -386,29 +411,34 @@ class QuantileMapping(PostProcessingPlugin):
                 Array of valid (non-masked) forecast values.
 
         Returns:
-            Array of the same size as ``forecast_data`` with corrected values for
-            wet pixels and zero for dry pixels.
+            Array of the same size as forecast_data with corrected values for
+            occurring pixels and non_occurrence_value for non-occurring pixels.
         """
-        # Step 1: wet fraction of reference field
-        reference_wet_fraction = np.mean(reference_data > self.occurrence_threshold)
+        # Step 1: occurrence fraction of reference field
+        reference_occurrence_fraction = np.mean(
+            reference_data > self.occurrence_threshold
+        )
 
         # Step 2: forecast value at the corresponding exceedance fraction
-        forecast_cutoff = np.quantile(forecast_data, 1.0 - reference_wet_fraction)
+        forecast_cutoff = np.quantile(
+            forecast_data, 1.0 - reference_occurrence_fraction
+        )
 
-        # Step 3: dry out surplus wet forecast pixels
-        forecast_data = forecast_data.copy()
-        forecast_data[forecast_data <= forecast_cutoff] = 0.0
+        # Step 3: suppress surplus occurring forecast pixels
+        forecast_data[forecast_data <= forecast_cutoff] = self.non_occurrence_value
 
-        # Step 4: quantile map wet pixels only
-        result = np.zeros(forecast_data.size, dtype=float)
-        forecast_wet_mask = forecast_data > self.occurrence_threshold
-        reference_wet_mask = reference_data > self.occurrence_threshold
+        # Step 4: quantile map occurring pixels only
+        result = np.full(forecast_data.size, self.non_occurrence_value, dtype=float)
+        forecast_occurrence_mask = forecast_data > self.occurrence_threshold
+        reference_occurrence_mask = reference_data > self.occurrence_threshold
 
-        forecast_wet = forecast_data[forecast_wet_mask]
-        reference_wet = reference_data[reference_wet_mask]
+        forecast_occurrence = forecast_data[forecast_occurrence_mask]
+        reference_occurrence = reference_data[reference_occurrence_mask]
 
-        if forecast_wet.size > 0 and reference_wet.size > 0:
-            result[forecast_wet_mask] = self._map_quantiles(reference_wet, forecast_wet)
+        if forecast_occurrence.size > 0 and reference_occurrence.size > 0:
+            result[forecast_occurrence_mask] = self._map_quantiles(
+                reference_occurrence, forecast_occurrence
+            )
 
         return result
 
