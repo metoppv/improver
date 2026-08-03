@@ -12,6 +12,8 @@ pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
 CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
+METRES_PER_SECOND_TOLERANCE = 1e-9
+
 
 @pytest.mark.parametrize("example", ["discrete", "overlapping"])
 @pytest.mark.parametrize("method", ["step", "continuous"])
@@ -42,7 +44,15 @@ def test_step_no_threshold(tmp_path, method, example):
             "mosg__model_configuration=uk_det",
         ]
     run_cli(args)
-    acc.compare(output_path, kgo_path)
+    if example == "overlapping":
+        acc.compare(output_path, kgo_path)
+    else:
+        acc.compare(
+            output_path,
+            kgo_path,
+            rtol=METRES_PER_SECOND_TOLERANCE,
+            atol=METRES_PER_SECOND_TOLERANCE,
+        )
 
 
 @pytest.mark.parametrize("example", ["discrete", "overlapping"])
@@ -60,23 +70,33 @@ def test_step_with_preservation_threshold(tmp_path, method, example):
         forecast_path,
         "--method",
         method,
-        "--preservation-threshold",
-        "0.00003",
         "--output",
         output_path,
     ]
     if example == "overlapping":
         args += [
+            "--preservation-threshold",
+            "0.00003",
             "--reference-attribute",
             "realization_selection_method=cluster_medoid",
         ]
     else:
         args += [
+            "--preservation-threshold",
+            "8.333333e-9",
             "--reference-attribute",
             "mosg__model_configuration=uk_det",
         ]
     run_cli(args)
-    acc.compare(output_path, kgo_path)
+    if example == "overlapping":
+        acc.compare(output_path, kgo_path)
+    else:
+        acc.compare(
+            output_path,
+            kgo_path,
+            rtol=METRES_PER_SECOND_TOLERANCE,
+            atol=METRES_PER_SECOND_TOLERANCE,
+        )
 
 
 @pytest.mark.parametrize("example", ["discrete", "overlapping"])
@@ -94,24 +114,35 @@ def test_step_with_occurrence_threshold(tmp_path, method, example):
         forecast_path,
         "--method",
         method,
-        "--occurrence-threshold",
-        "0.00003",
         "--output",
         output_path,
     ]
     if example == "overlapping":
         args += [
+            "--occurrence-threshold",
+            "0.00003",
             "--reference-attribute",
             "realization_selection_method=cluster_medoid",
         ]
     else:
         args += [
+            "--occurrence-threshold",
+            "8.333333e-9",
             "--reference-attribute",
             "mosg__model_configuration=uk_det",
         ]
 
     run_cli(args)
-    acc.compare(output_path, kgo_path)
+
+    if example == "overlapping":
+        acc.compare(output_path, kgo_path)
+    else:
+        acc.compare(
+            output_path,
+            kgo_path,
+            rtol=METRES_PER_SECOND_TOLERANCE,
+            atol=METRES_PER_SECOND_TOLERANCE,
+        )
 
 
 def test_step_with_non_occurrence_value(tmp_path):
