@@ -3116,12 +3116,18 @@ def test_clusterandmatch_unreferenced_model_id_warns():
             r"\['unlisted_model'\]\. These cubes will be ignored\."
         ),
     ):
-        plugin.process(cubes)
+        result = plugin.process(cubes)
+
+    assert all(
+        "unlisted_model" not in str(value)
+        for value in result.attributes.values()
+    )
 
 
 def test_clusterandmatch_deterministic_secondary_input():
     """Test that a deterministic (no-realization) secondary input is supported.
 
+    The primary input provides the baseline clustered forecast for all forecast periods.
     When a secondary input cube has no realization coordinate it should be treated
     as having a single realization and follow the partial-realization path, replacing
     the best-matching cluster at the relevant forecast periods with its data.

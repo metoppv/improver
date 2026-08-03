@@ -749,7 +749,8 @@ class RealizationClusterAndMatch(BasePlugin):
             # forecast period and truncate this secondary input if the count changes
             # at later lead times. This avoids a source pulsing in/out and keeps
             # all periods for this source mergeable for consistent multi-period
-            # matching.
+            # matching. If no realization coordinate exists, treat it as a single
+            # realization (deterministic).
             first_fp, first_cube = valid_fp_cube_pairs[0]
             n_realizations = (
                 len(first_cube.coord("realization").points)
