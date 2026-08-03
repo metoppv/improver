@@ -4,10 +4,10 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Module for saving netcdf cubes with desired attribute types."""
 
-import os
 import tempfile
 import warnings
-from typing import Optional, Union
+from pathlib import Path
+from typing import Union
 
 import cf_units
 import iris
@@ -15,6 +15,7 @@ import iris.fileformats
 from iris.cube import Cube, CubeAttrsDict, CubeList
 
 from improver.metadata.check_datatypes import check_mandatory_standards
+from improver.utilities.common_input_handle import as_cubelist
 
 
 def _order_cell_methods(cube: Cube) -> None:
@@ -54,100 +55,164 @@ def _check_metadata(cube: Cube) -> None:
         raise ValueError("{} has unknown units".format(cube.name()))
 
 
+def _horizontal_grid(cube):
+    x = cube.coord(axis="x", dim_coords=True)
+    xdim = cube.coord_dims(x)[0]
+    y = cube.coord(axis="y", dim_coords=True)
+    ydim = cube.coord_dims(y)[0]
+    return xdim, ydim, x, y
+
+
+def _derive_chunksizes(cubelist):
+    derive_chunksize = True
+    rcube = cubelist[0]
+    try:
+        rxdim, rydim, rx, ry = _horizontal_grid(rcube)
+    except iris.exceptions.CoordinateNotFoundError:
+        return None
+
+    if derive_chunksize and len(cubelist) > 1:
+        for cube in cubelist[1:]:
+            # check that chunksizes can apply to the full cubelist
+            try:
+                xdim, ydim, x, y = _horizontal_grid(cube)
+            except iris.exceptions.CoordinateNotFoundError:
+                return None
+            if (
+                cube.ndim != rcube.ndim  # same dimensionality
+                or xdim != rxdim  # same x dimension mapping
+                or ydim != rydim  # same y dimension mapping
+                or cube.shape[xdim] != rcube.shape[rxdim]  # same x dimension size
+                or cube.shape[ydim] != rcube.shape[rydim]  # same y dimension size
+            ):
+                derive_chunksize = False
+                msg = "Chunksize not set as cubelist contains cubes of varying x-y shape/mapping"
+                warnings.warn(msg)
+                break
+
+    if derive_chunksize and rcube.ndim >= 2:
+        # If all xy slices are the same shape, use this to determine
+        # the chunksize for the netCDF (eg. 1, 1, 970, 1042)
+        chunksizes = [1] * rcube.ndim
+        chunksizes[rxdim] = rcube.shape[rxdim]
+        chunksizes[rydim] = rcube.shape[rydim]
+    return tuple(chunksizes) if derive_chunksize else None
+
+
 def save_netcdf(
     cubelist: Union[Cube, CubeList],
-    filename: str,
-    compression_level: int = 1,
-    least_significant_digit: Optional[int] = None,
-    fill_value: Optional[float] = None,
+    filename: str | Path,
+    complevel: int = 1,
+    zlib: bool | None = None,
+    shuffle: bool = True,
+    chunksizes: tuple | None = None,
+    **kwargs,
 ) -> None:
-    """Save the input Cube or CubeList as a NetCDF file and check metadata
+    """
+    Save the input Cube or CubeList as a NetCDF file and check metadata
     where required for integrity.
 
     Uses the functionality provided by iris.fileformats.netcdf.save with
     local_keys to record non-global attributes as data attributes rather than
-    global attributes.
+    global attributes.  The save is made with
+    iris.FUTURE.context(save_split_attrs=True).
+    iris.fileformats.netcdf.save will add a new "least_significant_digit"
+    attribute, but will not update an existing attribute when saving with
+    different precision. Therefore, we remove the "least_significant_digit"
+    attribute if present.
+
+    We further deviate from iris.fileformats.netcdf.save default behaviour
+    as per keyword arguments.
 
     Args:
         cubelist:
-            Cube or list of cubes to be saved
+            Cube or CubeList to be saved.
         filename:
             Filename to save input cube(s)
-        compression_level:
-            1-9 to specify compression level, or 0 to not compress (default compress
-            with complevel 1)
-        least_significant_digit:
-            If specified will truncate the data to a precision given by
-            10**(-least_significant_digit), e.g. if least_significant_digit=2, then the data will
-            be quantized to a precision of 0.01 (10**(-2)). See
-            http://www.esrl.noaa.gov/psd/data/gridded/conventions/cdc_netcdf_standard.shtml
-            for details. When used with `compression level`, this will result in lossy
-            compression.
-        fill_value:
-            If specified, will set the fill value for missing data. If not specified,
-            the default fill value for the data type will be used. If the data is not masked then
-            the numpy array's fill value will retain the default value while the _FillValue attribute
-            in the NetCDF file will be updated.
+        complevel:
+            Compression level for the NetCDF file. Must be an integer between 0 and 9
+            where 0 disables compression. Default is 1 (iris default is 4).
+        zlib:
+            Whether to use zlib compression. If None (default), set to True
+            if complevel > 0, otherwise False. iris default is False.
+        shuffle:
+            Whether to use HDF5 shuffle filter. Default is True (iris default is False).
+        chunksizes:
+            Tuple defining chunk sizes for the output file. If None (default),
+            automatically determined as a 1 for all dimensions except the x and y
+            dimensions, which are set to the full size of the x and y dimensions.
+        **kwargs:
+            Additional keyword arguments to pass to iris.fileformats.netcdf.save.
 
     Raises:
         ValueError:
-            If compression_level is not between 0 and 9.
+            If complevel is not between 0 and 9.
+
 
     Warns:
+        If compression_level is passed via kwargs (deprecated, use complevel instead).
         If cubelist contains cubes of varying dimensions.
     """
-    if isinstance(cubelist, iris.cube.Cube):
-        cubelist = iris.cube.CubeList([cubelist])
-    elif not isinstance(cubelist, iris.cube.CubeList):
-        cubelist = iris.cube.CubeList(cubelist)
+    cubelist = as_cubelist(cubelist)
+
+    # Handle deprecated compression_level argument
+    if "compression_level" in kwargs:
+        warnings.warn(
+            "The 'compression_level' argument is deprecated and will be removed in a future release. "
+            "Please use 'complevel' instead.  Overriding 'complevel' with 'compression_level' if both "
+            "are provided.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        complevel = kwargs.pop("compression_level", None)
+
+    if complevel is None:
+        complevel = 1
+    else:
+        # iris does no validation of the compression level, so we do it here
+        try:
+            old_complevel = complevel
+            complevel = int(complevel)
+            if old_complevel != complevel or complevel not in range(10):
+                raise ValueError
+        except (ValueError, TypeError):
+            raise ValueError(
+                "Compression level must be an integer value between 0 and 9 (0 to disable compression)"
+            )
+
+    if zlib is None:
+        zlib = complevel > 0
 
     for cube in cubelist:
         _order_cell_methods(cube)
         _check_metadata(cube)
-        # iris.fileformats.netcdf.save will add a new "least_significant_digit"
-        # attribute, but will not update an existing attribute when saving with
-        # different precision. Therefore, we remove the "least_significant_digit"
-        # attribute if present.
         cube.attributes.pop("least_significant_digit", None)
         _cube_attributes_for_save(cube)
 
-    # If all xy slices are the same shape, use this to determine
-    # the chunksize for the netCDF (eg. 1, 1, 970, 1042)
-    chunksizes = None
-    if len({cube.shape[:2] for cube in cubelist}) == 1:
-        cube = cubelist[0]
-        if cube.ndim >= 2:
-            xy_chunksizes = [cube.shape[-2], cube.shape[-1]]
-            chunksizes = tuple([1] * (cube.ndim - 2) + xy_chunksizes)
-    else:
-        msg = "Chunksize not set as cubelist contains cubes of varying dimensions"
-        warnings.warn(msg)
+    if chunksizes is None:
+        chunksizes = _derive_chunksizes(cubelist)
 
-    if compression_level not in range(10):
-        raise ValueError(
-            "Compression level must be an integer value between 0 and 9 (0 to disable compression)"
-        )
+    filename = Path(filename)
 
     # save atomically by writing to a unique temporary file of the form <filename>-<unique>.tmp
     with tempfile.NamedTemporaryFile(
-        dir=os.path.dirname(filename),
-        prefix=os.path.basename(filename) + "-",
+        dir=filename.parent,
+        prefix=filename.name + "-",
         suffix=".tmp",
     ) as tmp_file:
-        tmp_filename = tmp_file.name
+        tmp_filename = Path(tmp_file.name)
         with iris.FUTURE.context(save_split_attrs=True):
             iris.fileformats.netcdf.save(
                 cubelist,
-                tmp_filename,
-                complevel=compression_level,
-                shuffle=True,
-                zlib=compression_level > 0,
+                str(tmp_filename),
+                complevel=complevel,
+                shuffle=shuffle,
+                zlib=zlib,
                 chunksizes=chunksizes,
-                least_significant_digit=least_significant_digit,
-                fill_value=fill_value,
+                **kwargs,
             )
-        os.rename(tmp_filename, filename)
-        os.chmod(filename, 0o644)
+        tmp_filename.replace(filename)
+        filename.chmod(0o644)
 
 
 def _cube_attributes_for_save(cube: Cube):
