@@ -34,6 +34,7 @@ def set_up_test_cube():
         "Conventions": "CF-1.5",
         "institution": "Met Office",
         "history": "",
+        "reference": "Any global reference to the Met Office Unified Model",
     }
 
     cube = set_up_variable_cube(
@@ -60,6 +61,7 @@ class Test_save_netcdf(unittest.TestCase):
             "Conventions",
             "institution",
             "history",
+            "reference",
         ]
         self.directory = mkdtemp()
         self.filepath = os.path.join(self.directory, "temp.nc")
@@ -205,7 +207,7 @@ class Test_save_netcdf(unittest.TestCase):
         cube_list = [self.cube, self.cube]
         save_netcdf(cube_list, self.filepath)
         global_keys_in_file = Dataset(self.filepath, mode="r").ncattrs()
-        self.assertEqual(len(global_keys_in_file), 9)
+        self.assertEqual(len(global_keys_in_file), 10)
         self.assertTrue(all(key in self.global_keys_ref for key in global_keys_in_file))
 
     def test_error_unknown_units(self):
