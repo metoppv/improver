@@ -385,7 +385,7 @@ def test__convert_reference_cube_to_forecast_units(
             np.array(
                 [
                     [[0.1, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]],
-                    [[1.0, 1.8, 2.8], [3.8, 4.9, 5.8], [6.8, 7.7, 8.7]],
+                    [[0.1, 1.8, 2.8], [3.8, 4.9, 5.8], [6.8, 7.7, 8.7]],
                 ],
                 dtype=np.float32,
             ),
@@ -395,7 +395,11 @@ def test__convert_reference_cube_to_forecast_units(
 def test_quantile_mapping_process_preservation_threshold(
     reference_cube, forecast_cube, preservation_threshold, expected
 ):
-    """Test quantile mapping with and without a preservation threshold."""
+    """Test quantile mapping with and without a preservation threshold.
+
+    If a preservation threshold of 0.51 is set, values below this threshold in the
+    reference cube are preserved in the output, and the corresponding forecast values
+    are replaced with the lowest occurring reference value (0.1 in this case)."""
     plugin = QuantileMapping(preservation_threshold=preservation_threshold)
     result = plugin.process(reference_cube, forecast_cube)
 
