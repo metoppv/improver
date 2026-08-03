@@ -895,6 +895,85 @@ def test_process_2d_spot_data(rescale, nan_mask_value):
     np.testing.assert_array_almost_equal(result, expected, decimal=3)
 
 
+def test_process_negative_values_masked_with_nan_mask_value():
+    """Test that negative values (representing stochastic noise) are masked when
+    nan_mask_value is set, and do not contribute to gamma distribution fitting.
+
+    This tests the fix for ensuring that negative stochastic noise values used only
+    for ensemble reordering are excluded from gamma distribution mean/std calculation.
+    When nan_mask_value <= 0 is set, values <= 0 should be masked as NaN before
+    computing mean and std.
+    """
+    # Create intensity data with negative stochastic noise mixed with positive values
+    # Column 1: [-0.3, 4.0, 6.0] - negative noise masked, mean/std from [4.0, 6.0]
+    # Column 2: [2.0, 8.0, 10.0] - all positive, mean/std from all values
+    intensity_data = np.array(
+        [
+            [-0.3, 2.0],  # Negative noise (should be masked), positive value
+            [4.0, 8.0],
+            [6.0, 10.0],
+        ],
+        dtype=np.float32,
+    )
+
+    thresholds = [0.5, 1.0, 2.0, 4.0]
+    probability_data = np.array(
+        [
+            [[0.6, 0.9]],
+            [[0.5, 0.6]],
+            [[0.4, 0.4]],
+            [[0.3, 0.3]],
+        ],
+        dtype=np.float32,
+    )
+
+    intensity_cube, probability_cube = _create_intensity_and_probability_cubes(
+        intensity_data, thresholds, probability_data
+    )
+
+    # Process with nan_mask_value=0.0 (should mask values <= 0.0)
+    plugin = CalculatePercentilesFromIntensityDistribution(
+        nan_mask_value=0.0,
+        scale_percentiles_to_probability_lower_bound=False,
+    )
+
+    result = plugin.process(probability_cube, intensity_cube)
+
+    # Verify result shape and type
+    assert isinstance(result, np.ndarray)
+    assert result.shape == intensity_data.shape
+    assert result.dtype == np.float32
+
+    # Negative values in input are masked ahead of gamma distribution fitting.
+    # The left column has negative values [-0.3, 4.0, 6.0], so only [4.0, 6.0] are used
+    # for mean/std calculation. The negative value maps to a percentile value of
+    # 0.0 (0th percentile), 4.0 maps to 0.157 (15.7th percentile) and 6 maps to 0.843
+    # (84.3rd percentile).
+    np.testing.assert_allclose(
+        result[:, 0],
+        [0.0, 0.157, 0.843],
+        atol=1e-3,
+        err_msg=(
+            "Negative intensity value should map to zero, and positive values "
+            "to 0.157 and 0.843 in gamma CDF"
+        ),
+    )
+
+    # The right column has positive values [2.0, 8.0, 10.0] and should map to quantiles
+    # close to 0.037 (3.7th percentile), 0.704 (70.4th percentile),
+    # 0.846 (84.6th percentile) for this test setup i.e. where a gamma distribution
+    # is approximated using the mean and standard deviation of [2.0, 8.0, 10.0].
+    np.testing.assert_allclose(
+        result[:, 1],
+        [0.037, 0.704, 0.846],
+        atol=1e-3,
+        err_msg=(
+            "Positive intensity values should map to approximately 0.037, 0.704, "
+            "0.846 in gamma CDF"
+        ),
+    )
+
+
 def test_process_1d_input_raises_error():
     """Test that process method with 1D input raises appropriate error."""
     from iris.cube import Cube
