@@ -100,7 +100,7 @@ class Test_process(unittest.TestCase):
     def test_handles_different_sized_arrays(self):
         """Test when if different size arrays have been input"""
         u_href = np.full([3, 3], 10, dtype=float)
-        msg = "Different size input arrays u_href, h_ref, z_0, mask"
+        msg = f"Input arrays must have identical sizes, but sizes are: wspeed_at_h_ref={np.size(u_href)}, h_ref={np.size(self.h_ref)}, model_z0={np.size(self.z_0)}, ustar_mask={np.size(self.mask)}"
         with self.assertRaisesRegex(ValueError, msg):
             FrictionVelocity(u_href, self.h_ref, self.z_0, self.mask).process()
 

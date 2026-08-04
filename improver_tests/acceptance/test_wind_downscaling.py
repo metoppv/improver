@@ -22,7 +22,15 @@ def test_basic(tmp_path):
         for p in ("input", "sigma", "highres_orog", "standard_orog", "a_over_s")
     ]
     output_path = tmp_path / "output.nc"
-    args = [*input_paths, "--model-resolution", "1500", "--output", output_path]
+    args = [
+        *input_paths,
+        "--model-resolution",
+        "1500",
+        "--mode",
+        "hc",
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -42,6 +50,8 @@ def test_vegetation(tmp_path):
         veg_path,
         "--model-resolution",
         "1500",
+        "--mode",
+        "hc_and_rc",
         "--output",
         output_path,
     ]
@@ -58,7 +68,15 @@ def test_realization(tmp_path):
         for p in ("input", "sigma", "highres_orog", "standard_orog", "a_over_s")
     ]
     output_path = tmp_path / "output.nc"
-    args = [*input_paths, "--model-resolution", "1500", "--output", output_path]
+    args = [
+        *input_paths,
+        "--model-resolution",
+        "1500",
+        "--mode",
+        "hc",
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -77,6 +95,8 @@ def test_single_level_output(tmp_path):
         *input_paths,
         "--model-resolution",
         "1500",
+        "--mode",
+        "hc",
         "--output-height-level",
         "50",
         "--output",
@@ -98,6 +118,8 @@ def test_unavailable_level(tmp_path):
         *input_paths,
         "--model-resolution",
         "1500",
+        "--mode",
+        "hc",
         "--output-height-level",
         "9",
         "--output-height-level-units",
@@ -123,6 +145,8 @@ def test_single_level_units(tmp_path):
         *input_paths,
         "--model-resolution",
         "1500",
+        "--mode",
+        "hc",
         "--output-height-level",
         "5000",
         "--output-height-level-units",
