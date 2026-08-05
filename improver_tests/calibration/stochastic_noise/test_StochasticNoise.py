@@ -4,6 +4,8 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the StochasticNoise plugin"""
 
+import warnings
+
 import numpy as np
 import pytest
 from iris.cube import Cube
@@ -260,6 +262,236 @@ def test_process_scalar_realization_coord():
 
     assert isinstance(result, Cube)
     assert result.shape == single_realization_cube.shape
+
+
+@pytest.mark.parametrize(
+    "constant_value, expect_changed",
+    [(0.0, True), (1.0, False)],
+)
+def test_process_constant_input(constant_value: float, expect_changed: bool):
+    """Data within the input cubes is set to a constant value. Degenerate input
+    warning is raised for constant zero input with fallback noise constrained to the
+    dry_fallback_range. For non-zero constant input, no warning is raised and output
+    equals input."""
+    data = np.full((4, 4), constant_value, dtype=np.float32)
+    cube = set_up_variable_cube(data=data, name="precipitation_rate", units="mm/hr")
+
+    if constant_value == 0.0:
+        # Degenerate path requires wet_noise_floor for guaranteed separation.
+        plugin = StochasticNoise(
+            ssft_generate_params={"seed": 0},
+            scale_non_positive_noise=True,
+            wet_noise_floor=-5.0,
+        )
+        with pytest.warns(UserWarning, match="Degenerate input field detected"):
+            result = plugin.process(cube)
+    else:
+        plugin = StochasticNoise(ssft_generate_params={"seed": 0})
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.simplefilter("always")
+            result = plugin.process(cube)
+        assert not any(
+            "Degenerate input field detected" in str(w.message) for w in caught_warnings
+        )
+
+    assert isinstance(result, Cube)
+    assert result.shape == cube.shape
+    assert np.all(np.isfinite(result.data))
+    if expect_changed:
+        assert np.any(result.data != cube.data)
+        assert np.all(result.data <= -5.0)
+        assert np.all(result.data >= -10.0)
+    else:
+        np.testing.assert_array_equal(result.data, cube.data)
+
+
+@pytest.mark.parametrize("constant_value", [0.0, 1.0])
+def test_process_constant_input_seeded_is_reproducible(constant_value: float):
+    """Seeded processing of constant fields is reproducible via process."""
+    data = np.full((4, 4), constant_value, dtype=np.float32)
+    cube = set_up_variable_cube(data=data, name="precipitation_rate", units="mm/hr")
+    if constant_value == 0.0:
+        plugin = StochasticNoise(
+            ssft_generate_params={"seed": 42},
+            scale_non_positive_noise=True,
+            wet_noise_floor=-5.0,
+        )
+        with pytest.warns(UserWarning, match="Degenerate input field detected"):
+            first = plugin.process(cube)
+        with pytest.warns(UserWarning, match="Degenerate input field detected"):
+            second = plugin.process(cube)
+    else:
+        plugin = StochasticNoise(ssft_generate_params={"seed": 42})
+        first = plugin.process(cube)
+        second = plugin.process(cube)
+
+    np.testing.assert_array_equal(first.data, second.data)
+
+
+def test_process_all_zero_input_with_scale_non_positive_noise():
+    """All-zero input should use constrained dry fallback range when configured."""
+    plugin = StochasticNoise(
+        ssft_generate_params={"seed": 0},
+        scale_non_positive_noise=True,
+        wet_noise_floor=-5.0,
+    )
+
+    data = np.zeros((4, 4), dtype=np.float32)
+    cube = set_up_variable_cube(data=data, name="precipitation_rate", units="mm/hr")
+
+    with pytest.warns(UserWarning, match="Degenerate input field detected"):
+        result = plugin.process(cube)
+
+    assert isinstance(result, Cube)
+    assert result.shape == cube.shape
+    assert np.all(np.isfinite(result.data))
+    assert np.all(result.data <= -5.0)
+    assert np.all(result.data >= -10.0)
+    # Ensure the configured dry fallback range is active on output.
+    assert np.isclose(np.max(result.data), -5.0)
+
+
+def test_process_window_level_degeneracy_fallback():
+    """When SSFT fails due to window-level degeneracy, fall back to linear noise."""
+    plugin = StochasticNoise(
+        ssft_generate_params={"seed": 0},
+        scale_non_positive_noise=True,
+        wet_noise_floor=-5.0,
+    )
+
+    data = np.array(
+        [[0.0, 0.1], [0.0, 0.0]],
+        dtype=np.float32,
+    )
+    cube = set_up_variable_cube(data=data, name="precipitation_rate", units="mm/hr")
+
+    def mock_do_fft(_):
+        raise ValueError("zero-size array to reduction operation minimum")
+
+    # Replace the plugin's do_fft method with a mock function that raises a ValueError.
+    # This simulates SSFT failure, so we can confirm that a warning is issued and
+    # fallback occurs.
+    plugin.do_fft = mock_do_fft
+
+    with pytest.warns(UserWarning, match="SSFT initialisation failed"):
+        result = plugin.process(cube)
+
+    assert isinstance(result, Cube)
+    assert result.shape == cube.shape
+    assert np.all(np.isfinite(result.data))
+    non_positive_mask = data <= 0
+    assert np.all(result.data[non_positive_mask] <= -5.0)
+    assert np.all(result.data[non_positive_mask] >= -10.0)
+
+
+def test_process_all_zero_input_constant_fallback_clamps_to_dry_max():
+    """Constant dry fallback values should clamp to dry_max without division by zero."""
+    plugin = StochasticNoise(
+        ssft_generate_params={"seed": 0},
+        scale_non_positive_noise=True,
+        wet_noise_floor=-5.0,
+    )
+
+    # Force a constant fallback field so dry_vmax == dry_vmin in remapping.
+    plugin._fallback_noise_linear = lambda shape: np.full(shape, -2.0, dtype=np.float32)
+
+    data = np.zeros((4, 4), dtype=np.float32)
+    cube = set_up_variable_cube(data=data, name="precipitation_rate", units="mm/hr")
+
+    with pytest.warns(UserWarning, match="Degenerate input field detected"):
+        result = plugin.process(cube)
+
+    assert np.all(np.isfinite(result.data))
+    # Default dry_fallback_range for wet_noise_floor=-5.0 is (-10.0, -5.0), so
+    # the clamp target at zero dynamic range is dry_max == -5.0.
+    assert np.all(result.data == -5.0)
+
+
+def test_process_wet_path_applies_wet_noise_floor_clip():
+    """Wet SSFT path should clip overly negative scaled noise to wet_noise_floor."""
+    plugin = StochasticNoise(
+        ssft_generate_params={"seed": 0},
+        scale_non_positive_noise=True,
+        wet_noise_floor=-5.0,
+    )
+
+    data = np.array(
+        [[0.0, 1.0], [0.0, 2.0]],
+        dtype=np.float32,
+    )
+    cube = set_up_variable_cube(data=data, name="precipitation_rate", units="mm/hr")
+
+    # Force non-degenerate SSFT path and produce non-positive-region noise values
+    # that become [0, -100] after scaling, so clipping to wet_noise_floor is required.
+    plugin.do_fft = lambda _: np.array(
+        [[20.0, 0.0], [-40.0, 0.0]],
+        dtype=np.float32,
+    )
+
+    result = plugin.process(cube)
+
+    non_positive_mask = data <= 0
+    assert np.all(result.data[non_positive_mask] >= -5.0)
+    assert np.any(result.data[non_positive_mask] == -5.0)
+
+
+def test_degenerate_fallback_without_wet_noise_floor_raises():
+    """Degenerate fallback without wet_noise_floor should raise ValueError."""
+    plugin = StochasticNoise(ssft_generate_params={"seed": 0})
+    data = np.zeros((4, 4), dtype=np.float32)
+    cube = set_up_variable_cube(data=data, name="precipitation_rate", units="mm/hr")
+
+    with pytest.warns(UserWarning, match="Degenerate input field detected"):
+        with pytest.raises(ValueError, match="wet_noise_floor is not set"):
+            plugin.process(cube)
+
+
+def test_wet_noise_floor_without_scale_non_positive_noise_raises():
+    """Setting wet_noise_floor without scale_non_positive_noise=True should raise."""
+    with pytest.raises(
+        ValueError, match="scale_non_positive_noise must be True when wet_noise_floor"
+    ):
+        StochasticNoise(wet_noise_floor=-5.0)
+
+
+def test_wet_noise_floor_non_negative_raises():
+    """Setting a non-negative wet_noise_floor should raise ValueError."""
+    with pytest.raises(ValueError, match="wet_noise_floor must be negative"):
+        StochasticNoise(wet_noise_floor=0.0, scale_non_positive_noise=True)
+
+
+def test_dry_fallback_range_invalid_length_raises():
+    """dry_fallback_range must contain exactly two values."""
+    with pytest.raises(ValueError, match="must contain exactly two values"):
+        StochasticNoise(
+            wet_noise_floor=-5.0,
+            scale_non_positive_noise=True,
+            dry_fallback_range=(-10.0,),
+        )
+
+
+@pytest.mark.parametrize(
+    "dry_fallback_range",
+    [(-5.0, -5.0), (-4.0, -5.0), (-10.0, 1.0)],
+)
+def test_dry_fallback_range_invalid_bounds_raises(dry_fallback_range):
+    """dry_fallback_range bounds must satisfy min < max <= 0."""
+    with pytest.raises(ValueError, match="min_value < max_value <= 0"):
+        StochasticNoise(
+            wet_noise_floor=-5.0,
+            scale_non_positive_noise=True,
+            dry_fallback_range=dry_fallback_range,
+        )
+
+
+def test_dry_fallback_range_max_above_wet_floor_raises():
+    """dry_fallback_range max must not exceed wet_noise_floor when both are set."""
+    with pytest.raises(ValueError, match="max must be <= wet_noise_floor"):
+        StochasticNoise(
+            wet_noise_floor=-5.0,
+            scale_non_positive_noise=True,
+            dry_fallback_range=(-10.0, -4.0),
+        )
 
 
 def test_non_positive_threshold():
