@@ -115,19 +115,18 @@ jobs:
         echo "pr_tot_stmts=$pr_tot_stmts" | tee -a $GITHUB_OUTPUT
         echo "pr_tot_miss=$pr_tot_miss" | tee -a $GITHUB_OUTPUT
 
+        coverage_decreased=false
+        ref_perc_total="N/A"
+        ref_tot_stmts="N/A"
+        ref_tot_miss="N/A"
+
         if [ ! -f covref/master/coverage_output.txt ]; then
             echo "Warning: covref/master/coverage_output.txt does not exist, reporting coverage."
-            echo "coverage_decreased=true" | tee -a $GITHUB_OUTPUT
-            echo "ref_perc_total=--" | tee -a $GITHUB_OUTPUT
-            echo "ref_tot_stmts=--" | tee -a $GITHUB_OUTPUT
-            echo "ref_tot_miss=--" | tee -a $GITHUB_OUTPUT
-            exit 0
+            coverage_decreased=true
+            summary_line="Coverage reduced by **N/A** (no reference file found)."
         else
             read ref_tot_stmts ref_tot_miss <<< $(awk '/^[[:space:]]*TOTAL/ {print $2, $3}' covref/master/coverage_output.txt)
             ref_perc_total=$(echo "scale=4; ($ref_tot_stmts-$ref_tot_miss)/$ref_tot_stmts"'*100' | bc)
-            echo "ref_perc_total=$ref_perc_total" | tee -a $GITHUB_OUTPUT
-            echo "ref_tot_stmts=$ref_tot_stmts" | tee -a $GITHUB_OUTPUT
-            echo "ref_tot_miss=$ref_tot_miss" | tee -a $GITHUB_OUTPUT
 
             trigger=0
 
@@ -141,10 +140,28 @@ jobs:
                 trigger=1
             fi
             if (( trigger == 1 )); then
-                echo "coverage_decreased=true" | tee -a $GITHUB_OUTPUT
+                coverage_decreased=true
+                perc_diff_display=$(printf '%.2f' $perc_diff)
+                summary_line=$(printf "Coverage reduced by **%.2f%%** (from %.2f%% to %.2f%%)." $perc_diff_display $ref_perc_total $pr_perc_total)
             else
                 echo "coverage_decreased=false" | tee -a $GITHUB_OUTPUT
             fi
+        fi
+
+        if [ "$coverage_decreased" = true ]; then
+            printf '%s\n' \
+                "$summary_line" \
+                "" \
+                "| | Statements | Missed | Coverage |" \
+                "|---|---|---|---|" \
+                "| This PR | ${pr_tot_stmts} | ${pr_tot_miss} | ${pr_perc_total}% |" \
+                "| Reference (master) | ${ref_tot_stmts} | ${ref_tot_miss} | ${ref_perc_total}% |" \
+                > coverage_summary.md
+
+            echo "coverage_decreased=true" | tee -a $GITHUB_OUTPUT
+            echo "ref_perc_total=$ref_perc_total" | tee -a $GITHUB_OUTPUT
+            echo "ref_tot_stmts=$ref_tot_stmts" | tee -a $GITHUB_OUTPUT
+            echo "ref_tot_miss=$ref_tot_miss" | tee -a $GITHUB_OUTPUT
         fi
 
     - name: Upload coverage report
@@ -152,21 +169,29 @@ jobs:
       if: steps.comp-coverage.outputs.coverage_decreased == 'true'
       uses: actions/upload-artifact@v7
       with:
-        name: coverage-report-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
+        name: coverage-report-${{ github.event.pull_request.number }}
         path: |
           coverage_output.txt
+          coverage_summary.md
           htmlcov/
 
     - name: Reduced coverage failure
       if: steps.comp-coverage.outputs.coverage_decreased == 'true'
-      run:  |
+      run: |
           echo "Code coverage has decreased"
           echo "-----------------------------------------------"
           echo -e "Coverage totals\tstatements\tmissed\n\
-          PR\t${{ steps.comp-coverage.outputs.pr_tot_stmts }}\t${{ steps.comp-coverage.outputs.pr_tot_miss }}\t${{ steps.comp-coverage.outputs.pr_perc_total }}%\n\
-          Reference\t${{ steps.comp-coverage.outputs.ref_tot_stmts }}\t${{ steps.comp-coverage.outputs.ref_tot_miss }}\t${{ steps.comp-coverage.outputs.ref_perc_total }}%" \
+          PR\t${pr_tot_stmts}\t${pr_tot_miss}\t${pr_perc_total}%\n\
+          Reference\t${ref_tot_stmts}\t${ref_tot_miss}\t${ref_perc_total}%" \
           | column -t -s $'\t'
           exit 1
+      env:
+        pr_tot_stmts: ${{ steps.comp-coverage.outputs.pr_tot_stmts }}
+        pr_tot_miss: ${{ steps.comp-coverage.outputs.pr_tot_miss }}
+        pr_perc_total: ${{ steps.comp-coverage.outputs.pr_perc_total }}
+        ref_tot_stmts: ${{ steps.comp-coverage.outputs.ref_tot_stmts }}
+        ref_tot_miss: ${{ steps.comp-coverage.outputs.ref_tot_miss }}
+        ref_perc_total: ${{ steps.comp-coverage.outputs.ref_perc_total }}
 
 
   Pytest:
