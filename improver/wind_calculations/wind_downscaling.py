@@ -675,6 +675,11 @@ class WindTerrainAdjustmentUtilities:
         else:
             height_3d = height_above_orog
 
+        # In HC-only workflows a roughness-length cube may not be supplied
+        # Fall back to 1 so HC proceeds without the Bessel modulation
+        if self.model_z0 is None:
+            return np.ones_like(height_3d, dtype=np.float32)
+
         z0_3d = self.model_z0[:, :, np.newaxis] * np.ones_like(height_3d)
         k_3d = self.wavenumber[:, :, np.newaxis] * np.ones_like(height_3d)
 
