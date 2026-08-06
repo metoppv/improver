@@ -13,6 +13,7 @@ from cf_units import Unit
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 from numpy import ndarray
+from scipy.special import kv
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.constants import RMDI
@@ -20,12 +21,15 @@ from improver.constants import RMDI
 # Fractional tolerance used when deciding whether an absolute correction to
 # the computed reference height is significant. Corrections smaller than this
 # value are treated as noise and ignored.
-ABSOLUTE_CORRECTION_TOL = 0.04
+ABSOLUTE_CORRECTION_TOL = 0.12
 
-# Multiplier used to convert terrain‑related variability (e.g. orographic
-# standard deviation or silhouette roughness) into an effective reference
-# height for the logarithmic wind‑profile calculation.
-HREF_SCALE = 2.0
+# Numerical guards used in terrain-response calculations:
+# - HONTWO_MIN prevents division by very small half-peak-to-trough heights
+#   when forming slope-to-height ratios for wave-number estimates.
+# - LOG_KH_MIN limits the lower tail of log(k*h_half) so reference-height
+#   factors remain bounded for very weak terrain perturbations.
+HONTWO_MIN = 1.0
+LOG_KH_MIN = -4.0
 
 # Von Karman's constant, used in the logarithmic wind‑profile equation.
 VONKARMAN = 0.4
@@ -317,11 +321,17 @@ class WindTerrainAdjustmentUtilities:
             self.model_silhouette_roughness.shape, RMDI, dtype=np.float32
         )
 
-        # Compute wavenumber k for valid height‑correction points
+        # Compute wavenumber for valid points:
+        # k = pi * clip(aons / max(h_half, 1), 1/dx_max, 1/dx_min)
         valid = self.hc_mask
-        wavenumber[valid] = (
-            self.model_silhouette_roughness[valid] * np.pi
-        ) / self.h_half[valid]
+        slope_over_height = np.full(self.h_half.shape, 0.0, dtype=np.float32)
+        slope_over_height[valid] = self.model_silhouette_roughness[valid] / np.maximum(
+            self.h_half[valid], HONTWO_MIN
+        )
+        slope_over_height = np.clip(
+            slope_over_height, 1.0 / self.dx_max, 1.0 / self.dx_min
+        )
+        wavenumber[valid] = np.pi * slope_over_height[valid]
 
         # Apply upper/lower bounds determined by smallest+largest resolvable scales
         wavenumber[wavenumber > (np.pi / self.dx_min)] = np.pi / self.dx_min
@@ -330,54 +340,47 @@ class WindTerrainAdjustmentUtilities:
 
         return wavenumber
 
+    @staticmethod
+    def _max_over_3x3_stencil(field: ndarray) -> ndarray:
+        """Return the local 3x3 maximum at each grid point."""
+        nx, ny = field.shape
+        padded = np.pad(field, ((1, 1), (1, 1)), mode="edge")
+        neighbors = [padded[i : i + nx, j : j + ny] for i in range(3) for j in range(3)]
+        return np.maximum.reduce(neighbors)
+
     def _calc_h_ref(self) -> ndarray:
-        """Calculate the reference height h_ref for roughness correction.
+        """Calculate roughness reference height and take 3x3 max.
 
-        The reference height marks the height below which the flow is
-        considered to be in equilibrium with the vegetative roughness.
-        This height is proportional to 1 / wavenumber (Howard & Clark, 2007).
+        The local (point) value uses:
+          factor = 0,                                if k*h/2 <= abs_tol
+          factor = 1,                                if k*h/2 >= exp(1-alpha)
+          factor = alpha + max(log(k*h/2), LOG_KH_MIN), otherwise
+          href_local = factor / k
 
-        Vosper (2009) and Clark (2009) argue that at the reference
-        height, the perturbation should have decayed to a fraction
-        epsilon (ABSOLUTE_CORRECTION_TOL).
-
-        The factor alpha implements eq. 1.3 in Clark (2009): UK Climatology
-        - Wind Screening Tool. See also Vosper (2009) for a motivation. It is
-        defined as alpha = -log(ABSOLUTE_CORRECTION_TOL)
-
-        alpha is the log of scale parameter to determine reference
-        height which is currently set to 0.04 (this corresponds to
-        epsilon in both Vosper and Clark)
-
-        Returns:
-            ndarray: 2D array of reference height h_ref for roughness
-                correction.
-
-        References:
-            Howard T., Clark P. 2007. Correction and downscaling of NWP wind
-            speed forecasts. Meteorological Applications 14(2), 105-116.
+        The final field uses the maximum over a 3x3 stencil, mirroring a
+        neighborhood-based setup where href is built on surrounding points
+        then maxed.
         """
         alpha = -np.log(ABSOLUTE_CORRECTION_TOL)
+        log_ub = np.exp(1.0 - alpha)
 
-        tunable = np.full(self.wavenumber.shape, RMDI, dtype=np.float32)
-        h_ref = np.full(self.wavenumber.shape, RMDI, dtype=np.float32)
+        h_ref_local = np.zeros(self.wavenumber.shape, dtype=np.float32)
+        valid = self.hc_mask & np.isfinite(self.wavenumber) & (self.wavenumber > 0.0)
+        if np.any(valid):
+            kho2 = self.wavenumber[valid] * self.h_half[valid]
+            factor = np.zeros(kho2.shape, dtype=np.float32)
 
-        # Compute tunable parameter for valid points
-        valid = self.hc_mask
-        tunable[valid] = alpha + np.log(self.wavenumber[valid] * self.h_half[valid])
-        tunable = np.clip(tunable, 0.0, 1.0)
+            upper = kho2 >= log_ub
+            mid = (kho2 > ABSOLUTE_CORRECTION_TOL) & (~upper)
 
-        # Compute reference height
-        h_ref[valid] = tunable[valid] / self.wavenumber[valid]
+            factor[upper] = 1.0
+            if np.any(mid):
+                factor[mid] = alpha + np.maximum(np.log(kho2[mid]), LOG_KH_MIN)
 
-        # Enforce lower and upper bounds on h_ref
-        h_ref = np.maximum(h_ref, 1.0)
-        h_ref = np.minimum(h_ref, HREF_SCALE * self.h_half)
-        h_ref = np.maximum(h_ref, 1.0)
+            h_ref_local[valid] = factor / self.wavenumber[valid]
 
-        # For points outside hc_mask, no roughness correction is applied
+        h_ref = self._max_over_3x3_stencil(h_ref_local)
         h_ref[~self.hc_mask] = 0.0
-
         return h_ref
 
     def calc_roughness_correction(
@@ -654,6 +657,40 @@ class WindTerrainAdjustmentUtilities:
 
         return hc_add
 
+    def _calc_bessel_onemfrac(self, height_above_orog: ndarray) -> ndarray:
+        """Calculate the Bessel inner factor Re(1 - K0(z) / K0(z0)).
+
+        This mirrors the setup structure using complex arguments
+        built from local wavenumber, roughness length and height.
+
+        Args:
+            height_above_orog: 1D or 3D float32 array of heights above orography.
+
+        Returns:
+            3D float32 array of the Bessel factor (1 - frac), defaulting to 1.0
+            where the expression is not finite.
+        """
+        if height_above_orog.ndim == 1:
+            height_3d = height_above_orog[np.newaxis, np.newaxis, :]
+        else:
+            height_3d = height_above_orog
+
+        z0_3d = self.model_z0[:, :, np.newaxis] * np.ones_like(height_3d)
+        k_3d = self.wavenumber[:, :, np.newaxis] * np.ones_like(height_3d)
+
+        onemfrac = np.ones_like(height_3d, dtype=np.float32)
+        with np.errstate(invalid="ignore", divide="ignore", over="ignore"):
+            kln_z_over_z0 = k_3d * np.log(height_3d / z0_3d)
+            root_c_z = (1.0 + 1.0j) * np.sqrt(kln_z_over_z0 * height_3d) / VONKARMAN
+            root_c_z0 = (1.0 + 1.0j) * np.sqrt(kln_z_over_z0 * z0_3d) / VONKARMAN
+            k0_z = kv(0, root_c_z)
+            k0_z0 = kv(0, root_c_z0)
+            factor = np.real(1.0 - (k0_z / k0_z0))
+
+        finite = np.isfinite(factor)
+        onemfrac[finite] = factor[finite].astype(np.float32)
+        return onemfrac
+
     def _delta_height(self) -> ndarray:
         """Calculate the difference between post-processing grid height and
         model grid height.
@@ -710,6 +747,8 @@ class WindTerrainAdjustmentUtilities:
         # Mask where missing data in height and wind fields
         valid = self._mask_missing_data(height_above_orog, wspeed_original)
         mask_rc = self.rc_mask & valid
+        # Disable roughness correction for low href.
+        mask_rc[self.h_ref < 10.0] = False
 
         return self.calc_roughness_correction(
             height_above_orog, wspeed_original, mask_rc
@@ -747,11 +786,7 @@ class WindTerrainAdjustmentUtilities:
         # HC only where u(h_ref) is positive
         mask_hc[uhref_orig <= 0.0] = False
 
-        # Setting this value to 1, is equivalent to setting the
-        # Bessel function to 1. (Friedrich, 2016)
-        # Example usage if the Bessel function was not set to 1 is:
-        # onemfrac = 1.0 - BfuncFrac(nx,ny,nz,heightvec,z_0,waveno, Ustar, UI)
-        onemfrac = 1.0
+        onemfrac = self._calc_bessel_onemfrac(height_above_orog)
         hc_add = self._calc_height_corr(
             uhref_orig, height_above_orog, mask_hc, onemfrac
         )
