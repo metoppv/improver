@@ -795,6 +795,8 @@ class WindTerrainAdjustmentUtilities:
         hc_add = self._calc_height_corr(
             uhref_orig, height_above_orog, mask_hc, onemfrac
         )
+        # Apply HC only where the additive term is strictly positive
+        hc_add[hc_add <= 0.0] = 0.0
 
         # Ensure hc_add has same dimensionality as wspeed_original
         if hc_add.ndim == 3 and hc_add.shape[2] == 1:
