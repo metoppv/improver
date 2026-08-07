@@ -692,9 +692,7 @@ class RealizationClusterAndMatch(BasePlugin):
             ]
 
             # Keep only forecast periods present in the primary and sort by lead time.
-            valid_fp_cube_pairs = [
-                (fp, cube) for fp, cube in fp_cube_pairs if fp in primary_fps
-            ]
+            valid_fp_cube_pairs = [x for x in fp_cube_pairs if x[0] in primary_fps]
             valid_fp_cube_pairs = sorted(valid_fp_cube_pairs, key=lambda x: x[0])
 
             if not valid_fp_cube_pairs:
@@ -1013,7 +1011,10 @@ class RealizationClusterAndMatch(BasePlugin):
         cluster_sources, and secondary_input_realizations_to_clusters. These
         variables are used to track which clusters have been replaced, which model
         provided data for each cluster, and which secondary realizations correspond to
-        each cluster, respectively. This information will be added later as attributes
+        each cluster, respectively. Cluster replacement refers to where the medoid
+        realization representing a cluster is replaced with the most pattern-similar
+        realization from a secondary input.
+        This information will be added later as attributes
         to the final output cube.
         Called from the per-forecast-period loop in both
         _process_full_realization_inputs and _process_partial_realization_inputs.
