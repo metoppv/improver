@@ -56,16 +56,46 @@ def test___init__():
     # Test default parameters
     plugin_default = QuantileMapping()
     assert plugin_default.preservation_threshold is None
+    assert plugin_default.occurrence_threshold is None
+    assert plugin_default.non_occurrence_value == 0.0
     assert plugin_default.method == "step"
 
     # Test custom parameters
-    plugin_custom = QuantileMapping(preservation_threshold=0.5, method="continuous")
+    plugin_custom = QuantileMapping(
+        preservation_threshold=0.5,
+        occurrence_threshold=0.1,
+        non_occurrence_value=0.0,
+        method="continuous",
+    )
     assert plugin_custom.preservation_threshold == 0.5
+    assert plugin_custom.occurrence_threshold == 0.1
+    assert plugin_custom.non_occurrence_value == 0.0
     assert plugin_custom.method == "continuous"
 
     # Test invalid method raises error
     with pytest.raises(ValueError, match="Unsupported method"):
         QuantileMapping(method="unsupported_method")
+
+
+def test___init___non_occurrence_value_must_not_exceed_occurrence_threshold():
+    """Test non_occurrence_value must be <= occurrence_threshold."""
+    with pytest.raises(
+        ValueError,
+        match="non_occurrence_value must be less than or equal to occurrence_threshold",
+    ):
+        QuantileMapping(occurrence_threshold=0.1, non_occurrence_value=0.2)
+
+
+def test___init___non_occurrence_value_must_be_finite():
+    """Test non_occurrence_value must be finite when occurrence_threshold is set."""
+    with pytest.raises(ValueError, match="non_occurrence_value must be finite"):
+        QuantileMapping(occurrence_threshold=0.1, non_occurrence_value=np.nan)
+
+
+def test___init___occurrence_threshold_must_be_finite():
+    """Test occurrence_threshold must be finite when set."""
+    with pytest.raises(ValueError, match="occurrence_threshold must be finite"):
+        QuantileMapping(occurrence_threshold=np.nan)
 
 
 @pytest.mark.parametrize(
@@ -274,7 +304,7 @@ def reference_cube():
                 [7.0, 8.0, 9.0],
             ],
             [
-                [0.7, 1.8, 2.8],
+                [0.1, 1.8, 2.8],
                 [3.8, 4.9, 5.8],
                 [6.8, 7.7, 8.7],
             ],
@@ -296,7 +326,7 @@ def forecast_cube():
                 [6.7, 7.6, 8.6],
             ],
             [
-                [0.5, 1.6, 2.6],
+                [0.9, 1.6, 2.6],
                 [3.6, 4.7, 5.6],
                 [6.6, 7.5, 8.5],
             ],
@@ -350,8 +380,8 @@ def test__convert_reference_cube_to_forecast_units(
             None,
             np.array(
                 [
-                    [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]],
-                    [[0.7, 1.8, 2.8], [3.8, 4.9, 5.8], [6.8, 7.7, 8.7]],
+                    [[0.1, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]],
+                    [[1.0, 1.8, 2.8], [3.8, 4.9, 5.8], [6.8, 7.7, 8.7]],
                 ],
                 dtype=np.float32,
             ),
@@ -360,18 +390,22 @@ def test__convert_reference_cube_to_forecast_units(
             0.51,
             np.array(
                 [
-                    [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]],
-                    [[0.5, 1.8, 2.8], [3.8, 4.9, 5.8], [6.8, 7.7, 8.7]],
+                    [[0.1, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]],
+                    [[0.1, 1.8, 2.8], [3.8, 4.9, 5.8], [6.8, 7.7, 8.7]],
                 ],
                 dtype=np.float32,
             ),
         ),
     ],
 )
-def test_quantile_mapping_process_thresholding(
+def test_quantile_mapping_process_preservation_threshold(
     reference_cube, forecast_cube, preservation_threshold, expected
 ):
-    """Test quantile mapping with and without a preservation threshold."""
+    """Test quantile mapping with and without a preservation threshold.
+
+    If a preservation threshold of 0.51 is set, values below this threshold in the
+    reference cube are preserved in the output, and the corresponding forecast values
+    are replaced with the lowest occurring reference value (0.1 in this case)."""
     plugin = QuantileMapping(preservation_threshold=preservation_threshold)
     result = plugin.process(reference_cube, forecast_cube)
 
@@ -380,6 +414,95 @@ def test_quantile_mapping_process_thresholding(
     assert result.data.dtype == np.float32
     assert not np.ma.is_masked(result.data)
     np.testing.assert_array_equal(result.data, expected)
+
+
+@pytest.mark.parametrize(
+    ["occurrence_threshold", "expected"],
+    [
+        (
+            None,
+            np.array(
+                [
+                    [[0.1, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]],
+                    [[1.0, 1.8, 2.8], [3.8, 4.9, 5.8], [6.8, 7.7, 8.7]],
+                ],
+                dtype=np.float32,
+            ),
+        ),
+        (
+            0.51,
+            np.array(
+                [
+                    [[0.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]],
+                    [[1.0, 1.8, 2.8], [3.8, 4.9, 5.8], [6.8, 7.7, 8.7]],
+                ],
+                dtype=np.float32,
+            ),
+        ),
+    ],
+)
+def test_quantile_mapping_process_occurrence_threshold(
+    reference_cube, forecast_cube, occurrence_threshold, expected
+):
+    """Test quantile mapping with and without an occurrence threshold.
+
+    If an occurrence threshold of 0.51 is set, values below this threshold in the
+    reference cube are considered non-occurring, and the corresponding forecast values
+    are set to the non_occurrence_value (default 0.0). In this test, the first value
+    of 0.1 in the reference cube is below the threshold, so the corresponding
+    forecast value is set to the non_occurrence_value."""
+    plugin = QuantileMapping(occurrence_threshold=occurrence_threshold)
+    result = plugin.process(reference_cube, forecast_cube)
+
+    assert isinstance(result, Cube)
+    assert result.shape == forecast_cube.shape
+    assert result.data.dtype == np.float32
+    assert not np.ma.is_masked(result.data)
+    np.testing.assert_array_equal(result.data, expected)
+
+
+def test_quantile_mapping_process_occurrence_threshold_custom_non_occurrence_value(
+    reference_cube, forecast_cube
+):
+    """Test occurrence correction uses the configured non_occurrence_value, so
+    values below the occurrence threshold are set to the non_occurrence_value (-1.0)."""
+    plugin = QuantileMapping(occurrence_threshold=0.51, non_occurrence_value=-1.0)
+    result = plugin.process(reference_cube, forecast_cube)
+
+    expected = np.array(
+        [
+            [[-1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]],
+            [[1.0, 1.8, 2.8], [3.8, 4.9, 5.8], [6.8, 7.7, 8.7]],
+        ],
+        dtype=np.float32,
+    )
+
+    assert isinstance(result, Cube)
+    assert result.shape == forecast_cube.shape
+    assert result.data.dtype == np.float32
+    assert not np.ma.is_masked(result.data)
+    np.testing.assert_array_equal(result.data, expected)
+
+
+@pytest.mark.parametrize(
+    "reference_data",
+    [
+        np.array([0.1, 0.2, 0.3], dtype=np.float32),
+        np.array([0.7, 0.8, 0.9], dtype=np.float32),
+    ],
+)
+def test__apply_occurrence_correction_warns_for_degenerate_occurrence_fraction(
+    reference_data,
+):
+    """Warn if the reference occurrence fraction is exactly 0 or 1."""
+    plugin = QuantileMapping(occurrence_threshold=0.5)
+    forecast_data = np.array([0.2, 0.6, 0.9], dtype=np.float32)
+
+    with pytest.warns(
+        UserWarning,
+        match="Reference occurrence fraction is exactly 0 or 1",
+    ):
+        plugin._apply_occurrence_correction(reference_data, forecast_data)
 
 
 @pytest.mark.parametrize(
