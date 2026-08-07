@@ -57,8 +57,7 @@ def process(
             the forecast wet area is too broad.
         non_occurrence_value:
             Value used to represent non-occurrence when occurrence_threshold is
-            set. This should typically be at or below occurrence_threshold.
-            Default is 0.0.
+            set. This should be at or below occurrence_threshold. Default is 0.0.
         method:
             Choose from two methods of converting forecast values into quantiles
             before mapping them onto the reference distribution: 'step' and

@@ -13,6 +13,7 @@ processed reference forecast). It works by:
 This corrects systematic biases while preserving spatial patterns.
 """
 
+import warnings
 from typing import Literal, Optional, Tuple
 
 import numpy as np
@@ -57,8 +58,8 @@ class QuantileMapping(PostProcessingPlugin):
                 forecast has an unrealistically broad wet area.
             non_occurrence_value:
                 Value used to represent non-occurrence when
-                occurrence_threshold is set. This should typically be at or
-                below occurrence_threshold. Default is 0.0.
+                occurrence_threshold is set. This should be at or below
+                occurrence_threshold. Default is 0.0.
             method:
                 Choose from two methods of converting forecast values into quantiles
                 before mapping them onto the reference distribution: 'step' and
@@ -154,8 +155,11 @@ class QuantileMapping(PostProcessingPlugin):
                 (e.g. for n=1000,quantiles are [0.001, 0.002, ..., 0.999, 1.0] vs
                 [0.0005, 0.0015, ..., 0.9985, 0.9995]).
         Raises:
-                ValueError:
-                    If an unsupported method is specified.
+            ValueError: If occurrence_threshold is not finite when set.
+            ValueError: If non_occurrence_value is not finite when occurrence_threshold
+                is set.
+            ValueError: If non_occurrence_value is greater than occurrence_threshold.
+            ValueError: If an unsupported method is specified.
 
         """
         self.preservation_threshold = preservation_threshold
@@ -163,6 +167,8 @@ class QuantileMapping(PostProcessingPlugin):
         self.non_occurrence_value = non_occurrence_value
 
         if self.occurrence_threshold is not None:
+            if not np.isfinite(self.occurrence_threshold):
+                raise ValueError("occurrence_threshold must be finite.")
             if not np.isfinite(self.non_occurrence_value):
                 raise ValueError("non_occurrence_value must be finite.")
             if self.non_occurrence_value > self.occurrence_threshold:
@@ -413,11 +419,24 @@ class QuantileMapping(PostProcessingPlugin):
         Returns:
             Array of the same size as forecast_data with corrected values for
             occurring pixels and non_occurrence_value for non-occurring pixels.
+
+        Warns:
+            UserWarning: If the reference occurrence fraction is exactly 0 or 1,
+                indicating a degenerate case where occurrence correction is likely
+                uninformative for this scene.
         """
         # Step 1: occurrence fraction of reference field
         reference_occurrence_fraction = np.mean(
             reference_data > self.occurrence_threshold
         )
+
+        if reference_occurrence_fraction in (0.0, 1.0):
+            warnings.warn(
+                "Reference occurrence fraction is exactly 0 or 1. "
+                "Occurrence correction is degenerate for this scene and may "
+                "indicate an uninformative occurrence_threshold choice.",
+                UserWarning,
+            )
 
         # Step 2: forecast value at the corresponding exceedance fraction
         forecast_cutoff = np.quantile(

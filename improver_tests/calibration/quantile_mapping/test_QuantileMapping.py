@@ -92,6 +92,12 @@ def test___init___non_occurrence_value_must_be_finite():
         QuantileMapping(occurrence_threshold=0.1, non_occurrence_value=np.nan)
 
 
+def test___init___occurrence_threshold_must_be_finite():
+    """Test occurrence_threshold must be finite when set."""
+    with pytest.raises(ValueError, match="occurrence_threshold must be finite"):
+        QuantileMapping(occurrence_threshold=np.nan)
+
+
 @pytest.mark.parametrize(
     ["method", "num_points", "expected_quantiles"],
     [
@@ -476,6 +482,27 @@ def test_quantile_mapping_process_occurrence_threshold_custom_non_occurrence_val
     assert result.data.dtype == np.float32
     assert not np.ma.is_masked(result.data)
     np.testing.assert_array_equal(result.data, expected)
+
+
+@pytest.mark.parametrize(
+    "reference_data",
+    [
+        np.array([0.1, 0.2, 0.3], dtype=np.float32),
+        np.array([0.7, 0.8, 0.9], dtype=np.float32),
+    ],
+)
+def test__apply_occurrence_correction_warns_for_degenerate_occurrence_fraction(
+    reference_data,
+):
+    """Warn if the reference occurrence fraction is exactly 0 or 1."""
+    plugin = QuantileMapping(occurrence_threshold=0.5)
+    forecast_data = np.array([0.2, 0.6, 0.9], dtype=np.float32)
+
+    with pytest.warns(
+        UserWarning,
+        match="Reference occurrence fraction is exactly 0 or 1",
+    ):
+        plugin._apply_occurrence_correction(reference_data, forecast_data)
 
 
 @pytest.mark.parametrize(
