@@ -9,7 +9,7 @@ import pytest
 from iris.cube import Cube, CubeList
 
 from improver.fire_weather.fire_severity_index import FireSeverityIndex
-from improver_tests.fire_weather import make_cube, make_input_cubes
+from improver_tests.fire_weather import INPUT_ATTRIBUTES, make_cube, make_input_cubes
 
 
 def input_cubes(
@@ -32,8 +32,8 @@ def input_cubes(
     Returns:
         Tuple containing FWI Cube.
     """
-    args = fwi_val, fwi_units, True, {"start_date": "2025-03-17"}
-    cube_args = [("canadian_forest_fire_weather_index", *args)]
+    args = fwi_val, fwi_units, True, INPUT_ATTRIBUTES
+    cube_args = [("fire_weather_index", *args)]
     return make_input_cubes(cube_args, shape=shape)
 
 
@@ -102,9 +102,7 @@ def test__calculate_spatially_varying() -> None:
     fwi_data = np.array([[5.0, 10.0, 20.0], [8.0, 15.0, 30.0], [12.0, 25.0, 50.0]])
 
     cubes = [
-        make_cube(
-            fwi_data, "canadian_forest_fire_weather_index", "1", add_time_coord=True
-        ),
+        make_cube(fwi_data, "fire_weather_index", "1", add_time_coord=True),
     ]
 
     plugin = FireSeverityIndex()
@@ -169,10 +167,10 @@ def test_process_spatially_varying() -> None:
     Verifies vectorized DSR calculation with varying values across the grid.
     """
     fwi_data = np.array([[5.0, 10.0, 20.0], [8.0, 15.0, 30.0], [12.0, 25.0, 50.0]])
-    make_cube_args = "1", True, {"start_date": "2025-03-17"}
+    make_cube_args = "1", True, INPUT_ATTRIBUTES
 
     cubes = [
-        make_cube(fwi_data, "canadian_forest_fire_weather_index", *make_cube_args),
+        make_cube(fwi_data, "fire_weather_index", *make_cube_args),
     ]
 
     result = FireSeverityIndex().process(cubes)

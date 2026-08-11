@@ -9,46 +9,56 @@ from typing import List, Optional, Tuple
 
 import pyproj
 from geopandas import GeoDataFrame, GeoSeries, clip
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 from numpy import array, min, round
 from shapely.geometry import Point
 
 from improver import BasePlugin
+from improver.utilities.cube_manipulation import compare_coords
 
 
-class DistanceTo(BasePlugin):
+class DistanceToFeature(BasePlugin):
     """
-    Plugin to calculate the distance to the nearest feature in a geometry from
-    sites to the nearest metre.
+    Plugin to calculate the distance from sites to the nearest feature in a geometry.
+    This is a generic plugin that can be used for any type of feature (e.g., coastlines,
+    rivers, lakes, etc.). Distances are calculated to the nearest metre.
 
     Given a cube containing site locations and a GeoDataFrame, the distance to each site
-    from the nearest point of the feature geometry is calculated. This is done by converting
-    the feature geometry and sites to a common target orography that must be specified using a
-    European Petroleum Survey Group (EPSG) code that identifies the projection. For the
-    UK, EPSG code 3035 may be used to provide a Lambert Azimuthal Equal Area projection that
-    is suitable for the region. The chosen projection should match the projection on which the
-    ancillary will be used. The distance method from Shapely is used to find the distance
-    from each site to every point in the feature geometry. The minimum of these distances is
-    returned as the distance to the nearest feature in the feature geometry and this is rounded
-    to the nearest metre.
+    from the nearest point of the feature geometry is calculated. This is done by
+    converting the feature geometry and sites to a common target projection that must be
+    specified using a European Petroleum Survey Group (EPSG) code that identifies the
+    projection. For the UK, EPSG code 3035 may be used to provide a Lambert Azimuthal
+    Equal Area projection that is suitable for the region. The chosen projection should
+    match the projection on which the ancillary will be used. The distance method from
+    Shapely is used to find the distance from each site to every point in the feature
+    geometry. The minimum of these distances is returned as the distance to the nearest
+    feature in the feature geometry and this is rounded to the nearest metre.
 
     If requested, the provided geometry will be clipped to the bounds of the site
-    locations with a buffer to improve performance by reducing computation. This is useful when
-    the geometry is large and it would be expensive to calculate the distance to all features
-    in the geometry but information may be lost at the edges of the domain.
+    locations with a buffer to improve performance by reducing computation. This is
+    useful when the geometry is large and it would be expensive to calculate the
+    distance to all features in the geometry but information may be lost at the edges of
+    the domain.
+
+    Optionally, an exclusion geometry can be provided to the process method. For sites
+    outside the exclusion geometry, the distance to the feature will be set to 0. This
+    is useful for cases where the target region cannot be represented as a GeoDataFrame
+    directly (e.g. for distance to ocean, you would provide the coastline as the feature
+    geometry and the land geometry as the exclusion geometry, so that sites outside the
+    land geometry — i.e. in the ocean — have a distance of 0).
     """
 
     def __init__(
         self,
         epsg_projection: int,
-        new_name: Optional[str] = None,
+        new_name: str,
         buffer: float = 30000,
-        clip_geometry_flag: bool = False,
+        clip_geometry: bool = False,
         parallel: bool = False,
         n_parallel_jobs: Optional[int] = len(os.sched_getaffinity(0)),
     ) -> None:
         """
-        Initialise the DistanceTo plugin.
+        Initialise the DistanceToFeature plugin.
 
         Args:
             epsg_projection:
@@ -58,16 +68,16 @@ class DistanceTo(BasePlugin):
                 for example, EPSG code 3035, which defines a Lambert Azimuthal Equal
                 Areas projection suitable for the UK.
             new_name:
-                The name of the output cube.
+                The name of the output cube. E.g. 'distance_to_coast'.
             buffer:
                 A buffer distance in m. If the geometry is clipped, this distance will
                 be added onto the outermost site locations to define the domain to clip
                 the geometry to.
-            clip_geometry_flag:
-                A flag to indicate whether the geometry should be clipped to the bounds of
-                the site locations with a buffer distance added to the bounds. If set to
-                False, the full geometry will be used to calculate the distance to the
-                nearest feature.
+            clip_geometry:
+                A flag to indicate whether the geometry should be clipped to the bounds
+                of the site locations with a buffer distance added to the bounds. If set
+                to False, the full geometry will be used to calculate the distance to
+                the nearest feature.
             parallel:
                 A flag to indicate whether to use parallel processing when calculating
                 distances.
@@ -79,7 +89,7 @@ class DistanceTo(BasePlugin):
         self.epsg_projection = epsg_projection
         self.new_name = new_name
         self.buffer = buffer
-        self.clip_geometry_flag = clip_geometry_flag
+        self._do_geometry_clipping = clip_geometry
         self.parallel = parallel
         self.n_parallel_jobs = n_parallel_jobs
 
@@ -130,7 +140,7 @@ class DistanceTo(BasePlugin):
             raise ValueError(
                 "Clipping the geometry with a buffer size of "
                 f"{self.buffer}m has produced an empty geometry. Either "
-                "increase the buffer size or set clip_geometry_flag to "
+                "increase the buffer size or set clip_geometry to "
                 "False to use the full geometry."
             )
 
@@ -200,6 +210,59 @@ class DistanceTo(BasePlugin):
         site_points = site_points.to_crs(self.epsg_projection)
         return site_points, geometry_reprojection
 
+    def _apply_exclusion(
+        self,
+        site_coords: GeoSeries,
+        distance_results: List[int],
+        exclude_outside_of: GeoDataFrame,
+        exclusion_buffer: float,
+    ) -> List[int]:
+        """Apply exclusion geometry logic: set distances to 0 for sites outside of the
+        provided geometry.
+
+        Args:
+            site_coords:
+                A GeoSeries containing the projected site coordinates.
+            distance_results:
+                The calculated distances to the feature.
+            exclude_outside_of:
+                A GeoDataFrame containing the geometry defining the valid region. Sites
+                outside of this geometry will have their distance set to 0.
+            exclusion_buffer:
+                A buffer distance in m used when clipping the exclusion geometry.
+
+        Returns:
+            The distance results with distances set to 0 for sites outside the exclusion
+            geometry."""
+
+        # Project the provided geometry to the target projection
+        exclusion_projection = exclude_outside_of.to_crs(self.epsg_projection)
+
+        # Clip the provided geometry for performance
+        x_bounds = self.get_clip_values(site_coords.x, exclusion_buffer)
+        y_bounds = self.get_clip_values(site_coords.y, exclusion_buffer)
+
+        try:
+            clipped_exclusion = self.clip_geometry(
+                exclusion_projection, x_bounds, y_bounds
+            )
+        except ValueError:
+            # If clipping produces empty geometry, no sites are in exclusion area
+            return distance_results
+
+        # Calculate distances to exclusion geometry to identify sites within it
+        distance_to_exclusion = self.distance_to(site_coords, clipped_exclusion)
+
+        # Convert to list for modification if needed
+        distance_results_list = list(distance_results)
+
+        # Set distances to 0 for sites outside the provided geometry (distance != 0)
+        for i, dist_to_exclusion in enumerate(distance_to_exclusion):
+            if dist_to_exclusion != 0:
+                distance_results_list[i] = 0
+
+        return distance_results_list
+
     def distance_to(self, site_points: GeoSeries, geometry: GeoDataFrame) -> List[int]:
         """Calculate the distance from each site point to the nearest feature in the
         geometry.
@@ -259,13 +322,18 @@ class DistanceTo(BasePlugin):
                cube but with updated units and name."""
 
         output_cube = site_cube.copy(data=array(data))
-        if self.new_name:
-            output_cube.rename(self.new_name)
+        output_cube.rename(self.new_name)
         output_cube.units = "m"
 
         return output_cube
 
-    def process(self, site_cube: Cube, geometry: GeoDataFrame) -> Cube:
+    def process(
+        self,
+        site_cube: Cube,
+        geometry: GeoDataFrame,
+        exclude_outside_of: Optional[GeoDataFrame] = None,
+        exclusion_buffer: Optional[float] = 10,
+    ) -> Cube:
         """Generate a cube of the distance from sites in site_cube to the
         nearest point in geometry.
 
@@ -273,17 +341,21 @@ class DistanceTo(BasePlugin):
         to define the location of the sites. The sites and feature geometry
         are reprojected to the target projection.
 
-        If requested the feature geometry will be clipped to the smallest square possible
-        such that all sites in site_cube are included. A buffer distance is then added to each
-        edge of the square which defines the size the feature geometry will be clipped to. This
-        is useful when the feature geometry size is large and it would be expensive to calculate
-        the distance to all features in the geometry or where the domain of the feature geometry
-        is much larger than the area containing the site locations. Information may be lost at the edges of
+        If requested the feature geometry will be clipped to the smallest square
+        possible such that all sites in site_cube are included. A buffer distance is
+        then added to each edge of the square which defines the size the feature
+        geometry will be clipped to. This is useful when the feature geometry size is
+        large and it would be expensive to calculate the distance to all features in the
+        geometry or where the domain of the feature geometry is much larger than the
+        area containing the site locations. Information may be lost at the edges of
         the domain if the feature is sparsely located in the geometry.
 
-        The distance from each site to every point in the feature geometry is then calculated
-        and the minimum of these distances is returned. The distances are rounded to the
-        nearest metre.
+        The distance from each site to every point in the feature geometry is then
+        calculated and the minimum of these distances is returned. The distances are
+        rounded to the nearest metre.
+
+        If a geometry is provided, distances are set to 0 for sites outside
+        that geometry.
 
         The output cube will have the same metadata as the input site_cube except the
         units will be changed to meters and, if requested, the name of the output cube
@@ -295,6 +367,19 @@ class DistanceTo(BasePlugin):
                 axis which contain the site coordinates in latitude and longitude.
             geometry:
                 The GeoDataFrame containing the geometry to calculate distances to.
+            exclude_outside_of:
+                An optional GeoDataFrame containing the geometry defining the valid
+                region. For sites outside this geometry, the distance to the feature
+                will be set to 0. This is useful when the target region cannot be
+                represented as a GeoDataFrame directly (e.g., providing land geometry
+                so that ocean sites, which lie outside the land, receive a distance of
+                0).
+            exclusion_buffer:
+                A buffer distance in m used when clipping the optional geometry for
+                performance. Default is 10m. Only used if exclude_outside_of is
+                provided. This is independent of the clip_geometry / buffer
+                settings, which apply only to clipping the feature geometry used for
+                the initial distance calculation.
 
         Returns:
             A new cube containing the distances from each site to the nearest feature
@@ -303,7 +388,7 @@ class DistanceTo(BasePlugin):
         # Project the geometry and site cube coordinates to the target projection.
         site_coords, geometry_projection = self.project_geometry(geometry, site_cube)
 
-        if self.clip_geometry_flag:
+        if self._do_geometry_clipping:
             # Clip the geometry to the bounds of the site coordinates with a buffer if
             # requested
             x_bounds = self.get_clip_values(site_coords.x, self.buffer)
@@ -318,4 +403,92 @@ class DistanceTo(BasePlugin):
         # Calculate the distance to the nearest feature in the geometry
         distance_to_results = self.distance_to(site_coords, clipped_geometry)
 
+        # If exclusion geometry is provided, set distances to 0 where it is present
+        if exclude_outside_of is not None:
+            distance_to_results = self._apply_exclusion(
+                site_coords,
+                distance_to_results,
+                exclude_outside_of,
+                exclusion_buffer,
+            )
+
         return self.create_output_cube(site_cube, distance_to_results)
+
+
+class DistanceToNearestFeature(BasePlugin):
+    """
+    Plugin to calculate the distance to the closest feature from multiple distance
+    cubes, intended to be used following the DistanceToFeature plugin. This is useful
+    when you have distances to multiple features and want to find the minimum distance
+    to any feature (e.g., creating a distance to water ancillary cube from distance to
+    river, lake, and ocean) cubes.
+
+    This plugin does not support parallelisation unlike the DistanceToFeature plugin as
+    the distance cubes provided to this plugin should already have been generated and
+    therefore the computationally expensive distance calculation has already been
+    performed.
+    """
+
+    def process(
+        self,
+        distance_to_features: CubeList,
+        new_name: str,
+        ignored_coords_for_validation: Optional[List[str]] = None,
+    ) -> Cube:
+        """Calculate the distance to the closest feature from a CubeList of distance
+        cubes. The distance to closest feature is the minimum of all the provided
+        distance to feature cubes.
+
+        Example use case: if we want to generate a distance to water ancillary cube, we
+        could use this function with distance to river, distance to lake, and distance
+        to ocean cubes as the input. The output cube would then give the distance to the
+        closest water feature for each site.
+
+        The first cube in distance_to_features is used as a template for the output
+        metadata with the name updated to the provided new_name.
+
+        Args:
+            distance_to_features:
+                A CubeList containing distance to feature cubes from sites (e.g.,
+                distance to rivers, lakes, oceans, or any other features).
+                Each cube should have the same set of sites defined.
+            new_name:
+                The name to assign to the output cube. E.g. "distance_to_water"
+                If None, then the name of the output cube will be set to the same name
+                as the first cube in distance_to_features.
+            ignored_coords_for_validation:
+                A list of coordinate names to ignore when validating that the cubes in
+                distance_to_features have matching coordinates.
+
+        Returns:
+            A cube containing the distance to closest feature ancillary data.
+
+        Raises:
+            ValueError: If the input CubeList is empty.
+            ValueError: If the cubes in the input CubeList have unmatched coordinates
+                        (other than those specified in ignored_coords_for_validation).
+        """
+        import numpy as np
+
+        # Validate that the input CubeList is not empty
+        if not distance_to_features:
+            raise ValueError("The input CubeList distance_to_features cannot be empty.")
+
+        unmatched_coords = compare_coords(
+            cubes=distance_to_features, ignored_coords=ignored_coords_for_validation
+        )
+        if any(item.keys() for item in unmatched_coords):
+            msg = f"Input cube coordinates {unmatched_coords} are unmatched."
+            raise ValueError(msg)
+
+        # Calculate the minimum distance across all features
+        distances_to_features = np.stack([cube.data for cube in distance_to_features])
+        min_distance = distances_to_features.min(axis=0)
+
+        # Create a new cube for the distance to closest feature using the first cube in
+        # the input CubeList as a template for the metadata and updating the name to the
+        # provided new_name.
+        distance_to_closest = distance_to_features[0].copy(data=min_distance)
+        distance_to_closest.rename(new_name)
+
+        return distance_to_closest

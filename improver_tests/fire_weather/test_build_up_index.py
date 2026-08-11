@@ -9,7 +9,7 @@ import pytest
 from iris.cube import Cube
 
 from improver.fire_weather.build_up_index import BuildUpIndex
-from improver_tests.fire_weather import START_DATE_DICT, make_input_cubes
+from improver_tests.fire_weather import INPUT_ATTRIBUTES, make_input_cubes
 
 
 def input_cubes(
@@ -39,8 +39,8 @@ def input_cubes(
         A tuple of Iris Cubes for DMC and DC.
     """
     cube_args = [
-        ("duff_moisture_code", dmc_val, dmc_units, True, START_DATE_DICT),
-        ("drought_code", dc_val, dc_units, False, START_DATE_DICT),
+        ("duff_moisture_code", dmc_val, dmc_units, True, INPUT_ATTRIBUTES),
+        ("drought_code", dc_val, dc_units, False, INPUT_ATTRIBUTES),
     ]
     return tuple(make_input_cubes(cube_args, shape=shape))
 

@@ -5,14 +5,19 @@
 
 
 import warnings
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import numpy as np
 import pytest
 from iris.cube import Cube, CubeList
 
-from improver.fire_weather.fine_fuel_moisture_content import FineFuelMoistureContent
-from improver_tests.fire_weather import START_DATE_DICT, make_cube, make_input_cubes
+from improver.fire_weather.fine_fuel_moisture_code import FineFuelMoistureCode
+from improver_tests.fire_weather import (
+    DEFAULT_TIME,
+    INPUT_ATTRIBUTES,
+    make_cube,
+    make_input_cubes,
+)
 
 
 def input_cubes(
@@ -24,7 +29,7 @@ def input_cubes(
     shape: tuple[int, ...] = (5, 5),
     temp_units: str = "Celsius",
     precip_units: str = "mm",
-    rh_units: str = "1",
+    rh_units: str = "Percent",
     wind_units: str = "km/h",
     ffmc_units: str = "1",
 ) -> tuple[Cube, ...]:
@@ -65,7 +70,7 @@ def input_cubes(
         ("lwe_thickness_of_precipitation_amount", precip_val, precip_units, True, {}),
         ("relative_humidity", rh_val, rh_units, False, {}),
         ("wind_speed", wind_val, wind_units, False, {}),
-        ("fine_fuel_moisture_content", ffmc_val, ffmc_units, True, START_DATE_DICT),
+        ("fine_fuel_moisture_code", ffmc_val, ffmc_units, True, INPUT_ATTRIBUTES),
     ]
     return make_input_cubes(cube_args, shape=shape)
 
@@ -107,7 +112,7 @@ def test__calculate_moisture_content(
             FFMC value for all grid points.
     """
     cubes = input_cubes(temp_val, precip_val, rh_val, wind_val, ffmc_val)
-    plugin = FineFuelMoistureContent()
+    plugin = FineFuelMoistureCode()
     plugin.load_input_cubes(CubeList(cubes))
     plugin._calculate_moisture_content()
 
@@ -168,7 +173,7 @@ def test__perform_rainfall_adjustment(
     cubes = input_cubes(
         precip_val=precip_val,
     )
-    plugin = FineFuelMoistureContent()
+    plugin = FineFuelMoistureCode()
     plugin.load_input_cubes(CubeList(cubes))
     # Overwrite moisture_content and initial_moisture_content for explicit test control
     plugin.moisture_content = np.full(plugin.precipitation.data.shape, initial_mc_val)
@@ -206,13 +211,13 @@ def test__perform_rainfall_adjustment_spatially_varying() -> None:
     precip_cube = make_cube(
         precip_data, "lwe_thickness_of_precipitation_amount", "mm", True
     )
-    humidity_cube = make_cube(np.full(shape, 50.0), "relative_humidity", "1")
+    humidity_cube = make_cube(np.full(shape, 50.0), "relative_humidity", "Percent")
     wind_cube = make_cube(np.full(shape, 10.0), "wind_speed", "km/h")
-    ffmc_cube = make_cube(np.full(shape, 85.0), "fine_fuel_moisture_content", "1", True)
+    ffmc_cube = make_cube(np.full(shape, 85.0), "fine_fuel_moisture_code", "1", True)
 
     cubes = [temp_cube, precip_cube, humidity_cube, wind_cube, ffmc_cube]
 
-    plugin = FineFuelMoistureContent()
+    plugin = FineFuelMoistureCode()
     plugin.load_input_cubes(CubeList(cubes))
     plugin.moisture_content = mc_data.copy()
     plugin.initial_moisture_content = mc_data.copy()
@@ -259,7 +264,7 @@ def test__calculate_EMC_for_drying_phase(
             Expected drying phase value.
     """
     cubes = input_cubes(temp_val=temp_val, rh_val=rh_val)
-    plugin = FineFuelMoistureContent()
+    plugin = FineFuelMoistureCode()
     plugin.load_input_cubes(CubeList(cubes))
     E_d = plugin._calculate_EMC_for_drying_phase()
     # Check output type and shape
@@ -345,14 +350,14 @@ def test__calculate_moisture_content_through_drying_rate(
         expected_output:
             Expected output moisture content values.
     """
-    plugin = FineFuelMoistureContent()
+    plugin = FineFuelMoistureCode()
     plugin.initial_moisture_content = moisture_content.copy()
     plugin.moisture_content = moisture_content.copy()
     # For these unit tests, create simple cubes without spatial coordinates
     plugin.relative_humidity = Cube(
         np.full(moisture_content.shape, relative_humidity, dtype=np.float32),
         long_name="relative_humidity",
-        units="1",
+        units="Percent",
     )
     plugin.wind_speed = Cube(
         np.full(moisture_content.shape, wind_speed, dtype=np.float32),
@@ -401,7 +406,7 @@ def test__calculate_EMC_for_wetting_phase(
             Expected wetting phase value.
     """
     cubes = input_cubes(temp_val=temp_val, rh_val=rh_val)
-    plugin = FineFuelMoistureContent()
+    plugin = FineFuelMoistureCode()
     plugin.load_input_cubes(CubeList(cubes))
     E_w = plugin._calculate_EMC_for_wetting_phase()
     # Check output type and shape
@@ -487,14 +492,14 @@ def test__calculate_moisture_content_through_wetting_equilibrium(
         expected_output:
             Expected output moisture content values.
     """
-    plugin = FineFuelMoistureContent()
+    plugin = FineFuelMoistureCode()
     plugin.initial_moisture_content = moisture_content.copy()
     plugin.moisture_content = moisture_content.copy()
     # For these unit tests, create simple cubes without spatial coordinates
     plugin.relative_humidity = Cube(
         np.full(moisture_content.shape, relative_humidity, dtype=np.float32),
         long_name="relative_humidity",
-        units="1",
+        units="Percent",
     )
     plugin.wind_speed = Cube(
         np.full(moisture_content.shape, wind_speed, dtype=np.float32),
@@ -556,7 +561,7 @@ def test__calculate_ffmc_from_moisture_content(
         expected_output:
             Expected FFMC output values.
     """
-    plugin = FineFuelMoistureContent()
+    plugin = FineFuelMoistureCode()
     plugin.moisture_content = moisture_content.copy()
     ffmc = plugin._calculate_ffmc_from_moisture_content()
     # Check output type and shape
@@ -568,37 +573,16 @@ def test__calculate_ffmc_from_moisture_content(
 
 @pytest.mark.parametrize(
     "moisture_content_val, expected_array_val",
-    [
-        (0.0, 101.05298913),
-        (16.0, 85.3125),
-        (250.0, 0.0),
-        (-10.0, 112.75510204),
-        (500.0, -22.98362176),
-    ],
-)
-def test_moisture_conversion_without_clip(moisture_content_val, expected_array_val):
-    """Test a range of moisture content values with clip_ffmc=False."""
-    plugin = FineFuelMoistureContent()
-
-    plugin.moisture_content = np.full(5, moisture_content_val)
-    expected_array = np.full(5, expected_array_val)
-
-    ffmc = plugin._calculate_ffmc_from_moisture_content(False)
-    assert np.allclose(ffmc, expected_array, atol=0.01)
-
-
-@pytest.mark.parametrize(
-    "moisture_content_val, expected_array_val",
     [(0.0, 101.0), (16.0, 85.3125), (250.0, 0.0), (-10.0, 101.0), (500.0, 0)],
 )
-def test_moisture_conversion_with_clip(moisture_content_val, expected_array_val):
-    """Test a range of moisture content values with clip_ffmc=True."""
-    plugin = FineFuelMoistureContent()
+def test_moisture_conversion(moisture_content_val, expected_array_val):
+    """Test a range of moisture content values."""
+    plugin = FineFuelMoistureCode()
 
     plugin.moisture_content = np.full(5, moisture_content_val)
     expected_array = np.full(5, expected_array_val)
 
-    ffmc = plugin._calculate_ffmc_from_moisture_content(True)
+    ffmc = plugin._calculate_ffmc_from_moisture_content()
     assert np.allclose(ffmc, expected_array, atol=0.01)
 
 
@@ -615,6 +599,9 @@ def test_moisture_conversion_with_clip(moisture_content_val, expected_array_val)
         (10.0, 15.0, 95.0, 5.0, 85.0, 20.70),
         # Case 4: Precipitation just below threshold (should not adjust)
         (20.0, 0.4, 50.0, 10.0, 85.0, 86.82),
+        # Case 5: Extreme values of FFMC must be clipped to maximum of 101 to avoid
+        # negative values in the moisture content (edge case)
+        (40.0, 0.0, 0.0, 60.0, 100.0, 101),
     ],
 )
 def test_process(
@@ -644,8 +631,8 @@ def test_process(
             Expected FFMC output value for all grid points.
     """
     cubes = input_cubes(temp_val, precip_val, rh_val, wind_val, ffmc_val)
-    plugin = FineFuelMoistureContent()
-    result = plugin.process(cubes, clip_ffmc=True)
+    plugin = FineFuelMoistureCode()
+    result = plugin.process(cubes)
     # Check output type and shape
     assert hasattr(result, "data")
     assert result.data.shape == cubes[0].data.shape
@@ -669,14 +656,14 @@ def test_process_spatially_varying() -> None:
     precip_cube = make_cube(
         precip_data, "lwe_thickness_of_precipitation_amount", "mm", True
     )
-    humidity_cube = make_cube(rh_data, "relative_humidity", "1")
+    humidity_cube = make_cube(rh_data, "relative_humidity", "Percent")
     wind_cube = make_cube(wind_data, "wind_speed", "km/h")
     ffmc_cube = make_cube(
-        ffmc_data, "fine_fuel_moisture_content", "1", True, START_DATE_DICT
+        ffmc_data, "fine_fuel_moisture_code", "1", True, INPUT_ATTRIBUTES
     )
 
     cubes = [temp_cube, precip_cube, humidity_cube, wind_cube, ffmc_cube]
-    result = FineFuelMoistureContent().process(cubes)
+    result = FineFuelMoistureCode().process(cubes)
 
     # Verify shape, type, and all values in valid range (0-101)
     assert (
@@ -693,59 +680,71 @@ def test_process_spatially_varying() -> None:
     assert not np.allclose(result.data[0, 0], result.data[2, 2], atol=0.01)
 
 
-def test_warning_for_start_dates_inside_lag_time() -> None:
-    """When start_date + 2 days runtime < LAG_TIME so warning is created."""
-    under_lag_time = str(datetime.now() - timedelta(days=2))
+def test_warning_for_iteration_counts_inside_lag_time() -> None:
+    """When iteration_count is 2 runtime < LAG_TIME so a warning is created."""
+    attributes = {
+        "iteration_start_date": str(DEFAULT_TIME - timedelta(days=2)),
+        "analysis_ready": False,
+        "iteration_count": 2,
+    }
     cube_args = [
         ("air_temperature", 20.0, "Celsius", False, {}),
         ("lwe_thickness_of_precipitation_amount", 1.0, "mm", False, {}),
-        ("relative_humidity", 50.0, "1", False, {}),
-        ("fine_fuel_moisture_content", 20, "1", False, {"start_date": under_lag_time}),
+        ("relative_humidity", 50.0, "Percent", False, {}),
+        ("fine_fuel_moisture_code", 20, "1", False, attributes),
         ("wind_speed", 50.0, "km/h", False, {}),
     ]
     cubes = make_input_cubes(cube_args, shape=(5, 5))
 
-    msg = r"fine_fuel_moisture_content is 2 days in to it's initialisation"
+    msg = r"fine_fuel_moisture_code is 2 iterations in to its spin-up period"
     with pytest.warns(UserWarning, match=msg):
-        FineFuelMoistureContent().process(cubes, month=4)
+        FineFuelMoistureCode().process(cubes, month=4)
 
 
-@pytest.mark.filterwarnings("ignore:numpy.ndarray size changed:RuntimeWarning")
-def test_no_warning_for_start_dates_outside_lag_time(
+def test_no_warning_for_metadata_outside_lag_time(
     recwarn: list[warnings.WarningMessage],
 ) -> None:
-    """When start_date + 3 days runtime > LAG_TIME so no warning is created."""
-    over_lag_time = str(datetime.now() - timedelta(days=3))
+    """When iteration_count is 3 runtime > LAG_TIME so no warning created."""
+    attributes = {
+        "iteration_start_date": str(DEFAULT_TIME - timedelta(days=3)),
+        "analysis_ready": True,
+        "iteration_count": 3,
+    }
     cube_args = [
         ("air_temperature", 20.0, "Celsius", False, {}),
         ("lwe_thickness_of_precipitation_amount", 1.0, "mm", False, {}),
-        ("relative_humidity", 50.0, "1", False, {}),
+        ("relative_humidity", 50.0, "Percent", False, {}),
         ("wind_speed", 50.0, "km/h", False, {}),
-        ("fine_fuel_moisture_content", 20.0, "1", False, {"start_date": over_lag_time}),
+        ("fine_fuel_moisture_code", 20.0, "Percent", False, attributes),
     ]
     cubes = make_input_cubes(cube_args, shape=(5, 5))
 
-    FineFuelMoistureContent().process(cubes, month=1)
+    result = FineFuelMoistureCode().process(cubes, month=1)
 
     np_warning = "numpy.ndarray size changed"
-    relevant_warnings = [w for w in recwarn if np_warning not in str(w.message)]
-    assert len(relevant_warnings) == 0
+    warnings = [str(w.message) for w in recwarn if np_warning not in str(w.message)]
+    assert len(warnings) == 0, f"Unexpected warnings: {warnings}"
+
+    assert result.attributes["iteration_count"] == attributes["iteration_count"] + 1
+    assert result.attributes["analysis_ready"] == "True"
 
 
 def test_initialise_true_leads_to_user_warning() -> None:
-    """When initialise=True start_date=now, so runtime < LAG_TIME and warning created."""
+    """When initialise=True then iteration_count < LAG_TIME so a warning is created."""
     initialisation_input_cubes = make_input_cubes(
         [
             ("air_temperature", 20.0, "Celsius", False, {}),
             ("lwe_thickness_of_precipitation_amount", 1.0, "mm", False, {}),
-            ("relative_humidity", 50.0, "1", False, {}),
+            ("relative_humidity", 50.0, "Percent", False, {}),
             ("wind_speed", 50.0, "km/h", False, {}),
         ],
         shape=(5, 5),
     )
 
-    msg = r"fine_fuel_moisture_content is 0 days in to it's initialisation"
+    msg = r"fine_fuel_moisture_code is 0 iterations in to its spin-up period"
     with pytest.warns(UserWarning, match=msg):
-        FineFuelMoistureContent().process(
+        result = FineFuelMoistureCode().process(
             initialisation_input_cubes, month=12, initialise=True
         )
+    assert result.attributes["iteration_count"] == 1
+    assert result.attributes["analysis_ready"] == "False"

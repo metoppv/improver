@@ -72,7 +72,9 @@ class LoadForTrainQRF(PostProcessingPlugin):
                 parquet_diagnostic_names and experiments lists.
             forecast_periods: Range of forecast periods to be calibrated in hours in
                 the form: "start:end:interval" e.g. "6:18:6" or a single forecast period
-                e.g. "6".
+                e.g. "6". Multiple ranges can be specified using semicolon separation,
+                e.g. "1:133:1;135:199:3" for hourly T+1 to T+132 and
+                3-hourly T+135 to T+198.
             cycletime: The time at which the forecast is valid in the form:
                 YYYYMMDDTHHMMZ.
             training_length: The number of days of training data to use.
@@ -114,26 +116,44 @@ class LoadForTrainQRF(PostProcessingPlugin):
         in seconds.
 
         Returns:
-            List of forecast periods in seconds.
+            List of forecast periods in seconds, deduplicated and sorted.
         Raises:
-            ValueError: If the forecast_periods argument is not a single integer or
-                a range in the form 'start:end:interval'.
+            ValueError: If the forecast_periods argument is not a single integer,
+                a range in the form 'start:end:interval', or semicolon-separated
+                ranges.
         """
-        if ":" in self.forecast_periods:
-            forecast_periods = list(range(*map(int, self.forecast_periods.split(":"))))
-            forecast_periods = [fp * 3600 for fp in forecast_periods]
-        else:
-            try:
-                forecast_periods = [int(self.forecast_periods) * 3600]
-            except ValueError:
-                msg = (
-                    "The forecast_periods argument must be a single integer after "
-                    "extraction from the string input, or a range in the form "
-                    "'start:end:interval'. The forecast period provided was: "
-                    f"{self.forecast_periods}."
-                )
-                raise ValueError(msg)
-        return forecast_periods
+        all_periods = []
+
+        # Support semicolon-separated ranges
+        tokens = self.forecast_periods.split(";")
+
+        for token in tokens:
+            token = token.strip()
+            if ":" in token:
+                parts = list(map(int, token.split(":")))
+                if len(parts) != 3:
+                    msg = (
+                        "Each forecast_periods range must be in the form "
+                        "'start:end:interval' with exactly 3 parts. "
+                        f"Invalid range provided: {token}"
+                    )
+                    raise ValueError(msg)
+                all_periods.extend(range(*parts))
+            else:
+                try:
+                    all_periods.append(int(token))
+                except ValueError:
+                    msg = (
+                        "The forecast_periods argument must be a single integer, "
+                        "a range in the form 'start:end:interval', "
+                        "or semicolon-separated ranges e.g. '1:133:1;135:199:3'. "
+                        f"The forecast period provided was: {self.forecast_periods}."
+                    )
+                    raise ValueError(msg)
+
+        # Deduplicate and sort, then convert to seconds
+        forecast_periods = sorted(set(all_periods))
+        return [fp * 3600 for fp in forecast_periods]
 
     def _read_parquet_files(
         self,

@@ -199,9 +199,11 @@ def test_saturated_latent_heat(shape, t, p, q, expected_t, expected_q):
 
 
 def test_saturated_latent_heat_with_large_array():
-    """Test the saturated_latent_heat method with a large array, thus triggering 6 iterations.
-    This demonstrates that for arrays, so long as at least one point converges, all succeed,
-    and a warning is issued."""
+    """Test the saturated_latent_heat method with a large array, thus triggering more than
+    6 iterations.
+    This demonstrates that for arrays, so long as at least one point converges, all succeed
+    and a warning is issued.
+    https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.newton.html"""
     shape = 150
 
     # These values converge in six iterations
@@ -215,6 +217,7 @@ def test_saturated_latent_heat_with_large_array():
 
     # These values require more than six iterations to fully converge, so the result does
     # not match the equivalent values in test_saturated_latent_heat()
+
     t[0] = 220
     p[0] = 10000
     q[0] = 2.7e-2

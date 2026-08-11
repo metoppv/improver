@@ -2,17 +2,17 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""Plugin to calculate the Canadian Forest Fire Weather Index (FWI)."""
+"""Plugin to calculate the fire weather index (FWI)."""
 
 import numpy as np
 from iris.cube import Cube
 
-from improver.fire_weather import FireWeatherIndexBase
+from improver.fire_weather import FireWeatherBase
 
 
-class CanadianForestFireWeatherIndex(FireWeatherIndexBase):
+class FireWeatherIndex(FireWeatherBase):
     """
-    Plugin to calculate the Canadian Forest Fire Weather Index (FWI).
+    Plugin to calculate the fire weather index (FWI).
 
     The FWI combines the Initial Spread Index (ISI) and the Build Up Index (BUI)
     to provide a numerical rating of fire intensity. It represents the rate of
@@ -29,9 +29,9 @@ class CanadianForestFireWeatherIndex(FireWeatherIndexBase):
         - Build Up Index (BUI): dimensionless
     """
 
-    START_DATE_CUBE_NAME = "build_up_index"
-    INPUT_CUBE_NAMES = ["initial_spread_index", START_DATE_CUBE_NAME]
-    OUTPUT_CUBE_NAME = "canadian_forest_fire_weather_index"
+    METADATA_SOURCE_CUBE = "build_up_index"
+    INPUT_CUBE_NAMES = ["initial_spread_index", METADATA_SOURCE_CUBE]
+    OUTPUT_CUBE_NAME = "fire_weather_index"
 
     # Valid output ranges for warning checks (output_name: (min, max))
     # Minimum and maximum feasible values for each output index are drawn from

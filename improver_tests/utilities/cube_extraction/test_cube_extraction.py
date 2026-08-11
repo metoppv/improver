@@ -6,9 +6,11 @@
 
 import collections
 import unittest
+from datetime import datetime
 
 import iris
 import numpy as np
+from iris.coords import AuxCoord
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.metadata.probabilistic import find_threshold_coordinate
@@ -284,6 +286,18 @@ class Test_parse_constraint_list(unittest.TestCase):
         _, _, longitude_constraint, thinning_dict = parse_constraint_list(constraint)
         self.assertEqual(longitude_constraint, [0, 20])
         self.assertEqual(thinning_dict, {"longitude": 2})
+
+    def test_time_constraint(self):
+        """Test that a formatted time string is parsed correctly into a datetime object"""
+        constraint = ["time=20240101T0000Z"]
+        result, _, _, _ = parse_constraint_list(constraint)
+        cdict = result._coord_values
+        self.assertTrue(islambda(cdict["time"]))
+        self.assertTrue(
+            cdict["time"](
+                AuxCoord([datetime(2024, 1, 1, 0, 0)], long_name="time").cell(0)
+            )
+        )
 
 
 class Test_apply_extraction(unittest.TestCase):

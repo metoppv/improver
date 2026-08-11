@@ -11,7 +11,7 @@ import pytest
 from geopandas import GeoDataFrame
 from shapely.geometry import LineString, Point, Polygon
 
-from improver.generate_ancillaries.generate_distance_to_feature import DistanceTo
+from improver.generate_ancillaries.generate_distance_to_feature import DistanceToFeature
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 
 
@@ -216,6 +216,83 @@ def multiple_site_cube():
     return prob_cube
 
 
+@pytest.fixture()
+def coastline():
+    """Create a GeoDataFrame representing a simple coastline.
+    x-------x
+    |       |
+    |       |
+    |       |
+    x-------x
+    """
+
+    data = [
+        LineString(
+            [
+                [3500000, 3000000],
+                [3500000, 3001000],
+                [3501000, 3001000],
+                [3501000, 3000000],
+                [3500000, 3000000],
+            ]
+        )
+    ]
+    return GeoDataFrame(geometry=data, crs="EPSG:3035")
+
+
+@pytest.fixture()
+def land():
+    """Create a simple polygon representing a land area surrounded
+    by the coastline defined in the coastline fixture.
+
+    The polygon looks like:
+             x-------x
+             ---------
+             ---------
+             x-------x
+    """
+    data = [
+        Polygon(
+            [
+                [3500000, 3000000],
+                [3500000, 3001000],
+                [3501000, 3001000],
+                [3501000, 3000000],
+                [3500000, 3000000],
+            ]
+        )
+    ]
+    return GeoDataFrame(geometry=data, crs="EPSG:3035")
+
+
+@pytest.fixture()
+def site_locations():
+    """Set up a site cube containing data at multiple sites."""
+    latitude = np.array([49.543481633, 49.551655272])
+    longitude = np.array([-1.387510304, -1.3964531])
+
+    altitude = np.array(
+        [-99999, -99999]
+    )  # These values are not used but are required for cube creation.
+    data = np.array(
+        [-99999, -99999]
+    )  # These values are not used but are required for cube creation.
+    wmo_id = [
+        "00000",
+        "00001",
+    ]  # These values are not used but are required for cube creation.
+    site_cube = build_spotdata_cube(
+        data,
+        name="site_locations",
+        units="m",
+        altitude=altitude,
+        wmo_id=wmo_id,
+        latitude=latitude,
+        longitude=longitude,
+    )
+    return site_cube
+
+
 @pytest.mark.parametrize(
     "target_projection, site_latitude, site_longitude, expected_distance",
     [
@@ -249,8 +326,10 @@ def test_distance_to_with_points_geometry(
     single_site_cube.coord("latitude").points = site_latitude
     single_site_cube.coord("longitude").points = site_longitude
 
-    output_cube = DistanceTo(target_projection)(single_site_cube, geometry)
-    assert output_cube.name() == "rain_rate"
+    output_cube = DistanceToFeature(target_projection, "distance_to_thing")(
+        single_site_cube, geometry
+    )
+    assert output_cube.name() == "distance_to_thing"
     assert output_cube.units == "m"
     assert output_cube.coord("latitude").points == site_latitude
     assert output_cube.coord("longitude").points == site_longitude
@@ -318,8 +397,10 @@ def test_distance_to_with_line_geometry(
     single_site_cube.coord("latitude").points = site_latitude
     single_site_cube.coord("longitude").points = site_longitude
 
-    output_cube = DistanceTo(target_projection)(single_site_cube, geometry)
-    assert output_cube.name() == "rain_rate"
+    output_cube = DistanceToFeature(target_projection, "distance_to_thing")(
+        single_site_cube, geometry
+    )
+    assert output_cube.name() == "distance_to_thing"
     assert output_cube.units == "m"
     assert output_cube.coord("latitude").points == site_latitude
     assert output_cube.coord("longitude").points == site_longitude
@@ -390,12 +471,40 @@ def test_distance_to_with_polygon_geometry(
     single_site_cube.coord("latitude").points = site_latitude
     single_site_cube.coord("longitude").points = site_longitude
 
-    output_cube = DistanceTo(target_projection)(single_site_cube, geometry)
-    assert output_cube.name() == "rain_rate"
+    output_cube = DistanceToFeature(target_projection, "distance_to_thing")(
+        single_site_cube, geometry
+    )
+    assert output_cube.name() == "distance_to_thing"
     assert output_cube.units == "m"
     assert output_cube.coord("latitude").points == site_latitude
     assert output_cube.coord("longitude").points == site_longitude
     assert output_cube.data == expected_distance
+
+
+def test_distance_to_feature_with_exclusion(site_locations, coastline, land):
+    """Test the DistanceToFeature class calculates distance to feature with exclusion
+    correctly."""
+
+    # Instantiate the DistanceToFeature plugin
+    calculator = DistanceToFeature(
+        epsg_projection=3035,
+        new_name="distance_to_ocean",
+    )
+
+    # Generate the distance to feature with exclusion
+    distance_to_feature = calculator.process(
+        site_locations,
+        coastline,
+        exclude_outside_of=land,
+        exclusion_buffer=10,
+    )
+
+    # Ensure the cube has the correct metadata
+    assert distance_to_feature.name() == "distance_to_ocean"
+    assert distance_to_feature.units == "m"
+    from numpy.testing import assert_array_equal
+
+    assert_array_equal(distance_to_feature.data, [500, 0])
 
 
 @pytest.mark.parametrize(
@@ -427,12 +536,14 @@ def test_distance_to_with_multiple_sites(
     if len(os.sched_getaffinity(0)) > 1:
         n_jobs = 2
 
-    plugin = DistanceTo(3035, parallel=if_parallel, n_parallel_jobs=n_jobs)
+    plugin = DistanceToFeature(
+        3035, new_name="distance_to_thing", parallel=if_parallel, n_parallel_jobs=n_jobs
+    )
 
     assert plugin.parallel == if_parallel
     assert plugin.n_parallel_jobs == n_jobs
     output_cube = plugin(multiple_site_cube, geometry)
-    assert output_cube.name() == "rain_rate"
+    assert output_cube.name() == "distance_to_thing"
     assert output_cube.units == "m"
 
     np.testing.assert_allclose(output_cube.data, expected_distance)
@@ -444,7 +555,7 @@ def test_distance_to_with_new_name(single_site_cube, geometry_point_laea):
     single_site_cube.coord("latitude").points = 49.539047274
     single_site_cube.coord("longitude").points = -1.386459578
 
-    output_cube = DistanceTo(3035, new_name="distance_to_river")(
+    output_cube = DistanceToFeature(3035, new_name="distance_to_river")(
         single_site_cube, geometry_point_laea
     )
     assert output_cube.name() == "distance_to_river"
@@ -482,13 +593,15 @@ def test_distance_to_clipping_loss_of_data(
     geometry = GeoDataFrame(geometry=data, crs="EPSG:3035")
 
     if clip:
-        output_cube = DistanceTo(3035, clip_geometry_flag=True, buffer=buffer)(
-            site_cubes, geometry
-        )
+        output_cube = DistanceToFeature(
+            3035, new_name="distance_to_thing", clip_geometry=True, buffer=buffer
+        )(site_cubes, geometry)
     else:
-        output_cube = DistanceTo(3035, clip_geometry_flag=False)(site_cubes, geometry)
+        output_cube = DistanceToFeature(
+            3035, new_name="distance_to_thing", clip_geometry=False
+        )(site_cubes, geometry)
 
-    assert output_cube.name() == "rain_rate"
+    assert output_cube.name() == "distance_to_thing"
     assert output_cube.units == "m"
     np.testing.assert_allclose(output_cube.data, expected)
 
@@ -500,13 +613,15 @@ def test_distance_to_with_empty_geometry(single_site_cube, geometry_point_laea):
     with pytest.raises(
         ValueError, match="Clipping the geometry with a buffer size of 100m"
     ):
-        DistanceTo(3035, clip_geometry_flag=True, buffer=100)(
-            single_site_cube, geometry_point_laea
-        )
+        DistanceToFeature(
+            3035, new_name="distance_to_thing", clip_geometry=True, buffer=100
+        )(single_site_cube, geometry_point_laea)
 
 
 def test_distance_to_with_unsuitable_projection(single_site_cube, geometry_point_laea):
-    """Test the DistanceTo plugin raises a ValueError when the projection is unsuitable."""
+    """
+    Test the DistanceTo plugin raises a ValueError when the projection is unsuitable.
+    """
 
     msg = (
         "The provided projection defined by EPSG code 3112 is not suitable "
@@ -515,4 +630,6 @@ def test_distance_to_with_unsuitable_projection(single_site_cube, geometry_point
         "x: -1.386459578 to -1.386459578, y: 49.539047274 to 49.539047274."
     )
     with pytest.raises(ValueError, match=msg):
-        DistanceTo(3112)(single_site_cube, geometry_point_laea)
+        DistanceToFeature(3112, new_name="distance_to_thing")(
+            single_site_cube, geometry_point_laea
+        )

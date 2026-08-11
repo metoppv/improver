@@ -5,6 +5,7 @@
 """Utilities to parse a list of constraints and extract matching subcube"""
 
 from ast import literal_eval
+from datetime import datetime
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
@@ -134,8 +135,13 @@ def parse_constraint_list(
         else:
             try:
                 typed_value = literal_eval(value)
-            except ValueError:
-                simple_constraints_dict[key] = value
+            except (ValueError, SyntaxError):
+                try:
+                    value_dt = datetime.strptime(value, "%Y%m%dT%H%MZ")
+                except ValueError:
+                    simple_constraints_dict[key] = value
+                else:
+                    simple_constraints_dict[key] = lambda cell: cell.point == value_dt
             else:
                 simple_constraints_dict[key] = create_constraint(typed_value)
 
