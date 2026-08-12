@@ -40,6 +40,17 @@ def process(
     can be generated in the final ECC-Q realizations, while still respecting the
     calibrated probabilities.
 
+    For a typical input field e.g. a precipitation field with some positive values
+    for precipitation spread across the domain and some zero values, the plugin will
+    add stochastic noise to the zero values using the SSFT approach, while leaving
+    the positive values unchanged. For fields that contain insufficient spatial
+    variability to derive meaningful SSFT perturbations (for example completely dry,
+    nearly dry, or otherwise near-constant fields), referred to here as degenerate
+    fields, the plugin will generate fallback stochastic noise ("dry fallback noise")
+    in linear space. This noise uses the wet_noise_floor and dry_fallback_range
+    arguments to ensure that the fallback noise is strictly non-positive and does
+    not exceed the noise added to wet regions.
+
     While this plugin accepts any cube with "x" and "y" dimensions, it is
     recommended to first slice the cube over the realization dimension and
     parallelize the processing of individual realizations using the plugin on each

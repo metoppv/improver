@@ -447,7 +447,8 @@ def test_degenerate_fallback_without_wet_noise_floor_raises():
 
 
 def test_wet_noise_floor_without_scale_non_positive_noise_raises():
-    """Setting wet_noise_floor without scale_non_positive_noise=True should raise."""
+    """Setting wet_noise_floor without scale_non_positive_noise=True should raise
+    a ValueError."""
     with pytest.raises(
         ValueError, match="scale_non_positive_noise must be True when wet_noise_floor"
     ):

@@ -49,7 +49,17 @@ class StochasticNoise(BasePlugin):
         dry_fallback_range: Optional[tuple] = None,
     ):
         """
-        Initialise the plugin.
+        Initialise the plugin. For a typical input field e.g. a precipitation field
+        with some positive values for precipitation spread across the domain and some
+        zero values, the plugin will add stochastic noise to the zero values using
+        the SSFT approach, while leaving the positive values unchanged. For fields that
+        contain insufficient spatial variability to derive meaningful SSFT
+        perturbations (for example completely dry, nearly dry, or otherwise
+        near-constant fields), referred to here as degenerate fields, the plugin will
+        generate fallback stochastic noise ("dry fallback noise") in linear space.
+        This noise uses the wet_noise_floor and dry_fallback_range arguments to ensure
+        that the fallback noise is strictly non-positive and does not exceed the noise
+        added to wet regions.
 
         If ssft_init_params or ssft_generate_params are not provided, default values
         from the Pysteps documentation will be used.
@@ -96,8 +106,8 @@ class StochasticNoise(BasePlugin):
             wet_noise_floor:
                 Optional lower bound for noise in non-positive regions after scaling,
                 in linear units of db_threshold_units. Must be negative if set.
-                This can be used to limit how negative SSFT-derived wet-member noise can
-                become. Default is None (no floor).
+                This can be used to limit the magnitude of negative SSFT-derived
+                wet-member noise. Default is None (no floor).
             dry_fallback_range:
                 Optional range (min_value, max_value) for dry fallback noise in
                 linear units of db_threshold_units. Provide as a Python tuple string, e.g.
@@ -189,7 +199,11 @@ class StochasticNoise(BasePlugin):
 
     def _process_single_realization(self, input_cube: Cube) -> Cube:
         """Add stochastic noise to a cube containing a single realization
-        (or no realization coord).
+        (or no realization coord). For non-degenerate fields e.g. precipitation fields
+        with some positive values, the plugin will add stochastic noise to the
+        non-positive regions using the SSFT approach, while leaving the positive values
+        unchanged. For degenerate fields (e.g. all-zero), fallback noise is generated
+        in linear space.
 
         Args:
             input_cube:
