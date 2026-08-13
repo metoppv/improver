@@ -19,8 +19,8 @@ where:
 
 :math:`T_v` = virtual temperature (K), which needs calculating
 
-+ Key interpretation
-+ ------------------
+Key interpretation
+------------------
 
 If temperature goes up, density goes down.
 
