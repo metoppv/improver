@@ -544,20 +544,6 @@ def test_load_for_qrf(
     )
     truth_path, expected_truth_df = truth_creation(tmp_path)
 
-    if "wmo_id" in site_id:
-        # Mimic fixed-width parquet strings with trailing whitespace.
-        padded_forecast_df = base_expected_forecast_df.copy()
-        padded_forecast_df["wmo_id"] = padded_forecast_df["wmo_id"].astype(str) + "   "
-        padded_forecast_df.to_parquet(
-            forecast_path / "forecast.parquet", index=False, engine="pyarrow"
-        )
-
-        padded_truth_df = expected_truth_df.copy()
-        padded_truth_df["wmo_id"] = padded_truth_df["wmo_id"].astype(str) + "   "
-        padded_truth_df.to_parquet(
-            truth_path / "truth.parquet", index=False, engine="pyarrow"
-        )
-
     file_paths = [forecast_path, truth_path]
 
     if include_dynamic:
@@ -623,6 +609,66 @@ def test_load_for_qrf(
         assert len(cube_inputs) == 1
         assert cube_inputs[0].name() == "distance_to_water"
         np.testing.assert_almost_equal(cube_inputs[0].data, expected_cube.data)
+
+
+def test_load_for_qrf_with_mixed_whitespace_padding_in_forecast_inputs(tmp_path):
+    """Test that dynamic forecast diagnostics merge when site IDs have
+    different whitespace padding across inputs."""
+
+    forecast_path, base_expected_forecast_df, _ = (
+        _create_multi_site_forecast_parquet_file(tmp_path, representation="percentile")
+    )
+    truth_path, expected_truth_df = _create_multi_site_truth_parquet_file(tmp_path)
+
+    padded_forecast_df = base_expected_forecast_df.copy()
+    wind_mask = padded_forecast_df["diagnostic"] == "wind_speed_at_10m"
+    wind_site_ids = padded_forecast_df.loc[wind_mask, "wmo_id"].astype(str)
+    padded_forecast_df.loc[wind_mask, "wmo_id"] = [
+        f"{site_id}{' ' * (index % 3 + 1)}"
+        for index, site_id in enumerate(wind_site_ids)
+    ]
+    padded_forecast_df.to_parquet(
+        forecast_path / "forecast.parquet", index=False, engine="pyarrow"
+    )
+
+    plugin = LoadForTrainQRF(
+        experiments=["latestblend", "recentblend"],
+        feature_config={
+            "air_temperature": ["mean", "std", "altitude"],
+            "wind_speed": ["mean", "std"],
+        },
+        parquet_diagnostic_names=["temperature_at_screen_level", "wind_speed_at_10m"],
+        cf_names=["air_temperature", "wind_speed"],
+        forecast_periods="6:18:6",
+        cycletime="20170103T0000Z",
+        training_length=2,
+        unique_site_id_keys="wmo_id",
+    )
+
+    forecast_df, truth_df, _ = plugin([forecast_path, truth_path])
+
+    expected_forecast_df = amend_expected_forecast_df(
+        base_expected_forecast_df.copy(),
+        "6:18:6",
+        ["temperature_at_screen_level", "wind_speed_at_10m"],
+        ["air_temperature", "wind_speed"],
+        "percentile",
+        ["wmo_id"],
+    )
+    expected_truth_df = amend_expected_truth_df(
+        expected_truth_df, "temperature_at_screen_level"
+    )
+
+    pd.testing.assert_frame_equal(
+        forecast_df,
+        expected_forecast_df,
+        check_dtype=False,
+        check_datetimelike_compat=True,
+    )
+    pd.testing.assert_frame_equal(
+        truth_df, expected_truth_df, check_dtype=False, check_datetimelike_compat=True
+    )
+    assert forecast_df["wind_speed"].notna().all()
 
 
 @pytest.mark.parametrize("make_files", [False, True])

@@ -155,6 +155,21 @@ class LoadForTrainQRF(PostProcessingPlugin):
         forecast_periods = sorted(set(all_periods))
         return [fp * 3600 for fp in forecast_periods]
 
+    def _strip_unique_site_id_whitespace(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Strip whitespace from string-valued unique site ID columns.
+
+        Args:
+            df: DataFrame containing the forecast or truth data.
+
+        Returns:
+            DataFrame with whitespace stripped from string-valued unique site ID
+            columns.
+        """
+        for key in self.unique_site_id_keys:
+            if key in df.columns and pd.api.types.is_string_dtype(df[key]):
+                df[key] = df[key].str.strip()
+        return df
+
     def _read_parquet_files(
         self,
         forecast_table_path: pathlib.Path | str,
@@ -234,6 +249,7 @@ class LoadForTrainQRF(PostProcessingPlugin):
                 if additional_df.empty:
                     return None, None
                 additional_df.rename(columns={"forecast": cf_name}, inplace=True)
+                additional_df = self._strip_unique_site_id_whitespace(additional_df)
                 forecast_df = additional_df
                 continue
 
@@ -260,6 +276,8 @@ class LoadForTrainQRF(PostProcessingPlugin):
             if additional_df[representation].isna().all():
                 merge_on.remove(representation)
 
+            additional_df = self._strip_unique_site_id_whitespace(additional_df)
+
             forecast_df = add_feature_from_df_to_df(
                 forecast_df,
                 additional_df.rename(columns={"forecast": cf_name}),
@@ -283,14 +301,6 @@ class LoadForTrainQRF(PostProcessingPlugin):
         for column in ["forecast_period", "period"]:
             forecast_df[column] = pd.to_timedelta(forecast_df[column], unit="ns")
             forecast_df[column] = forecast_df[column].astype("timedelta64[ns]")
-        # Standardise unique site ID key columns by stripping whitespace, so that
-        # differences in string padding (e.g. '03003' vs '03003   ') do not prevent
-        # matching between forecast and truth DataFrames.
-        for key in self.unique_site_id_keys:
-            if key in forecast_df.columns and pd.api.types.is_string_dtype(
-                forecast_df[key]
-            ):
-                forecast_df[key] = forecast_df[key].str.strip()
 
         # Load truths from parquet file filtering by diagnostic.
         filters = [[("diagnostic", "==", self.parquet_diagnostic_names[0])]]
@@ -304,9 +314,7 @@ class LoadForTrainQRF(PostProcessingPlugin):
         truth_df["time"] = pd.to_datetime(truth_df["time"], unit="ns", utc=True)
         truth_df["time"] = truth_df["time"].astype("datetime64[ns, UTC]")
 
-        for key in self.unique_site_id_keys:
-            if key in truth_df.columns and pd.api.types.is_string_dtype(truth_df[key]):
-                truth_df[key] = truth_df[key].str.strip()
+        truth_df = self._strip_unique_site_id_whitespace(truth_df)
 
         if truth_df.empty:
             msg = (
