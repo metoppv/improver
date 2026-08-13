@@ -15,13 +15,12 @@ where:
 
 :math:`p` = pressure (Pa)
 
-:math:`R_d` = gas constant for dry air = 287.05 Jkg⁻¹K⁻¹
-
-(See R_DRY_AIR constant in IMPROVER.constants)
+:math:`R_d` = gas constant for dry air = 287.05 Jkg⁻¹K⁻¹ (See R_DRY_AIR constant in IMPROVER.constants)
 
 :math:`T_v` = virtual temperature (K), which needs calculating
 
-Key interpretation:
++ Key interpretation
++ ------------------
 
 If temperature goes up, density goes down.
 
