@@ -114,11 +114,11 @@ def process(
             Optional lower bound for noise in non-positive regions after scaling,
             in linear units of db_threshold_units. Must be negative if set.
             Required when the input field is degenerate (e.g. all-zero), to guarantee
-            separation between dry-fallback and wet-member noise. The expectation is
-            that this value is set to a value that is more negative than the
-            SSFT-derived noise in wet regions. Setting this value to a less negative
-            value than the SSFT-derived noise would curtail the SSFT-derived noise
-            and result in more ties when used in conjunction with Ensemble Copula
+            separation between dry-fallback and wet-member noise. This can be used to
+            limit the magnitude of negative SSFT-derived wet-member noise. This value
+            must be less than the SSFT-derived noise in wet regions. Any generated
+            noise below the floor value will be set to the floor value, potentially
+            resulting in more ties when used in conjunction with Ensemble Copula
             Coupling. Default is None (no floor).
         dry_fallback_range:
             Optional range (min_value, max_value) for dry fallback noise in
