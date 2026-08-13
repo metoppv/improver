@@ -544,6 +544,20 @@ def test_load_for_qrf(
     )
     truth_path, expected_truth_df = truth_creation(tmp_path)
 
+    if "wmo_id" in site_id:
+        # Mimic fixed-width parquet strings with trailing whitespace.
+        padded_forecast_df = base_expected_forecast_df.copy()
+        padded_forecast_df["wmo_id"] = padded_forecast_df["wmo_id"].astype(str) + "   "
+        padded_forecast_df.to_parquet(
+            forecast_path / "forecast.parquet", index=False, engine="pyarrow"
+        )
+
+        padded_truth_df = expected_truth_df.copy()
+        padded_truth_df["wmo_id"] = padded_truth_df["wmo_id"].astype(str) + "   "
+        padded_truth_df.to_parquet(
+            truth_path / "truth.parquet", index=False, engine="pyarrow"
+        )
+
     file_paths = [forecast_path, truth_path]
 
     if include_dynamic:
