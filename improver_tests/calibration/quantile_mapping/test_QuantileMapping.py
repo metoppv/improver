@@ -51,28 +51,36 @@ def duplicate_zeroes_forecast_array():
     return np.array([0, 0, 0, 0, 0, 0, 0, 0, 10, 20, 30])
 
 
-def test___init__():
-    """Test that QuantileMapping can be instantiated with default and custom parameters."""
-    # Test default parameters
-    plugin_default = QuantileMapping()
-    assert plugin_default.preservation_threshold is None
-    assert plugin_default.occurrence_threshold is None
-    assert plugin_default.non_occurrence_value == 0.0
-    assert plugin_default.method == "step"
-
-    # Test custom parameters
-    plugin_custom = QuantileMapping(
-        preservation_threshold=0.5,
-        occurrence_threshold=0.1,
-        non_occurrence_value=0.0,
-        method="continuous",
+@pytest.mark.parametrize(
+    [
+        "preservation_threshold",
+        "occurrence_threshold",
+        "non_occurrence_value",
+        "method",
+    ],
+    [
+        (None, None, 0.0, "step"),  # default parameters
+        (0.5, 0.1, 0.0, "continuous"),  # custom parameters
+    ],
+)
+def test___init___with_valid_parameters(
+    preservation_threshold, occurrence_threshold, non_occurrence_value, method
+):
+    """Test QuantileMapping instantiation with valid parameters."""
+    plugin = QuantileMapping(
+        preservation_threshold=preservation_threshold,
+        occurrence_threshold=occurrence_threshold,
+        non_occurrence_value=non_occurrence_value,
+        method=method,
     )
-    assert plugin_custom.preservation_threshold == 0.5
-    assert plugin_custom.occurrence_threshold == 0.1
-    assert plugin_custom.non_occurrence_value == 0.0
-    assert plugin_custom.method == "continuous"
+    assert plugin.preservation_threshold == preservation_threshold
+    assert plugin.occurrence_threshold == occurrence_threshold
+    assert plugin.non_occurrence_value == non_occurrence_value
+    assert plugin.method == method
 
-    # Test invalid method raises error
+
+def test___init___invalid_method_raises_error():
+    """Test that invalid method raises ValueError."""
     with pytest.raises(ValueError, match="Unsupported method"):
         QuantileMapping(method="unsupported_method")
 

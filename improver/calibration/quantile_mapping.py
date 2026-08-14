@@ -403,7 +403,9 @@ class QuantileMapping(PostProcessingPlugin):
           2. Find the forecast value corresponding to the same exceedance fraction. This
             is the cutoff below which surplus occurring forecast pixels will be set
             to non_occurrence_value.
-          3. Set forecast pixels at or below this cutoff to non_occurrence_value.
+          3. Set all forecast pixels at or below this cutoff to non_occurrence_value.
+            This step only represents a change for pixels not already equal to
+            non_occurrence_value.
           4. Apply quantile mapping using only the occurring pixels from each field
             (those still strictly above occurrence_threshold after step 3) using the
             _map_quantiles method.
@@ -422,8 +424,8 @@ class QuantileMapping(PostProcessingPlugin):
 
         Warns:
             UserWarning: If the reference occurrence fraction is exactly 0 or 1,
-                indicating a degenerate case where occurrence correction is likely
-                uninformative for this scene.
+                indicating a degenerate case (all or no occurrence in the reference
+                data) where occurrence correction is likely uninformative.
         """
         # Step 1: occurrence fraction of reference field
         reference_occurrence_fraction = np.mean(
@@ -433,8 +435,9 @@ class QuantileMapping(PostProcessingPlugin):
         if reference_occurrence_fraction in (0.0, 1.0):
             warnings.warn(
                 "Reference occurrence fraction is exactly 0 or 1. "
-                "Occurrence correction is degenerate for this scene and may "
-                "indicate an uninformative occurrence_threshold choice.",
+                "Occurrence correction is degenerate for this situation (all or no "
+                "occurrence in the reference data) and may indicate an uninformative "
+                "occurrence_threshold choice.",
                 UserWarning,
             )
 
