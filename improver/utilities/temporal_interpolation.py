@@ -1050,11 +1050,11 @@ class ForecastTrajectoryGapFiller(BasePlugin):
                 When provided with interpolation_window_in_minutes, enables
                 identification of validity times to regenerate at source transitions.
             interpolation_window_in_minutes:
-                Time window (in hours) to use as a +/- range around forecast source
+                Time window (in minutes) to use as a +/- range around forecast source
                 transition points. Used with cluster_sources_attribute to identify
                 which forecast periods should be regenerated. For example, if set to
-                3 hours and a transition occurs at a given period, periods 3 hours
-                before, at, and after the transition will be regenerated if they
+                180 minutes and a transition occurs at a given period, periods 180
+                minutes before, at, and after the transition will be regenerated if they
                 fall within the sequence. In summary, the interval_in_minutes is used
                 to identify gaps in the forecast trajectory, while
                 interpolation_window_in_minutes is used to identify which forecast
@@ -1140,8 +1140,8 @@ class ForecastTrajectoryGapFiller(BasePlugin):
         self.kwargs = kwargs
 
     @staticmethod
-    def _normalise_source_pair_key(key: str) -> FrozenSet[str]:
-        """Normalise a source-pair key to an order-insensitive frozenset.
+    def _prepare_source_pair_key(key: str) -> FrozenSet[str]:
+        """Convert a source-pair key into an order-insensitive frozenset.
 
         Args:
             key:
@@ -1209,7 +1209,7 @@ class ForecastTrajectoryGapFiller(BasePlugin):
                 )
             # Use a frozenset key so pair matching is order-insensitive and
             # the key can be safely used in dictionaries.
-            result[self._normalise_source_pair_key(key)] = value * 60
+            result[self._prepare_source_pair_key(key)] = value * 60
 
         return result
 
@@ -1247,7 +1247,7 @@ class ForecastTrajectoryGapFiller(BasePlugin):
                 ]
                 raise ValueError(
                     f"No interpolation window configured for source pair "
-                    f"{set(source_pair)}. Available pairs: {available}"
+                    f"{source_pair}. Available pairs: {available}"
                 )
             return self.interpolation_window_by_source_pair_seconds[source_pair]
 
@@ -1430,12 +1430,9 @@ class ForecastTrajectoryGapFiller(BasePlugin):
 
         # Find transitions
         transitions = []
-        for i in range(len(sorted_periods) - 1):
-            period_before = sorted_periods[i]
-            period_after = sorted_periods[i + 1]
+        for period_before, period_after in zip(sorted_periods[:-1], sorted_periods[1:]):
             sources_before = frozenset(period_to_sources[period_before])
             sources_after = frozenset(period_to_sources[period_after])
-
             # Only record if source set changes.
             if sources_before != sources_after:
                 transitions.append((period_before, sources_before, sources_after))
@@ -1526,9 +1523,11 @@ class ForecastTrajectoryGapFiller(BasePlugin):
         """
         return min(candidate_periods, key=lambda p: (abs(p - target_period), p))
 
-    @staticmethod
     def _find_nearest_period_after(
-        target_period: int, minimum_period_exclusive: int, candidate_periods: List[int]
+        self,
+        target_period: int,
+        minimum_period_exclusive: int,
+        candidate_periods: List[int],
     ) -> Optional[int]:
         """Find nearest candidate period above a minimum exclusive bound.
 
@@ -1543,7 +1542,7 @@ class ForecastTrajectoryGapFiller(BasePlugin):
         valid_periods = [p for p in candidate_periods if p > minimum_period_exclusive]
         if not valid_periods:
             return None
-        return min(valid_periods, key=lambda p: (abs(p - target_period), p))
+        return self._find_nearest_period(target_period, valid_periods)
 
     def _validate_input(self, cubelist: CubeList) -> None:
         """Validate that the input cubelist meets requirements.
@@ -1727,12 +1726,14 @@ class ForecastTrajectoryGapFiller(BasePlugin):
             if self.interval_in_seconds is not None:
                 # Interpolate only interior periods. Boundary periods are
                 # existing inputs and should not be regenerated.
-                current_period = t0_period + self.interval_in_seconds
-                while current_period < t1_period:
+                for current_period in range(
+                    t0_period + self.interval_in_seconds,
+                    t1_period,
+                    self.interval_in_seconds,
+                ):
                     interpolation_tasks.append(
                         ("regenerate", current_period, t0_period, t1_period)
                     )
-                    current_period += self.interval_in_seconds
             else:
                 # Fallback: just use the transition point if no interval specified
                 interpolation_tasks.append(
@@ -2021,11 +2022,11 @@ class GoogleFilmInterpolation(BasePlugin):
                 When provided with interpolation_window_in_minutes, enables
                 identification of validity times to regenerate at source transitions.
             interpolation_window_in_minutes:
-                Time window (in hours) to use as a +/- range around forecast source
+                Time window (in minutes) to use as a +/- range around forecast source
                 transition points. Used with cluster_sources_attribute to identify
                 which forecast periods should be regenerated. For example, if set to
-                3 hours and a transition occurs at a given period, periods 3 hours
-                before, at, and after the transition will be regenerated if they
+                180 minutes and a transition occurs at a given period, periods 180
+                minutes before, at, and after the transition will be regenerated if they
                 fall within the sequence.
             max_batch:
                 If using google_film interpolation, the maximum batch size for model

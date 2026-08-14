@@ -47,7 +47,7 @@ def process(
             time and forecast_period coordinates should be associated (share a
             dimension if a Cube). The input may have missing points in the
             forecast trajectory.
-        interval_in_mins (int):
+        interval_in_minutes (int):
             The expected interval between points in the forecast trajectory (in
             minutes). Used to identify gaps in the sequence. If not provided,
             gaps will not be filled, but points can still be regenerated if
@@ -65,14 +65,14 @@ def process(
             forecast periods. These forecast periods are for a specific forecast
             trajectory (i.e. with a set of validity times increasing into the future
             from a fixed forecast_reference_time). When provided with
-            interpolation_window_in_hours, enables identification and regeneration of
+            interpolation_window_in_minutes, enables identification and regeneration of
             forecast periods at source transitions. Format: {realization_index: {source_name:
             [periods]}}
-        interpolation_window_in_hours (int):
-            Time window (in hours) to use as a +/- range around forecast source
+        interpolation_window_in_minutes (int):
+            Time window (in minutes) to use as a +/- range around forecast source
             transition points. Used with cluster_sources_attribute to identify
             which forecast periods should be regenerated. For example, if set to
-            3 hours and a transition occurs at a given period, periods 3 hours
+            180 minutes and a transition occurs at a given period, periods 180 minutes
             before, at, and after the transition will be regenerated if they
             fall within the sequence.
         interpolation_window_by_source_pair (str):
