@@ -7,7 +7,7 @@ moisture effects included via the virtual temperature calculation.
 .. math::
 
 
-   ρ=\frac{p}{R_d T_v}
+   \rho=\frac{p}{R_d T_v}
 
 where:
 
