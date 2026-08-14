@@ -24,11 +24,11 @@ Key interpretation
 
 If temperature goes up, density goes down.
 
-If moisture goes up, density goes down \*
+If moisture goes up, density goes down [*]_
 
 If pressure goes up, density goes up.
 
-* Derivable from Avogadro’s Law (i.e. equal volumes of different gases
+.. [*] Derivable from Avogadro’s Law (i.e. equal volumes of different gases
   under the same conditions hold the same number of molecules) and
   molecular weights. Water molecules have a lower atomic weight (16u)
-  than oxygen molecules (32u) and nitrogen molecules (28u)
+  than oxygen molecules (32u) and nitrogen molecules (18u).
