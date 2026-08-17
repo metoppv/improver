@@ -455,11 +455,12 @@ def create_corrected_wind_speed_cube(
     """
     target_heights = np.asarray(
         target_heights,
-        dtype=float,
+        dtype=np.float32,
     )
 
     corrected_wind_speeds = np.ma.asarray(
         corrected_wind_speeds,
+        dtype=np.float32,
     )
 
     if corrected_wind_speeds.shape[0] != target_heights.size:
@@ -483,7 +484,7 @@ def create_corrected_wind_speed_cube(
         height_coord.convert_units("m")
         height_coord.points = np.array(
             [target_height],
-            dtype=float,
+            dtype=np.float32,
         )
         height_coord.bounds = None
 

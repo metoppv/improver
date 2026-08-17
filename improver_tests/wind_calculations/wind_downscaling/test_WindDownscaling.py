@@ -261,6 +261,29 @@ class TestWindDownscaling:
                 target_heights=np.array([10.0], dtype=np.float32),
             )
 
+    def test_create_corrected_wind_speed_cube_uses_float32_output(self):
+        """Ensure output data and height points comply with mandatory dtype."""
+        template = _make_wind_cube(
+            heights=np.array([10.0, 20.0], dtype=np.float32),
+            values_at_heights=np.array([2.0, 4.0], dtype=np.float32),
+        )
+        corrected = np.array(
+            [
+                np.full((2, 2), 3.0, dtype=np.float64),
+                np.full((2, 2), 5.0, dtype=np.float64),
+            ]
+        )
+
+        result = create_corrected_wind_speed_cube(
+            template,
+            corrected,
+            target_heights=np.array([10.0, 20.0], dtype=np.float64),
+        )
+
+        assert result.dtype == np.dtype(np.float32)
+        assert result.coord("height").dtype == np.dtype(np.float32)
+        assert result.coord("height").points.dtype == np.dtype(np.float32)
+
     def test_get_cubes_to_check_excludes_optional_target_cube_when_none(self):
         """Do not include an optional target cube when none is given."""
         plugin = _make_plugin()
