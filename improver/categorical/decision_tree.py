@@ -285,7 +285,7 @@ class ApplyDecisionTree(BasePlugin):
                         num_thresholds = len(threshold_points)
 
                         # If multiple thresholds are found, the closest threshold to the
-                        # desired threshold, is chosen.
+                        # desired threshold is chosen.
                         if num_thresholds > 1:
                             diff = [
                                 abs(point - threshold) for point in threshold_points
