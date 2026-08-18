@@ -118,10 +118,38 @@ def process(
         elif n_target == 1:
             target_wind_speed_slices = target_wind_speed_slices * n_profile
         else:
-            raise ValueError(
-                "Mismatch in realization count between wind_profile_cube "
-                "and target_wind_speed_cube."
+            try:
+                profile_by_realization = {
+                    float(cube.coord("realization").points[0]): cube
+                    for cube in wind_profile_slices
+                }
+                target_by_realization = {
+                    float(cube.coord("realization").points[0]): cube
+                    for cube in target_wind_speed_slices
+                }
+            except CoordinateNotFoundError:
+                raise ValueError(
+                    "Mismatch in realization count between wind_profile_cube "
+                    "and target_wind_speed_cube."
+                )
+
+            common_realizations = sorted(
+                set(profile_by_realization).intersection(target_by_realization)
             )
+            if not common_realizations:
+                raise ValueError(
+                    "Mismatch in realization count between wind_profile_cube "
+                    "and target_wind_speed_cube."
+                )
+
+            wind_profile_slices = [
+                profile_by_realization[realization]
+                for realization in common_realizations
+            ]
+            target_wind_speed_slices = [
+                target_by_realization[realization]
+                for realization in common_realizations
+            ]
 
     wind_speed_list = iris.cube.CubeList()
     for wind_profile_slice, target_wind_speed_slice in zip(
