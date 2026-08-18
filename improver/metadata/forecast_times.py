@@ -45,7 +45,6 @@ def forecast_period_coord(
         it will be an AuxCoord.
     """
     create_dim_coord = False
-    coord_attributes = {}
     frt_coord = cube.coords("forecast_reference_time")
     blend_time_coord = cube.coords("blend_time")
     reference_coord = frt_coord if frt_coord else blend_time_coord
@@ -56,8 +55,8 @@ def forecast_period_coord(
                 f"{frt_coord[0].cell(0).point}; blend_time is {blend_time_coord[0].cell(0).point}"
             )
 
-    if cube.coords("forecast_period"):
-        coord_attributes = cube.coord("forecast_period").attributes
+    forecast_period_in_cube = cube.coords("forecast_period")
+    if forecast_period_in_cube:
         if isinstance(cube.coord("forecast_period"), DimCoord):
             create_dim_coord = True
 
@@ -68,13 +67,20 @@ def forecast_period_coord(
         # Cube must adhere to mandatory standards for safe time calculations
         check_mandatory_standards(cube)
         # Try to calculate forecast period from forecast reference time and
-        # time coordinates
+        # time coordinates i.e.
+        # forecast period = time - forecast reference time
         result_coord = _calculate_forecast_period(
             cube.coord("time"),
             cube.coord(reference_coord[0]),
             dim_coord=create_dim_coord,
         )
-        result_coord.attributes.update(coord_attributes)
+
+        if forecast_period_in_cube:
+            # copy original metadata and attributes, etc
+            # but use new values of points and bounds
+            result_coord_with_original_metadata = cube.coord("forecast_period").copy(result_coord.points)
+            result_coord_with_original_metadata.bounds = result_coord.bounds
+            result_coord = result_coord_with_original_metadata
 
     else:
         msg = (
