@@ -6,63 +6,132 @@
 """Script to apply unresolved-orography wind corrections."""
 
 from improver import cli
-from improver.wind_calculations.wind_downscaling import (
-    process as wind_downscaling_process,
-)
 
 
 @cli.clizefy
 @cli.with_output
 def process(
-    wind_speed_on_heights: cli.inputcube,
+    target_wind_speed_cube: cli.inputcube,
+    wind_profile_cube: cli.inputcube,
     high_res_orog_cube: cli.inputcube,
     model_orog_cube: cli.inputcube,
     model_orog_stddev_cube: cli.inputcube,
     model_silhouette_roughness_cube: cli.inputcube,
     landmask_cube: cli.inputcube,
     *,
-    target_height_levels: cli.comma_separated_list_of_float = None,
-    target_wind_speed_cube: cli.inputcube = None,
+    target_height_levels: cli.comma_separated_list = None,
 ):
-    """Apply unresolved-orography wind corrections."""
+    """Apply unresolved-orography wind-speed corrections.
+
+    Args:
+        target_wind_speed_cube:
+            Wind-speed cube to be corrected.
+
+        wind_profile_cube:
+            Wind-speed profile cube used to fit roughness and reference-wind
+            parameters. Must contain wind speeds on heights between ground and
+            300 m above ground level. Can be the same cube as ``target_wind_speed_cube``.
+
+        high_res_orog_cube:
+            High-resolution orography cube.
+
+        model_orog_cube:
+            Model-resolution orography cube.
+
+        model_orog_stddev_cube:
+            Sub-grid orography standard deviation cube.
+
+        model_silhouette_roughness_cube:
+            Sub-grid silhouette roughness cube.
+
+        landmask_cube:
+            Land-sea mask cube.
+
+        target_height_levels:
+            Comma-separated list of target heights above ground level, in
+            metres. Use ``None`` to apply corrections at the heights already
+            present on ``target_wind_speed_cube``.
+
+    Returns:
+        iris.cube.Cube:
+            Wind-speed cube with unresolved-orography correction applied.
+
+    Raises:
+        ValueError:
+            If the number of realizations on ``wind_profile_cube`` and
+            ``target_wind_speed_cube`` are incompatible and cannot be
+            broadcast.
+    """
     import iris
     from iris.exceptions import CoordinateNotFoundError
 
-    try:
-        wind_speed_slices = list(wind_speed_on_heights.slices_over("realization"))
-    except CoordinateNotFoundError:
-        wind_speed_slices = [wind_speed_on_heights]
+    from improver.wind_calculations.wind_downscaling import WindDownscaling
 
-    if target_wind_speed_cube is None:
-        target_wind_speed_slices = [None] * len(wind_speed_slices)
+    if target_height_levels is None:
+        parsed_target_height_levels = None
+    elif isinstance(target_height_levels, list):
+        if (
+            len(target_height_levels) == 1
+            and str(target_height_levels[0]).lower() == "none"
+        ):
+            parsed_target_height_levels = None
+        else:
+            parsed_target_height_levels = [
+                float(value) for value in target_height_levels
+            ]
+    elif isinstance(target_height_levels, str):
+        if target_height_levels.lower() == "none":
+            parsed_target_height_levels = None
+        else:
+            parsed_target_height_levels = [
+                float(value) for value in target_height_levels.split(",")
+            ]
     else:
-        try:
-            target_wind_speed_slices = list(
-                target_wind_speed_cube.slices_over("realization")
-            )
-        except CoordinateNotFoundError:
-            target_wind_speed_slices = [target_wind_speed_cube] * len(wind_speed_slices)
+        parsed_target_height_levels = target_height_levels
 
-        if len(target_wind_speed_slices) != len(wind_speed_slices):
+    plugin = WindDownscaling(
+        high_res_orog_cube,
+        model_orog_cube,
+        model_orog_stddev_cube,
+        model_silhouette_roughness_cube,
+        landmask_cube,
+    )
+
+    try:
+        wind_profile_slices = list(wind_profile_cube.slices_over("realization"))
+    except CoordinateNotFoundError:
+        wind_profile_slices = [wind_profile_cube]
+
+    try:
+        target_wind_speed_slices = list(
+            target_wind_speed_cube.slices_over("realization")
+        )
+    except CoordinateNotFoundError:
+        target_wind_speed_slices = [target_wind_speed_cube]
+
+    n_profile = len(wind_profile_slices)
+    n_target = len(target_wind_speed_slices)
+
+    if n_profile != n_target:
+        if n_profile == 1:
+            wind_profile_slices = wind_profile_slices * n_target
+        elif n_target == 1:
+            target_wind_speed_slices = target_wind_speed_slices * n_profile
+        else:
             raise ValueError(
-                "Mismatch in realization count between wind_speed_on_heights "
+                "Mismatch in realization count between wind_profile_cube "
                 "and target_wind_speed_cube."
             )
 
     wind_speed_list = iris.cube.CubeList()
-    for wind_speed_slice, target_wind_speed_slice in zip(
-        wind_speed_slices,
+    for wind_profile_slice, target_wind_speed_slice in zip(
+        wind_profile_slices,
         target_wind_speed_slices,
     ):
-        result = wind_downscaling_process(
-            wind_speed_slice,
-            high_res_orog_cube,
-            model_orog_cube,
-            model_orog_stddev_cube,
-            model_silhouette_roughness_cube,
-            landmask_cube,
-            target_height_levels=target_height_levels,
-            target_wind_speed_cube=target_wind_speed_slice,
+        result = plugin(
+            wind_profile_slice,
+            target_wind_speed_slice,
+            target_height_levels=parsed_target_height_levels,
         )
         wind_speed_list.append(result)
 

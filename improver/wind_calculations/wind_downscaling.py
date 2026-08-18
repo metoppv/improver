@@ -14,12 +14,6 @@ from improver import BasePlugin
 VON_KARMAN_CONSTANT = 0.4
 
 
-def convert_cubes_to_metres(*cubes: Cube) -> None:
-    """Convert all supplied cubes to metres in place."""
-    for cube in cubes:
-        cube.convert_units("m")
-
-
 class WindDownscaling(BasePlugin):
     """Plugin-style interface for orographic wind-speed correction."""
 
@@ -57,200 +51,115 @@ class WindDownscaling(BasePlugin):
 
     def process(
         self,
-        wind_speed_on_heights_cube: Cube,
+        wind_profile_cube: Cube,
+        target_wind_speed_cube: Cube,
         target_height_levels: list[float] | None = None,
-        target_wind_speed_cube: Cube | None = None,
     ) -> Cube:
         """Apply wind downscaling using stored ancillary cubes.
 
-        Target selection:
-            Exactly one of the following must apply:
-            1. target_wind_speed_cube is provided:
-               Correction is applied to that cube's wind values at its single
-               height.
-            2. target_height_levels is provided:
-               wind_speed_on_heights_cube is interpolated to those heights,
-               then corrected.
-            3. Neither is provided:
-               wind_speed_on_heights_cube is corrected on its native height
-               levels.
-
         Args:
-            wind_speed_on_heights_cube:
-                Wind-speed cube on height levels.
-
-            target_height_levels:
-                Optional target heights in metres.
+            wind_profile_cube:
+                Wind-speed cube used to fit vertical profiles for roughness
+                and reference-wind estimation. Must contain wind speed on
+                heights between ground and 300 m above ground level.
 
             target_wind_speed_cube:
-                Optional target wind-speed cube at a single height.
+                Wind-speed cube to be corrected.
+
+            target_height_levels:
+                Optional target heights in metres. If omitted, heights are
+                taken from target_wind_speed_cube.
 
         Returns:
             Cube:
                 Corrected wind-speed cube.
+
+        Raises:
+            ValueError:
+                If supplied cubes do not share a common horizontal grid.
         """
-        return process(
-            wind_speed_on_heights_cube,
+        target_heights = get_target_height_levels(
+            target_wind_speed_cube,
+            target_height_levels,
+        )
+        cubes_to_check = get_cubes_to_check(
+            wind_profile_cube,
+            target_wind_speed_cube,
             self.high_res_orog_cube,
             self.model_orog_cube,
             self.model_orog_stddev_cube,
             self.model_silhouette_roughness_cube,
             self.landmask_cube,
-            target_height_levels=target_height_levels,
-            target_wind_speed_cube=target_wind_speed_cube,
+        )
+        check_same_grid(*cubes_to_check)
+        for cube in (
+            self.high_res_orog_cube,
+            self.model_orog_cube,
+            self.model_orog_stddev_cube,
+        ):
+            cube.convert_units("m")
+
+        wavenumber_cube = calculate_characteristic_wavenumber(
+            self.model_orog_stddev_cube,
+            self.model_silhouette_roughness_cube,
+            self.landmask_cube,
+        )
+        reference_height_cube = calculate_reference_height(wavenumber_cube)
+        unresolved_orography_height_cube = calculate_unresolved_orography_height(
+            self.high_res_orog_cube,
+            self.model_orog_cube,
+        )
+
+        spline = fit_spline_wind_profile(wind_profile_cube)
+
+        target_wind_speeds = get_target_wind_speeds(
+            target_wind_speed_cube,
+            target_heights,
+        )
+
+        z0 = fit_log_wind_profile(wind_profile_cube)
+        reference_wind_speed = evaluate_spline_at_reference_heights(
+            spline,
+            reference_height_cube,
+        )
+
+        speed_up_factor = calculate_speed_up_factor(
+            wavenumber_cube.data,
+            unresolved_orography_height_cube.data,
+            target_heights,
+            target_wind_speeds,
+            reference_wind_speed,
+            z0,
+            self.landmask_cube.data,
+        )
+
+        corrected_wind_speeds = target_wind_speeds * speed_up_factor
+
+        return create_corrected_wind_speed_cube(
+            target_wind_speed_cube,
+            corrected_wind_speeds,
+            target_heights,
         )
 
 
-def process(
-    wind_speed_on_heights_cube: Cube,
-    high_res_orog_cube: Cube,
-    model_orog_cube: Cube,
-    model_orog_stddev_cube: Cube,
-    model_silhouette_roughness_cube: Cube,
-    landmask_cube: Cube,
-    target_height_levels: list[float] | None = None,
-    target_wind_speed_cube: Cube | None = None,
-) -> Cube:
-    """
-    Apply unresolved-orography wind corrections at target heights.
-
-    This routine validates grid compatibility, derives unresolved-terrain
-    diagnostics, evaluates background winds at requested heights, computes the
-    multiplicative speed-up factor, and returns a corrected wind-speed cube.
-
-    Target selection:
-        Exactly one of the following must apply:
-        1. target_wind_speed_cube is provided:
-           Its wind values are used as the correction background and output
-           template at that single height.
-        2. target_height_levels is provided:
-           wind_speed_on_heights_cube is interpolated to those heights before
-           correction.
-        3. Neither is provided:
-           Corrections are applied at the original height levels from
-           wind_speed_on_heights_cube.
-
-    Args:
-        wind_speed_on_heights_cube:
-            Wind-speed cube on height levels (height, y, x).
-
-        high_res_orog_cube:
-            High-resolution orography cube.
-
-        model_orog_cube:
-            Model-resolution orography cube.
-
-        model_orog_stddev_cube:
-            Sub-grid orography standard deviation cube.
-
-        model_silhouette_roughness_cube:
-            Sub-grid silhouette roughness cube.
-
-        landmask_cube:
-            Land-sea mask cube.
-
-        target_height_levels:
-            Optional target heights in metres. Must not be supplied together
-            with target_wind_speed_cube.
-
-        target_wind_speed_cube:
-            Optional wind-speed cube at a single target height. If supplied,
-            this provides target winds directly.
-
-    Returns:
-        Cube:
-            Corrected wind-speed cube on the requested target heights.
-
-    Raises:
-        ValueError:
-            If incompatible height-target inputs are provided, or if supplied
-            cubes do not share a common horizontal grid.
-    """
-    target_heights = get_target_height_levels(
-        wind_speed_on_heights_cube,
-        target_height_levels,
-        target_wind_speed_cube,
-    )
-    cubes_to_check = get_cubes_to_check(
-        wind_speed_on_heights_cube,
-        high_res_orog_cube,
-        model_orog_cube,
-        model_orog_stddev_cube,
-        model_silhouette_roughness_cube,
-        landmask_cube,
-        target_wind_speed_cube,
-    )
-    check_same_grid(*cubes_to_check)
-    convert_cubes_to_metres(
-        high_res_orog_cube,
-        model_orog_cube,
-        model_orog_stddev_cube,
-    )
-
-    wavenumber_cube = calculate_characteristic_wavenumber(
-        model_orog_stddev_cube,
-        model_silhouette_roughness_cube,
-        landmask_cube,
-    )
-    reference_height_cube = calculate_reference_height(wavenumber_cube)
-    unresolved_orography_height_cube = calculate_unresolved_orography_height(
-        high_res_orog_cube,
-        model_orog_cube,
-    )
-
-    spline = fit_spline_wind_profile(wind_speed_on_heights_cube)
-
-    target_wind_speeds = get_target_wind_speeds(
-        target_wind_speed_cube,
-        target_heights,
-        spline,
-    )
-
-    z0 = fit_log_wind_profile(wind_speed_on_heights_cube)
-    reference_wind_speed = evaluate_spline_at_reference_heights(
-        spline,
-        reference_height_cube,
-    )
-
-    speed_up_factor = calculate_speed_up_factor(
-        wavenumber_cube.data,
-        unresolved_orography_height_cube.data,
-        target_heights,
-        target_wind_speeds,
-        reference_wind_speed,
-        z0,
-        landmask_cube.data,
-    )
-
-    corrected_wind_speeds = target_wind_speeds * speed_up_factor
-
-    output_template_cube = get_output_template_cube(
-        wind_speed_on_heights_cube,
-        target_wind_speed_cube,
-    )
-
-    return create_corrected_wind_speed_cube(
-        output_template_cube,
-        corrected_wind_speeds,
-        target_heights,
-    )
-
-
 def get_cubes_to_check(
-    wind_speed_on_heights_cube: Cube,
+    wind_profile_cube: Cube,
+    target_wind_speed_cube: Cube,
     high_res_orog_cube: Cube,
     model_orog_cube: Cube,
     model_orog_stddev_cube: Cube,
     model_silhouette_roughness_cube: Cube,
     landmask_cube: Cube,
-    target_wind_speed_cube: Cube | None,
 ) -> list[Cube]:
     """
     Build the list of cubes that must share a common horizontal grid.
 
     Args:
-        wind_speed_on_heights_cube:
-            Wind-speed cube on height levels.
+        wind_profile_cube:
+            Wind-speed cube used for profile fitting.
+
+        target_wind_speed_cube:
+            Wind-speed cube that will be corrected.
 
         high_res_orog_cube:
             High-resolution orography cube.
@@ -267,103 +176,44 @@ def get_cubes_to_check(
         landmask_cube:
             Land-sea mask cube.
 
-        target_wind_speed_cube:
-            Optional target wind-speed cube.
-
     Returns:
         list[Cube]:
             Cubes that should be checked with check_same_grid.
     """
-    cubes_to_check = [
-        wind_speed_on_heights_cube,
+    return [
+        wind_profile_cube,
+        target_wind_speed_cube,
         high_res_orog_cube,
         model_orog_cube,
         landmask_cube,
         model_orog_stddev_cube,
         model_silhouette_roughness_cube,
     ]
-    if target_wind_speed_cube is not None:
-        cubes_to_check.append(target_wind_speed_cube)
-    return cubes_to_check
-
-
-def get_output_template_cube(
-    wind_speed_on_heights_cube: Cube,
-    target_wind_speed_cube: Cube | None,
-) -> Cube:
-    """
-    Select the metadata template cube for corrected output.
-
-    Args:
-        wind_speed_on_heights_cube:
-            Wind-speed cube on height levels.
-
-        target_wind_speed_cube:
-            Optional target wind-speed cube.
-
-    Returns:
-        Cube:
-            target_wind_speed_cube when supplied; otherwise
-            wind_speed_on_heights_cube.
-    """
-    return (
-        target_wind_speed_cube
-        if target_wind_speed_cube is not None
-        else wind_speed_on_heights_cube
-    )
 
 
 def get_target_height_levels(
-    wind_speed_on_heights_cube: Cube,
+    target_wind_speed_cube: Cube,
     target_height_levels: list[float] | None,
-    target_wind_speed_cube: Cube | None,
 ) -> np.ndarray:
     """
     Determine the heights to apply wind-speed corrections to.
 
-    If a target wind-speed cube is supplied, its scalar height is used.
-
-    Otherwise, explicitly requested target heights are used. If neither is
-    supplied, the height levels from the wind-profile cube are used.
-
-    Selection priority:
-        1. target_wind_speed_cube height (if supplied)
-        2. target_height_levels (if supplied)
-        3. wind_speed_on_heights_cube height coordinate
+    Explicitly requested target heights are used when supplied. Otherwise,
+    the height levels from target_wind_speed_cube are used.
 
     Args:
-        wind_speed_on_heights_cube:
-            Cube containing wind speeds on height levels.
+        target_wind_speed_cube:
+            Cube containing winds to be corrected.
 
         target_height_levels:
             Optional list of heights above ground level, in metres.
-
-        target_wind_speed_cube:
-            Optional cube containing wind speeds at a single height.
-
     Returns:
         np.ndarray:
             Target heights above ground level, in metres.
-
-    Raises:
-        ValueError:
-            If both target_height_levels and target_wind_speed_cube are
-            provided.
     """
-    if target_height_levels is not None and target_wind_speed_cube is not None:
-        raise ValueError(
-            "Specify either target_height_levels or "
-            "target_wind_speed_cube, not both."
-        )
-
-    if target_wind_speed_cube is not None:
-        target_height_levels = get_height_levels_from_cube(
-            target_wind_speed_cube,
-        )
-
     if target_height_levels is None:
         target_height_levels = get_height_levels_from_cube(
-            wind_speed_on_heights_cube,
+            target_wind_speed_cube,
         )
 
     return np.sort(np.asarray(target_height_levels, dtype=float))
@@ -390,40 +240,53 @@ def prepare_target_wind_speeds(
 
 
 def get_target_wind_speeds(
-    target_wind_speed_cube: Cube | None,
+    target_wind_speed_cube: Cube,
     target_heights: np.ndarray,
-    spline: PchipInterpolator,
 ) -> np.ma.MaskedArray:
     """
-    Get target wind speeds from a target cube or spline evaluation.
+    Get target wind speeds from target cube at requested heights.
 
     Args:
         target_wind_speed_cube:
-            Optional wind-speed cube at a single target height.
+            Wind-speed cube to be corrected.
 
         target_heights:
             Target heights in metres.
 
-        spline:
-            PCHIP interpolator fitted to wind profiles.
-
     Returns:
         np.ma.MaskedArray:
             Target wind speeds with shape (n_heights, y, x).
-    """
-    if target_wind_speed_cube is not None:
-        # If a target wind-speed cube is supplied, use its data directly.
-        return np.ma.asarray(
-            target_wind_speed_cube.data,
-            dtype=float,
-        )[np.newaxis, ...].copy()
 
-    # If no target wind-speed cube is supplied, evaluate the spline at the
-    # requested heights.
-    return np.ma.asarray(
-        spline(target_heights),
+    Raises:
+        ValueError:
+            If target_height_levels differ from a single-level target cube.
+    """
+    cube_heights = np.asarray(
+        get_height_levels_from_cube(target_wind_speed_cube),
         dtype=float,
     )
+    cube_winds = np.ma.asarray(target_wind_speed_cube.data, dtype=float)
+
+    if target_wind_speed_cube.ndim == 2:
+        cube_winds = cube_winds[np.newaxis, ...]
+
+    if cube_winds.shape[0] != cube_heights.size:
+        raise ValueError(
+            "target_wind_speed_cube data first dimension must match "
+            "its height coordinate size."
+        )
+
+    if np.array_equal(cube_heights, target_heights):
+        return cube_winds.copy()
+
+    if cube_heights.size == 1:
+        raise ValueError(
+            "Cannot interpolate target_wind_speed_cube to target_height_levels "
+            "when only one source height is available."
+        )
+
+    target_spline = fit_spline_wind_profile(target_wind_speed_cube)
+    return np.ma.asarray(target_spline(target_heights), dtype=float)
 
 
 def create_corrected_wind_speed_cube(
@@ -929,12 +792,13 @@ def _refine_roughness_length(
     upper = np.log(upper_z0)
 
     def _error(log_z0: np.ndarray) -> np.ndarray:
+        roughness_length = np.exp(log_z0)
         _, err = _evaluate_log_profile_fit(
             fit_heights,
             fit_winds,
             valid,
             valid_count,
-            np.exp(log_z0),
+            roughness_length,
             von_karman_constant,
             min_friction_velocity,
             max_friction_velocity,
