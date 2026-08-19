@@ -82,6 +82,10 @@ class WindDownscaling(BasePlugin):
             target_wind_speed_cube,
             target_height_levels,
         )
+        wind_profile_cube = crop_wind_profile_cube(
+            wind_profile_cube,
+            target_heights,
+        )
         cubes_to_check = get_cubes_to_check(
             wind_profile_cube,
             target_wind_speed_cube,
@@ -217,6 +221,62 @@ def get_target_height_levels(
         )
 
     return np.sort(np.asarray(target_height_levels, dtype=float))
+
+
+def crop_wind_profile_cube(
+    wind_profile_cube: Cube,
+    target_heights: np.ndarray,
+    minimum_upper_height: float = 300.0,
+) -> Cube:
+    """
+    Crop wind-profile levels to those needed for downscaling calculations.
+
+    The upper crop bound is the greater of 300 m and the maximum requested
+    target height. This keeps profile data needed for spline evaluation at
+    target heights while limiting memory use from unnecessary high levels.
+
+    Args:
+        wind_profile_cube:
+            Wind-speed cube on height levels used for profile fitting.
+
+        target_heights:
+            Requested target heights in metres.
+
+        minimum_upper_height:
+            Minimum upper crop bound in metres. Defaults to 300 m.
+
+    Returns:
+        Cube:
+            Wind-profile cube cropped in height.
+
+    Raises:
+        ValueError:
+            If no wind-profile height levels are at or below the crop bound.
+    """
+    if wind_profile_cube.ndim < 3:
+        return wind_profile_cube
+
+    heights = np.asarray(get_height_levels_from_cube(wind_profile_cube), dtype=float)
+    finite_target_heights = np.asarray(target_heights, dtype=float)
+    finite_target_heights = finite_target_heights[np.isfinite(finite_target_heights)]
+    max_target_height = (
+        float(np.max(finite_target_heights))
+        if finite_target_heights.size
+        else float(minimum_upper_height)
+    )
+    upper_height = max(max_target_height, float(minimum_upper_height))
+
+    keep_indices = np.where(heights <= upper_height)[0]
+    if keep_indices.size == 0:
+        raise ValueError(
+            "wind_profile_cube has no height levels at or below "
+            f"the crop limit ({upper_height} m)."
+        )
+
+    if keep_indices.size == heights.size:
+        return wind_profile_cube
+
+    return wind_profile_cube[keep_indices]
 
 
 def prepare_target_wind_speeds(

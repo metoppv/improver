@@ -4,6 +4,8 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Tests for wind downscaling behaviour and helper utilities."""
 
+from unittest.mock import patch
+
 import numpy as np
 import pytest
 
@@ -14,16 +16,21 @@ from improver.synthetic_data.set_up_test_cubes import (
 )
 from improver.wind_calculations.wind_downscaling import (
     WindDownscaling,
+    calculate_characteristic_wavenumber,
+    calculate_reference_height,
     calculate_speed_up_factor,
+    calculate_unresolved_orography_height,
     check_same_grid,
     create_corrected_wind_speed_cube,
+    crop_wind_profile_cube,
     evaluate_spline_at_reference_heights,
+    fit_log_wind_profile,
     fit_spline_wind_profile,
     get_cubes_to_check,
     get_height_levels_from_cube,
-    get_output_template_cube,
     get_target_height_levels,
     get_target_wind_speeds,
+    prepare_target_wind_speeds,
 )
 
 
@@ -106,22 +113,16 @@ class TestWindDownscaling:
         plugin = _make_plugin()
         assert isinstance(plugin, BasePlugin)
 
-    def test_raises_when_both_target_inputs_provided(self):
-        """Using both target selectors together should fail clearly."""
+    def test_requires_target_wind_speed_cube_argument(self):
+        """Process call should require an explicit target-wind cube."""
         plugin = _make_plugin()
         wind = _make_wind_cube(
             heights=np.array([10.0, 20.0, 30.0], dtype=np.float32),
             values_at_heights=np.array([2.0, 4.0, 6.0], dtype=np.float32),
         )
-        target_cube = wind[0].copy(data=np.full((2, 2), 9.0, dtype=np.float32))
 
-        msg = "Specify either target_height_levels or target_wind_speed_cube, not both."
-        with pytest.raises(ValueError, match=msg):
-            plugin(
-                wind,
-                target_height_levels=[10.0],
-                target_wind_speed_cube=target_cube,
-            )
+        with pytest.raises(TypeError, match="target_wind_speed_cube"):
+            plugin(wind)
 
     def test_get_target_height_levels_returns_sorted_requested_values(self):
         """Requested target heights should be sorted before use."""
@@ -132,7 +133,6 @@ class TestWindDownscaling:
         result = get_target_height_levels(
             wind,
             target_height_levels=[30.0, 10.0],
-            target_wind_speed_cube=None,
         )
         np.testing.assert_allclose(result, np.array([10.0, 30.0], dtype=np.float32))
 
@@ -146,7 +146,6 @@ class TestWindDownscaling:
         result = get_target_height_levels(
             wind,
             target_height_levels=None,
-            target_wind_speed_cube=None,
         )
 
         np.testing.assert_allclose(
@@ -167,12 +166,45 @@ class TestWindDownscaling:
         height_coord.bounds = None
 
         result = get_target_height_levels(
-            wind,
+            target_cube,
             target_height_levels=None,
-            target_wind_speed_cube=target_cube,
         )
 
         np.testing.assert_allclose(result, np.array([15.0], dtype=np.float32))
+
+    def test_crop_wind_profile_cube_uses_300m_minimum_upper_bound(self):
+        """Profile crop should keep levels up to 300 m even for lower targets."""
+        wind = _make_wind_cube(
+            heights=np.array([50.0, 150.0, 300.0, 500.0], dtype=np.float32),
+            values_at_heights=np.array([2.0, 4.0, 6.0, 8.0], dtype=np.float32),
+        )
+
+        cropped = crop_wind_profile_cube(
+            wind,
+            np.array([200.0], dtype=np.float32),
+        )
+
+        np.testing.assert_allclose(
+            cropped.coord("height").points,
+            np.array([50.0, 150.0, 300.0], dtype=np.float32),
+        )
+
+    def test_crop_wind_profile_cube_uses_target_max_when_above_300m(self):
+        """Profile crop should keep levels up to the maximum target height."""
+        wind = _make_wind_cube(
+            heights=np.array([50.0, 150.0, 300.0, 500.0, 700.0], dtype=np.float32),
+            values_at_heights=np.array([2.0, 4.0, 6.0, 8.0, 10.0], dtype=np.float32),
+        )
+
+        cropped = crop_wind_profile_cube(
+            wind,
+            np.array([600.0], dtype=np.float32),
+        )
+
+        np.testing.assert_allclose(
+            cropped.coord("height").points,
+            np.array([50.0, 150.0, 300.0, 500.0], dtype=np.float32),
+        )
 
     def test_no_correction_over_sea_for_native_levels(self):
         """Sea points should keep the original winds on native levels."""
@@ -182,7 +214,7 @@ class TestWindDownscaling:
             values_at_heights=np.array([2.0, 4.0, 6.0], dtype=np.float32),
         )
 
-        result = plugin(wind)
+        result = plugin(wind, wind)
         np.testing.assert_allclose(result.data, wind.data)
         np.testing.assert_allclose(
             result.coord("height").points, wind.coord("height").points
@@ -196,7 +228,7 @@ class TestWindDownscaling:
             values_at_heights=np.array([2.0, 4.0, 6.0], dtype=np.float32),
         )
 
-        result = plugin(wind, target_height_levels=[10.0, 30.0])
+        result = plugin(wind, wind, target_height_levels=[10.0, 30.0])
 
         expected = np.stack(
             [
@@ -225,7 +257,7 @@ class TestWindDownscaling:
         height_coord.points = np.array([15.0], dtype=np.float32)
         height_coord.bounds = None
 
-        result = plugin(wind, target_wind_speed_cube=target_cube)
+        result = plugin(wind, target_cube)
         np.testing.assert_allclose(result.data, np.full((2, 2), 9.0, dtype=np.float32))
         np.testing.assert_allclose(
             result.coord("height").points,
@@ -243,7 +275,7 @@ class TestWindDownscaling:
 
         msg = "horizontal shape"
         with pytest.raises(ValueError, match=msg):
-            plugin(wind)
+            plugin(wind, wind)
 
     def test_create_corrected_wind_speed_cube_raises_for_height_length_mismatch(self):
         """Reject output data if height count and data slices do not match."""
@@ -284,8 +316,8 @@ class TestWindDownscaling:
         assert result.coord("height").dtype == np.dtype(np.float32)
         assert result.coord("height").points.dtype == np.dtype(np.float32)
 
-    def test_get_cubes_to_check_excludes_optional_target_cube_when_none(self):
-        """Do not include an optional target cube when none is given."""
+    def test_get_cubes_to_check_contains_required_cubes(self):
+        """Build the required set of cubes in the expected order."""
         plugin = _make_plugin()
         wind = _make_wind_cube(
             heights=np.array([10.0, 20.0, 30.0], dtype=np.float32),
@@ -294,15 +326,16 @@ class TestWindDownscaling:
 
         cubes = get_cubes_to_check(
             wind,
+            wind,
             plugin.high_res_orog_cube,
             plugin.model_orog_cube,
             plugin.model_orog_stddev_cube,
             plugin.model_silhouette_roughness_cube,
             plugin.landmask_cube,
-            target_wind_speed_cube=None,
         )
 
         expected = [
+            wind,
             wind,
             plugin.high_res_orog_cube,
             plugin.model_orog_cube,
@@ -312,8 +345,8 @@ class TestWindDownscaling:
         ]
         assert cubes == expected
 
-    def test_get_cubes_to_check_includes_optional_target_cube_when_provided(self):
-        """Include the optional target cube when one is provided."""
+    def test_get_cubes_to_check_places_target_cube_second(self):
+        """Ensure the target cube is retained in the expected position."""
         plugin = _make_plugin()
         wind = _make_wind_cube(
             heights=np.array([10.0, 20.0, 30.0], dtype=np.float32),
@@ -323,37 +356,16 @@ class TestWindDownscaling:
 
         cubes = get_cubes_to_check(
             wind,
+            target_cube,
             plugin.high_res_orog_cube,
             plugin.model_orog_cube,
             plugin.model_orog_stddev_cube,
             plugin.model_silhouette_roughness_cube,
             plugin.landmask_cube,
-            target_wind_speed_cube=target_cube,
         )
 
         assert len(cubes) == 7
-        assert cubes[-1] is target_cube
-
-    def test_get_output_template_cube_prefers_target_cube(self):
-        """Prefer the target cube as the output template when available."""
-        wind = _make_wind_cube(
-            heights=np.array([10.0, 20.0, 30.0], dtype=np.float32),
-            values_at_heights=np.array([2.0, 4.0, 6.0], dtype=np.float32),
-        )
-        target_cube = wind[0].copy(data=np.full((2, 2), 5.0, dtype=np.float32))
-
-        template = get_output_template_cube(wind, target_cube)
-        assert template is target_cube
-
-    def test_get_output_template_cube_uses_wind_cube_when_target_absent(self):
-        """Fall back to the wind-profile cube when no target cube is given."""
-        wind = _make_wind_cube(
-            heights=np.array([10.0, 20.0, 30.0], dtype=np.float32),
-            values_at_heights=np.array([2.0, 4.0, 6.0], dtype=np.float32),
-        )
-
-        template = get_output_template_cube(wind, None)
-        assert template is wind
+        assert cubes[1] is target_cube
 
     def test_get_target_wind_speeds_from_target_cube_returns_independent_copy(self):
         """Target-wind data should be copied into a new array with height axis."""
@@ -361,8 +373,6 @@ class TestWindDownscaling:
             heights=np.array([10.0, 20.0, 30.0], dtype=np.float32),
             values_at_heights=np.array([2.0, 4.0, 6.0], dtype=np.float32),
         )
-        spline = fit_spline_wind_profile(wind)
-
         target_data = np.ma.array(
             [[3.0, 4.0], [5.0, 6.0]],
             mask=[[False, True], [False, False]],
@@ -373,7 +383,6 @@ class TestWindDownscaling:
         result = get_target_wind_speeds(
             target_wind_speed_cube=target_cube,
             target_heights=np.array([10.0], dtype=np.float32),
-            spline=spline,
         )
 
         assert result.shape == (1, 2, 2)
@@ -384,8 +393,8 @@ class TestWindDownscaling:
         target_cube.data[0, 0] = 999.0
         np.testing.assert_allclose(result[0, 0, 0], 3.0)
 
-    def test_get_target_wind_speeds_from_spline_uses_requested_heights(self):
-        """Without a target cube, requested heights should use spline values."""
+    def test_get_target_wind_speeds_interpolates_from_target_cube(self):
+        """Requested heights should be interpolated from target-cube levels."""
         wind = _make_wind_cube(
             heights=np.array([10.0, 20.0, 30.0], dtype=np.float32),
             values_at_heights=np.array([2.0, 4.0, 6.0], dtype=np.float32),
@@ -401,12 +410,9 @@ class TestWindDownscaling:
             axis=0,
         )
 
-        spline = fit_spline_wind_profile(wind)
-
         result = get_target_wind_speeds(
-            target_wind_speed_cube=None,
+            target_wind_speed_cube=wind,
             target_heights=np.array([15.0, 25.0], dtype=np.float32),
-            spline=spline,
         )
 
         expected = np.stack(
@@ -417,6 +423,42 @@ class TestWindDownscaling:
             axis=0,
         )
         np.testing.assert_allclose(result, expected)
+
+    def test_get_target_wind_speeds_raises_for_single_level_mismatch(self):
+        """Single-level target cubes cannot be interpolated to new heights."""
+        wind_profile = _make_wind_cube(
+            heights=np.array([10.0, 20.0, 30.0], dtype=np.float32),
+            values_at_heights=np.array([2.0, 4.0, 6.0], dtype=np.float32),
+        )
+        single_level_target = wind_profile[0].copy(
+            data=np.full((2, 2), 2.0, dtype=np.float32)
+        )
+
+        msg = "Cannot interpolate target_wind_speed_cube"
+        with pytest.raises(ValueError, match=msg):
+            get_target_wind_speeds(
+                target_wind_speed_cube=single_level_target,
+                target_heights=np.array([20.0], dtype=np.float32),
+            )
+
+    def test_get_target_wind_speeds_raises_for_height_data_mismatch(self):
+        """Reject cubes whose height coordinate does not match first data axis."""
+        wind = _make_wind_cube(
+            heights=np.array([10.0, 20.0, 30.0], dtype=np.float32),
+            values_at_heights=np.array([2.0, 4.0, 6.0], dtype=np.float32),
+        )
+        target_cube = wind[0].copy(data=np.full((2, 2), 7.0, dtype=np.float32))
+
+        msg = "data first dimension must match"
+        with patch(
+            "improver.wind_calculations.wind_downscaling.get_height_levels_from_cube",
+            return_value=np.array([10.0, 20.0, 30.0], dtype=np.float32),
+        ):
+            with pytest.raises(ValueError, match=msg):
+                get_target_wind_speeds(
+                    target_wind_speed_cube=target_cube,
+                    target_heights=np.array([10.0, 20.0], dtype=np.float32),
+                )
 
     def test_create_corrected_wind_speed_cube_sets_values_and_heights(self):
         """Output cube should keep corrected values and requested heights."""
@@ -643,7 +685,7 @@ class TestWindDownscaling:
         )
         requested_heights = [15.0, 25.0]
 
-        result = plugin(wind, target_height_levels=requested_heights)
+        result = plugin(wind, wind, target_height_levels=requested_heights)
 
         expected = np.stack(
             [
@@ -747,7 +789,7 @@ class TestWindDownscaling:
         target_cube.coord("height").points = np.array([150.0], dtype=np.float32)
         target_cube.coord("height").bounds = None
 
-        result = plugin(wind, target_wind_speed_cube=target_cube)
+        result = plugin(wind, target_cube)
 
         # Sea point stays unchanged.
         np.testing.assert_allclose(result.data[0, 1], 10.0)
@@ -756,3 +798,187 @@ class TestWindDownscaling:
         # Positive and negative unresolved-terrain responses are opposite in sign.
         assert result.data[0, 0] > 10.0
         assert result.data[1, 1] < 10.0
+
+    def test_fit_spline_wind_profile_raises_for_non_increasing_heights(self):
+        """Spline fitting should reject repeated or decreasing height levels."""
+        wind = _make_wind_cube(
+            heights=np.array([10.0, 20.0, 30.0], dtype=np.float32),
+            values_at_heights=np.array([2.0, 4.0, 6.0], dtype=np.float32),
+        )
+
+        with patch(
+            "improver.wind_calculations.wind_downscaling.get_height_levels_from_cube",
+            return_value=np.array([10.0, 10.0, 30.0], dtype=np.float32),
+        ):
+            with pytest.raises(ValueError, match="strictly increasing"):
+                fit_spline_wind_profile(wind)
+
+    def test_fit_spline_wind_profile_raises_for_non_finite_heights(self):
+        """Spline fitting should reject NaN or inf height levels."""
+        wind = _make_wind_cube(
+            heights=np.array([10.0, 20.0, 30.0], dtype=np.float32),
+            values_at_heights=np.array([2.0, 4.0, 6.0], dtype=np.float32),
+        )
+
+        with patch(
+            "improver.wind_calculations.wind_downscaling.get_height_levels_from_cube",
+            return_value=np.array([10.0, np.nan, 30.0], dtype=np.float32),
+        ):
+            with pytest.raises(ValueError, match="all be finite"):
+                fit_spline_wind_profile(wind)
+
+    def test_fit_spline_wind_profile_raises_for_height_data_size_mismatch(self):
+        """Spline fitting should fail if coordinate levels and data axis disagree."""
+        wind = _make_wind_cube(
+            heights=np.array([10.0, 20.0, 30.0], dtype=np.float32),
+            values_at_heights=np.array([2.0, 4.0, 6.0], dtype=np.float32),
+        )
+
+        with patch(
+            "improver.wind_calculations.wind_downscaling.get_height_levels_from_cube",
+            return_value=np.array([10.0, 20.0], dtype=np.float32),
+        ):
+            with pytest.raises(ValueError, match="first dimension"):
+                fit_spline_wind_profile(wind)
+
+    def test_fit_log_wind_profile_returns_nan_with_fewer_than_two_valid_levels(self):
+        """Log-profile fit should return NaN where fewer than two valid points exist."""
+        wind = _make_wind_cube(
+            heights=np.array([10.0, 20.0, 30.0], dtype=np.float32),
+            values_at_heights=np.array([1.0, 1.0, 1.0], dtype=np.float32),
+            shape=(1, 1),
+        )
+        wind.data = np.array([[[np.nan]], [[2.0]], [[np.nan]]], dtype=np.float32)
+
+        roughness = fit_log_wind_profile(wind)
+
+        assert roughness.shape == (1, 1)
+        assert np.isnan(roughness[0, 0])
+
+    def test_calculate_characteristic_wavenumber_applies_thresholds_and_landmask(self):
+        """Wavenumber should only be computed at valid land points."""
+        sigma_cube = _make_xy_cube(
+            np.array([[10.0, 1.0], [10.0, 10.0]], dtype=np.float32),
+            "standard_deviation_of_height_in_grid_cell",
+            "m",
+        )
+        silhouette_cube = _make_xy_cube(
+            np.array([[2.0, 2.0], [-0.5, 2.0]], dtype=np.float32),
+            "silhouette_roughness",
+            "1",
+        )
+        landmask_cube = _make_xy_cube(
+            np.array([[1.0, 1.0], [1.0, 0.0]], dtype=np.float32),
+            "land_binary_mask",
+            "1",
+        )
+
+        result = calculate_characteristic_wavenumber(
+            sigma_cube,
+            silhouette_cube,
+            landmask_cube,
+        )
+
+        mask = np.ma.getmaskarray(result.data)
+        np.testing.assert_array_equal(mask, np.array([[False, True], [True, True]]))
+        np.testing.assert_allclose(result.data[0, 0], np.pi / 500.0)
+
+    def test_calculate_characteristic_wavenumber_clips_to_max_length_scale(self):
+        """Very smooth terrain should clip to the longest permitted scale."""
+        sigma_cube = _make_xy_cube(
+            np.full((1, 1), 500.0, dtype=np.float32),
+            "standard_deviation_of_height_in_grid_cell",
+            "m",
+        )
+        silhouette_cube = _make_xy_cube(
+            np.full((1, 1), 0.01, dtype=np.float32),
+            "silhouette_roughness",
+            "1",
+        )
+        landmask_cube = _make_xy_cube(
+            np.full((1, 1), 1.0, dtype=np.float32),
+            "land_binary_mask",
+            "1",
+        )
+
+        result = calculate_characteristic_wavenumber(
+            sigma_cube,
+            silhouette_cube,
+            landmask_cube,
+        )
+
+        np.testing.assert_allclose(result.data[0, 0], np.pi / 4000.0)
+
+    def test_calculate_unresolved_orography_height_converts_units_and_sets_metadata(
+        self,
+    ):
+        """Unresolved orography helper should convert units and set output metadata."""
+        high_res = _make_xy_cube(
+            np.full((2, 2), 0.12, dtype=np.float32),
+            "surface_altitude",
+            "km",
+        )
+        model = _make_xy_cube(
+            np.full((2, 2), 100.0, dtype=np.float32),
+            "surface_altitude",
+            "m",
+        )
+
+        result = calculate_unresolved_orography_height(high_res, model)
+
+        assert result.name() == "unresolved_orography_height"
+        assert str(result.units) == "m"
+        np.testing.assert_allclose(result.data, np.full((2, 2), 20.0, dtype=np.float32))
+
+    def test_calculate_reference_height_preserves_mask_and_sets_metadata(self):
+        """Reference-height helper should preserve mask and update metadata."""
+        wavenumber = _make_xy_cube(
+            np.array([[0.1, 0.2]], dtype=np.float32),
+            "characteristic_unresolved_orography_wavenumber",
+            "m-1",
+        )
+        wavenumber.data = np.ma.array(
+            wavenumber.data,
+            mask=np.array([[False, True]]),
+        )
+
+        result = calculate_reference_height(wavenumber)
+
+        assert result.name() == "unresolved_orography_reference_height"
+        assert str(result.units) == "m"
+        np.testing.assert_allclose(result.data[0, 0], 10.0)
+        assert np.ma.getmaskarray(result.data)[0, 1]
+
+    def test_check_same_grid_allows_single_cube(self):
+        """A single cube should be a no-op for grid consistency checks."""
+        cube = _make_xy_cube(np.ones((2, 2), dtype=np.float32), "wind_speed", "m s-1")
+
+        check_same_grid(cube)
+
+    def test_prepare_target_wind_speeds_returns_mask_and_nan_filled_values(self):
+        """Preparation helper should return explicit mask and NaN-filled values."""
+        target_winds = np.ma.array(
+            [[[1.0, 2.0], [3.0, 4.0]]],
+            mask=[[[False, True], [False, False]]],
+            dtype=np.float32,
+        )
+
+        mask, values = prepare_target_wind_speeds(target_winds)
+
+        np.testing.assert_array_equal(mask, np.array([[[False, True], [False, False]]]))
+        np.testing.assert_allclose(values[0, 0, 0], 1.0)
+        assert np.isnan(values[0, 0, 1])
+
+    def test_fit_log_wind_profile_returns_finite_for_valid_profiles(self):
+        """Valid wind profiles should produce finite roughness estimates."""
+        wind = _make_wind_cube(
+            heights=np.array([10.0, 30.0, 80.0, 150.0], dtype=np.float32),
+            values_at_heights=np.array([4.0, 6.0, 8.0, 10.0], dtype=np.float32),
+            shape=(2, 2),
+        )
+
+        roughness = fit_log_wind_profile(wind)
+
+        assert roughness.shape == (2, 2)
+        assert np.all(np.isfinite(roughness))
+        assert np.all(roughness > 0.0)
