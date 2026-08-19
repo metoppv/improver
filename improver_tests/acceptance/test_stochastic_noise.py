@@ -17,6 +17,7 @@ run_cli = acc.run_cli(CLI)
 
 def test_basic(tmp_path):
     """Test basic stochastic noise addition."""
+    pytest.importorskip("pysteps")
     kgo_dir = acc.kgo_root() / "stochastic_noise"
     kgo_path = kgo_dir / "unscaled/kgo.nc"
     dependence_template_path = kgo_dir / "input.nc"
@@ -35,10 +36,11 @@ def test_basic(tmp_path):
         output_path,
     ]
     run_cli(args)
-    acc.compare(output_path, kgo_path)
+    acc.compare(output_path, kgo_path, atol=1e-6, rtol=1e-6)
 
 
 def test_scale_non_positive_noise(tmp_path):
+    pytest.importorskip("pysteps")
     """Test stochastic noise addition with scale_non_positive_noise=True"""
     kgo_dir = acc.kgo_root() / "stochastic_noise"
     kgo_path = kgo_dir / "scaled/kgo.nc"
@@ -59,4 +61,36 @@ def test_scale_non_positive_noise(tmp_path):
         output_path,
     ]
     run_cli(args)
-    acc.compare(output_path, kgo_path)
+    acc.compare(output_path, kgo_path, atol=1e-6, rtol=1e-6)
+
+
+@pytest.mark.parametrize("specify_fallback", [False, True])
+def test_dry_realizations(tmp_path, specify_fallback):
+    """Test stochastic noise addition with scale_non_positive_noise=True
+    and wet_noise_floor set, and where the input realizations are completely dry."""
+    kgo_dir = acc.kgo_root() / "stochastic_noise"
+    kgo_path = kgo_dir / "dry" / "kgo.nc"
+    if specify_fallback:
+        kgo_path = kgo_dir / "dry" / "kgo_with_fallback.nc"
+    dependence_template_path = kgo_dir / "dry" / "input.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        dependence_template_path,
+        "--ssft-init-params",
+        "{'win_size': (100, 100), 'overlap': 0.3, 'war_thr': 0.1}",
+        "--ssft-generate-params",
+        "{'overlap': 0.3, 'seed': 0}",
+        "--db-threshold",
+        "0.03",
+        "--db-threshold-units",
+        "mm/hr",
+        "--scale-non-positive-noise",
+        "--wet-noise-floor",
+        "-10",
+        "--output",
+        output_path,
+    ]
+    if specify_fallback:
+        args += ["--dry-fallback-range", "(-200.0, -100.0)"]
+    run_cli(args)
+    acc.compare(output_path, kgo_path, atol=1e-6, rtol=1e-6)

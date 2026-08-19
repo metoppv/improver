@@ -8,7 +8,7 @@ import json
 import warnings
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, Dict, FrozenSet, List, Optional, Tuple, Union
 
 import iris
 import numpy as np
@@ -1019,6 +1019,7 @@ class ForecastTrajectoryGapFiller(BasePlugin):
         interpolation_method: str = "linear",
         cluster_sources_attribute: Optional[str] = None,
         interpolation_window_in_minutes: Optional[int] = None,
+        interpolation_window_by_source_pair: Optional[Dict[str, int]] = None,
         model_path: Optional[str] = None,
         scaling: str = "minmax",
         clipping_bounds: Optional[Union[Tuple[float, float], List[float]]] = None,
@@ -1049,11 +1050,11 @@ class ForecastTrajectoryGapFiller(BasePlugin):
                 When provided with interpolation_window_in_minutes, enables
                 identification of validity times to regenerate at source transitions.
             interpolation_window_in_minutes:
-                Time window (in hours) to use as a +/- range around forecast source
+                Time window (in minutes) to use as a +/- range around forecast source
                 transition points. Used with cluster_sources_attribute to identify
                 which forecast periods should be regenerated. For example, if set to
-                3 hours and a transition occurs at a given period, periods 3 hours
-                before, at, and after the transition will be regenerated if they
+                180 minutes and a transition occurs at a given period, periods 180
+                minutes before, at, and after the transition will be regenerated if they
                 fall within the sequence. In summary, the interval_in_minutes is used
                 to identify gaps in the forecast trajectory, while
                 interpolation_window_in_minutes is used to identify which forecast
@@ -1061,6 +1062,14 @@ class ForecastTrajectoryGapFiller(BasePlugin):
                 forecasts within the interpolation window around a transition will be
                 regenerated, even if they already exist in the input forecast
                 trajectory.
+            interpolation_window_by_source_pair:
+                Optional dictionary mapping forecast source pairs to a transition
+                interpolation window in minutes. Keys must identify two source names,
+                separated by "|" or "," (for example "uk_ens|gl_ens": 360).
+                Matching is order-insensitive. If provided, this takes precedence
+                over interpolation_window_in_minutes and a ValueError is raised if a
+                transition's source pair is not present in this dictionary. If not
+                provided, interpolation_window_in_minutes is used for all transitions.
             model_path:
                 Path to TensorFlow Hub module for Google FILM model
                 (if using google_film).
@@ -1099,6 +1108,7 @@ class ForecastTrajectoryGapFiller(BasePlugin):
         self.interpolation_method = interpolation_method
         self.cluster_sources_attribute = cluster_sources_attribute
         self.interpolation_window_in_minutes = interpolation_window_in_minutes
+        self.interpolation_window_by_source_pair = interpolation_window_by_source_pair
         self.model_path = model_path
         self.scaling = scaling
         self.interval_in_seconds = (
@@ -1109,6 +1119,16 @@ class ForecastTrajectoryGapFiller(BasePlugin):
             if self.interpolation_window_in_minutes is None
             else self.interpolation_window_in_minutes * 60
         )
+        # Parse the interpolation_window_by_source_pair dictionary into a mapping
+        # where the keys are frozensets of source names (uk_ens|gl_ens) or
+        # (uk_ens,gl_ens) and the values are the corresponding window in seconds.
+        # Frozen sets are used to ensure that the source pairs are order-insensitive
+        # and hashable, allowing them to be used as dictionary keys.
+        self.interpolation_window_by_source_pair_seconds = (
+            self._parse_interpolation_window_by_source_pair(
+                interpolation_window_by_source_pair
+            )
+        )
         # Ensure clipping_bounds is a tuple if needed
         self.clipping_bounds = _as_tuple_if_list(clipping_bounds)
         self.clip_in_scaled_space = clip_in_scaled_space
@@ -1118,6 +1138,120 @@ class ForecastTrajectoryGapFiller(BasePlugin):
         self.n_workers = n_workers
         self.model_loader = model_loader
         self.kwargs = kwargs
+
+    @staticmethod
+    def _prepare_source_pair_key(key: str) -> FrozenSet[str]:
+        """Convert a source-pair key into an order-insensitive frozenset.
+
+        Args:
+            key:
+                Source-pair key with two source names separated by "|" or ",".
+
+        Returns:
+            A frozenset containing two source names.
+
+        Raises:
+            ValueError:
+                If the key does not define exactly two non-empty source names.
+
+        Notes:
+            A frozen set is used so the key is both order-insensitive and
+            hashable. A regular set cannot be used as a dictionary key.
+        """
+        delimiter = "|" if "|" in key else ","
+        parts = [part.strip() for part in key.split(delimiter)]
+        if len(parts) != 2 or any(not part for part in parts):
+            raise ValueError(
+                "Source-pair key must contain exactly two source names separated "
+                f"by '|' or ','. Got: {key}"
+            )
+        source_pair = frozenset(parts)
+        if len(source_pair) != 2:
+            raise ValueError(
+                f"Source-pair key must contain two distinct source names. Got: {key}"
+            )
+        return source_pair
+
+    def _parse_interpolation_window_by_source_pair(
+        self, interpolation_window_by_source_pair: Optional[Dict[str, int]]
+    ) -> Dict[FrozenSet[str], int]:
+        """Validate and normalise source-pair windows into seconds.
+
+        Args:
+            interpolation_window_by_source_pair:
+                Optional dictionary mapping source-pair keys to window minutes.
+
+        Returns:
+            A dictionary mapping normalised source-pair keys to window seconds.
+
+        Raises:
+            ValueError:
+                If interpolation_window_by_source_pair is not a dictionary,
+                contains invalid keys, or contains non-positive minute values.
+        """
+        if interpolation_window_by_source_pair is None:
+            return {}
+        if not isinstance(interpolation_window_by_source_pair, dict):
+            raise ValueError(
+                "interpolation_window_by_source_pair must be a dictionary."
+            )
+
+        result = {}
+        for key, value in interpolation_window_by_source_pair.items():
+            if not isinstance(key, str):
+                raise ValueError(
+                    "interpolation_window_by_source_pair keys must be strings."
+                )
+            if not isinstance(value, int) or value <= 0:
+                raise ValueError(
+                    "interpolation_window_by_source_pair values must be positive "
+                    "integers in minutes."
+                )
+            # Use a frozenset key so pair matching is order-insensitive and
+            # the key can be safely used in dictionaries.
+            result[self._prepare_source_pair_key(key)] = value * 60
+
+        return result
+
+    def _get_transition_window_in_seconds(
+        self, sources_before: FrozenSet[str], sources_after: FrozenSet[str]
+    ) -> Optional[int]:
+        """Get the regeneration window for a source transition.
+
+        If interpolation_window_by_source_pair is configured, the window for
+        the specific source pair is returned. If the source pair is not present
+        in the configuration, a ValueError is raised. If no source-pair
+        configuration is provided, interpolation_window_in_seconds is used.
+
+        Args:
+            sources_before:
+                Forecast source active at the period before the transition.
+                Expected to contain exactly one source name.
+            sources_after:
+                Forecast source active at the period after the transition.
+                Expected to contain exactly one source name.
+
+        Returns:
+            Window in seconds, or None if no window is configured.
+
+        Raises:
+            ValueError:
+                If interpolation_window_by_source_pair is configured but does
+                not contain an entry for the transition source pair.
+        """
+        if self.interpolation_window_by_source_pair_seconds:
+            source_pair = frozenset(sources_before | sources_after)
+            if source_pair not in self.interpolation_window_by_source_pair_seconds:
+                available = [
+                    set(p) for p in self.interpolation_window_by_source_pair_seconds
+                ]
+                raise ValueError(
+                    f"No interpolation window configured for source pair "
+                    f"{source_pair}. Available pairs: {available}"
+                )
+            return self.interpolation_window_by_source_pair_seconds[source_pair]
+
+        return self.interpolation_window_in_seconds
 
     def _get_forecast_periods(self, cubelist: CubeList) -> List[int]:
         """Extract forecast periods from cubes in seconds since the reference time.
@@ -1261,7 +1395,7 @@ class ForecastTrajectoryGapFiller(BasePlugin):
 
     def _identify_source_transitions(
         self, cluster_sources: dict, realization_index: int
-    ) -> List[int]:
+    ) -> List[Tuple[int, FrozenSet[str], FrozenSet[str]]]:
         """Identify forecast source transitions for a given realization.
 
         Args:
@@ -1272,8 +1406,12 @@ class ForecastTrajectoryGapFiller(BasePlugin):
                 The realization index to check for transitions.
 
         Returns:
-            List of forecast periods immediately before a source transition.
-            Only includes transitions where the source actually changes.
+            List of tuples containing:
+            - forecast period immediately before a source transition
+            - source set active at this period
+            - source set active at the next period
+            Includes transitions where the source set changes between
+            consecutive periods.
         """
         real_key = str(realization_index)
         if real_key not in cluster_sources:
@@ -1281,24 +1419,23 @@ class ForecastTrajectoryGapFiller(BasePlugin):
 
         sources_dict = cluster_sources[real_key]
 
-        # Sort sources by their periods to find transitions
-        source_period_list = []
+        # Group sources by period so same-period overlaps do not create
+        # spurious transitions.
+        period_to_sources = defaultdict(set)
         for source_name, periods in sources_dict.items():
             for period in periods:
-                source_period_list.append((period, source_name))
+                period_to_sources[period].add(source_name)
 
-        source_period_list.sort()
+        sorted_periods = sorted(period_to_sources)
 
         # Find transitions
         transitions = []
-        for i in range(len(source_period_list) - 1):
-            period_before, source_before = source_period_list[i]
-            _, source_after = source_period_list[i + 1]
-
-            # Only record if source changes
-            if source_before != source_after:
-                # Store the period_before as the transition point.
-                transitions.append(period_before)
+        for period_before, period_after in zip(sorted_periods[:-1], sorted_periods[1:]):
+            sources_before = frozenset(period_to_sources[period_before])
+            sources_after = frozenset(period_to_sources[period_after])
+            # Only record if source set changes.
+            if sources_before != sources_after:
+                transitions.append((period_before, sources_before, sources_after))
 
         return transitions
 
@@ -1318,7 +1455,10 @@ class ForecastTrajectoryGapFiller(BasePlugin):
         """
         if (
             self.cluster_sources_attribute is None
-            or self.interpolation_window_in_seconds is None
+            or (
+                self.interpolation_window_in_seconds is None
+                and not self.interpolation_window_by_source_pair_seconds
+            )
             or not cubelist
         ):
             return []
@@ -1337,22 +1477,72 @@ class ForecastTrajectoryGapFiller(BasePlugin):
             return []
 
         # Find transitions for each realization
-        periods_to_regenerate = []
-        seen_transitions = set()
+        transition_windows = {}
         for real_idx in realization_indices:
             transitions = self._identify_source_transitions(
                 cluster_sources, int(real_idx)
             )
-            for trans_period in transitions:
-                if trans_period not in seen_transitions:
-                    expected_t0 = trans_period - self.interpolation_window_in_seconds
-                    expected_t1 = trans_period + self.interpolation_window_in_seconds
-                    periods_to_regenerate.append(
-                        (trans_period, expected_t0, expected_t1)
+            for trans_period, sources_before, sources_after in transitions:
+                window_in_seconds = self._get_transition_window_in_seconds(
+                    sources_before, sources_after
+                )
+                if window_in_seconds is None:
+                    continue
+
+                expected_t0 = trans_period - window_in_seconds
+                expected_t1 = trans_period + window_in_seconds
+
+                # Merge windows for identical transition periods across realizations.
+                if trans_period in transition_windows:
+                    prev_t0, prev_t1 = transition_windows[trans_period]
+                    transition_windows[trans_period] = (
+                        min(prev_t0, expected_t0),
+                        max(prev_t1, expected_t1),
                     )
-                    seen_transitions.add(trans_period)
+                else:
+                    transition_windows[trans_period] = (expected_t0, expected_t1)
+
+        periods_to_regenerate = [
+            (trans_period, expected_t0, expected_t1)
+            for trans_period, (expected_t0, expected_t1) in sorted(
+                transition_windows.items()
+            )
+        ]
 
         return periods_to_regenerate
+
+    @staticmethod
+    def _find_nearest_period(target_period: int, candidate_periods: List[int]) -> int:
+        """Find nearest period to a target; ties prefer lower period.
+
+        Args:
+            target_period: Forecast period to match.
+            candidate_periods: Available forecast periods.
+
+        Returns: The nearest available forecast period.
+        """
+        return min(candidate_periods, key=lambda p: (abs(p - target_period), p))
+
+    def _find_nearest_period_after(
+        self,
+        target_period: int,
+        minimum_period_exclusive: int,
+        candidate_periods: List[int],
+    ) -> Optional[int]:
+        """Find nearest candidate period above a minimum exclusive bound.
+
+        Args:
+            target_period: Forecast period to match.
+            minimum_period_exclusive: Lower bound that the returned period must exceed.
+            candidate_periods: Available forecast periods.
+
+        Returns: The nearest available forecast period above the lower bound, or
+            None if no such period exists.
+        """
+        valid_periods = [p for p in candidate_periods if p > minimum_period_exclusive]
+        if not valid_periods:
+            return None
+        return self._find_nearest_period(target_period, valid_periods)
 
     def _validate_input(self, cubelist: CubeList) -> None:
         """Validate that the input cubelist meets requirements.
@@ -1441,6 +1631,66 @@ class ForecastTrajectoryGapFiller(BasePlugin):
 
         return interpolation_tasks
 
+    def _create_regeneration_boundaries(
+        self,
+        expected_t0: int,
+        expected_t1: int,
+        trans_period: int,
+        existing_periods: list[int],
+    ) -> tuple[int | None, int | None]:
+        """Determine the actual regeneration boundaries to use.
+
+        Args:
+            expected_t0: Expected t0 forecast period.
+            expected_t1: Expected t1 forecast period.
+            trans_period: Transition period for which boundaries are being determined.
+            existing_periods: List of existing forecast periods.
+
+        Returns:
+            Tuple of actual t0 and t1 periods to use for regeneration. If no valid
+            t1 boundary is found after t0, returns (None, None).
+
+        Warns:
+            UserWarning:
+                If expected boundary periods are unavailable and nearest
+                boundaries are used instead.
+            UserWarning:
+                If no valid t1 boundary can be found after t0 and regeneration
+                is skipped for that transition.
+        """
+        if expected_t0 in existing_periods:
+            # If expected_t0 is available, use it directly.
+            t0_period = expected_t0
+        else:
+            t0_period = self._find_nearest_period(expected_t0, existing_periods)
+            warnings.warn(
+                "Regeneration boundary t0 not available for transition "
+                f"{trans_period}; using nearest period {t0_period} instead of "
+                f"expected {expected_t0}."
+            )
+
+        if expected_t1 in existing_periods and expected_t1 > t0_period:
+            # If expected_t1 is available and after t0, use it directly.
+            t1_period = expected_t1
+        else:
+            nearest_t1 = self._find_nearest_period_after(
+                expected_t1, t0_period, existing_periods
+            )
+            if nearest_t1 is None:
+                warnings.warn(
+                    "No valid regeneration boundary t1 found after selected t0 "
+                    f"for transition {trans_period}; skipping regeneration for "
+                    "this transition."
+                )
+                return None, None
+            t1_period = nearest_t1
+            warnings.warn(
+                "Regeneration boundary t1 not available for transition "
+                f"{trans_period}; using nearest period {t1_period} instead of "
+                f"expected {expected_t1}."
+            )
+        return t0_period, t1_period
+
     def _create_regeneration_tasks(
         self,
         periods_to_regenerate: List[Tuple[int, int, int]],
@@ -1465,24 +1715,30 @@ class ForecastTrajectoryGapFiller(BasePlugin):
         existing_periods = self._get_forecast_periods(sorted_cubelist)
 
         for trans_period, expected_t0, expected_t1 in periods_to_regenerate:
-            # Check if the required boundary cubes exist
-            if expected_t0 in existing_periods and expected_t1 in existing_periods:
-                # Generate target periods at regular intervals between expected_t0
-                # and expected_t1 if interval is specified
-                if self.interval_in_seconds is not None:
-                    # Interpolate only interior periods. Boundary periods are
-                    # existing inputs and should not be regenerated.
-                    current_period = expected_t0 + self.interval_in_seconds
-                    while current_period < expected_t1:
-                        interpolation_tasks.append(
-                            ("regenerate", current_period, expected_t0, expected_t1)
-                        )
-                        current_period += self.interval_in_seconds
-                else:
-                    # Fallback: just use the transition point if no interval specified
+            t0_period, t1_period = self._create_regeneration_boundaries(
+                expected_t0, expected_t1, trans_period, existing_periods
+            )
+
+            if t0_period is None or t1_period is None:
+                continue
+
+            # Generate target periods at regular intervals between t0 and t1
+            if self.interval_in_seconds is not None:
+                # Interpolate only interior periods. Boundary periods are
+                # existing inputs and should not be regenerated.
+                for current_period in range(
+                    t0_period + self.interval_in_seconds,
+                    t1_period,
+                    self.interval_in_seconds,
+                ):
                     interpolation_tasks.append(
-                        ("regenerate", trans_period, expected_t0, expected_t1)
+                        ("regenerate", current_period, t0_period, t1_period)
                     )
+            else:
+                # Fallback: just use the transition point if no interval specified
+                interpolation_tasks.append(
+                    ("regenerate", trans_period, t0_period, t1_period)
+                )
 
         return interpolation_tasks
 
@@ -1713,7 +1969,6 @@ class ForecastTrajectoryGapFiller(BasePlugin):
         final_cubelist = self._assemble_final_cubelist(
             sorted_cubelist, result_cubes, periods_to_exclude
         )
-
         # Merge cubes into a single cube with time as a coordinate
         return MergeCubes()(final_cubelist)
 
@@ -1767,11 +2022,11 @@ class GoogleFilmInterpolation(BasePlugin):
                 When provided with interpolation_window_in_minutes, enables
                 identification of validity times to regenerate at source transitions.
             interpolation_window_in_minutes:
-                Time window (in hours) to use as a +/- range around forecast source
+                Time window (in minutes) to use as a +/- range around forecast source
                 transition points. Used with cluster_sources_attribute to identify
                 which forecast periods should be regenerated. For example, if set to
-                3 hours and a transition occurs at a given period, periods 3 hours
-                before, at, and after the transition will be regenerated if they
+                180 minutes and a transition occurs at a given period, periods 180
+                minutes before, at, and after the transition will be regenerated if they
                 fall within the sequence.
             max_batch:
                 If using google_film interpolation, the maximum batch size for model
