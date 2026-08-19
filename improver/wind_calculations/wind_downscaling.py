@@ -486,98 +486,98 @@ def calculate_speed_up_factor(
     )
     roughness_length = np.ma.filled(roughness_length, np.nan)
 
-    # Broadcast the two-dimensional fields over target height.
-    characteristic_wavenumber = characteristic_wavenumber[np.newaxis, ...]
-    unresolved_orography_height = unresolved_orography_height[np.newaxis, ...]
-    reference_wind_speed = reference_wind_speed[np.newaxis, ...]
-    roughness_length = roughness_length[np.newaxis, ...]
-    target_heights = target_heights[:, np.newaxis, np.newaxis]
     target_wind_mask, target_wind_speeds = prepare_target_wind_speeds(
         target_wind_speeds
     )
-
-    # Calculate the inner-layer response. This describes how surface
-    # friction modifies the response of the flow to unresolved terrain.
-    roughness_scaled_wavenumber = characteristic_wavenumber * np.log(
-        target_heights / roughness_length
-    )
-    bessel_argument_at_height = (
-        (1.0 + 1.0j)
-        * np.sqrt(roughness_scaled_wavenumber * target_heights)
-        / von_karman_constant
-    )
-    bessel_argument_at_roughness_height = (
-        (1.0 + 1.0j)
-        * np.sqrt(roughness_scaled_wavenumber * roughness_length)
-        / von_karman_constant
-    )
-    with np.errstate(
-        divide="ignore",
-        invalid="ignore",
-    ):
-        inner_layer_response = np.real(
-            1.0
-            - kv(0, bessel_argument_at_height)
-            / kv(0, bessel_argument_at_roughness_height)
-        )
-
-    # The effect of a terrain feature decreases with height: shorter-scale
-    # terrain, represented by larger wavenumbers, decays more rapidly.
-    vertical_decay = np.exp(-characteristic_wavenumber * target_heights)
 
     # Describe the unresolved terrain height relative to its characteristic
     # horizontal scale
     terrain_amplitude = characteristic_wavenumber * unresolved_orography_height
 
-    # Calculate the terrain-induced change in wind speed.
-    # The reference wind sets the velocity scale, while the remaining terms
-    # describe the strength and vertical structure of the terrain response.
-    wind_speed_perturbation = (
-        reference_wind_speed * inner_layer_response * vertical_decay * terrain_amplitude
-    )
-    fractional_perturbation = np.divide(
-        wind_speed_perturbation,
-        target_wind_speeds,
-        out=np.zeros_like(
-            target_wind_speeds,
-            dtype=float,
-        ),
-        where=(
-            np.isfinite(wind_speed_perturbation)
-            & np.isfinite(target_wind_speeds)
-            & (target_wind_speeds > 0.0)
-        ),
-    )
-
-    # Limit the terrain-induced change so that its magnitude cannot exceed
-    # the background wind speed
-    fractional_perturbation = np.clip(
-        fractional_perturbation,
-        -1.0,
-        1.0,
-    )
-
-    # Speed-up factor = multiplicative correction to the background wind.
-    speed_up_factor = 1.0 + fractional_perturbation
-
+    land = None
     if land_mask is not None:
         land = np.ma.filled(land_mask, 0) > 0
-        speed_up_factor = np.where(
-            land[np.newaxis, ...],
-            speed_up_factor,
-            1.0,
-        )
 
-    invalid = (
-        target_wind_mask
-        | ~np.isfinite(characteristic_wavenumber)
+    invalid_ancillary = (
+        ~np.isfinite(characteristic_wavenumber)
         | ~np.isfinite(unresolved_orography_height)
         | ~np.isfinite(reference_wind_speed)
         | ~np.isfinite(roughness_length)
-        | ~np.isfinite(speed_up_factor)
     )
 
-    return np.where(invalid, 1.0, speed_up_factor)
+    speed_up_factor = np.ones(
+        (len(target_heights),) + characteristic_wavenumber.shape,
+        dtype=float,
+    )
+
+    for i, height in enumerate(target_heights):
+        # Calculate the inner-layer response. This describes how surface
+        # friction modifies the response of the flow to unresolved terrain.
+        roughness_scaled_wavenumber = characteristic_wavenumber * np.log(
+            height / roughness_length
+        )
+        bessel_argument_at_height = (
+            (1.0 + 1.0j)
+            * np.sqrt(roughness_scaled_wavenumber * height)
+            / von_karman_constant
+        )
+        bessel_argument_at_roughness_height = (
+            (1.0 + 1.0j)
+            * np.sqrt(roughness_scaled_wavenumber * roughness_length)
+            / von_karman_constant
+        )
+        with np.errstate(
+            divide="ignore",
+            invalid="ignore",
+        ):
+            inner_layer_response = np.real(
+                1.0
+                - kv(0, bessel_argument_at_height)
+                / kv(0, bessel_argument_at_roughness_height)
+            )
+
+        # The effect of a terrain feature decreases with height: shorter-scale
+        # terrain, represented by larger wavenumbers, decays more rapidly.
+        vertical_decay = np.exp(-characteristic_wavenumber * height)
+
+        # Calculate the terrain-induced change in wind speed.
+        # The reference wind sets the velocity scale, while the remaining terms
+        # describe the strength and vertical structure of the terrain response.
+        wind_speed_perturbation = (
+            reference_wind_speed
+            * inner_layer_response
+            * vertical_decay
+            * terrain_amplitude
+        )
+
+        tw = target_wind_speeds[i]
+        tw_mask = target_wind_mask[i]
+
+        fractional_perturbation = np.divide(
+            wind_speed_perturbation,
+            tw,
+            out=np.zeros_like(tw, dtype=float),
+            where=(np.isfinite(wind_speed_perturbation) & np.isfinite(tw) & (tw > 0.0)),
+        )
+
+        # Limit the terrain-induced change so that its magnitude cannot exceed
+        # the background wind speed.
+        fractional_perturbation = np.clip(
+            fractional_perturbation,
+            -1.0,
+            1.0,
+        )
+
+        # Speed-up factor = multiplicative correction to the background wind.
+        sf = 1.0 + fractional_perturbation
+
+        if land is not None:
+            sf = np.where(land, sf, 1.0)
+
+        invalid = tw_mask | invalid_ancillary | ~np.isfinite(sf)
+        speed_up_factor[i] = np.where(invalid, 1.0, sf)
+
+    return speed_up_factor
 
 
 def evaluate_spline_at_reference_heights(
@@ -687,17 +687,24 @@ def _approximate_roughness_length(
     Returns:
         lower_z0, upper_z0: search bounds in linear z0 space.
     """
-    log_heights = np.log(fit_heights)[:, np.newaxis, np.newaxis]
+    log_heights = np.log(fit_heights)
     count = np.maximum(valid_count, 1)
 
-    mean_log_height = np.sum(np.where(valid, log_heights, 0.0), axis=0) / count
-    mean_wind = np.sum(np.where(valid, fit_winds, 0.0), axis=0) / count
+    mean_log_height = np.zeros(valid_count.shape, dtype=float)
+    mean_wind = np.zeros(valid_count.shape, dtype=float)
+    for i, lh in enumerate(log_heights):
+        mean_log_height += np.where(valid[i], lh, 0.0)
+        mean_wind += np.where(valid[i], fit_winds[i], 0.0)
+    mean_log_height /= count
+    mean_wind /= count
 
-    log_height_anomaly = log_heights - mean_log_height[np.newaxis, ...]
-    wind_anomaly = fit_winds - mean_wind[np.newaxis, ...]
-
-    numerator = np.sum(np.where(valid, log_height_anomaly * wind_anomaly, 0.0), axis=0)
-    denominator = np.sum(np.where(valid, log_height_anomaly**2, 0.0), axis=0)
+    numerator = np.zeros(valid_count.shape, dtype=float)
+    denominator = np.zeros(valid_count.shape, dtype=float)
+    for i, lh in enumerate(log_heights):
+        lha = lh - mean_log_height
+        wa = fit_winds[i] - mean_wind
+        numerator += np.where(valid[i], lha * wa, 0.0)
+        denominator += np.where(valid[i], lha**2, 0.0)
 
     A = np.divide(
         numerator,
@@ -771,12 +778,12 @@ def _evaluate_log_profile_fit(
         tuple[np.ndarray, np.ndarray]:
             Fitted friction velocity and squared error, both shape (y, x).
     """
-    heights_3d = fit_heights[:, np.newaxis, np.newaxis]
-    z0 = roughness_length[np.newaxis, ...]
-    log_term = np.log((heights_3d + z0) / z0)
-
-    numerator = np.sum(np.where(valid, log_term * fit_winds, 0.0), axis=0)
-    denominator = np.sum(np.where(valid, log_term**2, 0.0), axis=0)
+    numerator = np.zeros(roughness_length.shape, dtype=float)
+    denominator = np.zeros(roughness_length.shape, dtype=float)
+    for i, h in enumerate(fit_heights):
+        log_term = np.log((h + roughness_length) / roughness_length)
+        numerator += np.where(valid[i], log_term * fit_winds[i], 0.0)
+        denominator += np.where(valid[i], log_term**2, 0.0)
 
     profile_scale = np.divide(
         numerator,
@@ -790,10 +797,11 @@ def _evaluate_log_profile_fit(
         max_friction_velocity,
     )
 
-    fitted_winds = friction_velocity[np.newaxis, ...] / von_karman_constant * log_term
-    squared_error = np.sum(
-        np.where(valid, (fit_winds - fitted_winds) ** 2, 0.0), axis=0
-    )
+    squared_error = np.zeros(roughness_length.shape, dtype=float)
+    for i, h in enumerate(fit_heights):
+        log_term = np.log((h + roughness_length) / roughness_length)
+        fitted_wind = friction_velocity / von_karman_constant * log_term
+        squared_error += np.where(valid[i], (fit_winds[i] - fitted_wind) ** 2, 0.0)
     squared_error = np.where(valid_count >= 2, squared_error, np.inf)
 
     return friction_velocity, squared_error
