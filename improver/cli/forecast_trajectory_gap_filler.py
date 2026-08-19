@@ -16,6 +16,7 @@ def process(
     interpolation_method: str = "linear",
     cluster_sources_attribute: str = None,
     interpolation_window_in_minutes: int = None,
+    interpolation_window_by_source_pair: cli.inputjson = None,
     model_path: str = None,
     scaling: str = "minmax",
     clipping_bounds: cli.comma_separated_list = None,
@@ -46,7 +47,7 @@ def process(
             time and forecast_period coordinates should be associated (share a
             dimension if a Cube). The input may have missing points in the
             forecast trajectory.
-        interval_in_mins (int):
+        interval_in_minutes (int):
             The expected interval between points in the forecast trajectory (in
             minutes). Used to identify gaps in the sequence. If not provided,
             gaps will not be filled, but points can still be regenerated if
@@ -64,16 +65,24 @@ def process(
             forecast periods. These forecast periods are for a specific forecast
             trajectory (i.e. with a set of validity times increasing into the future
             from a fixed forecast_reference_time). When provided with
-            interpolation_window_in_hours, enables identification and regeneration of
+            interpolation_window_in_minutes, enables identification and regeneration of
             forecast periods at source transitions. Format: {realization_index: {source_name:
             [periods]}}
-        interpolation_window_in_hours (int):
-            Time window (in hours) to use as a +/- range around forecast source
+        interpolation_window_in_minutes (int):
+            Time window (in minutes) to use as a +/- range around forecast source
             transition points. Used with cluster_sources_attribute to identify
             which forecast periods should be regenerated. For example, if set to
-            3 hours and a transition occurs at a given period, periods 3 hours
+            180 minutes and a transition occurs at a given period, periods 180 minutes
             before, at, and after the transition will be regenerated if they
             fall within the sequence.
+        interpolation_window_by_source_pair (str):
+            Optional dictionary mapping forecast source pairs to a transition
+            interpolation window in minutes. Keys must identify two source names,
+            separated by "|" or "," (for example "uk_ens|gl_ens": 360).
+            Matching is order-insensitive. If provided, this takes precedence
+            over interpolation_window_in_minutes and a ValueError is raised if a
+            transition's source pair is not present in this dictionary. If not
+            provided, interpolation_window_in_minutes is used for all transitions.
         model_path (str):
             Path to the TensorFlow Hub module for the Google FILM model.
             Required when interpolation_method is "google_film". Can be a local
@@ -125,6 +134,7 @@ def process(
             - All original time slices (except those regenerated at transitions)
             - Interpolated slices filling identified gaps
             - Regenerated slices at source transitions (if configured)
+
     """
     from improver.utilities.temporal_interpolation import ForecastTrajectoryGapFiller
 
@@ -133,6 +143,7 @@ def process(
         interpolation_method=interpolation_method,
         cluster_sources_attribute=cluster_sources_attribute,
         interpolation_window_in_minutes=interpolation_window_in_minutes,
+        interpolation_window_by_source_pair=interpolation_window_by_source_pair,
         model_path=model_path,
         scaling=scaling,
         clipping_bounds=clipping_bounds,
