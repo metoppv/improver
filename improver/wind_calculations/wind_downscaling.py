@@ -108,24 +108,21 @@ class WindDownscaling(BasePlugin):
             self.model_silhouette_roughness_cube,
             self.landmask_cube,
         )
-        reference_height_cube = calculate_reference_height(wavenumber_cube)
         unresolved_orography_height_cube = calculate_unresolved_orography_height(
             self.high_res_orog_cube,
             self.model_orog_cube,
         )
-
-        spline = fit_spline_wind_profile(wind_profile_cube)
-
         target_wind_speeds = get_target_wind_speeds(
             target_wind_speed_cube,
             target_heights,
         )
-
-        z0 = fit_log_wind_profile(wind_profile_cube)
+        spline = fit_spline_wind_profile(wind_profile_cube)
+        reference_height_cube = calculate_reference_height(wavenumber_cube)
         reference_wind_speed = evaluate_spline_at_reference_heights(
             spline,
             reference_height_cube,
         )
+        z0 = fit_log_wind_profile(wind_profile_cube)
 
         speed_up_factor = calculate_speed_up_factor(
             wavenumber_cube.data,
@@ -336,7 +333,12 @@ def get_target_wind_speeds(
             "its height coordinate size."
         )
 
-    if np.array_equal(cube_heights, target_heights):
+    if cube_heights.shape == target_heights.shape and np.allclose(
+        cube_heights,
+        target_heights,
+        rtol=0.0,
+        atol=1e-6,
+    ):
         return cube_winds.copy()
 
     if cube_heights.size == 1:

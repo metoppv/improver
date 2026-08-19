@@ -424,6 +424,24 @@ class TestWindDownscaling:
         )
         np.testing.assert_allclose(result, expected)
 
+    def test_get_target_wind_speeds_uses_copy_for_close_height_match(self):
+        """Near-equal target heights should use direct-copy path, not interpolation."""
+        wind = _make_wind_cube(
+            heights=np.array([10.0, 20.0, 30.0], dtype=np.float32),
+            values_at_heights=np.array([2.0, 4.0, 6.0], dtype=np.float32),
+        )
+
+        with patch(
+            "improver.wind_calculations.wind_downscaling.fit_spline_wind_profile",
+            side_effect=AssertionError("Interpolation path should not be used."),
+        ):
+            result = get_target_wind_speeds(
+                target_wind_speed_cube=wind,
+                target_heights=np.array([10.0 + 1e-7, 20.0 - 1e-7, 30.0], dtype=float),
+            )
+
+        np.testing.assert_allclose(result, wind.data)
+
     def test_get_target_wind_speeds_raises_for_single_level_mismatch(self):
         """Single-level target cubes cannot be interpolated to new heights."""
         wind_profile = _make_wind_cube(
