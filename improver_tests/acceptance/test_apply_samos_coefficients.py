@@ -18,6 +18,7 @@ run_cli = acc.run_cli(CLI)
 def test_normal_gam_coordinates(tmp_path):
     """Test diagnostic with assumed normal distribution and GAM feature
     provided as coordinates on the input cube."""
+    pytest.importorskip("pygam")
     kgo_dir = acc.kgo_root() / "apply-samos-coefficients"
     kgo_path = kgo_dir / "kgo_coord.nc"
 
@@ -50,6 +51,7 @@ def test_normal_gam_cubes(tmp_path):
     Test apply-samos-coefficients for diagnostic with assumed
     normal distribution and additional features provided as cubes.
     """
+    pytest.importorskip("pygam")
     kgo_dir = acc.kgo_root() / "apply-samos-coefficients"
     kgo_path = kgo_dir / "kgo_cubes_additional_cubes.nc"
 
@@ -85,6 +87,7 @@ def test_normal_sites(tmp_path):
     Test apply-samos-coefficients for diagnostic with assumed
     normal distribution at sites.
     """
+    pytest.importorskip("pygam")
     kgo_dir = acc.kgo_root() / "apply-samos-coefficients"
     kgo_path = kgo_dir / "kgo_sites.nc"
 
@@ -113,6 +116,7 @@ def test_normal_sites(tmp_path):
 
 def test_no_coefficients(tmp_path):
     """Test apply-samos-coefficients when no coefficients provided"""
+    pytest.importorskip("pygam")
     kgo_dir = acc.kgo_root() / "apply-samos-coefficients/"
     kgo_path = kgo_dir / "kgo_with_comment.nc"
 
