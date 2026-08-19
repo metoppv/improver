@@ -45,9 +45,21 @@ class StochasticNoise(BasePlugin):
         scale_non_positive_noise: bool = False,
         allow_seeded_parallel_processing: bool = False,
         arbitrary_offset: float = 5.0,
+        wet_noise_floor: Optional[float] = None,
+        dry_fallback_range: Optional[tuple] = None,
     ):
         """
-        Initialise the plugin.
+        Initialise the plugin. For a typical input field e.g. a precipitation field
+        with some positive values for precipitation spread across the domain and some
+        zero values, the plugin will add stochastic noise to the zero values using
+        the SSFT approach, while leaving the positive values unchanged. For fields that
+        contain insufficient spatial variability to derive meaningful SSFT
+        perturbations (for example completely dry, nearly dry, or otherwise
+        near-constant fields), referred to here as degenerate fields, the plugin will
+        generate fallback stochastic noise ("dry fallback noise") in linear space.
+        This noise uses the wet_noise_floor and dry_fallback_range arguments to ensure
+        that the fallback noise is strictly non-positive and does not exceed the noise
+        added to wet regions.
 
         If ssft_init_params or ssft_generate_params are not provided, default values
         from the Pysteps documentation will be used.
@@ -75,6 +87,8 @@ class StochasticNoise(BasePlugin):
                 all other noise values are negative. This prevents the addition of
                 positive noise to non-positive regions, which could artificially
                 increase values where the input cube indicates no signal should occur.
+                If this is true, wet_noise_floor must be set, so that totally dry fields
+                do not receive noise that exceeds noise given to fields that are wet.
                 Default is False.
             allow_seeded_parallel_processing:
                 If True, allows multiple workers to be used even when a seed is
@@ -89,10 +103,41 @@ class StochasticNoise(BasePlugin):
                 appropriately in the _from_dB method. The default value of 5 was chosen
                 to provide a clear separation from the threshold value in dB space, but
                 can be adjusted if needed.
+            wet_noise_floor:
+                Optional lower bound for noise in non-positive regions after scaling,
+                in linear units of db_threshold_units. Must be negative if set.
+                This can be used to limit the magnitude of negative SSFT-derived
+                wet-member noise. This value must be less than the SSFT-derived
+                noise in wet regions. Any generated noise below the floor value
+                will be set to the floor value, potentially resulting in more ties
+                when used in conjunction with Ensemble Copula Coupling.
+                Default is None (no floor).
+            dry_fallback_range:
+                Optional range (min_value, max_value) for dry fallback noise in
+                linear units of db_threshold_units. Provide as a Python tuple string, e.g.
+                "(-10.0, -5.0)". Both values must be <= 0 and (min_value < max_value).
+                If wet_noise_floor is set and this is not provided, this defaults to
+                (2 * wet_noise_floor, wet_noise_floor) to keep dry fallback below the
+                wet floor. If wet_noise_floor is set and dry_fallback_range is provided,
+                the max_value of dry_fallback_range must be <= wet_noise_floor to ensure
+                separation between dry-fallback and wet noise ranges.
 
         Raises:
             ValueError:
                 If db_threshold is not a positive value.
+            ValueError:
+                If wet_noise_floor is provided and is non-negative.
+            ValueError:
+                If wet_noise_floor is provided while
+                scale_non_positive_noise is False.
+            ValueError:
+                If dry_fallback_range does not contain exactly two values.
+            ValueError:
+                If dry_fallback_range does not satisfy
+                min_value < max_value <= 0.
+            ValueError:
+                If both wet_noise_floor and dry_fallback_range are provided
+                and dry_fallback_range max exceeds wet_noise_floor.
 
         Warnings:
             If a seed is provided in ssft_generate_params and
@@ -117,6 +162,34 @@ class StochasticNoise(BasePlugin):
         self.scale_non_positive_noise = scale_non_positive_noise
         self.allow_seeded_parallel_processing = allow_seeded_parallel_processing
         self.arbitrary_offset = arbitrary_offset
+        self.wet_noise_floor = wet_noise_floor
+
+        if self.wet_noise_floor is not None and self.wet_noise_floor >= 0:
+            raise ValueError("wet_noise_floor must be negative if provided.")
+
+        if self.wet_noise_floor is not None and not self.scale_non_positive_noise:
+            raise ValueError(
+                "scale_non_positive_noise must be True when wet_noise_floor is set, "
+                "to guarantee separation between dry-fallback and wet noise ranges."
+            )
+
+        if dry_fallback_range is not None and len(dry_fallback_range) != 2:
+            raise ValueError("dry_fallback_range must contain exactly two values.")
+
+        if dry_fallback_range is None and self.wet_noise_floor is not None:
+            dry_fallback_range = (2.0 * self.wet_noise_floor, self.wet_noise_floor)
+
+        self.dry_fallback_range = dry_fallback_range
+        if self.dry_fallback_range is not None:
+            dry_min, dry_max = self.dry_fallback_range
+            if not (dry_min < dry_max <= 0):
+                raise ValueError(
+                    "dry_fallback_range must satisfy min_value < max_value <= 0."
+                )
+            if self.wet_noise_floor is not None and dry_max > self.wet_noise_floor:
+                raise ValueError(
+                    "dry_fallback_range max must be <= wet_noise_floor when both are set."
+                )
 
         if (
             "seed" in self.ssft_generate_params
@@ -130,7 +203,11 @@ class StochasticNoise(BasePlugin):
 
     def _process_single_realization(self, input_cube: Cube) -> Cube:
         """Add stochastic noise to a cube containing a single realization
-        (or no realization coord).
+        (or no realization coord). For non-degenerate fields e.g. precipitation fields
+        with some positive values, the plugin will add stochastic noise to the
+        non-positive regions using the SSFT approach, while leaving the positive values
+        unchanged. For degenerate fields (for example completely dry, nearly dry,
+        or otherwise near-constant fields), fallback noise is generated in linear space.
 
         Args:
             input_cube:
@@ -138,6 +215,17 @@ class StochasticNoise(BasePlugin):
 
         Returns:
             Cube with added stochastic noise.
+
+        Raises:
+            ValueError: If a degenerate field is detected for SSFT initialisation and
+                ``wet_noise_floor`` has not been configured (which means no default
+                ``dry_fallback_range`` is available).
+
+        Warns:
+            UserWarning: If a degenerate field is detected for SSFT initialisation,
+                or if SSFT initialisation fails for any reason, a warning is raised
+                to indicate that linear fallback stochastic noise generation will be
+                used instead.
         """
         validate_cube_dimensions(
             cube=input_cube,
@@ -170,11 +258,40 @@ class StochasticNoise(BasePlugin):
         # Create a copy of the template in dB scale to use for SSFT processing
         template_dB = self._to_dB(template.copy())
 
-        # Compute SSFT noise
-        result = self.do_fft(template_dB.data)
+        # Constant fields in dB space are degenerate for SSFT. In this case generate
+        # fallback noise directly in linear space so it can still break ties.
+        used_linear_fallback = False
+        if self._is_degenerate_field(template_dB.data):
+            warnings.warn(
+                "Degenerate input field detected for SSFT initialization. "
+                "Using linear fallback stochastic noise generation.",
+                UserWarning,
+            )
+            noise_linear = self._fallback_noise_linear(template_dB.data.shape)
+            used_linear_fallback = True
+        else:
+            # Compute SSFT noise; may fail if individual windows are degenerate,
+            # in which case fall back to linear noise generation.
+            try:
+                result = self.do_fft(template_dB.data)
+                # Convert generated noise from dB to linear scale
+                noise_linear = self._from_dB(data=result).astype(np.float32, copy=False)
+            except ValueError:
+                # SSFT can fail when individual windows (not the whole field)
+                # are constant-valued or in other edge cases. Fall back to linear noise
+                # as a graceful degradation.
+                warnings.warn(
+                    "SSFT initialisation failed. "
+                    "Falling back to linear stochastic noise generation.",
+                    UserWarning,
+                )
+                noise_linear = self._fallback_noise_linear(template_dB.data.shape)
+                used_linear_fallback = True
 
-        # Convert generated noise from dB to linear scale
-        noise_linear = self._from_dB(data=result).astype(np.float32, copy=False)
+        # Guard against non-finite values from SSFT output fields.
+        # Treat these as zero-noise contributions.
+        if not np.all(np.isfinite(noise_linear)):
+            noise_linear = np.where(np.isfinite(noise_linear), noise_linear, 0.0)
 
         # If requested, scale noise in non-positive regions to prevent increasing values
         # where there should be no signal
@@ -182,6 +299,35 @@ class StochasticNoise(BasePlugin):
             max_noise_non_positiveregions = np.max(noise_linear[non_positive_mask])
             noise_linear[non_positive_mask] = (
                 noise_linear[non_positive_mask] - max_noise_non_positiveregions
+            )
+
+        # Apply constraints to separate dry-fallback and wet-member noise ranges.
+        if used_linear_fallback:
+            if self.dry_fallback_range is None:
+                raise ValueError(
+                    "Degenerate input field detected but wet_noise_floor is not set. "
+                    "Set wet_noise_floor to guarantee separation between dry-fallback "
+                    "and wet noise ranges."
+                )
+            dry_min, dry_max = self.dry_fallback_range
+            dry_values = noise_linear[non_positive_mask]
+            dry_vmin = np.min(dry_values)
+            dry_vmax = np.max(dry_values)
+            if dry_vmax > dry_vmin:
+                normalized = (dry_values - dry_vmin) / (dry_vmax - dry_vmin)
+                noise_linear[non_positive_mask] = dry_min + normalized * (
+                    dry_max - dry_min
+                )
+            else:
+                # Guard against zero dynamic range (all dry_values equal), where
+                # normalization would divide by zero; clamp to dry_max to keep values
+                # inside the configured dry fallback interval.
+                noise_linear[non_positive_mask] = dry_max
+        elif self.scale_non_positive_noise and self.wet_noise_floor is not None:
+            # Ensure scaled wet-member noise does not go below the configured
+            # wet_noise_floor.
+            noise_linear[non_positive_mask] = np.maximum(
+                noise_linear[non_positive_mask], self.wet_noise_floor
             )
 
         # Add noise only to non-positive regions, leave positive regions unchanged
@@ -241,6 +387,8 @@ class StochasticNoise(BasePlugin):
             are set to zero.
         """
         linear = 10 ** (data / 10.0)
+        # Treat any non-finite transformed values as below-threshold values
+        linear[~np.isfinite(linear)] = 0.0
         linear[linear < self.db_threshold] = 0.0
         return linear
 
@@ -250,6 +398,10 @@ class StochasticNoise(BasePlugin):
     ) -> np.ndarray:
         """
         Generate stochastic noise using SSFT for a 2-D array slice (one realization).
+
+        This may raise ValueError if individual windows within the field are
+        degenerate (constant-valued), even if the overall field has variation.
+        In such cases, the caller should fall back to linear noise generation.
 
         Args:
             data:
@@ -270,8 +422,37 @@ class StochasticNoise(BasePlugin):
         stochastic_noise = generate_noise_2d_ssft_filter(
             nonparametric_filter, **self.ssft_generate_params
         )
-
         return stochastic_noise
+
+    @staticmethod
+    def _is_degenerate_field(data: np.ndarray) -> bool:
+        """Return True if field has no dynamic range for SSFT initialisation."""
+        return not np.any(data > np.min(data))
+
+    def _fallback_noise_linear(self, shape: tuple) -> np.ndarray:
+        """Generate strictly non-positive fallback noise in linear space.
+
+        If a seed is configured in ``ssft_generate_params``, this returns
+        reproducible noise. The resulting field has a maximum value slightly
+        below zero so dry fields remain dry while still receiving tie-break noise.
+
+        Args:
+            shape:
+                Target 2-D output shape.
+
+        Returns:
+            Fallback 2-D noise field in linear units.
+        """
+        seed = self.ssft_generate_params.get("seed")
+        if seed is not None:
+            seed = int(seed)
+        random_state = np.random.RandomState(seed)
+
+        sigma = max(self.db_threshold * 0.1, np.finfo(np.float32).eps)
+        epsilon = max(np.finfo(np.float32).eps, self.db_threshold)
+        noise = random_state.normal(loc=0.0, scale=sigma, size=shape)
+        noise = noise - np.max(noise) - epsilon
+        return noise.astype(np.float32)
 
     def process(self, input_cube: Cube) -> Cube:
         """

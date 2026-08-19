@@ -4,13 +4,10 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Calculations to produce Pollen Indexes for a period (Hourly or Daily)."""
 
-from copy import deepcopy
-
 import numpy as np
 from iris.cube import Cube
 
 from improver import PostProcessingPlugin
-from improver.metadata.constants import FLOAT_DTYPE
 
 from .utilities import build_output_cube_with_new_units
 
@@ -25,17 +22,15 @@ class PollenIndexForPeriod(PostProcessingPlugin):
 
     #: Threshold index levels - minimum value (grains/m3) for each index.
     _POLLEN_INDEX = {  # 0=No pollen, 1=Low, 2=Moderate, 3=High, 4=Very High
-        # (5=extra level just for contour levels)
-        "index": np.array([0, 1, 2, 3, 4, 5]).astype(np.int32),
-        "grass": np.array([0.0, 0.01, 30.0, 50.0, 150.0, 5000.0]),
-        "birch": np.array([0.0, 0.01, 40.0, 80.0, 200.0, 5000.0]),
-        "oak": np.array([0.0, 0.01, 30.0, 50.0, 200.0, 5000.0]),
-        "hazel": np.array([0.0, 0.01, 30.0, 50.0, 80.0, 5000.0]),
-        "alder": np.array([0.0, 0.01, 30.0, 50.0, 80.0, 5000.0]),
-        "ash": np.array([0.0, 0.01, 30.0, 50.0, 200.0, 5000.0]),
-        "plane": np.array([0.0, 0.01, 30.0, 50.0, 200.0, 5000.0]),
-        "nettle": np.array([0.0, 0.01, 40.0, 80.0, 200.0, 5000.0]),
-        "weed": np.array([0.0, 0.01, 40.0, 80.0, 200.0, 5000.0]),
+        "grass": np.array([0.0, 0.01, 30.0, 50.0, 150.0, np.inf]),
+        "birch": np.array([0.0, 0.01, 40.0, 80.0, 200.0, np.inf]),
+        "oak": np.array([0.0, 0.01, 30.0, 50.0, 200.0, np.inf]),
+        "hazel": np.array([0.0, 0.01, 30.0, 50.0, 80.0, np.inf]),
+        "alder": np.array([0.0, 0.01, 30.0, 50.0, 80.0, np.inf]),
+        "ash": np.array([0.0, 0.01, 30.0, 50.0, 200.0, np.inf]),
+        "plane": np.array([0.0, 0.01, 30.0, 50.0, 200.0, np.inf]),
+        "nettle": np.array([0.0, 0.01, 40.0, 80.0, 200.0, np.inf]),
+        "weed": np.array([0.0, 0.01, 40.0, 80.0, 200.0, np.inf]),
     }
 
     # The output cube is a deepcopy of the input cube (to keep metadata) and is then manipulated in place
@@ -53,15 +48,10 @@ class PollenIndexForPeriod(PostProcessingPlugin):
         if taxa not in self._POLLEN_INDEX:
             raise ValueError(f"Pollen taxa {taxa} not handled")
         thresholds = self._POLLEN_INDEX[taxa]
-        input_data = deepcopy(self._output_cube.data)
         # Use np.digitize to find the index of the first threshold that is greater than the data value
         self._output_cube.data = (
             np.digitize(self._output_cube.data, thresholds) - 1
-        ).astype(FLOAT_DTYPE)  # Subtract 1 to get 0-based index
-        # Set values which are masked in _output_cube to nan
-        self._output_cube.data = np.where(
-            np.isnan(input_data), np.nan, self._output_cube.data
-        )
+        ).astype(np.int32)  # Subtract 1 to get 0-based index
 
     def _metadata(self, taxa: str):
         """Change the cube name and other metadata.
