@@ -77,7 +77,9 @@ def forecast_period_coord(
         )
 
         if forecast_period_in_cube:
-            result_coord_with_original_metadata = cube.coord("forecast_period").copy(result_coord.points)
+            result_coord_with_original_metadata = cube.coord("forecast_period").copy(
+                result_coord.points
+            )
             result_coord_with_original_metadata.bounds = result_coord.bounds
             result_coord = result_coord_with_original_metadata
 
