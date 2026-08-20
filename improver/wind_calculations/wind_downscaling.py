@@ -223,12 +223,12 @@ def get_target_height_levels(
 def crop_wind_profile_cube(
     wind_profile_cube: Cube,
     target_heights: np.ndarray,
-    minimum_upper_height: float = 300.0,
+    minimum_upper_height: float = 1300.0,
 ) -> Cube:
     """
     Crop wind-profile levels to those needed for downscaling calculations.
 
-    The upper crop bound is the greater of 300 m and the maximum requested
+    The upper crop bound is the greater of 1300 m and the maximum requested
     target height. This keeps profile data needed for spline evaluation at
     target heights while limiting memory use from unnecessary high levels.
 
@@ -240,7 +240,7 @@ def crop_wind_profile_cube(
             Requested target heights in metres.
 
         minimum_upper_height:
-            Minimum upper crop bound in metres. Defaults to 300 m.
+            Minimum upper crop bound in metres. Defaults to 1300 m.
 
     Returns:
         Cube:

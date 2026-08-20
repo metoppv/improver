@@ -172,11 +172,15 @@ class TestWindDownscaling:
 
         np.testing.assert_allclose(result, np.array([15.0], dtype=np.float32))
 
-    def test_crop_wind_profile_cube_uses_300m_minimum_upper_bound(self):
-        """Profile crop should keep levels up to 300 m even for lower targets."""
+    def test_crop_wind_profile_cube_uses_1300m_minimum_upper_bound(self):
+        """Profile crop should keep levels up to 1300 m even for lower targets."""
         wind = _make_wind_cube(
-            heights=np.array([50.0, 150.0, 300.0, 500.0], dtype=np.float32),
-            values_at_heights=np.array([2.0, 4.0, 6.0, 8.0], dtype=np.float32),
+            heights=np.array(
+                [50.0, 150.0, 300.0, 500.0, 1000.0, 1250.0, 1500.0], dtype=np.float32
+            ),
+            values_at_heights=np.array(
+                [2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0], dtype=np.float32
+            ),
         )
 
         cropped = crop_wind_profile_cube(
@@ -186,7 +190,7 @@ class TestWindDownscaling:
 
         np.testing.assert_allclose(
             cropped.coord("height").points,
-            np.array([50.0, 150.0, 300.0], dtype=np.float32),
+            np.array([50.0, 150.0, 300.0, 500.0, 1000.0, 1250.0], dtype=np.float32),
         )
 
     def test_crop_wind_profile_cube_uses_target_max_when_above_300m(self):
