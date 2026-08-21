@@ -11,6 +11,7 @@ from datetime import datetime
 import iris
 import numpy as np
 import pytest
+from iris.coords import DimCoord
 from iris.cube import Cube, CubeList
 from iris.util import promote_aux_coord_to_dim_coord
 
@@ -3217,6 +3218,78 @@ def test_clusterandmatch_deterministic_secondary_input():
         assert primary_clusters.sum() == 1, (
             f"fp={fp_hours}h: exactly one cluster should carry primary data"
         )
+
+
+def test_clusterandmatch_secondary_scalar_realization_coord():
+    """Test secondary input with scalar realization coord is promoted to a dimension.
+
+    This covers deterministic-style inputs that carry a scalar realization
+    coordinate (e.g. realization=0) rather than no realization coordinate.
+    """
+    pytest.importorskip("kmedoids")
+    pytest.importorskip("esmf_regrid")
+
+    cubes = CubeList()
+    spatial_shape = (3, 3)
+
+    # Primary ensemble input — 4 realizations, base value 100.
+    cubes.extend(
+        _create_4d_realization_cube(
+            n_realizations=4,
+            forecast_periods=[0, 6],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            base_value=100.0,
+            model_id="primary_model",
+            merge=False,
+        )
+    )
+
+    # Secondary input with scalar (non-dimensional) realization coordinate.
+    for fp_hours in [0, 6]:
+        sec_data = np.full(spatial_shape, 500.0 + fp_hours, dtype=np.float32)
+        sec_cube = set_up_variable_cube(
+            sec_data,
+            name="air_temperature",
+            units="K",
+            spatial_grid="equalarea",
+        )
+        sec_cube.attributes["model_id"] = "scalar_realization_model"
+        sec_cube.coord("forecast_period").points = [fp_hours * 3600]
+        sec_cube.coord("time").points = [
+            sec_cube.coord("forecast_reference_time").points[0] + fp_hours * 3600
+        ]
+        sec_cube.add_aux_coord(
+            DimCoord(0, standard_name="realization", units="1")
+        )
+        assert sec_cube.coords("realization")
+        assert not sec_cube.coord_dims("realization")
+        cubes.append(sec_cube)
+
+    cubes.append(_create_target_grid_cube(spatial_shape=spatial_shape))
+
+    hierarchy = {
+        "primary_input": "primary_model",
+        "secondary_inputs": {"scalar_realization_model": [0, 6]},
+    }
+
+    plugin = RealizationClusterAndMatch(
+        hierarchy=hierarchy,
+        model_id_attr="model_id",
+        clustering_method="KMedoids",
+        target_grid_name="target_grid",
+        n_clusters=2,
+        random_state=42,
+    )
+
+    result = plugin.process(cubes)
+
+    # Result should have realization as a dimension coordinate and both fps present.
+    assert result.coords("realization", dim_coords=True)
+    assert result.coord("realization").points.size == 2
+    np.testing.assert_array_equal(
+        result.coord("forecast_period").points, [0, 6 * 3600]
+    )
 
 
 def test_select_realizations_for_kmedoid_clusters_too_many_clusters():

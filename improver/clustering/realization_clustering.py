@@ -537,22 +537,25 @@ class RealizationClusterAndMatch(BasePlugin):
 
     @staticmethod
     def _ensure_realization_coord(cube: Cube) -> Cube:
-        """Add a scalar realization dimension coordinate if absent.
+        """Ensure realization is present as a dimension coordinate.
 
-        Deterministic input cubes carry no realization coordinate. This method
-        adds a realization DimCoord with value 0 as the leading dimension so
-        that downstream matching code can treat deterministic and ensemble inputs
-        uniformly.
+        Deterministic input cubes may have no realization coordinate, or a scalar
+        realization coordinate that is not a dimension. This method ensures a
+        realization dimension exists so downstream matching code can treat all
+        inputs uniformly.
 
         Args:
             cube: The input cube, which may or may not have a realization coordinate.
 
         Returns:
             The cube with a realization dimension coordinate as the leading axis.
-            If the cube already has a realization coordinate, it is returned unchanged.
+            If realization is already a dimension coordinate, the cube is returned
+            unchanged.
         """
         if not cube.coords("realization"):
             cube.add_aux_coord(DimCoord(0, standard_name="realization", units="1"))
+            cube = new_axis(cube, "realization")
+        elif not cube.coord_dims("realization"):
             cube = new_axis(cube, "realization")
         return cube
 
