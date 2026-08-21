@@ -11,6 +11,7 @@ from datetime import datetime
 import iris
 import numpy as np
 import pytest
+from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube, CubeList
 from iris.util import promote_aux_coord_to_dim_coord
 
@@ -3003,6 +3004,386 @@ def test_clusterandmatch_secondary_input_missing_primary_forecast_period(
             assert np.allclose(fp_data, expected_value, atol=5.0), (
                 f"fp={fp_hours} should use primary_model"
             )
+
+
+def test_clusterandmatch_secondary_no_matching_cubes_warns():
+    """Test that a warning is issued when a hierarchy secondary input has no cubes
+    matching the model_id_attr value in the specified forecast period range.
+
+    This verifies that when the hierarchy references a secondary model name that does
+    not match any cube's model_id attribute, the plugin warns and skips that input
+    rather than silently ignoring it.
+    """
+    pytest.importorskip("kmedoids")
+    pytest.importorskip("esmf_regrid")
+
+    cubes = CubeList()
+    spatial_shape = (3, 3)
+
+    cubes.extend(
+        _create_4d_realization_cube(
+            n_realizations=3,
+            forecast_periods=[0, 6],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            base_value=100.0,
+            model_id="primary_model",
+            merge=False,
+        )
+    )
+    cubes.append(_create_target_grid_cube(spatial_shape=spatial_shape))
+
+    hierarchy = {
+        "primary_input": "primary_model",
+        "secondary_inputs": {"nonexistent_model": [0, 6]},
+    }
+
+    plugin = RealizationClusterAndMatch(
+        hierarchy=hierarchy,
+        model_id_attr="model_id",
+        clustering_method="KMedoids",
+        target_grid_name="target_grid",
+        n_clusters=2,
+        random_state=42,
+    )
+
+    with pytest.warns(
+        UserWarning,
+        match=(
+            r"Secondary input 'nonexistent_model' has no cubes matching "
+            r"model_id='nonexistent_model' in the forecast period range \[0, 6\]\."
+        ),
+    ):
+        plugin.process(cubes)
+
+
+def test_clusterandmatch_unreferenced_model_id_warns():
+    """Test that a warning is issued when input cubes contain model_id_attr values
+    not referenced in the hierarchy.
+
+    This verifies that when extra cubes are supplied with a model_id attribute value
+    that does not appear in the hierarchy (neither as primary_input nor as a secondary
+    input key), the plugin warns that those cubes will be ignored.
+    """
+    pytest.importorskip("kmedoids")
+    pytest.importorskip("esmf_regrid")
+
+    cubes = CubeList()
+    spatial_shape = (3, 3)
+
+    cubes.extend(
+        _create_4d_realization_cube(
+            n_realizations=3,
+            forecast_periods=[0, 6],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            base_value=100.0,
+            model_id="primary_model",
+            merge=False,
+        )
+    )
+    # Extra cube whose model_id is not in the hierarchy.
+    cubes.extend(
+        _create_4d_realization_cube(
+            n_realizations=3,
+            forecast_periods=[0, 6],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            base_value=200.0,
+            model_id="unlisted_model",
+            merge=False,
+        )
+    )
+    cubes.append(_create_target_grid_cube(spatial_shape=spatial_shape))
+
+    hierarchy = {
+        "primary_input": "primary_model",
+        "secondary_inputs": {},
+    }
+
+    plugin = RealizationClusterAndMatch(
+        hierarchy=hierarchy,
+        model_id_attr="model_id",
+        clustering_method="KMedoids",
+        target_grid_name="target_grid",
+        n_clusters=2,
+        random_state=42,
+    )
+
+    with pytest.warns(
+        UserWarning,
+        match=(
+            r"Input cubes have model_id values not referenced in the hierarchy: "
+            r"\['unlisted_model'\]\. These cubes will be ignored\."
+        ),
+    ):
+        result = plugin.process(cubes)
+
+    assert all(
+        "unlisted_model" not in str(value)
+        for value in result.attributes.values()
+    )
+
+
+def test_clusterandmatch_deterministic_secondary_input():
+    """Test that a deterministic (no-realization) secondary input is supported.
+
+    The primary input provides the baseline clustered forecast for all forecast periods.
+    When a secondary input cube has no realization coordinate it should be treated
+    as having a single realization and follow the partial-realization path, replacing
+    the best-matching cluster at the relevant forecast periods with its data.
+    """
+    pytest.importorskip("kmedoids")
+    pytest.importorskip("esmf_regrid")
+
+    cubes = CubeList()
+    spatial_shape = (3, 3)
+
+    # Primary ensemble input — 4 realizations, base value 100.
+    cubes.extend(
+        _create_4d_realization_cube(
+            n_realizations=4,
+            forecast_periods=[0, 6],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            base_value=100.0,
+            model_id="primary_model",
+            merge=False,
+        )
+    )
+
+    # Deterministic secondary input — 2D cubes with no realization coordinate,
+    # base value 500 (far from primary so it will match the nearest cluster).
+    for fp_hours in [0, 6]:
+        det_data = np.full(spatial_shape, 500.0 + fp_hours, dtype=np.float32)
+        det_cube = set_up_variable_cube(
+            det_data,
+            name="air_temperature",
+            units="K",
+            spatial_grid="equalarea",
+        )
+        det_cube.attributes["model_id"] = "det_model"
+        # Set time coordinates to match the primary cubes.
+        det_cube.coord("forecast_period").points = [fp_hours * 3600]
+        det_cube.coord("time").points = [
+            det_cube.coord("forecast_reference_time").points[0] + fp_hours * 3600
+        ]
+        assert not det_cube.coords("realization"), (
+            "Deterministic cube should have no realization coordinate"
+        )
+        cubes.append(det_cube)
+
+    cubes.append(_create_target_grid_cube(spatial_shape=spatial_shape))
+
+    hierarchy = {
+        "primary_input": "primary_model",
+        "secondary_inputs": {"det_model": [0, 6]},
+    }
+
+    plugin = RealizationClusterAndMatch(
+        hierarchy=hierarchy,
+        model_id_attr="model_id",
+        clustering_method="KMedoids",
+        target_grid_name="target_grid",
+        n_clusters=2,
+        random_state=42,
+    )
+
+    result = plugin.process(cubes)
+
+    # Result should have realization as a dimension coordinate.
+    assert result.coords("realization", dim_coords=True)
+    assert result.coord("realization").points.size == 2
+
+    # Both forecast periods should be present.
+    np.testing.assert_array_equal(
+        result.coord("forecast_period").points, [0, 6 * 3600]
+    )
+
+    # The deterministic value (500 / 506) is far from the primary (100 / 106), so
+    # exactly one cluster should carry the deterministic data at each lead time.
+    for fp_hours in [0, 6]:
+        fp_data = result.extract(
+            iris.Constraint(forecast_period=fp_hours * 3600)
+        ).data
+        expected_det = 500.0 + fp_hours
+        expected_primary = 100.0 + fp_hours
+        det_clusters = np.isclose(fp_data, expected_det, atol=5.0).any(axis=(-1, -2))
+        primary_clusters = np.isclose(fp_data, expected_primary, atol=5.0).any(
+            axis=(-1, -2)
+        )
+        assert det_clusters.sum() == 1, (
+            f"fp={fp_hours}h: exactly one cluster should carry deterministic data"
+        )
+        assert primary_clusters.sum() == 1, (
+            f"fp={fp_hours}h: exactly one cluster should carry primary data"
+        )
+
+
+def test_clusterandmatch_secondary_scalar_realization_coord():
+    """Test secondary input with scalar realization coord is promoted to a dimension.
+
+    This covers deterministic-style inputs that carry a scalar realization
+    coordinate (e.g. realization=0) rather than no realization coordinate.
+    """
+    pytest.importorskip("kmedoids")
+    pytest.importorskip("esmf_regrid")
+
+    cubes = CubeList()
+    spatial_shape = (3, 3)
+
+    # Primary ensemble input — 4 realizations, base value 100.
+    cubes.extend(
+        _create_4d_realization_cube(
+            n_realizations=4,
+            forecast_periods=[0, 6],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            base_value=100.0,
+            model_id="primary_model",
+            merge=False,
+        )
+    )
+
+    # Secondary input with scalar (non-dimensional) realization coordinate.
+    for fp_hours in [0, 6]:
+        sec_data = np.full(spatial_shape, 500.0 + fp_hours, dtype=np.float32)
+        sec_cube = set_up_variable_cube(
+            sec_data,
+            name="air_temperature",
+            units="K",
+            spatial_grid="equalarea",
+        )
+        sec_cube.attributes["model_id"] = "scalar_realization_model"
+        sec_cube.coord("forecast_period").points = [fp_hours * 3600]
+        sec_cube.coord("time").points = [
+            sec_cube.coord("forecast_reference_time").points[0] + fp_hours * 3600
+        ]
+        sec_cube.add_aux_coord(
+            DimCoord(0, standard_name="realization", units="1")
+        )
+        assert sec_cube.coords("realization")
+        assert not sec_cube.coord_dims("realization")
+        cubes.append(sec_cube)
+
+    cubes.append(_create_target_grid_cube(spatial_shape=spatial_shape))
+
+    hierarchy = {
+        "primary_input": "primary_model",
+        "secondary_inputs": {"scalar_realization_model": [0, 6]},
+    }
+
+    plugin = RealizationClusterAndMatch(
+        hierarchy=hierarchy,
+        model_id_attr="model_id",
+        clustering_method="KMedoids",
+        target_grid_name="target_grid",
+        n_clusters=2,
+        random_state=42,
+    )
+
+    result = plugin.process(cubes)
+
+    # Result should have realization as a dimension coordinate and both fps present.
+    assert result.coords("realization", dim_coords=True)
+    assert result.coord("realization").points.size == 2
+    np.testing.assert_array_equal(
+        result.coord("forecast_period").points, [0, 6 * 3600]
+    )
+
+
+@pytest.mark.parametrize(
+    "secondary_kind",
+    ["partial_deterministic", "full_ensemble"],
+)
+def test_clusterandmatch_secondary_with_deprecation_message_merges(secondary_kind):
+    """Test merge succeeds when secondary metadata includes deprecation message.
+
+    This exercises both matching routes:
+    - partial_deterministic: secondary has no realization dimension (< n_clusters)
+    - full_ensemble: secondary has >= n_clusters realizations
+    """
+    pytest.importorskip("kmedoids")
+    pytest.importorskip("esmf_regrid")
+
+    cubes = CubeList()
+    spatial_shape = (3, 3)
+
+    # Primary ensemble input.
+    cubes.extend(
+        _create_4d_realization_cube(
+            n_realizations=4,
+            forecast_periods=[0, 6],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            base_value=100.0,
+            model_id="primary_model",
+            merge=False,
+        )
+    )
+
+    if secondary_kind == "partial_deterministic":
+        for fp_hours in [0, 6]:
+            sec_data = np.full(spatial_shape, 500.0 + fp_hours, dtype=np.float32)
+            sec_cube = set_up_variable_cube(
+                sec_data,
+                name="air_temperature",
+                units="K",
+                spatial_grid="equalarea",
+            )
+            sec_cube.attributes["model_id"] = "secondary_model"
+            sec_cube.coord("forecast_period").points = [fp_hours * 3600]
+            sec_cube.coord("time").points = [
+                sec_cube.coord("forecast_reference_time").points[0] + fp_hours * 3600
+            ]
+            cubes.append(sec_cube)
+    else:
+        cubes.extend(
+            _create_4d_realization_cube(
+                n_realizations=4,
+                forecast_periods=[0, 6],
+                y_dim=spatial_shape[0],
+                x_dim=spatial_shape[1],
+                base_value=500.0,
+                model_id="secondary_model",
+                merge=False,
+            )
+        )
+
+    # Add metadata known to cause merge mismatches when not harmonised.
+    for cube in cubes:
+        if cube.attributes.get("model_id") != "secondary_model":
+            continue
+        frt_coord = cube.coord("forecast_reference_time")
+        frt_coord.attributes["deprecation_message"] = (
+            "forecast_reference_time will be removed in future and should not be used"
+        )
+        cube.add_aux_coord(
+            AuxCoord(
+                frt_coord.points.copy(),
+                long_name="blend_time",
+                units=frt_coord.units,
+            )
+        )
+
+    cubes.append(_create_target_grid_cube(spatial_shape=spatial_shape))
+
+    plugin = RealizationClusterAndMatch(
+        hierarchy={
+            "primary_input": "primary_model",
+            "secondary_inputs": {"secondary_model": [0, 6]},
+        },
+        model_id_attr="model_id",
+        clustering_method="KMedoids",
+        target_grid_name="target_grid",
+        n_clusters=2,
+        random_state=42,
+    )
+
+    result = plugin.process(cubes)
+
+    assert not result.coords("blend_time")
+    assert result.coord("forecast_reference_time").attributes == {}
 
 
 def test_select_realizations_for_kmedoid_clusters_too_many_clusters():
