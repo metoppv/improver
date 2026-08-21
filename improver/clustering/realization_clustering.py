@@ -1551,6 +1551,15 @@ class RealizationClusterAndMatch(BasePlugin):
             secondary_input_realizations_to_clusters,
         )
 
+        # Remove / harmonise known scalar coords that can differ across sources
+        # and otherwise prevent the final merge. This can occur if some of the
+        # primary or secondary inputs have already been blended.
+        for cube in matched_cubes:
+            if cube.coords("blend_time"):
+                cube.remove_coord("blend_time")
+            if cube.coords("forecast_reference_time"):
+                cube.coord("forecast_reference_time").attributes = {}
+
         result_cube = MergeCubes()(
             CubeList([iris.util.squeeze(c) for c in matched_cubes])
         )
