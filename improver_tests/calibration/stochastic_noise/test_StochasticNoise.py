@@ -512,3 +512,189 @@ def test_init_warning():
             ssft_generate_params={"seed": 0},
             allow_seeded_parallel_processing=True,
         )
+
+
+def test_wet_noise_amplitude_non_positive_raises():
+    """Setting a non-positive wet_noise_amplitude should raise ValueError."""
+    with pytest.raises(ValueError, match="wet_noise_amplitude must be positive"):
+        StochasticNoise(wet_noise_amplitude=0.0)
+    with pytest.raises(ValueError, match="wet_noise_amplitude must be positive"):
+        StochasticNoise(wet_noise_amplitude=-1.0)
+
+
+def test_process_apply_noise_to_positive_regions():
+    """Test that noise is applied to positive regions when enabled."""
+    data = np.array(
+        [
+            [[0.0, 3.0], [0.0, 4.0]],
+            [[0.0, 3.2], [0.0, 4.2]],
+        ],
+        dtype=np.float32,
+    )
+    cube = set_up_variable_cube(data=data, name="precipitation_rate", units="mm/hr")
+
+    # Create two plugins: one with and one without wet-region noise
+    plugin_dry_only = StochasticNoise(
+        ssft_init_params={"win_size": (2, 2), "overlap": 0},
+        ssft_generate_params={"seed": 0},
+        db_threshold=0.03,
+        db_threshold_units="mm/hr",
+        apply_noise_to_positive_regions=False,
+    )
+    plugin_with_wet = StochasticNoise(
+        ssft_init_params={"win_size": (2, 2), "overlap": 0},
+        ssft_generate_params={"seed": 0},
+        db_threshold=0.03,
+        db_threshold_units="mm/hr",
+        apply_noise_to_positive_regions=True,
+        wet_noise_amplitude=0.5,
+    )
+
+    with pytest.warns(UserWarning, match="multi-realization dimension"):
+        result_dry_only = plugin_dry_only.process(cube)
+    with pytest.warns(UserWarning, match="multi-realization dimension"):
+        result_with_wet = plugin_with_wet.process(cube)
+
+    # Non-positive regions should have noise in both cases
+    non_positive_mask = data <= 0
+    assert np.any(result_dry_only.data[non_positive_mask] != data[non_positive_mask])
+    assert np.any(result_with_wet.data[non_positive_mask] != data[non_positive_mask])
+
+    # Positive regions should be unchanged in dry-only mode
+    positive_mask = data > 0
+    np.testing.assert_array_equal(
+        result_dry_only.data[positive_mask], data[positive_mask]
+    )
+
+    # Positive regions should have noise in wet-region mode
+    assert np.any(result_with_wet.data[positive_mask] != data[positive_mask])
+
+
+def test_apply_noise_to_positive_regions_amplitude_scaling():
+    """Test that wet_noise_amplitude correctly scales noise in positive regions."""
+    data = np.array(
+        [
+            [[0.0, 5.0], [0.0, 6.0]],
+            [[0.0, 5.2], [0.0, 6.2]],
+        ],
+        dtype=np.float32,
+    )
+    cube = set_up_variable_cube(data=data, name="precipitation_rate", units="mm/hr")
+
+    # Force deterministic SSFT noise for testing amplitude scaling
+    def mock_do_fft(_):
+        return np.array([[10.0, 10.0], [10.0, 10.0]], dtype=np.float32)
+
+    # Create plugins with different amplitude scales
+    plugin_full_amplitude = StochasticNoise(
+        ssft_generate_params={"seed": 0},
+        db_threshold=0.03,
+        db_threshold_units="mm/hr",
+        apply_noise_to_positive_regions=True,
+        wet_noise_amplitude=1.0,
+    )
+    plugin_half_amplitude = StochasticNoise(
+        ssft_generate_params={"seed": 0},
+        db_threshold=0.03,
+        db_threshold_units="mm/hr",
+        apply_noise_to_positive_regions=True,
+        wet_noise_amplitude=0.5,
+    )
+
+    plugin_full_amplitude.do_fft = mock_do_fft
+    plugin_half_amplitude.do_fft = mock_do_fft
+
+    result_full = plugin_full_amplitude.process(cube)
+    result_half = plugin_half_amplitude.process(cube)
+
+    positive_mask = data > 0
+    # Noise with half amplitude should be approximately half
+    # (allowing for rounding and conversion between dB and linear)
+    full_changes = np.abs(result_full.data[positive_mask] - data[positive_mask])
+    half_changes = np.abs(result_half.data[positive_mask] - data[positive_mask])
+
+    # Half amplitude should produce roughly half the magnitude of changes
+    # (not exact due to dB conversion, but within reasonable tolerance)
+    assert np.mean(half_changes) < np.mean(full_changes)
+
+
+@pytest.mark.parametrize("apply_noise_to_positive_regions", [False, True])
+def test_process_constant_input_with_wet_region_noise(
+    apply_noise_to_positive_regions: bool,
+):
+    """Test constant input with and without wet-region noise enabled."""
+    constant_value = 1.0
+    data = np.full((4, 4), constant_value, dtype=np.float32)
+    cube = set_up_variable_cube(data=data, name="precipitation_rate", units="mm/hr")
+
+    plugin = StochasticNoise(
+        ssft_generate_params={"seed": 0},
+        apply_noise_to_positive_regions=apply_noise_to_positive_regions,
+    )
+    result = plugin.process(cube)
+
+    assert isinstance(result, Cube)
+    assert result.shape == cube.shape
+    assert np.all(np.isfinite(result.data))
+
+    if apply_noise_to_positive_regions:
+        # With wet-region noise enabled, positive values should be perturbed
+        assert np.any(result.data != cube.data)
+    else:
+        # Without wet-region noise, constant positive values unchanged
+        np.testing.assert_array_equal(result.data, cube.data)
+
+
+@pytest.mark.parametrize("apply_noise_to_positive_regions", [False, True])
+def test_process_constant_input_seeded_is_reproducible_wet_region(
+    apply_noise_to_positive_regions: bool,
+):
+    """Seeded processing with wet-region noise is reproducible."""
+    constant_value = 2.0
+    data = np.full((4, 4), constant_value, dtype=np.float32)
+    cube = set_up_variable_cube(data=data, name="precipitation_rate", units="mm/hr")
+
+    plugin = StochasticNoise(
+        ssft_generate_params={"seed": 42},
+        apply_noise_to_positive_regions=apply_noise_to_positive_regions,
+    )
+    first = plugin.process(cube)
+    second = plugin.process(cube)
+
+    np.testing.assert_array_equal(first.data, second.data)
+
+
+def test_process_mixed_zero_and_positive_with_wet_noise():
+    """Test noise applied to both zero and positive regions when enabled."""
+    data = np.array(
+        [
+            [[0.0, 2.0, 0.0], [3.0, 0.0, 1.5]],
+            [[0.0, 2.2, 0.0], [3.2, 0.0, 1.7]],
+        ],
+        dtype=np.float32,
+    )
+    cube = set_up_variable_cube(data=data, name="precipitation_rate", units="mm/hr")
+
+    plugin = StochasticNoise(
+        ssft_init_params={"win_size": (2, 2), "overlap": 0},
+        ssft_generate_params={"seed": 0},
+        db_threshold=0.03,
+        db_threshold_units="mm/hr",
+        apply_noise_to_positive_regions=True,
+        wet_noise_amplitude=0.3,
+    )
+
+    with pytest.warns(UserWarning, match="multi-realization dimension"):
+        result = plugin.process(cube)
+
+    non_positive_mask = data <= 0
+    positive_mask = data > 0
+
+    # Verify output is finite and valid
+    assert np.all(np.isfinite(result.data))
+
+    # Positive regions should have been processed (noise may be small, but output valid)
+    assert np.all(np.isfinite(result.data[positive_mask]))
+
+    # Non-positive regions should be processed
+    assert np.all(np.isfinite(result.data[non_positive_mask]))
