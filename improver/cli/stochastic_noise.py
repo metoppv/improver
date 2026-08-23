@@ -23,6 +23,7 @@ def process(
     dry_fallback_range: str = None,
     apply_noise_to_positive_regions: bool = False,
     wet_noise_amplitude: float = 1.0,
+    apply_noise_to_positive_regions_by_source: str = None,
 ):
     """
     Class to apply spatially-structured stochastic noise to non-positive regions of a
@@ -147,6 +148,15 @@ def process(
             applies the full SSFT-generated noise; smaller values (e.g. 0.1) apply
             modest noise for subtle diversification. Has no effect if
             apply_noise_to_positive_regions is False. Default is 1.0.
+        apply_noise_to_positive_regions_by_source:
+            Optional comma-separated list of forecast source names (e.g.
+            "gl_ens,ecgl_ens") for which wet-region noise should be applied.
+            When set, overrides apply_noise_to_positive_regions flag with
+            source-aware logic by querying the cube's cluster_sources attribute.
+            Noise is applied to positive regions only if the current forecast
+            period's source is in this list. Cannot be used together with
+            apply_noise_to_positive_regions=True. Default is None (use
+            apply_noise_to_positive_regions flag instead).
 
     Returns:
         Cube with added stochastic noise.
@@ -180,6 +190,7 @@ def process(
         "dry_fallback_range": parsed_dry_fallback_range,
         "apply_noise_to_positive_regions": apply_noise_to_positive_regions,
         "wet_noise_amplitude": wet_noise_amplitude,
+        "apply_noise_to_positive_regions_by_source": apply_noise_to_positive_regions_by_source,
     }
 
     plugin = StochasticNoise(**plugin_kwargs)

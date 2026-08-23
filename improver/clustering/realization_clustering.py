@@ -18,6 +18,9 @@ from iris.util import new_axis, promote_aux_coord_to_dim_coord
 
 from improver import BasePlugin
 from improver.blending.utilities import remove_blend_time, remove_deprecation_warnings
+from improver.clustering.cluster_sources_utils import (
+    find_nearest_forecast_period_gte,
+)
 from improver.clustering.clustering import FitClustering
 from improver.regrid.landsea import RegridLandSea
 from improver.utilities.cube_manipulation import (
@@ -1766,18 +1769,7 @@ class RealizationSelection(BasePlugin):
                     should be used (True if at least one forecast period in
                     mapping_fps is greater than or equal to fp, else False).
         """
-        if mapping_fps:
-            valid_fps = [mapping_fp for mapping_fp in mapping_fps if mapping_fp >= fp]
-            if valid_fps:
-                nearest_fp = min(valid_fps)
-                use_secondary = True
-            else:
-                nearest_fp = fp
-                use_secondary = False
-        else:
-            nearest_fp = fp
-            use_secondary = False
-        return nearest_fp, use_secondary
+        return find_nearest_forecast_period_gte(mapping_fps, fp)
 
     def _extract_primary_model_from_cluster_sources(self, cluster_cube: Cube) -> str:
         """Extract the primary model name from the cluster_sources attribute.
