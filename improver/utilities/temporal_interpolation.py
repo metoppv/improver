@@ -1470,9 +1470,14 @@ class ForecastTrajectoryGapFiller(BasePlugin):
         if not cluster_sources:
             return []
 
-        # Get all realization indices
+        # Get all realization indices from the cube's realization coordinate values
         if first_cube.coords("realization"):
-            realization_indices = range(first_cube.coord("realization").points.size)
+            real_coord = first_cube.coord("realization")
+            # Handle both scalar and dimension coordinates
+            if real_coord.shape == ():  # scalar coordinate
+                realization_indices = [int(real_coord.points)]
+            else:
+                realization_indices = [int(r) for r in real_coord.points]
         else:
             return []
 
