@@ -13,6 +13,10 @@ import numpy as np
 from iris.cube import Cube, CubeList
 
 from improver import BasePlugin
+from improver.clustering.cluster_sources_utils import (
+    get_source_for_forecast_period,
+    parse_cluster_sources_attribute,
+)
 from improver.utilities.cube_checker import validate_cube_dimensions
 
 
@@ -52,6 +56,7 @@ class StochasticNoise(BasePlugin):
         dry_fallback_range: Optional[tuple] = None,
         apply_noise_to_positive_regions: bool = False,
         wet_noise_amplitude: float = 1.0,
+        apply_noise_to_positive_regions_by_source: Optional[str] = None,
     ):
         """
         Initialise the plugin. For a typical input field e.g. a precipitation field
@@ -139,6 +144,14 @@ class StochasticNoise(BasePlugin):
                 applies the full SSFT-generated noise; smaller values (e.g. 0.1) apply
                 modest noise for subtle diversification. Has no effect if
                 apply_noise_to_positive_regions is False. Default is 1.0.
+            apply_noise_to_positive_regions_by_source:
+                Optional comma-separated list of forecast source names (e.g.
+                "gl_ens,ecgl_ens") for which wet-region noise should be applied.
+                When set, overrides apply_noise_to_positive_regions flag with
+                source-aware logic by querying the cube's cluster_sources attribute.
+                Noise is applied to positive regions only if the current forecast
+                period's source is in this list. Default is None (use
+                apply_noise_to_positive_regions flag instead).
 
         Raises:
             ValueError:
@@ -189,6 +202,26 @@ class StochasticNoise(BasePlugin):
         self.apply_noise_to_positive_regions = apply_noise_to_positive_regions
         self.wet_noise_amplitude = wet_noise_amplitude
 
+        if (
+            apply_noise_to_positive_regions
+            and apply_noise_to_positive_regions_by_source is not None
+        ):
+            raise ValueError(
+                "Cannot specify both apply_noise_to_positive_regions=True and "
+                "apply_noise_to_positive_regions_by_source. Use one or the other."
+            )
+
+        self.apply_noise_to_positive_regions_by_source = (
+            apply_noise_to_positive_regions_by_source
+        )
+        if self.apply_noise_to_positive_regions_by_source:
+            self.target_sources = {
+                s.strip().lower()
+                for s in self.apply_noise_to_positive_regions_by_source.split(",")
+            }
+        else:
+            self.target_sources = set()
+
         if self.wet_noise_floor is not None and self.wet_noise_floor >= 0:
             raise ValueError("wet_noise_floor must be negative if provided.")
 
@@ -225,6 +258,40 @@ class StochasticNoise(BasePlugin):
                 "allow_seeded_parallel_processing to False for reproducibility.",
                 UserWarning,
             )
+
+    def _should_apply_wet_noise_by_source(self, input_cube: Cube) -> bool:
+        """Determine if wet-region noise should be applied based on forecast source.
+
+        Queries cluster_sources attribute to find which model is active for this
+        realization and forecast period. If the source matches one of the target
+        sources specified in apply_noise_to_positive_regions_by_source, returns True.
+
+        Args:
+            input_cube:
+                Input cube with realization and forecast_period coordinates.
+                May have cluster_sources attribute.
+
+        Returns:
+            True if source matches target_sources, False otherwise.
+            Returns False if cluster_sources attribute missing or malformed.
+        """
+        try:
+            cluster_sources = parse_cluster_sources_attribute(input_cube)
+            if not cluster_sources:
+                return False
+
+            # Get realization and forecast period indices
+            realization_idx = int(input_cube.coord("realization").points[0])
+            fp_seconds = int(input_cube.coord("forecast_period").points[0])
+
+            source = get_source_for_forecast_period(
+                cluster_sources, realization_idx, fp_seconds
+            )
+            return source is not None and source.lower() in self.target_sources
+
+        except (AttributeError, KeyError, ValueError, TypeError):
+            # Graceful fallback if cluster_sources missing/malformed or coords unavailable
+            return False
 
     def _process_single_realization(self, input_cube: Cube) -> Cube:
         """Add stochastic noise to a cube containing a single realization
@@ -277,9 +344,14 @@ class StochasticNoise(BasePlugin):
         non_positive_mask = template.data <= 0
         positive_mask = template.data > 0
 
+        # Determine whether to apply wet-region noise based on source metadata
+        apply_wet_noise = self.apply_noise_to_positive_regions
+        if self.apply_noise_to_positive_regions_by_source:
+            apply_wet_noise = self._should_apply_wet_noise_by_source(input_cube)
+
         # If no non-positive values and not applying noise to positive regions,
         # return input unchanged
-        if not np.any(non_positive_mask) and not self.apply_noise_to_positive_regions:
+        if not np.any(non_positive_mask) and not apply_wet_noise:
             return input_cube
 
         # Create a copy of the template in dB scale to use for SSFT processing
@@ -370,7 +442,7 @@ class StochasticNoise(BasePlugin):
             )
 
         # Optionally add noise to positive regions
-        if self.apply_noise_to_positive_regions and np.any(positive_mask):
+        if apply_wet_noise and np.any(positive_mask):
             scaled_wet_noise = noise_linear[positive_mask] * self.wet_noise_amplitude
             output_cube.data[positive_mask] = (
                 template.data[positive_mask] + scaled_wet_noise
