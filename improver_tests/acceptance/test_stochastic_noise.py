@@ -94,3 +94,39 @@ def test_dry_realizations(tmp_path, specify_fallback):
         args += ["--dry-fallback-range", "(-200.0, -100.0)"]
     run_cli(args)
     acc.compare(output_path, kgo_path, atol=1e-6, rtol=1e-6)
+
+
+@pytest.mark.parametrize("by_source", [False, True])
+def test_positive_regions(tmp_path, by_source):
+    """Test when stochastic noise is added to positive (wet) regions."""
+    pytest.importorskip("pysteps")
+    if by_source:
+        kgo_dir = acc.kgo_root() / "stochastic_noise" / "wet_by_source"
+        dependence_template_path = kgo_dir / "input_with_cluster_sources.nc"
+    else:
+        kgo_dir = acc.kgo_root() / "stochastic_noise" / "wet"
+        dependence_template_path = acc.kgo_root() / "stochastic_noise" / "input.nc"
+
+    kgo_path = kgo_dir / "kgo.nc"
+
+    output_path = tmp_path / "output.nc"
+    args = [
+        dependence_template_path,
+        "--ssft-init-params",
+        "{'win_size': (100, 100), 'overlap': 0.3, 'war_thr': 0.1}",
+        "--ssft-generate-params",
+        "{'overlap': 0.3, 'seed': 0}",
+        "--db-threshold",
+        "0.03",
+        "--db-threshold-units",
+        "mm/hr",
+        "--output",
+        output_path,
+    ]
+    if by_source:
+        args += ["--apply-noise-to-positive-regions-by-source", "uk_ens"]
+    else:
+        args += ["--apply-noise-to-positive-regions"]
+
+    run_cli(args)
+    acc.compare(output_path, kgo_path, atol=1e-6, rtol=1e-6)
