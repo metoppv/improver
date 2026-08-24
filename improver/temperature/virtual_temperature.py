@@ -15,7 +15,11 @@ from improver.utilities.common_input_handle import as_cubelist
 
 
 class VirtualTemperature(BasePlugin):
-    """Plugin class to handle virtual temperature calculations from humidity mixing ratio."""
+    """Plugin class to handle virtual temperature calculations from humidity mixing ratio.
+
+    .. Further information is available in:
+    .. include:: extended_documentation/temperature/virtual_temperature.rst
+    """
 
     @staticmethod
     def get_virtual_temperature(temperature: Cube, humidity_mixing_ratio: Cube) -> Cube:
@@ -95,6 +99,8 @@ class VirtualTemperatureFromSpecificHumidity(BasePlugin):
     specific humidities typically no higher than 5 g kg-1, the adjustment is unlikely
     to ever be more than 0.5%.
 
+    .. Further information is available in:
+    .. include:: extended_documentation/temperature/virtual_temperature.rst
     """
 
     @staticmethod
