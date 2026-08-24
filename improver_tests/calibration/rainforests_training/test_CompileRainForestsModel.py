@@ -10,12 +10,13 @@ import pytest
 from improver.calibration.rainforest_compilation import (
     CompileRainForestsModel,
 )
+from improver.calibration.rainforest_model_config import RainForestsModelConfig
 
 tl2cgen = pytest.importorskip("tl2cgen")
 treelite = pytest.importorskip("treelite")
 
 
-def test__init__(treelite_available, model_config):
+def test__init__(treelite_available: bool, model_config: RainForestsModelConfig):
     """Test class is created if treelight libraries are available.
     Test class is not created if treelight libraries not available."""
 
@@ -28,7 +29,7 @@ def test__init__(treelite_available, model_config):
             result = CompileRainForestsModel(model_config)
 
 
-def test_process(model_config_with_trained_models):
+def test_process(model_config_with_trained_models: RainForestsModelConfig):
     """Test models are compiled."""
 
     model_config = model_config_with_trained_models
@@ -49,7 +50,9 @@ def test_process(model_config_with_trained_models):
             assert predictor.num_feature == 5
 
 
-def test_process_fails_with_missing_models(model_config_with_trained_models):
+def test_process_fails_with_missing_models(
+    model_config_with_trained_models: RainForestsModelConfig,
+):
     """Test models are not compiled when any models are missing."""
 
     model_config = model_config_with_trained_models
@@ -77,7 +80,9 @@ def test_process_fails_with_missing_models(model_config_with_trained_models):
             assert not treelite_path.exists()
 
 
-def test_process_with_missing_models_allowed(model_config_with_trained_models):
+def test_process_with_missing_models_allowed(
+    model_config_with_trained_models: RainForestsModelConfig,
+):
     """Test that available models are compiled when other models are missing."""
 
     model_config = model_config_with_trained_models
