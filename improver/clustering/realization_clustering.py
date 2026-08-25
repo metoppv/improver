@@ -17,7 +17,11 @@ from iris.cube import Cube, CubeList
 from iris.util import new_axis, promote_aux_coord_to_dim_coord
 
 from improver import BasePlugin
+<<<<<<< HEAD
 from improver.blending.utilities import remove_blend_time, remove_deprecation_warnings
+=======
+from improver.blending.utilities import remove_blend_time
+>>>>>>> 9faf1138a (Alter spatial morphing interface to more easily define the intended transition point between forecast sources.)
 from improver.clustering.clustering import FitClustering
 from improver.regrid.landsea import RegridLandSea
 from improver.utilities.cube_manipulation import (

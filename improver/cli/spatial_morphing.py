@@ -19,9 +19,7 @@ def process(
     cycletime: str = None,
     selection_attr: str = "spatial_morphing",
     selection_attr_value: str = "cluster_medoid",
-    cluster_sources_attribute: str = "cluster_sources",
-    interpolation_window_by_source_pair: cli.inputjson = None,
-    interpolation_window_in_minutes: int = 180,
+    transitions: cli.inputjson = None,
     model_path: str = None,
     scaling: str = "minmax",
     clipping_bounds: cli.comma_separated_list = None,
@@ -68,20 +66,11 @@ def process(
         selection_attr_value (str):
             The value to assign to the selection_attr attribute.
             Default is "spatial_morphing".
-        cluster_sources_attribute (str):
-            Name of the cube attribute containing cluster_sources metadata
-            (mapping of realization indices to their forecast sources and periods).
-            Default: "cluster_sources".
-        interpolation_window_by_source_pair (dict):
-            Optional JSON dictionary mapping source-pair keys to transition
-            windows in minutes. Keys must identify two source names separated
-            by "|" or "," (e.g., "nc_det uk_det|uk_ens": 240). Matching is
-            order-insensitive. If provided, this takes precedence over
-            interpolation_window_in_minutes.
-        interpolation_window_in_minutes (int):
-            Default transition window in minutes (±window around the transition
-            point). Used when no specific source-pair window is configured.
-            Default: 180 (3 hours).
+        transitions (dict):
+            JSON dictionary containing an explicit "transitions" list. Each
+            transition must define "source_a", "source_b",
+            "start_forecast_period_minutes", and
+            "end_forecast_period_minutes".
         model_path (str):
             Path to TensorFlow Hub module for Google FILM model. Required if
             spatial morphing between different sources is performed.
@@ -122,9 +111,7 @@ def process(
         cycletime=cycletime,
         selection_attr=selection_attr,
         selection_attr_value=selection_attr_value,
-        cluster_sources_attribute=cluster_sources_attribute,
-        interpolation_window_by_source_pair=interpolation_window_by_source_pair,
-        interpolation_window_in_minutes=interpolation_window_in_minutes,
+        transitions=transitions,
         model_path=model_path,
         scaling=scaling,
         clipping_bounds=clipping_bounds,

@@ -5,51 +5,100 @@
 """Tests for the SpatialMorphing plugin."""
 
 import json
+from unittest.mock import patch
 
 import numpy as np
 import pytest
 from iris.cube import Cube, CubeList
 
+from improver.clustering.realization_clustering import RealizationSelection
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.spatial_morphing import SpatialMorphing
 
 
-def make_test_cube(
-    data_value=1.0,
-    shape=(2, 5, 5),
-    model_id="uk_ens",
-    realizations=None,
-    cluster_sources=None,
-):
-    """Create a test cube with specified properties.
+def make_forecast_cube(model_id="uk_ens", n_realizations=2, base_value=0.0):
+    """Create a forecast cube with a realization coordinate."""
+    data = np.zeros((n_realizations, 5, 5), dtype=np.float32)
+    for realization in range(n_realizations):
+        data[realization, :, :] = base_value + realization
 
-    Args:
-        data_value: Scalar value to fill cube data.
-        shape: Tuple of (n_realizations, dim1, dim2).
-        model_id: Model ID attribute value.
-        realizations: Optional array of realization indices.
-        cluster_sources: Optional dict for cluster_sources attribute.
-
-    Returns:
-        Iris Cube with specified configuration.
-    """
-    if realizations is None:
-        realizations = np.arange(shape[0])
-
-    data = np.full(shape, data_value, dtype=np.float32)
     cube = set_up_variable_cube(
         data,
-        name="air_temperature",
-        units="K",
+        name="precipitation_accumulation",
+        units="mm",
         spatial_grid="equalarea",
-        realizations=realizations,
+        realizations=np.arange(n_realizations),
     )
     cube.attributes["mosg__model_configuration"] = model_id
-
-    if cluster_sources is not None:
-        cube.attributes["cluster_sources"] = json.dumps(cluster_sources)
-
     return cube
+
+
+def make_cluster_cube(include_uk_ens_secondary=False):
+    """Create a mock cluster cube with mapping attributes."""
+    cube = set_up_variable_cube(
+        np.zeros((5, 5), dtype=np.float32),
+        name="clustering_result",
+        units="1",
+        spatial_grid="equalarea",
+    )
+
+    cube.attributes["primary_input_realization_to_cluster_medoid"] = json.dumps(
+        {"0": 0, "1": 1, "17": 8}
+    )
+
+    secondary_map = {
+        "uk_ens": {
+            "0": [{"realization": 0, "forecast_periods": [22500]}],
+            "1": [{"realization": 1, "forecast_periods": [22500]}],
+            "17": [{"realization": 3, "forecast_periods": [3600, 21600]}],
+        }
+    }
+    if include_uk_ens_secondary:
+        secondary_map["uk_ens"] = {
+            "17": [
+                {
+                    "realization": 11,
+                    "forecast_periods": [
+                        43200,
+                        86400,
+                        129600,
+                        172800,
+                        216000,
+                        259200,
+                        302400,
+                        345600,
+                        388800,
+                        432000,
+                    ],
+                }
+            ]
+        }
+    cube.attributes["secondary_input_realizations_to_clusters"] = json.dumps(
+        secondary_map
+    )
+
+    cube.attributes["cluster_sources"] = json.dumps(
+        {
+            "0": {"uk_ens": [22500]},
+            "1": {"uk_ens": [22500]},
+            "17": {"uk_ens": [43200], "uk_det": [3600, 21600]},
+        }
+    )
+    return cube
+
+
+def make_transitions():
+    """Create a representative explicit transition definition."""
+    return {
+        "transitions": [
+            {
+                "source_a": "uk_det",
+                "source_b": "uk_ens",
+                "start_forecast_period_minutes": 300,
+                "end_forecast_period_minutes": 420,
+            }
+        ]
+    }
 
 
 # ============================================================================
@@ -58,486 +107,326 @@ def make_test_cube(
 
 
 @pytest.mark.parametrize(
-    "model_id_attr,cluster_sources_attr,window_minutes",
-    [
-        ("mosg__model_configuration", "cluster_sources", 180),
-        ("custom_model_attr", "custom_sources", 360),
-        ("model_id", "sources", 120),
-    ],
+    "forecast_period,cluster_number",
+    [(22500, 0), (22500, 1), (3600, 0)],
 )
-def test_init_custom_attributes(model_id_attr, cluster_sources_attr, window_minutes):
-    """Test initialization with custom attributes."""
+def test_init_with_required_parameters(forecast_period, cluster_number):
+    """Test initialization with required parameters."""
     plugin = SpatialMorphing(
-        model_id_attr=model_id_attr,
-        cluster_sources_attribute=cluster_sources_attr,
-        interpolation_window_in_minutes=window_minutes,
+        forecast_period=forecast_period,
+        cluster_number=cluster_number,
     )
-    assert plugin.model_id_attr == model_id_attr
-    assert plugin.cluster_sources_attribute == cluster_sources_attr
-    assert plugin.interpolation_window_in_minutes == window_minutes
-
-
-def test_init_default_parameters():
-    """Test initialization with default parameters."""
-    plugin = SpatialMorphing()
+    assert plugin.forecast_period == forecast_period
+    assert plugin.cluster_number == cluster_number
     assert plugin.model_id_attr == "mosg__model_configuration"
-    assert plugin.cluster_sources_attribute == "cluster_sources"
-    assert plugin.interpolation_window_in_minutes == 180
-    assert plugin.interpolation_window_by_source_pair == {}
+    assert plugin.cycletime is None
+    assert plugin.transitions == []
 
 
-@pytest.mark.parametrize(
-    "windows,expected_count",
-    [
-        ({"uk_ens|gl_ens": 360}, 1),
-        ({"uk_ens|gl_ens": 360, "uk_det,ec_det": 120}, 2),
-        ({"a|b": 60, "c,d": 90, "e|f": 180}, 3),
-    ],
-)
-def test_init_source_pair_windows(windows, expected_count):
-    """Test initialization with source-pair transition windows."""
+def test_init_with_optional_parameters():
+    """Test initialization with optional parameters."""
     plugin = SpatialMorphing(
-        interpolation_window_by_source_pair=windows,
+        forecast_period=22500,
+        cluster_number=0,
+        cycletime="20240203T0000Z",
+        selection_attr="realization_selection_method",
+        selection_attr_value="cluster_medoid",
+        transitions=make_transitions(),
+        model_path="/path/to/model",
+        scaling="log10",
     )
-    assert len(plugin.interpolation_window_by_source_pair) == expected_count
+    assert plugin.forecast_period == 22500
+    assert plugin.cluster_number == 0
+    assert plugin.cycletime == "20240203T0000Z"
+    assert plugin.selection_attr == "realization_selection_method"
+    assert plugin.selection_attr_value == "cluster_medoid"
+    assert plugin.transitions == [
+        {
+            "source_a": "uk_det",
+            "source_b": "uk_ens",
+            "start_forecast_period_seconds": 18000,
+            "end_forecast_period_seconds": 25200,
+        }
+    ]
+    assert plugin.model_path == "/path/to/model"
+    assert plugin.scaling == "log10"
 
 
-@pytest.mark.parametrize(
-    "invalid_input,error_match",
-    [
-        ("not_a_dict", "must be a dictionary"),
-        ({"uk_ens|gl_ens": -1}, "must be positive integers"),
-        ({"uk_ens|uk_ens": 60}, "two distinct source names"),
-        ({"uk_ens": 60}, "must contain exactly two source names"),
-    ],
-)
-def test_init_invalid_window_configuration(invalid_input, error_match):
-    """Test that invalid window configuration raises appropriate errors."""
-    with pytest.raises(ValueError, match=error_match):
-        SpatialMorphing(interpolation_window_by_source_pair=invalid_input)
-
-
-# ============================================================================
-# Source pair key parsing tests
-# ============================================================================
-
-
-@pytest.mark.parametrize(
-    "key,expected",
-    [
-        ("uk_ens|gl_ens", frozenset(["uk_ens", "gl_ens"])),
-        ("uk_ens, gl_ens", frozenset(["uk_ens", "gl_ens"])),
-        ("gl_ens|uk_ens", frozenset(["uk_ens", "gl_ens"])),  # Order insensitive
-        ("source_a|source_b", frozenset(["source_a", "source_b"])),
-    ],
-)
-def test_prepare_source_pair_key(key, expected):
-    """Test parsing of source-pair keys with various delimiters."""
-    plugin = SpatialMorphing()
-    result = plugin._prepare_source_pair_key(key)
-    assert result == expected
-
-
-@pytest.mark.parametrize(
-    "invalid_key,error_match",
-    [
-        ("single_source", "exactly two source names"),
-        ("uk_ens|uk_ens", "two distinct source names"),
-        ("uk_ens||gl_ens", "exactly two source names"),
-        ("uk_ens, gl_ens, another", "exactly two source names"),
-    ],
-)
-def test_prepare_source_pair_key_invalid(invalid_key, error_match):
-    """Test that invalid source-pair keys raise errors."""
-    plugin = SpatialMorphing()
-    with pytest.raises(ValueError, match=error_match):
-        plugin._prepare_source_pair_key(invalid_key)
-
-
-# ============================================================================
-# Cluster sources parsing tests
-# ============================================================================
-
-
-@pytest.mark.parametrize(
-    "cluster_sources,should_parse",
-    [
-        ({"0": {"uk_ens": [3600, 21600], "gl_ens": [86400]}}, True),
-        ({"0": {"uk_det": [3600]}, "1": {"uk_ens": [21600]}}, True),
-        ({}, True),  # Empty dict is valid
-    ],
-)
-def test_parse_cluster_sources_valid(cluster_sources, should_parse):
-    """Test parsing valid cluster_sources attribute."""
-    plugin = SpatialMorphing()
-    cube = make_test_cube(cluster_sources=cluster_sources)
-
-    result = plugin._parse_cluster_sources(cube)
-    if should_parse:
-        assert result == cluster_sources
-
-
-def test_parse_cluster_sources_missing_attribute():
-    """Test that missing cluster_sources returns empty dict."""
-    plugin = SpatialMorphing()
-    cube = make_test_cube()
-    # Explicitly remove cluster_sources
-    cube.attributes.pop("cluster_sources", None)
-
-    result = plugin._parse_cluster_sources(cube)
-    assert result == {}
-
-
-@pytest.mark.parametrize(
-    "invalid_json,error_match",
-    [
-        ("not valid json {", "Failed to parse cluster sources JSON"),
-        ('{"0": [}', "Failed to parse cluster sources JSON"),
-    ],
-)
-def test_parse_cluster_sources_invalid_json(invalid_json, error_match):
-    """Test that invalid JSON raises error."""
-    plugin = SpatialMorphing()
-    cube = make_test_cube()
-    cube.attributes["cluster_sources"] = invalid_json
-
-    with pytest.raises(ValueError, match=error_match):
-        plugin._parse_cluster_sources(cube)
-
-
-# ============================================================================
-# Source pair identification tests (internal logic via process)
-# ============================================================================
-
-
-@pytest.mark.parametrize(
-    "cluster_sources,query_fp,expected_transition",
-    [
-        # Single source - no transition
-        ({"0": {"uk_ens": [3600, 21600, 86400]}}, 21600, False),
-        # Exact match - no transition
-        ({"0": {"uk_det": [3600], "uk_ens": [21600]}}, 3600, False),
-        # Between two sources - transition
-        ({"0": {"uk_det": [3600], "uk_ens": [21600]}}, 14400, True),
-        # Midpoint between sources
-        ({"0": {"uk_det": [3600], "uk_ens": [21600]}}, 12600, True),
-    ],
-)
-def test_identify_source_pair_for_validity_time(
-    cluster_sources, query_fp, expected_transition
-):
-    """Test source pair identification at various validity times."""
-    plugin = SpatialMorphing()
-    result = plugin._identify_source_pair_for_validity_time(
-        cluster_sources, 0, query_fp
-    )
-
-    if expected_transition:
-        assert result is not None
-        source_a, fp_a, source_b, fp_b, weight = result
-        assert isinstance(weight, (int, float))
-        assert 0.0 <= weight <= 1.0
-    else:
-        assert result is None
-
-
-@pytest.mark.parametrize(
-    "query_fp,expected_weight",
-    [
-        (3600, 0.0),  # At fp_a
-        (21600, 1.0),  # At fp_b
-        (12600, 0.5),  # Midpoint
-        (14400, (14400 - 3600) / (21600 - 3600)),  # 2/3 of the way
-    ],
-)
-def test_weight_calculation(query_fp, expected_weight):
-    """Test weight calculation between two source forecast periods."""
-    plugin = SpatialMorphing()
-    cluster_sources = {"0": {"uk_det": [3600], "uk_ens": [21600]}}
-
-    result = plugin._identify_source_pair_for_validity_time(
-        cluster_sources, 0, query_fp
-    )
-
-    if result is not None:
-        _, _, _, _, weight = result
-        assert np.isclose(
-            weight, expected_weight, rtol=1e-5
-        ), f"Weight {weight} != {expected_weight}"
-    else:
-        # If exact match at boundaries, no transition returned
-        assert expected_weight in (0.0, 1.0)
-
-
-# ============================================================================
-# Cube extraction tests (internal logic via process)
-# ============================================================================
-
-
-@pytest.mark.parametrize(
-    "n_realizations,query_realization,should_exist",
-    [
-        (2, 0, True),
-        (2, 1, True),
-        (5, 3, True),
-        (2, 99, False),
-        (1, 0, True),
-        (1, 1, False),
-    ],
-)
-def test_extract_source_cube_for_realization(
-    n_realizations, query_realization, should_exist
-):
-    """Test extracting cubes for specific realization from source."""
-    plugin = SpatialMorphing()
-    cube = make_test_cube(shape=(n_realizations, 5, 5), model_id="uk_ens")
-    cubes = CubeList([cube])
-
-    result = plugin._extract_source_cube_for_realization(
-        cubes, query_realization, "uk_ens"
-    )
-
-    if should_exist:
-        assert result is not None
-        assert result.shape == (5, 5)
-    else:
-        assert result is None
-
-
-def test_extract_source_cube_nonexistent_source():
-    """Test extracting from non-existent source returns None."""
-    plugin = SpatialMorphing()
-    cube = make_test_cube(model_id="uk_ens")
-    cubes = CubeList([cube])
-
-    result = plugin._extract_source_cube_for_realization(cubes, 0, "gl_ens")
-    assert result is None
-
-
-# ============================================================================
-# Process method tests (public interface)
-# ============================================================================
-
-
-@pytest.mark.parametrize(
-    "data_values,source_ids,expected_output_value",
-    [
-        ([100.0], ["uk_ens"], 100.0),  # Single cube
-        ([100.0, 100.0], ["uk_ens", "uk_ens"], 100.0),  # Duplicate source
-    ],
-)
-def test_process_single_source_passthrough(
-    data_values, source_ids, expected_output_value
-):
-    """Test that single-source realizations pass through unchanged."""
-    plugin = SpatialMorphing()
-
-    cubes = CubeList()
-    cluster_sources = {}
-
-    for idx, (value, source_id) in enumerate(zip(data_values, source_ids)):
-        cube = make_test_cube(
-            data_value=value,
-            model_id=source_id,
-            cluster_sources={"0": {source_id: [21600]}},
+def test_init_invalid_cycletime_format():
+    """Test that invalid cycletime format raises error."""
+    with pytest.raises(ValueError):
+        SpatialMorphing(
+            forecast_period=22500,
+            cluster_number=0,
+            cycletime="invalid_format",
         )
-        cubes.append(cube)
-        cluster_sources["0"] = {source_id: [21600]}
-
-    result = plugin.process(cubes)
-
-    assert isinstance(result, Cube)
-    assert result.shape == (2, 5, 5)
-    assert np.allclose(result.data, expected_output_value)
-    assert "mosg__model_configuration" not in result.attributes
 
 
-def test_process_removes_model_id_attribute():
-    """Test that model_id_attr is removed from output."""
-    plugin = SpatialMorphing()
-    cube = make_test_cube(
-        model_id="uk_ens",
-        cluster_sources={"0": {"uk_ens": [21600]}, "1": {"uk_ens": [21600]}},
+@pytest.mark.parametrize(
+    "transitions,error_match",
+    [
+        ({"bad": []}, "transitions dictionary"),
+        ({"transitions": [{}]}, "missing required keys"),
+        (
+            {
+                "transitions": [
+                    {
+                        "source_a": "uk_det",
+                        "source_b": "uk_ens",
+                        "start_forecast_period_minutes": 420,
+                        "end_forecast_period_minutes": 300,
+                    }
+                ]
+            },
+            "start < end",
+        ),
+    ],
+)
+def test_init_invalid_transitions(transitions, error_match):
+    """Test that invalid transition definitions raise errors."""
+    with pytest.raises(ValueError, match=error_match):
+        SpatialMorphing(
+            forecast_period=22500,
+            cluster_number=0,
+            transitions=transitions,
+        )
+
+
+def test_init_creates_selection_helper():
+    """Test that initialization creates RealizationSelection helper."""
+    plugin = SpatialMorphing(
+        forecast_period=22500,
+        cluster_number=0,
     )
+    assert isinstance(plugin._selection_helper, RealizationSelection)
+    assert plugin._selection_helper.forecast_period == 22500
 
-    result = plugin.process(CubeList([cube]))
 
+def test_find_active_transition_returns_matching_entry():
+    """Test active transition lookup uses explicit bounds."""
+    plugin = SpatialMorphing(
+        forecast_period=22500,
+        cluster_number=0,
+        transitions=make_transitions(),
+    )
+    assert plugin._find_active_transition(22500) == {
+        "source_a": "uk_det",
+        "source_b": "uk_ens",
+        "start_forecast_period_seconds": 18000,
+        "end_forecast_period_seconds": 25200,
+    }
+
+
+@pytest.mark.parametrize(
+    "forecast_period,expected_weight",
+    [
+        (18000, 0.0),
+        (21600, 0.5),
+        (25200, 1.0),
+        (30000, 1.0),
+    ],
+)
+def test_calculate_transition_weight(forecast_period, expected_weight):
+    """Test weight calculation from explicit start/end transition bounds."""
+    weight = SpatialMorphing._calculate_transition_weight(forecast_period, 18000, 25200)
+    assert np.isclose(weight, expected_weight)
+
+
+# ============================================================================
+# Process method tests - PUBLIC INTERFACE
+# ============================================================================
+
+
+def test_process_requires_cluster_cube():
+    """Test that process() raises ValueError if cluster cube missing."""
+    plugin = SpatialMorphing(forecast_period=22500, cluster_number=0)
+    forecast_cube = make_forecast_cube()
+    with pytest.raises(ValueError, match="No cluster cube found in input cubes"):
+        plugin.process(forecast_cube)
+
+
+def test_process_requires_forecast_cubes():
+    """Test that process() raises ValueError if no forecast cubes."""
+    plugin = SpatialMorphing(forecast_period=22500, cluster_number=0)
+    cluster_cube = make_cluster_cube()
+    with pytest.raises(ValueError, match="No forecast cubes found in input cubes"):
+        plugin.process(cluster_cube)
+
+
+def test_process_returns_single_cube():
+    """Test that process() returns a single Cube (not CubeList)."""
+    plugin = SpatialMorphing(forecast_period=22500, cluster_number=0)
+    result = plugin.process(make_forecast_cube(model_id="uk_ens"), make_cluster_cube())
+    assert isinstance(result, Cube)
+    assert not isinstance(result, CubeList)
+
+
+def test_process_output_has_cluster_realization():
+    """Test that output cube has realization set to cluster_number."""
+    plugin = SpatialMorphing(forecast_period=22500, cluster_number=0)
+    result = plugin.process(make_forecast_cube(model_id="uk_ens"), make_cluster_cube())
+    assert result.coords("realization")
+    np.testing.assert_array_equal(result.coord("realization").points, [0])
+
+
+def test_process_adds_selection_attr():
+    """Test that selection_attr is added to output when requested."""
+    plugin = SpatialMorphing(
+        forecast_period=22500,
+        cluster_number=0,
+        selection_attr="realization_selection_method",
+        selection_attr_value="spatial_morphing_blend",
+    )
+    result = plugin.process(make_forecast_cube(model_id="uk_ens"), make_cluster_cube())
+    assert result.attributes["realization_selection_method"] == "spatial_morphing_blend"
+
+
+@pytest.mark.parametrize("cluster_number", [0, 1])
+def test_process_with_multiple_clusters(cluster_number):
+    """Test processing different cluster numbers."""
+    plugin = SpatialMorphing(forecast_period=22500, cluster_number=cluster_number)
+    result = plugin.process(
+        make_forecast_cube(model_id="uk_ens", n_realizations=2), make_cluster_cube()
+    )
+    assert isinstance(result, Cube)
+    np.testing.assert_array_equal(result.coord("realization").points, [cluster_number])
+
+
+def test_process_with_cubelist_input():
+    """Test that process() accepts CubeList input."""
+    plugin = SpatialMorphing(forecast_period=22500, cluster_number=0)
+    cubes = CubeList([make_forecast_cube(model_id="uk_ens"), make_cluster_cube()])
+    result = plugin.process(cubes)
+    assert isinstance(result, Cube)
+
+
+def test_process_raises_on_invalid_cluster_number():
+    """Test that process() raises ValueError for non-existent cluster."""
+    plugin = SpatialMorphing(forecast_period=22500, cluster_number=99)
+    with pytest.raises(ValueError, match="Cluster number 99 not found"):
+        plugin.process(make_forecast_cube(model_id="uk_ens"), make_cluster_cube())
+
+
+def test_process_preserves_data_with_single_source():
+    """Test that process() preserves data when only one source available."""
+    plugin = SpatialMorphing(forecast_period=22500, cluster_number=0)
+    forecast_cube = make_forecast_cube(model_id="uk_ens", n_realizations=2)
+    orig_data = forecast_cube.extract(
+        pytest.importorskip("iris").Constraint(realization=0)
+    ).data
+    result = plugin.process(forecast_cube, make_cluster_cube())
+    np.testing.assert_allclose(result.data, orig_data, rtol=1e-5)
+
+
+def test_process_removes_model_id_attr_if_present():
+    """Test that model_id_attr is removed from output if originally present."""
+    plugin = SpatialMorphing(forecast_period=22500, cluster_number=0)
+    forecast_cube = make_forecast_cube(model_id="uk_ens")
+    assert "mosg__model_configuration" in forecast_cube.attributes
+    result = plugin.process(forecast_cube, make_cluster_cube())
     assert "mosg__model_configuration" not in result.attributes
 
 
 def test_process_preserves_other_attributes():
-    """Test that other attributes are preserved."""
-    plugin = SpatialMorphing()
-    cube = make_test_cube(
-        model_id="uk_ens",
-        cluster_sources={"0": {"uk_ens": [21600]}, "1": {"uk_ens": [21600]}},
-    )
-    cube.attributes["custom_attr"] = "custom_value"
-
-    result = plugin.process(CubeList([cube]))
-
-    assert result.attributes.get("custom_attr") == "custom_value"
+    """Test that other attributes are preserved in output."""
+    plugin = SpatialMorphing(forecast_period=22500, cluster_number=0)
+    forecast_cube = make_forecast_cube(model_id="uk_ens")
+    forecast_cube.attributes["custom_attr"] = "custom_value"
+    result = plugin.process(forecast_cube, make_cluster_cube())
+    assert "custom_attr" in result.attributes
 
 
-def test_process_mismatched_validity_times_raises():
-    """Test that mismatched validity times raise error."""
-    plugin = SpatialMorphing()
-
-    cube1 = make_test_cube(model_id="uk_ens")
-    cube1.coord("forecast_period").points = [21600]
-
-    cube2 = make_test_cube(model_id="gl_ens")
-    cube2.coord("forecast_period").points = [43200]
-
-    with pytest.raises(ValueError, match="same validity time"):
-        plugin.process(CubeList([cube1, cube2]))
+def test_process_with_empty_cubes_list():
+    """Test that process() raises ValueError with empty CubeList."""
+    plugin = SpatialMorphing(forecast_period=22500, cluster_number=0)
+    with pytest.raises(ValueError, match="No cluster cube found in input cubes"):
+        plugin.process(CubeList())
 
 
-def test_process_no_cluster_sources_warning():
-    """Test that missing cluster_sources generates warning."""
-    plugin = SpatialMorphing()
-    cube = make_test_cube(model_id="uk_ens")
-    # Remove cluster_sources to trigger warning
-    cube.attributes.pop("cluster_sources", None)
+def test_process_preserves_coordinates():
+    """Test that spatial and temporal coordinates are preserved."""
+    plugin = SpatialMorphing(forecast_period=22500, cluster_number=0)
+    forecast_cube = make_forecast_cube(model_id="uk_ens")
+    result = plugin.process(forecast_cube, make_cluster_cube())
+    input_coords = {coord.name() for coord in forecast_cube.coords()}
+    output_coords = {coord.name() for coord in result.coords()}
+    for coord_name in input_coords:
+        if coord_name != "realization":
+            assert coord_name in output_coords
 
-    with pytest.warns(UserWarning, match="No cluster_sources"):
-        result = plugin.process(CubeList([cube]))
 
-    assert isinstance(result, Cube)
+# ============================================================================
+# Explicit transition morphing
+# ============================================================================
 
 
-@pytest.mark.parametrize(
-    "n_realizations,n_sources",
-    [
-        (2, 1),
-        (5, 2),
-        (10, 3),
-    ],
+@patch(
+    "improver.utilities.spatial_morphing.SpatialMorphing._call_google_film_for_morphing"
 )
-def test_process_multiple_realizations(n_realizations, n_sources):
-    """Test that process handles multiple realizations correctly."""
-    plugin = SpatialMorphing()
-
-    # Create cube with multiple realizations
-    cube = make_test_cube(
-        shape=(n_realizations, 5, 5),
-        model_id="uk_ens",
-        cluster_sources={str(i): {"uk_ens": [21600]} for i in range(n_realizations)},
+def test_process_diagnoses_source_specific_realizations_for_transition(mock_morph):
+    """Test transition morphing diagnoses realization indices per source."""
+    det_cube = make_forecast_cube(
+        model_id="uk_det", n_realizations=24, base_value=100.0
+    )
+    ens_cube = make_forecast_cube(
+        model_id="uk_ens", n_realizations=24, base_value=200.0
     )
 
-    result = plugin.process(CubeList([cube]))
+    cluster_cube = set_up_variable_cube(
+        np.zeros((5, 5), dtype=np.float32),
+        name="clustering_result",
+        units="1",
+        spatial_grid="equalarea",
+    )
+    cluster_cube.attributes["primary_input_realization_to_cluster_medoid"] = json.dumps(
+        {"17": 8}
+    )
+    cluster_cube.attributes["secondary_input_realizations_to_clusters"] = json.dumps(
+        {
+            "uk_det": {"17": [{"realization": 3, "forecast_periods": [3600, 21600]}]},
+            "uk_ens": {
+                "17": [
+                    {
+                        "realization": 11,
+                        "forecast_periods": [
+                            43200,
+                            86400,
+                            129600,
+                            172800,
+                            216000,
+                            259200,
+                            302400,
+                            345600,
+                            388800,
+                            432000,
+                        ],
+                    }
+                ]
+            },
+        }
+    )
+    cluster_cube.attributes["cluster_sources"] = json.dumps(
+        {"17": {"uk_det": [3600, 21600], "uk_ens": [43200]}}
+    )
 
-    assert isinstance(result, Cube)
-    assert result.shape[0] == n_realizations  # Realizations preserved
-
-
-# ============================================================================
-# Transition window tests
-# ============================================================================
-
-
-@pytest.mark.parametrize(
-    "windows,source_pair,expected_seconds",
-    [
-        (
-            {"uk_ens|gl_ens": 360},
-            frozenset(["uk_ens", "gl_ens"]),
-            360 * 60,
-        ),
-        (
-            {"uk_ens|gl_ens": 360, "uk_det|ec_det": 120},
-            frozenset(["uk_det", "ec_det"]),
-            120 * 60,
-        ),
-    ],
-)
-def test_get_transition_window_specific_pair(windows, source_pair, expected_seconds):
-    """Test that specific source-pair window is used if configured."""
     plugin = SpatialMorphing(
-        interpolation_window_in_minutes=180,
-        interpolation_window_by_source_pair=windows,
-    )
-    window = plugin._get_transition_window_in_seconds(
-        frozenset([list(source_pair)[0]]),
-        frozenset([list(source_pair)[1]]),
-    )
-    assert window == expected_seconds
-
-
-def test_get_transition_window_default_fallback():
-    """Test that default window is used if pair not configured."""
-    plugin = SpatialMorphing(
-        interpolation_window_in_minutes=180,
-        interpolation_window_by_source_pair={"uk_ens|gl_ens": 360},
-    )
-    window = plugin._get_transition_window_in_seconds(
-        frozenset(["uk_det"]),
-        frozenset(["ec_det"]),
-    )
-    assert window == 180 * 60  # Default 180 minutes in seconds
-
-
-@pytest.mark.parametrize(
-    "default_window",
-    [60, 120, 180, 360],
-)
-def test_get_transition_window_various_defaults(default_window):
-    """Test transition window with various default values."""
-    plugin = SpatialMorphing(
-        interpolation_window_in_minutes=default_window,
-    )
-    window = plugin._get_transition_window_in_seconds(
-        frozenset(["source_a"]),
-        frozenset(["source_b"]),
-    )
-    assert window == default_window * 60
-
-
-# ============================================================================
-# Integration tests through process method
-# ============================================================================
-
-
-def test_process_end_to_end_single_source():
-    """Integration test: process with single source end-to-end."""
-    plugin = SpatialMorphing()
-
-    cube = make_test_cube(
-        data_value=42.0,
-        shape=(3, 10, 10),
-        model_id="uk_ens",
-        cluster_sources={
-            "0": {"uk_ens": [3600]},
-            "1": {"uk_ens": [3600]},
-            "2": {"uk_ens": [3600]},
-        },
+        forecast_period=21600,
+        cluster_number=17,
+        transitions=make_transitions(),
+        model_path="/apath/to/model",
     )
 
-    result = plugin.process(CubeList([cube]))
+    def _blend_stub(cube_a, cube_b, weight):
+        result = cube_a.copy()
+        result.data = (1.0 - weight) * cube_a.data + weight * cube_b.data
+        return result
 
-    assert isinstance(result, Cube)
-    assert result.shape == (3, 10, 10)
-    assert np.allclose(result.data, 42.0)
-    assert "mosg__model_configuration" not in result.attributes
+    mock_morph.side_effect = _blend_stub
 
+    result = plugin.process(det_cube, ens_cube, cluster_cube)
 
-def test_process_with_realizations_and_cluster_sources():
-    """Integration test: process with cluster_sources metadata."""
-    plugin = SpatialMorphing()
-
-    # Create cubes with cluster_sources indicating source transitions
-    cluster_sources = {
-        "0": {"uk_det": [3600], "uk_ens": [21600]},
-        "1": {"uk_ens": [3600, 21600]},
-    }
-
-    cube = make_test_cube(
-        data_value=100.0,
-        shape=(2, 8, 8),
-        model_id="uk_ens",
-        cluster_sources=cluster_sources,
+    expected_weight = 0.5
+    expected_value = (1.0 - expected_weight) * (100.0 + 3) + expected_weight * (
+        200.0 + 11
     )
-
-    result = plugin.process(CubeList([cube]))
-
-    assert isinstance(result, Cube)
+    np.testing.assert_allclose(result.data, expected_value, rtol=1e-6)

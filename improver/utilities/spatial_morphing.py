@@ -5,8 +5,7 @@
 """Plugin for spatial morphing between forecast sources using Google FILM."""
 
 import json
-from collections import defaultdict
-from typing import Any, Dict, FrozenSet, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 import numpy as np
 from iris.cube import Cube, CubeList
@@ -57,9 +56,7 @@ class SpatialMorphing(BasePlugin):
         cycletime: Optional[str] = None,
         selection_attr: Optional[str] = None,
         selection_attr_value: str = "spatial_morphing",
-        cluster_sources_attribute: str = "cluster_sources",
-        interpolation_window_by_source_pair: Optional[Dict[str, int]] = None,
-        interpolation_window_in_minutes: int = 180,
+        transitions: Optional[Dict[str, Any]] = None,
         model_path: Optional[str] = None,
         scaling: str = "minmax",
         clipping_bounds: Optional[Tuple[float, float]] = None,
@@ -94,15 +91,12 @@ class SpatialMorphing(BasePlugin):
             selection_attr_value: The value (e.g. a description of the selection
                 method) to assign to the selection_attr attribute. Default is
                 "spatial_morphing". Only used if selection_attr is provided.
-            cluster_sources_attribute: Name of the cube attribute containing
-                cluster_sources metadata. Default: "cluster_sources".
-            interpolation_window_by_source_pair: Optional dictionary mapping
-                source-pair keys to transition windows in minutes. Keys must
-                identify two source names separated by "|" or ",". Matching is
-                order-insensitive.
-            interpolation_window_in_minutes: Default transition window in minutes
-                (±window around the transition point). Used when no specific
-                source-pair window is configured. Default: 180 (3 hours).
+            transitions: Optional explicit transition dictionary defining source
+                pairs and their transition bounds. Expected form is either a
+                dictionary containing a "transitions" list, or a list of
+                transition dictionaries with keys "source_a", "source_b",
+                "start_forecast_period_minutes", and
+                "end_forecast_period_minutes".
             model_path: Path to TensorFlow Hub module for Google FILM model.
                 Required if spatial morphing between different sources is performed.
             scaling: Scaling method for FILM interpolation: "log10" or "minmax".
@@ -128,13 +122,7 @@ class SpatialMorphing(BasePlugin):
             validate_cycletime_format(self.cycletime)
         self.selection_attr = selection_attr
         self.selection_attr_value = selection_attr_value
-        self.cluster_sources_attribute = cluster_sources_attribute
-        self.interpolation_window_in_minutes = interpolation_window_in_minutes
-        self.interpolation_window_by_source_pair = (
-            self._parse_interpolation_window_by_source_pair(
-                interpolation_window_by_source_pair
-            )
-        )
+        self.transitions = self._parse_transitions(transitions)
 
         # Store Google FILM config
         self.model_path = model_path
@@ -148,6 +136,11 @@ class SpatialMorphing(BasePlugin):
         self.model_loader = model_loader
         self.transition_weights_scheme = transition_weights_scheme
 
+        if self.transition_weights_scheme not in {"linear", "smoothstep"}:
+            raise ValueError(
+                "transition_weights_scheme must be 'linear' or 'smoothstep'"
+            )
+
         # Create RealizationSelection helper for accessing cluster mapping methods
         self._selection_helper = RealizationSelection(
             forecast_period=forecast_period,
@@ -157,138 +150,113 @@ class SpatialMorphing(BasePlugin):
             selection_attr_value=selection_attr_value,
         )
 
-    @staticmethod
-    def _prepare_source_pair_key(key: str) -> FrozenSet[str]:
-        """Convert a source-pair key into an order-insensitive frozenset.
+    def _parse_transitions(
+        self, transitions: Optional[Dict[str, Any]]
+    ) -> list[dict[str, Any]]:
+        """Validate and normalise explicit transition definitions.
 
-        Args:
-            key: Source-pair key with two source names separated by "|" or ",".
-
-        Returns:
-            A frozenset containing two source names.
-
-        Raises:
-            ValueError: If the key does not define exactly two non-empty source names.
+        The input may be a dictionary with a top-level "transitions" list, a list of
+        transition dictionaries, or None.
         """
-        delimiter = "|" if "|" in key else ","
-        parts = [part.strip() for part in key.split(delimiter)]
-        if len(parts) != 2 or any(not part for part in parts):
-            raise ValueError(
-                "Source-pair key must contain exactly two source names separated "
-                f"by '|' or ','. Got: {key}"
-            )
-        source_pair = frozenset(parts)
-        if len(source_pair) != 2:
-            raise ValueError(
-                f"Source-pair key must contain two distinct source names. Got: {key}"
-            )
-        return source_pair
-
-    def _parse_interpolation_window_by_source_pair(
-        self, interpolation_window_by_source_pair: Optional[Dict[str, int]]
-    ) -> Dict[FrozenSet[str], int]:
-        """Validate and normalise source-pair windows into seconds.
-
-        Args:
-            interpolation_window_by_source_pair:
-                Optional dictionary mapping source-pair keys to window minutes.
-
-        Returns:
-            A dictionary mapping normalised source-pair keys to window seconds.
-
-        Raises:
-            ValueError: If the dictionary is invalid or contains non-positive values.
-        """
-        if interpolation_window_by_source_pair is None:
-            return {}
-        if not isinstance(interpolation_window_by_source_pair, dict):
-            raise ValueError(
-                "interpolation_window_by_source_pair must be a dictionary."
-            )
-
-        result = {}
-        for key, value in interpolation_window_by_source_pair.items():
-            if not isinstance(key, str):
-                raise ValueError(
-                    "interpolation_window_by_source_pair keys must be strings."
-                )
-            if not isinstance(value, int) or value <= 0:
-                raise ValueError(
-                    "interpolation_window_by_source_pair values must be positive "
-                    "integers in minutes."
-                )
-            result[self._prepare_source_pair_key(key)] = value * 60
-
-        return result
-
-    def _get_transition_window_in_seconds(
-        self, sources_before: FrozenSet[str], sources_after: FrozenSet[str]
-    ) -> int:
-        """Get the transition window for a source pair.
-
-        If interpolation_window_by_source_pair is configured, the window for
-        the specific source pair is returned. If not configured, the default
-        interpolation_window_in_minutes is used.
-
-        Args:
-            sources_before: Forecast sources active before the transition.
-            sources_after: Forecast sources active after the transition.
-
-        Returns:
-            Window in seconds.
-        """
-        if self.interpolation_window_by_source_pair:
-            source_pair = frozenset(sources_before | sources_after)
-            if source_pair in self.interpolation_window_by_source_pair:
-                return self.interpolation_window_by_source_pair[source_pair]
-
-        return self.interpolation_window_in_minutes * 60
-
-    def _parse_cluster_sources(self, cube: Cube) -> dict:
-        """Parse the cluster_sources dictionary from cube attributes."""
-        cluster_sources = cube.attributes.get(self.cluster_sources_attribute)
-        if cluster_sources is None:
-            return {}
-
-        if isinstance(cluster_sources, str):
-            try:
-                cluster_sources = json.loads(cluster_sources)
-            except json.JSONDecodeError as err:
-                raise ValueError(f"Failed to parse cluster sources JSON: {err}")
-
-        if not isinstance(cluster_sources, dict):
-            raise ValueError(
-                f"Cluster sources attribute must be a dictionary, got {type(cluster_sources)}"
-            )
-
-        return cluster_sources
-
-    def _identify_source_transitions(
-        self, cluster_sources: dict, realization_index: int
-    ) -> list[tuple[int, FrozenSet[str], FrozenSet[str]]]:
-        """Identify source transitions for a given realization.
-
-        Returns tuples of (period_before, sources_before, sources_after), where
-        period_before is the lead time immediately before the source-set change.
-        """
-        real_key = str(realization_index)
-        if real_key not in cluster_sources:
+        if transitions is None:
             return []
 
-        sources_dict = cluster_sources[real_key]
-        period_to_sources = defaultdict(set)
-        for source_name, periods in sources_dict.items():
-            for period in periods:
-                period_to_sources[int(period)].add(source_name)
+        if isinstance(transitions, str):
+            transitions = json.loads(transitions)
 
-        sorted_periods = sorted(period_to_sources)
-        transitions = []
-        for period_before, period_after in zip(sorted_periods[:-1], sorted_periods[1:]):
-            sources_before = frozenset(period_to_sources[period_before])
-            sources_after = frozenset(period_to_sources[period_after])
-            if sources_before != sources_after:
-                transitions.append((period_before, sources_before, sources_after))
-        return transitions
+        if isinstance(transitions, dict):
+            if "transitions" not in transitions:
+                raise ValueError(
+                    "transitions dictionary must contain a 'transitions' list"
+                )
+            transition_list = transitions["transitions"]
+        elif isinstance(transitions, list):
+            transition_list = transitions
+        else:
+            raise ValueError(
+                "transitions must be a dictionary containing a 'transitions' list or a list of transition dictionaries"
+            )
+
+        parsed_transitions: list[dict[str, Any]] = []
+        for transition in transition_list:
+            if not isinstance(transition, dict):
+                raise ValueError("Each transition must be a dictionary")
+
+            required_keys = {
+                "source_a",
+                "source_b",
+                "start_forecast_period_minutes",
+                "end_forecast_period_minutes",
+            }
+            missing = required_keys - set(transition)
+            if missing:
+                raise ValueError(
+                    "Transition definition missing required keys: "
+                    + ", ".join(sorted(missing))
+                )
+
+            source_a = str(transition["source_a"]).strip()
+            source_b = str(transition["source_b"]).strip()
+            if not source_a or not source_b:
+                raise ValueError("Transition source names must be non-empty strings")
+
+            start_minutes = transition["start_forecast_period_minutes"]
+            end_minutes = transition["end_forecast_period_minutes"]
+            if (
+                not isinstance(start_minutes, int)
+                or not isinstance(end_minutes, int)
+                or start_minutes < 0
+                or end_minutes < 0
+                or start_minutes >= end_minutes
+            ):
+                raise ValueError(
+                    "Transition start/end forecast periods must be positive integers with start < end"
+                )
+
+            parsed_transitions.append(
+                {
+                    "source_a": source_a,
+                    "source_b": source_b,
+                    "start_forecast_period_seconds": start_minutes * 60,
+                    "end_forecast_period_seconds": end_minutes * 60,
+                }
+            )
+
+        return parsed_transitions
+
+    def _find_active_transition(self, forecast_period: int) -> Optional[dict[str, Any]]:
+        """Return the unique active transition for the supplied forecast period."""
+        active_transitions = [
+            transition
+            for transition in self.transitions
+            if transition["start_forecast_period_seconds"]
+            <= forecast_period
+            <= transition["end_forecast_period_seconds"]
+        ]
+
+        if len(active_transitions) > 1:
+            raise ValueError(
+                f"Multiple transitions match forecast_period={forecast_period}; transition bounds must not overlap"
+            )
+
+        return active_transitions[0] if active_transitions else None
+
+    @staticmethod
+    def _calculate_transition_weight(
+        forecast_period: int,
+        start_forecast_period_seconds: int,
+        end_forecast_period_seconds: int,
+    ) -> float:
+        """Calculate the interpolation weight between explicit transition bounds."""
+        if forecast_period <= start_forecast_period_seconds:
+            return 0.0
+        if forecast_period >= end_forecast_period_seconds:
+            return 1.0
+
+        weight = (forecast_period - start_forecast_period_seconds) / (
+            end_forecast_period_seconds - start_forecast_period_seconds
+        )
+        return float(np.clip(weight, 0.0, 1.0))
 
     def _call_google_film_for_morphing(
         self,
@@ -343,7 +311,7 @@ class SpatialMorphing(BasePlugin):
     def _select_single_source_cube(
         self,
         source_name: str,
-        realization_index: int,
+        realization_index: Optional[int],
         forecast_cubes: CubeList,
     ) -> Optional[Cube]:
         """Select a single source cube for a given realization index.
@@ -356,47 +324,20 @@ class SpatialMorphing(BasePlugin):
         Returns:
             Selected cube, or None if source/realization cannot be extracted.
         """
+        if realization_index is None:
+            return None
+
         try:
             selected = self._selection_helper.select_realizations_for_clusters(
                 {self.cluster_number: (source_name, int(realization_index))},
                 forecast_cubes,
             )
-        except ValueError:
+        except (AttributeError, TypeError, ValueError):
             return None
 
         if not selected:
             return None
         return selected[0]
-
-    @staticmethod
-    def _identify_source_transitions_with_bounds(
-        cluster_sources: dict, realization_index: int
-    ) -> list[tuple[int, int, FrozenSet[str], FrozenSet[str]]]:
-        """Identify source transitions including both sides of the boundary.
-
-        Returns tuples of
-        (period_before, period_after, sources_before, sources_after).
-        """
-        real_key = str(realization_index)
-        if real_key not in cluster_sources:
-            return []
-
-        sources_dict = cluster_sources[real_key]
-        period_to_sources = defaultdict(set)
-        for source_name, periods in sources_dict.items():
-            for period in periods:
-                period_to_sources[int(period)].add(source_name)
-
-        sorted_periods = sorted(period_to_sources)
-        transitions = []
-        for period_before, period_after in zip(sorted_periods[:-1], sorted_periods[1:]):
-            sources_before = frozenset(period_to_sources[period_before])
-            sources_after = frozenset(period_to_sources[period_after])
-            if sources_before != sources_after:
-                transitions.append(
-                    (period_before, period_after, sources_before, sources_after)
-                )
-        return transitions
 
     def _diagnose_realization_for_source(
         self,
@@ -484,23 +425,6 @@ class SpatialMorphing(BasePlugin):
         forecast_cubes, cluster_cube = (
             self._selection_helper.split_cubes_forecast_and_cluster(cubes)
         )
-        # Hard code for testing.
-        cluster_sources = json.loads(
-            cluster_cube.attributes.get(self.cluster_sources_attribute)
-        )
-        cluster_sources["17"]["uk_ens"] = [
-            43200,
-            86400,
-            129600,
-            172800,
-            216000,
-            259200,
-            302400,
-            345600,
-            388800,
-            432000,
-        ]
-        cluster_cube.attributes["cluster_sources"] = json.dumps(cluster_sources)
 
         # Step 2: Validate all forecast cubes have same validity time
         self._selection_helper.validate_common_validity_time(forecast_cubes)
@@ -556,57 +480,23 @@ class SpatialMorphing(BasePlugin):
             )
         result_cube = selected_cubes[0]
 
-        # Step 8: Identify Source A -> Source B transitions for this cluster from
-        # cluster_sources, using the same transition semantics as
-        # ForecastTrajectoryGapFiller (_identify_source_transitions).
-        cluster_sources = self._parse_cluster_sources(cluster_cube)
-
-        transitions = self._identify_source_transitions_with_bounds(
-            cluster_sources,
-            self.cluster_number,
-        )
-
-        # Find the nearest transition window that contains this forecast_period.
-        active_transition = None
-        smallest_distance = None
-        for trans_period, period_after, sources_before, sources_after in transitions:
-            if len(sources_before) != 1 or len(sources_after) != 1:
-                continue
-            source_before = next(iter(sources_before))
-            source_after = next(iter(sources_after))
-            if source_before == source_after:
-                continue
-
-            window_in_seconds = self._get_transition_window_in_seconds(
-                sources_before, sources_after
-            )
-            lower_bound = trans_period - window_in_seconds
-            upper_bound = trans_period + window_in_seconds
-            if lower_bound <= self.forecast_period <= upper_bound:
-                distance = abs(self.forecast_period - trans_period)
-                if smallest_distance is None or distance < smallest_distance:
-                    smallest_distance = distance
-                    active_transition = (
-                        trans_period,
-                        period_after,
-                        source_before,
-                        source_after,
-                        window_in_seconds,
-                    )
+        # Step 8: Apply explicit transition definitions.
+        active_transition = self._find_active_transition(self.forecast_period)
 
         if active_transition is not None:
-            (
-                trans_period,
-                period_after,
-                source_a,
-                source_b,
-                window_in_seconds,
-            ) = active_transition
+            start_forecast_period_seconds = active_transition[
+                "start_forecast_period_seconds"
+            ]
+            end_forecast_period_seconds = active_transition[
+                "end_forecast_period_seconds"
+            ]
+            source_a = active_transition["source_a"]
+            source_b = active_transition["source_b"]
 
             source_a_realization = self._diagnose_realization_for_source(
                 source_name=source_a,
                 cluster_number=self.cluster_number,
-                target_period=trans_period,
+                target_period=start_forecast_period_seconds,
                 secondary_map=secondary_map,
                 primary_map=primary_map,
                 cluster_cube=cluster_cube,
@@ -615,13 +505,12 @@ class SpatialMorphing(BasePlugin):
             source_b_realization = self._diagnose_realization_for_source(
                 source_name=source_b,
                 cluster_number=self.cluster_number,
-                target_period=period_after,
+                target_period=end_forecast_period_seconds,
                 secondary_map=secondary_map,
                 primary_map=primary_map,
                 cluster_cube=cluster_cube,
                 full_cluster_to_selection=full_cluster_to_selection,
             )
-
             cube_a = self._select_single_source_cube(
                 source_a,
                 source_a_realization,
@@ -634,18 +523,11 @@ class SpatialMorphing(BasePlugin):
             )
 
             if cube_a is not None and cube_b is not None:
-                # ForecastTrajectoryGapFiller-style window semantics: +/- window.
-                lower_bound = trans_period - window_in_seconds
-                upper_bound = trans_period + window_in_seconds
-                if self.forecast_period <= lower_bound:
-                    weight = 0.0
-                elif self.forecast_period >= upper_bound:
-                    weight = 1.0
-                else:
-                    weight = (self.forecast_period - lower_bound) / (
-                        upper_bound - lower_bound
-                    )
-                    weight = float(np.clip(weight, 0.0, 1.0))
+                weight = self._calculate_transition_weight(
+                    self.forecast_period,
+                    start_forecast_period_seconds,
+                    end_forecast_period_seconds,
+                )
 
                 # Apply smoothstep to weight for smoother transition
                 if self.transition_weights_scheme == "smoothstep":
@@ -661,6 +543,10 @@ class SpatialMorphing(BasePlugin):
                         cube_b,
                         weight,
                     )
+            elif cube_a is not None:
+                result_cube = cube_a
+            elif cube_b is not None:
+                result_cube = cube_b
 
         # Remove blend time and sanitise forecast_reference_time attributes to
         # support merging later.
