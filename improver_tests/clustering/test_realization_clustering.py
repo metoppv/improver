@@ -3297,7 +3297,10 @@ def test_clusterandmatch_secondary_scalar_realization_coord():
     ["partial_deterministic", "full_ensemble"],
 )
 def test_clusterandmatch_secondary_with_deprecation_message_merges(secondary_kind):
-    """Test merge succeeds when secondary metadata includes deprecation message.
+    """Test that the merging of cubes from different forecast sources succeeds,
+    even if the some of the forecast sources have already been blended, and
+    therefore additional metadata is present e.g. a blend_time coordinate and a
+    deprecation message on the forecast_reference_time coordinate.
 
     This exercises both matching routes:
     - partial_deterministic: secondary has no realization dimension (< n_clusters)
@@ -3382,6 +3385,9 @@ def test_clusterandmatch_secondary_with_deprecation_message_merges(secondary_kin
 
     result = plugin.process(cubes)
 
+    # Check that no blend_time coordinate is present on the result and that
+    # forecast_reference_time attributes are cleared. This metadata can sometimes
+    # exist on the inputs but can prevent merging if not removed.
     assert not result.coords("blend_time")
     assert result.coord("forecast_reference_time").attributes == {}
 
