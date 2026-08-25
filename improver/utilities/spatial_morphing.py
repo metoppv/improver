@@ -17,7 +17,10 @@ from improver.utilities.temporal import (
     reset_forecast_reference_time_and_period,
     validate_cycletime_format,
 )
-from improver.utilities.temporal_interpolation import GoogleFilmInterpolation
+from improver.utilities.temporal_interpolation import (
+    GoogleFilmInterpolation,
+    _as_tuple_if_list,
+)
 
 
 class SpatialMorphing(BasePlugin):
@@ -132,7 +135,7 @@ class SpatialMorphing(BasePlugin):
         # Store Google FILM config
         self.model_path = model_path
         self.scaling = scaling
-        self.clipping_bounds = clipping_bounds
+        self.clipping_bounds = _as_tuple_if_list(clipping_bounds)
         self.clip_in_scaled_space = clip_in_scaled_space
         self.clip_to_physical_bounds = clip_to_physical_bounds
         self.max_batch = max_batch

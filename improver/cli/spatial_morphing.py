@@ -111,10 +111,6 @@ def process(
     """
     from improver.utilities.spatial_morphing import SpatialMorphing
 
-    # Handle clipping_bounds: if it's a dict with min/max, convert to tuple
-    if isinstance(clipping_bounds, dict):
-        clipping_bounds = (clipping_bounds.get("min"), clipping_bounds.get("max"))
-
     morphing = SpatialMorphing(
         forecast_period=forecast_period,
         cluster_number=cluster_number,
