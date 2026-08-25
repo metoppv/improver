@@ -30,6 +30,7 @@ def process(
     max_batch: int = 1,
     parallel_backend: str = None,
     n_workers: int = 1,
+    transition_weights_scheme: str = "linear",
 ):
     """Apply spatial morphing between forecast sources at a fixed validity time.
 
@@ -103,6 +104,9 @@ def process(
             Default: None.
         n_workers (int):
             Number of workers for parallel processing. Default: 1.
+        transition_weights_scheme (str):
+            Scheme for computing transition weights: "linear" or "smoothstep".
+            Default: "linear".
 
     Returns:
         Cube:
@@ -129,5 +133,6 @@ def process(
         max_batch=max_batch,
         parallel_backend=parallel_backend,
         n_workers=n_workers,
+        transition_weights_scheme=transition_weights_scheme,
     )
     return morphing.process(*cubes)

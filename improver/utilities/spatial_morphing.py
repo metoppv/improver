@@ -68,6 +68,7 @@ class SpatialMorphing(BasePlugin):
         parallel_backend: Optional[str] = None,
         n_workers: Optional[int] = 1,
         model_loader: Any = None,
+        transition_weights_scheme: str = "linear",
     ) -> None:
         """Initialise the SourceSpatialMorphing plugin.
 
@@ -115,6 +116,8 @@ class SpatialMorphing(BasePlugin):
                 Default: None.
             n_workers: Number of workers for parallel processing. Default: 1.
             model_loader: Optional callable to load the TensorFlow model.
+            transition_weights_scheme: Scheme for computing transition weights:
+                "linear" or "smoothstep". Default: "linear".
         """
         self.forecast_period = forecast_period
         self.cluster_number = cluster_number
@@ -142,6 +145,7 @@ class SpatialMorphing(BasePlugin):
         self.parallel_backend = parallel_backend
         self.n_workers = n_workers
         self.model_loader = model_loader
+        self.transition_weights_scheme = transition_weights_scheme
 
         # Create RealizationSelection helper for accessing cluster mapping methods
         self._selection_helper = RealizationSelection(
@@ -640,7 +644,11 @@ class SpatialMorphing(BasePlugin):
                     weight = (self.forecast_period - lower_bound) / (
                         upper_bound - lower_bound
                     )
-                weight = float(np.clip(weight, 0.0, 1.0))
+                    weight = float(np.clip(weight, 0.0, 1.0))
+
+                # Apply smoothstep to weight for smoother transition
+                if self.transition_weights_scheme == "smoothstep":
+                    weight = weight * weight * (3.0 - 2.0 * weight)
 
                 if weight <= 0.0:
                     result_cube = cube_a
