@@ -177,6 +177,11 @@ class StochasticNoise(BasePlugin):
             allow_seeded_parallel_processing is True, a warning is raised to indicate
             that using multiple workers with a fixed seed may introduce run-to-run
             variation because pySTEPS uses global RNG seeding.
+            Warning if both apply_noise_to_positive_regions and
+            apply_noise_to_positive_regions_by_source are specified, indicating that
+            apply_noise_to_positive_regions takes precedence and wet-region noise will
+            be applied to all sources.
+
 
         Example dictionaries for initializing and generating SSFT filter::
 
@@ -206,10 +211,14 @@ class StochasticNoise(BasePlugin):
             apply_noise_to_positive_regions
             and apply_noise_to_positive_regions_by_source is not None
         ):
-            raise ValueError(
-                "Cannot specify both apply_noise_to_positive_regions=True and "
-                "apply_noise_to_positive_regions_by_source. Use one or the other."
+            warnings.warn(
+                "If both apply_noise_to_positive_regions=True and "
+                "apply_noise_to_positive_regions_by_source are specified, "
+                "apply_noise_to_positive_regions takes precedence and "
+                "wet-region noise will be applied to all sources. ",
+                UserWarning,
             )
+            apply_noise_to_positive_regions_by_source = None
 
         self.apply_noise_to_positive_regions_by_source = (
             apply_noise_to_positive_regions_by_source
