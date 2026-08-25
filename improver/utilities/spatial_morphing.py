@@ -649,9 +649,7 @@ class SpatialMorphing(BasePlugin):
                         cube_b,
                         weight,
                     )
-        import pdb
 
-        pdb.set_trace()
         # Ensure the output realization coordinate matches the requested cluster.
         if result_cube.coords("realization"):
             result_cube.coord("realization").points = [self.cluster_number]
