@@ -12,6 +12,7 @@ import numpy as np
 from iris.cube import Cube, CubeList
 
 from improver import BasePlugin
+from improver.blending.utilities import remove_blend_time, remove_deprecation_warnings
 from improver.clustering.realization_clustering import RealizationSelection
 from improver.utilities.temporal import (
     reset_forecast_reference_time_and_period,
@@ -660,6 +661,11 @@ class SpatialMorphing(BasePlugin):
                         cube_b,
                         weight,
                     )
+
+        # Remove blend time and sanitise forecast_reference_time attributes to
+        # support merging later.
+        result_cube = remove_blend_time(result_cube)
+        result_cube = remove_deprecation_warnings(result_cube)
 
         # Ensure the output realization coordinate matches the requested cluster.
         if result_cube.coords("realization"):
