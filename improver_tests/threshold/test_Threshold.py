@@ -266,7 +266,9 @@ def test_threshold_metadata(
         expected_vicinity = DimCoord(
             vicinity, long_name="radius_of_vicinity", units="m"
         )
+        expected_cell_method = CellMethod(method="maximum", coords="area")
         assert result.coord("radius_of_vicinity") == expected_vicinity
+        assert result.cell_methods[0] == expected_cell_method
 
 
 def test_vicinity_as_empty_list(default_cube):
