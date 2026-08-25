@@ -60,7 +60,7 @@ def forecast_period_coord(
         if isinstance(cube.coord("forecast_period"), DimCoord):
             create_dim_coord = True
 
-    if cube.coords("forecast_period") and not force_lead_time_calculation:
+    if forecast_period_coords and not force_lead_time_calculation:
         result_coord = cube.coord("forecast_period").copy()
 
     elif cube.coords("time") and reference_coord:
