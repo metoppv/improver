@@ -24,12 +24,15 @@ from improver.blending.utilities import (
     find_blend_dim_coord,
     get_coords_to_remove,
     record_run_coord_to_attr,
+    remove_blend_time,
+    remove_deprecation_warnings,
     store_record_run_as_coord,
     update_blended_metadata,
     update_record_run_weights,
 )
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.metadata.constants.time_types import DT_FORMAT
+from improver.metadata.forecast_times import add_blend_time
 from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
 
 
@@ -208,6 +211,32 @@ def test_get_coords_to_remove_noop(cycle_cube):
     """Test time coordinates are not removed"""
     result = get_coords_to_remove(cycle_cube, "forecast_reference_time")
     assert not result
+
+
+def test_remove_blend_time(model_cube):
+    """Test blend-time coordinate removal."""
+    cube = model_cube.copy()
+    add_blend_time(cube, "20171110T0200Z")
+
+    remove_blend_time(cube)
+
+    assert not cube.coords("blend_time")
+
+
+def test_remove_deprecation_warnings(model_cube):
+    """Test removal of deprecation warnings from forecast time coordinates."""
+    cube = model_cube.copy()
+    cube.coord("forecast_period").attributes["deprecation_message"] = (
+        "forecast_period will be removed in future and should not be used"
+    )
+    cube.coord("forecast_reference_time").attributes["deprecation_message"] = (
+        "forecast_reference_time will be removed in future and should not be used"
+    )
+
+    remove_deprecation_warnings(cube)
+
+    assert "deprecation_message" not in cube.coord("forecast_period").attributes
+    assert "deprecation_message" not in cube.coord("forecast_reference_time").attributes
 
 
 def test_get_coords_to_remove_scalar(model_cube, model_cube_with_blend_record):
