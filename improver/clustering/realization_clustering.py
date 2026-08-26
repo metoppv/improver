@@ -1084,7 +1084,10 @@ class RealizationClusterAndMatch(BasePlugin):
     def _build_model_precedence(self) -> dict[str, int]:
         """Build precedence ranks for all models in the hierarchy.
 
-        Lower rank means higher precedence.
+        Lower rank means higher precedence, for example, a precedence mapping of
+        {'nowcast': 0, 'uk_det': 1, 'uk_ens': 2, 'gl_ens': 3, 'ecgl_ens': 4}
+        would indicate that 'nowcast' has the highest precedence and
+        'ecgl_ens' has the lowest precedence.
 
         Returns:
             Mapping of model name to precedence rank.
@@ -1102,7 +1105,9 @@ class RealizationClusterAndMatch(BasePlugin):
         """Get the current source model for a cluster at a forecast period.
 
         Args:
-            cluster_sources: Tracking structure keyed by cluster then model.
+            cluster_sources: Dictionary tracking which input was used for each
+                cluster at each forecast period. Modified in-place.
+                Format: {cluster_idx: {model_name: [fp1, fp2, ...]}}
             cluster_idx: Cluster index to inspect.
             fp: Forecast period in seconds.
 
@@ -1134,12 +1139,25 @@ class RealizationClusterAndMatch(BasePlugin):
             realization_indices: Candidate realization indices paired to clusters.
             candidate_name: Name of model proposing the updates.
             fp: Forecast period in seconds.
-            cluster_sources: Current source tracking.
+            cluster_sources: Dictionary tracking which input was used for each
+                cluster at each forecast period. Modified in-place.
+                Format: {cluster_idx: {model_name: [fp1, fp2, ...]}}
             model_precedence: Model precedence mapping, lower is higher priority.
+                For example, a precedence mapping of
+                {'nowcast': 0, 'uk_det': 1, 'uk_ens': 2, 'gl_ens': 3, 'ecgl_ens': 4}
+                would indicate that 'nowcast' has the highest precedence and 'ecgl_ens'
+                has the lowest precedence.
 
         Returns:
             Filtered (cluster_indices, realization_indices) that are allowed to
-            update.
+            update. For example, with a precedence mapping of
+            {'nowcast': 0, 'uk_det': 1, 'uk_ens': 2, 'gl_ens': 3, 'ecgl_ens': 4}
+            and a candidate name of "uk_det", any clusters currently represented by
+            "nowcast" at the same forecast period would not be allowed to update. For
+            example, if cluster_indices = [0, 1, 2] and realization_indices = [3, 4, 5],
+            and cluster 1 is currently provided by "nowcast", the returned values
+            would be ([0, 2], [3, 5]), indicating that only clusters 0 and 2 are
+            allowed to update with realizations 3 and 5, respectively.
         """
         allowed_cluster_indices = []
         allowed_realization_indices = []
@@ -1357,7 +1375,10 @@ class RealizationClusterAndMatch(BasePlugin):
                 Format: {secondary_input_name:
                 {forecast_period: {cluster_index: [realization_indices]}}}
             model_precedence: Model precedence mapping, lower rank means higher
-                precedence.
+                precedence. For example, a precedence mapping of
+                {'nowcast': 0, 'uk_det': 1, 'uk_ens': 2, 'gl_ens': 3, 'ecgl_ens': 4}
+                would indicate that 'nowcast' has the highest precedence and
+                'ecgl_ens' has the lowest precedence.
         """
         # Process in reverse order (lowest precedence first)
         for candidate_name, forecast_periods in reversed(partial_realization_inputs):
