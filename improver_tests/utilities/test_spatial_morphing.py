@@ -217,6 +217,43 @@ def test_find_active_transition_returns_matching_entry():
     }
 
 
+def test_find_active_transition_uses_selected_source_to_disambiguate_overlaps():
+    """Test overlapping transition windows are resolved by source context."""
+    plugin = SpatialMorphing(
+        forecast_period=21600,
+        cluster_number=17,
+        transitions={
+            "transitions": [
+                {
+                    "source_a": "nc_det uk_det",
+                    "source_b": "uk_det",
+                    "start_forecast_period_minutes": 120,
+                    "end_forecast_period_minutes": 240,
+                },
+                {
+                    "source_a": "nc_det uk_det",
+                    "source_b": "uk_ens",
+                    "start_forecast_period_minutes": 120,
+                    "end_forecast_period_minutes": 240,
+                },
+            ]
+        },
+    )
+
+    assert plugin._find_active_transition(10800, "uk_det") == {
+        "source_a": "nc_det uk_det",
+        "source_b": "uk_det",
+        "start_forecast_period_seconds": 7200,
+        "end_forecast_period_seconds": 14400,
+    }
+    assert plugin._find_active_transition(10800, "uk_ens") == {
+        "source_a": "nc_det uk_det",
+        "source_b": "uk_ens",
+        "start_forecast_period_seconds": 7200,
+        "end_forecast_period_seconds": 14400,
+    }
+
+
 @pytest.mark.parametrize(
     "forecast_period,expected_weight",
     [

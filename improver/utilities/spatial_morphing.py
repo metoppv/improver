@@ -224,8 +224,67 @@ class SpatialMorphing(BasePlugin):
 
         return parsed_transitions
 
-    def _find_active_transition(self, forecast_period: int) -> Optional[dict[str, Any]]:
-        """Return the unique active transition for the supplied forecast period."""
+    def _find_active_transition_for_source(
+        self,
+        source_tag: str,
+        selected_source_name,
+        forecast_period,
+        active_transitions: list[dict[str, Any]],
+    ) -> Optional[dict[str, Any]]:
+        """Return the transition that matches the selected source name.
+
+        Args:
+            source_tag: Either "source_a" or "source_b" to indicate which source
+                to match against.
+            selected_source_name: The name of the source to match.
+            forecast_period: The forecast period (in seconds) to check for active
+                transitions.
+            active_transitions: List of transitions that are active at the given
+                forecast period.
+
+        Returns:
+            The matching transition dictionary if found, otherwise None.
+        Raises:
+            ValueError: If multiple transitions match the selected source name.
+        """
+        source_matches = [
+            transition
+            for transition in active_transitions
+            if transition[source_tag] == selected_source_name
+        ]
+        if len(source_matches) == 1:
+            return source_matches[0]
+        if len(source_matches) > 1:
+            raise ValueError(
+                "Multiple transitions match forecast_period="
+                f"{forecast_period} and {source_tag}={selected_source_name!r}"
+            )
+
+    def _find_active_transition(
+        self,
+        forecast_period: int,
+        selected_source_name: Optional[str] = None,
+    ) -> Optional[dict[str, Any]]:
+        """Return the active transition for the supplied forecast period and source.
+
+        If multiple transitions are active at the same forecast period, the selected
+        source name is used to choose between them. Matching prefers ``source_b`` and
+        then falls back to ``source_a``
+
+        Args:
+            forecast_period: The forecast period (in seconds) to check for active
+                transitions.
+            selected_source_name: The name of the source to match, if multiple
+                transitions are active.
+
+        Returns:
+            The active transition dictionary if found, otherwise None.
+
+        Raises:
+            ValueError: If multiple transitions match the forecast period and
+                selected_source_name is not provided, or if no matching transition
+                is found.
+        """
         active_transitions = [
             transition
             for transition in self.transitions
@@ -233,13 +292,28 @@ class SpatialMorphing(BasePlugin):
             <= forecast_period
             <= transition["end_forecast_period_seconds"]
         ]
+        if len(active_transitions) <= 1:
+            return active_transitions[0] if active_transitions else None
 
-        if len(active_transitions) > 1:
+        if selected_source_name is None:
             raise ValueError(
-                f"Multiple transitions match forecast_period={forecast_period}; transition bounds must not overlap"
+                "Multiple transitions match forecast_period="
+                f"{forecast_period}; selected_source_name is required to choose "
+                "between overlapping transition definitions"
             )
 
-        return active_transitions[0] if active_transitions else None
+        transition = self._find_active_transition_for_source(
+            "source_b", selected_source_name, forecast_period, active_transitions
+        ) or self._find_active_transition_for_source(
+            "source_a", selected_source_name, forecast_period, active_transitions
+        )
+        if transition:
+            return transition
+
+        raise ValueError(
+            "No transition matches forecast_period="
+            f"{forecast_period} for selected source {selected_source_name!r}"
+        )
 
     @staticmethod
     def _calculate_transition_weight(
@@ -481,7 +555,11 @@ class SpatialMorphing(BasePlugin):
         result_cube = selected_cubes[0]
 
         # Step 8: Apply explicit transition definitions.
-        active_transition = self._find_active_transition(self.forecast_period)
+        selected_source_name = result_cube.attributes.get(self.model_id_attr)
+        active_transition = self._find_active_transition(
+            self.forecast_period,
+            selected_source_name=selected_source_name,
+        )
 
         if active_transition is not None:
             start_forecast_period_seconds = active_transition[
