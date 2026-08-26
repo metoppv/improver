@@ -25,6 +25,8 @@ def process(
     clipping_bounds: cli.comma_separated_list = None,
     clip_in_scaled_space: bool = False,
     clip_to_physical_bounds: bool = False,
+    apply_active_fraction: bool = True,
+    active_threshold: float = 0.0,
     max_batch: int = 1,
     parallel_backend: str = None,
     n_workers: int = 1,
@@ -86,6 +88,11 @@ def process(
         clip_to_physical_bounds (bool):
             If True, clipping applied after reverse scaling.
             Default: False.
+        apply_active_fraction (bool):
+            If True, adjust the morphed field so the fraction of active pixels
+            matches the source-weighted active-pixel fraction. Default: True.
+        active_threshold (float):
+            Threshold defining an active pixel. Default: 0.0.
         max_batch (int):
             Maximum batch size for FILM inference. Default: 1.
         parallel_backend (str):
@@ -117,6 +124,8 @@ def process(
         clipping_bounds=clipping_bounds,
         clip_in_scaled_space=clip_in_scaled_space,
         clip_to_physical_bounds=clip_to_physical_bounds,
+        apply_active_fraction=apply_active_fraction,
+        active_threshold=active_threshold,
         max_batch=max_batch,
         parallel_backend=parallel_backend,
         n_workers=n_workers,

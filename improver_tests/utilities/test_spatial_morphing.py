@@ -140,6 +140,8 @@ def test_init_with_optional_parameters():
     assert plugin.cycletime == "20240203T0000Z"
     assert plugin.selection_attr == "realization_selection_method"
     assert plugin.selection_attr_value == "cluster_medoid"
+    assert plugin.apply_active_fraction is True
+    assert plugin.active_threshold == 0.0
     assert plugin.transitions == [
         {
             "source_a": "uk_det",
@@ -267,6 +269,25 @@ def test_calculate_transition_weight(forecast_period, expected_weight):
     """Test weight calculation from explicit start/end transition bounds."""
     weight = SpatialMorphing._calculate_transition_weight(forecast_period, 18000, 25200)
     assert np.isclose(weight, expected_weight)
+
+
+def test_match_active_fraction_respects_threshold():
+    """Test active-fraction matching uses the configured threshold."""
+    film_data = np.array([[0.1, 0.2], [0.8, 0.9]], dtype=np.float32)
+    source_a = np.array([[0.0, 0.0], [1.0, 1.0]], dtype=np.float32)
+    source_b = np.array([[0.0, 1.0], [1.0, 1.0]], dtype=np.float32)
+
+    result = SpatialMorphing.match_active_fraction(
+        film_data,
+        source_a,
+        source_b,
+        weight=0.5,
+        active_threshold=0.5,
+    )
+
+    np.testing.assert_array_equal(
+        result, np.array([[0.0, 0.0], [0.8, 0.9]], dtype=np.float32)
+    )
 
 
 # ============================================================================

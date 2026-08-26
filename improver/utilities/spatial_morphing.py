@@ -62,6 +62,8 @@ class SpatialMorphing(BasePlugin):
         clipping_bounds: Optional[Tuple[float, float]] = None,
         clip_in_scaled_space: bool = True,
         clip_to_physical_bounds: bool = False,
+        apply_active_fraction: bool = True,
+        active_threshold: float = 0.0,
         max_batch: Optional[int] = 1,
         parallel_backend: Optional[str] = None,
         n_workers: Optional[int] = 1,
@@ -106,6 +108,10 @@ class SpatialMorphing(BasePlugin):
                 Default: True.
             clip_to_physical_bounds: If True, clipping applied after reverse scaling.
                 Default: False.
+            apply_active_fraction: If True, adjust the morphed field so the fraction
+                of active pixels matches the source-weighted active-pixel fraction.
+                Default: True.
+            active_threshold: Threshold defining an active pixel. Default: 0.0.
             max_batch: Maximum batch size for FILM inference. Default: 1.
             parallel_backend: Parallelization backend ("loky") or None for serial.
                 Default: None.
@@ -130,6 +136,8 @@ class SpatialMorphing(BasePlugin):
         self.clipping_bounds = _as_tuple_if_list(clipping_bounds)
         self.clip_in_scaled_space = clip_in_scaled_space
         self.clip_to_physical_bounds = clip_to_physical_bounds
+        self.apply_active_fraction = apply_active_fraction
+        self.active_threshold = active_threshold
         self.max_batch = max_batch
         self.parallel_backend = parallel_backend
         self.n_workers = n_workers
@@ -470,6 +478,58 @@ class SpatialMorphing(BasePlugin):
 
         return None
 
+    @staticmethod
+    def match_active_fraction(
+        film_data: np.ndarray,
+        source_a: np.ndarray,
+        source_b: np.ndarray,
+        weight: float,
+        active_threshold: float = 0.0,
+    ) -> np.ndarray:
+        """
+        Adjust FILM output so that the fraction of active pixels matches a
+        weighted combination of the source active-pixel fractions.
+
+        Args:
+            film_data: Output from Google FILM.
+            source_a: Source A field.
+            source_b: Source B field.
+            weight: Morphing weight (0=source A, 1=source B).
+            active_threshold: Threshold defining an active pixel.
+
+        Returns:
+            Adjusted FILM field.
+        """
+        # Active fractions of the input fields
+        active_fraction_a = np.mean(source_a > active_threshold)
+        active_fraction_b = np.mean(source_b > active_threshold)
+
+        # Target active fraction
+        target_active_fraction = (
+            1.0 - weight
+        ) * active_fraction_a + weight * active_fraction_b
+
+        # Number of active pixels desired
+        n_pixels = film_data.size
+        n_active_target = round(target_active_fraction * n_pixels)
+
+        # Degenerate cases
+        if n_active_target <= 0:
+            return np.zeros_like(film_data)
+
+        if n_active_target >= n_pixels:
+            return film_data.copy()
+
+        # Find threshold that retains exactly the desired number
+        threshold = np.partition(
+            film_data.ravel(),
+            n_pixels - n_active_target,
+        )[n_pixels - n_active_target]
+
+        result = film_data.copy()
+        result[result < threshold] = 0.0
+        return result
+
     def process(self, *cubes: Any) -> Cube:
         """Select realizations from forecast sources and apply spatial morphing.
 
@@ -625,6 +685,15 @@ class SpatialMorphing(BasePlugin):
                 result_cube = cube_a
             elif cube_b is not None:
                 result_cube = cube_b
+
+            if self.apply_active_fraction and cube_a is not None and cube_b is not None:
+                result_cube.data = self.match_active_fraction(
+                    result_cube.data,
+                    cube_a.data,
+                    cube_b.data,
+                    weight=weight,
+                    active_threshold=self.active_threshold,
+                )
 
         # Remove blend time and sanitise forecast_reference_time attributes to
         # support merging later.
