@@ -1445,7 +1445,14 @@ class ForecastTrajectoryGapFiller(BasePlugin):
         """Identify periods to regenerate based on cluster source transitions.
 
         Args:
-            cubelist: List of input cubes.
+            cubelist: List of input cubes. Only the first cube is used to read the
+            cluster-source metadata and the realization coordinate values. This is
+            sufficient because the source-transition logic is performed per
+            realization, and the realization index to inspect is taken from that
+            cube's realization metadata rather than from the cubelist length. In
+            the normal use case, each call to this method is made for a
+            single-realization input cube, so the first cube is effectively the
+            realization being evaluated.
 
         Returns:
             List of tuples (transition_period, expected_t0, expected_t1) where

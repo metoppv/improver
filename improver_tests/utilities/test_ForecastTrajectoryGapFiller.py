@@ -576,7 +576,7 @@ def test_process_triggers_source_transitions(input_hours, cluster_sources, expec
     )
 
 
-def test_identify_periods_to_regenerate_non_zero_realization_index():
+def test_identify_periods_to_regenerate_none_identified():
     """Test that no regeneration is triggered when the input cube's realization has
     no source transition, even if another realization in cluster_sources does.
 
@@ -605,6 +605,32 @@ def test_identify_periods_to_regenerate_non_zero_realization_index():
     periods_to_regenerate = plugin._identify_periods_to_regenerate(cubelist)
     assert periods_to_regenerate == [], (
         "Expected no regeneration periods for a realization with no source "
+        f"transition, but got: {periods_to_regenerate}"
+    )
+
+
+def test_identify_periods_to_regenerate_one_identified():
+    """Test that regeneration is triggered when the input cube's realization has
+    a source transition, even if another realization in cluster_sources does not."""
+    # Realization 0 has a UKV->MOGREPS-UK transition; realization 2 does not.
+    cluster_sources = {
+        "0": {"uk_ens": [7200, 10800, 14400, 18000]},
+        "2": {"uk_det": [7200, 10800], "uk_ens": [14400, 18000]},
+    }
+    # Build a cubelist for realization 2 only (no transition expected).
+    cubelist = setup_cubes_with_gaps(hours=[2, 3, 4, 5], realizations=[2])
+    for cube in cubelist:
+        cube.attributes["cluster_sources"] = json.dumps(cluster_sources)
+
+    plugin = ForecastTrajectoryGapFiller(
+        interval_in_minutes=60,
+        cluster_sources_attribute="cluster_sources",
+        interpolation_window_in_minutes=60,
+    )
+
+    periods_to_regenerate = plugin._identify_periods_to_regenerate(cubelist)
+    assert periods_to_regenerate == [(10800, 7200, 14400)], (
+        "Expected regeneration periods for a realization with a source "
         f"transition, but got: {periods_to_regenerate}"
     )
 
