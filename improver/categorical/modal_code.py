@@ -22,7 +22,7 @@ from improver.blending.utilities import (
 from improver.constants import HOURS_IN_DAY
 from improver.utilities.cube_manipulation import MergeCubes
 
-from ..metadata.forecast_times import forecast_period_coord
+from ..metadata.forecast_times import forecast_period_coord, unify_cycletime
 from .utilities import day_night_map, dry_map
 
 
@@ -80,6 +80,17 @@ class BaseModalCategory(BasePlugin):
             store_record_run_as_coord(
                 cubes, record_run_attr, model_id_attr, unify_record_run_attr=True
             )
+
+        # Unify forecast_reference_times and blend_times to the latest available time.
+        # This removes any duplicates for merging and concatenating the cubes.
+        latest_blend_time = max(
+            [c.coord("forecast_reference_time").cell(0).point for c in cubes]
+        )
+        cubes = unify_cycletime(
+            cubes,
+            latest_blend_time,
+            target_coords=["forecast_reference_time", "blend_time"],
+        )
         return MergeCubes()(cubes)
 
     def _prepare_result_cube(
