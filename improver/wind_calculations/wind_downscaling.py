@@ -23,7 +23,6 @@ class WindDownscaling(BasePlugin):
         model_orog_cube: Cube,
         model_orog_stddev_cube: Cube,
         model_silhouette_roughness_cube: Cube,
-        landmask_cube: Cube,
     ) -> None:
         """Initialise plugin with ancillary cubes required for downscaling.
 
@@ -39,15 +38,11 @@ class WindDownscaling(BasePlugin):
 
             model_silhouette_roughness_cube:
                 Sub-grid silhouette roughness cube.
-
-            landmask_cube:
-                Land-sea mask cube.
         """
         self.high_res_orog_cube = high_res_orog_cube
         self.model_orog_cube = model_orog_cube
         self.model_orog_stddev_cube = model_orog_stddev_cube
         self.model_silhouette_roughness_cube = model_silhouette_roughness_cube
-        self.landmask_cube = landmask_cube
 
     def process(
         self,
@@ -82,10 +77,6 @@ class WindDownscaling(BasePlugin):
             target_wind_speed_cube,
             target_height_levels,
         )
-        wind_profile_cube = crop_wind_profile_cube(
-            wind_profile_cube,
-            target_heights,
-        )
         cubes_to_check = get_cubes_to_check(
             wind_profile_cube,
             target_wind_speed_cube,
@@ -93,7 +84,6 @@ class WindDownscaling(BasePlugin):
             self.model_orog_cube,
             self.model_orog_stddev_cube,
             self.model_silhouette_roughness_cube,
-            self.landmask_cube,
         )
         check_same_grid(*cubes_to_check)
         for cube in (
@@ -106,7 +96,6 @@ class WindDownscaling(BasePlugin):
         wavenumber_cube = calculate_characteristic_wavenumber(
             self.model_orog_stddev_cube,
             self.model_silhouette_roughness_cube,
-            self.landmask_cube,
         )
         unresolved_orography_height_cube = calculate_unresolved_orography_height(
             self.high_res_orog_cube,
@@ -131,7 +120,6 @@ class WindDownscaling(BasePlugin):
             target_wind_speeds,
             reference_wind_speed,
             z0,
-            self.landmask_cube.data,
         )
 
         corrected_wind_speeds = target_wind_speeds * speed_up_factor
@@ -150,7 +138,6 @@ def get_cubes_to_check(
     model_orog_cube: Cube,
     model_orog_stddev_cube: Cube,
     model_silhouette_roughness_cube: Cube,
-    landmask_cube: Cube,
 ) -> list[Cube]:
     """
     Build the list of cubes that must share a common horizontal grid.
@@ -174,9 +161,6 @@ def get_cubes_to_check(
         model_silhouette_roughness_cube:
             Sub-grid silhouette roughness cube.
 
-        landmask_cube:
-            Land-sea mask cube.
-
     Returns:
         list[Cube]:
             Cubes that should be checked with check_same_grid.
@@ -186,7 +170,6 @@ def get_cubes_to_check(
         target_wind_speed_cube,
         high_res_orog_cube,
         model_orog_cube,
-        landmask_cube,
         model_orog_stddev_cube,
         model_silhouette_roughness_cube,
     ]
@@ -218,62 +201,6 @@ def get_target_height_levels(
         )
 
     return np.sort(np.asarray(target_height_levels, dtype=float))
-
-
-def crop_wind_profile_cube(
-    wind_profile_cube: Cube,
-    target_heights: np.ndarray,
-    minimum_upper_height: float = 1300.0,
-) -> Cube:
-    """
-    Crop wind-profile levels to those needed for downscaling calculations.
-
-    The upper crop bound is the greater of 1300 m and the maximum requested
-    target height. This keeps profile data needed for spline evaluation at
-    target heights while limiting memory use from unnecessary high levels.
-
-    Args:
-        wind_profile_cube:
-            Wind-speed cube on height levels used for profile fitting.
-
-        target_heights:
-            Requested target heights in metres.
-
-        minimum_upper_height:
-            Minimum upper crop bound in metres. Defaults to 1300 m.
-
-    Returns:
-        Cube:
-            Wind-profile cube cropped in height.
-
-    Raises:
-        ValueError:
-            If no wind-profile height levels are at or below the crop bound.
-    """
-    if wind_profile_cube.ndim < 3:
-        return wind_profile_cube
-
-    heights = np.asarray(get_height_levels_from_cube(wind_profile_cube), dtype=float)
-    finite_target_heights = np.asarray(target_heights, dtype=float)
-    finite_target_heights = finite_target_heights[np.isfinite(finite_target_heights)]
-    max_target_height = (
-        float(np.max(finite_target_heights))
-        if finite_target_heights.size
-        else float(minimum_upper_height)
-    )
-    upper_height = max(max_target_height, float(minimum_upper_height))
-
-    keep_indices = np.where(heights <= upper_height)[0]
-    if keep_indices.size == 0:
-        raise ValueError(
-            "wind_profile_cube has no height levels at or below "
-            f"the crop limit ({upper_height} m)."
-        )
-
-    if keep_indices.size == heights.size:
-        return wind_profile_cube
-
-    return wind_profile_cube[keep_indices]
 
 
 def prepare_target_wind_speeds(
@@ -426,6 +353,7 @@ def calculate_speed_up_factor(
     reference_wind_speed: np.ndarray,
     roughness_length: np.ndarray,
     land_mask: np.ndarray | None = None,
+    max_terrain_amplitude: float | None = None,
 ) -> np.ndarray:
     """
     Calculate a multiplicative wind-speed correction for unresolved terrain.
@@ -461,10 +389,6 @@ def calculate_speed_up_factor(
             Aerodynamic roughness length, in metres, used to describe the
             near-surface response of the flow. Shape: (y, x).
 
-        land_mask:
-            Optional land-sea mask with land > 0 and sea <= 0. If provided,
-            speed_up_factor is forced to 1.0 at sea.
-
     Returns:
         Multiplicative wind-speed correction with shape
         (n_heights, y, x). A value of 1 leaves the background wind unchanged.
@@ -494,21 +418,35 @@ def calculate_speed_up_factor(
     # horizontal scale
     terrain_amplitude = characteristic_wavenumber * unresolved_orography_height
 
-    land = None
-    if land_mask is not None:
-        land = np.ma.filled(land_mask, 0) > 0
-
+    invalid_characteristic_wavenumber = ~np.isfinite(characteristic_wavenumber)
+    invalid_unresolved_orography = ~np.isfinite(unresolved_orography_height)
+    reference_height = 1.0 / characteristic_wavenumber
+    invalid_reference_height = ~np.isfinite(reference_height) | (
+        reference_height <= 0.0
+    )
+    invalid_reference_wind = (
+        ~np.isfinite(reference_wind_speed) | invalid_reference_height
+    )
+    invalid_roughness_length = ~np.isfinite(roughness_length)
     invalid_ancillary = (
-        ~np.isfinite(characteristic_wavenumber)
-        | ~np.isfinite(unresolved_orography_height)
-        | ~np.isfinite(reference_wind_speed)
-        | ~np.isfinite(roughness_length)
+        invalid_characteristic_wavenumber
+        | invalid_unresolved_orography
+        | invalid_reference_wind
+        | invalid_roughness_length
     )
 
     speed_up_factor = np.ones(
         (len(target_heights),) + characteristic_wavenumber.shape,
         dtype=float,
     )
+    target_invalid_debug = np.zeros_like(speed_up_factor, dtype=bool)
+    k_invalid_debug = np.zeros_like(speed_up_factor, dtype=bool)
+    unresolved_orography_invalid_debug = np.zeros_like(speed_up_factor, dtype=bool)
+    reference_height_invalid_debug = np.zeros_like(speed_up_factor, dtype=bool)
+    reference_wind_invalid_debug = np.zeros_like(speed_up_factor, dtype=bool)
+    roughness_invalid_debug = np.zeros_like(speed_up_factor, dtype=bool)
+    nonfinite_fractional_debug = np.zeros_like(speed_up_factor, dtype=bool)
+    nonfinite_sf_debug = np.zeros_like(speed_up_factor, dtype=bool)
 
     for i, height in enumerate(target_heights):
         # Calculate the inner-layer response. This describes how surface
@@ -571,8 +509,14 @@ def calculate_speed_up_factor(
         # Speed-up factor = multiplicative correction to the background wind.
         sf = 1.0 + fractional_perturbation
 
-        if land is not None:
-            sf = np.where(land, sf, 1.0)
+        target_invalid_debug[i] = tw_mask
+        k_invalid_debug[i] = invalid_characteristic_wavenumber
+        unresolved_orography_invalid_debug[i] = invalid_unresolved_orography
+        reference_height_invalid_debug[i] = invalid_reference_height
+        reference_wind_invalid_debug[i] = invalid_reference_wind
+        roughness_invalid_debug[i] = invalid_roughness_length
+        nonfinite_fractional_debug[i] = ~np.isfinite(fractional_perturbation)
+        nonfinite_sf_debug[i] = ~np.isfinite(sf)
 
         invalid = tw_mask | invalid_ancillary | ~np.isfinite(sf)
         speed_up_factor[i] = np.where(invalid, 1.0, sf)
@@ -714,7 +658,13 @@ def _approximate_roughness_length(
     )
     B = mean_wind - A * mean_log_height
 
-    approximate_z0 = np.exp(np.clip(-B / A, -50.0, 50.0))
+    ratio = np.divide(
+        -B,
+        A,
+        out=np.full_like(B, np.nan, dtype=float),
+        where=np.isfinite(A) & np.isfinite(B) & (A != 0.0),
+    )
+    approximate_z0 = np.exp(np.clip(ratio, -50.0, 50.0))
 
     valid_initial_z0 = np.isfinite(approximate_z0) & (approximate_z0 > 0.0)
 
@@ -1097,7 +1047,6 @@ def calculate_reference_height(
 def calculate_characteristic_wavenumber(
     orog_stddev_cube: Cube,
     silhouette_roughness_cube: Cube,
-    landmask_cube: Cube,
     min_valid_orog_stddev: float = 2.0,
     min_valid_silhouette_roughness: float = 0.0,
     min_length_scale: float = 500.0,
@@ -1120,9 +1069,6 @@ def calculate_characteristic_wavenumber(
 
         silhouette_roughness_cube:
             Silhouette roughness of the sub-grid terrain.
-
-        landmask_cube:
-            Land-sea mask.
 
         min_valid_orog_stddev:
             Minimum terrain standard deviation for applying the calculation.
@@ -1148,14 +1094,11 @@ def calculate_characteristic_wavenumber(
 
     sigma = np.ma.asarray(orog_stddev_cube.data)
     silhouette_roughness = np.ma.asarray(silhouette_roughness_cube.data)
-    landmask = np.ma.asarray(landmask_cube.data)
     half_amplitude = np.sqrt(2.0) * sigma
 
     valid = (
         ~np.ma.getmaskarray(sigma)
         & ~np.ma.getmaskarray(silhouette_roughness)
-        & ~np.ma.getmaskarray(landmask)
-        & (landmask.data > 0)
         & (sigma.data >= min_valid_orog_stddev)
         & (silhouette_roughness.data >= min_valid_silhouette_roughness)
     )

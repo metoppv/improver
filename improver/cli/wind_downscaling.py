@@ -17,7 +17,6 @@ def process(
     model_orog_cube: cli.inputcube,
     model_orog_stddev_cube: cli.inputcube,
     model_silhouette_roughness_cube: cli.inputcube,
-    landmask_cube: cli.inputcube,
     *,
     target_height_levels: cli.comma_separated_list = None,
 ):
@@ -43,9 +42,6 @@ def process(
 
         model_silhouette_roughness_cube:
             Sub-grid silhouette roughness cube.
-
-        landmask_cube:
-            Land-sea mask cube.
 
         target_height_levels:
             Comma-separated list of target heights above ground level, in
@@ -94,7 +90,6 @@ def process(
         model_orog_cube,
         model_orog_stddev_cube,
         model_silhouette_roughness_cube,
-        landmask_cube,
     )
 
     try:
