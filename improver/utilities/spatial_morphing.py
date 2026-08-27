@@ -12,6 +12,7 @@ from iris.cube import Cube, CubeList
 
 from improver import BasePlugin
 from improver.blending.utilities import remove_blend_time, remove_deprecation_warnings
+from improver.calibration.quantile_mapping import QuantileMapping
 from improver.clustering.realization_clustering import RealizationSelection
 from improver.utilities.temporal import (
     reset_forecast_reference_time_and_period,
@@ -69,6 +70,8 @@ class SpatialMorphing(BasePlugin):
         n_workers: Optional[int] = 1,
         model_loader: Any = None,
         transition_weights_scheme: str = "linear",
+        apply_quantile_mapping: bool = False,
+        occurrence_threshold: float = 0.0,
     ) -> None:
         """Initialise the SourceSpatialMorphing plugin.
 
@@ -143,6 +146,8 @@ class SpatialMorphing(BasePlugin):
         self.n_workers = n_workers
         self.model_loader = model_loader
         self.transition_weights_scheme = transition_weights_scheme
+        self.occurrence_threshold = occurrence_threshold
+        self.apply_quantile_mapping = apply_quantile_mapping
 
         if self.transition_weights_scheme not in {"linear", "smoothstep"}:
             raise ValueError(
@@ -268,22 +273,56 @@ class SpatialMorphing(BasePlugin):
                 f"{forecast_period} and {source_tag}={selected_source_name!r}"
             )
 
+    @staticmethod
+    def _match_transition_against_sources(
+        active_transitions: list[dict[str, Any]],
+        selected_source_name: str,
+        available_source_names: Optional[set[str]],
+    ) -> Optional[dict[str, Any]]:
+        """Return the first active transition compatible with the source set."""
+
+        def _matches(
+            transition: dict[str, Any],
+            source_tag: str,
+            other_source_tag: str,
+        ) -> bool:
+            return transition[source_tag] == selected_source_name and (
+                available_source_names is None
+                or transition[other_source_tag] in available_source_names
+            )
+
+        for tag_a, tag_b in (("source_b", "source_a"), ("source_a", "source_b")):
+            matching = [
+                transition
+                for transition in active_transitions
+                if transition[tag_a] == selected_source_name
+                and (
+                    available_source_names is None
+                    or transition[tag_b] in available_source_names
+                )
+            ]
+            if matching:
+                return matching[0]
+
     def _find_active_transition(
         self,
         forecast_period: int,
         selected_source_name: Optional[str] = None,
+        available_source_names: Optional[set[str]] = None,
     ) -> Optional[dict[str, Any]]:
         """Return the active transition for the supplied forecast period and source.
 
         If multiple transitions are active at the same forecast period, the selected
-        source name is used to choose between them. Matching prefers ``source_b`` and
-        then falls back to ``source_a``
+        source name is used to choose between them. If available source names are
+        supplied, the active transition is further constrained to those whose
+        origin source is present on the input forecast cubes.
 
         Args:
             forecast_period: The forecast period (in seconds) to check for active
                 transitions.
-            selected_source_name: The name of the source to match, if multiple
+            selected_source_name: The destination source name to match, if multiple
                 transitions are active.
+            available_source_names: Source labels present on the forecast cubes.
 
         Returns:
             The active transition dictionary if found, otherwise None.
@@ -310,12 +349,12 @@ class SpatialMorphing(BasePlugin):
                 "between overlapping transition definitions"
             )
 
-        transition = self._find_active_transition_for_source(
-            "source_b", selected_source_name, forecast_period, active_transitions
-        ) or self._find_active_transition_for_source(
-            "source_a", selected_source_name, forecast_period, active_transitions
+        transition = self._match_transition_against_sources(
+            active_transitions,
+            selected_source_name,
+            available_source_names,
         )
-        if transition:
+        if transition is not None:
             return transition
 
         raise ValueError(
@@ -530,6 +569,27 @@ class SpatialMorphing(BasePlugin):
         result[result < threshold] = 0.0
         return result
 
+    def apply_quantile_mapping_to_morphed(
+        self, result_cube: Cube, source_a: Cube, source_b: Cube, weight: float
+    ) -> Cube:
+        """
+        Apply quantile mapping to the result cube based on source cubes and weight.
+
+        Args:
+            result_cube: Cube to be adjusted.
+            source_a: Source A cube.
+            source_b: Source B cube.
+            weight: Morphing weight (0=source A, 1=source B).
+
+        Returns:
+            Adjusted result cube.
+        """
+        weighted_source_cube = (1.0 - weight) * source_a + weight * source_b
+
+        return QuantileMapping(occurrence_threshold=self.occurrence_threshold).process(
+            result_cube, weighted_source_cube
+        )
+
     def process(self, *cubes: Any) -> Cube:
         """Select realizations from forecast sources and apply spatial morphing.
 
@@ -601,7 +661,6 @@ class SpatialMorphing(BasePlugin):
         cluster_to_selection = {
             self.cluster_number: full_cluster_to_selection[self.cluster_number]
         }
-
         # Step 7: Select the source/realization dictated by cluster mapping for this
         # forecast period. This is the baseline output when no transition morphing is
         # required.
@@ -613,12 +672,17 @@ class SpatialMorphing(BasePlugin):
                 f"No realization selected for cluster {self.cluster_number}"
             )
         result_cube = selected_cubes[0]
-
+        available_source_names = {
+            cube.attributes.get(self.model_id_attr)
+            for cube in forecast_cubes
+            if cube.attributes.get(self.model_id_attr) is not None
+        }
         # Step 8: Apply explicit transition definitions.
         selected_source_name = result_cube.attributes.get(self.model_id_attr)
         active_transition = self._find_active_transition(
             self.forecast_period,
             selected_source_name=selected_source_name,
+            available_source_names=available_source_names,
         )
 
         if active_transition is not None:
@@ -681,11 +745,6 @@ class SpatialMorphing(BasePlugin):
                         cube_b,
                         weight,
                     )
-            elif cube_a is not None:
-                result_cube = cube_a
-            elif cube_b is not None:
-                result_cube = cube_b
-
             if self.apply_active_fraction and cube_a is not None and cube_b is not None:
                 result_cube.data = self.match_active_fraction(
                     result_cube.data,
@@ -693,6 +752,18 @@ class SpatialMorphing(BasePlugin):
                     cube_b.data,
                     weight=weight,
                     active_threshold=self.active_threshold,
+                )
+
+            if (
+                self.apply_quantile_mapping
+                and cube_a is not None
+                and cube_b is not None
+            ):
+                result_cube = self.apply_quantile_mapping_to_morphed(
+                    result_cube,
+                    cube_a,
+                    cube_b,
+                    weight=weight,
                 )
 
         # Remove blend time and sanitise forecast_reference_time attributes to

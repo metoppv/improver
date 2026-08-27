@@ -31,6 +31,8 @@ def process(
     parallel_backend: str = None,
     n_workers: int = 1,
     transition_weights_scheme: str = "linear",
+    apply_quantile_mapping: bool = True,
+    occurrence_threshold: float = 0.0,
 ):
     """Apply spatial morphing between forecast sources at a fixed validity time.
 
@@ -130,5 +132,7 @@ def process(
         parallel_backend=parallel_backend,
         n_workers=n_workers,
         transition_weights_scheme=transition_weights_scheme,
+        apply_quantile_mapping=apply_quantile_mapping,
+        occurrence_threshold=occurrence_threshold,
     )
     return morphing.process(*cubes)
