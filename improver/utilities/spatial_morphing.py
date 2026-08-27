@@ -584,11 +584,15 @@ class SpatialMorphing(BasePlugin):
         Returns:
             Adjusted result cube.
         """
-        weighted_source_cube = (1.0 - weight) * source_a + weight * source_b
+        weighted_source_cube = result_cube.copy()
+        weighted_source_cube.data = (
+            1.0 - weight
+        ) * source_a.data + weight * source_b.data
 
-        return QuantileMapping(occurrence_threshold=self.occurrence_threshold).process(
-            result_cube, weighted_source_cube
-        )
+        result = QuantileMapping(
+            occurrence_threshold=self.occurrence_threshold
+        ).process(result_cube, weighted_source_cube)
+        return result
 
     def process(self, *cubes: Any) -> Cube:
         """Select realizations from forecast sources and apply spatial morphing.
@@ -758,6 +762,8 @@ class SpatialMorphing(BasePlugin):
                 self.apply_quantile_mapping
                 and cube_a is not None
                 and cube_b is not None
+                and weight > 0.0
+                and weight < 1.0
             ):
                 result_cube = self.apply_quantile_mapping_to_morphed(
                     result_cube,
