@@ -11,7 +11,7 @@ from datetime import datetime
 import iris
 import numpy as np
 import pytest
-from iris.coords import DimCoord
+from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube, CubeList
 from iris.util import promote_aux_coord_to_dim_coord
 
@@ -3290,6 +3290,106 @@ def test_clusterandmatch_secondary_scalar_realization_coord():
     np.testing.assert_array_equal(
         result.coord("forecast_period").points, [0, 6 * 3600]
     )
+
+
+@pytest.mark.parametrize(
+    "secondary_kind",
+    ["partial_deterministic", "full_ensemble"],
+)
+def test_clusterandmatch_secondary_with_deprecation_message_merges(secondary_kind):
+    """Test that the merging of cubes from different forecast sources succeeds,
+    even if the some of the forecast sources have already been blended, and
+    therefore additional metadata is present e.g. a blend_time coordinate and a
+    deprecation message on the forecast_reference_time coordinate.
+
+    This exercises both matching routes:
+    - partial_deterministic: secondary has no realization dimension (< n_clusters)
+    - full_ensemble: secondary has >= n_clusters realizations
+    """
+    pytest.importorskip("kmedoids")
+    pytest.importorskip("esmf_regrid")
+
+    cubes = CubeList()
+    spatial_shape = (3, 3)
+
+    # Primary ensemble input.
+    cubes.extend(
+        _create_4d_realization_cube(
+            n_realizations=4,
+            forecast_periods=[0, 6],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            base_value=100.0,
+            model_id="primary_model",
+            merge=False,
+        )
+    )
+
+    if secondary_kind == "partial_deterministic":
+        for fp_hours in [0, 6]:
+            sec_data = np.full(spatial_shape, 500.0 + fp_hours, dtype=np.float32)
+            sec_cube = set_up_variable_cube(
+                sec_data,
+                name="air_temperature",
+                units="K",
+                spatial_grid="equalarea",
+            )
+            sec_cube.attributes["model_id"] = "secondary_model"
+            sec_cube.coord("forecast_period").points = [fp_hours * 3600]
+            sec_cube.coord("time").points = [
+                sec_cube.coord("forecast_reference_time").points[0] + fp_hours * 3600
+            ]
+            cubes.append(sec_cube)
+    else:
+        cubes.extend(
+            _create_4d_realization_cube(
+                n_realizations=4,
+                forecast_periods=[0, 6],
+                y_dim=spatial_shape[0],
+                x_dim=spatial_shape[1],
+                base_value=500.0,
+                model_id="secondary_model",
+                merge=False,
+            )
+        )
+
+    # Add metadata known to cause merge mismatches when not harmonised.
+    for cube in cubes:
+        if cube.attributes.get("model_id") != "secondary_model":
+            continue
+        frt_coord = cube.coord("forecast_reference_time")
+        frt_coord.attributes["deprecation_message"] = (
+            "forecast_reference_time will be removed in future and should not be used"
+        )
+        cube.add_aux_coord(
+            AuxCoord(
+                frt_coord.points.copy(),
+                long_name="blend_time",
+                units=frt_coord.units,
+            )
+        )
+
+    cubes.append(_create_target_grid_cube(spatial_shape=spatial_shape))
+
+    plugin = RealizationClusterAndMatch(
+        hierarchy={
+            "primary_input": "primary_model",
+            "secondary_inputs": {"secondary_model": [0, 6]},
+        },
+        model_id_attr="model_id",
+        clustering_method="KMedoids",
+        target_grid_name="target_grid",
+        n_clusters=2,
+        random_state=42,
+    )
+
+    result = plugin.process(cubes)
+
+    # Check that no blend_time coordinate is present on the result and that
+    # forecast_reference_time attributes are cleared. This metadata can sometimes
+    # exist on the inputs but can prevent merging if not removed.
+    assert not result.coords("blend_time")
+    assert result.coord("forecast_reference_time").attributes == {}
 
 
 def test_select_realizations_for_kmedoid_clusters_too_many_clusters():
