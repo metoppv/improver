@@ -11,6 +11,7 @@ import numpy as np
 import pytest
 from iris.cube import Cube, CubeList
 
+from improver.calibration.quantile_mapping import QuantileMapping
 from improver.clustering.realization_clustering import RealizationSelection
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.spatial_morphing import SpatialMorphing
@@ -140,8 +141,6 @@ def test_init_with_optional_parameters():
     assert plugin.cycletime == "20240203T0000Z"
     assert plugin.selection_attr == "realization_selection_method"
     assert plugin.selection_attr_value == "cluster_medoid"
-    assert plugin.apply_active_fraction is True
-    assert plugin.active_threshold == 0.0
     assert plugin.transitions == [
         {
             "source_a": "uk_det",
@@ -264,6 +263,73 @@ def test_find_active_transition_uses_selected_source_to_disambiguate_overlaps():
     }
 
 
+def test_find_active_transition_returns_none_when_other_source_missing():
+    """Test missing transition source falls back to no morphing for the selected source."""
+    plugin = SpatialMorphing(
+        forecast_period=10800,
+        cluster_number=17,
+        transitions={
+            "transitions": [
+                {
+                    "source_a": "nc_det uk_det",
+                    "source_b": "uk_det",
+                    "start_forecast_period_minutes": 60,
+                    "end_forecast_period_minutes": 240,
+                },
+                {
+                    "source_a": "nc_det uk_det",
+                    "source_b": "uk_ens",
+                    "start_forecast_period_minutes": 60,
+                    "end_forecast_period_minutes": 240,
+                },
+            ]
+        },
+    )
+
+    assert (
+        plugin._find_active_transition(
+            10800,
+            "uk_ens",
+            available_source_names={"uk_ens"},
+        )
+        is None
+    )
+
+
+def test_find_active_transition_error_mentions_expected_transition_source_pair():
+    """Test the error message identifies the active transition it was trying to match."""
+    plugin = SpatialMorphing(
+        forecast_period=10800,
+        cluster_number=17,
+        transitions={
+            "transitions": [
+                {
+                    "source_a": "nc_det uk_det",
+                    "source_b": "uk_det",
+                    "start_forecast_period_minutes": 60,
+                    "end_forecast_period_minutes": 240,
+                },
+                {
+                    "source_a": "nc_det uk_det",
+                    "source_b": "uk_ens",
+                    "start_forecast_period_minutes": 60,
+                    "end_forecast_period_minutes": 240,
+                },
+            ]
+        },
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="expected transition from 'nc_det uk_det' to 'uk_ens'",
+    ):
+        plugin._find_active_transition(
+            10800,
+            "uk_ens",
+            available_source_names={"uk_det"},
+        )
+
+
 @pytest.mark.parametrize(
     "forecast_period,expected_weight",
     [
@@ -277,25 +343,6 @@ def test_calculate_transition_weight(forecast_period, expected_weight):
     """Test weight calculation from explicit start/end transition bounds."""
     weight = SpatialMorphing._calculate_transition_weight(forecast_period, 18000, 25200)
     assert np.isclose(weight, expected_weight)
-
-
-def test_match_active_fraction_respects_threshold():
-    """Test active-fraction matching uses the configured threshold."""
-    film_data = np.array([[0.1, 0.2], [0.8, 0.9]], dtype=np.float32)
-    source_a = np.array([[0.0, 0.0], [1.0, 1.0]], dtype=np.float32)
-    source_b = np.array([[0.0, 1.0], [1.0, 1.0]], dtype=np.float32)
-
-    result = SpatialMorphing.match_active_fraction(
-        film_data,
-        source_a,
-        source_b,
-        weight=0.5,
-        active_threshold=0.5,
-    )
-
-    np.testing.assert_array_equal(
-        result, np.array([[0.0, 0.0], [0.8, 0.9]], dtype=np.float32)
-    )
 
 
 # ============================================================================
@@ -496,3 +543,88 @@ def test_process_diagnoses_source_specific_realizations_for_transition(mock_morp
         200.0 + 11
     )
     np.testing.assert_allclose(result.data, expected_value, rtol=1e-6)
+
+
+@patch(
+    "improver.utilities.spatial_morphing.SpatialMorphing._call_google_film_for_morphing"
+)
+def test_process_applies_quantile_mapping_for_transition(mock_morph):
+    """Test transition morphing applies real quantile mapping when enabled."""
+    det_cube = make_forecast_cube(
+        model_id="uk_det", n_realizations=24, base_value=100.0
+    )
+    ens_cube = make_forecast_cube(
+        model_id="uk_ens", n_realizations=24, base_value=200.0
+    )
+
+    cluster_cube = set_up_variable_cube(
+        np.zeros((5, 5), dtype=np.float32),
+        name="clustering_result",
+        units="1",
+        spatial_grid="equalarea",
+    )
+    cluster_cube.attributes["primary_input_realization_to_cluster_medoid"] = json.dumps(
+        {"17": 8}
+    )
+    cluster_cube.attributes["secondary_input_realizations_to_clusters"] = json.dumps(
+        {
+            "uk_det": {"17": [{"realization": 3, "forecast_periods": [3600, 21600]}]},
+            "uk_ens": {
+                "17": [
+                    {
+                        "realization": 11,
+                        "forecast_periods": [
+                            43200,
+                            86400,
+                            129600,
+                            172800,
+                            216000,
+                            259200,
+                            302400,
+                            345600,
+                            388800,
+                            432000,
+                        ],
+                    }
+                ]
+            },
+        }
+    )
+    cluster_cube.attributes["cluster_sources"] = json.dumps(
+        {"17": {"uk_det": [3600, 21600], "uk_ens": [43200]}}
+    )
+
+    plugin = SpatialMorphing(
+        forecast_period=21600,
+        cluster_number=17,
+        transitions=make_transitions(),
+        model_path="/apath/to/model",
+        apply_quantile_mapping=True,
+        occurrence_threshold=0.0,
+    )
+
+    def _blend_stub(cube_a, cube_b, weight):
+        result = cube_a.copy()
+        result.data = (1.0 - weight) * cube_a.data + weight * cube_b.data + 10.0
+        return result
+
+    mock_morph.side_effect = _blend_stub
+
+    source_a = plugin._select_single_source_cube(
+        "uk_det", 3, CubeList([det_cube, ens_cube])
+    )
+    source_b = plugin._select_single_source_cube(
+        "uk_ens", 11, CubeList([det_cube, ens_cube])
+    )
+    weight = 0.5
+    weighted_source_data = (1.0 - weight) * source_a.data + weight * source_b.data
+    blended_result = source_a.copy()
+    blended_result.data = weighted_source_data + 10.0
+    expected = QuantileMapping(occurrence_threshold=0.0).process(
+        blended_result, source_a.copy(data=weighted_source_data)
+    )
+
+    result = plugin.process(det_cube, ens_cube, cluster_cube)
+
+    np.testing.assert_allclose(result.data, expected.data, rtol=1e-6)
+    assert not np.allclose(result.data, weighted_source_data, rtol=1e-6)

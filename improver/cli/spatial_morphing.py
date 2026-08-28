@@ -25,8 +25,6 @@ def process(
     clipping_bounds: cli.comma_separated_list = None,
     clip_in_scaled_space: bool = False,
     clip_to_physical_bounds: bool = False,
-    apply_active_fraction: bool = True,
-    active_threshold: float = 0.0,
     max_batch: int = 1,
     parallel_backend: str = None,
     n_workers: int = 1,
@@ -36,80 +34,68 @@ def process(
 ):
     """Apply spatial morphing between forecast sources at a fixed validity time.
 
-    This plugin selects realizations from multiple forecast sources according to
-    cluster assignments, then applies Google FILM spatial morphing to create
-    seamless transitions between different source models.
+    This CLI wraps the SpatialMorphing plugin to select a realization from each
+    source model for a requested cluster and optionally apply a Google FILM
+    transition between source fields.
 
     Args:
         cubes (list of Cube):
-            List of input cubes, including forecast cubes from different sources
-            and a cluster cube with mapping attributes from
-            RealizationClusterAndMatch. The cluster cube is identified by the
-            presence of the "primary_input_realization_to_cluster_medoid"
-            attribute.
+            Input cubes containing forecast data from one or more source models and
+            a cluster cube with mapping attributes produced by
+            RealizationClusterAndMatch.
         forecast_period (int):
-            The forecast period (in seconds) to use for interrogating the cluster
-            mapping attributes in order to select the appropriate realizations
-            from each forecast source.
+            Forecast period in seconds used to identify the relevant cluster-source
+            mapping.
         cluster_number (int):
-            The cluster index (int) to select realizations for. Only this cluster
-            will be processed; output will be a single realization with this index.
+            Cluster index to select and return as the processed output realization.
         model_id_attr (str):
-            The name of the cube attribute used to identify the model source.
-            Default: "mosg__model_configuration".
+            Cube attribute used to identify the source model. Defaults to
+            "mosg__model_configuration".
         cycletime (str):
-            The forecast_reference_time on the input forecast cubes will be reset
-            to this value. The forecast periods will be adjusted accordingly with
-            the validity times kept fixed. cycletime should be provided in the
-            format YYYYMMDDTHHMMZ (e.g., 20240101T0000Z). If not provided, the
-            forecast_reference_time on the input cubes will be left unchanged.
+            Forecast reference time to apply to the input cubes. If supplied, the
+            forecast periods are updated while validity times remain fixed.
         selection_attr (str):
-            Optional name of a cube attribute to add to the output to identify
-            that realizations were selected and morphed using this plugin.
-            If not provided, no attribute is added.
+            Optional cube attribute name to add to the output indicating that this
+            realization was selected using the spatial morphing workflow.
         selection_attr_value (str):
-            The value to assign to the selection_attr attribute.
-            Default is "spatial_morphing".
+            Value assigned to ``selection_attr`` when it is set.
         transitions (dict):
-            JSON dictionary containing an explicit "transitions" list. Each
-            transition must define "source_a", "source_b",
-            "start_forecast_period_minutes", and
+            Explicit transition specification. This may be provided as a JSON
+            dictionary containing a "transitions" list, with each entry defining
+            "source_a", "source_b", "start_forecast_period_minutes", and
             "end_forecast_period_minutes".
         model_path (str):
-            Path to TensorFlow Hub module for Google FILM model. Required if
-            spatial morphing between different sources is performed.
+            Path to the TensorFlow Hub module used by Google FILM.
         scaling (str):
-            Scaling method for FILM interpolation: "log10" or "minmax".
-            Default: "minmax".
+            Scaling method used by the FILM interpolation step. Supported values are
+            "log10" and "minmax".
         clipping_bounds (tuple or dict):
-            Optional JSON dict/tuple specifying (min, max) bounds for clipping
-            interpolated data. Example: {"min": -50, "max": 150} or [0, 100].
+            Optional lower and upper bounds used when clipping interpolated values.
         clip_in_scaled_space (bool):
-            If True, clipping applied before reverse scaling.
-            Default: True.
+            If True, clipping is applied before reverse scaling.
         clip_to_physical_bounds (bool):
-            If True, clipping applied after reverse scaling.
-            Default: False.
-        apply_active_fraction (bool):
-            If True, adjust the morphed field so the fraction of active pixels
-            matches the source-weighted active-pixel fraction. Default: True.
-        active_threshold (float):
-            Threshold defining an active pixel. Default: 0.0.
+            If True, clipping is applied after reverse scaling to the physical range.
         max_batch (int):
-            Maximum batch size for FILM inference. Default: 1.
+            Maximum batch size for FILM inference.
         parallel_backend (str):
-            Parallelization backend ("loky") or None for serial.
-            Default: None.
+            Parallel backend to use for FILM inference, or None for serial execution.
         n_workers (int):
-            Number of workers for parallel processing. Default: 1.
+            Number of workers used for parallel processing.
         transition_weights_scheme (str):
-            Scheme for computing transition weights: "linear" or "smoothstep".
-            Default: "linear".
+            Weighting scheme used during the transition, chosen from "linear" or
+            "smoothstep".
+        apply_quantile_mapping (bool):
+            If True, apply quantile mapping to the morphed result using a weighted
+            source field.
+        occurrence_threshold (float):
+            Threshold used by the quantile mapping routine to determine whether a
+            value should be mapped.
 
     Returns:
         Cube:
-            Single Cube containing the selected and (if applicable) spatially
-            morphed realization, with realization index set to cluster_number.
+            Single cube containing the selected realization and any requested
+            spatial morphing transition, with realization index set to
+            cluster_number.
     """
     from improver.utilities.spatial_morphing import SpatialMorphing
 
@@ -126,8 +112,6 @@ def process(
         clipping_bounds=clipping_bounds,
         clip_in_scaled_space=clip_in_scaled_space,
         clip_to_physical_bounds=clip_to_physical_bounds,
-        apply_active_fraction=apply_active_fraction,
-        active_threshold=active_threshold,
         max_batch=max_batch,
         parallel_backend=parallel_backend,
         n_workers=n_workers,
