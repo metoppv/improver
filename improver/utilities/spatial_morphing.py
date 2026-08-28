@@ -45,8 +45,8 @@ class SpatialMorphing(BasePlugin):
     6. Apply Google FILM spatial morphing to create seamless blended output.
 
     This plugin is designed to work with output from RealizationClusterAndMatch,
-    providing a more direct spatial morphing alternative to the traditional
-    RealizationSelection → ForecastTrajectoryGapFiller pipeline.
+    providing a more direct spatial morphing alternative to the
+    RealizationSelection to ForecastTrajectoryGapFiller pipeline.
     """
 
     def __init__(
