@@ -1099,7 +1099,7 @@ class RealizationClusterAndMatch(BasePlugin):
         return precedence
 
     @staticmethod
-    def _source_for_cluster_forecast_period(
+    def _get_source_for_cluster_forecast_period(
         cluster_sources: dict[int, dict[str, list[int]]], cluster_idx: int, fp: int
     ) -> str | None:
         """Get the current source model for a cluster at a forecast period.
@@ -1164,11 +1164,11 @@ class RealizationClusterAndMatch(BasePlugin):
         candidate_rank = model_precedence.get(candidate_name, len(model_precedence))
 
         for cluster_idx, realization_idx in zip(cluster_indices, realization_indices):
-            current_source = self._source_for_cluster_forecast_period(
+            current_source = self._get_source_for_cluster_forecast_period(
                 cluster_sources, cluster_idx, fp
             )
             current_rank = model_precedence.get(current_source, len(model_precedence))
-            if current_source is None or candidate_rank <= current_rank:
+            if current_source is None or candidate_rank < current_rank:
                 allowed_cluster_indices.append(cluster_idx)
                 allowed_realization_indices.append(realization_idx)
 
