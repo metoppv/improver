@@ -10,6 +10,7 @@ import iris
 import numpy as np
 from iris.analysis import Aggregator
 from iris.cube import Cube, CubeList
+from iris.exceptions import CoordinateNotFoundError
 from numpy import ndarray
 from scipy import stats
 
@@ -18,6 +19,7 @@ from improver.blending import RECORD_COORD
 from improver.blending.utilities import (
     record_run_coord_to_attr,
     store_record_run_as_coord,
+    update_blended_metadata,
 )
 from improver.constants import HOURS_IN_DAY
 from improver.utilities.cube_manipulation import MergeCubes
@@ -86,12 +88,23 @@ class BaseModalCategory(BasePlugin):
         latest_blend_time = max(
             [c.coord("forecast_reference_time").cell(0).point for c in cubes]
         )
+        # Remove the blend_time coordinate from the cubes so that update_blended_metadata can reapply it along with
+        # the deprecated attribute messages removed by unify_cycletime.
+        for cube in cubes:
+            try:
+                cube.remove_coord("blend_time")
+            except CoordinateNotFoundError:
+                pass
         cubes = unify_cycletime(
-            cubes,
-            latest_blend_time,
-            target_coords=["forecast_reference_time", "blend_time"],
+            cubes, latest_blend_time, target_coords=["forecast_reference_time"]
         )
-        return MergeCubes()(cubes)
+        cube = MergeCubes()(cubes)
+        update_blended_metadata(
+            cube,
+            "forecast_reference_time",
+            cycletime=f"{latest_blend_time:%Y%m%dT%H%MZ}",
+        )
+        return cube
 
     def _prepare_result_cube(
         self,
