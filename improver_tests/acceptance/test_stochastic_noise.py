@@ -36,7 +36,7 @@ def test_basic(tmp_path):
         output_path,
     ]
     run_cli(args)
-    acc.compare(output_path, kgo_path, atol=1e-6, rtol=1e-6)
+    acc.compare(output_path, kgo_path, atol=1e-9, rtol=1e-9)
 
 
 def test_scale_non_positive_noise(tmp_path):
@@ -61,7 +61,7 @@ def test_scale_non_positive_noise(tmp_path):
         output_path,
     ]
     run_cli(args)
-    acc.compare(output_path, kgo_path, atol=1e-6, rtol=1e-6)
+    acc.compare(output_path, kgo_path, atol=1e-9, rtol=1e-9)
 
 
 @pytest.mark.parametrize("specify_fallback", [False, True])
@@ -93,7 +93,7 @@ def test_dry_realizations(tmp_path, specify_fallback):
     if specify_fallback:
         args += ["--dry-fallback-range", "(-200.0, -100.0)"]
     run_cli(args)
-    acc.compare(output_path, kgo_path, atol=1e-6, rtol=1e-6)
+    acc.compare(output_path, kgo_path, atol=1e-9, rtol=1e-9)
 
 
 @pytest.mark.parametrize("by_source", [False, True])
@@ -118,8 +118,11 @@ def test_positive_regions(tmp_path, by_source):
         "{'overlap': 0.3, 'seed': 0}",
         "--db-threshold",
         "0.03",
+        "--scale-non-positive-noise",
         "--db-threshold-units",
         "mm/hr",
+        "--wet-noise-amplitude",
+        "0.5",
         "--output",
         output_path,
     ]
@@ -129,4 +132,4 @@ def test_positive_regions(tmp_path, by_source):
         args += ["--apply-noise-to-positive-regions"]
 
     run_cli(args)
-    acc.compare(output_path, kgo_path, atol=1e-6, rtol=1e-6)
+    acc.compare(output_path, kgo_path, atol=1e-9, rtol=1e-9)
