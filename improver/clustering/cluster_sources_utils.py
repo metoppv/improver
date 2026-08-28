@@ -25,7 +25,9 @@ def parse_cluster_sources_attribute(cube) -> dict:
         Format: {cluster_idx: {model_name: [forecast_periods_in_seconds]}}
 
     Raises:
-        ValueError: If cluster_sources JSON string cannot be parsed.
+        ValueError: If the cluster_sources attribute is malformed JSON.
+        ValueError: If the attribute is not a dictionary or JSON string.
+        ValueError: If the parsed JSON is not a dictionary.
     """
     cluster_sources_attr = cube.attributes.get("cluster_sources")
     if cluster_sources_attr is None:
@@ -34,16 +36,21 @@ def parse_cluster_sources_attribute(cube) -> dict:
     # Parse JSON string if needed
     if isinstance(cluster_sources_attr, str):
         try:
-            return json.loads(cluster_sources_attr)
+            parsed = json.loads(cluster_sources_attr)
         except json.JSONDecodeError as err:
-            raise ValueError(f"Failed to parse cluster_sources JSON: {err}")
+            raise ValueError(f"Failed to parse cluster sources JSON: {err}")
     elif isinstance(cluster_sources_attr, dict):
-        return cluster_sources_attr
+        parsed = cluster_sources_attr
     else:
         raise ValueError(
-            f"cluster_sources attribute must be a dictionary or JSON string, "
+            "Cluster sources attribute must be a dictionary or JSON string, "
             f"got {type(cluster_sources_attr)}"
         )
+
+    if not isinstance(parsed, dict):
+        raise ValueError("Cluster sources attribute must be a dictionary")
+
+    return parsed
 
 
 def find_nearest_forecast_period_gte(

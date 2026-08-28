@@ -1358,10 +1358,7 @@ class ForecastTrajectoryGapFiller(BasePlugin):
         if self.cluster_sources_attribute is None:
             return {}
 
-        try:
-            cluster_sources = parse_cluster_sources_attribute(cube)
-        except (ValueError, KeyError):
-            return {}
+        cluster_sources = parse_cluster_sources_attribute(cube)
 
         # Validate dictionary structure for this plugin's use case
         for real_idx, sources in cluster_sources.items():
