@@ -18,6 +18,7 @@ run_cli = acc.run_cli(CLI)
     [
         "gridded_input",
         "spot_input",
+        "spot_input_ec",
         "gridded_ties",
         "spot_ties",
         "blend_mismatch_inputs",
