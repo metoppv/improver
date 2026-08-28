@@ -216,11 +216,23 @@ def test_get_coords_to_remove_noop(cycle_cube):
 def test_remove_blend_time(model_cube):
     """Test blend-time coordinate removal."""
     cube = model_cube.copy()
+    attributes_before = cube.attributes.copy()
+    forecast_reference_time = cube.coord("forecast_reference_time").copy()
+    time = cube.coord("time").copy()
+
     add_blend_time(cube, "20171110T0200Z")
 
     remove_blend_time(cube)
 
     assert not cube.coords("blend_time")
+    assert cube.attributes == attributes_before
+    assert (
+        cube.coord("forecast_reference_time").points == forecast_reference_time.points
+    )
+    assert cube.coord("forecast_reference_time").attributes == (
+        forecast_reference_time.attributes
+    )
+    assert cube.coord("time").points == time.points
 
 
 def test_remove_deprecation_warnings(model_cube):
