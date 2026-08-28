@@ -29,7 +29,8 @@ def process(
     parallel_backend: str = None,
     n_workers: int = 1,
     transition_weights_scheme: str = "linear",
-    apply_quantile_mapping: bool = True,
+    morphing_method: str = "google_film",
+    apply_quantile_mapping: bool = False,
     occurrence_threshold: float = 0.0,
 ):
     """Apply spatial morphing between forecast sources at a fixed validity time.
@@ -84,6 +85,9 @@ def process(
         transition_weights_scheme (str):
             Weighting scheme used during the transition, chosen from "linear" or
             "smoothstep".
+        morphing_method (str):
+            Spatial morphing backend to use for transitions. Supported values are
+            "google_film" (default) and "linear".
         apply_quantile_mapping (bool):
             If True, apply quantile mapping to the morphed result using a weighted
             source field.
@@ -116,6 +120,7 @@ def process(
         parallel_backend=parallel_backend,
         n_workers=n_workers,
         transition_weights_scheme=transition_weights_scheme,
+        morphing_method=morphing_method,
         apply_quantile_mapping=apply_quantile_mapping,
         occurrence_threshold=occurrence_threshold,
     )

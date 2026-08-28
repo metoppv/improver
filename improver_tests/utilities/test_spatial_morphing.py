@@ -163,6 +163,12 @@ def test_init_invalid_cycletime_format():
         )
 
 
+def test_init_invalid_morphing_method():
+    """Test invalid morphing backend selection raises a ValueError."""
+    with pytest.raises(ValueError, match="morphing_method"):
+        SpatialMorphing(forecast_period=22500, cluster_number=0, morphing_method="bad")
+
+
 @pytest.mark.parametrize(
     "transitions,error_match",
     [
@@ -438,6 +444,68 @@ def test_process_removes_model_id_attr_if_present():
     assert "mosg__model_configuration" in forecast_cube.attributes
     result = plugin.process(forecast_cube, make_cluster_cube())
     assert "mosg__model_configuration" not in result.attributes
+
+
+def test_process_linear_morphing_backend_blends_source_cubes():
+    """Test the linear morphing backend performs a direct weighted blend."""
+    det_cube = make_forecast_cube(
+        model_id="uk_det", n_realizations=24, base_value=100.0
+    )
+    ens_cube = make_forecast_cube(
+        model_id="uk_ens", n_realizations=24, base_value=200.0
+    )
+
+    cluster_cube = set_up_variable_cube(
+        np.zeros((5, 5), dtype=np.float32),
+        name="clustering_result",
+        units="1",
+        spatial_grid="equalarea",
+    )
+    cluster_cube.attributes["primary_input_realization_to_cluster_medoid"] = json.dumps(
+        {"17": 8}
+    )
+    cluster_cube.attributes["secondary_input_realizations_to_clusters"] = json.dumps(
+        {
+            "uk_det": {"17": [{"realization": 3, "forecast_periods": [3600, 21600]}]},
+            "uk_ens": {
+                "17": [
+                    {
+                        "realization": 11,
+                        "forecast_periods": [
+                            43200,
+                            86400,
+                            129600,
+                            172800,
+                            216000,
+                            259200,
+                            302400,
+                            345600,
+                            388800,
+                            432000,
+                        ],
+                    }
+                ]
+            },
+        }
+    )
+    cluster_cube.attributes["cluster_sources"] = json.dumps(
+        {"17": {"uk_det": [3600, 21600], "uk_ens": [43200]}}
+    )
+
+    plugin = SpatialMorphing(
+        forecast_period=21600,
+        cluster_number=17,
+        transitions=make_transitions(),
+        morphing_method="linear",
+    )
+
+    result = plugin.process(det_cube, ens_cube, cluster_cube)
+
+    expected_weight = 0.5
+    expected_value = (1.0 - expected_weight) * (100.0 + 3) + expected_weight * (
+        200.0 + 11
+    )
+    np.testing.assert_allclose(result.data, expected_value, rtol=1e-6)
 
 
 def test_process_preserves_other_attributes():

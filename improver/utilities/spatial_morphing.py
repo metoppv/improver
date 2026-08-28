@@ -68,6 +68,7 @@ class SpatialMorphing(BasePlugin):
         n_workers: int | None = 1,
         model_loader: Any = None,
         transition_weights_scheme: str = "linear",
+        morphing_method: str = "google_film",
         apply_quantile_mapping: bool = False,
         occurrence_threshold: float = 0.0,
     ) -> None:
@@ -105,6 +106,8 @@ class SpatialMorphing(BasePlugin):
             model_loader: Optional callable used to load the TensorFlow model.
             transition_weights_scheme: Weighting scheme used during a transition.
                 Supported values are "linear" and "smoothstep".
+            morphing_method: Spatial morphing backend to use for transitions.
+                Supported values are "google_film" (default) and "linear".
             apply_quantile_mapping: If True, apply quantile mapping to the morphed
                 result using a weighted source field.
             occurrence_threshold: Threshold used by the quantile mapping routine to
@@ -131,6 +134,7 @@ class SpatialMorphing(BasePlugin):
         self.n_workers = n_workers
         self.model_loader = model_loader
         self.transition_weights_scheme = transition_weights_scheme
+        self.morphing_method = morphing_method
         self.occurrence_threshold = occurrence_threshold
         self.apply_quantile_mapping = apply_quantile_mapping
 
@@ -138,6 +142,8 @@ class SpatialMorphing(BasePlugin):
             raise ValueError(
                 "transition_weights_scheme must be 'linear' or 'smoothstep'"
             )
+        if self.morphing_method not in {"google_film", "linear"}:
+            raise ValueError("morphing_method must be 'google_film' or 'linear'")
 
         # Create RealizationSelection helper for accessing cluster mapping methods
         self._selection_helper = RealizationSelection(
@@ -289,17 +295,6 @@ class SpatialMorphing(BasePlugin):
             The matching transition dictionary, or None if no compatible transition
             is found.
         """
-
-        def _matches(
-            transition: dict[str, Any],
-            source_tag: str,
-            other_source_tag: str,
-        ) -> bool:
-            return transition[source_tag] == selected_source_name and (
-                available_source_names is None
-                or transition[other_source_tag] in available_source_names
-            )
-
         for tag_a, tag_b in (("source_b", "source_a"), ("source_a", "source_b")):
             matching = [
                 transition
@@ -320,7 +315,18 @@ class SpatialMorphing(BasePlugin):
         active_transitions: list[dict[str, Any]],
         available_source_names: set[str] | None,
     ) -> str:
-        """Format an explanatory error for a missing transition match."""
+        """Format an explanatory error for a missing transition match.
+
+        Args:
+            forecast_period: The forecast period (in seconds) that was checked.
+            selected_source_name: The source name that was used to select a transition.
+            active_transitions: List of transitions that were active at the forecast
+                period.
+            available_source_names: Optional set of source names present on the input
+                forecast cubes.
+        Returns:
+            A formatted error message explaining the mismatch.
+        """
         expected_transition = None
         for transition in active_transitions:
             if selected_source_name in {
@@ -328,7 +334,7 @@ class SpatialMorphing(BasePlugin):
                 transition["source_b"],
             }:
                 expected_transition = (
-                    "from " f"{transition['source_a']!r} to {transition['source_b']!r}"
+                    f"from {transition['source_a']!r} to {transition['source_b']!r}"
                 )
                 break
 
@@ -488,6 +494,20 @@ class SpatialMorphing(BasePlugin):
 
         return result_cubes[0]
 
+    def _apply_morphing_backend(
+        self, cube_a: Cube, cube_b: Cube, weight: float
+    ) -> Cube:
+        """Apply the configured morphing backend between two source cubes."""
+        if self.morphing_method == "google_film":
+            return self._call_google_film_for_morphing(cube_a, cube_b, weight)
+        if self.morphing_method == "linear":
+            result = cube_a.copy()
+            result.data = ((1.0 - weight) * cube_a.data + weight * cube_b.data).astype(
+                np.float32
+            )
+            return result
+        raise ValueError("morphing_method must be 'google_film' or 'linear'")
+
     def _select_single_source_cube(
         self,
         source_name: str,
@@ -644,7 +664,7 @@ class SpatialMorphing(BasePlugin):
         return forecast_cubes, cluster_cube
 
     def _resolve_cluster_selection(
-        self, forecast_cubes: CubeList, cluster_cube: Cube
+        self, cluster_cube: Cube
     ) -> tuple[
         dict[int, tuple[str, int]],
         dict[str, int],
@@ -653,7 +673,6 @@ class SpatialMorphing(BasePlugin):
         """Resolve the cluster-to-source mapping for the selected forecast period.
 
         Args:
-            forecast_cubes: Forecast cubes from all available sources.
             cluster_cube: Cube containing cluster mapping metadata.
 
         Returns:
@@ -806,7 +825,7 @@ class SpatialMorphing(BasePlugin):
         """
         forecast_cubes, cluster_cube = self._prepare_inputs(*cubes)
         full_cluster_to_selection, primary_map, secondary_map = (
-            self._resolve_cluster_selection(forecast_cubes, cluster_cube)
+            self._resolve_cluster_selection(cluster_cube)
         )
 
         cluster_to_selection = {
@@ -850,7 +869,7 @@ class SpatialMorphing(BasePlugin):
                 elif weight is not None and weight >= 1.0:
                     result_cube = cube_b
                 else:
-                    result_cube = self._call_google_film_for_morphing(
+                    result_cube = self._apply_morphing_backend(
                         cube_a,
                         cube_b,
                         weight,
