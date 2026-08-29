@@ -411,6 +411,49 @@ def test_process_with_multiple_clusters(cluster_number):
     np.testing.assert_array_equal(result.coord("realization").points, [cluster_number])
 
 
+def test_process_falls_back_to_available_source_when_requested_model_missing():
+    """Test the plugin falls back to an available source if the mapped source is absent."""
+    cluster_cube = set_up_variable_cube(
+        np.zeros((5, 5), dtype=np.float32),
+        name="clustering_result",
+        units="1",
+        spatial_grid="equalarea",
+    )
+    cluster_cube.attributes["primary_input_realization_to_cluster_medoid"] = json.dumps(
+        {"17": 8}
+    )
+    cluster_cube.attributes["secondary_input_realizations_to_clusters"] = json.dumps(
+        {
+            "uk_det": {"17": [{"realization": 3, "forecast_periods": [3600, 21600]}]},
+            "uk_ens": {
+                "17": [
+                    {
+                        "realization": 11,
+                        "forecast_periods": [43200, 86400, 129600, 172800],
+                    }
+                ]
+            },
+        }
+    )
+    cluster_cube.attributes["cluster_sources"] = json.dumps(
+        {"17": {"uk_ens": [43200], "uk_det": [3600, 21600]}}
+    )
+
+    plugin = SpatialMorphing(
+        forecast_period=21600,
+        cluster_number=17,
+        transitions=make_transitions(),
+    )
+    uk_ens_cube = make_forecast_cube(
+        model_id="uk_ens", n_realizations=24, base_value=200.0
+    )
+
+    result = plugin.process(uk_ens_cube, cluster_cube)
+
+    assert result.coord("realization").points.tolist() == [17]
+    np.testing.assert_allclose(result.data, 200.0 + 11, rtol=1e-6)
+
+
 def test_process_with_cubelist_input():
     """Test that process() accepts CubeList input."""
     plugin = SpatialMorphing(forecast_period=22500, cluster_number=0)

@@ -709,6 +709,68 @@ class SpatialMorphing(BasePlugin):
 
         return full_cluster_to_selection, primary_map, secondary_map
 
+    def _resolve_cluster_selection_with_available_sources(
+        self,
+        cluster_to_selection: dict[int, tuple[str, int]],
+        forecast_cubes: CubeList,
+        cluster_cube: Cube,
+        primary_map: dict[str, int],
+        secondary_map: dict[str, dict[str, list[dict[str, list[int]]]]] | None,
+    ) -> dict[int, tuple[str, int]]:
+        """Fall back to an available source if the mapped source is not present."""
+        available_source_names = {
+            cube.attributes.get(self.model_id_attr)
+            for cube in forecast_cubes
+            if cube.attributes.get(self.model_id_attr) is not None
+        }
+        requested_source, requested_realization = cluster_to_selection[
+            self.cluster_number
+        ]
+
+        if requested_source in available_source_names:
+            return cluster_to_selection
+
+        cluster_key = str(self.cluster_number)
+        cluster_sources = {}
+        if "cluster_sources" in cluster_cube.attributes:
+            cluster_sources = json.loads(cluster_cube.attributes["cluster_sources"])
+
+        candidate_sources = [
+            source_name
+            for source_name in cluster_sources.get(cluster_key, {})
+            if source_name in available_source_names
+        ]
+        if not candidate_sources:
+            candidate_sources = sorted(
+                source_name
+                for source_name in available_source_names
+                if source_name != requested_source
+            )
+
+        if not candidate_sources:
+            return cluster_to_selection
+
+        fallback_source = candidate_sources[0]
+        fallback_realization = self._diagnose_realization_for_source(
+            source_name=fallback_source,
+            cluster_number=self.cluster_number,
+            target_period=self.forecast_period,
+            secondary_map=secondary_map,
+            primary_map=primary_map,
+            cluster_cube=cluster_cube,
+            full_cluster_to_selection={
+                self.cluster_number: (fallback_source, requested_realization)
+            },
+        )
+        if fallback_realization is None:
+            fallback_realization = requested_realization
+
+        cluster_to_selection[self.cluster_number] = (
+            fallback_source,
+            fallback_realization,
+        )
+        return cluster_to_selection
+
     def _select_transition_source_cubes(
         self,
         active_transition: dict[str, Any],
@@ -831,6 +893,13 @@ class SpatialMorphing(BasePlugin):
         cluster_to_selection = {
             self.cluster_number: full_cluster_to_selection[self.cluster_number]
         }
+        cluster_to_selection = self._resolve_cluster_selection_with_available_sources(
+            cluster_to_selection,
+            forecast_cubes,
+            cluster_cube,
+            primary_map,
+            secondary_map,
+        )
         selected_cubes = self._selection_helper.select_realizations_for_clusters(
             cluster_to_selection, forecast_cubes
         )
