@@ -7,6 +7,7 @@
 import json
 from typing import Any
 
+import iris
 import numpy as np
 from iris.cube import Cube, CubeList
 
@@ -717,7 +718,7 @@ class SpatialMorphing(BasePlugin):
         primary_map: dict[str, int],
         secondary_map: dict[str, dict[str, list[dict[str, list[int]]]]] | None,
     ) -> dict[int, tuple[str, int]]:
-        """Fall back to an available source if the mapped source is not present."""
+        """Fall back to an available source if the mapped source is absent or invalid."""
         available_source_names = {
             cube.attributes.get(self.model_id_attr)
             for cube in forecast_cubes
@@ -727,7 +728,24 @@ class SpatialMorphing(BasePlugin):
             self.cluster_number
         ]
 
-        if requested_source in available_source_names:
+        requested_cube = forecast_cubes.extract(
+            iris.AttributeConstraint(**{self.model_id_attr: requested_source})
+        )
+        has_valid_requested_realization = False
+        if requested_cube:
+            requested_model_cube = requested_cube[0]
+            if not requested_model_cube.coords("realization"):
+                has_valid_requested_realization = True
+            elif (
+                requested_realization
+                in requested_model_cube.coord("realization").points
+            ):
+                has_valid_requested_realization = True
+
+        if (
+            requested_source in available_source_names
+            and has_valid_requested_realization
+        ):
             return cluster_to_selection
 
         cluster_key = str(self.cluster_number)
@@ -738,7 +756,7 @@ class SpatialMorphing(BasePlugin):
         candidate_sources = [
             source_name
             for source_name in cluster_sources.get(cluster_key, {})
-            if source_name in available_source_names
+            if source_name in available_source_names and source_name != requested_source
         ]
         if not candidate_sources:
             candidate_sources = sorted(
@@ -750,25 +768,43 @@ class SpatialMorphing(BasePlugin):
         if not candidate_sources:
             return cluster_to_selection
 
-        fallback_source = candidate_sources[0]
-        fallback_realization = self._diagnose_realization_for_source(
-            source_name=fallback_source,
-            cluster_number=self.cluster_number,
-            target_period=self.forecast_period,
-            secondary_map=secondary_map,
-            primary_map=primary_map,
-            cluster_cube=cluster_cube,
-            full_cluster_to_selection={
-                self.cluster_number: (fallback_source, requested_realization)
-            },
-        )
-        if fallback_realization is None:
-            fallback_realization = requested_realization
+        for fallback_source in candidate_sources:
+            fallback_cube = forecast_cubes.extract(
+                iris.AttributeConstraint(**{self.model_id_attr: fallback_source})
+            )
+            if not fallback_cube:
+                continue
 
-        cluster_to_selection[self.cluster_number] = (
-            fallback_source,
-            fallback_realization,
-        )
+            fallback_model_cube = fallback_cube[0]
+            fallback_realization = self._diagnose_realization_for_source(
+                source_name=fallback_source,
+                cluster_number=self.cluster_number,
+                target_period=self.forecast_period,
+                secondary_map=secondary_map,
+                primary_map=primary_map,
+                cluster_cube=cluster_cube,
+                full_cluster_to_selection={
+                    self.cluster_number: (fallback_source, requested_realization)
+                },
+            )
+            if fallback_realization is None:
+                fallback_realization = requested_realization
+
+            if not fallback_model_cube.coords("realization"):
+                cluster_to_selection[self.cluster_number] = (
+                    fallback_source,
+                    fallback_realization,
+                )
+                return cluster_to_selection
+
+            realization_points = fallback_model_cube.coord("realization").points
+            if int(fallback_realization) in realization_points:
+                cluster_to_selection[self.cluster_number] = (
+                    fallback_source,
+                    int(fallback_realization),
+                )
+                return cluster_to_selection
+
         return cluster_to_selection
 
     def _select_transition_source_cubes(

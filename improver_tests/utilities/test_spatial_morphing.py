@@ -454,6 +454,41 @@ def test_process_falls_back_to_available_source_when_requested_model_missing():
     np.testing.assert_allclose(result.data, 200.0 + 11, rtol=1e-6)
 
 
+def test_process_falls_back_when_requested_realization_is_missing_from_available_source():
+    """Test the plugin falls back when a source exists but the requested realization is invalid."""
+    cluster_cube = set_up_variable_cube(
+        np.zeros((5, 5), dtype=np.float32),
+        name="clustering_result",
+        units="1",
+        spatial_grid="equalarea",
+    )
+    cluster_cube.attributes["primary_input_realization_to_cluster_medoid"] = json.dumps(
+        {"0": 8}
+    )
+    cluster_cube.attributes["secondary_input_realizations_to_clusters"] = json.dumps(
+        {
+            "gl_ens": {"0": [{"realization": 28, "forecast_periods": [519300]}]},
+            "ecgl_ens": {"0": [{"realization": 12, "forecast_periods": [519300]}]},
+        }
+    )
+    cluster_cube.attributes["cluster_sources"] = json.dumps(
+        {"0": {"gl_ens": [519300], "ecgl_ens": [519300]}}
+    )
+
+    plugin = SpatialMorphing(forecast_period=519300, cluster_number=0)
+    gl_ens_cube = make_forecast_cube(
+        model_id="gl_ens", n_realizations=20, base_value=200.0
+    )
+    ecgl_ens_cube = make_forecast_cube(
+        model_id="ecgl_ens", n_realizations=30, base_value=300.0
+    )
+
+    result = plugin.process(gl_ens_cube, ecgl_ens_cube, cluster_cube)
+
+    np.testing.assert_array_equal(result.coord("realization").points, [0])
+    np.testing.assert_allclose(result.data, 300.0 + 12, rtol=1e-6)
+
+
 def test_process_with_cubelist_input():
     """Test that process() accepts CubeList input."""
     plugin = SpatialMorphing(forecast_period=22500, cluster_number=0)
