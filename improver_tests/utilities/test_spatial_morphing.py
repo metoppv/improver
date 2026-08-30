@@ -386,6 +386,12 @@ def test_process_output_has_cluster_realization():
     result = plugin.process(make_forecast_cube(model_id="uk_ens"), make_cluster_cube())
     assert result.coords("realization")
     np.testing.assert_array_equal(result.coord("realization").points, [0])
+    assert json.loads(result.attributes["expected_forecast_contributors"]) == [
+        {"source": "uk_ens", "realization": 0, "weight": 1.0}
+    ]
+    assert json.loads(result.attributes["actual_forecast_contributors"]) == [
+        {"source": "uk_ens", "realization": 0, "weight": 1.0}
+    ]
 
 
 def test_process_adds_selection_attr():
@@ -489,6 +495,95 @@ def test_process_falls_back_when_requested_realization_is_missing_from_available
     np.testing.assert_allclose(result.data, 300.0 + 12, rtol=1e-6)
 
 
+def test_process_warns_on_fallback_and_records_provenance():
+    """Warn when the chosen source/realization is unavailable and record fallback use."""
+    cluster_cube = set_up_variable_cube(
+        np.zeros((5, 5), dtype=np.float32),
+        name="clustering_result",
+        units="1",
+        spatial_grid="equalarea",
+    )
+    cluster_cube.attributes["primary_input_realization_to_cluster_medoid"] = json.dumps(
+        {"0": 8}
+    )
+    cluster_cube.attributes["secondary_input_realizations_to_clusters"] = json.dumps(
+        {
+            "uk_ens": {"0": [{"realization": 17, "forecast_periods": [519300]}]},
+            "ecgl_ens": {"0": [{"realization": 12, "forecast_periods": [519300]}]},
+            "gl_ens": {"0": [{"realization": 28, "forecast_periods": [519300]}]},
+        }
+    )
+    cluster_cube.attributes["cluster_sources"] = json.dumps(
+        {"0": {"uk_ens": [519300], "ecgl_ens": [519300], "gl_ens": [519300]}}
+    )
+
+    plugin = SpatialMorphing(forecast_period=519300, cluster_number=0)
+    gl_ens_cube = make_forecast_cube(
+        model_id="gl_ens", n_realizations=20, base_value=200.0
+    )
+    ecgl_ens_cube = make_forecast_cube(
+        model_id="ecgl_ens", n_realizations=10, base_value=300.0
+    )
+    uk_ens_cube = make_forecast_cube(
+        model_id="uk_ens", n_realizations=25, base_value=400.0
+    )
+
+    with pytest.warns(UserWarning, match="using fallback source 'uk_ens'"):
+        result = plugin.process(gl_ens_cube, ecgl_ens_cube, uk_ens_cube, cluster_cube)
+
+    assert json.loads(result.attributes["expected_forecast_contributors"]) == [
+        {"source": "gl_ens", "realization": 28, "weight": 1.0}
+    ]
+    assert json.loads(result.attributes["actual_forecast_contributors"]) == [
+        {"source": "uk_ens", "realization": 17, "weight": 1.0}
+    ]
+    np.testing.assert_array_equal(result.coord("realization").points, [0])
+    np.testing.assert_allclose(result.data, 400.0 + 17, rtol=1e-6)
+
+
+def test_process_fallback_rediagnoses_realization_from_primary_map_if_secondary_missing():
+    """Use primary-map realization for fallback source when no secondary entry exists."""
+    cluster_cube = set_up_variable_cube(
+        np.zeros((5, 5), dtype=np.float32),
+        name="clustering_result",
+        units="1",
+        spatial_grid="equalarea",
+    )
+    cluster_cube.attributes["primary_input_realization_to_cluster_medoid"] = json.dumps(
+        {"0": 8}
+    )
+    cluster_cube.attributes["secondary_input_realizations_to_clusters"] = json.dumps(
+        {
+            "gl_ens": {"0": [{"realization": 28, "forecast_periods": [519300]}]},
+        }
+    )
+    cluster_cube.attributes["cluster_sources"] = json.dumps(
+        {"0": {"gl_ens": [519300], "ecgl_ens": [519300]}}
+    )
+
+    plugin = SpatialMorphing(forecast_period=519300, cluster_number=0)
+    gl_ens_cube = make_forecast_cube(
+        model_id="gl_ens", n_realizations=20, base_value=200.0
+    )
+    ecgl_ens_cube = make_forecast_cube(
+        model_id="ecgl_ens", n_realizations=30, base_value=300.0
+    )
+
+    with pytest.warns(
+        UserWarning, match="using fallback source 'ecgl_ens' realization 8"
+    ):
+        result = plugin.process(gl_ens_cube, ecgl_ens_cube, cluster_cube)
+
+    assert json.loads(result.attributes["expected_forecast_contributors"]) == [
+        {"source": "gl_ens", "realization": 28, "weight": 1.0}
+    ]
+    assert json.loads(result.attributes["actual_forecast_contributors"]) == [
+        {"source": "ecgl_ens", "realization": 8, "weight": 1.0}
+    ]
+    np.testing.assert_array_equal(result.coord("realization").points, [0])
+    np.testing.assert_allclose(result.data, 300.0 + 8, rtol=1e-6)
+
+
 def test_process_with_cubelist_input():
     """Test that process() accepts CubeList input."""
     plugin = SpatialMorphing(forecast_period=22500, cluster_number=0)
@@ -584,6 +679,14 @@ def test_process_linear_morphing_backend_blends_source_cubes():
         200.0 + 11
     )
     np.testing.assert_allclose(result.data, expected_value, rtol=1e-6)
+    assert json.loads(result.attributes["expected_forecast_contributors"]) == [
+        {"source": "uk_det", "realization": 3, "weight": 0.5},
+        {"source": "uk_ens", "realization": 11, "weight": 0.5},
+    ]
+    assert json.loads(result.attributes["actual_forecast_contributors"]) == [
+        {"source": "uk_det", "realization": 3, "weight": 0.5},
+        {"source": "uk_ens", "realization": 11, "weight": 0.5},
+    ]
 
 
 def test_process_preserves_other_attributes():
