@@ -1569,6 +1569,8 @@ class ForecastTrajectoryGapFiller(BasePlugin):
             ValueError: If cubes do not have multiple, different
                 forecast_periods and times.
             ValueError: If cubes do not all have the same forecast_reference_time.
+            ValueError: If regeneration mode is enabled and any input cube
+                contains multiple realizations.
         """
         if not cubelist or len(cubelist) < 2:
             raise ValueError(
@@ -1585,6 +1587,22 @@ class ForecastTrajectoryGapFiller(BasePlugin):
                     f"All cubes must have {', '.join(required_coords)} "
                     f"coordinates for gap filling. Missing from cube: {missing}"
                 )
+
+            # Regeneration currently targets forecast periods globally rather
+            # than selecting periods per realization.
+            regeneration_enabled = self.cluster_sources_attribute is not None and (
+                self.interpolation_window_in_seconds is not None
+                or self.interpolation_window_by_source_pair_seconds
+            )
+            if regeneration_enabled and cube.coords("realization"):
+                n_realizations = len(cube.coord("realization").points)
+                if n_realizations > 1:
+                    raise ValueError(
+                        "Regeneration mode (cluster_sources_attribute with "
+                        "interpolation_window_in_minutes or "
+                        "interpolation_window_by_source_pair) currently "
+                        "requires single-realization input cubes."
+                    )
 
         # Extract forecast_periods, times, and forecast_reference_times from each cube
         forecast_periods = [
@@ -1868,6 +1886,10 @@ class ForecastTrajectoryGapFiller(BasePlugin):
                 All cubes should have the same validity time coordinate structure and
                 dimensions (except for forecast_period and time), and are expected to
                 all have the same forecast_reference_time.
+                Multi-realization cubes are supported for interpolation-only
+                gap filling. If source-transition regeneration is enabled via
+                cluster_sources_attribute and a regeneration window, inputs
+                must be single-realization.
 
         Returns:
             A single merged Cube with gaps filled using temporal interpolation.

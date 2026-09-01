@@ -39,6 +39,9 @@ def process(
     forecast_period coordinates are increasing. The time and forecast_period coordinates
     should be associated with each other, so share a dimension if the input is an
     iris Cube.
+    Multi-realization cubes are supported for interpolation-only gap filling.
+    If source-transition regeneration is enabled via cluster_sources_attribute
+    and a regeneration window, inputs must be single-realization.
 
     Args:
         cubes (iris.cube.CubeList or iris.cube.Cube):
@@ -46,7 +49,10 @@ def process(
             coordinate, and increasing time and forecast_period coordinates. The
             time and forecast_period coordinates should be associated (share a
             dimension if a Cube). The input may have missing points in the
-            forecast trajectory.
+            forecast trajectory. Multi-realization cubes are supported for
+            interpolation-only gap filling. If source-transition regeneration
+            is enabled via cluster_sources_attribute and a regeneration window,
+            inputs must be single-realization.
         interval_in_minutes (int):
             The expected interval between points in the forecast trajectory (in
             minutes). Used to identify gaps in the sequence. If not provided,
