@@ -11,6 +11,7 @@ from iris.cube import Cube, CubeList
 
 from improver import PostProcessingPlugin
 from improver.cube_combiner import Combine
+from improver.metadata.forecast_times import rebadge_forecasts_as_latest_cycle
 from improver.metadata.probabilistic import (
     find_threshold_coordinate,
     is_probability,
@@ -162,6 +163,11 @@ class VisibilityCombineCloudBase(PostProcessingPlugin):
         """
 
         visibility_cube, cloud_base_ground_cube = self.separate_input_cubes(cubes)
+        # Update forecast reference time and blend time to the latest of the two
+        # input cubes.
+        visibility_cube, cloud_base_ground_cube = rebadge_forecasts_as_latest_cycle(
+            [visibility_cube, cloud_base_ground_cube]
+        )
 
         for cube in [visibility_cube, cloud_base_ground_cube]:
             if not is_probability(cube):
