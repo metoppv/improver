@@ -26,6 +26,40 @@ def test_basic(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
+def test_ignore_failure(tmp_path):
+    """Test extraction with ignore failure"""
+    kgo_dir = acc.kgo_root() / "extract/basic"
+    input_path = kgo_dir / "input.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        "--constraints",
+        "realization=6",
+        "--ignore-failure",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, input_path, exclude_attributes=["calendar"])
+
+
+def test_return_none_on_failure(tmp_path):
+    """Test extraction with return none on failure"""
+    kgo_dir = acc.kgo_root() / "extract/basic"
+    input_path = kgo_dir / "input.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        "--constraints",
+        "realization=6",
+        "--return-none-on-failure",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    assert not output_path.exists()
+
+
 def test_change_units(tmp_path):
     """Test extraction and unit conversion"""
     kgo_dir = acc.kgo_root() / "extract/change_units"

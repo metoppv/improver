@@ -46,3 +46,21 @@ def test_no_matching_constraint_ignore():
     src_cube = Cube(0)
     res = plugin(src_cube)
     assert res is src_cube
+
+
+def test_no_matching_constraint_return_none():
+    """Test that None is returned when no constraints match and silent failure requested."""
+    plugin = ExtractSubCube(["dummy_name=dummy_value"], return_none_on_failure=True)
+    src_cube = Cube(0)
+    res = plugin(src_cube)
+    assert res is None
+
+
+def test_no_matching_constraint_conflicting_failures_invalid():
+    """Test that conflicting failure-handling options are rejected."""
+    with pytest.raises(ValueError, match="return_none_on_failure"):
+        ExtractSubCube(
+            ["dummy_name=dummy_value"],
+            ignore_failure=True,
+            return_none_on_failure=True,
+        )
