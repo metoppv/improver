@@ -573,8 +573,13 @@ class SpatialMorphing(BasePlugin):
             cluster_number: Cluster being processed.
             target_period: Forecast period in seconds used to find the most relevant
                 source realization.
-            secondary_map: Optional secondary cluster map keyed by source name.
-            primary_map: Primary cluster-to-realization mapping.
+            secondary_map: Optional secondary realization map e.g.
+                {'source_a': {'0': [{'realization': 17, 'forecast_periods':
+                [475200, 518400, 561600, 604800, 648000]}]}} where the key is the
+                source name, the value is a dictionary keyed by cluster number.
+            primary_map: Primary cluster-to-realization mapping e.g.
+                {'0': 49, '1': 33, '2': 44, '3': 29} where the key is the cluster
+                number and the value is the realization index.
             cluster_cube: Cube containing the cluster mapping metadata.
             full_cluster_to_selection: Full mapping from cluster number to the
                 selected source/realization pairing.
@@ -734,7 +739,25 @@ class SpatialMorphing(BasePlugin):
         primary_map: dict[str, int],
         secondary_map: dict[str, dict[str, list[dict[str, list[int]]]]] | None,
     ) -> dict[int, tuple[str, int]]:
-        """Fall back to an available source if the mapped source is absent or invalid."""
+        """Fall back to an available source if the mapped source is absent or invalid
+
+        Args:
+            cluster_to_selection: Mapping from cluster number to selected source and
+                realization.
+            forecast_cubes: List of forecast cubes to select from.
+            cluster_cube: Cube containing the cluster mapping metadata.
+            primary_map: Primary cluster-to-realization mapping e.g.
+                {'0': 49, '1': 33, '2': 44, '3': 29} where the key is the cluster
+                number and the value is the realization index.
+            secondary_map: Secondary realization map e.g.
+                {'source_a': {'0': [{'realization': 17, 'forecast_periods':
+                [475200, 518400, 561600, 604800, 648000]}]}} where the key is the
+                source name, the value is a dictionary keyed by cluster number.
+
+        Returns:
+            Updated cluster_to_selection mapping with a valid source and realization
+            for the requested cluster number.
+        """
         available_source_names = {
             cube.attributes.get(self.model_id_attr)
             for cube in forecast_cubes
@@ -794,6 +817,36 @@ class SpatialMorphing(BasePlugin):
         secondary map for the candidate fallback source, and only if that is
         unavailable does it fall back to the primary-map realization for the
         cluster.
+
+        Args:
+            cluster_to_selection: Mapping from cluster number to selected source and
+                realization.
+            forecast_cubes: List of forecast cubes to select from.
+            cluster_cube: Cube containing the cluster mapping metadata.
+            primary_map: Primary cluster-to-realization mapping e.g.
+                {'0': 49, '1': 33, '2': 44, '3': 29} where the key is the cluster
+                number and the value is the realization index.
+            secondary_map: Secondary realization map e.g.
+                {'source_a': {'0': [{'realization': 17, 'forecast_periods':
+                [475200, 518400, 561600, 604800, 648000]}]}} where the key is the
+                source name, the value is a dictionary keyed by cluster number.
+            requested_source: The source that was originally requested for the cluster.
+            requested_realization: The realization that was originally requested for
+                the cluster.
+            available_source_names: Set of source names present on the forecast cubes.
+            has_valid_requested_realization: Whether the requested source and
+                realization are valid and present on the forecast cubes.
+
+        Returns:
+            Updated cluster_to_selection mapping with a valid source and realization
+            for the requested cluster number.
+
+        Warns:
+            If the requested source and realization are unavailable and no valid
+            fallback source is found, a warning is issued.
+            If the requested source is unavailable but a valid fallback source is
+            found, a warning is issued indicating the fallback source and
+            realization being used.
         """
         cluster_key = str(self.cluster_number)
         cluster_sources = {}
@@ -910,8 +963,13 @@ class SpatialMorphing(BasePlugin):
                 period.
             forecast_cubes: Available forecast cubes.
             cluster_number: Requested cluster number.
-            secondary_map: Optional secondary cluster mapping.
-            primary_map: Primary cluster-to-realization mapping.
+            secondary_map: Secondary realization map e.g.
+                {'source_a': {'0': [{'realization': 17, 'forecast_periods':
+                [475200, 518400, 561600, 604800, 648000]}]}} where the key is the
+                source name, the value is a dictionary keyed by cluster number.
+            primary_map: Primary cluster-to-realization mapping e.g.
+                {'0': 49, '1': 33, '2': 44, '3': 29} where the key is the cluster
+                number and the value is the realization index.
             cluster_cube: Cube containing cluster metadata.
             full_cluster_to_selection: Full selection map for the cluster.
 
