@@ -6,6 +6,7 @@
 
 import numpy as np
 from iris.cube import Cube, CubeList
+from iris.exceptions import CoordinateNotFoundError
 from scipy.interpolate import PchipInterpolator
 from scipy.special import kv
 
@@ -14,7 +15,7 @@ from improver import BasePlugin
 VON_KARMAN_CONSTANT = 0.4
 
 
-class WindDownscaling(BasePlugin):
+class OrographicWindCorrection(BasePlugin):
     """Plugin-style interface for orographic wind-speed correction."""
 
     def __init__(
@@ -24,7 +25,7 @@ class WindDownscaling(BasePlugin):
         model_orog_stddev_cube: Cube,
         model_silhouette_roughness_cube: Cube,
     ) -> None:
-        """Initialise plugin with ancillary cubes required for downscaling.
+        """Initialise plugin with ancillary cubes required for correction.
 
         Args:
             high_res_orog_cube:
@@ -47,44 +48,65 @@ class WindDownscaling(BasePlugin):
     def process(
         self,
         wind_profile_cube: Cube,
-        target_wind_speed_cube: Cube,
         target_height_levels: list[float] | None = None,
     ) -> Cube:
-        """Apply wind downscaling using stored ancillary cubes.
+        """Apply unresolved-orography wind-speed correction to one cube.
+
+        The input ``wind_profile_cube`` is used both to fit the vertical wind
+        profile and as the wind field to be corrected.
 
         Args:
             wind_profile_cube:
-                Wind-speed cube used to fit vertical profiles for roughness
-                and reference-wind estimation. Must contain wind speed on
-                heights between ground and 300 m above ground level.
-
-            target_wind_speed_cube:
-                Wind-speed cube to be corrected.
+                Wind-speed cube containing the profile to fit and the field to
+                correct. It should contain wind speeds on heights between ground
+                and 300 m above ground level.
 
             target_height_levels:
-                Optional target heights in metres. If omitted, heights are
-                taken from target_wind_speed_cube.
+                Optional target heights in metres. If omitted, the heights
+                already present on ``wind_profile_cube`` are used.
 
         Returns:
             Cube:
-                Corrected wind-speed cube.
+                Corrected wind-speed cube on the selected target heights.
 
         Raises:
             ValueError:
-                If supplied cubes do not share a common horizontal grid.
+                If the ancillary cubes do not share the same horizontal grid as
+                the input wind-profile cube.
         """
+        try:
+            wind_profile_iterator = wind_profile_cube.slices_over("realization")
+        except CoordinateNotFoundError:
+            wind_profile_iterator = [wind_profile_cube]
+
+        corrected_wind_slices = CubeList()
+        for wind_profile_slice in wind_profile_iterator:
+            corrected_wind_slices.append(
+                self._process_single_wind_cube(
+                    wind_profile_slice,
+                    target_height_levels,
+                )
+            )
+
+        return corrected_wind_slices.merge_cube()
+
+    def _process_single_wind_cube(
+        self,
+        wind_profile_cube: Cube,
+        target_height_levels: list[float] | None = None,
+    ) -> Cube:
+        """Apply unresolved-orography correction to a single wind-profile cube."""
         target_heights = get_target_height_levels(
-            target_wind_speed_cube,
+            wind_profile_cube,
             target_height_levels,
         )
-        cubes_to_check = get_cubes_to_check(
+        cubes_to_check = [
             wind_profile_cube,
-            target_wind_speed_cube,
             self.high_res_orog_cube,
             self.model_orog_cube,
             self.model_orog_stddev_cube,
             self.model_silhouette_roughness_cube,
-        )
+        ]
         check_same_grid(*cubes_to_check)
         for cube in (
             self.high_res_orog_cube,
@@ -101,11 +123,12 @@ class WindDownscaling(BasePlugin):
             self.high_res_orog_cube,
             self.model_orog_cube,
         )
-        target_wind_speeds = get_target_wind_speeds(
-            target_wind_speed_cube,
-            target_heights,
-        )
         spline = fit_spline_wind_profile(wind_profile_cube)
+        target_wind_speeds = get_target_wind_speeds(
+            wind_profile_cube,
+            target_heights,
+            spline=spline,
+        )
         reference_height_cube = calculate_reference_height(wavenumber_cube)
         reference_wind_speed = evaluate_spline_at_reference_heights(
             spline,
@@ -125,79 +148,35 @@ class WindDownscaling(BasePlugin):
         corrected_wind_speeds = target_wind_speeds * speed_up_factor
 
         return create_corrected_wind_speed_cube(
-            target_wind_speed_cube,
+            wind_profile_cube,
             corrected_wind_speeds,
             target_heights,
         )
 
 
-def get_cubes_to_check(
+def get_target_height_levels(
     wind_profile_cube: Cube,
-    target_wind_speed_cube: Cube,
-    high_res_orog_cube: Cube,
-    model_orog_cube: Cube,
-    model_orog_stddev_cube: Cube,
-    model_silhouette_roughness_cube: Cube,
-) -> list[Cube]:
-    """
-    Build the list of cubes that must share a common horizontal grid.
+    target_height_levels: list[float] | None,
+) -> np.ndarray:
+    """Determine the heights to apply wind-speed corrections to.
+
+    Explicitly requested target heights are used when supplied. Otherwise, the
+    height levels already present on ``wind_profile_cube`` are used.
 
     Args:
         wind_profile_cube:
-            Wind-speed cube used for profile fitting.
-
-        target_wind_speed_cube:
-            Wind-speed cube that will be corrected.
-
-        high_res_orog_cube:
-            High-resolution orography cube.
-
-        model_orog_cube:
-            Model-resolution orography cube.
-
-        model_orog_stddev_cube:
-            Sub-grid orography standard deviation cube.
-
-        model_silhouette_roughness_cube:
-            Sub-grid silhouette roughness cube.
-
-    Returns:
-        list[Cube]:
-            Cubes that should be checked with check_same_grid.
-    """
-    return [
-        wind_profile_cube,
-        target_wind_speed_cube,
-        high_res_orog_cube,
-        model_orog_cube,
-        model_orog_stddev_cube,
-        model_silhouette_roughness_cube,
-    ]
-
-
-def get_target_height_levels(
-    target_wind_speed_cube: Cube,
-    target_height_levels: list[float] | None,
-) -> np.ndarray:
-    """
-    Determine the heights to apply wind-speed corrections to.
-
-    Explicitly requested target heights are used when supplied. Otherwise,
-    the height levels from target_wind_speed_cube are used.
-
-    Args:
-        target_wind_speed_cube:
-            Cube containing winds to be corrected.
+            Wind-speed cube used for both the profile fit and the correction.
 
         target_height_levels:
             Optional list of heights above ground level, in metres.
+
     Returns:
         np.ndarray:
             Target heights above ground level, in metres.
     """
     if target_height_levels is None:
         target_height_levels = get_height_levels_from_cube(
-            target_wind_speed_cube,
+            wind_profile_cube,
         )
 
     return np.sort(np.asarray(target_height_levels, dtype=float))
@@ -223,19 +202,36 @@ def prepare_target_wind_speeds(
     return np.ma.getmaskarray(winds), np.ma.filled(winds, fill_value=np.nan)
 
 
+def _wind_data_with_height_first(wind_cube: Cube) -> np.ma.MaskedArray:
+    """Return wind data with the height axis moved to the leading dimension."""
+    wind_data = np.ma.asarray(wind_cube.data, dtype=float)
+    height_dims = wind_cube.coord_dims("height")
+
+    if not height_dims:
+        return wind_data[np.newaxis, ...]
+
+    return np.moveaxis(wind_data, height_dims[0], 0)
+
+
 def get_target_wind_speeds(
-    target_wind_speed_cube: Cube,
+    wind_profile_cube: Cube,
     target_heights: np.ndarray,
+    spline: PchipInterpolator | None = None,
 ) -> np.ma.MaskedArray:
     """
-    Get target wind speeds from target cube at requested heights.
+    Extract wind speeds from the working wind-speed cube at the requested
+    target heights.
 
     Args:
-        target_wind_speed_cube:
-            Wind-speed cube to be corrected.
+        wind_profile_cube:
+            Wind-speed cube used for both the profile fit and the correction.
 
         target_heights:
             Target heights in metres.
+
+        spline:
+            Optional PCHIP interpolator for the profile. When supplied, it is
+            reused instead of fitting a new spline.
 
     Returns:
         np.ma.MaskedArray:
@@ -243,20 +239,17 @@ def get_target_wind_speeds(
 
     Raises:
         ValueError:
-            If target_height_levels differ from a single-level target cube.
+            If target_height_levels differ from a single-level source cube.
     """
     cube_heights = np.asarray(
-        get_height_levels_from_cube(target_wind_speed_cube),
+        get_height_levels_from_cube(wind_profile_cube),
         dtype=float,
     )
-    cube_winds = np.ma.asarray(target_wind_speed_cube.data, dtype=float)
-
-    if target_wind_speed_cube.ndim == 2:
-        cube_winds = cube_winds[np.newaxis, ...]
+    cube_winds = _wind_data_with_height_first(wind_profile_cube)
 
     if cube_winds.shape[0] != cube_heights.size:
         raise ValueError(
-            "target_wind_speed_cube data first dimension must match "
+            "wind_profile_cube data first dimension must match "
             "its height coordinate size."
         )
 
@@ -270,12 +263,14 @@ def get_target_wind_speeds(
 
     if cube_heights.size == 1:
         raise ValueError(
-            "Cannot interpolate target_wind_speed_cube to target_height_levels "
+            "Cannot interpolate wind_profile_cube to target_height_levels "
             "when only one source height is available."
         )
 
-    target_spline = fit_spline_wind_profile(target_wind_speed_cube)
-    return np.ma.asarray(target_spline(target_heights), dtype=float)
+    if spline is None:
+        spline = fit_spline_wind_profile(wind_profile_cube)
+
+    return np.ma.asarray(spline(target_heights), dtype=float)
 
 
 def create_corrected_wind_speed_cube(
@@ -321,10 +316,14 @@ def create_corrected_wind_speed_cube(
             "match the number of target heights."
         )
 
-    if template_cube.ndim == 2:
+    height_dims = template_cube.coord_dims("height")
+    if not height_dims:
         template_2d = template_cube
     else:
-        template_2d = template_cube[0]
+        height_dim = height_dims[0]
+        index = [slice(None)] * template_cube.ndim
+        index[height_dim] = 0
+        template_2d = template_cube[tuple(index)]
 
     output_cubes = CubeList()
 
@@ -345,6 +344,67 @@ def create_corrected_wind_speed_cube(
     return output_cubes.merge_cube()
 
 
+def _broadcast_2d_to_3d(array_2d: np.ndarray) -> np.ndarray:
+    """Broadcast a 2D array to 3D by adding a height dimension.
+
+    Args:
+        array_2d:
+            A 2D array with shape (y, x).
+
+    Returns:
+        A 3D array with shape (1, y, x) ready for broadcasting across heights.
+    """
+    return array_2d[np.newaxis, :, :]
+
+
+def _compute_inner_layer_response(
+    roughness_scaled_wavenumber_3d: np.ndarray,
+    target_heights_broadcast: np.ndarray,
+    roughness_length_field: np.ndarray,
+) -> np.ndarray:
+    """
+    Compute the inner-layer response using modified Bessel functions.
+
+    Describes how surface friction modifies the response of the flow to
+    unresolved terrain. This uses the zeroth-order modified Bessel function
+    of the second kind.
+
+    Args:
+        roughness_scaled_wavenumber_3d:
+            Wavenumber scaled by log-height ratio, shape (n_heights, y, x).
+
+        target_heights_broadcast:
+            Target heights reshaped for broadcasting, shape (n_heights, 1, 1).
+
+        roughness_length_field:
+            Roughness length broadcasted to 3D, shape (1, y, x).
+
+    Returns:
+        np.ndarray:
+            Inner-layer response values with shape (n_heights, y, x).
+    """
+    bessel_argument_at_target_height = (
+        (1.0 + 1.0j)
+        * np.sqrt(roughness_scaled_wavenumber_3d * target_heights_broadcast)
+        / VON_KARMAN_CONSTANT
+    )
+    bessel_argument_at_roughness_level = (
+        (1.0 + 1.0j)
+        * np.sqrt(roughness_scaled_wavenumber_3d * roughness_length_field)
+        / VON_KARMAN_CONSTANT
+    )
+    with np.errstate(
+        divide="ignore",
+        invalid="ignore",
+    ):
+        inner_layer_response = np.real(
+            1.0
+            - kv(0, bessel_argument_at_target_height)
+            / kv(0, bessel_argument_at_roughness_level)
+        )
+    return inner_layer_response
+
+
 def calculate_speed_up_factor(
     characteristic_wavenumber: np.ndarray,
     unresolved_orography_height: np.ndarray,
@@ -352,8 +412,6 @@ def calculate_speed_up_factor(
     target_wind_speeds: np.ndarray,
     reference_wind_speed: np.ndarray,
     roughness_length: np.ndarray,
-    land_mask: np.ndarray | None = None,
-    max_terrain_amplitude: float | None = None,
 ) -> np.ndarray:
     """
     Calculate a multiplicative wind-speed correction for unresolved terrain.
@@ -393,7 +451,13 @@ def calculate_speed_up_factor(
         Multiplicative wind-speed correction with shape
         (n_heights, y, x). A value of 1 leaves the background wind unchanged.
     """
-    von_karman_constant = VON_KARMAN_CONSTANT
+    # Validate input: check for non-finite target heights early.
+    if np.any(~np.isfinite(target_heights)):
+        raise ValueError("target_heights contains non-finite values (NaN or inf).")
+    if len(target_heights) == 0:
+        raise ValueError("target_heights must not be empty.")
+
+    perturbation_limits = (0.0, 1.0)
 
     # Convert masked inputs to arrays with NaN at invalid points.
     characteristic_wavenumber = np.ma.filled(
@@ -414,15 +478,53 @@ def calculate_speed_up_factor(
         target_wind_speeds
     )
 
-    # Describe the unresolved terrain height relative to its characteristic
-    # horizontal scale
-    terrain_amplitude = characteristic_wavenumber * unresolved_orography_height
+    if target_wind_speeds.ndim < 3:
+        raise ValueError("target_wind_speeds must have at least 3 dimensions.")
+    if target_wind_speeds.shape[0] != len(target_heights):
+        raise ValueError(
+            "target_wind_speeds first dimension must match target_heights."
+        )
 
+    target_spatial_shape = target_wind_speeds.shape[1:]
+
+    def _broadcast_field_to_target(field: np.ndarray, name: str) -> np.ndarray:
+        try:
+            return np.broadcast_to(np.asarray(field, dtype=float), target_spatial_shape)
+        except ValueError as exc:
+            raise ValueError(
+                f"{name} shape {np.shape(field)} is not broadcastable to "
+                f"target_wind_speeds trailing shape {target_spatial_shape}."
+            ) from exc
+
+    characteristic_wavenumber = _broadcast_field_to_target(
+        characteristic_wavenumber,
+        "characteristic_wavenumber",
+    )
+    unresolved_orography_height = _broadcast_field_to_target(
+        unresolved_orography_height,
+        "unresolved_orography_height",
+    )
+    reference_wind_speed = _broadcast_field_to_target(
+        reference_wind_speed,
+        "reference_wind_speed",
+    )
+    roughness_length = _broadcast_field_to_target(
+        roughness_length,
+        "roughness_length",
+    )
+
+    # Compute terrain amplitude. This describes the unresolved terrain height
+    # relative to its characteristic horizontal scale.
+    terrain_amplitude = 1.0 * np.tanh(
+        characteristic_wavenumber * unresolved_orography_height
+    )
+
+    # Identify grid points with invalid ancillary data (NaN, inf, or negative values).
+    # These will be masked out later and assigned a neutral correction factor of 1.0.
     invalid_characteristic_wavenumber = ~np.isfinite(characteristic_wavenumber)
     invalid_unresolved_orography = ~np.isfinite(unresolved_orography_height)
-    reference_height = 1.0 / characteristic_wavenumber
-    invalid_reference_height = ~np.isfinite(reference_height) | (
-        reference_height <= 0.0
+    invalid_reference_height = ~np.isfinite(1.0 / characteristic_wavenumber) | (
+        (1.0 / characteristic_wavenumber) <= 0.0
     )
     invalid_reference_wind = (
         ~np.isfinite(reference_wind_speed) | invalid_reference_height
@@ -435,91 +537,75 @@ def calculate_speed_up_factor(
         | invalid_roughness_length
     )
 
-    speed_up_factor = np.ones(
-        (len(target_heights),) + characteristic_wavenumber.shape,
-        dtype=float,
+    # Broadcast 2D ancillary fields to all non-height target-wind dimensions.
+    target_heights_broadcast = np.reshape(
+        np.asarray(target_heights, dtype=float),
+        (len(target_heights),) + (1,) * (target_wind_speeds.ndim - 1),
     )
-    target_invalid_debug = np.zeros_like(speed_up_factor, dtype=bool)
-    k_invalid_debug = np.zeros_like(speed_up_factor, dtype=bool)
-    unresolved_orography_invalid_debug = np.zeros_like(speed_up_factor, dtype=bool)
-    reference_height_invalid_debug = np.zeros_like(speed_up_factor, dtype=bool)
-    reference_wind_invalid_debug = np.zeros_like(speed_up_factor, dtype=bool)
-    roughness_invalid_debug = np.zeros_like(speed_up_factor, dtype=bool)
-    nonfinite_fractional_debug = np.zeros_like(speed_up_factor, dtype=bool)
-    nonfinite_sf_debug = np.zeros_like(speed_up_factor, dtype=bool)
+    wavenumber_field = characteristic_wavenumber[np.newaxis, ...]
+    reference_wind_field = reference_wind_speed[np.newaxis, ...]
+    roughness_length_field = roughness_length[np.newaxis, ...]
+    terrain_amplitude_field = terrain_amplitude[np.newaxis, ...]
 
-    for i, height in enumerate(target_heights):
-        # Calculate the inner-layer response. This describes how surface
-        # friction modifies the response of the flow to unresolved terrain.
-        roughness_scaled_wavenumber = characteristic_wavenumber * np.log(
-            height / roughness_length
-        )
-        bessel_argument_at_height = (
-            (1.0 + 1.0j)
-            * np.sqrt(roughness_scaled_wavenumber * height)
-            / von_karman_constant
-        )
-        bessel_argument_at_roughness_height = (
-            (1.0 + 1.0j)
-            * np.sqrt(roughness_scaled_wavenumber * roughness_length)
-            / von_karman_constant
-        )
-        with np.errstate(
-            divide="ignore",
-            invalid="ignore",
-        ):
-            inner_layer_response = np.real(
-                1.0
-                - kv(0, bessel_argument_at_height)
-                / kv(0, bessel_argument_at_roughness_height)
-            )
+    # Calculate the inner-layer response. This describes how surface
+    # friction modifies the response of the flow to unresolved terrain.
+    roughness_scaled_wavenumber_3d = wavenumber_field * np.log(
+        target_heights_broadcast / roughness_length_field
+    )
+    inner_layer_response_per_height = _compute_inner_layer_response(
+        roughness_scaled_wavenumber_3d,
+        target_heights_broadcast,
+        roughness_length_field,
+    )
 
-        # The effect of a terrain feature decreases with height: shorter-scale
-        # terrain, represented by larger wavenumbers, decays more rapidly.
-        vertical_decay = np.exp(-characteristic_wavenumber * height)
+    # The effect of a terrain feature decreases with height: shorter-scale
+    # terrain, represented by larger wavenumbers, decays more rapidly.
+    vertical_decay_per_height = np.exp(-wavenumber_field * target_heights_broadcast)
 
-        # Calculate the terrain-induced change in wind speed.
-        # The reference wind sets the velocity scale, while the remaining terms
-        # describe the strength and vertical structure of the terrain response.
-        wind_speed_perturbation = (
-            reference_wind_speed
-            * inner_layer_response
-            * vertical_decay
-            * terrain_amplitude
-        )
+    # Calculate the terrain-induced change in wind speed.
+    # The reference wind sets the velocity scale, while the remaining terms
+    # describe the strength and vertical structure of the terrain response.
+    wind_speed_perturbation_per_height = (
+        reference_wind_field
+        * inner_layer_response_per_height
+        * vertical_decay_per_height
+        * terrain_amplitude_field
+    )
 
-        tw = target_wind_speeds[i]
-        tw_mask = target_wind_mask[i]
+    # Scale the terrain perturbation by the local background wind so the
+    # resulting correction is expressed as a fractional speed-up.
+    fractional_perturbation_per_height = np.divide(
+        wind_speed_perturbation_per_height,
+        target_wind_speeds,
+        out=np.zeros_like(target_wind_speeds, dtype=float),
+        where=(
+            np.isfinite(wind_speed_perturbation_per_height)
+            & np.isfinite(target_wind_speeds)
+            & (target_wind_speeds > 0.0)
+        ),
+    )
 
-        fractional_perturbation = np.divide(
-            wind_speed_perturbation,
-            tw,
-            out=np.zeros_like(tw, dtype=float),
-            where=(np.isfinite(wind_speed_perturbation) & np.isfinite(tw) & (tw > 0.0)),
-        )
+    # Limit the terrain-induced change so that its magnitude cannot exceed
+    # the background wind speed while retaining the positive-only speed-up.
+    fractional_perturbation_per_height = np.clip(
+        fractional_perturbation_per_height,
+        perturbation_limits[0],
+        perturbation_limits[1],
+    )
 
-        # Limit the terrain-induced change so that its magnitude cannot exceed
-        # the background wind speed.
-        fractional_perturbation = np.clip(
-            fractional_perturbation,
-            -1.0,
-            1.0,
-        )
+    # The multiplicative correction factor applied to the background wind.
+    speed_up_multiplier_per_height = 1.0 + fractional_perturbation_per_height
 
-        # Speed-up factor = multiplicative correction to the background wind.
-        sf = 1.0 + fractional_perturbation
+    # The target-wind mask already has the same dimensions as target_wind_speeds.
+    target_wind_invalid_per_height = target_wind_mask
+    invalid_ancillary_per_height = invalid_ancillary[np.newaxis, ...]
 
-        target_invalid_debug[i] = tw_mask
-        k_invalid_debug[i] = invalid_characteristic_wavenumber
-        unresolved_orography_invalid_debug[i] = invalid_unresolved_orography
-        reference_height_invalid_debug[i] = invalid_reference_height
-        reference_wind_invalid_debug[i] = invalid_reference_wind
-        roughness_invalid_debug[i] = invalid_roughness_length
-        nonfinite_fractional_debug[i] = ~np.isfinite(fractional_perturbation)
-        nonfinite_sf_debug[i] = ~np.isfinite(sf)
-
-        invalid = tw_mask | invalid_ancillary | ~np.isfinite(sf)
-        speed_up_factor[i] = np.where(invalid, 1.0, sf)
+    invalid = (
+        target_wind_invalid_per_height
+        | invalid_ancillary_per_height
+        | ~np.isfinite(speed_up_multiplier_per_height)
+    )
+    speed_up_factor = np.where(invalid, 1.0, speed_up_multiplier_per_height)
 
     return speed_up_factor
 
@@ -571,21 +657,33 @@ def evaluate_spline_at_reference_heights(
         len(input_heights) - 2,
     )
 
-    y_indices, x_indices = np.indices(reference_heights.shape)
-
     # PCHIP stores polynomial coefficients for each interval as:
     # c[0] * dx**3
     # + c[1] * dx**2
     # + c[2] * dx
     # + c[3]
-    coefficients = spline.c[
-        :,
+    #
+    # spline.c has shape: (4, n_intervals, *trailing_dims), where trailing
+    # dims are all non-height dimensions from the input wind cube.
+    coefficients_all = spline.c
+    extra_shape = coefficients_all.shape[2:-2]
+
+    interval_index = np.reshape(
         interval,
-        y_indices,
-        x_indices,
-    ]
+        (1, 1) + (1,) * len(extra_shape) + interval.shape,
+    )
+    interval_index = np.broadcast_to(
+        interval_index,
+        (4, 1) + extra_shape + interval.shape,
+    )
+    coefficients = np.take_along_axis(
+        coefficients_all,
+        interval_index,
+        axis=1,
+    )[:, 0, ...]
 
     dx = reference_heights.data - input_heights[interval]
+    dx = np.reshape(dx, (1,) * len(extra_shape) + dx.shape)
 
     reference_wind_speed = (
         coefficients[0] * dx**3
@@ -594,7 +692,9 @@ def evaluate_spline_at_reference_heights(
         + coefficients[3]
     )
 
-    return np.ma.array(reference_wind_speed, mask=~valid)
+    valid_mask = np.reshape(~valid, (1,) * len(extra_shape) + valid.shape)
+    valid_mask = np.broadcast_to(valid_mask, reference_wind_speed.shape)
+    return np.ma.array(reference_wind_speed, mask=valid_mask)
 
 
 def _approximate_roughness_length(
@@ -840,6 +940,10 @@ def fit_log_wind_profile(
     lower_height_limit: float = 0.0,
     upper_height_limit: float = 300.0,
     refinement_iterations: int = 20,
+    min_friction_velocity: float = 0.001,
+    max_friction_velocity: float = 5.0,
+    min_roughness_length: float = 1e-5,
+    max_roughness_length: float = 5.0,
 ) -> np.ndarray:
     """
     Fit a neutral logarithmic wind profile at every grid point.
@@ -864,18 +968,32 @@ def fit_log_wind_profile(
         refinement_iterations:
             Number of refinement iterations for roughness-length search.
 
+        min_friction_velocity:
+            Lower clipping bound for the fitted friction velocity, in m s-1.
+
+        max_friction_velocity:
+            Upper clipping bound for the fitted friction velocity, in m s-1.
+
+        min_roughness_length:
+            Lower bound for the fitted aerodynamic roughness length, in metres.
+
+        max_roughness_length:
+            Upper bound for the fitted aerodynamic roughness length, in metres.
+
     Returns:
         roughness_length:
             Fitted z0 values with shape (y, x).
     """
-    von_karman_constant = VON_KARMAN_CONSTANT
-    min_friction_velocity = 0.001
-    max_friction_velocity = 5.0
-    min_roughness_length = 1e-5
-    max_roughness_length = 5.0
+    von_karman_constant = 0.4
 
     heights = np.asarray(get_height_levels_from_cube(wind_speed_cube), dtype=float)
-    wind_speeds = np.ma.asarray(wind_speed_cube.data, dtype=float).filled(np.nan)
+    wind_speeds = _wind_data_with_height_first(wind_speed_cube).filled(np.nan)
+
+    if wind_speeds.shape[0] != heights.size:
+        raise ValueError(
+            "wind_speed_cube data first dimension must match "
+            "its height coordinate size."
+        )
 
     valid_heights = (
         np.isfinite(heights)
@@ -951,7 +1069,10 @@ def fit_spline_wind_profile(
     """
     heights = get_height_levels_from_cube(wind_speed_cube)
     heights = np.asarray(heights, dtype=float)
-    wind_speeds = np.ma.filled(wind_speed_cube.data, fill_value=np.nan).astype(float)
+    wind_speeds = np.ma.filled(
+        _wind_data_with_height_first(wind_speed_cube),
+        fill_value=np.nan,
+    ).astype(float)
 
     if wind_speeds.shape[0] != len(heights):
         raise ValueError(
