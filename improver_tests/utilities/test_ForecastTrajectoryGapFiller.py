@@ -602,7 +602,7 @@ def test_identify_periods_to_regenerate_none_identified():
     cause the plugin to look up cluster_sources["0"] and incorrectly find the
     transition that belongs to realization 0.
     """
-    # Realization 0 has a UKV->MOGREPS-UK transition; realization 2 does not.
+    # Realization 0 has a uk_det->uk_ens transition; realization 2 does not.
     cluster_sources = {
         "0": {"uk_det": [7200, 10800], "uk_ens": [14400, 18000]},
         "2": {"uk_ens": [7200, 10800, 14400, 18000]},
