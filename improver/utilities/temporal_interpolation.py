@@ -1479,12 +1479,9 @@ class ForecastTrajectoryGapFiller(BasePlugin):
 
         # Get all realization indices from the cube's realization coordinate values
         if first_cube.coords("realization"):
-            real_coord = first_cube.coord("realization")
-            # Handle both scalar and dimension coordinates
-            if real_coord.shape == ():  # scalar coordinate
-                realization_indices = [int(real_coord.points)]
-            else:
-                realization_indices = [int(r) for r in real_coord.points]
+            realization_indices = (
+                first_cube.coord("realization").points.astype(int).tolist()
+            )
         else:
             return []
 
@@ -1595,7 +1592,7 @@ class ForecastTrajectoryGapFiller(BasePlugin):
                 or self.interpolation_window_by_source_pair_seconds
             )
             if regeneration_enabled and cube.coords("realization"):
-                n_realizations = len(cube.coord("realization").points)
+                n_realizations = cube.coord("realization").points.size
                 if n_realizations > 1:
                     raise ValueError(
                         "Regeneration mode (cluster_sources_attribute with "
