@@ -628,7 +628,7 @@ def test_identify_periods_to_regenerate_none_identified():
 def test_identify_periods_to_regenerate_one_identified():
     """Test that regeneration is triggered when the input cube's realization has
     a source transition, even if another realization in cluster_sources does not."""
-    # Realization 2 has a UKV->MOGREPS-UK transition; realization 0 does not.
+    # Realization 2 has a uk_det->uk_ens transition; realization 0 does not.
     cluster_sources = {
         "0": {"uk_ens": [7200, 10800, 14400, 18000]},
         "2": {"uk_det": [7200, 10800], "uk_ens": [14400, 18000]},
