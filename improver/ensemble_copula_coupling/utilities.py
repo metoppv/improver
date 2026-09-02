@@ -71,10 +71,11 @@ class CalculatePercentilesFromIntensityDistribution(BasePlugin):
         Args:
             distribution: Type of distribution to fit
                 (currently only 'gamma' is supported).
-            nan_mask_value: Value to mask as NaN before calculating mean and std.
-                This option might be most useful for a diagnostic, such as
-                precipitation rate, where there is a high frequency of zero values.
-                If None, no masking is performed. Default is 0.0.
+            nan_mask_value: Value to mask (and all values below it) as NaN before
+                calculating mean and std. This option might be most useful for a
+                diagnostic, such as precipitation rate, where there is a high frequency
+                of zero values. Values <= nan_mask_value will be masked. If None, no
+                masking is performed. Default is 0.0.
             scale_percentiles_to_probability_lower_bound: If True, the minimum value
                 of the calculated percentiles will be set to the minimum CDF
                 probability implied by the input probabilities, rather than zero.
@@ -114,8 +115,9 @@ class CalculatePercentilesFromIntensityDistribution(BasePlugin):
         Args:
             percentiles: Array of percentiles to be rescaled.
             probabilities: Array of probabilities for scaling.
-            nan_mask_value: Value to mask as NaN before rescaling. If None,
-                no masking is performed.
+            nan_mask_value: Value to mask (and all values below it) as NaN before
+                rescaling. Values <= nan_mask_value will be masked. If None, no
+                masking is performed.
 
         Returns:
             Rescaled percentiles array.
@@ -126,7 +128,7 @@ class CalculatePercentilesFromIntensityDistribution(BasePlugin):
         lower_limit = cdf_probabilities[0]
         upper_limit = np.ones(lower_limit.shape)
         if nan_mask_value is not None:
-            percentiles_nan[percentiles_nan == nan_mask_value] = np.nan
+            percentiles_nan[percentiles_nan <= nan_mask_value] = np.nan
         percentiles_nan[:, np.all(probabilities == 0, axis=0)] = np.nan
         scaled_percentiles_nan = (
             (upper_limit - lower_limit) * percentiles_nan
@@ -159,7 +161,6 @@ class CalculatePercentilesFromIntensityDistribution(BasePlugin):
             Wilks, D. S., 2019: Statistical Methods in the Atmospheric Sciences,
             Academic Press.
         """
-
         from scipy.stats import gamma
 
         if intensity_cube.ndim < 2:
@@ -170,7 +171,7 @@ class CalculatePercentilesFromIntensityDistribution(BasePlugin):
         # Optionally mask a value as NaN before calculating mean and std
         cube_nan = intensity_cube.copy()
         if self.nan_mask_value is not None:
-            cube_nan.data[cube_nan.data == self.nan_mask_value] = np.nan
+            cube_nan.data[cube_nan.data <= self.nan_mask_value] = np.nan
         mean = np.nanmean(cube_nan.data, axis=0)
         std = np.nanstd(cube_nan.data, axis=0)
         # Avoid zero mean or std causing issues.
@@ -247,8 +248,9 @@ def choose_set_of_percentiles(
         probability_cube: Cube containing probability data at a range of thresholds.
         intensity_cube: Cube containing the intensity data to be mapped to percentiles.
         distribution: Type of distribution to fit (currently only 'gamma' is supported).
-        nan_mask_value: Value to mask as NaN before calculating mean and std.
-            If None, no masking is performed. Default is 0.0.
+        nan_mask_value: Value to mask (and all values below it) as NaN before
+            calculating mean and std. Values <= nan_mask_value will be masked. If None,
+            no masking is performed. Default is 0.0.
         scale_percentiles_to_probability_lower_bound: If True, the minimum value
             of the calculated percentiles will be set to the minimum CDF
             probability implied by the input probabilities, rather than zero.

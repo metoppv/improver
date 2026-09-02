@@ -392,3 +392,20 @@ def reset_forecast_reference_time_and_period(cube: Cube, cycletime: str) -> None
         new_forecast_period = forecast_period_coord(cube)
         time_dim = cube.coord_dims("time")
         cube.add_aux_coord(new_forecast_period, data_dims=time_dim)
+
+
+def validate_cycletime_format(cycletime: str) -> None:
+    """Validate that a cycletime string is in the expected format of YYYYMMDDTHHMMZ.
+
+    Args:
+        cycletime: The cycletime string to validate.
+    Raises:
+        ValueError: If the cycletime string is not in the expected format.
+    """
+    try:
+        datetime.strptime(cycletime, DT_FORMAT)
+    except ValueError:
+        raise ValueError(
+            f"cycletime '{cycletime}' is not in the expected format "
+            "YYYYMMDDTHHMMZ (e.g., 20240101T0000Z)"
+        )

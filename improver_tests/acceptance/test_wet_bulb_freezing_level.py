@@ -15,6 +15,7 @@ run_cli = acc.run_cli(CLI)
 
 def test_basic(tmp_path):
     """Test basic wet bulb freezing level calculation"""
+    pytest.importorskip("stratify")
     kgo_dir = acc.kgo_root() / "wet-bulb-freezing-level"
     kgo_path = kgo_dir / "kgo.nc"
     output_path = tmp_path / "output.nc"

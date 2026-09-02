@@ -449,15 +449,15 @@ def split_cubes_for_samos(
     for cube in flatten(cubes):
         if "time" in [c.name() for c in cube.coords()]:
             if truth_key and cube.attributes.get(truth_key) == truth_value:
-                truth.append(cube.copy())
+                truth.append(cube)
             else:
-                forecast.append(cube.copy())
+                forecast.append(cube)
         elif "emos_coefficient" in cube.name():
-            emos_coefficients.append(cube.copy())
+            emos_coefficients.append(cube)
         elif cube.name() in gam_features:
-            gam_additional_fields.append(cube.copy())
+            gam_additional_fields.append(cube)
         else:
-            emos_additional_fields.append(cube.copy())
+            emos_additional_fields.append(cube)
 
     # Check that all required inputs are present and no unexpected cubes have been
     # found.
@@ -643,7 +643,8 @@ def add_static_feature_from_cube_to_df(
     Returns:
         DataFrame with additional feature added from the input cubes.
     """
-    feature_df = as_data_frame(feature_cube, add_aux_coords=True).reset_index()
+    feature_df = as_data_frame(feature_cube, add_aux_coords=True)
+    feature_df.reset_index(inplace=True)
 
     forecast_df = add_feature_from_df_to_df(
         forecast_df, feature_df, feature_name, possible_merge_columns, float_decimals
@@ -680,12 +681,13 @@ def add_feature_from_df_to_df(
     # Select the required DataFrame subset using the merge_columns and dtypes.
     # Columns with any NaNs can not be converted to integers, and therefore are left
     # unmodified.
-    float_subset = feature_df[merge_columns].select_dtypes(
-        include=[np.float32, np.float64]
-    )
-    float_subset = float_subset[float_subset.columns[~float_subset.isnull().any()]]
-
-    float_cols = list(set(float_subset.columns).intersection(set(forecast_df.columns)))
+    float_cols = [
+        col
+        for col in merge_columns
+        if col in forecast_df.columns
+        and feature_df[col].dtype in (np.float32, np.float64)
+        and not feature_df[col].isnull().any()
+    ]
     original_dtypes = forecast_df[float_cols].dtypes
 
     # Scale float columns to integers for both DataFrames to avoid precision issues
