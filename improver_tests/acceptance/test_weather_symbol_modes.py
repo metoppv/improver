@@ -18,6 +18,7 @@ run_cli = acc.run_cli(CLI)
     [
         "gridded_input",
         "spot_input",
+        "spot_input_ec",
         "gridded_ties",
         "spot_ties",
         "blend_mismatch_inputs",
@@ -33,6 +34,8 @@ def test_expected(tmp_path, test_path):
         - simple gridded / spot data input
         - gridded / spot data input engineered to provide many ties that are
           solved using grouping
+        - spot data input from the EC model covering a scenario where different
+          blend times cause cube merging errors in Iris (spot_input_ec)
         - a night-time code test using spot data
         - spot data where one input has a different blend-time to the rest
         - a single input file rather than multiple
