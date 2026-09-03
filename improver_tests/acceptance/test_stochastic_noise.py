@@ -67,7 +67,8 @@ def test_scale_non_positive_noise(tmp_path):
 @pytest.mark.parametrize("specify_fallback", [False, True])
 def test_dry_realizations(tmp_path, specify_fallback):
     """Test stochastic noise addition with scale_non_positive_noise=True
-    and wet_noise_floor set, and where the input realizations are completely dry."""
+    and non_positive_noise_floor set, and where the input realizations are completely
+    dry."""
     kgo_dir = acc.kgo_root() / "stochastic_noise"
     kgo_path = kgo_dir / "dry" / "kgo.nc"
     if specify_fallback:
