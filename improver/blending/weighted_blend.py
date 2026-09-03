@@ -18,7 +18,12 @@ from numpy import ndarray
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD
-from improver.blending.utilities import find_blend_dim_coord, store_record_run_as_coord
+from improver.blending.utilities import (
+    find_blend_dim_coord,
+    remove_blend_time,
+    remove_deprecation_warnings,
+    store_record_run_as_coord,
+)
 from improver.metadata.constants import FLOAT_DTYPE, PERC_COORD
 from improver.metadata.forecast_times import rebadge_forecasts_as_latest_cycle
 from improver.utilities.complex_conversion import complex_to_deg, deg_to_complex
@@ -26,7 +31,6 @@ from improver.utilities.cube_manipulation import (
     MergeCubes,
     collapsed,
     enforce_coordinate_ordering,
-    get_coord_names,
     get_dim_coord_names,
     sort_coord_in_cube,
 )
@@ -131,25 +135,6 @@ class MergeCubesForWeightedBlending(BasePlugin):
             cube.add_aux_coord(new_model_id_coord)
             cube.add_aux_coord(new_model_coord)
 
-    @staticmethod
-    def _remove_blend_time(cube: Cube) -> Cube:
-        """If present on input, remove existing blend time coordinate (as this will
-        be replaced on blending)"""
-        if "blend_time" in get_coord_names(cube):
-            cube.remove_coord("blend_time")
-        return cube
-
-    @staticmethod
-    def _remove_deprecation_warnings(cube: Cube) -> Cube:
-        """Remove deprecation warnings from forecast period and forecast reference
-        time coordinates so that these can be merged before blending"""
-        for coord in ["forecast_period", "forecast_reference_time"]:
-            try:
-                cube.coord(coord).attributes.pop("deprecation_message", None)
-            except CoordinateNotFoundError:
-                pass
-        return cube
-
     def process(
         self,
         cubes_in: Union[List[Cube], Cube, CubeList],
@@ -187,8 +172,8 @@ class MergeCubesForWeightedBlending(BasePlugin):
             )
 
         if "model" in self.blend_coord:
-            cubelist = [self._remove_blend_time(cube) for cube in cubelist]
-            cubelist = [self._remove_deprecation_warnings(cube) for cube in cubelist]
+            cubelist = [remove_blend_time(cube) for cube in cubelist]
+            cubelist = [remove_deprecation_warnings(cube) for cube in cubelist]
             if (
                 self.weighting_coord is not None
                 and "forecast_period" in self.weighting_coord
