@@ -271,17 +271,17 @@ def test_process_scalar_realization_coord():
 def test_process_constant_input(constant_value: float, expect_changed: bool):
     """Data within the input cubes is set to a constant value. Degenerate input
     warning is raised for constant zero input with fallback noise constrained to the
-    dry_fallback_range. For non-zero constant input, no warning is raised and output
-    equals input."""
+    non_positive_fallback_range. For non-zero constant input, no warning is raised and
+    output equals input."""
     data = np.full((4, 4), constant_value, dtype=np.float32)
     cube = set_up_variable_cube(data=data, name="precipitation_rate", units="mm/hr")
 
     if constant_value == 0.0:
-        # Degenerate path requires wet_noise_floor for guaranteed separation.
+        # Degenerate path requires non_positive_noise_floor for guaranteed separation.
         plugin = StochasticNoise(
             ssft_generate_params={"seed": 0},
             scale_non_positive_noise=True,
-            wet_noise_floor=-5.0,
+            non_positive_noise_floor=-5.0,
         )
         with pytest.warns(UserWarning, match="Degenerate input field detected"):
             result = plugin.process(cube)
@@ -314,7 +314,7 @@ def test_process_constant_input_seeded_is_reproducible(constant_value: float):
         plugin = StochasticNoise(
             ssft_generate_params={"seed": 42},
             scale_non_positive_noise=True,
-            wet_noise_floor=-5.0,
+            non_positive_noise_floor=-5.0,
         )
         with pytest.warns(UserWarning, match="Degenerate input field detected"):
             first = plugin.process(cube)
@@ -333,7 +333,7 @@ def test_process_all_zero_input_with_scale_non_positive_noise():
     plugin = StochasticNoise(
         ssft_generate_params={"seed": 0},
         scale_non_positive_noise=True,
-        wet_noise_floor=-5.0,
+        non_positive_noise_floor=-5.0,
     )
 
     data = np.zeros((4, 4), dtype=np.float32)
@@ -356,7 +356,7 @@ def test_process_window_level_degeneracy_fallback():
     plugin = StochasticNoise(
         ssft_generate_params={"seed": 0},
         scale_non_positive_noise=True,
-        wet_noise_floor=-5.0,
+        non_positive_noise_floor=-5.0,
     )
 
     data = np.array(
@@ -389,7 +389,7 @@ def test_process_all_zero_input_constant_fallback_clamps_to_dry_max():
     plugin = StochasticNoise(
         ssft_generate_params={"seed": 0},
         scale_non_positive_noise=True,
-        wet_noise_floor=-5.0,
+        non_positive_noise_floor=-5.0,
     )
 
     # Force a constant fallback field so dry_vmax == dry_vmin in remapping.
@@ -402,17 +402,18 @@ def test_process_all_zero_input_constant_fallback_clamps_to_dry_max():
         result = plugin.process(cube)
 
     assert np.all(np.isfinite(result.data))
-    # Default dry_fallback_range for wet_noise_floor=-5.0 is (-10.0, -5.0), so
-    # the clamp target at zero dynamic range is dry_max == -5.0.
+    # Default non_positive_fallback_range for non_positive_noise_floor=-5.0 is
+    # (-10.0, -5.0), so the clamp target at zero dynamic range is dry_max == -5.0.
     assert np.all(result.data == -5.0)
 
 
-def test_process_wet_path_applies_wet_noise_floor_clip():
-    """Wet SSFT path should clip overly negative scaled noise to wet_noise_floor."""
+def test_process_positive_path_applies_non_positive_noise_floor_clip():
+    """Positive-region SSFT path should clip overly negative scaled noise to
+    non_positive_noise_floor."""
     plugin = StochasticNoise(
         ssft_generate_params={"seed": 0},
         scale_non_positive_noise=True,
-        wet_noise_floor=-5.0,
+        non_positive_noise_floor=-5.0,
     )
 
     data = np.array(
@@ -422,7 +423,8 @@ def test_process_wet_path_applies_wet_noise_floor_clip():
     cube = set_up_variable_cube(data=data, name="precipitation_rate", units="mm/hr")
 
     # Force non-degenerate SSFT path and produce non-positive-region noise values
-    # that become [0, -100] after scaling, so clipping to wet_noise_floor is required.
+    # that become [0, -100] after scaling, so clipping to non_positive_noise_floor is
+    # required.
     plugin.do_fft = lambda _: np.array(
         [[20.0, 0.0], [-40.0, 0.0]],
         dtype=np.float32,
@@ -435,69 +437,71 @@ def test_process_wet_path_applies_wet_noise_floor_clip():
     assert np.any(result.data[non_positive_mask] == -5.0)
 
 
-def test_degenerate_fallback_without_wet_noise_floor_raises():
-    """Degenerate fallback without wet_noise_floor should raise ValueError."""
+def test_degenerate_fallback_without_non_positive_noise_floor_raises():
+    """Degenerate fallback without non_positive_noise_floor should raise ValueError."""
     plugin = StochasticNoise(ssft_generate_params={"seed": 0})
     data = np.zeros((4, 4), dtype=np.float32)
     cube = set_up_variable_cube(data=data, name="precipitation_rate", units="mm/hr")
 
     with pytest.warns(UserWarning, match="Degenerate input field detected"):
-        with pytest.raises(ValueError, match="wet_noise_floor is not set"):
+        with pytest.raises(ValueError, match="non_positive_noise_floor is not set"):
             plugin.process(cube)
 
 
-def test_wet_noise_floor_without_scale_non_positive_noise_raises():
-    """Setting wet_noise_floor without scale_non_positive_noise=True should raise
-    a ValueError."""
+def test_non_positive_noise_floor_without_scale_non_positive_noise_raises():
+    """Setting non_positive_noise_floor without scale_non_positive_noise=True should
+    raise a ValueError."""
     with pytest.raises(
-        ValueError, match="scale_non_positive_noise must be True when wet_noise_floor"
+        ValueError,
+        match="scale_non_positive_noise must be True when non_positive_noise_floor",
     ):
-        StochasticNoise(wet_noise_floor=-5.0)
+        StochasticNoise(non_positive_noise_floor=-5.0)
 
 
-def test_wet_noise_floor_non_negative_raises():
-    """Setting a non-negative wet_noise_floor should raise ValueError."""
-    with pytest.raises(ValueError, match="wet_noise_floor must be negative"):
-        StochasticNoise(wet_noise_floor=0.0, scale_non_positive_noise=True)
+def test_non_positive_noise_floor_non_negative_raises():
+    """Setting a non-negative non_positive_noise_floor should raise ValueError."""
+    with pytest.raises(ValueError, match="non_positive_noise_floor must be negative"):
+        StochasticNoise(non_positive_noise_floor=0.0, scale_non_positive_noise=True)
 
 
-def test_dry_fallback_range_invalid_length_raises():
-    """dry_fallback_range must contain exactly two values."""
+def test_non_positive_fallback_range_invalid_length_raises():
+    """non_positive_fallback_range must contain exactly two values."""
     with pytest.raises(ValueError, match="must contain exactly two values"):
         StochasticNoise(
-            wet_noise_floor=-5.0,
+            non_positive_noise_floor=-5.0,
             scale_non_positive_noise=True,
-            dry_fallback_range=(-10.0,),
+            non_positive_fallback_range=(-10.0,),
         )
 
 
 @pytest.mark.parametrize(
-    "dry_fallback_range",
+    "non_positive_fallback_range",
     [(-5.0, -5.0), (-4.0, -5.0), (-10.0, 1.0)],
 )
-def test_dry_fallback_range_invalid_bounds_raises(dry_fallback_range):
-    """dry_fallback_range bounds must satisfy min < max <= 0."""
+def test_non_positive_fallback_range_invalid_bounds_raises(non_positive_fallback_range):
+    """non_positive_fallback_range bounds must satisfy min < max <= 0."""
     with pytest.raises(ValueError, match="min_value < max_value <= 0"):
         StochasticNoise(
-            wet_noise_floor=-5.0,
+            non_positive_noise_floor=-5.0,
             scale_non_positive_noise=True,
-            dry_fallback_range=dry_fallback_range,
+            non_positive_fallback_range=non_positive_fallback_range,
         )
 
 
-def test_dry_fallback_range_max_above_wet_floor_raises():
-    """dry_fallback_range max must not exceed wet_noise_floor when both are set."""
-    with pytest.raises(ValueError, match="max must be <= wet_noise_floor"):
+def test_non_positive_fallback_range_max_above_non_positive_floor_raises():
+    """non_positive_fallback_range max must not exceed
+    non_positive_noise_floor when both are set."""
+    with pytest.raises(ValueError, match="max must be <= non_positive_noise_floor"):
         StochasticNoise(
-            wet_noise_floor=-5.0,
+            non_positive_noise_floor=-5.0,
             scale_non_positive_noise=True,
-            dry_fallback_range=(-10.0, -4.0),
+            non_positive_fallback_range=(-10.0, -4.0),
         )
 
 
 def test_non_positive_threshold():
     """Test that ValueError is raised for non-positive db_threshold."""
-    with pytest.raises(ValueError, match="db_threshold must be a positive value."):
+    with pytest.raises(ValueError, match="db_threshold must be positive."):
         StochasticNoise(db_threshold=0)
 
 
@@ -514,15 +518,20 @@ def test_init_warning():
         )
 
 
-def test_wet_noise_amplitude_non_positive_raises():
-    """Setting a non-positive wet_noise_amplitude should raise ValueError."""
-    with pytest.raises(ValueError, match="wet_noise_amplitude must be positive"):
-        StochasticNoise(wet_noise_amplitude=0.0)
-    with pytest.raises(ValueError, match="wet_noise_amplitude must be positive"):
-        StochasticNoise(wet_noise_amplitude=-1.0)
+def test_positive_region_noise_amplitude_non_positive_raises():
+    """Setting a non-positive positive_region_noise_amplitude should raise
+    ValueError."""
+    with pytest.raises(
+        ValueError, match="positive_region_noise_amplitude must be positive"
+    ):
+        StochasticNoise(positive_region_noise_amplitude=0.0)
+    with pytest.raises(
+        ValueError, match="positive_region_noise_amplitude must be positive"
+    ):
+        StochasticNoise(positive_region_noise_amplitude=-1.0)
 
 
-def test_process_apply_noise_to_positive_regions():
+def test_process_apply_noise_to_positive_values():
     """Test that noise is applied to positive regions when enabled."""
     data = np.array(
         [
@@ -539,26 +548,28 @@ def test_process_apply_noise_to_positive_regions():
         ssft_generate_params={"seed": 0},
         db_threshold=0.03,
         db_threshold_units="mm/hr",
-        apply_noise_to_positive_regions=False,
+        apply_noise_to_positive_values=False,
     )
-    plugin_with_wet = StochasticNoise(
+    plugin_with_positive = StochasticNoise(
         ssft_init_params={"win_size": (2, 2), "overlap": 0},
         ssft_generate_params={"seed": 0},
         db_threshold=0.03,
         db_threshold_units="mm/hr",
-        apply_noise_to_positive_regions=True,
-        wet_noise_amplitude=0.5,
+        apply_noise_to_positive_values=True,
+        positive_region_noise_amplitude=0.5,
     )
 
     with pytest.warns(UserWarning, match="multi-realization dimension"):
         result_dry_only = plugin_dry_only.process(cube)
     with pytest.warns(UserWarning, match="multi-realization dimension"):
-        result_with_wet = plugin_with_wet.process(cube)
+        result_with_positive = plugin_with_positive.process(cube)
 
     # Non-positive regions should have noise in both cases
     non_positive_mask = data <= 0
     assert np.any(result_dry_only.data[non_positive_mask] != data[non_positive_mask])
-    assert np.any(result_with_wet.data[non_positive_mask] != data[non_positive_mask])
+    assert np.any(
+        result_with_positive.data[non_positive_mask] != data[non_positive_mask]
+    )
 
     # Positive regions should be unchanged in dry-only mode
     positive_mask = data > 0
@@ -566,12 +577,12 @@ def test_process_apply_noise_to_positive_regions():
         result_dry_only.data[positive_mask], data[positive_mask]
     )
 
-    # Positive regions should have noise in wet-region mode
-    assert np.any(result_with_wet.data[positive_mask] != data[positive_mask])
+    # Positive regions should have noise in positive-region mode
+    assert np.any(result_with_positive.data[positive_mask] != data[positive_mask])
 
 
-def test_apply_noise_to_positive_regions_amplitude_scaling():
-    """Test that wet_noise_amplitude correctly scales noise in positive regions."""
+def test_apply_noise_to_positive_values_amplitude_scaling():
+    """Test that positive_region_noise_amplitude correctly scales noise in positive regions."""
     data = np.array(
         [
             [[0.0, 5.0], [0.0, 6.0]],
@@ -590,15 +601,15 @@ def test_apply_noise_to_positive_regions_amplitude_scaling():
         ssft_generate_params={"seed": 0},
         db_threshold=0.03,
         db_threshold_units="mm/hr",
-        apply_noise_to_positive_regions=True,
-        wet_noise_amplitude=1.0,
+        apply_noise_to_positive_values=True,
+        positive_region_noise_amplitude=1.0,
     )
     plugin_half_amplitude = StochasticNoise(
         ssft_generate_params={"seed": 0},
         db_threshold=0.03,
         db_threshold_units="mm/hr",
-        apply_noise_to_positive_regions=True,
-        wet_noise_amplitude=0.5,
+        apply_noise_to_positive_values=True,
+        positive_region_noise_amplitude=0.5,
     )
 
     plugin_full_amplitude.do_fft = mock_do_fft
@@ -618,18 +629,18 @@ def test_apply_noise_to_positive_regions_amplitude_scaling():
     assert np.mean(half_changes) < np.mean(full_changes)
 
 
-@pytest.mark.parametrize("apply_noise_to_positive_regions", [False, True])
-def test_process_constant_input_with_wet_region_noise(
-    apply_noise_to_positive_regions: bool,
+@pytest.mark.parametrize("apply_noise_to_positive_values", [False, True])
+def test_process_constant_input_with_positive_region_noise(
+    apply_noise_to_positive_values: bool,
 ):
-    """Test constant input with and without wet-region noise enabled."""
+    """Test constant input with and without positive-region noise enabled."""
     constant_value = 1.0
     data = np.full((4, 4), constant_value, dtype=np.float32)
     cube = set_up_variable_cube(data=data, name="precipitation_rate", units="mm/hr")
 
     plugin = StochasticNoise(
         ssft_generate_params={"seed": 0},
-        apply_noise_to_positive_regions=apply_noise_to_positive_regions,
+        apply_noise_to_positive_values=apply_noise_to_positive_values,
     )
     result = plugin.process(cube)
 
@@ -637,7 +648,7 @@ def test_process_constant_input_with_wet_region_noise(
     assert result.shape == cube.shape
     assert np.all(np.isfinite(result.data))
 
-    if apply_noise_to_positive_regions:
+    if apply_noise_to_positive_values:
         # With wet-region noise enabled, positive values should be perturbed
         assert np.any(result.data != cube.data)
     else:
@@ -645,18 +656,18 @@ def test_process_constant_input_with_wet_region_noise(
         np.testing.assert_array_equal(result.data, cube.data)
 
 
-@pytest.mark.parametrize("apply_noise_to_positive_regions", [False, True])
-def test_process_constant_input_seeded_is_reproducible_wet_region(
-    apply_noise_to_positive_regions: bool,
+@pytest.mark.parametrize("apply_noise_to_positive_values", [False, True])
+def test_process_constant_input_seeded_is_reproducible_positive_region(
+    apply_noise_to_positive_values: bool,
 ):
-    """Seeded processing with wet-region noise is reproducible."""
+    """Seeded processing with positive-region noise is reproducible."""
     constant_value = 2.0
     data = np.full((4, 4), constant_value, dtype=np.float32)
     cube = set_up_variable_cube(data=data, name="precipitation_rate", units="mm/hr")
 
     plugin = StochasticNoise(
         ssft_generate_params={"seed": 42},
-        apply_noise_to_positive_regions=apply_noise_to_positive_regions,
+        apply_noise_to_positive_values=apply_noise_to_positive_values,
     )
     first = plugin.process(cube)
     second = plugin.process(cube)
@@ -664,7 +675,7 @@ def test_process_constant_input_seeded_is_reproducible_wet_region(
     np.testing.assert_array_equal(first.data, second.data)
 
 
-def test_process_mixed_zero_and_positive_with_wet_noise():
+def test_process_mixed_zero_and_positive_with_positive_noise():
     """Test noise applied to both zero and positive regions when enabled."""
     data = np.array(
         [
@@ -680,8 +691,8 @@ def test_process_mixed_zero_and_positive_with_wet_noise():
         ssft_generate_params={"seed": 0},
         db_threshold=0.03,
         db_threshold_units="mm/hr",
-        apply_noise_to_positive_regions=True,
-        wet_noise_amplitude=0.3,
+        apply_noise_to_positive_values=True,
+        positive_region_noise_amplitude=0.3,
     )
 
     with pytest.warns(UserWarning, match="multi-realization dimension"):
