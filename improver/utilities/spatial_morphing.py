@@ -38,13 +38,24 @@ class SpatialMorphing(BasePlugin):
     configured transition characteristics.
 
     Workflow:
-    1. Split input cubes into forecast cubes and cluster cube (from RealizationClusterAndMatch).
-    2. Validate that all forecast cubes have the same validity time.
-    3. Optionally reset forecast_reference_time based on cycletime.
-    4. Parse cluster mapping attributes to identify which realization from which
-       forecast source corresponds to the requested cluster.
-    5. Extract the selected realizations from each source.
-    6. Apply Google FILM spatial morphing to create seamless blended output.
+    1. Split input cubes into forecast cubes and cluster cube (from
+       RealizationClusterAndMatch).
+    2. Validate that all forecast cubes have the same validity time and, if
+       requested, update forecast_reference_time using the supplied cycletime.
+    3. Parse the cluster mapping attributes to identify the selected source and
+       realization for the requested cluster at the target forecast period.
+    4. Check whether the mapped source/realization is available on the provided
+       input cubes; if not, fall back to an alternative valid source for the same
+       cluster.
+    5. Diagnose the source and realization pair that should be used for any
+       active transition at this forecast period, including the two source models
+       and their weights for the blended result.
+    6. Extract the selected realizations from each contributing source and apply
+       the configured morphing backend (Google FILM by default) to generate a
+       seamless blended output.
+    7. Finalise the output cube by cleaning metadata, setting the selected
+       cluster as the realization coordinate, and recording expected/actual
+       forecast contributor provenance.
 
     This plugin is designed to work with output from RealizationClusterAndMatch,
     providing a more direct spatial morphing alternative to the
@@ -114,6 +125,10 @@ class SpatialMorphing(BasePlugin):
                 result using a weighted source field.
             occurrence_threshold: Threshold used by the quantile mapping routine to
                 determine when a value may be mapped.
+
+        Raises:
+            ValueError: If transition_weights_scheme is not recognised.
+            ValueError: If morphing_method is not recognised.
         """
         self.forecast_period = forecast_period
         self.cluster_number = cluster_number
@@ -170,7 +185,7 @@ class SpatialMorphing(BasePlugin):
 
         Returns:
             A normalised list of transition dictionaries with forecast-period bounds
-            converted to seconds.
+            converted to seconds. If transitions is None, returns an empty list.
 
         Raises:
             ValueError: If the transition data are malformed or missing required
@@ -284,7 +299,18 @@ class SpatialMorphing(BasePlugin):
         selected_source_name: str,
         available_source_names: set[str] | None,
     ) -> dict[str, Any] | None:
-        """Return the first active transition compatible with the source set.
+        """Return the first transition that is both active and compatible.
+
+        In practice, "active" means the transition definition covers the target
+        forecast period, i.e. the period lies between the transition's configured
+        start and end bounds. "Compatible" means the transition can be used with the
+        current source set: one side of the transition must match the selected
+        source name, and the other side must be available on the input forecast
+        cubes (when a source list is supplied).
+
+        This method therefore filters the list of active transitions to those that
+        are relevant to the chosen source and that do not reference a model source
+        which is absent from the available forecast inputs.
 
         Args:
             active_transitions: Transition definitions that are active at the target
@@ -296,8 +322,8 @@ class SpatialMorphing(BasePlugin):
                 available.
 
         Returns:
-            The matching transition dictionary, or None if no compatible transition
-            is found.
+            The matching transition dictionary, or None if no transition is both
+            active and compatible with the currently available source set.
         """
         for tag_a, tag_b in (("source_b", "source_a"), ("source_a", "source_b")):
             matching = [
@@ -437,7 +463,18 @@ class SpatialMorphing(BasePlugin):
         start_forecast_period_seconds: int,
         end_forecast_period_seconds: int,
     ) -> float:
-        """Calculate the interpolation weight between explicit transition bounds."""
+        """Calculate the interpolation weight between explicit transition bounds.
+
+        Args:
+            forecast_period: The forecast period (in seconds) for which to calculate
+                the weight.
+            start_forecast_period_seconds: The start of the transition period (in
+                seconds).
+            end_forecast_period_seconds: The end of the transition period (in
+                seconds).
+        Returns:
+            The interpolation weight as a float between 0.0 and 1.0.
+        """
         if forecast_period <= start_forecast_period_seconds:
             return 0.0
         if forecast_period >= end_forecast_period_seconds:
@@ -466,6 +503,7 @@ class SpatialMorphing(BasePlugin):
 
         Raises:
             ValueError: If weight is outside [0, 1] or if FILM config is missing.
+            RuntimeError: If FILM returns no results.
         """
         if not (0.0 <= weight <= 1.0):
             raise ValueError(f"Weight must be in [0, 1], got {weight}")
@@ -490,7 +528,10 @@ class SpatialMorphing(BasePlugin):
         # Create template cube for interpolation result
         template = cube_a.copy()
 
-        # Call FILM with weight as time_fraction
+        # Call FILM with weight as time_fraction. The backend returns a list of
+        # interpolated cubes for the requested interpolation fractions, so we keep
+        # the single result corresponding to this weight rather than returning the
+        # whole collection.
         result_cubes = interpolator.process(cube_a, cube_b, template)
 
         if len(result_cubes) == 0:
@@ -501,7 +542,15 @@ class SpatialMorphing(BasePlugin):
     def _apply_morphing_backend(
         self, cube_a: Cube, cube_b: Cube, weight: float
     ) -> Cube:
-        """Apply the configured morphing backend between two source cubes."""
+        """Apply the configured morphing backend between two source cubes.
+        Args:
+            cube_a: First source cube.
+            cube_b: Second source cube.
+            weight: Morphing weight (0.0 to 1.0).
+
+        Returns:
+            Morphed cube at the specified weight.
+        """
         if self.morphing_method == "google_film":
             return self._call_google_film_for_morphing(cube_a, cube_b, weight)
         if self.morphing_method == "linear":
@@ -510,7 +559,6 @@ class SpatialMorphing(BasePlugin):
                 np.float32
             )
             return result
-        raise ValueError("morphing_method must be 'google_film' or 'linear'")
 
     def _select_single_source_cube(
         self,
@@ -518,7 +566,20 @@ class SpatialMorphing(BasePlugin):
         realization_index: int | None,
         forecast_cubes: CubeList,
     ) -> Cube | None:
-        """Select a single source cube for a given realization index.
+        """Select the single source cube needed for morphing.
+
+        This is a convenience wrapper around the more general
+        ``RealizationSelection.select_realizations_for_clusters`` helper. The
+        generic helper is designed to select a list of cubes for a cluster-to-
+        source mapping, whereas the morphing path needs exactly one field for one
+        source and one realization at a time. This method therefore builds a
+        one-entry cluster selection map, extracts the matching cube, and returns
+        the result directly.
+
+        A ``None`` return indicates that the requested source/realization pair is
+        not available in the current input cube set. This is handled gracefully in
+        the transition logic as a non-fatal fallback so morphing can skip an
+        unavailable source rather than aborting the whole selection.
 
         Args:
             source_name: Source model identifier from model_id_attr.
@@ -526,7 +587,9 @@ class SpatialMorphing(BasePlugin):
             forecast_cubes: Input forecast cubes.
 
         Returns:
-            Selected cube, or None if source/realization cannot be extracted.
+            The selected source cube for the requested source and realization, or
+            ``None`` if the source/realization cannot be extracted from the
+            available inputs.
         """
         if realization_index is None:
             return None
@@ -549,7 +612,25 @@ class SpatialMorphing(BasePlugin):
         realization: int | None,
         weight: float,
     ) -> dict[str, Any]:
-        """Create a contributor record for output provenance attributes."""
+        """Create a provenance contributor record for one blended source.
+
+        A contributor record describes one input field that contributed to the
+        final morphed output for a given transition. It is a lightweight summary of
+        the source model name, the realization index selected from that source, and
+        the weight assigned to that source in the blended result. These records are
+        then attached to the output cube as provenance metadata so the downstream
+        forecast can be traced back to the specific model/realization combination
+        that contributed to each part of the transition.
+
+        Args:
+            source: Source model identifier.
+            realization: Realization index, or None if not applicable.
+            weight: Relative contribution of this source to the blended output.
+
+        Returns:
+            A dictionary representing one contributor entry, for example:
+            {"source": "model_a", "realization": 5, "weight": 0.75}.
+        """
         return {
             "source": source,
             "realization": None if realization is None else int(realization),
@@ -669,7 +750,9 @@ class SpatialMorphing(BasePlugin):
             A tuple of the validated forecast cubes and the cluster cube.
 
         Raises:
-            ValueError: If no cluster cube or forecast cubes are present.
+            ValueError: If the input cubes do not include a cluster cube or valid
+                forecast cubes, or if the forecast cubes are not all at a common
+                validity time.
         """
         if len(cubes) == 1 and isinstance(cubes[0], CubeList):
             cubes = tuple(cubes[0])
@@ -701,8 +784,16 @@ class SpatialMorphing(BasePlugin):
             A tuple of:
             - full_cluster_to_selection: mapping from cluster number to selected
               source/realization
-            - primary_map: primary realization map
-            - secondary_map: secondary realization map
+            - primary_map: Primary cluster-to-realization mapping e.g.
+                {'0': 49, '1': 33, '2': 44, '3': 29} where the key is the cluster
+                number and the value is the realization index.
+            - secondary_map: Secondary realization map e.g.
+                {'source_a': {'0': [{'realization': 17, 'forecast_periods':
+                [475200, 518400, 561600, 604800, 648000]}]}} where the key is the
+                source name, the value is a dictionary keyed by cluster number.
+
+        Raises:
+            ValueError: If the requested cluster number is not found in the mapping.
         """
         primary_map, secondary_map = self._selection_helper.parse_mapping_attributes(
             cluster_cube
@@ -971,7 +1062,13 @@ class SpatialMorphing(BasePlugin):
                 {'0': 49, '1': 33, '2': 44, '3': 29} where the key is the cluster
                 number and the value is the realization index.
             cluster_cube: Cube containing cluster metadata.
-            full_cluster_to_selection: Full selection map for the cluster.
+            full_cluster_to_selection: Mapping from every cluster number to the
+                selected source and realization for that cluster, e.g.
+                {0: ("uk_ens", 8), 1: ("uk_ens", 7), 2: ("uk_ens", 6)}. This is
+                the comprehensive cluster-to-source selection table used to resolve
+                source/realization choices across all clusters; the current cluster
+                number is then selected from this table when a transition is being
+                evaluated.
 
         Returns:
             A tuple of ``(cube_a, cube_b, weight, source_a_realization,
@@ -1035,7 +1132,14 @@ class SpatialMorphing(BasePlugin):
         )
 
     def _finalise_output_cube(self, result_cube: Cube) -> Cube:
-        """Apply final attribute and coordinate cleanup before returning output."""
+        """Apply final attribute and coordinate cleanup before returning output.
+
+        Args:
+            result_cube (Cube): The cube to be finalised.
+
+        Returns:
+            Cube: The finalised cube with cleaned-up attributes and coordinates.
+        """
         result_cube = remove_blend_time(result_cube)
         result_cube = remove_deprecation_warnings(result_cube)
 
@@ -1053,6 +1157,222 @@ class SpatialMorphing(BasePlugin):
 
         if self.selection_attr is not None:
             result_cube.attributes[self.selection_attr] = self.selection_attr_value
+
+        return result_cube
+
+    def _diagnose_expected_morphing_contributions(
+        self,
+        expected_selected_source: str,
+        expected_selected_realization: int,
+        full_cluster_to_selection: dict[int, tuple[str, int]],
+        primary_map: dict[str, int],
+        secondary_map: dict[str, dict[str, list[dict[str, list[int]]]]] | None,
+        cluster_cube: Cube,
+    ) -> None:
+        """Set expected provenance metadata for the selected cluster and forecast.
+
+        This method determines whether the selected cluster falls within an active
+        transition and, if so, records the expected source/realization
+        contribution(s) that should appear in the final blended output. The values
+        are stored in ``self.expected_forecast_contributors`` for later provenance
+        reporting.
+
+        Args:
+            expected_selected_source: Source model selected by the initial cluster
+                mapping.
+            expected_selected_realization: Realization selected by the initial
+                cluster mapping.
+            full_cluster_to_selection: Full cluster-to-source/realization lookup.
+            primary_map: Primary cluster-to-realization mapping e.g.
+                {'0': 49, '1': 33, '2': 44, '3': 29} where the key is the cluster
+                number and the value is the realization index.
+            secondary_map: Secondary realization map e.g.
+                {'source_a': {'0': [{'realization': 17, 'forecast_periods':
+                [475200, 518400, 561600, 604800, 648000]}]}} where the key is the
+                source name, the value is a dictionary keyed by cluster number.
+            cluster_cube: Cube containing the cluster metadata used to diagnose
+                source/realization selections.
+        """
+        self.expected_forecast_contributors = [
+            self._as_contributor(
+                expected_selected_source,
+                expected_selected_realization,
+                1.0,
+            )
+        ]
+        self.actual_forecast_contributors = []
+
+        try:
+            expected_transition = self._find_active_transition(
+                self.forecast_period,
+                selected_source_name=expected_selected_source,
+            )
+        except ValueError:
+            expected_transition = None
+        if expected_transition is None:
+            return
+
+        source_a = expected_transition["source_a"]
+        source_b = expected_transition["source_b"]
+        source_a_realization = self._diagnose_realization_for_source(
+            source_name=source_a,
+            cluster_number=self.cluster_number,
+            target_period=expected_transition["start_forecast_period_seconds"],
+            secondary_map=secondary_map,
+            primary_map=primary_map,
+            cluster_cube=cluster_cube,
+            full_cluster_to_selection=full_cluster_to_selection,
+        )
+        source_b_realization = self._diagnose_realization_for_source(
+            source_name=source_b,
+            cluster_number=self.cluster_number,
+            target_period=expected_transition["end_forecast_period_seconds"],
+            secondary_map=secondary_map,
+            primary_map=primary_map,
+            cluster_cube=cluster_cube,
+            full_cluster_to_selection=full_cluster_to_selection,
+        )
+        expected_weight = self._calculate_transition_weight(
+            self.forecast_period,
+            expected_transition["start_forecast_period_seconds"],
+            expected_transition["end_forecast_period_seconds"],
+        )
+        if self.transition_weights_scheme == "smoothstep":
+            expected_weight = (
+                expected_weight * expected_weight * (3.0 - 2.0 * expected_weight)
+            )
+
+        if expected_weight <= 0.0:
+            self.expected_forecast_contributors = [
+                self._as_contributor(source_a, source_a_realization, 1.0)
+            ]
+        elif expected_weight >= 1.0:
+            self.expected_forecast_contributors = [
+                self._as_contributor(source_b, source_b_realization, 1.0)
+            ]
+        else:
+            self.expected_forecast_contributors = [
+                self._as_contributor(
+                    source_a, source_a_realization, 1.0 - expected_weight
+                ),
+                self._as_contributor(source_b, source_b_realization, expected_weight),
+            ]
+
+    def _apply_morphing(
+        self,
+        result_cube: Cube,
+        cluster_to_selection: dict[int, tuple[str, int]],
+        forecast_cubes: CubeList,
+        cluster_cube: Cube,
+        full_cluster_to_selection: dict[int, tuple[str, int]],
+        primary_map: dict[str, int],
+        secondary_map: dict[str, dict[str, list[dict[str, list[int]]]]] | None,
+    ) -> Cube:
+        """Apply any active transition morphing and update provenance metadata.
+
+        This method resolves the actual source selected for the current cluster,
+        checks whether the forecast period lies within a configured transition,
+        and, if so, applies the active source transition logic (including optional
+        quantile mapping) before returning the final cube for provenance
+        finalisation.
+
+        Args:
+            result_cube: The cube selected before any transition remapping.
+            cluster_to_selection: Selected source and realization for the current
+                cluster after any fallback logic.
+            forecast_cubes: Available forecast cubes.
+            cluster_cube: Cube containing the cluster metadata.
+            full_cluster_to_selection: Full cluster-to-source/realization lookup.
+            primary_map: Primary cluster-to-realization mapping e.g.
+                {'0': 49, '1': 33, '2': 44, '3': 29} where the key is the cluster
+                number and the value is the realization index.
+            secondary_map: Secondary realization map e.g.
+                {'source_a': {'0': [{'realization': 17, 'forecast_periods':
+                [475200, 518400, 561600, 604800, 648000]}]}} where the key is the
+                source name, the value is a dictionary keyed by cluster number.
+
+        Returns:
+            The cube after the active transition has been applied (if any), or the
+            original result cube when no transition is active.
+        """
+        selected_source_name, selected_realization = cluster_to_selection[
+            self.cluster_number
+        ]
+        self.actual_forecast_contributors = [
+            self._as_contributor(selected_source_name, selected_realization, 1.0)
+        ]
+
+        available_source_names = {
+            cube.attributes.get(self.model_id_attr)
+            for cube in forecast_cubes
+            if cube.attributes.get(self.model_id_attr) is not None
+        }
+        active_transition = self._find_active_transition(
+            self.forecast_period,
+            selected_source_name=selected_source_name,
+            available_source_names=available_source_names,
+        )
+
+        if active_transition is None:
+            return result_cube
+
+        (
+            cube_a,
+            cube_b,
+            weight,
+            source_a_realization,
+            source_b_realization,
+        ) = self._select_transition_source_cubes(
+            active_transition,
+            forecast_cubes,
+            self.cluster_number,
+            secondary_map,
+            primary_map,
+            cluster_cube,
+            full_cluster_to_selection,
+        )
+
+        if cube_a is None or cube_b is None:
+            return result_cube
+
+        if weight is not None and weight <= 0.0:
+            result_cube = cube_a
+            self.actual_forecast_contributors = [
+                self._as_contributor(
+                    active_transition["source_a"], source_a_realization, 1.0
+                )
+            ]
+        elif weight is not None and weight >= 1.0:
+            result_cube = cube_b
+            self.actual_forecast_contributors = [
+                self._as_contributor(
+                    active_transition["source_b"], source_b_realization, 1.0
+                )
+            ]
+        else:
+            result_cube = self._apply_morphing_backend(
+                cube_a,
+                cube_b,
+                weight,
+            )
+            self.actual_forecast_contributors = [
+                self._as_contributor(
+                    active_transition["source_a"],
+                    source_a_realization,
+                    1.0 - weight,
+                ),
+                self._as_contributor(
+                    active_transition["source_b"], source_b_realization, weight
+                ),
+            ]
+
+        if self.apply_quantile_mapping and weight is not None and 0.0 < weight < 1.0:
+            result_cube = self.apply_quantile_mapping_to_morphed(
+                result_cube,
+                cube_a,
+                cube_b,
+                weight=weight,
+            )
 
         return result_cube
 
@@ -1074,86 +1394,38 @@ class SpatialMorphing(BasePlugin):
             morphed realization, relabelled to cluster_number.
 
         Raises:
-            ValueError: If cluster cube not found, forecast cubes missing, or
-                if selected realization cannot be extracted.
-            RuntimeError: If Google FILM morphing fails.
+            RuntimeError: If no realization is selected for the requested cluster.
         """
         forecast_cubes, cluster_cube = self._prepare_inputs(*cubes)
+        # full_cluster_to_selection is the full lookup table for every cluster,
+        # mapping each cluster number to the selected source and realization used
+        # for that cluster at the chosen forecast period.
         full_cluster_to_selection, primary_map, secondary_map = (
             self._resolve_cluster_selection(cluster_cube)
         )
 
+        # cluster_to_selection restricts that full lookup to the current cluster.
         cluster_to_selection = {
             self.cluster_number: full_cluster_to_selection[self.cluster_number]
         }
         expected_selected_source, expected_selected_realization = cluster_to_selection[
             self.cluster_number
         ]
-        self.expected_forecast_contributors = [
-            self._as_contributor(
-                expected_selected_source,
-                expected_selected_realization,
-                1.0,
-            )
-        ]
-        self.actual_forecast_contributors = []
 
-        try:
-            expected_transition = self._find_active_transition(
-                self.forecast_period,
-                selected_source_name=expected_selected_source,
-            )
-        except ValueError:
-            expected_transition = None
-        if expected_transition is not None:
-            source_a = expected_transition["source_a"]
-            source_b = expected_transition["source_b"]
-            source_a_realization = self._diagnose_realization_for_source(
-                source_name=source_a,
-                cluster_number=self.cluster_number,
-                target_period=expected_transition["start_forecast_period_seconds"],
-                secondary_map=secondary_map,
-                primary_map=primary_map,
-                cluster_cube=cluster_cube,
-                full_cluster_to_selection=full_cluster_to_selection,
-            )
-            source_b_realization = self._diagnose_realization_for_source(
-                source_name=source_b,
-                cluster_number=self.cluster_number,
-                target_period=expected_transition["end_forecast_period_seconds"],
-                secondary_map=secondary_map,
-                primary_map=primary_map,
-                cluster_cube=cluster_cube,
-                full_cluster_to_selection=full_cluster_to_selection,
-            )
-            expected_weight = self._calculate_transition_weight(
-                self.forecast_period,
-                expected_transition["start_forecast_period_seconds"],
-                expected_transition["end_forecast_period_seconds"],
-            )
-            if self.transition_weights_scheme == "smoothstep":
-                expected_weight = (
-                    expected_weight * expected_weight * (3.0 - 2.0 * expected_weight)
-                )
+        # self.expected_forecast_contributors records the contribution(s) that we
+        # expect to be present in the final blended output before the actual
+        # source cubes are selected and morphed.
+        self._diagnose_expected_morphing_contributions(
+            expected_selected_source,
+            expected_selected_realization,
+            full_cluster_to_selection,
+            primary_map,
+            secondary_map,
+            cluster_cube,
+        )
 
-            if expected_weight <= 0.0:
-                self.expected_forecast_contributors = [
-                    self._as_contributor(source_a, source_a_realization, 1.0)
-                ]
-            elif expected_weight >= 1.0:
-                self.expected_forecast_contributors = [
-                    self._as_contributor(source_b, source_b_realization, 1.0)
-                ]
-            else:
-                self.expected_forecast_contributors = [
-                    self._as_contributor(
-                        source_a, source_a_realization, 1.0 - expected_weight
-                    ),
-                    self._as_contributor(
-                        source_b, source_b_realization, expected_weight
-                    ),
-                ]
-
+        # cluster_to_selection may be updated here to use a valid fallback source
+        # and realization if the initially mapped source is absent or invalid.
         cluster_to_selection = self._resolve_cluster_selection_with_available_sources(
             cluster_to_selection,
             forecast_cubes,
@@ -1170,83 +1442,17 @@ class SpatialMorphing(BasePlugin):
             )
 
         result_cube = selected_cubes[0]
-        selected_source_name, selected_realization = cluster_to_selection[
-            self.cluster_number
-        ]
-        self.actual_forecast_contributors = [
-            self._as_contributor(selected_source_name, selected_realization, 1.0)
-        ]
-
-        available_source_names = {
-            cube.attributes.get(self.model_id_attr)
-            for cube in forecast_cubes
-            if cube.attributes.get(self.model_id_attr) is not None
-        }
-        active_transition = self._find_active_transition(
-            self.forecast_period,
-            selected_source_name=selected_source_name,
-            available_source_names=available_source_names,
+        # self.actual_forecast_contributors is updated inside _apply_morphing
+        # to reflect the source(s) that actually contributed to the final output
+        # after any active transition and fallback resolution.
+        result_cube = self._apply_morphing(
+            result_cube,
+            cluster_to_selection,
+            forecast_cubes,
+            cluster_cube,
+            full_cluster_to_selection,
+            primary_map,
+            secondary_map,
         )
-
-        if active_transition is not None:
-            (
-                cube_a,
-                cube_b,
-                weight,
-                source_a_realization,
-                source_b_realization,
-            ) = self._select_transition_source_cubes(
-                active_transition,
-                forecast_cubes,
-                self.cluster_number,
-                secondary_map,
-                primary_map,
-                cluster_cube,
-                full_cluster_to_selection,
-            )
-
-            if cube_a is not None and cube_b is not None:
-                if weight is not None and weight <= 0.0:
-                    result_cube = cube_a
-                    self.actual_forecast_contributors = [
-                        self._as_contributor(
-                            active_transition["source_a"], source_a_realization, 1.0
-                        )
-                    ]
-                elif weight is not None and weight >= 1.0:
-                    result_cube = cube_b
-                    self.actual_forecast_contributors = [
-                        self._as_contributor(
-                            active_transition["source_b"], source_b_realization, 1.0
-                        )
-                    ]
-                else:
-                    result_cube = self._apply_morphing_backend(
-                        cube_a,
-                        cube_b,
-                        weight,
-                    )
-                    self.actual_forecast_contributors = [
-                        self._as_contributor(
-                            active_transition["source_a"],
-                            source_a_realization,
-                            1.0 - weight,
-                        ),
-                        self._as_contributor(
-                            active_transition["source_b"], source_b_realization, weight
-                        ),
-                    ]
-
-                if (
-                    self.apply_quantile_mapping
-                    and weight is not None
-                    and 0.0 < weight < 1.0
-                ):
-                    result_cube = self.apply_quantile_mapping_to_morphed(
-                        result_cube,
-                        cube_a,
-                        cube_b,
-                        weight=weight,
-                    )
 
         return self._finalise_output_cube(result_cube)

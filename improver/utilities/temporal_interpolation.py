@@ -2047,6 +2047,13 @@ class GoogleFilmInterpolation(BasePlugin):
                 Optional callable to load the TensorFlow model. This is mainly
                 intended for use in testing where a mock model loader can be
                 supplied. If None, the default model loader will be used.
+            interpolation_fractions:
+                Optional fraction, or sequence of fractions, describing progress
+                from cube1 to cube2. Values must lie between 0 and 1.
+                If omitted, fractions are calculated from the input and output
+                validity times, giving the existing temporal interpolation
+                behaviour. If supplied, cube1 and cube2 may have the same validity time.
+                This supports source morphing at constant validity time.
 
         Raises:
             ValueError: If an unsupported scaling method is provided.
@@ -2171,6 +2178,21 @@ class GoogleFilmInterpolation(BasePlugin):
         validity times. Otherwise, the supplied interpolation fractions describe
         progress from cube1 to cube2, where 0 corresponds to cube1 and 1 corresponds
         to cube2.
+
+        Args:
+            cube1: The first input cube.
+            cube2: The second input cube.
+            template_slices: List of template slices over time.
+
+        Returns:
+            List of interpolation fractions for each output slice.
+
+        Raises:
+            ValueError: If cube1 and cube2 have the same validity time and
+                interpolation_fractions is None.
+            ValueError: If the number of supplied interpolation fractions does not
+                match the number of template slices.
+            ValueError: If any interpolation fraction is not finite or not in [0, 1].
         """
         if self.interpolation_fractions is None:
             t0 = cube1.coord("time").points[0]
@@ -2393,7 +2415,6 @@ class GoogleFilmInterpolation(BasePlugin):
         cube1: Cube,
         cube2: Cube,
         template_interpolated_cube: Cube,
-        interpolation_fractions: float | Sequence[float] | None = None,
     ) -> CubeList:
         """Interpolate or morph between two cubes using Google FILM.
 
@@ -2404,19 +2425,15 @@ class GoogleFilmInterpolation(BasePlugin):
                 Second input cube. This corresponds to a FILM fraction of 1.
             template_interpolated_cube:
                 Cube supplying the metadata for the output slices.
-            interpolation_fractions:
-                Optional fraction, or sequence of fractions, describing progress
-                from cube1 to cube2. Values must lie between 0 and 1.
-
-                If omitted, fractions are calculated from the input and output
-                validity times, giving the existing temporal interpolation
-                behaviour.
-
-                If supplied, cube1 and cube2 may have the same validity time.
-                This supports source morphing at constant validity time.
 
         Returns:
             A CubeList containing the FILM-generated cubes.
+
+        Raises:
+            ValueError: Only one additional dimension apart from spatial dimensions is
+                supported.
+            ValueError: If the additional dimension coordinate does not match between
+                cube1 and cube2.
         """
         spatial_dims = [
             "projection_x_coordinate",

@@ -14,21 +14,29 @@ run_cli = acc.run_cli(CLI)
 
 
 @pytest.mark.parametrize(
-    "transitions,kgo,quantile_mapping",
+    "transitions,kgo,quantile_mapping,scheme",
     [
-        ("no_implied_transitions.json", "no_implied_transitions_kgo.nc", False),
-        ("transitions.json", "kgo.nc", False),
-        ("transitions.json", "kgo_with_qm.nc", True),
+        (
+            "no_implied_transitions.json",
+            "no_implied_transitions_kgo.nc",
+            False,
+            "linear",
+        ),
+        ("transitions.json", "kgo.nc", False, "linear"),
+        ("transitions.json", "kgo_smoothstep.nc", False, "smoothstep"),
+        ("transitions.json", "kgo_with_qm.nc", True, "linear"),
     ],
 )
-def test_spatial_morphing(tmp_path, transitions, kgo, quantile_mapping):
+def test_spatial_morphing(tmp_path, transitions, kgo, quantile_mapping, scheme):
     """Test using spatial morphing between two forecast sources with a cluster cube
     and a transitions file. This tests the situation where 1) there is no
     transition between the two sources so one of the input sources is returned,
     2) there is a transition between the two sources, and 3) there is a transition
     between the two sources and quantile mapping is applied. When using a linear
     morphing method, the quantile mapping has no effect, although it does have an
-    effect when using the Google FILM morphing method."""
+    effect when using the Google FILM morphing method. The Google FILM morphing method
+    is not tested here as it requires a model file to be provided, which is not
+    available in the KGO data."""
     kgo_dir = acc.kgo_root() / "spatial-morphing"
     kgo_path = kgo_dir / kgo
     cluster_path = kgo_dir / "clustering_result.nc"
@@ -49,6 +57,9 @@ def test_spatial_morphing(tmp_path, transitions, kgo, quantile_mapping):
         "--output",
         output_path,
     ]
+    if scheme:
+        args.extend(["--transition-weights-scheme", scheme])
+
     if quantile_mapping:
         args.extend(["--apply-quantile-mapping=True"])
         args.extend(["--occurrence-threshold", "0.00003"])
