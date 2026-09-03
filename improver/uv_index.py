@@ -5,6 +5,7 @@
 """Module for calculating the uv index using radiation flux in UV downward
 at the surface."""
 
+import warnings
 from typing import Optional
 
 import numpy as np
@@ -31,10 +32,11 @@ def calculate_uv_index(
             see above or the paper referenced for more details.(W m-2)
         scale_factor:
             The uv scale factor. Default is 3.6 (m2 W-1). This factor has
-            been empirically derived and should not be
-            changed except if there are scientific reasons to
-            do so. For more information see section 2.1.1 of the paper
-            referenced below.
+            been empirically derived, for Met Office UM UV data, and should not be
+            changed except if there are scientific reasons to do so.
+            For more information see section 2.1.1 of the paper referenced below.
+            However, for ECMWF UV data, a scale factor of 0.1 is recommended based on
+            an internal report (Schuhen, 2015) referenced below.
         model_id_attr:
             Name of the attribute used to identify the source model for
             blending.
@@ -47,11 +49,16 @@ def calculate_uv_index(
         ValueError: If uv_downward contains values that are negative or
         not a number.
 
+    Warning:
+        - If scale_factor has been changed from the default 3.6 (m2 W-1).
+
     References:
         Turner, E.C, Manners, J. Morcrette, C. J, O'Hagan, J. B,
         & Smedley, A.R.D. (2017): Toward a New UV Index Diagnostic
         in the Met Office's Forecast Model. Journal of Advances in
         Modeling Earth Systems 9, 2654-2671.
+        Schuhen, N. (2015). Obtaining a UV index forecast from ECMWF model output.
+        https://code.metoffice.gov.uk/trac/PostProc/attachment/ticket/1447/method.pdf
 
     """
 
@@ -70,6 +77,14 @@ def calculate_uv_index(
             "that is negative or NaN. Data should be >= 0."
         )
         raise ValueError(msg)
+
+    if scale_factor != 3.6:
+        msg = (
+            f"The scale_factor is not the default 3.6 (m2 W-1) but {scale_factor}. "
+            "This default factor has been empirically derived and should not be "
+            "changed except if there are scientific reasons to do so."
+        )
+        warnings.warn(msg)
 
     uv_downward.convert_units("W m-2")
     uv_data = (uv_downward.data * scale_factor).astype(np.float32)
