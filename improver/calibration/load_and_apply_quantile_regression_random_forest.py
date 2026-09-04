@@ -47,6 +47,7 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
         unique_site_id_keys: list[str] = ["wmo_id"],
         cycletime: Optional[str] = None,
         forecast_period: Optional[int] = None,
+        max_allowed_difference: Optional[np.float32] = None,
     ):
         """Initialise the plugin.
 
@@ -83,6 +84,9 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
                 The forecast period of the forecast to be calibrated in seconds. If not
                 provided, the forecast period found in the first forecast cube
                 will be used.
+            max_allowed_difference (float, optional):
+                The maximum allowed difference for the forecast calibration. If not
+                provided, no maximum difference check will be applied. Defaults to None.
         """
         self.feature_config = feature_config
         self.target_cf_name = target_cf_name
@@ -90,6 +94,7 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
         self.cycletime = cycletime
         self.forecast_period = forecast_period
         self.quantile_forest_installed = quantile_forest_package_available()
+        self.max_allowed_difference = max_allowed_difference
 
     def _get_inputs(
         self,
@@ -240,24 +245,6 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
             DataFrame containing the data from the cubes, with auxiliary coordinates
             included as columns.
         """
-        # if self.cycletime:
-        #     cycletime = pd.to_datetime(self.cycletime, format="%Y%m%dT%H%MZ")
-        # else:
-        #     cycletime = cube_inputs[0].coord("forecast_reference_time").points
-
-        # if self.forecast_period:
-        #     forecast_period = self.forecast_period
-        # else:
-        #     forecast_period = cube_inputs[0].coord("forecast_period").points
-
-        # # Update the forecast_reference_time and forecast_period to match those
-        # # provided, if they are provided.
-        # for cube in cube_inputs:
-        #     if "forecast_reference_tim" in [coord.name() for coord in cube.coords()]:
-        #         cube.coord("forecast_reference_time").points = cycletime
-        #     if "forecast_period" in [coord.name() for coord in cube.coords()]:
-        #         cube.coord("forecast_period").points = forecast_period
-
         # Convert the first cube to a DataFrame.
         df = as_data_frame(cube_inputs[0], add_aux_coords=True)
         df.reset_index(inplace=True)
@@ -313,7 +300,6 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
             # Descriptors expected: (qrf_model, transformation, pre_transform_addition)
             qrf_descriptors = (None, None, 0)
         qrf_model, transformation, pre_transform_addition = qrf_descriptors
-
         cube_inputs, forecast_cube = self._get_inputs(cube_inputs, qrf_model=qrf_model)
 
         if cube_inputs:
@@ -351,6 +337,7 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
             transformation=transformation,
             pre_transform_addition=pre_transform_addition,
             unique_site_id_keys=self.unique_site_id_keys,
+            max_allowed_difference=self.max_allowed_difference,
         )(qrf_model, df)
         del df
 

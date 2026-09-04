@@ -290,7 +290,7 @@ class LoadForTrainQRF(PostProcessingPlugin):
                 np.array(forecast_periods) * seconds_to_ns
             )
         ].reset_index(drop=True)
-        
+
         # Convert df columns from ns to pandas timestamp object.
         for column in ["time", "forecast_reference_time", "blend_time"]:
             forecast_df[column] = pd.to_datetime(
