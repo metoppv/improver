@@ -717,8 +717,20 @@ class SpatialMorphing(BasePlugin):
     def apply_quantile_mapping_to_morphed(
         self, result_cube: Cube, source_a: Cube, source_b: Cube, weight: float
     ) -> Cube:
-        """
-        Apply quantile mapping to the result cube based on source cubes and weight.
+        """Apply quantile mapping within the union of the active source masks.
+
+        A pixel is considered "active" if it is finite in both source fields and
+        either source value exceeds the configured occurrence threshold. The
+        transition is therefore restricted to the union of these active-source
+        pixels, ensuring that the morphed field cannot create precipitation
+        outside the spatial support of either input field.
+
+        Within this active mask, the signal values from source_a and source_b are
+        treated as the relevant subset for intensity correction. Their occurrence
+        fractions are blended using the morphing weight, and the corresponding
+        quantile values are combined in the same way to construct a reference
+        distribution. This reference field is then passed to QuantileMapping,
+        while all pixels outside the active union mask are forced to zero.
 
         Args:
             result_cube: Cube to be adjusted.
@@ -727,17 +739,85 @@ class SpatialMorphing(BasePlugin):
             weight: Morphing weight (0=source A, 1=source B).
 
         Returns:
-            Adjusted result cube.
+            A cube calibrated within the active source union. Pixels outside that
+            union are set to zero.
         """
-        weighted_source_cube = result_cube.copy()
-        weighted_source_cube.data = (
-            1.0 - weight
-        ) * source_a.data + weight * source_b.data
+        threshold = float(self.occurrence_threshold)
+        source_a_data = np.asarray(source_a.data, dtype=np.float32)
+        source_b_data = np.asarray(source_b.data, dtype=np.float32)
+        result_data = np.asarray(result_cube.data, dtype=np.float32)
+        valid_mask = np.isfinite(source_a_data) & np.isfinite(source_b_data)
+        if not np.any(valid_mask):
+            return result_cube
 
-        result = QuantileMapping(
-            occurrence_threshold=self.occurrence_threshold
-        ).process(result_cube, weighted_source_cube)
-        return result
+        # Active pixels are those that are finite in both sources and exceed the
+        # occurrence threshold in at least one source. This keeps the transition
+        # inside the union of the source active areas.
+        active_mask = valid_mask & (
+            (source_a_data > threshold) | (source_b_data > threshold)
+        )
+        if not np.any(active_mask):
+            zeroed_cube = result_cube.copy()
+            zeroed_cube.data = np.zeros_like(result_data, dtype=np.float32)
+            return zeroed_cube
+
+        # Keep the morphing result zero outside the active union mask so e.g. for
+        # precipitation, we do not create precipitation in pixels where neither
+        # source is active.
+        result_for_qm = result_cube.copy()
+        result_for_qm.data = np.where(active_mask, result_data, 0.0).astype(np.float32)
+
+        active_a = source_a_data[active_mask]
+        active_b = source_b_data[active_mask]
+
+        # Use only the source signal values above threshold to build the target
+        # distribution for the calibration reference.
+        signal_a = active_a[active_a > threshold]
+        signal_b = active_b[active_b > threshold]
+        if signal_a.size == 0 and signal_b.size == 0:
+            return result_for_qm
+
+        occurrence_a = signal_a.size / active_a.size if active_a.size else 0.0
+        occurrence_b = signal_b.size / active_b.size if active_b.size else 0.0
+        target_occurrence = (1.0 - weight) * occurrence_a + weight * occurrence_b
+
+        n_points = int(
+            np.clip(
+                np.rint(target_occurrence * active_mask.sum()), 0, active_mask.sum()
+            )
+        )
+        if n_points <= 0:
+            return result_for_qm
+
+        probabilities = (np.arange(n_points, dtype=np.float64) + 0.5) / n_points
+
+        if signal_a.size == 0:
+            target_signal_values = np.quantile(signal_b, probabilities, method="linear")
+        elif signal_b.size == 0:
+            target_signal_values = np.quantile(signal_a, probabilities, method="linear")
+        else:
+            quantiles_a = np.quantile(signal_a, probabilities, method="linear")
+            quantiles_b = np.quantile(signal_b, probabilities, method="linear")
+            target_signal_values = (1.0 - weight) * quantiles_a + weight * quantiles_b
+
+        minimum_signal_value = np.nextafter(
+            np.float64(threshold),
+            np.float64(np.inf),
+        )
+        target_signal_values = np.maximum(target_signal_values, minimum_signal_value)
+
+        reference_cube = result_cube.copy()
+        reference_data = np.zeros_like(result_data, dtype=np.float64)
+        active_indices = np.flatnonzero(active_mask)
+        n_assign = min(n_points, active_indices.size)
+        reference_data.ravel()[active_indices[:n_assign]] = target_signal_values[
+            :n_assign
+        ]
+        reference_cube.data = reference_data.astype(np.float32)
+
+        return QuantileMapping(occurrence_threshold=self.occurrence_threshold).process(
+            reference_cube, result_for_qm
+        )
 
     def _prepare_inputs(self, *cubes: Any) -> tuple[CubeList, Cube]:
         """Flatten and validate the input cubes before morphing.
@@ -746,7 +826,6 @@ class SpatialMorphing(BasePlugin):
             *cubes: Inputs passed to process; may be a single CubeList or multiple
                 Cube objects.
 
-        Returns:
             A tuple of the validated forecast cubes and the cluster cube.
 
         Raises:

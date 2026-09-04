@@ -794,6 +794,59 @@ def test_process_diagnoses_source_specific_realizations_for_transition(mock_morp
     np.testing.assert_allclose(result.data, expected_value, rtol=1e-6)
 
 
+@pytest.mark.parametrize(
+    "source_a_data, source_b_data, expected_active_mask",
+    [
+        (
+            np.array([[0.0, 0.0], [0.0, 0.0]], dtype=np.float32),
+            np.array([[0.0, 0.0], [0.0, 0.0]], dtype=np.float32),
+            np.array([[False, False], [False, False]], dtype=bool),
+        ),
+        (
+            np.array([[1.0, 0.0], [0.0, 0.0]], dtype=np.float32),
+            np.array([[0.0, 0.0], [0.0, 0.5]], dtype=np.float32),
+            np.array([[True, False], [False, True]], dtype=bool),
+        ),
+        (
+            np.array([[0.5, 0.0], [0.0, 1.0]], dtype=np.float32),
+            np.array([[0.0, 0.7], [0.0, 0.0]], dtype=np.float32),
+            np.array([[True, True], [False, True]], dtype=bool),
+        ),
+    ],
+)
+def test_apply_quantile_mapping_to_morphed_respects_union_mask(
+    source_a_data, source_b_data, expected_active_mask
+):
+    """Pixels outside the union of the active source masks must remain zero."""
+    plugin = SpatialMorphing(
+        forecast_period=3600,
+        cluster_number=0,
+        occurrence_threshold=0.0,
+    )
+    source_a = set_up_variable_cube(
+        source_a_data,
+        name="precipitation_accumulation",
+        units="mm",
+        spatial_grid="equalarea",
+    )
+    source_b = set_up_variable_cube(
+        source_b_data,
+        name="precipitation_accumulation",
+        units="mm",
+        spatial_grid="equalarea",
+    )
+    result = source_a.copy()
+    result.data = source_a_data + 0.5
+
+    calibrated = plugin.apply_quantile_mapping_to_morphed(
+        result, source_a, source_b, weight=0.5
+    )
+
+    assert np.all(calibrated.data[~expected_active_mask] == 0.0)
+    if np.any(expected_active_mask):
+        assert np.any(calibrated.data[expected_active_mask] > 0.0)
+
+
 @patch(
     "improver.utilities.spatial_morphing.SpatialMorphing._call_google_film_for_morphing"
 )
