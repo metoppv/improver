@@ -68,7 +68,9 @@ def test_scale_non_positive_noise(tmp_path):
 def test_dry_realizations(tmp_path, specify_fallback):
     """Test stochastic noise addition with scale_non_positive_noise=True
     and non_positive_noise_floor set, and where the input realizations are completely
-    dry."""
+    dry. For precipitation, non-positive values correspond to dry grid points
+    (zero precipitation), so this checks that the fallback/noise-floor logic still
+    produces a valid dry-field output."""
     kgo_dir = acc.kgo_root() / "stochastic_noise"
     kgo_path = kgo_dir / "dry" / "kgo.nc"
     if specify_fallback:
@@ -86,13 +88,13 @@ def test_dry_realizations(tmp_path, specify_fallback):
         "--db-threshold-units",
         "mm/hr",
         "--scale-non-positive-noise",
-        "--wet-noise-floor",
+        "--non-positive-noise-floor",
         "-10",
         "--output",
         output_path,
     ]
     if specify_fallback:
-        args += ["--dry-fallback-range", "(-200.0, -100.0)"]
+        args += ["--non-positive-fallback-range", "(-200.0, -100.0)"]
     run_cli(args)
     acc.compare(output_path, kgo_path, atol=1e-9, rtol=1e-9)
 
@@ -122,15 +124,15 @@ def test_positive_regions(tmp_path, by_source):
         "--scale-non-positive-noise",
         "--db-threshold-units",
         "mm/hr",
-        "--wet-noise-amplitude",
+        "--positive-region-noise-amplitude",
         "0.5",
         "--output",
         output_path,
     ]
     if by_source:
-        args += ["--apply-noise-to-positive-regions-by-source", "uk_ens"]
+        args += ["--apply-noise-to-positive-values-by-source", "uk_ens"]
     else:
-        args += ["--apply-noise-to-positive-regions"]
+        args += ["--apply-noise-to-positive-values"]
 
     run_cli(args)
     acc.compare(output_path, kgo_path, atol=1e-9, rtol=1e-9)

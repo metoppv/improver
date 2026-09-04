@@ -128,7 +128,8 @@ class StochasticNoise(BasePlugin):
             non_positive_fallback_range:
                 Optional range (min_value, max_value) for non-positive fallback noise in
                 linear units of db_threshold_units. Provide as a Python tuple string, e.g.
-                "(-10.0, -5.0)". Both values must be <= 0 and (min_value < max_value).
+                "(-10.0, -5.0)". Values must satisfy:
+                non_positive_min < non_positive_max <= 0.
                 If non_positive_noise_floor is set and this is not provided, this defaults
                 to (2 * non_positive_noise_floor, non_positive_noise_floor) to keep the
                 fallback range below the positive-region floor. If both are supplied,
@@ -260,14 +261,14 @@ class StochasticNoise(BasePlugin):
 
         self.non_positive_fallback_range = non_positive_fallback_range
         if self.non_positive_fallback_range is not None:
-            dry_min, dry_max = self.non_positive_fallback_range
-            if not (dry_min < dry_max <= 0):
+            non_positive_min, non_positive_max = self.non_positive_fallback_range
+            if not (non_positive_min < non_positive_max <= 0):
                 raise ValueError(
                     "non_positive_fallback_range must satisfy min_value < max_value <= 0."
                 )
             if (
                 self.non_positive_noise_floor is not None
-                and dry_max > self.non_positive_noise_floor
+                and non_positive_max > self.non_positive_noise_floor
             ):
                 raise ValueError(
                     "non_positive_fallback_range max must be <= non_positive_noise_floor when both are set."
@@ -296,8 +297,11 @@ class StochasticNoise(BasePlugin):
                 May have cluster_sources attribute.
 
         Returns:
-            True if source matches target_sources, False otherwise.
-            Returns False if cluster_sources attribute missing or malformed.
+            Return True only when a valid source is found for the current realization
+            and forecast period, and that source (after lowercasing) is present in
+            self.target_sources. Return False if the cluster_sources metadata is
+            missing, malformed, or the source does not match any configured target
+            source.
         """
         try:
             cluster_sources = parse_cluster_sources_attribute(input_cube)
@@ -311,7 +315,10 @@ class StochasticNoise(BasePlugin):
             source = get_source_for_forecast_period(
                 cluster_sources, realization_idx, fp_seconds
             )
-            return source is not None and source.lower() in self.target_sources
+            if source is None:
+                return False
+            # Return True if the source is in the target_sources set, False otherwise.
+            return source.lower() in self.target_sources
 
         except (AttributeError, KeyError, ValueError, TypeError):
             # Graceful fallback if cluster_sources missing/malformed or coords unavailable
@@ -426,7 +433,8 @@ class StochasticNoise(BasePlugin):
                 noise_linear[non_positive_mask] - max_noise_non_positiveregions
             )
 
-        # Apply constraints to separate dry-fallback and wet-member noise ranges.
+        # Apply constraints to separate non-positive-fallback (e.g. dry for
+        # precipitation) and positive-region noise ranges (e.g. wet for precipitation).
         if used_linear_fallback:
             # Only enforce non-positive fallback range constraints if there are
             # non-positive regions to apply them to
@@ -437,20 +445,22 @@ class StochasticNoise(BasePlugin):
                         "Set non_positive_noise_floor to guarantee separation between "
                         "non-positive fallback and positive noise ranges."
                     )
-                dry_min, dry_max = self.non_positive_fallback_range
-                dry_values = noise_linear[non_positive_mask]
-                dry_vmin = np.min(dry_values)
-                dry_vmax = np.max(dry_values)
-                if dry_vmax > dry_vmin:
-                    normalized = (dry_values - dry_vmin) / (dry_vmax - dry_vmin)
-                    noise_linear[non_positive_mask] = dry_min + normalized * (
-                        dry_max - dry_min
+                non_positive_min, non_positive_max = self.non_positive_fallback_range
+                non_positive_values = noise_linear[non_positive_mask]
+                non_positive_vmin = np.min(non_positive_values)
+                non_positive_vmax = np.max(non_positive_values)
+                if non_positive_vmax > non_positive_vmin:
+                    normalized = (non_positive_values - non_positive_vmin) / (
+                        non_positive_vmax - non_positive_vmin
+                    )
+                    noise_linear[non_positive_mask] = non_positive_min + normalized * (
+                        non_positive_max - non_positive_min
                     )
                 else:
-                    # Guard against zero dynamic range (all dry_values equal), where
-                    # normalization would divide by zero; clamp to dry_max to keep values
-                    # inside the configured dry fallback interval.
-                    noise_linear[non_positive_mask] = dry_max
+                    # Guard against zero dynamic range (all non_positive_values equal), where
+                    # normalization would divide by zero; clamp to non_positive_max to keep values
+                    # inside the configured non_positive fallback interval.
+                    noise_linear[non_positive_mask] = non_positive_max
         elif (
             self.scale_non_positive_noise and self.non_positive_noise_floor is not None
         ):
@@ -576,7 +586,8 @@ class StochasticNoise(BasePlugin):
 
         If a seed is configured in ``ssft_generate_params``, this returns
         reproducible noise. The resulting field has a maximum value slightly
-        below zero so dry fields remain dry while still receiving tie-break noise.
+        below zero so, for example, for precipitation, dry fields remain dry while
+        still receiving tie-break noise.
 
         Args:
             shape:
