@@ -329,7 +329,8 @@ def test_process_constant_input_seeded_is_reproducible(constant_value: float):
 
 
 def test_process_all_zero_input_with_scale_non_positive_noise():
-    """All-zero input should use constrained dry fallback range when configured."""
+    """All-zero input should use constrained non-positive fallback range when
+    configured (i.e. dry for precipitation)."""
     plugin = StochasticNoise(
         ssft_generate_params={"seed": 0},
         scale_non_positive_noise=True,
@@ -347,7 +348,7 @@ def test_process_all_zero_input_with_scale_non_positive_noise():
     assert np.all(np.isfinite(result.data))
     assert np.all(result.data <= -5.0)
     assert np.all(result.data >= -10.0)
-    # Ensure the configured dry fallback range is active on output.
+    # Ensure the configured non positive fallback range is active on output.
     assert np.isclose(np.max(result.data), -5.0)
 
 
@@ -384,15 +385,17 @@ def test_process_window_level_degeneracy_fallback():
     assert np.all(result.data[non_positive_mask] >= -10.0)
 
 
-def test_process_all_zero_input_constant_fallback_clamps_to_dry_max():
-    """Constant dry fallback values should clamp to dry_max without division by zero."""
+def test_process_all_zero_input_constant_fallback_clamps_to_non_positive_max():
+    """Constant non-positive fallback values should clamp to non_positive_max without
+    division by zero."""
     plugin = StochasticNoise(
         ssft_generate_params={"seed": 0},
         scale_non_positive_noise=True,
         non_positive_noise_floor=-5.0,
     )
 
-    # Force a constant fallback field so dry_vmax == dry_vmin in remapping.
+    # Force a constant fallback field so non_positive_vmax == non_positive_vmin in
+    # remapping.
     plugin._fallback_noise_linear = lambda shape: np.full(shape, -2.0, dtype=np.float32)
 
     data = np.zeros((4, 4), dtype=np.float32)
@@ -403,7 +406,8 @@ def test_process_all_zero_input_constant_fallback_clamps_to_dry_max():
 
     assert np.all(np.isfinite(result.data))
     # Default non_positive_fallback_range for non_positive_noise_floor=-5.0 is
-    # (-10.0, -5.0), so the clamp target at zero dynamic range is dry_max == -5.0.
+    # (-10.0, -5.0), so the clamp target at zero dynamic range is
+    # non_positive_max == -5.0.
     assert np.all(result.data == -5.0)
 
 
@@ -592,6 +596,9 @@ def test_apply_noise_to_positive_values_amplitude_scaling():
     )
     cube = set_up_variable_cube(data=data, name="precipitation_rate", units="mm/hr")
 
+    expected_full = np.array([15.0, 16.0, 15.2, 16.2], dtype=np.float32)
+    expected_half = np.array([10.0, 11.0, 10.2, 11.2], dtype=np.float32)
+
     # Force deterministic SSFT noise for testing amplitude scaling
     def mock_do_fft(_):
         return np.array([[10.0, 10.0], [10.0, 10.0]], dtype=np.float32)
@@ -627,6 +634,9 @@ def test_apply_noise_to_positive_values_amplitude_scaling():
     # Half amplitude should produce roughly half the magnitude of changes
     # (not exact due to dB conversion, but within reasonable tolerance)
     assert np.mean(half_changes) < np.mean(full_changes)
+
+    np.testing.assert_array_equal(result_full.data[positive_mask], expected_full)
+    np.testing.assert_array_equal(result_half.data[positive_mask], expected_half)
 
 
 @pytest.mark.parametrize("apply_noise_to_positive_values", [False, True])

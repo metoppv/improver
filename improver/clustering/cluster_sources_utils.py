@@ -22,7 +22,8 @@ def parse_cluster_sources_attribute(cube) -> dict:
 
     Returns:
         Dictionary mapping cluster indices (as strings) to model mappings.
-        Format: {cluster_idx: {model_name: [forecast_periods_in_seconds]}}
+        Format: {cluster_idx: {model_name: [forecast_periods_in_seconds]}}.
+        If the cluster_sources attribute is not present, returns an empty dictionary.
 
     Raises:
         ValueError: If the cluster_sources attribute is malformed JSON.
@@ -118,7 +119,7 @@ def get_source_for_forecast_period(
         >>> get_source_for_forecast_period(sources, "0", 432000)
         'gl_ens'
         >>> get_source_for_forecast_period(
-        ...     sources, "0", 450000
+        ...     sources, "0", 400000
         ... )  # Between uk_ens end & gl_ens start
         'uk_ens'  # Returns last-known source
     """

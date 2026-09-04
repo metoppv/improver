@@ -1351,7 +1351,6 @@ class ForecastTrajectoryGapFiller(BasePlugin):
             and periods. Format: {realization_index: {source_name: [periods]}}
 
         Raises:
-            ValueError: If the cluster sources JSON string cannot be parsed.
             ValueError: If the sources for a realization are not a dictionary.
             ValueError: If the periods for a source are not a list.
         """
