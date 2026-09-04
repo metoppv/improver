@@ -20,7 +20,6 @@ import pandas as pd
 import pytest
 from iris.coords import AuxCoord, DimCoord
 from iris.cube import CubeList
-from iris.tests import IrisTest
 from iris.util import squeeze
 from numpy.testing import assert_array_equal
 
@@ -55,7 +54,7 @@ if not importlib.util.find_spec("pyarrow"):
     pyarrow_installed = False
 
 
-class Test_convert_cube_data_to_2d(IrisTest):
+class Test_convert_cube_data_to_2d(unittest.TestCase):
     """Test the convert_cube_data_to_2d utility."""
 
     def setUp(self):
@@ -74,7 +73,7 @@ class Test_convert_cube_data_to_2d(IrisTest):
     def test_check_values(self):
         """Test that the utility returns the expected data values."""
         result = convert_cube_data_to_2d(self.cube)
-        self.assertArrayAlmostEqual(result, self.data)
+        np.testing.assert_array_almost_equal(result, self.data)
 
     def test_change_coordinate(self):
         """
@@ -83,7 +82,7 @@ class Test_convert_cube_data_to_2d(IrisTest):
         """
         data = self.data.flatten().reshape(9, 3).T.reshape(9, 3)
         result = convert_cube_data_to_2d(self.cube, coord="longitude")
-        self.assertArrayAlmostEqual(result, data)
+        np.testing.assert_array_almost_equal(result, data)
 
     def test_no_transpose(self):
         """
@@ -92,7 +91,7 @@ class Test_convert_cube_data_to_2d(IrisTest):
         """
         data = self.data.T
         result = convert_cube_data_to_2d(self.cube, transpose=False)
-        self.assertArrayAlmostEqual(result, data)
+        np.testing.assert_array_almost_equal(result, data)
 
     def test_2d_cube(self):
         """
@@ -102,7 +101,7 @@ class Test_convert_cube_data_to_2d(IrisTest):
         cube = next(self.cube.slices_over("realization"))
         expected_data = np.array([cube.data.flatten()]).T
         result = convert_cube_data_to_2d(cube)
-        self.assertArrayAlmostEqual(result, expected_data, decimal=5)
+        np.testing.assert_array_almost_equal(result, expected_data, decimal=5)
 
     def test_1d_cube(self):
         """
@@ -112,7 +111,7 @@ class Test_convert_cube_data_to_2d(IrisTest):
         cube = self.cube[0, 0]
         expected_data = np.array([cube.data.flatten()]).T
         result = convert_cube_data_to_2d(cube)
-        self.assertArrayAlmostEqual(result, expected_data, decimal=5)
+        np.testing.assert_array_almost_equal(result, expected_data, decimal=5)
 
     def test_5d_cube(self):
         """
@@ -128,10 +127,10 @@ class Test_convert_cube_data_to_2d(IrisTest):
             ]
         ).T
         result = convert_cube_data_to_2d(cube)
-        self.assertArrayAlmostEqual(result, expected_data, decimal=5)
+        np.testing.assert_array_almost_equal(result, expected_data, decimal=5)
 
 
-class Test_flatten_ignoring_masked_data(IrisTest):
+class Test_flatten_ignoring_masked_data(unittest.TestCase):
     """Test the flatten_ignoring_masked_data utility."""
 
     def setUp(self):
@@ -164,7 +163,7 @@ class Test_flatten_ignoring_masked_data(IrisTest):
         """Test a basic unmasked array"""
         expected_result = np.arange(0, 24, 1, dtype=np.float32)
         result = flatten_ignoring_masked_data(self.data_array)
-        self.assertArrayAlmostEqual(result, expected_result)
+        np.testing.assert_array_almost_equal(result, expected_result)
         self.assertEqual(result.dtype, np.float32)
 
     def test_basic_masked(self):
@@ -172,7 +171,7 @@ class Test_flatten_ignoring_masked_data(IrisTest):
         masked_data_array = np.ma.MaskedArray(self.data_array, self.mask)
         expected_result = np.array([1.0, 5.0, 9.0, 13.0, 17.0, 21.0], dtype=np.float32)
         result = flatten_ignoring_masked_data(masked_data_array)
-        self.assertArrayAlmostEqual(result, expected_result)
+        np.testing.assert_array_almost_equal(result, expected_result)
         self.assertEqual(result.dtype, np.float32)
 
     def test_basic_not_masked_preserver_leading_dim(self):
@@ -180,7 +179,9 @@ class Test_flatten_ignoring_masked_data(IrisTest):
         result = flatten_ignoring_masked_data(
             self.data_array, preserve_leading_dimension=True
         )
-        self.assertArrayAlmostEqual(result, self.expected_result_preserve_leading_dim)
+        np.testing.assert_array_almost_equal(
+            result, self.expected_result_preserve_leading_dim
+        )
         self.assertEqual(result.dtype, np.float32)
 
     def test_basic_masked_preserver_leading_dim(self):
@@ -193,7 +194,7 @@ class Test_flatten_ignoring_masked_data(IrisTest):
         result = flatten_ignoring_masked_data(
             masked_data_array, preserve_leading_dimension=True
         )
-        self.assertArrayAlmostEqual(result, expected_result)
+        np.testing.assert_array_almost_equal(result, expected_result)
         self.assertEqual(result.dtype, np.float32)
 
     def test_all_masked(self):
@@ -202,7 +203,7 @@ class Test_flatten_ignoring_masked_data(IrisTest):
         masked_data_array = np.ma.MaskedArray(self.data_array, mask)
         expected_result = np.array([], dtype=np.float32)
         result = flatten_ignoring_masked_data(masked_data_array)
-        self.assertArrayAlmostEqual(result, expected_result)
+        np.testing.assert_array_almost_equal(result, expected_result)
         self.assertEqual(result.dtype, np.float32)
 
     def test_1D_input(self):
@@ -210,7 +211,7 @@ class Test_flatten_ignoring_masked_data(IrisTest):
         data_array = self.data_array.flatten()
         expected_result = data_array.copy()
         result = flatten_ignoring_masked_data(data_array)
-        self.assertArrayAlmostEqual(result, expected_result)
+        np.testing.assert_array_almost_equal(result, expected_result)
         self.assertEqual(result.dtype, np.float32)
 
     def test_4D_input_not_masked_preserve_leading_dim(self):
@@ -220,7 +221,9 @@ class Test_flatten_ignoring_masked_data(IrisTest):
         result = flatten_ignoring_masked_data(
             data_array, preserve_leading_dimension=True
         )
-        self.assertArrayAlmostEqual(result, self.expected_result_preserve_leading_dim)
+        np.testing.assert_array_almost_equal(
+            result, self.expected_result_preserve_leading_dim
+        )
         self.assertEqual(result.dtype, np.float32)
 
     def test_inconsistent_mask_along_leading_dim(self):
@@ -513,7 +516,7 @@ def test_create_unified_frt_input_with_bounds(reliability_cube, different_frt):
     assert result.units == frt_coord.units
 
 
-class Test_merge_land_and_sea(IrisTest):
+class Test_merge_land_and_sea(unittest.TestCase):
     """Test merge_land_and_sea"""
 
     def setUp(self):
@@ -565,7 +568,7 @@ class Test_merge_land_and_sea(IrisTest):
         expected_cube = self.percentiles_land.copy()
         expected_cube.data = expected_merged_data
         merge_land_and_sea(self.percentiles_land, self.percentiles_sea)
-        self.assertArrayEqual(self.percentiles_land.data, expected_merged_data)
+        np.testing.assert_array_equal(self.percentiles_land.data, expected_merged_data)
         self.assertEqual(
             expected_cube.xml(checksum=True), self.percentiles_land.xml(checksum=True)
         )
@@ -578,7 +581,7 @@ class Test_merge_land_and_sea(IrisTest):
         self.percentiles_land.data.mask = input_mask
         expected_cube = self.percentiles_land.copy()
         merge_land_and_sea(self.percentiles_land, self.percentiles_sea)
-        self.assertArrayEqual(self.percentiles_land.data, expected_cube.data)
+        np.testing.assert_array_equal(self.percentiles_land.data, expected_cube.data)
         self.assertEqual(
             expected_cube.xml(checksum=True), self.percentiles_land.xml(checksum=True)
         )
@@ -590,14 +593,14 @@ class Test_merge_land_and_sea(IrisTest):
         self.percentiles_land.data = np.ones((2, 3, 4), dtype=np.float32)
         expected_cube = self.percentiles_land.copy()
         merge_land_and_sea(self.percentiles_land, self.percentiles_sea)
-        self.assertArrayEqual(self.percentiles_land.data, expected_cube.data)
+        np.testing.assert_array_equal(self.percentiles_land.data, expected_cube.data)
         self.assertEqual(
             expected_cube.xml(checksum=True), self.percentiles_land.xml(checksum=True)
         )
         self.assertEqual(self.percentiles_land.data.dtype, np.float32)
 
 
-class Test_forecast_coords_match(IrisTest):
+class Test_forecast_coords_match(unittest.TestCase):
     """Test for function that tests if forecast period and the hour of the
     forecast_reference_time coordinate match between two cubes."""
 
@@ -660,7 +663,7 @@ class Test_forecast_coords_match(IrisTest):
             forecast_coords_match(self.ref_cube, adjusted_cube)
 
 
-class Test_get_frt_hours(IrisTest):
+class Test_get_frt_hours(unittest.TestCase):
     """Test the get_frt_hours function."""
 
     def test_single_value(self):
@@ -688,7 +691,7 @@ class Test_get_frt_hours(IrisTest):
         self.assertEqual(result, set(expected))
 
 
-class Test_check_forecast_consistency(IrisTest):
+class Test_check_forecast_consistency(unittest.TestCase):
     """Test the check_forecast_consistency function."""
 
     def setUp(self):
@@ -747,7 +750,7 @@ class Test_check_forecast_consistency(IrisTest):
             check_forecast_consistency(forecasts)
 
 
-class Test_broadcast_data_to_time_coord(IrisTest):
+class Test_broadcast_data_to_time_coord(unittest.TestCase):
     """Test the broadcast_data_to_time_coord function."""
 
     def setUp(self):
@@ -786,7 +789,7 @@ class Test_broadcast_data_to_time_coord(IrisTest):
         results = broadcast_data_to_time_coord(self.forecast_predictors)
         self.assertEqual(len(results), 1)
         self.assertTupleEqual(results[0].shape, self.expected_forecast)
-        self.assertArrayEqual(results[0], self.forecast.data)
+        np.testing.assert_array_equal(results[0], self.forecast.data)
 
     def test_two_forecast_predictors(self):
         """Test handling two forecast predictors, where one is a static predictor."""

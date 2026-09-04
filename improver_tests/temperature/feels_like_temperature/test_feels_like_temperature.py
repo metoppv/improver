@@ -7,17 +7,85 @@
 import unittest
 
 import numpy as np
-from iris.tests import IrisTest
+import pytest
 
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.temperature.feels_like_temperature import (
+    CalculateWindChill,
     _calculate_apparent_temperature,
-    _calculate_wind_chill,
     calculate_feels_like_temperature,
 )
+from improver_tests import ImproverTest
+
+MANDATORY_ATTRIBUTES = {
+    "source": "Met Office Unified Model",
+    "institution": "Met Office",
+    "title": "UKV Model Forecast on UK 2 km Standard Grid",
+}
 
 
-class Test__calculate_apparent_temperature(IrisTest):
+@pytest.fixture
+def temperature_cube():
+    """Simple temperature cube (273.15 K = 0°C)."""
+    data = np.full((3, 3), 273.15, dtype=np.float32)
+    return set_up_variable_cube(
+        data,
+        name="air_temperature",
+        units="K",
+        standard_grid_metadata="uk_det",
+        attributes=MANDATORY_ATTRIBUTES,
+    )
+
+
+@pytest.fixture
+def wind_speed_cube():
+    """Simple wind-speed cube (10 m/s)."""
+    data = np.full((3, 3), 10.0, dtype=np.float32)
+    return set_up_variable_cube(
+        data,
+        name="wind_speed",
+        units="m s-1",
+        standard_grid_metadata="uk_det",
+        attributes=MANDATORY_ATTRIBUTES,
+    )
+
+
+def test__calculate_wind_chill_values():
+    """Direct test of the internal wind chill equation method."""
+    temperature = np.full((1, 3), 1.7)
+    wind_speed = np.full((1, 3), 3) * 60 * 60 / 1000.0
+    expected = np.full((1, 3), -1.4754, dtype=np.float32)
+
+    plugin = CalculateWindChill()
+    result = plugin._calculate_wind_chill(temperature, wind_speed)
+
+    np.testing.assert_almost_equal(result, expected, decimal=4)
+
+
+def test_process_outputs_expected_cube(temperature_cube, wind_speed_cube):
+    """Test that process() returns correct data, preserves metadata, and
+    keeps coordinates identical to the input cube."""
+    plugin = CalculateWindChill()
+    result = plugin.process(temperature_cube, wind_speed_cube)
+
+    assert result.name() == "wind_chill_temperature"
+    assert str(result.units) == str(temperature_cube.units)
+
+    for key, val in MANDATORY_ATTRIBUTES.items():
+        assert key in result.attributes
+        assert result.attributes[key] == val
+
+    input_coords = [coord.name() for coord in temperature_cube.coords(dim_coords=True)]
+    output_coords = [coord.name() for coord in result.coords(dim_coords=True)]
+    all_coords = set(input_coords + output_coords)
+    for coord_name in all_coords:
+        assert temperature_cube.coord(coord_name) == result.coord(coord_name)
+    expected_data = np.full((3, 3), 266.09708, dtype=np.float32)
+    assert result.data.shape == temperature_cube.data.shape
+    np.testing.assert_allclose(result.data, expected_data, rtol=1e-6)
+
+
+class Test__calculate_apparent_temperature(unittest.TestCase):
     """Test the apparent temperature function."""
 
     def test_values(self):
@@ -30,22 +98,10 @@ class Test__calculate_apparent_temperature(IrisTest):
         result = _calculate_apparent_temperature(
             temperature, wind_speed, relh, pressure
         )
-        self.assertArrayAlmostEqual(result, expected_result, decimal=4)
+        np.testing.assert_array_almost_equal(result, expected_result, decimal=4)
 
 
-class Test__calculate_wind_chill(IrisTest):
-    """Test the wind chill function."""
-
-    def test_values(self):
-        """Test output values when from the wind chill equation."""
-        temperature = np.full((1, 3), 1.7)
-        wind_speed = np.full((1, 3), 3) * 60 * 60 / 1000.0
-        expected_result = np.full((1, 3), -1.4754, dtype=np.float32)
-        result = _calculate_wind_chill(temperature, wind_speed)
-        self.assertArrayAlmostEqual(result, expected_result, decimal=4)
-
-
-class Test_calculate_feels_like_temperature(IrisTest):
+class Test_calculate_feels_like_temperature(ImproverTest):
     """Test the feels like temperature function."""
 
     def setUp(self):
@@ -137,7 +193,7 @@ class Test_calculate_feels_like_temperature(IrisTest):
             self.relative_humidity_cube,
             self.pressure_cube,
         )
-        self.assertArrayAlmostEqual(result[0, 0].data, expected_result)
+        np.testing.assert_array_almost_equal(result[0, 0].data, expected_result)
 
     def test_temperature_between_10_and_20(self):
         """Test values of feels like temperature when temperature is between 10
@@ -153,7 +209,7 @@ class Test_calculate_feels_like_temperature(IrisTest):
             self.relative_humidity_cube,
             self.pressure_cube,
         )
-        self.assertArrayAlmostEqual(result[0, 0].data, expected_result)
+        np.testing.assert_array_almost_equal(result[0, 0].data, expected_result)
 
     def test_temperature_greater_than_20(self):
         """Test values of feels like temperature when temperature > 20
@@ -169,7 +225,7 @@ class Test_calculate_feels_like_temperature(IrisTest):
             self.relative_humidity_cube,
             self.pressure_cube,
         )
-        self.assertArrayAlmostEqual(result[0, 0].data, expected_result)
+        np.testing.assert_array_almost_equal(result[0, 0].data, expected_result)
 
     def test_temperature_range_and_bounds(self):
         """Test temperature values across the full range including boundary
@@ -193,7 +249,7 @@ class Test_calculate_feels_like_temperature(IrisTest):
             self.relative_humidity_cube[0],
             self.pressure_cube[0],
         )
-        self.assertArrayAlmostEqual(result.data, expected_result)
+        np.testing.assert_array_almost_equal(result.data, expected_result)
 
     def test_name_and_units(self):
         """Test correct outputs for name and units."""
@@ -233,7 +289,7 @@ class Test_calculate_feels_like_temperature(IrisTest):
             self.relative_humidity_cube[0],
             self.pressure_cube[0],
         )
-        self.assertArrayAlmostEqual(result.data, expected_result, decimal=4)
+        np.testing.assert_array_almost_equal(result.data, expected_result, decimal=4)
         # check inputs are unmodified
         self.assertEqual(self.temperature_cube.units, "fahrenheit")
         self.assertEqual(self.wind_speed_cube.units, "knots")

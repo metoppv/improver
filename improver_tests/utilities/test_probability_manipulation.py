@@ -21,7 +21,23 @@ def test_comparison_operator_keys():
     operator dictionary, and that each contains a namedtuple containing
     the expected elements."""
     expected_keys = sorted(
-        ["ge", "GE", ">=", "gt", "GT", ">", "le", "LE", "<=", "lt", "LT", "<"]
+        [
+            "ge",
+            "GE",
+            ">=",
+            "gt",
+            "GT",
+            ">",
+            "le",
+            "LE",
+            "<=",
+            "lt",
+            "LT",
+            "<",
+            "eq",
+            "EQ",
+            "==",
+        ]
     )
     expected_items = ("function", "spp_string", "inverse")
     result = comparison_operator_dict()
@@ -118,3 +134,26 @@ def test_no_threshold_coordinate(probability_cube):
 
     with pytest.raises(ValueError, match="Cube does not have a threshold coordinate"):
         invert_probabilities(cube)
+
+
+@pytest.mark.parametrize("inequality", ["greater_than"])
+def test_invert_probabilities_eq_raises(probability_cube):
+    """Test that invert_probabilities raises for equality operator."""
+    threshold = probability_cube.coord(var_name="threshold")
+    threshold.attributes["spp__relative_to_threshold"] = "equal_to"
+    with pytest.raises(
+        ValueError,
+        match=r"invert_probabilities does not support 'equal_to' \(==\) thresholds\.",
+    ):
+        invert_probabilities(probability_cube)
+
+
+@pytest.mark.parametrize("inequality", ["greater_than"])
+@pytest.mark.parametrize("above", [True, False])
+def test_to_threshold_inequality_eq_returns_cube(probability_cube, above):
+    """Test to_threshold_inequality returns cube unchanged for equality operator."""
+    threshold = probability_cube.coord(var_name="threshold")
+    threshold.attributes["spp__relative_to_threshold"] = "equal_to"
+    result = to_threshold_inequality(probability_cube, above=above)
+    assert result is probability_cube or np.allclose(result.data, probability_cube.data)
+    assert threshold.attributes == result.coord(var_name="threshold").attributes

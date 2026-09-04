@@ -7,13 +7,12 @@
 import unittest
 
 import numpy as np
-from iris.tests import IrisTest
 
 from improver.constants import RMDI
 from improver.wind_calculations.wind_downscaling import FrictionVelocity
 
 
-class Test_process(IrisTest):
+class Test_process(unittest.TestCase):
     """Test the creation of friction velocity 2D arrays. Note that in the
     future, use of the Real Missing Data Indicator (RMDI) constant is due to be
     deprecated in favour of np.nan"""
@@ -52,7 +51,7 @@ class Test_process(IrisTest):
         ).process()
 
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, expected_out)
+        np.testing.assert_array_almost_equal(result, expected_out)
 
     def test_handles_nan_values(self):
         """Test that the function accepts NaN values correctly."""
@@ -73,7 +72,7 @@ class Test_process(IrisTest):
         ).process()
 
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, expected_out)
+        np.testing.assert_array_almost_equal(result, expected_out)
 
     def test_handles_zero_values(self):
         """Function calculates log(href/z_0) - test that the function accepts
@@ -96,7 +95,7 @@ class Test_process(IrisTest):
         ).process()
 
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, expected_out)
+        np.testing.assert_array_almost_equal(result, expected_out)
 
     def test_handles_different_sized_arrays(self):
         """Test when if different size arrays have been input"""

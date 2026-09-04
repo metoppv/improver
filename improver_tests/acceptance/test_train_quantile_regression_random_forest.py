@@ -36,6 +36,7 @@ def test_basic(
     history_path = kgo_dir / "spot_calibration_tables"
     truth_path = kgo_dir / "spot_observation_tables"
     config_path = kgo_dir / "config.json"
+    qrf_kwargs_path = kgo_dir / "qrf_kwargs.json"
     output_path = tmp_path / "output.pickle"
     compulsory_args = [history_path, truth_path]
     named_args = [
@@ -43,7 +44,7 @@ def test_basic(
         config_path,
         "--parquet-diagnostic-names",
         "temperature_at_screen_level",
-        "--target-cf-name",
+        "--cf-names",
         "air_temperature",
         "--forecast-periods",
         "6:18:6",
@@ -51,7 +52,7 @@ def test_basic(
         "20250804T0000Z",
         "--training-length",
         "2",
-        "--experiment",
+        "--experiments",
         "mix-latestblend",
         "--n-estimators",
         "10",
@@ -61,6 +62,8 @@ def test_basic(
         "42",
         "--compression-level",
         "5",
+        "--qrf-kwargs",
+        qrf_kwargs_path,
         "--output",
         output_path,
     ]
@@ -84,6 +87,7 @@ def test_missing_inputs(
     """
     kgo_dir = acc.kgo_root() / CLI
     config_path = kgo_dir / "config.json"
+    qrf_kwargs_path = kgo_dir / "qrf_kwargs.json"
     output_path = tmp_path / "output.pickle"
     compulsory_args = []
     named_args = [
@@ -91,7 +95,7 @@ def test_missing_inputs(
         config_path,
         "--parquet-diagnostic-names",
         "temperature_at_screen_level",
-        "--target-cf-name",
+        "--cf-names",
         "air_temperature",
         "--forecast-periods",
         "6:18:6",
@@ -99,7 +103,7 @@ def test_missing_inputs(
         "20250804T0000Z",
         "--training-length",
         "2",
-        "--experiment",
+        "--experiments",
         "mix-latestblend",
         "--n-estimators",
         "10",
@@ -109,6 +113,8 @@ def test_missing_inputs(
         "42",
         "--compression-level",
         "5",
+        "--qrf-kwargs",
+        qrf_kwargs_path,
         "--output",
         output_path,
     ]
@@ -128,6 +134,7 @@ def test_invalid_cycletime(
     """
     kgo_dir = acc.kgo_root() / CLI
     config_path = kgo_dir / "config.json"
+    qrf_kwargs_path = kgo_dir / "qrf_kwargs.json"
     output_path = tmp_path / "output.pickle"
     history_path = kgo_dir / "spot_calibration_tables"
     truth_path = kgo_dir / "spot_observation_tables"
@@ -137,7 +144,7 @@ def test_invalid_cycletime(
         config_path,
         "--parquet-diagnostic-names",
         "temperature_at_screen_level",
-        "--target-cf-name",
+        "--cf-names",
         "air_temperature",
         "--forecast-periods",
         "6:18:6",
@@ -145,7 +152,7 @@ def test_invalid_cycletime(
         "20250704T0000Z",
         "--training-length",
         "2",
-        "--experiment",
+        "--experiments",
         "mix-latestblend",
         "--n-estimators",
         "10",
@@ -155,6 +162,8 @@ def test_invalid_cycletime(
         "42",
         "--compression-level",
         "5",
+        "--qrf-kwargs",
+        qrf_kwargs_path,
         "--output",
         output_path,
     ]

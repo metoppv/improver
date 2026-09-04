@@ -8,7 +8,6 @@ import unittest
 
 import iris
 import numpy as np
-from iris.tests import IrisTest
 
 from improver.between_thresholds import OccurrenceBetweenThresholds
 from improver.synthetic_data.set_up_test_cubes import (
@@ -17,7 +16,7 @@ from improver.synthetic_data.set_up_test_cubes import (
 )
 
 
-class Test_process(IrisTest):
+class Test_process(unittest.TestCase):
     """Test the process method"""
 
     def setUp(self):
@@ -69,10 +68,10 @@ class Test_process(IrisTest):
         self.assertEqual(
             result.name(), "probability_of_air_temperature_between_thresholds"
         )
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
         thresh_coord = result.coord("air_temperature")
-        self.assertArrayAlmostEqual(thresh_coord.points, [281.0, 282.0])
-        self.assertArrayAlmostEqual(thresh_coord.bounds, threshold_ranges)
+        np.testing.assert_array_almost_equal(thresh_coord.points, [281.0, 282.0])
+        np.testing.assert_array_almost_equal(thresh_coord.bounds, threshold_ranges)
         self.assertEqual(
             thresh_coord.attributes["spp__relative_to_threshold"], "between_thresholds"
         )
@@ -85,9 +84,13 @@ class Test_process(IrisTest):
         )
         plugin = OccurrenceBetweenThresholds(threshold_ranges.copy(), "m")
         result = plugin(self.vis_cube)
-        self.assertArrayAlmostEqual(result.data, expected_data)
-        self.assertArrayAlmostEqual(result.coord("visibility").points, [5000.0])
-        self.assertArrayAlmostEqual(result.coord("visibility").bounds, threshold_ranges)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
+        np.testing.assert_array_almost_equal(
+            result.coord("visibility").points, [5000.0]
+        )
+        np.testing.assert_array_almost_equal(
+            result.coord("visibility").bounds, threshold_ranges
+        )
 
     def test_skip_threshold(self):
         """Test calculation works for non-adjacent thresholds"""
@@ -101,7 +104,7 @@ class Test_process(IrisTest):
         )
         plugin = OccurrenceBetweenThresholds(threshold_ranges, "m")
         result = plugin(self.vis_cube)
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
 
     def test_threshold_units(self):
         """Test calculation works for thresholds specified in different units
@@ -116,12 +119,14 @@ class Test_process(IrisTest):
         )
         plugin = OccurrenceBetweenThresholds(threshold_ranges, "km")
         result = plugin(self.vis_cube)
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
         # check original cube units are not modified
         self.assertEqual(self.vis_cube.coord("visibility").units, "m")
         # check output cube units match original cube
         self.assertEqual(result.coord("visibility").units, "m")
-        self.assertArrayAlmostEqual(result.coord("visibility").points, [1000, 10000])
+        np.testing.assert_array_almost_equal(
+            result.coord("visibility").points, [1000, 10000]
+        )
 
     def test_error_non_probability_cube(self):
         """Test failure if cube doesn't contain probabilities"""
@@ -171,7 +176,7 @@ class Test_process(IrisTest):
         )
         plugin = OccurrenceBetweenThresholds(threshold_ranges, "degC")
         result = plugin(self.temp_cube)
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
 
     def test_thresholds_indistinguishable(self):
         """Test behaviour in a case where cube extraction cannot work within a
@@ -193,7 +198,7 @@ class Test_process(IrisTest):
         threshold_ranges = [[0.25, 0.5]]
         plugin = OccurrenceBetweenThresholds(threshold_ranges, "mm h-1")
         result = plugin(self.precip_cube)
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
 
 
 if __name__ == "__main__":

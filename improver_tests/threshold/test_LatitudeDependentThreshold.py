@@ -9,14 +9,13 @@ import unittest
 import numpy as np
 from iris.coords import AuxCoord, CellMethod
 from iris.cube import Cube
-from iris.tests import IrisTest
 
 from improver.lightning import latitude_to_threshold
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.threshold import LatitudeDependentThreshold as Threshold
 
 
-class Test__init(IrisTest):
+class Test__init(unittest.TestCase):
     """Test exceptions from the __init__ method"""
 
     def test_not_callable(self):
@@ -26,7 +25,7 @@ class Test__init(IrisTest):
             Threshold(None)
 
 
-class Test__add_latitude_threshold_coord(IrisTest):
+class Test__add_latitude_threshold_coord(unittest.TestCase):
     """Test the _add_latitude_threshold_coord method"""
 
     def setUp(self):
@@ -51,7 +50,7 @@ class Test__add_latitude_threshold_coord(IrisTest):
         )
         threshold_coord = self.cube.coord("air_temperature")
         self.assertEqual(threshold_coord.var_name, "threshold")
-        self.assertArrayAlmostEqual(threshold_coord.points, expected_points)
+        np.testing.assert_array_almost_equal(threshold_coord.points, expected_points)
         self.assertEqual(threshold_coord.units, self.cube.units)
         self.assertEqual(
             self.cube.coord_dims("latitude"), self.cube.coord_dims("air_temperature")
@@ -74,7 +73,7 @@ class Test__add_latitude_threshold_coord(IrisTest):
             self.plugin._add_latitude_threshold_coord(self.cube, np.ones((3, 3)))
 
 
-class Test_process(IrisTest):
+class Test_process(unittest.TestCase):
     """Test the thresholding plugin."""
 
     def setUp(self):
@@ -144,7 +143,7 @@ class Test_process(IrisTest):
         expected_result_array = np.ones_like(self.cube.data)
         expected_result_array[2:-2][:] = 0
         result = self.plugin(self.cube)
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
+        np.testing.assert_array_almost_equal(result.data, expected_result_array)
 
     def test_masked_array(self):
         """Test masked array are handled correctly.
@@ -152,8 +151,8 @@ class Test_process(IrisTest):
         result = self.plugin(self.masked_cube)
         expected_result_array = np.ones_like(self.masked_cube.data)
         expected_result_array[2:-2][:] = 0
-        self.assertArrayAlmostEqual(result.data.data, expected_result_array)
-        self.assertArrayEqual(result.data.mask, self.masked_cube.data.mask)
+        np.testing.assert_array_almost_equal(result.data.data, expected_result_array)
+        np.testing.assert_array_equal(result.data.mask, self.masked_cube.data.mask)
 
     def test_threshold_negative(self):
         """Repeat the test with negative numbers when the threshold is negative."""
@@ -164,7 +163,7 @@ class Test_process(IrisTest):
             lambda lat: latitude_to_threshold(lat, midlatitude=-1e-6, tropics=-1.0)
         )
         result = plugin(self.cube)
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
+        np.testing.assert_array_almost_equal(result.data, expected_result_array)
 
     def test_threshold_gt(self):
         """Test equal-to values when we are in > threshold mode."""
@@ -184,7 +183,7 @@ class Test_process(IrisTest):
             result.coord(var_name="threshold").attributes["spp__relative_to_threshold"],
             expected_attribute,
         )
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
+        np.testing.assert_array_almost_equal(result.data, expected_result_array)
 
     def test_threshold_ge(self):
         """Test equal-to values when we are in >= threshold mode."""
@@ -203,7 +202,7 @@ class Test_process(IrisTest):
             result.coord(var_name="threshold").attributes["spp__relative_to_threshold"],
             expected_attribute,
         )
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
+        np.testing.assert_array_almost_equal(result.data, expected_result_array)
 
     def test_threshold_lt(self):
         """Test equal-to values when we are in < threshold mode."""
@@ -222,7 +221,7 @@ class Test_process(IrisTest):
             result.coord(var_name="threshold").attributes["spp__relative_to_threshold"],
             expected_attribute,
         )
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
+        np.testing.assert_array_almost_equal(result.data, expected_result_array)
 
     def test_threshold_le(self):
         """Test equal-to values when we are in le threshold mode."""
@@ -240,7 +239,7 @@ class Test_process(IrisTest):
             result.coord(var_name="threshold").attributes["spp__relative_to_threshold"],
             expected_attribute,
         )
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
+        np.testing.assert_array_almost_equal(result.data, expected_result_array)
 
     def test_threshold_unit_conversion(self):
         """Test data are correctly thresholded when the threshold (mm) is given in
@@ -252,7 +251,7 @@ class Test_process(IrisTest):
             threshold_units="mm",
         )
         result = plugin(self.cube)
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
+        np.testing.assert_array_almost_equal(result.data, expected_result_array)
         expected_points = (
             plugin.threshold_function(self.cube.coord("latitude").points) / 1000
         )

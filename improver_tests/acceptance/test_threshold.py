@@ -81,7 +81,7 @@ def test_args(tmp_path, extra_args, kgo_subdir):
     acc.compare(output_path, kgo_path)
 
 
-def test_collapse_realization(tmp_path):
+def test_collapse_realization(tmp_path, recwarn):
     """Test thresholding with collapsing realizations. Ensure that in this case,
     using unmasked data, that no warning is raised in relation to collapsing the
     coordinate."""
@@ -98,10 +98,10 @@ def test_collapse_realization(tmp_path):
         "--collapse-coord",
         "realization",
     ]
-    with pytest.warns() as record:
-        run_cli(args)
-    for msg in record:
-        assert "Blending masked data without spatial" not in str(msg.message)
+
+    run_cli(args)
+    msg = "Diagnostic cube is not a known probabilistic type."
+    assert all([msg not in str(warning.message) for warning in recwarn])
     acc.compare(output_path, kgo_path)
 
 

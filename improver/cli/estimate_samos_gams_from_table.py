@@ -26,7 +26,11 @@ def process(
     distribution: str = "normal",
     link: str = "identity",
     fit_intercept: bool = True,
+    window_length: int = 10,
+    required_rolling_window_points: int = 5,
+    trailing_window: bool = False,
     unique_site_id_key: str = "wmo_id",
+    adjacent_range: int = 0,
 ):
     """Estimate Generalized Additive Model (GAM) for SAMOS.
 
@@ -86,19 +90,40 @@ def process(
         cycletime (str):
             Cycletime of a format similar to 20170109T0000Z.
         distribution (str):
-            The distribution to be used in the model. Valid options are normal, binomial,
-            poisson, gamma, inv-gauss.
+            The distribution to be used in the model. Valid options are normal,
+            binomial, poisson, gamma, inv-gauss.
         link (str):
-            The link function to be used in the model. Valid options are identity, logit, inverse, log
-            or inverse-squared.
+            The link function to be used in the model. Valid options are identity,
+            logit, inverse, log or inverse-squared.
         fit_intercept (bool):
             Whether to include an intercept term in the model. Default is True.
+        window_length (int):
+            The length of the rolling window, in days, used to calculate the mean
+            and standard deviation of the input cube when the input cube does not
+            have a realization dimension coordinate. If using a centred rolling
+            window, this must be an even integer greater than 1 in order to allow
+            equal numbers of days on either side of the central time point. If
+            using a trailing rolling window, this must be an integer greater than 1.
+        required_rolling_window_points (int):
+            The minimum number of valid data points required within a rolling
+            window. If fewer valid points are present, the mean and standard
+            deviation will be set to NaN for this window.
+        trailing_window (bool):
+            If False a centred window is used, which assigns the calculated
+            statistic to the central time point in the window. If True a trailing
+            window is used, which assigns the calculated statistic to the final time
+            point.
         unique_site_id_key (str):
             If working with spot data and available, the name of the coordinate
             in the input cubes that contains unique site IDs, e.g. "wmo_id" if
             all sites have a valid wmo_id. For GAM estimation the default is
             "wmo_id" as we expect to have a training data set comprising matched
             obs and forecast sites.
+        adjacent_range (int):
+            A period in hours that should be used either side of the
+            defined forecast_period to allow for the inclusion of forecasts and
+            observations that are close to the validity time for which a GAM is
+            being constructed.
 
     Returns:
         (list of GAM models):
@@ -131,6 +156,7 @@ def process(
         training_length=training_length,
         percentiles=percentiles,
         experiment=experiment,
+        adjacent_range=adjacent_range,
     )
 
     if not forecast_cube or not truth_cube:
@@ -143,6 +169,9 @@ def process(
         distribution=distribution,
         link=link,
         fit_intercept=fit_intercept,
+        window_length=window_length,
+        required_rolling_window_points=required_rolling_window_points,
+        trailing_window=trailing_window,
         unique_site_id_key=unique_site_id_key,
     )
 
@@ -157,5 +186,8 @@ def process(
         features=gam_features,
         additional_fields=additional_predictors,
     )
+
+    if forecast_gams is None or truth_gams is None:
+        return
 
     return [forecast_gams, truth_gams]

@@ -8,13 +8,12 @@ import unittest
 
 import numpy as np
 from cf_units import Unit
-from iris.tests import IrisTest
 
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.uv_index import calculate_uv_index
 
 
-class Test_uv_index(IrisTest):
+class Test_uv_index(unittest.TestCase):
     """Tests that the uv_index plugin calculates the UV index
     correctly."""
 
@@ -37,14 +36,14 @@ class Test_uv_index(IrisTest):
         scale_factor = 1.0
         expected = self.cube_uv_down.data.copy()
         result = calculate_uv_index(self.cube_uv_down, scale_factor)
-        self.assertArrayEqual(result.data, expected)
+        np.testing.assert_array_equal(result.data, expected)
 
     def test_scale_factor(self):
         """Test the uv calculation works when changing the scale factor. Make
         sure the output is a cube with the expected data."""
         expected = np.ones_like(self.cube_uv_down.data, dtype=np.float32)
         result = calculate_uv_index(self.cube_uv_down, scale_factor=10)
-        self.assertArrayEqual(result.data, expected)
+        np.testing.assert_array_equal(result.data, expected)
 
     def test_metadata(self):
         """Tests that the uv index output has the correct metadata (no units,
@@ -96,7 +95,7 @@ class Test_uv_index(IrisTest):
             self.cube_uv_down.data, dtype=np.float32, fill_value=0.1
         )
         result = calculate_uv_index(self.cube_uv_down, scale_factor)
-        self.assertArrayEqual(result.data, expected)
+        np.testing.assert_array_equal(result.data, expected)
 
 
 if __name__ == "__main__":

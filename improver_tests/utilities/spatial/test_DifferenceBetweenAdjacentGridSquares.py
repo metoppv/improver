@@ -11,14 +11,13 @@ import numpy as np
 import pytest
 from iris.coords import CellMethod
 from iris.cube import Cube
-from iris.tests import IrisTest
 from numpy import ma
 
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.spatial import DifferenceBetweenAdjacentGridSquares
 
 
-class Test_create_difference_cube(IrisTest):
+class Test_create_difference_cube(unittest.TestCase):
     """Test the create_difference_cube method."""
 
     def setUp(self):
@@ -38,8 +37,10 @@ class Test_create_difference_cube(IrisTest):
             self.cube, "projection_y_coordinate", self.diff_in_y_array
         )
         self.assertIsInstance(result, Cube)
-        self.assertArrayAlmostEqual(result.coord(axis="y").points, expected_y_coords)
-        self.assertArrayEqual(result.data, self.diff_in_y_array)
+        np.testing.assert_array_almost_equal(
+            result.coord(axis="y").points, expected_y_coords
+        )
+        np.testing.assert_array_equal(result.data, self.diff_in_y_array)
 
     def test_x_dimension_equalarea(self):
         """Test differences calculated along the x dimension, equalarea grid."""
@@ -50,8 +51,10 @@ class Test_create_difference_cube(IrisTest):
             self.cube, "projection_x_coordinate", diff_array
         )
         self.assertIsInstance(result, Cube)
-        self.assertArrayAlmostEqual(result.coord(axis="x").points, expected_x_coords)
-        self.assertArrayEqual(result.data, diff_array)
+        np.testing.assert_array_almost_equal(
+            result.coord(axis="x").points, expected_x_coords
+        )
+        np.testing.assert_array_equal(result.data, diff_array)
 
     def test_x_dimension_equalarea_circular(self):
         """Test differences calculated along the x dimension when x is circular, equalarea grid."""
@@ -86,8 +89,10 @@ class Test_create_difference_cube(IrisTest):
             test_cube, "longitude", expected_diff_array
         )
         self.assertIsInstance(result, Cube)
-        self.assertArrayAlmostEqual(result.coord(axis="x").points, expected_x_coords)
-        self.assertArrayEqual(result.data, expected_diff_array)
+        np.testing.assert_array_almost_equal(
+            result.coord(axis="x").points, expected_x_coords
+        )
+        np.testing.assert_array_equal(result.data, expected_diff_array)
 
     def test_x_dimension_for_circular_latlon_cube_360_degree_coord(self):
         """Test differences calculated along the x dimension for a cube which is circular in x."""
@@ -111,8 +116,10 @@ class Test_create_difference_cube(IrisTest):
             test_cube, "longitude", expected_diff_array
         )
         self.assertIsInstance(result, Cube)
-        self.assertArrayAlmostEqual(result.coord(axis="x").points, expected_x_coords)
-        self.assertArrayEqual(result.data, expected_diff_array)
+        np.testing.assert_array_almost_equal(
+            result.coord(axis="x").points, expected_x_coords
+        )
+        np.testing.assert_array_equal(result.data, expected_diff_array)
 
     def test_othercoords(self):
         """Test that other coords are transferred properly"""
@@ -125,7 +132,7 @@ class Test_create_difference_cube(IrisTest):
         self.assertEqual(result.coord("time"), time_coord)
 
 
-class Test_calculate_difference(IrisTest):
+class Test_calculate_difference(unittest.TestCase):
     """Test the calculate_difference method."""
 
     def setUp(self):
@@ -143,7 +150,7 @@ class Test_calculate_difference(IrisTest):
             self.cube, self.cube.coord(axis="x").name()
         )
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayEqual(result, expected)
+        np.testing.assert_array_equal(result, expected)
 
     def test_x_dimension_wraps_around_meridian(self):
         """Test differences calculated along the x dimension for a cube which is circular in x."""
@@ -153,7 +160,7 @@ class Test_calculate_difference(IrisTest):
             self.cube, self.cube.coord(axis="x").name()
         )
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayEqual(result, expected)
+        np.testing.assert_array_equal(result, expected)
 
     def test_x_dimension_wraps_around_meridian_cube_axes_flipped(self):
         """Test differences calculated along the x dimension for a cube which is circular in x."""
@@ -164,7 +171,7 @@ class Test_calculate_difference(IrisTest):
             self.cube, self.cube.coord(axis="x").name()
         )
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayEqual(result, expected)
+        np.testing.assert_array_equal(result, expected)
 
     def test_y_dimension(self):
         """Test differences calculated along the y dimension."""
@@ -173,7 +180,7 @@ class Test_calculate_difference(IrisTest):
             self.cube, self.cube.coord(axis="y").name()
         )
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayEqual(result, expected)
+        np.testing.assert_array_equal(result, expected)
 
     def test_missing_data(self):
         """Test that the result is as expected when data is missing."""
@@ -186,7 +193,7 @@ class Test_calculate_difference(IrisTest):
             self.cube, self.cube.coord(axis="y").name()
         )
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, expected)
+        np.testing.assert_array_almost_equal(result, expected)
 
     def test_masked_data(self):
         """Test that the result is as expected when data is masked."""
@@ -202,11 +209,11 @@ class Test_calculate_difference(IrisTest):
             self.cube, self.cube.coord(axis="y").name()
         )
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayEqual(result, expected)
-        self.assertArrayEqual(result.mask, expected.mask)
+        np.testing.assert_array_equal(result, expected)
+        np.testing.assert_array_equal(result.mask, expected.mask)
 
 
-class Test_process(IrisTest):
+class Test_process(unittest.TestCase):
     """Test the process method."""
 
     def setUp(self):
@@ -228,9 +235,9 @@ class Test_process(IrisTest):
         expected_y = np.array([[1, 2, 3], [3, 6, 9]])
         result = self.plugin.process(self.cube)
         self.assertIsInstance(result[0], Cube)
-        self.assertArrayEqual(result[0].data, expected_x)
+        np.testing.assert_array_equal(result[0].data, expected_x)
         self.assertIsInstance(result[1], Cube)
-        self.assertArrayEqual(result[1].data, expected_y)
+        np.testing.assert_array_equal(result[1].data, expected_y)
 
     def test_metadata(self):
         """Test the resulting metadata is correct."""
@@ -266,9 +273,9 @@ class Test_process(IrisTest):
         )
         result = self.plugin.process(cube)
         self.assertIsInstance(result[0], iris.cube.Cube)
-        self.assertArrayEqual(result[0].data, expected_x)
+        np.testing.assert_array_equal(result[0].data, expected_x)
         self.assertIsInstance(result[1], iris.cube.Cube)
-        self.assertArrayEqual(result[1].data, expected_y)
+        np.testing.assert_array_equal(result[1].data, expected_y)
 
     def test_circular_non_geographic_cube_raises_approprate_exception(self):
         """Check for error and message with projection coord and circular x axis"""

@@ -11,34 +11,73 @@ from improver.utilities.generalized_additive_models import GAMPredict
 
 
 @pytest.mark.parametrize(
-    "X_new,expected",
+    "X_new,expected,constant_extrapolation,use_tensor",
     # X_new contains sets of 3 predictors: Year, Age, Education (as a category)
     # expected contains a list of Wage predictions (in arbitrary units)
+    # use_tensor indicates whether to use a tensor term in the GAM
     [
         (
             [[2006, 32, 1]],
             [92.13292996],
+            False,
+            False,
         ),  # Test prediction of a single new value
         (
             [[2006, 32, 1], [2009, 18, 1], [2004, 78, 4]],
             [92.13292996, 66.06155349, 132.48350915],
+            False,
+            False,
         ),  # Test prediction of multiple new values
         (
             [[2010, 90, 4], [2050, 160, 2]],
             [160.20340934, 284.10127629],
+            False,
+            False,
         ),  # Test prediction of new values where the continuous inputs are greater
         # than those used in training to demonstrate that we can extrapolate beyond the
         # bounds of the training dataset.
         (
+            [[2010, 90, 4], [2050, 160, 2]],
+            [140.9085686, 101.89150519],
+            True,
+            False,
+        ),  # Test prediction of new values where the continuous inputs are greater
+        # than those used in training when constant extrapolation is requested.
+        (
+            [[2010, 90, 4], [2050, 160, 2]],
+            [139.1598, 100.170168],
+            True,
+            True,
+        ),  # Test prediction of new values where the continuous inputs are greater
+        # than those used in training when constant extrapolation is requested and when
+        # a tensor term is included in the GAM.
+        (
             [[2002, 15, 0], [1950, 1, 2]],
             [43.40042416, -161.03952442],
+            False,
+            False,
         ),  # Test prediction of new values where the continuous inputs are less than
         # those used in training to demonstrate that we can extrapolate beyond the
         # bounds of the training dataset. This test also demonstrates that
         # extrapolation can lead to nonsensical results, such as a negative wage.
+        (
+            [[2002, 15, 0], [1950, 1, 2]],
+            [47.2235565, 70.5536204],
+            True,
+            False,
+        ),  # Test prediction of new values where the continuous inputs are less than
+        # those used in training when constant extrapolation is requested.
+        (
+            [[2002, 15, 0], [1950, 1, 2]],
+            [46.302494, 69.849704],
+            True,
+            True,
+        ),  # Test prediction of new values where the continuous inputs are less than
+        # those used in training when constant extrapolation is requested and when
+        # a tensor term is included in the GAM.
     ],
 )
-def test_process(X_new, expected):
+def test_process(X_new, expected, constant_extrapolation, use_tensor):
     """Test that the process method returns the expected results. Uses an example of a
     fitted model from pyGAM quick start documentation:
     https://pygam.readthedocs.io/en/latest/notebooks/quick_start.html#Fit-a-Model.
@@ -56,12 +95,36 @@ def test_process(X_new, expected):
     scipy.sparse.spmatrix.A = property(to_array)
     # Skip test if pyGAM not available.
     pytest.importorskip("pygam")
-    from pygam import GAM, f, s
+    from pygam import GAM, f, s, te
     from pygam.datasets import wage
 
     X, y = wage()
+    X_new = np.array(X_new)
 
-    gam = GAM(s(0) + s(1) + f(2)).fit(X, y)
-    result = GAMPredict().process(gam, X_new)
+    if use_tensor:
+        gam = GAM(te(0, 1) + f(2)).fit(X, y)
+    else:
+        gam = GAM(s(0) + s(1) + f(2)).fit(X, y)
+
+    result = GAMPredict(constant_extrapolation=constant_extrapolation).process(
+        gam, X_new
+    )
+
+    if constant_extrapolation:
+        # Check that the continuous predictors have been clipped to the training data
+        # range. The predictor array is modified in place in the GAMPredict class, so
+        # we can just check X_new.
+
+        # Create dictionary containing min and max values for each feature in the
+        # training data.
+        training_data_bounds = {
+            "year": [2003, 2009],
+            "age": [18, 80],
+            "education": [0, 4],
+        }
+        for i, feature_name in enumerate(training_data_bounds.keys()):
+            col = np.array(X_new)[:, i]
+            assert np.all(col >= training_data_bounds[feature_name][0])
+            assert np.all(col <= training_data_bounds[feature_name][1])
 
     np.testing.assert_array_almost_equal(result, expected)

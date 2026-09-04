@@ -1,0 +1,166 @@
+#!/usr/bin/env python
+# (C) Crown Copyright, Met Office. All rights reserved.
+#
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
+# See LICENSE in the root of the repository for full licensing details.
+"""CLI to fill gaps in the forecast trajectory using temporal interpolation."""
+
+from improver import cli
+
+
+@cli.clizefy
+@cli.with_output
+def process(
+    *cubes: cli.inputcube,
+    interval_in_minutes: int = None,
+    interpolation_method: str = "linear",
+    cluster_sources_attribute: str = None,
+    interpolation_window_in_minutes: int = None,
+    interpolation_window_by_source_pair: cli.inputjson = None,
+    model_path: str = None,
+    scaling: str = "minmax",
+    clipping_bounds: cli.comma_separated_list = None,
+    clip_in_scaled_space: bool = False,
+    clip_to_physical_bounds: bool = False,
+    max_batch: int = 1,
+    parallel_backend: str = None,
+    n_workers: int = 1,
+    treat_period_as_instantaneous: bool = False,
+):
+    """Fill gaps in the forecast trajectory using temporal interpolation.
+
+    This CLI identifies missing points in a forecast trajectory (i.e. gaps in
+    validity time, or equivalently forecast period, for a fixed forecast_reference_time)
+    and fills them using temporal interpolation. Optionally, it can regenerate points
+    at forecast source transitions when cluster_sources configuration is provided.
+
+    The intended input is an iris Cube or CubeList where the
+    forecast_reference_time coordinate is fixed, and the time and
+    forecast_period coordinates are increasing. The time and forecast_period coordinates
+    should be associated with each other, so share a dimension if the input is an
+    iris Cube.
+    Multi-realization cubes are supported for interpolation-only gap filling.
+    If source-transition regeneration is enabled via cluster_sources_attribute
+    and a regeneration window, inputs must be single-realization.
+
+    Args:
+        cubes (iris.cube.CubeList or iris.cube.Cube):
+            An iris Cube or CubeList with a fixed forecast_reference_time
+            coordinate, and increasing time and forecast_period coordinates. The
+            time and forecast_period coordinates should be associated (share a
+            dimension if a Cube). The input may have missing points in the
+            forecast trajectory. Multi-realization cubes are supported for
+            interpolation-only gap filling. If source-transition regeneration
+            is enabled via cluster_sources_attribute and a regeneration window,
+            inputs must be single-realization.
+        interval_in_minutes (int):
+            The expected interval between points in the forecast trajectory (in
+            minutes). Used to identify gaps in the sequence. If not provided,
+            gaps will not be filled, but points can still be regenerated if
+            cluster_sources_attribute is set.
+        interpolation_method (str):
+            ["linear", "solar", "daynight", "google_film"]
+            Method of interpolation to use. Default is "linear".
+            - "linear": Standard linear interpolation
+            - "solar": Interpolation scaled by solar elevation angle
+            - "daynight": Linear interpolation with night-time values set to zero
+            - "google_film": Deep learning model for frame interpolation
+        cluster_sources_attribute (str):
+            Name of cube attribute containing cluster sources dictionary. This
+            dictionary maps realization indices to their forecast sources and
+            forecast periods. These forecast periods are for a specific forecast
+            trajectory (i.e. with a set of validity times increasing into the future
+            from a fixed forecast_reference_time). When provided with
+            interpolation_window_in_minutes, enables identification and regeneration of
+            forecast periods at source transitions. Format: {realization_index: {source_name:
+            [periods]}}
+        interpolation_window_in_minutes (int):
+            Time window (in minutes) to use as a +/- range around forecast source
+            transition points. Used with cluster_sources_attribute to identify
+            which forecast periods should be regenerated. For example, if set to
+            180 minutes and a transition occurs at a given period, periods 180 minutes
+            before, at, and after the transition will be regenerated if they
+            fall within the sequence.
+        interpolation_window_by_source_pair (str):
+            Optional dictionary mapping forecast source pairs to a transition
+            interpolation window in minutes. Keys must identify two source names,
+            separated by "|" or "," (for example "uk_ens|gl_ens": 360).
+            Matching is order-insensitive. If provided, this takes precedence
+            over interpolation_window_in_minutes and a ValueError is raised if a
+            transition's source pair is not present in this dictionary. If not
+            provided, interpolation_window_in_minutes is used for all transitions.
+        model_path (str):
+            Path to the TensorFlow Hub module for the Google FILM model.
+            Required when interpolation_method is "google_film". Can be a local
+            path or a TensorFlow Hub URL.
+        scaling (str):
+            Scaling method to apply to the data before interpolation when using
+            "google_film" method. Options are "log10" or "minmax". Default is
+            "minmax".
+        clipping_bounds (str):
+            Comma-separated lower and upper bounds for clipping interpolated
+            values when using "google_film" method. E.g. "0.0,1.0". Default is
+            None.
+        clip_in_scaled_space (bool):
+            If True, apply clipping to the interpolated data while still in
+            scaled space (i.e. before reversing any scaling). If False, no clipping
+            is applied at this stage. Default is False.
+        clip_to_physical_bounds (bool):
+            If True, apply clipping to the interpolated data after reversing any
+            scaling using the physical bounds. If clipping_bounds are supplied these
+            are used, otherwise the min and max values from the input cubes are used.
+            If False, no clipping is applied at this stage. Default is False.
+        max_batch (int):
+            If using google_film interpolation, the maximum batch size for model
+            inference. This limits memory usage by processing the data in smaller
+            chunks. Default is 1 (no batching).
+        parallel_backend (str):
+            If specified, the parallelisation backend to use when performing
+            google_film interpolation. Options are currently the "loky" backend
+            provided by the joblib package. Default is None, which results in
+            no parallelisation.
+        n_workers (int):
+            If using parallel_backend, the number of workers to use for
+            parallel processing. Default is None, which results in the use of
+            1 core.
+        treat_period_as_instantaneous (bool):
+            If True, period diagnostics (inputs with time bounds) are treated
+            as instantaneous values for interpolation. No period-specific
+            renormalisation or max/min constraints are applied. For a period
+            accumulation, this option is intended for use when interpolating a
+            1h period accumulation at e.g. T+4 and T+6 to create a 1h period
+            accumulation at T+5, rather than the temporal disaggregation of a
+            longer period accumulation into shorter periods.
+
+    Returns:
+        iris.cube.Cube:
+            A single merged cube with all points in the forecast trajectory
+            filled. The cube will have time as a dimension coordinate and will
+            include:
+            - All original time slices (except those regenerated at transitions)
+            - Interpolated slices filling identified gaps
+            - Regenerated slices at source transitions (if configured)
+
+    """
+    from improver.utilities.temporal_interpolation import ForecastTrajectoryGapFiller
+
+    plugin = ForecastTrajectoryGapFiller(
+        interval_in_minutes=interval_in_minutes,
+        interpolation_method=interpolation_method,
+        cluster_sources_attribute=cluster_sources_attribute,
+        interpolation_window_in_minutes=interpolation_window_in_minutes,
+        interpolation_window_by_source_pair=interpolation_window_by_source_pair,
+        model_path=model_path,
+        scaling=scaling,
+        clipping_bounds=clipping_bounds,
+        clip_in_scaled_space=clip_in_scaled_space,
+        clip_to_physical_bounds=clip_to_physical_bounds,
+        max_batch=max_batch,
+        parallel_backend=parallel_backend,
+        n_workers=n_workers,
+        treat_period_as_instantaneous=treat_period_as_instantaneous,
+    )
+
+    result = plugin.process(*cubes)
+
+    return result

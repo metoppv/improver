@@ -20,11 +20,12 @@
 etc/site-init
 
 # Files from build of doc
+doc/source/auto_examples
 doc/source/modules.rst
 doc/source/improver*.rst
 !/doc/source/extended_documentation/**
 /doc/build/
 
 # Code coverage files
-lib/.coverage
-lib/coverage.xml
+.coverage
+coverage.xml

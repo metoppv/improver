@@ -404,7 +404,7 @@ class GenerateClearskySolarRadiation(BasePlugin):
 
         # integrate the irradiance data along the time dimension to get the
         # accumulated solar irradiance.
-        solar_radiation_data = np.trapz(
+        solar_radiation_data = np.trapezoid(
             irradiance_data, dx=SECONDS_IN_MINUTE * temporal_spacing, axis=0
         )
 

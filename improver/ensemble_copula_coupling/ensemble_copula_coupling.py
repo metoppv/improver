@@ -8,11 +8,11 @@ This module defines the plugins required for Ensemble Copula Coupling.
 """
 
 import warnings
-from typing import List, Optional, Tuple
+from typing import Iterable, List, Optional, Tuple, Union
 
 import iris
 import numpy as np
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
 from numpy import ndarray
 from scipy import stats
@@ -23,6 +23,7 @@ from improver.calibration.utilities import convert_cube_data_to_2d
 from improver.ensemble_copula_coupling.utilities import (
     choose_set_of_percentiles,
     concatenate_2d_array_with_2d_array_endpoints,
+    create_cube_with_percentile_index,
     create_cube_with_percentiles,
     get_bounds_of_distribution,
     insert_lower_and_upper_endpoint_to_1d_array,
@@ -120,47 +121,51 @@ class RebadgePercentilesAsRealizations(BasePlugin):
     Class to rebadge percentiles as ensemble realizations.
     This will allow the quantisation to percentiles to be completed, without
     a subsequent EnsembleReordering step to restore spatial correlations,
-    if required.
+    if required. For example, with the default options set, the 'percentile' dimension
+    would be renamed 'realization' and points of [25, 50, 75] would be replaced
+    with [0, 1, 2].
     """
 
-    @staticmethod
-    def process(
-        cube: Cube, ensemble_realization_numbers: Optional[ndarray] = None
-    ) -> Cube:
+    def __init__(
+        self,
+        ensemble_realization_numbers: Optional[Iterable[int]] = None,
+        ensure_evenly_spaced_percentiles: bool = True,
+    ):
         """
-        Rebadge percentiles as ensemble realizations. The ensemble
-        realization numbering will depend upon the number of percentiles in
-        the input cube i.e. 0, 1, 2, 3, ..., n-1, if there are n percentiles.
+        Initialise the plugin.
 
         Args:
-            cube:
-                Cube containing a percentile coordinate, which will be
-                rebadged as ensemble realization.
             ensemble_realization_numbers:
                 An array containing the ensemble numbers required in the output
                 realization coordinate. Default is None, meaning the
                 realization coordinate will be numbered 0, 1, 2 ... n-1 for n
                 percentiles on the input cube.
+            ensure_evenly_spaced_percentiles:
+                If True, the plugin will check that the percentiles on the
+                input cube are evenly spaced, centered on the 50th percentile,
+                and partition the space. If False, no check is performed.
+        """
+        self.ensemble_realization_numbers = ensemble_realization_numbers
+        self.ensure_evenly_spaced_percentiles = ensure_evenly_spaced_percentiles
 
-        Returns:
-            Processed cube
+    def _check_evenly_spaced_percentiles(self, cube: Cube, percentile_coord_name: str):
+        """
+        Check that percentiles are evenly spaced, centered, and partition the space.
+
+        Args:
+            cube:
+                Cube containing the percentile coordinate.
+            percentile_coord_name:
+                Name of the percentile coordinate.
 
         Raises:
-            InvalidCubeError:
-                If the realization coordinate already exists on the cube.
+            ValueError:
+                If percentiles are not evenly spaced and partitioned.
         """
-        percentile_coord_name = find_percentile_coordinate(cube).name()
-
-        # create array of percentiles from cube metadata, add in fake
-        # 0th and 100th percentiles if not already included
         percentile_coords = np.sort(
             np.unique(np.append(cube.coord(percentile_coord_name).points, [0, 100]))
         )
         percentile_diffs = np.diff(percentile_coords)
-
-        # percentiles cannot be rebadged unless they are evenly spaced,
-        # centred on 50th percentile, and equally partition percentile
-        # space
         if not np.isclose(np.max(percentile_diffs), np.min(percentile_diffs)):
             msg = (
                 "The percentile cube provided cannot be rebadged as ensemble "
@@ -171,31 +176,75 @@ class RebadgePercentilesAsRealizations(BasePlugin):
             )
             raise ValueError(msg)
 
-        if ensemble_realization_numbers is None:
-            ensemble_realization_numbers = np.arange(
-                len(cube.coord(percentile_coord_name).points), dtype=np.int32
-            )
+    def _check_no_existing_realization_coord(self, cube: Cube):
+        """
+        Raise InvalidCubeError if realization coordinate already exists.
 
-        cube.coord(percentile_coord_name).points = ensemble_realization_numbers
+        Args:
+            cube:
+                Cube to check for an existing realization coordinate.
 
-        # we can't rebadge if the realization coordinate already exists:
+        Raises:
+            InvalidCubeError:
+                If the realization coordinate already exists on the cube.
+        """
         try:
             realization_coord = cube.coord("realization")
         except CoordinateNotFoundError:
             realization_coord = None
-
         if realization_coord:
             raise InvalidCubeError(
                 "Cannot rebadge percentile coordinate to realization "
                 "coordinate because a realization coordinate already exists."
             )
 
-        cube.coord(percentile_coord_name).rename("realization")
-        cube.coord("realization").units = "1"
-        cube.coord("realization").points = cube.coord("realization").points.astype(
-            np.int32
-        )
+    def _rebadge_percentile_coord(
+        self,
+        cube: Cube,
+        percentile_coord_name: str,
+        realization_numbers: Iterable[int],
+    ):
+        """
+        Rename percentile coord to realization and set points/units.
 
+        Args:
+            cube:
+                Cube containing the percentile coordinate.
+            percentile_coord_name:
+                Name of the percentile coordinate.
+            realization_numbers:
+                Iterable of realization numbers to assign.
+        """
+        cube.coord(percentile_coord_name).rename("realization")
+        cube.coord("realization").points = np.array(realization_numbers, dtype=np.int32)
+        cube.coord("realization").units = "1"
+
+    def process(self, cube: Cube) -> Cube:
+        """
+        Public interface to rebadge percentiles as ensemble realizations.
+
+        Args:
+            cube:
+                Cube containing a percentile coordinate, which will be
+                rebadged as ensemble realization.
+
+        Returns:
+            Cube:
+                Processed cube with realization coordinate.
+
+        """
+        self._check_no_existing_realization_coord(cube)
+        percentile_coord_name = find_percentile_coordinate(cube).name()
+        if self.ensure_evenly_spaced_percentiles:
+            self._check_evenly_spaced_percentiles(cube, percentile_coord_name)
+
+        if self.ensemble_realization_numbers is None:
+            realization_numbers = np.arange(
+                len(cube.coord(percentile_coord_name).points), dtype=np.int32
+            )
+        else:
+            realization_numbers = self.ensemble_realization_numbers
+        self._rebadge_percentile_coord(cube, percentile_coord_name, realization_numbers)
         return cube
 
 
@@ -479,6 +528,9 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
         ecc_bounds_warning: bool = False,
         mask_percentiles: bool = False,
         skip_ecc_bounds=False,
+        distribution: str = "gamma",
+        nan_mask_value: float = 0.0,
+        scale_percentiles_to_probability_lower_bound: bool = False,
     ) -> None:
         """
         Initialise the class.
@@ -505,11 +557,42 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
                 percentiles will be computed by nearest neighbour interpolation from
                 the nearest available percentile, rather than using linear interpolation
                 between the nearest available percentile and the ECC bound.
+            distribution:
+                Valid if the "transformation" option is selected for sampling
+                the probability distribution. Type of distribution to fit
+                (currently only 'gamma' is supported).
+            nan_mask_value:
+                Valid if the "transformation" option is selected for
+                sampling the probability distribution. Value to mask as NaN before
+                calculating mean and std. This option might be most useful for a
+                diagnostic, such as precipitation rate, where there is a high
+                frequency of zero values. If None, no masking is performed.
+                Default is 0.0.
+            scale_percentiles_to_probability_lower_bound:
+                Valid if the "transformation" option is selected for sampling the
+                probability distribution. If True, the minimum value of the calculated
+                percentiles will be set to the minimum CDF probability implied by the
+                input probabilities, rather than zero. This has the effect of
+                restricting the percentiles to the non-zero part of the distribution,
+                which is useful when there is a high probability of zero values (e.g.,
+                for precipitation). When False, percentiles are calculated over the
+                full [0, 1] range, regardless of the input probabilities.
+                Default is True.
 
         """
         self.ecc_bounds_warning = ecc_bounds_warning
         self.mask_percentiles = mask_percentiles
         self.skip_ecc_bounds = skip_ecc_bounds
+        if distribution != "gamma":
+            raise ValueError(
+                f"Unsupported distribution: {distribution}. "
+                "Currently only 'gamma' is supported."
+            )
+        self.distribution = distribution
+        self.nan_mask_value = nan_mask_value
+        self.scale_percentiles_to_probability_lower_bound = (
+            scale_percentiles_to_probability_lower_bound
+        )
 
     def _add_bounds_to_thresholds_and_probabilities(
         self,
@@ -677,23 +760,27 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
             warnings.warn(msg)
 
         # Convert percentiles into fractions.
-        percentiles_as_fractions = np.array(
-            [x / 100.0 for x in percentiles], dtype=np.float32
-        )
+        percentiles_as_fractions = (percentiles / 100).astype(np.float32)
+
+        # If percentiles are per-point (e.g. shape (P, Y, X, ...)), move P to last
+        # and flatten the leading dims to shape (Y*X*..., P) for interpolation.
+        if multi_dim := percentiles_as_fractions.ndim >= 2:
+            paf = np.moveaxis(percentiles_as_fractions, 0, -1)  # (..., P)
+            percentiles_flat = paf.reshape(-1, paf.shape[-1])  # (N, P)
+        else:
+            percentiles_flat = percentiles_as_fractions  # (P,)
 
         forecast_at_percentiles = interpolate_multiple_rows_same_y(
-            percentiles_as_fractions.astype(np.float64),
+            percentiles_flat.astype(np.float64),
             probabilities_for_cdf.astype(np.float64),
             threshold_points.astype(np.float64),
-        )
-        forecast_at_percentiles = forecast_at_percentiles.transpose()
-
+        ).transpose()
         # Reshape forecast_at_percentiles, so the percentiles dimension is
         # first, and any other dimension coordinates follow.
         forecast_at_percentiles = restore_non_percentile_dimensions(
             forecast_at_percentiles,
             next(forecast_probabilities.slices_over(threshold_coord)),
-            len(percentiles),
+            percentiles_as_fractions.shape[0],
         )
 
         if self.mask_percentiles:
@@ -706,10 +793,17 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
             if relation == "above":
                 mask_probability = 1 - mask_probability
 
-            for index, perc in enumerate(percentiles_as_fractions):
-                forecast_at_percentiles[index] = np.ma.masked_where(
-                    mask_probability <= perc, forecast_at_percentiles[index]
-                )
+            if multi_dim:
+                for k in range(percentiles_as_fractions.shape[0]):
+                    forecast_at_percentiles[k] = np.ma.masked_where(
+                        mask_probability <= percentiles_as_fractions[k],
+                        forecast_at_percentiles[k],
+                    )
+            else:
+                for k, perc in enumerate(percentiles_as_fractions):
+                    forecast_at_percentiles[k] = np.ma.masked_where(
+                        mask_probability <= perc, forecast_at_percentiles[k]
+                    )
 
         template_cube = next(forecast_probabilities.slices_over(threshold_name))
         template_cube.rename(
@@ -717,12 +811,26 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
         )
         template_cube.remove_coord(threshold_name)
 
-        percentile_cube = create_cube_with_percentiles(
-            percentiles,
-            template_cube,
-            forecast_at_percentiles,
-            cube_unit=threshold_unit,
-        )
+        if multi_dim:
+            # To fully describe the percentiles that are represented after sampling,
+            # we would need to use a 3D percentile coordinate. However, for simplicity,
+            # and as these percentiles are not required by subsequent steps, the
+            # percentile values are instead stored relative to a 1D percentile_index
+            # coordinate. Using a percentile_index coordinate avoids any confusion
+            # that could occur by misrepresenting the percentile coordinate.
+            percentile_cube = create_cube_with_percentile_index(
+                range(len(percentiles)),
+                template_cube,
+                forecast_at_percentiles,
+                cube_unit=threshold_unit,
+            )
+        else:
+            percentile_cube = create_cube_with_percentiles(
+                percentiles,
+                template_cube,
+                forecast_at_percentiles,
+                cube_unit=threshold_unit,
+            )
         if original_mask is not None:
             original_mask = np.broadcast_to(original_mask, percentile_cube.shape)
             percentile_cube.data = np.ma.MaskedArray(
@@ -736,10 +844,13 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
         no_of_percentiles: Optional[int] = None,
         percentiles: Optional[List[float]] = None,
         sampling: str = "quantile",
+        intensity_cube: Optional[Cube] = None,
     ) -> Cube:
         """
         1. Concatenates cubes with a threshold coordinate.
-        2. Creates a list of percentiles.
+        2. Creates an array of percentiles. If the "transformation" sampling option
+           is selected, a 2D array of percentiles is created, otherwise a 1D array is
+           created.
         3. Accesses the lower and upper bound pair to find the ends of the
            cumulative distribution function.
         4. Convert the threshold coordinate into
@@ -768,6 +879,16 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
                           at dividing a Cumulative Distribution Function into
                           blocks of equal probability.
                 * Random: A random set of ordered percentiles.
+                * Transformation: Percentiles are generated by fitting a
+                    distribution to the data. This generates a different set of
+                    percentiles at each grid point, based on the local
+                    distribution of probabilities. Follows Schefzik et al., 2013.
+            intensity_cube:
+                Valid if the "transformation" option is selected for
+                sampling the probability distribution. Cube containing the intensity
+                data used to determine the percentile values at which the probability
+                distribution will be sampled. This cube should be on the same grid
+                as the forecast_probabilities cube.
 
         Returns:
             Cube with forecast values at the desired set of percentiles.
@@ -775,10 +896,15 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
 
         Raises:
             ValueError: If both no_of_percentiles and percentiles are provided
+
+        References:
+            Schefzik, R., Thorarinsdottir, T.L. & Gneiting, T., 2013.
+            Uncertainty Quantification in Complex Simulation Models Using Ensemble
+            Copula Coupling. Statistical Science, 28(4), pp.616-640.
         """
         if no_of_percentiles is not None and percentiles is not None:
             raise ValueError(
-                "Cannot specify both no_of_percentiles and percentiles to " "{}".format(
+                "Cannot specify both no_of_percentiles and percentiles to {}".format(
                     self.__class__.__name__
                 )
             )
@@ -792,7 +918,13 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
 
         if percentiles is None:
             percentiles = choose_set_of_percentiles(
-                no_of_percentiles, sampling=sampling
+                no_of_percentiles,
+                sampling=sampling,
+                probability_cube=forecast_probabilities,
+                intensity_cube=intensity_cube,
+                distribution=self.distribution,
+                nan_mask_value=self.nan_mask_value,
+                scale_percentiles_to_probability_lower_bound=self.scale_percentiles_to_probability_lower_bound,
             )
         elif not isinstance(percentiles, (tuple, list)):
             percentiles = [percentiles]
@@ -825,9 +957,7 @@ class ConvertLocationAndScaleParameters:
     probabilities from the location and scale parameters.
     """
 
-    def __init__(
-        self, distribution: str = "norm", shape_parameters: Optional[ndarray] = None
-    ) -> None:
+    def __init__(self, distribution: str = "norm") -> None:
         """
         Initialise the class.
 
@@ -843,19 +973,6 @@ class ConvertLocationAndScaleParameters:
         Args:
             distribution:
                 Name of a distribution supported by scipy.stats.
-            shape_parameters:
-                For use with distributions in scipy.stats (e.g. truncnorm) that
-                require the specification of shape parameters to be able to
-                define the shape of the distribution. For the truncated normal
-                distribution, the shape parameters should be appropriate for
-                the distribution constructed from the location and scale
-                parameters provided.
-                Please note that for use with
-                :meth:`~improver.calibration.\
-ensemble_calibration.ContinuousRankedProbabilityScoreMinimisers.\
-calculate_truncated_normal_crps`,
-                the shape parameters for a truncated normal distribution with
-                a lower bound of zero should be [0, np.inf].
 
         """
         if distribution == "truncnorm":
@@ -871,57 +988,63 @@ calculate_truncated_normal_crps`,
                 )
                 raise AttributeError(msg)
 
-        if shape_parameters is None:
-            if self.distribution.name == "truncnorm":
-                raise ValueError(
-                    "For the truncated normal distribution, "
-                    "shape parameters must be specified."
-                )
-            shape_parameters = []
-        self.shape_parameters = shape_parameters
-
     def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
-        result = (
-            "<ConvertLocationAndScaleParameters: distribution: {}; "
-            "shape_parameters: {}>"
-        )
-        return result.format(self.distribution.name, self.shape_parameters)
+        result = "<ConvertLocationAndScaleParameters: distribution: {}>"
+        return result.format(self.distribution.name)
 
-    def _rescale_shape_parameters(
-        self, location_parameter: ndarray, scale_parameter: ndarray
-    ) -> None:
+    @staticmethod
+    def _prepare_shape_parameter_truncnorm(
+        shape_parameter: CubeList,
+        location_parameter: Cube,
+        scale_parameter: Cube,
+    ) -> ndarray:
         """
-        Rescale the shape parameters for the desired location and scale
-        parameters for the truncated normal distribution. The shape parameters
-        for any other distribution will remain unchanged.
+        Rescale the shape parameter for the desired location and scale
+        parameters for the truncated normal distribution.
 
         For the truncated normal distribution, if the shape parameters are not
         rescaled, then :data:`scipy.stats.truncnorm` will assume that the shape
         parameters are appropriate for a standard normal distribution. As the
         aim is to construct a distribution using specific values for the
         location and scale parameters, the assumption of a standard normal
-        distribution is not appropriate. Therefore the shape parameters are
+        distribution is not appropriate. Therefore, the shape parameters are
         rescaled using the equations:
 
         .. math::
           a\\_rescaled = (a - location\\_parameter)/scale\\_parameter
 
-          b\\_rescaled = (b - location\\_parameter)/scale\\_parameter
-
         Please see :data:`scipy.stats.truncnorm` for some further information.
 
         Args:
+            shape_parameter:
+                Shape parameters to be rescaled using the location and scale parameters
+                for the truncated normal distribution.
             location_parameter:
                 Location parameter to be used to scale the shape parameters.
             scale_parameter:
                 Scale parameter to be used to scale the shape parameters.
+
+        Raises:
+            ValueError: If the shape_parameter is not a CubeList of length 2.
         """
-        if self.distribution.name == "truncnorm":
-            rescaled_values = []
-            for value in self.shape_parameters:
-                rescaled_values.append((value - location_parameter) / scale_parameter)
-            self.shape_parameters = rescaled_values
+        if (
+            shape_parameter is None
+            or not isinstance(shape_parameter, CubeList)
+            or len(shape_parameter) != 2
+        ):
+            raise ValueError(
+                "For the truncated normal distribution, two shape parameters are "
+                "required to define the lower and upper truncation points. These "
+                f"shape parameters were provided: {shape_parameter}."
+            )
+        else:
+            for i, cube in enumerate(shape_parameter.copy()):
+                # Rescale the shape parameters for the truncated normal
+                # distribution.
+                shape_parameter[i].data = (
+                    cube.data - location_parameter.data
+                ) / scale_parameter.data
 
 
 class ConvertLocationAndScaleParametersToPercentiles(
@@ -935,14 +1058,12 @@ class ConvertLocationAndScaleParametersToPercentiles(
 
     def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
-        result = (
-            "<ConvertLocationAndScaleParametersToPercentiles: "
-            "distribution: {}; shape_parameters: {}>"
-        )
-        return result.format(self.distribution.name, self.shape_parameters)
+        result = "<ConvertLocationAndScaleParametersToPercentiles: distribution: {}>"
+        return result.format(self.distribution.name)
 
     def _location_and_scale_parameters_to_percentiles(
         self,
+        shape_parameter: CubeList,
         location_parameter: Cube,
         scale_parameter: Cube,
         template_cube: Cube,
@@ -953,6 +1074,8 @@ class ConvertLocationAndScaleParametersToPercentiles(
         scale parameters.
 
         Args:
+            shape_parameter:
+                Shape parameter(s) of the calibrated distribution.
             location_parameter:
                 Location parameter of calibrated distribution.
             scale_parameter:
@@ -977,6 +1100,9 @@ class ConvertLocationAndScaleParametersToPercentiles(
         """
         # Remove any mask that may be applied to location and scale parameters
         # and replace with ones
+        shape_data = []
+        for cube in shape_parameter:
+            shape_data.append(cube.data.flatten())
         location_data = np.ma.filled(location_parameter.data, 1).flatten()
         scale_data = np.ma.filled(scale_parameter.data, 1).flatten()
 
@@ -989,10 +1115,8 @@ class ConvertLocationAndScaleParametersToPercentiles(
             (len(percentiles_as_fractions), location_data.shape[0]), dtype=np.float32
         )
 
-        self._rescale_shape_parameters(location_data, scale_data)
-
         percentile_method = self.distribution(
-            *self.shape_parameters, loc=location_data, scale=scale_data
+            *shape_data, loc=location_data, scale=scale_data
         )
 
         # Loop over percentiles, and use the distribution as the
@@ -1003,9 +1127,9 @@ class ConvertLocationAndScaleParametersToPercentiles(
             result[index, :] = percentile_method.ppf(percentile_list)
             # If percent point function (PPF) returns NaNs, fill in
             # mean instead of NaN values. NaN will only be generated if the
-            # scale parameter (standard deviation) is zero or negative. Therefore, if the
-            # scale parameter (standard deviation) is zero or negative, the mean value is
-            # used for all gridpoints with a NaN.
+            # scale parameter (standard deviation) is zero or negative. Therefore, if
+            # the scale parameter (standard deviation) is zero or negative, the mean
+            # value is used for all gridpoints with a NaN.
             if np.any(scale_data <= 0):
                 nan_index = np.argwhere(np.isnan(result[index, :]))
                 result[index, nan_index] = location_data[nan_index]
@@ -1047,6 +1171,7 @@ class ConvertLocationAndScaleParametersToPercentiles(
 
     def process(
         self,
+        shape_parameter: Optional[Union[Cube, CubeList]],
         location_parameter: Cube,
         scale_parameter: Cube,
         template_cube: Cube,
@@ -1057,6 +1182,12 @@ class ConvertLocationAndScaleParametersToPercentiles(
         Generate ensemble percentiles from the location and scale parameters.
 
         Args:
+            shape_parameter:
+                Cube or CubeList containing the shape parameters. If a single shape
+                parameter is required (e.g a Gamma distribution), this should be
+                provided as a Cube. If multiple shape parameters are required (e.g a
+                Truncated Normal distribution), these should be provided as a CubeList,
+                where each Cube contains one shape parameter.
             location_parameter:
                 Cube containing the location parameters.
             scale_parameter:
@@ -1091,11 +1222,25 @@ class ConvertLocationAndScaleParametersToPercentiles(
             )
             raise ValueError(msg)
 
+        if self.distribution.name == "truncnorm":
+            self._prepare_shape_parameter_truncnorm(
+                shape_parameter, location_parameter, scale_parameter
+            )
+
+        if isinstance(shape_parameter, Cube):
+            shape_parameter = iris.cube.CubeList([shape_parameter])
+        elif shape_parameter is None:
+            shape_parameter = iris.cube.CubeList([])
+
         if no_of_percentiles:
             percentiles = choose_set_of_percentiles(no_of_percentiles)
         calibrated_forecast_percentiles = (
             self._location_and_scale_parameters_to_percentiles(
-                location_parameter, scale_parameter, template_cube, percentiles
+                shape_parameter,
+                location_parameter,
+                scale_parameter,
+                template_cube,
+                percentiles,
             )
         )
 
@@ -1112,11 +1257,8 @@ class ConvertLocationAndScaleParametersToProbabilities(
 
     def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
-        result = (
-            "<ConvertLocationAndScaleParametersToProbabilities: "
-            "distribution: {}; shape_parameters: {}>"
-        )
-        return result.format(self.distribution.name, self.shape_parameters)
+        result = "<ConvertLocationAndScaleParametersToProbabilities: distribution: {}>"
+        return result.format(self.distribution.name)
 
     def _check_template_cube(self, cube: Cube) -> None:
         """
@@ -1190,6 +1332,7 @@ class ConvertLocationAndScaleParametersToProbabilities(
 
     def _location_and_scale_parameters_to_probabilities(
         self,
+        shape_parameter: CubeList,
         location_parameter: Cube,
         scale_parameter: Cube,
         probability_cube_template: Cube,
@@ -1199,6 +1342,8 @@ class ConvertLocationAndScaleParametersToProbabilities(
         on the supplied location and scale parameters.
 
         Args:
+            shape_parameter:
+                Shape parameter(s) of the calibrated distribution.
             location_parameter:
                 Predictor for the calibrated forecast location parameter.
             scale_parameter:
@@ -1220,14 +1365,13 @@ class ConvertLocationAndScaleParametersToProbabilities(
         mask = np.logical_or(loc_mask, scale_mask)
         # Remove any mask that may be applied to location and scale parameters
         # and replace with ones
+        shape_data = []
+        for cube in shape_parameter:
+            shape_data.append(cube.data.flatten())
         location_parameter.data = np.ma.filled(location_parameter.data, 1)
         scale_parameter.data = np.ma.filled(scale_parameter.data, 1)
         thresholds = find_threshold_coordinate(probability_cube_template).points
         relative_to_threshold = probability_is_above_or_below(probability_cube_template)
-
-        self._rescale_shape_parameters(
-            location_parameter.data.flatten(), scale_parameter.data.flatten()
-        )
 
         # Loop over thresholds, and use the specified distribution with the
         # location and scale parameter to calculate the probabilities relative
@@ -1235,7 +1379,7 @@ class ConvertLocationAndScaleParametersToProbabilities(
         probabilities = np.empty_like(probability_cube_template.data)
 
         distribution = self.distribution(
-            *self.shape_parameters,
+            *shape_data,
             loc=location_parameter.data.flatten(),
             scale=scale_parameter.data.flatten(),
         )
@@ -1258,6 +1402,7 @@ class ConvertLocationAndScaleParametersToProbabilities(
 
     def process(
         self,
+        shape_parameter: Optional[Union[Cube, CubeList]],
         location_parameter: Cube,
         scale_parameter: Cube,
         probability_cube_template: Cube,
@@ -1267,6 +1412,12 @@ class ConvertLocationAndScaleParametersToProbabilities(
         distribution.
 
         Args:
+            shape_parameter:
+                Cube or CubeList containing the shape parameters. If a single shape
+                parameter is required (e.g a Gamma distribution), this should be
+                provided as a Cube. If multiple shape parameters are required (e.g a
+                Truncated Normal distribution), these should be provided as a CubeList,
+                where each Cube contains one shape parameter.
             location_parameter:
                 Cube containing the location parameters.
             scale_parameter:
@@ -1286,8 +1437,21 @@ class ConvertLocationAndScaleParametersToProbabilities(
             location_parameter, scale_parameter, probability_cube_template
         )
 
+        if self.distribution.name == "truncnorm":
+            self._prepare_shape_parameter_truncnorm(
+                shape_parameter, location_parameter, scale_parameter
+            )
+
+        if isinstance(shape_parameter, Cube):
+            shape_parameter = iris.cube.CubeList([shape_parameter])
+        elif shape_parameter is None:
+            shape_parameter = iris.cube.CubeList([])
+
         probability_cube = self._location_and_scale_parameters_to_probabilities(
-            location_parameter, scale_parameter, probability_cube_template
+            shape_parameter,
+            location_parameter,
+            scale_parameter,
+            probability_cube_template,
         )
 
         return probability_cube
@@ -1306,6 +1470,43 @@ class EnsembleReordering(BasePlugin):
     Statistical Science, 28(4), pp.616-640.
 
     """
+
+    def __init__(
+        self,
+        random_ordering: bool = False,
+        random_seed: Optional[int] = None,
+        tie_break: Optional[str] = "random",
+        ensure_evenly_spaced_realizations: bool = False,
+    ):
+        """Initialise the class.
+
+        Args:
+            random_ordering:
+                If random_ordering is True, the post-processed forecasts are
+                reordered randomly, rather than using the ordering of the
+                raw ensemble. This is referred to as ECC-R in Schefzik et al. (2013).
+            random_seed:
+                If random_seed is an integer, the integer value is used for
+                the random seed.
+                If random_seed is None, no random seed is set, so the random
+                values generated are not reproducible.
+            tie_break:
+                The method of tie breaking to use when the first ordering method
+                contains ties. The available methods are the default - "random", to
+                tie-break randomly, and "realization", to tie-break by assigning values
+                to the highest numbered realizations first. Tie breaking using the
+                "realization" option is deterministic, and provides a simple
+                approach for tie breaking (based on the realization number) without
+                introducing spatial arfefacts that can occur with "random" tie breaking.
+            ensure_evenly_spaced_realizations:
+                If True, the plugin will ensure that the output realizations are
+                evenly spaced in percentile space and centered on the 50th percentile,
+                and partition the space. If False, no check is performed.
+        """
+        self.random_ordering = random_ordering
+        self.random_seed = random_seed
+        self.tie_break = tie_break
+        self.ensure_evenly_spaced_realizations = ensure_evenly_spaced_realizations
 
     @staticmethod
     def _recycle_raw_ensemble_realizations(
@@ -1351,13 +1552,10 @@ class EnsembleReordering(BasePlugin):
             )
         return raw_forecast_realizations
 
-    @staticmethod
     def rank_ecc(
+        self,
         post_processed_forecast_percentiles: Cube,
         raw_forecast_realizations: Cube,
-        random_ordering: bool = False,
-        random_seed: Optional[int] = None,
-        tie_break: Optional[str] = "random",
     ) -> Cube:
         """
         Function to apply Ensemble Copula Coupling. This ranks the
@@ -1372,20 +1570,6 @@ class EnsembleReordering(BasePlugin):
                 Cube containing the raw (not post-processed) forecasts.
                 The probabilistic dimension is assumed to be the zeroth
                 dimension.
-            random_ordering:
-                If random_ordering is True, the post-processed forecasts are
-                reordered randomly, rather than using the ordering of the
-                raw ensemble.
-            random_seed:
-                If random_seed is an integer, the integer value is used for
-                the random seed.
-                If random_seed is None, no random seed is set, so the random
-                values generated are not reproducible.
-            tie_break:
-                The method of tie breaking to use when the first ordering method
-                contains ties. The available methods are "random", to tie-break
-                randomly, and "realization", to tie-break by assigning values to the
-                highest numbered realizations first.
 
         Returns:
             Cube for post-processed realizations where at a particular grid
@@ -1395,8 +1579,9 @@ class EnsembleReordering(BasePlugin):
         Raises:
             ValueError: tie_break is not either 'random' or 'realization'
         """
-        if random_seed is not None:
-            random_seed = int(random_seed)
+        random_seed = self.random_seed
+        if self.random_seed is not None:
+            random_seed = int(self.random_seed)
         random_seed = np.random.RandomState(random_seed)
 
         results = iris.cube.CubeList([])
@@ -1404,16 +1589,16 @@ class EnsembleReordering(BasePlugin):
             raw_forecast_realizations.slices_over("time"),
             post_processed_forecast_percentiles.slices_over("time"),
         ):
-            if random_ordering:
+            if self.random_ordering:
                 random_data = random_seed.rand(*rawfc.data.shape)
                 # Returns the indices that would sort the array.
                 # As these indices are from a random dataset, only an argsort
                 # is used.
                 ranking = np.argsort(random_data, axis=0)
             else:
-                if tie_break == "random":
+                if self.tie_break == "random":
                     tie_break_data = random_seed.rand(*rawfc.data.shape)
-                elif tie_break == "realization":
+                elif self.tie_break == "realization":
                     realizations = raw_forecast_realizations.coord("realization").points
                     target_shape = rawfc.data.shape
                     realizations = np.expand_dims(
@@ -1423,7 +1608,7 @@ class EnsembleReordering(BasePlugin):
                 else:
                     msg = (
                         'Input tie_break must be either "random", or "realization",'
-                        f' not "{tie_break}".'
+                        f' not "{self.tie_break}".'
                     )
                     raise ValueError(msg)
                 # Lexsort returns the indices sorted firstly by the
@@ -1511,9 +1696,6 @@ class EnsembleReordering(BasePlugin):
         self,
         post_processed_forecast: Cube,
         raw_forecast: Cube,
-        random_ordering: bool = False,
-        random_seed: Optional[int] = None,
-        tie_break: Optional[str] = "random",
     ) -> Cube:
         """
         Reorder post-processed forecast using the ordering of the
@@ -1526,20 +1708,6 @@ class EnsembleReordering(BasePlugin):
             raw_forecast:
                 The cube containing the raw (not post-processed)
                 forecast.
-            random_ordering:
-                If random_ordering is True, the post-processed forecasts are
-                reordered randomly, rather than using the ordering of the
-                raw ensemble.
-            random_seed:
-                If random_seed is an integer, the integer value is used for
-                the random seed.
-                If random_seed is None, no random seed is set, so the random
-                values generated are not reproducible.
-            tie_break:
-                The method of tie breaking to use when the first ordering method
-                contains ties. The available methods are "random", to tie-break
-                randomly, and "realization", to tie-break by assigning values to the
-                highest numbered realizations first.
 
         Returns:
             Cube containing the new ensemble realizations where all points
@@ -1560,16 +1728,15 @@ class EnsembleReordering(BasePlugin):
             post_processed_forecast, raw_forecast, percentile_coord_name
         )
         post_processed_forecast_realizations = self.rank_ecc(
-            post_processed_forecast,
-            raw_forecast,
-            random_ordering=random_ordering,
-            random_seed=random_seed,
-            tie_break=tie_break,
+            post_processed_forecast, raw_forecast
         )
-        plugin = RebadgePercentilesAsRealizations()
-        post_processed_forecast_realizations = plugin(
-            post_processed_forecast_realizations,
+
+        plugin = RebadgePercentilesAsRealizations(
             ensemble_realization_numbers=raw_forecast.coord("realization").points,
+            ensure_evenly_spaced_percentiles=self.ensure_evenly_spaced_realizations,
+        )
+        post_processed_forecast_realizations = plugin(
+            post_processed_forecast_realizations
         )
 
         enforce_coordinate_ordering(post_processed_forecast_realizations, "realization")

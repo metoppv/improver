@@ -16,6 +16,7 @@ import pandas as pd
 import pytest
 
 from improver.calibration.dataframe_utilities import (
+    _training_dates_for_calibration,
     forecast_and_truth_dataframes_to_cubes,
     forecast_dataframe_to_cube,
     truth_dataframe_to_cube,
@@ -1252,6 +1253,131 @@ class Test_forecast_and_truth_dataframes_to_cubes(
                 self.forecast_period,
                 self.training_length,
             )
+
+    def test_use_of_adjacent_validity_times(self):
+        """Test returned cube contains multiple validity times but that
+        the forecast periods have been made consistent, breaking the
+        relationship between validity time and forecast reference time.
+        This allows the cube to be constructed without a multi-dimensional
+        time coordinate.
+
+        The target validity hour is 18Z. The adjacent_range is set to 1,
+        meaning that hours spanning 17-19Z on each day in the dataframes
+        should be extracted for training. Additional hours are added to the
+        dataframes at 16Z and 20Z to test that these are not included in the
+        output cubes.
+        """
+
+        def offset_time(df, offset_hours):
+            """Offset the time coordinate of a dataframe by a given number of
+            hours. If a forecast_period column is present, offset this by the
+            same amount."""
+            df_offset = df.copy()
+            df_offset["time"] = df_offset["time"] + pd.Timedelta(hours=offset_hours)
+            try:
+                df_offset["forecast_period"] = df_offset[
+                    "forecast_period"
+                ] + pd.Timedelta(hours=offset_hours)
+            except KeyError:
+                pass
+            return df_offset
+
+        # Add T+-1 and 2 validity times to the dataframes.
+        # The dataframe contains validity times on several days at hours of
+        # 16Z, 17Z, 18Z, 19Z and 20Z.
+        forecast_df = pd.concat(
+            [
+                self.forecast_df,
+                offset_time(self.forecast_df, -1),
+                offset_time(self.forecast_df, 1),
+                offset_time(self.forecast_df, -2),
+                offset_time(self.forecast_df, 2),
+            ],
+            ignore_index=True,
+        )
+        truth_df = pd.concat(
+            [
+                self.truth_subset_df,
+                offset_time(self.truth_subset_df, -1),
+                offset_time(self.truth_subset_df, 1),
+                offset_time(self.truth_subset_df, -2),
+                offset_time(self.truth_subset_df, 2),
+            ],
+            ignore_index=True,
+        )
+
+        forecast_cube, truth_cube = forecast_and_truth_dataframes_to_cubes(
+            forecast_df,
+            truth_df,
+            self.cycletime,
+            self.forecast_period,
+            self.training_length,
+            adjacent_range=1,
+        )
+        forecast_hours = set(
+            [item.point.hour for item in forecast_cube.coord("time").cells()]
+        )
+        truth_hours = set(
+            [item.point.hour for item in truth_cube.coord("time").cells()]
+        )
+
+        assert forecast_cube.shape == (3, 9, 3)
+        assert truth_cube.shape == (9, 3)
+        assert forecast_hours == set([17, 18, 19])
+        assert truth_hours == set([17, 18, 19])
+        assert len(forecast_hours.intersection(set([16, 20]))) == 0
+        assert len(truth_hours.intersection(set([16, 20]))) == 0
+
+        # Demonstrate that we have intentionally set the forecast_period to be
+        # inconsistent with the relationship between forecast_reference_time
+        # and validity time, meaning that only 3 out of 9 grid points have the
+        # "correct" forecast period. This inconsistency allows a cube to be
+        # constructed without a multi-dimensional time coordinate.
+        count = 0
+        for frt_cell, time_cell in zip(
+            forecast_cube.coord("forecast_reference_time").cells(),
+            forecast_cube.coord("time").cells(),
+        ):
+            actual_forecast_period = (
+                time_cell.point._to_real_datetime() - frt_cell.point._to_real_datetime()
+            )
+            if actual_forecast_period.total_seconds() == self.forecast_period:
+                count += 1
+
+        assert count == 3
+
+
+@pytest.mark.parametrize(
+    "cycletime, forecast_period, training_length, adjacent_range",
+    [
+        ("20170109T0000Z", 6, 3, 0),
+        ("20170109T0000Z", 6, 3, 1),
+        ("20170109T0000Z", 6, 3, 3),
+        ("20170109T0000Z", 12, 5, 0),
+        ("20170109T0000Z", 12, 5, 1),
+    ],
+)
+def test__training_dates_for_calibration(
+    cycletime, forecast_period, training_length, adjacent_range
+):
+    """Test that the correct training dates are returned for a given cycletime,
+    forecast period and training length. A non-zero adjacent range should result
+    in additional hours being made available."""
+
+    expected_hours = set(
+        range(forecast_period - adjacent_range, forecast_period + adjacent_range + 1)
+    )
+    cycle_day = pd.Timestamp(cycletime).day
+    expected_days = set(range(cycle_day - training_length, cycle_day))
+
+    result = _training_dates_for_calibration(
+        cycletime, forecast_period * 3600, training_length, adjacent_range
+    )
+
+    hours = set([item.hour for item in result])
+    days = set([item.day for item in result])
+    assert hours == expected_hours
+    assert days == expected_days
 
 
 if __name__ == "__main__":

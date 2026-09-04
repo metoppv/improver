@@ -107,6 +107,7 @@ def setup_cubes():
     )
 
 
+@pytest.mark.parametrize("ccl_is_masked", (False, True))
 @pytest.mark.parametrize("cct_is_masked", (True, False))
 @pytest.mark.parametrize("model_id_attr", (None, "mosg__model_configuration"))
 @pytest.mark.parametrize(
@@ -133,6 +134,10 @@ def setup_cubes():
         (75, 0.001, 271.15, 263.15, 20, 50, 0),
         # Convective cloud top temperature is missing and prevents hail
         (75, 0.001, 271.15, np.nan, 20, 50, 0),
+        # Cloud condensation level is missing and prevents hail
+        (25, 0.001, np.nan, 253.15, 20, 50, 0),
+        # Both convective cloud parameters are missing and prevent hail
+        (25, 0.001, np.nan, np.nan, 20, 50, 0),
         # Hail melting level prevents hail
         (75, 0.001, 271.15, 253.15, 100, 50, 0),
         # Hail size causes non-zero hail fraction despite inhibitive cloud condensation
@@ -149,6 +154,7 @@ def test_basic(
     altitude_value,
     expected,
     model_id_attr,
+    ccl_is_masked,
     cct_is_masked,
 ):
     """Test hail fraction plugin."""
@@ -172,6 +178,10 @@ def test_basic(
     cloud_condensation_level.data = np.full_like(
         cloud_condensation_level.data, cloud_condensation_level_value
     )
+    if ccl_is_masked:
+        cloud_condensation_level.data = np.ma.masked_invalid(
+            cloud_condensation_level.data
+        )
     cct_data = np.full_like(convective_cloud_top.data, convective_cloud_top_value)
     if cct_is_masked:
         cct_data = np.ma.masked_invalid(cct_data)

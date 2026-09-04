@@ -10,7 +10,6 @@ from datetime import datetime as dt
 import iris
 import numpy as np
 import pytest
-from iris.tests import IrisTest
 
 from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD
 from improver.blending.weighted_blend import MergeCubesForWeightedBlending
@@ -21,7 +20,7 @@ from improver.synthetic_data.set_up_test_cubes import (
 from improver.utilities.cube_manipulation import get_coord_names
 
 
-class Test__init__(IrisTest):
+class Test__init__(unittest.TestCase):
     """Test the __init__ method"""
 
     def test_basic(self):
@@ -58,7 +57,7 @@ class Test__init__(IrisTest):
         self.assertIsNone(plugin.model_id_attr)
 
 
-class Test__create_model_coordinates(IrisTest):
+class Test__create_model_coordinates(unittest.TestCase):
     """Test the _create_model_coordinates method"""
 
     def setUp(self):
@@ -121,7 +120,7 @@ class Test__create_model_coordinates(IrisTest):
             self.plugin._create_model_coordinates(new_cubelist)
 
 
-class Test_process(IrisTest):
+class Test_process(unittest.TestCase):
     """Test the process method"""
 
     def setUp(self):
@@ -187,8 +186,8 @@ class Test_process(IrisTest):
         """Test models merge OK and have expected model coordinates"""
         result = self.plugin.process(self.cubelist)
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayEqual(result.coord(MODEL_BLEND_COORD).points, [0, 1000])
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(result.coord(MODEL_BLEND_COORD).points, [0, 1000])
+        np.testing.assert_array_equal(
             result.coord(MODEL_NAME_COORD).points, ["uk_ens", "uk_det"]
         )
 
@@ -243,7 +242,7 @@ class Test_process(IrisTest):
         expected_points = np.array([frt, frt + 3600, frt + 7200], dtype=np.int64)
         plugin = MergeCubesForWeightedBlending("forecast_reference_time")
         result = plugin.process([cube1, self.cube_ukv, cube2])
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             result.coord("forecast_reference_time").points, expected_points
         )
 
@@ -270,7 +269,7 @@ class Test_process(IrisTest):
         )
         result = plugin.process(self.non_mo_cubelist)
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayEqual(result.coord(MODEL_BLEND_COORD).points, [0, 1000])
+        np.testing.assert_array_equal(result.coord(MODEL_BLEND_COORD).points, [0, 1000])
 
     def test_model_id_attr_mismatch(self):
         """Test that when a model ID attribute string is specified that does
@@ -334,7 +333,9 @@ class Test_process(IrisTest):
         plugin = MergeCubesForWeightedBlending("realization")
         result = plugin.process([cube1, cube2])
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayEqual(result.coord("realization").points, np.array([0, 1]))
+        np.testing.assert_array_equal(
+            result.coord("realization").points, np.array([0, 1])
+        )
         self.assertEqual(result[0].metadata, cube1.metadata)
         self.assertEqual(result[1].metadata, cube2.metadata)
 
@@ -347,7 +348,7 @@ class Test_process(IrisTest):
             record_run_attr="mosg__model_run",
         )
         cube = plugin.process(self.cubelist)
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             cube.coord("blend_record").points,
             ["uk_ens:20151123T0000Z:1.000", "uk_det:20151123T0300Z:1.000"],
         )
@@ -365,7 +366,7 @@ class Test_process(IrisTest):
             "uk_det:20151123T0200Z:0.500\nuk_det:20151123T0300Z:0.500"
         )
         cube = plugin.process([self.cube_ukv, self.cube_enuk])
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             cube.coord("blend_record").points,
             [
                 "uk_det:20151123T0200Z:0.500\nuk_det:20151123T0300Z:0.500",

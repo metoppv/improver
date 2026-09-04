@@ -77,7 +77,9 @@ class BaseModalCategory(BasePlugin):
         """
         # Store the information for the record_run attribute on the cubes.
         if record_run_attr and model_id_attr:
-            store_record_run_as_coord(cubes, record_run_attr, model_id_attr)
+            store_record_run_as_coord(
+                cubes, record_run_attr, model_id_attr, unify_record_run_attr=True
+            )
         return MergeCubes()(cubes)
 
     def _prepare_result_cube(

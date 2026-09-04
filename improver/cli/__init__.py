@@ -4,6 +4,7 @@
 # See LICENSE in the root of the repository for full licensing details.
 """init for cli and clize"""
 
+import os
 import pathlib
 import shlex
 import time
@@ -363,13 +364,20 @@ def with_output(
             or all([isinstance(x, Cube) for x in result])
         )
     ):
-        save_netcdf(result, output, compression_level, least_significant_digit)
+        save_netcdf(
+            result,
+            output,
+            complevel=compression_level,
+            least_significant_digit=least_significant_digit,
+        )
         if pass_through_output:
             return ObjectAsStr(result, output)
         return
     elif output and result:
         # If output is set and result exists but is not a Cube, save it as a pickle file
-        joblib.dump(result, output, compress=compression_level)
+        tmp_output = str(output) + ".tmp"
+        joblib.dump(result, tmp_output, compress=compression_level)
+        os.rename(tmp_output, output)
         return
     return result
 

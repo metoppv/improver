@@ -7,12 +7,11 @@
 import unittest
 
 import numpy as np
-from iris.tests import IrisTest
 
 from improver.nbhood.nbhood import circular_kernel
 
 
-class Test_circular_kernel(IrisTest):
+class Test_circular_kernel(unittest.TestCase):
     """Test neighbourhood processing plugin."""
 
     def test_basic(self):
@@ -28,7 +27,7 @@ class Test_circular_kernel(IrisTest):
         weighted_mode = True
         expected = [[0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]]
         result = circular_kernel(ranges, weighted_mode)
-        self.assertArrayAlmostEqual(result, expected)
+        np.testing.assert_array_almost_equal(result, expected)
 
     def test_single_point_unweighted(self):
         """Test behaviour for a unitary range without weighting.
@@ -39,7 +38,7 @@ class Test_circular_kernel(IrisTest):
         weighted_mode = False
         expected = [[0.0, 1.0, 0.0], [1.0, 1.0, 1.0], [0.0, 1.0, 0.0]]
         result = circular_kernel(ranges, weighted_mode)
-        self.assertArrayEqual(result, expected)
+        np.testing.assert_array_equal(result, expected)
 
     def test_range5_weighted(self):
         """Test behaviour for a range of 5, with weighting."""
@@ -59,7 +58,7 @@ class Test_circular_kernel(IrisTest):
             [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00],
         ]
         result = circular_kernel(ranges, weighted_mode)
-        self.assertArrayAlmostEqual(result, expected)
+        np.testing.assert_array_almost_equal(result, expected)
 
     def test_range5_unweighted(self):
         """Test behaviour for a range of 5 without weighting."""
@@ -79,7 +78,7 @@ class Test_circular_kernel(IrisTest):
             [0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
         ]
         result = circular_kernel(ranges, weighted_mode)
-        self.assertArrayEqual(result, expected)
+        np.testing.assert_array_equal(result, expected)
 
 
 if __name__ == "__main__":

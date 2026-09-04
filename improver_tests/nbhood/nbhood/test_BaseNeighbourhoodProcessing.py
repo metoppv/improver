@@ -7,13 +7,12 @@
 import unittest
 
 import numpy as np
-from iris.tests import IrisTest
 
 from improver.nbhood.nbhood import BaseNeighbourhoodProcessing as NBHood
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 
-class Test__init__(IrisTest):
+class Test__init__(unittest.TestCase):
     """Test the __init__ method of NeighbourhoodProcessing"""
 
     def test_radii_varying_with_lead_time_mismatch(self):
@@ -28,7 +27,7 @@ class Test__init__(IrisTest):
             NBHood(radii, lead_times=lead_times)
 
 
-class Test__find_radii(IrisTest):
+class Test__find_radii(unittest.TestCase):
     """Test the internal _find_radii function is working correctly."""
 
     def test_basic_array_cube_lead_times_an_array(self):
@@ -40,7 +39,7 @@ class Test__find_radii(IrisTest):
         result = plugin._find_radii(cube_lead_times=fp_points)
         expected_result = np.array([15000.0, 20000.0, 25000.0])
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, expected_result)
+        np.testing.assert_array_almost_equal(result, expected_result)
 
     def test_interpolation(self):
         """Test that interpolation is working as expected in _find_radii."""
@@ -50,10 +49,10 @@ class Test__find_radii(IrisTest):
         plugin = NBHood(radii=radii, lead_times=lead_times)
         result = plugin._find_radii(cube_lead_times=fp_points)
         expected_result = np.array([10000.0, 20000.0, 30000.0])
-        self.assertArrayAlmostEqual(result, expected_result)
+        np.testing.assert_array_almost_equal(result, expected_result)
 
 
-class Test_process(IrisTest):
+class Test_process(unittest.TestCase):
     """Tests for the process method of NeighbourhoodProcessing."""
 
     RADIUS = 6300  # Gives 3 grid cells worth.

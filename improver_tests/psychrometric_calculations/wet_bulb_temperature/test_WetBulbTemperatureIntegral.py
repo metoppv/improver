@@ -8,7 +8,6 @@ import unittest
 
 import iris
 import numpy as np
-from iris.tests import IrisTest
 
 from improver.psychrometric_calculations.wet_bulb_temperature import (
     WetBulbTemperatureIntegral,
@@ -19,7 +18,7 @@ from improver.synthetic_data.set_up_test_cubes import (
 )
 
 
-class Test_process(IrisTest):
+class Test_process(unittest.TestCase):
     """Test the calculation of the wet bulb temperature integral from
     temperature, pressure, and relative humidity information using the
     process function. Integration is calculated in the vertical.
@@ -79,7 +78,7 @@ class Test_process(IrisTest):
         )
         wb_temp_int = WetBulbTemperatureIntegral().process(self.wet_bulb_temperature)
         self.assertIsInstance(wb_temp_int, iris.cube.Cube)
-        self.assertArrayAlmostEqual(wb_temp_int.data, expected_wb_int)
+        np.testing.assert_array_almost_equal(wb_temp_int.data, expected_wb_int)
 
 
 if __name__ == "__main__":

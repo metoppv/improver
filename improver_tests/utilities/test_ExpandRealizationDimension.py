@@ -1,0 +1,87 @@
+# (C) Crown Copyright, Met Office. All rights reserved.
+#
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
+# See LICENSE in the root of the repository for full licensing details.
+"""Unit tests for the ExpandRealizationDimension class."""
+
+import numpy as np
+import pytest
+
+from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
+from improver.utilities.expand_realization_dimension import ExpandRealizationDimension
+
+
+@pytest.fixture
+def basic_cube_with_realization_coord():
+    """Create a basic cube with a realization coordinate."""
+    data = np.zeros((3, 1, 1), dtype=np.float32)
+    data[0, 0, 0] = 1.0
+    cube = set_up_variable_cube(data)
+    return cube
+
+
+@pytest.fixture
+def cube_with_realization_coord_in_different_position(
+    basic_cube_with_realization_coord,
+):
+    """Create a cube with the realization coordinate in a different position to test
+    that the plugin correctly reorders the coordinates."""
+    basic_cube_with_realization_coord.transpose(
+        [1, 2, 0]
+    )  # Move realization coordinate to last dimension
+    return basic_cube_with_realization_coord
+
+
+def test_expand_realization_dimension(basic_cube_with_realization_coord):
+    """Test that the ExpandRealizationDimension plugin correctly expands the realization
+    dimension of a cube."""
+    plugin = ExpandRealizationDimension(n_realizations_required=7)
+    result = plugin.process(basic_cube_with_realization_coord)
+
+    # Check size of realization correct
+    assert result.coord("realization").points.size == 7
+    # Check realization points monotonically increasing
+    np.testing.assert_array_equal(
+        result.coord("realization").points, np.array([0, 1, 2, 3, 4, 5, 6])
+    )
+    # Check output data matches expected cycling behaviour
+    np.testing.assert_array_equal(
+        result.data,
+        np.array(
+            [[[1.0]], [[0.0]], [[0.0]], [[1.0]], [[0.0]], [[0.0]], [[1.0]]],
+            dtype=np.float32,
+        ),
+    )
+
+
+def test_no_realization_coord():
+    """Test that an error is raised if the input cube does not contain a realization
+    coordinate."""
+    cube = set_up_variable_cube(np.zeros((1, 1), dtype=np.float32))
+    plugin = ExpandRealizationDimension(n_realizations_required=3)
+
+    try:
+        plugin.process(cube)
+    except ValueError as err:
+        assert str(err) == "The input cube does not contain a realization coordinate."
+
+
+def test_fewer_realizations_requested_than_input(basic_cube_with_realization_coord):
+    """Test that a subset of the input cube is returned if n_realizations_required is
+    set to fewer realizations than the input cube contains."""
+    plugin = ExpandRealizationDimension(n_realizations_required=2)
+    result = plugin(basic_cube_with_realization_coord)
+    # Check size of realization correct
+    assert result.coord("realization").points.size == 2
+
+
+def test_enforcement_of_realization_as_first_dimension_coordinate(
+    cube_with_realization_coord_in_different_position,
+):
+    """Test that the plugin correctly reorders the coordinates to ensure the realization
+    coordinate is the first dimension coordinate."""
+    cube = cube_with_realization_coord_in_different_position
+    plugin = ExpandRealizationDimension(n_realizations_required=5)
+    result = plugin(cube)
+    # Check realization coordinate is the first dimension coordinate
+    assert [coord.name() for coord in result.coords()][0] == "realization"

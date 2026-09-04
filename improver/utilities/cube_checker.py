@@ -39,6 +39,111 @@ def check_for_x_and_y_axes(cube: Cube, require_dim_coords: bool = False) -> None
             raise ValueError(msg)
 
 
+def validate_cube_dimensions(
+    cube: Cube,
+    required_dimensions: Optional[List[str]] = None,
+    forbidden_dimensions: Optional[List[str]] = None,
+    exact_match: bool = True,
+) -> None:
+    """
+    Validate cube dimension coordinates.
+
+    Notes:
+    - 't', 'x', 'y', and 'z' are treated as axes to resolve. This prevents instances
+    where the dimension could be called 'latitude', 'projection_x_coordinate', etc.
+    from being misidentified as non-dimension coordinates.
+    - All other entries are treated as explicit dimension coord names.
+
+    Args:
+        cube:
+            The cube to validate.
+        required_dimensions:
+            Dimension names that must be present on the cube.
+        forbidden_dimensions:
+            Dimension names that must not be present on the cube.
+        exact_match:
+            Validation mode.
+            - True: the cube must have exactly the required dimensions
+            (no more, no less).
+            - False: the cube must have at least the required dimensions,
+            but can have additional ones.
+
+    Raises:
+        ValueError:
+            - An invalid mode is specified.
+            - Required dimensions are missing.
+            - Forbidden dimensions are present.
+
+    """
+    required_dimensions = list(required_dimensions or [])
+    forbidden_dimensions = list(forbidden_dimensions or [])
+
+    dim_coord_name_set = {coord.name() for coord in cube.dim_coords}
+
+    def _resolve_dimension(dim: str) -> str:
+        """
+        Resolve dimension labels to actual dimension coordinate names. 't', 'x', 'y',
+        and 'z' are treated as axis labels to resolve, while all other entries are
+        treated as explicit dimension coordinate names.
+
+        Args:
+            dim:
+                Dimension label to resolve.
+
+        Returns:
+            Resolved dimension coordinate name.
+
+        Raises:
+            ValueError:
+                If an axis label is not found on the cube.
+        """
+        label = dim.lower()
+        if label in "txyz":
+            try:
+                return cube.coord(axis=label, dim_coords=True).name()
+            # If the axis label is not found, we return dim as is, which will be
+            # caught as a missing required dimension or an unexpected forbidden
+            # dimension in the main validation logic, rather than raising an error here.
+            except CoordinateNotFoundError:
+                pass
+        return dim
+
+    required_set = {_resolve_dimension(dim) for dim in required_dimensions}
+    forbidden_set = {_resolve_dimension(dim) for dim in forbidden_dimensions}
+
+    # Common dimensions check
+    common_dims = required_set & forbidden_set
+    if common_dims:
+        raise ValueError(
+            f"Dimension(s) cannot be both required and forbidden: "
+            f"{sorted(common_dims)}. "
+        )
+    # Forbidden dimensions check
+    forbidden_dims_present = sorted(forbidden_set & dim_coord_name_set)
+    if forbidden_dims_present:
+        raise ValueError(
+            f"Forbidden dimension(s) present: {forbidden_dims_present}. "
+            f"Cube dim coords are: {sorted(dim_coord_name_set)}"
+        )
+
+    # Required dimensions check
+    missing_required_dims = sorted(required_set - dim_coord_name_set)
+    if missing_required_dims:
+        raise ValueError(
+            f"Missing required dimension(s): {missing_required_dims}. "
+            f"Found: {sorted(dim_coord_name_set)}"
+        )
+    # Exact match check
+    if exact_match:
+        extra_dims = sorted(dim_coord_name_set - required_set)
+        if extra_dims:
+            raise ValueError(
+                f"Extra dimension(s) present: {extra_dims}. "
+                "and exact_match is True. Remove these dimensions from the cube "
+                "or set exact_match to False if these dimensions are acceptable."
+            )
+
+
 def check_cube_coordinates(
     cube: Cube, new_cube: Cube, exception_coordinates: Optional[List[str]] = None
 ) -> Cube:

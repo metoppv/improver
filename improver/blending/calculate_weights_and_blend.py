@@ -6,7 +6,7 @@
 
 import warnings
 from copy import copy
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Union
 
 import iris
 import numpy as np
@@ -30,6 +30,7 @@ from improver.blending.weights import (
     ChooseDefaultWeightsNonLinear,
     ChooseWeightsLinear,
 )
+from improver.utilities.common_input_handle import as_cubelist
 from improver.utilities.spatial import (
     check_if_grid_is_equal_area,
     distance_to_number_of_grid_cells,
@@ -206,7 +207,7 @@ class WeightAndBlend(PostProcessingPlugin):
 
     def process(
         self,
-        cubelist: Union[List[Cube], CubeList],
+        *cubes: Union[Cube, CubeList],
         cycletime: Optional[str] = None,
         model_id_attr: Optional[str] = None,
         record_run_attr: Optional[str] = None,
@@ -220,8 +221,7 @@ class WeightAndBlend(PostProcessingPlugin):
         given by self.blend_coord.
 
         Args:
-            cubelist:
-                List of cubes to be merged and blended
+            *cubes: One or more Iris Cubes or CubeLists.
             cycletime:
                 The forecast reference time to be used after blending has been
                 applied, in the format YYYYMMDDTHHMMZ. If not provided, the
@@ -271,6 +271,8 @@ class WeightAndBlend(PostProcessingPlugin):
                 "record_run_attr can only be used with model_id_attr, which "
                 "has not been provided."
             )
+
+        cubelist = as_cubelist(*cubes)
 
         # Prepare cubes for weighted blending, including creating custom metadata
         # for multi-model blending. The merged cube has a monotonically ascending

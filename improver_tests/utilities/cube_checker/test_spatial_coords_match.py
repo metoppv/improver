@@ -1,0 +1,119 @@
+# (C) Crown Copyright, Met Office. All rights reserved.
+#
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
+# See LICENSE in the root of the repository for full licensing details.
+import unittest
+
+import numpy as np
+
+from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
+from improver.utilities.cube_checker import (
+    assert_spatial_coords_match,
+    spatial_coords_match,
+)
+
+
+class Test_spatial_coords_match(unittest.TestCase):
+    """Test for function testing cube spatial coords."""
+
+    def setUp(self):
+        """Create two unmatching cubes for spatial comparison."""
+        data_a = np.ones((1, 16, 16), dtype=np.float32)
+        data_b = np.ones((1, 10, 10), dtype=np.float32)
+        self.cube_a = set_up_variable_cube(
+            data_a,
+            name="precipitation_amount",
+            units="kg m^-2",
+            spatial_grid="equalarea",
+        )
+        self.cube_b = set_up_variable_cube(
+            data_b,
+            name="precipitation_amount",
+            units="kg m^-2",
+            spatial_grid="equalarea",
+        )
+
+    def test_single_cube(self):
+        """Test that True is returned if a single cube is provided as input."""
+        result = spatial_coords_match([self.cube_a])
+        self.assertTrue(result)
+
+    def test_matching(self):
+        """Test bool return when given one cube twice."""
+        result = spatial_coords_match([self.cube_a, self.cube_a])
+        self.assertTrue(result)
+
+    def test_assert_matching(self):
+        """Test for no error when test_matching is repeated with assert method."""
+        assert_spatial_coords_match([self.cube_a, self.cube_a])
+
+    def test_matching_multiple(self):
+        """Test when given more than two cubes to test, these matching."""
+        result = spatial_coords_match([self.cube_a, self.cube_a, self.cube_a])
+        self.assertTrue(result)
+
+    def test_copy(self):
+        """Test when given one cube copied."""
+        result = spatial_coords_match([self.cube_a, self.cube_a.copy()])
+        self.assertTrue(result)
+
+    def test_other_coord_diffs(self):
+        """Test when given cubes that differ in non-spatial coords."""
+        cube_c = self.cube_a.copy()
+        r_coord = cube_c.coord("realization")
+        r_coord.points = [r * 2 for r in r_coord.points]
+        result = spatial_coords_match([self.cube_a, cube_c])
+        self.assertTrue(result)
+
+    def test_other_coord_bigger_diffs(self):
+        """Test when given cubes that differ in shape on non-spatial coords."""
+        data_c = np.ones((4, 16, 16), dtype=np.float32)
+        data_c[:, 7, 7] = 0.0
+        cube_c = set_up_variable_cube(
+            data_c,
+            name="precipitation_amount",
+            units="kg m^-2",
+            spatial_grid="equalarea",
+        )
+        r_coord = cube_c.coord("realization")
+        r_coord.points = [r * 2 for r in r_coord.points]
+        result = spatial_coords_match([self.cube_a, cube_c])
+        self.assertTrue(result)
+
+    def test_unmatching(self):
+        """Test when given two spatially different cubes of same resolution."""
+        result = spatial_coords_match([self.cube_a, self.cube_b])
+        self.assertFalse(result)
+
+    def test_assert_unmatching(self):
+        """Test assert method when given two spatially different cubes of same resolution."""
+        msg = "Mismatched spatial coords for "
+        with self.assertRaisesRegex(ValueError, msg):
+            assert_spatial_coords_match([self.cube_a, self.cube_b])
+
+    def test_unmatching_multiple(self):
+        """Test when given more than two cubes to test, these unmatching."""
+        result = spatial_coords_match([self.cube_a, self.cube_b, self.cube_a])
+        self.assertFalse(result)
+
+    def test_unmatching_x(self):
+        """Test when given two cubes of the same shape, but with differing
+        x coordinate values."""
+        cube_c = self.cube_a.copy()
+        x_coord = cube_c.coord(axis="x")
+        x_coord.points = [x * 2.0 for x in x_coord.points]
+        result = spatial_coords_match([self.cube_a, cube_c])
+        self.assertFalse(result)
+
+    def test_unmatching_y(self):
+        """Test when given two cubes of the same shape, but with differing
+        y coordinate values."""
+        cube_c = self.cube_a.copy()
+        y_coord = cube_c.coord(axis="y")
+        y_coord.points = [y * 1.01 for y in y_coord.points]
+        result = spatial_coords_match([self.cube_a, cube_c])
+        self.assertFalse(result)
+
+
+if __name__ == "__main__":
+    unittest.main()

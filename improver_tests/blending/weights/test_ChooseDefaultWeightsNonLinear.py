@@ -10,7 +10,6 @@ from datetime import datetime as dt
 import iris
 import numpy as np
 from iris.coords import AuxCoord
-from iris.tests import IrisTest
 
 from improver.blending.weights import ChooseDefaultWeightsNonLinear as NonLinearWeights
 from improver.synthetic_data.set_up_test_cubes import (
@@ -19,7 +18,7 @@ from improver.synthetic_data.set_up_test_cubes import (
 )
 
 
-class Test__init__(IrisTest):
+class Test__init__(unittest.TestCase):
     """Test the __init__ method"""
 
     def test_basic(self):
@@ -42,7 +41,7 @@ class Test__init__(IrisTest):
             NonLinearWeights(1.85)
 
 
-class Test_nonlinear_weights(IrisTest):
+class Test_nonlinear_weights(unittest.TestCase):
     """Test the nonlinear weights function."""
 
     def test_basic(self):
@@ -56,10 +55,10 @@ class Test_nonlinear_weights(IrisTest):
         expected_result = np.array(
             [0.41957573, 0.25174544, 0.15104726, 0.09062836, 0.05437701, 0.03262621]
         )
-        self.assertArrayAlmostEqual(result.data, expected_result)
+        np.testing.assert_array_almost_equal(result.data, expected_result)
 
 
-class Test_process(IrisTest):
+class Test_process(unittest.TestCase):
     """Test the Default non-Linear Weights plugin."""
 
     def setUp(self):
@@ -105,14 +104,14 @@ class Test_process(IrisTest):
         coord = self.cube.coord("scalar_coord")
         plugin = NonLinearWeights(0.85)
         result = plugin.process(self.cube, coord)
-        self.assertArrayAlmostEqual(result.data, np.array([1.0]))
+        np.testing.assert_array_almost_equal(result.data, np.array([1.0]))
 
     def test_values(self):
         """Test weights values."""
         plugin = NonLinearWeights(cval=0.85)
         result = plugin.process(self.cube, self.coord_name)
         expected_result = np.array([0.54054054, 0.45945946])
-        self.assertArrayAlmostEqual(result.data, expected_result)
+        np.testing.assert_array_almost_equal(result.data, expected_result)
 
     def test_values_inverse_ordering(self):
         """Test inverting the order of the input cube produces inverted weights
@@ -121,14 +120,14 @@ class Test_process(IrisTest):
         plugin = NonLinearWeights(cval=0.85)
         result = plugin.process(self.cube, self.coord_name, inverse_ordering=True)
         expected_result = np.array([0.45945946, 0.54054054])
-        self.assertArrayAlmostEqual(result.data, expected_result)
+        np.testing.assert_array_almost_equal(result.data, expected_result)
         # check input cube blend coordinate order is unchanged
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             self.cube.coord(self.coord_name).points,
             reference_cube.coord(self.coord_name).points,
         )
         # check weights cube and input cube blend coordinate orders match
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             result.coord(self.coord_name).points,
             reference_cube.coord(self.coord_name).points,
         )
@@ -138,7 +137,7 @@ class Test_process(IrisTest):
         plugin = NonLinearWeights(cval=1.0)
         result = plugin.process(self.cube, self.coord_name)
         expected_result = np.array([0.5, 0.5])
-        self.assertArrayAlmostEqual(result.data, expected_result)
+        np.testing.assert_array_almost_equal(result.data, expected_result)
 
     def test_larger_num(self):
         """Test it works with larger num_of_vals."""
@@ -149,7 +148,7 @@ class Test_process(IrisTest):
         expected_result = np.array(
             [0.50793651, 0.25396825, 0.12698413, 0.06349206, 0.03174603, 0.01587302]
         )
-        self.assertArrayAlmostEqual(result.data, expected_result)
+        np.testing.assert_array_almost_equal(result.data, expected_result)
 
 
 if __name__ == "__main__":

@@ -18,7 +18,7 @@ def process(
     forecast_periods: str,
     cycletime: str,
     training_length: int,
-    experiments: cli.comma_separated_list = None,
+    experiments: cli.comma_separated_list,
     n_estimators: int = 100,
     max_depth: int = None,
     max_samples: float = None,
@@ -27,6 +27,7 @@ def process(
     transformation: str = None,
     pre_transform_addition: float = 0,
     unique_site_id_keys: cli.comma_separated_list = "wmo_id",
+    qrf_kwargs: cli.inputjson = None,
 ):
     """Training a model using Quantile Regression Random Forest.
 
@@ -71,22 +72,34 @@ def process(
             the forecast and truth DataFrames read in from the parquet files. The
             target diagnostic name is expected to be the first item in the list.
             These names could be different from the CF name e.g.
-            'temperature_at_screen_level'.
-        target_cf_name (str):
-            A string containing the CF name of the forecast to be calibrated
-            e.g. air_temperature.
+            'temperature_at_screen_level'. This is expected to be the same length
+            as the cf_names and experiments lists.
+        cf_names (list of str):
+            A list containing the CF names of the diagnostics. The CF names should
+            match the order of the parquet_diagnostic_names. The target diagnostic to be
+            calibrated is expected to be the first item in the list. These names
+            could be different from the diagnostic name used to identify in the
+            parquet files. For example, the diagnostic name could be
+            'temperature_at_screen_level' and the corresponding CF name could be
+            'air_temperature'. This is expected to be the same length as the
+            parquet_diagnostic_names and experiments lists.
         forecast_periods (str):
             Range of forecast periods to be calibrated in hours in the form:
             "start:end:interval" e.g. "6:18:6" or a single forecast period e.g. "6".
             The end value is exclusive, so "6:18:6" will calibrate the 6 and 12 hours.
+            Multiple ranges can be specified using semicolon separation,
+            e.g. "1:133:1;135:199:3" for hourly T+1 to T+132 and
+            3-hourly T+135 to T+198.
         cycletime (str):
             Cycletime of a format similar to 20170109T0000Z used to filter the
             correct blendtimes from the dataframe on load.
         training_length (int):
             The length of the training period in days.
         experiments (list of str):
-            The name of the experiments (step) that calibration is applied to. This
-            is used to filter the forecast DataFrame on load.
+            The names of the experiment (step) that calibration is
+            applied to. This is used to filter the forecast DataFrame on load.
+            This is expected to be the same length as the parquet_diagnostic_names
+            and cf_names lists.
         n_estimators (int):
             Number of trees in the forest.
         max_depth (int):
@@ -114,7 +127,7 @@ def process(
         unique_site_id_keys (str):
             The names of the coordinates that uniquely identify each site,
             e.g. "wmo_id" or "latitude,longitude".
-        kwargs: Additional keyword arguments for the quantile regression model.
+        qrf_kwargs: Additional keyword arguments for the quantile regression model.
     Returns:
         A quantile regression random forest model with associated transformation and
         pre-transformation addition that will be stored as a pickle file.
@@ -138,9 +151,10 @@ def process(
     if forecast_df is None or truth_df is None or cube_inputs is None:
         return None
 
-    kwargs = {}
+    if qrf_kwargs is None:
+        qrf_kwargs = {}
     if max_features is not None:
-        kwargs["max_features"] = max_features
+        qrf_kwargs["max_features"] = max_features
     result = PrepareAndTrainQRF(
         feature_config=feature_config,
         target_cf_name=cf_names[0],
@@ -151,7 +165,7 @@ def process(
         transformation=transformation,
         pre_transform_addition=pre_transform_addition,
         unique_site_id_keys=unique_site_id_keys,
-        **kwargs,
+        **qrf_kwargs,
     )(forecast_df, truth_df, cube_inputs)
     if result == (None, None, None):
         return None

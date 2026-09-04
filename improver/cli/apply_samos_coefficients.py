@@ -22,6 +22,7 @@ def process(
     predictor="mean",
     percentiles: cli.comma_separated_list = None,
     unique_site_id_key: str = None,
+    constant_extrapolation: bool = False,
 ):
     """Apply coefficients for Standardized Anomaly Model Output Statistics (SAMOS).
 
@@ -103,7 +104,7 @@ def process(
         predictor (str):
             String to specify the form of the predictor used to calculate
             the location parameter when estimating the EMOS coefficients.
-            Currently the ensemble mean ("mean") and the ensemble
+            Currently, the ensemble mean ("mean") and the ensemble
             realizations ("realizations") are supported as the predictors.
         percentiles (List[float]):
             The set of percentiles used to create the calibrated forecast.
@@ -111,6 +112,12 @@ def process(
             If working with spot data and available, the name of the coordinate
             in the input cubes that contains unique site IDs, e.g. "wmo_id" if
             all sites have a valid wmo_id.
+        constant_extrapolation:
+            If True, when predicting mean and standard deviation from the GAMs,
+            when the predictor values are outside the range of those used to fit
+            the GAM, constant extrapolation (i.e. the nearest boundary value) will
+            be used. If False, extrapolation extends the trend of each
+            GAM term beyond the range of the training data. Default is False.
 
     Returns:
         iris.cube.Cube:
@@ -163,7 +170,11 @@ def process(
     if uncalibrated_forecast is not None:
         return uncalibrated_forecast
 
-    plugin = ApplySAMOS(percentiles=percentiles, unique_site_id_key=unique_site_id_key)
+    plugin = ApplySAMOS(
+        percentiles=percentiles,
+        unique_site_id_key=unique_site_id_key,
+        constant_extrapolation=constant_extrapolation,
+    )
     result = plugin.process(
         forecast=forecast,
         forecast_gams=gams[0],

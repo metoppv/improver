@@ -7,8 +7,9 @@
 from typing import Tuple, Union
 
 import numpy as np
+from iris import Constraint
 from iris.cube import Cube, CubeList
-from iris.exceptions import CoordinateNotFoundError
+from iris.exceptions import ConstraintMismatchError, CoordinateNotFoundError
 from scipy.optimize import newton
 
 from improver import PostProcessingPlugin
@@ -143,6 +144,7 @@ class CloudCondensationLevel(PostProcessingPlugin):
         Calculates the cloud condensation level from the near-surface inputs.
         Values will be limited to the surface values where the calculated pressure is greater than
         the original pressure, which can occur in super-saturated conditions.
+        Invalid values resulting from failure to find a saturation point will be masked.
 
         Args:
             cubes:
@@ -155,15 +157,28 @@ class CloudCondensationLevel(PostProcessingPlugin):
 
         """
         cubes = as_cubelist(cubes)
-        (self.temperature, self.pressure, self.humidity) = CubeList(cubes).extract(
-            ["air_temperature", "surface_air_pressure", "humidity_mixing_ratio"]
-        )
+
+        names_to_extract = ("air_temperature", "air_pressure", "humidity_mixing_ratio")
+        extracted_cubes = []
+        try:
+            for name in names_to_extract:
+                name_in_cube = lambda cube: True if name in cube.name() else False
+                extracted_cubes.append(
+                    cubes.extract_cube(Constraint(cube_func=name_in_cube))
+                )
+        except ConstraintMismatchError as err:
+            raise ValueError(f"No cube with name {name} found") from err
+
+        self.temperature, self.pressure, self.humidity = extracted_cubes
+
         ccl_pressure, ccl_temperature = self._iterate_to_ccl()
         # Limit values so they are no greater than the original pressure.
         # This occurs in super-saturated conditions.
         mask = ccl_pressure > self.pressure.data
         ccl_pressure = np.where(mask, self.pressure.data, ccl_pressure)
         ccl_temperature = np.where(mask, self.temperature.data, ccl_temperature)
+        ccl_pressure = np.ma.masked_invalid(ccl_pressure)
+        ccl_temperature = np.ma.masked_invalid(ccl_temperature)
         return CubeList(
             [
                 self._make_ccl_cube(ccl_temperature, is_temperature=True),

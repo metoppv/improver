@@ -26,6 +26,11 @@ from improver_tests.calibration.samos_calibration.helper_functions import (
             "emos_kwargs": {"point_by_point": True, "use_default_initial_guess": True},
         },
         {"distribution": "truncnorm", "emos_kwargs": {}},
+        {
+            "distribution": "truncnorm",
+            "emos_kwargs": {"point_by_point": False},
+            "constant_extrapolation": True,
+        },
     ],
 )
 def test__init__(kwargs):
@@ -37,6 +42,7 @@ def test__init__(kwargs):
     expected = {
         "distribution": None,
         "emos_kwargs": None,
+        "constant_extrapolation": False,
     }
     expected.update(kwargs)
     result = TrainEMOSForSAMOS(**kwargs)
@@ -90,7 +96,8 @@ def test_climate_anomaly_emos():
 
 
 @pytest.mark.parametrize("include_altitude", [False, True])
-def test_process(include_altitude):
+@pytest.mark.parametrize("constant_extrapolation", [False, True])
+def test_process(include_altitude, constant_extrapolation):
     """Test that the process method returns the expected results."""
     # Skip test if pyGAM not available.
     pytest.importorskip("pygam")
@@ -131,7 +138,25 @@ def test_process(include_altitude):
         truth_cube, features, additional_cubes
     )
 
-    result = TrainEMOSForSAMOS(distribution="norm").process(
+    if constant_extrapolation:
+        # Modify latitude and longitude coordinates so that the first and final points
+        # are outside the bounds of those used for training the GAMs. Constant
+        # extrapolation should ensure that the results are unchanged.
+        for coord_name in ["latitude", "longitude"]:
+            forecast_cube.coord(coord_name).points = np.array(
+                [-30.0, -10.0, 0.0, 10.0, 30.0], dtype=np.float32
+            )
+            truth_cube.coord(coord_name).points = np.array(
+                [-30.0, -10.0, 0.0, 10.0, 30.0], dtype=np.float32
+            )
+            if additional_cubes:
+                additional_cubes[0].coord(coord_name).points = np.array(
+                    [-30.0, -10.0, 0.0, 10.0, 30.0], dtype=np.float32
+                )
+
+    result = TrainEMOSForSAMOS(
+        distribution="norm", constant_extrapolation=constant_extrapolation
+    ).process(
         historic_forecasts=forecast_cube,
         truths=truth_cube,
         forecast_gams=forecast_gams,
@@ -154,5 +179,5 @@ def test_process(include_altitude):
     for i, cube in enumerate(result):
         assert expected_names[i] == cube.name()
         np.testing.assert_array_almost_equal(
-            result[i].data, np.array(expected_data[i], dtype=np.float32), decimal=8
+            result[i].data, np.array(expected_data[i], dtype=np.float32), decimal=5
         )

@@ -21,6 +21,7 @@ def process(
     tolerance: float = 0.02,
     max_iterations: int = 1000,
     unique_site_id_key: str = "wmo_id",
+    constant_extrapolation: bool = False,
 ):
     """Estimate EMOS coefficients for use with SAMOS.
 
@@ -70,7 +71,7 @@ def process(
         predictor (str):
             String to specify the form of the predictor used to calculate the
             location parameter when estimating the EMOS coefficients.
-            Currently the ensemble mean ("mean") and the ensemble realizations
+            Currently, the ensemble mean ("mean") and the ensemble realizations
             ("realizations") are supported as options.
         tolerance (float):
             The tolerance for the Continuous Ranked Probability Score (CRPS)
@@ -90,6 +91,12 @@ def process(
             in the input cubes that contains unique site IDs, e.g. "wmo_id" if
             all sites have a valid wmo_id. For estimation the default is "wmo_id"
             as we expect to be including observation data.
+        constant_extrapolation:
+            If True, when predicting mean and standard deviation from the GAMs,
+            when the predictor values are outside the range of those used to fit
+            the GAM, constant extrapolation (i.e. the nearest boundary value) will
+            be used. If False, extrapolation extends the trend of each
+            GAM term beyond the range of the training data. Default is False.
 
     Returns:
         iris.cube.CubeList:
@@ -112,6 +119,9 @@ def process(
 
     # Split the input paths into cubes and pickles
     cubes, _, gams = split_netcdf_parquet_pickle(file_paths)
+
+    if gams is None:
+        return
 
     # Split the cubes into forecast and truth cubes, along with any additional fields
     # provided for the GAMs and EMOS.
@@ -146,6 +156,7 @@ def process(
         distribution="norm",
         emos_kwargs=emos_kwargs,
         unique_site_id_key=unique_site_id_key,
+        constant_extrapolation=constant_extrapolation,
     )
     return plugin(
         historic_forecasts=forecast,

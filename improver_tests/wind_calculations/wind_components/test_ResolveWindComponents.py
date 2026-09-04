@@ -10,7 +10,6 @@ import iris
 import numpy as np
 from iris.coord_systems import OSGB
 from iris.coords import DimCoord
-from iris.tests import IrisTest
 
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.wind_calculations.wind_components import ResolveWindComponents
@@ -50,7 +49,7 @@ def add_new_dimension(cube, npoints, name, unit):
     return merged_cube
 
 
-class Test__repr__(IrisTest):
+class Test__repr__(unittest.TestCase):
     """Tests the __repr__ method"""
 
     def test_basic(self):
@@ -59,7 +58,7 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, "<ResolveWindComponents>")
 
 
-class Test_calc_true_north_offset(IrisTest):
+class Test_calc_true_north_offset(unittest.TestCase):
     """Tests the calc_true_north_offset function"""
 
     def setUp(self):
@@ -85,10 +84,10 @@ class Test_calc_true_north_offset(IrisTest):
             dtype=np.float32,
         )
         result = self.plugin.calc_true_north_offset(self.directions)
-        self.assertArrayAlmostEqual(RAD_TO_DEG * result, expected_result)
+        np.testing.assert_array_almost_equal(RAD_TO_DEG * result, expected_result)
 
 
-class Test_resolve_wind_components(IrisTest):
+class Test_resolve_wind_components(unittest.TestCase):
     """Tests the resolve_wind_components method"""
 
     def setUp(self):
@@ -141,11 +140,11 @@ class Test_resolve_wind_components(IrisTest):
         uspeed, vspeed = self.plugin.resolve_wind_components(
             self.wind_cube, self.directions, self.adjustments
         )
-        self.assertArrayAlmostEqual(uspeed.data, expected_uspeed, decimal=5)
-        self.assertArrayAlmostEqual(vspeed.data, expected_vspeed, decimal=5)
+        np.testing.assert_array_almost_equal(uspeed.data, expected_uspeed, decimal=5)
+        np.testing.assert_array_almost_equal(vspeed.data, expected_vspeed, decimal=5)
 
 
-class Test_process(IrisTest):
+class Test_process(unittest.TestCase):
     """Tests the process method"""
 
     def setUp(self):
@@ -198,8 +197,8 @@ class Test_process(IrisTest):
         ucube, vcube = self.plugin.process(
             self.wind_speed_cube, self.wind_direction_cube
         )
-        self.assertArrayAlmostEqual(ucube.data, self.expected_u, decimal=5)
-        self.assertArrayAlmostEqual(vcube.data, self.expected_v, decimal=5)
+        np.testing.assert_array_almost_equal(ucube.data, self.expected_u, decimal=5)
+        np.testing.assert_array_almost_equal(vcube.data, self.expected_v, decimal=5)
 
     def test_coordinate_value_mismatch(self):
         """Test an error is raised if coordinate values are different for wind
@@ -226,8 +225,8 @@ class Test_process(IrisTest):
         )
         ucube, vcube = self.plugin.process(wind_speed_3d, wind_direction_3d)
         self.assertSequenceEqual(ucube.shape, (3, 3, 4))
-        self.assertArrayAlmostEqual(ucube[1].data, self.expected_u, decimal=5)
-        self.assertArrayAlmostEqual(vcube[2].data, self.expected_v, decimal=5)
+        np.testing.assert_array_almost_equal(ucube[1].data, self.expected_u, decimal=5)
+        np.testing.assert_array_almost_equal(vcube[2].data, self.expected_v, decimal=5)
 
     def test_wind_from_direction(self):
         """Test correct behaviour when wind direction is 'from' not 'to'.
@@ -243,8 +242,8 @@ class Test_process(IrisTest):
         ucube, vcube = self.plugin.process(
             self.wind_speed_cube, self.wind_direction_cube
         )
-        self.assertArrayAllClose(ucube.data, expected_u, atol=1e-5)
-        self.assertArrayAllClose(vcube.data, expected_v, atol=1e-5)
+        np.testing.assert_allclose(ucube.data, expected_u, atol=1e-5)
+        np.testing.assert_allclose(vcube.data, expected_v, atol=1e-5)
 
 
 if __name__ == "__main__":

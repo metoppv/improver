@@ -13,7 +13,6 @@ import unittest
 
 import numpy as np
 from iris.cube import CubeList
-from iris.tests import IrisTest
 from numpy.testing import assert_array_almost_equal
 
 from improver.calibration.emos_calibration import (
@@ -190,7 +189,7 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
         )
 
 
-class Test__init__(IrisTest):
+class Test__init__(unittest.TestCase):
     """Test the __init__ method."""
 
     def test_basic(self):
@@ -204,7 +203,7 @@ class Test__init__(IrisTest):
         self.assertEqual(plugin.predictor, "realizations")
 
 
-class Test__repr__(IrisTest):
+class Test__repr__(unittest.TestCase):
     """Test the __repr__ method."""
 
     def test_basic(self):
@@ -525,11 +524,13 @@ class Test_process(SetupCoefficientsCubes, EnsembleCalibrationAssertions):
         self.assertCalibratedVariablesAlmostEqual(
             calibrated_forecast_predictor.data.data, self.expected_loc_param_mean
         )
-        self.assertArrayEqual(calibrated_forecast_predictor.data.mask, expected_mask)
+        np.testing.assert_array_equal(
+            calibrated_forecast_predictor.data.mask, expected_mask
+        )
         self.assertCalibratedVariablesAlmostEqual(
             calibrated_forecast_var.data.data, self.expected_scale_param_mean
         )
-        self.assertArrayEqual(calibrated_forecast_var.data.mask, expected_mask)
+        np.testing.assert_array_equal(calibrated_forecast_var.data.mask, expected_mask)
 
 
 if __name__ == "__main__":

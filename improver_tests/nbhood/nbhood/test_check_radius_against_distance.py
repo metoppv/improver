@@ -7,13 +7,12 @@
 import unittest
 
 import numpy as np
-from iris.tests import IrisTest
 
 from improver.nbhood.nbhood import check_radius_against_distance
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 
-class Test_check_radius_against_distance(IrisTest):
+class Test_check_radius_against_distance(unittest.TestCase):
     """Test check_radius_against_distance function."""
 
     def setUp(self):

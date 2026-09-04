@@ -290,6 +290,8 @@ def test_get_climatological_stats(
     # Set up model terms for spatial predictors.
     model_specification = [["linear", [0], {}], ["linear", [1], {}]]
     features = ["latitude", "longitude"]
+
+    # Set up variables for creating training data.
     n_spatial_points = 5
     n_realizations = 5
     n_times = 20
@@ -386,3 +388,93 @@ def test_get_climatological_stats(
 
     assert result_mean == expected_mean
     assert result_sd == expected_sd
+
+
+@pytest.mark.parametrize("include_altitude", [False, True])
+def test_get_climatological_stats_constant_extrapolation(
+    include_altitude,
+):
+    """Test that the get_climatological_stats method returns the expected results when
+    using constant_extrapolation."""
+    # Skip test if pyGAM not available.
+    pytest.importorskip("pygam")
+
+    # Set up model terms for spatial predictors.
+    model_specification = [["linear", [0], {}], ["linear", [1], {}]]
+    features = ["latitude", "longitude"]
+
+    # Set up variables for creating training data.
+    n_spatial_points = 5
+    n_realizations = 5
+    n_times = 20
+
+    if include_altitude:
+        features.append("surface_altitude")
+        model_specification.append(["spline", [features.index("surface_altitude")], {}])
+
+    cube_for_gam, additional_cubes_for_gam = create_cubes_for_gam_fitting(
+        n_spatial_points=n_spatial_points,
+        n_realizations=n_realizations,
+        n_times=n_times,
+        include_altitude=include_altitude,
+    )
+
+    gams = TrainGAMsForSAMOS(model_specification).process(
+        cube_for_gam, features, additional_cubes_for_gam
+    )
+
+    cube_for_test, additional_cubes_for_test = create_cubes_for_gam_fitting(
+        n_spatial_points=2,
+        n_realizations=2,
+        n_times=1,
+        include_altitude=include_altitude,
+    )
+
+    # Modify spatial coordinates to be at the upper end of those available in the
+    # training data.
+    for coord_name in ["latitude", "longitude"]:
+        cube_for_test.coord(coord_name).points = np.array(
+            [10.0, 20.0], dtype=np.float32
+        )
+        if additional_cubes_for_test:
+            additional_cubes_for_test[0].coord(coord_name).points = np.array(
+                [10.0, 20.0], dtype=np.float32
+            )
+
+    expected_mean, expected_sd = get_climatological_stats(
+        cube_for_test, gams, features, additional_cubes_for_test
+    )
+
+    # Modify spatial coordinates so that the final point is outside the range of those
+    # available in the training data. The constant_extrapolation option should ensure
+    # that the same means and standard deviations are obtained.
+    for coord_name in ["latitude", "longitude"]:
+        cube_for_test.coord(coord_name).points = np.array(
+            [10.0, 30.0], dtype=np.float32
+        )
+        if additional_cubes_for_test:
+            additional_cubes_for_test[0].coord(coord_name).points = np.array(
+                [10.0, 30.0], dtype=np.float32
+            )
+
+    result_mean, result_sd = get_climatological_stats(
+        cube_for_test,
+        gams,
+        features,
+        additional_cubes_for_test,
+        constant_extrapolation=True,
+    )
+
+    # The data in the expected and result cubes should be identical, but the metadata
+    # should differ for the spatial coordinates.
+    np.testing.assert_array_almost_equal(result_mean.data, expected_mean.data)
+    np.testing.assert_array_almost_equal(result_sd.data, expected_sd.data)
+
+    for result, expected in zip([result_mean, result_sd], [expected_mean, expected_sd]):
+        for coord in result.coords():
+            if coord.name() in ["latitude", "longitude"]:
+                np.testing.assert_array_equal(
+                    coord.points, np.array([10.0, 30.0], dtype=np.float32)
+                )
+            else:
+                assert result.coord(coord.name()) == expected.coord(coord.name())

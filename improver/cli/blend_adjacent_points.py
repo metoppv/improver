@@ -93,7 +93,7 @@ def process(
     cubes = CubeList(cubes)
 
     if blend_time_using_forecast_period and coordinate == "forecast_period":
-        cube = MergeCubes()(cubes, check_time_bounds_ranges=True)
+        cube = MergeCubes(check_time_bounds_ranges=True)(cubes)
     elif blend_time_using_forecast_period:
         msg = (
             '"--blend-time-using-forecast-period" can only be used with '

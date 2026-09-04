@@ -6,6 +6,8 @@
 Tests for the temporal-interpolate CLI
 """
 
+import urllib.request
+
 import pytest
 
 from . import acceptance as acc
@@ -111,22 +113,90 @@ def test_period_max(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-def test_accumulation(tmp_path):
-    """Test interpolation of an accumulation."""
+@pytest.mark.parametrize("last_timestep", [False, True])
+def test_accumulation(tmp_path, last_timestep):
+    """Test interpolation of an accumulation, with and without the is-last-timestep option."""
     kgo_dir = acc.kgo_root() / "temporal-interpolate/accumulation"
-    kgo_path = kgo_dir / "kgo.nc"
-    input_paths = [
-        kgo_dir / f"20240217T{v:04}Z-PT{l:04}H00M-precipitation_accumulation-PT03H.nc"
-        for v, l in ((1900, 33), (2200, 36))
-    ]
+    if last_timestep:
+        kgo_path = kgo_dir / "kgo_last_timestep.nc"
+        input_paths = [
+            kgo_dir / f"20260612T{v:04}Z-PT{l:04}H00M-precipitation_accumulation.nc"
+            for v, l in ((0, 228), (600, 234))
+        ]
+    else:
+        kgo_path = kgo_dir / "kgo.nc"
+        input_paths = [
+            kgo_dir / f"20260612T{v:04}Z-PT{l:04}H00M-precipitation_accumulation.nc"
+            for v, l in ((0, 228), (600, 234), (1200, 240))
+        ]
     output_path = tmp_path / "output.nc"
     args = [
         *input_paths,
         "--times",
-        "20240217T2000Z,20240217T2100Z",
+        "20260612T0100Z,20260612T0200Z,20260612T0300Z,20260612T0400Z,20260612T0500Z,20260612T0600Z",
         "--interpolation-method",
         "linear",
         "--accumulation",
+        "--output",
+        output_path,
+    ]
+    if last_timestep:
+        args.extend(["--is-last-timestep"])
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+@pytest.mark.slow
+def test_google_film(tmp_path):
+    """Test interpolation using google_film method with deep learning model.
+    Skips if TensorFlow Hub is not available in the environment or
+    if the model URL is not accessible.
+    """
+
+    # Monkeypatch for TensorFlow Hub import, matching load_model logic from the
+    # Google FILM temporal interpolation plugin.
+    try:
+        import tensorflow as tf
+
+        if hasattr(tf.__internal__, "register_call_context_function"):
+            func = tf.__internal__.register_call_context_function
+            tf.__internal__.register_load_context_function = func
+            if hasattr(tf.compat, "v2"):
+                tf.compat.v2.__internal__.register_load_context_function = func
+            import tensorflow._api.v2.compat.v2 as tf_api
+
+            tf_api.__internal__.register_load_context_function = func
+    except (ImportError, AttributeError):
+        pass
+
+    try:
+        import tensorflow_hub  # noqa: F401
+    except ImportError:
+        pytest.skip("TensorFlow Hub is not available in this environment.")
+
+    model_url = "https://tfhub.dev/google/film/1"
+    try:
+        with urllib.request.urlopen(model_url) as response:  # noqa: S310
+            if response.status != 200:
+                pytest.skip(f"Google FILM model not available at {model_url}")
+    except Exception:
+        pytest.skip(f"Google FILM model not available at {model_url}")
+
+    kgo_dir = acc.kgo_root() / "temporal-interpolate/google_film"
+    kgo_path = kgo_dir / "kgo.nc"
+    input_paths = [
+        kgo_dir / "20251205T0600Z-PT0006H00M-precip_rate.nc",
+        kgo_dir / "20251205T0900Z-PT0009H00M-precip_rate.nc",
+    ]
+    output_path = tmp_path / "output.nc"
+    args = [
+        *input_paths,
+        "--interval-in-mins",
+        "60",
+        "--interpolation-method",
+        "google_film",
+        "--model-path",
+        model_url,
         "--output",
         output_path,
     ]

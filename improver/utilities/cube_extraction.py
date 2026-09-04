@@ -5,6 +5,7 @@
 """Utilities to parse a list of constraints and extract matching subcube"""
 
 from ast import literal_eval
+from datetime import datetime
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
@@ -14,6 +15,7 @@ from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin
 from improver.metadata.constants import FLOAT_DTYPE
+from improver.metadata.utilities import minimum_increment
 from improver.utilities.common_input_handle import as_cube
 from improver.utilities.cube_constraints import create_sorted_lambda_constraint
 from improver.utilities.cube_manipulation import get_dim_coord_names
@@ -133,8 +135,13 @@ def parse_constraint_list(
         else:
             try:
                 typed_value = literal_eval(value)
-            except ValueError:
-                simple_constraints_dict[key] = value
+            except (ValueError, SyntaxError):
+                try:
+                    value_dt = datetime.strptime(value, "%Y%m%dT%H%MZ")
+                except ValueError:
+                    simple_constraints_dict[key] = value
+                else:
+                    simple_constraints_dict[key] = lambda cell: cell.point == value_dt
             else:
                 simple_constraints_dict[key] = create_constraint(typed_value)
 
@@ -424,9 +431,7 @@ class ExtractLevel(BasePlugin):
         # We don't really care so long as it is non-zero and has the same sign.
         increasing_order = np.all(np.diff(cube.coord(self.coordinate).points) > 0)
         sign = 1 if self.positive_correlation == increasing_order else -1
-        v_increment = sign * 10 ** (
-            -int(cube.attributes.get("least_significant_digit", 2))
-        )
+        v_increment = sign * minimum_increment(cube, default=0.01)
         self._one_way_fill(
             data, coordinate_axis, coordinate_points, v_increment, reverse=True
         )

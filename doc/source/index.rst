@@ -7,6 +7,13 @@
    about
 
 .. toctree::
+   :caption: Examples
+   :maxdepth: 1
+
+   auto_examples/index
+   adding_examples
+
+.. toctree::
    :caption: Developer Guide
    :maxdepth: 1
 
@@ -17,6 +24,7 @@
    Running-at-your-site
    Dependencies
    Ticket-Creation-and-Definition-of-Ready
+   Making-a-new-release
 
 .. toctree::
    :caption: Metadata Guide

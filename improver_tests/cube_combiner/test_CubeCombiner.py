@@ -14,7 +14,6 @@ import pytest
 from iris.coords import CellMethod
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
-from iris.tests import IrisTest
 
 from improver.cube_combiner import Combine, CubeCombiner, masked_add
 from improver.synthetic_data.set_up_test_cubes import (
@@ -25,7 +24,7 @@ from improver.synthetic_data.set_up_test_cubes import (
 from improver_tests import ImproverTest
 
 
-class Test__init__(IrisTest):
+class Test__init__(unittest.TestCase):
     """Test the __init__ method."""
 
     def test_basic(self):
@@ -155,7 +154,7 @@ class Test_process(CombinerTest):
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.name(), "new_cube_name")
         expected_data = np.full((2, 2), 1.1, dtype=np.float32)
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
         self.assertCubeListEqual(input_copy, cubelist)
 
     def test_basic_with_Combine(self):
@@ -167,7 +166,7 @@ class Test_process(CombinerTest):
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.name(), "new_cube_name")
         expected_data = np.full((2, 2), 1.1, dtype=np.float32)
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
         self.assertCubeListEqual(input_copy, cubelist)
 
     def test_mean(self):
@@ -177,7 +176,7 @@ class Test_process(CombinerTest):
         result = plugin.process(cubelist, "new_cube_name")
         expected_data = np.full((2, 2), 0.55, dtype=np.float32)
         self.assertEqual(result.name(), "new_cube_name")
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
 
     def test_addition_cell_method_coordinate(self):
         """Test that an exception is raised if a cell method coordinate is provided
@@ -197,7 +196,7 @@ class Test_process(CombinerTest):
         result = plugin.process(cubelist, "new_cube_name")
         expected_data = np.full((2, 2), 0.55, dtype=np.float32)
         expected_cell_methods = (CellMethod("mean", coords="time"),)
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
         self.assertEqual(result.cell_methods, expected_cell_methods)
         self.assertCubeListEqual(input_copy, cubelist)
 
@@ -210,7 +209,7 @@ class Test_process(CombinerTest):
         result = plugin.process(cubelist, "new_cube_name")
         expected_data = np.full((2, 2), 0.6, dtype=np.float32)
         expected_cell_methods = (CellMethod("maximum", coords="time"),)
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
         self.assertEqual(result.cell_methods, expected_cell_methods)
         self.assertCubeListEqual(input_copy, cubelist)
 
@@ -223,7 +222,7 @@ class Test_process(CombinerTest):
         result = plugin.process(cubelist, "new_cube_name")
         expected_data = np.full((2, 2), 1.5, dtype=np.float32)
         self.assertEqual(result.name(), "new_cube_name")
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
         self.assertTrue(cubelist[0].dtype == np.float32)
         self.assertTrue(cubelist[1].dtype == np.int8)
         self.assertTrue(result.dtype == np.float32)
@@ -247,9 +246,11 @@ class Test_process(CombinerTest):
         result = plugin.process(cubelist, "new_cube_name")
         expected_data = np.full((2, 2), 1.1, dtype=np.float32)
         self.assertEqual(result.name(), "new_cube_name")
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
         self.assertEqual(result.coord("time").points[0], 1447894800)
-        self.assertArrayEqual(result.coord("time").bounds, [[1447887600, 1447894800]])
+        np.testing.assert_array_equal(
+            result.coord("time").bounds, [[1447887600, 1447894800]]
+        )
 
     def test_bounds_no_expansion(self):
         """Test that the plugin calculates the sum of the input cubes but
@@ -259,11 +260,11 @@ class Test_process(CombinerTest):
         result = plugin.process(cubelist, "new_cube_name")
         expected_data = np.full((2, 2), 1.1, dtype=np.float32)
         self.assertEqual(result.name(), "new_cube_name")
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
         self.assertEqual(
             result.coord("time").points[0], self.cube1.coord("time").points[0]
         )
-        self.assertArrayEqual(
+        np.testing.assert_array_equal(
             result.coord("time").bounds, self.cube1.coord("time").bounds
         )
 
@@ -275,10 +276,12 @@ class Test_process(CombinerTest):
         result = plugin.process(cubelist, "new_cube_name")
         expected_data = np.full((2, 2), 1.1, dtype=np.float32)
         self.assertEqual(result.name(), "new_cube_name")
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
 
         self.assertEqual(result.coord("time").points[0], 1447891200)
-        self.assertArrayEqual(result.coord("time").bounds, [[1447887600, 1447894800]])
+        np.testing.assert_array_equal(
+            result.coord("time").bounds, [[1447887600, 1447894800]]
+        )
 
     def test_unmatched_scalar_coords(self):
         """Test a scalar coordinate that is present on the first cube is
@@ -299,19 +302,147 @@ class Test_process(CombinerTest):
         result = plugin.process(cubelist, "new_cube_name")
         expected_data = np.full((2, 2), 0.4, dtype=np.float32)
         self.assertEqual(result.name(), "new_cube_name")
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
 
-    def test_with_mask(self):
-        """Test that the plugin preserves the mask if any of the inputs are
-        masked"""
+    def test_process_add_default_behaviour(self):
+        """Test plugin preserves the mask when no value given for replace_masked_values_with."""
         expected_data = np.full((2, 2), 1.2, dtype=np.float32)
         mask = [[False, True], [False, False]]
+
         self.cube1.data = np.ma.MaskedArray(self.cube1.data, mask=mask)
+
         plugin = CubeCombiner("add")
         result = plugin.process([self.cube1, self.cube2, self.cube3], "new_cube_name")
+
+        self.assertTrue(np.ma.isMaskedArray(result.data))
+        np.testing.assert_array_almost_equal(result.data.data, expected_data)
+        np.testing.assert_array_equal(result.data.mask, mask)
+
+    def test_process_add_replace_masked_values(self):
+        """Test plugin removes the mask when a value is given for replace_masked_values_with."""
+        expected_data = np.full((2, 2), 0.7, dtype=np.float32)
+        mask = [[True, True], [True, True]]
+
+        self.cube1.data = np.ma.MaskedArray(self.cube1.data, mask=mask)
+
+        plugin = CubeCombiner("add", replace_masked_values_with=0.0)
+        result = plugin.process([self.cube1, self.cube2, self.cube3], "new_cube_name")
+
+        self.assertNotIsInstance(result.data, np.ma.MaskedArray)
+        np.testing.assert_array_almost_equal(result.data.data, expected_data)
+        with self.assertRaisesRegex(AttributeError, r"no attribute 'mask'"):
+            result.data.mask
+
+    def test__replace_mask_values_method_overlapping_mask_handling_add(self):
+        """Test plugin removes all masks when values are given for replace_masked_values_with."""
+        expected_data = np.full((2, 2), 0.0, dtype=np.float32)
+        mask = [[True, True], [True, True]]
+
+        self.cube1.data = np.ma.MaskedArray(self.cube1.data, mask=mask)
+        self.cube2.data = np.ma.MaskedArray(self.cube1.data, mask=mask)
+        self.cube3.data = np.ma.MaskedArray(self.cube1.data, mask=mask)
+
+        plugin = CubeCombiner("add", replace_masked_values_with=0.0)
+        result = plugin.process([self.cube1, self.cube2, self.cube3], "new_cube_name")
+
+        self.assertNotIsInstance(result.data, np.ma.MaskedArray)
+        np.testing.assert_array_almost_equal(result.data.data, expected_data)
+        with self.assertRaisesRegex(AttributeError, r"no attribute 'mask'"):
+            result.data.mask
+
+    def test__replace_mask_values_add_method_for_different_mask_values(self):
+        """Test plugin applies correct value to masked ares when replace_masked_values is used."""
+        replacement_values = [np.nan, 0.0, 1.0, 3, -9999, 2.22e-30, 1.79e30]
+        number_of_cubes = 3
+        for replacement_value in replacement_values:
+            expected_data = np.full(
+                (2, 2), replacement_value * number_of_cubes, dtype=np.float32
+            )
+            mask = [[True, True], [True, True]]
+
+            self.cube1.data = np.ma.MaskedArray(self.cube1.data, mask=mask)
+            self.cube2.data = np.ma.MaskedArray(self.cube1.data, mask=mask)
+            self.cube3.data = np.ma.MaskedArray(self.cube1.data, mask=mask)
+
+            plugin = CubeCombiner("add", replace_masked_values_with=replacement_value)
+            result = plugin.process(
+                [self.cube1, self.cube2, self.cube3], "new_cube_name"
+            )
+
+            self.assertNotIsInstance(result.data, np.ma.MaskedArray)
+            np.testing.assert_array_almost_equal(result.data.data, expected_data)
+            with self.assertRaisesRegex(AttributeError, r"no attribute 'mask'"):
+                result.data.mask
+
+    def test_process_multiply_default_behaviour(self):
+        """Test plugin preserves the mask when no value given for replace_masked_values_with."""
+        expected_data = np.full((2, 2), 0.03, dtype=np.float32)
+        mask = [[True, True], [True, True]]
+
+        self.cube1.data = np.ma.MaskedArray(self.cube1.data, mask=mask)
+
+        plugin = CubeCombiner("*")
+        result = plugin.process([self.cube1, self.cube2, self.cube3], "new_cube_name")
+
         self.assertIsInstance(result.data, np.ma.MaskedArray)
-        self.assertArrayAlmostEqual(result.data.data, expected_data)
-        self.assertArrayEqual(result.data.mask, mask)
+        np.testing.assert_array_almost_equal(result.data.data, expected_data)
+        np.testing.assert_array_equal(result.data.mask, mask)
+
+    def test_process_multiply_default(self):
+        """Test plugin removes the mask when a value is given for replace_masked_values_with."""
+        expected_data = np.full((2, 2), 0.0, dtype=np.float32)
+        mask = [[True, True], [True, True]]
+
+        self.cube1.data = np.ma.MaskedArray(self.cube1.data, mask=mask)
+
+        plugin = CubeCombiner("*", replace_masked_values_with=0.0)
+        result = plugin.process([self.cube1, self.cube2, self.cube3], "new_cube_name")
+
+        self.assertNotIsInstance(result.data, np.ma.MaskedArray)
+        np.testing.assert_array_almost_equal(result.data.data, expected_data)
+        with self.assertRaisesRegex(AttributeError, r"no attribute 'mask'"):
+            result.data.mask
+
+    def test__replace_mask_values_method_overlapping_masks_handling_multiply(self):
+        """Test plugin removes all masks when no value given for replace_masked_values_with."""
+        expected_data = np.full((2, 2), 0.0, dtype=np.float32)
+        mask = [[True, True], [True, True]]
+
+        self.cube1.data = np.ma.MaskedArray(self.cube1.data, mask=mask)
+        self.cube2.data = np.ma.MaskedArray(self.cube1.data, mask=mask)
+        self.cube3.data = np.ma.MaskedArray(self.cube1.data, mask=mask)
+
+        plugin = CubeCombiner("*", replace_masked_values_with=0.0)
+        result = plugin.process([self.cube1, self.cube2, self.cube3], "new_cube_name")
+
+        self.assertNotIsInstance(result.data, np.ma.MaskedArray)
+        np.testing.assert_array_almost_equal(result.data.data, expected_data)
+        with self.assertRaisesRegex(AttributeError, r"no attribute 'mask'"):
+            result.data.mask
+
+    def test__replace_mask_values_method_multiply_for_different_mask_values(self):
+        """Test plugin applies correct value to masked ares when replace_masked_values is used."""
+        replacement_values = [np.nan, 0.0, 1.0, 3, -9999, 2.22e-30, 1.79e30]
+        number_of_cubes = 3
+        for replacement_value in replacement_values:
+            expected_data = np.full(
+                (2, 2), replacement_value**number_of_cubes, dtype=np.float32
+            )
+            mask = [[True, True], [True, True]]
+
+            self.cube1.data = np.ma.MaskedArray(self.cube1.data, mask=mask)
+            self.cube2.data = np.ma.MaskedArray(self.cube1.data, mask=mask)
+            self.cube3.data = np.ma.MaskedArray(self.cube1.data, mask=mask)
+
+            plugin = CubeCombiner("*", replace_masked_values_with=replacement_value)
+            result = plugin.process(
+                [self.cube1, self.cube2, self.cube3], "new_cube_name"
+            )
+
+            self.assertNotIsInstance(result.data, np.ma.MaskedArray)
+            np.testing.assert_array_almost_equal(result.data.data, expected_data)
+            with self.assertRaisesRegex(AttributeError, r"no attribute 'mask'"):
+                result.data.mask
 
     def test_exception_for_single_entry_cubelist(self):
         """Test that the plugin raises an exception if a cubelist containing
@@ -335,7 +466,7 @@ class Test_process(CombinerTest):
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.name(), "probability_of_new_cube_name_above_threshold")
         self.assertEqual(result.coord(var_name="threshold").name(), "new_cube_name")
-        self.assertArrayAlmostEqual(result.data, self.cube5.data)
+        np.testing.assert_array_almost_equal(result.data, self.cube5.data)
         self.assertCubeListEqual(input_copy, cubelist)
 
     def test_broadcast_non_threshold_coord(self):
@@ -361,7 +492,9 @@ class Test_process(CombinerTest):
         result = CubeCombiner(operation="-", broadcast="realization")(
             [cloud_base_height, orography], new_name
         )
-        self.assertArrayAlmostEqual(result.data, np.full_like(cloud_base_height, 920))
+        np.testing.assert_array_almost_equal(
+            result.data, np.full_like(cloud_base_height, 920)
+        )
 
     def test_vicinity_names(self):
         """Test plugin names the cube and threshold coordinate correctly for a
@@ -427,8 +560,8 @@ class Test_process(CombinerTest):
         result = CubeCombiner(operation="*")(
             [precip_accum, snow_prob], "lwe_thickness_of_snowfall_amount"
         )
-        self.assertArrayAlmostEqual(result.data, np.full((2, 3, 3), 0.3))
-        self.assertArrayEqual(result.coord("time"), precip_accum.coord("time"))
+        np.testing.assert_array_almost_equal(result.data, np.full((2, 3, 3), 0.3))
+        np.testing.assert_array_equal(result.coord("time"), precip_accum.coord("time"))
 
     def test_update_cell_methods_probabilistic(self):
         """Test that plugin updates cell methods where required when a new
@@ -487,7 +620,7 @@ class Test_process(CombinerTest):
         result = CubeCombiner(operation="*", broadcast="threshold")(
             cubelist, new_cube_name
         )
-        self.assertArrayEqual(result.cell_methods, expected)
+        np.testing.assert_array_equal(result.cell_methods, expected)
 
     def test_exception_mismatched_dimensions(self):
         """Test an error is raised if dimension coordinates do not match"""
@@ -505,7 +638,7 @@ class Test_process(CombinerTest):
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.name(), "probability_of_new_cube_name_above_threshold")
         self.assertEqual(result.coord(var_name="threshold").name(), "new_cube_name")
-        self.assertArrayAlmostEqual(result.data, self.cube5.data)
+        np.testing.assert_array_almost_equal(result.data, self.cube5.data)
 
 
 if __name__ == "__main__":
@@ -564,3 +697,13 @@ def test_masked_add(cube1, cube2, cube1_mask, cube2_mask):
     assert np.allclose(result.data, expected_output)
     assert np.allclose(result.mask, expected_mask)
     assert result.dtype == np.float32
+
+
+def test_masked_add_overlapping(cube1, cube2):
+    """In masked_add areas where the masks overlap are masked in the output."""
+    expected_mask = [[True, True], [True, True]]
+    cube1.data = np.ma.MaskedArray(cube1.data, mask=[[True, True], [True, True]])
+    cube2.data = np.ma.MaskedArray(cube2.data, mask=[[True, True], [True, True]])
+    result = masked_add(cube1.data, cube2.data)
+
+    np.testing.assert_array_equal(result.mask, expected_mask)

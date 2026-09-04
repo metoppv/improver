@@ -16,7 +16,7 @@ from iris.cube import Cube, CubeList
 from iris.pandas import as_data_frame
 
 from improver import PostProcessingPlugin
-from improver.calibration import add_warning_comment
+from improver.calibration import add_static_feature_from_cube_to_df, add_warning_comment
 from improver.calibration.quantile_regression_random_forest import (
     ApplyQuantileRegressionRandomForests,
     quantile_forest_package_available,
@@ -77,11 +77,11 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
                 e.g. "wmo_id" or ["latitude", "longitude"].
             cycletime (str):
                 The cycle time of the forecast to be calibrated in the format
-                YYYYMMDDTHHMMZ. If not provided, the first cycle time found in
-                the forecast cube will be used.
-            forecast_period (str):
+                YYYYMMDDTHHMMZ. If not provided, the cycle time found in the first
+                forecast cube will be used.
+            forecast_period (int):
                 The forecast period of the forecast to be calibrated in seconds. If not
-                provided, the first forecast period found in the forecast cube
+                provided, the forecast period found in the first forecast cube
                 will be used.
         """
         self.feature_config = feature_config
@@ -115,6 +115,8 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
             ValueError: If the target forecast is not provided.
             ValueError: If the number of cubes provided does not match the number of
                 features expected.
+            ValueError: If the input cubes contain a mix of realization and percentile
+                coordinates.
         """
         # Extract all additional cubes which are associated with a feature in the
         # feature_config.
@@ -203,12 +205,12 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
                 pd.to_datetime(self.cycletime, format="%Y%m%dT%H%MZ")
             )
         else:
-            cycletime = cube_inputs[0].coord("forecast_reference_time").points
+            (cycletime,) = cube_inputs[0].coord("forecast_reference_time").points
 
         if self.forecast_period:
             forecast_period = self.forecast_period
         else:
-            forecast_period = cube_inputs[0].coord("forecast_period").points
+            (forecast_period,) = cube_inputs[0].coord("forecast_period").points
 
         # Update the forecast_reference_time and forecast_period to match those
         # provided, if they are provided.
@@ -224,10 +226,10 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
                         - cube.coord("forecast_period").bounds[0][0]
                     )
                     cube.coord("forecast_period").bounds = np.array(
-                        [forecast_period - diff, forecast_period]
+                        [[forecast_period - diff, forecast_period]]
                     )
         return cube_inputs
-    
+
     def _cube_to_dataframe(self, cube_inputs: CubeList) -> pd.DataFrame:
         """Convert cube inputs to a pandas DataFrame.
 
@@ -257,7 +259,8 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
         #         cube.coord("forecast_period").points = forecast_period
 
         # Convert the first cube to a DataFrame.
-        df = as_data_frame(cube_inputs[0], add_aux_coords=True).reset_index()
+        df = as_data_frame(cube_inputs[0], add_aux_coords=True)
+        df.reset_index(inplace=True)
 
         possible_columns = [
             *self.unique_site_id_keys,
@@ -270,14 +273,11 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
 
         # Iteratively convert remaining cubes to DataFrame and merge.
         for cube in cube_inputs[1:]:
-            temporary_df = as_data_frame(cube, add_aux_coords=True).reset_index()
-            merge_columns = [
-                col for col in possible_columns if col in temporary_df.columns
-            ]
-            df = df.merge(
-                temporary_df[merge_columns + [cube.name()]],
-                on=merge_columns,
-                how="left",
+            df = add_static_feature_from_cube_to_df(
+                df,
+                cube,
+                cube.name(),
+                possible_columns,
             )
 
         for column in ["forecast_reference_time", "time"]:
@@ -329,18 +329,21 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
             warnings.warn(msg)
             return forecast_cube
 
-        template_forecast_cube = forecast_cube.copy()
+        output_cube = (
+            forecast_cube.copy()
+        )  # Used later to store the calibrated forecast.
         if forecast_cube.coords("realization"):
-            quantile_list = self._compute_quantile_list(
-                forecast_cube.copy(), "realization"
-            )
+            quantile_list = self._compute_quantile_list(forecast_cube, "realization")
         elif forecast_cube.coords("percentile"):
             quantile_list = (forecast_cube.coord("percentile").points / 100.0).tolist()
 
         cube_inputs = self._update_forecast_reference_time_and_period(cube_inputs)
 
         df = self._cube_to_dataframe(cube_inputs)
-
+        del (
+            cube_inputs,
+            forecast_cube,
+        )
         calibrated_forecast = ApplyQuantileRegressionRandomForests(
             target_name=self.target_cf_name,
             feature_config=self.feature_config,
@@ -349,8 +352,8 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
             pre_transform_addition=pre_transform_addition,
             unique_site_id_keys=self.unique_site_id_keys,
         )(qrf_model, df)
-        calibrated_forecast_cube = template_forecast_cube.copy(
-            data=np.broadcast_to(calibrated_forecast.T, template_forecast_cube.shape)
-        )
+        del df
 
-        return calibrated_forecast_cube
+        output_cube.data = np.broadcast_to(calibrated_forecast.T, output_cube.shape)
+
+        return output_cube

@@ -32,10 +32,13 @@ from improver.utilities.common_input_handle import as_cubelist
 
 class TemperatureSaturatedAirParcel(BasePlugin):
     """
-    Plugin to calculate the temperature of a saturated air parcel as it rises
-    adiabatically from the cloud condensation level (CCL) to a pressure level.
-    The default is set at 500 hPa for the Lifted Index (LI) calculations.
+    Plugin to calculate the temperature of a saturated air parcel with respect to liquid
+    (water) as it rises adiabatically from the cloud condensation level (CCL) to a
+    pressure level.
+    The default pressure level is set at 500 hPa for the Lifted Index (LI) calculations.
     """
+
+    phase: str = "water"
 
     def __init__(self, pressure_level: float = 50000.0):
         """
@@ -66,7 +69,7 @@ class TemperatureSaturatedAirParcel(BasePlugin):
             [self.temperature, self.pressure, humidity_cube]
         )
         humidity_mixing_ratio_at_ccl = saturated_humidity(
-            ccl_temperature_cube.data, ccl_pressure_cube.data
+            ccl_temperature_cube.data, ccl_pressure_cube.data, self.phase
         )
         dry_parcel_temperature_after_ascent = dry_adiabatic_temperature(
             ccl_temperature_cube.data, ccl_pressure_cube.data, self.pressure_level
@@ -76,6 +79,9 @@ class TemperatureSaturatedAirParcel(BasePlugin):
             humidity_mixing_ratio_at_ccl,
             self.pressure_level,
         )
+        parcel_temperature_after_ascent = np.ma.masked_invalid(
+            parcel_temperature_after_ascent
+        ).astype(np.float32)
         return parcel_temperature_after_ascent
 
     def make_saturated_relative_humidity_cube(self) -> Cube:
@@ -143,9 +149,14 @@ class TemperatureSaturatedAirParcel(BasePlugin):
 
         """
         cubes = as_cubelist(cubes)
-        (self.temperature, self.pressure) = CubeList(cubes).extract(
-            ["air_temperature", "surface_air_pressure"]
+        self.temperature, self.pressure = CubeList(cubes).extract(
+            [
+                "air_temperature_at_condensation_level",
+                "air_pressure_at_condensation_level",
+            ]
         )
+        self.temperature.convert_units("K")
+        self.pressure.convert_units("Pa")
         parcel_temp_at_pressure_level = self.parcel_temp_after_ascent()
         temp_cube = self.make_temperature_cube(parcel_temp_at_pressure_level)
         return temp_cube

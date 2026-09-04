@@ -11,7 +11,6 @@ import numpy as np
 import pytest
 from cf_units import Unit
 from iris.cube import CubeList
-from iris.tests import IrisTest
 
 from improver.psychrometric_calculations.psychrometric_calculations import (
     PhaseChangeLevel,
@@ -23,7 +22,7 @@ from improver.synthetic_data.set_up_test_cubes import (
 from improver.utilities.cube_manipulation import sort_coord_in_cube
 
 
-class Test__init__(IrisTest):
+class Test__init__(unittest.TestCase):
     """Test the init method."""
 
     def test_snow_sleet(self):
@@ -73,7 +72,7 @@ class Test__init__(IrisTest):
             PhaseChangeLevel(phase_change)
 
 
-class Test_find_falling_level(IrisTest):
+class Test_find_falling_level(unittest.TestCase):
     """Test the find_falling_level method."""
 
     def setUp(self):
@@ -98,7 +97,7 @@ class Test_find_falling_level(IrisTest):
             self.wb_int_data, self.orog_data, self.height_points
         )
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayEqual(result, expected)
+        np.testing.assert_array_equal(result, expected)
 
     def test_outside_range(self):
         """Test method returns an nan if data outside range"""
@@ -111,7 +110,7 @@ class Test_find_falling_level(IrisTest):
         self.assertTrue(np.isnan(result[1, 1]))
 
 
-class Test_fill_in_high_phase_change_falling_levels(IrisTest):
+class Test_fill_in_high_phase_change_falling_levels(unittest.TestCase):
     """Test the fill_in_high_phase_change_falling_levels method."""
 
     def setUp(self):
@@ -137,7 +136,7 @@ class Test_fill_in_high_phase_change_falling_levels(IrisTest):
             self.highest_wb_int,
             self.highest_height,
         )
-        self.assertArrayEqual(self.phase_change_level_data, expected)
+        np.testing.assert_array_equal(self.phase_change_level_data, expected)
 
     def test_no_fill_if_conditions_not_met(self):
         """Test it doesn't fill in NaN if the heighest wet bulb integral value
@@ -150,10 +149,10 @@ class Test_fill_in_high_phase_change_falling_levels(IrisTest):
             self.highest_wb_int,
             self.highest_height,
         )
-        self.assertArrayEqual(self.phase_change_level_data, expected)
+        np.testing.assert_array_equal(self.phase_change_level_data, expected)
 
 
-class Test_linear_wet_bulb_fit(IrisTest):
+class Test_linear_wet_bulb_fit(unittest.TestCase):
     """Test the linear_wet_bulb_fit method."""
 
     def setUp(self):
@@ -188,8 +187,8 @@ class Test_linear_wet_bulb_fit(IrisTest):
         gradients, intercepts = plugin.linear_wet_bulb_fit(
             self.wet_bulb_temperature, self.heights, self.sea_points
         )
-        self.assertArrayAlmostEqual(self.expected_gradients, gradients)
-        self.assertArrayAlmostEqual(self.expected_intercepts, intercepts)
+        np.testing.assert_array_almost_equal(self.expected_gradients, gradients)
+        np.testing.assert_array_almost_equal(self.expected_intercepts, intercepts)
 
     def test_land_points(self):
         """Test it returns arrays of zeros if points are land."""
@@ -198,11 +197,11 @@ class Test_linear_wet_bulb_fit(IrisTest):
         gradients, intercepts = plugin.linear_wet_bulb_fit(
             self.wet_bulb_temperature, self.heights, sea_points
         )
-        self.assertArrayAlmostEqual(np.zeros((3, 3)), gradients)
-        self.assertArrayAlmostEqual(np.zeros((3, 3)), intercepts)
+        np.testing.assert_array_almost_equal(np.zeros((3, 3)), gradients)
+        np.testing.assert_array_almost_equal(np.zeros((3, 3)), intercepts)
 
 
-class Test_find_extrapolated_falling_level(IrisTest):
+class Test_find_extrapolated_falling_level(unittest.TestCase):
     """Test the find_extrapolated_falling_level method."""
 
     def setUp(self):
@@ -244,7 +243,7 @@ class Test_find_extrapolated_falling_level(IrisTest):
             self.phase_change_level,
             self.sea_points,
         )
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             self.expected_phase_change_level, self.phase_change_level
         )
 
@@ -260,12 +259,12 @@ class Test_find_extrapolated_falling_level(IrisTest):
             self.sea_points,
         )
         expected_phase_change_level = np.ones((3, 3)) * np.nan
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             expected_phase_change_level, self.phase_change_level
         )
 
 
-class Test_fill_sea_points(IrisTest):
+class Test_fill_sea_points(unittest.TestCase):
     """Test the fill_in_sea_points method."""
 
     def setUp(self):
@@ -303,7 +302,7 @@ class Test_fill_sea_points(IrisTest):
             self.heights,
             self.orography,
         )
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             self.phase_change_level.data, self.expected_phase_change_level
         )
 
@@ -320,7 +319,7 @@ class Test_fill_sea_points(IrisTest):
             self.heights,
             self.orography,
         )
-        self.assertArrayAlmostEqual(self.phase_change_level.data, expected)
+        np.testing.assert_array_almost_equal(self.phase_change_level.data, expected)
 
     def test_all_above_threshold(self):
         """Test it doesn't change points that are all above the threshold"""
@@ -336,7 +335,7 @@ class Test_fill_sea_points(IrisTest):
             self.heights,
             self.orography,
         )
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             self.phase_change_level.data, self.expected_phase_change_level
         )
 
@@ -353,12 +352,12 @@ class Test_fill_sea_points(IrisTest):
             self.heights,
             orography,
         )
-        self.assertArrayAlmostEqual(
+        np.testing.assert_array_almost_equal(
             self.phase_change_level.data, self.expected_phase_change_level
         )
 
 
-class Test_find_max_in_nbhood_orography(IrisTest):
+class Test_find_max_in_nbhood_orography(unittest.TestCase):
     """Test the find_max_in_nbhood_orography method"""
 
     def setUp(self):
@@ -400,14 +399,14 @@ class Test_find_max_in_nbhood_orography(IrisTest):
         """Test the function does what it's meant to in a simple case."""
         plugin = PhaseChangeLevel(phase_change="snow-sleet", grid_point_radius=1)
         result = plugin.find_max_in_nbhood_orography(self.cube)
-        self.assertArrayAlmostEqual(result.data, self.expected_data)
+        np.testing.assert_array_almost_equal(result.data, self.expected_data)
 
     def test_null(self):
         """Test the function does nothing when radius is zero."""
         plugin = PhaseChangeLevel(phase_change="snow-sleet", grid_point_radius=0)
         expected_data = self.cube.data.copy()
         result = plugin.find_max_in_nbhood_orography(self.cube)
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
 
     def test_null_lat_lon(self):
         """Test the function succeeds and does nothing when radius is zero and grid is
@@ -416,10 +415,10 @@ class Test_find_max_in_nbhood_orography(IrisTest):
         plugin = PhaseChangeLevel(phase_change="snow-sleet", grid_point_radius=0)
         expected_data = self.cube.data.copy()
         result = plugin.find_max_in_nbhood_orography(cube)
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_array_almost_equal(result.data, expected_data)
 
 
-class Test_horizontally_interpolate_phase(IrisTest):
+class Test_horizontally_interpolate_phase(unittest.TestCase):
     """Test the PhaseChangeLevel horizontal interpolation."""
 
     def setUp(self):
@@ -509,7 +508,7 @@ class Test_horizontally_interpolate_phase(IrisTest):
         result = plugin._horizontally_interpolate_phase(
             self.phase_change_data_1d, self.orography_1d, self.max_nbhood_orog_1d
         )
-        self.assertArrayAlmostEqual(result, self.expected_result_1d)
+        np.testing.assert_array_almost_equal(result, self.expected_result_1d)
 
     def test_interpolate_edge_case_2d(self):
         """Test that we fill in missing areas under a peaked edge case."""
@@ -517,7 +516,7 @@ class Test_horizontally_interpolate_phase(IrisTest):
         result = plugin._horizontally_interpolate_phase(
             self.phase_change_data_2d, self.orography_2d, self.max_nbhood_orog_2d
         )
-        self.assertArrayAlmostEqual(result, self.expected_result_2d)
+        np.testing.assert_array_almost_equal(result, self.expected_result_2d)
 
     def test_interpolate_edge_case_2d_grid_point_radius_2(self):
         """Test filling in missing areas under a radius 2 peaked edge case.
@@ -538,7 +537,7 @@ class Test_horizontally_interpolate_phase(IrisTest):
         expected_result[2][3] = self.orography_2d[2][
             3
         ]  # This uses the orography as the limit.
-        self.assertArrayAlmostEqual(result, expected_result)
+        np.testing.assert_array_almost_equal(result, expected_result)
 
     def test_interpolate_edge_case_2d_nan_peak(self):
         """Test that we fill in missing areas under a nan-peaked edge case."""
@@ -551,7 +550,7 @@ class Test_horizontally_interpolate_phase(IrisTest):
         expected_result = self.expected_result_2d.copy()
         expected_result[2][2] = self.orography_2d[2][2]
         expected_result[2][3] = self.orography_2d[2][3]
-        self.assertArrayAlmostEqual(result, expected_result)
+        np.testing.assert_array_almost_equal(result, expected_result)
 
     def test_interpolate_edge_case_2d_nan_peakonly(self):
         """Test that we fill in missing areas under only-nan-peaked edge case."""
@@ -565,7 +564,7 @@ class Test_horizontally_interpolate_phase(IrisTest):
         expected_result = self.expected_result_2d.copy()
         expected_result[2][2] = self.orography_2d[2][2]
         expected_result[2][3] = 950.0
-        self.assertArrayAlmostEqual(result, expected_result)
+        np.testing.assert_array_almost_equal(result, expected_result)
 
     def test_interpolate_edge_case_2d_crater(self):
         """Test that we fill in missing areas under a nan crater edge case."""
@@ -575,7 +574,7 @@ class Test_horizontally_interpolate_phase(IrisTest):
             self.orography_2d_crater,
             self.max_nbhood_orog_2d_crater,
         )
-        self.assertArrayAlmostEqual(result, self.expected_result_2d_crater)
+        np.testing.assert_array_almost_equal(result, self.expected_result_2d_crater)
 
     def test_interpolate_edge_case_2d_crater_grid_point_radius_2(self):
         """Test filling in missing areas under a radius 2 nan crater edge case."""
@@ -587,10 +586,10 @@ class Test_horizontally_interpolate_phase(IrisTest):
         result = plugin._horizontally_interpolate_phase(
             self.phase_change_data_2d_crater, self.orography_2d_crater, max_nbhood_orog
         )
-        self.assertArrayAlmostEqual(result, self.expected_result_2d_crater)
+        np.testing.assert_array_almost_equal(result, self.expected_result_2d_crater)
 
 
-class Test_process(IrisTest):
+class Test_process(unittest.TestCase):
     """Test the PhaseChangeLevel processing works"""
 
     def setUp(self):
@@ -701,7 +700,7 @@ class Test_process(IrisTest):
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(result.name(), "altitude_of_snow_falling_level")
         self.assertEqual(result.units, Unit("m"))
-        self.assertArrayAlmostEqual(result.data, self.expected_snow_sleet)
+        np.testing.assert_array_almost_equal(result.data, self.expected_snow_sleet)
         if hasattr(result.data, "mask"):
             self.assertFalse(result.data.mask.any())
 
@@ -730,7 +729,7 @@ class Test_process(IrisTest):
         self.assertEqual(result.name(), "altitude_of_snow_falling_level")
         self.assertEqual(result.units, Unit("m"))
         self.assertEqual(result.attributes["mosg__model_configuration"], "uk_ens")
-        self.assertArrayAlmostEqual(result.data, self.expected_snow_sleet)
+        np.testing.assert_array_almost_equal(result.data, self.expected_snow_sleet)
         if hasattr(result.data, "mask"):
             self.assertFalse(result.data.mask.any())
 
@@ -771,7 +770,7 @@ class Test_process(IrisTest):
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(result.name(), "altitude_of_snow_falling_level")
         self.assertEqual(result.units, Unit("m"))
-        self.assertArrayAlmostEqual(result.data, self.expected_snow_sleet)
+        np.testing.assert_array_almost_equal(result.data, self.expected_snow_sleet)
 
     def test_sleet_rain_phase_change(self):
         """Test that process returns a cube with the right name, units and
@@ -805,7 +804,7 @@ class Test_process(IrisTest):
             self.assertFalse(result.data.mask.any())
         self.assertEqual(result.name(), "altitude_of_rain_falling_level")
         self.assertEqual(result.units, Unit("m"))
-        self.assertArrayAlmostEqual(result.data, expected)
+        np.testing.assert_array_almost_equal(result.data, expected)
 
     def test_hail_rain_phase_change(self):
         """Test that process returns a cube with the right name, units and
@@ -834,7 +833,7 @@ class Test_process(IrisTest):
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(result.name(), "altitude_of_rain_from_hail_falling_level")
         self.assertEqual(result.units, Unit("m"))
-        self.assertArrayAlmostEqual(result.data, expected)
+        np.testing.assert_array_almost_equal(result.data, expected)
 
         if hasattr(result.data, "mask"):
             self.assertFalse(result.data.mask.any())
@@ -853,7 +852,7 @@ class Test_process(IrisTest):
                 ]
             )
         )
-        self.assertArrayAlmostEqual(result.data, self.expected_snow_sleet)
+        np.testing.assert_array_almost_equal(result.data, self.expected_snow_sleet)
 
     def test_interpolation_from_sea_points(self):
         """Test that the phase change level process returns a cube
@@ -881,7 +880,7 @@ class Test_process(IrisTest):
         expected = self.expected_snow_sleet - 1
         expected[:, 2, 2] += 1
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayAlmostEqual(result.data, expected)
+        np.testing.assert_array_almost_equal(result.data, expected)
 
     def test_too_many_cubes(self):
         """Tests that an error is raised if there are too many cubes."""

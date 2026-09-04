@@ -55,7 +55,7 @@ def virtual_temperature_cube_fixture() -> Cube:
         data,
         standard_name="virtual_temperature",
         units="K",
-        attributes={"units_metadata": "on-scale"},
+        attributes={"units_metadata": "on_scale"},
     )
     return cube
 
