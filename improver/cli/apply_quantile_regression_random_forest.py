@@ -17,6 +17,7 @@ def process(
     unique_site_id_keys: cli.comma_separated_list = "wmo_id",
     cycletime: str = None,
     forecast_period: int = None,
+    max_allowed_difference: float = None,
 ):
     """Applying the Quantile Regression Random Forest model.
 
@@ -66,6 +67,9 @@ def process(
             The forecast period of the forecast to be calibrated in seconds. If not
             provided, the first forecast period found in the forecast cube
             will be used.
+        max_allowed_difference (float, optional):
+            The maximum allowed difference for the forecast calibration. If not
+            provided, no maximum difference check will be applied. Defaults to None.
     Returns:
         iris.cube.Cube:
             The calibrated forecast cube.
@@ -83,5 +87,6 @@ def process(
         unique_site_id_keys=unique_site_id_keys,
         cycletime=cycletime,
         forecast_period=forecast_period,
+        max_allowed_difference=max_allowed_difference,
     )(cubes, qrf_descriptors=qrf_descriptors)
     return result

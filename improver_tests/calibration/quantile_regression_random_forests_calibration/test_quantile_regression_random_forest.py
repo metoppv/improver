@@ -6,6 +6,7 @@
 
 import itertools
 from datetime import datetime as dt
+from unittest.mock import Mock
 
 import iris
 import joblib
@@ -1033,3 +1034,35 @@ def test_apply_qrf_alternative_configs(
     assert result.shape == (2,)
     assert result.dtype == np.float32
     np.testing.assert_almost_equal(result, expected, decimal=2)
+
+
+def test_apply_qrf_caps_forecast_by_max_allowed_difference():
+    """Test forecasts are capped when exceeding the allowed difference."""
+
+    feature_config = {"wind_speed_at_10m": ["latitude", "longitude"]}
+    quantiles = [0.5]
+    max_allowed_difference = 5.0
+
+    data = np.arange(6, (len(quantiles) * 6) + 1, 6)
+    frt = "20170103T0000Z"
+    vt = "20170103T1200Z"
+
+    forecast_df = _create_forecasts(frt, vt, data)
+    forecast_df = _add_day_of_training_period(forecast_df)
+
+    qrf_model = Mock()
+    # Force one point to be too slow and one too fast to test both cap directions.
+    qrf_model.predict.return_value = np.array([17.0, 0.0], dtype=np.float32)
+
+    plugin = ApplyQuantileRegressionRandomForests(
+        "wind_speed_at_10m",
+        feature_config,
+        quantiles,
+    )
+
+    result = plugin.process(
+        qrf_model, forecast_df, max_allowed_difference=max_allowed_difference
+    )
+
+    expected = np.array([11.0, 3.0], dtype=np.float32)
+    np.testing.assert_array_equal(result, expected)
