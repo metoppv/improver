@@ -18,6 +18,9 @@ from iris.util import new_axis, promote_aux_coord_to_dim_coord
 
 from improver import BasePlugin
 from improver.blending.utilities import remove_blend_time, remove_deprecation_warnings
+from improver.clustering.cluster_sources_utils import (
+    find_nearest_forecast_period_gte,
+)
 from improver.clustering.clustering import FitClustering
 from improver.regrid.landsea import RegridLandSea
 from improver.utilities.cube_manipulation import (
@@ -1863,40 +1866,6 @@ class RealizationSelection(BasePlugin):
                 "Forecast cubes must share a common validity time (time coordinate)."
             )
 
-    def find_nearest_secondary_mapping_fp(
-        self, mapping_fps: Optional[set[int]], fp: int
-    ) -> tuple[int, bool]:
-        """
-        Find the nearest forecast period in the secondary mapping that is greater
-        than or equal to the requested forecast period.
-
-        Args:
-            mapping_fps: Set of forecast periods (in seconds) available in the
-                secondary mapping.
-            fp: The forecast period (in seconds) for which to find the nearest
-                greater-than-or-equal mapping.
-
-        Returns:
-            A tuple containing:
-                - nearest_fp: The smallest forecast period from mapping_fps that is
-                greater than or equal to fp (or fp if mapping_fps is empty).
-                - use_secondary: Boolean indicating whether the secondary mapping
-                    should be used (True if at least one forecast period in
-                    mapping_fps is greater than or equal to fp, else False).
-        """
-        if mapping_fps:
-            valid_fps = [mapping_fp for mapping_fp in mapping_fps if mapping_fp >= fp]
-            if valid_fps:
-                nearest_fp = min(valid_fps)
-                use_secondary = True
-            else:
-                nearest_fp = fp
-                use_secondary = False
-        else:
-            nearest_fp = fp
-            use_secondary = False
-        return nearest_fp, use_secondary
-
     def _extract_primary_model_from_cluster_sources(self, cluster_cube: Cube) -> str:
         """Extract the primary model name from the cluster_sources attribute.
 
@@ -2085,7 +2054,7 @@ class RealizationSelection(BasePlugin):
                 for cluster_list in cluster_dict.values():
                     for entry in cluster_list:
                         mapping_fps.update(entry["forecast_periods"])
-        nearest_fp, use_secondary = self.find_nearest_secondary_mapping_fp(
+        nearest_fp, use_secondary = find_nearest_forecast_period_gte(
             mapping_fps, self.forecast_period
         )
         cluster_to_selection = self.build_cluster_to_selection(

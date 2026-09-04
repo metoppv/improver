@@ -4,7 +4,6 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Class for Temporal Interpolation calculations."""
 
-import json
 import warnings
 from collections import defaultdict
 from datetime import datetime, timedelta
@@ -17,6 +16,7 @@ from iris.exceptions import CoordinateNotFoundError
 from numpy import ndarray
 
 from improver import BasePlugin
+from improver.clustering.cluster_sources_utils import parse_cluster_sources_attribute
 from improver.metadata.constants import FLOAT_DTYPE
 from improver.metadata.constants.time_types import TIME_COORDS
 from improver.metadata.forecast_times import unify_cycletime
@@ -1351,33 +1351,15 @@ class ForecastTrajectoryGapFiller(BasePlugin):
             and periods. Format: {realization_index: {source_name: [periods]}}
 
         Raises:
-            ValueError: If the cluster sources attribute is not a dictionary.
-            ValueError: If the cluster sources JSON string cannot be parsed.
             ValueError: If the sources for a realization are not a dictionary.
             ValueError: If the periods for a source are not a list.
         """
         if self.cluster_sources_attribute is None:
             return {}
 
-        try:
-            cluster_sources = cube.attributes[self.cluster_sources_attribute]
-        except KeyError:
-            return {}
+        cluster_sources = parse_cluster_sources_attribute(cube)
 
-        # Parse JSON string if needed
-        if isinstance(cluster_sources, str):
-            try:
-                cluster_sources = json.loads(cluster_sources)
-            except json.JSONDecodeError as err:
-                raise ValueError(f"Failed to parse cluster sources JSON: {err}")
-
-        # Validate dictionary structure
-        if not isinstance(cluster_sources, dict):
-            raise ValueError(
-                f"Cluster sources attribute must be a dictionary, "
-                f"got {type(cluster_sources)}"
-            )
-
+        # Validate dictionary structure for this plugin's use case
         for real_idx, sources in cluster_sources.items():
             if not isinstance(sources, dict):
                 raise ValueError(
