@@ -531,6 +531,7 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
         transformation: str = None,
         pre_transform_addition: np.float32 = 0,
         unique_site_id_keys: list[str] = ["wmo_id"],
+        max_allowed_difference: np.float32 = None,
     ) -> None:
         """Initialise the plugin.
 
@@ -561,6 +562,9 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
                 Value to be added before transformation.
             unique_site_id_keys: The names of the coordinates that uniquely identify
                 each site, e.g. "wmo_id" or ["latitude", "longitude"].
+            max_allowed_difference (float, optional):
+                The maximum allowed difference for the forecast calibration. If not
+                provided, no maximum difference check will be applied. Defaults to None.
 
         """
         self.target_name = target_name
@@ -570,6 +574,7 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
         _check_valid_transformation(self.transformation)
         self.pre_transform_addition = pre_transform_addition
         self.unique_site_id_keys = unique_site_id_keys
+        self.max_allowed_difference = max_allowed_difference
 
     def _reverse_transformation(self, forecast: np.ndarray) -> np.ndarray:
         """Reverse the transformation applied to the data prior to fitting the QRF.
@@ -594,6 +599,7 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
         self,
         qrf_model: RandomForestQuantileRegressor,
         forecast_df: pd.DataFrame,
+        max_allowed_difference: float = None,
     ) -> np.ndarray:
         """Apply a quantile regression random forests model.
 
@@ -605,6 +611,17 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
             Calibrated forecast as a numpy array.
 
         """
+        original_forecast = None
+        if max_allowed_difference is not None:
+            representation_name = [
+                n for n in ["percentile", "realization"] if n in forecast_df.columns
+            ][0]
+            original_forecast = forecast_df.loc[
+                forecast_df[representation_name]
+                == forecast_df[representation_name].iloc[0],
+                self.target_name,
+            ].values
+
         for variable_name in self.feature_config.keys():
             # Transform the feature cube data if a transformation is specified.
             if (
@@ -637,6 +654,21 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
             feature_values, quantiles=self.quantiles
         )
         calibrated_forecast = self._reverse_transformation(calibrated_forecast)
-        calibrated_forecast = calibrated_forecast.astype(np.float32, copy=False)
+
+        if max_allowed_difference is not None:
+            # Check if the difference between the calibrated forecast and the original
+            # forecast is within the allowed range. If not, cap the calibrated forecast.
+            difference = np.abs(calibrated_forecast - original_forecast)
+            if np.any(difference > max_allowed_difference):
+                # Cap the calibrated forecast at the maximum allowed difference
+                calibrated_forecast = np.where(
+                    difference > max_allowed_difference,
+                    original_forecast
+                    + np.sign(calibrated_forecast - original_forecast)
+                    * max_allowed_difference,
+                    calibrated_forecast,
+                )
+
+        calibrated_forecast = np.float32(calibrated_forecast)
 
         return calibrated_forecast
