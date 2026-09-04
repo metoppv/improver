@@ -7,6 +7,7 @@
 import json
 import warnings
 from collections import defaultdict
+from collections.abc import Sequence
 from datetime import datetime, timedelta
 from typing import Any, Dict, FrozenSet, List, Optional, Tuple, Union
 
@@ -2028,6 +2029,7 @@ class GoogleFilmInterpolation(BasePlugin):
         parallel_backend: Optional[str] = None,
         n_workers: Optional[int] = 1,
         model_loader: Any = None,
+        interpolation_fractions: Optional[Union[float, Sequence[float]]] = None,
     ) -> None:
         """
         Initialise the plugin.
@@ -2076,6 +2078,13 @@ class GoogleFilmInterpolation(BasePlugin):
                 Optional callable to load the TensorFlow model. This is mainly
                 intended for use in testing where a mock model loader can be
                 supplied. If None, the default model loader will be used.
+            interpolation_fractions:
+                Optional fraction, or sequence of fractions, describing progress
+                from cube1 to cube2. Values must lie between 0 and 1.
+                If omitted, fractions are calculated from the input and output
+                validity times, giving the existing temporal interpolation
+                behaviour. If supplied, cube1 and cube2 may have the same validity time.
+                This supports source morphing at constant validity time.
 
         Raises:
             ValueError: If an unsupported scaling method is provided.
@@ -2093,6 +2102,7 @@ class GoogleFilmInterpolation(BasePlugin):
         self.parallel_backend = parallel_backend
         self.n_workers = n_workers
         self.model_loader = model_loader or load_model
+        self.interpolation_fractions = interpolation_fractions
 
     def _apply_scaling(self, cube1: Cube, cube2: Cube, scaling: str) -> None:
         """Apply scaling to the input cubes before interpolation.
@@ -2186,6 +2196,75 @@ class GoogleFilmInterpolation(BasePlugin):
         if self.clip_to_physical_bounds:
             self._apply_clipping(cube, cube1_orig, cube2_orig)
         return cube
+
+    def _get_interpolation_fractions(
+        self,
+        cube1: Cube,
+        cube2: Cube,
+        template_slices: list,
+    ) -> list[float]:
+        """Return the FILM target fraction for each output slice.
+
+        If interpolation_fractions is None, fractions are calculated from the
+        validity times. Otherwise, the supplied interpolation fractions describe
+        progress from cube1 to cube2, where 0 corresponds to cube1 and 1 corresponds
+        to cube2.
+
+        Args:
+            cube1: The first input cube.
+            cube2: The second input cube.
+            template_slices: List of template slices over time.
+
+        Returns:
+            List of interpolation fractions for each output slice.
+
+        Raises:
+            ValueError: If cube1 and cube2 have the same validity time and
+                interpolation_fractions is None.
+            ValueError: If the number of supplied interpolation fractions does not
+                match the number of template slices.
+            ValueError: If any interpolation fraction is not finite or not in [0, 1].
+        """
+        if self.interpolation_fractions is None:
+            t0 = cube1.coord("time").points[0]
+            t1 = cube2.coord("time").points[0]
+            time_range = t1 - t0
+
+            if time_range == 0:
+                raise ValueError(
+                    "cube1 and cube2 have the same validity time, so temporal "
+                    "interpolation fractions cannot be calculated. Supply "
+                    "'interpolation_fractions' for source morphing."
+                )
+
+            fractions = [
+                (template_slice.coord("time").points[0] - t0) / time_range
+                for template_slice in template_slices
+            ]
+        elif np.isscalar(self.interpolation_fractions):
+            fractions = [float(self.interpolation_fractions)] * len(template_slices)
+        else:
+            fractions = [float(value) for value in self.interpolation_fractions]
+
+            if len(fractions) != len(template_slices):
+                raise ValueError(
+                    "The number of interpolation fractions must match the "
+                    "number of output template slices. Got "
+                    f"{len(fractions)} fractions for "
+                    f"{len(template_slices)} template slices."
+                )
+
+        fractions_array = np.asarray(fractions, dtype=np.float32)
+
+        if not np.all(np.isfinite(fractions_array)):
+            raise ValueError("Interpolation fractions must all be finite.")
+
+        if np.any((fractions_array < 0.0) | (fractions_array > 1.0)):
+            raise ValueError(
+                "Interpolation fractions must lie between 0 and 1 inclusive."
+            )
+
+        return fractions_array.tolist()
 
     def _interpolate_with_extra_dim(
         self,
@@ -2363,32 +2442,37 @@ class GoogleFilmInterpolation(BasePlugin):
             return np.concatenate(results, axis=0)
 
     def process(
-        self, cube1: Cube, cube2: Cube, template_interpolated_cube: Cube
+        self,
+        cube1: Cube,
+        cube2: Cube,
+        template_interpolated_cube: Cube,
     ) -> CubeList:
-        """Perform temporal interpolation between two cubes using the Google FILM model.
+        """Interpolate or morph between two cubes using Google FILM.
 
         Args:
-            cube1: The first input cube (at time t=0).
-            cube2: The second input cube (at time t=1).
-            template_interpolated_cube: A cube containing the interpolated data with
-                the correct metadata for the output times.
+            cube1:
+                First input cube. This corresponds to a FILM fraction of 0.
+            cube2:
+                Second input cube. This corresponds to a FILM fraction of 1.
+            template_interpolated_cube:
+                Cube supplying the metadata for the output slices.
 
         Returns:
-            A CubeList containing the interpolated cubes at the specified times.
+            A CubeList containing the FILM-generated cubes.
 
         Raises:
-            ValueError: If cube1 or cube2 do not have realization coordinates.
-            ValueError: If cube1 and cube2 have different numbers of realizations.
+            ValueError: Only one additional dimension apart from spatial dimensions is
+                supported.
+            ValueError: If the additional dimension coordinate does not match between
+                cube1 and cube2.
         """
-        # Identify spatial dims
         spatial_dims = [
             "projection_x_coordinate",
             "projection_y_coordinate",
             "latitude",
             "longitude",
         ]
-        # Expected coordinates in extra_dims might be e.g. realization, percentile
-        # or the name of the probability threshold coord.
+
         extra_dims = [
             coord.name()
             for coord in cube1.coords(dim_coords=True)
@@ -2397,12 +2481,13 @@ class GoogleFilmInterpolation(BasePlugin):
 
         if len(extra_dims) > 1:
             raise ValueError(
-                "Only one additional dimension (apart from spatial) is supported."
+                "Only one additional dimension apart from spatial dimensions "
+                "is supported."
             )
+
         extra_dim = extra_dims[0] if extra_dims else None
 
         if extra_dim:
-            # Ensure both cubes have the same extra dim points
             coord1 = cube1.coord(extra_dim)
             coord2 = cube2.coord(extra_dim)
             if coord1 != coord2:
@@ -2410,37 +2495,32 @@ class GoogleFilmInterpolation(BasePlugin):
                     f"Coordinate '{extra_dim}' does not match between cubes."
                 )
 
-        # Only load the model if parallel_backend is None. If the parallel_backend
-        # is set, each worker will load its own model.
         model = None
         if self.parallel_backend is None:
             model = self.model_loader(self.model_path)
 
-        # Store original data for reverting scaling
+        # Avoid modifying the caller's cubes during scaling.
         cube1_orig = cube1.copy()
         cube2_orig = cube2.copy()
+        cube1_scaled = cube1.copy()
+        cube2_scaled = cube2.copy()
 
-        self._apply_scaling(cube1, cube2, self.scaling)
+        self._apply_scaling(cube1_scaled, cube2_scaled, self.scaling)
 
-        # Calculate time fractions for each target time
-        t0 = cube1.coord("time").points[0]
-        t1 = cube2.coord("time").points[0]
-        time_range = t1 - t0
-
-        # Calculate all time fractions for the target times
-        time_fractions = []
         template_slices = list(template_interpolated_cube.slices_over("time"))
-        for template_slice in template_slices:
-            target_seconds = template_slice.coord("time").points[0]
-            time_fraction = (target_seconds - t0) / time_range
-            time_fractions.append(time_fraction)
+
+        fractions = self._get_interpolation_fractions(
+            cube1_orig,
+            cube2_orig,
+            template_slices,
+        )
 
         if extra_dim:
             interpolated_cubes = self._interpolate_with_extra_dim(
-                cube1,
-                cube2,
+                cube1_scaled,
+                cube2_scaled,
                 template_slices,
-                time_fractions,
+                fractions,
                 model,
                 extra_dim,
                 cube1_orig,
@@ -2448,10 +2528,10 @@ class GoogleFilmInterpolation(BasePlugin):
             )
         else:
             interpolated_cubes = self._interpolate_no_extra_dim(
-                cube1,
-                cube2,
+                cube1_scaled,
+                cube2_scaled,
                 template_slices,
-                time_fractions,
+                fractions,
                 model,
                 cube1_orig,
                 cube2_orig,
