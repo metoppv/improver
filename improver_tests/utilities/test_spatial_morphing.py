@@ -794,6 +794,56 @@ def test_process_diagnoses_source_specific_realizations_for_transition(mock_morp
     np.testing.assert_allclose(result.data, expected_value, rtol=1e-6)
 
 
+def test_apply_quantile_mapping_to_morphed_uses_weighted_blend():
+    """The morphing result should blend toward the weighted source average."""
+    plugin = SpatialMorphing(
+        forecast_period=3600,
+        cluster_number=0,
+        occurrence_threshold=0.0,
+    )
+
+    source_a_data = np.array([[0.0, 5.0], [0.0, 0.0]], dtype=np.float32)
+    source_b_data = np.array([[0.0, 0.0], [4.0, 0.0]], dtype=np.float32)
+    result_data = np.array([[0.0, 6.0], [5.0, 9.0]], dtype=np.float32)
+
+    source_a = set_up_variable_cube(
+        source_a_data,
+        name="precipitation_accumulation",
+        units="mm",
+        spatial_grid="equalarea",
+    )
+    source_b = set_up_variable_cube(
+        source_b_data,
+        name="precipitation_accumulation",
+        units="mm",
+        spatial_grid="equalarea",
+    )
+    result = source_a.copy()
+    result.data = result_data
+
+    weight = 0.25
+    calibrated = plugin.apply_quantile_mapping_to_morphed(
+        result, source_a, source_b, weight=weight
+    )
+
+    weighted_average = (1.0 - weight) * source_a_data + weight * source_b_data
+    signal_values = np.concatenate(
+        (source_a_data[source_a_data > 0.0], source_b_data[source_b_data > 0.0])
+    )
+    centre = float(np.quantile(signal_values, 0.25))
+    width = max(0.5 * centre, np.finfo(np.float32).eps)
+    alpha = 1.0 / (1.0 + np.exp(-(result_data - centre) / width))
+    expected = np.zeros_like(result_data, dtype=np.float32)
+    valid_mask = np.isfinite(result_data)
+    expected[valid_mask] = (
+        alpha[valid_mask] * result_data[valid_mask]
+        + (1.0 - alpha[valid_mask]) * weighted_average[valid_mask]
+    )
+    expected[expected <= 0.0] = 0.0
+
+    np.testing.assert_allclose(calibrated.data, expected, rtol=1e-6, atol=1e-6)
+
+
 @patch(
     "improver.utilities.spatial_morphing.SpatialMorphing._call_google_film_for_morphing"
 )

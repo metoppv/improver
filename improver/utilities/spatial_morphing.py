@@ -11,10 +11,10 @@ from typing import Any
 import iris
 import numpy as np
 from iris.cube import Cube, CubeList
+from scipy.ndimage import uniform_filter
 
 from improver import BasePlugin
 from improver.blending.utilities import remove_blend_time, remove_deprecation_warnings
-from improver.calibration.quantile_mapping import QuantileMapping
 from improver.clustering.realization_clustering import RealizationSelection
 from improver.utilities.temporal import (
     reset_forecast_reference_time_and_period,
@@ -714,30 +714,170 @@ class SpatialMorphing(BasePlugin):
 
         return None
 
-    def apply_quantile_mapping_to_morphed(
-        self, result_cube: Cube, source_a: Cube, source_b: Cube, weight: float
+    def apply_suppression_to_morphed(
+        self,
+        result_cube: Cube,
+        source_a: Cube,
+        source_b: Cube,
+        weight: float,
+        quantile_for_centre: float = 0.9,
+        width_fraction: float = 2,
+        maximum_suppression: float = 1,
     ) -> Cube:
-        """
-        Apply quantile mapping to the result cube based on source cubes and weight.
+        """Suppress weak precipitation excess in a morphed field.
+
+        The weighted mean of the two source fields is used as a smoothly varying
+        guide rather than as a replacement field. Weak FILM precipitation is
+        reduced more strongly than moderate or intense precipitation, helping to
+        suppress broad, weak wet halos while preserving stronger, coherent
+        precipitation features that FILM is intended to represent.
 
         Args:
-            result_cube: Cube to be adjusted.
-            source_a: Source A cube.
-            source_b: Source B cube.
-            weight: Morphing weight (0=source A, 1=source B).
+            result_cube: Precipitation field produced by FILM.
+            source_a: Source field at the beginning of the transition.
+            source_b: Source field at the end of the transition.
+            weight: Interpolation weight in [0, 1], where 0 corresponds to
+                source A and 1 corresponds to source B.
+            quantile_for_centre: Quantile of the combined wet values from the two
+                sources used as the logistic transition centre. At this intensity,
+                the basic logistic weakness factor is 0.5.
+            width_fraction: Logistic width as a fraction of the transition centre.
+                Larger values produce a more gradual intensity transition.
+            maximum_suppression: Maximum fraction of the excess above the weighted
+                reference that can be removed. Must lie in [0, 1].
 
         Returns:
-            Adjusted result cube.
+            Cube containing the suppression-adjusted FILM result.
         """
-        weighted_source_cube = result_cube.copy()
-        weighted_source_cube.data = (
-            1.0 - weight
-        ) * source_a.data + weight * source_b.data
+        if not 0.0 <= weight <= 1.0:
+            raise ValueError(f"weight must lie in [0, 1], got {weight}")
 
-        result = QuantileMapping(
-            occurrence_threshold=self.occurrence_threshold
-        ).process(result_cube, weighted_source_cube)
-        return result
+        if not 0.0 <= quantile_for_centre <= 1.0:
+            raise ValueError(
+                f"quantile_for_centre must lie in [0, 1], got {quantile_for_centre}"
+            )
+
+        if width_fraction <= 0.0:
+            raise ValueError(f"width_fraction must be positive, got {width_fraction}")
+
+        if not 0.0 <= maximum_suppression <= 1.0:
+            raise ValueError(
+                f"maximum_suppression must lie in [0, 1], got {maximum_suppression}"
+            )
+
+        threshold = float(self.occurrence_threshold)
+
+        source_a_data = np.asarray(source_a.data, dtype=np.float64)
+        source_b_data = np.asarray(source_b.data, dtype=np.float64)
+        result_data = np.asarray(result_cube.data, dtype=np.float64)
+
+        if not (source_a_data.shape == source_b_data.shape == result_data.shape):
+            raise ValueError(
+                "result_cube, source_a and source_b must have matching shapes; "
+                f"got {result_data.shape}, {source_a_data.shape} and "
+                f"{source_b_data.shape}"
+            )
+
+        valid_mask = (
+            np.isfinite(result_data)
+            & np.isfinite(source_a_data)
+            & np.isfinite(source_b_data)
+        )
+
+        if not np.any(valid_mask):
+            return result_cube.copy()
+
+        # Use the smoothly evolving source blend as a guide, but do not replace
+        # the full FILM field with it.
+        weighted_reference = (1.0 - weight) * source_a_data + weight * source_b_data
+
+        occ_a = source_a_data > threshold
+        occ_b = source_b_data > threshold
+
+        wet_a_mask = valid_mask & (source_a_data > threshold)
+        wet_b_mask = valid_mask & (source_b_data > threshold)
+
+        source_signal = np.concatenate(
+            (
+                source_a_data[wet_a_mask],
+                source_b_data[wet_b_mask],
+            )
+        )
+
+        output_data = result_data.copy()
+
+        if source_signal.size == 0:
+            output_data[valid_mask] = 0.0
+            output_data[~valid_mask] = 0.0
+
+            output_cube = result_cube.copy()
+            output_cube.data = output_data.astype(np.float32)
+            return output_cube
+
+        centre = float(
+            np.quantile(
+                source_signal,
+                quantile_for_centre,
+                method="linear",
+            )
+        )
+
+        centre = max(
+            centre,
+            np.nextafter(
+                np.float64(threshold),
+                np.float64(np.inf),
+            ),
+        )
+
+        width = max(
+            width_fraction * centre,
+            10.0 * np.finfo(np.float64).eps,
+        )
+
+        logistic_argument = np.clip(
+            (result_data - centre) / width,
+            -50.0,
+            50.0,
+        )
+
+        # Amplitude of the suppression depends on how weak the FILM signal is.
+        # This keeps strong precipitation largely untouched while removing broad
+        # low-intensity halo-like artefacts.
+        film_fraction = 1.0 / (1.0 + np.exp(-logistic_argument))
+        weakness = 1.0 - film_fraction
+
+        # Assess local shower character in both source fields to keep the
+        # correction focused on weak, showery regions rather than the whole field.
+        local_occ_a = uniform_filter(
+            occ_a.astype(np.float32),
+            size=11,
+        )
+        local_occ_b = uniform_filter(
+            occ_b.astype(np.float32),
+            size=11,
+        )
+        showery_a = 1.0 - local_occ_a
+        showery_b = 1.0 - local_occ_b
+        showery_weight = (1.0 - weight) * showery_a + weight * showery_b
+
+        # Blend the shower-like weighting with the weak-signal factor so the
+        # suppression strength ramps smoothly with local character and intensity.
+        correction_fraction = (0.75 * showery_weight) + (0.25 * weakness)
+        correction_fraction = np.clip(correction_fraction, 0.0, maximum_suppression)
+
+        excess = np.maximum(result_data - weighted_reference, 0.0)
+        output_data = result_data - correction_fraction * excess
+
+        output_data[valid_mask] = np.maximum(
+            output_data[valid_mask],
+            0.0,
+        )
+
+        output_cube = result_cube.copy()
+        output_cube.data = output_data.astype(np.float32)
+
+        return output_cube
 
     def _prepare_inputs(self, *cubes: Any) -> tuple[CubeList, Cube]:
         """Flatten and validate the input cubes before morphing.
@@ -1367,7 +1507,7 @@ class SpatialMorphing(BasePlugin):
             ]
 
         if self.apply_quantile_mapping and weight is not None and 0.0 < weight < 1.0:
-            result_cube = self.apply_quantile_mapping_to_morphed(
+            result_cube = self.apply_suppression_to_morphed(
                 result_cube,
                 cube_a,
                 cube_b,
