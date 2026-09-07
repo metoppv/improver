@@ -10,6 +10,7 @@ from typing import List, Optional, Tuple
 import pyproj
 from geopandas import GeoDataFrame, GeoSeries, clip
 from iris.cube import Cube, CubeList
+from iris.exceptions import CoordinateNotFoundError
 from numpy import array, min, round
 from shapely.geometry import Point
 
@@ -23,7 +24,7 @@ class DistanceToFeature(BasePlugin):
     This is a generic plugin that can be used for any type of feature (e.g., coastlines,
     rivers, lakes, etc.). Distances are calculated to the nearest metre.
 
-    Given a cube containing site locations and a GeoDataFrame, the distance to each site
+    Given a cube containing site locations or grid points and a GeoDataFrame, the distance to each site
     from the nearest point of the feature geometry is calculated. This is done by
     converting the feature geometry and sites to a common target projection that must be
     specified using a European Petroleum Survey Group (EPSG) code that identifies the
@@ -71,11 +72,11 @@ class DistanceToFeature(BasePlugin):
                 The name of the output cube. E.g. 'distance_to_coast'.
             buffer:
                 A buffer distance in m. If the geometry is clipped, this distance will
-                be added onto the outermost site locations to define the domain to clip
+                be added onto the outermost site locations or grid points to define the domain to clip
                 the geometry to.
             clip_geometry:
                 A flag to indicate whether the geometry should be clipped to the bounds
-                of the site locations with a buffer distance added to the bounds. If set
+                of the site locations or grid points with a buffer distance added to the bounds. If set
                 to False, the full geometry will be used to calculate the distance to
                 the nearest feature.
             parallel:
@@ -92,6 +93,18 @@ class DistanceToFeature(BasePlugin):
         self._do_geometry_clipping = clip_geometry
         self.parallel = parallel
         self.n_parallel_jobs = n_parallel_jobs
+
+    @staticmethod
+    def is_site_cube(cube: Cube) -> bool:
+        try:
+            cube.coord("wmo_id")
+            return True
+        except CoordinateNotFoundError:
+            return False
+
+    @staticmethod
+    def is_grid_cube(cube: Cube) -> bool:
+        return not DistanceToFeature.is_site_cube(cube)
 
     @staticmethod
     def get_clip_values(points: List[float], buffer: float) -> List[float]:
@@ -146,20 +159,20 @@ class DistanceToFeature(BasePlugin):
 
         return clipped_geometry
 
-    def check_target_crs(self, site_points: GeoSeries):
-        """Check that the provided target projection is suitable for the sites
+    def check_target_crs(self, points: GeoSeries):
+        """Check that the provided target projection is suitable for the sites / grid points
         being used.
 
         Args:
-            site_points:
-                A GeoSeries containing the site points.
+            points:
+                A GeoSeries containing the site / grid points.
 
         Raises:
             ValueError: If the provided target coordinate reference system is not
-                        suitable for the site points.
+                        suitable for the site / grid points.
         """
-        x_bounds = self.get_clip_values(site_points.x, 0)
-        y_bounds = self.get_clip_values(site_points.y, 0)
+        x_bounds = self.get_clip_values(points.x, 0)
+        y_bounds = self.get_clip_values(points.y, 0)
 
         target_crs = pyproj.CRS.from_epsg(self.epsg_projection)
         x_min, y_min, x_max, y_max = target_crs.area_of_use.bounds
@@ -173,74 +186,86 @@ class DistanceToFeature(BasePlugin):
         if not valid_target:
             raise ValueError(
                 "The provided projection defined by EPSG code "
-                f"{self.epsg_projection} is not suitable for the site "
+                f"{self.epsg_projection} is not suitable for the site / grid "
                 "locations provided. Limits of this domain are: "
                 f"x: {x_min} to {x_max}, y: {y_min} to {y_max}, whilst "
-                f"the site locations are bounded by x: {x_bounds[0]} to {x_bounds[1]}, "
+                f"the site / grid locations are bounded by x: {x_bounds[0]} to {x_bounds[1]}, "
                 f"y: {y_bounds[0]} to {y_bounds[1]}."
             )
 
     def project_geometry(
-        self, geometry: GeoDataFrame, site_cube: Cube
+        self, geometry: GeoDataFrame, site_or_grid_cube: Cube
     ) -> Tuple[GeoSeries, GeoDataFrame]:
-        """Project the geometry and site cube to the target projection.
+        """Project the geometry and site / grid cube to the target projection.
 
         Args:
             geometry:
                 The geometry to reproject.
-            site_cube:
-                The cube containing the site locations. It is assumed that the site
+            site_or_grid_cube:
+                The cube containing the site / grid locations. It is assumed that the site / grid
                 coordinates are defined as latitude and longitude on a WGS84
                 coordinate system (EPSG:4326).
         Returns:
-            A tuple containing the projected site locations and geometry."""
+            A tuple containing the projected site / grid locations and geometry."""
+        import numpy as np
 
-        x_points = site_cube.coord(axis="x").points
-        y_points = site_cube.coord(axis="y").points
+        x_coords = site_or_grid_cube.coord(axis="x").points
+        y_coords = site_or_grid_cube.coord(axis="y").points
 
-        site_points_list = [Point(x, y) for x, y in zip(x_points, y_points)]
-        # Assumes site coordinates are defined as latitude and longitude
+        # If a site cube - assumes site coordinates are defined as latitude and longitude
         # defaulting to an EPSG:4326 coordinate system, which is WGS84.
-        site_points = GeoSeries(site_points_list, crs=4326)
+        if self.is_site_cube(site_or_grid_cube):
+            points_list = [Point(x, y) for x, y in zip(x_coords, y_coords)]
+            points = GeoSeries(points_list, crs=4326)
+        # Otherwise project the grid cube into the EPSG:4326 coordinate system
+        else:
+            x_grid, y_grid = np.meshgrid(x_coords, y_coords, indexing="ij")
+            # keep track of the shape for packaging the output ancillary into the same shape cube as the input
+            self._grid_shape = y_grid.shape
+            points_list = [Point(x, y) for x, y in zip(x_grid.ravel(), y_grid.ravel())]
+            points = GeoSeries(
+                points_list, crs=site_or_grid_cube.coord_system().as_cartopy_crs()
+            )
+            points = points.to_crs(epsg=4326)
 
         # Check that the provided target projection is suitable for the site points
-        self.check_target_crs(site_points)
+        self.check_target_crs(points)
 
         geometry_reprojection = geometry.to_crs(self.epsg_projection)
-        site_points = site_points.to_crs(self.epsg_projection)
-        return site_points, geometry_reprojection
+        points = points.to_crs(self.epsg_projection)
+        return points, geometry_reprojection
 
     def _apply_exclusion(
         self,
-        site_coords: GeoSeries,
+        site_or_grid_coords: GeoSeries,
         distance_results: List[int],
         exclude_outside_of: GeoDataFrame,
         exclusion_buffer: float,
     ) -> List[int]:
-        """Apply exclusion geometry logic: set distances to 0 for sites outside of the
+        """Apply exclusion geometry logic: set distances to 0 for sites / grid points outside of the
         provided geometry.
 
         Args:
-            site_coords:
-                A GeoSeries containing the projected site coordinates.
+            site_or_grid_coords:
+                A GeoSeries containing the projected site / grid coordinates.
             distance_results:
                 The calculated distances to the feature.
             exclude_outside_of:
-                A GeoDataFrame containing the geometry defining the valid region. Sites
+                A GeoDataFrame containing the geometry defining the valid region. Sites / Grid points
                 outside of this geometry will have their distance set to 0.
             exclusion_buffer:
                 A buffer distance in m used when clipping the exclusion geometry.
 
         Returns:
-            The distance results with distances set to 0 for sites outside the exclusion
+            The distance results with distances set to 0 for sites / grid points outside the exclusion
             geometry."""
 
         # Project the provided geometry to the target projection
         exclusion_projection = exclude_outside_of.to_crs(self.epsg_projection)
 
         # Clip the provided geometry for performance
-        x_bounds = self.get_clip_values(site_coords.x, exclusion_buffer)
-        y_bounds = self.get_clip_values(site_coords.y, exclusion_buffer)
+        x_bounds = self.get_clip_values(site_or_grid_coords.x, exclusion_buffer)
+        y_bounds = self.get_clip_values(site_or_grid_coords.y, exclusion_buffer)
 
         try:
             clipped_exclusion = self.clip_geometry(
@@ -250,30 +275,32 @@ class DistanceToFeature(BasePlugin):
             # If clipping produces empty geometry, no sites are in exclusion area
             return distance_results
 
-        # Calculate distances to exclusion geometry to identify sites within it
-        distance_to_exclusion = self.distance_to(site_coords, clipped_exclusion)
+        # Calculate distances to exclusion geometry to identify sites / grid points within it
+        distance_to_exclusion = self.distance_to(site_or_grid_coords, clipped_exclusion)
 
         # Convert to list for modification if needed
         distance_results_list = list(distance_results)
 
-        # Set distances to 0 for sites outside the provided geometry (distance != 0)
+        # Set distances to 0 for sites / grid points outside the provided geometry (distance != 0)
         for i, dist_to_exclusion in enumerate(distance_to_exclusion):
             if dist_to_exclusion != 0:
                 distance_results_list[i] = 0
 
         return distance_results_list
 
-    def distance_to(self, site_points: GeoSeries, geometry: GeoDataFrame) -> List[int]:
-        """Calculate the distance from each site point to the nearest feature in the
+    def distance_to(
+        self, site_or_grid_points: GeoSeries, geometry: GeoDataFrame
+    ) -> List[int]:
+        """Calculate the distance from each site / grid point to the nearest feature in the
         geometry.
 
         Args:
-            site_points:
-                A GeoSeries containing the site points in the target projection.
+            site_or_grid_points:
+                A GeoSeries containing the site / grid points in the target projection.
             geometry:
                 A GeoDataFrame containing the geometry in the target projection.
         Returns:
-            A list of distances from each site point to the nearest feature in the
+            A list of distances from each site / grid point to the nearest feature in the
             geometry rounded to the nearest metre."""
 
         def _distance_to_nearest(point: Point, geometry: GeoDataFrame) -> float:
@@ -281,7 +308,7 @@ class DistanceToFeature(BasePlugin):
             geometry.
             Args:
                 point:
-                    A shapely Point object representing the site location.
+                    A shapely Point object representing the site / grid point location.
                 geometry:
                     A GeoDataFrame containing the geometry in the target projection.
             Returns:
@@ -290,38 +317,46 @@ class DistanceToFeature(BasePlugin):
             """
             return round(min(point.distance(geometry.geometry)))
 
+        from tqdm import tqdm
+
         if self.parallel:
             from joblib import Parallel, delayed
 
             parallel = Parallel(n_jobs=self.n_parallel_jobs, prefer="threads")
             output_generator = parallel(
-                delayed(_distance_to_nearest)(point, geometry) for point in site_points
+                delayed(_distance_to_nearest)(point, geometry)
+                for point in tqdm(site_or_grid_points)
             )
             distance_results = list(output_generator)
         else:
-            distance_results = []
-            for point in site_points:
-                distance_results.append(_distance_to_nearest(point, geometry))
+            distance_results = [
+                _distance_to_nearest(point, geometry)
+                for point in tqdm(site_or_grid_points)
+            ]
 
         return distance_results
 
-    def create_output_cube(self, site_cube: Cube, data: List[int]) -> Cube:
-        """Create an output cube that will have the same metadata as the input site
+    def create_output_cube(self, site_or_grid_cube: Cube, data: List[int]) -> Cube:
+        """Create an output cube that will have the same metadata as the input site / grid
         cube except the units are changed to metres and, if requested, the name of the
         output cube will be changed.
 
         Args:
-           site_cube:
-               The input cube containing site locations that are defined by latitude
+           site_or_grid_cube:
+               The input cube containing site / grid locations that are defined by latitude
                and longitude coordinates.
            data:
-               A list of distances from each site point to the nearest feature in the
+               A list of distances from each site / grid point to the nearest feature in the
                geometry.
            Returns:
-               A new cube containing the distances with the same metadata as input site
+               A new cube containing the distances with the same metadata as input site / grid
                cube but with updated units and name."""
 
-        output_cube = site_cube.copy(data=array(data))
+        data = array(data)
+        if self.is_grid_cube(site_or_grid_cube):
+            data = data.reshape(self._grid_shape)
+
+        output_cube = site_or_grid_cube.copy(data=array(data))
         output_cube.rename(self.new_name)
         output_cube.units = "m"
 
@@ -329,50 +364,50 @@ class DistanceToFeature(BasePlugin):
 
     def process(
         self,
-        site_cube: Cube,
+        site_or_grid_cube: Cube,
         geometry: GeoDataFrame,
         exclude_outside_of: Optional[GeoDataFrame] = None,
         exclusion_buffer: Optional[float] = 10,
     ) -> Cube:
-        """Generate a cube of the distance from sites in site_cube to the
+        """Generate a cube of the distance from sites / grid points in site_or_grid_cube to the
         nearest point in geometry.
 
-        The latitude, longitude coordinates in the site_cube are extracted
-        to define the location of the sites. The sites and feature geometry
+        The latitude, longitude coordinates in the site_or_grid_cube are extracted
+        to define the location of the sites / grid points. The sites / grid points and feature geometry
         are reprojected to the target projection.
 
         If requested the feature geometry will be clipped to the smallest square
-        possible such that all sites in site_cube are included. A buffer distance is
+        possible such that all sites / grid points in site_or_grid_cube are included. A buffer distance is
         then added to each edge of the square which defines the size the feature
         geometry will be clipped to. This is useful when the feature geometry size is
         large and it would be expensive to calculate the distance to all features in the
         geometry or where the domain of the feature geometry is much larger than the
-        area containing the site locations. Information may be lost at the edges of
+        area containing the site / grid point locations. Information may be lost at the edges of
         the domain if the feature is sparsely located in the geometry.
 
-        The distance from each site to every point in the feature geometry is then
+        The distance from each site / grid point to every point in the feature geometry is then
         calculated and the minimum of these distances is returned. The distances are
         rounded to the nearest metre.
 
-        If a geometry is provided, distances are set to 0 for sites outside
+        If a geometry is provided, distances are set to 0 for sites / grid points outside
         that geometry.
 
-        The output cube will have the same metadata as the input site_cube except the
+        The output cube will have the same metadata as the input site_or_grid_cube except the
         units will be changed to meters and, if requested, the name of the output cube
         will be updated.
 
         Args:
-            site_cube:
-                The input cube containing site locations. This cube must have x and y
-                axis which contain the site coordinates in latitude and longitude.
+            site_or_grid_cube:
+                The input cube containing site / grid point locations. This cube must have x and y
+                axis which contain the site / grid coordinates in latitude and longitude.
             geometry:
                 The GeoDataFrame containing the geometry to calculate distances to.
             exclude_outside_of:
                 An optional GeoDataFrame containing the geometry defining the valid
-                region. For sites outside this geometry, the distance to the feature
+                region. For sites / grid points outside this geometry, the distance to the feature
                 will be set to 0. This is useful when the target region cannot be
                 represented as a GeoDataFrame directly (e.g., providing land geometry
-                so that ocean sites, which lie outside the land, receive a distance of
+                so that ocean sites / grid points, which lie outside the land, receive a distance of
                 0).
             exclusion_buffer:
                 A buffer distance in m used when clipping the optional geometry for
@@ -382,17 +417,19 @@ class DistanceToFeature(BasePlugin):
                 the initial distance calculation.
 
         Returns:
-            A new cube containing the distances from each site to the nearest feature
+            A new cube containing the distances from each site / grid point to the nearest feature
             in the geometry rounded to the nearest metre."""
 
-        # Project the geometry and site cube coordinates to the target projection.
-        site_coords, geometry_projection = self.project_geometry(geometry, site_cube)
+        # Project the geometry and site / grid point cube coordinates to the target projection.
+        site_or_grid_coords, geometry_projection = self.project_geometry(
+            geometry, site_or_grid_cube
+        )
 
         if self._do_geometry_clipping:
-            # Clip the geometry to the bounds of the site coordinates with a buffer if
+            # Clip the geometry to the bounds of the site / grid point coordinates with a buffer if
             # requested
-            x_bounds = self.get_clip_values(site_coords.x, self.buffer)
-            y_bounds = self.get_clip_values(site_coords.y, self.buffer)
+            x_bounds = self.get_clip_values(site_or_grid_coords.x, self.buffer)
+            y_bounds = self.get_clip_values(site_or_grid_coords.y, self.buffer)
 
             clipped_geometry = self.clip_geometry(
                 geometry_projection, x_bounds, y_bounds
@@ -401,18 +438,18 @@ class DistanceToFeature(BasePlugin):
             clipped_geometry = geometry_projection
 
         # Calculate the distance to the nearest feature in the geometry
-        distance_to_results = self.distance_to(site_coords, clipped_geometry)
+        distance_to_results = self.distance_to(site_or_grid_coords, clipped_geometry)
 
         # If exclusion geometry is provided, set distances to 0 where it is present
         if exclude_outside_of is not None:
             distance_to_results = self._apply_exclusion(
-                site_coords,
+                site_or_grid_coords,
                 distance_to_results,
                 exclude_outside_of,
                 exclusion_buffer,
             )
 
-        return self.create_output_cube(site_cube, distance_to_results)
+        return self.create_output_cube(site_or_grid_cube, distance_to_results)
 
 
 class DistanceToNearestFeature(BasePlugin):
