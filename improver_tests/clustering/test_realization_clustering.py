@@ -1694,6 +1694,86 @@ def test_clusterandmatch_precedence_order(
     _assert_secondary_input_realizations_to_clusters(result, expected_secondary_mapping)
 
 
+def test_clusterandmatch_global_precedence_full_over_partial():
+    """A lower-precedence partial input must not overwrite higher-precedence full.
+
+    secondary_model_1 is full and higher precedence. secondary_model_2 is partial
+    and lower precedence at the same forecast period.
+    """
+    pytest.importorskip("kmedoids")
+    pytest.importorskip("esmf_regrid")
+
+    cubes = CubeList()
+    spatial_shape = (5, 5)
+
+    # Primary input designed to produce three clusters.
+    cubes.extend(
+        _create_4d_realization_cube(
+            n_realizations=6,
+            forecast_periods=[0],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            model_id="primary_model",
+            realization_values=[0.0, 0.2, 100.0, 100.2, 200.0, 200.2],
+            merge=False,
+        )
+    )
+
+    # Higher-precedence full secondary input (n_realizations >= n_clusters).
+    cubes.extend(
+        _create_4d_realization_cube(
+            n_realizations=3,
+            forecast_periods=[0],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            model_id="secondary_model_1",
+            realization_values=[0.0, 100.0, 200.0],
+            merge=False,
+        )
+    )
+
+    # Lower-precedence partial deterministic input for the same forecast period.
+    det_cube = set_up_variable_cube(
+        np.full(spatial_shape, 20.0, dtype=np.float32),
+        name="air_temperature",
+        units="K",
+        spatial_grid="equalarea",
+    )
+    det_cube.attributes["model_id"] = "secondary_model_2"
+    det_cube.coord("forecast_period").points = [0]
+    det_cube.coord("time").points = [det_cube.coord("forecast_reference_time").points[0]]
+    cubes.append(det_cube)
+
+    cubes.append(_create_target_grid_cube())
+
+    hierarchy = {
+        "primary_input": "primary_model",
+        "secondary_inputs": {
+            "secondary_model_1": [0],
+            "secondary_model_2": [0],
+        },
+    }
+
+    result = RealizationClusterAndMatch(
+        hierarchy=hierarchy,
+        model_id_attr="model_id",
+        clustering_method="KMedoids",
+        target_grid_name="target_grid",
+        n_clusters=3,
+        random_state=42,
+    ).process(cubes)
+
+    # Lower-precedence deterministic value should not appear in output.
+    fp_data = result.extract(iris.Constraint(forecast_period=0)).data
+    assert not np.isclose(fp_data, 20.0, atol=1.0).any(), (
+        "Lower-precedence partial input should not overwrite full input clusters"
+    )
+
+    # All clusters should be sourced from the higher-precedence full input.
+    expected_sources = {(cluster_idx, 0): "secondary_model_1" for cluster_idx in range(3)}
+    _assert_cluster_sources_attribute(result, expected_sources)
+
+
 def test_clusterandmatch_overlapping_forecast_periods():
     """Test handling of overlapping forecast periods with different precedence."""
     pytest.importorskip("kmedoids")
