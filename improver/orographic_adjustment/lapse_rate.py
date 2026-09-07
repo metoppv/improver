@@ -7,6 +7,7 @@
 import warnings
 
 import numpy as np
+from iris.analysis import Nearest
 from iris.cube import Cube, CubeList
 from numpy import ndarray
 from scipy.interpolate import make_smoothing_spline
@@ -164,6 +165,29 @@ class OrogLapseRate(BasePlugin):
             self.diagnostic_windows, self.orography_windows
         )
 
+    @staticmethod
+    def _map_to_target_grid(
+        array: np.ndarray, source_orography: Cube, new_orography: Cube
+    ) -> ndarray:
+        """If the new orography is not on the same grid as the source orography, map the new orography grid points to the nearest of self._local_functions."""
+        if source_orography.shape == new_orography.shape:
+            return array
+        else:
+            source_indices_x = np.arange(source_orography.coord(axis="x").points.size)
+            source_indices_x_array = np.tile(
+                source_indices_x, (source_orography.coord(axis="y").points.size, 1)
+            )
+            source_indices_y = np.arange(source_orography.coord(axis="y").points.size)
+            source_indices_y_array = np.tile(
+                source_indices_y[:, np.newaxis],
+                (1, source_orography.coord(axis="x").points.size),
+            )
+            x_cube = source_orography.copy(data=source_indices_x_array)
+            x_cube = x_cube.regrid(new_orography, Nearest())
+            y_cube = source_orography.copy(data=source_indices_y_array)
+            y_cube = y_cube.regrid(new_orography, Nearest())
+            return array[y_cube.data, x_cube.data]
+
     def _apply_new_orography_to_functions(self, new_orography: ndarray) -> ndarray:
         """Applies the local lapse rate functions to a new orography to calculate the expected value of the variable.
 
@@ -209,7 +233,7 @@ class OrogLapseRate(BasePlugin):
             Cube of the diagnostic data adjusted to the new orography, with the same metadata as the input diagnostic cube.
         """
         orography.convert_units(new_orography.units)
-        # Add random moise to orography to avoid duplicate points which cause issues for the spline fit. The noise is small enough to not impact the results but ensures that all points are unique.
+        # Add random noise to orography to avoid duplicate points which cause issues for the spline fit. The noise is small enough to not impact the results but ensures that all points are unique.
         orography.data = orography.data + np.random.normal(
             0, 1e-6, size=orography.data.shape
         )
@@ -221,9 +245,17 @@ class OrogLapseRate(BasePlugin):
         for diagnostic_slice in diagnostic.slices(xy_coords):
             self.diagnostic_windows = self._create_windows(diagnostic.data)
             self._create_local_functions()
+            self._local_functions = self._map_to_target_grid(
+                self._local_functions, orography, new_orography
+            )
+            self.diagnostic_windows = self._map_to_target_grid(
+                self.diagnostic_windows, orography, new_orography
+            )
             adjusted_data = self._apply_new_orography_to_functions(new_orography.data)
             adjusted_data = self._clip_to_local_range(adjusted_data)
-            adjusted_cube = diagnostic_slice.copy(data=adjusted_data)
+            adjusted_cube = diagnostic_slice.regrid(new_orography, Nearest()).copy(
+                data=adjusted_data
+            )
             adjusted_slices.append(adjusted_cube)
         adjusted_cube = adjusted_slices.merge_cube()
         return adjusted_cube
