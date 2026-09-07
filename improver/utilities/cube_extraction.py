@@ -281,6 +281,7 @@ class ExtractSubCube(BasePlugin):
         units: Optional[List[str]] = None,
         use_original_units: bool = True,
         ignore_failure: bool = False,
+        return_none_on_failure: bool = False,
     ) -> None:
         """
         Set up the ExtractSubCube plugin.
@@ -301,11 +302,20 @@ class ExtractSubCube(BasePlugin):
             ignore_failure:
                 Option to ignore constraint match failure and return the input
                 cube.
+            return_none_on_failure:
+                Option to ignore constraint match failure and return None instead of
+                the input cube.
         """
+        if ignore_failure and return_none_on_failure:
+            raise ValueError(
+                "ignore_failure and return_none_on_failure are mutually exclusive"
+            )
+
         self._constraints = constraints
         self._units = units
         self._use_original_units = use_original_units
         self._ignore_failure = ignore_failure
+        self._return_none_on_failure = return_none_on_failure
 
     def process(self, cube: Cube):
         """Perform the subcube extraction.
@@ -325,9 +335,11 @@ class ExtractSubCube(BasePlugin):
             cube, self._constraints, self._units, self._use_original_units
         )
         if res is None:
-            res = cube
-            if not self._ignore_failure:
-                raise ValueError("Constraint(s) could not be matched in input cube")
+            if self._ignore_failure:
+                return cube
+            if self._return_none_on_failure:
+                return None
+            raise ValueError("Constraint(s) could not be matched in input cube")
         return res
 
 
@@ -496,7 +508,7 @@ class ExtractLevel(BasePlugin):
             )
         else:
             template_cube.rename(
-                "height_at_" f"{self.value_of_level}{variable_on_levels.units}"
+                f"height_at_{self.value_of_level}{variable_on_levels.units}"
             )
 
         template_cube.units = variable_on_levels.coord(self.coordinate).units

@@ -17,6 +17,7 @@ def process(
     constraints: parameters.multi(min=1),
     units: cli.comma_separated_list = None,
     ignore_failure=False,
+    return_none_on_failure=False,
 ):
     """Extract a subset of a single cube.
 
@@ -46,6 +47,9 @@ def process(
         ignore_failure (bool):
             Option to ignore constraint match failure and return the input
             cube.
+        return_none_on_failure (bool):
+            Option to ignore constraint match failure and return None without
+            writing an output file.
 
     Returns:
         iris.cube.Cube:
@@ -54,6 +58,11 @@ def process(
     """
     from improver.utilities.cube_extraction import ExtractSubCube
 
-    plugin = ExtractSubCube(constraints, units=units, ignore_failure=ignore_failure)
+    plugin = ExtractSubCube(
+        constraints,
+        units=units,
+        ignore_failure=ignore_failure,
+        return_none_on_failure=return_none_on_failure,
+    )
     result = plugin.process(cube)
     return result
