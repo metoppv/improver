@@ -39,6 +39,7 @@ def test_expected(tmp_path, test_path):
         - a night-time code test using spot data
         - spot data where one input has a different blend-time to the rest
         - a single input file rather than multiple
+        - inputs have different attributes.
     """
     kgo_dir = acc.kgo_root() / "weather-symbol-modes" / test_path
     kgo_path = kgo_dir / "kgo.nc"
