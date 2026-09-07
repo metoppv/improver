@@ -85,7 +85,7 @@ class BaseModalCategory(BasePlugin):
 
         # Unify forecast_reference_times and blend_times to the latest available time.
         # This removes any duplicates for merging and concatenating the cubes.
-        latest_blend_time = max(
+        latest_cycletime = max(
             [c.coord("forecast_reference_time").cell(0).point for c in cubes]
         )
         # Remove the blend_time coordinate from the cubes so that update_blended_metadata can reapply it along with
@@ -96,13 +96,13 @@ class BaseModalCategory(BasePlugin):
             except CoordinateNotFoundError:
                 pass
         cubes = unify_cycletime(
-            cubes, latest_blend_time, target_coords=["forecast_reference_time"]
+            cubes, latest_cycletime, target_coords=["forecast_reference_time"]
         )
         cube = MergeCubes()(cubes)
         update_blended_metadata(
             cube,
             "forecast_reference_time",
-            cycletime=f"{latest_blend_time:%Y%m%dT%H%MZ}",
+            cycletime=f"{latest_cycletime:%Y%m%dT%H%MZ}",
         )
         return cube
 
