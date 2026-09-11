@@ -4,6 +4,7 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Module containing generic lapse rate calculation plugins."""
 
+import functools
 import warnings
 
 import numpy as np
@@ -125,6 +126,11 @@ class OrogLapseRate(BasePlugin):
                 orog_window[idx] += adjustment
         return orog_window
 
+    @staticmethod
+    def _constant_function(value: float):
+        """Return a function that always returns value."""
+        return functools.partial(lambda v, _: v, value)
+
     def _create_local_functions(self):
         """Calculates the local lapse rate function for each point in the dataset.
         The resulting array of functions is stored as an attribute of the class.
@@ -132,9 +138,9 @@ class OrogLapseRate(BasePlugin):
 
         def _fit_function(diag_window, orog_window):
             if np.allclose(diag_window, 0.0, atol=1e-5):
-                return lambda x: 0.0
+                return self._constant_function(0.0)
             if np.allclose(orog_window, 0.0, atol=1e-5):
-                return lambda x: diag_window[self.central_idx]
+                return self._constant_function(diag_window[self.central_idx])
             sort_idx = np.argsort(orog_window)
             sort_idx = sort_idx[np.isfinite(diag_window[sort_idx])]
             sort_idx = sort_idx[self.weights[sort_idx] > 0]
@@ -154,7 +160,7 @@ class OrogLapseRate(BasePlugin):
             except Exception as e:
                 warnings.warn(f"{e}")
                 # Central point of the flattened window array is n + n(2n+1) where n is the neighbourhood radius.
-                result = lambda x: diag_window[self.central_idx]
+                result = self._constant_function(diag_window[self.central_idx])
             else:
                 if self._pygam_function:
                     result = self._pygam_function.predict
@@ -238,16 +244,21 @@ class OrogLapseRate(BasePlugin):
             0, 1e-6, size=orography.data.shape
         )
 
+        # Compute once - orography doesn't change between slices
         self.orography_windows = self._create_windows(orography.data)
         self._adjust_duplicate_orography_points()
+        self._local_functions = self._map_to_target_grid(
+            self._local_functions, orography, new_orography
+        )
+
         xy_coords = [orography.coord(axis="y"), orography.coord(axis="x")]
         adjusted_slices = CubeList()
+
         for diagnostic_slice in diagnostic.slices(xy_coords):
-            self.diagnostic_windows = self._create_windows(diagnostic.data)
+            self.diagnostic_windows = self._create_windows(
+                diagnostic_slice.data
+            )  # Fix: was diagnostic.data
             self._create_local_functions()
-            self._local_functions = self._map_to_target_grid(
-                self._local_functions, orography, new_orography
-            )
             self.diagnostic_windows = self._map_to_target_grid(
                 self.diagnostic_windows, orography, new_orography
             )
@@ -257,5 +268,5 @@ class OrogLapseRate(BasePlugin):
                 data=adjusted_data
             )
             adjusted_slices.append(adjusted_cube)
-        adjusted_cube = adjusted_slices.merge_cube()
-        return adjusted_cube
+
+        return adjusted_slices.merge_cube()
