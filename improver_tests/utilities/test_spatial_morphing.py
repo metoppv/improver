@@ -11,10 +11,12 @@ import numpy as np
 import pytest
 from iris.cube import Cube, CubeList
 
-from improver.calibration.quantile_mapping import QuantileMapping
 from improver.clustering.realization_clustering import RealizationSelection
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
-from improver.utilities.spatial_morphing import SpatialMorphing
+from improver.utilities.spatial_morphing import (
+    SpatialMorphing,
+    SpatialMorphingSuppression,
+)
 
 
 def make_forecast_cube(model_id="uk_ens", n_realizations=2, base_value=0.0):
@@ -100,6 +102,72 @@ def make_transitions():
             }
         ]
     }
+
+
+def make_transition_cluster_cube():
+    """Create cluster metadata for a uk_det->uk_ens transition case."""
+    cluster_cube = set_up_variable_cube(
+        np.zeros((5, 5), dtype=np.float32),
+        name="clustering_result",
+        units="1",
+        spatial_grid="equalarea",
+    )
+    cluster_cube.attributes["primary_input_realization_to_cluster_medoid"] = json.dumps(
+        {"17": 8}
+    )
+    cluster_cube.attributes["secondary_input_realizations_to_clusters"] = json.dumps(
+        {
+            "uk_det": {"17": [{"realization": 3, "forecast_periods": [3600, 21600]}]},
+            "uk_ens": {
+                "17": [
+                    {
+                        "realization": 11,
+                        "forecast_periods": [
+                            43200,
+                            86400,
+                            129600,
+                            172800,
+                            216000,
+                            259200,
+                            302400,
+                            345600,
+                            388800,
+                            432000,
+                        ],
+                    }
+                ]
+            },
+        }
+    )
+    cluster_cube.attributes["cluster_sources"] = json.dumps(
+        {"17": {"uk_det": [3600, 21600], "uk_ens": [43200]}}
+    )
+    return cluster_cube
+
+
+def make_transition_source_cubes_with_convective_hotspot():
+    """Create source cubes where selected realizations contain a convective hotspot."""
+    det_cube = make_forecast_cube(model_id="uk_det", n_realizations=24, base_value=0.0)
+    ens_cube = make_forecast_cube(model_id="uk_ens", n_realizations=24, base_value=0.0)
+
+    det_cube.data[3, :, :] = 0.0
+    ens_cube.data[11, :, :] = 0.0
+    det_cube.data[3, 2, 2] = 60.0
+    ens_cube.data[11, 2, 2] = 100.0
+
+    return det_cube, ens_cube
+
+
+def make_precip_2d_cube(data, model_id="test_model"):
+    """Create a 2D precipitation cube for direct suppression tests."""
+    cube = set_up_variable_cube(
+        np.asarray(data, dtype=np.float32),
+        name="precipitation_accumulation",
+        units="mm",
+        spatial_grid="equalarea",
+    )
+    cube.attributes["mosg__model_configuration"] = model_id
+    return cube
 
 
 # ============================================================================
@@ -794,61 +862,11 @@ def test_process_diagnoses_source_specific_realizations_for_transition(mock_morp
     np.testing.assert_allclose(result.data, expected_value, rtol=1e-6)
 
 
-def test_apply_quantile_mapping_to_morphed_uses_weighted_blend():
-    """The morphing result should blend toward the weighted source average."""
-    plugin = SpatialMorphing(
-        forecast_period=3600,
-        cluster_number=0,
-        occurrence_threshold=0.0,
-    )
-
-    source_a_data = np.array([[0.0, 5.0], [0.0, 0.0]], dtype=np.float32)
-    source_b_data = np.array([[0.0, 0.0], [4.0, 0.0]], dtype=np.float32)
-    result_data = np.array([[0.0, 6.0], [5.0, 9.0]], dtype=np.float32)
-
-    source_a = set_up_variable_cube(
-        source_a_data,
-        name="precipitation_accumulation",
-        units="mm",
-        spatial_grid="equalarea",
-    )
-    source_b = set_up_variable_cube(
-        source_b_data,
-        name="precipitation_accumulation",
-        units="mm",
-        spatial_grid="equalarea",
-    )
-    result = source_a.copy()
-    result.data = result_data
-
-    weight = 0.25
-    calibrated = plugin.apply_quantile_mapping_to_morphed(
-        result, source_a, source_b, weight=weight
-    )
-
-    weighted_average = (1.0 - weight) * source_a_data + weight * source_b_data
-    signal_values = np.concatenate(
-        (source_a_data[source_a_data > 0.0], source_b_data[source_b_data > 0.0])
-    )
-    centre = float(np.quantile(signal_values, 0.25))
-    width = max(0.5 * centre, np.finfo(np.float32).eps)
-    alpha = 1.0 / (1.0 + np.exp(-(result_data - centre) / width))
-    expected = np.zeros_like(result_data, dtype=np.float32)
-    valid_mask = np.isfinite(result_data)
-    expected[valid_mask] = (
-        alpha[valid_mask] * result_data[valid_mask]
-        + (1.0 - alpha[valid_mask]) * weighted_average[valid_mask]
-    )
-    expected[expected <= 0.0] = 0.0
-
-    np.testing.assert_allclose(calibrated.data, expected, rtol=1e-6, atol=1e-6)
-
-
 @patch(
     "improver.utilities.spatial_morphing.SpatialMorphing._call_google_film_for_morphing"
 )
-def test_process_applies_quantile_mapping_for_transition(mock_morph):
-    """Test transition morphing applies real quantile mapping when enabled."""
+def test_process_applies_weak_signal_suppression_for_transition(mock_morph):
+    """Weak-signal suppression should reduce diffuse excess during transitions."""
     det_cube = make_forecast_cube(
         model_id="uk_det", n_realizations=24, base_value=100.0
     )
@@ -898,32 +916,94 @@ def test_process_applies_quantile_mapping_for_transition(mock_morph):
         cluster_number=17,
         transitions=make_transitions(),
         model_path="/apath/to/model",
-        apply_quantile_mapping=True,
+        apply_suppression=True,
+        suppression_stages=("weak_signal",),
         occurrence_threshold=0.0,
     )
 
+    morph_field = np.full((5, 5), 170.0, dtype=np.float32)
+    morph_field[2, 2] = 220.0
+
     def _blend_stub(cube_a, cube_b, weight):
         result = cube_a.copy()
-        result.data = (1.0 - weight) * cube_a.data + weight * cube_b.data + 10.0
+        result.data = morph_field.copy()
         return result
 
     mock_morph.side_effect = _blend_stub
 
-    source_a = plugin._select_single_source_cube(
-        "uk_det", 3, CubeList([det_cube, ens_cube])
-    )
-    source_b = plugin._select_single_source_cube(
-        "uk_ens", 11, CubeList([det_cube, ens_cube])
-    )
-    weight = 0.5
-    weighted_source_data = (1.0 - weight) * source_a.data + weight * source_b.data
-    blended_result = source_a.copy()
-    blended_result.data = weighted_source_data + 10.0
-    expected = QuantileMapping(occurrence_threshold=0.0).process(
-        blended_result, source_a.copy(data=weighted_source_data)
-    )
-
     result = plugin.process(det_cube, ens_cube, cluster_cube)
 
-    np.testing.assert_allclose(result.data, expected.data, rtol=1e-6)
-    assert not np.allclose(result.data, weighted_source_data, rtol=1e-6)
+    assert np.all(np.isfinite(result.data))
+    assert np.all(result.data >= 0.0)
+    np.testing.assert_allclose(result.data[0, 0], 168.29631, rtol=1e-5, atol=1e-5)
+    np.testing.assert_allclose(result.data[2, 2], 212.20831, rtol=1e-5, atol=1e-5)
+
+
+# ============================================================================
+# SpatialMorphingSuppression process tests
+# ============================================================================
+
+
+def test_suppression_process_returns_unchanged_copy_when_no_stages_requested():
+    """No configured suppression stages should leave the field unchanged."""
+    result_cube = make_precip_2d_cube(np.full((5, 5), 10.0, dtype=np.float32))
+    source_a = make_precip_2d_cube(np.full((5, 5), 9.0, dtype=np.float32), "source_a")
+    source_b = make_precip_2d_cube(np.full((5, 5), 11.0, dtype=np.float32), "source_b")
+
+    plugin = SpatialMorphingSuppression(
+        occurrence_threshold=0.0,
+        suppression_stages=(),
+    )
+    output = plugin.process(result_cube, source_a, source_b, weight=0.5)
+
+    assert output is not result_cube
+    np.testing.assert_allclose(output.data, result_cube.data)
+
+
+def test_suppression_process_raises_on_shape_mismatch():
+    """Suppression process should reject source/result cubes with different shapes."""
+    result_cube = make_precip_2d_cube(np.full((5, 5), 10.0, dtype=np.float32))
+    source_a = make_precip_2d_cube(np.full((5, 5), 9.0, dtype=np.float32), "source_a")
+    source_b = make_precip_2d_cube(np.full((6, 6), 11.0, dtype=np.float32), "source_b")
+
+    plugin = SpatialMorphingSuppression(
+        occurrence_threshold=0.0,
+        suppression_stages=("weak_signal",),
+    )
+    with pytest.raises(ValueError, match="must have matching shapes"):
+        plugin.process(result_cube, source_a, source_b, weight=0.5)
+
+
+def test_suppression_process_applies_convective_and_upper_tail_stages():
+    """Upper-tail stage should strengthen hotspot beyond convective-only output."""
+    source_a_data = np.zeros((5, 5), dtype=np.float32)
+    source_b_data = np.zeros((5, 5), dtype=np.float32)
+    source_a_data[2, 2] = 60.0
+    source_b_data[2, 2] = 100.0
+
+    result_data = np.full((5, 5), 30.0, dtype=np.float32)
+    result_data[2, 2] = 40.0
+
+    result_cube = make_precip_2d_cube(result_data, "morphed")
+    source_a = make_precip_2d_cube(source_a_data, "source_a")
+    source_b = make_precip_2d_cube(source_b_data, "source_b")
+
+    convective_plugin = SpatialMorphingSuppression(
+        occurrence_threshold=0.0,
+        suppression_stages=("convective",),
+    )
+    upper_tail_plugin = SpatialMorphingSuppression(
+        occurrence_threshold=0.0,
+        suppression_stages=("upper_tail",),
+    )
+
+    convective_output = convective_plugin.process(
+        result_cube, source_a, source_b, weight=0.5
+    )
+    upper_tail_output = upper_tail_plugin.process(
+        result_cube, source_a, source_b, weight=0.5
+    )
+
+    assert np.all(np.isfinite(upper_tail_output.data))
+    assert np.all(upper_tail_output.data >= 0.0)
+    assert upper_tail_output.data[2, 2] > convective_output.data[2, 2]

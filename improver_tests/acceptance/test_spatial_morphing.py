@@ -14,7 +14,7 @@ run_cli = acc.run_cli(CLI)
 
 
 @pytest.mark.parametrize(
-    "transitions,kgo,quantile_mapping,scheme",
+    "transitions,kgo,suppression,scheme",
     [
         (
             "no_implied_transitions.json",
@@ -24,10 +24,10 @@ run_cli = acc.run_cli(CLI)
         ),
         ("transitions.json", "kgo.nc", False, "linear"),
         ("transitions.json", "kgo_smoothstep.nc", False, "smoothstep"),
-        ("transitions.json", "kgo_with_qm.nc", True, "linear"),
+        ("transitions.json", "kgo_with_suppression.nc", True, "linear"),
     ],
 )
-def test_spatial_morphing(tmp_path, transitions, kgo, quantile_mapping, scheme):
+def test_spatial_morphing(tmp_path, transitions, kgo, suppression, scheme):
     """Test using spatial morphing between two forecast sources with a cluster cube
     and a transitions file. This tests the situation where 1) there is no
     transition between the two sources so one of the input sources is returned,
@@ -60,8 +60,10 @@ def test_spatial_morphing(tmp_path, transitions, kgo, quantile_mapping, scheme):
     if scheme:
         args.extend(["--transition-weights-scheme", scheme])
 
-    if quantile_mapping:
-        args.extend(["--apply-quantile-mapping=True"])
+    if suppression:
+        args.extend(["--apply-suppression"])
+        args.extend(["--suppression-stages", "weak_signal,convective,upper_tail"])
+        args.extend(["--suppression-config", kgo_dir / "suppression_config.json"])
         args.extend(["--occurrence-threshold", "0.00003"])
 
     run_cli(args)

@@ -30,8 +30,10 @@ def process(
     n_workers: int = 1,
     transition_weights_scheme: str = "linear",
     morphing_method: str = "google_film",
-    apply_quantile_mapping: bool = False,
+    apply_suppression: bool = False,
     occurrence_threshold: float = 0.0,
+    suppression_config: cli.inputjson = None,
+    suppression_stages: cli.comma_separated_list = None,
 ):
     """Apply spatial morphing between forecast sources at a fixed validity time.
 
@@ -88,12 +90,17 @@ def process(
         morphing_method (str):
             Spatial morphing backend to use for transitions. Supported values are
             "google_film" (default) and "linear".
-        apply_quantile_mapping (bool):
-            If True, apply quantile mapping to the morphed result using a weighted
-            source field.
+        apply_suppression (bool):
+            If True, apply the local suppression workflow to the morphed result.
         occurrence_threshold (float):
-            Threshold used by the quantile mapping routine to determine whether a
-            value should be mapped.
+            Threshold used by the suppression routine to determine whether a value
+            is considered wet.
+        suppression_config (dict or None):
+            Optional JSON dictionary containing tuning values for the local
+            suppression stages applied to the morphed field.
+        suppression_stages (list or None):
+            Optional comma-separated list of suppression stages to apply. Supported
+            values are weak_signal, convective, and upper_tail.
 
     Returns:
         Cube:
@@ -121,7 +128,9 @@ def process(
         n_workers=n_workers,
         transition_weights_scheme=transition_weights_scheme,
         morphing_method=morphing_method,
-        apply_quantile_mapping=apply_quantile_mapping,
+        apply_suppression=apply_suppression,
         occurrence_threshold=occurrence_threshold,
+        suppression_config=suppression_config,
+        suppression_stages=suppression_stages,
     )
     return morphing.process(*cubes)
