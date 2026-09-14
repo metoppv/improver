@@ -625,8 +625,8 @@ def test_distance_to_with_unsuitable_projection(single_site_cube, geometry_point
 
     msg = (
         "The provided projection defined by EPSG code 3112 is not suitable "
-        "for the site locations provided. Limits of this domain are: x: 112.85 "
-        "to 153.69, y: -43.7 to -9.86, whilst the site locations are bounded by "
+        "for the site / grid locations provided. Limits of this domain are: x: 112.85 "
+        "to 153.69, y: -43.7 to -9.86, whilst the site / grid locations are bounded by "
         "x: -1.386459578 to -1.386459578, y: 49.539047274 to 49.539047274."
     )
     with pytest.raises(ValueError, match=msg):
