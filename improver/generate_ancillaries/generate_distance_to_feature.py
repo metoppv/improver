@@ -334,21 +334,18 @@ class DistanceToFeature(BasePlugin):
             """
             return round(min(point.distance(geometry.geometry)))
 
-        from tqdm import tqdm
-
         if self.parallel:
             from joblib import Parallel, delayed
 
             parallel = Parallel(n_jobs=self.n_parallel_jobs, prefer="threads")
             output_generator = parallel(
                 delayed(_distance_to_nearest)(point, geometry)
-                for point in tqdm(site_or_grid_points)
+                for point in site_or_grid_points
             )
             distance_results = list(output_generator)
         else:
             distance_results = [
-                _distance_to_nearest(point, geometry)
-                for point in tqdm(site_or_grid_points)
+                _distance_to_nearest(point, geometry) for point in site_or_grid_points
             ]
 
         return distance_results
