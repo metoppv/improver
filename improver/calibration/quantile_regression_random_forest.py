@@ -611,16 +611,25 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
             Calibrated forecast as a numpy array.
 
         """
-        original_forecast = None
-        if max_allowed_difference is not None:
-            representation_name = [
-                n for n in ["percentile", "realization"] if n in forecast_df.columns
-            ][0]
-            original_forecast = forecast_df.loc[
-                forecast_df[representation_name]
-                == forecast_df[representation_name].iloc[0],
-                self.target_name,
-            ].values
+        has_cap = max_allowed_difference is not None
+        original_forecast_bounds = None
+        if has_cap:
+            groupby_cols = [
+                "forecast_reference_time",
+                "forecast_period",
+                *self.unique_site_id_keys,
+            ]
+            original_forecast_bounds = (
+                forecast_df.groupby(groupby_cols)[self.target_name]
+                .agg(["min", "max"])
+                .rename(
+                    columns={
+                        "min": "original_forecast_min",
+                        "max": "original_forecast_max",
+                    }
+                )
+                .reset_index()
+            )
 
         for variable_name in self.feature_config.keys():
             # Transform the feature cube data if a transformation is specified.
@@ -645,9 +654,22 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
             pre_transform_addition=self.pre_transform_addition,
             unique_site_id_keys=self.unique_site_id_keys,
         )
-        forecast_df = sanitise_forecast_dataframe(forecast_df, self.feature_config)
+        if has_cap:
+            forecast_df = forecast_df.merge(
+                original_forecast_bounds,
+                on=[
+                    "forecast_reference_time",
+                    "forecast_period",
+                    *self.unique_site_id_keys,
+                ],
+                how="left",
+            )
 
+        forecast_df = sanitise_forecast_dataframe(forecast_df, self.feature_config)
         feature_values = np.array(forecast_df[feature_column_names])
+        if has_cap:
+            original_forecast_min = forecast_df["original_forecast_min"].to_numpy()
+            original_forecast_max = forecast_df["original_forecast_max"].to_numpy()
         del forecast_df
 
         calibrated_forecast = qrf_model.predict(
@@ -655,20 +677,20 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
         )
         calibrated_forecast = self._reverse_transformation(calibrated_forecast)
 
-        if max_allowed_difference is not None:
-            # Check if the difference between the calibrated forecast and the original
-            # forecast is within the allowed range. If not, cap the calibrated forecast.
-            difference = np.abs(calibrated_forecast - original_forecast)
-            if np.any(difference > max_allowed_difference):
-                # Cap the calibrated forecast at the maximum allowed difference
-                calibrated_forecast = np.where(
-                    difference > max_allowed_difference,
-                    original_forecast
-                    + np.sign(calibrated_forecast - original_forecast)
-                    * max_allowed_difference,
-                    calibrated_forecast,
+        if has_cap:
+            lower_bound = original_forecast_min - max_allowed_difference
+            upper_bound = original_forecast_max + max_allowed_difference
+            if calibrated_forecast.ndim == 1:
+                calibrated_forecast = np.clip(
+                    calibrated_forecast, lower_bound, upper_bound
                 )
+            else:
+                calibrated_forecast = np.clip(
+                    calibrated_forecast,
+                    lower_bound[:, np.newaxis],
+                    upper_bound[:, np.newaxis],
+                )
+            del original_forecast_min, original_forecast_max, lower_bound, upper_bound
 
         calibrated_forecast = np.float32(calibrated_forecast)
-
         return calibrated_forecast
