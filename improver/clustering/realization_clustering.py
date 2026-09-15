@@ -855,9 +855,10 @@ class RealizationClusterAndMatch(BasePlugin):
         """Update cluster sources tracking when replacing data from one model
         with another.
 
-        This method removes the forecast period from the primary input's tracking
-        and adds it to the secondary input for the specified clusters, maintaining a
-        record of which model provided data for each cluster at each forecast_period.
+        This method removes the forecast period from whichever model currently owns
+        the cluster and adds it to the incoming model for the specified clusters,
+        maintaining a record of the final source for each cluster at each forecast
+        period.
 
         Args:
             cluster_sources: Dictionary tracking which input was used for each
@@ -868,16 +869,15 @@ class RealizationClusterAndMatch(BasePlugin):
                 e.g. 'secondary_input1'.
             fp: Forecast period value in seconds.
         """
-        primary_name = self.hierarchy["primary_input"]
         for cluster_idx in cluster_indices:
             cluster_sources.setdefault(cluster_idx, {})
-            # Remove this forecast period from primary input
-            if primary_name in cluster_sources[cluster_idx]:
-                if fp in cluster_sources[cluster_idx][primary_name]:
-                    cluster_sources[cluster_idx][primary_name].remove(fp)
-                # Clean up empty lists
-                if not cluster_sources[cluster_idx][primary_name]:
-                    del cluster_sources[cluster_idx][primary_name]
+            # Remove this forecast period from any model currently recorded for
+            # this cluster before recording the replacement source.
+            for source_name in list(cluster_sources[cluster_idx].keys()):
+                if fp in cluster_sources[cluster_idx][source_name]:
+                    cluster_sources[cluster_idx][source_name].remove(fp)
+                    if not cluster_sources[cluster_idx][source_name]:
+                        del cluster_sources[cluster_idx][source_name]
             # Add to secondary input
             if candidate_name not in cluster_sources[cluster_idx]:
                 cluster_sources[cluster_idx][candidate_name] = []
