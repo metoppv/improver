@@ -12,7 +12,7 @@ from geopandas import GeoDataFrame
 from shapely.geometry import LineString, Point, Polygon
 
 from improver.generate_ancillaries.generate_distance_to_feature import DistanceToFeature
-from improver.spotdata.build_spotdata_cube import build_spotdata_cube
+from improver.synthetic_data.set_up_test_cubes import set_up_spot_variable_cube
 
 
 @pytest.fixture()
@@ -161,59 +161,39 @@ def geometry_polygon_laea():
     return GeoDataFrame(geometry=data, crs="EPSG:3035")
 
 
+def make_site_cube(latitudes, longitudes, name="rain_rate"):
+    """Make a site cube."""
+
+    prob_cube = set_up_spot_variable_cube(
+        np.repeat(-9999, len(latitudes)),
+        name="rain_rate",
+        units="1",
+        altitudes=np.repeat(-9999, len(latitudes)),
+        wmo_ids=[f"{i:05d}" for i in range(len(latitudes))],
+        latitudes=np.asarray(latitudes, np.dtypes.Float32DType),
+        longitudes=np.asarray(longitudes, np.dtypes.Float32DType),
+    )
+    return prob_cube
+
+
 @pytest.fixture()
 def single_site_cube():
     """Set up a site cube for a single site."""
 
-    latitude = 49.539047274  # This value is overridden in the test functions.
-    longitude = -1.386459578  # This value is overridden in the test functions.
-
-    altitude = -99999  # This value is not used but is required for cube creation.
-    data = -99999  # This value is not used but is required for cube creation.
-    wmo_id = ["00000"]  # This value is not used but is required for cube creation.
-
-    prob_cube = build_spotdata_cube(
-        data,
-        name="rain_rate",
-        units="1",
-        altitude=altitude,
-        wmo_id=wmo_id,
-        latitude=latitude,
-        longitude=longitude,
+    return make_site_cube(
+        latitudes=[49.539047274],
+        longitudes=[-1.386459578],
     )
-    return prob_cube
 
 
 @pytest.fixture()
 def multiple_site_cube():
     """Set up a site cube containing data at multiple sites."""
 
-    latitude = np.array([49.538352, 49.539047274, 49.543481633, 49.552350289])
-    longitude = np.array([-1.393298, -1.386459578, -1.387510304, -1.389612479])
-
-    altitude = np.array(
-        [-99999, -99999, -99999, -99999]
-    )  # These values are not used but are required for cube creation.
-    data = np.array(
-        [-99999, -99999, -99999, -99999]
-    )  # These values are not used but are required for cube creation.
-    wmo_id = [
-        "00000",
-        "00001",
-        "00002",
-        "00003",
-    ]  # These values are not used but are required for cube creation.
-
-    prob_cube = build_spotdata_cube(
-        data,
-        name="rain_rate",
-        units="1",
-        altitude=altitude,
-        wmo_id=wmo_id,
-        latitude=latitude,
-        longitude=longitude,
+    return make_site_cube(
+        latitudes=[49.538352, 49.539047274, 49.543481633, 49.552350289],
+        longitudes=[-1.393298, -1.386459578, -1.387510304, -1.389612479],
     )
-    return prob_cube
 
 
 @pytest.fixture()
@@ -267,54 +247,69 @@ def land():
 
 @pytest.fixture()
 def site_locations():
-    """Set up a site cube containing data at multiple sites."""
-    latitude = np.array([49.543481633, 49.551655272])
-    longitude = np.array([-1.387510304, -1.3964531])
-
-    altitude = np.array(
-        [-99999, -99999]
-    )  # These values are not used but are required for cube creation.
-    data = np.array(
-        [-99999, -99999]
-    )  # These values are not used but are required for cube creation.
-    wmo_id = [
-        "00000",
-        "00001",
-    ]  # These values are not used but are required for cube creation.
-    site_cube = build_spotdata_cube(
-        data,
+    return make_site_cube(
+        latitudes=np.array([49.543481633, 49.551655272]),
+        longitudes=np.array([-1.387510304, -1.3964531]),
         name="site_locations",
-        units="m",
-        altitude=altitude,
-        wmo_id=wmo_id,
-        latitude=latitude,
-        longitude=longitude,
     )
-    return site_cube
+
+
+@pytest.fixture()
+def single_site_at_point():
+    return make_site_cube(
+        latitudes=np.array([49.538352]),
+        longitudes=np.array([-1.393298]),
+        name="site_locations",
+    )
+
+
+@pytest.fixture()
+def single_site_at_halfway_point():
+    return make_site_cube(
+        latitudes=np.array([49.539047274]),
+        longitudes=np.array([-1.386459578]),
+        name="site_locations",
+    )
+
+
+@pytest.fixture()
+def single_site_at_centre_point():
+    return make_site_cube(
+        latitudes=np.array([49.543481633]),
+        longitudes=np.array([-1.387510304]),
+        name="site_locations",
+    )
+
+
+@pytest.fixture()
+def single_site_outside_points():
+    return make_site_cube(
+        latitudes=np.array([49.551655272]),
+        longitudes=np.array([-1.3964531]),
+        name="site_locations",
+    )
 
 
 @pytest.mark.parametrize(
-    "target_projection, site_latitude, site_longitude, expected_distance",
+    "target_projection, cube_fixture_name, expected_distance",
     [
-        (3035, 49.538352, -1.393298, 0),  # site is the same location as a point
-        (3035, 49.539047274, -1.386459578, 500),  # site is halfways between two points
-        (3035, 49.543481633, -1.387510304, 707),  # Site at centre of the 4 points
+        (3035, "single_site_at_point", 0),
+        (3035, "single_site_at_halfway_point", 500),
+        (3035, "single_site_at_centre_point", 707),
         # Test a conic projection over Europe as well, which yields difference distances
         # for the non-zero distance cases.
-        (9001, 49.538352, -1.393298, 0),  # site is the same location as a point
-        (9001, 49.539047274, -1.386459578, 498),  # site is halfways between two points
-        (9001, 49.543481633, -1.387510304, 603),  # Site at centre of the 4 points
+        (9001, "single_site_at_point", 0),
+        (9001, "single_site_at_halfway_point", 498),
+        (9001, "single_site_at_centre_point", 603),
     ],
 )
 @pytest.mark.parametrize(
     "shape_file_crs", ["geometry_point_laea", "geometry_point_latlon"]
 )
 def test_distance_to_with_points_geometry(
-    single_site_cube,
+    cube_fixture_name,
     shape_file_crs,
     target_projection,
-    site_latitude,
-    site_longitude,
     expected_distance,
     request,
 ):
@@ -323,69 +318,66 @@ def test_distance_to_with_points_geometry(
 
     geometry = request.getfixturevalue(shape_file_crs)
 
-    single_site_cube.coord("latitude").points = site_latitude
-    single_site_cube.coord("longitude").points = site_longitude
+    single_site_cube = request.getfixturevalue(cube_fixture_name)
 
     output_cube = DistanceToFeature(target_projection, "distance_to_thing")(
         single_site_cube, geometry
     )
     assert output_cube.name() == "distance_to_thing"
     assert output_cube.units == "m"
-    assert output_cube.coord("latitude").points == site_latitude
-    assert output_cube.coord("longitude").points == site_longitude
+    assert (
+        output_cube.coord("latitude").points
+        == single_site_cube.coord("latitude").points
+    )
+    assert (
+        output_cube.coord("longitude").points
+        == single_site_cube.coord("longitude").points
+    )
     assert output_cube.data == expected_distance
 
 
 @pytest.mark.parametrize(
-    "target_projection, site_latitude, site_longitude, expected_distance",
+    "target_projection, cube_fixture_name, expected_distance",
     [
         (
             3035,
-            49.538352,
-            -1.393298,
+            "single_site_at_point",
             0,
         ),  # site is the same location as a corner of the line
         (
             3035,
-            49.539047274,
-            -1.386459578,
+            "single_site_at_halfway_point",
             0,
         ),  # site is halfways between two points on the line
         (
             3035,
-            49.543481633,
-            -1.387510304,
+            "single_site_at_centre_point",
             500,
         ),  # Site is at the exact centre of the square formed by the line
         # Test a conic projection over Europe as well, which yields difference distances
         # for the non-zero distance cases.
         (
             9001,
-            49.538352,
-            -1.393298,
+            "single_site_at_point",
             0,
         ),  # site is the same location as a corner of the line
         (
             9001,
-            49.539047274,
-            -1.386459578,
+            "single_site_at_halfway_point",
             0,
         ),  # site is halfways between two points on the line
         (
             9001,
-            49.543481633,
-            -1.387510304,
+            "single_site_at_centre_point",
             382,
         ),  # Site is at the exact centre of the square formed by the line
     ],
 )
 @pytest.mark.parametrize("geometry_crs", ["geometry_line_laea", "geometry_line_latlon"])
 def test_distance_to_with_line_geometry(
-    single_site_cube,
+    cube_fixture_name,
     geometry_crs,
     target_projection,
-    site_latitude,
-    site_longitude,
     expected_distance,
     request,
 ):
@@ -394,73 +386,70 @@ def test_distance_to_with_line_geometry(
 
     geometry = request.getfixturevalue(geometry_crs)
 
-    single_site_cube.coord("latitude").points = site_latitude
-    single_site_cube.coord("longitude").points = site_longitude
+    single_site_cube = request.getfixturevalue(cube_fixture_name)
 
     output_cube = DistanceToFeature(target_projection, "distance_to_thing")(
         single_site_cube, geometry
     )
     assert output_cube.name() == "distance_to_thing"
     assert output_cube.units == "m"
-    assert output_cube.coord("latitude").points == site_latitude
-    assert output_cube.coord("longitude").points == site_longitude
+    assert (
+        output_cube.coord("latitude").points
+        == single_site_cube.coord("latitude").points
+    )
+    assert (
+        output_cube.coord("longitude").points
+        == single_site_cube.coord("longitude").points
+    )
     assert output_cube.data == expected_distance
 
 
 @pytest.mark.parametrize(
-    "target_projection, site_latitude, site_longitude, expected_distance",
+    "target_projection, cube_fixture_name, expected_distance",
     [
         (
             3035,
-            49.538352,
-            -1.393298,
+            "single_site_at_point",
             0,
         ),  # site is the same location as a corner of the polygon
         (
             3035,
-            49.539047274,
-            -1.386459578,
+            "single_site_at_halfway_point",
             0,
         ),  # site is halfways between two points on the edge of the polygon
         (
             3035,
-            49.543481633,
-            -1.387510304,
+            "single_site_at_centre_point",
             0,
         ),  # Site is at the exact centre of the polygon
-        (3035, 49.551655272, -1.3964531, 500),  # Site is outside the polygon
+        (3035, "single_site_outside_points", 500),  # Site is outside the polygon
         # Test a conic projection over Europe as well, which yields difference distances
         # for the non-zero distance cases.
         (
             9001,
-            49.538352,
-            -1.393298,
+            "single_site_at_point",
             0,
         ),  # site is the same location as a corner of the polygon
         (
             9001,
-            49.539047274,
-            -1.386459578,
+            "single_site_at_halfway_point",
             0,
         ),  # site is halfways between two points on the edge of the polygon
         (
             9001,
-            49.543481633,
-            -1.387510304,
+            "single_site_at_centre_point",
             0,
         ),  # Site is at the exact centre of the polygon
-        (9001, 49.551655272, -1.3964531, 383),  # Site is outside the polygon
+        (9001, "single_site_outside_points", 383),  # Site is outside the polygon
     ],
 )
 @pytest.mark.parametrize(
     "geometry_crs", ["geometry_polygon_laea", "geometry_polygon_latlon"]
 )
 def test_distance_to_with_polygon_geometry(
-    single_site_cube,
+    cube_fixture_name,
     geometry_crs,
     target_projection,
-    site_latitude,
-    site_longitude,
     expected_distance,
     request,
 ):
@@ -468,16 +457,21 @@ def test_distance_to_with_polygon_geometry(
 
     geometry = request.getfixturevalue(geometry_crs)
 
-    single_site_cube.coord("latitude").points = site_latitude
-    single_site_cube.coord("longitude").points = site_longitude
+    single_site_cube = request.getfixturevalue(cube_fixture_name)
 
     output_cube = DistanceToFeature(target_projection, "distance_to_thing")(
         single_site_cube, geometry
     )
     assert output_cube.name() == "distance_to_thing"
     assert output_cube.units == "m"
-    assert output_cube.coord("latitude").points == site_latitude
-    assert output_cube.coord("longitude").points == site_longitude
+    assert (
+        output_cube.coord("latitude").points
+        == single_site_cube.coord("latitude").points
+    )
+    assert (
+        output_cube.coord("longitude").points
+        == single_site_cube.coord("longitude").points
+    )
     assert output_cube.data == expected_distance
 
 
@@ -549,19 +543,22 @@ def test_distance_to_with_multiple_sites(
     np.testing.assert_allclose(output_cube.data, expected_distance)
 
 
-def test_distance_to_with_new_name(single_site_cube, geometry_point_laea):
+def test_distance_to_with_new_name(single_site_at_halfway_point, geometry_point_laea):
     """Test the DistanceTo plugin correctly sets a new name."""
 
-    single_site_cube.coord("latitude").points = 49.539047274
-    single_site_cube.coord("longitude").points = -1.386459578
-
     output_cube = DistanceToFeature(3035, new_name="distance_to_river")(
-        single_site_cube, geometry_point_laea
+        single_site_at_halfway_point, geometry_point_laea
     )
     assert output_cube.name() == "distance_to_river"
     assert output_cube.units == "m"
-    assert output_cube.coord("latitude").points == 49.539047274
-    assert output_cube.coord("longitude").points == -1.386459578
+    assert (
+        output_cube.coord("latitude").points
+        == single_site_at_halfway_point.coord("latitude").points
+    )
+    assert (
+        output_cube.coord("longitude").points
+        == single_site_at_halfway_point.coord("longitude").points
+    )
 
 
 @pytest.mark.parametrize(
