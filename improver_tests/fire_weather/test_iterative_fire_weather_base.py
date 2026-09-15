@@ -141,6 +141,8 @@ def test_no_warning_for_metadata_outside_lag_time(
     cubes = make_input_cubes(cube_args, shape=(5, 5))
     cube = plugin.process(cubes)
 
+    warnings = [str(w.message) for w in recwarn]
+    assert len(warnings) == 0, f"Unexpected warnings: {warnings}"
     assert len(recwarn) == 0
     assert cube.attributes["iteration_start_date"] == over_lag_time
     assert cube.attributes["iteration_count"] == iteration_count + 1

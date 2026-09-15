@@ -39,6 +39,10 @@ class AirDensity(BasePlugin):
         The cube arguments are not checked explicitly for conformant dimensions
         but must have the same shape.
 
+        .. Further information is available in:
+        .. include:: extended_documentation/psychrometric_calculations/
+           psychrometric_calculations/air_density.rst
+
         Args:
             inputs:
                 Either:

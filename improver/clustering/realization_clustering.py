@@ -17,6 +17,7 @@ from iris.cube import Cube, CubeList
 from iris.util import new_axis, promote_aux_coord_to_dim_coord
 
 from improver import BasePlugin
+from improver.blending.utilities import remove_blend_time, remove_deprecation_warnings
 from improver.clustering.clustering import FitClustering
 from improver.regrid.landsea import RegridLandSea
 from improver.utilities.cube_manipulation import (
@@ -535,6 +536,30 @@ class RealizationClusterAndMatch(BasePlugin):
         """
         return [h * 3600 for h in hours]
 
+    @staticmethod
+    def _ensure_realization_coord(cube: Cube) -> Cube:
+        """Ensure realization is present as a dimension coordinate.
+
+        Deterministic input cubes may have no realization coordinate, or a scalar
+        realization coordinate that is not a dimension. This method ensures a
+        realization dimension exists so downstream matching code can treat all
+        inputs uniformly.
+
+        Args:
+            cube: The input cube, which may or may not have a realization coordinate.
+
+        Returns:
+            The cube with a realization dimension coordinate as the leading axis.
+            If realization is already a dimension coordinate, the cube is returned
+            unchanged.
+        """
+        if not cube.coords("realization"):
+            cube.add_aux_coord(DimCoord(0, standard_name="realization", units="1"))
+            cube = new_axis(cube, "realization")
+        elif not cube.coord_dims("realization"):
+            cube = new_axis(cube, "realization")
+        return cube
+
     def cluster_primary_input(
         self, primary_cube: Cube, target_grid_cube: Cube | None
     ) -> tuple[Cube, Cube]:
@@ -657,6 +682,18 @@ class RealizationClusterAndMatch(BasePlugin):
                     for the relevant forecast periods. The forecast_periods are the
                     forecast periods (in seconds) that exist in the cubes within the
                     specified hour range and are present in the primary input.
+
+        Warns:
+            UserWarning: If a secondary input has forecast periods not present in
+                the primary input; those periods are ignored.
+            UserWarning: If a secondary input has no forecast periods that overlap
+                with the primary input; that input is skipped entirely.
+            UserWarning: If a secondary input has an inconsistent realization count
+                compared to its earliest valid forecast period; all forecast periods
+                from the first mismatch onwards are dropped for that input.
+            UserWarning: If a hierarchy secondary input has no cubes matching the
+                model_id_attr value in the specified forecast period range; that
+                input is ignored.
         """
         full_realization_inputs = []
         partial_realization_inputs = []
@@ -674,29 +711,25 @@ class RealizationClusterAndMatch(BasePlugin):
             fp_constr = iris.Constraint(forecast_period=fp_seconds_range)
             model_cubes = cubes.extract(model_id_constr & fp_constr)
             if not model_cubes:
+                warnings.warn(
+                    f"Secondary input '{candidate_name}' has no cubes matching "
+                    f"{self.model_id_attr}='{candidate_name}' in the forecast period "
+                    f"range {fp_range}. This input will be ignored.",
+                    UserWarning,
+                )
                 continue  # No cubes found in this range for this model
 
-            # Get all forecast periods present in the cubes
-            forecast_periods_in_range = [
-                int(cube.coord("forecast_period").points.item()) for cube in model_cubes
+            # Get forecast period and cube pairs for this model.
+            fp_cube_pairs = [
+                (int(cube.coord("forecast_period").points.item()), cube)
+                for cube in model_cubes
             ]
 
-            # Check which forecast periods from secondary are not in primary
-            secondary_fps = set(forecast_periods_in_range)
-            missing_fps = secondary_fps - primary_fps
+            # Keep only forecast periods present in the primary and sort by lead time.
+            valid_fp_cube_pairs = [x for x in fp_cube_pairs if x[0] in primary_fps]
+            valid_fp_cube_pairs = sorted(valid_fp_cube_pairs, key=lambda x: x[0])
 
-            if missing_fps:
-                warnings.warn(
-                    f"Secondary input '{candidate_name}' has forecast periods "
-                    f"{sorted(missing_fps)} not present in primary input. "
-                    "These will be ignored."
-                )
-                # Filter out missing forecast periods
-                forecast_periods_in_range = [
-                    fp for fp in forecast_periods_in_range if fp not in missing_fps
-                ]
-
-            if not forecast_periods_in_range:
+            if not valid_fp_cube_pairs:
                 warnings.warn(
                     f"Secondary input '{candidate_name}' has no forecast periods "
                     "that overlap with primary input "
@@ -705,8 +738,42 @@ class RealizationClusterAndMatch(BasePlugin):
                 )
                 continue  # No valid forecast periods after filtering
 
-            # Check first forecast period to determine realization count
-            n_realizations = len(model_cubes[0].coord("realization").points)
+            # Track forecast periods in requested range but missing from primary input.
+            secondary_fps = {fp for fp, _ in fp_cube_pairs}
+            missing_fps = secondary_fps - primary_fps
+
+            if missing_fps:
+                warnings.warn(
+                    f"Secondary input '{candidate_name}' has forecast periods "
+                    f"{sorted(missing_fps)} not present in primary input. "
+                    "These will be ignored."
+                )
+
+            # Determine the expected realization count from the earliest valid
+            # forecast period and truncate this secondary input if the count changes
+            # at later lead times. This avoids a source pulsing in/out and keeps
+            # all periods for this source mergeable for consistent multi-period
+            # matching.
+            first_fp, first_cube = valid_fp_cube_pairs[0]
+            n_realizations = len(first_cube.coord("realization").points)
+            forecast_periods_in_range = []
+            for idx, (fp, cube) in enumerate(valid_fp_cube_pairs):
+                n_realizations_at_fp = len(cube.coord("realization").points)
+                if n_realizations_at_fp != n_realizations:
+                    dropped_fps = [
+                        future_fp for future_fp, _ in valid_fp_cube_pairs[idx:]
+                    ]
+                    warnings.warn(
+                        f"Secondary input '{candidate_name}' has inconsistent "
+                        "realization counts across forecast periods. Using "
+                        f"{n_realizations} realizations based on forecast period "
+                        f"{first_fp}, but found {n_realizations_at_fp} realizations "
+                        f"at forecast period {fp}. Forecast periods "
+                        f"{dropped_fps} will be ignored for this input.",
+                        UserWarning,
+                    )
+                    break
+                forecast_periods_in_range.append(fp)
 
             if n_realizations >= n_clusters:
                 full_realization_inputs.append(
@@ -818,7 +885,7 @@ class RealizationClusterAndMatch(BasePlugin):
                 cluster_sources[cluster_idx][candidate_name].append(fp)
 
     def _maybe_regrid_candidate_cube(
-        self, candidate_cube: Cube, target_grid_cube: Cube
+        self, candidate_cube: Cube, target_grid_cube: Cube | None
     ) -> Cube:
         """Regrid the candidate cube if regrid_for_clustering is True, otherwise
         return as is.
@@ -826,7 +893,7 @@ class RealizationClusterAndMatch(BasePlugin):
         Args:
             candidate_cube: The input candidate Cube to potentially regrid.
             target_grid_cube: The target grid Cube to regrid onto if regridding
-                is enabled.
+                is enabled. Can be None when regrid_for_clustering is False.
 
         Returns:
             The regridded candidate Cube if regrid_for_clustering is True, otherwise
@@ -960,11 +1027,214 @@ class RealizationClusterAndMatch(BasePlugin):
                 cluster_idx
             ].append(int(candidate_cube.coord("realization").points[realization_idx]))
 
+    def _record_match_for_forecast_period(
+        self,
+        fp: int,
+        cluster_indices: list[int],
+        realization_indices: list[int],
+        candidate_name: str,
+        candidate_cube: Cube,
+        replaced_realizations: dict[int, set[int]],
+        cluster_sources: dict[int, dict[str, list[int]]],
+        secondary_input_realizations_to_clusters: dict[str, dict[int, list[int]]],
+    ) -> None:
+        """Record tracking metadata after matching a secondary input at one forecast
+        period.
+
+        Updates the following variables in-place: replaced_realizations,
+        cluster_sources, and secondary_input_realizations_to_clusters. These
+        variables are used to track which clusters have been replaced, which model
+        provided data for each cluster, and which secondary realizations correspond to
+        each cluster, respectively. Cluster replacement refers to where the medoid
+        realization representing a cluster is replaced with the most pattern-similar
+        realization from a secondary input.
+        This information will be added later as attributes
+        to the final output cube.
+        Called from the per-forecast-period loop in both
+        _process_full_realization_inputs and _process_partial_realization_inputs.
+
+        Args:
+            fp: Forecast period in seconds.
+            cluster_indices: Cluster indices that were assigned.
+            realization_indices: Realization indices from the candidate cube
+                corresponding to each cluster.
+            candidate_name: Name of the secondary input.
+            candidate_cube: The secondary input cube for this forecast period.
+            replaced_realizations: Tracks which cluster indices have been replaced
+                per forecast period. Modified in-place.
+            cluster_sources: Tracks which input model provided data for each cluster
+                at each forecast period. Modified in-place.
+            secondary_input_realizations_to_clusters: Tracks which secondary
+                realizations correspond to each cluster. Modified in-place.
+        """
+        if fp not in replaced_realizations:
+            replaced_realizations[fp] = set()
+        replaced_realizations[fp].update(cluster_indices)
+        self._update_cluster_sources(
+            cluster_sources, cluster_indices, candidate_name, fp
+        )
+        self.track_secondary_realizations_to_clusters(
+            secondary_input_realizations_to_clusters,
+            cluster_indices,
+            realization_indices,
+            candidate_name,
+            fp,
+            candidate_cube,
+        )
+
+    def _build_model_precedence(self) -> dict[str, int]:
+        """Build precedence ranks for all models in the hierarchy.
+
+        Lower rank means higher precedence, for example, a precedence mapping of
+        {'nowcast': 0, 'uk_det': 1, 'uk_ens': 2, 'gl_ens': 3, 'ecgl_ens': 4}
+        would indicate that 'nowcast' has the highest precedence and
+        'ecgl_ens' has the lowest precedence.
+
+        Returns:
+            Mapping of model name to precedence rank.
+        """
+        secondary_names = list(self.hierarchy["secondary_inputs"].keys())
+        precedence = {name: rank for rank, name in enumerate(secondary_names)}
+        # Primary input acts as the fallback source and has lowest precedence.
+        precedence[self.hierarchy["primary_input"]] = len(secondary_names)
+        return precedence
+
+    @staticmethod
+    def _get_source_for_cluster_forecast_period(
+        cluster_sources: dict[int, dict[str, list[int]]], cluster_idx: int, fp: int
+    ) -> str | None:
+        """Get the current source model for a cluster at a forecast period.
+
+        Args:
+            cluster_sources: Dictionary tracking which input was used for each
+                cluster at each forecast period. Modified in-place.
+                Format: {cluster_idx: {model_name: [fp1, fp2, ...]}}
+            cluster_idx: Cluster index to inspect.
+            fp: Forecast period in seconds.
+
+        Returns:
+            Model name currently providing this cluster at this forecast period,
+            or None if no source is recorded.
+        """
+        for model_name, fps in cluster_sources.get(cluster_idx, {}).items():
+            if fp in fps:
+                return model_name
+        return None
+
+    def _filter_cluster_updates_by_precedence(
+        self,
+        cluster_indices: list[int],
+        realization_indices: list[int],
+        candidate_name: str,
+        fp: int,
+        cluster_sources: dict[int, dict[str, list[int]]],
+        model_precedence: dict[str, int],
+    ) -> tuple[list[int], list[int]]:
+        """Filter cluster updates to enforce hierarchy precedence globally.
+
+        Lower-priority inputs cannot overwrite clusters already provided by
+        higher-priority inputs at the same forecast period.
+
+        Args:
+            cluster_indices: Candidate cluster indices to update.
+            realization_indices: Candidate realization indices paired to clusters.
+            candidate_name: Name of model proposing the updates.
+            fp: Forecast period in seconds.
+            cluster_sources: Dictionary tracking which input was used for each
+                cluster at each forecast period. Modified in-place.
+                Format: {cluster_idx: {model_name: [fp1, fp2, ...]}}
+            model_precedence: Model precedence mapping, lower is higher priority.
+                For example, a precedence mapping of
+                {'nowcast': 0, 'uk_det': 1, 'uk_ens': 2, 'gl_ens': 3, 'ecgl_ens': 4}
+                would indicate that 'nowcast' has the highest precedence and 'ecgl_ens'
+                has the lowest precedence.
+
+        Returns:
+            Filtered (cluster_indices, realization_indices) that are allowed to
+            update. For example, with a precedence mapping of
+            {'nowcast': 0, 'uk_det': 1, 'uk_ens': 2, 'gl_ens': 3, 'ecgl_ens': 4}
+            and a candidate name of "uk_det", any clusters currently represented by
+            "nowcast" at the same forecast period would not be allowed to update. For
+            example, if cluster_indices = [0, 1, 2] and realization_indices = [3, 4, 5],
+            and cluster 1 is currently provided by "nowcast", the returned values
+            would be ([0, 2], [3, 5]), indicating that only clusters 0 and 2 are
+            allowed to update with realizations 3 and 5, respectively.
+        """
+        allowed_cluster_indices = []
+        allowed_realization_indices = []
+        candidate_rank = model_precedence.get(candidate_name, len(model_precedence))
+
+        for cluster_idx, realization_idx in zip(cluster_indices, realization_indices):
+            current_source = self._get_source_for_cluster_forecast_period(
+                cluster_sources, cluster_idx, fp
+            )
+            current_rank = model_precedence.get(current_source, len(model_precedence))
+            if current_source is None or candidate_rank < current_rank:
+                allowed_cluster_indices.append(cluster_idx)
+                allowed_realization_indices.append(realization_idx)
+
+        return allowed_cluster_indices, allowed_realization_indices
+
+    def _extract_merge_and_match(
+        self,
+        candidate_name: str,
+        fps: list[int],
+        cubes: CubeList,
+        target_grid_cube: Cube | None,
+        regridded_clustered_primary_cube: Cube,
+        ensure_fp_dim: bool = False,
+    ) -> tuple[list[int], list[int], Cube]:
+        """Extract, merge, regrid and match a secondary input against the clustered
+        primary.
+
+        Extracts cubes for the given candidate and forecast periods, merges them
+        into a single cube, optionally ensures forecast_period is a dimension
+        coordinate, regrids to the target grid, and calls RealizationToClusterMatcher.
+
+        Args:
+            candidate_name: Name of the secondary input.
+            fps: Forecast period values in seconds to extract.
+            cubes: CubeList containing all input cubes.
+            target_grid_cube: Target grid cube for optional regridding. Can be
+                None when regrid_for_clustering is False.
+            regridded_clustered_primary_cube: The regridded clustered primary cube.
+            ensure_fp_dim: If True, promote forecast_period to a dimension coordinate
+                on both the candidate and primary slices before matching. Required
+                when fps are provided as separate 3D cubes (the partial realization
+                path). Defaults to False.
+
+        Returns:
+            Tuple (cluster_indices, realization_indices, merged_candidate_cube):
+                cluster_indices: Cluster indices assigned to each realization.
+                realization_indices: Realization indices from the candidate cube
+                    assigned to each cluster.
+                merged_candidate_cube: The merged (pre-regrid) candidate cube, needed
+                    by callers for per-forecast-period indexing.
+        """
+        model_id_constr = iris.AttributeConstraint(
+            **{self.model_id_attr: candidate_name}
+        )
+        fp_constr = iris.Constraint(forecast_period=fps)
+        candidate_cube = MergeCubes()(cubes.extract(model_id_constr & fp_constr))
+        enforce_coordinate_ordering(candidate_cube, ["realization"])
+        if ensure_fp_dim:
+            candidate_cube = self._ensure_forecast_period_is_dimension(candidate_cube)
+        regridded_candidate_cube = self._maybe_regrid_candidate_cube(
+            candidate_cube, target_grid_cube
+        )
+        primary_slice = regridded_clustered_primary_cube.extract(fp_constr)
+        if ensure_fp_dim:
+            primary_slice = self._ensure_forecast_period_is_dimension(primary_slice)
+        cluster_indices, realization_indices = RealizationToClusterMatcher()(
+            primary_slice, regridded_candidate_cube
+        )
+        return cluster_indices, realization_indices, candidate_cube
+
     def _process_full_realization_inputs(
         self,
         full_realization_inputs: list[tuple[str, list[int]]],
         cubes: CubeList,
-        target_grid_cube: Cube,
+        target_grid_cube: Cube | None,
         regridded_clustered_primary_cube: Cube,
         replaced_realizations: dict[int, set[int]],
         matched_cubes: CubeList,
@@ -982,7 +1252,8 @@ class RealizationClusterAndMatch(BasePlugin):
             full_realization_inputs: List of (name, forecast_periods) tuples for
                 inputs with full realization sets.
             cubes: The input CubeList containing all data.
-            target_grid_cube: The target grid cube for regridding.
+            target_grid_cube: The target grid cube for regridding. Can be None
+                when regrid_for_clustering is False.
             regridded_clustered_primary_cube: The regridded clustered primary cube.
             replaced_realizations: Dictionary tracking which (forecast_period, cluster)
                 pairs have been replaced. Modified in-place.
@@ -1016,24 +1287,15 @@ class RealizationClusterAndMatch(BasePlugin):
             if not fps_to_process:
                 continue
 
-            model_id_constr = iris.AttributeConstraint(
-                **{self.model_id_attr: candidate_name}
+            cluster_indices, realization_indices, candidate_cube = (
+                self._extract_merge_and_match(
+                    candidate_name,
+                    fps_to_process,
+                    cubes,
+                    target_grid_cube,
+                    regridded_clustered_primary_cube,
+                )
             )
-            fp_constr = iris.Constraint(forecast_period=fps_to_process)
-            candidate_cubes = cubes.extract(model_id_constr & fp_constr)
-
-            candidate_cube = MergeCubes()(candidate_cubes)
-            enforce_coordinate_ordering(candidate_cube, ["realization"])
-
-            regridded_candidate_cube = self._maybe_regrid_candidate_cube(
-                candidate_cube, target_grid_cube
-            )
-
-            cluster_indices, realization_indices = RealizationToClusterMatcher()(
-                regridded_clustered_primary_cube.extract(fp_constr),
-                regridded_candidate_cube,
-            )
-
             # Index the candidate cube using the realization indices
             matched_cube = candidate_cube[realization_indices]
             matched_cube.coord("realization").points = cluster_indices
@@ -1062,35 +1324,28 @@ class RealizationClusterAndMatch(BasePlugin):
                 # Replace in-place
                 matched_cubes[idx] = fp_matched_cube
 
-                # Track which forecast periods have been fully replaced
-                if fp not in replaced_realizations:
-                    replaced_realizations[fp] = set()
-                replaced_realizations[fp].update(cluster_indices)
-
-                # Track cluster sources: update which input was used for each cluster
-                self._update_cluster_sources(
-                    cluster_sources, cluster_indices, candidate_name, fp
-                )
-                # Track which secondary realizations contributed to each cluster
-                self.track_secondary_realizations_to_clusters(
-                    secondary_input_realizations_to_clusters,
+                self._record_match_for_forecast_period(
+                    fp,
                     cluster_indices,
                     realization_indices,
                     candidate_name,
-                    fp,
                     candidate_cube,
+                    replaced_realizations,
+                    cluster_sources,
+                    secondary_input_realizations_to_clusters,
                 )
 
     def _process_partial_realization_inputs(
         self,
         partial_realization_inputs: list[tuple[str, list[int]]],
         cubes: CubeList,
-        target_grid_cube: Cube,
+        target_grid_cube: Cube | None,
         regridded_clustered_primary_cube: Cube,
         replaced_realizations: dict[int, set[int]],
         matched_cubes: CubeList,
         cluster_sources: dict[int, dict[str, list[int]]],
         secondary_input_realizations_to_clusters: dict[str, dict[int, list[int]]],
+        model_precedence: dict[str, int],
     ) -> None:
         """Process partial realization inputs in reverse precedence order.
 
@@ -1106,7 +1361,8 @@ class RealizationClusterAndMatch(BasePlugin):
                 for clustering and matching. Each cube must have the model_id_attr
                 attribute set, and all relevant models, forecast periods, and
                 realizations to be processed or matched should be included.
-            target_grid_cube: The target grid cube for regridding.
+            target_grid_cube: The target grid cube for regridding. Can be None
+                when regrid_for_clustering is False.
             regridded_clustered_primary_cube: The regridded clustered primary cube.
             replaced_realizations: Dictionary tracking which (forecast_period, cluster)
                 pairs have been replaced. Modified in-place.
@@ -1119,6 +1375,11 @@ class RealizationClusterAndMatch(BasePlugin):
                 Modified in-place.
                 Format: {secondary_input_name:
                 {forecast_period: {cluster_index: [realization_indices]}}}
+            model_precedence: Model precedence mapping, lower rank means higher
+                precedence. For example, a precedence mapping of
+                {'nowcast': 0, 'uk_det': 1, 'uk_ens': 2, 'gl_ens': 3, 'ecgl_ens': 4}
+                would indicate that 'nowcast' has the highest precedence and
+                'ecgl_ens' has the lowest precedence.
         """
         # Process in reverse order (lowest precedence first)
         for candidate_name, forecast_periods in reversed(partial_realization_inputs):
@@ -1126,23 +1387,37 @@ class RealizationClusterAndMatch(BasePlugin):
                 **{self.model_id_attr: candidate_name}
             )
 
+            # Perform matching once across all forecast periods so that each
+            # realization is assigned to the same cluster at every lead time.
+            # This mirrors how _process_full_realization_inputs works.
+            cluster_indices, realization_indices, _ = self._extract_merge_and_match(
+                candidate_name,
+                forecast_periods,
+                cubes,
+                target_grid_cube,
+                regridded_clustered_primary_cube,
+                ensure_fp_dim=True,
+            )
+
             for fp in forecast_periods:
                 fp_constr = iris.Constraint(forecast_period=fp)
                 candidate_cube = cubes.extract_cube(model_id_constr & fp_constr)
 
-                regridded_candidate_cube = self._maybe_regrid_candidate_cube(
-                    candidate_cube, target_grid_cube
+                allowed_cluster_indices, allowed_realization_indices = (
+                    self._filter_cluster_updates_by_precedence(
+                        cluster_indices,
+                        realization_indices,
+                        candidate_name,
+                        fp,
+                        cluster_sources,
+                        model_precedence,
+                    )
                 )
+                if not allowed_cluster_indices:
+                    continue
 
-                # Get the matching cluster indices from the matcher
-                clustered_fp_cube = regridded_clustered_primary_cube.extract(fp_constr)
-
-                cluster_indices, realization_indices = RealizationToClusterMatcher()(
-                    clustered_fp_cube,
-                    regridded_candidate_cube,
-                )
-
-                # Index the candidate cube using the realization indices
+                # Index the candidate cube using the realization indices determined
+                # from the combined match across all forecast periods.
                 matched_cube = candidate_cube[realization_indices]
                 matched_cube.coord("realization").points = cluster_indices
 
@@ -1156,13 +1431,17 @@ class RealizationClusterAndMatch(BasePlugin):
 
                 # Replace data for the specific cluster indices with the new data
                 result_data = existing_fp_cube.data.copy()
-                for i, cluster_idx in enumerate(cluster_indices):
+                for cluster_idx in allowed_cluster_indices:
                     # Find which position cluster_idx is in the existing cube
                     pos = np.where(
                         existing_fp_cube.coord("realization").points == cluster_idx
                     )[0]
                     if len(pos) > 0:
-                        result_data[pos[0]] = matched_cube.data[i]
+                        matched_pos = np.where(
+                            matched_cube.coord("realization").points == cluster_idx
+                        )[0]
+                        if len(matched_pos) > 0:
+                            result_data[pos[0]] = matched_cube.data[matched_pos[0]]
 
                 # Create a new cube with the merged data
                 merged_cube = existing_fp_cube.copy(data=result_data)
@@ -1172,23 +1451,15 @@ class RealizationClusterAndMatch(BasePlugin):
                 merged_cube = self._ensure_forecast_period_is_dimension(merged_cube)
                 matched_cubes[idx] = merged_cube
 
-                # Mark which cluster indices were replaced
-                if fp not in replaced_realizations:
-                    replaced_realizations[fp] = set()
-                replaced_realizations[fp].update(cluster_indices)
-
-                # Track cluster sources: update which input was used for each cluster
-                self._update_cluster_sources(
-                    cluster_sources, cluster_indices, candidate_name, fp
-                )
-                # Track which secondary realizations contributed to each cluster
-                self.track_secondary_realizations_to_clusters(
-                    secondary_input_realizations_to_clusters,
-                    cluster_indices,
-                    realization_indices,
-                    candidate_name,
+                self._record_match_for_forecast_period(
                     fp,
+                    allowed_cluster_indices,
+                    allowed_realization_indices,
+                    candidate_name,
                     candidate_cube,
+                    replaced_realizations,
+                    cluster_sources,
+                    secondary_input_realizations_to_clusters,
                 )
 
     def process(self, cubes: CubeList) -> Cube:
@@ -1234,7 +1505,7 @@ class RealizationClusterAndMatch(BasePlugin):
             ValueError: If no primary cube is found with the specified
                 model_id_attr.
 
-        Warnings:
+        Warns:
             UserWarning: If primary cubes have different realization numbering schemes
                 when renumber_primary_realizations=False, which may cause merge
                 failures.
@@ -1243,12 +1514,21 @@ class RealizationClusterAndMatch(BasePlugin):
                 be returned.
             UserWarning: If secondary inputs have forecast periods not present in the
                 primary input, which will be ignored.
+            UserWarning: If input cubes have model_id_attr values not referenced in
+                the hierarchy; those cubes will be ignored.
         """
         if self.cycletime is not None:
             for cube in cubes:
                 if not cube.coords("forecast_reference_time"):
                     continue
                 reset_forecast_reference_time_and_period(cube, self.cycletime)
+
+        hierarchy_names = {self.hierarchy["primary_input"]} | set(
+            self.hierarchy["secondary_inputs"].keys()
+        )
+        for cube_index, cube in enumerate(cubes):
+            if cube.attributes.get(self.model_id_attr) in hierarchy_names:
+                cubes[cube_index] = self._ensure_realization_coord(cube)
 
         constr = iris.AttributeConstraint(
             **{self.model_id_attr: self.hierarchy["primary_input"]}
@@ -1281,6 +1561,20 @@ class RealizationClusterAndMatch(BasePlugin):
             raise ValueError(
                 f"No primary cube found with {self.model_id_attr}="
                 f"{self.hierarchy['primary_input']}"
+            )
+
+        # Warn about cubes with model_id_attr values not referenced in the hierarchy.
+        input_model_ids = {
+            cube.attributes[self.model_id_attr]
+            for cube in cubes
+            if self.model_id_attr in cube.attributes
+        }
+        unreferenced = input_model_ids - hierarchy_names
+        if unreferenced:
+            warnings.warn(
+                f"Input cubes have {self.model_id_attr} values not referenced in the "
+                f"hierarchy: {sorted(unreferenced)}. These cubes will be ignored.",
+                UserWarning,
             )
 
         target_grid_cube = None
@@ -1329,6 +1623,7 @@ class RealizationClusterAndMatch(BasePlugin):
         # forecast period
         # Format: {cluster_idx: {model_name: [fp1, fp2, ...]}}
         cluster_sources = {}
+        model_precedence = self._build_model_precedence()
 
         # Start with the clustered primary cube as the base for all forecast periods
         # This ensures we always have a full set of realizations to work with
@@ -1344,7 +1639,6 @@ class RealizationClusterAndMatch(BasePlugin):
             cluster_sources[cluster_idx][primary_name] = list(
                 clustered_primary_cube.coord("forecast_period").points
             )
-
         # Create a mapping to track which realizations from secondary inputs correspond
         # to which clusters.
         secondary_input_realizations_to_clusters = {}
@@ -1373,12 +1667,18 @@ class RealizationClusterAndMatch(BasePlugin):
             matched_cubes,
             cluster_sources,
             secondary_input_realizations_to_clusters,
+            model_precedence,
         )
+
+        # Remove / harmonise known scalar coords that can differ across sources
+        # and otherwise prevent the final merge. This can occur if some of the
+        # primary or secondary inputs have already been blended.
+        matched_cubes = [remove_blend_time(cube) for cube in matched_cubes]
+        matched_cubes = [remove_deprecation_warnings(cube) for cube in matched_cubes]
 
         result_cube = MergeCubes()(
             CubeList([iris.util.squeeze(c) for c in matched_cubes])
         )
-
         # Use json.dumps to store dictionary as attribute.
         result_cube.attributes["primary_input_realizations_to_clusters"] = json.dumps(
             primary_input_realizations_to_clusters
@@ -1750,22 +2050,6 @@ class RealizationSelection(BasePlugin):
             selected_cubes.append(selected)
         return selected_cubes
 
-    def _remove_blend_time_from_selected_cubes(
-        self, selected_cubes: list[Cube]
-    ) -> None:
-        """Remove blend_time coordinate from all selected cubes if present on any.
-
-        blend_time is removed to avoid ambiguity in the merged output, as selected
-        cubes may come from different source models with differing blend_time values.
-
-        Args:
-            selected_cubes:
-                Realization-selected cubes, modified in place.
-        """
-        for cube in selected_cubes:
-            if cube.coords("blend_time"):
-                cube.remove_coord("blend_time")
-
     def process(self, cubes: CubeList) -> Cube:
         """
         Select realizations from input forecast cubes according to cluster assignments
@@ -1812,10 +2096,8 @@ class RealizationSelection(BasePlugin):
         )
         # Remove blend time and sanitise forecast_reference_time attributes to
         # support merging.
-        self._remove_blend_time_from_selected_cubes(selected_cubes)
-        for cube in selected_cubes:
-            if cube.coords("forecast_reference_time"):
-                cube.coord("forecast_reference_time").attributes = {}
+        selected_cubes = [remove_blend_time(cube) for cube in selected_cubes]
+        selected_cubes = [remove_deprecation_warnings(cube) for cube in selected_cubes]
 
         result_cube = MergeCubes()(CubeList(selected_cubes))
         if "cluster_sources" in cluster_cube.attributes:

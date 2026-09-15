@@ -83,13 +83,13 @@ def add_wind_data_to_forecasts(
     """
     # Add wind speed to demonstrate filtering.
     wind_speed_dict = data_dict.copy()
-    wind_speed_dict["forecast"] = wind_speed_values
+    wind_speed_dict["forecast"] = np.asarray(wind_speed_values, dtype=np.float32)
     wind_speed_dict["cf_name"] = "wind_speed"
     wind_speed_dict["units"] = "m s-1"
     wind_speed_dict["diagnostic"] = "wind_speed_at_10m"
     wind_speed_dict["experiment"] = "recentblend"
     wind_dir_dict = data_dict.copy()
-    wind_dir_dict["forecast"] = wind_dir_values
+    wind_dir_dict["forecast"] = np.asarray(wind_dir_values, dtype=np.float32)
     wind_dir_dict["cf_name"] = "wind_from_direction"
     wind_dir_dict["units"] = "degrees"
     wind_dir_dict["diagnostic"] = "wind_direction_at_10m"
@@ -112,7 +112,7 @@ def add_wind_data_to_truth(data_dict, wind_speed_values):
         A DataFrame containing the original data along with wind speed data.
     """
     wind_speed_dict = data_dict.copy()
-    wind_speed_dict["ob_value"] = wind_speed_values
+    wind_speed_dict["ob_value"] = np.asarray(wind_speed_values, dtype=np.float32)
     wind_speed_dict["diagnostic"] = "wind_speed_at_10m"
     data_df = pd.DataFrame(data_dict)
     wind_speed_df = pd.DataFrame(wind_speed_dict)
@@ -133,7 +133,7 @@ def modify_representation(data_dict, representation, values):
         Amended dictionary.
     """
     if representation == "realization":
-        data_dict["realization"] = values
+        data_dict["realization"] = np.array(values, dtype=np.int64)
         data_dict.pop("percentile")
     elif representation == "kittens":
         data_dict["kittens"] = values
@@ -152,14 +152,20 @@ def _create_multi_site_forecast_parquet_file(tmp_path, representation=None):
     """
     wmo_ids = ["03001", "03002", "03003", "03004", "03005"]
     data_dict = {
-        "percentile": np.repeat(50.0, 5),
-        "forecast": [281.0, 272.0, 287.0, 280.0, 290.0],
-        "altitude": [ALTITUDE_LOOKUP[_id] for _id in wmo_ids],
+        "percentile": np.repeat(50.0, 5).astype(np.float64),
+        "forecast": np.array([281.0, 272.0, 287.0, 280.0, 290.0], dtype=np.float32),
+        "altitude": np.array(
+            [ALTITUDE_LOOKUP[_id] for _id in wmo_ids], dtype=np.float32
+        ),
         "blend_time": [pd.Timestamp("2017-01-02 00:00:00", tz="utc")] * 5,
         "forecast_period": [6 * 3.6e12] * 5,
         "forecast_reference_time": [pd.Timestamp("2017-01-02 00:00:00", tz="utc")] * 5,
-        "latitude": [LATITUDE_LOOKUP[_id] for _id in wmo_ids],
-        "longitude": [LONGITUDE_LOOKUP[_id] for _id in wmo_ids],
+        "latitude": np.array(
+            [LATITUDE_LOOKUP[_id] for _id in wmo_ids], dtype=np.float32
+        ),
+        "longitude": np.array(
+            [LONGITUDE_LOOKUP[_id] for _id in wmo_ids], dtype=np.float32
+        ),
         "time": [pd.Timestamp("2017-01-02 06:00:00", tz="utc")] * 5,
         "wmo_id": wmo_ids,
         "station_id": [f"{int(_id):08}" for _id in wmo_ids],
@@ -167,7 +173,7 @@ def _create_multi_site_forecast_parquet_file(tmp_path, representation=None):
         "units": ["K"] * 5,
         "experiment": ["latestblend"] * 5,
         "period": [pd.NA] * 5,
-        "height": [1.5] * 5,
+        "height": np.repeat(np.float32(1.5), 5),
         "diagnostic": ["temperature_at_screen_level"] * 5,
     }
     # Other representations used for testing.
@@ -197,14 +203,22 @@ def _create_multi_percentile_forecast_parquet_file(tmp_path, representation=None
     """
     wmo_ids = ["03001"] * 5
     data_dict = {
-        "percentile": [16 + 2 / 3, 33 + 1 / 3, 50, 66 + 2 / 3, 83 + 1 / 3],
-        "forecast": [272.0, 274.0, 275.0, 277.0, 280.0],
-        "altitude": [ALTITUDE_LOOKUP[_id] for _id in wmo_ids],
+        "percentile": np.array(
+            [16 + 2 / 3, 33 + 1 / 3, 50, 66 + 2 / 3, 83 + 1 / 3], dtype=np.float64
+        ),
+        "forecast": np.array([272.0, 274.0, 275.0, 277.0, 280.0], dtype=np.float32),
+        "altitude": np.array(
+            [ALTITUDE_LOOKUP[_id] for _id in wmo_ids], dtype=np.float32
+        ),
         "blend_time": [pd.Timestamp("2017-01-02 00:00:00", tz="utc")] * 5,
         "forecast_period": [6 * 3.6e12] * 5,
         "forecast_reference_time": [pd.Timestamp("2017-01-02 00:00:00", tz="utc")] * 5,
-        "latitude": [LATITUDE_LOOKUP[_id] for _id in wmo_ids],
-        "longitude": [LONGITUDE_LOOKUP[_id] for _id in wmo_ids],
+        "latitude": np.array(
+            [LATITUDE_LOOKUP[_id] for _id in wmo_ids], dtype=np.float32
+        ),
+        "longitude": np.array(
+            [LONGITUDE_LOOKUP[_id] for _id in wmo_ids], dtype=np.float32
+        ),
         "time": [pd.Timestamp("2017-01-02 06:00:00", tz="utc")] * 5,
         "wmo_id": wmo_ids,
         "station_id": [f"{int(_id):08}" for _id in wmo_ids],
@@ -212,7 +226,7 @@ def _create_multi_percentile_forecast_parquet_file(tmp_path, representation=None
         "units": ["K"] * 5,
         "experiment": ["latestblend"] * 5,
         "period": [pd.NA] * 5,
-        "height": [1.5] * 5,
+        "height": np.repeat(np.float32(1.5), 5),
         "diagnostic": ["temperature_at_screen_level"] * 5,
     }
     # Other representations used for testing.
@@ -242,9 +256,11 @@ def _create_multi_forecast_period_forecast_parquet_file(tmp_path, representation
     """
     wmo_ids = ["03001", "03002", "03001", "03002"]
     data_dict = {
-        "percentile": [50.0, 50.0, 50.0, 50.0],
-        "forecast": [277.0, 270.0, 280.0, 269.0],
-        "altitude": [ALTITUDE_LOOKUP[_id] for _id in wmo_ids],
+        "percentile": np.array([50.0, 50.0, 50.0, 50.0], dtype=np.float64),
+        "forecast": np.array([277.0, 270.0, 280.0, 269.0], dtype=np.float32),
+        "altitude": np.array(
+            [ALTITUDE_LOOKUP[_id] for _id in wmo_ids], dtype=np.float32
+        ),
         "blend_time": [pd.Timestamp("2017-01-02 00:00:00")] * 4,
         "forecast_period": np.repeat(
             [
@@ -254,8 +270,12 @@ def _create_multi_forecast_period_forecast_parquet_file(tmp_path, representation
             2,
         ),
         "forecast_reference_time": [pd.Timestamp("2017-01-02 00:00:00")] * 4,
-        "latitude": [LATITUDE_LOOKUP[_id] for _id in wmo_ids],
-        "longitude": [LONGITUDE_LOOKUP[_id] for _id in wmo_ids],
+        "latitude": np.array(
+            [LATITUDE_LOOKUP[_id] for _id in wmo_ids], dtype=np.float32
+        ),
+        "longitude": np.array(
+            [LONGITUDE_LOOKUP[_id] for _id in wmo_ids], dtype=np.float32
+        ),
         "time": np.repeat(
             [pd.Timestamp("2017-01-02 06:00:00"), pd.Timestamp("2017-01-02 12:00:00")],
             2,
@@ -266,7 +286,7 @@ def _create_multi_forecast_period_forecast_parquet_file(tmp_path, representation
         "units": ["K"] * 4,
         "experiment": ["latestblend"] * 4,
         "period": [pd.NA] * 4,
-        "height": [1.5] * 4,
+        "height": np.repeat(np.float32(1.5), 4),
         "diagnostic": ["temperature_at_screen_level"] * 4,
     }
     data_dict = modify_representation(data_dict, representation, [0, 1, 0, 1])
@@ -284,13 +304,19 @@ def _create_multi_site_truth_parquet_file(tmp_path):
     wmo_ids = ["03001", "03002", "03003", "03004", "03005"]
     data_dict = {
         "diagnostic": ["temperature_at_screen_level"] * 5,
-        "latitude": [LATITUDE_LOOKUP[_id] for _id in wmo_ids],
-        "longitude": [LONGITUDE_LOOKUP[_id] for _id in wmo_ids],
-        "altitude": [ALTITUDE_LOOKUP[_id] for _id in wmo_ids],
+        "latitude": np.array(
+            [LATITUDE_LOOKUP[_id] for _id in wmo_ids], dtype=np.float32
+        ),
+        "longitude": np.array(
+            [LONGITUDE_LOOKUP[_id] for _id in wmo_ids], dtype=np.float32
+        ),
+        "altitude": np.array(
+            [ALTITUDE_LOOKUP[_id] for _id in wmo_ids], dtype=np.float32
+        ),
         "time": [pd.Timestamp("2017-01-02 06:00:00")] * 5,
         "wmo_id": wmo_ids,
         "station_id": [f"{int(_id):08}" for _id in wmo_ids],
-        "ob_value": [276.0, 270.0, 289.0, 290.0, 301.0],
+        "ob_value": np.array([276.0, 270.0, 289.0, 290.0, 301.0], dtype=np.float32),
     }
     joined_df = add_wind_data_to_truth(data_dict, [3, 22, 24, 11, 9])
     output_dir = write_to_parquet(
@@ -303,13 +329,13 @@ def _create_multi_percentile_truth_parquet_file(tmp_path):
     """Create a parquet file with multi-percentile truth data."""
     data_dict = {
         "diagnostic": ["temperature_at_screen_level"],
-        "latitude": [60.1],
-        "longitude": [1.0],
-        "altitude": [10.0],
+        "latitude": np.array([60.1], dtype=np.float32),
+        "longitude": np.array([1.0], dtype=np.float32),
+        "altitude": np.array([10.0], dtype=np.float32),
         "time": [pd.Timestamp("2017-01-02 06:00:00")],
         "wmo_id": ["03001"],
         "station_id": ["00003001"],
-        "ob_value": [276.0],
+        "ob_value": np.array([276.0], dtype=np.float32),
     }
     joined_df = add_wind_data_to_truth(data_dict, [9])
     output_dir = write_to_parquet(
@@ -323,16 +349,22 @@ def _create_multi_forecast_period_truth_parquet_file(tmp_path):
     wmo_ids = ["03001", "03002", "03001", "03002"]
     data_dict = {
         "diagnostic": ["temperature_at_screen_level"] * 4,
-        "latitude": [LATITUDE_LOOKUP[_id] for _id in wmo_ids],
-        "longitude": [LONGITUDE_LOOKUP[_id] for _id in wmo_ids],
-        "altitude": [ALTITUDE_LOOKUP[_id] for _id in wmo_ids],
+        "latitude": np.array(
+            [LATITUDE_LOOKUP[_id] for _id in wmo_ids], dtype=np.float32
+        ),
+        "longitude": np.array(
+            [LONGITUDE_LOOKUP[_id] for _id in wmo_ids], dtype=np.float32
+        ),
+        "altitude": np.array(
+            [ALTITUDE_LOOKUP[_id] for _id in wmo_ids], dtype=np.float32
+        ),
         "time": np.repeat(
             [pd.Timestamp("2017-01-02 06:00:00"), pd.Timestamp("2017-01-02 12:00:00")],
             2,
         ),
         "wmo_id": wmo_ids,
         "station_id": [f"{int(_id):08}" for _id in wmo_ids],
-        "ob_value": [280, 273, 284, 275],
+        "ob_value": np.array([280, 273, 284, 275], dtype=np.float32),
     }
     joined_df = add_wind_data_to_truth(data_dict, [2.0, 11.0, 10.0, 14.0])
     output_dir = write_to_parquet(
@@ -346,13 +378,19 @@ def _create_multi_site_truth_parquet_file_alt(tmp_path, site_id="wmo_id"):
     wmo_ids = ["03001", "03002", "03003", "03004", "03005"]
     data_dict = {
         "diagnostic": ["wind_speed_at_10m"] * 5,
-        "latitude": [LATITUDE_LOOKUP[_id] for _id in wmo_ids],
-        "longitude": [LONGITUDE_LOOKUP[_id] for _id in wmo_ids],
-        "altitude": [ALTITUDE_LOOKUP[_id] for _id in wmo_ids],
+        "latitude": np.array(
+            [LATITUDE_LOOKUP[_id] for _id in wmo_ids], dtype=np.float32
+        ),
+        "longitude": np.array(
+            [LONGITUDE_LOOKUP[_id] for _id in wmo_ids], dtype=np.float32
+        ),
+        "altitude": np.array(
+            [ALTITUDE_LOOKUP[_id] for _id in wmo_ids], dtype=np.float32
+        ),
         "time": [pd.Timestamp("2017-01-02 06:00:00")] * 5,
         "wmo_id": wmo_ids,
         "station_id": [f"{int(_id):08}" for _id in wmo_ids],
-        "ob_value": [10.0, 25.0, 4.0, 3.0, 11.0],
+        "ob_value": np.array([10.0, 25.0, 4.0, 3.0, 11.0], dtype=np.float32),
     }
     joined_df = add_wind_data_to_truth(data_dict, [3.0, 22.0, 24.0, 11.0, 9.0])
     output_dir = write_to_parquet(
@@ -458,6 +496,12 @@ def amend_expected_forecast_df(
             how="left",
         )
     forecast_df = base_df
+
+    if representation == "realization" and "realization" in forecast_df.columns:
+        # In the test source data this column can be upcast to float64 when rows
+        # from diagnostics without a realization are concatenated. Cast back to
+        # match parquet schema output (int64).
+        forecast_df["realization"] = forecast_df["realization"].astype(np.int64)
 
     forecast_df.rename(columns={"forecast": "air_temperature"}, inplace=True)
     return forecast_df
@@ -598,17 +642,75 @@ def test_load_for_qrf(
     pd.testing.assert_frame_equal(
         forecast_df,
         expected_forecast_df,
-        check_dtype=False,
+        check_dtype=True,
         check_datetimelike_compat=True,
     )
     pd.testing.assert_frame_equal(
-        truth_df, expected_truth_df, check_dtype=False, check_datetimelike_compat=True
+        truth_df, expected_truth_df, check_dtype=True, check_datetimelike_compat=True
     )
     if include_static:
         assert isinstance(cube_inputs, iris.cube.CubeList)
         assert len(cube_inputs) == 1
         assert cube_inputs[0].name() == "distance_to_water"
         np.testing.assert_almost_equal(cube_inputs[0].data, expected_cube.data)
+
+
+def test_load_for_qrf_with_mixed_whitespace_padding_in_forecast_inputs(tmp_path):
+    """Test that dynamic forecast diagnostics merge when site IDs have
+    different whitespace padding across inputs."""
+
+    forecast_path, base_expected_forecast_df, _ = (
+        _create_multi_site_forecast_parquet_file(tmp_path, representation="percentile")
+    )
+    truth_path, expected_truth_df = _create_multi_site_truth_parquet_file(tmp_path)
+
+    padded_forecast_df = base_expected_forecast_df.copy()
+    wind_mask = padded_forecast_df["diagnostic"] == "wind_speed_at_10m"
+    wind_site_ids = padded_forecast_df.loc[wind_mask, "wmo_id"].astype(str)
+    padded_forecast_df.loc[wind_mask, "wmo_id"] = [
+        f"{site_id}{' ' * (index % 3 + 1)}"
+        for index, site_id in enumerate(wind_site_ids)
+    ]
+    padded_forecast_df.to_parquet(
+        forecast_path / "forecast.parquet", index=False, engine="pyarrow"
+    )
+
+    plugin = LoadForTrainQRF(
+        experiments=["latestblend", "recentblend"],
+        feature_config={
+            "air_temperature": ["mean", "std", "altitude"],
+            "wind_speed": ["mean", "std"],
+        },
+        parquet_diagnostic_names=["temperature_at_screen_level", "wind_speed_at_10m"],
+        cf_names=["air_temperature", "wind_speed"],
+        forecast_periods="6:18:6",
+        cycletime="20170103T0000Z",
+        training_length=2,
+        unique_site_id_keys="wmo_id",
+    )
+
+    forecast_df, truth_df, _ = plugin([forecast_path, truth_path])
+
+    expected_forecast_df = amend_expected_forecast_df(
+        base_expected_forecast_df.copy(),
+        "6:18:6",
+        ["temperature_at_screen_level", "wind_speed_at_10m"],
+        ["air_temperature", "wind_speed"],
+        "percentile",
+        ["wmo_id"],
+    )
+    expected_truth_df = amend_expected_truth_df(
+        expected_truth_df, "temperature_at_screen_level"
+    )
+    pd.testing.assert_frame_equal(
+        forecast_df,
+        expected_forecast_df,
+        check_dtype=True,
+        check_datetimelike_compat=True,
+    )
+    pd.testing.assert_frame_equal(
+        truth_df, expected_truth_df, check_dtype=True, check_datetimelike_compat=True
+    )
 
 
 @pytest.mark.parametrize("make_files", [False, True])

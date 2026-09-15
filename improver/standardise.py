@@ -245,6 +245,10 @@ class StandardiseMetadata(BasePlugin):
 
         cube.data = as_correct_dtype(cube.data, get_required_dtype(cube))
         for coord in cube.coords():
+            # Ensure realization coordinate has units of 1 (dimensionless) rather than
+            # 'unknown' or another unit.
+            if coord.name() == "realization":
+                coord.units = "1"
             if coord.name() in TIME_COORDS and not check_units(coord):
                 coord.convert_units(get_required_units(coord))
             req_dtype = get_required_dtype(coord)

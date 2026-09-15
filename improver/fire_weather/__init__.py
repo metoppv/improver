@@ -37,7 +37,7 @@ class FireWeatherBase(BasePlugin):
 
     - Temperature: degrees Celsius (Celsius)
     - Precipitation: millimeters (mm)
-    - Relative humidity: dimensionless fraction (1)
+    - Relative humidity: percentage (%)
     - Wind speed: kilometers per hour (km/h)
     - All fire weather indices: dimensionless (1)
 
@@ -61,7 +61,7 @@ class FireWeatherBase(BasePlugin):
     _REQUIRED_UNITS: dict[str, str] = {
         "temperature": "Celsius",
         "precipitation": "mm",
-        "relative_humidity": "1",
+        "relative_humidity": "percent",
         "wind_speed": "km/h",
         # Fire weather indices are dimensionless
         "fine_fuel_moisture_code": "1",

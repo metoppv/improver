@@ -11,7 +11,6 @@ import numpy as np
 from iris.cube import Cube, CubeList
 
 from improver import PostProcessingPlugin
-from improver.metadata.constants import FLOAT_DTYPE
 from improver.utilities.common_input_handle import as_cubelist
 
 
@@ -43,16 +42,10 @@ class PollenMaximumIndexForPeriod(PostProcessingPlugin):
         # Stack the cubes along a new taxa dimension and calculate the maximum across that dimension
         stacked_data = np.stack([cube.data for cube in cubes], axis=0)
 
-        # Keep a copy of one of the input cubes' data to use for masking the output data later
-        input_data = deepcopy(cubes[0].data)
         # Create a new numpy array with this shape to hold the pollen index values, and fill it
         # with the maximum values across the taxa dimension
         pollen_index_data = np.max(stacked_data, axis=0)
-        self._output_cube.data = pollen_index_data.astype(FLOAT_DTYPE)
-        # Set values which are masked in _output_cube to nan
-        self._output_cube.data = np.where(
-            np.isnan(input_data), np.nan, self._output_cube.data
-        )
+        self._output_cube.data = pollen_index_data.astype(np.int32)
 
     def _metadata(self):
         """Change the cube name and other metadata.

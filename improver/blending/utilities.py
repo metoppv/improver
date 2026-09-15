@@ -101,6 +101,23 @@ def get_coords_to_remove(cube: Cube, blend_coord: str) -> List[str]:
     return crds_to_remove
 
 
+def remove_blend_time(cube: Cube) -> Cube:
+    """Remove an existing blend_time coordinate if present."""
+    if cube.coords("blend_time"):
+        cube.remove_coord("blend_time")
+    return cube
+
+
+def remove_deprecation_warnings(cube: Cube) -> Cube:
+    """Remove deprecation warnings from forecast time coordinates."""
+    for coord in ["forecast_period", "forecast_reference_time"]:
+        try:
+            cube.coord(coord).attributes.pop("deprecation_message", None)
+        except CoordinateNotFoundError:
+            pass
+    return cube
+
+
 def update_blended_metadata(
     cube: Cube,
     blend_coord: str,

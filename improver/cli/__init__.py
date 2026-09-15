@@ -364,7 +364,12 @@ def with_output(
             or all([isinstance(x, Cube) for x in result])
         )
     ):
-        save_netcdf(result, output, compression_level, least_significant_digit)
+        save_netcdf(
+            result,
+            output,
+            complevel=compression_level,
+            least_significant_digit=least_significant_digit,
+        )
         if pass_through_output:
             return ObjectAsStr(result, output)
         return

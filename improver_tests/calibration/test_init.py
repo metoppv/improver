@@ -683,7 +683,7 @@ def create_netcdf_file(tmp_path):
     output_dir = tmp_path / "netcdf_files"
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path = str(output_dir / "forecast.nc")
-    save_netcdf(cubelist=cube, filename=output_path, compression_level=0)
+    save_netcdf(cubelist=cube, filename=output_path, complevel=0)
 
     return cube, output_path
 

@@ -11,6 +11,7 @@ from datetime import datetime
 import iris
 import numpy as np
 import pytest
+from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube, CubeList
 from iris.util import promote_aux_coord_to_dim_coord
 
@@ -1693,6 +1694,86 @@ def test_clusterandmatch_precedence_order(
     _assert_secondary_input_realizations_to_clusters(result, expected_secondary_mapping)
 
 
+def test_clusterandmatch_global_precedence_full_over_partial():
+    """A lower-precedence partial input must not overwrite higher-precedence full.
+
+    secondary_model_1 is full and higher precedence. secondary_model_2 is partial
+    and lower precedence at the same forecast period.
+    """
+    pytest.importorskip("kmedoids")
+    pytest.importorskip("esmf_regrid")
+
+    cubes = CubeList()
+    spatial_shape = (5, 5)
+
+    # Primary input designed to produce three clusters.
+    cubes.extend(
+        _create_4d_realization_cube(
+            n_realizations=6,
+            forecast_periods=[0],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            model_id="primary_model",
+            realization_values=[0.0, 0.2, 100.0, 100.2, 200.0, 200.2],
+            merge=False,
+        )
+    )
+
+    # Higher-precedence full secondary input (n_realizations >= n_clusters).
+    cubes.extend(
+        _create_4d_realization_cube(
+            n_realizations=3,
+            forecast_periods=[0],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            model_id="secondary_model_1",
+            realization_values=[0.0, 100.0, 200.0],
+            merge=False,
+        )
+    )
+
+    # Lower-precedence partial deterministic input for the same forecast period.
+    det_cube = set_up_variable_cube(
+        np.full(spatial_shape, 20.0, dtype=np.float32),
+        name="air_temperature",
+        units="K",
+        spatial_grid="equalarea",
+    )
+    det_cube.attributes["model_id"] = "secondary_model_2"
+    det_cube.coord("forecast_period").points = [0]
+    det_cube.coord("time").points = [det_cube.coord("forecast_reference_time").points[0]]
+    cubes.append(det_cube)
+
+    cubes.append(_create_target_grid_cube())
+
+    hierarchy = {
+        "primary_input": "primary_model",
+        "secondary_inputs": {
+            "secondary_model_1": [0],
+            "secondary_model_2": [0],
+        },
+    }
+
+    result = RealizationClusterAndMatch(
+        hierarchy=hierarchy,
+        model_id_attr="model_id",
+        clustering_method="KMedoids",
+        target_grid_name="target_grid",
+        n_clusters=3,
+        random_state=42,
+    ).process(cubes)
+
+    # Lower-precedence deterministic value should not appear in output.
+    fp_data = result.extract(iris.Constraint(forecast_period=0)).data
+    assert not np.isclose(fp_data, 20.0, atol=1.0).any(), (
+        "Lower-precedence partial input should not overwrite full input clusters"
+    )
+
+    # All clusters should be sourced from the higher-precedence full input.
+    expected_sources = {(cluster_idx, 0): "secondary_model_1" for cluster_idx in range(3)}
+    _assert_cluster_sources_attribute(result, expected_sources)
+
+
 def test_clusterandmatch_overlapping_forecast_periods():
     """Test handling of overlapping forecast periods with different precedence."""
     pytest.importorskip("kmedoids")
@@ -2258,6 +2339,231 @@ def test_clusterandmatch_multiple_partial_secondary_same_forecast_period():
     )
 
 
+def test_clusterandmatch_partial_input_consistent_cluster_across_forecast_periods():
+    """Partial inputs must assign the same cluster at every lead time.
+
+    A partial secondary input (fewer realizations than n_clusters) was previously
+    matched independently per forecast period (fp), allowing the same realization to be
+    assigned to different clusters at different lead times depending on which
+    spatial pattern was locally closest.
+
+    The primary is designed with two clusters whose spatial patterns swap between
+    forecast periods:
+    - Cluster A: value~10 at fp=0, value~100 at fp=6
+    - Cluster B: value~100 at fp=0, value~10 at fp=6
+
+    The secondary has a single realization with value 12 at fp=0 and 15 at fp=6.
+
+    Per-fp MSE (lower MSE indicates a closer match):
+    - fp=0: secondary (12) vs cluster A (10) => MSE=4; vs cluster B (100) => MSE=7744
+            => old code assigns to cluster A   (consistent)
+    - fp=6: secondary (15) vs cluster A (100) => MSE=7225; vs cluster B (10) => MSE=25
+            => old code assigns to cluster B   (inconsistent)
+
+    Cross-fp avg MSE (new code where lower MSE indicates a closer match):
+    - vs cluster A: (4 + 7225)/2 = 3614.5
+    - vs cluster B: (7744 + 25)/2 = 3884.5
+    => new code assigns to cluster A at both fps
+    """
+    pytest.importorskip("kmedoids")
+
+    # Primary: 4 realizations, 2 fps. Patterns A and B swap between fps.
+    primary_fp0 = _create_4d_realization_cube(
+        n_realizations=4,
+        forecast_periods=[0],
+        y_dim=3,
+        x_dim=3,
+        model_id="primary_model",
+        realization_values=[10.0, 11.0, 100.0, 101.0],
+        merge=False,
+    )
+    primary_fp6 = _create_4d_realization_cube(
+        n_realizations=4,
+        forecast_periods=[6],
+        y_dim=3,
+        x_dim=3,
+        model_id="primary_model",
+        realization_values=[100.0, 101.0, 10.0, 11.0],
+        merge=False,
+    )
+
+    # Secondary: 1 realization (< 2 clusters => partial), values differ between fps.
+    # At fp=0 value=12 is close to cluster A (value~10).
+    # At fp=6 value=15 is close to cluster B (value~10), NOT cluster A (value~100).
+    secondary_fp0 = _create_4d_realization_cube(
+        n_realizations=1,
+        forecast_periods=[0],
+        y_dim=3,
+        x_dim=3,
+        model_id="secondary_model",
+        realization_values=[12.0],
+        merge=False,
+    )
+    secondary_fp6 = _create_4d_realization_cube(
+        n_realizations=1,
+        forecast_periods=[6],
+        y_dim=3,
+        x_dim=3,
+        model_id="secondary_model",
+        realization_values=[15.0],
+        merge=False,
+    )
+
+    cubes = CubeList(primary_fp0 + primary_fp6 + secondary_fp0 + secondary_fp6)
+
+    plugin = RealizationClusterAndMatch(
+        hierarchy={
+            "primary_input": "primary_model",
+            "secondary_inputs": {"secondary_model": [0, 6]},
+        },
+        model_id_attr="model_id",
+        clustering_method="KMedoids",
+        regrid_for_clustering=False,
+        n_clusters=2,
+        random_state=42,
+    )
+
+    result = plugin.process(cubes)
+
+    secondary_map = json.loads(
+        result.attributes["secondary_input_realizations_to_clusters"]
+    )["secondary_model"]
+
+    # With consistent cross-fp matching the single secondary realization should
+    # appear in exactly one cluster key, covering both forecast periods.
+    # With the old per-fp matching it would appear in two different cluster keys
+    # (one for fp=0 and a different one for fp=6), failing this assertion.
+    assert len(secondary_map) == 1, (
+        f"Expected the secondary realization to be assigned to exactly one cluster "
+        f"across all forecast periods, but got assignments to "
+        f"{len(secondary_map)} clusters: {secondary_map}"
+    )
+    cluster_key = next(iter(secondary_map))
+    entries = secondary_map[cluster_key]
+    assert len(entries) == 1
+    assert sorted(entries[0]["forecast_periods"]) == [0, 6 * 3600], (
+        f"Expected the secondary realization to cover both forecast periods "
+        f"[0, {6 * 3600}], got: {entries[0]['forecast_periods']}"
+    )
+
+
+@pytest.mark.parametrize(
+    "primary_n_realizations,n_clusters,secondary_fp0_n,secondary_fp6_n,case_desc",
+    [
+        # Partial case: secondary starts below n_clusters and drops again
+        (6, 5, 4, 3, "partial"),
+        # Full case: secondary starts at/above n_clusters and then drops
+        (4, 2, 3, 2, "full"),
+    ],
+)
+def test_clusterandmatch_inconsistent_realization_counts_truncates(
+    primary_n_realizations,
+    n_clusters,
+    secondary_fp0_n,
+    secondary_fp6_n,
+    case_desc,
+):
+    """Secondary input is truncated at the first realization-count mismatch.
+
+    This parameterized test covers both:
+    - a partial-secondary case (secondary starts with fewer realizations than
+        n_clusters), and
+    - a full-secondary case (secondary starts with at least n_clusters
+        realizations).
+
+    In both cases, the secondary input has a different realization count at the
+    next forecast period. This can happen, for example, when a cycle blended forecast
+    source is reaching the end of its leadtime range. Rather than continuing to use the
+    secondary input with a different realization count, the plugin should not use it,
+    and revert to using the clustered primary data.
+    The plugin should therefore:
+    1. Issue a warning about inconsistent realization counts.
+    2. Keep only forecast periods up to (but excluding) the first mismatch for
+        that secondary input.
+    3. Fall back to clustered primary data at the mismatched and later forecast
+        periods.
+    """
+    pytest.importorskip("kmedoids")
+
+    cubes = CubeList()
+    cubes.extend(
+        _create_4d_realization_cube(
+            n_realizations=primary_n_realizations,
+            forecast_periods=[0, 6],
+            y_dim=4,
+            x_dim=4,
+            model_id="primary_model",
+            base_value=100.0,
+            merge=False,
+        )
+    )
+    cubes.extend(
+        _create_4d_realization_cube(
+            n_realizations=secondary_fp0_n,
+            forecast_periods=[0],
+            y_dim=4,
+            x_dim=4,
+            model_id="secondary_model",
+            base_value=200.0,
+            merge=False,
+        )
+    )
+    cubes.extend(
+        _create_4d_realization_cube(
+            n_realizations=secondary_fp6_n,
+            forecast_periods=[6],
+            y_dim=4,
+            x_dim=4,
+            model_id="secondary_model",
+            base_value=200.0,
+            merge=False,
+        )
+    )
+
+    plugin = RealizationClusterAndMatch(
+        hierarchy={
+            "primary_input": "primary_model",
+            "secondary_inputs": {"secondary_model": [0, 6]},
+        },
+        model_id_attr="model_id",
+        clustering_method="KMedoids",
+        regrid_for_clustering=False,
+        n_clusters=n_clusters,
+        random_state=42,
+    )
+
+    with pytest.warns(
+        UserWarning,
+        match=(
+            r"Secondary input 'secondary_model' has inconsistent realization counts "
+            r"across forecast periods"
+        ),
+    ):
+        result = plugin.process(cubes)
+
+    secondary_map = json.loads(
+        result.attributes["secondary_input_realizations_to_clusters"]
+    )["secondary_model"]
+    mapped_fps = sorted(
+        {
+            fp
+            for entries in secondary_map.values()
+            for entry in entries
+            for fp in entry["forecast_periods"]
+        }
+    )
+    assert mapped_fps == [0], f"{case_desc}: only fp=0 should be mapped"
+
+    fp_6_data = result.extract(iris.Constraint(forecast_period=6 * 3600)).data
+    # Asserting that the result at T+6 is close to 106 demonstrates that the
+    # plugin has fallen back to using the clustered primary data (base_value + 6),
+    # rather than using the secondary input where the number of realizations at T+6
+    # has dropped relative to T+0.
+    assert np.allclose(fp_6_data, 106.0, atol=5.0), (
+        f"{case_desc}: fp=6 should fall back to clustered primary when truncated"
+    )
+
+
 def test_clusterandmatch_categorise_mixed_realizations():
     """Test categorisation with mix of full and partial realizations.
 
@@ -2778,6 +3084,392 @@ def test_clusterandmatch_secondary_input_missing_primary_forecast_period(
             assert np.allclose(fp_data, expected_value, atol=5.0), (
                 f"fp={fp_hours} should use primary_model"
             )
+
+
+def test_clusterandmatch_secondary_no_matching_cubes_warns():
+    """Test that a warning is issued when a hierarchy secondary input has no cubes
+    matching the model_id_attr value in the specified forecast period range.
+
+    This verifies that when the hierarchy references a secondary model name that does
+    not match any cube's model_id attribute, the plugin warns and skips that input
+    rather than silently ignoring it.
+    """
+    pytest.importorskip("kmedoids")
+    pytest.importorskip("esmf_regrid")
+
+    cubes = CubeList()
+    spatial_shape = (3, 3)
+
+    cubes.extend(
+        _create_4d_realization_cube(
+            n_realizations=3,
+            forecast_periods=[0, 6],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            base_value=100.0,
+            model_id="primary_model",
+            merge=False,
+        )
+    )
+    cubes.append(_create_target_grid_cube(spatial_shape=spatial_shape))
+
+    hierarchy = {
+        "primary_input": "primary_model",
+        "secondary_inputs": {"nonexistent_model": [0, 6]},
+    }
+
+    plugin = RealizationClusterAndMatch(
+        hierarchy=hierarchy,
+        model_id_attr="model_id",
+        clustering_method="KMedoids",
+        target_grid_name="target_grid",
+        n_clusters=2,
+        random_state=42,
+    )
+
+    with pytest.warns(
+        UserWarning,
+        match=(
+            r"Secondary input 'nonexistent_model' has no cubes matching "
+            r"model_id='nonexistent_model' in the forecast period range \[0, 6\]\."
+        ),
+    ):
+        plugin.process(cubes)
+
+
+def test_clusterandmatch_unreferenced_model_id_warns():
+    """Test that a warning is issued when input cubes contain model_id_attr values
+    not referenced in the hierarchy.
+
+    This verifies that when extra cubes are supplied with a model_id attribute value
+    that does not appear in the hierarchy (neither as primary_input nor as a secondary
+    input key), the plugin warns that those cubes will be ignored.
+    """
+    pytest.importorskip("kmedoids")
+    pytest.importorskip("esmf_regrid")
+
+    cubes = CubeList()
+    spatial_shape = (3, 3)
+
+    cubes.extend(
+        _create_4d_realization_cube(
+            n_realizations=3,
+            forecast_periods=[0, 6],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            base_value=100.0,
+            model_id="primary_model",
+            merge=False,
+        )
+    )
+    # Extra cube whose model_id is not in the hierarchy.
+    cubes.extend(
+        _create_4d_realization_cube(
+            n_realizations=3,
+            forecast_periods=[0, 6],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            base_value=200.0,
+            model_id="unlisted_model",
+            merge=False,
+        )
+    )
+    cubes.append(_create_target_grid_cube(spatial_shape=spatial_shape))
+
+    hierarchy = {
+        "primary_input": "primary_model",
+        "secondary_inputs": {},
+    }
+
+    plugin = RealizationClusterAndMatch(
+        hierarchy=hierarchy,
+        model_id_attr="model_id",
+        clustering_method="KMedoids",
+        target_grid_name="target_grid",
+        n_clusters=2,
+        random_state=42,
+    )
+
+    with pytest.warns(
+        UserWarning,
+        match=(
+            r"Input cubes have model_id values not referenced in the hierarchy: "
+            r"\['unlisted_model'\]\. These cubes will be ignored\."
+        ),
+    ):
+        result = plugin.process(cubes)
+
+    assert all(
+        "unlisted_model" not in str(value)
+        for value in result.attributes.values()
+    )
+
+
+def test_clusterandmatch_deterministic_secondary_input():
+    """Test that a deterministic (no-realization) secondary input is supported.
+
+    The primary input provides the baseline clustered forecast for all forecast periods.
+    When a secondary input cube has no realization coordinate it should be treated
+    as having a single realization and follow the partial-realization path, replacing
+    the best-matching cluster at the relevant forecast periods with its data.
+    """
+    pytest.importorskip("kmedoids")
+    pytest.importorskip("esmf_regrid")
+
+    cubes = CubeList()
+    spatial_shape = (3, 3)
+
+    # Primary ensemble input — 4 realizations, base value 100.
+    cubes.extend(
+        _create_4d_realization_cube(
+            n_realizations=4,
+            forecast_periods=[0, 6],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            base_value=100.0,
+            model_id="primary_model",
+            merge=False,
+        )
+    )
+
+    # Deterministic secondary input — 2D cubes with no realization coordinate,
+    # base value 500 (far from primary so it will match the nearest cluster).
+    for fp_hours in [0, 6]:
+        det_data = np.full(spatial_shape, 500.0 + fp_hours, dtype=np.float32)
+        det_cube = set_up_variable_cube(
+            det_data,
+            name="air_temperature",
+            units="K",
+            spatial_grid="equalarea",
+        )
+        det_cube.attributes["model_id"] = "det_model"
+        # Set time coordinates to match the primary cubes.
+        det_cube.coord("forecast_period").points = [fp_hours * 3600]
+        det_cube.coord("time").points = [
+            det_cube.coord("forecast_reference_time").points[0] + fp_hours * 3600
+        ]
+        assert not det_cube.coords("realization"), (
+            "Deterministic cube should have no realization coordinate"
+        )
+        cubes.append(det_cube)
+
+    cubes.append(_create_target_grid_cube(spatial_shape=spatial_shape))
+
+    hierarchy = {
+        "primary_input": "primary_model",
+        "secondary_inputs": {"det_model": [0, 6]},
+    }
+
+    plugin = RealizationClusterAndMatch(
+        hierarchy=hierarchy,
+        model_id_attr="model_id",
+        clustering_method="KMedoids",
+        target_grid_name="target_grid",
+        n_clusters=2,
+        random_state=42,
+    )
+
+    result = plugin.process(cubes)
+
+    # Result should have realization as a dimension coordinate.
+    assert result.coords("realization", dim_coords=True)
+    assert result.coord("realization").points.size == 2
+
+    # Both forecast periods should be present.
+    np.testing.assert_array_equal(
+        result.coord("forecast_period").points, [0, 6 * 3600]
+    )
+
+    # The deterministic value (500 / 506) is far from the primary (100 / 106), so
+    # exactly one cluster should carry the deterministic data at each lead time.
+    for fp_hours in [0, 6]:
+        fp_data = result.extract(
+            iris.Constraint(forecast_period=fp_hours * 3600)
+        ).data
+        expected_det = 500.0 + fp_hours
+        expected_primary = 100.0 + fp_hours
+        det_clusters = np.isclose(fp_data, expected_det, atol=5.0).any(axis=(-1, -2))
+        primary_clusters = np.isclose(fp_data, expected_primary, atol=5.0).any(
+            axis=(-1, -2)
+        )
+        assert det_clusters.sum() == 1, (
+            f"fp={fp_hours}h: exactly one cluster should carry deterministic data"
+        )
+        assert primary_clusters.sum() == 1, (
+            f"fp={fp_hours}h: exactly one cluster should carry primary data"
+        )
+
+
+def test_clusterandmatch_secondary_scalar_realization_coord():
+    """Test secondary input with scalar realization coord is promoted to a dimension.
+
+    This covers deterministic-style inputs that carry a scalar realization
+    coordinate (e.g. realization=0) rather than no realization coordinate.
+    """
+    pytest.importorskip("kmedoids")
+    pytest.importorskip("esmf_regrid")
+
+    cubes = CubeList()
+    spatial_shape = (3, 3)
+
+    # Primary ensemble input — 4 realizations, base value 100.
+    cubes.extend(
+        _create_4d_realization_cube(
+            n_realizations=4,
+            forecast_periods=[0, 6],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            base_value=100.0,
+            model_id="primary_model",
+            merge=False,
+        )
+    )
+
+    # Secondary input with scalar (non-dimensional) realization coordinate.
+    for fp_hours in [0, 6]:
+        sec_data = np.full(spatial_shape, 500.0 + fp_hours, dtype=np.float32)
+        sec_cube = set_up_variable_cube(
+            sec_data,
+            name="air_temperature",
+            units="K",
+            spatial_grid="equalarea",
+        )
+        sec_cube.attributes["model_id"] = "scalar_realization_model"
+        sec_cube.coord("forecast_period").points = [fp_hours * 3600]
+        sec_cube.coord("time").points = [
+            sec_cube.coord("forecast_reference_time").points[0] + fp_hours * 3600
+        ]
+        sec_cube.add_aux_coord(
+            DimCoord(0, standard_name="realization", units="1")
+        )
+        assert sec_cube.coords("realization")
+        assert not sec_cube.coord_dims("realization")
+        cubes.append(sec_cube)
+
+    cubes.append(_create_target_grid_cube(spatial_shape=spatial_shape))
+
+    hierarchy = {
+        "primary_input": "primary_model",
+        "secondary_inputs": {"scalar_realization_model": [0, 6]},
+    }
+
+    plugin = RealizationClusterAndMatch(
+        hierarchy=hierarchy,
+        model_id_attr="model_id",
+        clustering_method="KMedoids",
+        target_grid_name="target_grid",
+        n_clusters=2,
+        random_state=42,
+    )
+
+    result = plugin.process(cubes)
+
+    # Result should have realization as a dimension coordinate and both fps present.
+    assert result.coords("realization", dim_coords=True)
+    assert result.coord("realization").points.size == 2
+    np.testing.assert_array_equal(
+        result.coord("forecast_period").points, [0, 6 * 3600]
+    )
+
+
+@pytest.mark.parametrize(
+    "secondary_kind",
+    ["partial_deterministic", "full_ensemble"],
+)
+def test_clusterandmatch_secondary_with_deprecation_message_merges(secondary_kind):
+    """Test that the merging of cubes from different forecast sources succeeds,
+    even if the some of the forecast sources have already been blended, and
+    therefore additional metadata is present e.g. a blend_time coordinate and a
+    deprecation message on the forecast_reference_time coordinate.
+
+    This exercises both matching routes:
+    - partial_deterministic: secondary has no realization dimension (< n_clusters)
+    - full_ensemble: secondary has >= n_clusters realizations
+    """
+    pytest.importorskip("kmedoids")
+    pytest.importorskip("esmf_regrid")
+
+    cubes = CubeList()
+    spatial_shape = (3, 3)
+
+    # Primary ensemble input.
+    cubes.extend(
+        _create_4d_realization_cube(
+            n_realizations=4,
+            forecast_periods=[0, 6],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            base_value=100.0,
+            model_id="primary_model",
+            merge=False,
+        )
+    )
+
+    if secondary_kind == "partial_deterministic":
+        for fp_hours in [0, 6]:
+            sec_data = np.full(spatial_shape, 500.0 + fp_hours, dtype=np.float32)
+            sec_cube = set_up_variable_cube(
+                sec_data,
+                name="air_temperature",
+                units="K",
+                spatial_grid="equalarea",
+            )
+            sec_cube.attributes["model_id"] = "secondary_model"
+            sec_cube.coord("forecast_period").points = [fp_hours * 3600]
+            sec_cube.coord("time").points = [
+                sec_cube.coord("forecast_reference_time").points[0] + fp_hours * 3600
+            ]
+            cubes.append(sec_cube)
+    else:
+        cubes.extend(
+            _create_4d_realization_cube(
+                n_realizations=4,
+                forecast_periods=[0, 6],
+                y_dim=spatial_shape[0],
+                x_dim=spatial_shape[1],
+                base_value=500.0,
+                model_id="secondary_model",
+                merge=False,
+            )
+        )
+
+    # Add metadata known to cause merge mismatches when not harmonised.
+    for cube in cubes:
+        if cube.attributes.get("model_id") != "secondary_model":
+            continue
+        frt_coord = cube.coord("forecast_reference_time")
+        frt_coord.attributes["deprecation_message"] = (
+            "forecast_reference_time will be removed in future and should not be used"
+        )
+        cube.add_aux_coord(
+            AuxCoord(
+                frt_coord.points.copy(),
+                long_name="blend_time",
+                units=frt_coord.units,
+            )
+        )
+
+    cubes.append(_create_target_grid_cube(spatial_shape=spatial_shape))
+
+    plugin = RealizationClusterAndMatch(
+        hierarchy={
+            "primary_input": "primary_model",
+            "secondary_inputs": {"secondary_model": [0, 6]},
+        },
+        model_id_attr="model_id",
+        clustering_method="KMedoids",
+        target_grid_name="target_grid",
+        n_clusters=2,
+        random_state=42,
+    )
+
+    result = plugin.process(cubes)
+
+    # Check that no blend_time coordinate is present on the result and that
+    # forecast_reference_time attributes are cleared. This metadata can sometimes
+    # exist on the inputs but can prevent merging if not removed.
+    assert not result.coords("blend_time")
+    assert result.coord("forecast_reference_time").attributes == {}
 
 
 def test_select_realizations_for_kmedoid_clusters_too_many_clusters():

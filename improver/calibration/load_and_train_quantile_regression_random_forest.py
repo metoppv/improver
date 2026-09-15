@@ -155,6 +155,24 @@ class LoadForTrainQRF(PostProcessingPlugin):
         forecast_periods = sorted(set(all_periods))
         return [fp * 3600 for fp in forecast_periods]
 
+    def _strip_unique_site_id_whitespace(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Strip whitespace from string-valued unique site ID columns. This is
+        to ensure that additional whitespace doesn't prevent sites from matching
+        between different forecast inputs and between the forecast and truth data
+        (e.g. "03003" vs "03003   ").
+
+        Args:
+            df: DataFrame containing the forecast or truth data.
+
+        Returns:
+            DataFrame with whitespace stripped from string-valued unique site ID
+            columns.
+        """
+        for key in self.unique_site_id_keys:
+            if key in df.columns and pd.api.types.is_string_dtype(df[key]):
+                df[key] = df[key].str.strip()
+        return df
+
     def _read_parquet_files(
         self,
         forecast_table_path: pathlib.Path | str,
@@ -228,27 +246,26 @@ class LoadForTrainQRF(PostProcessingPlugin):
                 engine="pyarrow",
             )
 
-            if forecast_df is None:
-                # If processing the first diagnostic, use it to create the base
-                # DataFrame.
-                if additional_df.empty:
-                    return None, None
-                additional_df.rename(columns={"forecast": cf_name}, inplace=True)
-                forecast_df = additional_df
-                continue
-
-            # Convert additional features from rows to columns.
-            representation = (
-                "percentile" if "percentile" in additional_df.columns else "realization"
-            )
-
             if additional_df.empty:
+                if forecast_df is None:
+                    return None, None
                 msg = (
                     "The requested parquet diagnostic name is not present in the "
                     f"forecast parquet file: {parquet_diagnostic_name}."
                 )
                 raise ValueError(msg)
 
+            # Single shared strip call for every forecast dataframe loaded.
+            additional_df = self._strip_unique_site_id_whitespace(additional_df)
+
+            if forecast_df is None:
+                additional_df.rename(columns={"forecast": cf_name}, inplace=True)
+                forecast_df = additional_df
+                continue
+
+            representation = (
+                "percentile" if "percentile" in additional_df.columns else "realization"
+            )
             merge_on = [
                 *self.unique_site_id_keys,
                 "forecast_reference_time",
@@ -295,6 +312,8 @@ class LoadForTrainQRF(PostProcessingPlugin):
 
         truth_df["time"] = pd.to_datetime(truth_df["time"], unit="ns", utc=True)
         truth_df["time"] = truth_df["time"].astype("datetime64[ns, UTC]")
+
+        truth_df = self._strip_unique_site_id_whitespace(truth_df)
 
         if truth_df.empty:
             msg = (

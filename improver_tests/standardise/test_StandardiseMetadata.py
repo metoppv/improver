@@ -434,6 +434,15 @@ class Test_process(ImproverTest):
         self.assertEqual(result.coord("realization").points, 1)
         self.assertEqual(result.coord("realization").attributes["positive"], "up")
 
+    def test_assign_realization_units(self):
+        """Test that realization coordinate is assigned units of 1."""
+        cube = self.cube.copy()
+        cube.add_aux_coord(DimCoord([0], standard_name="realization", units="unknown"))
+
+        result = StandardiseMetadata().process(cube)
+
+        self.assertEqual(result.coord("realization").units, "1")
+
 
 if __name__ == "__main__":
     unittest.main()
