@@ -25,9 +25,6 @@ def process(
     clipping_bounds: cli.comma_separated_list = None,
     clip_in_scaled_space: bool = False,
     clip_to_physical_bounds: bool = False,
-    max_batch: int = 1,
-    parallel_backend: str = None,
-    n_workers: int = 1,
     transition_weights_scheme: str = "linear",
     morphing_method: str = "google_film",
     apply_quantile_mapping: bool = False,
@@ -76,12 +73,6 @@ def process(
             If True, clipping is applied before reverse scaling.
         clip_to_physical_bounds (bool):
             If True, clipping is applied after reverse scaling to the physical range.
-        max_batch (int):
-            Maximum batch size for FILM inference.
-        parallel_backend (str):
-            Parallel backend to use for FILM inference, or None for serial execution.
-        n_workers (int):
-            Number of workers used for parallel processing.
         transition_weights_scheme (str):
             Weighting scheme used during the transition, chosen from "linear" or
             "smoothstep".
@@ -116,9 +107,6 @@ def process(
         clipping_bounds=clipping_bounds,
         clip_in_scaled_space=clip_in_scaled_space,
         clip_to_physical_bounds=clip_to_physical_bounds,
-        max_batch=max_batch,
-        parallel_backend=parallel_backend,
-        n_workers=n_workers,
         transition_weights_scheme=transition_weights_scheme,
         morphing_method=morphing_method,
         apply_quantile_mapping=apply_quantile_mapping,

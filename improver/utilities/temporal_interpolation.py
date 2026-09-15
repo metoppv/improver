@@ -2048,12 +2048,16 @@ class GoogleFilmInterpolation(BasePlugin):
                 intended for use in testing where a mock model loader can be
                 supplied. If None, the default model loader will be used.
             interpolation_fractions:
-                Optional fraction, or sequence of fractions, describing progress
-                from cube1 to cube2. Values must lie between 0 and 1.
+                Optional scalar or sequence of fractions describing progress from
+                cube1 to cube2. Values must lie between 0 and 1 inclusive.
+
                 If omitted, fractions are calculated from the input and output
-                validity times, giving the existing temporal interpolation
-                behaviour. If supplied, cube1 and cube2 may have the same validity time.
-                This supports source morphing at constant validity time.
+                validity times, giving the standard temporal interpolation behaviour.
+
+                If supplied, cube1 and cube2 may have the same validity time,
+                allowing source morphing at a fixed validity time. A scalar applies
+                the same fraction to every output slice; a sequence provides one
+                fraction per output slice.
 
         Raises:
             ValueError: If an unsupported scaling method is provided.
@@ -2195,6 +2199,8 @@ class GoogleFilmInterpolation(BasePlugin):
             ValueError: If any interpolation fraction is not finite or not in [0, 1].
         """
         if self.interpolation_fractions is None:
+            # Default temporal interpolation: infer each output slice's fraction from
+            # the time difference between the source cubes.
             t0 = cube1.coord("time").points[0]
             t1 = cube2.coord("time").points[0]
             time_range = t1 - t0
@@ -2211,8 +2217,13 @@ class GoogleFilmInterpolation(BasePlugin):
                 for template_slice in template_slices
             ]
         elif np.isscalar(self.interpolation_fractions):
+            # Source morphing at a fixed validity time: use one constant blend weight
+            # for all output slices.
             fractions = [float(self.interpolation_fractions)] * len(template_slices)
         else:
+            # Explicit per-slice fractions for a custom morphing/interpolation path,
+            # where each output slice can target a different position between cube1
+            # and cube2.
             fractions = [float(value) for value in self.interpolation_fractions]
 
             if len(fractions) != len(template_slices):
@@ -2464,6 +2475,8 @@ class GoogleFilmInterpolation(BasePlugin):
                     f"Coordinate '{extra_dim}' does not match between cubes."
                 )
 
+        # Only load the model if parallel_backend is None. If the parallel_backend
+        # is set, each worker will load its own model.
         model = None
         if self.parallel_backend is None:
             model = self.model_loader(self.model_path)
@@ -2471,10 +2484,8 @@ class GoogleFilmInterpolation(BasePlugin):
         # Avoid modifying the caller's cubes during scaling.
         cube1_orig = cube1.copy()
         cube2_orig = cube2.copy()
-        cube1_scaled = cube1.copy()
-        cube2_scaled = cube2.copy()
 
-        self._apply_scaling(cube1_scaled, cube2_scaled, self.scaling)
+        self._apply_scaling(cube1, cube2, self.scaling)
 
         template_slices = list(template_interpolated_cube.slices_over("time"))
 
@@ -2486,8 +2497,8 @@ class GoogleFilmInterpolation(BasePlugin):
 
         if extra_dim:
             interpolated_cubes = self._interpolate_with_extra_dim(
-                cube1_scaled,
-                cube2_scaled,
+                cube1,
+                cube2,
                 template_slices,
                 fractions,
                 model,
@@ -2497,8 +2508,8 @@ class GoogleFilmInterpolation(BasePlugin):
             )
         else:
             interpolated_cubes = self._interpolate_no_extra_dim(
-                cube1_scaled,
-                cube2_scaled,
+                cube1,
+                cube2,
                 template_slices,
                 fractions,
                 model,

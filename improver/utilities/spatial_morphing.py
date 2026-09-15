@@ -37,6 +37,13 @@ class SpatialMorphing(BasePlugin):
     smooth blended forecasts where different sources contribute smoothly based on
     configured transition characteristics.
 
+    The input cubes are all expected to represent the same validity time. The
+    forecast period is used only to determine the blending weight within a
+    configured transition window between source_a and source_b; it is not treated
+    as a separate time for temporal interpolation. In other words, this is a
+    model-blending step at one valid time, with the resulting weight passed to the
+    morphing backend for spatial blending between the two source fields.
+
     Workflow:
     1. Split input cubes into forecast cubes and cluster cube (from
        RealizationClusterAndMatch).
@@ -68,18 +75,14 @@ class SpatialMorphing(BasePlugin):
         cluster_number: int,
         model_id_attr: str = "mosg__model_configuration",
         cycletime: str | None = None,
-        selection_attr: str | None = None,
-        selection_attr_value: str = "spatial_morphing",
+        selection_attr: str | None = "spatial_morphing",
+        selection_attr_value: str = "cluster_medoid",
         transitions: dict[str, Any] | None = None,
         model_path: str | None = None,
         scaling: str = "minmax",
         clipping_bounds: tuple[float, float] | None = None,
-        clip_in_scaled_space: bool = True,
+        clip_in_scaled_space: bool = False,
         clip_to_physical_bounds: bool = False,
-        max_batch: int | None = 1,
-        parallel_backend: str | None = None,
-        n_workers: int | None = 1,
-        model_loader: Any = None,
         transition_weights_scheme: str = "linear",
         morphing_method: str = "google_film",
         apply_quantile_mapping: bool = False,
@@ -112,11 +115,6 @@ class SpatialMorphing(BasePlugin):
             clip_in_scaled_space: If True, clipping is applied before reverse scaling.
             clip_to_physical_bounds: If True, clipping is applied after reverse
                 scaling to the physical domain.
-            max_batch: Maximum batch size used for FILM inference.
-            parallel_backend: Backend used for parallel processing, or None for serial
-                execution.
-            n_workers: Number of workers used for parallel processing.
-            model_loader: Optional callable used to load the TensorFlow model.
             transition_weights_scheme: Weighting scheme used during a transition.
                 Supported values are "linear" and "smoothstep".
             morphing_method: Spatial morphing backend to use for transitions.
@@ -146,10 +144,6 @@ class SpatialMorphing(BasePlugin):
         self.clipping_bounds = _as_tuple_if_list(clipping_bounds)
         self.clip_in_scaled_space = clip_in_scaled_space
         self.clip_to_physical_bounds = clip_to_physical_bounds
-        self.max_batch = max_batch
-        self.parallel_backend = parallel_backend
-        self.n_workers = n_workers
-        self.model_loader = model_loader
         self.transition_weights_scheme = transition_weights_scheme
         self.morphing_method = morphing_method
         self.occurrence_threshold = occurrence_threshold
@@ -257,42 +251,6 @@ class SpatialMorphing(BasePlugin):
 
         return parsed_transitions
 
-    def _find_active_transition_for_source(
-        self,
-        source_tag: str,
-        selected_source_name: str,
-        forecast_period: int,
-        active_transitions: list[dict[str, Any]],
-    ) -> dict[str, Any] | None:
-        """Return the transition that matches the selected source name.
-
-        Args:
-            source_tag: Either "source_a" or "source_b" to indicate which source
-                to match against.
-            selected_source_name: The name of the source to match.
-            forecast_period: The forecast period (in seconds) to check for active
-                transitions.
-            active_transitions: List of transitions that are active at the given
-                forecast period.
-
-        Returns:
-            The matching transition dictionary if found, otherwise None.
-        Raises:
-            ValueError: If multiple transitions match the selected source name.
-        """
-        source_matches = [
-            transition
-            for transition in active_transitions
-            if transition[source_tag] == selected_source_name
-        ]
-        if len(source_matches) == 1:
-            return source_matches[0]
-        if len(source_matches) > 1:
-            raise ValueError(
-                "Multiple transitions match forecast_period="
-                f"{forecast_period} and {source_tag}={selected_source_name!r}"
-            )
-
     @staticmethod
     def _match_transition_against_sources(
         active_transitions: list[dict[str, Any]],
@@ -322,11 +280,18 @@ class SpatialMorphing(BasePlugin):
                 available.
 
         Returns:
-            The matching transition dictionary, or None if no transition is both
-            active and compatible with the currently available source set.
+            The matching transition dictionary, or None if no compatible transition
+            is found.
+
+        Raises:
+            ValueError: If more than one compatible transition remains after
+                filtering by the selected source and available source set. This
+                indicates the configuration is ambiguous and cannot be resolved
+                without additional information.
         """
+        matching = []
         for tag_a, tag_b in (("source_b", "source_a"), ("source_a", "source_b")):
-            matching = [
+            matching.extend(
                 transition
                 for transition in active_transitions
                 if transition[tag_a] == selected_source_name
@@ -334,9 +299,16 @@ class SpatialMorphing(BasePlugin):
                     available_source_names is None
                     or transition[tag_b] in available_source_names
                 )
-            ]
-            if matching:
-                return matching[0]
+            )
+
+        if len(matching) > 1:
+            raise ValueError(
+                "Multiple compatible transitions remain for selected source "
+                f"{selected_source_name!r}: "
+                f"{[t['source_a'] + '->' + t['source_b'] for t in matching]!r}"
+            )
+        if matching:
+            return matching[0]
 
     @staticmethod
     def _format_transition_mismatch_error(
@@ -414,8 +386,7 @@ class SpatialMorphing(BasePlugin):
 
         Raises:
             ValueError: If multiple transitions match the forecast period and
-                selected_source_name is not provided, or if no matching transition
-                is found.
+                selected_source_name is not provided.
         """
         active_transitions = [
             transition
@@ -463,17 +434,25 @@ class SpatialMorphing(BasePlugin):
         start_forecast_period_seconds: int,
         end_forecast_period_seconds: int,
     ) -> float:
-        """Calculate the interpolation weight between explicit transition bounds.
+        """Calculate the blending weight for a transition window.
+
+        This method does not perform temporal interpolation between different
+        validity times. For a single validity time, it computes the relative
+        position of ``forecast_period`` within the configured transition window,
+        giving the blend fraction between source_a and source_b at that time.
 
         Args:
-            forecast_period: The forecast period (in seconds) for which to calculate
-                the weight.
-            start_forecast_period_seconds: The start of the transition period (in
-                seconds).
-            end_forecast_period_seconds: The end of the transition period (in
-                seconds).
+            forecast_period: Forecast period in seconds for which the transition
+                weight is required.
+            start_forecast_period_seconds: Lower bound of the transition window in
+                seconds.
+            end_forecast_period_seconds: Upper bound of the transition window in
+                seconds.
+
         Returns:
-            The interpolation weight as a float between 0.0 and 1.0.
+            A float in the range [0, 1] representing the relative position of the
+            forecast period within the transition window. Values below the start of
+            the window return 0.0 and values above the end return 1.0.
         """
         if forecast_period <= start_forecast_period_seconds:
             return 0.0
@@ -499,7 +478,7 @@ class SpatialMorphing(BasePlugin):
             weight: Morphing weight (0.0 to 1.0).
 
         Returns:
-            Morphed cube at the specified weight.
+            Morphed cube at the specified weight, with data returned as float32.
 
         Raises:
             ValueError: If weight is outside [0, 1] or if FILM config is missing.
@@ -518,38 +497,39 @@ class SpatialMorphing(BasePlugin):
             clipping_bounds=self.clipping_bounds,
             clip_in_scaled_space=self.clip_in_scaled_space,
             clip_to_physical_bounds=self.clip_to_physical_bounds,
-            max_batch=self.max_batch,
-            parallel_backend=self.parallel_backend,
-            n_workers=self.n_workers,
-            model_loader=self.model_loader,
             interpolation_fractions=weight,
         )
 
         # Create template cube for interpolation result
         template = cube_a.copy()
 
-        # Call FILM with weight as time_fraction. The backend returns a list of
-        # interpolated cubes for the requested interpolation fractions, so we keep
-        # the single result corresponding to this weight rather than returning the
-        # whole collection.
+        # Call FILM with weight as time_fraction.
         result_cubes = interpolator.process(cube_a, cube_b, template)
 
         if len(result_cubes) == 0:
             raise RuntimeError("Google FILM interpolation returned no results")
 
-        return result_cubes[0]
+        result = result_cubes[0]
+        result.data = result.data.astype(np.float32)
+        return result
 
     def _apply_morphing_backend(
         self, cube_a: Cube, cube_b: Cube, weight: float
     ) -> Cube:
         """Apply the configured morphing backend between two source cubes.
+
         Args:
-            cube_a: First source cube.
-            cube_b: Second source cube.
-            weight: Morphing weight (0.0 to 1.0).
+            cube_a: First source cube used as the lower-weight endpoint.
+            cube_b: Second source cube used as the upper-weight endpoint.
+            weight: Morphing weight in the range [0, 1], where 0 corresponds to
+                ``cube_a`` and 1 corresponds to ``cube_b``.
 
         Returns:
-            Morphed cube at the specified weight.
+            A cube containing the blended result produced by the selected morphing
+            backend.
+
+        Raises:
+            ValueError: If the requested ``morphing_method`` is not supported.
         """
         if self.morphing_method == "google_film":
             return self._call_google_film_for_morphing(cube_a, cube_b, weight)
@@ -642,8 +622,8 @@ class SpatialMorphing(BasePlugin):
         source_name: str,
         cluster_number: int,
         target_period: int,
-        secondary_map: dict[str, dict[str, list[dict[str, list[int]]]]] | None,
         primary_map: dict[str, int],
+        secondary_map: dict[str, dict[str, list[dict[str, list[int]]]]] | None,
         cluster_cube: Cube,
         full_cluster_to_selection: dict[int, tuple[str, int]],
     ) -> int | None:
@@ -654,13 +634,13 @@ class SpatialMorphing(BasePlugin):
             cluster_number: Cluster being processed.
             target_period: Forecast period in seconds used to find the most relevant
                 source realization.
+            primary_map: Primary cluster-to-realization mapping e.g.
+                {'0': 49, '1': 33, '2': 44, '3': 29} where the key is the cluster
+                number and the value is the realization index.
             secondary_map: Optional secondary realization map e.g.
                 {'source_a': {'0': [{'realization': 17, 'forecast_periods':
                 [475200, 518400, 561600, 604800, 648000]}]}} where the key is the
                 source name, the value is a dictionary keyed by cluster number.
-            primary_map: Primary cluster-to-realization mapping e.g.
-                {'0': 49, '1': 33, '2': 44, '3': 29} where the key is the cluster
-                number and the value is the realization index.
             cluster_cube: Cube containing the cluster mapping metadata.
             full_cluster_to_selection: Full mapping from cluster number to the
                 selected source/realization pairing.
@@ -984,8 +964,8 @@ class SpatialMorphing(BasePlugin):
                     source_name=fallback_source,
                     cluster_number=self.cluster_number,
                     target_period=self.forecast_period,
-                    secondary_map=secondary_map,
                     primary_map=primary_map,
+                    secondary_map=secondary_map,
                     cluster_cube=cluster_cube,
                     full_cluster_to_selection=cluster_to_selection,
                 )
@@ -1086,8 +1066,8 @@ class SpatialMorphing(BasePlugin):
             source_name=source_a,
             cluster_number=cluster_number,
             target_period=start_forecast_period_seconds,
-            secondary_map=secondary_map,
             primary_map=primary_map,
+            secondary_map=secondary_map,
             cluster_cube=cluster_cube,
             full_cluster_to_selection=full_cluster_to_selection,
         )
@@ -1095,8 +1075,8 @@ class SpatialMorphing(BasePlugin):
             source_name=source_b,
             cluster_number=cluster_number,
             target_period=end_forecast_period_seconds,
-            secondary_map=secondary_map,
             primary_map=primary_map,
+            secondary_map=secondary_map,
             cluster_cube=cluster_cube,
             full_cluster_to_selection=full_cluster_to_selection,
         )

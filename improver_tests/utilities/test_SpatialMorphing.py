@@ -34,7 +34,7 @@ def make_forecast_cube(model_id="uk_ens", n_realizations=2, base_value=0.0):
     return cube
 
 
-def make_cluster_cube(include_uk_ens_secondary=False):
+def make_cluster_cube():
     """Create a mock cluster cube with mapping attributes."""
     cube = set_up_variable_cube(
         np.zeros((5, 5), dtype=np.float32),
@@ -54,26 +54,6 @@ def make_cluster_cube(include_uk_ens_secondary=False):
             "17": [{"realization": 3, "forecast_periods": [3600, 21600]}],
         }
     }
-    if include_uk_ens_secondary:
-        secondary_map["uk_ens"] = {
-            "17": [
-                {
-                    "realization": 11,
-                    "forecast_periods": [
-                        43200,
-                        86400,
-                        129600,
-                        172800,
-                        216000,
-                        259200,
-                        302400,
-                        345600,
-                        388800,
-                        432000,
-                    ],
-                }
-            ]
-        }
     cube.attributes["secondary_input_realizations_to_clusters"] = json.dumps(
         secondary_map
     )
@@ -155,7 +135,10 @@ def test_init_with_optional_parameters():
 
 def test_init_invalid_cycletime_format():
     """Test that invalid cycletime format raises error."""
-    with pytest.raises(ValueError):
+    with pytest.raises(
+        ValueError,
+        match="cycletime 'invalid_format' is not in the expected format",
+    ):
         SpatialMorphing(
             forecast_period=22500,
             cluster_number=0,
@@ -167,6 +150,19 @@ def test_init_invalid_morphing_method():
     """Test invalid morphing backend selection raises a ValueError."""
     with pytest.raises(ValueError, match="morphing_method"):
         SpatialMorphing(forecast_period=22500, cluster_number=0, morphing_method="bad")
+
+
+def test_init_invalid_transition_weights_scheme():
+    """Test invalid transition weight scheme raises a ValueError."""
+    with pytest.raises(
+        ValueError,
+        match="transition_weights_scheme must be 'linear' or 'smoothstep'",
+    ):
+        SpatialMorphing(
+            forecast_period=22500,
+            cluster_number=0,
+            transition_weights_scheme="bad",
+        )
 
 
 @pytest.mark.parametrize(
@@ -269,8 +265,32 @@ def test_find_active_transition_uses_selected_source_to_disambiguate_overlaps():
     }
 
 
-def test_find_active_transition_returns_none_when_other_source_missing():
-    """Test missing transition source falls back to no morphing for the selected source."""
+@pytest.mark.parametrize(
+    "available_source_names,expected_transition",
+    [
+        ({"uk_ens"}, None),
+        (
+            {"nc_det uk_det", "uk_ens"},
+            {
+                "source_a": "nc_det uk_det",
+                "source_b": "uk_ens",
+                "start_forecast_period_seconds": 3600,
+                "end_forecast_period_seconds": 14400,
+            },
+        ),
+    ],
+)
+def test_find_active_transition_depends_on_available_source_names(
+    available_source_names, expected_transition
+):
+    """Transitions are only active when a usable partner source is available.
+
+    At T+3 the active windows include both "nc_det uk_det -> uk_det" and
+    "nc_det uk_det -> uk_ens". When the available-source set is just
+    {"uk_ens"}, there is no partner source to morph against, so the transition is
+    rejected. When the parent source is also present, the transition to uk_ens is
+    valid and selected.
+    """
     plugin = SpatialMorphing(
         forecast_period=10800,
         cluster_number=17,
@@ -296,9 +316,9 @@ def test_find_active_transition_returns_none_when_other_source_missing():
         plugin._find_active_transition(
             10800,
             "uk_ens",
-            available_source_names={"uk_ens"},
+            available_source_names=available_source_names,
         )
-        is None
+        == expected_transition
     )
 
 
@@ -334,6 +354,60 @@ def test_find_active_transition_error_mentions_expected_transition_source_pair()
             "uk_ens",
             available_source_names={"uk_det"},
         )
+
+
+def test_process_raises_on_ambiguous_transition_selection():
+    """Test the public process() interface rejects overlapping transition matches."""
+    det_cube = make_forecast_cube(
+        model_id="uk_det", n_realizations=24, base_value=100.0
+    )
+    ens_cube = make_forecast_cube(
+        model_id="uk_ens", n_realizations=24, base_value=200.0
+    )
+
+    cluster_cube = set_up_variable_cube(
+        np.zeros((5, 5), dtype=np.float32),
+        name="clustering_result",
+        units="1",
+        spatial_grid="equalarea",
+    )
+    cluster_cube.attributes["primary_input_realization_to_cluster_medoid"] = json.dumps(
+        {"17": 8}
+    )
+    cluster_cube.attributes["secondary_input_realizations_to_clusters"] = json.dumps(
+        {
+            "uk_det": {"17": [{"realization": 3, "forecast_periods": [3600, 21600]}]},
+            "uk_ens": {"17": [{"realization": 11, "forecast_periods": [3600, 21600]}]},
+        }
+    )
+    cluster_cube.attributes["cluster_sources"] = json.dumps(
+        {"17": {"uk_det": [3600, 21600], "uk_ens": [3600, 21600]}}
+    )
+
+    plugin = SpatialMorphing(
+        forecast_period=10800,
+        cluster_number=17,
+        transitions={
+            "transitions": [
+                {
+                    "source_a": "uk_det",
+                    "source_b": "uk_ens",
+                    "start_forecast_period_minutes": 60,
+                    "end_forecast_period_minutes": 240,
+                },
+                {
+                    "source_a": "uk_ens",
+                    "source_b": "uk_det",
+                    "start_forecast_period_minutes": 60,
+                    "end_forecast_period_minutes": 240,
+                },
+            ]
+        },
+        model_path="/apath/to/model",
+    )
+
+    with pytest.raises(ValueError, match="Multiple compatible transitions remain"):
+        plugin.process(det_cube, ens_cube, cluster_cube)
 
 
 @pytest.mark.parametrize(
@@ -619,8 +693,50 @@ def test_process_removes_model_id_attr_if_present():
     assert "mosg__model_configuration" not in result.attributes
 
 
+def test_process_preserves_other_attributes():
+    """Test that other attributes are preserved in output."""
+    plugin = SpatialMorphing(forecast_period=22500, cluster_number=0)
+    forecast_cube = make_forecast_cube(model_id="uk_ens")
+    forecast_cube.attributes["custom_attr"] = "custom_value"
+    result = plugin.process(forecast_cube, make_cluster_cube())
+    assert "custom_attr" in result.attributes
+
+
+def test_process_with_empty_cubes_list():
+    """Test that process() raises ValueError with empty CubeList."""
+    plugin = SpatialMorphing(forecast_period=22500, cluster_number=0)
+    with pytest.raises(ValueError, match="No cluster cube found in input cubes"):
+        plugin.process(CubeList())
+
+
+def test_process_preserves_coordinates():
+    """Test that spatial and temporal coordinates are preserved."""
+    plugin = SpatialMorphing(forecast_period=22500, cluster_number=0)
+    forecast_cube = make_forecast_cube(model_id="uk_ens")
+    result = plugin.process(forecast_cube, make_cluster_cube())
+    input_coords = {coord.name() for coord in forecast_cube.coords()}
+    output_coords = {coord.name() for coord in result.coords()}
+    for coord_name in input_coords:
+        if coord_name != "realization":
+            assert coord_name in output_coords
+
+
+# ============================================================================
+# Explicit transition morphing
+# ============================================================================
+
+
 def test_process_linear_morphing_backend_blends_source_cubes():
-    """Test the linear morphing backend performs a direct weighted blend."""
+    """Test the linear morphing backend blends the source realizations at 50% weight.
+
+    The cluster metadata defines a transition for cluster 17 between the uk_det and
+    uk_ens source models over the T+5 to T+7 hour window. At T+6 hours the
+    selected transition is still active, and the realization-selection metadata
+    identifies the matching uk_det realization as 3 and the uk_ens realization as
+    11. With a linear morphing backend, the expected result is therefore a direct
+    weighted blend of those two realizations at 0.5, and the output provenance
+    should record both contributors with equal weight.
+    """
     det_cube = make_forecast_cube(
         model_id="uk_det", n_realizations=24, base_value=100.0
     )
@@ -674,6 +790,11 @@ def test_process_linear_morphing_backend_blends_source_cubes():
 
     result = plugin.process(det_cube, ens_cube, cluster_cube)
 
+    # The cluster metadata for this transition selects uk_det realization 3 and
+    # uk_ens realization 11. Those are the realization indices used to choose the
+    # data values from the synthetic cubes, so the expected blend is calculated as
+    # (1 - 0.5) * (100 + 3) + 0.5 * (200 + 11): the +3 and +11 are the offsets
+    # from the base values of the selected realizations.
     expected_weight = 0.5
     expected_value = (1.0 - expected_weight) * (100.0 + 3) + expected_weight * (
         200.0 + 11
@@ -687,111 +808,6 @@ def test_process_linear_morphing_backend_blends_source_cubes():
         {"source": "uk_det", "realization": 3, "weight": 0.5},
         {"source": "uk_ens", "realization": 11, "weight": 0.5},
     ]
-
-
-def test_process_preserves_other_attributes():
-    """Test that other attributes are preserved in output."""
-    plugin = SpatialMorphing(forecast_period=22500, cluster_number=0)
-    forecast_cube = make_forecast_cube(model_id="uk_ens")
-    forecast_cube.attributes["custom_attr"] = "custom_value"
-    result = plugin.process(forecast_cube, make_cluster_cube())
-    assert "custom_attr" in result.attributes
-
-
-def test_process_with_empty_cubes_list():
-    """Test that process() raises ValueError with empty CubeList."""
-    plugin = SpatialMorphing(forecast_period=22500, cluster_number=0)
-    with pytest.raises(ValueError, match="No cluster cube found in input cubes"):
-        plugin.process(CubeList())
-
-
-def test_process_preserves_coordinates():
-    """Test that spatial and temporal coordinates are preserved."""
-    plugin = SpatialMorphing(forecast_period=22500, cluster_number=0)
-    forecast_cube = make_forecast_cube(model_id="uk_ens")
-    result = plugin.process(forecast_cube, make_cluster_cube())
-    input_coords = {coord.name() for coord in forecast_cube.coords()}
-    output_coords = {coord.name() for coord in result.coords()}
-    for coord_name in input_coords:
-        if coord_name != "realization":
-            assert coord_name in output_coords
-
-
-# ============================================================================
-# Explicit transition morphing
-# ============================================================================
-
-
-@patch(
-    "improver.utilities.spatial_morphing.SpatialMorphing._call_google_film_for_morphing"
-)
-def test_process_diagnoses_source_specific_realizations_for_transition(mock_morph):
-    """Test transition morphing diagnoses realization indices per source."""
-    det_cube = make_forecast_cube(
-        model_id="uk_det", n_realizations=24, base_value=100.0
-    )
-    ens_cube = make_forecast_cube(
-        model_id="uk_ens", n_realizations=24, base_value=200.0
-    )
-
-    cluster_cube = set_up_variable_cube(
-        np.zeros((5, 5), dtype=np.float32),
-        name="clustering_result",
-        units="1",
-        spatial_grid="equalarea",
-    )
-    cluster_cube.attributes["primary_input_realization_to_cluster_medoid"] = json.dumps(
-        {"17": 8}
-    )
-    cluster_cube.attributes["secondary_input_realizations_to_clusters"] = json.dumps(
-        {
-            "uk_det": {"17": [{"realization": 3, "forecast_periods": [3600, 21600]}]},
-            "uk_ens": {
-                "17": [
-                    {
-                        "realization": 11,
-                        "forecast_periods": [
-                            43200,
-                            86400,
-                            129600,
-                            172800,
-                            216000,
-                            259200,
-                            302400,
-                            345600,
-                            388800,
-                            432000,
-                        ],
-                    }
-                ]
-            },
-        }
-    )
-    cluster_cube.attributes["cluster_sources"] = json.dumps(
-        {"17": {"uk_det": [3600, 21600], "uk_ens": [43200]}}
-    )
-
-    plugin = SpatialMorphing(
-        forecast_period=21600,
-        cluster_number=17,
-        transitions=make_transitions(),
-        model_path="/apath/to/model",
-    )
-
-    def _blend_stub(cube_a, cube_b, weight):
-        result = cube_a.copy()
-        result.data = (1.0 - weight) * cube_a.data + weight * cube_b.data
-        return result
-
-    mock_morph.side_effect = _blend_stub
-
-    result = plugin.process(det_cube, ens_cube, cluster_cube)
-
-    expected_weight = 0.5
-    expected_value = (1.0 - expected_weight) * (100.0 + 3) + expected_weight * (
-        200.0 + 11
-    )
-    np.testing.assert_allclose(result.data, expected_value, rtol=1e-6)
 
 
 @patch(
@@ -852,6 +868,14 @@ def test_process_applies_quantile_mapping_for_transition(mock_morph):
         occurrence_threshold=0.0,
     )
 
+    # This test exercises the quantile-mapping stage, not the Google FILM backend
+    # itself. The backend is intentionally replaced with a simple stub so we can
+    # create a known non-linear signal: the underlying blend is still the same
+    # 50:50 source combination, but we add +10 to the blended values to create a
+    # distinct, peaky distribution that the quantile-mapping calibration should
+    # adjust. Without this offset, the result would be almost indistinguishable
+    # from the plain weighted blend and the test would not prove that the
+    # quantile-mapping step has changed the values.
     def _blend_stub(cube_a, cube_b, weight):
         result = cube_a.copy()
         result.data = (1.0 - weight) * cube_a.data + weight * cube_b.data + 10.0
@@ -859,6 +883,9 @@ def test_process_applies_quantile_mapping_for_transition(mock_morph):
 
     mock_morph.side_effect = _blend_stub
 
+    # The same source-specific realizations are selected as in the linear backend
+    # test: uk_det realization 3 and uk_ens realization 11. This is the
+    # underlying weighted contribution before the quantile-mapping adjustment.
     source_a = plugin._select_single_source_cube(
         "uk_det", 3, CubeList([det_cube, ens_cube])
     )
@@ -875,5 +902,8 @@ def test_process_applies_quantile_mapping_for_transition(mock_morph):
 
     result = plugin.process(det_cube, ens_cube, cluster_cube)
 
+    # The quantile-mapping step should modify the blended field away from the
+    # plain weighted combination, while still matching the expected remapped
+    # result produced from the same stubbed blend.
     np.testing.assert_allclose(result.data, expected.data, rtol=1e-6)
     assert not np.allclose(result.data, weighted_source_data, rtol=1e-6)
