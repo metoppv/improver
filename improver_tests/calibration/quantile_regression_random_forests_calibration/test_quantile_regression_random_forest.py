@@ -1041,11 +1041,11 @@ def test_apply_qrf_alternative_configs(
     "quantiles,data,qrf_prediction,max_allowed_difference,expected",
     [
         (
-            [0.5], # 50th percentile
-            np.array([6], dtype=np.float32), # input uncalibrated forecast
-            np.array([17.0, 0.0], dtype=np.float32), # QRF output for two sites
-            5.0, # max allowed difference for capping
-            np.array([11.0, 3.0], dtype=np.float32), # expected capped forecast
+            [0.5],  # 50th percentile
+            np.array([6], dtype=np.float32),  # input uncalibrated forecast
+            np.array([17.0, 0.0], dtype=np.float32),  # QRF output for two sites
+            5.0,  # max allowed difference for capping
+            np.array([11.0, 3.0], dtype=np.float32),  # expected capped forecast
         ),
         (
             [0.1, 0.5, 0.9],
@@ -1076,7 +1076,7 @@ def test_apply_qrf_caps_forecast_by_max_allowed_difference(
     max_allowed_difference,
     expected,
 ):
-    """Test capping behaviour for single and multi-member forecast representations. 
+    """Test capping behaviour for single and multi-member forecast representations.
     Two sites are used to confirm that capping is applied independently per site,
     rather than across all sites together. The forecast helper creates the second
     site using values of data + 2, which provides a different baseline range for
