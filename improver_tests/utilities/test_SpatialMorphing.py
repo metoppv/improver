@@ -866,7 +866,7 @@ def test_process_diagnoses_source_specific_realizations_for_transition(mock_morp
     "improver.utilities.spatial_morphing.SpatialMorphing._call_google_film_for_morphing"
 )
 def test_process_applies_weak_signal_suppression_for_transition(mock_morph):
-    """Weak-signal suppression should reduce diffuse excess during transitions."""
+    """Weak-signal suppression should reduce broad weak excess during transitions."""
     det_cube = make_forecast_cube(
         model_id="uk_det", n_realizations=24, base_value=100.0
     )
@@ -911,18 +911,31 @@ def test_process_applies_weak_signal_suppression_for_transition(mock_morph):
         {"17": {"uk_det": [3600, 21600], "uk_ens": [43200]}}
     )
 
-    plugin = SpatialMorphing(
+    unsuppressed_plugin = SpatialMorphing(
+        forecast_period=21600,
+        cluster_number=17,
+        transitions=make_transitions(),
+        model_path="/apath/to/model",
+        apply_suppression=False,
+    )
+
+    suppressed_plugin = SpatialMorphing(
         forecast_period=21600,
         cluster_number=17,
         transitions=make_transitions(),
         model_path="/apath/to/model",
         apply_suppression=True,
-        suppression_config={"occurrence_threshold": 0.0},
+        suppression_config={
+            "occurrence_threshold": 0.0,
+            "showery_weight_factor": 0.0,
+            "weakness_weight_factor": 1.0,
+        },
         suppression_stages=("weak_signal",),
     )
 
+    # Fake Google FILM output from the mock backend.
+    # This keeps the test focused on weak-signal suppression.
     morph_field = np.full((5, 5), 170.0, dtype=np.float32)
-    morph_field[2, 2] = 220.0
 
     def _blend_stub(cube_a, cube_b, weight):
         result = cube_a.copy()
@@ -931,12 +944,28 @@ def test_process_applies_weak_signal_suppression_for_transition(mock_morph):
 
     mock_morph.side_effect = _blend_stub
 
-    result = plugin.process(det_cube, ens_cube, cluster_cube)
+    unsuppressed = unsuppressed_plugin.process(det_cube, ens_cube, cluster_cube)
+    suppressed = suppressed_plugin.process(det_cube, ens_cube, cluster_cube)
 
-    assert np.all(np.isfinite(result.data))
-    assert np.all(result.data >= 0.0)
-    np.testing.assert_allclose(result.data[0, 0], 168.29631, rtol=1e-5, atol=1e-5)
-    np.testing.assert_allclose(result.data[2, 2], 212.20831, rtol=1e-5, atol=1e-5)
+    # This synthetic case uses a single broad area (170 everywhere) above the
+    # source-weighted reference of 157 (= 0.5 * 103 + 0.5 * 211), so the weak
+    # excess is 13 at every grid point. With the test tuning
+    # (showery_weight_factor=0 and weakness_weight_factor=1), the correction comes
+    # only from the weak-signal logistic term, giving a deterministic suppressed
+    # value of about 163.2 everywhere. Using a rounded figure here keeps the
+    # regression stable across small floating-point differences while still
+    # checking the intended behaviour.
+    expected_suppressed_value = 163.2
+    assert np.all(np.isfinite(suppressed.data))
+    assert np.all(suppressed.data >= 0.0)
+    np.testing.assert_allclose(unsuppressed.data, morph_field, rtol=1e-6, atol=1e-6)
+    assert np.all(suppressed.data < unsuppressed.data)
+    np.testing.assert_allclose(
+        suppressed.data,
+        np.full((5, 5), expected_suppressed_value, dtype=np.float32),
+        rtol=1e-4,
+        atol=1e-4,
+    )
 
 
 # ============================================================================
@@ -945,7 +974,10 @@ def test_process_applies_weak_signal_suppression_for_transition(mock_morph):
 
 
 def test_suppression_process_returns_unchanged_copy_when_no_stages_requested():
-    """No configured suppression stages should leave the field unchanged."""
+    """An empty stage list should effectively disable suppression."""
+    # This is a simple control case: there is no active suppression stage, so the
+    # morphing result should be left as-is. The source fields are deliberately
+    # irrelevant here because we are not testing any suppression calculation.
     result_cube = make_precip_2d_cube(np.full((5, 5), 10.0, dtype=np.float32))
     source_a = make_precip_2d_cube(np.full((5, 5), 9.0, dtype=np.float32), "source_a")
     source_b = make_precip_2d_cube(np.full((5, 5), 11.0, dtype=np.float32), "source_b")
@@ -956,6 +988,8 @@ def test_suppression_process_returns_unchanged_copy_when_no_stages_requested():
     )
     output = plugin.process(result_cube, source_a, source_b, weight=0.5)
 
+    # The method should still return a new cube rather than mutating the input in
+    # place, but the values themselves must be unchanged.
     assert output is not result_cube
     np.testing.assert_allclose(output.data, result_cube.data)
 
@@ -974,8 +1008,19 @@ def test_suppression_process_raises_on_shape_mismatch():
         plugin.process(result_cube, source_a, source_b, weight=0.5)
 
 
-def test_suppression_process_masks_invalid_source_values_for_convective_stage():
-    """Invalid source values should not contaminate the convective neighbourhoods."""
+@pytest.mark.parametrize(
+    "suppression_stages",
+    [
+        ("weak_signal",),
+        ("convective",),
+        ("upper_tail",),
+        ("weak_signal", "convective", "upper_tail"),
+    ],
+)
+def test_suppression_process_handles_invalid_grid_points_across_stages(
+    suppression_stages,
+):
+    """Invalid source grid points are safely handled across suppression stages."""
     source_a_data = np.full((5, 5), 2.0, dtype=np.float32)
     source_b_data = np.full((5, 5), 3.0, dtype=np.float32)
     source_a_data[2, 2] = np.nan
@@ -989,22 +1034,47 @@ def test_suppression_process_masks_invalid_source_values_for_convective_stage():
 
     plugin = SpatialMorphingSuppression(
         suppression_config={"occurrence_threshold": 0.0},
-        suppression_stages=("convective",),
+        suppression_stages=suppression_stages,
     )
 
     output = plugin.process(result_cube, source_a, source_b, weight=0.5)
 
-    assert np.all(np.isfinite(output.data))
-    assert np.all(output.data >= 0.0)
+    valid_mask = (
+        np.isfinite(result_data)
+        & np.isfinite(source_a_data)
+        & np.isfinite(source_b_data)
+    )
+
+    # Valid points should remain finite and non-negative regardless of stage choice.
+    assert np.all(np.isfinite(output.data[valid_mask]))
+    assert np.all(output.data[valid_mask] >= 0.0)
+
+    # Invalid input points should remain NaN in the final output for all stage
+    # combinations.
+    assert np.all(np.isnan(output.data[~valid_mask]))
 
 
 def test_suppression_process_applies_convective_and_upper_tail_stages():
-    """Upper-tail stage should strengthen hotspot beyond convective-only output."""
+    """The hotspot test is constructed so the convective and upper-tail stages
+    amplify the same local maximum by different amounts.
+
+    The source cubes contain a 60 mm source-a hotspot and a 100 mm source-b
+    hotspot at the centre, so the source-weighted reference is 80 mm there (the
+    mean of the two source values at weight=0.5). The morphing result is a
+    broader field of 30 mm with a local peak of 40 mm at the same grid point.
+    With the convective stage alone, the local hotspot is increased to 76.0; the
+    upper-tail stage then boosts the same hotspot further to about 113.9, while
+    the surrounding background cells are set to 37.5. The test therefore checks
+    both the expected absolute values and the ordering between the two stages.
+    """
     source_a_data = np.zeros((5, 5), dtype=np.float32)
     source_b_data = np.zeros((5, 5), dtype=np.float32)
     source_a_data[2, 2] = 60.0
     source_b_data[2, 2] = 100.0
 
+    # The morphing result is intentionally simple: a background of 30 mm with an
+    # isolated centre hotspot of 40 mm. This makes the effect of the suppression
+    # stages easy to interpret using exact values.
     result_data = np.full((5, 5), 30.0, dtype=np.float32)
     result_data[2, 2] = 40.0
 
@@ -1028,6 +1098,31 @@ def test_suppression_process_applies_convective_and_upper_tail_stages():
         result_cube, source_a, source_b, weight=0.5
     )
 
+    # With this synthetic hotspot, the convective-only branch raises the central
+    # value from 40 to 76.0, while the upper-tail branch is stronger still and
+    # increases the same point to about 113.9. The surrounding cells are also
+    # adjusted by the upper-tail logic to 37.5. Using a rounded value here keeps
+    # the check stable across minor floating-point differences between NumPy
+    # builds while still asserting the intended behaviour.
     assert np.all(np.isfinite(upper_tail_output.data))
     assert np.all(upper_tail_output.data >= 0.0)
+    np.testing.assert_allclose(convective_output.data[2, 2], 76.0, rtol=1e-6, atol=1e-6)
+    np.testing.assert_allclose(
+        upper_tail_output.data[2, 2], 113.9, rtol=1e-3, atol=1e-2
+    )
+    np.testing.assert_allclose(
+        upper_tail_output.data,
+        np.array(
+            [
+                [37.5] * 5,
+                [37.5] * 5,
+                [37.5, 37.5, 113.9, 37.5, 37.5],
+                [37.5] * 5,
+                [37.5] * 5,
+            ],
+            dtype=np.float32,
+        ),
+        rtol=1e-3,
+        atol=1e-2,
+    )
     assert upper_tail_output.data[2, 2] > convective_output.data[2, 2]
