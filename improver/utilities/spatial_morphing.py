@@ -6,6 +6,7 @@
 
 import json
 import warnings
+from bisect import bisect_left
 from typing import Any
 
 import iris
@@ -24,6 +25,155 @@ from improver.utilities.temporal_interpolation import (
     GoogleFilmInterpolation,
     _as_tuple_if_list,
 )
+
+
+def get_active_source_names_for_forecast_period(
+    cluster_sources: dict[str, list[int]], target_fp: int
+) -> list[str]:
+    """Return the source names that are active at a given forecast period.
+
+    The cluster metadata associates each source with a list of valid forecast
+    periods. For a target time between two transition bounds, the relevant
+    sources are the two bounding sources. If the target period exactly matches a
+    bound, the matching source and the preceding source are returned; if there is
+    no preceding source, the first source and its immediate successor are used.
+
+    Args:
+        cluster_sources:
+            Mapping from source name to forecast periods (in seconds) for a given
+            cluster.
+        target_fp:
+            Target forecast period in seconds.
+
+    Returns:
+        Ordered list of relevant source names for the target forecast period.
+    """
+    if not cluster_sources:
+        return []
+
+    periods_to_sources: dict[int, set[str]] = {}
+    for source_name, periods in cluster_sources.items():
+        for period in periods:
+            periods_to_sources.setdefault(int(period), set()).add(source_name)
+
+    if not periods_to_sources:
+        return []
+
+    sorted_periods = sorted(periods_to_sources)
+    insertion_index = bisect_left(sorted_periods, target_fp)
+
+    if (
+        insertion_index < len(sorted_periods)
+        and sorted_periods[insertion_index] == target_fp
+    ):
+        return _active_source_names_for_exact_period(
+            periods_to_sources, sorted_periods, insertion_index
+        )
+
+    return _active_source_names_for_nearest_periods(
+        periods_to_sources, sorted_periods, insertion_index
+    )
+
+
+def _active_source_names_for_exact_period(
+    periods_to_sources: dict[int, set[str]],
+    sorted_periods: list[int],
+    exact_index: int,
+) -> list[str]:
+    """Get active source names when target forecast period is an exact match.
+
+    Args:
+        periods_to_sources:
+            Mapping from forecast period (seconds) to one or more source names
+            that are active at that period.
+        sorted_periods:
+            Increasing list of forecast periods available in
+            ``periods_to_sources``.
+        exact_index:
+            Index in ``sorted_periods`` where the target forecast period is
+            located.
+
+    Returns:
+        Ordered list of relevant source names. This includes sources from the
+        immediately preceding period plus the exact-period source(s), or the
+        exact-period source(s) plus the immediate successor when no preceding
+        period exists.
+    """
+
+    def unique_in_order(names: list[str]) -> list[str]:
+        return list(dict.fromkeys(names))
+
+    exact_period = sorted_periods[exact_index]
+    exact_sources = sorted(periods_to_sources[exact_period])
+
+    previous_index = exact_index - 1
+    if previous_index >= 0:
+        previous_sources = sorted(periods_to_sources[sorted_periods[previous_index]])
+        return unique_in_order(previous_sources + exact_sources)
+
+    next_index = exact_index + 1
+    if next_index < len(sorted_periods):
+        next_sources = sorted(periods_to_sources[sorted_periods[next_index]])
+        return unique_in_order(exact_sources + next_sources)
+
+    return exact_sources
+
+
+def _active_source_names_for_nearest_periods(
+    periods_to_sources: dict[int, set[str]],
+    sorted_periods: list[int],
+    insertion_index: int,
+) -> list[str]:
+    """Get active source names when target period lies between known periods.
+
+    Args:
+        periods_to_sources:
+            Mapping from forecast period (seconds) to one or more source names
+            that are active at that period.
+        sorted_periods:
+            Increasing list of forecast periods available in
+            ``periods_to_sources``.
+        insertion_index:
+            Index where the target forecast period would be inserted into
+            ``sorted_periods`` while preserving sorted order.
+
+    Returns:
+        Ordered list of relevant source names derived from the nearest bounding
+        periods, or from the nearest edge period when the target is outside the
+        known period range.
+    """
+
+    def unique_in_order(names: list[str]) -> list[str]:
+        return list(dict.fromkeys(names))
+
+    previous_index = insertion_index - 1
+    next_index = insertion_index
+
+    previous_period = sorted_periods[previous_index] if previous_index >= 0 else None
+    next_period = (
+        sorted_periods[next_index] if next_index < len(sorted_periods) else None
+    )
+
+    if previous_period is not None and next_period is not None:
+        previous_sources = sorted(periods_to_sources[previous_period])
+        next_sources = sorted(periods_to_sources[next_period])
+        return unique_in_order(previous_sources + next_sources)
+
+    if previous_period is not None:
+        return sorted(periods_to_sources[previous_period])
+
+    if next_period is not None:
+        first_period = sorted_periods[0]
+        first_sources = sorted(periods_to_sources[first_period])
+        if len(sorted_periods) > 1:
+            successor_period = sorted_periods[1]
+            next_sources = sorted(periods_to_sources[successor_period])
+        else:
+            next_sources = []
+        return unique_in_order(first_sources + next_sources)
+
+    first_period = sorted_periods[0]
+    return sorted(periods_to_sources[first_period])
 
 
 class SpatialMorphing(BasePlugin):
@@ -462,16 +612,20 @@ class SpatialMorphing(BasePlugin):
                 "cluster-specific source metadata"
             )
 
+        active_source_names = get_active_source_names_for_forecast_period(
+            cluster_sources[cluster_key], self.forecast_period
+        )
         input_source_names = {
             cube.attributes.get(self.model_id_attr)
             for cube in forecast_cubes
             if cube.attributes.get(self.model_id_attr) is not None
         }
-        return {
+        result = {
             source_name
-            for source_name in cluster_sources[cluster_key]
+            for source_name in active_source_names
             if source_name in input_source_names
         }
+        return result
 
     @staticmethod
     def _calculate_transition_weight(
@@ -836,7 +990,6 @@ class SpatialMorphing(BasePlugin):
                 mapping_fps, self.forecast_period
             )
         )
-
         full_cluster_to_selection = self._selection_helper.build_cluster_to_selection(
             nearest_fp, use_secondary, secondary_map, primary_map, cluster_cube
         )

@@ -14,7 +14,12 @@ from iris.cube import Cube, CubeList
 from improver.calibration.quantile_mapping import QuantileMapping
 from improver.clustering.realization_clustering import RealizationSelection
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
-from improver.utilities.spatial_morphing import SpatialMorphing
+from improver.utilities.spatial_morphing import (
+    SpatialMorphing,
+    _active_source_names_for_exact_period,
+    _active_source_names_for_nearest_periods,
+    get_active_source_names_for_forecast_period,
+)
 
 
 def make_forecast_cube(model_id="uk_ens", n_realizations=2, base_value=0.0):
@@ -256,6 +261,45 @@ def test_get_cluster_available_source_names_filters_to_cluster_sources():
         cluster_number=17,
     )
     assert available == {"uk_ens"}
+
+
+def test_get_cluster_available_source_names_uses_active_source_boundaries():
+    """Source availability should be resolved from forecast-period boundaries."""
+    plugin = SpatialMorphing(
+        forecast_period=21600,
+        cluster_number=17,
+        transitions={
+            "transitions": [
+                {
+                    "source_a": "nc_det uk_det",
+                    "source_b": "uk_det",
+                    "start_forecast_period_minutes": 60,
+                    "end_forecast_period_minutes": 240,
+                }
+            ]
+        },
+    )
+
+    nc_det_cube = make_forecast_cube(model_id="nc_det uk_det", n_realizations=2)
+    det_cube = make_forecast_cube(model_id="uk_det", n_realizations=2)
+    ens_cube = make_forecast_cube(model_id="uk_ens", n_realizations=2)
+    cluster_cube = make_cluster_cube()
+    cluster_sources = json.loads(cluster_cube.attributes["cluster_sources"])
+    cluster_sources["17"] = {
+        "ecgl_ens": [648000, 691200],
+        "gl_ens": [388800, 432000],
+        "uk_ens": [43200, 86400, 129600, 172800, 216000, 259200],
+        "uk_det": [21600],
+        "nc_det uk_det": [3600],
+    }
+    cluster_cube.attributes["cluster_sources"] = json.dumps(cluster_sources)
+
+    available = plugin._get_cluster_available_source_names(
+        CubeList([nc_det_cube, det_cube, ens_cube]),
+        cluster_cube,
+        cluster_number=17,
+    )
+    assert available == {"nc_det uk_det", "uk_det"}
 
 
 def test_get_cluster_available_source_names_raises_when_missing_metadata():
@@ -995,3 +1039,146 @@ def test_process_applies_quantile_mapping_for_transition(mock_morph):
     # result produced from the same stubbed blend.
     np.testing.assert_allclose(result.data, expected.data, rtol=1e-6)
     assert not np.allclose(result.data, weighted_source_data, rtol=1e-6)
+
+
+@pytest.mark.parametrize(
+    "cluster_sources,target_fp,expected",
+    [
+        (
+            {
+                "source_a": [3600],
+                "source_b": [21600],
+                "source_c": [43200],
+            },
+            21600,
+            ["source_a", "source_b"],
+        ),
+        (
+            {
+                "source_a": [3600],
+                "source_b": [21600],
+                "source_c": [43200],
+            },
+            30000,
+            ["source_b", "source_c"],
+        ),
+        (
+            {
+                "source_a": [3600],
+                "source_b": [21600],
+                "source_c": [43200],
+            },
+            1000,
+            ["source_a", "source_b"],
+        ),
+        (
+            {
+                "source_a": [3600],
+                "source_b": [21600],
+                "source_c": [43200],
+            },
+            50000,
+            ["source_c"],
+        ),
+        ({}, 21600, []),
+    ],
+)
+def test_get_active_source_names_for_forecast_period(
+    cluster_sources, target_fp, expected
+):
+    """Test active source selection around forecast-period transition bounds."""
+    assert (
+        get_active_source_names_for_forecast_period(cluster_sources, target_fp)
+        == expected
+    )
+
+
+@pytest.mark.parametrize(
+    "periods_to_sources,sorted_periods,exact_index,expected",
+    [
+        (
+            {
+                3600: {"source_a"},
+                21600: {"source_b"},
+                43200: {"source_c"},
+            },
+            [3600, 21600, 43200],
+            1,
+            ["source_a", "source_b"],
+        ),
+        (
+            {
+                3600: {"source_a"},
+                21600: {"source_b"},
+            },
+            [3600, 21600],
+            0,
+            ["source_a", "source_b"],
+        ),
+        (
+            {
+                21600: {"source_b"},
+            },
+            [21600],
+            0,
+            ["source_b"],
+        ),
+    ],
+)
+def test_active_source_names_for_exact_period(
+    periods_to_sources, sorted_periods, exact_index, expected
+):
+    """Test helper behavior for exact forecast-period matches."""
+    assert (
+        _active_source_names_for_exact_period(
+            periods_to_sources, sorted_periods, exact_index
+        )
+        == expected
+    )
+
+
+@pytest.mark.parametrize(
+    "periods_to_sources,sorted_periods,insertion_index,expected",
+    [
+        (
+            {
+                3600: {"source_a"},
+                21600: {"source_b"},
+                43200: {"source_c"},
+            },
+            [3600, 21600, 43200],
+            2,
+            ["source_b", "source_c"],
+        ),
+        (
+            {
+                3600: {"source_a"},
+                21600: {"source_b"},
+                43200: {"source_c"},
+            },
+            [3600, 21600, 43200],
+            0,
+            ["source_a", "source_b"],
+        ),
+        (
+            {
+                3600: {"source_a"},
+                21600: {"source_b"},
+                43200: {"source_c"},
+            },
+            [3600, 21600, 43200],
+            3,
+            ["source_c"],
+        ),
+    ],
+)
+def test_active_source_names_for_nearest_periods(
+    periods_to_sources, sorted_periods, insertion_index, expected
+):
+    """Test helper behavior when target period lies between known periods."""
+    assert (
+        _active_source_names_for_nearest_periods(
+            periods_to_sources, sorted_periods, insertion_index
+        )
+        == expected
+    )
