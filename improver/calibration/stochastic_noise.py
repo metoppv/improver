@@ -211,10 +211,14 @@ class StochasticNoise(BasePlugin):
             apply_noise_to_positive_values
             and apply_noise_to_positive_values_by_source is not None
         ):
-            raise ValueError(
-                "Cannot specify both apply_noise_to_positive_values=True and "
-                "apply_noise_to_positive_values_by_source. Use one or the other."
+            warnings.warn(
+                "If both apply_noise_to_positive_values=True and "
+                "apply_noise_to_positive_values_by_source are specified, "
+                "apply_noise_to_positive_values takes precedence and "
+                "wet-region noise will be applied to all sources. ",
+                UserWarning,
             )
+            apply_noise_to_positive_values_by_source = None
 
         self.apply_noise_to_positive_values_by_source = (
             apply_noise_to_positive_values_by_source

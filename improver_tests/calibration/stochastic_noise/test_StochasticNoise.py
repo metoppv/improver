@@ -4,16 +4,45 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the StochasticNoise plugin"""
 
+import json
 import warnings
 
 import numpy as np
 import pytest
+from iris.coords import AuxCoord
 from iris.cube import Cube
 
 from improver.calibration.stochastic_noise import StochasticNoise
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 pytest.importorskip("pysteps")
+
+
+def _make_single_realization_cube(data: np.ndarray | None = None) -> Cube:
+    """Build a single-realization precipitation cube for source-aware tests."""
+    if data is None:
+        data = np.array([[[1.0, 2.0], [3.0, 4.0]]], dtype=np.float32)
+    cube_multi = set_up_variable_cube(
+        data=data,
+        name="precipitation_rate",
+        units="mm/hr",
+    )
+    return cube_multi.slices_over("realization").next()
+
+
+def _set_cluster_source_metadata(
+    cube: Cube,
+    cluster_sources: dict[str, dict[str, list[int]]] | None,
+    forecast_period_seconds: int,
+) -> None:
+    """Attach cluster_sources JSON and forecast_period metadata to a cube."""
+    if cluster_sources is not None:
+        cube.attributes["cluster_sources"] = json.dumps(cluster_sources)
+    if cube.coords("forecast_period"):
+        cube.remove_coord("forecast_period")
+    cube.add_aux_coord(
+        AuxCoord(forecast_period_seconds, standard_name="forecast_period", units="s")
+    )
 
 
 @pytest.fixture
@@ -719,3 +748,82 @@ def test_process_mixed_zero_and_positive_with_positive_noise():
 
     # Non-positive regions should be processed
     assert np.all(np.isfinite(result.data[non_positive_mask]))
+
+
+def test_apply_noise_to_positive_values_by_source_conflict_warns():
+    """If both flags are set, warn and prioritise apply_noise_to_positive_values."""
+
+    with pytest.warns(
+        UserWarning,
+        match="apply_noise_to_positive_values takes precedence",
+    ):
+        plugin = StochasticNoise(
+            apply_noise_to_positive_values=True,
+            apply_noise_to_positive_values_by_source="gl_ens",
+        )
+
+    assert plugin.apply_noise_to_positive_values is True
+    assert plugin.apply_noise_to_positive_values_by_source is None
+    assert plugin.target_sources == set()
+
+
+@pytest.mark.parametrize(
+    "target_sources,cluster_sources,forecast_period_seconds,expect_positive_changed,malformed",
+    [
+        ("gl_ens", {"0": {"gl_ens": [3600]}}, 3600, True, False),
+        ("ecgl_ens", {"0": {"gl_ens": [3600]}}, 3600, False, False),
+        ("GL_ENS", {"0": {"gl_ens": [3600]}}, 3600, True, False),
+        (
+            "gl_ens, uk_ens",
+            {"0": {"gl_ens": [3600], "uk_ens": [86400]}},
+            86400,
+            True,
+            False,
+        ),
+        ("gl_ens", None, 3600, False, False),
+        ("gl_ens", None, 3600, False, True),
+    ],
+)
+def test_process_source_aware_wet_noise_selection(
+    target_sources: str,
+    cluster_sources: dict[str, dict[str, list[int]]] | None,
+    forecast_period_seconds: int,
+    expect_positive_changed: bool,
+    malformed: bool,
+):
+    """process() applies wet-region noise only when source-aware selection matches."""
+    data = np.array([[[0.0, 2.0, 0.0], [3.0, 0.0, 1.5]]], dtype=np.float32)
+    cube = _make_single_realization_cube(data)
+
+    if malformed:
+        cube.attributes["cluster_sources"] = "not valid json {"
+        _set_cluster_source_metadata(cube, None, forecast_period_seconds)
+    else:
+        _set_cluster_source_metadata(cube, cluster_sources, forecast_period_seconds)
+
+    plugin = StochasticNoise(
+        ssft_init_params={"win_size": (2, 2), "overlap": 0},
+        ssft_generate_params={"seed": 0},
+        db_threshold=0.03,
+        db_threshold_units="mm/hr",
+        apply_noise_to_positive_values_by_source=target_sources,
+        positive_region_noise_amplitude=0.5,
+    )
+
+    # Keep this deterministic to validate whether positive-region updates occur.
+    plugin.do_fft = lambda _: np.array(
+        [[10.0, 8.0, 6.0], [4.0, 2.0, 1.0]], dtype=np.float32
+    )
+
+    original_data = cube.data.copy()
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        result = plugin.process(cube)
+
+    positive_mask = original_data > 0
+    changed_positive = not np.allclose(
+        original_data[positive_mask], result.data[positive_mask]
+    )
+    assert changed_positive is expect_positive_changed
+    assert result.shape == cube.shape
+    assert np.all(np.isfinite(result.data))
