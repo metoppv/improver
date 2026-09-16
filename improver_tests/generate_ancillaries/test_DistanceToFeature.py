@@ -12,7 +12,10 @@ from geopandas import GeoDataFrame
 from shapely.geometry import LineString, Point, Polygon
 
 from improver.generate_ancillaries.generate_distance_to_feature import DistanceToFeature
-from improver.synthetic_data.set_up_test_cubes import set_up_spot_variable_cube
+from improver.synthetic_data.set_up_test_cubes import (
+    set_up_spot_variable_cube,
+    set_up_variable_cube,
+)
 
 
 @pytest.fixture()
@@ -176,6 +179,19 @@ def make_site_cube(latitudes, longitudes, name="rain_rate"):
     return prob_cube
 
 
+def make_grid_cube(domain_corner, name="rain_rate"):
+    """Make a site cube."""
+
+    prob_cube = set_up_variable_cube(
+        np.repeat(-9999, 1).reshape(1, 1),
+        name="rain_rate",
+        units="1",
+        domain_corner=domain_corner,
+        spatial_grid="equalarea",
+    )
+    return prob_cube
+
+
 @pytest.fixture()
 def single_site_cube():
     """Set up a site cube for a single site."""
@@ -273,6 +289,11 @@ def single_site_at_halfway_point():
 
 
 @pytest.fixture()
+def single_grid_point_at_halfway_point():
+    return make_grid_cube(domain_corner=(-595702.831, 80673.488))
+
+
+@pytest.fixture()
 def single_site_at_centre_point():
     return make_site_cube(
         latitudes=np.array([49.543481633]),
@@ -295,6 +316,7 @@ def single_site_outside_points():
     [
         (3035, "single_site_at_point", 0),
         (3035, "single_site_at_halfway_point", 500),
+        (3035, "single_grid_point_at_halfway_point", 500),
         (3035, "single_site_at_centre_point", 707),
         # Test a conic projection over Europe as well, which yields difference distances
         # for the non-zero distance cases.
@@ -325,14 +347,8 @@ def test_distance_to_with_points_geometry(
     )
     assert output_cube.name() == "distance_to_thing"
     assert output_cube.units == "m"
-    assert (
-        output_cube.coord("latitude").points
-        == single_site_cube.coord("latitude").points
-    )
-    assert (
-        output_cube.coord("longitude").points
-        == single_site_cube.coord("longitude").points
-    )
+    assert output_cube.coord(axis="x").points == single_site_cube.coord(axis="x").points
+    assert output_cube.coord(axis="y").points == single_site_cube.coord(axis="y").points
     assert output_cube.data == expected_distance
 
 
