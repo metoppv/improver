@@ -575,6 +575,10 @@ def test_process_apply_noise_to_positive_values():
     )
     cube = set_up_variable_cube(data=data, name="precipitation_rate", units="mm/hr")
 
+    # Use a deterministic SSFT output so the test is not sensitive to environment-
+    # specific pysteps output for tiny two-by-two fields.
+    deterministic_noise = np.array([[10.0, 0.0], [0.0, 10.0]], dtype=np.float32)
+
     # Create two plugins: one with and one without wet-region noise
     plugin_dry_only = StochasticNoise(
         ssft_init_params={"win_size": (2, 2), "overlap": 0},
@@ -591,6 +595,9 @@ def test_process_apply_noise_to_positive_values():
         apply_noise_to_positive_values=True,
         positive_region_noise_amplitude=0.5,
     )
+
+    plugin_dry_only.do_fft = lambda _: deterministic_noise.copy()
+    plugin_with_positive.do_fft = lambda _: deterministic_noise.copy()
 
     with pytest.warns(UserWarning, match="multi-realization dimension"):
         result_dry_only = plugin_dry_only.process(cube)
