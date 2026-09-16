@@ -264,8 +264,8 @@ def land():
 @pytest.fixture()
 def site_locations():
     return make_site_cube(
-        latitudes=np.array([49.543481633, 49.551655272]),
-        longitudes=np.array([-1.387510304, -1.3964531]),
+        latitudes=[49.543481633, 49.551655272],
+        longitudes=[-1.387510304, -1.3964531],
         name="site_locations",
     )
 
@@ -273,8 +273,8 @@ def site_locations():
 @pytest.fixture()
 def single_site_at_point():
     return make_site_cube(
-        latitudes=np.array([49.538352]),
-        longitudes=np.array([-1.393298]),
+        latitudes=[49.538352],
+        longitudes=[-1.393298],
         name="site_locations",
     )
 
@@ -282,8 +282,8 @@ def single_site_at_point():
 @pytest.fixture()
 def single_site_at_halfway_point():
     return make_site_cube(
-        latitudes=np.array([49.539047274]),
-        longitudes=np.array([-1.386459578]),
+        latitudes=[49.539047274],
+        longitudes=[-1.386459578],
         name="site_locations",
     )
 
@@ -296,8 +296,8 @@ def single_grid_point_at_halfway_point():
 @pytest.fixture()
 def single_site_at_centre_point():
     return make_site_cube(
-        latitudes=np.array([49.543481633]),
-        longitudes=np.array([-1.387510304]),
+        latitudes=[49.543481633],
+        longitudes=[-1.387510304],
         name="site_locations",
     )
 
@@ -305,8 +305,8 @@ def single_site_at_centre_point():
 @pytest.fixture()
 def single_site_outside_points():
     return make_site_cube(
-        latitudes=np.array([49.551655272]),
-        longitudes=np.array([-1.3964531]),
+        latitudes=[49.551655272],
+        longitudes=[-1.3964531],
         name="site_locations",
     )
 
@@ -385,7 +385,7 @@ def test_distance_to_with_points_geometry(
         (
             9001,
             "single_site_at_centre_point",
-            382,
+            381,
         ),  # Site is at the exact centre of the square formed by the line
     ],
 )
@@ -640,7 +640,7 @@ def test_distance_to_with_unsuitable_projection(single_site_cube, geometry_point
         "The provided projection defined by EPSG code 3112 is not suitable "
         "for the site / grid locations provided. Limits of this domain are: x: 112.85 "
         "to 153.69, y: -43.7 to -9.86, whilst the site / grid locations are bounded by "
-        "x: -1.386459578 to -1.386459578, y: 49.539047274 to 49.539047274."
+        "x: -1.3864595890045166 to -1.3864595890045166, y: 49.53904724121094 to 49.53904724121094."
     )
     with pytest.raises(ValueError, match=msg):
         DistanceToFeature(3112, new_name="distance_to_thing")(
