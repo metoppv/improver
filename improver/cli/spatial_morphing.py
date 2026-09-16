@@ -31,7 +31,6 @@ def process(
     transition_weights_scheme: str = "linear",
     morphing_method: str = "google_film",
     apply_suppression: bool = False,
-    occurrence_threshold: float = 0.0,
     suppression_config: cli.inputjson = None,
     suppression_stages: cli.comma_separated_list = None,
 ):
@@ -92,12 +91,10 @@ def process(
             "google_film" (default) and "linear".
         apply_suppression (bool):
             If True, apply the local suppression workflow to the morphed result.
-        occurrence_threshold (float):
-            Threshold used by the suppression routine to determine whether a value
-            is considered wet.
         suppression_config (dict or None):
             Optional JSON dictionary containing tuning values for the local
-            suppression stages applied to the morphed field.
+            suppression stages applied to the morphed field, including the wet
+            occurrence_threshold.
         suppression_stages (list or None):
             Optional comma-separated list of suppression stages to apply. Supported
             values are weak_signal, convective, and upper_tail.
@@ -129,7 +126,6 @@ def process(
         transition_weights_scheme=transition_weights_scheme,
         morphing_method=morphing_method,
         apply_suppression=apply_suppression,
-        occurrence_threshold=occurrence_threshold,
         suppression_config=suppression_config,
         suppression_stages=suppression_stages,
     )

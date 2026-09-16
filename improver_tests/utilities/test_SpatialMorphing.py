@@ -917,8 +917,8 @@ def test_process_applies_weak_signal_suppression_for_transition(mock_morph):
         transitions=make_transitions(),
         model_path="/apath/to/model",
         apply_suppression=True,
+        suppression_config={"occurrence_threshold": 0.0},
         suppression_stages=("weak_signal",),
-        occurrence_threshold=0.0,
     )
 
     morph_field = np.full((5, 5), 170.0, dtype=np.float32)
@@ -951,7 +951,7 @@ def test_suppression_process_returns_unchanged_copy_when_no_stages_requested():
     source_b = make_precip_2d_cube(np.full((5, 5), 11.0, dtype=np.float32), "source_b")
 
     plugin = SpatialMorphingSuppression(
-        occurrence_threshold=0.0,
+        suppression_config={"occurrence_threshold": 0.0},
         suppression_stages=(),
     )
     output = plugin.process(result_cube, source_a, source_b, weight=0.5)
@@ -967,11 +967,35 @@ def test_suppression_process_raises_on_shape_mismatch():
     source_b = make_precip_2d_cube(np.full((6, 6), 11.0, dtype=np.float32), "source_b")
 
     plugin = SpatialMorphingSuppression(
-        occurrence_threshold=0.0,
+        suppression_config={"occurrence_threshold": 0.0},
         suppression_stages=("weak_signal",),
     )
     with pytest.raises(ValueError, match="must have matching shapes"):
         plugin.process(result_cube, source_a, source_b, weight=0.5)
+
+
+def test_suppression_process_masks_invalid_source_values_for_convective_stage():
+    """Invalid source values should not contaminate the convective neighbourhoods."""
+    source_a_data = np.full((5, 5), 2.0, dtype=np.float32)
+    source_b_data = np.full((5, 5), 3.0, dtype=np.float32)
+    source_a_data[2, 2] = np.nan
+    source_b_data[2, 2] = np.inf
+
+    result_data = np.full((5, 5), 10.0, dtype=np.float32)
+
+    result_cube = make_precip_2d_cube(result_data, "morphed")
+    source_a = make_precip_2d_cube(source_a_data, "source_a")
+    source_b = make_precip_2d_cube(source_b_data, "source_b")
+
+    plugin = SpatialMorphingSuppression(
+        suppression_config={"occurrence_threshold": 0.0},
+        suppression_stages=("convective",),
+    )
+
+    output = plugin.process(result_cube, source_a, source_b, weight=0.5)
+
+    assert np.all(np.isfinite(output.data))
+    assert np.all(output.data >= 0.0)
 
 
 def test_suppression_process_applies_convective_and_upper_tail_stages():
@@ -989,11 +1013,11 @@ def test_suppression_process_applies_convective_and_upper_tail_stages():
     source_b = make_precip_2d_cube(source_b_data, "source_b")
 
     convective_plugin = SpatialMorphingSuppression(
-        occurrence_threshold=0.0,
+        suppression_config={"occurrence_threshold": 0.0},
         suppression_stages=("convective",),
     )
     upper_tail_plugin = SpatialMorphingSuppression(
-        occurrence_threshold=0.0,
+        suppression_config={"occurrence_threshold": 0.0},
         suppression_stages=("upper_tail",),
     )
 

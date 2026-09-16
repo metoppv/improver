@@ -6,9 +6,7 @@
 
 import json
 import warnings
-from collections.abc import Mapping
-from types import MappingProxyType
-from typing import Any, ClassVar
+from typing import Any
 
 import iris
 import numpy as np
@@ -32,26 +30,61 @@ _SUPPRESSION_CANONICAL_STAGES: tuple[str, str, str] = (
     "convective",
     "upper_tail",
 )
-_SUPPRESSION_DEFAULTS: Mapping[str, float] = MappingProxyType(
-    {
-        "quantile_for_centre": 0.9,
-        "width_fraction": 2.0,
-        "maximum_suppression": 1.0,
-        "showery_neighbourhood_size": 11,
-        "showery_weight_factor": 0.75,
-        "weakness_weight_factor": 0.25,
-        "convective_neighbourhood_size": 25,
-        "convective_gain": 0.9,
-        "concentration_reference": 2.0,
-        "concentration_scale": 5.0,
-        "upper_tail_quantile": 0.95,
-        "convective_mask_threshold": 0.5,
-        "maximum_intensity_scale": 1.5,
-        "upper_tail_intensity_quantile": 0.75,
-        "intensity_weight_width_fraction": 0.25,
-        "intensity_weight_clip_limit": 128.0,
-    }
-)
+
+# Suppression tuning defaults. Each entry is documented with its intended meaning
+# and the expected numerical range for the parameter:
+# - occurrence_threshold: Minimum wet value in the same units as the data; values
+#   below this threshold are treated as dry for the suppression diagnostics.
+# - quantile_for_centre: Quantile in [0, 1] used to define the central intensity
+#   level used by suppression weighting.
+# - width_fraction: Positive scaling factor controlling how broad the suppression
+#   weighting is around the centre; typically > 0.
+# - maximum_suppression: Non-negative strength limit in [0, 1] for the maximum
+#   allowed suppression.
+# - showery_neighbourhood_size: Positive odd integer neighbourhood size used to
+#   detect showery structure; typically >= 1.
+# - showery_weight_factor: Weight in [0, 1] applied to the showery component.
+# - weakness_weight_factor: Weight in [0, 1] applied to the local weakness
+#   component.
+# - convective_neighbourhood_size: Positive odd integer neighbourhood size used
+#   for convective feature detection; typically >= 1.
+# - convective_gain: Gain factor in [0, 1] applied to the convective
+#   contribution.
+# - concentration_reference: Positive reference concentration value used when
+#   scaling the suppression response; typically > 0.
+# - concentration_scale: Positive scaling factor controlling sensitivity to
+#   concentration; typically > 0.
+# - upper_tail_quantile: Quantile in [0, 1] used to identify upper-tail values.
+# - convective_mask_threshold: Threshold in [0, 1] used to activate the
+#   convective mask.
+# - maximum_intensity_scale: Positive scaling factor >= 1 used as the upper bound
+#   on intensity-based scaling.
+# - upper_tail_intensity_quantile: Quantile in [0, 1] used for upper-tail
+#   intensity weighting.
+# - intensity_weight_width_fraction: Positive width control for intensity
+#   weighting; typically > 0.
+# - sigmoid_clip_limit: Non-negative clip limit for the normalised sigmoid input
+#   used to avoid numerical overflow/underflow in the logistic weighting
+#   function; typically > 0.
+_SUPPRESSION_DEFAULTS: dict[str, float | int] = {
+    "occurrence_threshold": 0.03,
+    "quantile_for_centre": 0.9,
+    "width_fraction": 2.0,
+    "maximum_suppression": 1.0,
+    "showery_neighbourhood_size": 11,
+    "showery_weight_factor": 0.75,
+    "weakness_weight_factor": 0.25,
+    "convective_neighbourhood_size": 25,
+    "convective_gain": 0.9,
+    "concentration_reference": 2.0,
+    "concentration_scale": 5.0,
+    "upper_tail_quantile": 0.95,
+    "convective_mask_threshold": 0.5,
+    "maximum_intensity_scale": 1.5,
+    "upper_tail_intensity_quantile": 0.75,
+    "intensity_weight_width_fraction": 0.25,
+    "sigmoid_clip_limit": 20.0,
+}
 
 
 class SpatialMorphing(BasePlugin):
@@ -93,11 +126,6 @@ class SpatialMorphing(BasePlugin):
     RealizationSelection to ForecastTrajectoryGapFiller pipeline.
     """
 
-    CANONICAL_SUPPRESSION_STAGES: ClassVar[tuple[str, str, str]] = (
-        _SUPPRESSION_CANONICAL_STAGES
-    )
-    SUPPRESSION_DEFAULTS: ClassVar[Mapping[str, float]] = _SUPPRESSION_DEFAULTS
-
     def __init__(
         self,
         forecast_period: int,
@@ -119,7 +147,6 @@ class SpatialMorphing(BasePlugin):
         transition_weights_scheme: str = "linear",
         morphing_method: str = "google_film",
         apply_suppression: bool = False,
-        occurrence_threshold: float = 0.0,
         suppression_config: dict[str, Any] | None = None,
         suppression_stages: list[str] | tuple[str, ...] | None = None,
     ) -> None:
@@ -161,8 +188,6 @@ class SpatialMorphing(BasePlugin):
                 Supported values are "google_film" (default) and "linear".
             apply_suppression: If True, apply the local suppression workflow to the
                 morphed result.
-            occurrence_threshold: Threshold used by the suppression routine to
-                determine whether a value is considered wet.
             suppression_config: Optional dictionary of tuning parameters for the
                 local suppression workflow.
             suppression_stages: Optional list of suppression stages to apply. Supported
@@ -197,14 +222,12 @@ class SpatialMorphing(BasePlugin):
         self.model_loader = model_loader
         self.transition_weights_scheme = transition_weights_scheme
         self.morphing_method = morphing_method
-        self.occurrence_threshold = occurrence_threshold
         self.apply_suppression = apply_suppression
         self.suppression_config = suppression_config
         self.suppression_stages = suppression_stages
         # Keep suppression as a dedicated plugin so morphing orchestration and
         # suppression algorithms evolve independently.
         self._suppression_plugin = SpatialMorphingSuppression(
-            occurrence_threshold=self.occurrence_threshold,
             suppression_config=self.suppression_config,
             suppression_stages=self.suppression_stages,
         )
@@ -1505,28 +1528,20 @@ class SpatialMorphingSuppression(BasePlugin):
     standalone plugin-style component.
     """
 
-    CANONICAL_SUPPRESSION_STAGES: ClassVar[tuple[str, str, str]] = (
-        _SUPPRESSION_CANONICAL_STAGES
-    )
-    SUPPRESSION_DEFAULTS: ClassVar[Mapping[str, float]] = _SUPPRESSION_DEFAULTS
-
     def __init__(
         self,
-        occurrence_threshold: float,
         suppression_config: dict[str, Any] | None = None,
         suppression_stages: list[str] | tuple[str, ...] | None = None,
     ) -> None:
         """Initialise suppression settings for morphed fields.
 
         Args:
-            occurrence_threshold: Threshold used to decide whether values are wet.
             suppression_config: Optional suppression tuning values.
             suppression_stages: Optional suppression stage list.
 
         Returns:
             None.
         """
-        self.occurrence_threshold = occurrence_threshold
         self.suppression_config = self.validate_suppression_config(suppression_config)
         self.suppression_stages = self.validate_suppression_stages(suppression_stages)
 
@@ -1550,15 +1565,15 @@ class SpatialMorphingSuppression(BasePlugin):
             ValueError: If suppression_config contains unsupported keys.
         """
         if suppression_config is None:
-            return cls.SUPPRESSION_DEFAULTS.copy()
+            return _SUPPRESSION_DEFAULTS.copy()
         if not isinstance(suppression_config, dict):
             raise TypeError(
                 "suppression_config must be a dictionary or None, "
                 f"got {type(suppression_config).__name__}"
             )
 
-        merged = cls.SUPPRESSION_DEFAULTS.copy()
-        unknown = sorted(set(suppression_config) - set(cls.SUPPRESSION_DEFAULTS))
+        merged = _SUPPRESSION_DEFAULTS.copy()
+        unknown = sorted(set(suppression_config) - set(_SUPPRESSION_DEFAULTS))
         if unknown:
             raise ValueError(
                 "Unknown suppression_config entries: " + ", ".join(unknown)
@@ -1603,26 +1618,25 @@ class SpatialMorphingSuppression(BasePlugin):
             return ()
 
         if "all" in cleaned:
-            return cls.CANONICAL_SUPPRESSION_STAGES
+            return _SUPPRESSION_CANONICAL_STAGES
 
-        unsupported = sorted(cleaned - set(cls.CANONICAL_SUPPRESSION_STAGES))
+        unsupported = sorted(cleaned - set(_SUPPRESSION_CANONICAL_STAGES))
         if unsupported:
             raise ValueError(
                 "Unsupported suppression stage: "
                 f"{unsupported[0]}. Supported values are "
-                f"{', '.join(cls.CANONICAL_SUPPRESSION_STAGES)}."
+                f"{', '.join(_SUPPRESSION_CANONICAL_STAGES)}."
             )
 
         return tuple(
-            stage for stage in cls.CANONICAL_SUPPRESSION_STAGES if stage in cleaned
+            stage for stage in _SUPPRESSION_CANONICAL_STAGES if stage in cleaned
         )
 
     @staticmethod
-    def _validate_suppression_settings(weight: float, settings: dict[str, Any]) -> None:
+    def _validate_suppression_settings(settings: dict[str, Any]) -> None:
         """Validate merged suppression settings and transition weight.
 
         Args:
-            weight: Morphing weight in the range [0, 1].
             settings: Fully populated suppression settings dictionary.
 
         Returns:
@@ -1648,6 +1662,13 @@ class SpatialMorphingSuppression(BasePlugin):
             if value < minimum:
                 raise ValueError(f"{name} must be at least {minimum}, got {value}")
 
+        check_in_range(
+            "occurrence_threshold",
+            settings["occurrence_threshold"],
+            0.0,
+            np.inf,
+        )
+
         for key in (
             "quantile_for_centre",
             "maximum_suppression",
@@ -1666,7 +1687,7 @@ class SpatialMorphingSuppression(BasePlugin):
             "convective_neighbourhood_size",
             "concentration_scale",
             "intensity_weight_width_fraction",
-            "intensity_weight_clip_limit",
+            "sigmoid_clip_limit",
         ):
             check_positive(key, settings[key])
 
@@ -1676,20 +1697,33 @@ class SpatialMorphingSuppression(BasePlugin):
             1.0,
         )
 
+    @staticmethod
+    def _sanitize_valid_data(data: np.ndarray, valid_mask: np.ndarray) -> np.ndarray:
+        """Replace invalid values with zeros while leaving valid points unchanged."""
+        finite_data = np.nan_to_num(
+            np.asarray(data, dtype=np.float64),
+            nan=0.0,
+            posinf=0.0,
+            neginf=0.0,
+        )
+        return np.where(valid_mask, finite_data, 0.0)
+
     def _compute_weak_signal_suppression(
         self,
         result_data: np.ndarray,
         source_a_data: np.ndarray,
         source_b_data: np.ndarray,
+        weighted_reference: np.ndarray,
         valid_mask: np.ndarray,
         weight: float,
+        threshold: float,
         quantile_for_centre: float,
         width_fraction: float,
         maximum_suppression: float,
         showery_neighbourhood_size: int,
         showery_weight_factor: float,
         weakness_weight_factor: float,
-        intensity_weight_clip_limit: float,
+        sigmoid_clip_limit: float,
     ) -> tuple[np.ndarray, np.ndarray]:
         """Reduce broad weak wet halos while retaining coherent source-supported rain.
 
@@ -1730,8 +1764,11 @@ class SpatialMorphingSuppression(BasePlugin):
             result_data: Morphed output data before suppression.
             source_a_data: Source-a data array.
             source_b_data: Source-b data array.
+            weighted_reference: Weighted source reference data already calculated in
+                the parent process method.
             valid_mask: Boolean mask for points valid across all inputs.
             weight: Morphing weight in the range [0, 1].
+            threshold: Wet-occurrence threshold for the source fields.
             quantile_for_centre: Quantile of the valid source signal used to set the
                 centre of the smooth sigmoid transition.
             width_fraction: Fractional width of the sigmoid around that centre.
@@ -1742,7 +1779,7 @@ class SpatialMorphingSuppression(BasePlugin):
                 correction.
             weakness_weight_factor: Weight applied to the weak-signal term in the
                 final correction.
-            intensity_weight_clip_limit: Maximum absolute value used to clip the
+            sigmoid_clip_limit: Maximum absolute value used to clip the normalised
                 sigmoid input before exponentiation.
 
         Returns:
@@ -1750,11 +1787,6 @@ class SpatialMorphingSuppression(BasePlugin):
             - suppression-adjusted output data array
             - weighted source reference array.
         """
-        threshold = float(self.occurrence_threshold)
-
-        # Use the source-weighted blend as a local reference envelope. Only excess
-        # precipitation above this reference is considered for suppression.
-        weighted_reference = (1.0 - weight) * source_a_data + weight * source_b_data
 
         # Identify wet points in each source field, including their local context.
         occ_a = source_a_data > threshold
@@ -1767,8 +1799,11 @@ class SpatialMorphingSuppression(BasePlugin):
 
         output_data = result_data.copy()
         if source_signal.size == 0:
+            # If neither source field contains any valid values above the wet
+            # threshold, then source_signal is empty and the code takes this
+            # fallback branch. We zero only the valid data points because there is
+            # no source-supported wet signal to suppress.
             output_data[valid_mask] = 0.0
-            output_data[~valid_mask] = 0.0
             return output_data, weighted_reference
 
         # Set the smooth transition centre from the wet source signal, ensuring it
@@ -1785,16 +1820,15 @@ class SpatialMorphingSuppression(BasePlugin):
 
         # The sigmoid maps the morphed intensity to a value in [0, 1]: low values
         # indicate weak, diffuse precipitation that should be suppressed most.
+        # The sigmoid is clipped to avoid numerical overflow in the exponentiation.
         logistic_argument = np.clip(
-            (result_data - centre) / width,
-            -intensity_weight_clip_limit,
-            intensity_weight_clip_limit,
+            (result_data - centre) / width, -sigmoid_clip_limit, sigmoid_clip_limit
         )
         film_fraction = 1.0 / (1.0 + np.exp(-logistic_argument))
         weakness = 1.0 - film_fraction
 
         # This checks whether the surrounding area is mostly dry. The uniform filter
-        # computs a neighbourhood mean of the wet-occurrence masks, which is then
+        # computes a neighbourhood mean of the wet-occurrence masks, which is then
         # inverted to give a showery weight in [0, 1] where larger values indicate
         # more diffuse, showery precipitation that should be suppressed more strongly.
         local_occ_a = uniform_filter(
@@ -1831,6 +1865,7 @@ class SpatialMorphingSuppression(BasePlugin):
         source_a_data: np.ndarray,
         source_b_data: np.ndarray,
         weighted_reference: np.ndarray,
+        valid_mask: np.ndarray,
         threshold: float,
         convective_neighbourhood_size: int,
         convective_gain: float,
@@ -1847,13 +1882,16 @@ class SpatialMorphingSuppression(BasePlugin):
         A larger value means the precipitation is more sharply peaked, which usually
         indicates a convective or shower-like structure. The diagnosed weight is then
         used to nudge the output back toward the higher of the current result and the
-        weighted source reference, but only in those locally concentrated areas.
+        weighted source reference, but only in those locally concentrated areas. If
+        the current FILM result is already stronger than the source-informed target,
+        no additional uplift is applied and the field is left unchanged.
 
         Args:
             result_data: Current output data to adjust.
             source_a_data: Source-a data array.
             source_b_data: Source-b data array.
             weighted_reference: Weighted source reference data.
+            valid_mask: Boolean mask for points valid across all inputs.
             threshold: Minimum allowed denominator when comparing local max and mean.
             convective_neighbourhood_size: Size of the neighbourhood used for the local
                 statistics.
@@ -1867,9 +1905,10 @@ class SpatialMorphingSuppression(BasePlugin):
             - output data with local convective intensity restored
             - diagnosed convective weight array.
         """
-        # Look at the peak precipitation in each local neighbourhood and compare it
-        # with the average precipitation in that same area.
+        # Mask invalid points before the local neighbourhood statistics so NaNs and
+        # infs do not contaminate the local max/mean calculations.
         source_peak = np.maximum(source_a_data, source_b_data)
+        source_peak = np.where(valid_mask, source_peak, 0.0)
         local_source_max = maximum_filter(
             source_peak, size=convective_neighbourhood_size
         )
@@ -1884,12 +1923,19 @@ class SpatialMorphingSuppression(BasePlugin):
         convective_weight = np.clip(
             (concentration - concentration_reference) / concentration_scale, 0.0, 1.0
         )
+        convective_weight = np.where(valid_mask, convective_weight, 0.0)
 
         # Restore intensity only where the source fields still show a concentrated
-        # convective signal.
+        # convective signal. If the morphing result is already stronger than the
+        # source-informed target, then target - result_data is zero and no extra
+        # uplift is applied. This preserves locally strong FILM peaks while only
+        # boosting pixels where the source data suggest a genuine shower signal is
+        # missing from the current morph.
         target = np.maximum(result_data, weighted_reference)
-        corrected_data = result_data + convective_gain * convective_weight * (
-            target - result_data
+        corrected_data = result_data.copy()
+        corrected_data[valid_mask] = result_data[valid_mask] + convective_gain * (
+            convective_weight[valid_mask]
+            * (target[valid_mask] - result_data[valid_mask])
         )
         return corrected_data, convective_weight
 
@@ -1907,7 +1953,7 @@ class SpatialMorphingSuppression(BasePlugin):
         maximum_intensity_scale: float,
         upper_tail_intensity_quantile: float,
         intensity_weight_width_fraction: float,
-        intensity_weight_clip_limit: float,
+        sigmoid_clip_limit: float,
     ) -> np.ndarray:
         """Restore intense precipitation where the convective signal is still weak.
 
@@ -1939,7 +1985,7 @@ class SpatialMorphingSuppression(BasePlugin):
                 points lie.
             intensity_weight_width_fraction: Fraction of the local intensity centre
                 used as the sigmoid width for the upper-tail weight.
-            intensity_weight_clip_limit: Maximum absolute value used to clip the
+            sigmoid_clip_limit: Maximum absolute value used to clip the normalised
                 sigmoid input before exponentiation.
 
         Returns:
@@ -1992,13 +2038,14 @@ class SpatialMorphingSuppression(BasePlugin):
             intensity_weight_width_fraction * intensity_centre,
             np.finfo(np.float64).eps,
         )
+        # The sigmoid is clipped to avoid numerical overflow in the exponentiation.
         intensity_weight = 1.0 / (
             1.0
             + np.exp(
                 -np.clip(
                     (result_data - intensity_centre) / intensity_width,
-                    -intensity_weight_clip_limit,
-                    intensity_weight_clip_limit,
+                    -sigmoid_clip_limit,
+                    sigmoid_clip_limit,
                 )
             )
         )
@@ -2047,9 +2094,8 @@ class SpatialMorphingSuppression(BasePlugin):
         """
         config = self.suppression_config
         stages = self.suppression_stages
-        self._validate_suppression_settings(weight, config)
+        self._validate_suppression_settings(config)
 
-        threshold = float(self.occurrence_threshold)
         source_a_data = np.asarray(source_a.data, dtype=np.float64)
         source_b_data = np.asarray(source_b.data, dtype=np.float64)
         result_data = np.asarray(result_cube.data, dtype=np.float64)
@@ -2067,7 +2113,15 @@ class SpatialMorphingSuppression(BasePlugin):
             & np.isfinite(source_b_data)
         )
         if not np.any(valid_mask):
-            return result_cube.copy()
+            output_cube = result_cube.copy()
+            output_data = np.asarray(output_cube.data, dtype=np.float64)
+            output_data[~valid_mask] = np.nan
+            output_cube.data = output_data.astype(np.float32)
+            return output_cube
+
+        source_a_data = self._sanitize_valid_data(source_a_data, valid_mask)
+        source_b_data = self._sanitize_valid_data(source_b_data, valid_mask)
+        result_data_for_suppression = self._sanitize_valid_data(result_data, valid_mask)
 
         output_data = result_data.copy()
         weighted_reference = (1.0 - weight) * source_a_data + weight * source_b_data
@@ -2075,18 +2129,20 @@ class SpatialMorphingSuppression(BasePlugin):
 
         if "weak_signal" in stages:
             output_data, weighted_reference = self._compute_weak_signal_suppression(
-                result_data=result_data,
+                result_data=result_data_for_suppression,
                 source_a_data=source_a_data,
                 source_b_data=source_b_data,
+                weighted_reference=weighted_reference,
                 valid_mask=valid_mask,
                 weight=weight,
+                threshold=config["occurrence_threshold"],
                 quantile_for_centre=config["quantile_for_centre"],
                 width_fraction=config["width_fraction"],
                 maximum_suppression=config["maximum_suppression"],
                 showery_neighbourhood_size=config["showery_neighbourhood_size"],
                 showery_weight_factor=config["showery_weight_factor"],
                 weakness_weight_factor=config["weakness_weight_factor"],
-                intensity_weight_clip_limit=config["intensity_weight_clip_limit"],
+                sigmoid_clip_limit=config["sigmoid_clip_limit"],
             )
 
         if "convective" in stages or "upper_tail" in stages:
@@ -2095,7 +2151,8 @@ class SpatialMorphingSuppression(BasePlugin):
                 source_a_data=source_a_data,
                 source_b_data=source_b_data,
                 weighted_reference=weighted_reference,
-                threshold=threshold,
+                valid_mask=valid_mask,
+                threshold=config["occurrence_threshold"],
                 convective_neighbourhood_size=config["convective_neighbourhood_size"],
                 convective_gain=config["convective_gain"],
                 concentration_reference=config["concentration_reference"],
@@ -2110,7 +2167,7 @@ class SpatialMorphingSuppression(BasePlugin):
                 valid_mask=valid_mask,
                 convective_weight=convective_weight,
                 weight=weight,
-                threshold=threshold,
+                threshold=config["occurrence_threshold"],
                 upper_tail_quantile=config["upper_tail_quantile"],
                 convective_mask_threshold=config["convective_mask_threshold"],
                 maximum_intensity_scale=config["maximum_intensity_scale"],
@@ -2118,10 +2175,15 @@ class SpatialMorphingSuppression(BasePlugin):
                 intensity_weight_width_fraction=config[
                     "intensity_weight_width_fraction"
                 ],
-                intensity_weight_clip_limit=config["intensity_weight_clip_limit"],
+                sigmoid_clip_limit=config["sigmoid_clip_limit"],
             )
 
-        if np.allclose(output_data, result_data):
+        # Preserve invalid-input locations as NaN in the final output. Local
+        # suppression diagnostics use sanitised arrays for stability, but any
+        # grid point that is invalid in the inputs should remain invalid.
+        output_data[~valid_mask] = np.nan
+
+        if np.allclose(output_data, result_data, equal_nan=True):
             return result_cube.copy()
 
         output_cube = result_cube.copy()
