@@ -2054,10 +2054,9 @@ class GoogleFilmInterpolation(BasePlugin):
                 If omitted, fractions are calculated from the input and output
                 validity times, giving the standard temporal interpolation behaviour.
 
-                If supplied, cube1 and cube2 may have the same validity time,
-                allowing source morphing at a fixed validity time. A scalar applies
-                the same fraction to every output slice; a sequence provides one
-                fraction per output slice.
+                For the spatial morphing use case, cube1 and cube2 may have the same
+                validity time, so a single interpolation fraction is used to produce
+                one interpolated field at that fixed validity time.
 
         Raises:
             ValueError: If an unsupported scaling method is provided.
@@ -2217,13 +2216,18 @@ class GoogleFilmInterpolation(BasePlugin):
                 for template_slice in template_slices
             ]
         elif np.isscalar(self.interpolation_fractions):
-            # Source morphing at a fixed validity time: use one constant blend weight
-            # for all output slices.
-            fractions = [float(self.interpolation_fractions)] * len(template_slices)
+            # For the fixed-validity-time spatial morphing case, a single fraction
+            # specifies the single output field directly. We do not support
+            # broadcasting a scalar across multiple template slices.
+            if len(template_slices) != 1:
+                raise ValueError(
+                    "A single interpolation fraction is only supported for one "
+                    "template slice. Got "
+                    f"{len(template_slices)} template slices."
+                )
+            fractions = [float(self.interpolation_fractions)]
         else:
-            # Explicit per-slice fractions for a custom morphing/interpolation path,
-            # where each output slice can target a different position between cube1
-            # and cube2.
+            # Explicit per-slice fractions for the general multi-slice API.
             fractions = [float(value) for value in self.interpolation_fractions]
 
             if len(fractions) != len(template_slices):
