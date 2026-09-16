@@ -85,8 +85,8 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
                 provided, the forecast period found in the first forecast cube
                 will be used.
             max_allowed_difference (float, optional):
-                The maximum allowed difference for the forecast calibration. If not
-                provided, no maximum difference check will be applied. Defaults to None.
+                The maximum allowed difference between the uncalibrated and calibrated forecast.
+                If not provided, no maximum difference check will be applied. Defaults to None.
         """
         self.feature_config = feature_config
         self.target_cf_name = target_cf_name

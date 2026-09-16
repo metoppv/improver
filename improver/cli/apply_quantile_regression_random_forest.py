@@ -68,7 +68,7 @@ def process(
             provided, the first forecast period found in the forecast cube
             will be used.
         max_allowed_difference (float, optional):
-            The maximum allowed difference for the forecast calibration. If not
+            The maximum allowed difference between the uncalibrated and calibrated forecast. If not
             provided, no maximum difference check will be applied. Defaults to None.
     Returns:
         iris.cube.Cube:

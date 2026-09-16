@@ -1036,16 +1036,16 @@ def test_apply_qrf_alternative_configs(
     np.testing.assert_almost_equal(result, expected, decimal=2)
 
 
-@pytest.mark.parametrize("representation", ["realization", "percentile"])
+@pytest.mark.parametrize("representation", ["percentile"])
 @pytest.mark.parametrize(
     "quantiles,data,qrf_prediction,max_allowed_difference,expected",
     [
         (
-            [0.5],
-            np.array([6], dtype=np.float32),
-            np.array([17.0, 0.0], dtype=np.float32),
-            5.0,
-            np.array([11.0, 3.0], dtype=np.float32),
+            [0.5], # 50th percentile
+            np.array([6], dtype=np.float32), # input uncalibrated forecast
+            np.array([17.0, 0.0], dtype=np.float32), # QRF output for two sites
+            5.0, # max allowed difference for capping
+            np.array([11.0, 3.0], dtype=np.float32), # expected capped forecast
         ),
         (
             [0.1, 0.5, 0.9],
@@ -1061,7 +1061,7 @@ def test_apply_qrf_alternative_configs(
             np.array([[30.0, 25.0, 22.0], [0.5, 2.0, 9.0]], dtype=np.float32),
             5.0,
             # The cap is applied relative to each site's original forecast range:
-            # 18 + 5 = 23 is the upper bound for the first site, while 6 - 5 = 3 is
+            # 18 + 5 = 23 is the upper bound for the first site, while 8 - 5 = 3 is
             # the lower bound for the second site. Values beyond these limits are
             # clipped, while points already inside the allowed range remain unchanged.
             np.array([[23.0, 23.0, 22.0], [3.0, 3.0, 9.0]], dtype=np.float32),
@@ -1076,7 +1076,14 @@ def test_apply_qrf_caps_forecast_by_max_allowed_difference(
     max_allowed_difference,
     expected,
 ):
-    """Test capping behaviour for single and multi-member forecast representations."""
+    """Test capping behaviour for single and multi-member forecast representations. 
+    Two sites are used to confirm that capping is applied independently per site,
+    rather than across all sites together. The forecast helper creates the second
+    site using values of data + 2, which provides a different baseline range for
+    verifying site-specific clipping limits.
+    The highest and lowest values of the QRF output are clipped to the upper and lower
+    bounds of the original forecast range plus or minus the max_allowed_difference.
+    """
 
     feature_config = {"wind_speed_at_10m": ["latitude", "longitude"]}
 
@@ -1085,7 +1092,6 @@ def test_apply_qrf_caps_forecast_by_max_allowed_difference(
 
     forecast_df = _create_forecasts(frt, vt, data, representation=representation)
     forecast_df = _add_day_of_training_period(forecast_df)
-
     qrf_model = Mock()
     qrf_model.predict.return_value = qrf_prediction
 

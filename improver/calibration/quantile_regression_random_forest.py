@@ -563,7 +563,7 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
             unique_site_id_keys: The names of the coordinates that uniquely identify
                 each site, e.g. "wmo_id" or ["latitude", "longitude"].
             max_allowed_difference (float, optional):
-                The maximum allowed difference for the forecast calibration. If not
+                The maximum allowed difference between the uncalibrated and calibrated forecast. If not
                 provided, no maximum difference check will be applied. Defaults to None.
 
         """
