@@ -220,6 +220,94 @@ def test_find_active_transition_returns_matching_entry():
     }
 
 
+def test_get_cluster_available_source_names_filters_to_cluster_sources():
+    """Only sources valid for the selected cluster are returned."""
+    plugin = SpatialMorphing(
+        forecast_period=10800,
+        cluster_number=17,
+        transitions={
+            "transitions": [
+                {
+                    "source_a": "nc_det uk_det",
+                    "source_b": "uk_det",
+                    "start_forecast_period_minutes": 60,
+                    "end_forecast_period_minutes": 240,
+                },
+                {
+                    "source_a": "nc_det uk_det",
+                    "source_b": "uk_ens",
+                    "start_forecast_period_minutes": 60,
+                    "end_forecast_period_minutes": 240,
+                },
+            ]
+        },
+    )
+
+    det_cube = make_forecast_cube(model_id="uk_det", n_realizations=2)
+    ens_cube = make_forecast_cube(model_id="uk_ens", n_realizations=2)
+    cluster_cube = make_cluster_cube()
+    cluster_sources = json.loads(cluster_cube.attributes["cluster_sources"])
+    cluster_sources["17"] = {"uk_ens": [3600, 21600]}
+    cluster_cube.attributes["cluster_sources"] = json.dumps(cluster_sources)
+
+    available = plugin._get_cluster_available_source_names(
+        CubeList([det_cube, ens_cube]),
+        cluster_cube,
+        cluster_number=17,
+    )
+    assert available == {"uk_ens"}
+
+
+def test_get_cluster_available_source_names_raises_when_missing_metadata():
+    """cluster_sources metadata is required for transition disambiguation."""
+    plugin = SpatialMorphing(
+        forecast_period=10800,
+        cluster_number=17,
+        transitions=make_transitions(),
+    )
+
+    det_cube = make_forecast_cube(model_id="uk_det", n_realizations=2)
+    ens_cube = make_forecast_cube(model_id="uk_ens", n_realizations=2)
+    cluster_cube = make_cluster_cube()
+    cluster_cube.attributes.pop("cluster_sources")
+
+    with pytest.raises(
+        ValueError,
+        match="cluster_sources metadata is required for transition matching",
+    ):
+        plugin._get_cluster_available_source_names(
+            CubeList([det_cube, ens_cube]),
+            cluster_cube,
+            cluster_number=17,
+        )
+
+
+def test_get_cluster_available_source_names_raises_when_cluster_not_present():
+    """Selected cluster must exist in cluster_sources metadata."""
+    plugin = SpatialMorphing(
+        forecast_period=10800,
+        cluster_number=17,
+        transitions=make_transitions(),
+    )
+
+    det_cube = make_forecast_cube(model_id="uk_det", n_realizations=2)
+    ens_cube = make_forecast_cube(model_id="uk_ens", n_realizations=2)
+    cluster_cube = make_cluster_cube()
+    cluster_sources = json.loads(cluster_cube.attributes["cluster_sources"])
+    cluster_sources.pop("17")
+    cluster_cube.attributes["cluster_sources"] = json.dumps(cluster_sources)
+
+    with pytest.raises(
+        ValueError,
+        match="cluster_sources metadata has no entry for cluster 17",
+    ):
+        plugin._get_cluster_available_source_names(
+            CubeList([det_cube, ens_cube]),
+            cluster_cube,
+            cluster_number=17,
+        )
+
+
 def test_find_active_transition_uses_selected_source_to_disambiguate_overlaps():
     """Test overlapping transition windows are resolved by source context."""
     plugin = SpatialMorphing(

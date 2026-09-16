@@ -300,7 +300,6 @@ class SpatialMorphing(BasePlugin):
                     or transition[tag_b] in available_source_names
                 )
             )
-
         if len(matching) > 1:
             raise ValueError(
                 "Multiple compatible transitions remain for selected source "
@@ -427,6 +426,52 @@ class SpatialMorphing(BasePlugin):
                 available_source_names,
             )
         )
+
+    def _get_cluster_available_source_names(
+        self,
+        forecast_cubes: CubeList,
+        cluster_cube: Cube,
+        cluster_number: int,
+    ) -> set[str]:
+        """Get source names available for the requested cluster.
+
+        Args:
+            forecast_cubes: Forecast cubes available as transition inputs.
+            cluster_cube: Cube carrying cluster metadata attributes.
+            cluster_number: Cluster identifier to query.
+
+        Returns:
+            Set of source names that are both listed for the cluster and present
+            on the provided forecast cubes.
+
+        Raises:
+            ValueError: If cluster_sources metadata is missing or does not include
+                the requested cluster.
+        """
+        if "cluster_sources" not in cluster_cube.attributes:
+            raise ValueError(
+                "cluster_sources metadata is required for transition matching"
+            )
+
+        cluster_sources = json.loads(cluster_cube.attributes["cluster_sources"])
+        cluster_key = str(cluster_number)
+        if cluster_key not in cluster_sources:
+            raise ValueError(
+                "cluster_sources metadata has no entry for "
+                f"cluster {cluster_number}; transition matching requires "
+                "cluster-specific source metadata"
+            )
+
+        input_source_names = {
+            cube.attributes.get(self.model_id_attr)
+            for cube in forecast_cubes
+            if cube.attributes.get(self.model_id_attr) is not None
+        }
+        return {
+            source_name
+            for source_name in cluster_sources[cluster_key]
+            if source_name in input_source_names
+        }
 
     @staticmethod
     def _calculate_transition_weight(
@@ -1061,7 +1106,6 @@ class SpatialMorphing(BasePlugin):
         end_forecast_period_seconds = active_transition["end_forecast_period_seconds"]
         source_a = active_transition["source_a"]
         source_b = active_transition["source_b"]
-
         source_a_realization = self._diagnose_realization_for_source(
             source_name=source_a,
             cluster_number=cluster_number,
@@ -1144,6 +1188,7 @@ class SpatialMorphing(BasePlugin):
         self,
         expected_selected_source: str,
         expected_selected_realization: int,
+        cluster_available_source_names: set[str],
         full_cluster_to_selection: dict[int, tuple[str, int]],
         primary_map: dict[str, int],
         secondary_map: dict[str, dict[str, list[dict[str, list[int]]]]] | None,
@@ -1162,6 +1207,9 @@ class SpatialMorphing(BasePlugin):
                 mapping.
             expected_selected_realization: Realization selected by the initial
                 cluster mapping.
+            cluster_available_source_names: Source names available for the
+                selected cluster, constrained by cluster_sources metadata and
+                the input forecast cubes.
             full_cluster_to_selection: Full cluster-to-source/realization lookup.
             primary_map: Primary cluster-to-realization mapping e.g.
                 {'0': 49, '1': 33, '2': 44, '3': 29} where the key is the cluster
@@ -1186,6 +1234,7 @@ class SpatialMorphing(BasePlugin):
             expected_transition = self._find_active_transition(
                 self.forecast_period,
                 selected_source_name=expected_selected_source,
+                available_source_names=cluster_available_source_names,
             )
         except ValueError:
             expected_transition = None
@@ -1243,6 +1292,7 @@ class SpatialMorphing(BasePlugin):
         result_cube: Cube,
         cluster_to_selection: dict[int, tuple[str, int]],
         forecast_cubes: CubeList,
+        cluster_available_source_names: set[str],
         cluster_cube: Cube,
         full_cluster_to_selection: dict[int, tuple[str, int]],
         primary_map: dict[str, int],
@@ -1261,6 +1311,9 @@ class SpatialMorphing(BasePlugin):
             cluster_to_selection: Selected source and realization for the current
                 cluster after any fallback logic.
             forecast_cubes: Available forecast cubes.
+            cluster_available_source_names: Source names available for the
+                selected cluster, constrained by cluster_sources metadata and
+                the input forecast cubes.
             cluster_cube: Cube containing the cluster metadata.
             full_cluster_to_selection: Full cluster-to-source/realization lookup.
             primary_map: Primary cluster-to-realization mapping e.g.
@@ -1282,15 +1335,10 @@ class SpatialMorphing(BasePlugin):
             self._as_contributor(selected_source_name, selected_realization, 1.0)
         ]
 
-        available_source_names = {
-            cube.attributes.get(self.model_id_attr)
-            for cube in forecast_cubes
-            if cube.attributes.get(self.model_id_attr) is not None
-        }
         active_transition = self._find_active_transition(
             self.forecast_period,
             selected_source_name=selected_source_name,
-            available_source_names=available_source_names,
+            available_source_names=cluster_available_source_names,
         )
 
         if active_transition is None:
@@ -1392,12 +1440,19 @@ class SpatialMorphing(BasePlugin):
             self.cluster_number
         ]
 
+        cluster_available_source_names = self._get_cluster_available_source_names(
+            forecast_cubes,
+            cluster_cube,
+            self.cluster_number,
+        )
+
         # self.expected_forecast_contributors records the contribution(s) that we
         # expect to be present in the final blended output before the actual
         # source cubes are selected and morphed.
         self._diagnose_expected_morphing_contributions(
             expected_selected_source,
             expected_selected_realization,
+            cluster_available_source_names,
             full_cluster_to_selection,
             primary_map,
             secondary_map,
@@ -1429,6 +1484,7 @@ class SpatialMorphing(BasePlugin):
             result_cube,
             cluster_to_selection,
             forecast_cubes,
+            cluster_available_source_names,
             cluster_cube,
             full_cluster_to_selection,
             primary_map,
