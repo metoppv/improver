@@ -64,7 +64,6 @@ def test_spatial_morphing(tmp_path, transitions, kgo, suppression, scheme):
         args.extend(["--apply-suppression"])
         args.extend(["--suppression-stages", "weak_signal,convective,upper_tail"])
         args.extend(["--suppression-config", kgo_dir / "suppression_config.json"])
-        args.extend(["--occurrence-threshold", "0.00003"])
 
     run_cli(args)
     acc.compare(output_path, kgo_path)

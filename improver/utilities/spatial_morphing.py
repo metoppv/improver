@@ -25,6 +25,13 @@ from improver.utilities.temporal_interpolation import (
     _as_tuple_if_list,
 )
 
+# Canonical suppression-stage order used by configuration and execution:
+# - weak_signal: Damps broad low-intensity excess above a source-weighted
+#   reference.
+# - convective: Restores locally concentrated shower-like peaks indicated by
+#   source-neighbourhood structure.
+# - upper_tail: Restores high-end intensity where convective signal exists but
+#   the morphed upper tail is weaker than source-derived upper-tail expectations.
 _SUPPRESSION_CANONICAL_STAGES: tuple[str, str, str] = (
     "weak_signal",
     "convective",
@@ -114,9 +121,13 @@ class SpatialMorphing(BasePlugin):
     6. Extract the selected realizations from each contributing source and apply
        the configured morphing backend (Google FILM by default) to generate a
        seamless blended output.
-    7. Optionally apply one or more local suppression stages (for example,
-       weak_signal, convective, and upper_tail) to the morphed result to reduce
-       unrealistic weak or showery features introduced by the transition.
+     7. Optionally apply one or more local suppression stages to the morphed
+        result:
+        weak_signal damps broad low-intensity excess above a source-weighted
+        reference; convective restores locally concentrated shower-like peaks
+        indicated by the source neighbourhood structure; upper_tail restores
+        high-end intensity where convective signal exists but the morphed upper
+        tail is weaker than source-derived upper-tail expectations.
     8. Finalise the output cube by cleaning metadata, setting the selected
        cluster as the realization coordinate, and recording expected/actual
        forecast contributor provenance.
@@ -1524,8 +1535,11 @@ class SpatialMorphingSuppression(BasePlugin):
 
     This plugin encapsulates the suppression workflow used after spatial morphing,
     including weak-signal damping, convective restoration, and upper-tail
-    restoration. The public entry point is ``process`` so the class can be used as a
-    standalone plugin-style component.
+    restoration. It is designed specifically for precipitation-like fields where
+    wet-threshold and intensity-tail logic is meaningful. The implementation does
+    not enforce a diagnostic-name check because multiple precipitation diagnostics
+    (for example, accumulation or rate) may be valid inputs. Callers are therefore
+    expected to pass precipitation diagnostics only.
     """
 
     def __init__(
@@ -1760,6 +1774,14 @@ class SpatialMorphingSuppression(BasePlugin):
         which helps remove weak, widespread FILM artefacts while preserving
         coherent rain structures that are supported by the source fields.
 
+        Example:
+            Suppose ``weight=0.5``, source A is 100, source B is 200, and the
+            morphed value is 170 at one point. The weighted reference is
+            ``0.5 * 100 + 0.5 * 200 = 150``, so the excess is ``170 - 150 = 20``.
+            If the combined correction fraction at that point is 0.4, the output is
+            ``170 - 0.4 * 20 = 162``. If the correction fraction were 0, the point
+            would remain 170.
+
         Args:
             result_data: Morphed output data before suppression.
             source_a_data: Source-a data array.
@@ -1886,6 +1908,14 @@ class SpatialMorphingSuppression(BasePlugin):
         the current FILM result is already stronger than the source-informed target,
         no additional uplift is applied and the field is left unchanged.
 
+        Example:
+            Suppose at one point ``result_data=30`` and ``weighted_reference=50`` so
+            the local target is 50. If local concentration gives
+            ``convective_weight=0.8`` and ``convective_gain=0.5``, the uplift is
+            ``0.5 * 0.8 * (50 - 30) = 8`` and the corrected value becomes 38.
+            If instead ``result_data=55``, the target is 55 and
+            ``target - result_data = 0``, so no convective uplift is applied.
+
         Args:
             result_data: Current output data to adjust.
             source_a_data: Source-a data array.
@@ -1968,6 +1998,17 @@ class SpatialMorphingSuppression(BasePlugin):
         applied only to the strongest wet pixels, with a cap on the maximum allowed
         increase so the correction stays local and physically realistic.
 
+        Example:
+            Suppose ``weight=0.5`` and the source wet upper-tail quantiles are
+            80 (source A) and 120 (source B). The source-derived target quantile is
+            ``0.5 * 80 + 0.5 * 120 = 100``. If the current morphed upper-tail
+            quantile in convective wet points is 70, the raw uplift scale is
+            ``100 / 70 = 1.43`` (before applying ``maximum_intensity_scale`` cap).
+            If ``maximum_intensity_scale=1.5``, the scale remains 1.43. A point with
+            combined local weight 0.6 then gets
+            ``local_scale = 1 + 0.6 * (1.43 - 1) = 1.258`` and is multiplied by
+            1.258, while points with near-zero weight are minimally changed.
+
         Args:
             result_data: Current output data to adjust.
             source_a_data: Source-a data array.
@@ -2003,6 +2044,10 @@ class SpatialMorphingSuppression(BasePlugin):
             & (convective_weight > convective_mask_threshold)
         )
 
+        # Skip upper-tail restoration unless both source fields contain wet
+        # samples and there is at least one locally convective wet output point.
+        # If any of these checks fail, there is no valid basis for a stable
+        # upper-tail quantile comparison, so return the current field unchanged.
         if wet_a.size == 0 or wet_b.size == 0 or not np.any(convective_wet_mask):
             return result_data
 
@@ -2080,8 +2125,9 @@ class SpatialMorphingSuppression(BasePlugin):
 
         Args:
             result_cube: Precipitation field produced by morphing.
-            source_a: Source field at the beginning of the transition.
-            source_b: Source field at the end of the transition.
+            source_a: Precipitation source field at the beginning of the
+                transition.
+            source_b: Precipitation source field at the end of the transition.
             weight: Interpolation weight in [0, 1], where 0 corresponds to
                 source A and 1 corresponds to source B.
 
@@ -2091,6 +2137,12 @@ class SpatialMorphingSuppression(BasePlugin):
         Raises:
             ValueError: If source and result shapes are inconsistent, or if
                 suppression settings fail validation.
+
+        Notes:
+            This method is intended for precipitation diagnostics only. No
+            diagnostic-name validation is applied because different
+            precipitation diagnostics may be supported by the same suppression
+            logic.
         """
         config = self.suppression_config
         stages = self.suppression_stages

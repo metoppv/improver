@@ -94,7 +94,11 @@ def process(
         suppression_config (dict or None):
             Optional JSON dictionary containing tuning values for the local
             suppression stages applied to the morphed field, including the wet
-            occurrence_threshold.
+            occurrence_threshold. You can provide a partial dictionary and omit
+            keys you do not want to tune; unspecified settings use built-in
+            defaults. For example:
+            {"occurrence_threshold": 0.5, "maximum_suppression": 0.6,
+            "sigmoid_clip_limit": 20.0}
         suppression_stages (list or None):
             Optional comma-separated list of suppression stages to apply. Supported
             values are weak_signal, convective, and upper_tail.
