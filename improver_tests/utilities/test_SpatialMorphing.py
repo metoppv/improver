@@ -1070,9 +1070,11 @@ def test_suppression_process_handles_invalid_grid_points_across_stages(
     assert np.all(np.isfinite(output.data[valid_mask]))
     assert np.all(output.data[valid_mask] >= 0.0)
 
-    # Invalid input points should remain NaN in the final output for all stage
-    # combinations.
-    assert np.all(np.isnan(output.data[~valid_mask]))
+    # Invalid input points should preserve their original non-finite sentinel;
+    # NaN and Inf should remain distinguishable in the final output.
+    assert np.isnan(output.data[2, 2])
+    assert np.isposinf(output.data[3, 3])
+    assert np.all(np.isfinite(output.data[valid_mask]))
 
 
 def test_suppression_process_applies_convective_and_upper_tail_stages():

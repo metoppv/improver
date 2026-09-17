@@ -2166,10 +2166,23 @@ class SpatialMorphingSuppression(BasePlugin):
             & np.isfinite(source_a_data)
             & np.isfinite(source_b_data)
         )
+        # Preserve the original non-finite sentinel at each invalid location.
+        # This keeps NaN and Inf distinguishable in the final output instead of
+        # flattening every invalid point to NaN when suppression diagnostics are
+        # applied to sanitised arrays.
+        invalid_preserved = np.where(
+            np.isfinite(result_data),
+            np.where(
+                np.isfinite(source_a_data),
+                np.where(np.isfinite(source_b_data), np.nan, source_b_data),
+                source_a_data,
+            ),
+            result_data,
+        )
         if not np.any(valid_mask):
             output_cube = result_cube.copy()
             output_data = np.asarray(output_cube.data, dtype=np.float64)
-            output_data[~valid_mask] = np.nan
+            output_data[~valid_mask] = invalid_preserved[~valid_mask]
             output_cube.data = output_data.astype(np.float32)
             return output_cube
 
@@ -2232,10 +2245,10 @@ class SpatialMorphingSuppression(BasePlugin):
                 sigmoid_clip_limit=config["sigmoid_clip_limit"],
             )
 
-        # Preserve invalid-input locations as NaN in the final output. Local
-        # suppression diagnostics use sanitised arrays for stability, but any
-        # grid point that is invalid in the inputs should remain invalid.
-        output_data[~valid_mask] = np.nan
+        # Preserve the original non-finite sentinel at each invalid location.
+        # This keeps NaN and Inf distinguishable in the final output instead of
+        # flattening every invalid point to NaN during the suppression pass.
+        output_data[~valid_mask] = invalid_preserved[~valid_mask]
 
         if np.allclose(output_data, result_data, equal_nan=True):
             return result_cube.copy()
