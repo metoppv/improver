@@ -1774,6 +1774,92 @@ def test_clusterandmatch_global_precedence_full_over_partial():
     _assert_cluster_sources_attribute(result, expected_sources)
 
 
+def test_clusterandmatch_cluster_sources_are_replaced_on_partial_overwrite():
+    """A higher-precedence partial input should replace lower-precedence full sources.
+
+    The output data already reflects the overwrite, but this regression test checks
+    that cluster_sources is updated to remove the earlier source for the overwritten
+    forecast period rather than leaving both sources listed.
+    """
+    pytest.importorskip("kmedoids")
+
+    cubes = CubeList()
+    spatial_shape = (5, 5)
+
+    cubes.extend(
+        _create_4d_realization_cube(
+            n_realizations=6,
+            forecast_periods=[0],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            model_id="primary_model",
+            realization_values=[0.0, 0.2, 100.0, 100.2, 200.0, 200.2],
+            merge=False,
+        )
+    )
+
+    # Lower-precedence full input.
+    cubes.extend(
+        _create_4d_realization_cube(
+            n_realizations=3,
+            forecast_periods=[0],
+            y_dim=spatial_shape[0],
+            x_dim=spatial_shape[1],
+            model_id="secondary_model_1",
+            realization_values=[0.0, 100.0, 200.0],
+            merge=False,
+        )
+    )
+
+    # Higher-precedence partial deterministic input for the same forecast period.
+    det_cube = set_up_variable_cube(
+        np.full(spatial_shape, 20.0, dtype=np.float32),
+        name="air_temperature",
+        units="K",
+        spatial_grid="equalarea",
+    )
+    det_cube.attributes["model_id"] = "secondary_model_2"
+    det_cube.coord("forecast_period").points = [0]
+    det_cube.coord("time").points = [
+        det_cube.coord("forecast_reference_time").points[0]
+    ]
+    cubes.append(det_cube)
+
+    hierarchy = {
+        "primary_input": "primary_model",
+        "secondary_inputs": {
+            "secondary_model_2": [0],
+            "secondary_model_1": [0],
+        },
+    }
+
+    result = RealizationClusterAndMatch(
+        hierarchy=hierarchy,
+        model_id_attr="model_id",
+        clustering_method="KMedoids",
+        regrid_for_clustering=False,
+        n_clusters=3,
+        random_state=42,
+    ).process(cubes)
+
+    cluster_sources = json.loads(result.attributes["cluster_sources"])
+    fp0 = int(result.coord("forecast_period").points[0])
+
+    partial_clusters = []
+    for cluster_idx, sources in cluster_sources.items():
+        owners = [name for name, fps in sources.items() if fp0 in fps]
+        assert len(owners) == 1, (
+            f"Cluster {cluster_idx} at forecast period {fp0} still has multiple "
+            f"sources recorded: {owners}"
+        )
+        if owners[0] == "secondary_model_2":
+            partial_clusters.append(cluster_idx)
+
+    assert partial_clusters, "Expected the partial input to overwrite at least one cluster"
+    for cluster_idx in partial_clusters:
+        assert fp0 not in cluster_sources[cluster_idx].get("secondary_model_1", [])
+
+
 def test_clusterandmatch_overlapping_forecast_periods():
     """Test handling of overlapping forecast periods with different precedence."""
     pytest.importorskip("kmedoids")
