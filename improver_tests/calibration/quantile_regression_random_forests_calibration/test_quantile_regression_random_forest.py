@@ -1043,7 +1043,7 @@ def test_apply_qrf_alternative_configs(
         (
             [0.5],  # 50th percentile
             np.array([6], dtype=np.float32),  # input uncalibrated forecast
-            np.array([17.0, 0.0], dtype=np.float32),  # QRF output for two sites
+            np.array([17.0, 0.0], dtype=np.float32),  # QRF output
             5.0,  # max allowed difference for capping
             np.array([11.0, 3.0], dtype=np.float32),  # expected capped forecast
         ),
@@ -1058,6 +1058,9 @@ def test_apply_qrf_alternative_configs(
         (
             [0.1, 0.5, 0.9],
             np.array([6, 12, 18], dtype=np.float32),
+            # Quantiles are clipped independently per site to site-specific 
+            # lower/upper limits; tail quantiles clip first, while central 
+            # quantiles usually remain unchanged.
             np.array([[30.0, 25.0, 22.0], [0.5, 2.0, 9.0]], dtype=np.float32),
             5.0,
             # The cap is applied relative to each site's original forecast range:
