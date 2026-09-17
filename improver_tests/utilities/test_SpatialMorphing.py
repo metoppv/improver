@@ -1045,7 +1045,7 @@ def test_suppression_process_handles_invalid_grid_points_across_stages(
     source_a_data = np.full((5, 5), 2.0, dtype=np.float32)
     source_b_data = np.full((5, 5), 3.0, dtype=np.float32)
     source_a_data[2, 2] = np.nan
-    source_b_data[2, 2] = np.inf
+    source_b_data[3, 3] = np.inf
 
     result_data = np.full((5, 5), 10.0, dtype=np.float32)
 
