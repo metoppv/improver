@@ -1058,8 +1058,8 @@ def test_apply_qrf_alternative_configs(
         (
             [0.1, 0.5, 0.9],
             np.array([6, 12, 18], dtype=np.float32),
-            # Quantiles are clipped independently per site to site-specific 
-            # lower/upper limits; tail quantiles clip first, while central 
+            # Quantiles are clipped independently per site to site-specific
+            # lower/upper limits; tail quantiles clip first, while central
             # quantiles usually remain unchanged.
             np.array([[30.0, 25.0, 22.0], [0.5, 2.0, 9.0]], dtype=np.float32),
             5.0,
