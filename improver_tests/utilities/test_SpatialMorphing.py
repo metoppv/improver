@@ -757,6 +757,27 @@ def test_process_linear_morphing_backend_blends_source_cubes():
     ]
 
 
+@pytest.mark.parametrize("weight", [-0.1, 1.1])
+def test_process_linear_morphing_backend_rejects_out_of_range_weight(weight):
+    """Test linear morphing rejects weights outside [0, 1]."""
+    plugin = SpatialMorphing(
+        forecast_period=21600,
+        cluster_number=17,
+        transitions=make_transitions(),
+        morphing_method="linear",
+    )
+
+    det_cube = make_forecast_cube(
+        model_id="uk_det", n_realizations=24, base_value=100.0
+    )
+    ens_cube = make_forecast_cube(
+        model_id="uk_ens", n_realizations=24, base_value=200.0
+    )
+
+    with pytest.raises(ValueError, match=r"Weight must be in \[0, 1\]"):
+        plugin._apply_morphing_backend(det_cube, ens_cube, weight)
+
+
 def test_process_preserves_other_attributes():
     """Test that other attributes are preserved in output."""
     plugin = SpatialMorphing(forecast_period=22500, cluster_number=0)

@@ -597,12 +597,9 @@ class SpatialMorphing(BasePlugin):
             Morphed cube at the specified weight.
 
         Raises:
-            ValueError: If weight is outside [0, 1] or if FILM config is missing.
+            ValueError: If FILM config is missing.
             RuntimeError: If FILM returns no results.
         """
-        if not (0.0 <= weight <= 1.0):
-            raise ValueError(f"Weight must be in [0, 1], got {weight}")
-
         if self.model_path is None:
             raise ValueError("model_path must be provided to use Google FILM morphing")
 
@@ -646,7 +643,12 @@ class SpatialMorphing(BasePlugin):
 
         Returns:
             Morphed cube at the specified weight.
+
+        Raises:
+            ValueError: If weight is outside [0, 1].
         """
+        if not (0.0 <= weight <= 1.0):
+            raise ValueError(f"Weight must be in [0, 1], got {weight}")
         if self.morphing_method == "google_film":
             return self._call_google_film_for_morphing(cube_a, cube_b, weight)
         if self.morphing_method == "linear":
