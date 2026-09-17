@@ -302,6 +302,93 @@ def test_get_cluster_available_source_names_uses_active_source_boundaries():
     assert available == {"nc_det uk_det", "uk_det"}
 
 
+def test_get_cluster_available_source_names_disambiguates_overlapping_transitions():
+    """Forecast-period filtering avoids ambiguous overlap transition matching.
+
+    This regression demonstrates why get_active_source_names_for_forecast_period
+    is required. With cluster-only source filtering, the available source set for
+    this cluster includes "nc_det uk_det", "uk_det" and "uk_ens" at T+6, so both
+    overlapping transitions are compatible and transition selection is ambiguous.
+    When forecast-period-aware filtering is used, the available set is reduced to
+    the active pair ("nc_det uk_det", "uk_det"), leaving a single valid
+    transition.
+    """
+    plugin = SpatialMorphing(
+        forecast_period=21600,
+        cluster_number=17,
+        transitions={
+            "transitions": [
+                {
+                    "source_a": "nc_det uk_det",
+                    "source_b": "uk_det",
+                    "start_forecast_period_minutes": 60,
+                    "end_forecast_period_minutes": 420,
+                },
+                {
+                    "source_a": "nc_det uk_det",
+                    "source_b": "uk_ens",
+                    "start_forecast_period_minutes": 60,
+                    "end_forecast_period_minutes": 420,
+                },
+            ]
+        },
+    )
+
+    nc_det_cube = make_forecast_cube(model_id="nc_det uk_det", n_realizations=2)
+    det_cube = make_forecast_cube(model_id="uk_det", n_realizations=2)
+    ens_cube = make_forecast_cube(model_id="uk_ens", n_realizations=2)
+    forecast_cubes = CubeList([nc_det_cube, det_cube, ens_cube])
+
+    cluster_cube = make_cluster_cube()
+    cluster_sources = json.loads(cluster_cube.attributes["cluster_sources"])
+    cluster_sources["17"] = {
+        "ecgl_ens": [648000, 691200],
+        "gl_ens": [388800, 432000],
+        "uk_ens": [43200, 86400, 129600, 172800, 216000, 259200],
+        "uk_det": [21600],
+        "nc_det uk_det": [3600],
+    }
+    cluster_cube.attributes["cluster_sources"] = json.dumps(cluster_sources)
+
+    # Simulate legacy cluster-only filtering: all cluster source labels present
+    # on the input cubes are considered available, regardless of forecast period.
+    naive_available_source_names = {
+        source_name
+        for source_name in cluster_sources["17"]
+        if source_name
+        in {
+            cube.attributes.get(plugin.model_id_attr)
+            for cube in forecast_cubes
+            if cube.attributes.get(plugin.model_id_attr) is not None
+        }
+    }
+
+    with pytest.raises(ValueError, match="Multiple compatible transitions remain"):
+        plugin._find_active_transition(
+            plugin.forecast_period,
+            selected_source_name="nc_det uk_det",
+            available_source_names=naive_available_source_names,
+        )
+
+    period_aware_available_source_names = plugin._get_cluster_available_source_names(
+        forecast_cubes,
+        cluster_cube,
+        cluster_number=17,
+    )
+    transition = plugin._find_active_transition(
+        plugin.forecast_period,
+        selected_source_name="nc_det uk_det",
+        available_source_names=period_aware_available_source_names,
+    )
+    assert period_aware_available_source_names == {"nc_det uk_det", "uk_det"}
+    assert transition == {
+        "source_a": "nc_det uk_det",
+        "source_b": "uk_det",
+        "start_forecast_period_seconds": 3600,
+        "end_forecast_period_seconds": 25200,
+    }
+
+
 def test_get_cluster_available_source_names_raises_when_missing_metadata():
     """cluster_sources metadata is required for transition disambiguation."""
     plugin = SpatialMorphing(
