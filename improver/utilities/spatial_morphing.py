@@ -1532,8 +1532,8 @@ class SpatialMorphing(BasePlugin):
             ]
         else:
             result_cube = self._apply_morphing_backend(
-                cube_a,
-                cube_b,
+                cube_a.copy(),
+                cube_b.copy(),
                 weight,
             )
             self.actual_forecast_contributors = [
