@@ -16,6 +16,7 @@ from iris.cube import Cube, CubeList
 from improver import BasePlugin
 from improver.blending.utilities import remove_blend_time, remove_deprecation_warnings
 from improver.calibration.quantile_mapping import QuantileMapping
+from improver.clustering.cluster_sources_utils import find_nearest_forecast_period_gte
 from improver.clustering.realization_clustering import RealizationSelection
 from improver.utilities.temporal import (
     reset_forecast_reference_time_and_period,
@@ -985,10 +986,8 @@ class SpatialMorphing(BasePlugin):
                     for entry in cluster_list:
                         mapping_fps.update(entry["forecast_periods"])
 
-        nearest_fp, use_secondary = (
-            self._selection_helper.find_nearest_secondary_mapping_fp(
-                mapping_fps, self.forecast_period
-            )
+        nearest_fp, use_secondary = find_nearest_forecast_period_gte(
+            mapping_fps, self.forecast_period
         )
         full_cluster_to_selection = self._selection_helper.build_cluster_to_selection(
             nearest_fp, use_secondary, secondary_map, primary_map, cluster_cube
