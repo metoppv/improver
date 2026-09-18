@@ -31,6 +31,7 @@ from improver.utilities.spatial import (
     distance_to_number_of_grid_cells,
     maximum_within_vicinity,
     rename_vicinity_cube,
+    set_vicinity_cell_method,
 )
 
 
@@ -395,6 +396,9 @@ class Threshold(PostProcessingPlugin):
 
         if cube.cell_methods:
             format_cell_methods_for_probability(cube, self.threshold_coord_name)
+
+        if self.vicinity is not None:
+            set_vicinity_cell_method(cube, operation="maximum")
 
         cube.rename(
             "probability_of_{parameter}_{relative_to}_threshold".format(
