@@ -50,6 +50,7 @@ def test_spatial_morphing(tmp_path, transitions, kgo, suppression, scheme):
         "10800",
         "--cluster-number",
         "7",
+        "--clip-in-scaled-space=False",
         "--transitions",
         kgo_dir / transitions,
         "--morphing-method",

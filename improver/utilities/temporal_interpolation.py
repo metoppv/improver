@@ -4,7 +4,6 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Class for Temporal Interpolation calculations."""
 
-import json
 import warnings
 from collections import defaultdict
 from collections.abc import Sequence
@@ -18,6 +17,7 @@ from iris.exceptions import CoordinateNotFoundError
 from numpy import ndarray
 
 from improver import BasePlugin
+from improver.clustering.cluster_sources_utils import parse_cluster_sources_attribute
 from improver.metadata.constants import FLOAT_DTYPE
 from improver.metadata.constants.time_types import TIME_COORDS
 from improver.metadata.forecast_times import unify_cycletime
@@ -1352,33 +1352,15 @@ class ForecastTrajectoryGapFiller(BasePlugin):
             and periods. Format: {realization_index: {source_name: [periods]}}
 
         Raises:
-            ValueError: If the cluster sources attribute is not a dictionary.
-            ValueError: If the cluster sources JSON string cannot be parsed.
             ValueError: If the sources for a realization are not a dictionary.
             ValueError: If the periods for a source are not a list.
         """
         if self.cluster_sources_attribute is None:
             return {}
 
-        try:
-            cluster_sources = cube.attributes[self.cluster_sources_attribute]
-        except KeyError:
-            return {}
+        cluster_sources = parse_cluster_sources_attribute(cube)
 
-        # Parse JSON string if needed
-        if isinstance(cluster_sources, str):
-            try:
-                cluster_sources = json.loads(cluster_sources)
-            except json.JSONDecodeError as err:
-                raise ValueError(f"Failed to parse cluster sources JSON: {err}")
-
-        # Validate dictionary structure
-        if not isinstance(cluster_sources, dict):
-            raise ValueError(
-                f"Cluster sources attribute must be a dictionary, "
-                f"got {type(cluster_sources)}"
-            )
-
+        # Validate dictionary structure for this plugin's use case
         for real_idx, sources in cluster_sources.items():
             if not isinstance(sources, dict):
                 raise ValueError(
@@ -1446,7 +1428,14 @@ class ForecastTrajectoryGapFiller(BasePlugin):
         """Identify periods to regenerate based on cluster source transitions.
 
         Args:
-            cubelist: List of input cubes.
+            cubelist: List of input cubes. Only the first cube is used to read the
+            cluster-source metadata and the realization coordinate values. This is
+            sufficient because the source-transition logic is performed per
+            realization, and the realization index to inspect is taken from that
+            cube's realization metadata rather than from the cubelist length. In
+            the normal use case, each call to this method is made for a
+            single-realization input cube, so the first cube is effectively the
+            realization being evaluated.
 
         Returns:
             List of tuples (transition_period, expected_t0, expected_t1) where
@@ -1471,9 +1460,11 @@ class ForecastTrajectoryGapFiller(BasePlugin):
         if not cluster_sources:
             return []
 
-        # Get all realization indices
+        # Get all realization indices from the cube's realization coordinate values
         if first_cube.coords("realization"):
-            realization_indices = range(first_cube.coord("realization").points.size)
+            realization_indices = (
+                first_cube.coord("realization").points.astype(int).tolist()
+            )
         else:
             return []
 
@@ -1558,6 +1549,8 @@ class ForecastTrajectoryGapFiller(BasePlugin):
             ValueError: If cubes do not have multiple, different
                 forecast_periods and times.
             ValueError: If cubes do not all have the same forecast_reference_time.
+            ValueError: If regeneration mode is enabled and any input cube
+                contains multiple realizations.
         """
         if not cubelist or len(cubelist) < 2:
             raise ValueError(
@@ -1574,6 +1567,22 @@ class ForecastTrajectoryGapFiller(BasePlugin):
                     f"All cubes must have {', '.join(required_coords)} "
                     f"coordinates for gap filling. Missing from cube: {missing}"
                 )
+
+            # Regeneration currently targets forecast periods globally rather
+            # than selecting periods per realization.
+            regeneration_enabled = self.cluster_sources_attribute is not None and (
+                self.interpolation_window_in_seconds is not None
+                or self.interpolation_window_by_source_pair_seconds
+            )
+            if regeneration_enabled and cube.coords("realization"):
+                n_realizations = cube.coord("realization").points.size
+                if n_realizations > 1:
+                    raise ValueError(
+                        "Regeneration mode (cluster_sources_attribute with "
+                        "interpolation_window_in_minutes or "
+                        "interpolation_window_by_source_pair) currently "
+                        "requires single-realization input cubes."
+                    )
 
         # Extract forecast_periods, times, and forecast_reference_times from each cube
         forecast_periods = [
@@ -1857,6 +1866,10 @@ class ForecastTrajectoryGapFiller(BasePlugin):
                 All cubes should have the same validity time coordinate structure and
                 dimensions (except for forecast_period and time), and are expected to
                 all have the same forecast_reference_time.
+                Multi-realization cubes are supported for interpolation-only
+                gap filling. If source-transition regeneration is enabled via
+                cluster_sources_attribute and a regeneration window, inputs
+                must be single-realization.
 
         Returns:
             A single merged Cube with gaps filled using temporal interpolation.
@@ -2048,12 +2061,15 @@ class GoogleFilmInterpolation(BasePlugin):
                 intended for use in testing where a mock model loader can be
                 supplied. If None, the default model loader will be used.
             interpolation_fractions:
-                Optional fraction, or sequence of fractions, describing progress
-                from cube1 to cube2. Values must lie between 0 and 1.
+                Optional scalar or sequence of fractions describing progress from
+                cube1 to cube2. Values must lie between 0 and 1 inclusive.
+
                 If omitted, fractions are calculated from the input and output
-                validity times, giving the existing temporal interpolation
-                behaviour. If supplied, cube1 and cube2 may have the same validity time.
-                This supports source morphing at constant validity time.
+                validity times, giving the standard temporal interpolation behaviour.
+
+                For the spatial morphing use case, cube1 and cube2 may have the same
+                validity time, so a single interpolation fraction is used to produce
+                one interpolated field at that fixed validity time.
 
         Raises:
             ValueError: If an unsupported scaling method is provided.
@@ -2195,6 +2211,8 @@ class GoogleFilmInterpolation(BasePlugin):
             ValueError: If any interpolation fraction is not finite or not in [0, 1].
         """
         if self.interpolation_fractions is None:
+            # Default temporal interpolation: infer each output slice's fraction from
+            # the time difference between the source cubes.
             t0 = cube1.coord("time").points[0]
             t1 = cube2.coord("time").points[0]
             time_range = t1 - t0
@@ -2211,8 +2229,18 @@ class GoogleFilmInterpolation(BasePlugin):
                 for template_slice in template_slices
             ]
         elif np.isscalar(self.interpolation_fractions):
-            fractions = [float(self.interpolation_fractions)] * len(template_slices)
+            # For the fixed-validity-time spatial morphing case, a single fraction
+            # specifies the single output field directly. We do not support
+            # broadcasting a scalar across multiple template slices.
+            if len(template_slices) != 1:
+                raise ValueError(
+                    "A single interpolation fraction is only supported for one "
+                    "template slice. Got "
+                    f"{len(template_slices)} template slices."
+                )
+            fractions = [float(self.interpolation_fractions)]
         else:
+            # Explicit per-slice fractions for the general multi-slice API.
             fractions = [float(value) for value in self.interpolation_fractions]
 
             if len(fractions) != len(template_slices):

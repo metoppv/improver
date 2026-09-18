@@ -18,6 +18,9 @@ from iris.util import new_axis, promote_aux_coord_to_dim_coord
 
 from improver import BasePlugin
 from improver.blending.utilities import remove_blend_time, remove_deprecation_warnings
+from improver.clustering.cluster_sources_utils import (
+    find_nearest_forecast_period_gte,
+)
 from improver.clustering.clustering import FitClustering
 from improver.regrid.landsea import RegridLandSea
 from improver.utilities.cube_manipulation import (
@@ -855,9 +858,10 @@ class RealizationClusterAndMatch(BasePlugin):
         """Update cluster sources tracking when replacing data from one model
         with another.
 
-        This method removes the forecast period from the primary input's tracking
-        and adds it to the secondary input for the specified clusters, maintaining a
-        record of which model provided data for each cluster at each forecast_period.
+        This method removes the forecast period from whichever model currently owns
+        the cluster and adds it to the incoming model for the specified clusters,
+        maintaining a record of the final source for each cluster at each forecast
+        period.
 
         Args:
             cluster_sources: Dictionary tracking which input was used for each
@@ -868,16 +872,15 @@ class RealizationClusterAndMatch(BasePlugin):
                 e.g. 'secondary_input1'.
             fp: Forecast period value in seconds.
         """
-        primary_name = self.hierarchy["primary_input"]
         for cluster_idx in cluster_indices:
             cluster_sources.setdefault(cluster_idx, {})
-            # Remove this forecast period from primary input
-            if primary_name in cluster_sources[cluster_idx]:
-                if fp in cluster_sources[cluster_idx][primary_name]:
-                    cluster_sources[cluster_idx][primary_name].remove(fp)
-                # Clean up empty lists
-                if not cluster_sources[cluster_idx][primary_name]:
-                    del cluster_sources[cluster_idx][primary_name]
+            # Remove this forecast period from any model currently recorded for
+            # this cluster before recording the replacement source.
+            for source_name in list(cluster_sources[cluster_idx].keys()):
+                if fp in cluster_sources[cluster_idx][source_name]:
+                    cluster_sources[cluster_idx][source_name].remove(fp)
+                    if not cluster_sources[cluster_idx][source_name]:
+                        del cluster_sources[cluster_idx][source_name]
             # Add to secondary input
             if candidate_name not in cluster_sources[cluster_idx]:
                 cluster_sources[cluster_idx][candidate_name] = []
@@ -1082,6 +1085,99 @@ class RealizationClusterAndMatch(BasePlugin):
             candidate_cube,
         )
 
+    def _build_model_precedence(self) -> dict[str, int]:
+        """Build precedence ranks for all models in the hierarchy.
+
+        Lower rank means higher precedence, for example, a precedence mapping of
+        {'nowcast': 0, 'uk_det': 1, 'uk_ens': 2, 'gl_ens': 3, 'ecgl_ens': 4}
+        would indicate that 'nowcast' has the highest precedence and
+        'ecgl_ens' has the lowest precedence.
+
+        Returns:
+            Mapping of model name to precedence rank.
+        """
+        secondary_names = list(self.hierarchy["secondary_inputs"].keys())
+        precedence = {name: rank for rank, name in enumerate(secondary_names)}
+        # Primary input acts as the fallback source and has lowest precedence.
+        precedence[self.hierarchy["primary_input"]] = len(secondary_names)
+        return precedence
+
+    @staticmethod
+    def _get_source_for_cluster_forecast_period(
+        cluster_sources: dict[int, dict[str, list[int]]], cluster_idx: int, fp: int
+    ) -> str | None:
+        """Get the current source model for a cluster at a forecast period.
+
+        Args:
+            cluster_sources: Dictionary tracking which input was used for each
+                cluster at each forecast period. Modified in-place.
+                Format: {cluster_idx: {model_name: [fp1, fp2, ...]}}
+            cluster_idx: Cluster index to inspect.
+            fp: Forecast period in seconds.
+
+        Returns:
+            Model name currently providing this cluster at this forecast period,
+            or None if no source is recorded.
+        """
+        for model_name, fps in cluster_sources.get(cluster_idx, {}).items():
+            if fp in fps:
+                return model_name
+        return None
+
+    def _filter_cluster_updates_by_precedence(
+        self,
+        cluster_indices: list[int],
+        realization_indices: list[int],
+        candidate_name: str,
+        fp: int,
+        cluster_sources: dict[int, dict[str, list[int]]],
+        model_precedence: dict[str, int],
+    ) -> tuple[list[int], list[int]]:
+        """Filter cluster updates to enforce hierarchy precedence globally.
+
+        Lower-priority inputs cannot overwrite clusters already provided by
+        higher-priority inputs at the same forecast period.
+
+        Args:
+            cluster_indices: Candidate cluster indices to update.
+            realization_indices: Candidate realization indices paired to clusters.
+            candidate_name: Name of model proposing the updates.
+            fp: Forecast period in seconds.
+            cluster_sources: Dictionary tracking which input was used for each
+                cluster at each forecast period. Modified in-place.
+                Format: {cluster_idx: {model_name: [fp1, fp2, ...]}}
+            model_precedence: Model precedence mapping, lower is higher priority.
+                For example, a precedence mapping of
+                {'nowcast': 0, 'uk_det': 1, 'uk_ens': 2, 'gl_ens': 3, 'ecgl_ens': 4}
+                would indicate that 'nowcast' has the highest precedence and 'ecgl_ens'
+                has the lowest precedence.
+
+        Returns:
+            Filtered (cluster_indices, realization_indices) that are allowed to
+            update. For example, with a precedence mapping of
+            {'nowcast': 0, 'uk_det': 1, 'uk_ens': 2, 'gl_ens': 3, 'ecgl_ens': 4}
+            and a candidate name of "uk_det", any clusters currently represented by
+            "nowcast" at the same forecast period would not be allowed to update. For
+            example, if cluster_indices = [0, 1, 2] and realization_indices = [3, 4, 5],
+            and cluster 1 is currently provided by "nowcast", the returned values
+            would be ([0, 2], [3, 5]), indicating that only clusters 0 and 2 are
+            allowed to update with realizations 3 and 5, respectively.
+        """
+        allowed_cluster_indices = []
+        allowed_realization_indices = []
+        candidate_rank = model_precedence.get(candidate_name, len(model_precedence))
+
+        for cluster_idx, realization_idx in zip(cluster_indices, realization_indices):
+            current_source = self._get_source_for_cluster_forecast_period(
+                cluster_sources, cluster_idx, fp
+            )
+            current_rank = model_precedence.get(current_source, len(model_precedence))
+            if current_source is None or candidate_rank < current_rank:
+                allowed_cluster_indices.append(cluster_idx)
+                allowed_realization_indices.append(realization_idx)
+
+        return allowed_cluster_indices, allowed_realization_indices
+
     def _extract_merge_and_match(
         self,
         candidate_name: str,
@@ -1252,6 +1348,7 @@ class RealizationClusterAndMatch(BasePlugin):
         matched_cubes: CubeList,
         cluster_sources: dict[int, dict[str, list[int]]],
         secondary_input_realizations_to_clusters: dict[str, dict[int, list[int]]],
+        model_precedence: dict[str, int],
     ) -> None:
         """Process partial realization inputs in reverse precedence order.
 
@@ -1281,6 +1378,11 @@ class RealizationClusterAndMatch(BasePlugin):
                 Modified in-place.
                 Format: {secondary_input_name:
                 {forecast_period: {cluster_index: [realization_indices]}}}
+            model_precedence: Model precedence mapping, lower rank means higher
+                precedence. For example, a precedence mapping of
+                {'nowcast': 0, 'uk_det': 1, 'uk_ens': 2, 'gl_ens': 3, 'ecgl_ens': 4}
+                would indicate that 'nowcast' has the highest precedence and
+                'ecgl_ens' has the lowest precedence.
         """
         # Process in reverse order (lowest precedence first)
         for candidate_name, forecast_periods in reversed(partial_realization_inputs):
@@ -1304,6 +1406,19 @@ class RealizationClusterAndMatch(BasePlugin):
                 fp_constr = iris.Constraint(forecast_period=fp)
                 candidate_cube = cubes.extract_cube(model_id_constr & fp_constr)
 
+                allowed_cluster_indices, allowed_realization_indices = (
+                    self._filter_cluster_updates_by_precedence(
+                        cluster_indices,
+                        realization_indices,
+                        candidate_name,
+                        fp,
+                        cluster_sources,
+                        model_precedence,
+                    )
+                )
+                if not allowed_cluster_indices:
+                    continue
+
                 # Index the candidate cube using the realization indices determined
                 # from the combined match across all forecast periods.
                 matched_cube = candidate_cube[realization_indices]
@@ -1319,13 +1434,17 @@ class RealizationClusterAndMatch(BasePlugin):
 
                 # Replace data for the specific cluster indices with the new data
                 result_data = existing_fp_cube.data.copy()
-                for i, cluster_idx in enumerate(cluster_indices):
+                for cluster_idx in allowed_cluster_indices:
                     # Find which position cluster_idx is in the existing cube
                     pos = np.where(
                         existing_fp_cube.coord("realization").points == cluster_idx
                     )[0]
                     if len(pos) > 0:
-                        result_data[pos[0]] = matched_cube.data[i]
+                        matched_pos = np.where(
+                            matched_cube.coord("realization").points == cluster_idx
+                        )[0]
+                        if len(matched_pos) > 0:
+                            result_data[pos[0]] = matched_cube.data[matched_pos[0]]
 
                 # Create a new cube with the merged data
                 merged_cube = existing_fp_cube.copy(data=result_data)
@@ -1337,8 +1456,8 @@ class RealizationClusterAndMatch(BasePlugin):
 
                 self._record_match_for_forecast_period(
                     fp,
-                    cluster_indices,
-                    realization_indices,
+                    allowed_cluster_indices,
+                    allowed_realization_indices,
                     candidate_name,
                     candidate_cube,
                     replaced_realizations,
@@ -1507,6 +1626,7 @@ class RealizationClusterAndMatch(BasePlugin):
         # forecast period
         # Format: {cluster_idx: {model_name: [fp1, fp2, ...]}}
         cluster_sources = {}
+        model_precedence = self._build_model_precedence()
 
         # Start with the clustered primary cube as the base for all forecast periods
         # This ensures we always have a full set of realizations to work with
@@ -1550,6 +1670,7 @@ class RealizationClusterAndMatch(BasePlugin):
             matched_cubes,
             cluster_sources,
             secondary_input_realizations_to_clusters,
+            model_precedence,
         )
 
         # Remove / harmonise known scalar coords that can differ across sources
@@ -1745,40 +1866,6 @@ class RealizationSelection(BasePlugin):
                 "Forecast cubes must share a common validity time (time coordinate)."
             )
 
-    def find_nearest_secondary_mapping_fp(
-        self, mapping_fps: Optional[set[int]], fp: int
-    ) -> tuple[int, bool]:
-        """
-        Find the nearest forecast period in the secondary mapping that is greater
-        than or equal to the requested forecast period.
-
-        Args:
-            mapping_fps: Set of forecast periods (in seconds) available in the
-                secondary mapping.
-            fp: The forecast period (in seconds) for which to find the nearest
-                greater-than-or-equal mapping.
-
-        Returns:
-            A tuple containing:
-                - nearest_fp: The smallest forecast period from mapping_fps that is
-                greater than or equal to fp (or fp if mapping_fps is empty).
-                - use_secondary: Boolean indicating whether the secondary mapping
-                    should be used (True if at least one forecast period in
-                    mapping_fps is greater than or equal to fp, else False).
-        """
-        if mapping_fps:
-            valid_fps = [mapping_fp for mapping_fp in mapping_fps if mapping_fp >= fp]
-            if valid_fps:
-                nearest_fp = min(valid_fps)
-                use_secondary = True
-            else:
-                nearest_fp = fp
-                use_secondary = False
-        else:
-            nearest_fp = fp
-            use_secondary = False
-        return nearest_fp, use_secondary
-
     def _extract_primary_model_from_cluster_sources(self, cluster_cube: Cube) -> str:
         """Extract the primary model name from the cluster_sources attribute.
 
@@ -1967,7 +2054,7 @@ class RealizationSelection(BasePlugin):
                 for cluster_list in cluster_dict.values():
                     for entry in cluster_list:
                         mapping_fps.update(entry["forecast_periods"])
-        nearest_fp, use_secondary = self.find_nearest_secondary_mapping_fp(
+        nearest_fp, use_secondary = find_nearest_forecast_period_gte(
             mapping_fps, self.forecast_period
         )
         cluster_to_selection = self.build_cluster_to_selection(
