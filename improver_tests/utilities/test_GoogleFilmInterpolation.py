@@ -225,6 +225,28 @@ def test_google_film_process_time_fraction_calculation(
     np.testing.assert_almost_equal(captured_time_fractions[0], 0.5, decimal=5)
 
 
+def test_google_film_get_interpolation_fractions_scalar_rejects_multiple_template_slices(
+    google_film_sample_cubes,
+):
+    """A single interpolation fraction should only be valid for one output slice."""
+    cube1, cube2 = google_film_sample_cubes
+    times = [datetime.datetime(2017, 11, 1, hour) for hour in [4, 5, 6]]
+    data = np.ones((5, 5), dtype=np.float32)
+    template = multi_time_cube(times, data, "latlon")
+    template_slices = list(template.slices_over("time"))
+
+    plugin = GoogleFilmInterpolation(
+        model_path="/mock/path",
+        interpolation_fractions=0.5,
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="A single interpolation fraction is only supported for one template slice",
+    ):
+        plugin._get_interpolation_fractions(cube1, cube2, template_slices)
+
+
 @pytest.mark.parametrize(
     "max_batch,parallel_backend,n_workers",
     [
