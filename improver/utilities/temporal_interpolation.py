@@ -2492,8 +2492,6 @@ class GoogleFilmInterpolation(BasePlugin):
                     f"Coordinate '{extra_dim}' does not match between cubes."
                 )
 
-        # Only load the model if parallel_backend is None. If the parallel_backend
-        # is set, each worker will load its own model.
         model = None
         if self.parallel_backend is None:
             model = self.model_loader(self.model_path)
@@ -2501,8 +2499,10 @@ class GoogleFilmInterpolation(BasePlugin):
         # Avoid modifying the caller's cubes during scaling.
         cube1_orig = cube1.copy()
         cube2_orig = cube2.copy()
+        cube1_scaled = cube1.copy()
+        cube2_scaled = cube2.copy()
 
-        self._apply_scaling(cube1, cube2, self.scaling)
+        self._apply_scaling(cube1_scaled, cube2_scaled, self.scaling)
 
         template_slices = list(template_interpolated_cube.slices_over("time"))
 
@@ -2514,8 +2514,8 @@ class GoogleFilmInterpolation(BasePlugin):
 
         if extra_dim:
             interpolated_cubes = self._interpolate_with_extra_dim(
-                cube1,
-                cube2,
+                cube1_scaled,
+                cube2_scaled,
                 template_slices,
                 fractions,
                 model,
@@ -2525,8 +2525,8 @@ class GoogleFilmInterpolation(BasePlugin):
             )
         else:
             interpolated_cubes = self._interpolate_no_extra_dim(
-                cube1,
-                cube2,
+                cube1_scaled,
+                cube2_scaled,
                 template_slices,
                 fractions,
                 model,

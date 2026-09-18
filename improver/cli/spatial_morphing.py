@@ -27,8 +27,9 @@ def process(
     clip_to_physical_bounds: bool = False,
     transition_weights_scheme: str = "linear",
     morphing_method: str = "google_film",
-    apply_quantile_mapping: bool = False,
-    occurrence_threshold: float = 0.0,
+    apply_suppression: bool = False,
+    suppression_config: cli.inputjson = None,
+    suppression_stages: cli.comma_separated_list = None,
 ):
     """Apply spatial morphing between forecast sources at a fixed validity time.
 
@@ -79,12 +80,26 @@ def process(
         morphing_method (str):
             Spatial morphing backend to use for transitions. Supported values are
             "google_film" (default) and "linear".
-        apply_quantile_mapping (bool):
-            If True, apply quantile mapping to the morphed result using a weighted
-            source field.
-        occurrence_threshold (float):
-            Threshold used by the quantile mapping routine to determine whether a
-            value should be mapped.
+        apply_suppression (bool):
+            If True, apply the local suppression workflow to the morphed result.
+            This workflow is intended for precipitation-like fields only, because
+            it uses wet-occurrence, local-concentration, and upper-tail intensity
+            diagnostics that are meaningful for precipitation and not for general
+            scalar meteorological variables.
+        suppression_config (dict or None):
+            Optional JSON dictionary containing tuning values for the local
+            suppression stages applied to the morphed field, including the wet
+            occurrence_threshold. This configuration is intended for precipitation
+            diagnostics only. You can provide a partial dictionary and omit keys
+            you do not want to tune; unspecified settings use built-in defaults.
+            For example:
+            {"occurrence_threshold": 0.5, "maximum_suppression": 0.6,
+            "sigmoid_clip_limit": 20.0}
+        suppression_stages (list or None):
+            Optional comma-separated list of suppression stages to apply. Supported
+            values are weak_signal, convective, and upper_tail. These stages are
+            designed for precipitation diagnostics and are not generally suitable
+            for non-precipitation fields.
 
     Returns:
         Cube:
@@ -109,7 +124,8 @@ def process(
         clip_to_physical_bounds=clip_to_physical_bounds,
         transition_weights_scheme=transition_weights_scheme,
         morphing_method=morphing_method,
-        apply_quantile_mapping=apply_quantile_mapping,
-        occurrence_threshold=occurrence_threshold,
+        apply_suppression=apply_suppression,
+        suppression_config=suppression_config,
+        suppression_stages=suppression_stages,
     )
     return morphing.process(*cubes)

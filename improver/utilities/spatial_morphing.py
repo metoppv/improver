@@ -12,10 +12,10 @@ from typing import Any
 import iris
 import numpy as np
 from iris.cube import Cube, CubeList
+from scipy.ndimage import maximum_filter, uniform_filter
 
 from improver import BasePlugin
 from improver.blending.utilities import remove_blend_time, remove_deprecation_warnings
-from improver.calibration.quantile_mapping import QuantileMapping
 from improver.clustering.cluster_sources_utils import find_nearest_forecast_period_gte
 from improver.clustering.realization_clustering import RealizationSelection
 from improver.utilities.temporal import (
@@ -26,6 +26,74 @@ from improver.utilities.temporal_interpolation import (
     GoogleFilmInterpolation,
     _as_tuple_if_list,
 )
+
+# Canonical suppression-stage order used by configuration and execution:
+# - weak_signal: Damps broad low-intensity excess above a source-weighted
+#   reference.
+# - convective: Restores locally concentrated shower-like peaks indicated by
+#   source-neighbourhood structure.
+# - upper_tail: Restores high-end intensity where convective signal exists but
+#   the morphed upper tail is weaker than source-derived upper-tail expectations.
+_SUPPRESSION_CANONICAL_STAGES: tuple[str, str, str] = (
+    "weak_signal",
+    "convective",
+    "upper_tail",
+)
+
+# Suppression tuning defaults. Each entry is documented with its intended meaning
+# and the expected numerical range for the parameter:
+# - occurrence_threshold: Minimum wet value in the same units as the data; values
+#   below this threshold are treated as dry for the suppression diagnostics.
+# - quantile_for_centre: Quantile in [0, 1] used to define the central intensity
+#   level used by suppression weighting.
+# - width_fraction: Positive scaling factor controlling how broad the suppression
+#   weighting is around the centre; typically > 0.
+# - maximum_suppression: Non-negative strength limit in [0, 1] for the maximum
+#   allowed suppression.
+# - showery_neighbourhood_size: Positive odd integer neighbourhood size used to
+#   detect showery structure; typically >= 1.
+# - showery_weight_factor: Weight in [0, 1] applied to the showery component.
+# - weakness_weight_factor: Weight in [0, 1] applied to the local weakness
+#   component.
+# - convective_neighbourhood_size: Positive odd integer neighbourhood size used
+#   for convective feature detection; typically >= 1.
+# - convective_gain: Gain factor in [0, 1] applied to the convective
+#   contribution.
+# - concentration_reference: Positive reference concentration value used when
+#   scaling the suppression response; typically > 0.
+# - concentration_scale: Positive scaling factor controlling sensitivity to
+#   concentration; typically > 0.
+# - upper_tail_quantile: Quantile in [0, 1] used to identify upper-tail values.
+# - convective_mask_threshold: Threshold in [0, 1] used to activate the
+#   convective mask.
+# - maximum_intensity_scale: Positive scaling factor >= 1 used as the upper bound
+#   on intensity-based scaling.
+# - upper_tail_intensity_quantile: Quantile in [0, 1] used for upper-tail
+#   intensity weighting.
+# - intensity_weight_width_fraction: Positive width control for intensity
+#   weighting; typically > 0.
+# - sigmoid_clip_limit: Non-negative clip limit for the normalised sigmoid input
+#   used to avoid numerical overflow/underflow in the logistic weighting
+#   function; typically > 0.
+_SUPPRESSION_DEFAULTS: dict[str, float | int] = {
+    "occurrence_threshold": 0.03,
+    "quantile_for_centre": 0.9,
+    "width_fraction": 2.0,
+    "maximum_suppression": 1.0,
+    "showery_neighbourhood_size": 11,
+    "showery_weight_factor": 0.75,
+    "weakness_weight_factor": 0.25,
+    "convective_neighbourhood_size": 25,
+    "convective_gain": 0.9,
+    "concentration_reference": 2.0,
+    "concentration_scale": 5.0,
+    "upper_tail_quantile": 0.95,
+    "convective_mask_threshold": 0.5,
+    "maximum_intensity_scale": 1.5,
+    "upper_tail_intensity_quantile": 0.75,
+    "intensity_weight_width_fraction": 0.25,
+    "sigmoid_clip_limit": 20.0,
+}
 
 
 def get_active_source_names_for_forecast_period(
@@ -211,7 +279,14 @@ class SpatialMorphing(BasePlugin):
     6. Extract the selected realizations from each contributing source and apply
        the configured morphing backend (Google FILM by default) to generate a
        seamless blended output.
-    7. Finalise the output cube by cleaning metadata, setting the selected
+     7. Optionally apply one or more local suppression stages to the morphed
+        result:
+        weak_signal damps broad low-intensity excess above a source-weighted
+        reference; convective restores locally concentrated shower-like peaks
+        indicated by the source neighbourhood structure; upper_tail restores
+        high-end intensity where convective signal exists but the morphed upper
+        tail is weaker than source-derived upper-tail expectations.
+    8. Finalise the output cube by cleaning metadata, setting the selected
        cluster as the realization coordinate, and recording expected/actual
        forecast contributor provenance.
 
@@ -232,12 +307,14 @@ class SpatialMorphing(BasePlugin):
         model_path: str | None = None,
         scaling: str = "minmax",
         clipping_bounds: tuple[float, float] | None = None,
-        clip_in_scaled_space: bool = False,
+        clip_in_scaled_space: bool = True,
         clip_to_physical_bounds: bool = False,
+        model_loader: Any = None,
         transition_weights_scheme: str = "linear",
         morphing_method: str = "google_film",
-        apply_quantile_mapping: bool = False,
-        occurrence_threshold: float = 0.0,
+        apply_suppression: bool = False,
+        suppression_config: dict[str, Any] | None = None,
+        suppression_stages: list[str] | tuple[str, ...] | None = None,
     ) -> None:
         """Initialise the SpatialMorphing plugin.
 
@@ -270,10 +347,15 @@ class SpatialMorphing(BasePlugin):
                 Supported values are "linear" and "smoothstep".
             morphing_method: Spatial morphing backend to use for transitions.
                 Supported values are "google_film" (default) and "linear".
-            apply_quantile_mapping: If True, apply quantile mapping to the morphed
-                result using a weighted source field.
-            occurrence_threshold: Threshold used by the quantile mapping routine to
-                determine when a value may be mapped.
+            apply_suppression: If True, apply the local suppression workflow to the
+                morphed result.
+            suppression_config: Optional dictionary of tuning parameters for the
+                local suppression workflow.
+            suppression_stages: Optional list of suppression stages to apply. Supported
+                values are "weak_signal", "convective", and "upper_tail".
+
+        Returns:
+            None.
 
         Raises:
             ValueError: If transition_weights_scheme is not recognised.
@@ -295,10 +377,18 @@ class SpatialMorphing(BasePlugin):
         self.clipping_bounds = _as_tuple_if_list(clipping_bounds)
         self.clip_in_scaled_space = clip_in_scaled_space
         self.clip_to_physical_bounds = clip_to_physical_bounds
+        self.model_loader = model_loader
         self.transition_weights_scheme = transition_weights_scheme
         self.morphing_method = morphing_method
-        self.occurrence_threshold = occurrence_threshold
-        self.apply_quantile_mapping = apply_quantile_mapping
+        self.apply_suppression = apply_suppression
+        self.suppression_config = suppression_config
+        self.suppression_stages = suppression_stages
+        # Keep suppression as a dedicated plugin so morphing orchestration and
+        # suppression algorithms evolve independently.
+        self._suppression_plugin = SpatialMorphingSuppression(
+            suppression_config=self.suppression_config,
+            suppression_stages=self.suppression_stages,
+        )
         self.expected_forecast_contributors: list[dict[str, Any]] = []
         self.actual_forecast_contributors: list[dict[str, Any]] = []
 
@@ -321,7 +411,7 @@ class SpatialMorphing(BasePlugin):
     def _parse_transitions(
         self, transitions: dict[str, Any] | None
     ) -> list[dict[str, Any]]:
-        """Validate and normalise explicit transition definitions.
+        """Validate and format explicit transition definitions.
 
         Args:
             transitions: Transition specification to parse. This may be a dictionary
@@ -329,10 +419,12 @@ class SpatialMorphing(BasePlugin):
                 dictionaries, or None.
 
         Returns:
-            A normalised list of transition dictionaries with forecast-period bounds
+            A formatted list of transition dictionaries with forecast-period bounds
             converted to seconds. If transitions is None, returns an empty list.
 
         Raises:
+            TypeError: If transitions is not a dictionary, list, or None.
+            TypeError: If an individual transition entry is not a dictionary.
             ValueError: If the transition data are malformed or missing required
                 keys.
         """
@@ -351,14 +443,15 @@ class SpatialMorphing(BasePlugin):
         elif isinstance(transitions, list):
             transition_list = transitions
         else:
-            raise ValueError(
-                "transitions must be a dictionary containing a 'transitions' list or a list of transition dictionaries"
+            raise TypeError(
+                "transitions must be a dictionary containing a 'transitions' list "
+                "or a list of transition dictionaries"
             )
 
         parsed_transitions: list[dict[str, Any]] = []
         for transition in transition_list:
             if not isinstance(transition, dict):
-                raise ValueError("Each transition must be a dictionary")
+                raise TypeError("Each transition must be a dictionary")
 
             required_keys = {
                 "source_a",
@@ -388,7 +481,8 @@ class SpatialMorphing(BasePlugin):
                 or start_minutes >= end_minutes
             ):
                 raise ValueError(
-                    "Transition start/end forecast periods must be positive integers with start < end"
+                    "Transition start/end forecast periods must be positive integers "
+                    "with start < end"
                 )
 
             parsed_transitions.append(
@@ -536,7 +630,8 @@ class SpatialMorphing(BasePlugin):
 
         Raises:
             ValueError: If multiple transitions match the forecast period and
-                selected_source_name is not provided.
+                selected_source_name is not provided, or if no matching transition
+                is found.
         """
         active_transitions = [
             transition
@@ -684,9 +779,6 @@ class SpatialMorphing(BasePlugin):
             ValueError: If weight is outside [0, 1] or if FILM config is missing.
             RuntimeError: If FILM returns no results.
         """
-        if not (0.0 <= weight <= 1.0):
-            raise ValueError(f"Weight must be in [0, 1], got {weight}")
-
         if self.model_path is None:
             raise ValueError("model_path must be provided to use Google FILM morphing")
 
@@ -731,6 +823,8 @@ class SpatialMorphing(BasePlugin):
         Raises:
             ValueError: If the requested ``morphing_method`` is not supported.
         """
+        if not (0.0 <= weight <= 1.0):
+            raise ValueError(f"Weight must be in [0, 1], got {weight}")
         if self.morphing_method == "google_film":
             return self._call_google_film_for_morphing(cube_a, cube_b, weight)
         if self.morphing_method == "linear":
@@ -739,6 +833,7 @@ class SpatialMorphing(BasePlugin):
                 np.float32
             )
             return result
+        raise ValueError(f"Unsupported morphing method: {self.morphing_method}")
 
     def _select_single_source_cube(
         self,
@@ -894,31 +989,6 @@ class SpatialMorphing(BasePlugin):
 
         return None
 
-    def apply_quantile_mapping_to_morphed(
-        self, result_cube: Cube, source_a: Cube, source_b: Cube, weight: float
-    ) -> Cube:
-        """
-        Apply quantile mapping to the result cube based on source cubes and weight.
-
-        Args:
-            result_cube: Cube to be adjusted.
-            source_a: Source A cube.
-            source_b: Source B cube.
-            weight: Morphing weight (0=source A, 1=source B).
-
-        Returns:
-            Adjusted result cube.
-        """
-        weighted_source_cube = result_cube.copy()
-        weighted_source_cube.data = (
-            1.0 - weight
-        ) * source_a.data + weight * source_b.data
-
-        result = QuantileMapping(
-            occurrence_threshold=self.occurrence_threshold
-        ).process(result_cube, weighted_source_cube)
-        return result
-
     def _prepare_inputs(self, *cubes: Any) -> tuple[CubeList, Cube]:
         """Flatten and validate the input cubes before morphing.
 
@@ -927,12 +997,9 @@ class SpatialMorphing(BasePlugin):
                 Cube objects.
 
         Returns:
-            A tuple of the validated forecast cubes and the cluster cube.
-
-        Raises:
-            ValueError: If the input cubes do not include a cluster cube or valid
-                forecast cubes, or if the forecast cubes are not all at a common
-                validity time.
+            Tuple of:
+            - validated forecast cubes
+            - the cluster cube.
         """
         if len(cubes) == 1 and isinstance(cubes[0], CubeList):
             cubes = tuple(cubes[0])
@@ -1311,10 +1378,10 @@ class SpatialMorphing(BasePlugin):
         """Apply final attribute and coordinate cleanup before returning output.
 
         Args:
-            result_cube (Cube): The cube to be finalised.
+            result_cube: Cube to finalise.
 
         Returns:
-            Cube: The finalised cube with cleaned-up attributes and coordinates.
+            Finalised cube with cleaned-up attributes and coordinates.
         """
         result_cube = remove_blend_time(result_cube)
         result_cube = remove_deprecation_warnings(result_cube)
@@ -1372,6 +1439,10 @@ class SpatialMorphing(BasePlugin):
                 source name, the value is a dictionary keyed by cluster number.
             cluster_cube: Cube containing the cluster metadata used to diagnose
                 source/realization selections.
+
+        Returns:
+            None. This method updates expected contributor metadata on the
+            plugin instance.
         """
         self.expected_forecast_contributors = [
             self._as_contributor(
@@ -1455,7 +1526,7 @@ class SpatialMorphing(BasePlugin):
         This method resolves the actual source selected for the current cluster,
         checks whether the forecast period lies within a configured transition,
         and, if so, applies the active source transition logic (including optional
-        quantile mapping) before returning the final cube for provenance
+        local suppression) before returning the final cube for provenance
         finalisation.
 
         Args:
@@ -1546,8 +1617,8 @@ class SpatialMorphing(BasePlugin):
                 ),
             ]
 
-        if self.apply_quantile_mapping and weight is not None and 0.0 < weight < 1.0:
-            result_cube = self.apply_quantile_mapping_to_morphed(
+        if self.apply_suppression and weight is not None and 0.0 < weight < 1.0:
+            result_cube = self._suppression_plugin.process(
                 result_cube,
                 cube_a,
                 cube_b,
@@ -1644,3 +1715,729 @@ class SpatialMorphing(BasePlugin):
         )
 
         return self._finalise_output_cube(result_cube)
+
+
+class SpatialMorphingSuppression(BasePlugin):
+    """Apply local precipitation suppression stages to a morphed transition field.
+
+    This plugin encapsulates the suppression workflow used after spatial morphing,
+    including weak-signal damping, convective restoration, and upper-tail
+    restoration. It is designed specifically for precipitation-like fields where
+    wet-threshold and intensity-tail logic is meaningful. The implementation does
+    not enforce a diagnostic-name check because multiple precipitation diagnostics
+    (for example, accumulation or rate) may be valid inputs. Callers are therefore
+    expected to pass precipitation diagnostics only.
+    """
+
+    def __init__(
+        self,
+        suppression_config: dict[str, Any] | None = None,
+        suppression_stages: list[str] | tuple[str, ...] | None = None,
+    ) -> None:
+        """Initialise suppression settings for morphed fields.
+
+        Args:
+            suppression_config: Optional suppression tuning values.
+            suppression_stages: Optional suppression stage list.
+
+        Returns:
+            None.
+        """
+        self.suppression_config = self.validate_suppression_config(suppression_config)
+        self.suppression_stages = self.validate_suppression_stages(suppression_stages)
+
+    @classmethod
+    def validate_suppression_config(
+        cls,
+        suppression_config: dict[str, Any] | None,
+    ) -> dict[str, Any]:
+        """Validate suppression tuning values from config data or defaults.
+
+        Args:
+            suppression_config: Optional dictionary of suppression settings. If
+                None, the class defaults are used.
+
+        Returns:
+            Dictionary containing a complete suppression configuration with all
+            expected keys populated.
+
+        Raises:
+            TypeError: If suppression_config is not a dictionary or None.
+            ValueError: If suppression_config contains unsupported keys.
+        """
+        if suppression_config is None:
+            return _SUPPRESSION_DEFAULTS.copy()
+        if not isinstance(suppression_config, dict):
+            raise TypeError(
+                "suppression_config must be a dictionary or None, "
+                f"got {type(suppression_config).__name__}"
+            )
+
+        merged = _SUPPRESSION_DEFAULTS.copy()
+        unknown = sorted(set(suppression_config) - set(_SUPPRESSION_DEFAULTS))
+        if unknown:
+            raise ValueError(
+                "Unknown suppression_config entries: " + ", ".join(unknown)
+            )
+
+        merged.update(suppression_config)
+        return merged
+
+    @classmethod
+    def validate_suppression_stages(
+        cls,
+        suppression_stages: list[str] | tuple[str, ...] | None,
+    ) -> tuple[str, ...]:
+        """Validate the requested suppression stages and return canonical names.
+
+        If no suppression stages are specified, an empty tuple is returned so that
+        no suppression is applied by default.
+
+        Args:
+            suppression_stages: Optional stage names requested by the caller.
+
+        Returns:
+            Tuple of canonical stage names in execution order. An empty tuple means
+            that suppression is disabled.
+
+        Raises:
+            ValueError: If an unsupported stage name is provided.
+        """
+        if suppression_stages is None:
+            return ()
+
+        if isinstance(suppression_stages, str):
+            suppression_stages = [suppression_stages]
+
+        cleaned = {
+            str(stage).strip()
+            for stage in suppression_stages
+            if stage is not None and str(stage).strip()
+        }
+
+        if not cleaned:
+            return ()
+
+        if "all" in cleaned:
+            return _SUPPRESSION_CANONICAL_STAGES
+
+        unsupported = sorted(cleaned - set(_SUPPRESSION_CANONICAL_STAGES))
+        if unsupported:
+            raise ValueError(
+                "Unsupported suppression stage: "
+                f"{unsupported[0]}. Supported values are "
+                f"{', '.join(_SUPPRESSION_CANONICAL_STAGES)}."
+            )
+
+        return tuple(
+            stage for stage in _SUPPRESSION_CANONICAL_STAGES if stage in cleaned
+        )
+
+    @staticmethod
+    def _validate_suppression_settings(settings: dict[str, Any]) -> None:
+        """Validate merged suppression settings and transition weight.
+
+        Args:
+            settings: Fully populated suppression settings dictionary.
+
+        Returns:
+            None.
+
+        Raises:
+            ValueError: If any validated setting is outside its accepted range.
+        """
+
+        def check_in_range(name: str, value: float, lower: float, upper: float) -> None:
+            if not lower <= value <= upper:
+                lower_label = "0" if lower == 0.0 and upper == 1.0 else str(lower)
+                upper_label = "1" if lower == 0.0 and upper == 1.0 else str(upper)
+                raise ValueError(
+                    f"{name} must lie in [{lower_label}, {upper_label}], got {value}"
+                )
+
+        def check_positive(name: str, value: float) -> None:
+            if value <= 0.0:
+                raise ValueError(f"{name} must be positive, got {value}")
+
+        def check_minimum(name: str, value: float, minimum: float) -> None:
+            if value < minimum:
+                raise ValueError(f"{name} must be at least {minimum}, got {value}")
+
+        check_in_range(
+            "occurrence_threshold",
+            settings["occurrence_threshold"],
+            0.0,
+            np.inf,
+        )
+
+        for key in (
+            "quantile_for_centre",
+            "maximum_suppression",
+            "showery_weight_factor",
+            "weakness_weight_factor",
+            "convective_gain",
+            "upper_tail_quantile",
+            "convective_mask_threshold",
+            "upper_tail_intensity_quantile",
+        ):
+            check_in_range(key, settings[key], 0.0, 1.0)
+
+        for key in (
+            "width_fraction",
+            "showery_neighbourhood_size",
+            "convective_neighbourhood_size",
+            "concentration_scale",
+            "intensity_weight_width_fraction",
+            "sigmoid_clip_limit",
+        ):
+            check_positive(key, settings[key])
+
+        check_minimum(
+            "maximum_intensity_scale",
+            settings["maximum_intensity_scale"],
+            1.0,
+        )
+
+    @staticmethod
+    def _sanitize_valid_data(data: np.ndarray, valid_mask: np.ndarray) -> np.ndarray:
+        """Replace invalid values with zeros while leaving valid points unchanged."""
+        finite_data = np.nan_to_num(
+            np.asarray(data, dtype=np.float64),
+            nan=0.0,
+            posinf=0.0,
+            neginf=0.0,
+        )
+        return np.where(valid_mask, finite_data, 0.0)
+
+    def _compute_weak_signal_suppression(
+        self,
+        result_data: np.ndarray,
+        source_a_data: np.ndarray,
+        source_b_data: np.ndarray,
+        weighted_reference: np.ndarray,
+        valid_mask: np.ndarray,
+        weight: float,
+        threshold: float,
+        quantile_for_centre: float,
+        width_fraction: float,
+        maximum_suppression: float,
+        showery_neighbourhood_size: int,
+        showery_weight_factor: float,
+        weakness_weight_factor: float,
+        sigmoid_clip_limit: float,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Reduce broad weak wet halos while retaining coherent source-supported rain.
+
+        This stage damps the portion of the morphed field that sits above a source-
+        weighted reference. The reference is a weighted average of the two source
+        fields, so the suppression acts only on excess precipitation that falls
+        outside the local source-supported envelope rather than on the whole field.
+
+        The motivation is to avoid Google FILM turning sparse showers into a broad
+        area of light precipitation. In other words, the method suppresses the weak,
+        diffuse excess that can appear around the transition without removing the
+        coherent rain that is still supported by the source fields.
+
+        The strength of the correction is based on two complementary indicators:
+
+        1. A weak-signal diagnostic that compares the morphed intensity with a
+           source-derived central quantile. This identifies the broad, diffuse areas
+           where the transition is only weakly supported by the source data.
+        2. A local showery diagnostic based on wet-occurrence in the neighbouring
+           source pixels. This increases the suppression where the signal looks
+           spatially diffuse or low confidence, rather than strongly tied to the
+           source precipitation structure.
+
+        The term "logistic" here refers to a smooth sigmoid-shaped transfer
+        function, not a fitted logistic-regression model. It is used because the
+        suppression should change gradually as the signal moves away from the
+        source-supported centre, rather than switching abruptly at a hard
+        threshold. As the morphed intensity rises above that centre, the function
+        transitions smoothly from weak support toward stronger confidence, which is
+        then converted into a capped suppression amount.
+
+        The method does not force the field back below the weighted reference in a
+        hard step. Instead, it reduces only the positive excess by a capped amount,
+        which helps remove weak, widespread FILM artefacts while preserving
+        coherent rain structures that are supported by the source fields.
+
+        Example:
+            Suppose ``weight=0.5``, source A is 100, source B is 200, and the
+            morphed value is 170 at one point. The weighted reference is
+            ``0.5 * 100 + 0.5 * 200 = 150``, so the excess is ``170 - 150 = 20``.
+            If the combined correction fraction at that point is 0.4, the output is
+            ``170 - 0.4 * 20 = 162``. If the correction fraction were 0, the point
+            would remain 170.
+
+        Args:
+            result_data: Morphed output data before suppression.
+            source_a_data: Source-a data array.
+            source_b_data: Source-b data array.
+            weighted_reference: Weighted source reference data already calculated in
+                the parent process method.
+            valid_mask: Boolean mask for points valid across all inputs.
+            weight: Morphing weight in the range [0, 1].
+            threshold: Wet-occurrence threshold for the source fields.
+            quantile_for_centre: Quantile of the valid source signal used to set the
+                centre of the smooth sigmoid transition.
+            width_fraction: Fractional width of the sigmoid around that centre.
+            maximum_suppression: Upper bound on the suppression fraction applied to
+                excess precipitation.
+            showery_neighbourhood_size: Neighbourhood size for the showery diagnosis.
+            showery_weight_factor: Weight applied to the showery term in the final
+                correction.
+            weakness_weight_factor: Weight applied to the weak-signal term in the
+                final correction.
+            sigmoid_clip_limit: Maximum absolute value used to clip the normalised
+                sigmoid input before exponentiation.
+
+        Returns:
+            Tuple of:
+            - suppression-adjusted output data array
+            - weighted source reference array.
+        """
+
+        # Identify wet points in each source field, including their local context.
+        occ_a = source_a_data > threshold
+        occ_b = source_b_data > threshold
+        wet_a_mask = valid_mask & (source_a_data > threshold)
+        wet_b_mask = valid_mask & (source_b_data > threshold)
+        source_signal = np.concatenate(
+            (source_a_data[wet_a_mask], source_b_data[wet_b_mask])
+        )
+
+        output_data = result_data.copy()
+        if source_signal.size == 0:
+            # If neither source field contains any valid values above the wet
+            # threshold, then source_signal is empty and the code takes this
+            # fallback branch. We zero only the valid data points because there is
+            # no source-supported wet signal to suppress.
+            output_data[valid_mask] = 0.0
+            return output_data, weighted_reference
+
+        # Set the smooth transition centre from the wet source signal, ensuring it
+        # stays above the wet threshold.
+        centre = float(np.quantile(source_signal, quantile_for_centre, method="linear"))
+        centre = max(
+            centre,
+            np.nextafter(
+                np.float64(threshold),
+                np.float64(np.inf),
+            ),
+        )
+        width = max(width_fraction * centre, 10.0 * np.finfo(np.float64).eps)
+
+        # The sigmoid maps the morphed intensity to a value in [0, 1]: low values
+        # indicate weak, diffuse precipitation that should be suppressed most.
+        # The sigmoid is clipped to avoid numerical overflow in the exponentiation.
+        logistic_argument = np.clip(
+            (result_data - centre) / width, -sigmoid_clip_limit, sigmoid_clip_limit
+        )
+        film_fraction = 1.0 / (1.0 + np.exp(-logistic_argument))
+        weakness = 1.0 - film_fraction
+
+        # This checks whether the surrounding area is mostly dry. The uniform filter
+        # computes a neighbourhood mean of the wet-occurrence masks, which is then
+        # inverted to give a showery weight in [0, 1] where larger values indicate
+        # more diffuse, showery precipitation that should be suppressed more strongly.
+        local_occ_a = uniform_filter(
+            occ_a.astype(np.float32), size=showery_neighbourhood_size
+        )
+        local_occ_b = uniform_filter(
+            occ_b.astype(np.float32), size=showery_neighbourhood_size
+        )
+        showery_a = 1.0 - local_occ_a
+        showery_b = 1.0 - local_occ_b
+        showery_weight = (1.0 - weight) * showery_a + weight * showery_b
+
+        # Combine the weak-signal and showery diagnostics into a capped
+        # correction fraction.
+        correction_fraction = (weakness_weight_factor * weakness) + (
+            showery_weight_factor * showery_weight
+        )
+        correction_fraction = np.clip(correction_fraction, 0.0, maximum_suppression)
+
+        # The excess represents how much the Google FILM interpolated field exceeds
+        # the weighted average reference. The excess is subtracted from the Google FILM
+        # interpolated field but using a correction fraction to control which
+        # precipitation should be suppressed. The correction fraction is comprised of
+        # a combination of two terms: a weak signal term, which is targeted at broad
+        # weak precipitation, and a showery term, which is also targeted at diffuse
+        # precipitation that is not well supported by the surrounding area.
+        excess = np.maximum(result_data - weighted_reference, 0.0)
+        output_data = result_data - correction_fraction * excess
+        return output_data, weighted_reference
+
+    @staticmethod
+    def _diagnose_convective_weight(
+        result_data: np.ndarray,
+        source_a_data: np.ndarray,
+        source_b_data: np.ndarray,
+        weighted_reference: np.ndarray,
+        valid_mask: np.ndarray,
+        threshold: float,
+        convective_neighbourhood_size: int,
+        convective_gain: float,
+        concentration_reference: float,
+        concentration_scale: float,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Diagnose where the source fields are locally convective or shower-like.
+
+        This stage looks for small, intense precipitation structures that are still
+        present in the source fields but may have been weakened by the earlier broad
+        weak-signal suppression. It compares the local maximum in a neighbourhood to
+        the local mean, which gives a simple measure of how concentrated the rain is.
+
+        A larger value means the precipitation is more sharply peaked, which usually
+        indicates a convective or shower-like structure. The diagnosed weight is then
+        used to nudge the output back toward the higher of the current result and the
+        weighted source reference, but only in those locally concentrated areas. If
+        the current FILM result is already stronger than the source-informed target,
+        no additional uplift is applied and the field is left unchanged.
+
+        Example:
+            Suppose at one point ``result_data=30`` and ``weighted_reference=50`` so
+            the local target is 50. If local concentration gives
+            ``convective_weight=0.8`` and ``convective_gain=0.5``, the uplift is
+            ``0.5 * 0.8 * (50 - 30) = 8`` and the corrected value becomes 38.
+            If instead ``result_data=55``, the target is 55 and
+            ``target - result_data = 0``, so no convective uplift is applied.
+
+        Args:
+            result_data: Current output data to adjust.
+            source_a_data: Source-a data array.
+            source_b_data: Source-b data array.
+            weighted_reference: Weighted source reference data.
+            valid_mask: Boolean mask for points valid across all inputs.
+            threshold: Minimum allowed denominator when comparing local max and mean.
+            convective_neighbourhood_size: Size of the neighbourhood used for the local
+                statistics.
+            convective_gain: Strength of the local restoration in convective areas.
+            concentration_reference: Baseline concentration value for the start of the
+                convective response.
+            concentration_scale: Spread of the concentration-to-weight conversion.
+
+        Returns:
+            Tuple of:
+            - output data with local convective intensity restored
+            - diagnosed convective weight array.
+        """
+        # Mask invalid points before the local neighbourhood statistics so NaNs and
+        # infs do not contaminate the local max/mean calculations.
+        source_peak = np.maximum(source_a_data, source_b_data)
+        source_peak = np.where(valid_mask, source_peak, 0.0)
+        local_source_max = maximum_filter(
+            source_peak, size=convective_neighbourhood_size
+        )
+        local_source_mean = uniform_filter(
+            source_peak, size=convective_neighbourhood_size
+        )
+
+        # A ratio greater than 1 indicates a sharp, local peak rather than broad weak
+        # precipitation. The weight is then scaled to [0, 1] so it can be used as a
+        # local restoration factor.
+        concentration = local_source_max / np.maximum(local_source_mean, threshold)
+        convective_weight = np.clip(
+            (concentration - concentration_reference) / concentration_scale, 0.0, 1.0
+        )
+        convective_weight = np.where(valid_mask, convective_weight, 0.0)
+
+        # Restore intensity only where the source fields still show a concentrated
+        # convective signal. If the morphing result is already stronger than the
+        # source-informed target, then target - result_data is zero and no extra
+        # uplift is applied. This preserves locally strong FILM peaks while only
+        # boosting pixels where the source data suggest a genuine shower signal is
+        # missing from the current morph.
+        target = np.maximum(result_data, weighted_reference)
+        corrected_data = result_data.copy()
+        corrected_data[valid_mask] = result_data[valid_mask] + convective_gain * (
+            convective_weight[valid_mask]
+            * (target[valid_mask] - result_data[valid_mask])
+        )
+        return corrected_data, convective_weight
+
+    @staticmethod
+    def _restore_upper_tail(
+        result_data: np.ndarray,
+        source_a_data: np.ndarray,
+        source_b_data: np.ndarray,
+        valid_mask: np.ndarray,
+        convective_weight: np.ndarray,
+        weight: float,
+        threshold: float,
+        upper_tail_quantile: float,
+        convective_mask_threshold: float,
+        maximum_intensity_scale: float,
+        upper_tail_intensity_quantile: float,
+        intensity_weight_width_fraction: float,
+        sigmoid_clip_limit: float,
+    ) -> np.ndarray:
+        """Restore intense precipitation where the convective signal is still weak.
+
+        This stage compares a source-derived high-end value with the current
+        morphed field in locally convective, wet areas. The source-derived value is
+        calculated from the wet occurrences in both source fields at a chosen
+        upper-tail quantile, and the current value is calculated from the same
+        quantile in the corresponding Google FILM output.
+
+        If the current field is weaker than the expected source signal, the ratio
+        between the two values gives a local scale factor. That scale is then
+        applied only to the strongest wet pixels, with a cap on the maximum allowed
+        increase so the correction stays local and physically realistic.
+
+        Example:
+            Suppose ``weight=0.5`` and the source wet upper-tail quantiles are
+            80 (source A) and 120 (source B). The source-derived target quantile is
+            ``0.5 * 80 + 0.5 * 120 = 100``. If the current morphed upper-tail
+            quantile in convective wet points is 70, the raw uplift scale is
+            ``100 / 70 = 1.43`` (before applying ``maximum_intensity_scale`` cap).
+            If ``maximum_intensity_scale=1.5``, the scale remains 1.43. A point with
+            combined local weight 0.6 then gets
+            ``local_scale = 1 + 0.6 * (1.43 - 1) = 1.258`` and is multiplied by
+            1.258, while points with near-zero weight are minimally changed.
+
+        Args:
+            result_data: Current output data to adjust.
+            source_a_data: Source-a data array.
+            source_b_data: Source-b data array.
+            valid_mask: Boolean mask for points valid across all inputs.
+            convective_weight: Diagnosed convective weight array.
+            weight: Morphing weight in the range [0, 1].
+            threshold: Wet-value threshold.
+            upper_tail_quantile: High-end quantile used to compare source and current
+                upper-tail intensity.
+            convective_mask_threshold: Minimum convective weight needed for local
+                restoration.
+            maximum_intensity_scale: Largest allowed local scaling factor.
+            upper_tail_intensity_quantile: Quantile used to decide where the strongest
+                points lie.
+            intensity_weight_width_fraction: Fraction of the local intensity centre
+                used as the sigmoid width for the upper-tail weight.
+            sigmoid_clip_limit: Maximum absolute value used to clip the normalised
+                sigmoid input before exponentiation.
+
+        Returns:
+            Output data array after the upper-tail restoration.
+        """
+        # Use the source fields to estimate the strong-rain target for this transition.
+        wet_a = source_a_data[valid_mask & (source_a_data > threshold)]
+        wet_b = source_b_data[valid_mask & (source_b_data > threshold)]
+
+        # Only apply the upper-tail lift where the field still looks locally
+        # convective and wet enough to justify a strong-rain correction.
+        convective_wet_mask = (
+            valid_mask
+            & (result_data > threshold)
+            & (convective_weight > convective_mask_threshold)
+        )
+
+        # Skip upper-tail restoration unless both source fields contain wet
+        # samples and there is at least one locally convective wet output point.
+        # If any of these checks fail, there is no valid basis for a stable
+        # upper-tail quantile comparison, so return the current field unchanged.
+        if wet_a.size == 0 or wet_b.size == 0 or not np.any(convective_wet_mask):
+            return result_data
+
+        # Compute the high-end quantile for the wet occurrences in both source A
+        # and source B. Then compute the same quantile for the Google FILM interpolated
+        # field.
+        target_quantile = (1.0 - weight) * np.quantile(
+            wet_a, upper_tail_quantile, method="linear"
+        ) + weight * np.quantile(wet_b, upper_tail_quantile, method="linear")
+        current_quantile = np.quantile(
+            result_data[convective_wet_mask], upper_tail_quantile, method="linear"
+        )
+        if current_quantile <= 0.0:
+            return result_data
+
+        # Compare the high-end source value with the current field. If the current
+        # field is too weak, the ratio is greater than 1 and we need to scale it up.
+        # Keep the scale factor at or above 1 and cap it to avoid excessive boosts.
+        raw_scale = max(target_quantile / current_quantile, 1.0)
+        raw_scale = min(raw_scale, maximum_intensity_scale)
+
+        # Use the current field to define a high-intensity threshold for the final
+        # boost. Points well above this threshold get a larger weight, while points
+        # near or below it get little or no extra lift. The width is set to a
+        # fraction of the threshold so the transition is smooth but still localised,
+        # and the clip keeps the sigmoid input in a safe numerical range.
+        intensity_centre = np.quantile(
+            result_data[convective_wet_mask],
+            upper_tail_intensity_quantile,
+            method="linear",
+        )
+        intensity_width = max(
+            intensity_weight_width_fraction * intensity_centre,
+            np.finfo(np.float64).eps,
+        )
+        # The sigmoid is clipped to avoid numerical overflow in the exponentiation.
+        intensity_weight = 1.0 / (
+            1.0
+            + np.exp(
+                -np.clip(
+                    (result_data - intensity_centre) / intensity_width,
+                    -sigmoid_clip_limit,
+                    sigmoid_clip_limit,
+                )
+            )
+        )
+
+        # Apply the boost as a local multiplicative factor. The current field is
+        # only increased where the convective signal is present and where the
+        # sigmoid weight says the pixel is in the upper tail of the wet distribution.
+        # The scale is 1.0 when no uplift is needed and rises above 1.0 only where
+        # the source field suggests the morphed field is too weak. We then force
+        # all valid values to stay non-negative so the correction cannot create
+        # negative rainfall.
+        scale_weight = convective_weight * intensity_weight
+        local_scale = 1.0 + scale_weight * (raw_scale - 1.0)
+        result_data[valid_mask] *= local_scale[valid_mask]
+        result_data[valid_mask] = np.maximum(result_data[valid_mask], 0.0)
+        return result_data
+
+    def process(
+        self,
+        result_cube: Cube,
+        source_a: Cube,
+        source_b: Cube,
+        weight: float,
+    ) -> Cube:
+        """Suppress weak precipitation excess in a morphed field.
+
+        The weighted mean of the two source fields is used as a smoothly varying
+        guide rather than as a replacement field. Weak FILM precipitation is
+        reduced more strongly than moderate or intense precipitation, helping to
+        suppress broad, weak wet halos while preserving stronger, coherent
+        precipitation features that FILM is intended to represent.
+
+        Args:
+            result_cube: Precipitation field produced by morphing.
+            source_a: Precipitation source field at the beginning of the
+                transition.
+            source_b: Precipitation source field at the end of the transition.
+            weight: Interpolation weight in [0, 1], where 0 corresponds to
+                source A and 1 corresponds to source B.
+
+        Returns:
+            Cube containing the suppression-adjusted FILM result.
+
+        Raises:
+            ValueError: If source and result shapes are inconsistent, or if
+                suppression settings fail validation.
+
+        Notes:
+            This method is intended for precipitation diagnostics only. No
+            diagnostic-name validation is applied because different
+            precipitation diagnostics may be supported by the same suppression
+            logic.
+        """
+        config = self.suppression_config
+        stages = self.suppression_stages
+        self._validate_suppression_settings(config)
+
+        source_a_data = np.asarray(source_a.data, dtype=np.float64)
+        source_b_data = np.asarray(source_b.data, dtype=np.float64)
+        result_data = np.asarray(result_cube.data, dtype=np.float64)
+
+        if not (source_a_data.shape == source_b_data.shape == result_data.shape):
+            raise ValueError(
+                "result_cube, source_a and source_b must have matching shapes; "
+                f"got {result_data.shape}, {source_a_data.shape} and "
+                f"{source_b_data.shape}"
+            )
+
+        valid_mask = (
+            np.isfinite(result_data)
+            & np.isfinite(source_a_data)
+            & np.isfinite(source_b_data)
+        )
+        # Preserve the original non-finite sentinel at each invalid location.
+        # This keeps NaN and Inf distinguishable in the final output instead of
+        # flattening every invalid point to NaN when suppression diagnostics are
+        # applied to sanitised arrays.
+        invalid_preserved = np.where(
+            np.isfinite(result_data),
+            np.where(
+                np.isfinite(source_a_data),
+                np.where(np.isfinite(source_b_data), np.nan, source_b_data),
+                source_a_data,
+            ),
+            result_data,
+        )
+        if not np.any(valid_mask):
+            output_cube = result_cube.copy()
+            output_data = np.asarray(output_cube.data, dtype=np.float64)
+            output_data[~valid_mask] = invalid_preserved[~valid_mask]
+            output_cube.data = output_data.astype(np.float32)
+            return output_cube
+
+        source_a_data = self._sanitize_valid_data(source_a_data, valid_mask)
+        source_b_data = self._sanitize_valid_data(source_b_data, valid_mask)
+        result_data_for_suppression = self._sanitize_valid_data(result_data, valid_mask)
+
+        output_data = result_data.copy()
+        weighted_reference = (1.0 - weight) * source_a_data + weight * source_b_data
+        convective_weight = None
+
+        if "weak_signal" in stages:
+            output_data, weighted_reference = self._compute_weak_signal_suppression(
+                result_data=result_data_for_suppression,
+                source_a_data=source_a_data,
+                source_b_data=source_b_data,
+                weighted_reference=weighted_reference,
+                valid_mask=valid_mask,
+                weight=weight,
+                threshold=config["occurrence_threshold"],
+                quantile_for_centre=config["quantile_for_centre"],
+                width_fraction=config["width_fraction"],
+                maximum_suppression=config["maximum_suppression"],
+                showery_neighbourhood_size=config["showery_neighbourhood_size"],
+                showery_weight_factor=config["showery_weight_factor"],
+                weakness_weight_factor=config["weakness_weight_factor"],
+                sigmoid_clip_limit=config["sigmoid_clip_limit"],
+            )
+
+        if "convective" in stages or "upper_tail" in stages:
+            output_data, convective_weight = self._diagnose_convective_weight(
+                result_data=output_data,
+                source_a_data=source_a_data,
+                source_b_data=source_b_data,
+                weighted_reference=weighted_reference,
+                valid_mask=valid_mask,
+                threshold=config["occurrence_threshold"],
+                convective_neighbourhood_size=config["convective_neighbourhood_size"],
+                convective_gain=config["convective_gain"],
+                concentration_reference=config["concentration_reference"],
+                concentration_scale=config["concentration_scale"],
+            )
+
+        if "upper_tail" in stages:
+            output_data = self._restore_upper_tail(
+                result_data=output_data,
+                source_a_data=source_a_data,
+                source_b_data=source_b_data,
+                valid_mask=valid_mask,
+                convective_weight=convective_weight,
+                weight=weight,
+                threshold=config["occurrence_threshold"],
+                upper_tail_quantile=config["upper_tail_quantile"],
+                convective_mask_threshold=config["convective_mask_threshold"],
+                maximum_intensity_scale=config["maximum_intensity_scale"],
+                upper_tail_intensity_quantile=config["upper_tail_intensity_quantile"],
+                intensity_weight_width_fraction=config[
+                    "intensity_weight_width_fraction"
+                ],
+                sigmoid_clip_limit=config["sigmoid_clip_limit"],
+            )
+
+        # Preserve the original non-finite sentinel at each invalid location.
+        # This keeps NaN and Inf distinguishable in the final output instead of
+        # flattening every invalid point to NaN during the suppression pass.
+        output_data[~valid_mask] = invalid_preserved[~valid_mask]
+
+        if np.allclose(output_data, result_data, equal_nan=True):
+            return result_cube.copy()
+
+        output_cube = result_cube.copy()
+        output_cube.data = output_data.astype(np.float32)
+        return output_cube
