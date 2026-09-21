@@ -305,9 +305,23 @@ class Test_create_coordinate_hash(unittest.TestCase):
 
         hash_input = set_up_variable_cube(np.zeros((3, 3)).astype(np.float32))
         result = create_coordinate_hash(hash_input)
-        expected = "f167a9ea5d46e575a1b7918fb04f49697d07299c1b21010e40cd21ec351ab4c7"
+        expected = "47b4bcf36c631a74641548cf12a2dfc51a6a97d2b7f8f5c7dea233d2de64ee92"
         self.assertIsInstance(result, str)
         self.assertEqual(result, expected)
+
+    def test_strict(self):
+        """Test the expected hash is returned for a given cube when using
+        strict=True which includes more elements of the coordinate when
+        generating the hash. Show that this differs to the non-strict
+        version."""
+
+        hash_input = set_up_variable_cube(np.zeros((3, 3)).astype(np.float32))
+        result_strict = create_coordinate_hash(hash_input, strict=True)
+        result_non_strict = create_coordinate_hash(hash_input, strict=False)
+        expected_strict = "8d8a1d25dc252f19546f3c45172d172e5fd19643104f93b024109fe8ce91dcd2"
+        self.assertIsInstance(result_strict, str)
+        self.assertEqual(result_strict, expected_strict)
+        self.assertNotEqual(result_strict, result_non_strict)
 
     def test_variation(self):
         """Test that two cubes with slightly different coordinates return

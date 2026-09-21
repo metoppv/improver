@@ -68,7 +68,7 @@ def neighbour_cube(neighbours, altitudes, latitudes, longitudes, wmo_ids):
         neighbour_methods=neighbour_methods,
     )
     neighbour_cube.attributes["model_grid_hash"] = (
-        "e5b78c90234ed2f4a17f4109abce231c3826577bd738940af0e227c9e2892069"
+        "8c9ef4e2dabc4a1753f08952a730edf577f958537d544f95cc734c649fc9a063"
     )
     return neighbour_cube
 
