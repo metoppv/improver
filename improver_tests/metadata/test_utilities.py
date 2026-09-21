@@ -318,7 +318,9 @@ class Test_create_coordinate_hash(unittest.TestCase):
         hash_input = set_up_variable_cube(np.zeros((3, 3)).astype(np.float32))
         result_strict = create_coordinate_hash(hash_input, strict=True)
         result_non_strict = create_coordinate_hash(hash_input, strict=False)
-        expected_strict = "8d8a1d25dc252f19546f3c45172d172e5fd19643104f93b024109fe8ce91dcd2"
+        expected_strict = (
+            "8d8a1d25dc252f19546f3c45172d172e5fd19643104f93b024109fe8ce91dcd2"
+        )
         self.assertIsInstance(result_strict, str)
         self.assertEqual(result_strict, expected_strict)
         self.assertNotEqual(result_strict, result_non_strict)
