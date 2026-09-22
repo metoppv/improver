@@ -192,6 +192,8 @@ def test_land_area_fraction_ancillary(corine_land_cover, radius, expected):
 
     assert land_area_fraction.name() == "land_area_fraction"
     assert land_area_fraction.units == "1"
+    assert land_area_fraction.attributes["sample_radius"] == radius
+    assert land_area_fraction.attributes["sample_radius_units"] == "m"
     assert_array_almost_equal(land_area_fraction.data, expected)
 
 

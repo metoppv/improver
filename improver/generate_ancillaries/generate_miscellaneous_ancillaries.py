@@ -162,5 +162,7 @@ def generate_land_area_fraction_at_sites(
 
     land_area_fraction = land_area_fraction_cubelist.concatenate_cube()
     land_area_fraction.rename("land_area_fraction")
+    land_area_fraction.attributes["sample_radius"] = radius
+    land_area_fraction.attributes["sample_radius_units"] = "m"
 
     return land_area_fraction
