@@ -402,7 +402,7 @@ class Test_forecast_dataframe_to_cube(SetupConstructedForecastCubes):
     def test_nonunique_values_in_column(self):
         """Test if there are multiple non-unique values in a column of the
         dataframe."""
-        self.forecast_df.at[0, "period"] = pd.Timedelta(7200, units="seconds")
+        self.forecast_df.at[0, "period"] = pd.Timedelta(7200, unit="seconds")
         msg = "Multiple values provided for the period"
         with self.assertRaisesRegex(ValueError, msg):
             forecast_dataframe_to_cube(
