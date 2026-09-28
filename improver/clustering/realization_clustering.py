@@ -1503,12 +1503,12 @@ class RealizationClusterAndMatch(BasePlugin):
                 realization was assigned to each cluster per forecast period.
             - 'cluster_sources': tracks which input model provided the final data for
                 each cluster-forecast_period pairing.
-
-        Raises:
-            ValueError: If no primary cube is found with the specified
-                model_id_attr.
+            None: If no primary cube is found for the configured primary input,
+            indicating a cold-start or no-primary condition that should be skipped.
 
         Warns:
+            UserWarning: If no primary cube is found for the configured primary
+                input; the plugin skips cleanly in this cold-start case.
             UserWarning: If primary cubes have different realization numbering schemes
                 when renumber_primary_realizations=False, which may cause merge
                 failures.
@@ -1561,10 +1561,13 @@ class RealizationClusterAndMatch(BasePlugin):
             primary_cube = MergeCubes()(primary_cubes)
             enforce_coordinate_ordering(primary_cube, ["realization"])
         else:
-            raise ValueError(
-                f"No primary cube found with {self.model_id_attr}="
-                f"{self.hierarchy['primary_input']}"
+            warnings.warn(
+                "No primary cube found for "
+                f"{self.model_id_attr}={self.hierarchy['primary_input']}; "
+                "skipping clustering for this cold-start/no-primary case.",
+                UserWarning,
             )
+            return None
 
         # Warn about cubes with model_id_attr values not referenced in the hierarchy.
         input_model_ids = {
