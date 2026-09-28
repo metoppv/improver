@@ -38,7 +38,7 @@ def test_basic(tmp_path):
 def test_non_default_scale_factor(tmp_path):
     """Test UV index calculation with non-default scale factor"""
     kgo_dir = acc.kgo_root() / "uv-index"
-    kgo_path = kgo_dir / "non_default_scale_factor/non_default_scale_factor_kgo.nc"
+    kgo_path = kgo_dir / "non_default_scale_factor/kgo.nc"
     input_paths = [
         kgo_dir
         / (
