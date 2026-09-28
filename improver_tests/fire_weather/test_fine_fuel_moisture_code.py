@@ -29,7 +29,7 @@ def input_cubes(
     shape: tuple[int, ...] = (5, 5),
     temp_units: str = "Celsius",
     precip_units: str = "mm",
-    rh_units: str = "1",
+    rh_units: str = "Percent",
     wind_units: str = "km/h",
     ffmc_units: str = "1",
 ) -> tuple[Cube, ...]:
@@ -211,7 +211,7 @@ def test__perform_rainfall_adjustment_spatially_varying() -> None:
     precip_cube = make_cube(
         precip_data, "lwe_thickness_of_precipitation_amount", "mm", True
     )
-    humidity_cube = make_cube(np.full(shape, 50.0), "relative_humidity", "1")
+    humidity_cube = make_cube(np.full(shape, 50.0), "relative_humidity", "Percent")
     wind_cube = make_cube(np.full(shape, 10.0), "wind_speed", "km/h")
     ffmc_cube = make_cube(np.full(shape, 85.0), "fine_fuel_moisture_code", "1", True)
 
@@ -357,7 +357,7 @@ def test__calculate_moisture_content_through_drying_rate(
     plugin.relative_humidity = Cube(
         np.full(moisture_content.shape, relative_humidity, dtype=np.float32),
         long_name="relative_humidity",
-        units="1",
+        units="Percent",
     )
     plugin.wind_speed = Cube(
         np.full(moisture_content.shape, wind_speed, dtype=np.float32),
@@ -499,7 +499,7 @@ def test__calculate_moisture_content_through_wetting_equilibrium(
     plugin.relative_humidity = Cube(
         np.full(moisture_content.shape, relative_humidity, dtype=np.float32),
         long_name="relative_humidity",
-        units="1",
+        units="Percent",
     )
     plugin.wind_speed = Cube(
         np.full(moisture_content.shape, wind_speed, dtype=np.float32),
@@ -573,37 +573,16 @@ def test__calculate_ffmc_from_moisture_content(
 
 @pytest.mark.parametrize(
     "moisture_content_val, expected_array_val",
-    [
-        (0.0, 101.05298913),
-        (16.0, 85.3125),
-        (250.0, 0.0),
-        (-10.0, 112.75510204),
-        (500.0, -22.98362176),
-    ],
-)
-def test_moisture_conversion_without_clip(moisture_content_val, expected_array_val):
-    """Test a range of moisture content values with clip_ffmc=False."""
-    plugin = FineFuelMoistureCode()
-
-    plugin.moisture_content = np.full(5, moisture_content_val)
-    expected_array = np.full(5, expected_array_val)
-
-    ffmc = plugin._calculate_ffmc_from_moisture_content(False)
-    assert np.allclose(ffmc, expected_array, atol=0.01)
-
-
-@pytest.mark.parametrize(
-    "moisture_content_val, expected_array_val",
     [(0.0, 101.0), (16.0, 85.3125), (250.0, 0.0), (-10.0, 101.0), (500.0, 0)],
 )
-def test_moisture_conversion_with_clip(moisture_content_val, expected_array_val):
-    """Test a range of moisture content values with clip_ffmc=True."""
+def test_moisture_conversion(moisture_content_val, expected_array_val):
+    """Test a range of moisture content values."""
     plugin = FineFuelMoistureCode()
 
     plugin.moisture_content = np.full(5, moisture_content_val)
     expected_array = np.full(5, expected_array_val)
 
-    ffmc = plugin._calculate_ffmc_from_moisture_content(True)
+    ffmc = plugin._calculate_ffmc_from_moisture_content()
     assert np.allclose(ffmc, expected_array, atol=0.01)
 
 
@@ -620,6 +599,9 @@ def test_moisture_conversion_with_clip(moisture_content_val, expected_array_val)
         (10.0, 15.0, 95.0, 5.0, 85.0, 20.70),
         # Case 4: Precipitation just below threshold (should not adjust)
         (20.0, 0.4, 50.0, 10.0, 85.0, 86.82),
+        # Case 5: Extreme values of FFMC must be clipped to maximum of 101 to avoid
+        # negative values in the moisture content (edge case)
+        (40.0, 0.0, 0.0, 60.0, 100.0, 101),
     ],
 )
 def test_process(
@@ -650,7 +632,7 @@ def test_process(
     """
     cubes = input_cubes(temp_val, precip_val, rh_val, wind_val, ffmc_val)
     plugin = FineFuelMoistureCode()
-    result = plugin.process(cubes, clip_ffmc=True)
+    result = plugin.process(cubes)
     # Check output type and shape
     assert hasattr(result, "data")
     assert result.data.shape == cubes[0].data.shape
@@ -674,7 +656,7 @@ def test_process_spatially_varying() -> None:
     precip_cube = make_cube(
         precip_data, "lwe_thickness_of_precipitation_amount", "mm", True
     )
-    humidity_cube = make_cube(rh_data, "relative_humidity", "1")
+    humidity_cube = make_cube(rh_data, "relative_humidity", "Percent")
     wind_cube = make_cube(wind_data, "wind_speed", "km/h")
     ffmc_cube = make_cube(
         ffmc_data, "fine_fuel_moisture_code", "1", True, INPUT_ATTRIBUTES
@@ -708,7 +690,7 @@ def test_warning_for_iteration_counts_inside_lag_time() -> None:
     cube_args = [
         ("air_temperature", 20.0, "Celsius", False, {}),
         ("lwe_thickness_of_precipitation_amount", 1.0, "mm", False, {}),
-        ("relative_humidity", 50.0, "1", False, {}),
+        ("relative_humidity", 50.0, "Percent", False, {}),
         ("fine_fuel_moisture_code", 20, "1", False, attributes),
         ("wind_speed", 50.0, "km/h", False, {}),
     ]
@@ -731,17 +713,17 @@ def test_no_warning_for_metadata_outside_lag_time(
     cube_args = [
         ("air_temperature", 20.0, "Celsius", False, {}),
         ("lwe_thickness_of_precipitation_amount", 1.0, "mm", False, {}),
-        ("relative_humidity", 50.0, "1", False, {}),
+        ("relative_humidity", 50.0, "Percent", False, {}),
         ("wind_speed", 50.0, "km/h", False, {}),
-        ("fine_fuel_moisture_code", 20.0, "1", False, attributes),
+        ("fine_fuel_moisture_code", 20.0, "Percent", False, attributes),
     ]
     cubes = make_input_cubes(cube_args, shape=(5, 5))
 
     result = FineFuelMoistureCode().process(cubes, month=1)
 
     np_warning = "numpy.ndarray size changed"
-    relevant_warnings = [w for w in recwarn if np_warning not in str(w.message)]
-    assert len(relevant_warnings) == 0
+    warnings = [str(w.message) for w in recwarn if np_warning not in str(w.message)]
+    assert len(warnings) == 0, f"Unexpected warnings: {warnings}"
 
     assert result.attributes["iteration_count"] == attributes["iteration_count"] + 1
     assert result.attributes["analysis_ready"] == "True"
@@ -753,7 +735,7 @@ def test_initialise_true_leads_to_user_warning() -> None:
         [
             ("air_temperature", 20.0, "Celsius", False, {}),
             ("lwe_thickness_of_precipitation_amount", 1.0, "mm", False, {}),
-            ("relative_humidity", 50.0, "1", False, {}),
+            ("relative_humidity", 50.0, "Percent", False, {}),
             ("wind_speed", 50.0, "km/h", False, {}),
         ],
         shape=(5, 5),

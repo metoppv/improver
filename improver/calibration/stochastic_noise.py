@@ -6,35 +6,45 @@
 (SSFT).
 """
 
-import os
 import warnings
 from typing import Optional
 
 import numpy as np
-from dask import compute, delayed
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 
 from improver import BasePlugin
+from improver.clustering.cluster_sources_utils import (
+    get_source_for_forecast_period,
+    parse_cluster_sources_attribute,
+)
 from improver.utilities.cube_checker import validate_cube_dimensions
 
 
 class StochasticNoise(BasePlugin):
-    """Class to apply spatially-structured stochastic noise to non-positive regions of a
-    field, building on the Short-Space Fourier Transform (SSFT) approach from
-    Nerini et al. (2017).
+    """Class to apply spatially-structured stochastic noise (randomly generated noise
+    with specific statistical properties) to a field, building on the Short-Space
+    Fourier Transform (SSFT) approach from Nerini et al. (2017), as implemented in the
+    pySTEPS library.
 
     This plugin is intended for use with positive zero-bounded diagnostics only, and is
     a particularly useful tool for Ensemble Copula Coupling-Quantile (ECC-Q) realization
-    generation. While EEC-Q is used to improve the accuracy of forecasts by calibrating
+    generation. While ECC-Q is used to improve the accuracy of forecasts by calibrating
     ensemble members to better represent the true distribution of the forecast variable,
     the rank-based reordering (sorting) of ensemble members at each grid point can lead
     to unrealistic individual members (e.g. single-pixel precipitation artifacts) when
     multiple raw ensemble members have identical values ('ties') of zero (very common
     in precipitation forecasts) and the post-processed calibrated probabilities
-    indicate a non-zero value should occur. By adding spatially-structured noise to
-    break ties in these non-positive regions, more realistic spatial structures can be
-    generated in the final ECC-Q realizations, while still respecting the calibrated
-    probabilities.
+    indicate a non-zero value should occur. By adding spatially-structured stochastic
+    noise to break ties in these non-positive regions, more realistic spatial structures
+    can be generated in the final ECC-Q realizations, while still respecting the
+    calibrated probabilities.
+
+    Optionally, the plugin can also apply stochastic noise to positive (wet) regions
+    to diversify ensemble members, for example when generating recycled realizations.
+    Recycling realizations involves reusing existing ensemble members to create
+    new members, which can be useful for increasing ensemble size without additional
+    computational cost. Applying stochastic noise to these recycled realizations
+    avoids these members being duplicates and introduces plausible variability.
     """
 
     def __init__(
@@ -43,13 +53,28 @@ class StochasticNoise(BasePlugin):
         ssft_generate_params: Optional[dict] = None,
         db_threshold: float = 0.03,
         db_threshold_units: str = "mm/hr",
-        num_workers: Optional[int] = len(os.sched_getaffinity(0)),
         scale_non_positive_noise: bool = False,
         allow_seeded_parallel_processing: bool = False,
         arbitrary_offset: float = 5.0,
+        non_positive_noise_floor: Optional[float] = None,
+        non_positive_fallback_range: Optional[tuple] = None,
+        apply_noise_to_positive_values: bool = False,
+        positive_region_noise_amplitude: float = 1.0,
+        apply_noise_to_positive_values_by_source: Optional[str] = None,
     ):
         """
-        Initialise the plugin.
+        Initialise the plugin. For a typical input field e.g. a precipitation field
+        with some positive values for precipitation spread across the domain and some
+        zero values, the plugin will add stochastic noise to the zero values using
+        the SSFT approach, while leaving the positive values unchanged (or adding noise
+        if apply_noise_to_positive_values is True). For fields that contain
+        insufficient spatial variability to derive meaningful SSFT perturbations (for
+        example completely dry, nearly dry, or otherwise near-constant fields),
+        referred to here as "degenerate fields", the plugin will generate fallback
+        stochastic noise ("non_positive fallback noise") in linear space. This noise
+        uses the non_positive_noise_floor and non_positive_fallback_range arguments
+        to ensure that the fallback noise is strictly non-positive and does not exceed
+        the noise added to wet regions.
 
         If ssft_init_params or ssft_generate_params are not provided, default values
         from the Pysteps documentation will be used.
@@ -69,18 +94,17 @@ class StochasticNoise(BasePlugin):
                 `db_threshold_units`.
                 Default is 0.03 mm/hr.
             db_threshold_units:
-                Units of the db_threshold value. Default is "mm/hr".
-            num_workers:
-                Number of worker threads for parallel FFT computation.
-                If not specified, uses the smaller of the plugin's default (number of
-                available CPUs) or the number of realizations in the input cube.
+                Units of the db_threshold value.
+                Default is "mm/hr".
             scale_non_positive_noise:
                 If True, noise in non-positive regions (where template.data <= 0) will
                 be scaled such that the maximum noise value in those regions is zero and
                 all other noise values are negative. This prevents the addition of
                 positive noise to non-positive regions, which could artificially
                 increase values where the input cube indicates no signal should occur.
-                Default is False.
+                If this is true, non_positive_noise_floor must be set, so that totally
+                dry fields do not receive noise that exceeds noise given to positive
+                regions. Default is False.
             allow_seeded_parallel_processing:
                 If True, allows multiple workers to be used even when a seed is
                 provided in ssft_generate_params. This may improve computation speed,
@@ -94,10 +118,70 @@ class StochasticNoise(BasePlugin):
                 appropriately in the _from_dB method. The default value of 5 was chosen
                 to provide a clear separation from the threshold value in dB space, but
                 can be adjusted if needed.
+            non_positive_noise_floor:
+                Optional lower bound for noise in non-positive regions after scaling,
+                in linear units of db_threshold_units. Must be negative if set.
+                This can be used to limit the magnitude of negative SSFT-derived noise
+                in positive regions. Any generated noise below the floor value will be
+                set to the floor value, potentially resulting in more ties when used in
+                conjunction with Ensemble Copula Coupling. Default is None (no floor).
+            non_positive_fallback_range:
+                Optional range (min_value, max_value) for non-positive fallback noise in
+                linear units of db_threshold_units. Provide as a Python tuple string, e.g.
+                "(-10.0, -5.0)". Values must satisfy:
+                non_positive_min < non_positive_max <= 0.
+                If non_positive_noise_floor is set and this is not provided, this defaults
+                to (2 * non_positive_noise_floor, non_positive_noise_floor) to keep the
+                fallback range below the positive-region floor. If both are supplied,
+                the max_value of non_positive_fallback_range must be <=
+                non_positive_noise_floor.
+            apply_noise_to_positive_values:
+                If True, stochastic noise will also be applied to positive regions in
+                addition to non-positive regions. This can be used to diversify ensemble
+                members, for example when generating recycled realizations. The magnitude
+                of noise applied to positive regions is controlled by
+                positive_region_noise_amplitude. Default is False (noise only to
+                non-positive regions).
+            positive_region_noise_amplitude:
+                Multiplicative scaling factor for stochastic noise applied to positive
+                regions when apply_noise_to_positive_values is True. A value of 1.0
+                applies the full SSFT-generated noise; smaller values (e.g. 0.1) apply
+                modest noise for subtle diversification. Has no effect if
+                apply_noise_to_positive_values is False. Default is 1.0.
+            apply_noise_to_positive_values_by_source:
+                Optional comma-separated list of forecast source names (e.g.
+                "gl_ens,ecgl_ens") for which positive-region noise should be applied.
+                When set, overrides apply_noise_to_positive_values flag with
+                source-aware logic by querying the cube's cluster_sources attribute.
+                Noise is applied to positive regions only if the current forecast
+                period's source is in this list. Default is None (use
+                apply_noise_to_positive_values flag instead).
 
         Raises:
             ValueError:
                 If db_threshold is not a positive value.
+            ValueError:
+                If non_positive_noise_floor is provided and is non-negative.
+            ValueError:
+                If non_positive_noise_floor is provided while
+                scale_non_positive_noise is False.
+            ValueError:
+                If non_positive_fallback_range does not contain exactly two values.
+            ValueError:
+                If non_positive_fallback_range does not satisfy
+                min_value < max_value <= 0.
+            ValueError:
+                If both non_positive_noise_floor and non_positive_fallback_range are
+                provided and non_positive_fallback_range max exceeds
+                non_positive_noise_floor.
+            ValueError:
+                If positive_region_noise_amplitude is not positive.
+
+        Warnings:
+            If a seed is provided in ssft_generate_params and
+            allow_seeded_parallel_processing is True, a warning is raised to indicate
+            that using multiple workers with a fixed seed may introduce run-to-run
+            variation because pySTEPS uses global RNG seeding.
 
         Example dictionaries for initializing and generating SSFT filter::
 
@@ -107,16 +191,315 @@ class StochasticNoise(BasePlugin):
         See Pysteps documentation for further keyword arguments.
         """
         if db_threshold <= 0:
-            raise ValueError("db_threshold must be a positive value.")
+            raise ValueError("db_threshold must be positive.")
+
+        if positive_region_noise_amplitude <= 0:
+            raise ValueError("positive_region_noise_amplitude must be positive.")
 
         self.ssft_init_params = ssft_init_params or {}
         self.ssft_generate_params = ssft_generate_params or {}
         self.db_threshold = db_threshold
         self.db_threshold_units = db_threshold_units
-        self.num_workers = num_workers
         self.scale_non_positive_noise = scale_non_positive_noise
         self.allow_seeded_parallel_processing = allow_seeded_parallel_processing
         self.arbitrary_offset = arbitrary_offset
+        self.non_positive_noise_floor = non_positive_noise_floor
+        self.apply_noise_to_positive_values = apply_noise_to_positive_values
+        self.positive_region_noise_amplitude = positive_region_noise_amplitude
+
+        if (
+            apply_noise_to_positive_values
+            and apply_noise_to_positive_values_by_source is not None
+        ):
+            warnings.warn(
+                "If both apply_noise_to_positive_values=True and "
+                "apply_noise_to_positive_values_by_source are specified, "
+                "apply_noise_to_positive_values takes precedence and "
+                "wet-region noise will be applied to all sources. ",
+                UserWarning,
+            )
+            apply_noise_to_positive_values_by_source = None
+
+        self.apply_noise_to_positive_values_by_source = (
+            apply_noise_to_positive_values_by_source
+        )
+        if self.apply_noise_to_positive_values_by_source:
+            self.target_sources = {
+                s.strip().lower()
+                for s in self.apply_noise_to_positive_values_by_source.split(",")
+            }
+        else:
+            self.target_sources = set()
+
+        if (
+            self.non_positive_noise_floor is not None
+            and self.non_positive_noise_floor >= 0
+        ):
+            raise ValueError("non_positive_noise_floor must be negative if provided.")
+
+        if (
+            self.non_positive_noise_floor is not None
+            and not self.scale_non_positive_noise
+        ):
+            raise ValueError(
+                "scale_non_positive_noise must be True when non_positive_noise_floor is set, "
+                "to guarantee separation between non-positive fallback and positive noise ranges."
+            )
+
+        if (
+            non_positive_fallback_range is not None
+            and len(non_positive_fallback_range) != 2
+        ):
+            raise ValueError(
+                "non_positive_fallback_range must contain exactly two values."
+            )
+
+        if (
+            non_positive_fallback_range is None
+            and self.non_positive_noise_floor is not None
+        ):
+            non_positive_fallback_range = (
+                2.0 * self.non_positive_noise_floor,
+                self.non_positive_noise_floor,
+            )
+
+        self.non_positive_fallback_range = non_positive_fallback_range
+        if self.non_positive_fallback_range is not None:
+            non_positive_min, non_positive_max = self.non_positive_fallback_range
+            if not (non_positive_min < non_positive_max <= 0):
+                raise ValueError(
+                    "non_positive_fallback_range must satisfy min_value < max_value <= 0."
+                )
+            if (
+                self.non_positive_noise_floor is not None
+                and non_positive_max > self.non_positive_noise_floor
+            ):
+                raise ValueError(
+                    "non_positive_fallback_range max must be <= non_positive_noise_floor when both are set."
+                )
+
+        if (
+            "seed" in self.ssft_generate_params
+        ) and self.allow_seeded_parallel_processing:
+            warnings.warn(
+                "Using multiple workers with a fixed seed may introduce run-to-run "
+                "variation because pySTEPS uses global RNG seeding. Set "
+                "allow_seeded_parallel_processing to False for reproducibility.",
+                UserWarning,
+            )
+
+    def _should_apply_positive_noise_by_source(self, input_cube: Cube) -> bool:
+        """Determine if positive-region noise should be applied based on forecast source.
+
+        Queries cluster_sources attribute to find which model is active for this
+        realization and forecast period. If the source matches one of the target
+        sources specified in apply_noise_to_positive_values_by_source, returns True.
+
+        Args:
+            input_cube:
+                Input cube with realization and forecast_period coordinates.
+                May have cluster_sources attribute.
+
+        Returns:
+            Return True only when a valid source is found for the current realization
+            and forecast period, and that source (after lowercasing) is present in
+            self.target_sources. Return False if the cluster_sources metadata is
+            missing, malformed, or the source does not match any configured target
+            source.
+        """
+        try:
+            cluster_sources = parse_cluster_sources_attribute(input_cube)
+            if not cluster_sources:
+                return False
+
+            # Get realization and forecast period indices
+            realization_idx = int(input_cube.coord("realization").points[0])
+            fp_seconds = int(input_cube.coord("forecast_period").points[0])
+
+            source = get_source_for_forecast_period(
+                cluster_sources, realization_idx, fp_seconds
+            )
+            if source is None:
+                return False
+            # Return True if the source is in the target_sources set, False otherwise.
+            return source.lower() in self.target_sources
+
+        except (AttributeError, KeyError, ValueError, TypeError):
+            # Graceful fallback if cluster_sources missing/malformed or coords unavailable
+            return False
+
+    def _process_single_realization(self, input_cube: Cube) -> Cube:
+        """Add stochastic noise to a cube containing a single realization
+        (or no realization coord). For non-degenerate fields e.g. precipitation fields
+        with some positive values, the plugin will add stochastic noise to the
+        non-positive regions using the SSFT approach, while leaving the positive values
+        unchanged (or adding noise if apply_noise_to_positive_values is True).
+        For degenerate fields (for example completely dry, nearly dry, or otherwise
+        near-constant fields), fallback noise is generated in linear space.
+
+        Args:
+            input_cube:
+                Cube to which stochastic noise will be added.
+
+        Returns:
+            Cube with added stochastic noise.
+
+        Raises:
+            ValueError: If a degenerate field is detected for SSFT initialisation and
+                ``non_positive_noise_floor`` has not been configured (which means no
+                default ``non_positive_fallback_range`` is available).
+
+        Warns:
+            UserWarning: If a degenerate field is detected for SSFT initialisation,
+                or if SSFT initialisation fails for any reason, a warning is raised
+                to indicate that linear fallback stochastic noise generation will be
+                used instead.
+        """
+        validate_cube_dimensions(
+            cube=input_cube,
+            required_dimensions=["x", "y"],
+            exact_match=False,
+        )
+
+        # Store original cube units and mask
+        original_units = input_cube.units
+        original_mask = None
+        if np.ma.isMaskedArray(input_cube.data):
+            original_mask = input_cube.data.mask.copy()
+
+        # Convert to db_threshold_units for processing
+        template = input_cube.copy()
+        template.convert_units(self.db_threshold_units)
+
+        # Fill masked values with 0 for processing
+        if np.ma.isMaskedArray(template.data):
+            template.data = np.ma.filled(template.data, 0.0).astype(np.float32)
+
+        # Identify non-positive regions where noise should be added
+        non_positive_mask = template.data <= 0
+        positive_mask = template.data > 0
+
+        # Determine whether to apply positive-region noise based on source metadata
+        apply_positive_noise = self.apply_noise_to_positive_values
+        if self.apply_noise_to_positive_values_by_source:
+            apply_positive_noise = self._should_apply_positive_noise_by_source(
+                input_cube
+            )
+
+        # If no non-positive values and not applying noise to positive regions,
+        # return input unchanged
+        if not np.any(non_positive_mask) and not apply_positive_noise:
+            return input_cube
+
+        # Create a copy of the template in dB scale to use for SSFT processing
+        template_dB = self._to_dB(template.copy())
+
+        # Constant fields in dB space are degenerate for SSFT. In this case generate
+        # fallback noise directly in linear space so it can still break ties.
+        used_linear_fallback = False
+        if self._is_degenerate_field(template_dB.data):
+            warnings.warn(
+                "Degenerate input field detected for SSFT initialization. "
+                "Using linear fallback stochastic noise generation.",
+                UserWarning,
+            )
+            noise_linear = self._fallback_noise_linear(template_dB.data.shape)
+            used_linear_fallback = True
+        else:
+            # Compute SSFT noise; may fail if individual windows are degenerate,
+            # in which case fall back to linear noise generation.
+            try:
+                result = self.do_fft(template_dB.data)
+                # Convert generated noise from dB to linear scale
+                noise_linear = self._from_dB(data=result).astype(np.float32, copy=False)
+            except ValueError:
+                # SSFT can fail when individual windows (not the whole field)
+                # are constant-valued or in other edge cases. Fall back to linear noise
+                # as a graceful degradation.
+                warnings.warn(
+                    "SSFT initialisation failed. "
+                    "Falling back to linear stochastic noise generation.",
+                    UserWarning,
+                )
+                noise_linear = self._fallback_noise_linear(template_dB.data.shape)
+                used_linear_fallback = True
+
+        # Guard against non-finite values from SSFT output fields.
+        # Treat these as zero-noise contributions.
+        if not np.all(np.isfinite(noise_linear)):
+            noise_linear = np.where(np.isfinite(noise_linear), noise_linear, 0.0)
+
+        # If requested, scale noise in non-positive regions to prevent increasing values
+        # where there should be no signal
+        if self.scale_non_positive_noise:
+            max_noise_non_positiveregions = np.max(noise_linear[non_positive_mask])
+            noise_linear[non_positive_mask] = (
+                noise_linear[non_positive_mask] - max_noise_non_positiveregions
+            )
+
+        # Apply constraints to separate non-positive-fallback (e.g. dry for
+        # precipitation) and positive-region noise ranges (e.g. wet for precipitation).
+        if used_linear_fallback:
+            # Only enforce non-positive fallback range constraints if there are
+            # non-positive regions to apply them to
+            if np.any(non_positive_mask):
+                if self.non_positive_fallback_range is None:
+                    raise ValueError(
+                        "Degenerate input field detected but non_positive_noise_floor is not set. "
+                        "Set non_positive_noise_floor to guarantee separation between "
+                        "non-positive fallback and positive noise ranges."
+                    )
+                non_positive_min, non_positive_max = self.non_positive_fallback_range
+                non_positive_values = noise_linear[non_positive_mask]
+                non_positive_vmin = np.min(non_positive_values)
+                non_positive_vmax = np.max(non_positive_values)
+                if non_positive_vmax > non_positive_vmin:
+                    normalized = (non_positive_values - non_positive_vmin) / (
+                        non_positive_vmax - non_positive_vmin
+                    )
+                    noise_linear[non_positive_mask] = non_positive_min + normalized * (
+                        non_positive_max - non_positive_min
+                    )
+                else:
+                    # Guard against zero dynamic range (all non_positive_values equal), where
+                    # normalization would divide by zero; clamp to non_positive_max to keep values
+                    # inside the configured non_positive fallback interval.
+                    noise_linear[non_positive_mask] = non_positive_max
+        elif (
+            self.scale_non_positive_noise and self.non_positive_noise_floor is not None
+        ):
+            # Ensure positive-region noise does not go below the configured
+            # non_positive_noise_floor.
+            noise_linear[non_positive_mask] = np.maximum(
+                noise_linear[non_positive_mask], self.non_positive_noise_floor
+            )
+
+        # Add noise to selected regions
+        output_cube = template.copy()
+
+        # Always add noise to non-positive regions
+        if np.any(non_positive_mask):
+            output_cube.data[non_positive_mask] = (
+                template.data[non_positive_mask] + noise_linear[non_positive_mask]
+            )
+
+        # Optionally add noise to positive regions
+        if apply_positive_noise and np.any(positive_mask):
+            scaled_positive_noise = (
+                noise_linear[positive_mask] * self.positive_region_noise_amplitude
+            )
+            output_cube.data[positive_mask] = (
+                template.data[positive_mask] + scaled_positive_noise
+            )
+
+        # Restore original mask
+        if original_mask is not None:
+            output_cube.data = np.ma.masked_array(output_cube.data, mask=original_mask)
+
+        # Convert back to original units
+        output_cube.convert_units(original_units)
+
+        return output_cube
 
     def _to_dB(self, cube: Cube) -> Cube:
         """Convert cube data to dB scale and apply thresholding using db_threshold
@@ -160,6 +543,8 @@ class StochasticNoise(BasePlugin):
             are set to zero.
         """
         linear = 10 ** (data / 10.0)
+        # Treat any non-finite transformed values as below-threshold values
+        linear[~np.isfinite(linear)] = 0.0
         linear[linear < self.db_threshold] = 0.0
         return linear
 
@@ -169,6 +554,10 @@ class StochasticNoise(BasePlugin):
     ) -> np.ndarray:
         """
         Generate stochastic noise using SSFT for a 2-D array slice (one realization).
+
+        This may raise ValueError if individual windows within the field are
+        degenerate (constant-valued), even if the overall field has variation.
+        In such cases, the caller should fall back to linear noise generation.
 
         Args:
             data:
@@ -189,140 +578,79 @@ class StochasticNoise(BasePlugin):
         stochastic_noise = generate_noise_2d_ssft_filter(
             nonparametric_filter, **self.ssft_generate_params
         )
-
         return stochastic_noise
+
+    @staticmethod
+    def _is_degenerate_field(data: np.ndarray) -> bool:
+        """Return True if field has no dynamic range for SSFT initialisation."""
+        return not np.any(data > np.min(data))
+
+    def _fallback_noise_linear(self, shape: tuple) -> np.ndarray:
+        """Generate strictly non-positive fallback noise in linear space.
+
+        If a seed is configured in ``ssft_generate_params``, this returns
+        reproducible noise. The resulting field has a maximum value slightly
+        below zero so, for example, for precipitation, dry fields remain dry while
+        still receiving tie-break noise.
+
+        Args:
+            shape:
+                Target 2-D output shape.
+
+        Returns:
+            Fallback 2-D noise field in linear units.
+        """
+        seed = self.ssft_generate_params.get("seed")
+        if seed is not None:
+            seed = int(seed)
+        random_state = np.random.RandomState(seed)
+
+        sigma = max(self.db_threshold * 0.1, np.finfo(np.float32).eps)
+        epsilon = max(np.finfo(np.float32).eps, self.db_threshold)
+        noise = random_state.normal(loc=0.0, scale=sigma, size=shape)
+        noise = noise - np.max(noise) - epsilon
+        return noise.astype(np.float32)
 
     def process(self, input_cube: Cube) -> Cube:
         """
         Add locally-conditioned stochastic noise to a cube object using Short-Space
         Fourier Transform (SSFT).
 
+        While this plugin accepts any cube with "x" and "y" dimensions, it is
+        recommended to first slice the cube over the realization dimension and
+        parallelize the processing of individual realizations using the plugin on each
+        slice, to improve performance. This extraction and later merging of realization
+        slices can be easily achieved using the improver CLI `extract` and
+        `merge` functionality, respectively.
+
         Args:
             input_cube:
-                Cube to which stochastic noise will be added.
+                Cube to which stochastic noise will be added. Must contain "x" and "y"
+                dimensions, and may optionally contain a "realization" dimension.
         Returns:
             Cube with added stochastic noise.
         Warnings:
-            UserWarning:
-                If a seed is provided in ssft_generate_params and allow_seeded_parallel_processing
-                is True, a warning is raised to indicate that using multiple workers
-                with a fixed seed may introduce run-to-run variation because pySTEPS
-                uses global RNG seeding.
+                If the input cube contains a "realization" dimension, a warning is
+                raised to indicate that processing will be slower than necessary, and
+                that it is recommended to process each realization separately.
         """
-        # Check that input cube has the expected dimensions for processing
-        validate_cube_dimensions(
-            cube=input_cube,
-            required_dimensions=["realization", "x", "y"],
-            exact_match=True,
+        # Check if input_cube has a realization dimension. If so, process each
+        # realization slice separately and merge results.
+        # If not, process the cube directly.
+        realization_dim_coords = input_cube.coords("realization", dim_coords=True)
+        if not realization_dim_coords:
+            return self._process_single_realization(input_cube)
+
+        warnings.warn(
+            "Input cube has a multi-realization dimension. For best performance, "
+            "prefer passing single-realization cubes and processing "
+            "each realization separately. Processing will continue by iterating over "
+            "realization slices.",
+            UserWarning,
         )
 
-        # Store original cube units and mask
-        original_units = input_cube.units
-        original_mask = None
-        if np.ma.isMaskedArray(input_cube.data):
-            original_mask = input_cube.data.mask.copy()
-
-        # Convert to db_threshold_units for processing
-        template = input_cube.copy()
-        template.convert_units(self.db_threshold_units)
-
-        # Fill masked values with 0 for processing (dask does not support native numpy
-        # masked arrays)
-        if np.ma.isMaskedArray(template.data):
-            template.data = np.ma.filled(template.data, 0.0).astype(np.float32)
-
-        # Identify non-positive regions where noise should be added
-        non_positive_mask = template.data <= 0
-
-        # If no non-positive values, return input unchanged (output would be
-        # unchanged with SSFT noise addition only to non-positive regions)
-        if not np.any(non_positive_mask):
-            return input_cube
-
-        # Create a copy of the template in dB scale to use for SSFT processing
-        template_dB = self._to_dB(template.copy())
-
-        # Build delayed processing tasks for each realization
-        tasks = []
-        for slice in template_dB.slices_over("realization"):
-            data_slice = slice.data.astype(np.float32)
-            tasks.append(delayed(self.do_fft)(data_slice))
-
-        # Set number of workers for parallel processing
-        num_workers = min(
-            self.num_workers,
-            len(template.coord("realization").points),
+        output_slices = CubeList(
+            self._process_single_realization(slc)
+            for slc in input_cube.slices_over("realization")
         )
-
-        # pySTEPS uses numpy.random.seed when a seed kwarg is passed. By default,
-        # restrict to a single worker in that case to avoid concurrent global RNG
-        # mutations and preserve reproducibility.
-        if (
-            "seed" in self.ssft_generate_params
-            and not self.allow_seeded_parallel_processing
-        ):
-            num_workers = 1
-        elif (
-            "seed" in self.ssft_generate_params
-            and self.allow_seeded_parallel_processing
-        ):
-            warnings.warn(
-                "Using multiple workers with a fixed seed may introduce run-to-run "
-                "variation because pySTEPS uses global RNG seeding.",
-                UserWarning,
-            )
-
-        # Compute all SSFT noise arrays (in dB scale) in parallel
-        results = compute(*tasks, scheduler="threads", num_workers=num_workers)
-
-        # Convert dB to linear scale
-        noise_linear = template.copy()
-        noise_linear.data = np.zeros_like(template.data, dtype=np.float32)
-        for k, result_db in enumerate(results):
-            # Guard against occasional non-finite outputs from SSFT generation on
-            # degenerate fields by mapping them to a sub-threshold dB value.
-            if not np.all(np.isfinite(result_db)):
-                # Repeat scaling from _to_dB to get a sub-threshold dB value for
-                # non-finite outputs.
-                sub_threshold_dB = (
-                    10.0 * np.log10(self.db_threshold) - self.arbitrary_offset
-                )
-                result_db = np.nan_to_num(
-                    result_db,
-                    nan=sub_threshold_dB,
-                    posinf=sub_threshold_dB,
-                    neginf=sub_threshold_dB,
-                )
-            lin_noise = self._from_dB(data=result_db)
-            # Ensure no non-finite values propagate into downstream scaling.
-            lin_noise = np.nan_to_num(lin_noise, nan=0.0, posinf=0.0, neginf=0.0)
-            noise_linear.data[k] = lin_noise
-
-        # If requested, scale noise in non-positive regions to prevent increasing values
-        # where there should be no signal
-        if self.scale_non_positive_noise:
-            noise_in_non_positive_regions = np.nan_to_num(
-                noise_linear.data[non_positive_mask],
-                nan=0.0,
-                posinf=0.0,
-                neginf=0.0,
-            )
-            noise_linear.data[non_positive_mask] = (
-                noise_in_non_positive_regions - np.max(noise_in_non_positive_regions)
-            )
-
-        # Add noise only to non-positive regions, leave positive regions
-        # unchanged
-        output_cube = template.copy()
-        output_cube.data[non_positive_mask] = (
-            template.data[non_positive_mask] + noise_linear.data[non_positive_mask]
-        )
-
-        # Restore original mask
-        if original_mask is not None:
-            output_cube.data = np.ma.masked_array(output_cube.data, mask=original_mask)
-
-        # Convert back to original units
-        output_cube.convert_units(original_units)
-
-        return output_cube
+        return output_slices.merge_cube()

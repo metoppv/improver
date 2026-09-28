@@ -14,6 +14,8 @@ def process(
     *cubes: cli.inputcube,
     reference_attribute: str,
     preservation_threshold: float = None,
+    occurrence_threshold: float = None,
+    non_occurrence_value: float = 0.0,
     method: str = "step",
 ):
     """Adjust forecast values to match the statistical distribution of reference
@@ -36,9 +38,26 @@ def process(
             which must be present on cubes to identify them as reference data.
             The remaining cubes will be treated as forecast data.
         preservation_threshold:
-            Optional threshold value below which (exclusive) the forecast values
-            are not adjusted. Useful for variables like precipitation where you
-            may want to preserve small/zero values.
+            Optional threshold value below which (exclusive) the reference values
+            are preserved in the output. This applies the threshold test to the
+            reference cube (not the forecast cube), which is useful for variables
+            like precipitation where you want to avoid converting originally
+            zero/small reference values into non-zero values and artificially
+            increasing the non-zero area.
+        occurrence_threshold:
+            Optional threshold that enables occurrence correction before
+            quantile mapping. When supplied, the proportion of "occurring"
+            forecast pixels (values strictly above this threshold) is matched to
+            the occurrence fraction of the reference field by setting the
+            lowest-intensity surplus occurring forecast pixels to
+            non_occurrence_value. Quantile mapping is then applied only to the
+            remaining occurring forecast pixels against the occurring reference
+            values. This is intended for one-sided threshold variables. For
+            precipitation, this can reduce weak "drizzle halo" artefacts where
+            the forecast wet area is too broad.
+        non_occurrence_value:
+            Value used to represent non-occurrence when occurrence_threshold is
+            set. This should be at or below occurrence_threshold. Default is 0.0.
         method:
             Choose from two methods of converting forecast values into quantiles
             before mapping them onto the reference distribution: 'step' and
@@ -79,7 +98,10 @@ def process(
         cubes, reference_attribute
     )
     plugin = QuantileMapping(
-        preservation_threshold=preservation_threshold, method=method
+        preservation_threshold=preservation_threshold,
+        occurrence_threshold=occurrence_threshold,
+        non_occurrence_value=non_occurrence_value,
+        method=method,
     )
     return plugin.process(
         reference_cube,

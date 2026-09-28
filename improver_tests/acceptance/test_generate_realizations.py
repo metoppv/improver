@@ -130,6 +130,30 @@ def test_probabilities_reordering(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
+def test_probabilities_reordering_with_transformation(tmp_path):
+    """Test probabilities to realization conversion with reordering and
+    transformation sampling."""
+    kgo_dir = acc.kgo_root() / "generate-realizations/probabilities_reordering"
+    kgo_path = kgo_dir / "transformation_kgo.nc"
+    raw_path = kgo_dir / "raw_ens_precip_rate_scotland.nc"
+    input_path = kgo_dir / "prob_precip_rate_scotland.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        "--sampling",
+        "transformation",
+        "--random-seed",
+        "0",
+        "--ensure-evenly-spaced-realizations",
+        "False",
+        input_path,
+        raw_path,
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
 def test_realizations(tmp_path):
     """Test basic null realization to realization conversion"""
     kgo_dir = acc.kgo_root() / "generate-realizations/probabilities_12_realizations"

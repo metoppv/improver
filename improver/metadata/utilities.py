@@ -149,7 +149,7 @@ def generate_hash(data_in: Any) -> str:
     return hashlib.sha256(bytestring).hexdigest()
 
 
-def create_coordinate_hash(cube: Cube) -> str:
+def create_coordinate_hash(cube: Cube, strict=False) -> str:
     """
     Generate a hash based on the input cube's x and y coordinates. This
     acts as a unique identifier for the grid which can be used to allow two
@@ -159,23 +159,37 @@ def create_coordinate_hash(cube: Cube) -> str:
         cube:
             The cube from which x and y coordinates will be used to
             generate a hash.
+        strict:
+            If True, the hash will be generated using the x and y coordinates
+            of the input cube along with other elements of the coordinate
+            definitions. If False, the hash will be generated using the x and y
+            coordinates of the input cube, but will ignore any differences
+            in the coordinate system, standard name, long name, and units of the
+            coordinates. Generally if the grid points are defined identically the
+            grids match. This is less prone to mismatches caused by coordinate
+            representation changes caused by different versions of iris.
 
     Returns:
         A hash created using the x and y coordinates of the input cube.
     """
+    if strict:
+        additional_elements = [
+            "standard_name",
+            "long_name",
+            "coord_system",
+            "units",
+        ]
+
     hashable_data = []
     for axis in ("x", "y"):
         coord = cube.coord(axis=axis)
-        hashable_data.extend(
-            [
-                list(coord.points),
-                list(coord.bounds) if isinstance(coord.bounds, list) else None,
-                coord.standard_name,
-                coord.long_name,
-                coord.coord_system,
-                coord.units,
-            ]
-        )
+        elements = [
+            coord.points.tolist(),
+            coord.bounds.tolist() if isinstance(coord.bounds, np.ndarray) else None,
+        ]
+        if strict:
+            elements.extend([getattr(coord, elem) for elem in additional_elements])
+        hashable_data.extend(elements)
     return generate_hash(hashable_data)
 
 

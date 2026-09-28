@@ -27,6 +27,7 @@ def process(
     transformation: str = None,
     pre_transform_addition: float = 0,
     unique_site_id_keys: cli.comma_separated_list = "wmo_id",
+    qrf_kwargs: cli.inputjson = None,
 ):
     """Training a model using Quantile Regression Random Forest.
 
@@ -86,6 +87,9 @@ def process(
             Range of forecast periods to be calibrated in hours in the form:
             "start:end:interval" e.g. "6:18:6" or a single forecast period e.g. "6".
             The end value is exclusive, so "6:18:6" will calibrate the 6 and 12 hours.
+            Multiple ranges can be specified using semicolon separation,
+            e.g. "1:133:1;135:199:3" for hourly T+1 to T+132 and
+            3-hourly T+135 to T+198.
         cycletime (str):
             Cycletime of a format similar to 20170109T0000Z used to filter the
             correct blendtimes from the dataframe on load.
@@ -123,7 +127,7 @@ def process(
         unique_site_id_keys (str):
             The names of the coordinates that uniquely identify each site,
             e.g. "wmo_id" or "latitude,longitude".
-        kwargs: Additional keyword arguments for the quantile regression model.
+        qrf_kwargs: Additional keyword arguments for the quantile regression model.
     Returns:
         A quantile regression random forest model with associated transformation and
         pre-transformation addition that will be stored as a pickle file.
@@ -147,9 +151,10 @@ def process(
     if forecast_df is None or truth_df is None or cube_inputs is None:
         return None
 
-    kwargs = {}
+    if qrf_kwargs is None:
+        qrf_kwargs = {}
     if max_features is not None:
-        kwargs["max_features"] = max_features
+        qrf_kwargs["max_features"] = max_features
     result = PrepareAndTrainQRF(
         feature_config=feature_config,
         target_cf_name=cf_names[0],
@@ -160,7 +165,7 @@ def process(
         transformation=transformation,
         pre_transform_addition=pre_transform_addition,
         unique_site_id_keys=unique_site_id_keys,
-        **kwargs,
+        **qrf_kwargs,
     )(forecast_df, truth_df, cube_inputs)
     if result == (None, None, None):
         return None

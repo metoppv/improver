@@ -15,6 +15,9 @@ def process(
     *cubes: cli.inputcube,
     forecast_period: int,
     model_id_attr: str = "mosg__model_configuration",
+    cycletime: str = None,
+    selection_attr: str = None,
+    selection_attr_value: str = "cluster_medoid",
 ):
     """Select realizations from input forecast cubes according to cluster assignments.
 
@@ -28,6 +31,19 @@ def process(
             mapping attributes in order to select the appropriate realizations.
         model_id_attr (str):
             The name of the cube attribute used to identify the model source.
+        cycletime (str):
+            The forecast_reference_time on the input forecast cubes will be reset to
+            this value. The forecast periods will be adjusted accordingly with
+            the validity times kept fixed. cycletime should be provided in the
+            format YYYYMMDDTHHMMZ (e.g., 20240101T0000Z). If not provided, the
+            forecast_reference_time on the input cubes will be left unchanged.
+        selection_attr (str):
+            Optional name of a cube attribute to add to the output to identify
+            that these realizations were selected using this plugin.
+            If not provided, no attribute is added.
+        selection_attr_value (str):
+            The value to assign to the selection_attr attribute.
+            Default is "cluster_medoid".
 
     Returns:
         Cube:
@@ -37,6 +53,10 @@ def process(
     from improver.clustering.realization_clustering import RealizationSelection
 
     selector = RealizationSelection(
-        forecast_period=forecast_period, model_id_attr=model_id_attr
+        forecast_period=forecast_period,
+        model_id_attr=model_id_attr,
+        cycletime=cycletime,
+        selection_attr=selection_attr,
+        selection_attr_value=selection_attr_value,
     )
     return selector(cubes)

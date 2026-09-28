@@ -588,6 +588,88 @@ class Test_prepare_input_cubes(Test_WXCode):
         for constraint in unexpected:
             self.assertEqual(len(result.extract(constraint)), 0)
 
+    def test_selects_closest_threshold_when_multiple_matches(self):
+        """Test prepare_input_cubes method raises a warning for matching thresholds
+        in a diagnostic and selects the closest threshold."""
+
+        # Modify the cube snowfall_rate to add an additional threshold
+        threshold_coord = find_threshold_coordinate(self.cubes[0])
+        original_threshold = threshold_coord.points[0]
+        additional_threshold = original_threshold * (
+            1 + 0.5 * self.plugin.float_tolerance
+        )
+        threshold_coord.points = np.array(
+            [
+                original_threshold,
+                additional_threshold,
+                threshold_coord.points[2],
+            ],
+            dtype=np.float32,
+        )
+        # Check warning is raised
+        msg = r"Multiple \(2\) matching thresholds found.*Using closest match"
+        with self.assertWarnsRegex(UserWarning, msg):
+            result, _ = self.plugin.prepare_input_cubes(self.cubes)
+        # Check thresholds extracted for snowfall_cubes
+        # We expect the original_threshold to be selected over the additional_threshold
+        expected_thresholds = {original_threshold, threshold_coord.points[2]}
+        snowfall_cubes = [cube for cube in result if "lwe_snowfall_rate" in cube.name()]
+        self.assertGreater(len(snowfall_cubes), 0)
+        for cube in snowfall_cubes:
+            cube_thresholds = cube.coord(find_threshold_coordinate(cube).name()).points
+            self.assertEqual(len(cube_thresholds), 1)
+            cube_threshold_value = cube_thresholds[0]
+            self.assertIn(cube_threshold_value, expected_thresholds)
+            self.assertNotEqual(cube_threshold_value, additional_threshold)
+
+    def test_selects_first_threshold_when_equidistant_thresholds(self):
+        """Test prepare_input_cubes method raises a warning for when the two matching
+        thresholds are equidistant from the requested threshold and selects the first
+        threshold, where the thresholds are monotonic."""
+
+        # Modify the cube snowfall_rate to ensure two equidistant thresholds
+        threshold_coord = find_threshold_coordinate(self.cubes[0])
+        requested_threshold = threshold_coord.points[0]
+        lower_threshold = requested_threshold * (1 - 0.5 * self.plugin.float_tolerance)
+        higher_threshold = requested_threshold * (1 + 0.5 * self.plugin.float_tolerance)
+        threshold_coord.points = np.array(
+            [
+                lower_threshold,
+                higher_threshold,
+                threshold_coord.points[2],
+            ],
+            dtype=np.float32,
+        )
+        # Check warning is raised
+        msg = r"multiple thresholds are equidistant to the desired threshold"
+        with self.assertWarnsRegex(UserWarning, msg):
+            result, _ = self.plugin.prepare_input_cubes(self.cubes)
+        # Check thresholds extracted for snowfall_cubes
+        # We expect lower_threshold to be selected over the higher_threshold
+        expected_thresholds = {lower_threshold, threshold_coord.points[2]}
+        snowfall_cubes = [cube for cube in result if "lwe_snowfall_rate" in cube.name()]
+        for cube in snowfall_cubes:
+            cube_thresholds = cube.coord(find_threshold_coordinate(cube).name()).points
+            self.assertEqual(len(cube_thresholds), 1)
+            cube_threshold_value = cube_thresholds[0]
+            self.assertIn(cube_threshold_value, expected_thresholds)
+            self.assertNotEqual(cube_threshold_value, higher_threshold)
+
+    def test_zero_threshold_uses_absolute_tolerance(self):
+        """Test prepare_input_cubes method uses absolute tolerance when the threshold
+        is ~ 0.0"""
+        cubes = self.cubes
+        lightning_cube = cubes.extract_cube(
+            "probability_of_number_of_lightning_flashes"
+            "_per_unit_area_in_vicinity_above_threshold"
+        )
+        threshold_coord = find_threshold_coordinate(lightning_cube)
+        threshold_coord.points = np.array(
+            [0.1 * self.plugin.float_abs_tolerance], dtype=np.float32
+        )
+        used_cubes, _ = self.plugin.prepare_input_cubes(cubes)
+        self.assertIn(lightning_cube, used_cubes)
+
 
 class Test_invert_condition(unittest.TestCase):
     """Test the invert condition method."""

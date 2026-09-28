@@ -9,14 +9,9 @@ Unit tests for the the miscellaneous ancillary generation functions.
 import cartopy.crs as ccrs
 import numpy as np
 import pytest
-from geopandas import GeoDataFrame
-from iris.cube import CubeList
-from numpy.testing import assert_array_almost_equal, assert_array_equal
-from shapely.geometry import LineString, Polygon
+from numpy.testing import assert_array_almost_equal
 
 from improver.generate_ancillaries.generate_miscellaneous_ancillaries import (
-    generate_distance_to_ocean,
-    generate_distance_to_water,
     generate_land_area_fraction_at_sites,
     generate_roughness_length_at_sites,
 )
@@ -56,83 +51,6 @@ def distance_cube_template():
     return prob_cube
 
 
-@pytest.fixture()
-def coastline():
-    """Create a GeoDataFrame representing a simple coastline.
-    x-------x
-    |       |
-    |       |
-    |       |
-    x-------x
-    """
-
-    data = [
-        LineString(
-            [
-                [3500000, 3000000],
-                [3500000, 3001000],
-                [3501000, 3001000],
-                [3501000, 3000000],
-                [3500000, 3000000],
-            ]
-        )
-    ]
-    return GeoDataFrame(geometry=data, crs="EPSG:3035")
-
-
-@pytest.fixture()
-def land():
-    """Create a simple polygon representing a land area surrounded
-    by the coastline defined in the coastline fixture.
-
-    The polygon looks like:
-             x-------x
-             ---------
-             ---------
-             x-------x
-    """
-    data = [
-        Polygon(
-            [
-                [3500000, 3000000],
-                [3500000, 3001000],
-                [3501000, 3001000],
-                [3501000, 3000000],
-                [3500000, 3000000],
-            ]
-        )
-    ]
-    return GeoDataFrame(geometry=data, crs="EPSG:3035")
-
-
-@pytest.fixture()
-def site_locations():
-    """Set up a site cube containing data at multiple sites."""
-    latitude = np.array([49.543481633, 49.551655272])
-    longitude = np.array([-1.387510304, -1.3964531])
-
-    altitude = np.array(
-        [-99999, -99999]
-    )  # These values are not used but are required for cube creation.
-    data = np.array(
-        [-99999, -99999]
-    )  # These values are not used but are required for cube creation.
-    wmo_id = [
-        "00000",
-        "00001",
-    ]  # These values are not used but are required for cube creation.
-    site_cube = build_spotdata_cube(
-        data,
-        name="site_locations",
-        units="m",
-        altitude=altitude,
-        wmo_id=wmo_id,
-        latitude=latitude,
-        longitude=longitude,
-    )
-    return site_cube
-
-
 def neighbour_cube(neighbours, altitudes, latitudes, longitudes, wmo_ids):
     """Set up a neighbour cube with a simple grid of neighbours."""
 
@@ -150,7 +68,7 @@ def neighbour_cube(neighbours, altitudes, latitudes, longitudes, wmo_ids):
         neighbour_methods=neighbour_methods,
     )
     neighbour_cube.attributes["model_grid_hash"] = (
-        "e5b78c90234ed2f4a17f4109abce231c3826577bd738940af0e227c9e2892069"
+        "8c9ef4e2dabc4a1753f08952a730edf577f958537d544f95cc734c649fc9a063"
     )
     return neighbour_cube
 
@@ -219,38 +137,6 @@ def gridded_template_cube():
     return cube
 
 
-def test_distance_to_water(distance_cube_template):
-    """Test the distance to water ancillary is generated correctly."""
-
-    river_cube = distance_cube_template.copy()
-    river_cube.data = np.array([100, 200, 300, 400])
-    lake_cube = distance_cube_template.copy()
-    lake_cube.data = np.array([400, 300, 200, 100])
-    ocean_cube = distance_cube_template.copy()
-    ocean_cube.data = np.array([200, 200, 200, 10])
-    water_cubes = CubeList([river_cube, lake_cube, ocean_cube])
-
-    output_cube = generate_distance_to_water(water_cubes)
-
-    assert output_cube.name() == "distance_to_water"
-    assert output_cube.units == "m"
-    assert_array_equal(output_cube.data, [100, 200, 200, 10])
-
-
-def test_distance_to_ocean(site_locations, coastline, land):
-    """Test the distance to ocean ancillary is generated correctly."""
-
-    # Generate the distance to ocean ancillary
-    distance_to_ocean = generate_distance_to_ocean(
-        3035, coastline, land, site_locations
-    )
-
-    # Ensure the cube has the correct metadata
-    assert distance_to_ocean.name() == "distance_to_ocean"
-    assert distance_to_ocean.units == "m"
-    assert_array_equal(distance_to_ocean.data, [500, 0])
-
-
 @pytest.mark.parametrize(
     "radius, expected",
     (
@@ -306,11 +192,17 @@ def test_land_area_fraction_ancillary(corine_land_cover, radius, expected):
 
     assert land_area_fraction.name() == "land_area_fraction"
     assert land_area_fraction.units == "1"
+    assert land_area_fraction.attributes["sample_radius"] == radius
+    assert land_area_fraction.attributes["sample_radius_units"] == "m"
     assert_array_almost_equal(land_area_fraction.data, expected)
 
 
-def test_roughness_length_ancillary(default_neighbour_cube, gridded_template_cube):
-    """Test that the roughness length ancillary is generated correctly."""
+@pytest.mark.parametrize("ignore_grid_match", (True, False))
+def test_roughness_length_ancillary(
+    default_neighbour_cube, gridded_template_cube, ignore_grid_match
+):
+    """Test that the roughness length ancillary is generated correctly, with and without
+    ignoring the grid match between the diagnostic cube and the spot neighbour cube."""
 
     # Create a gridded roughness length cube
     roughness_cube = gridded_template_cube.copy()
@@ -319,7 +211,9 @@ def test_roughness_length_ancillary(default_neighbour_cube, gridded_template_cub
     roughness_cube.data = np.array([[0.1, 0.2, 0.3], [0.4, 0.5, 0.6], [0.7, 0.8, 0.9]])
 
     # Generate the roughness length ancillary
-    result = generate_roughness_length_at_sites(roughness_cube, default_neighbour_cube)
+    result = generate_roughness_length_at_sites(
+        roughness_cube, default_neighbour_cube, ignore_grid_match=ignore_grid_match
+    )
 
     # Ensure the cube has the correct metadata
     assert result.name() == "roughness_length"

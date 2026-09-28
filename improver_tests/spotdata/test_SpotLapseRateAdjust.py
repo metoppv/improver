@@ -8,6 +8,7 @@ import unittest
 
 import iris
 import numpy as np
+import pytest
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.constants import DALR
@@ -388,6 +389,33 @@ class Test_process(Test_SpotLapseRateAdjust):
 
         with self.assertRaisesRegex(ValueError, msg):
             plugin(self.spot_temperature_nearest, self.neighbour_cube)
+
+    def test_ignore_grid_match_check(self):
+        """Test that when the ignore_grid_match argument is set to True, the function
+        runs as expected, even with mismatched grid hashes."""
+
+        # Force mismatched grid hashes
+        self.spot_temperature_nearest.attributes["model_grid_hash"] = "hash_1"
+        self.neighbour_cube.attributes["model_grid_hash"] = "hash_2"
+
+        # Demonstrate that the plugin fails when ignore_grid_match = False
+        plugin = SpotLapseRateAdjust(ignore_grid_match=False)
+        with pytest.raises(ValueError):
+            plugin(
+                self.spot_temperature_nearest, self.neighbour_cube, self.lapse_rate_cube
+            )
+        # Demonstrate that the plugin passes when ignore_grid_match = True
+        plugin = SpotLapseRateAdjust(ignore_grid_match=True)
+        result = plugin(
+            self.spot_temperature_nearest,
+            self.neighbour_cube,
+            self.lapse_rate_cube,
+        )
+
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertEqual(result.name(), self.spot_temperature_nearest.name())
+        self.assertEqual(result.units, self.spot_temperature_nearest.units)
+        self.assertEqual(result.coords(), self.spot_temperature_nearest.coords())
 
 
 if __name__ == "__main__":

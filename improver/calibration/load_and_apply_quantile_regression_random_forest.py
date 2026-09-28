@@ -47,6 +47,7 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
         unique_site_id_keys: list[str] = ["wmo_id"],
         cycletime: Optional[str] = None,
         forecast_period: Optional[int] = None,
+        max_allowed_difference: Optional[np.float32] = None,
     ):
         """Initialise the plugin.
 
@@ -83,6 +84,9 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
                 The forecast period of the forecast to be calibrated in seconds. If not
                 provided, the forecast period found in the first forecast cube
                 will be used.
+            max_allowed_difference (float, optional):
+                The maximum allowed difference between the uncalibrated and calibrated forecast.
+                If not provided, no maximum difference check will be applied. Defaults to None.
         """
         self.feature_config = feature_config
         self.target_cf_name = target_cf_name
@@ -90,6 +94,7 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
         self.cycletime = cycletime
         self.forecast_period = forecast_period
         self.quantile_forest_installed = quantile_forest_package_available()
+        self.max_allowed_difference = max_allowed_difference
 
     def _get_inputs(
         self,
@@ -241,7 +246,8 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
             included as columns.
         """
         # Convert the first cube to a DataFrame.
-        df = as_data_frame(cube_inputs[0], add_aux_coords=True).reset_index()
+        df = as_data_frame(cube_inputs[0], add_aux_coords=True)
+        df.reset_index(inplace=True)
 
         possible_columns = [
             *self.unique_site_id_keys,
@@ -294,7 +300,6 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
             # Descriptors expected: (qrf_model, transformation, pre_transform_addition)
             qrf_descriptors = (None, None, 0)
         qrf_model, transformation, pre_transform_addition = qrf_descriptors
-
         cube_inputs, forecast_cube = self._get_inputs(cube_inputs, qrf_model=qrf_model)
 
         if cube_inputs:
@@ -310,18 +315,21 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
             warnings.warn(msg)
             return forecast_cube
 
-        template_forecast_cube = forecast_cube.copy()
+        output_cube = (
+            forecast_cube.copy()
+        )  # Used later to store the calibrated forecast.
         if forecast_cube.coords("realization"):
-            quantile_list = self._compute_quantile_list(
-                forecast_cube.copy(), "realization"
-            )
+            quantile_list = self._compute_quantile_list(forecast_cube, "realization")
         elif forecast_cube.coords("percentile"):
             quantile_list = (forecast_cube.coord("percentile").points / 100.0).tolist()
 
         cube_inputs = self._update_forecast_reference_time_and_period(cube_inputs)
 
         df = self._cube_to_dataframe(cube_inputs)
-
+        del (
+            cube_inputs,
+            forecast_cube,
+        )
         calibrated_forecast = ApplyQuantileRegressionRandomForests(
             target_name=self.target_cf_name,
             feature_config=self.feature_config,
@@ -329,9 +337,10 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
             transformation=transformation,
             pre_transform_addition=pre_transform_addition,
             unique_site_id_keys=self.unique_site_id_keys,
+            max_allowed_difference=self.max_allowed_difference,
         )(qrf_model, df)
-        calibrated_forecast_cube = template_forecast_cube.copy(
-            data=np.broadcast_to(calibrated_forecast.T, template_forecast_cube.shape)
-        )
+        del df
 
-        return calibrated_forecast_cube
+        output_cube.data = np.broadcast_to(calibrated_forecast.T, output_cube.shape)
+
+        return output_cube
