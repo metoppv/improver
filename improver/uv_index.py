@@ -83,6 +83,7 @@ def calculate_uv_index(
             f"The scale_factor is not the default 3.6 (m2 W-1) but {scale_factor}. "
             "This default factor has been empirically derived and should not be "
             "changed except if there are scientific reasons to do so."
+            "For more information, see this function's 'References' section."
         )
         warnings.warn(msg)
 
