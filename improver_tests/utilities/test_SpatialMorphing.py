@@ -604,6 +604,57 @@ def test_find_active_transition_depends_on_available_source_names(
     )
 
 
+@pytest.mark.parametrize(
+    "start_minutes,end_minutes",
+    [
+        (168, 180),
+        (60, 120),
+    ],
+)
+def test_find_active_transition_returns_none_for_no_op_cases(
+    start_minutes, end_minutes
+):
+    """No-op transitions should return None for both inactive and unusable windows.
+
+    This covers the two distinct cases that are intentionally treated as no-op
+    behaviour within ``_find_active_transition``:
+
+    * the requested forecast period is outside any configured transition window, so
+      there is no active transition at all; or
+    * a transition window is active, but neither source in the configured pair is
+      present in the supplied input set, so there is no valid morphing partner to
+      apply.
+
+    In both situations the function should return ``None`` rather than raise an
+    exception, because the caller can then keep the current source and skip the
+    morphing step without incorrectly treating a missing transition as a hard
+    configuration error.
+    """
+    plugin = SpatialMorphing(
+        forecast_period=10800,
+        cluster_number=17,
+        transitions={
+            "transitions": [
+                {
+                    "source_a": "gl_ens",
+                    "source_b": "ecgl_ens",
+                    "start_forecast_period_minutes": start_minutes,
+                    "end_forecast_period_minutes": end_minutes,
+                }
+            ]
+        },
+    )
+
+    assert (
+        plugin._find_active_transition(
+            10800,
+            "ecgl_ens",
+            available_source_names={"uk_det"},
+        )
+        is None
+    )
+
+
 def test_find_active_transition_error_mentions_expected_transition_source_pair():
     """Test the error message identifies the active transition it was trying to match."""
     plugin = SpatialMorphing(
@@ -814,6 +865,49 @@ def test_process_falls_back_to_available_source_when_requested_model_missing():
 
     assert result.coord("realization").points.tolist() == [17]
     np.testing.assert_allclose(result.data, 200.0 + 11, rtol=1e-6)
+
+
+def test_process_skips_morphing_when_no_transition_is_usable():
+    """The public process() path should pass through the source cube when no valid transition is usable."""
+    cluster_cube = set_up_variable_cube(
+        np.zeros((5, 5), dtype=np.float32),
+        name="clustering_result",
+        units="1",
+        spatial_grid="equalarea",
+    )
+    cluster_cube.attributes["primary_input_realization_to_cluster_medoid"] = json.dumps(
+        {"17": 0}
+    )
+    cluster_cube.attributes["secondary_input_realizations_to_clusters"] = json.dumps(
+        {
+            "uk_det": {"17": [{"realization": 0, "forecast_periods": [3600, 21600]}]},
+        }
+    )
+    cluster_cube.attributes["cluster_sources"] = json.dumps(
+        {"17": {"uk_det": [3600, 21600]}}
+    )
+
+    plugin = SpatialMorphing(
+        forecast_period=10800,
+        cluster_number=17,
+        transitions={
+            "transitions": [
+                {
+                    "source_a": "gl_ens",
+                    "source_b": "ecgl_ens",
+                    "start_forecast_period_minutes": 168,
+                    "end_forecast_period_minutes": 180,
+                }
+            ]
+        },
+    )
+    det_cube = make_forecast_cube(model_id="uk_det", n_realizations=2, base_value=50.0)
+
+    with patch.object(SpatialMorphing, "_find_active_transition", return_value=None):
+        result = plugin.process(det_cube, cluster_cube)
+
+    assert result.coord("realization").points.tolist() == [17]
+    np.testing.assert_allclose(result.data, 50.0 + 0, rtol=1e-6)
 
 
 def test_process_falls_back_when_requested_realization_is_missing_from_available_source():

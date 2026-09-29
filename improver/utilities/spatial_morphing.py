@@ -641,7 +641,29 @@ class SpatialMorphing(BasePlugin):
             <= transition["end_forecast_period_seconds"]
         ]
         if len(active_transitions) <= 1:
-            return active_transitions[0] if active_transitions else None
+            # No active transition window covers this forecast period: skip morphing.
+            if not active_transitions:
+                return None
+            transition = active_transitions[0]
+            # A transition does cover this forecast period, but if the supplied
+            # inputs do not contain a usable source pair for it, treat this as a
+            # no-op rather than raising. The caller can keep the already selected
+            # source and skip the morphing step.
+            if selected_source_name is None:
+                return transition
+            if available_source_names is None:
+                return transition
+            if selected_source_name in available_source_names:
+                return transition
+            if any(
+                source_name in available_source_names
+                for source_name in (transition["source_a"], transition["source_b"])
+            ):
+                return transition
+            # Active window exists, but neither source in the pair is available in
+            # the supplied inputs: skip the transition and preserve the current
+            # source selection.
+            return None
 
         if selected_source_name is None:
             raise ValueError(
