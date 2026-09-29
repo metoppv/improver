@@ -194,7 +194,7 @@ def test_no_primary_input_skips_and_returns_no_output(tmp_path):
         output_path,
     ]
 
-    with pytest.warns(UserWarning, match=r"No primary cube found"):
+    with pytest.warns(UserWarning, match="No primary cube found"):
         run_cli(args)
 
     assert not output_path.exists()

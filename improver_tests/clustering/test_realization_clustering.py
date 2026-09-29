@@ -1534,7 +1534,8 @@ def test_clusterandmatch_cluster_primary_input(
 
 
 def test_clusterandmatch_process_no_primary_cube():
-    """Test that a missing primary cube is treated as a cold-start no-op."""
+    """Test that a missing primary cube results in the clustering being skipped and
+    returning None."""
     cubes = CubeList()
     spatial_shape = (5, 5)
     # Add a secondary input cube with model_id 'secondary_model_1'.

@@ -1504,7 +1504,7 @@ class RealizationClusterAndMatch(BasePlugin):
             - 'cluster_sources': tracks which input model provided the final data for
                 each cluster-forecast_period pairing.
             None: If no primary cube is found for the configured primary input,
-            indicating a cold-start or no-primary condition that should be skipped.
+            then the clustering should be skipped.
 
         Warns:
             UserWarning: If no primary cube is found for the configured primary
