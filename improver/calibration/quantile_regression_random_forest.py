@@ -628,6 +628,7 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
             unique_site_id_keys=self.unique_site_id_keys,
         )
 
+        forecast_df = sanitise_forecast_dataframe(forecast_df, self.feature_config)
         feature_values = np.array(forecast_df[feature_column_names])
         del forecast_df
 
@@ -635,5 +636,6 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
             feature_values, quantiles=self.quantiles
         )
         calibrated_forecast = self._reverse_transformation(calibrated_forecast)
+        calibrated_forecast = calibrated_forecast.astype(np.float32, copy=False)
 
         return calibrated_forecast

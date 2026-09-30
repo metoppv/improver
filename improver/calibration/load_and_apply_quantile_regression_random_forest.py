@@ -280,7 +280,7 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
         ] = None,
     ) -> Cube:
         """Load and apply the trained Quantile Regression Random Forest (QRF) model.
-        The model is used to calibrated the forecast provided. The calibrated forecast
+        The model is used to calibrate the forecast provided. The calibrated forecast
         is written to a cube. If no model is provided the input forecast is returned
         unchanged.
 
