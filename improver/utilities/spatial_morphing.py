@@ -646,9 +646,9 @@ class SpatialMorphing(BasePlugin):
                 return None
             transition = active_transitions[0]
             # A transition does cover this forecast period, but if the supplied
-            # inputs do not contain a usable source pair for it, treat this as a
-            # no-op rather than raising. The caller can keep the already selected
-            # source and skip the morphing step.
+            # inputs do not contain a usable source pair for it, skip this
+            # transition rather than raising. The caller can keep the already
+            # selected source and avoid morphing this step.
             if selected_source_name is None:
                 return transition
             if available_source_names is None:
@@ -679,6 +679,25 @@ class SpatialMorphing(BasePlugin):
         )
         if transition is not None:
             return transition
+
+        if available_source_names is not None:
+            # If every active transition involving the selected source is unusable
+            # with the supplied inputs, skip morphing for this period rather than
+            # raising a hard failure. The caller can keep the already selected
+            # source without masking genuine ambiguity when a usable overlapping
+            # transition does exist.
+            any_usable_transition = any(
+                selected_source_name in {trans["source_a"], trans["source_b"]}
+                and any(
+                    source_name in available_source_names
+                    for source_name in (
+                        {trans["source_a"], trans["source_b"]} - {selected_source_name}
+                    )
+                )
+                for trans in active_transitions
+            )
+            if not any_usable_transition:
+                return None
 
         if (
             available_source_names is not None

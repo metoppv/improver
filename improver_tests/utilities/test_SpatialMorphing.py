@@ -614,10 +614,10 @@ def test_find_active_transition_depends_on_available_source_names(
 def test_find_active_transition_returns_none_for_no_op_cases(
     start_minutes, end_minutes
 ):
-    """No-op transitions should return None for both inactive and unusable windows.
+    """Transitions should return None when the period is inactive or unusable.
 
-    This covers the two distinct cases that are intentionally treated as no-op
-    behaviour within ``_find_active_transition``:
+    This covers the two distinct cases that are intentionally treated as
+    "skip-morphing" behaviour within ``_find_active_transition``:
 
     * the requested forecast period is outside any configured transition window, so
       there is no active transition at all; or
@@ -655,12 +655,43 @@ def test_find_active_transition_returns_none_for_no_op_cases(
     )
 
 
-def test_find_active_transition_error_mentions_expected_transition_source_pair():
-    """Test the error message identifies the active transition it was trying to match."""
+def test_find_active_transition_returns_none_when_multiple_active_windows_are_unusable():
+    """Multiple active transitions should skip morphing when none are usable."""
     plugin = SpatialMorphing(
         forecast_period=10800,
         cluster_number=17,
         transitions={
+            "transitions": [
+                {
+                    "source_a": "gl_ens",
+                    "source_b": "ecgl_ens",
+                    "start_forecast_period_minutes": 60,
+                    "end_forecast_period_minutes": 180,
+                },
+                {
+                    "source_a": "uk_ens",
+                    "source_b": "ecgl_ens",
+                    "start_forecast_period_minutes": 60,
+                    "end_forecast_period_minutes": 180,
+                },
+            ]
+        },
+    )
+
+    assert (
+        plugin._find_active_transition(
+            10800,
+            "ecgl_ens",
+            available_source_names={"uk_det"},
+        )
+        is None
+    )
+
+
+@pytest.mark.parametrize(
+    "transitions",
+    [
+        {
             "transitions": [
                 {
                     "source_a": "nc_det uk_det",
@@ -676,17 +707,42 @@ def test_find_active_transition_error_mentions_expected_transition_source_pair()
                 },
             ]
         },
+        {
+            "transitions": [
+                {
+                    "source_a": "gl_ens",
+                    "source_b": "ecgl_ens",
+                    "start_forecast_period_minutes": 60,
+                    "end_forecast_period_minutes": 180,
+                },
+                {
+                    "source_a": "uk_ens",
+                    "source_b": "ecgl_ens",
+                    "start_forecast_period_minutes": 60,
+                    "end_forecast_period_minutes": 180,
+                },
+            ]
+        },
+    ],
+)
+def test_find_active_transition_returns_none_when_active_window_has_no_usable_partner(
+    transitions,
+):
+    """An active transition should be skipped when none of its source pairs are usable."""
+    plugin = SpatialMorphing(
+        forecast_period=10800,
+        cluster_number=17,
+        transitions=transitions,
     )
 
-    with pytest.raises(
-        ValueError,
-        match="expected transition from 'nc_det uk_det' to 'uk_ens'",
-    ):
+    assert (
         plugin._find_active_transition(
             10800,
             "uk_ens",
             available_source_names={"uk_det"},
         )
+        is None
+    )
 
 
 def test_process_raises_on_ambiguous_transition_selection():
@@ -867,8 +923,39 @@ def test_process_falls_back_to_available_source_when_requested_model_missing():
     np.testing.assert_allclose(result.data, 200.0 + 11, rtol=1e-6)
 
 
-def test_process_skips_morphing_when_no_transition_is_usable():
-    """The public process() path should pass through the source cube when no valid transition is usable."""
+@pytest.mark.parametrize(
+    "transitions",
+    [
+        {
+            "transitions": [
+                {
+                    "source_a": "gl_ens",
+                    "source_b": "ecgl_ens",
+                    "start_forecast_period_minutes": 168,
+                    "end_forecast_period_minutes": 180,
+                }
+            ]
+        },
+        {
+            "transitions": [
+                {
+                    "source_a": "gl_ens",
+                    "source_b": "ecgl_ens",
+                    "start_forecast_period_minutes": 60,
+                    "end_forecast_period_minutes": 180,
+                },
+                {
+                    "source_a": "uk_ens",
+                    "source_b": "ecgl_ens",
+                    "start_forecast_period_minutes": 60,
+                    "end_forecast_period_minutes": 180,
+                },
+            ]
+        },
+    ],
+)
+def test_process_skips_morphing_when_no_transition_is_usable(transitions):
+    """The public process() path should keep the selected source when no active transition is usable."""
     cluster_cube = set_up_variable_cube(
         np.zeros((5, 5), dtype=np.float32),
         name="clustering_result",
@@ -890,21 +977,11 @@ def test_process_skips_morphing_when_no_transition_is_usable():
     plugin = SpatialMorphing(
         forecast_period=10800,
         cluster_number=17,
-        transitions={
-            "transitions": [
-                {
-                    "source_a": "gl_ens",
-                    "source_b": "ecgl_ens",
-                    "start_forecast_period_minutes": 168,
-                    "end_forecast_period_minutes": 180,
-                }
-            ]
-        },
+        transitions=transitions,
     )
     det_cube = make_forecast_cube(model_id="uk_det", n_realizations=2, base_value=50.0)
 
-    with patch.object(SpatialMorphing, "_find_active_transition", return_value=None):
-        result = plugin.process(det_cube, cluster_cube)
+    result = plugin.process(det_cube, cluster_cube)
 
     assert result.coord("realization").points.tolist() == [17]
     np.testing.assert_allclose(result.data, 50.0 + 0, rtol=1e-6)
