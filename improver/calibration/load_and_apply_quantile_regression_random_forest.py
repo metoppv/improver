@@ -23,6 +23,7 @@ from improver.calibration.quantile_regression_random_forest import (
 )
 from improver.ensemble_copula_coupling.utilities import choose_set_of_percentiles
 from improver.utilities.cube_checker import assert_spatial_coords_match
+from improver.utilities.forecast_reference_enforcement import EnforceConsistentForecasts
 from improver.utilities.temporal import datetime_to_iris_time
 
 try:
@@ -326,10 +327,8 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
         cube_inputs = self._update_forecast_reference_time_and_period(cube_inputs)
 
         df = self._cube_to_dataframe(cube_inputs)
-        del (
-            cube_inputs,
-            forecast_cube,
-        )
+        del cube_inputs
+
         calibrated_forecast = ApplyQuantileRegressionRandomForests(
             target_name=self.target_cf_name,
             feature_config=self.feature_config,
@@ -337,10 +336,21 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
             transformation=transformation,
             pre_transform_addition=pre_transform_addition,
             unique_site_id_keys=self.unique_site_id_keys,
-            max_allowed_difference=self.max_allowed_difference,
         )(qrf_model, df)
         del df
 
         output_cube.data = np.broadcast_to(calibrated_forecast.T, output_cube.shape)
+
+        if self.max_allowed_difference is not None:
+            # Enforce that the calibrated forecast does not exceed the maximum allowed
+            # difference from the uncalibrated forecast.
+            output_cube = EnforceConsistentForecasts(
+                additive_amount=[
+                    -1 * self.max_allowed_difference,
+                    self.max_allowed_difference,
+                ],
+                multiplicative_amount=[1.0, 1.0],
+                comparison_operator=[">=", "<="],
+            )(forecast=output_cube, reference_forecast=forecast_cube)
 
         return output_cube
