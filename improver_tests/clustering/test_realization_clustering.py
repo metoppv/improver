@@ -1534,11 +1534,13 @@ def test_clusterandmatch_cluster_primary_input(
 
 
 def test_clusterandmatch_process_no_primary_cube():
-    """Test that ValueError is raised if no primary cube is found with the specified model_id_attr."""
-    # Only secondary input cubes, no primary input
+    """Test that a missing primary cube results in the clustering being skipped and
+    returning None."""
     cubes = CubeList()
     spatial_shape = (5, 5)
-    # Add a secondary input cube with model_id 'secondary_model_1'
+    # Add a secondary input cube with model_id 'secondary_model_1'.
+    # No primary cube is added to the CubeList, so the plugin should issue a
+    # warning and return None.
     cubes.extend(
         _create_4d_realization_cube(
             n_realizations=2,
@@ -1547,10 +1549,9 @@ def test_clusterandmatch_process_no_primary_cube():
             x_dim=spatial_shape[1],
             model_id="secondary_model_1",
             base_value=200.0,
-            merge=False
+            merge=False,
         )
     )
-    # Add a target grid cube
     cubes.append(_create_target_grid_cube())
 
     hierarchy = {
@@ -1567,10 +1568,11 @@ def test_clusterandmatch_process_no_primary_cube():
         random_state=42,
     )
 
-    with pytest.raises(
-        ValueError, match=r"No primary cube found with model_id=primary_model"
+    with pytest.warns(
+        UserWarning,
+        match=r"No primary cube found for model_id=primary_model; skipping clustering",
     ):
-        plugin.process(cubes)
+        assert plugin.process(cubes) is None
 
 
 @pytest.mark.parametrize(
