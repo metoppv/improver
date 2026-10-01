@@ -1181,7 +1181,7 @@ ecb248c8c7aa906e7fb29bdecd5ddfe553252acd9a8a9a4f16c373cead2996e0  ./visibility-c
 76bb402b849751f73dc873b321e7577da0c32ad6d1797ee8882a8cac4f69fc67  ./visibility-combine-cloud-base/gridded/kgo.nc
 3df5f2ccef7889d9b2684f42036f905ed7bcc270faa6849ed15d1d64db785964  ./visibility-combine-cloud-base/gridded/visibility.nc
 22853b8ea87585c5c9234052d1825dde9526b275357314b82f1c8293414abccb  ./visibility-combine-cloud-base/spot/cloud_base_ground.nc
-dceb99bf3d60583d2fac759b7a40b2b8f47f00fb8d4ca299f034bdf75aacb96f  ./visibility-combine-cloud-base/spot/kgo.nc
+4c7246e783ad783ac0d002ab738889b059566626682b840465feb967067dbe70  ./visibility-combine-cloud-base/spot/kgo.nc
 7329a37f445a545829eda7b1b37a5b3f9ca0499be069a832ebadd7dd648f66b6  ./visibility-combine-cloud-base/spot/visibility.nc
 8869c5d867ec6370df23b0a5a638a6432e0690c32c54fc5c61363f3ad75557b0  ./weather-symbol-modes/attribute_mismatch/20251126T0100Z-weather_symbols-PT01H.nc
 ee69cd488245d2e0f599bef4f7adb1d9931d50eae103728f43f8000ac2817389  ./weather-symbol-modes/attribute_mismatch/20251126T0200Z-weather_symbols-PT01H.nc
