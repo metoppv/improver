@@ -11,6 +11,7 @@ from iris.cube import Cube, CubeList
 
 from improver import PostProcessingPlugin
 from improver.cube_combiner import Combine
+from improver.metadata.forecast_times import rebadge_forecasts_as_latest_cycle
 from improver.metadata.probabilistic import (
     find_threshold_coordinate,
     is_probability,
@@ -193,6 +194,16 @@ class VisibilityCombineCloudBase(PostProcessingPlugin):
             )
 
         vis_cube = vis_combined_list.merge_cube()
+
+        latest_frt = max(
+            [
+                visibility_cube.coord("forecast_reference_time").cell(0).point,
+                cloud_base_ground_cube.coord("forecast_reference_time").cell(0).point,
+            ]
+        )
+        vis_cube = rebadge_forecasts_as_latest_cycle(
+            [vis_cube], cycletime=latest_frt.strftime("%Y%m%dT%H%MZ")
+        )[0]
 
         if vis_inverted:
             vis_cube = invert_probabilities(vis_cube)
