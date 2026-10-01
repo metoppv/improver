@@ -86,8 +86,9 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
                 provided, the forecast period found in the first forecast cube
                 will be used.
             max_allowed_difference (float, optional):
-                The maximum allowed difference between the uncalibrated and calibrated forecast.
-                If not provided, no maximum difference check will be applied. Defaults to None.
+                The maximum allowed difference between the uncalibrated and calibrated
+                forecast. If not provided, no maximum difference check will be applied.
+                If provided, must be a non-negative integer. Defaults to None.
         """
         self.feature_config = feature_config
         self.target_cf_name = target_cf_name
@@ -95,6 +96,16 @@ class PrepareAndApplyQRF(PostProcessingPlugin):
         self.cycletime = cycletime
         self.forecast_period = forecast_period
         self.quantile_forest_installed = quantile_forest_package_available()
+
+        if max_allowed_difference is not None:
+            if (not isinstance(max_allowed_difference, float)) or (
+                max_allowed_difference < 0
+            ):
+                raise ValueError(
+                    "max_allowed_difference must be a non-negative float. "
+                    f"Received: {max_allowed_difference}."
+                )
+
         self.max_allowed_difference = max_allowed_difference
 
     def _get_inputs(
