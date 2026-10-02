@@ -955,15 +955,16 @@ def test_process_falls_back_to_available_source_when_requested_model_missing():
     ],
 )
 def test_process_skips_morphing_when_no_transition_is_usable(transitions):
-    """Skip morphing when the configured transition pair is not available.
+    """Skip morphing when the active transition pair is unusable.
 
-    This tests the case where a transition window is active, but the actual source
-    pair named by that transition is not present in the cluster metadata / source
-    availability information for this cluster. In other words, there is no usable
-    transition partner available to apply. The method should therefore skip
-    morphing and keep the selected source rather than raising an error. The result
-    stays at the original source value: ``50 + 0`` because the input cube is built
-    with a base value of 50 and the selected realization is 0.
+    Concrete example: the transition window says ``A -> B`` is active, but the
+    cluster metadata and available inputs do not actually include ``A`` or ``B``.
+    In that case there is no usable transition partner for this run, so the
+    method should skip morphing and keep the already selected source (for example
+    ``C``) rather than raising an error. This is distinct from a genuine
+    ambiguity, where multiple valid transitions remain and we still raise an error. The
+    result stays at the original source value: ``50 + 0`` because the input cube
+    is built with a base value of 50 and the selected realization is 0.
     """
     cluster_cube = set_up_variable_cube(
         np.zeros((5, 5), dtype=np.float32),
@@ -1005,7 +1006,8 @@ def test_process_skips_morphing_when_no_transition_is_usable(transitions):
 
 
 def test_process_keeps_fallback_source_when_transition_pair_is_absent():
-    """Keep the valid fallback source when the transition pair is present in metadata but not supplied.
+    """Keep the valid fallback source when the transition pair is present in metadata
+    but not supplied.
 
     This is distinct from the previous test: here the cluster metadata explicitly
     lists ``uk_det``, ``uk_ens`` and ``ecgl_ens`` as valid sources for the cluster,
