@@ -955,14 +955,15 @@ def test_process_falls_back_to_available_source_when_requested_model_missing():
     ],
 )
 def test_process_skips_morphing_when_no_transition_is_usable(transitions):
-    """Keep the selected source when no active transition can actually be used.
+    """Skip morphing when the configured transition pair is not available.
 
-    This covers the case where a transition window is active, but the configured
-    source pair is not available on the supplied forecast cubes. In that
-    situation, the method should skip morphing and retain the current source rather
-    than raising an error. The result therefore stays at the original source value,
-    which is ``50 + 0`` here because the input cube is built with a base value of
-    50 and the selected realization is 0.
+    This tests the case where a transition window is active, but the actual source
+    pair named by that transition is not present in the cluster metadata / source
+    availability information for this cluster. In other words, there is no usable
+    transition partner available to apply. The method should therefore skip
+    morphing and keep the selected source rather than raising an error. The result
+    stays at the original source value: ``50 + 0`` because the input cube is built
+    with a base value of 50 and the selected realization is 0.
     """
     cluster_cube = set_up_variable_cube(
         np.zeros((5, 5), dtype=np.float32),
@@ -978,6 +979,9 @@ def test_process_skips_morphing_when_no_transition_is_usable(transitions):
             "uk_det": {"17": [{"realization": 0, "forecast_periods": [3600, 21600]}]},
         }
     )
+    # The cluster metadata only lists uk_det as available for this cluster. The
+    # configured transition(s) reference other source names, so no transition pair
+    # is actually usable here.
     cluster_cube.attributes["cluster_sources"] = json.dumps(
         {"17": {"uk_det": [3600, 21600]}}
     )
@@ -988,8 +992,8 @@ def test_process_skips_morphing_when_no_transition_is_usable(transitions):
         transitions=transitions,
     )
     # The configured transition(s) are active at this forecast period, but the
-    # source pair they reference is not present in the available inputs. The
-    # expected behavior is to skip morphing and keep the selected source.
+    # pair they reference is not present in the available inputs. The expected
+    # behavior is to skip morphing and keep the selected source.
     det_cube = make_forecast_cube(model_id="uk_det", n_realizations=2, base_value=50.0)
 
     result = plugin.process(det_cube, cluster_cube)
@@ -1001,14 +1005,16 @@ def test_process_skips_morphing_when_no_transition_is_usable(transitions):
 
 
 def test_process_keeps_fallback_source_when_transition_pair_is_absent():
-    """Keep the already valid fallback source when the active transition pair is absent.
+    """Keep the valid fallback source when the transition pair is present in metadata but not supplied.
 
-    This mimics the case where a transition window is active for ``uk_det ->
-    uk_ens`` at T+3 to T+5, but neither of those inputs is present on the forecast
-    cubes. Instead, ``ecgl_ens`` is the available source for cluster 17 and should be
-    kept without attempting morphing. The expected data value is ``300 + 12``
-    because ``make_forecast_cube`` adds the realization index to the base value; the
-    cluster metadata assigns realization 12 to ``ecgl_ens`` for this cluster.
+    This is distinct from the previous test: here the cluster metadata explicitly
+    lists ``uk_det``, ``uk_ens`` and ``ecgl_ens`` as valid sources for the cluster,
+    and the active transition window is ``uk_det -> uk_ens``. The key difference is
+    that the plugin input only contains ``ecgl_ens``. In this case we should keep
+    the supplied fallback source rather than attempting morphing against the
+    unavailable pair. The expected value is ``300 + 12`` because the ``ecgl_ens``
+    cube is built with a base value of 300 and the selected realization for this
+    cluster is 12.
     """
     cluster_cube = set_up_variable_cube(
         np.zeros((5, 5), dtype=np.float32),
@@ -1028,6 +1034,9 @@ def test_process_keeps_fallback_source_when_transition_pair_is_absent():
             },
         }
     )
+    # The cluster metadata explicitly contains the transition sources; the
+    # distinction is that the plugin is only given ecgl_ens as an input, so the
+    # uk_det -> uk_ens pair itself is not usable for this run.
     cluster_cube.attributes["cluster_sources"] = json.dumps(
         {
             "17": {
@@ -1052,10 +1061,9 @@ def test_process_keeps_fallback_source_when_transition_pair_is_absent():
             ]
         },
     )
-    # The active transition is defined in terms of uk_det -> uk_ens, but the
-    # only available forecast source for this cluster is ecgl_ens. Since neither
-    # leg of the transition pair is present, morphing should be skipped and the
-    # fallback source retained.
+    # The active transition is defined as uk_det -> uk_ens, but the plugin input
+    # only contains ecgl_ens, so the fallback source must be retained instead of
+    # trying to morph between the unavailable transition pair.
     ecgl_ens_cube = make_forecast_cube(
         model_id="ecgl_ens", n_realizations=24, base_value=300.0
     )
@@ -1063,8 +1071,8 @@ def test_process_keeps_fallback_source_when_transition_pair_is_absent():
     result = plugin.process(ecgl_ens_cube, cluster_cube)
 
     assert result.coord("realization").points.tolist() == [17]
-    # ``make_forecast_cube`` uses base_value + realization_index, so a cube with
-    # realization 12 produces values around 300 + 12.
+    # The chosen fallback source is ecgl_ens and the realization assigned for this
+    # cluster is 12, so the value is 300 + 12.
     np.testing.assert_allclose(result.data, 300.0 + 12, rtol=1e-6)
 
 
